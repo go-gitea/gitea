@@ -38,7 +38,7 @@ func RobotsTxt(w http.ResponseWriter, req *http.Request) {
 	if ok, _ := util.IsExist(robotsTxt); !ok {
 		robotsTxt = util.FilePathJoinAbs(setting.CustomPath, "robots.txt") // the legacy "robots.txt"
 	}
-	httpcache.SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
+	httpcache.SetCacheControlInHeader(w.Header(), httpcache.CacheControlForPublicStatic())
 	http.ServeFile(w, req, robotsTxt)
 }
 

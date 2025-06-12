@@ -4,7 +4,7 @@
 package repo
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"time"
 
@@ -116,7 +116,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		if opts.UserID == 0 {
 			opts.UserID = ctx.Doer.ID
 		} else {
-			ctx.APIError(http.StatusForbidden, fmt.Errorf("query by user not allowed; not enough rights"))
+			ctx.APIError(http.StatusForbidden, errors.New("query by user not allowed; not enough rights"))
 			return
 		}
 	}
@@ -366,7 +366,7 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 	if time.Deleted {
-		ctx.APIErrorNotFound(fmt.Errorf("tracked time [%d] already deleted", time.ID))
+		ctx.APIErrorNotFound("tracked time was already deleted")
 		return
 	}
 
@@ -437,7 +437,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	}
 
 	if !ctx.IsUserRepoAdmin() && !ctx.Doer.IsAdmin && ctx.Doer.ID != user.ID {
-		ctx.APIError(http.StatusForbidden, fmt.Errorf("query by user not allowed; not enough rights"))
+		ctx.APIError(http.StatusForbidden, errors.New("query by user not allowed; not enough rights"))
 		return
 	}
 
@@ -545,7 +545,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		if opts.UserID == 0 {
 			opts.UserID = ctx.Doer.ID
 		} else {
-			ctx.APIError(http.StatusForbidden, fmt.Errorf("query by user not allowed; not enough rights"))
+			ctx.APIError(http.StatusForbidden, errors.New("query by user not allowed; not enough rights"))
 			return
 		}
 	}

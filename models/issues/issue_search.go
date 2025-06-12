@@ -21,14 +21,16 @@ import (
 	"xorm.io/xorm"
 )
 
+const ScopeSortPrefix = "scope-"
+
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint
 	Paginator          *db.ListOptions
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	AllPublic          bool    // include also all public repositories
 	RepoCond           builder.Cond
-	AssigneeID         optional.Option[int64]
-	PosterID           optional.Option[int64]
+	AssigneeID         string // "(none)" or "(any)" or a user ID
+	PosterID           string // "(none)" or "(any)" or a user ID
 	MentionedID        int64
 	ReviewRequestedID  int64
 	ReviewedID         int64
@@ -70,11 +72,24 @@ func (o *IssuesOptions) Copy(edit ...func(options *IssuesOptions)) *IssuesOption
 // applySorts sort an issues-related session based on the provided
 // sortType string
 func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
+	// Since this sortType is dynamically created, it has to be treated specially.
+	if strings.HasPrefix(sortType, ScopeSortPrefix) {
+		scope := strings.TrimPrefix(sortType, ScopeSortPrefix)
+		sess.Join("LEFT", "issue_label", "issue.id = issue_label.issue_id")
+		// "exclusive_order=0" means "no order is set", so exclude it from the JOIN criteria and then "LEFT JOIN" result is also null
+		sess.Join("LEFT", "label", "label.id = issue_label.label_id AND label.exclusive_order <> 0 AND label.name LIKE ?", scope+"/%")
+		// Use COALESCE to make sure we sort NULL last regardless of backend DB (2147483647 == max int)
+		sess.OrderBy("COALESCE(label.exclusive_order, 2147483647) ASC").Desc("issue.id")
+		return
+	}
+
 	switch sortType {
 	case "oldest":
 		sess.Asc("issue.created_unix").Asc("issue.id")
 	case "recentupdate":
 		sess.Desc("issue.updated_unix").Desc("issue.created_unix").Desc("issue.id")
+	case "recentclose":
+		sess.Desc("issue.closed_unix").Desc("issue.created_unix").Desc("issue.id")
 	case "leastupdate":
 		sess.Asc("issue.updated_unix").Asc("issue.created_unix").Asc("issue.id")
 	case "mostcomment":
@@ -356,26 +371,25 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, owner *user_mod
 	return cond
 }
 
-func applyAssigneeCondition(sess *xorm.Session, assigneeID optional.Option[int64]) {
+func applyAssigneeCondition(sess *xorm.Session, assigneeID string) {
 	// old logic: 0 is also treated as "not filtering assignee", because the "assignee" was read as FormInt64
-	if !assigneeID.Has() || assigneeID.Value() == 0 {
-		return
-	}
-	if assigneeID.Value() == db.NoConditionID {
+	if assigneeID == "(none)" {
 		sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
-	} else {
+	} else if assigneeID == "(any)" {
+		sess.Where("issue.id IN (SELECT issue_id FROM issue_assignees)")
+	} else if assigneeIDInt64, _ := strconv.ParseInt(assigneeID, 10, 64); assigneeIDInt64 > 0 {
 		sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
-			And("issue_assignees.assignee_id = ?", assigneeID.Value())
+			And("issue_assignees.assignee_id = ?", assigneeIDInt64)
 	}
 }
 
-func applyPosterCondition(sess *xorm.Session, posterID optional.Option[int64]) {
-	if !posterID.Has() {
-		return
-	}
-	// poster doesn't need to support db.NoConditionID(-1), so just use the value as-is
-	if posterID.Has() {
-		sess.And("issue.poster_id=?", posterID.Value())
+func applyPosterCondition(sess *xorm.Session, posterID string) {
+	// Actually every issue has a poster.
+	// The "(none)" is for internal usage only: when doer tries to search non-existing user as poster, use "(none)" to return empty result.
+	if posterID == "(none)" {
+		sess.And("issue.poster_id=0")
+	} else if posterIDInt64, _ := strconv.ParseInt(posterID, 10, 64); posterIDInt64 > 0 {
+		sess.And("issue.poster_id=?", posterIDInt64)
 	}
 }
 

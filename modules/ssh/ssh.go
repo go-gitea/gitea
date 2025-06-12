@@ -11,7 +11,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"os"
@@ -216,7 +215,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	ctx.Permissions().Permissions = &gossh.Permissions{}
 	setPermExt := func(keyID int64) {
 		ctx.Permissions().Permissions.Extensions = map[string]string{
-			giteaPermissionExtensionKeyID: fmt.Sprint(keyID),
+			giteaPermissionExtensionKeyID: strconv.FormatInt(keyID, 10),
 		}
 	}
 
@@ -334,7 +333,7 @@ func sshConnectionFailed(conn net.Conn, err error) {
 	log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
 }
 
-// Listen starts a SSH server listens on given port.
+// Listen starts an SSH server listening on given port.
 func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	srv := ssh.Server{
 		Addr:             net.JoinHostPort(host, strconv.Itoa(port)),

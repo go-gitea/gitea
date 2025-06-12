@@ -7,7 +7,6 @@ import (
 	"fmt"
 	golog "log"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -41,7 +40,7 @@ func loadLogGlobalFrom(rootCfg ConfigProvider) {
 	Log.BufferLen = sec.Key("BUFFER_LEN").MustInt(10000)
 	Log.Mode = sec.Key("MODE").MustString("console")
 
-	Log.RootPath = sec.Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
+	Log.RootPath = sec.Key("ROOT_PATH").MustString(filepath.Join(AppWorkPath, "log"))
 	if !filepath.IsAbs(Log.RootPath) {
 		Log.RootPath = filepath.Join(AppWorkPath, Log.RootPath)
 	}

@@ -5,10 +5,10 @@
 package repo
 
 import (
-	"fmt"
 	"math"
 	"net/http"
 	"strconv"
+	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
@@ -65,7 +65,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 
 	sha := ctx.PathParam("sha")
 	if !git.IsValidRefPattern(sha) {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("no valid ref or sha: %s", sha))
+		ctx.APIError(http.StatusUnprocessableEntity, "no valid ref or sha: "+sha)
 		return
 	}
 
@@ -76,7 +76,7 @@ func getCommit(ctx *context.APIContext, identifier string, toCommitOpts convert.
 	commit, err := ctx.Repo.GitRepo.GetCommit(identifier)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(identifier)
+			ctx.APIErrorNotFound("commit doesn't exist: " + identifier)
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -117,6 +117,16 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   in: query
 	//   description: filepath of a file/dir
 	//   type: string
+	// - name: since
+	//   in: query
+	//   description: Only commits after this date will be returned (ISO 8601 format)
+	//   type: string
+	//   format: date-time
+	// - name: until
+	//   in: query
+	//   description: Only commits before this date will be returned (ISO 8601 format)
+	//   type: string
+	//   format: date-time
 	// - name: stat
 	//   in: query
 	//   description: include diff stats for every commit (disable for speedup, default 'true')
@@ -149,6 +159,23 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   "409":
 	//     "$ref": "#/responses/EmptyRepository"
 
+	since := ctx.FormString("since")
+	until := ctx.FormString("until")
+
+	// Validate since/until as ISO 8601 (RFC3339)
+	if since != "" {
+		if _, err := time.Parse(time.RFC3339, since); err != nil {
+			ctx.APIError(http.StatusUnprocessableEntity, "invalid 'since' format, expected ISO 8601 (RFC3339)")
+			return
+		}
+	}
+	if until != "" {
+		if _, err := time.Parse(time.RFC3339, until); err != nil {
+			ctx.APIError(http.StatusUnprocessableEntity, "invalid 'until' format, expected ISO 8601 (RFC3339)")
+			return
+		}
+	}
+
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.JSON(http.StatusConflict, api.APIError{
 			Message: "Git Repository is empty.",
@@ -180,13 +207,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		var baseCommit *git.Commit
 		if len(sha) == 0 {
 			// no sha supplied - use default branch
-			head, err := ctx.Repo.GitRepo.GetHEADBranch()
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-
-			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(head.Name)
+			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -205,6 +226,8 @@ func GetAllCommits(ctx *context.APIContext) {
 			RepoPath: ctx.Repo.GitRepo.Path,
 			Not:      not,
 			Revision: []string{baseCommit.ID.String()},
+			Since:    since,
+			Until:    until,
 		})
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -212,7 +235,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Query commits
-		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not)
+		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not, since, until)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -228,6 +251,8 @@ func GetAllCommits(ctx *context.APIContext) {
 				Not:      not,
 				Revision: []string{sha},
 				RelPath:  []string{path},
+				Since:    since,
+				Until:    until,
 			})
 
 		if err != nil {
@@ -244,6 +269,8 @@ func GetAllCommits(ctx *context.APIContext) {
 				File:     path,
 				Not:      not,
 				Page:     listOptions.Page,
+				Since:    since,
+				Until:    until,
 			})
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -317,7 +344,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 
 	if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(sha)
+			ctx.APIErrorNotFound("commit doesn't exist: " + sha)
 			return
 		}
 		ctx.APIErrorInternal(err)

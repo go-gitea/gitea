@@ -149,7 +149,7 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 }
 
 func createFileForBlob(ctx context.Context, pv *packages_model.PackageVersion, pb *packages_model.PackageBlob) error {
-	filename := strings.ToLower(fmt.Sprintf("sha256_%s", pb.HashSHA256))
+	filename := strings.ToLower("sha256_" + pb.HashSHA256)
 
 	pf := &packages_model.PackageFile{
 		VersionID:    pv.ID,

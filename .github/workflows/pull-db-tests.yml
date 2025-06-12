@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       pgsql:
-        image: postgres:12
+        image: postgres:14
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -98,7 +98,7 @@ jobs:
         ports:
           - "9200:9200"
       meilisearch:
-        image: getmeili/meilisearch:v1.2.0
+        image: getmeili/meilisearch:v1
         env:
           MEILI_ENV: development # disable auth
         ports:

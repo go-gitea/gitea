@@ -27,7 +27,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 	apiPullRequest := ToAPIPullRequest(git.DefaultContext, pr, nil)
 	assert.NotNil(t, apiPullRequest)
-	assert.EqualValues(t, &structs.PRBranchInfo{
+	assert.Equal(t, &structs.PRBranchInfo{
 		Name:       "branch1",
 		Ref:        "refs/pull/2/head",
 		Sha:        "4a357436d925b5c974181ff12a994538ddc5a269",
@@ -46,4 +46,11 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	assert.NotNil(t, apiPullRequest)
 	assert.Nil(t, apiPullRequest.Head.Repository)
 	assert.EqualValues(t, -1, apiPullRequest.Head.RepoID)
+
+	apiPullRequests, err := ToAPIPullRequests(git.DefaultContext, pr.BaseRepo, []*issues_model.PullRequest{pr}, nil)
+	assert.NoError(t, err)
+	assert.Len(t, apiPullRequests, 1)
+	assert.NotNil(t, apiPullRequests[0])
+	assert.Nil(t, apiPullRequests[0].Head.Repository)
+	assert.EqualValues(t, -1, apiPullRequests[0].Head.RepoID)
 }

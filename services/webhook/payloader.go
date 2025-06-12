@@ -29,6 +29,7 @@ type payloadConvertor[T any] interface {
 	Wiki(*api.WikiPayload) (T, error)
 	Package(*api.PackagePayload) (T, error)
 	Status(*api.CommitStatusPayload) (T, error)
+	WorkflowJob(*api.WorkflowJobPayload) (T, error)
 }
 
 func convertUnmarshalledJSON[T, P any](convert func(P) (T, error), data []byte) (t T, err error) {
@@ -80,6 +81,8 @@ func newPayload[T any](rc payloadConvertor[T], data []byte, event webhook_module
 		return convertUnmarshalledJSON(rc.Package, data)
 	case webhook_module.HookEventStatus:
 		return convertUnmarshalledJSON(rc.Status, data)
+	case webhook_module.HookEventWorkflowJob:
+		return convertUnmarshalledJSON(rc.WorkflowJob, data)
 	}
 	return t, fmt.Errorf("newPayload unsupported event: %s", event)
 }

@@ -46,6 +46,8 @@ type Command struct {
 	args             []string
 	globalArgsLength int
 	brokenArgs       []string
+	cmd              *exec.Cmd // for debug purpose only
+	configArgs       []string
 }
 
 func logArgSanitize(arg string) string {
@@ -77,6 +79,13 @@ func (c *Command) LogString() string {
 		a = append(a, debugQuote(logArgSanitize(c.args[i])))
 	}
 	return strings.Join(a, " ")
+}
+
+func (c *Command) ProcessState() string {
+	if c.cmd == nil {
+		return ""
+	}
+	return c.cmd.ProcessState.String()
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
@@ -185,6 +194,16 @@ func (c *Command) AddDashesAndList(list ...string) *Command {
 	// Some old code also checks `arg != ""`, IMO it's not necessary.
 	// If the check is needed, the list should be prepared before the call to this function
 	c.args = append(c.args, list...)
+	return c
+}
+
+func (c *Command) AddConfig(key, value string) *Command {
+	kv := key + "=" + value
+	if !isSafeArgumentValue(kv) {
+		c.brokenArgs = append(c.brokenArgs, key)
+	} else {
+		c.configArgs = append(c.configArgs, "-c", kv)
+	}
 	return c
 }
 
@@ -313,7 +332,8 @@ func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 
 	startTime := time.Now()
 
-	cmd := exec.CommandContext(ctx, c.prog, c.args...)
+	cmd := exec.CommandContext(ctx, c.prog, append(c.configArgs, c.args...)...)
+	c.cmd = cmd // for debug purpose only
 	if opts.Env == nil {
 		cmd.Env = os.Environ()
 	} else {
@@ -348,9 +368,10 @@ func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 	// We need to check if the context is canceled by the program on Windows.
 	// This is because Windows does not have signal checking when terminating the process.
 	// It always returns exit code 1, unlike Linux, which has many exit codes for signals.
+	// `err.Error()` returns "exit status 1" when using the `git check-attr` command after the context is canceled.
 	if runtime.GOOS == "windows" &&
 		err != nil &&
-		err.Error() == "" &&
+		(err.Error() == "" || err.Error() == "exit status 1") &&
 		cmd.ProcessState.ExitCode() == 1 &&
 		ctx.Err() == context.Canceled {
 		return ctx.Err()

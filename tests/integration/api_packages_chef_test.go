@@ -274,7 +274,7 @@ nwIDAQAB
 	uploadPackage := func(t *testing.T, version string, expectedStatus int) {
 		var body bytes.Buffer
 		mpw := multipart.NewWriter(&body)
-		part, _ := mpw.CreateFormFile("tarball", fmt.Sprintf("%s.tar.gz", version))
+		part, _ := mpw.CreateFormFile("tarball", version+".tar.gz")
 		zw := gzip.NewWriter(part)
 		tw := tar.NewWriter(zw)
 
@@ -320,7 +320,7 @@ nwIDAQAB
 		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
-		assert.Equal(t, fmt.Sprintf("%s.tar.gz", packageVersion), pfs[0].Name)
+		assert.Equal(t, packageVersion+".tar.gz", pfs[0].Name)
 		assert.True(t, pfs[0].IsLead)
 
 		uploadPackage(t, packageVersion, http.StatusConflict)

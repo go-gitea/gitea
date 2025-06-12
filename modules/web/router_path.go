@@ -4,7 +4,6 @@
 package web
 
 import (
-	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -103,7 +102,7 @@ func newRouterPathMatcher(methods, pattern string, h ...any) *routerPathMatcher 
 	for _, method := range strings.Split(methods, ",") {
 		method = strings.TrimSpace(method)
 		if !isValidMethod(method) {
-			panic(fmt.Sprintf("invalid HTTP method: %s", method))
+			panic("invalid HTTP method: " + method)
 		}
 		p.methods.Add(method)
 	}
@@ -117,7 +116,7 @@ func newRouterPathMatcher(methods, pattern string, h ...any) *routerPathMatcher 
 		}
 		end := strings.IndexByte(pattern[lastEnd+start:], '>')
 		if end == -1 {
-			panic(fmt.Sprintf("invalid pattern: %s", pattern))
+			panic("invalid pattern: " + pattern)
 		}
 		re = append(re, pattern[lastEnd:lastEnd+start]...)
 		partName, partExp, _ := strings.Cut(pattern[lastEnd+start+1:lastEnd+start+end], ":")

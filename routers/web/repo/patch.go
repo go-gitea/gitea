@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"net/http"
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -39,7 +40,7 @@ func NewDiffPatch(ctx *context.Context) {
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 
-	ctx.HTML(200, tplPatchFile)
+	ctx.HTML(http.StatusOK, tplPatchFile)
 }
 
 // NewDiffPatchPost response for sending patch page
@@ -62,7 +63,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplPatchFile)
+		ctx.HTML(http.StatusOK, tplPatchFile)
 		return
 	}
 

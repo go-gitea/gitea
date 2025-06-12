@@ -46,6 +46,10 @@ const (
 
 // Teams render teams list page
 func Teams(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 	org := ctx.Org.Organization
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgTeams"] = true
@@ -57,12 +61,6 @@ func Teams(ctx *context.Context) {
 		}
 	}
 	ctx.Data["Teams"] = ctx.Org.Teams
-
-	_, err := shared_user.PrepareOrgHeader(ctx)
-	if err != nil {
-		ctx.ServerError("PrepareOrgHeader", err)
-		return
-	}
 
 	ctx.HTML(http.StatusOK, tplTeams)
 }
@@ -272,18 +270,20 @@ func TeamsRepoAction(ctx *context.Context) {
 
 // NewTeam render create new team page
 func NewTeam(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Team"] = &org_model.Team{}
 	ctx.Data["Units"] = unit_model.Units
-	if err := shared_user.LoadHeaderCount(ctx); err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
+// FIXME: TEAM-UNIT-PERMISSION: this design is not right, when a new unit is added in the future,
+// admin team won't inherit the correct admin permission for the new unit.
 func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_model.Type]perm.AccessMode {
 	unitPerms := make(map[unit_model.Type]perm.AccessMode)
 	for _, ut := range unit_model.AllRepoUnitTypes {
@@ -314,19 +314,14 @@ func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_mod
 func NewTeamPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateTeamForm)
 	includesAllRepositories := form.RepoAccess == "all"
-	p := perm.ParseAccessMode(form.Permission)
-	unitPerms := getUnitPerms(ctx.Req.Form, p)
-	if p < perm.AccessModeAdmin {
-		// if p is less than admin accessmode, then it should be general accessmode,
-		// so we should calculate the minial accessmode from units accessmodes.
-		p = unit_model.MinUnitAccessMode(unitPerms)
-	}
+	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
+	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
 
 	t := &org_model.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.TeamName,
 		Description:             form.Description,
-		AccessMode:              p,
+		AccessMode:              teamPermission,
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 	}
@@ -373,14 +368,14 @@ func NewTeamPost(ctx *context.Context) {
 
 // TeamMembers render team members page
 func TeamMembers(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamMembers"] = true
-
-	if err := shared_user.LoadHeaderCount(ctx); err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
 
 	if err := ctx.Org.Team.LoadMembers(ctx); err != nil {
 		ctx.ServerError("GetMembers", err)
@@ -401,14 +396,14 @@ func TeamMembers(ctx *context.Context) {
 
 // TeamRepositories show the repositories of team
 func TeamRepositories(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamRepos"] = true
-
-	if err := shared_user.LoadHeaderCount(ctx); err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
 
 	repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
 		TeamID: ctx.Org.Team.ID,
@@ -466,14 +461,14 @@ func SearchTeam(ctx *context.Context) {
 
 // EditTeam render team edit page
 func EditTeam(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	if err := ctx.Org.Team.LoadUnits(ctx); err != nil {
 		ctx.ServerError("LoadUnits", err)
-		return
-	}
-	if err := shared_user.LoadHeaderCount(ctx); err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
 	ctx.Data["Team"] = ctx.Org.Team
@@ -485,13 +480,8 @@ func EditTeam(ctx *context.Context) {
 func EditTeamPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateTeamForm)
 	t := ctx.Org.Team
-	newAccessMode := perm.ParseAccessMode(form.Permission)
-	unitPerms := getUnitPerms(ctx.Req.Form, newAccessMode)
-	if newAccessMode < perm.AccessModeAdmin {
-		// if newAccessMode is less than admin accessmode, then it should be general accessmode,
-		// so we should calculate the minial accessmode from units accessmodes.
-		newAccessMode = unit_model.MinUnitAccessMode(unitPerms)
-	}
+	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
+	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
 	isAuthChanged := false
 	isIncludeAllChanged := false
 	includesAllRepositories := form.RepoAccess == "all"
@@ -503,9 +493,9 @@ func EditTeamPost(ctx *context.Context) {
 
 	if !t.IsOwnerTeam() {
 		t.Name = form.TeamName
-		if t.AccessMode != newAccessMode {
+		if t.AccessMode != teamPermission {
 			isAuthChanged = true
-			t.AccessMode = newAccessMode
+			t.AccessMode = teamPermission
 		}
 
 		if t.IncludesAllRepositories != includesAllRepositories {

@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -115,7 +116,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			case "temporarily_unavailable":
 				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error.temporarily_unavailable"))
 			default:
-				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error"))
+				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error.general", callbackErr.Description))
 			}
 			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
@@ -155,9 +156,10 @@ func SignInOAuthCallback(ctx *context.Context) {
 				return
 			}
 			if uname == "" {
-				if setting.OAuth2Client.Username == setting.OAuth2UsernameNickname {
+				switch setting.OAuth2Client.Username {
+				case setting.OAuth2UsernameNickname:
 					missingFields = append(missingFields, "nickname")
-				} else if setting.OAuth2Client.Username == setting.OAuth2UsernamePreferredUsername {
+				case setting.OAuth2UsernamePreferredUsername:
 					missingFields = append(missingFields, "preferred_username")
 				} // else: "UserID" and "Email" have been handled above separately
 			}
@@ -191,8 +193,8 @@ func SignInOAuthCallback(ctx *context.Context) {
 			source := authSource.Cfg.(*oauth2.Source)
 
 			isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(source, &gothUser)
-			u.IsAdmin = isAdmin.ValueOrDefault(false)
-			u.IsRestricted = isRestricted.ValueOrDefault(false)
+			u.IsAdmin = isAdmin.ValueOrDefault(user_service.UpdateOptionField[bool]{FieldValue: false}).FieldValue
+			u.IsRestricted = isRestricted.ValueOrDefault(setting.Service.DefaultUserIsRestricted)
 
 			if !createAndHandleCreatedUser(ctx, templates.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
 				// error already handled
@@ -256,11 +258,11 @@ func getClaimedGroups(source *oauth2.Source, gothUser *goth.User) container.Set[
 	return claimValueToStringSet(groupClaims)
 }
 
-func getUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, gothUser *goth.User) (isAdmin, isRestricted optional.Option[bool]) {
+func getUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, gothUser *goth.User) (isAdmin optional.Option[user_service.UpdateOptionField[bool]], isRestricted optional.Option[bool]) {
 	groups := getClaimedGroups(source, gothUser)
 
 	if source.AdminGroup != "" {
-		isAdmin = optional.Some(groups.Contains(source.AdminGroup))
+		isAdmin = user_service.UpdateOptionFieldFromSync(groups.Contains(source.AdminGroup))
 	}
 	if source.RestrictedGroup != "" {
 		isRestricted = optional.Some(groups.Contains(source.RestrictedGroup))
@@ -301,7 +303,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	updateAvatarIfNeed(ctx, gothUser.AvatarURL, u)
 
 	needs2FA := false
-	if !source.Cfg.(*oauth2.Source).SkipLocalTwoFA {
+	if !source.TwoFactorShouldSkip() {
 		_, err := auth.GetTwoFactorByUID(ctx, u.ID)
 		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("UserSignIn", err)
@@ -351,10 +353,16 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
+		userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
+		if err != nil {
+			ctx.ServerError("UpdateUser", err)
+			return
+		}
 
 		if err := updateSession(ctx, nil, map[string]any{
-			"uid":   u.ID,
-			"uname": u.Name,
+			session.KeyUID:                  u.ID,
+			session.KeyUname:                u.Name,
+			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 		}); err != nil {
 			ctx.ServerError("updateSession", err)
 			return
@@ -431,8 +439,10 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 	gothUser, err := oauth2Source.Callback(request, response)
 	if err != nil {
 		if err.Error() == "securecookie: the value is too long" || strings.Contains(err.Error(), "Data too long") {
-			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
 			err = fmt.Errorf("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
+			log.Error("oauth2Source.Callback failed: %v", err)
+		} else {
+			err = errCallback{Code: "internal", Description: err.Error()}
 		}
 		return nil, goth.User{}, err
 	}

@@ -259,6 +259,20 @@
 				</div>
 			</div>
 		</div>
+		<!-- Workflow Events -->
+		<div class="fourteen wide column">
+			<label>{{ctx.Locale.Tr "repo.settings.event_header_workflow"}}</label>
+		</div>
+		<!-- Workflow Job Event -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input name="workflow_job" type="checkbox" {{if .Webhook.HookEvents.Get "workflow_job"}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_workflow_job"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_workflow_job_desc"}}</span>
+				</div>
+			</div>
+		</div>
 	</div>
 </div>
 

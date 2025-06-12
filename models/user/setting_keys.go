@@ -10,6 +10,7 @@ const (
 	SettingsKeyDiffWhitespaceBehavior = "diff.whitespace_behaviour"
 	// SettingsKeyShowOutdatedComments is the setting key wether or not to show outdated comments in PRs
 	SettingsKeyShowOutdatedComments = "comment_code.show_outdated"
+
 	// UserActivityPubPrivPem is user's private key
 	UserActivityPubPrivPem = "activitypub.priv_pem"
 	// UserActivityPubPubPem is user's public key
@@ -18,4 +19,6 @@ const (
 	SignupIP = "signup.ip"
 	// SignupUserAgent is the user agent that the user signed up with
 	SignupUserAgent = "signup.user_agent"
+
+	SettingsKeyCodeViewShowFileTree = "code_view.show_file_tree"
 )

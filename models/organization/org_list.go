@@ -50,8 +50,8 @@ type SearchOrganizationsOptions struct {
 // FindOrgOptions finds orgs options
 type FindOrgOptions struct {
 	db.ListOptions
-	UserID         int64
-	IncludePrivate bool
+	UserID            int64
+	IncludeVisibility structs.VisibleType
 }
 
 func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
@@ -65,16 +65,25 @@ func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
 func (opts FindOrgOptions) ToConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{"`user`.`type`": user_model.UserTypeOrganization}
 	if opts.UserID > 0 {
-		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID, opts.IncludePrivate)))
+		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID, opts.IncludeVisibility == structs.VisibleTypePrivate)))
 	}
-	if !opts.IncludePrivate {
-		cond = cond.And(builder.Eq{"`user`.visibility": structs.VisibleTypePublic})
-	}
+	// public=0, limited=1, private=2
+	cond = cond.And(builder.Lte{"`user`.visibility": opts.IncludeVisibility})
 	return cond
 }
 
 func (opts FindOrgOptions) ToOrders() string {
 	return "`user`.lower_name ASC"
+}
+
+func DoerViewOtherVisibility(doer, other *user_model.User) structs.VisibleType {
+	if doer == nil || other == nil {
+		return structs.VisibleTypePublic
+	}
+	if doer.IsAdmin || doer.ID == other.ID {
+		return structs.VisibleTypePrivate
+	}
+	return structs.VisibleTypeLimited
 }
 
 // GetOrgsCanCreateRepoByUserID returns a list of organizations where given user ID

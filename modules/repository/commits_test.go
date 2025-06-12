@@ -50,54 +50,54 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	pushCommits.HeadCommit = &PushCommit{Sha1: "69554a6"}
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16})
-	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(git.DefaultContext, repo.RepoPath(), "/user2/repo16")
+	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(git.DefaultContext, repo)
 	assert.NoError(t, err)
 	assert.Len(t, payloadCommits, 3)
 	assert.NotNil(t, headCommit)
 
 	assert.Equal(t, "69554a6", payloadCommits[0].ID)
 	assert.Equal(t, "not signed commit", payloadCommits[0].Message)
-	assert.Equal(t, "/user2/repo16/commit/69554a6", payloadCommits[0].URL)
+	assert.Equal(t, "https://try.gitea.io/user2/repo16/commit/69554a6", payloadCommits[0].URL)
 	assert.Equal(t, "User2", payloadCommits[0].Committer.Name)
 	assert.Equal(t, "user2", payloadCommits[0].Committer.UserName)
 	assert.Equal(t, "User2", payloadCommits[0].Author.Name)
 	assert.Equal(t, "user2", payloadCommits[0].Author.UserName)
-	assert.EqualValues(t, []string{}, payloadCommits[0].Added)
-	assert.EqualValues(t, []string{}, payloadCommits[0].Removed)
-	assert.EqualValues(t, []string{"readme.md"}, payloadCommits[0].Modified)
+	assert.Equal(t, []string{}, payloadCommits[0].Added)
+	assert.Equal(t, []string{}, payloadCommits[0].Removed)
+	assert.Equal(t, []string{"readme.md"}, payloadCommits[0].Modified)
 
 	assert.Equal(t, "27566bd", payloadCommits[1].ID)
 	assert.Equal(t, "good signed commit (with not yet validated email)", payloadCommits[1].Message)
-	assert.Equal(t, "/user2/repo16/commit/27566bd", payloadCommits[1].URL)
+	assert.Equal(t, "https://try.gitea.io/user2/repo16/commit/27566bd", payloadCommits[1].URL)
 	assert.Equal(t, "User2", payloadCommits[1].Committer.Name)
 	assert.Equal(t, "user2", payloadCommits[1].Committer.UserName)
 	assert.Equal(t, "User2", payloadCommits[1].Author.Name)
 	assert.Equal(t, "user2", payloadCommits[1].Author.UserName)
-	assert.EqualValues(t, []string{}, payloadCommits[1].Added)
-	assert.EqualValues(t, []string{}, payloadCommits[1].Removed)
-	assert.EqualValues(t, []string{"readme.md"}, payloadCommits[1].Modified)
+	assert.Equal(t, []string{}, payloadCommits[1].Added)
+	assert.Equal(t, []string{}, payloadCommits[1].Removed)
+	assert.Equal(t, []string{"readme.md"}, payloadCommits[1].Modified)
 
 	assert.Equal(t, "5099b81", payloadCommits[2].ID)
 	assert.Equal(t, "good signed commit", payloadCommits[2].Message)
-	assert.Equal(t, "/user2/repo16/commit/5099b81", payloadCommits[2].URL)
+	assert.Equal(t, "https://try.gitea.io/user2/repo16/commit/5099b81", payloadCommits[2].URL)
 	assert.Equal(t, "User2", payloadCommits[2].Committer.Name)
 	assert.Equal(t, "user2", payloadCommits[2].Committer.UserName)
 	assert.Equal(t, "User2", payloadCommits[2].Author.Name)
 	assert.Equal(t, "user2", payloadCommits[2].Author.UserName)
-	assert.EqualValues(t, []string{"readme.md"}, payloadCommits[2].Added)
-	assert.EqualValues(t, []string{}, payloadCommits[2].Removed)
-	assert.EqualValues(t, []string{}, payloadCommits[2].Modified)
+	assert.Equal(t, []string{"readme.md"}, payloadCommits[2].Added)
+	assert.Equal(t, []string{}, payloadCommits[2].Removed)
+	assert.Equal(t, []string{}, payloadCommits[2].Modified)
 
 	assert.Equal(t, "69554a6", headCommit.ID)
 	assert.Equal(t, "not signed commit", headCommit.Message)
-	assert.Equal(t, "/user2/repo16/commit/69554a6", headCommit.URL)
+	assert.Equal(t, "https://try.gitea.io/user2/repo16/commit/69554a6", headCommit.URL)
 	assert.Equal(t, "User2", headCommit.Committer.Name)
 	assert.Equal(t, "user2", headCommit.Committer.UserName)
 	assert.Equal(t, "User2", headCommit.Author.Name)
 	assert.Equal(t, "user2", headCommit.Author.UserName)
-	assert.EqualValues(t, []string{}, headCommit.Added)
-	assert.EqualValues(t, []string{}, headCommit.Removed)
-	assert.EqualValues(t, []string{"readme.md"}, headCommit.Modified)
+	assert.Equal(t, []string{}, headCommit.Added)
+	assert.Equal(t, []string{}, headCommit.Removed)
+	assert.Equal(t, []string{"readme.md"}, headCommit.Modified)
 }
 
 func TestPushCommits_AvatarLink(t *testing.T) {
@@ -200,5 +200,3 @@ func TestListToPushCommits(t *testing.T) {
 		assert.Equal(t, now, pushCommits.Commits[1].Timestamp)
 	}
 }
-
-// TODO TestPushUpdate

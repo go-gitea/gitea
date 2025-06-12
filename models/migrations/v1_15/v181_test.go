@@ -49,7 +49,7 @@ func Test_AddPrimaryEmail2EmailAddress(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, has)
 		assert.True(t, emailAddress.IsPrimary)
-		assert.EqualValues(t, user.IsActive, emailAddress.IsActivated)
-		assert.EqualValues(t, user.ID, emailAddress.UID)
+		assert.Equal(t, user.IsActive, emailAddress.IsActivated)
+		assert.Equal(t, user.ID, emailAddress.UID)
 	}
 }

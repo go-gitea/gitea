@@ -87,7 +87,7 @@ func TestPackageGo(t *testing.T) {
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusConflict)
 
-		time.Sleep(time.Second)
+		time.Sleep(time.Second) // Ensure the timestamp is different, then the "list" below can have stable order
 
 		content = createArchive(map[string][]byte{
 			packageName + "@" + packageVersion2 + "/go.mod": []byte(goModContent),

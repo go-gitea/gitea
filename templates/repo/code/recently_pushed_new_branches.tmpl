@@ -5,7 +5,7 @@
 			{{$branchLink := HTMLFormat `<a href="%s">%s</a>` .BranchLink .BranchDisplayName}}
 			{{ctx.Locale.Tr "repo.pulls.recently_pushed_new_branches" $branchLink $timeSince}}
 		</div>
-		<a role="button" class="ui compact green button tw-m-0" href="{{.BranchCompareURL}}">
+		<a role="button" class="ui compact green button tw-m-0" href="{{QueryBuild .BranchCompareURL "expand" 1}}">
 			{{ctx.Locale.Tr "repo.pulls.compare_changes"}}
 		</a>
 	</div>

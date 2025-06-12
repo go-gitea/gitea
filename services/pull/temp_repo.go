@@ -15,6 +15,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 )
@@ -27,7 +28,7 @@ const (
 	stagingBranch  = "staging"  // this is used for a working branch
 )
 
-type prContext struct {
+type prTmpRepoContext struct {
 	context.Context
 	tmpBasePath string
 	pr          *issues_model.PullRequest
@@ -35,7 +36,7 @@ type prContext struct {
 	errbuf      *strings.Builder // any use should be preceded by a Reset and preferably after use
 }
 
-func (ctx *prContext) RunOpts() *git.RunOpts {
+func (ctx *prTmpRepoContext) RunOpts() *git.RunOpts {
 	ctx.outbuf.Reset()
 	ctx.errbuf.Reset()
 	return &git.RunOpts{
@@ -47,7 +48,7 @@ func (ctx *prContext) RunOpts() *git.RunOpts {
 
 // createTemporaryRepoForPR creates a temporary repo with "base" for pr.BaseBranch and "tracking" for  pr.HeadBranch
 // it also create a second base branch called "original_base"
-func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest) (prCtx *prContext, cancel context.CancelFunc, err error) {
+func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest) (prCtx *prTmpRepoContext, cancel context.CancelFunc, err error) {
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		log.Error("%-v LoadHeadRepo: %v", pr, err)
 		return nil, nil, fmt.Errorf("%v LoadHeadRepo: %w", pr, err)
@@ -73,22 +74,19 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	}
 
 	// Clone base repo.
-	tmpBasePath, err := repo_module.CreateTemporaryPath("pull")
+	tmpBasePath, cleanup, err := repo_module.CreateTemporaryPath("pull")
 	if err != nil {
 		log.Error("CreateTemporaryPath[%-v]: %v", pr, err)
 		return nil, nil, err
 	}
-	prCtx = &prContext{
+	cancel = cleanup
+
+	prCtx = &prTmpRepoContext{
 		Context:     ctx,
 		tmpBasePath: tmpBasePath,
 		pr:          pr,
 		outbuf:      &strings.Builder{},
 		errbuf:      &strings.Builder{},
-	}
-	cancel = func() {
-		if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
-			log.Error("Error whilst removing removing temporary repo for %-v: %v", pr, err)
-		}
 	}
 
 	baseRepoPath := pr.BaseRepo.RepoPath()
@@ -181,7 +179,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	if err := git.NewCommand("fetch").AddArguments(fetchArgs...).AddDynamicArguments(remoteRepoName, headBranch+":"+trackingBranch).
 		Run(ctx, prCtx.RunOpts()); err != nil {
 		cancel()
-		if !git.IsBranchExist(ctx, pr.HeadRepo.RepoPath(), pr.HeadBranch) {
+		if !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
 			return nil, nil, git_model.ErrBranchNotExist{
 				BranchName: pr.HeadBranch,
 			}

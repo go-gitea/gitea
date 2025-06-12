@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -12,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -134,7 +134,7 @@ func Search(ctx *context.APIContext) {
 		private = false
 	}
 
-	opts := &repo_model.SearchRepoOptions{
+	opts := repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.Doer,
 		Keyword:            ctx.FormTrim("q"),
@@ -712,7 +712,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		visibilityChanged = repo.IsPrivate != *opts.Private
 		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
 		if visibilityChanged && setting.Repository.ForcePrivate && !*opts.Private && !ctx.Doer.IsAdmin {
-			err := fmt.Errorf("cannot change private repository to public")
+			err := errors.New("cannot change private repository to public")
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return err
 		}
@@ -735,7 +735,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	// Default branch only updated if changed and exist or the repository is empty
 	updateRepoLicense := false
-	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch)) {
+	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, *opts.DefaultBranch)) {
 		if !repo.IsEmpty {
 			if err := gitrepo.SetDefaultBranch(ctx, ctx.Repo.Repository, *opts.DefaultBranch); err != nil {
 				ctx.APIErrorInternal(err)
@@ -781,12 +781,12 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		if newHasIssues && opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
-				err := fmt.Errorf("External tracker URL not valid")
+				err := errors.New("External tracker URL not valid")
 				ctx.APIError(http.StatusUnprocessableEntity, err)
 				return err
 			}
 			if len(opts.ExternalTracker.ExternalTrackerFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
-				err := fmt.Errorf("External tracker URL format not valid")
+				err := errors.New("External tracker URL format not valid")
 				ctx.APIError(http.StatusUnprocessableEntity, err)
 				return err
 			}
@@ -848,7 +848,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		if newHasWiki && opts.ExternalWiki != nil && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
-				err := fmt.Errorf("External wiki URL not valid")
+				err := errors.New("External wiki URL not valid")
 				ctx.APIError(http.StatusUnprocessableEntity, "Invalid external wiki URL")
 				return err
 			}
@@ -1039,7 +1039,7 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 	// archive / un-archive
 	if opts.Archived != nil {
 		if repo.IsMirror {
-			err := fmt.Errorf("repo is a mirror, cannot archive/un-archive")
+			err := errors.New("repo is a mirror, cannot archive/un-archive")
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return err
 		}
@@ -1049,7 +1049,7 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 				ctx.APIErrorInternal(err)
 				return err
 			}
-			if err := actions_model.CleanRepoScheduleTasks(ctx, repo); err != nil {
+			if err := actions_service.CleanRepoScheduleTasks(ctx, repo); err != nil {
 				log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 			}
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)

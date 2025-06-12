@@ -22,14 +22,21 @@ func TestHasAnyUnitAccess(t *testing.T) {
 		units: []*repo_model.RepoUnit{{Type: unit.TypeWiki}},
 	}
 	assert.False(t, perm.HasAnyUnitAccess())
-	assert.False(t, perm.HasAnyUnitAccessOrEveryoneAccess())
+	assert.False(t, perm.HasAnyUnitAccessOrPublicAccess())
 
 	perm = Permission{
 		units:              []*repo_model.RepoUnit{{Type: unit.TypeWiki}},
 		everyoneAccessMode: map[unit.Type]perm_model.AccessMode{unit.TypeIssues: perm_model.AccessModeRead},
 	}
 	assert.False(t, perm.HasAnyUnitAccess())
-	assert.True(t, perm.HasAnyUnitAccessOrEveryoneAccess())
+	assert.True(t, perm.HasAnyUnitAccessOrPublicAccess())
+
+	perm = Permission{
+		units:               []*repo_model.RepoUnit{{Type: unit.TypeWiki}},
+		anonymousAccessMode: map[unit.Type]perm_model.AccessMode{unit.TypeIssues: perm_model.AccessModeRead},
+	}
+	assert.False(t, perm.HasAnyUnitAccess())
+	assert.True(t, perm.HasAnyUnitAccessOrPublicAccess())
 
 	perm = Permission{
 		AccessMode: perm_model.AccessModeRead,
@@ -43,7 +50,7 @@ func TestHasAnyUnitAccess(t *testing.T) {
 	assert.True(t, perm.HasAnyUnitAccess())
 }
 
-func TestApplyEveryoneRepoPermission(t *testing.T) {
+func TestApplyPublicAccessRepoPermission(t *testing.T) {
 	perm := Permission{
 		AccessMode: perm_model.AccessModeNone,
 		units: []*repo_model.RepoUnit{
@@ -52,6 +59,15 @@ func TestApplyEveryoneRepoPermission(t *testing.T) {
 	}
 	finalProcessRepoUnitPermission(nil, &perm)
 	assert.False(t, perm.CanRead(unit.TypeWiki))
+
+	perm = Permission{
+		AccessMode: perm_model.AccessModeNone,
+		units: []*repo_model.RepoUnit{
+			{Type: unit.TypeWiki, AnonymousAccessMode: perm_model.AccessModeRead},
+		},
+	}
+	finalProcessRepoUnitPermission(nil, &perm)
+	assert.True(t, perm.CanRead(unit.TypeWiki))
 
 	perm = Permission{
 		AccessMode: perm_model.AccessModeNone,

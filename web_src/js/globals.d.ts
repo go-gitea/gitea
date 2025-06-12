@@ -64,6 +64,7 @@ interface Window {
   jQuery: typeof import('@types/jquery'),
   htmx: Omit<typeof import('htmx.org/dist/htmx.esm.js').default, 'config'> & {
     config?: Writable<typeof import('htmx.org').default.config>,
+    process?: (elt: Element | string) => void,
   },
   _globalHandlerErrors: Array<ErrorEvent & PromiseRejectionEvent> & {
     _inited: boolean,

@@ -61,8 +61,9 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	apiSecrets := make([]*api.Secret, len(secrets))
 	for k, v := range secrets {
 		apiSecrets[k] = &api.Secret{
-			Name:    v.Name,
-			Created: v.CreatedUnix.AsTime(),
+			Name:        v.Name,
+			Description: v.Description,
+			Created:     v.CreatedUnix.AsTime(),
 		}
 	}
 
@@ -106,7 +107,7 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Org.Organization.ID, 0, ctx.PathParam("secretname"), opt.Data)
+	_, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Org.Organization.ID, 0, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err)
@@ -189,6 +190,27 @@ func (Action) GetRegistrationToken(ctx *context.APIContext) {
 	shared.GetRegistrationToken(ctx, ctx.Org.Organization.ID, 0)
 }
 
+// https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-organization
+// CreateRegistrationToken returns the token to register org runners
+func (Action) CreateRegistrationToken(ctx *context.APIContext) {
+	// swagger:operation POST /orgs/{org}/actions/runners/registration-token organization orgCreateRunnerRegistrationToken
+	// ---
+	// summary: Get an organization's actions runner registration token
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RegistrationToken"
+
+	shared.GetRegistrationToken(ctx, ctx.Org.Organization.ID, 0)
+}
+
 // ListVariables list org-level variables
 func (Action) ListVariables(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/actions/variables organization getOrgVariablesList
@@ -230,10 +252,11 @@ func (Action) ListVariables(ctx *context.APIContext) {
 	variables := make([]*api.ActionVariable, len(vars))
 	for i, v := range vars {
 		variables[i] = &api.ActionVariable{
-			OwnerID: v.OwnerID,
-			RepoID:  v.RepoID,
-			Name:    v.Name,
-			Data:    v.Data,
+			OwnerID:     v.OwnerID,
+			RepoID:      v.RepoID,
+			Name:        v.Name,
+			Data:        v.Data,
+			Description: v.Description,
 		}
 	}
 
@@ -281,10 +304,11 @@ func (Action) GetVariable(ctx *context.APIContext) {
 	}
 
 	variable := &api.ActionVariable{
-		OwnerID: v.OwnerID,
-		RepoID:  v.RepoID,
-		Name:    v.Name,
-		Data:    v.Data,
+		OwnerID:     v.OwnerID,
+		RepoID:      v.RepoID,
+		Name:        v.Name,
+		Data:        v.Data,
+		Description: v.Description,
 	}
 
 	ctx.JSON(http.StatusOK, variable)
@@ -360,13 +384,13 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/CreateVariableOption"
 	// responses:
 	//   "201":
-	//     description: response when creating an org-level variable
-	//   "204":
-	//     description: response when creating an org-level variable
+	//     description: successfully created the org-level variable
 	//   "400":
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     description: variable name already exists.
+	//   "500":
+	//     "$ref": "#/responses/error"
 
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
@@ -386,7 +410,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	if _, err := actions_service.CreateVariable(ctx, ownerID, 0, variableName, opt.Value); err != nil {
+	if _, err := actions_service.CreateVariable(ctx, ownerID, 0, variableName, opt.Value, opt.Description); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err)
 		} else {
@@ -395,7 +419,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	ctx.Status(http.StatusCreated)
 }
 
 // UpdateVariable update an org-level variable
@@ -453,6 +477,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 
 	v.Name = opt.Name
 	v.Data = opt.Value
+	v.Description = opt.Description
 
 	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -464,6 +489,85 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+// ListRunners get org-level runners
+func (Action) ListRunners(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/actions/runners organization getOrgRunners
+	// ---
+	// summary: Get org-level runners
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunnersResponse"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.ListRunners(ctx, ctx.Org.Organization.ID, 0)
+}
+
+// GetRunner get an org-level runner
+func (Action) GetRunner(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/actions/runners/{runner_id} organization getOrgRunner
+	// ---
+	// summary: Get an org-level runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.GetRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
+}
+
+// DeleteRunner delete an org-level runner
+func (Action) DeleteRunner(ctx *context.APIContext) {
+	// swagger:operation DELETE /orgs/{org}/actions/runners/{runner_id} organization deleteOrgRunner
+	// ---
+	// summary: Delete an org-level runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: runner has been deleted
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.DeleteRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 
 var _ actions_service.API = new(Action)

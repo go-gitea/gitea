@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +18,10 @@ import (
 )
 
 func TestGitSmartHTTP(t *testing.T) {
-	onGiteaRun(t, testGitSmartHTTP)
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		testGitSmartHTTP(t, u)
+		testRenamedRepoRedirect(t)
+	})
 }
 
 func testGitSmartHTTP(t *testing.T, u *url.URL) {
@@ -67,9 +72,27 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 			resp, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			assert.EqualValues(t, kase.code, resp.StatusCode)
+			assert.Equal(t, kase.code, resp.StatusCode)
 			_, err = io.ReadAll(resp.Body)
 			require.NoError(t, err)
 		})
 	}
+}
+
+func testRenamedRepoRedirect(t *testing.T) {
+	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
+
+	// git client requires to get a 301 redirect response before 401 unauthorized response
+	req := NewRequest(t, "GET", "/user2/oldrepo1/info/refs")
+	resp := MakeRequest(t, req, http.StatusMovedPermanently)
+	redirect := resp.Header().Get("Location")
+	assert.Equal(t, "/user2/repo1/info/refs", redirect)
+
+	req = NewRequest(t, "GET", redirect)
+	resp = MakeRequest(t, req, http.StatusUnauthorized)
+	assert.Equal(t, "Unauthorized\n", resp.Body.String())
+
+	req = NewRequest(t, "GET", redirect).AddBasicAuth("user2")
+	resp = MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "65f1bf27bc3bf70f64657658635e66094edbcb4d\trefs/tags/v1.1")
 }

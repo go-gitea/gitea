@@ -5,11 +5,13 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -17,9 +19,30 @@ import (
 
 func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
 	var (
-		task *runnerv1.Task
-		job  *actions_model.ActionRunJob
+		task       *runnerv1.Task
+		job        *actions_model.ActionRunJob
+		actionTask *actions_model.ActionTask
 	)
+
+	if runner.Ephemeral {
+		var task actions_model.ActionTask
+		has, err := db.GetEngine(ctx).Where("runner_id = ?", runner.ID).Get(&task)
+		// Let the runner retry the request, do not allow to proceed
+		if err != nil {
+			return nil, false, err
+		}
+		if has {
+			if task.Status == actions_model.StatusWaiting || task.Status == actions_model.StatusRunning || task.Status == actions_model.StatusBlocked {
+				return nil, false, nil
+			}
+			// task has been finished, remove it
+			_, err = db.DeleteByID[actions_model.ActionRunner](ctx, runner.ID)
+			if err != nil {
+				return nil, false, err
+			}
+			return nil, false, errors.New("runner has been removed")
+		}
+	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
@@ -34,6 +57,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 			return fmt.Errorf("task LoadAttributes: %w", err)
 		}
 		job = t.Job
+		actionTask = t
 
 		secrets, err := secret_model.GetSecretsOfTask(ctx, t)
 		if err != nil {
@@ -74,6 +98,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	}
 
 	CreateCommitStatus(ctx, job)
+	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, actionTask)
 
 	return task, true, nil
 }

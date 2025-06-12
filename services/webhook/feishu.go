@@ -172,6 +172,12 @@ func (fc feishuConvertor) Status(p *api.CommitStatusPayload) (FeishuPayload, err
 	return newFeishuTextPayload(text), nil
 }
 
+func (feishuConvertor) WorkflowJob(p *api.WorkflowJobPayload) (FeishuPayload, error) {
+	text, _ := getWorkflowJobPayloadInfo(p, noneLinkFormatter, true)
+
+	return newFeishuTextPayload(text), nil
+}
+
 func newFeishuRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	var pc payloadConvertor[FeishuPayload] = feishuConvertor{}
 	return newJSONRequest(pc, w, t, true)

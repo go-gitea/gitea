@@ -6,6 +6,7 @@ package files
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -29,23 +30,24 @@ type TemporaryUploadRepository struct {
 	repo     *repo_model.Repository
 	gitRepo  *git.Repository
 	basePath string
+	cleanup  func()
 }
 
 // NewTemporaryUploadRepository creates a new temporary upload repository
 func NewTemporaryUploadRepository(repo *repo_model.Repository) (*TemporaryUploadRepository, error) {
-	basePath, err := repo_module.CreateTemporaryPath("upload")
+	basePath, cleanup, err := repo_module.CreateTemporaryPath("upload")
 	if err != nil {
 		return nil, err
 	}
-	t := &TemporaryUploadRepository{repo: repo, basePath: basePath}
+	t := &TemporaryUploadRepository{repo: repo, basePath: basePath, cleanup: cleanup}
 	return t, nil
 }
 
 // Close the repository cleaning up all files
 func (t *TemporaryUploadRepository) Close() {
 	defer t.gitRepo.Close()
-	if err := repo_module.RemoveTemporaryPath(t.basePath); err != nil {
-		log.Error("Failed to remove temporary path %s: %v", t.basePath, err)
+	if t.cleanup != nil {
+		t.cleanup()
 	}
 }
 
@@ -291,15 +293,18 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 	}
 
 	var sign bool
-	var keyID string
+	var key *git.SigningKey
 	var signer *git.Signature
 	if opts.ParentCommitID != "" {
-		sign, keyID, signer, _ = asymkey_service.SignCRUDAction(ctx, t.repo.RepoPath(), opts.DoerUser, t.basePath, opts.ParentCommitID)
+		sign, key, signer, _ = asymkey_service.SignCRUDAction(ctx, t.repo.RepoPath(), opts.DoerUser, t.basePath, opts.ParentCommitID)
 	} else {
-		sign, keyID, signer, _ = asymkey_service.SignInitialCommit(ctx, t.repo.RepoPath(), opts.DoerUser)
+		sign, key, signer, _ = asymkey_service.SignInitialCommit(ctx, t.repo.RepoPath(), opts.DoerUser)
 	}
 	if sign {
-		cmdCommitTree.AddOptionFormat("-S%s", keyID)
+		if key.Format != "" {
+			cmdCommitTree.AddConfig("gpg.format", key.Format)
+		}
+		cmdCommitTree.AddOptionFormat("-S%s", key.KeyID)
 		if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
 				// Add trailers
@@ -414,7 +419,7 @@ func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context) (*gitdiff.Dif
 // GetBranchCommit Gets the commit object of the given branch
 func (t *TemporaryUploadRepository) GetBranchCommit(branch string) (*git.Commit, error) {
 	if t.gitRepo == nil {
-		return nil, fmt.Errorf("repository has not been cloned")
+		return nil, errors.New("repository has not been cloned")
 	}
 	return t.gitRepo.GetBranchCommit(branch)
 }
@@ -422,7 +427,7 @@ func (t *TemporaryUploadRepository) GetBranchCommit(branch string) (*git.Commit,
 // GetCommit Gets the commit object of the given commit ID
 func (t *TemporaryUploadRepository) GetCommit(commitID string) (*git.Commit, error) {
 	if t.gitRepo == nil {
-		return nil, fmt.Errorf("repository has not been cloned")
+		return nil, errors.New("repository has not been cloned")
 	}
 	return t.gitRepo.GetCommit(commitID)
 }

@@ -4,8 +4,6 @@
 package repo
 
 import (
-	"strings"
-
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -71,40 +69,4 @@ func CancelStopwatch(c *context.Context) {
 	}
 
 	c.JSONRedirect("")
-}
-
-// GetActiveStopwatch is the middleware that sets .ActiveStopwatch on context
-func GetActiveStopwatch(ctx *context.Context) {
-	if strings.HasPrefix(ctx.Req.URL.Path, "/api") {
-		return
-	}
-
-	if !ctx.IsSigned {
-		return
-	}
-
-	_, sw, issue, err := issues_model.HasUserStopwatch(ctx, ctx.Doer.ID)
-	if err != nil {
-		ctx.ServerError("HasUserStopwatch", err)
-		return
-	}
-
-	if sw == nil || sw.ID == 0 {
-		return
-	}
-
-	ctx.Data["ActiveStopwatch"] = StopwatchTmplInfo{
-		issue.Link(),
-		issue.Repo.FullName(),
-		issue.Index,
-		sw.Seconds() + 1, // ensure time is never zero in ui
-	}
-}
-
-// StopwatchTmplInfo is a view on a stopwatch specifically for template rendering
-type StopwatchTmplInfo struct {
-	IssueLink  string
-	RepoSlug   string
-	IssueIndex int64
-	Seconds    int64
 }

@@ -23,18 +23,17 @@ func TestAttention(t *testing.T) {
 	defer svg.MockIcon("octicon-alert")()
 	defer svg.MockIcon("octicon-stop")()
 
+	test := func(input, expected string) {
+		result, err := markdown.RenderString(markup.NewTestRenderContext(), input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(result)))
+	}
 	renderAttention := func(attention, icon string) string {
 		tmpl := `<blockquote class="attention-header attention-{attention}"><p><svg class="attention-icon attention-{attention} svg {icon}" width="16" height="16"></svg><strong class="attention-{attention}">{Attention}</strong></p>`
 		tmpl = strings.ReplaceAll(tmpl, "{attention}", attention)
 		tmpl = strings.ReplaceAll(tmpl, "{icon}", icon)
 		tmpl = strings.ReplaceAll(tmpl, "{Attention}", cases.Title(language.English).String(attention))
 		return tmpl
-	}
-
-	test := func(input, expected string) {
-		result, err := markdown.RenderString(markup.NewTestRenderContext(), input)
-		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(result)))
 	}
 
 	test(`
@@ -53,4 +52,7 @@ func TestAttention(t *testing.T) {
 
 	// legacy GitHub style
 	test(`> **warning**`, renderAttention("warning", "octicon-alert")+"\n</blockquote>")
+
+	// edge case (it used to cause panic)
+	test(">\ntext", "<blockquote>\n</blockquote>\n<p>text</p>")
 }

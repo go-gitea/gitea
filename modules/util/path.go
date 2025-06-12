@@ -36,9 +36,10 @@ func PathJoinRel(elem ...string) string {
 		elems[i] = path.Clean("/" + e)
 	}
 	p := path.Join(elems...)
-	if p == "" {
+	switch p {
+	case "":
 		return ""
-	} else if p == "/" {
+	case "/":
 		return "."
 	}
 	return p[1:]

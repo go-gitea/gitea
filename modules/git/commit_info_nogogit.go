@@ -65,7 +65,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 			log.Debug("missing commit for %s", entry.Name())
 		}
 
-		// If the entry if a submodule add a submodule file for this
+		// If the entry is a submodule add a submodule file for this
 		if entry.IsSubModule() {
 			subModuleURL := ""
 			var fullPath string
@@ -85,8 +85,8 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 	}
 
 	// Retrieve the commit for the treePath itself (see above). We basically
-	// get it for free during the tree traversal and it's used for listing
-	// pages to display information about newest commit for a given path.
+	// get it for free during the tree traversal, and it's used for listing
+	// pages to display information about the newest commit for a given path.
 	var treeCommit *Commit
 	var ok bool
 	if treePath == "" {

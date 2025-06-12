@@ -49,6 +49,16 @@
 		</form>
 	</div>
 
+	<div id="test-modal-form-5" class="ui mini modal">
+		<div class="header">Form dialog (layout 5)</div>
+		<div class="content">
+			<form method="post">
+				<div class="ui input tw-w-full"><input name="user_input"></div>
+				{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+			</form>
+		</div>
+	</div>
+
 	<div class="ui g-modal-confirm modal" id="test-modal-default">
 		<div class="header">{{svg "octicon-file"}} Default dialog <span>title</span></div>
 		<div class="content">

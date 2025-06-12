@@ -1,7 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package markup
+package orgmode_test
 
 import (
 	"os"
@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/orgmode"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,7 @@ func TestMain(m *testing.M) {
 
 func TestRender_StandardLinks(t *testing.T) {
 	test := func(input, expected string) {
-		buffer, err := RenderString(markup.NewTestRenderContext("/relative-path/media/branch/main/"), input)
+		buffer, err := orgmode.RenderString(markup.NewTestRenderContext(), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
@@ -30,37 +31,37 @@ func TestRender_StandardLinks(t *testing.T) {
 	test("[[https://google.com/]]",
 		`<p><a href="https://google.com/">https://google.com/</a></p>`)
 	test("[[ImageLink.svg][The Image Desc]]",
-		`<p><a href="/relative-path/media/branch/main/ImageLink.svg">The Image Desc</a></p>`)
+		`<p><a href="ImageLink.svg">The Image Desc</a></p>`)
 }
 
 func TestRender_InternalLinks(t *testing.T) {
 	test := func(input, expected string) {
-		buffer, err := RenderString(markup.NewTestRenderContext("/relative-path/src/branch/main"), input)
+		buffer, err := orgmode.RenderString(markup.NewTestRenderContext(), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	test("[[file:test.org][Test]]",
-		`<p><a href="/relative-path/src/branch/main/test.org">Test</a></p>`)
+		`<p><a href="test.org">Test</a></p>`)
 	test("[[./test.org][Test]]",
-		`<p><a href="/relative-path/src/branch/main/test.org">Test</a></p>`)
+		`<p><a href="./test.org">Test</a></p>`)
 	test("[[test.org][Test]]",
-		`<p><a href="/relative-path/src/branch/main/test.org">Test</a></p>`)
+		`<p><a href="test.org">Test</a></p>`)
 	test("[[path/to/test.org][Test]]",
-		`<p><a href="/relative-path/src/branch/main/path/to/test.org">Test</a></p>`)
+		`<p><a href="path/to/test.org">Test</a></p>`)
 }
 
 func TestRender_Media(t *testing.T) {
 	test := func(input, expected string) {
-		buffer, err := RenderString(markup.NewTestRenderContext("./relative-path"), input)
+		buffer, err := orgmode.RenderString(markup.NewTestRenderContext(), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	test("[[file:../../.images/src/02/train.jpg]]",
-		`<p><img src=".images/src/02/train.jpg" alt=".images/src/02/train.jpg"></p>`)
+		`<p><img src="../../.images/src/02/train.jpg" alt="../../.images/src/02/train.jpg"></p>`)
 	test("[[file:train.jpg]]",
-		`<p><img src="relative-path/train.jpg" alt="relative-path/train.jpg"></p>`)
+		`<p><img src="train.jpg" alt="train.jpg"></p>`)
 
 	// With description.
 	test("[[https://example.com][https://example.com/example.svg]]",
@@ -91,7 +92,7 @@ func TestRender_Media(t *testing.T) {
 
 func TestRender_Source(t *testing.T) {
 	test := func(input, expected string) {
-		buffer, err := RenderString(markup.NewTestRenderContext(), input)
+		buffer, err := orgmode.RenderString(markup.NewTestRenderContext(), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}

@@ -14,7 +14,3 @@
 .ui.container.medium-width {
   width: 800px;
 }
-
-.ui[class*="center aligned"].container {
-  text-align: center;
-}

@@ -17,11 +17,24 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
+
+type LimitReachedError struct{ Limit int }
+
+func (LimitReachedError) Error() string {
+	return "Repository limit has been reached"
+}
+
+func IsRepositoryLimitReached(err error) bool {
+	_, ok := err.(LimitReachedError)
+	return ok
+}
 
 func getRepoWorkingLockKey(repoID int64) string {
 	return fmt.Sprintf("repo_working_%d", repoID)
@@ -46,6 +59,11 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := repoTransfer.LoadAttributes(ctx); err != nil {
 			return err
+		}
+
+		if !doer.CanCreateRepoIn(repoTransfer.Recipient) {
+			limit := util.Iif(repoTransfer.Recipient.MaxRepoCreation >= 0, repoTransfer.Recipient.MaxRepoCreation, setting.Repository.MaxCreationLimit)
+			return LimitReachedError{Limit: limit}
 		}
 
 		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
@@ -142,7 +160,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	repo.OwnerName = newOwner.Name
 
 	// Update repository.
-	if err := repo_model.UpdateRepositoryCols(ctx, repo, "owner_id", "owner_name"); err != nil {
+	if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "owner_id", "owner_name"); err != nil {
 		return fmt.Errorf("update owner: %w", err)
 	}
 
@@ -286,7 +304,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("deleteRepositoryTransfer: %w", err)
 	}
 	repo.Status = repo_model.RepositoryReady
-	if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+	if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "status"); err != nil {
 		return err
 	}
 
@@ -330,13 +348,13 @@ func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newR
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{
-			Uname: repo.Owner.Name,
+			Uname: repo.OwnerName,
 			Name:  newRepoName,
 		}
 	}
 
-	newRepoPath := repo_model.RepoPath(repo.Owner.Name, newRepoName)
-	if err = util.Rename(repo.RepoPath(), newRepoPath); err != nil {
+	if err = gitrepo.RenameRepository(ctx, repo,
+		repo_model.StorageRepo(repo_model.RelativePath(repo.OwnerName, newRepoName))); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 
@@ -396,6 +414,11 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 
 	if err := repo_model.TestRepositoryReadyForTransfer(repo.Status); err != nil {
 		return err
+	}
+
+	if !doer.CanForkRepoIn(newOwner) {
+		limit := util.Iif(newOwner.MaxRepoCreation >= 0, newOwner.MaxRepoCreation, setting.Repository.MaxCreationLimit)
+		return LimitReachedError{Limit: limit}
 	}
 
 	var isDirectTransfer bool
@@ -472,7 +495,7 @@ func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 		}
 
 		repo.Status = repo_model.RepositoryReady
-		if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "status"); err != nil {
 			return err
 		}
 
@@ -520,7 +543,7 @@ func CancelRepositoryTransfer(ctx context.Context, repoTransfer *repo_model.Repo
 		}
 
 		repoTransfer.Repo.Status = repo_model.RepositoryReady
-		if err := repo_model.UpdateRepositoryCols(ctx, repoTransfer.Repo, "status"); err != nil {
+		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repoTransfer.Repo, "status"); err != nil {
 			return err
 		}
 

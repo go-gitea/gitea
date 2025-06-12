@@ -6,7 +6,6 @@ package private
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -40,10 +39,14 @@ func NewInternalRequest(ctx context.Context, url, method string) *httplib.Reques
 Ensure you are running in the correct environment or set the correct configuration file with -c.`, setting.CustomConf)
 	}
 
+	if !strings.HasPrefix(url, setting.LocalURL) {
+		log.Fatal("Invalid internal request URL: %q", url)
+	}
+
 	req := httplib.NewRequest(url, method).
 		SetContext(ctx).
 		Header("X-Real-IP", getClientIP()).
-		Header("X-Gitea-Internal-Auth", fmt.Sprintf("Bearer %s", setting.InternalToken)).
+		Header("X-Gitea-Internal-Auth", "Bearer "+setting.InternalToken).
 		SetTLSClientConfig(&tls.Config{
 			InsecureSkipVerify: true,
 			ServerName:         setting.Domain,

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path/filepath"
+	"path"
 	"testing"
 	"time"
 
@@ -49,28 +49,42 @@ func getCreateFileOptions() api.CreateFileOptions {
 	}
 }
 
-func getExpectedFileResponseForCreate(repoFullName, commitID, treePath, latestCommitSHA string) *api.FileResponse {
+func normalizeFileContentResponseCommitTime(c *api.ContentsResponse) {
+	// decoded JSON response may contain different timezone from the one parsed by git commit
+	// so we need to normalize the time to UTC to make "assert.Equal" pass
+	c.LastCommitterDate = c.LastCommitterDate.UTC()
+	c.LastAuthorDate = c.LastAuthorDate.UTC()
+}
+
+type apiFileResponseInfo struct {
+	repoFullName, commitID, treePath, lastCommitSHA string
+	lastCommitterWhen, lastAuthorWhen               time.Time
+}
+
+func getExpectedFileResponseForCreate(info apiFileResponseInfo) *api.FileResponse {
 	sha := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
 	encoding := "base64"
 	content := "VGhpcyBpcyBuZXcgdGV4dA=="
-	selfURL := setting.AppURL + "api/v1/repos/" + repoFullName + "/contents/" + treePath + "?ref=master"
-	htmlURL := setting.AppURL + repoFullName + "/src/branch/master/" + treePath
-	gitURL := setting.AppURL + "api/v1/repos/" + repoFullName + "/git/blobs/" + sha
-	downloadURL := setting.AppURL + repoFullName + "/raw/branch/master/" + treePath
-	return &api.FileResponse{
+	selfURL := setting.AppURL + "api/v1/repos/" + info.repoFullName + "/contents/" + info.treePath + "?ref=master"
+	htmlURL := setting.AppURL + info.repoFullName + "/src/branch/master/" + info.treePath
+	gitURL := setting.AppURL + "api/v1/repos/" + info.repoFullName + "/git/blobs/" + sha
+	downloadURL := setting.AppURL + info.repoFullName + "/raw/branch/master/" + info.treePath
+	ret := &api.FileResponse{
 		Content: &api.ContentsResponse{
-			Name:          filepath.Base(treePath),
-			Path:          treePath,
-			SHA:           sha,
-			LastCommitSHA: latestCommitSHA,
-			Size:          16,
-			Type:          "file",
-			Encoding:      &encoding,
-			Content:       &content,
-			URL:           &selfURL,
-			HTMLURL:       &htmlURL,
-			GitURL:        &gitURL,
-			DownloadURL:   &downloadURL,
+			Name:              path.Base(info.treePath),
+			Path:              info.treePath,
+			SHA:               sha,
+			LastCommitSHA:     info.lastCommitSHA,
+			LastCommitterDate: info.lastCommitterWhen,
+			LastAuthorDate:    info.lastAuthorWhen,
+			Size:              16,
+			Type:              "file",
+			Encoding:          &encoding,
+			Content:           &content,
+			URL:               &selfURL,
+			HTMLURL:           &htmlURL,
+			GitURL:            &gitURL,
+			DownloadURL:       &downloadURL,
 			Links: &api.FileLinksResponse{
 				Self:    &selfURL,
 				GitURL:  &gitURL,
@@ -79,10 +93,10 @@ func getExpectedFileResponseForCreate(repoFullName, commitID, treePath, latestCo
 		},
 		Commit: &api.FileCommitResponse{
 			CommitMeta: api.CommitMeta{
-				URL: setting.AppURL + "api/v1/repos/" + repoFullName + "/git/commits/" + commitID,
-				SHA: commitID,
+				URL: setting.AppURL + "api/v1/repos/" + info.repoFullName + "/git/commits/" + info.commitID,
+				SHA: info.commitID,
 			},
-			HTMLURL: setting.AppURL + repoFullName + "/commit/" + commitID,
+			HTMLURL: setting.AppURL + info.repoFullName + "/commit/" + info.commitID,
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "Anne Doe",
@@ -106,6 +120,8 @@ func getExpectedFileResponseForCreate(repoFullName, commitID, treePath, latestCo
 			Payload:   "",
 		},
 	}
+	normalizeFileContentResponseCommitTime(ret.Content)
+	return ret
 }
 
 func BenchmarkAPICreateFileSmall(b *testing.B) {
@@ -167,21 +183,29 @@ func TestAPICreateFile(t *testing.T) {
 				AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusCreated)
 			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
+			defer gitRepo.Close()
 			commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
-			latestCommit, _ := gitRepo.GetCommitByPath(treePath)
-			expectedFileResponse := getExpectedFileResponseForCreate("user2/repo1", commitID, treePath, latestCommit.ID.String())
+			lastCommit, _ := gitRepo.GetCommitByPath(treePath)
+			expectedFileResponse := getExpectedFileResponseForCreate(apiFileResponseInfo{
+				repoFullName:      "user2/repo1",
+				commitID:          commitID,
+				treePath:          treePath,
+				lastCommitSHA:     lastCommit.ID.String(),
+				lastCommitterWhen: lastCommit.Committer.When,
+				lastAuthorWhen:    lastCommit.Author.When,
+			})
 			var fileResponse api.FileResponse
 			DecodeJSON(t, resp, &fileResponse)
-			assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
-			assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
-			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
-			assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
-			assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
-			assert.EqualValues(t, expectedFileResponse.Commit.Author.Date, fileResponse.Commit.Author.Date)
-			assert.EqualValues(t, expectedFileResponse.Commit.Committer.Email, fileResponse.Commit.Committer.Email)
-			assert.EqualValues(t, expectedFileResponse.Commit.Committer.Name, fileResponse.Commit.Committer.Name)
-			assert.EqualValues(t, expectedFileResponse.Commit.Committer.Date, fileResponse.Commit.Committer.Date)
-			gitRepo.Close()
+			normalizeFileContentResponseCommitTime(fileResponse.Content)
+			assert.Equal(t, expectedFileResponse.Content, fileResponse.Content)
+			assert.Equal(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
+			assert.Equal(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
+			assert.Equal(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
+			assert.Equal(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
+			assert.Equal(t, expectedFileResponse.Commit.Author.Date, fileResponse.Commit.Author.Date)
+			assert.Equal(t, expectedFileResponse.Commit.Committer.Email, fileResponse.Commit.Committer.Email)
+			assert.Equal(t, expectedFileResponse.Commit.Committer.Name, fileResponse.Commit.Committer.Name)
+			assert.Equal(t, expectedFileResponse.Commit.Committer.Date, fileResponse.Commit.Committer.Date)
 		}
 
 		// Test creating a file in a new branch
@@ -198,10 +222,10 @@ func TestAPICreateFile(t *testing.T) {
 		expectedSHA := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
 		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/new/file%d.txt", fileID)
 		expectedDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/new/file%d.txt", fileID)
-		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
-		assert.EqualValues(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
-		assert.EqualValues(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
-		assert.EqualValues(t, createFileOptions.Message+"\n", fileResponse.Commit.Message)
+		assert.Equal(t, expectedSHA, fileResponse.Content.SHA)
+		assert.Equal(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
+		assert.Equal(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
+		assert.Equal(t, createFileOptions.Message+"\n", fileResponse.Commit.Message)
 
 		// Test creating a file without a message
 		createFileOptions = getCreateFileOptions()
@@ -213,7 +237,7 @@ func TestAPICreateFile(t *testing.T) {
 		resp = MakeRequest(t, req, http.StatusCreated)
 		DecodeJSON(t, resp, &fileResponse)
 		expectedMessage := "Add " + treePath + "\n"
-		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
+		assert.Equal(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test trying to create a file that already exists, should fail
 		createFileOptions = getCreateFileOptions()
@@ -285,19 +309,27 @@ func TestAPICreateFile(t *testing.T) {
 		resp = MakeRequest(t, req, http.StatusCreated)
 		emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "empty-repo"}) // public repo
 		gitRepo, _ := gitrepo.OpenRepository(t.Context(), emptyRepo)
+		defer gitRepo.Close()
 		commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
 		latestCommit, _ := gitRepo.GetCommitByPath(treePath)
-		expectedFileResponse := getExpectedFileResponseForCreate("user2/empty-repo", commitID, treePath, latestCommit.ID.String())
+		expectedFileResponse := getExpectedFileResponseForCreate(apiFileResponseInfo{
+			repoFullName:      "user2/empty-repo",
+			commitID:          commitID,
+			treePath:          treePath,
+			lastCommitSHA:     latestCommit.ID.String(),
+			lastCommitterWhen: latestCommit.Committer.When,
+			lastAuthorWhen:    latestCommit.Author.When,
+		})
 		DecodeJSON(t, resp, &fileResponse)
-		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
-		assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
-		assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
-		assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
-		assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
-		assert.EqualValues(t, expectedFileResponse.Commit.Author.Date, fileResponse.Commit.Author.Date)
-		assert.EqualValues(t, expectedFileResponse.Commit.Committer.Email, fileResponse.Commit.Committer.Email)
-		assert.EqualValues(t, expectedFileResponse.Commit.Committer.Name, fileResponse.Commit.Committer.Name)
-		assert.EqualValues(t, expectedFileResponse.Commit.Committer.Date, fileResponse.Commit.Committer.Date)
-		gitRepo.Close()
+		normalizeFileContentResponseCommitTime(fileResponse.Content)
+		assert.Equal(t, expectedFileResponse.Content, fileResponse.Content)
+		assert.Equal(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
+		assert.Equal(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
+		assert.Equal(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
+		assert.Equal(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
+		assert.Equal(t, expectedFileResponse.Commit.Author.Date, fileResponse.Commit.Author.Date)
+		assert.Equal(t, expectedFileResponse.Commit.Committer.Email, fileResponse.Commit.Committer.Email)
+		assert.Equal(t, expectedFileResponse.Commit.Committer.Name, fileResponse.Commit.Committer.Name)
+		assert.Equal(t, expectedFileResponse.Commit.Committer.Date, fileResponse.Commit.Committer.Date)
 	})
 }

@@ -10,7 +10,7 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
-	"path"
+	"path/filepath"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
@@ -51,14 +51,10 @@ func init() {
 	db.RegisterModel(new(Upload))
 }
 
-// UploadLocalPath returns where uploads is stored in local file system based on given UUID.
-func UploadLocalPath(uuid string) string {
-	return path.Join(setting.Repository.Upload.TempPath, uuid[0:1], uuid[1:2], uuid)
-}
-
-// LocalPath returns where uploads are temporarily stored in local file system.
+// LocalPath returns where uploads are temporarily stored in local file system based on given UUID.
 func (upload *Upload) LocalPath() string {
-	return UploadLocalPath(upload.UUID)
+	uuid := upload.UUID
+	return setting.AppDataTempDir("repo-uploads").JoinPath(uuid[0:1], uuid[1:2], uuid)
 }
 
 // NewUpload creates a new upload object.
@@ -69,7 +65,7 @@ func NewUpload(ctx context.Context, name string, buf []byte, file multipart.File
 	}
 
 	localPath := upload.LocalPath()
-	if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
+	if err = os.MkdirAll(filepath.Dir(localPath), os.ModePerm); err != nil {
 		return nil, fmt.Errorf("MkdirAll: %w", err)
 	}
 

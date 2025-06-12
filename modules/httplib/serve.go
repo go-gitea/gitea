@@ -33,6 +33,7 @@ type ServeHeaderOptions struct {
 	ContentLength      *int64
 	Disposition        string // defaults to "attachment"
 	Filename           string
+	CacheIsPublic      bool
 	CacheDuration      time.Duration // defaults to 5 minutes
 	LastModified       time.Time
 }
@@ -72,11 +73,11 @@ func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 
-	duration := opts.CacheDuration
-	if duration == 0 {
-		duration = 5 * time.Minute
-	}
-	httpcache.SetCacheControlInHeader(header, duration)
+	httpcache.SetCacheControlInHeader(header, &httpcache.CacheControlOptions{
+		IsPublic:    opts.CacheIsPublic,
+		MaxAge:      opts.CacheDuration,
+		NoTransform: true,
+	})
 
 	if !opts.LastModified.IsZero() {
 		// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
@@ -85,19 +86,15 @@ func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 }
 
 // ServeData download file from io.Reader
-func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, filePath string, mineBuf []byte) {
+func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, mineBuf []byte, opts *ServeHeaderOptions) {
 	// do not set "Content-Length", because the length could only be set by callers, and it needs to support range requests
-	opts := &ServeHeaderOptions{
-		Filename: path.Base(filePath),
-	}
-
 	sniffedType := typesniffer.DetectContentType(mineBuf)
 
 	// the "render" parameter came from year 2016: 638dd24c, it doesn't have clear meaning, so I think it could be removed later
 	isPlain := sniffedType.IsText() || r.FormValue("render") != ""
 
 	if setting.MimeTypeMap.Enabled {
-		fileExtension := strings.ToLower(filepath.Ext(filePath))
+		fileExtension := strings.ToLower(filepath.Ext(opts.Filename))
 		opts.ContentType = setting.MimeTypeMap.Map[fileExtension]
 	}
 
@@ -114,7 +111,7 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, filePath stri
 	if isPlain {
 		charset, err := charsetModule.DetectEncoding(mineBuf)
 		if err != nil {
-			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", filePath, err)
+			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", opts.Filename, err)
 			charset = "utf-8"
 		}
 		opts.ContentTypeCharset = strings.ToLower(charset)
@@ -142,7 +139,7 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, filePath stri
 
 const mimeDetectionBufferLen = 1024
 
-func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath string, size int64, reader io.Reader) {
+func ServeContentByReader(r *http.Request, w http.ResponseWriter, size int64, reader io.Reader, opts *ServeHeaderOptions) {
 	buf := make([]byte, mimeDetectionBufferLen)
 	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
@@ -152,7 +149,7 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath strin
 	if n >= 0 {
 		buf = buf[:n]
 	}
-	setServeHeadersByFile(r, w, filePath, buf)
+	setServeHeadersByFile(r, w, buf, opts)
 
 	// reset the reader to the beginning
 	reader = io.MultiReader(bytes.NewReader(buf), reader)
@@ -215,7 +212,7 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath strin
 	_, _ = io.CopyN(w, reader, partialLength) // just like http.ServeContent, not necessary to handle the error
 }
 
-func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, filePath string, modTime *time.Time, reader io.ReadSeeker) {
+func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, modTime *time.Time, reader io.ReadSeeker, opts *ServeHeaderOptions) {
 	buf := make([]byte, mimeDetectionBufferLen)
 	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
@@ -229,9 +226,9 @@ func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, filePath s
 	if n >= 0 {
 		buf = buf[:n]
 	}
-	setServeHeadersByFile(r, w, filePath, buf)
+	setServeHeadersByFile(r, w, buf, opts)
 	if modTime == nil {
 		modTime = &time.Time{}
 	}
-	http.ServeContent(w, r, path.Base(filePath), *modTime, reader)
+	http.ServeContent(w, r, opts.Filename, *modTime, reader)
 }

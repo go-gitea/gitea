@@ -9,6 +9,8 @@ import (
 	"encoding/base64"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,6 +19,7 @@ fgAA3AEAAAQAAAAjU3RyaW5ncwAAAADgAQAABAAAACNVUwDkAQAAMAAAACNHVUlEAAAAFAIAACgB
 AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`
 
 func TestExtractPortablePdb(t *testing.T) {
+	setting.AppDataPath = t.TempDir()
 	createArchive := func(name string, content []byte) []byte {
 		var buf bytes.Buffer
 		archive := zip.NewWriter(&buf)

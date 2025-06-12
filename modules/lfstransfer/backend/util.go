@@ -8,9 +8,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/charmbracelet/git-lfs-transfer/transfer"
 )
@@ -57,8 +61,7 @@ const (
 
 // Operations enum
 const (
-	opNone = iota
-	opDownload
+	opDownload = iota + 1
 	opUpload
 )
 
@@ -86,8 +89,49 @@ func statusCodeToErr(code int) error {
 	}
 }
 
-func newInternalRequestLFS(ctx context.Context, url, method string, headers map[string]string, body any) *httplib.Request {
-	req := private.NewInternalRequest(ctx, url, method)
+func toInternalLFSURL(s string) string {
+	pos1 := strings.Index(s, "://")
+	if pos1 == -1 {
+		return ""
+	}
+	appSubURLWithSlash := setting.AppSubURL + "/"
+	pos2 := strings.Index(s[pos1+3:], appSubURLWithSlash)
+	if pos2 == -1 {
+		return ""
+	}
+	routePath := s[pos1+3+pos2+len(appSubURLWithSlash):]
+	fields := strings.SplitN(routePath, "/", 3)
+	if len(fields) < 3 || !strings.HasPrefix(fields[2], "info/lfs") {
+		return ""
+	}
+	return setting.LocalURL + "api/internal/repo/" + routePath
+}
+
+func isInternalLFSURL(s string) bool {
+	if !strings.HasPrefix(s, setting.LocalURL) {
+		return false
+	}
+	u, err := url.Parse(s)
+	if err != nil {
+		return false
+	}
+	routePath := util.PathJoinRelX(u.Path)
+	subRoutePath, cut := strings.CutPrefix(routePath, "api/internal/repo/")
+	if !cut {
+		return false
+	}
+	fields := strings.SplitN(subRoutePath, "/", 3)
+	if len(fields) < 3 || !strings.HasPrefix(fields[2], "info/lfs") {
+		return false
+	}
+	return true
+}
+
+func newInternalRequestLFS(ctx context.Context, internalURL, method string, headers map[string]string, body any) *httplib.Request {
+	if !isInternalLFSURL(internalURL) {
+		return nil
+	}
+	req := private.NewInternalRequest(ctx, internalURL, method)
 	for k, v := range headers {
 		req.Header(k, v)
 	}

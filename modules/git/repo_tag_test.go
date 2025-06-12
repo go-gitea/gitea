@@ -27,12 +27,12 @@ func TestRepository_GetTags(t *testing.T) {
 	}
 	assert.Len(t, tags, 2)
 	assert.Len(t, tags, total)
-	assert.EqualValues(t, "signed-tag", tags[0].Name)
-	assert.EqualValues(t, "36f97d9a96457e2bab511db30fe2db03893ebc64", tags[0].ID.String())
-	assert.EqualValues(t, "tag", tags[0].Type)
-	assert.EqualValues(t, "test", tags[1].Name)
-	assert.EqualValues(t, "3ad28a9149a2864384548f3d17ed7f38014c9e8a", tags[1].ID.String())
-	assert.EqualValues(t, "tag", tags[1].Type)
+	assert.Equal(t, "signed-tag", tags[0].Name)
+	assert.Equal(t, "36f97d9a96457e2bab511db30fe2db03893ebc64", tags[0].ID.String())
+	assert.Equal(t, "tag", tags[0].Type)
+	assert.Equal(t, "test", tags[1].Name)
+	assert.Equal(t, "3ad28a9149a2864384548f3d17ed7f38014c9e8a", tags[1].ID.String())
+	assert.Equal(t, "tag", tags[1].Type)
 }
 
 func TestRepository_GetTag(t *testing.T) {
@@ -64,18 +64,13 @@ func TestRepository_GetTag(t *testing.T) {
 
 	// and try to get the Tag for lightweight tag
 	lTag, err := bareRepo1.GetTag(lTagName)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
-	if lTag == nil {
-		assert.NotNil(t, lTag)
-		assert.FailNow(t, "nil lTag: %s", lTagName)
-	}
-	assert.EqualValues(t, lTagName, lTag.Name)
-	assert.EqualValues(t, lTagCommitID, lTag.ID.String())
-	assert.EqualValues(t, lTagCommitID, lTag.Object.String())
-	assert.EqualValues(t, "commit", lTag.Type)
+	require.NoError(t, err)
+	require.NotNil(t, lTag, "nil lTag: %s", lTagName)
+
+	assert.Equal(t, lTagName, lTag.Name)
+	assert.Equal(t, lTagCommitID, lTag.ID.String())
+	assert.Equal(t, lTagCommitID, lTag.Object.String())
+	assert.Equal(t, "commit", lTag.Type)
 
 	// ANNOTATED TAGS
 	aTagCommitID := "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"
@@ -97,19 +92,14 @@ func TestRepository_GetTag(t *testing.T) {
 	}
 
 	aTag, err := bareRepo1.GetTag(aTagName)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
-	if aTag == nil {
-		assert.NotNil(t, aTag)
-		assert.FailNow(t, "nil aTag: %s", aTagName)
-	}
-	assert.EqualValues(t, aTagName, aTag.Name)
-	assert.EqualValues(t, aTagID, aTag.ID.String())
+	require.NoError(t, err)
+	require.NotNil(t, aTag, "nil aTag: %s", aTagName)
+
+	assert.Equal(t, aTagName, aTag.Name)
+	assert.Equal(t, aTagID, aTag.ID.String())
 	assert.NotEqual(t, aTagID, aTag.Object.String())
-	assert.EqualValues(t, aTagCommitID, aTag.Object.String())
-	assert.EqualValues(t, "tag", aTag.Type)
+	assert.Equal(t, aTagCommitID, aTag.Object.String())
+	assert.Equal(t, "tag", aTag.Type)
 
 	// RELEASE TAGS
 
@@ -127,14 +117,14 @@ func TestRepository_GetTag(t *testing.T) {
 		assert.NoError(t, err)
 		return
 	}
-	assert.EqualValues(t, rTagCommitID, rTagID)
+	assert.Equal(t, rTagCommitID, rTagID)
 
 	oTagID, err := bareRepo1.GetTagID(lTagName)
 	if err != nil {
 		assert.NoError(t, err)
 		return
 	}
-	assert.EqualValues(t, lTagCommitID, oTagID)
+	assert.Equal(t, lTagCommitID, oTagID)
 }
 
 func TestRepository_GetAnnotatedTag(t *testing.T) {
@@ -170,9 +160,9 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 		return
 	}
 	assert.NotNil(t, tag)
-	assert.EqualValues(t, aTagName, tag.Name)
-	assert.EqualValues(t, aTagID, tag.ID.String())
-	assert.EqualValues(t, "tag", tag.Type)
+	assert.Equal(t, aTagName, tag.Name)
+	assert.Equal(t, aTagID, tag.ID.String())
+	assert.Equal(t, "tag", tag.Type)
 
 	// Annotated tag's Commit ID should fail
 	tag2, err := bareRepo1.GetAnnotatedTag(aTagCommitID)

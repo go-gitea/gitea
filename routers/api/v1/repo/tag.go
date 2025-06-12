@@ -110,7 +110,7 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 	if tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(sha); err != nil {
 		ctx.APIError(http.StatusBadRequest, err)
 	} else {
-		commit, err := tag.Commit(ctx.Repo.GitRepo)
+		commit, err := ctx.Repo.GitRepo.GetTagCommit(tag.Name)
 		if err != nil {
 			ctx.APIError(http.StatusBadRequest, err)
 		}
@@ -150,7 +150,7 @@ func GetTag(ctx *context.APIContext) {
 
 	tag, err := ctx.Repo.GitRepo.GetTag(tagName)
 	if err != nil {
-		ctx.APIErrorNotFound(tagName)
+		ctx.APIErrorNotFound("tag doesn't exist: " + tagName)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToTag(ctx.Repo.Repository, tag))

@@ -9,6 +9,7 @@ import (
 	"html"
 	"html/template"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -59,7 +60,6 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// svg / avatar / icon / color
 		"svg":           svg.RenderHTML,
-		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": migrationIcon,
 		"ActionIcon":    actionIcon,
 		"SortArrow":     sortArrow,
@@ -74,7 +74,7 @@ func NewFuncMap() template.FuncMap {
 		"TimeEstimateString": timeEstimateString,
 
 		"LoadTimes": func(startTime time.Time) string {
-			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
+			return strconv.FormatInt(time.Since(startTime).Nanoseconds()/1e6, 10) + "ms"
 		},
 
 		// -----------------------------------------------------------------
@@ -162,22 +162,6 @@ func NewFuncMap() template.FuncMap {
 
 		"FilenameIsImage": filenameIsImage,
 		"TabSizeClass":    tabSizeClass,
-
-		// for backward compatibility only, do not use them anymore
-		"TimeSince":     timeSinceLegacy,
-		"TimeSinceUnix": timeSinceLegacy,
-		"DateTime":      dateTimeLegacy,
-
-		"RenderEmoji":      renderEmojiLegacy,
-		"RenderLabel":      renderLabelLegacy,
-		"RenderLabels":     renderLabelsLegacy,
-		"RenderIssueTitle": renderIssueTitleLegacy,
-
-		"RenderMarkdownToHtml": renderMarkdownToHtmlLegacy,
-
-		"RenderCommitMessage":            renderCommitMessageLegacy,
-		"RenderCommitMessageLinkSubject": renderCommitMessageLinkSubjectLegacy,
-		"RenderCommitBody":               renderCommitBodyLegacy,
 	}
 }
 
@@ -366,8 +350,4 @@ func QueryBuild(a ...any) template.URL {
 		}
 	}
 	return template.URL(s)
-}
-
-func panicIfDevOrTesting() {
-	setting.PanicInDevOrTesting("legacy template functions are for backward compatibility only, do not use them in new code")
 }

@@ -46,9 +46,11 @@ function callGlobalInitFunc(el: HTMLElement) {
   const func = globalInitFuncs[initFunc];
   if (!func) throw new Error(`Global init function "${initFunc}" not found`);
 
+  // when an element node is removed and added again, it should not be re-initialized again.
   type GiteaGlobalInitElement = Partial<HTMLElement> & {_giteaGlobalInited: boolean};
-  if ((el as GiteaGlobalInitElement)._giteaGlobalInited) throw new Error(`Global init function "${initFunc}" already executed`);
+  if ((el as GiteaGlobalInitElement)._giteaGlobalInited) return;
   (el as GiteaGlobalInitElement)._giteaGlobalInited = true;
+
   func(el);
 }
 

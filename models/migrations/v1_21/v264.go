@@ -5,7 +5,7 @@ package v1_21 //nolint
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -57,7 +57,7 @@ func AddBranchTable(x *xorm.Engine) error {
 	if err != nil {
 		return err
 	} else if !has {
-		return fmt.Errorf("no admin user found")
+		return errors.New("no admin user found")
 	}
 
 	branches := make([]Branch, 0, 100)

@@ -6,26 +6,25 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path"
 	"strconv"
 	"strings"
-	"syscall"
 
-	"github.com/google/go-github/v61/github"
-	"github.com/urfave/cli/v2"
+	"github.com/google/go-github/v71/github"
+	"github.com/urfave/cli/v3"
 	"gopkg.in/yaml.v3"
 )
 
 const defaultVersion = "v1.18" // to backport to
 
 func main() {
-	app := cli.NewApp()
+	app := &cli.Command{}
 	app.Name = "backport"
 	app.Usage = "Backport provided PR-number on to the current or previous released version"
 	app.Description = `Backport will look-up the PR in Gitea's git log and attempt to cherry-pick it on the current version`
@@ -90,7 +89,7 @@ func main() {
 			Usage: "Set this flag to continue from a git cherry-pick that has broken",
 		},
 	}
-	cli.AppHelpTemplate = `NAME:
+	cli.RootCommandHelpTemplate = `NAME:
 	{{.Name}} - {{.Usage}}
 USAGE:
 	{{.HelpName}} {{if .VisibleFlags}}[options]{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{else}}[arguments...]{{end}}
@@ -104,16 +103,12 @@ OPTIONS:
 `
 
 	app.Action = runBackport
-
-	if err := app.Run(os.Args); err != nil {
+	if err := app.Run(context.Background(), os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to backport: %v\n", err)
 	}
 }
 
-func runBackport(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runBackport(ctx context.Context, c *cli.Command) error {
 	continuing := c.Bool("continue")
 
 	var pr string
@@ -158,7 +153,7 @@ func runBackport(c *cli.Context) error {
 
 	args := c.Args().Slice()
 	if len(args) == 0 && pr == "" {
-		return fmt.Errorf("no PR number provided\nProvide a PR number to backport")
+		return errors.New("no PR number provided\nProvide a PR number to backport")
 	} else if len(args) != 1 && pr == "" {
 		return fmt.Errorf("multiple PRs provided %v\nOnly a single PR can be backported at a time", args)
 	}
@@ -458,26 +453,4 @@ func determineSHAforPR(ctx context.Context, prStr, accessToken string) (string, 
 	}
 
 	return "", nil
-}
-
-func installSignals() (context.Context, context.CancelFunc) {
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		// install notify
-		signalChannel := make(chan os.Signal, 1)
-
-		signal.Notify(
-			signalChannel,
-			syscall.SIGINT,
-			syscall.SIGTERM,
-		)
-		select {
-		case <-signalChannel:
-		case <-ctx.Done():
-		}
-		cancel()
-		signal.Reset()
-	}()
-
-	return ctx, cancel
 }

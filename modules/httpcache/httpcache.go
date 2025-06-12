@@ -4,40 +4,60 @@
 package httpcache
 
 import (
-	"io"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
+type CacheControlOptions struct {
+	IsPublic    bool
+	MaxAge      time.Duration
+	NoTransform bool
+}
+
 // SetCacheControlInHeader sets suitable cache-control headers in the response
-func SetCacheControlInHeader(h http.Header, maxAge time.Duration, additionalDirectives ...string) {
-	directives := make([]string, 0, 2+len(additionalDirectives))
+func SetCacheControlInHeader(h http.Header, opts *CacheControlOptions) {
+	directives := make([]string, 0, 4)
 
 	// "max-age=0 + must-revalidate" (aka "no-cache") is preferred instead of "no-store"
 	// because browsers may restore some input fields after navigate-back / reload a page.
+	publicPrivate := util.Iif(opts.IsPublic, "public", "private")
 	if setting.IsProd {
-		if maxAge == 0 {
+		if opts.MaxAge == 0 {
 			directives = append(directives, "max-age=0", "private", "must-revalidate")
 		} else {
-			directives = append(directives, "private", "max-age="+strconv.Itoa(int(maxAge.Seconds())))
+			directives = append(directives, publicPrivate, "max-age="+strconv.Itoa(int(opts.MaxAge.Seconds())))
 		}
 	} else {
-		directives = append(directives, "max-age=0", "private", "must-revalidate")
-
-		// to remind users they are using non-prod setting.
-		h.Set("X-Gitea-Debug", "RUN_MODE="+setting.RunMode)
+		// use dev-related controls, and remind users they are using non-prod setting.
+		directives = append(directives, "max-age=0", publicPrivate, "must-revalidate")
+		h.Set("X-Gitea-Debug", fmt.Sprintf("RUN_MODE=%v, MaxAge=%s", setting.RunMode, opts.MaxAge))
 	}
 
-	h.Set("Cache-Control", strings.Join(append(directives, additionalDirectives...), ", "))
+	if opts.NoTransform {
+		directives = append(directives, "no-transform")
+	}
+	h.Set("Cache-Control", strings.Join(directives, ", "))
 }
 
-func ServeContentWithCacheControl(w http.ResponseWriter, req *http.Request, name string, modTime time.Time, content io.ReadSeeker) {
-	SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
-	http.ServeContent(w, req, name, modTime, content)
+func CacheControlForPublicStatic() *CacheControlOptions {
+	return &CacheControlOptions{
+		IsPublic:    true,
+		MaxAge:      setting.StaticCacheTime,
+		NoTransform: true,
+	}
+}
+
+func CacheControlForPrivateStatic() *CacheControlOptions {
+	return &CacheControlOptions{
+		MaxAge:      setting.StaticCacheTime,
+		NoTransform: true,
+	}
 }
 
 // HandleGenericETagCache handles ETag-based caching for a HTTP request.
@@ -50,7 +70,8 @@ func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag strin
 			return true
 		}
 	}
-	SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
+	// not sure whether it is a public content, so just use "private" (old behavior)
+	SetCacheControlInHeader(w.Header(), CacheControlForPrivateStatic())
 	return false
 }
 
@@ -95,6 +116,8 @@ func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 			}
 		}
 	}
-	SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
+
+	// not sure whether it is a public content, so just use "private" (old behavior)
+	SetCacheControlInHeader(w.Header(), CacheControlForPrivateStatic())
 	return false
 }

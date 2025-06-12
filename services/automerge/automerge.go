@@ -36,7 +36,7 @@ func Init() error {
 
 	prAutoMergeQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_auto_merge", handler)
 	if prAutoMergeQueue == nil {
-		return fmt.Errorf("unable to create pr_auto_merge queue")
+		return errors.New("unable to create pr_auto_merge queue")
 	}
 	go graceful.GetManager().RunWithCancel(prAutoMergeQueue)
 	return nil
@@ -248,13 +248,13 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 
 	switch pr.Flow {
 	case issues_model.PullRequestFlowGithub:
-		headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
-		if pr.HeadRepo == nil || !headBranchExist {
+		headBranchExist := pr.HeadRepo != nil && gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch)
+		if !headBranchExist {
 			log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch: %s]", pr, pr.HeadRepoID, pr.HeadBranch)
 			return
 		}
 	case issues_model.PullRequestFlowAGit:
-		headBranchExist := git.IsReferenceExist(ctx, baseGitRepo.Path, pr.GetGitRefName())
+		headBranchExist := gitrepo.IsReferenceExist(ctx, pr.BaseRepo, pr.GetGitRefName())
 		if !headBranchExist {
 			log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch(Agit): %s]", pr, pr.HeadRepoID, pr.HeadBranch)
 			return
@@ -289,7 +289,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 	}
 
 	if err := pull_service.CheckPullMergeable(ctx, doer, &perm, pr, pull_service.MergeCheckTypeGeneral, false); err != nil {
-		if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
+		if errors.Is(err, pull_service.ErrNotReadyToMerge) {
 			log.Info("%-v was scheduled to automerge by an unauthorized user", pr)
 			return
 		}

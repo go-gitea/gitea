@@ -126,7 +126,7 @@ func TestOAuth2Application_CreateGrant(t *testing.T) {
 	assert.NotNil(t, grant)
 	assert.Equal(t, int64(2), grant.UserID)
 	assert.Equal(t, int64(1), grant.ApplicationID)
-	assert.Equal(t, "", grant.Scope)
+	assert.Empty(t, grant.Scope)
 }
 
 //////////////////// Grant

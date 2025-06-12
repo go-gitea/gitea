@@ -97,7 +97,7 @@ func Test_isGitRawOrLFSPath(t *testing.T) {
 	defer test.MockVariableValue(&setting.LFS.StartServer)()
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
-			req, _ := http.NewRequest("POST", "http://localhost"+tt.path, nil)
+			req, _ := http.NewRequest(http.MethodPost, "http://localhost"+tt.path, nil)
 			setting.LFS.StartServer = false
 			assert.Equal(t, tt.want, newAuthPathDetector(req).isGitRawOrAttachOrLFSPath())
 
@@ -119,7 +119,7 @@ func Test_isGitRawOrLFSPath(t *testing.T) {
 	}
 	for _, tt := range lfsTests {
 		t.Run(tt, func(t *testing.T) {
-			req, _ := http.NewRequest("POST", tt, nil)
+			req, _ := http.NewRequest(http.MethodPost, tt, nil)
 			setting.LFS.StartServer = false
 			got := newAuthPathDetector(req).isGitRawOrAttachOrLFSPath()
 			assert.Equalf(t, setting.LFS.StartServer, got, "isGitOrLFSPath(%q) = %v, want %v, %v", tt, got, setting.LFS.StartServer, globalVars().gitRawOrAttachPathRe.MatchString(tt))
@@ -148,7 +148,7 @@ func Test_isFeedRequest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "http://localhost"+tt.path, nil)
+			req, _ := http.NewRequest(http.MethodGet, "http://localhost"+tt.path, nil)
 			assert.Equal(t, tt.want, newAuthPathDetector(req).isFeedRequest(req))
 		})
 	}

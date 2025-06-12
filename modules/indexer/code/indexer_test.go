@@ -11,11 +11,13 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	indexer_module "code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/code/bleve"
 	"code.gitea.io/gitea/modules/indexer/code/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
 
 	_ "code.gitea.io/gitea/models"
 	_ "code.gitea.io/gitea/models/actions"
@@ -39,10 +41,11 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 		assert.NoError(t, setupRepositoryIndexes(t.Context(), indexer))
 
 		keywords := []struct {
-			RepoIDs []int64
-			Keyword string
-			Langs   int
-			Results []codeSearchResult
+			RepoIDs    []int64
+			Keyword    string
+			Langs      int
+			SearchMode indexer_module.SearchModeType
+			Results    []codeSearchResult
 		}{
 			// Search for an exact match on the contents of a file
 			// This scenario yields a single result (the file README.md on the repo '1')
@@ -183,9 +186,10 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 			},
 			// Search for matches on the contents of files regardless of case.
 			{
-				RepoIDs: nil,
-				Keyword: "dESCRIPTION",
-				Langs:   1,
+				RepoIDs:    nil,
+				Keyword:    "dESCRIPTION",
+				Langs:      1,
+				SearchMode: indexer_module.SearchModeFuzzy,
 				Results: []codeSearchResult{
 					{
 						Filename: "README.md",
@@ -193,7 +197,7 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
-			// Search for an exact match on the filename within the repo '62' (case insenstive).
+			// Search for an exact match on the filename within the repo '62' (case-insensitive).
 			// This scenario yields a single result (the file avocado.md on the repo '62')
 			{
 				RepoIDs: []int64{62},
@@ -206,7 +210,7 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
-			// Search for matches on the contents of files when the criteria is a expression.
+			// Search for matches on the contents of files when the criteria are an expression.
 			{
 				RepoIDs: []int64{62},
 				Keyword: "console.log",
@@ -218,7 +222,7 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
-			// Search for matches on the contents of files when the criteria is part of a expression.
+			// Search for matches on the contents of files when the criteria are parts of an expression.
 			{
 				RepoIDs: []int64{62},
 				Keyword: "log",
@@ -235,16 +239,16 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 		for _, kw := range keywords {
 			t.Run(kw.Keyword, func(t *testing.T) {
 				total, res, langs, err := indexer.Search(t.Context(), &internal.SearchOptions{
-					RepoIDs: kw.RepoIDs,
-					Keyword: kw.Keyword,
+					RepoIDs:    kw.RepoIDs,
+					Keyword:    kw.Keyword,
+					SearchMode: util.IfZero(kw.SearchMode, indexer_module.SearchModeWords),
 					Paginator: &db.ListOptions{
 						Page:     1,
 						PageSize: 10,
 					},
-					IsKeywordFuzzy: true,
 				})
-				assert.NoError(t, err)
-				assert.Len(t, langs, kw.Langs)
+				require.NoError(t, err)
+				require.Len(t, langs, kw.Langs)
 
 				hits := make([]codeSearchResult, 0, len(res))
 
@@ -289,7 +293,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 	_, err := idx.Init(t.Context())
 	require.NoError(t, err)
 
-	testIndexer("beleve", t, idx)
+	testIndexer("bleve", t, idx)
 }
 
 func TestESIndexAndSearch(t *testing.T) {
@@ -306,7 +310,7 @@ func TestESIndexAndSearch(t *testing.T) {
 		if indexer != nil {
 			indexer.Close()
 		}
-		assert.FailNow(t, "Unable to init ES indexer Error: %v", err)
+		require.NoError(t, err, "Unable to init ES indexer")
 	}
 
 	defer indexer.Close()

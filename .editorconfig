@@ -12,6 +12,9 @@ insert_final_newline = true
 [*.{go,tmpl,html}]
 indent_style = tab
 
+[go.*]
+indent_style = tab
+
 [templates/custom/*.tmpl]
 insert_final_newline = false
 

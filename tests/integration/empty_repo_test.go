@@ -11,6 +11,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -22,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -99,22 +101,29 @@ func TestEmptyRepoAddFile(t *testing.T) {
 	assert.Contains(t, resp.Body.String(), "test-file.md")
 
 	// if the repo is in incorrect state, it should be able to self-heal (recover to correct state)
-	user30EmptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
-	user30EmptyRepo.IsEmpty = true
-	user30EmptyRepo.DefaultBranch = "no-such"
-	_, err := db.GetEngine(db.DefaultContext).ID(user30EmptyRepo.ID).Cols("is_empty", "default_branch").Update(user30EmptyRepo)
-	require.NoError(t, err)
-	user30EmptyRepo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
-	assert.True(t, user30EmptyRepo.IsEmpty)
+	testEmptyOrBrokenRecover := func(t *testing.T, isEmpty, isBroken bool) {
+		user30EmptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
+		user30EmptyRepo.IsEmpty = isEmpty
+		user30EmptyRepo.Status = util.Iif(isBroken, repo_model.RepositoryBroken, repo_model.RepositoryReady)
+		user30EmptyRepo.DefaultBranch = "no-such"
+		_, err := db.GetEngine(db.DefaultContext).ID(user30EmptyRepo.ID).Cols("is_empty", "status", "default_branch").Update(user30EmptyRepo)
+		require.NoError(t, err)
+		user30EmptyRepo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
+		assert.Equal(t, isEmpty, user30EmptyRepo.IsEmpty)
+		assert.Equal(t, isBroken, user30EmptyRepo.Status == repo_model.RepositoryBroken)
 
-	req = NewRequest(t, "GET", "/user30/empty")
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	redirect = test.RedirectURL(resp)
-	assert.Equal(t, "/user30/empty", redirect)
+		req = NewRequest(t, "GET", "/user30/empty")
+		resp = session.MakeRequest(t, req, http.StatusSeeOther)
+		redirect = test.RedirectURL(resp)
+		assert.Equal(t, "/user30/empty", redirect)
 
-	req = NewRequest(t, "GET", "/user30/empty")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.Contains(t, resp.Body.String(), "test-file.md")
+		req = NewRequest(t, "GET", "/user30/empty")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "test-file.md")
+	}
+	testEmptyOrBrokenRecover(t, true, false)
+	testEmptyOrBrokenRecover(t, false, true)
+	testEmptyOrBrokenRecover(t, true, true)
 }
 
 func TestEmptyRepoUploadFile(t *testing.T) {
@@ -130,7 +139,7 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 	mpForm := multipart.NewWriter(body)
 	_ = mpForm.WriteField("_csrf", GetUserCSRFToken(t, session))
 	file, _ := mpForm.CreateFormFile("file", "uploaded-file.txt")
-	_, _ = io.Copy(file, bytes.NewBufferString("newly-uploaded-test-file"))
+	_, _ = io.Copy(file, strings.NewReader("newly-uploaded-test-file"))
 	_ = mpForm.Close()
 
 	req = NewRequestWithBody(t, "POST", "/user30/empty/upload-file", body)
@@ -172,7 +181,7 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	var fileResponse api.FileResponse
 	DecodeJSON(t, resp, &fileResponse)
 	expectedHTMLURL := setting.AppURL + "user30/empty/src/branch/new_branch/new-file.txt"
-	assert.EqualValues(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
+	assert.Equal(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
 
 	req = NewRequest(t, "GET", "/user30/empty/src/branch/new_branch/new-file.txt")
 	resp = session.MakeRequest(t, req, http.StatusOK)

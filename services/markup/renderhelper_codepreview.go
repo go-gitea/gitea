@@ -6,7 +6,7 @@ package markup
 import (
 	"bufio"
 	"context"
-	"fmt"
+	"errors"
 	"html/template"
 	"strings"
 
@@ -14,13 +14,13 @@ import (
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/git/languagestats"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	gitea_context "code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/repository/files"
 )
 
 func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePreviewOptions) (template.HTML, error) {
@@ -38,7 +38,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 
 	webCtx := gitea_context.GetWebContext(ctx)
 	if webCtx == nil {
-		return "", fmt.Errorf("context is not a web context")
+		return "", errors.New("context is not a web context")
 	}
 	doer := webCtx.Doer
 
@@ -61,14 +61,14 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", err
 	}
 
-	language, _ := files.TryGetContentLanguage(gitRepo, opts.CommitID, opts.FilePath)
+	language, _ := languagestats.GetFileLanguage(ctx, gitRepo, opts.CommitID, opts.FilePath)
 	blob, err := commit.GetBlobByPath(opts.FilePath)
 	if err != nil {
 		return "", err
 	}
 
 	if blob.Size() > setting.UI.MaxDisplayFileSize {
-		return "", fmt.Errorf("file is too large")
+		return "", errors.New("file is too large")
 	}
 
 	dataRc, err := blob.DataAsync()

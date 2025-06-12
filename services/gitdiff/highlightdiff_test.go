@@ -23,20 +23,30 @@ func TestDiffWithHighlight(t *testing.T) {
 		assert.Equal(t, `x <span class="k"><span class="added-code">bar</span></span> y`, string(outAdd))
 	})
 
+	t.Run("CleanUp", func(t *testing.T) {
+		hcd := newHighlightCodeDiff()
+		codeA := template.HTML(`<span class="cm>this is a comment</span>`)
+		codeB := template.HTML(`<span class="cm>this is updated comment</span>`)
+		outDel := hcd.diffLineWithHighlight(DiffLineDel, codeA, codeB)
+		assert.Equal(t, `<span class="cm>this is <span class="removed-code">a</span> comment</span>`, string(outDel))
+		outAdd := hcd.diffLineWithHighlight(DiffLineAdd, codeA, codeB)
+		assert.Equal(t, `<span class="cm>this is <span class="added-code">updated</span> comment</span>`, string(outAdd))
+	})
+
 	t.Run("OpenCloseTags", func(t *testing.T) {
 		hcd := newHighlightCodeDiff()
 		hcd.placeholderTokenMap['O'], hcd.placeholderTokenMap['C'] = "<span>", "</span>"
 		assert.Equal(t, "<span></span>", string(hcd.recoverOneDiff("OC")))
 		assert.Equal(t, "<span></span>", string(hcd.recoverOneDiff("O")))
-		assert.Equal(t, "", string(hcd.recoverOneDiff("C")))
+		assert.Empty(t, string(hcd.recoverOneDiff("C")))
 	})
 }
 
 func TestDiffWithHighlightPlaceholder(t *testing.T) {
 	hcd := newHighlightCodeDiff()
 	output := hcd.diffLineWithHighlight(DiffLineDel, "a='\U00100000'", "a='\U0010FFFD''")
-	assert.Equal(t, "", hcd.placeholderTokenMap[0x00100000])
-	assert.Equal(t, "", hcd.placeholderTokenMap[0x0010FFFD])
+	assert.Empty(t, hcd.placeholderTokenMap[0x00100000])
+	assert.Empty(t, hcd.placeholderTokenMap[0x0010FFFD])
 	expected := fmt.Sprintf(`a='<span class="removed-code">%s</span>'`, "\U00100000")
 	assert.Equal(t, expected, string(output))
 

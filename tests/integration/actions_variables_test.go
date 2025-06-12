@@ -27,21 +27,21 @@ func TestActionsVariables(t *testing.T) {
 	require.NoError(t, db.DeleteAllRecords("action_variable"))
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	_, _ = actions_model.InsertVariable(ctx, user2.ID, 0, "VAR", "user2-var")
+	_, _ = actions_model.InsertVariable(ctx, user2.ID, 0, "VAR", "user2-var", "user2-var-description")
 	user2Var := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{OwnerID: user2.ID, Name: "VAR"})
 	userWebURL := "/user/settings/actions/variables"
 
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3, Type: user_model.UserTypeOrganization})
-	_, _ = actions_model.InsertVariable(ctx, org3.ID, 0, "VAR", "org3-var")
+	_, _ = actions_model.InsertVariable(ctx, org3.ID, 0, "VAR", "org3-var", "org3-var-description")
 	org3Var := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{OwnerID: org3.ID, Name: "VAR"})
 	orgWebURL := "/org/org3/settings/actions/variables"
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	_, _ = actions_model.InsertVariable(ctx, 0, repo1.ID, "VAR", "repo1-var")
+	_, _ = actions_model.InsertVariable(ctx, 0, repo1.ID, "VAR", "repo1-var", "repo1-var-description")
 	repo1Var := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{RepoID: repo1.ID, Name: "VAR"})
 	repoWebURL := "/user2/repo1/settings/actions/variables"
 
-	_, _ = actions_model.InsertVariable(ctx, 0, 0, "VAR", "global-var")
+	_, _ = actions_model.InsertVariable(ctx, 0, 0, "VAR", "global-var", "global-var-description")
 	globalVar := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{Name: "VAR", Data: "global-var"})
 	adminWebURL := "/-/admin/actions/variables"
 

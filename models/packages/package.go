@@ -127,7 +127,7 @@ func (pt Type) Name() string {
 	case TypeVagrant:
 		return "Vagrant"
 	}
-	panic(fmt.Sprintf("unknown package type: %s", string(pt)))
+	panic("unknown package type: " + string(pt))
 }
 
 // SVGName gets the name of the package type svg image
@@ -178,7 +178,7 @@ func (pt Type) SVGName() string {
 	case TypeVagrant:
 		return "gitea-vagrant"
 	}
-	panic(fmt.Sprintf("unknown package type: %s", string(pt)))
+	panic("unknown package type: " + string(pt))
 }
 
 // Package represents a package

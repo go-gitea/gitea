@@ -1,18 +1,18 @@
 <script lang="ts" setup>
 import {SvgIcon, type SvgName} from '../svg.ts';
-import {diffTreeStore} from '../modules/stores.ts';
 import {ref} from 'vue';
-import type {Item, File, FileStatus} from '../utils/filetree.ts';
+import {type DiffStatus, type DiffTreeEntry, diffTreeStore} from '../modules/diff-file.ts';
 
-defineProps<{
-  item: Item,
+const props = defineProps<{
+  item: DiffTreeEntry,
 }>();
 
 const store = diffTreeStore();
-const collapsed = ref(false);
+const collapsed = ref(props.item.IsViewed);
 
-function getIconForDiffStatus(pType: FileStatus) {
-  const diffTypes: Record<FileStatus, { name: SvgName, classes: Array<string> }> = {
+function getIconForDiffStatus(pType: DiffStatus) {
+  const diffTypes: Record<DiffStatus, { name: SvgName, classes: Array<string> }> = {
+    '': {name: 'octicon-blocked', classes: ['text', 'red']}, // unknown case
     'added': {name: 'octicon-diff-added', classes: ['text', 'green']},
     'modified': {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
     'deleted': {name: 'octicon-diff-removed', classes: ['text', 'red']},
@@ -20,49 +20,40 @@ function getIconForDiffStatus(pType: FileStatus) {
     'copied': {name: 'octicon-diff-renamed', classes: ['text', 'green']},
     'typechange': {name: 'octicon-diff-modified', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
   };
-  return diffTypes[pType];
-}
-
-function fileIcon(file: File) {
-  if (file.IsSubmodule) {
-    return 'octicon-file-submodule';
-  }
-  return 'octicon-file';
+  return diffTypes[pType] ?? diffTypes[''];
 }
 </script>
 
 <template>
-  <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
-  <a
-    v-if="item.isFile" class="item-file"
-    :class="{ 'selected': store.selectedItem === '#diff-' + item.file.NameHash, 'viewed': item.file.IsViewed }"
-    :title="item.name" :href="'#diff-' + item.file.NameHash"
-  >
-    <!-- file -->
-    <SvgIcon :name="fileIcon(item.file)"/>
-    <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
-    <SvgIcon
-      :name="getIconForDiffStatus(item.file.Status).name"
-      :class="getIconForDiffStatus(item.file.Status).classes"
-    />
-  </a>
-
-  <template v-else-if="item.isFile === false">
-    <div class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
+  <template v-if="item.EntryMode === 'tree'">
+    <div class="item-directory" :class="{ 'viewed': item.IsViewed }" :title="item.DisplayName" @click.stop="collapsed = !collapsed">
       <!-- directory -->
       <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
-      <SvgIcon
-        class="text primary"
-        :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"
-      />
-      <span class="gt-ellipsis">{{ item.name }}</span>
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <span class="tw-contents" v-html="collapsed ? store.folderIcon : store.folderOpenIcon"/>
+      <span class="gt-ellipsis">{{ item.DisplayName }}</span>
     </div>
 
     <div v-show="!collapsed" class="sub-items">
-      <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem"/>
+      <DiffFileTreeItem v-for="childItem in item.Children" :key="childItem.DisplayName" :item="childItem"/>
     </div>
   </template>
+  <a
+    v-else
+    class="item-file" :class="{ 'selected': store.selectedItem === '#diff-' + item.NameHash, 'viewed': item.IsViewed }"
+    :title="item.DisplayName" :href="'#diff-' + item.NameHash"
+  >
+    <!-- file -->
+    <!-- eslint-disable-next-line vue/no-v-html -->
+    <span class="tw-contents" v-html="item.FileIcon"/>
+    <span class="gt-ellipsis tw-flex-1">{{ item.DisplayName }}</span>
+    <SvgIcon
+      :name="getIconForDiffStatus(item.DiffStatus).name"
+      :class="getIconForDiffStatus(item.DiffStatus).classes"
+    />
+  </a>
 </template>
+
 <style scoped>
 a,
 a:hover {
@@ -88,7 +79,8 @@ a:hover {
   border-radius: 4px;
 }
 
-.item-file.viewed {
+.item-file.viewed,
+.item-directory.viewed {
   color: var(--color-text-light-3);
 }
 

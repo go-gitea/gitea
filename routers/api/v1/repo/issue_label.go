@@ -5,7 +5,7 @@
 package repo
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"reflect"
 
@@ -321,7 +321,7 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.APIError(http.StatusForbidden, "write permission is required")
-		return nil, nil, fmt.Errorf("permission denied")
+		return nil, nil, errors.New("permission denied")
 	}
 
 	var (
@@ -337,12 +337,12 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 			labelNames = append(labelNames, rv.String())
 		default:
 			ctx.APIError(http.StatusBadRequest, "a label must be an integer or a string")
-			return nil, nil, fmt.Errorf("invalid label")
+			return nil, nil, errors.New("invalid label")
 		}
 	}
 	if len(labelIDs) > 0 && len(labelNames) > 0 {
 		ctx.APIError(http.StatusBadRequest, "labels should be an array of strings or integers")
-		return nil, nil, fmt.Errorf("invalid labels")
+		return nil, nil, errors.New("invalid labels")
 	}
 	if len(labelNames) > 0 {
 		repoLabelIDs, err := issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, labelNames)

@@ -8,7 +8,6 @@
 package tests
 
 import (
-	"context"
 	"fmt"
 	"slices"
 	"testing"
@@ -40,7 +39,7 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 			data[v.ID] = v
 		}
 		require.NoError(t, indexer.Index(t.Context(), d...))
-		require.NoError(t, waitData(indexer, int64(len(data))))
+		waitData(t, indexer, int64(len(data)))
 	}
 
 	defer func() {
@@ -54,13 +53,13 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 				for _, v := range c.ExtraData {
 					data[v.ID] = v
 				}
-				require.NoError(t, waitData(indexer, int64(len(data))))
+				waitData(t, indexer, int64(len(data)))
 				defer func() {
 					for _, v := range c.ExtraData {
 						require.NoError(t, indexer.Delete(t.Context(), v.ID))
 						delete(data, v.ID)
 					}
-					require.NoError(t, waitData(indexer, int64(len(data))))
+					waitData(t, indexer, int64(len(data)))
 				}()
 			}
 
@@ -93,7 +92,7 @@ var cases = []*testIndexerCase{
 		Name:          "default",
 		SearchOptions: &internal.SearchOptions{},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, len(data), len(result.Hits))
+			assert.Len(t, result.Hits, len(data))
 			assert.Equal(t, len(data), int(result.Total))
 		},
 	},
@@ -379,7 +378,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			PosterID: optional.Some(int64(1)),
+			PosterID: "1",
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
@@ -397,7 +396,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			AssigneeID: optional.Some(int64(1)),
+			AssigneeID: "1",
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
@@ -415,7 +414,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			AssigneeID: optional.Some(int64(0)),
+			AssigneeID: "(none)",
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
@@ -526,7 +525,7 @@ var cases = []*testIndexerCase{
 			SortBy:    internal.SortByCreatedDesc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, len(data), len(result.Hits))
+			assert.Len(t, result.Hits, len(data))
 			assert.Equal(t, len(data), int(result.Total))
 			for i, v := range result.Hits {
 				if i < len(result.Hits)-1 {
@@ -542,7 +541,7 @@ var cases = []*testIndexerCase{
 			SortBy:    internal.SortByUpdatedDesc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, len(data), len(result.Hits))
+			assert.Len(t, result.Hits, len(data))
 			assert.Equal(t, len(data), int(result.Total))
 			for i, v := range result.Hits {
 				if i < len(result.Hits)-1 {
@@ -558,7 +557,7 @@ var cases = []*testIndexerCase{
 			SortBy:    internal.SortByCommentsDesc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, len(data), len(result.Hits))
+			assert.Len(t, result.Hits, len(data))
 			assert.Equal(t, len(data), int(result.Total))
 			for i, v := range result.Hits {
 				if i < len(result.Hits)-1 {
@@ -574,7 +573,7 @@ var cases = []*testIndexerCase{
 			SortBy:    internal.SortByDeadlineDesc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, len(data), len(result.Hits))
+			assert.Len(t, result.Hits, len(data))
 			assert.Equal(t, len(data), int(result.Total))
 			for i, v := range result.Hits {
 				if i < len(result.Hits)-1 {
@@ -590,7 +589,7 @@ var cases = []*testIndexerCase{
 			SortBy:    internal.SortByCreatedAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, len(data), len(result.Hits))
+			assert.Len(t, result.Hits, len(data))
 			assert.Equal(t, len(data), int(result.Total))
 			for i, v := range result.Hits {
 				if i < len(result.Hits)-1 {
@@ -606,7 +605,7 @@ var cases = []*testIndexerCase{
 			SortBy:    internal.SortByUpdatedAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, len(data), len(result.Hits))
+			assert.Len(t, result.Hits, len(data))
 			assert.Equal(t, len(data), int(result.Total))
 			for i, v := range result.Hits {
 				if i < len(result.Hits)-1 {
@@ -622,7 +621,7 @@ var cases = []*testIndexerCase{
 			SortBy:    internal.SortByCommentsAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, len(data), len(result.Hits))
+			assert.Len(t, result.Hits, len(data))
 			assert.Equal(t, len(data), int(result.Total))
 			for i, v := range result.Hits {
 				if i < len(result.Hits)-1 {
@@ -638,13 +637,28 @@ var cases = []*testIndexerCase{
 			SortBy:    internal.SortByDeadlineAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, len(data), len(result.Hits))
+			assert.Len(t, result.Hits, len(data))
 			assert.Equal(t, len(data), int(result.Total))
 			for i, v := range result.Hits {
 				if i < len(result.Hits)-1 {
 					assert.LessOrEqual(t, data[v.ID].DeadlineUnix, data[result.Hits[i+1].ID].DeadlineUnix)
 				}
 			}
+		},
+	},
+	{
+		Name: "SearchAnyAssignee",
+		SearchOptions: &internal.SearchOptions{
+			AssigneeID: "(any)",
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Len(t, result.Hits, 180)
+			for _, v := range result.Hits {
+				assert.GreaterOrEqual(t, data[v.ID].AssigneeID, int64(1))
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.AssigneeID >= 1
+			}), result.Total)
 		},
 	},
 }
@@ -736,22 +750,10 @@ func countIndexerData(data map[int64]*internal.IndexerData, f func(v *internal.I
 
 // waitData waits for the indexer to index all data.
 // Some engines like Elasticsearch index data asynchronously, so we need to wait for a while.
-func waitData(indexer internal.Indexer, total int64) error {
-	var actual int64
-	for i := 0; i < 100; i++ {
-		result, err := indexer.Search(context.Background(), &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 0,
-			},
-		})
-		if err != nil {
-			return err
-		}
-		actual = result.Total
-		if actual == total {
-			return nil
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	return fmt.Errorf("waitData: expected %d, actual %d", total, actual)
+func waitData(t *testing.T, indexer internal.Indexer, total int64) {
+	assert.Eventually(t, func() bool {
+		result, err := indexer.Search(t.Context(), &internal.SearchOptions{Paginator: &db.ListOptions{}})
+		require.NoError(t, err)
+		return result.Total == total
+	}, 10*time.Second, 100*time.Millisecond, "expected total=%d", total)
 }

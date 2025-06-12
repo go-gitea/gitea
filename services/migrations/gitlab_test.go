@@ -50,7 +50,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	topics, err := downloader.GetTopics(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, topics, 2)
-	assert.EqualValues(t, []string{"migration", "test"}, topics)
+	assert.Equal(t, []string{"migration", "test"}, topics)
 
 	milestones, err := downloader.GetMilestones(ctx)
 	assert.NoError(t, err)
@@ -501,7 +501,7 @@ func TestAwardsToReactions(t *testing.T) {
 	assert.NoError(t, json.Unmarshal([]byte(testResponse), &awards))
 
 	reactions := downloader.awardsToReactions(awards)
-	assert.EqualValues(t, []*base.Reaction{
+	assert.Equal(t, []*base.Reaction{
 		{
 			UserName: "lafriks",
 			UserID:   1241334,
@@ -593,7 +593,7 @@ func TestNoteToComment(t *testing.T) {
 
 	for i, note := range notes {
 		actualComment := *downloader.convertNoteToComment(17, &note)
-		assert.EqualValues(t, actualComment, comments[i])
+		assert.Equal(t, actualComment, comments[i])
 	}
 }
 

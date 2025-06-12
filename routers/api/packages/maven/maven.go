@@ -98,6 +98,11 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 	}
 	pvs = append(pvsLegacy, pvs...)
 
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, packages_model.ErrPackageNotExist)
+		return
+	}
+
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)

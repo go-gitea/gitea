@@ -94,8 +94,8 @@
 	"UserSearchList" $.Assignees
 	"SelectedUserId" $.AssigneeID
 	"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_assignee")
-	"TextZeroValue" (ctx.Locale.Tr "repo.issues.filter_assginee_no_select")
-	"TextNegativeOne" (ctx.Locale.Tr "repo.issues.filter_assginee_no_assignee")
+	"TextFilterMatchNone" (ctx.Locale.Tr "repo.issues.filter_assignee_no_assignee")
+	"TextFilterMatchAny" (ctx.Locale.Tr "repo.issues.filter_assignee_any_assignee")
 }}
 
 {{if .IsSigned}}
@@ -106,7 +106,7 @@
 		</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
-			<a class="{{if eq .ViewType "all"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "all"}}">{{ctx.Locale.Tr "repo.issues.filter_type.all_issues"}}</a>
+			<a class="{{if eq .ViewType "all"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "all"}}">{{if .PageIsPullList}}{{ctx.Locale.Tr "repo.issues.filter_type.all_pull_requests"}}{{else}}{{ctx.Locale.Tr "repo.issues.filter_type.all_issues"}}{{end}}</a>
 			<a class="{{if eq .ViewType "assigned"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "assigned"}}">{{ctx.Locale.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
 			<a class="{{if eq .ViewType "created_by"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "created_by"}}">{{ctx.Locale.Tr "repo.issues.filter_type.created_by_you"}}</a>
 			{{if .PageIsPullList}}
@@ -133,5 +133,11 @@
 		<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "leastcomment"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
 		<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "nearduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
 		<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "farduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
+		<div class="divider"></div>
+		<div class="header">{{ctx.Locale.Tr "repo.issues.filter_label"}}</div>
+		{{range $scope := .ExclusiveLabelScopes}}
+			{{$sortType := (printf "scope-%s" $scope)}}
+			<a class="{{if eq $.SortType $sortType}}active {{end}}item" href="{{QueryBuild $queryLink "sort" $sortType}}">{{$scope}}</a>
+		{{end}}
 	</div>
 </div>

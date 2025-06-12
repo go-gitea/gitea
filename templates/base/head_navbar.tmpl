@@ -1,8 +1,11 @@
 {{$notificationUnreadCount := 0}}
 {{if and .IsSigned .NotificationUnreadCount}}
-	{{$notificationUnreadCount = call .NotificationUnreadCount}}
+	{{$notificationUnreadCount = call .NotificationUnreadCount ctx}}
 {{end}}
-
+{{$activeStopwatch := NIL}}
+{{if and .IsSigned EnableTimetracking .GetActiveStopwatch}}
+	{{$activeStopwatch = call .GetActiveStopwatch ctx}}
+{{end}}
 <nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
 	<div class="navbar-left">
 		<!-- the logo -->
@@ -12,8 +15,8 @@
 
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
 		<div class="ui secondary menu navbar-mobile-right only-mobile">
-			{{if and .IsSigned EnableTimetracking .ActiveStopwatch}}
-			<a id="mobile-stopwatch-icon" class="active-stopwatch item" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{.ActiveStopwatch.Seconds}}">
+			{{if $activeStopwatch}}
+			<a id="mobile-stopwatch-icon" class="active-stopwatch item" href="{{$activeStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{$activeStopwatch.Seconds}}">
 				<div class="tw-relative">
 					{{svg "octicon-stopwatch"}}
 					<span class="header-stopwatch-dot"></span>
@@ -82,8 +85,8 @@
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		{{else if .IsSigned}}
-			{{if and EnableTimetracking .ActiveStopwatch}}
-			<a class="item not-mobile active-stopwatch" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{.ActiveStopwatch.Seconds}}">
+			{{if $activeStopwatch}}
+			<a class="item not-mobile active-stopwatch" href="{{$activeStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{$activeStopwatch.Seconds}}">
 				<div class="tw-relative">
 					{{svg "octicon-stopwatch"}}
 					<span class="header-stopwatch-dot"></span>
@@ -186,15 +189,15 @@
 		{{end}}
 	</div><!-- end full right menu -->
 
-	{{if and .IsSigned EnableTimetracking .ActiveStopwatch}}
+	{{if $activeStopwatch}}
 		<div class="active-stopwatch-popup tippy-target">
 			<div class="tw-flex tw-items-center tw-gap-2 tw-p-3">
-				<a class="stopwatch-link tw-flex tw-items-center tw-gap-2 muted" href="{{.ActiveStopwatch.IssueLink}}">
+				<a class="stopwatch-link tw-flex tw-items-center tw-gap-2 muted" href="{{$activeStopwatch.IssueLink}}">
 					{{svg "octicon-issue-opened" 16}}
-					<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
+					<span class="stopwatch-issue">{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}</span>
 				</a>
 				<div class="tw-flex tw-gap-1">
-					<form class="stopwatch-commit form-fetch-action" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/toggle">
+					<form class="stopwatch-commit form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/toggle">
 						{{.CsrfTokenHtml}}
 						<button
 							type="submit"
@@ -202,7 +205,7 @@
 							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
 						>{{svg "octicon-square-fill"}}</button>
 					</form>
-					<form class="stopwatch-cancel form-fetch-action" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/cancel">
+					<form class="stopwatch-cancel form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel">
 						{{.CsrfTokenHtml}}
 						<button
 							type="submit"

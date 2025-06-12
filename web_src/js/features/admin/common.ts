@@ -1,7 +1,6 @@
 import {checkAppUrl} from '../common-page.ts';
 import {hideElem, queryElems, showElem, toggleElem} from '../../utils/dom.ts';
 import {POST} from '../../modules/fetch.ts';
-import {initAvatarUploaderWithCropper} from '../comp/Cropper.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
 
 const {appSubUrl} = window.config;
@@ -23,8 +22,6 @@ export function initAdminCommon(): void {
   initAdminUser();
   initAdminAuthentication();
   initAdminNotice();
-
-  queryElems(document, '.avatar-file-with-cropper', initAvatarUploaderWithCropper);
 }
 
 function initAdminUser() {

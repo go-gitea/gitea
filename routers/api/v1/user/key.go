@@ -5,7 +5,7 @@ package user
 
 import (
 	std_ctx "context"
-	"fmt"
+	"errors"
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -24,9 +24,10 @@ import (
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
 func appendPrivateInformation(ctx std_ctx.Context, apiKey *api.PublicKey, key *asymkey_model.PublicKey, defaultUser *user_model.User) (*api.PublicKey, error) {
-	if key.Type == asymkey_model.KeyTypeDeploy {
+	switch key.Type {
+	case asymkey_model.KeyTypeDeploy:
 		apiKey.KeyType = "deploy"
-	} else if key.Type == asymkey_model.KeyTypeUser {
+	case asymkey_model.KeyTypeUser:
 		apiKey.KeyType = "user"
 
 		if defaultUser.ID == key.OwnerID {
@@ -38,7 +39,7 @@ func appendPrivateInformation(ctx std_ctx.Context, apiKey *api.PublicKey, key *a
 			}
 			apiKey.Owner = convert.ToUser(ctx, user, user)
 		}
-	} else {
+	default:
 		apiKey.KeyType = "unknown"
 	}
 	apiKey.ReadOnly = key.Mode == perm.AccessModeRead
@@ -200,7 +201,7 @@ func GetPublicKey(ctx *context.APIContext) {
 // CreateUserPublicKey creates new public key to given user by ID.
 func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
-		ctx.APIErrorNotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+		ctx.APIErrorNotFound("Not Found", errors.New("ssh keys setting is not allowed to be visited"))
 		return
 	}
 
@@ -270,7 +271,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
-		ctx.APIErrorNotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+		ctx.APIErrorNotFound("Not Found", errors.New("ssh keys setting is not allowed to be visited"))
 		return
 	}
 
