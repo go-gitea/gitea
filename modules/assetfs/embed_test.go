@@ -46,6 +46,8 @@ func TestEmbed(t *testing.T) {
 	assert.Equal(t, bytes.Repeat([]byte("a"), 1000), content)
 	fi, err = fs.Stat(efs, "foo/bar/b.txt")
 	require.NoError(t, err)
+	assert.False(t, fi.Mode().IsDir())
+	assert.True(t, fi.Mode().IsRegular())
 	gzipContent, ok := fi.(EmbeddedFileInfo).GetGzipContent()
 	assert.True(t, ok)
 	assert.Greater(t, len(gzipContent), 1)
@@ -66,6 +68,13 @@ func TestEmbed(t *testing.T) {
 	assert.True(t, entries[0].IsDir())
 	assert.Equal(t, "c.txt", entries[1].Name())
 	assert.False(t, entries[1].IsDir())
+
+	// test directory mode
+	fi, err = fs.Stat(efs, "foo")
+	require.NoError(t, err)
+	assert.True(t, fi.IsDir())
+	assert.True(t, fi.Mode().IsDir())
+	assert.False(t, fi.Mode().IsRegular())
 
 	// test httpfs
 	hfs := http.FS(efs)

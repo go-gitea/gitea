@@ -126,12 +126,21 @@ func (e *embeddedFS) ReadDir(name string) (l []fs.DirEntry, err error) {
 	}
 	l = make([]fs.DirEntry, len(fi.Children))
 	for i, child := range fi.Children {
-		l[i] = child
+		l[i], err = e.getFileInfo(name + "/" + child.BaseName)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return l, nil
 }
 
 func (e *embeddedFS) getFileInfo(fullName string) (*embeddedFileInfo, error) {
+	// no need to do heavy "path.Clean()" because we don't want to support "foo/../bar" or absolute paths
+	fullName = strings.TrimPrefix(fullName, "./")
+	if fullName == "" {
+		fullName = "."
+	}
+
 	e.filesMu.RLock()
 	fi := e.files[fullName]
 	e.filesMu.RUnlock()
@@ -247,7 +256,7 @@ func (fi *embeddedFileInfo) Size() int64 {
 }
 
 func (fi *embeddedFileInfo) Mode() fs.FileMode {
-	return util.Iif[fs.FileMode](fi.IsDir(), 0o555, 0o444)
+	return util.Iif[fs.FileMode](fi.IsDir(), fs.ModeDir|0o555, 0o444)
 }
 
 func (fi *embeddedFileInfo) ModTime() time.Time {
