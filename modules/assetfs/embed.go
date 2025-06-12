@@ -256,7 +256,7 @@ func (fi *embeddedFileInfo) Size() int64 {
 }
 
 func (fi *embeddedFileInfo) Mode() fs.FileMode {
-	return util.Iif[fs.FileMode](fi.IsDir(), fs.ModeDir|0o555, 0o444)
+	return util.Iif(fi.IsDir(), fs.ModeDir|0o555, 0o444)
 }
 
 func (fi *embeddedFileInfo) ModTime() time.Time {
