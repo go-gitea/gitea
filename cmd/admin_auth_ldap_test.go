@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/services/auth/source/ldap"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 func TestAddLdapBindDn(t *testing.T) {
@@ -134,7 +134,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 				"--email-attribute", "mail",
 			},
-			errMsg: "Unknown security protocol name: zzzzz",
+			errMsg: "unknown security protocol name: zzzzz",
 		},
 		// case 3
 		{
@@ -238,12 +238,13 @@ func TestAddLdapBindDn(t *testing.T) {
 		}
 
 		// Create a copy of command to test
-		app := cli.NewApp()
-		app.Flags = microcmdAuthAddLdapBindDn.Flags
-		app.Action = service.addLdapBindDn
+		app := cli.Command{
+			Flags:  microcmdAuthAddLdapBindDn().Flags,
+			Action: service.addLdapBindDn,
+		}
 
 		// Run it
-		err := app.Run(c.args)
+		err := app.Run(t.Context(), c.args)
 		if c.errMsg != "" {
 			assert.EqualError(t, err, c.errMsg, "case %d: error should match", n)
 		} else {
@@ -345,12 +346,12 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--name", "ldap (simple auth) source",
 				"--security-protocol", "zzzzz",
 				"--host", "ldap-server",
-				"--port", "123",
+				"--port", "1234",
 				"--user-filter", "(&(objectClass=posixAccount)(cn=%s))",
 				"--email-attribute", "mail",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "Unknown security protocol name: zzzzz",
+			errMsg: "unknown security protocol name: zzzzz",
 		},
 		// case 3
 		{
@@ -467,12 +468,13 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 		}
 
 		// Create a copy of command to test
-		app := cli.NewApp()
-		app.Flags = microcmdAuthAddLdapSimpleAuth.Flags
-		app.Action = service.addLdapSimpleAuth
+		app := &cli.Command{
+			Flags:  microcmdAuthAddLdapSimpleAuth().Flags,
+			Action: service.addLdapSimpleAuth,
+		}
 
 		// Run it
-		err := app.Run(c.args)
+		err := app.Run(t.Context(), c.args)
 		if c.errMsg != "" {
 			assert.EqualError(t, err, c.errMsg, "case %d: error should match", n)
 		} else {
@@ -859,7 +861,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--security-protocol", "xxxxx",
 			},
-			errMsg: "Unknown security protocol name: xxxxx",
+			errMsg: "unknown security protocol name: xxxxx",
 		},
 		// case 22
 		{
@@ -878,7 +880,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				Type: auth.OAuth2,
 				Cfg:  &ldap.Source{},
 			},
-			errMsg: "Invalid authentication type. expected: LDAP (via BindDN), actual: OAuth2",
+			errMsg: "invalid authentication type. expected: LDAP (via BindDN), actual: OAuth2",
 		},
 		// case 24
 		{
@@ -942,12 +944,12 @@ func TestUpdateLdapBindDn(t *testing.T) {
 		}
 
 		// Create a copy of command to test
-		app := cli.NewApp()
-		app.Flags = microcmdAuthUpdateLdapBindDn.Flags
-		app.Action = service.updateLdapBindDn
-
+		app := cli.Command{
+			Flags:  microcmdAuthUpdateLdapBindDn().Flags,
+			Action: service.updateLdapBindDn,
+		}
 		// Run it
-		err := app.Run(c.args)
+		err := app.Run(t.Context(), c.args)
 		if c.errMsg != "" {
 			assert.EqualError(t, err, c.errMsg, "case %d: error should match", n)
 		} else {
@@ -1250,7 +1252,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--security-protocol", "xxxxx",
 			},
-			errMsg: "Unknown security protocol name: xxxxx",
+			errMsg: "unknown security protocol name: xxxxx",
 		},
 		// case 18
 		{
@@ -1269,7 +1271,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				Type: auth.PAM,
 				Cfg:  &ldap.Source{},
 			},
-			errMsg: "Invalid authentication type. expected: LDAP (simple auth), actual: PAM",
+			errMsg: "invalid authentication type. expected: LDAP (simple auth), actual: PAM",
 		},
 		// case 20
 		{
@@ -1330,12 +1332,12 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 		}
 
 		// Create a copy of command to test
-		app := cli.NewApp()
-		app.Flags = microcmdAuthUpdateLdapSimpleAuth.Flags
-		app.Action = service.updateLdapSimpleAuth
-
+		app := cli.Command{
+			Flags:  microcmdAuthUpdateLdapSimpleAuth().Flags,
+			Action: service.updateLdapSimpleAuth,
+		}
 		// Run it
-		err := app.Run(c.args)
+		err := app.Run(t.Context(), c.args)
 		if c.errMsg != "" {
 			assert.EqualError(t, err, c.errMsg, "case %d: error should match", n)
 		} else {

@@ -140,13 +140,6 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
 	}
 
-	// Assume file is not editable first.
-	if fInfo.isLFSFile {
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
-	} else if !isRepresentableAsText {
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
-	}
-
 	// read all needed attributes which will be used later
 	// there should be no performance different between reading 2 or 4 here
 	attrsMap, err := attribute.CheckAttributes(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, attribute.CheckAttributeOpts{
@@ -243,21 +236,6 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["FileContent"] = fileContent
 			ctx.Data["LineEscapeStatus"] = statuses
 		}
-		if !fInfo.isLFSFile {
-			if ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
-				if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
-					ctx.Data["CanEditFile"] = false
-					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
-				} else {
-					ctx.Data["CanEditFile"] = true
-					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
-				}
-			} else if !ctx.Repo.RefFullName.IsBranch() {
-				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-			} else if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
-				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
-			}
-		}
 
 	case fInfo.st.IsPDF():
 		ctx.Data["IsPDFFile"] = true
@@ -307,17 +285,49 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		}
 	}
 
-	if ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
-		if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
-			ctx.Data["CanDeleteFile"] = false
-			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
-		} else {
-			ctx.Data["CanDeleteFile"] = true
-			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
-		}
-	} else if !ctx.Repo.RefFullName.IsBranch() {
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
+	prepareToRenderButtons(ctx, fInfo.isLFSFile, isRepresentableAsText, lfsLock)
+}
+
+func prepareToRenderButtons(ctx *context.Context, isLFSFile, isRepresentableAsText bool, lfsLock *git_model.LFSLock) {
+	// archived or mirror repository, the buttons should not be shown
+	if ctx.Repo.Repository.IsArchived || !ctx.Repo.Repository.CanEnableEditor() {
+		return
 	}
+
+	// The buttons should not be shown if it's not a branch
+	if !ctx.Repo.RefFullName.IsBranch() {
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
+		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
+		return
+	}
+
+	if isLFSFile {
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
+	} else if !isRepresentableAsText {
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
+	}
+
+	if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
+		if !isLFSFile { // lfs file cannot be edited after fork
+			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
+		}
+		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
+		return
+	}
+
+	// it's a lfs file and the user is not the owner of the lock
+	if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
+		ctx.Data["CanEditFile"] = false
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
+		ctx.Data["CanDeleteFile"] = false
+		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
+		return
+	}
+
+	if !isLFSFile { // lfs file cannot be edited
+		ctx.Data["CanEditFile"] = true
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+	}
+	ctx.Data["CanDeleteFile"] = true
+	ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
 }

@@ -4,40 +4,41 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
-var microcmdUserMustChangePassword = &cli.Command{
-	Name:   "must-change-password",
-	Usage:  "Set the must change password flag for the provided users or all users",
-	Action: runMustChangePassword,
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name:    "all",
-			Aliases: []string{"A"},
-			Usage:   "All users must change password, except those explicitly excluded with --exclude",
+func microcmdUserMustChangePassword() *cli.Command {
+	return &cli.Command{
+		Name:   "must-change-password",
+		Usage:  "Set the must change password flag for the provided users or all users",
+		Action: runMustChangePassword,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:    "all",
+				Aliases: []string{"A"},
+				Usage:   "All users must change password, except those explicitly excluded with --exclude",
+			},
+			&cli.StringSliceFlag{
+				Name:    "exclude",
+				Aliases: []string{"e"},
+				Usage:   "Do not change the must-change-password flag for these users",
+			},
+			&cli.BoolFlag{
+				Name:  "unset",
+				Usage: "Instead of setting the must-change-password flag, unset it",
+			},
 		},
-		&cli.StringSliceFlag{
-			Name:    "exclude",
-			Aliases: []string{"e"},
-			Usage:   "Do not change the must-change-password flag for these users",
-		},
-		&cli.BoolFlag{
-			Name:  "unset",
-			Usage: "Instead of setting the must-change-password flag, unset it",
-		},
-	},
+	}
 }
 
-func runMustChangePassword(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runMustChangePassword(ctx context.Context, c *cli.Command) error {
 	if c.NArg() == 0 && !c.IsSet("all") {
 		return errors.New("either usernames or --all must be provided")
 	}
@@ -46,8 +47,10 @@ func runMustChangePassword(c *cli.Context) error {
 	all := c.Bool("all")
 	exclude := c.StringSlice("exclude")
 
-	if err := initDB(ctx); err != nil {
-		return err
+	if !setting.IsInTesting {
+		if err := initDB(ctx); err != nil {
+			return err
+		}
 	}
 
 	n, err := user_model.SetMustChangePassword(ctx, all, mustChangePassword, c.Args().Slice(), exclude)

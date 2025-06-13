@@ -208,7 +208,7 @@ func SSHNativeParsePublicKey(keyLine string) (string, int, error) {
 
 	// The ssh library can parse the key, so next we find out what key exactly we have.
 	switch pkey.Type() {
-	case ssh.KeyAlgoDSA:
+	case ssh.KeyAlgoDSA: //nolint
 		rawPub := struct {
 			Name       string
 			P, Q, G, Y *big.Int

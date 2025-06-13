@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -13,6 +14,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"log"
 	"math/big"
 	"net"
@@ -20,47 +22,59 @@ import (
 	"strings"
 	"time"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
-// CmdCert represents the available cert sub-command.
-var CmdCert = &cli.Command{
-	Name:  "cert",
-	Usage: "Generate self-signed certificate",
-	Description: `Generate a self-signed X.509 certificate for a TLS server.
+// cmdCert represents the available cert sub-command.
+func cmdCert() *cli.Command {
+	return &cli.Command{
+		Name:  "cert",
+		Usage: "Generate self-signed certificate",
+		Description: `Generate a self-signed X.509 certificate for a TLS server.
 Outputs to 'cert.pem' and 'key.pem' and will overwrite existing files.`,
-	Action: runCert,
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "host",
-			Value: "",
-			Usage: "Comma-separated hostnames and IPs to generate a certificate for",
+		Action: runCert,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:     "host",
+				Usage:    "Comma-separated hostnames and IPs to generate a certificate for",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:  "ecdsa-curve",
+				Value: "",
+				Usage: "ECDSA curve to use to generate a key. Valid values are P224, P256, P384, P521",
+			},
+			&cli.IntFlag{
+				Name:  "rsa-bits",
+				Value: 3072,
+				Usage: "Size of RSA key to generate. Ignored if --ecdsa-curve is set",
+			},
+			&cli.StringFlag{
+				Name:  "start-date",
+				Value: "",
+				Usage: "Creation date formatted as Jan 1 15:04:05 2011",
+			},
+			&cli.DurationFlag{
+				Name:  "duration",
+				Value: 365 * 24 * time.Hour,
+				Usage: "Duration that certificate is valid for",
+			},
+			&cli.BoolFlag{
+				Name:  "ca",
+				Usage: "whether this cert should be its own Certificate Authority",
+			},
+			&cli.StringFlag{
+				Name:  "out",
+				Value: "cert.pem",
+				Usage: "Path to the file where there certificate will be saved",
+			},
+			&cli.StringFlag{
+				Name:  "keyout",
+				Value: "key.pem",
+				Usage: "Path to the file where there certificate key will be saved",
+			},
 		},
-		&cli.StringFlag{
-			Name:  "ecdsa-curve",
-			Value: "",
-			Usage: "ECDSA curve to use to generate a key. Valid values are P224, P256, P384, P521",
-		},
-		&cli.IntFlag{
-			Name:  "rsa-bits",
-			Value: 3072,
-			Usage: "Size of RSA key to generate. Ignored if --ecdsa-curve is set",
-		},
-		&cli.StringFlag{
-			Name:  "start-date",
-			Value: "",
-			Usage: "Creation date formatted as Jan 1 15:04:05 2011",
-		},
-		&cli.DurationFlag{
-			Name:  "duration",
-			Value: 365 * 24 * time.Hour,
-			Usage: "Duration that certificate is valid for",
-		},
-		&cli.BoolFlag{
-			Name:  "ca",
-			Usage: "whether this cert should be its own Certificate Authority",
-		},
-	},
+	}
 }
 
 func publicKey(priv any) any {
@@ -89,11 +103,7 @@ func pemBlockForKey(priv any) *pem.Block {
 	}
 }
 
-func runCert(c *cli.Context) error {
-	if err := argsSet(c, "host"); err != nil {
-		return err
-	}
-
+func runCert(_ context.Context, c *cli.Command) error {
 	var priv any
 	var err error
 	switch c.String("ecdsa-curve") {
@@ -108,17 +118,17 @@ func runCert(c *cli.Context) error {
 	case "P521":
 		priv, err = ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	default:
-		log.Fatalf("Unrecognized elliptic curve: %q", c.String("ecdsa-curve"))
+		err = fmt.Errorf("unrecognized elliptic curve: %q", c.String("ecdsa-curve"))
 	}
 	if err != nil {
-		log.Fatalf("Failed to generate private key: %v", err)
+		return fmt.Errorf("failed to generate private key: %w", err)
 	}
 
 	var notBefore time.Time
 	if startDate := c.String("start-date"); startDate != "" {
 		notBefore, err = time.Parse("Jan 2 15:04:05 2006", startDate)
 		if err != nil {
-			log.Fatalf("Failed to parse creation date: %v", err)
+			return fmt.Errorf("failed to parse creation date %w", err)
 		}
 	} else {
 		notBefore = time.Now()
@@ -129,7 +139,7 @@ func runCert(c *cli.Context) error {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		log.Fatalf("Failed to generate serial number: %v", err)
+		return fmt.Errorf("failed to generate serial number: %w", err)
 	}
 
 	template := x509.Certificate{
@@ -162,35 +172,35 @@ func runCert(c *cli.Context) error {
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, publicKey(priv), priv)
 	if err != nil {
-		log.Fatalf("Failed to create certificate: %v", err)
+		return fmt.Errorf("failed to create certificate: %w", err)
 	}
 
-	certOut, err := os.Create("cert.pem")
+	certOut, err := os.Create(c.String("out"))
 	if err != nil {
-		log.Fatalf("Failed to open cert.pem for writing: %v", err)
+		return fmt.Errorf("failed to open %s for writing: %w", c.String("keyout"), err)
 	}
 	err = pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	if err != nil {
-		log.Fatalf("Failed to encode certificate: %v", err)
+		return fmt.Errorf("failed to encode certificate: %w", err)
 	}
 	err = certOut.Close()
 	if err != nil {
-		log.Fatalf("Failed to write cert: %v", err)
+		return fmt.Errorf("failed to write cert: %w", err)
 	}
-	log.Println("Written cert.pem")
+	fmt.Fprintf(c.Writer, "Written cert to %s\n", c.String("out"))
 
-	keyOut, err := os.OpenFile("key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	keyOut, err := os.OpenFile(c.String("keyout"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
-		log.Fatalf("Failed to open key.pem for writing: %v", err)
+		return fmt.Errorf("failed to open %s for writing: %w", c.String("keyout"), err)
 	}
 	err = pem.Encode(keyOut, pemBlockForKey(priv))
 	if err != nil {
-		log.Fatalf("Failed to encode key: %v", err)
+		return fmt.Errorf("failed to encode key: %w", err)
 	}
 	err = keyOut.Close()
 	if err != nil {
-		log.Fatalf("Failed to write key: %v", err)
+		return fmt.Errorf("failed to write key: %w", err)
 	}
-	log.Println("Written key.pem")
+	fmt.Fprintf(c.Writer, "Written key to %s\n", c.String("keyout"))
 	return nil
 }

@@ -5,21 +5,24 @@ const removePrefix = (str: string): string => str.replace(/^user-content-/, '');
 const hasPrefix = (str: string): boolean => str.startsWith('user-content-');
 
 // scroll to anchor while respecting the `user-content` prefix that exists on the target
-function scrollToAnchor(encodedId: string): void {
-  if (!encodedId) return;
-  const id = decodeURIComponent(encodedId);
-  const prefixedId = addPrefix(id);
-  let el = document.querySelector(`#${prefixedId}`);
+function scrollToAnchor(encodedId?: string): void {
+  // FIXME: need to rewrite this function with new a better markup anchor generation logic, too many tricks here
+  let elemId: string;
+  try {
+    elemId = decodeURIComponent(encodedId ?? '');
+  } catch {} // ignore the errors, since the "encodedId" is from user's input
+  if (!elemId) return;
+
+  const prefixedId = addPrefix(elemId);
+  // eslint-disable-next-line unicorn/prefer-query-selector
+  let el = document.getElementById(prefixedId);
 
   // check for matching user-generated `a[name]`
-  if (!el) {
-    el = document.querySelector(`a[name="${CSS.escape(prefixedId)}"]`);
-  }
+  el = el ?? document.querySelector(`a[name="${CSS.escape(prefixedId)}"]`);
 
   // compat for links with old 'user-content-' prefixed hashes
-  if (!el && hasPrefix(id)) {
-    return document.querySelector(`#${id}`)?.scrollIntoView();
-  }
+  // eslint-disable-next-line unicorn/prefer-query-selector
+  el = (!el && hasPrefix(elemId)) ? document.getElementById(elemId) : el;
 
   el?.scrollIntoView();
 }

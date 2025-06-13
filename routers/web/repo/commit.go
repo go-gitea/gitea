@@ -457,6 +457,9 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 	}
 	if !ctx.Repo.CanRead(unit_model.TypeActions) {
 		for _, commit := range commits {
+			if commit.Status == nil {
+				continue
+			}
 			commit.Status.HideActionsURL(ctx)
 			git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
 		}

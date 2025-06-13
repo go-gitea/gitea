@@ -15,6 +15,26 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 )
 
+type UpdateOptionField[T any] struct {
+	FieldValue T
+	FromSync   bool
+}
+
+func UpdateOptionFieldFromValue[T any](value T) optional.Option[UpdateOptionField[T]] {
+	return optional.Some(UpdateOptionField[T]{FieldValue: value})
+}
+
+func UpdateOptionFieldFromSync[T any](value T) optional.Option[UpdateOptionField[T]] {
+	return optional.Some(UpdateOptionField[T]{FieldValue: value, FromSync: true})
+}
+
+func UpdateOptionFieldFromPtr[T any](value *T) optional.Option[UpdateOptionField[T]] {
+	if value == nil {
+		return optional.None[UpdateOptionField[T]]()
+	}
+	return UpdateOptionFieldFromValue(*value)
+}
+
 type UpdateOptions struct {
 	KeepEmailPrivate             optional.Option[bool]
 	FullName                     optional.Option[string]
@@ -32,7 +52,7 @@ type UpdateOptions struct {
 	DiffViewStyle                optional.Option[string]
 	AllowCreateOrganization      optional.Option[bool]
 	IsActive                     optional.Option[bool]
-	IsAdmin                      optional.Option[bool]
+	IsAdmin                      optional.Option[UpdateOptionField[bool]]
 	EmailNotificationsPreference optional.Option[string]
 	SetLastLogin                 bool
 	RepoAdminChangeTeamAccess    optional.Option[bool]
@@ -111,13 +131,18 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		cols = append(cols, "is_restricted")
 	}
 	if opts.IsAdmin.Has() {
-		if !opts.IsAdmin.Value() && user_model.IsLastAdminUser(ctx, u) {
-			return user_model.ErrDeleteLastAdminUser{UID: u.ID}
+		if opts.IsAdmin.Value().FieldValue /* true */ {
+			u.IsAdmin = opts.IsAdmin.Value().FieldValue // set IsAdmin=true
+			cols = append(cols, "is_admin")
+		} else if !user_model.IsLastAdminUser(ctx, u) /* not the last admin */ {
+			u.IsAdmin = opts.IsAdmin.Value().FieldValue // it's safe to change it from false to true (not the last admin)
+			cols = append(cols, "is_admin")
+		} else /* IsAdmin=false but this is the last admin user */ { //nolint
+			if !opts.IsAdmin.Value().FromSync {
+				return user_model.ErrDeleteLastAdminUser{UID: u.ID}
+			}
+			// else: syncing from external-source, this user is the last admin, so skip the "IsAdmin=false" change
 		}
-
-		u.IsAdmin = opts.IsAdmin.Value()
-
-		cols = append(cols, "is_admin")
 	}
 
 	if opts.Visibility.Has() {

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -113,7 +114,9 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 			cacheUsers[r.PublisherID] = r.Publisher
 		}
 
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, r.Repo)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, r.Repo, renderhelper.RepoCommentOptions{
+			FootnoteContextID: strconv.FormatInt(r.ID, 10),
+		})
 		r.RenderedNote, err = markdown.RenderString(rctx, r.Note)
 		if err != nil {
 			return nil, err

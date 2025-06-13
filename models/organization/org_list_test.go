@@ -10,25 +10,32 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCountOrganizations(t *testing.T) {
+func TestOrgList(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	t.Run("CountOrganizations", testCountOrganizations)
+	t.Run("FindOrgs", testFindOrgs)
+	t.Run("GetUserOrgsList", testGetUserOrgsList)
+	t.Run("LoadOrgListTeams", testLoadOrgListTeams)
+	t.Run("DoerViewOtherVisibility", testDoerViewOtherVisibility)
+}
+
+func testCountOrganizations(t *testing.T) {
 	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", user_model.UserTypeOrganization).Count(&organization.Organization{})
 	assert.NoError(t, err)
-	cnt, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{IncludePrivate: true})
+	cnt, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{IncludeVisibility: structs.VisibleTypePrivate})
 	assert.NoError(t, err)
 	assert.Equal(t, expected, cnt)
 }
 
-func TestFindOrgs(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testFindOrgs(t *testing.T) {
 	orgs, err := db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
-		UserID:         4,
-		IncludePrivate: true,
+		UserID:            4,
+		IncludeVisibility: structs.VisibleTypePrivate,
 	})
 	assert.NoError(t, err)
 	if assert.Len(t, orgs, 1) {
@@ -36,22 +43,20 @@ func TestFindOrgs(t *testing.T) {
 	}
 
 	orgs, err = db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
-		UserID:         4,
-		IncludePrivate: false,
+		UserID: 4,
 	})
 	assert.NoError(t, err)
 	assert.Empty(t, orgs)
 
 	total, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
-		UserID:         4,
-		IncludePrivate: true,
+		UserID:            4,
+		IncludeVisibility: structs.VisibleTypePrivate,
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 }
 
-func TestGetUserOrgsList(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testGetUserOrgsList(t *testing.T) {
 	orgs, err := organization.GetUserOrgsList(db.DefaultContext, &user_model.User{ID: 4})
 	assert.NoError(t, err)
 	if assert.Len(t, orgs, 1) {
@@ -61,8 +66,7 @@ func TestGetUserOrgsList(t *testing.T) {
 	}
 }
 
-func TestLoadOrgListTeams(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testLoadOrgListTeams(t *testing.T) {
 	orgs, err := organization.GetUserOrgsList(db.DefaultContext, &user_model.User{ID: 4})
 	assert.NoError(t, err)
 	assert.Len(t, orgs, 1)
@@ -70,4 +74,11 @@ func TestLoadOrgListTeams(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, teamsMap, 1)
 	assert.Len(t, teamsMap[3], 5)
+}
+
+func testDoerViewOtherVisibility(t *testing.T) {
+	assert.Equal(t, structs.VisibleTypePublic, organization.DoerViewOtherVisibility(nil, nil))
+	assert.Equal(t, structs.VisibleTypeLimited, organization.DoerViewOtherVisibility(&user_model.User{ID: 1}, &user_model.User{ID: 2}))
+	assert.Equal(t, structs.VisibleTypePrivate, organization.DoerViewOtherVisibility(&user_model.User{ID: 1}, &user_model.User{ID: 1}))
+	assert.Equal(t, structs.VisibleTypePrivate, organization.DoerViewOtherVisibility(&user_model.User{ID: 1, IsAdmin: true}, &user_model.User{ID: 2}))
 }

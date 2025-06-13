@@ -47,13 +47,12 @@ func prepareContextForProfileBigAvatar(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = content
 	}
 
-	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{
-		UserID:         ctx.ContextUser.ID,
-		IncludePrivate: showPrivate,
+		UserID:            ctx.ContextUser.ID,
+		IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, ctx.ContextUser),
 		ListOptions: db.ListOptions{
 			Page: 1,
-			// query one more results (without a separate counting) to see whether we need to add the "show more orgs" link
+			// query one more result (without a separate counting) to see whether we need to add the "show more orgs" link
 			PageSize: setting.UI.User.OrgPagingNum + 1,
 		},
 	})

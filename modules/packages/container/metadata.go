@@ -4,6 +4,7 @@
 package container
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -83,7 +84,8 @@ func ParseImageConfig(mt string, r io.Reader) (*Metadata, error) {
 
 func parseOCIImageConfig(r io.Reader) (*Metadata, error) {
 	var image oci.Image
-	if err := json.NewDecoder(r).Decode(&image); err != nil {
+	// EOF means empty input, still use the default data
+	if err := json.NewDecoder(r).Decode(&image); err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}
 

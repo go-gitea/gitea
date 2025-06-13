@@ -71,10 +71,13 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 	cmdCommit := git.NewCommand("commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email).
 		AddOptionFormat("--message=%s", message)
-	if ctx.signKeyID == "" {
+	if ctx.signKey == nil {
 		cmdCommit.AddArguments("--no-gpg-sign")
 	} else {
-		cmdCommit.AddOptionFormat("-S%s", ctx.signKeyID)
+		if ctx.signKey.Format != "" {
+			cmdCommit.AddConfig("gpg.format", ctx.signKey.Format)
+		}
+		cmdCommit.AddOptionFormat("-S%s", ctx.signKey.KeyID)
 	}
 	if err := cmdCommit.Run(ctx, ctx.RunOpts()); err != nil {
 		log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())

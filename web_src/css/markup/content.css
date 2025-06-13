@@ -2,7 +2,7 @@
   overflow: hidden;
   font-size: 16px;
   line-height: 1.5 !important;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .markup > *:first-child {

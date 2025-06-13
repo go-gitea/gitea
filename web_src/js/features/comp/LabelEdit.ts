@@ -1,5 +1,6 @@
 import {toggleElem} from '../../utils/dom.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {submitFormFetchAction} from '../common-fetch-action.ts';
 
 function nameHasScope(name: string): boolean {
   return /.*[^/]\/[^/].*/.test(name);
@@ -70,7 +71,7 @@ export function initCompLabelEdit(pageSelector: string) {
           form.reportValidity();
           return false;
         }
-        form.dispatchEvent(new Event('submit', {bubbles: true}));
+        submitFormFetchAction(form);
       },
     }).modal('show');
   };

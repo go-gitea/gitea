@@ -971,7 +971,8 @@ func Routes() *web.Router {
 		// Misc (public accessible)
 		m.Group("", func() {
 			m.Get("/version", misc.Version)
-			m.Get("/signing-key.gpg", misc.SigningKey)
+			m.Get("/signing-key.gpg", misc.SigningKeyGPG)
+			m.Get("/signing-key.pub", misc.SigningKeySSH)
 			m.Post("/markup", reqToken(), bind(api.MarkupOption{}), misc.Markup)
 			m.Post("/markdown", reqToken(), bind(api.MarkdownOption{}), misc.Markdown)
 			m.Post("/markdown/raw", reqToken(), misc.MarkdownRaw)
@@ -1427,7 +1428,8 @@ func Routes() *web.Router {
 				m.Combo("/file-contents", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo()).
 					Get(repo.GetFileContentsGet).
 					Post(bind(api.GetFilesOptions{}), repo.GetFileContentsPost) // POST method requires "write" permission, so we also support "GET" method above
-				m.Get("/signing-key.gpg", misc.SigningKey)
+				m.Get("/signing-key.gpg", misc.SigningKeyGPG)
+				m.Get("/signing-key.pub", misc.SigningKeySSH)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).
 						Put(reqToken(), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)

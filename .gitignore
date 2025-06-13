@@ -42,14 +42,10 @@ _testmain.go
 coverage.all
 cpu.out
 
-/modules/migration/bindata.go
-/modules/migration/bindata.go.hash
-/modules/options/bindata.go
-/modules/options/bindata.go.hash
-/modules/public/bindata.go
-/modules/public/bindata.go.hash
-/modules/templates/bindata.go
-/modules/templates/bindata.go.hash
+/modules/migration/bindata.*
+/modules/options/bindata.*
+/modules/public/bindata.*
+/modules/templates/bindata.*
 
 *.db
 *.log

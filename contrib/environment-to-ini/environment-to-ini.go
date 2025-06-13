@@ -4,16 +4,17 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 func main() {
-	app := cli.NewApp()
+	app := cli.Command{}
 	app.Name = "environment-to-ini"
 	app.Usage = "Use provided environment to update configuration ini"
 	app.Description = `As a helper to allow docker users to update the gitea configuration
@@ -72,13 +73,13 @@ func main() {
 		},
 	}
 	app.Action = runEnvironmentToIni
-	err := app.Run(os.Args)
+	err := app.Run(context.Background(), os.Args)
 	if err != nil {
 		log.Fatal("Failed to run app with %s: %v", os.Args, err)
 	}
 }
 
-func runEnvironmentToIni(c *cli.Context) error {
+func runEnvironmentToIni(_ context.Context, c *cli.Command) error {
 	// the config system may change the environment variables, so get a copy first, to be used later
 	env := append([]string{}, os.Environ()...)
 	setting.InitWorkPathAndCfgProvider(os.Getenv, setting.ArgWorkPathAndCustomConf{

@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
@@ -23,7 +23,7 @@ var (
 	CmdAdmin = &cli.Command{
 		Name:  "admin",
 		Usage: "Perform common administrative operations",
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			subcmdUser,
 			subcmdRepoSyncReleases,
 			subcmdRegenerate,
@@ -41,7 +41,7 @@ var (
 	subcmdRegenerate = &cli.Command{
 		Name:  "regenerate",
 		Usage: "Regenerate specific files",
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			microcmdRegenHooks,
 			microcmdRegenKeys,
 		},
@@ -50,15 +50,15 @@ var (
 	subcmdAuth = &cli.Command{
 		Name:  "auth",
 		Usage: "Modify external auth providers",
-		Subcommands: []*cli.Command{
-			microcmdAuthAddOauth,
-			microcmdAuthUpdateOauth,
-			microcmdAuthAddLdapBindDn,
-			microcmdAuthUpdateLdapBindDn,
-			microcmdAuthAddLdapSimpleAuth,
-			microcmdAuthUpdateLdapSimpleAuth,
-			microcmdAuthAddSMTP,
-			microcmdAuthUpdateSMTP,
+		Commands: []*cli.Command{
+			microcmdAuthAddOauth(),
+			microcmdAuthUpdateOauth(),
+			microcmdAuthAddLdapBindDn(),
+			microcmdAuthUpdateLdapBindDn(),
+			microcmdAuthAddLdapSimpleAuth(),
+			microcmdAuthUpdateLdapSimpleAuth(),
+			microcmdAuthAddSMTP(),
+			microcmdAuthUpdateSMTP(),
 			microcmdAuthList,
 			microcmdAuthDelete,
 		},
@@ -70,9 +70,9 @@ var (
 		Action: runSendMail,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:  "title",
-				Usage: `a title of a message`,
-				Value: "",
+				Name:     "title",
+				Usage:    "a title of a message",
+				Required: true,
 			},
 			&cli.StringFlag{
 				Name:  "content",
@@ -86,17 +86,16 @@ var (
 			},
 		},
 	}
+)
 
-	idFlag = &cli.Int64Flag{
+func idFlag() *cli.Int64Flag {
+	return &cli.Int64Flag{
 		Name:  "id",
 		Usage: "ID of authentication source",
 	}
-)
+}
 
-func runRepoSyncReleases(_ *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}

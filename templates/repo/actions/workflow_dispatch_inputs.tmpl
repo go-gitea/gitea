@@ -33,7 +33,8 @@
 		</div>
 	{{end}}
 	<div class="ui field">
-		<button class="ui tiny primary button" type="submit">{{ctx.Locale.Tr "actions.workflow.run"}}</button>
+		{{/* use autofocus here to prevent the "branch selection" dropdown from getting focus, otherwise it will auto popup */}}
+		<button class="ui tiny primary button" autofocus type="submit">{{ctx.Locale.Tr "actions.workflow.run"}}</button>
 	</div>
 {{end}}
 {{range .workflows}}

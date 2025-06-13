@@ -525,6 +525,10 @@ func TestPostProcess(t *testing.T) {
 	test("<script>a</script>", `&lt;script&gt;a&lt;/script&gt;`)
 	test("<STYLE>a", `&lt;STYLE&gt;a`)
 	test("<style>a</STYLE>", `&lt;style&gt;a&lt;/STYLE&gt;`)
+
+	// other special tags, our special behavior
+	test("<?php\nfoo", "&lt;?php\nfoo")
+	test("<%asp\nfoo", "&lt;%asp\nfoo")
 }
 
 func TestIssue16020(t *testing.T) {

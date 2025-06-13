@@ -76,7 +76,11 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 		})
 		rctx = rctx.WithMarkupType(markdown.MarkupName)
 	case "comment":
-		rctx = renderhelper.NewRenderContextRepoComment(ctx, repoModel, renderhelper.RepoCommentOptions{DeprecatedOwnerName: repoOwnerName, DeprecatedRepoName: repoName})
+		rctx = renderhelper.NewRenderContextRepoComment(ctx, repoModel, renderhelper.RepoCommentOptions{
+			DeprecatedOwnerName: repoOwnerName,
+			DeprecatedRepoName:  repoName,
+			FootnoteContextID:   "preview",
+		})
 		rctx = rctx.WithMarkupType(markdown.MarkupName)
 	case "wiki":
 		rctx = renderhelper.NewRenderContextRepoWiki(ctx, repoModel, renderhelper.RepoWikiOptions{DeprecatedOwnerName: repoOwnerName, DeprecatedRepoName: repoName})

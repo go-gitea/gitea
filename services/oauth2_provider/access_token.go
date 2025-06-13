@@ -16,7 +16,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -231,12 +233,11 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 	}, nil
 }
 
-// returns a list of "org" and "org:team" strings,
-// that the given user is a part of.
+// GetOAuthGroupsForUser returns a list of "org" and "org:team" strings, that the given user is a part of.
 func GetOAuthGroupsForUser(ctx context.Context, user *user_model.User, onlyPublicGroups bool) ([]string, error) {
 	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
-		UserID:         user.ID,
-		IncludePrivate: !onlyPublicGroups,
+		UserID:            user.ID,
+		IncludeVisibility: util.Iif(onlyPublicGroups, api.VisibleTypePublic, api.VisibleTypePrivate),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("GetUserOrgList: %w", err)

@@ -30,6 +30,7 @@ func TestRender_IssueList(t *testing.T) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, map[string]string{
 			"user": "test-user", "repo": "test-repo",
 			"markupAllowShortIssuePattern": "true",
+			"footnoteContextId":            "12345",
 		})
 		out, err := markdown.RenderString(rctx, input)
 		require.NoError(t, err)
@@ -67,6 +68,24 @@ func TestRender_IssueList(t *testing.T) {
 			`<ul>
 <li class="task-list-item"><input type="checkbox" disabled="" data-source-position="2"/><div>issue #12345</div></li>
 </ul>`,
+		)
+	})
+
+	t.Run("IssueFootnote", func(t *testing.T) {
+		test(
+			"foo[^1][^2]\n\n[^1]: bar\n[^2]: baz",
+			`<p>foo<sup id="fnref:user-content-1-12345"><a href="#fn:user-content-1-12345" rel="nofollow">1 </a></sup><sup id="fnref:user-content-2-12345"><a href="#fn:user-content-2-12345" rel="nofollow">2 </a></sup></p>
+<div>
+<hr/>
+<ol>
+<li id="fn:user-content-1-12345">
+<p>bar <a href="#fnref:user-content-1-12345" rel="nofollow">↩︎</a></p>
+</li>
+<li id="fn:user-content-2-12345">
+<p>baz <a href="#fnref:user-content-2-12345" rel="nofollow">↩︎</a></p>
+</li>
+</ol>
+</div>`,
 		)
 	})
 }
