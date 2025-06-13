@@ -99,7 +99,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
 		Message:      message,
-		Content:      strings.ReplaceAll(form.Content, "\r", ""),
+		Content:      strings.ReplaceAll(form.Content.Value(), "\r", ""),
 		Author:       gitCommitter,
 		Committer:    gitCommitter,
 	})

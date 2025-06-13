@@ -148,7 +148,7 @@
 												<a class="item" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 											{{else}}
 												<a class="item" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
-												{{if and $.Repository.CanEnableEditor $.CanEditFile (not $file.IsLFSFile) (not $file.IsBin)}}
+												{{if and $.Repository.CanEnableEditor $.CanEditFile}}
 													<a class="item" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?return_uri={{print $.BackToLink "#diff-" $file.NameHash | QueryEscape}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
 												{{end}}
 											{{end}}
