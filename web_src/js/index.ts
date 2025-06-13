@@ -65,7 +65,6 @@ import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton}
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
-import {initFormSubmitHandlers} from './modules/form.ts';
 
 initGiteaFomantic();
 initSubmitEventPolyfill();
@@ -86,7 +85,6 @@ onDomReady(() => {
     initGlobalComboMarkdownEditor,
     initGlobalDeleteButton,
     initGlobalInput,
-    initFormSubmitHandlers,
 
     initCommonOrganization,
     initCommonIssueListQuickGoto,

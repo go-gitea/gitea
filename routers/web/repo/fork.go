@@ -228,5 +228,5 @@ func ForkPost(ctx *context.Context) {
 	}
 
 	log.Trace("Repository forked[%d]: %s/%s", forkRepo.ID, ctxUser.Name, repo.Name)
-	ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
+	ctx.JSONRedirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
 }
