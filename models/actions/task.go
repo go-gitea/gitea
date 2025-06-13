@@ -318,7 +318,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}); err != nil {
 		return nil, false, err
 	} else if n != 1 {
-		return nil, false, nil
+		return nil, false, fmt.Errorf("other runner picked up our job")
 	}
 
 	task.Job = job
