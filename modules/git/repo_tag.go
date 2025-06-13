@@ -147,6 +147,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 
 	sortTagsByTime(tags)
 	tagsTotal := len(tags)
+	// pagination bypass
 	if page != 0 {
 		tags = util.PaginateSlice(tags, page, pageSize).([]*Tag)
 	}

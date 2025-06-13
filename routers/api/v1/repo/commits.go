@@ -184,6 +184,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		return
 	}
 
+	// Unusual use of ListOptions, but we need to support pagination
 	listOptions := utils.GetListOptions(ctx)
 	if listOptions.Page <= 0 {
 		listOptions.Page = 1

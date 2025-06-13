@@ -6,6 +6,7 @@ package repo
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
@@ -61,7 +62,9 @@ func GetTree(ctx *context.APIContext) {
 		ctx.APIError(http.StatusBadRequest, "sha not provided")
 		return
 	}
-	if tree, err := files_service.GetTreeBySHA(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, sha, ctx.FormInt("page"), ctx.FormInt("per_page"), ctx.FormBool("recursive")); err != nil {
+	opts := utils.GetListOptions(ctx)
+	opts.SetDefaultValues()
+	if tree, err := files_service.GetTreeBySHA(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, sha, opts.Page, opts.PageSize, ctx.FormBool("recursive")); err != nil {
 		ctx.APIError(http.StatusBadRequest, err.Error())
 	} else {
 		ctx.SetTotalCountHeader(int64(tree.TotalCount))

@@ -120,6 +120,7 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 func FindReviews(ctx context.Context, opts FindReviewOptions) (ReviewList, error) {
 	reviews := make([]*Review, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.toCond())
+	// Pagination bypass used by some callers
 	if opts.Page > 0 && !opts.IsListAll() {
 		sess = db.SetSessionPagination(sess, &opts)
 	}

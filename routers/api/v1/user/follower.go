@@ -88,7 +88,10 @@ func ListFollowers(ctx *context.APIContext) {
 }
 
 func listUserFollowing(ctx *context.APIContext, u *user_model.User) {
-	users, count, err := user_model.GetUserFollowing(ctx, u, ctx.Doer, utils.GetListOptions(ctx))
+	opts := utils.GetListOptions(ctx)
+	// GetUserFollowing allows pagination bypass
+	opts.SetDefaultValues()
+	users, count, err := user_model.GetUserFollowing(ctx, u, ctx.Doer, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
