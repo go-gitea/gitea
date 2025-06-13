@@ -151,7 +151,7 @@ func ForkPost(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	if ctx.HasError() {
-		ctx.JSONError(tplFork)
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
@@ -184,7 +184,7 @@ func ForkPost(ctx *context.Context) {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return
 		} else if !isAllowedToFork {
-			ctx.JSONError(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
