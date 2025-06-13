@@ -1,0 +1,63 @@
+From 782f25cfc87e87276eb8e0c701ace5d9f11bf6d7 Mon Sep 17 00:00:00 2001
+From: Brecht Van Lommel <brecht@blender.org>
+Date: Thu, 12 Jun 2025 14:43:47 +0200
+Subject: [PATCH] BLENDER: Fine tune pages considered expensive
+
+---
+ routers/common/blockexpensive.go | 35 ++++++++++++++++----------------
+ 1 file changed, 17 insertions(+), 18 deletions(-)
+
+diff --git a/routers/common/blockexpensive.go b/routers/common/blockexpensive.go
+index ba11ff4cf9..32c60ef64c 100644
+--- a/routers/common/blockexpensive.go
++++ b/routers/common/blockexpensive.go
+@@ -39,29 +39,28 @@ func isRoutePathExpensive(routePattern string) bool {
+ 	}
+ 
+ 	expensivePaths := []string{
+-		// code related
++		// code related, very expensive pages
+ 		"/{username}/{reponame}/archive/",
+ 		"/{username}/{reponame}/blame/",
+-		"/{username}/{reponame}/commit/",
+-		"/{username}/{reponame}/commits/",
+ 		"/{username}/{reponame}/graph",
+-		"/{username}/{reponame}/media/",
+-		"/{username}/{reponame}/raw/",
+-		"/{username}/{reponame}/src/",
+ 
+-		// issue & PR related (no trailing slash)
+-		"/{username}/{reponame}/issues",
+-		"/{username}/{reponame}/{type:issues}",
+-		"/{username}/{reponame}/pulls",
+-		"/{username}/{reponame}/{type:pulls}",
+-		"/{username}/{reponame}/{type:issues|pulls}", // for 1.23 only
+-
+-		// wiki
+-		"/{username}/{reponame}/wiki/",
+-
+-		// activity
+-		"/{username}/{reponame}/activity/",
++		// activity, trailing slash removed
++		"/{username}/{reponame}/activity",
+ 	}
++
++	if !(strings.HasPrefix(routePattern, "/blender/") ||
++		strings.HasPrefix(routePattern, "/studio/") ||
++		strings.HasPrefix(routePattern, "/extensions/") ||
++		strings.HasPrefix(routePattern, "/infrastructure/")) {
++		// code related, less expensive not allowed in forks
++		expensivePaths = append(expensivePaths,
++			"/{username}/{reponame}/media/",
++			"/{username}/{reponame}/commit/",
++			"/{username}/{reponame}/commits/",
++			"/{username}/{reponame}/src/",
++			"/{username}/{reponame}/raw/")
++	}
++
+ 	for _, path := range expensivePaths {
+ 		if strings.HasPrefix(routePattern, path) {
+ 			return true
+-- 
+2.45.2
+
