@@ -69,7 +69,7 @@ func TestForkRepositoryCleanup(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, exist)
 
-	err = DeleteRepositoryDirectly(db.DefaultContext, user2, fork.ID)
+	err = DeleteRepositoryDirectly(db.DefaultContext, fork.ID)
 	assert.NoError(t, err)
 
 	// a failed creating because some mock data

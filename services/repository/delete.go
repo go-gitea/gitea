@@ -49,7 +49,7 @@ func deleteDBRepository(ctx context.Context, repoID int64) error {
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
-func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID int64, ignoreOrgTeams ...bool) error {
+func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams ...bool) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -391,7 +391,7 @@ func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User
 			break
 		}
 		for _, repo := range repos {
-			if err := DeleteRepositoryDirectly(ctx, owner, repo.ID); err != nil {
+			if err := DeleteRepositoryDirectly(ctx, repo.ID); err != nil {
 				return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, owner.Name, owner.ID, err)
 			}
 		}
