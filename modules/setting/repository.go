@@ -100,11 +100,13 @@ var (
 			SigningKey        string
 			SigningName       string
 			SigningEmail      string
+			SigningFormat     string
 			InitialCommit     []string
 			CRUDActions       []string `ini:"CRUD_ACTIONS"`
 			Merges            []string
 			Wiki              []string
 			DefaultTrustModel string
+			TrustedSSHKeys    []string `ini:"TRUSTED_SSH_KEYS"`
 		} `ini:"repository.signing"`
 	}{
 		DetectedCharsetsOrder: []string{
@@ -242,20 +244,24 @@ var (
 			SigningKey        string
 			SigningName       string
 			SigningEmail      string
+			SigningFormat     string
 			InitialCommit     []string
 			CRUDActions       []string `ini:"CRUD_ACTIONS"`
 			Merges            []string
 			Wiki              []string
 			DefaultTrustModel string
+			TrustedSSHKeys    []string `ini:"TRUSTED_SSH_KEYS"`
 		}{
 			SigningKey:        "default",
 			SigningName:       "",
 			SigningEmail:      "",
+			SigningFormat:     "openpgp", // git.SigningKeyFormatOpenPGP
 			InitialCommit:     []string{"always"},
 			CRUDActions:       []string{"pubkey", "twofa", "parentsigned"},
 			Merges:            []string{"pubkey", "twofa", "basesigned", "commitssigned"},
 			Wiki:              []string{"never"},
 			DefaultTrustModel: "collaborator",
+			TrustedSSHKeys:    []string{},
 		},
 	}
 	RepoRootPath string

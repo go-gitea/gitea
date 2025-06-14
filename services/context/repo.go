@@ -101,7 +101,7 @@ type CanCommitToBranchResults struct {
 	UserCanPush       bool
 	RequireSigned     bool
 	WillSign          bool
-	SigningKey        string
+	SigningKey        *git.SigningKey
 	WontSignReason    string
 }
 
@@ -123,7 +123,8 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 
 	sign, keyID, _, err := asymkey_service.SignCRUDAction(ctx, r.Repository.RepoPath(), doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
-	canCommit := r.CanEnableEditor(ctx, doer) && userCanPush
+	canEnableEditor := r.CanEnableEditor(ctx, doer)
+	canCommit := canEnableEditor && userCanPush
 	if requireSigned {
 		canCommit = canCommit && sign
 	}
@@ -139,7 +140,7 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 
 	return CanCommitToBranchResults{
 		CanCommitToBranch: canCommit,
-		EditorEnabled:     r.CanEnableEditor(ctx, doer),
+		EditorEnabled:     canEnableEditor,
 		UserCanPush:       userCanPush,
 		RequireSigned:     requireSigned,
 		WillSign:          sign,
