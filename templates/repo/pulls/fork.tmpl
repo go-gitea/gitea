@@ -6,7 +6,7 @@
 		</h3>
 		<div class="ui attached segment">
 			{{template "base/alert" .}}
-			<form class="ui form left-right-form" action="{{.Link}}" method="post">
+			<form class="ui form form-fetch-action left-right-form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="inline required field {{if .Err_Owner}}error{{end}}">
 					<label>{{ctx.Locale.Tr "repo.owner"}}</label>
