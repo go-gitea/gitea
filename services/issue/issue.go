@@ -291,6 +291,12 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 		return nil, err
 	}
 
+	if issue.IsPull {
+		if err := issues_model.DeleteIssueDevLinkByPullRequestID(ctx, issue.ID); err != nil {
+			return nil, err
+		}
+	}
+
 	// find attachments related to this issue and remove them
 	if err := issue.LoadAttachments(ctx); err != nil {
 		return nil, err
@@ -321,6 +327,7 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 		&issues_model.IssueDependency{DependencyID: issue.ID},
 		&issues_model.Comment{DependentIssueID: issue.ID},
 		&issues_model.IssuePin{IssueID: issue.ID},
+		&issues_model.IssueDevLink{IssueID: issue.ID},
 	); err != nil {
 		return nil, err
 	}
