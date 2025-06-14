@@ -1,7 +1,7 @@
-From 5f7b162ec379635b6ece4bc7aa545ccf9f65fe6e Mon Sep 17 00:00:00 2001
+From 5b5fbcb39d1941a4f67856b8af02cce461a31f72 Mon Sep 17 00:00:00 2001
 From: Oleg Komarov <oleg@blender.org>
 Date: Wed, 2 Apr 2025 17:30:05 +0200
-Subject: [PATCH 16/18] BLENDER: Sync user badges on sign-in
+Subject: [PATCH 14/17] BLENDER: Sync user badges on sign-in
 
 Don't escalate any errors, only log them, to avoid breaking sign-in.
 ---
@@ -13,10 +13,10 @@ Don't escalate any errors, only log them, to avoid breaking sign-in.
  create mode 100644 services/user/badge_test.go
 
 diff --git a/routers/web/auth/oauth.go b/routers/web/auth/oauth.go
-index 5b58bc6337..08bd10b830 100644
+index 0769c58fe9..8c831e5e66 100644
 --- a/routers/web/auth/oauth.go
 +++ b/routers/web/auth/oauth.go
-@@ -299,8 +299,32 @@ func updateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User) {
+@@ -301,8 +301,32 @@ func updateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User) {
  	}
  }
  
@@ -48,7 +48,7 @@ index 5b58bc6337..08bd10b830 100644
 +	}
  
  	needs2FA := false
- 	if !source.Cfg.(*oauth2.Source).SkipLocalTwoFA {
+ 	if !source.TwoFactorShouldSkip() {
 diff --git a/services/user/badge.go b/services/user/badge.go
 new file mode 100644
 index 0000000000..be6124a7fe

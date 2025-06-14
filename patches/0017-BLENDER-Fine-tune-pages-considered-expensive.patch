@@ -1,17 +1,17 @@
-From 782f25cfc87e87276eb8e0c701ace5d9f11bf6d7 Mon Sep 17 00:00:00 2001
+From 568e5d6fa3458021ec0eab5e96ba21738e4b0356 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Thu, 12 Jun 2025 14:43:47 +0200
-Subject: [PATCH] BLENDER: Fine tune pages considered expensive
+Subject: [PATCH 17/17] BLENDER: Fine tune pages considered expensive
 
 ---
- routers/common/blockexpensive.go | 35 ++++++++++++++++----------------
- 1 file changed, 17 insertions(+), 18 deletions(-)
+ routers/common/blockexpensive.go | 32 ++++++++++++++++----------------
+ 1 file changed, 16 insertions(+), 16 deletions(-)
 
 diff --git a/routers/common/blockexpensive.go b/routers/common/blockexpensive.go
-index ba11ff4cf9..32c60ef64c 100644
+index f52aa2b709..b0c3aee079 100644
 --- a/routers/common/blockexpensive.go
 +++ b/routers/common/blockexpensive.go
-@@ -39,29 +39,28 @@ func isRoutePathExpensive(routePattern string) bool {
+@@ -39,28 +39,28 @@ func isRoutePathExpensive(routePattern string) bool {
  	}
  
  	expensivePaths := []string{
@@ -31,17 +31,15 @@ index ba11ff4cf9..32c60ef64c 100644
 -		"/{username}/{reponame}/{type:issues}",
 -		"/{username}/{reponame}/pulls",
 -		"/{username}/{reponame}/{type:pulls}",
--		"/{username}/{reponame}/{type:issues|pulls}", // for 1.23 only
 -
 -		// wiki
 -		"/{username}/{reponame}/wiki/",
--
--		// activity
--		"/{username}/{reponame}/activity/",
 +		// activity, trailing slash removed
 +		"/{username}/{reponame}/activity",
- 	}
-+
++	}
+ 
+-		// activity
+-		"/{username}/{reponame}/activity/",
 +	if !(strings.HasPrefix(routePattern, "/blender/") ||
 +		strings.HasPrefix(routePattern, "/studio/") ||
 +		strings.HasPrefix(routePattern, "/extensions/") ||
@@ -53,11 +51,11 @@ index ba11ff4cf9..32c60ef64c 100644
 +			"/{username}/{reponame}/commits/",
 +			"/{username}/{reponame}/src/",
 +			"/{username}/{reponame}/raw/")
-+	}
+ 	}
 +
  	for _, path := range expensivePaths {
  		if strings.HasPrefix(routePattern, path) {
  			return true
 -- 
-2.45.2
+2.49.0
 

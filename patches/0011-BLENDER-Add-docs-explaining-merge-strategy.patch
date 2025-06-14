@@ -1,7 +1,7 @@
-From c7ce8c9d1bb65b13201e5c10c629a4ba38c7e493 Mon Sep 17 00:00:00 2001
+From ba6e7f406ab94810920858315d92a8e8d640fc2e Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 14:58:32 +0200
-Subject: [PATCH 13/18] BLENDER: Add docs explaining merge strategy
+Subject: [PATCH 11/17] BLENDER: Add docs explaining merge strategy
 
 ---
  BLENDER_README.md | 12 ++++++++++++

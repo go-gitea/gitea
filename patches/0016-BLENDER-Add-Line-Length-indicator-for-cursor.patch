@@ -1,7 +1,7 @@
-From a4538239196ba18215f569631d4a93e954826c73 Mon Sep 17 00:00:00 2001
+From 8466382c22d70c11c8b71a90263663411d59ddd6 Mon Sep 17 00:00:00 2001
 From: Bart van der Braak <bart@blender.org>
 Date: Fri, 2 May 2025 11:31:25 +0200
-Subject: [PATCH] BLENDER: Add Line Length indicator for cursor
+Subject: [PATCH 16/17] BLENDER: Add Line Length indicator for cursor
 
 ---
  templates/repo/editor/commit_form.tmpl        | 52 +++++++++++++++++++
@@ -9,7 +9,7 @@ Subject: [PATCH] BLENDER: Add Line Length indicator for cursor
  2 files changed, 90 insertions(+), 1 deletion(-)
 
 diff --git a/templates/repo/editor/commit_form.tmpl b/templates/repo/editor/commit_form.tmpl
-index c050324e93..402e270483 100644
+index 8f46c47b96..20e19b2cec 100644
 --- a/templates/repo/editor/commit_form.tmpl
 +++ b/templates/repo/editor/commit_form.tmpl
 @@ -13,6 +13,58 @@
@@ -72,7 +72,7 @@ index c050324e93..402e270483 100644
  		<div class="inline field">
  			<div class="ui checkbox">
 diff --git a/web_src/js/components/PullRequestMergeForm.vue b/web_src/js/components/PullRequestMergeForm.vue
-index bafeec6c97..0c51711bc6 100644
+index 4f291f5ca1..efe37b21c7 100644
 --- a/web_src/js/components/PullRequestMergeForm.vue
 +++ b/web_src/js/components/PullRequestMergeForm.vue
 @@ -26,6 +26,12 @@ const mergeStyleAllowedCount = ref(0);
@@ -88,7 +88,7 @@ index bafeec6c97..0c51711bc6 100644
  const mergeButtonStyleClass = computed(() => {
    if (mergeForm.value.allOverridableChecksOk) return 'primary';
    return autoMergeWhenSucceed.value ? 'primary' : 'red';
-@@ -76,6 +82,22 @@ function switchMergeStyle(name, autoMerge = false) {
+@@ -76,6 +82,22 @@ function switchMergeStyle(name: string, autoMerge = false) {
  function clearMergeMessage() {
    mergeMessageFieldValue.value = mergeForm.value.defaultMergeMessage;
  }

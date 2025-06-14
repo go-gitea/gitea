@@ -1,7 +1,7 @@
-From a0a9521bb42deea2ca46a65f64ddc95a5db795f3 Mon Sep 17 00:00:00 2001
+From 7893019d4203913b0e75b0e4debc599054969125 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 13:33:32 +0200
-Subject: [PATCH 04/18] BLENDER: Don't allow assigning large teams as reviewers
+Subject: [PATCH 04/17] BLENDER: Don't allow assigning large teams as reviewers
 
 To avoid accidentally spamming hundreds of people.
 ---
@@ -11,10 +11,10 @@ To avoid accidentally spamming hundreds of people.
  3 files changed, 19 insertions(+), 3 deletions(-)
 
 diff --git a/models/organization/team.go b/models/organization/team.go
-index fb7f0c0493..be56a0428e 100644
+index 7f3a9b3829..f0717faf2e 100644
 --- a/models/organization/team.go
 +++ b/models/organization/team.go
-@@ -272,3 +272,19 @@ func IncrTeamRepoNum(ctx context.Context, teamID int64) error {
+@@ -247,3 +247,19 @@ func IncrTeamRepoNum(ctx context.Context, teamID int64) error {
  	_, err := db.GetEngine(ctx).Incr("num_repos").ID(teamID).Update(new(Team))
  	return err
  }
@@ -35,10 +35,10 @@ index fb7f0c0493..be56a0428e 100644
 +	return smallTeams, nil
 +}
 diff --git a/routers/web/repo/issue.go b/routers/web/repo/issue.go
-index 5397411b59..abf7f457e9 100644
+index a4747964c6..97086a363b 100644
 --- a/routers/web/repo/issue.go
 +++ b/routers/web/repo/issue.go
-@@ -661,13 +661,13 @@ func handleMentionableAssigneesAndTeams(ctx *context.Context, assignees []*user_
+@@ -673,13 +673,13 @@ func handleMentionableAssigneesAndTeams(ctx *context.Context, assignees []*user_
  	}
  
  	if isAdmin {

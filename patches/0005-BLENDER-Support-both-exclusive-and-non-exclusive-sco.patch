@@ -1,7 +1,7 @@
-From 21206ca6201d4b510cffc0068aabd785f5864850 Mon Sep 17 00:00:00 2001
+From a6b1b4b3516ec833c4ebf737b60ab8ff45562921 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 13:58:05 +0200
-Subject: [PATCH 05/18] BLENDER: Support both exclusive and non-exclusive scope
+Subject: [PATCH 05/17] BLENDER: Support both exclusive and non-exclusive scope
  for labels
 
 ---
@@ -13,10 +13,10 @@ Subject: [PATCH 05/18] BLENDER: Support both exclusive and non-exclusive scope
  5 files changed, 29 insertions(+), 22 deletions(-)
 
 diff --git a/models/issues/label.go b/models/issues/label.go
-index b9d24bbe99..6eb8a888e9 100644
+index cfbe100926..cb7726aa71 100644
 --- a/models/issues/label.go
 +++ b/models/issues/label.go
-@@ -183,11 +183,8 @@ func (l *Label) BelongsToRepo() bool {
+@@ -184,11 +184,8 @@ func (l *Label) BelongsToRepo() bool {
  	return l.RepoID > 0
  }
  
@@ -30,7 +30,7 @@ index b9d24bbe99..6eb8a888e9 100644
  	lastIndex := strings.LastIndex(l.Name, "/")
  	if lastIndex == -1 || lastIndex == 0 || lastIndex == len(l.Name)-1 {
  		return ""
-@@ -195,6 +192,14 @@ func (l *Label) ExclusiveScope() string {
+@@ -196,6 +193,14 @@ func (l *Label) ExclusiveScope() string {
  	return l.Name[:lastIndex]
  }
  
@@ -46,10 +46,10 @@ index b9d24bbe99..6eb8a888e9 100644
  func NewLabel(ctx context.Context, l *Label) error {
  	color, err := label.NormalizeColor(l.Color)
 diff --git a/modules/templates/util_render.go b/modules/templates/util_render.go
-index 1800747f48..ee1b231f2b 100644
+index 8d9ba1000c..53a16944af 100644
 --- a/modules/templates/util_render.go
 +++ b/modules/templates/util_render.go
-@@ -126,7 +126,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
+@@ -127,7 +127,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
  	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
  	var extraCSSClasses string
  	textColor := util.ContrastColor(label.Color)
@@ -84,7 +84,7 @@ index 8e2410393d..0d196d1f87 100644
  					</div>
  				{{end}}
 diff --git a/templates/repo/issue/filter_item_label.tmpl b/templates/repo/issue/filter_item_label.tmpl
-index 88e2e43120..ee569b4fd0 100644
+index 0883d93804..11a3ddcc6f 100644
 --- a/templates/repo/issue/filter_item_label.tmpl
 +++ b/templates/repo/issue/filter_item_label.tmpl
 @@ -26,19 +26,19 @@
@@ -113,12 +113,12 @@ index 88e2e43120..ee569b4fd0 100644
  				{{ctx.RenderUtils.RenderLabel .}}
  				<p class="tw-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
 diff --git a/templates/repo/issue/sidebar/label_list.tmpl b/templates/repo/issue/sidebar/label_list.tmpl
-index 9b6195a8f4..c8310203c4 100644
+index ed514f6725..2b3255371a 100644
 --- a/templates/repo/issue/sidebar/label_list.tmpl
 +++ b/templates/repo/issue/sidebar/label_list.tmpl
 @@ -19,23 +19,25 @@
  				<div class="scrolling menu">
- 					<a class="item clear-selection" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
+ 					<a class="item clear-selection" data-text="" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
  					<div class="divider"></div>
 -					{{$previousExclusiveScope := "_no_scope"}}
 +					{{$previousScope := "_no_scope"}}

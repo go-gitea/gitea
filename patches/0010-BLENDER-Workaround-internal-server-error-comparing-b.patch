@@ -1,7 +1,7 @@
-From ffc6d64f27593ca7bf8c080401a787532f4848eb Mon Sep 17 00:00:00 2001
+From 08c864ffbfaa6759fd8d02406a88b90e14bc9c64 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 14:07:25 +0200
-Subject: [PATCH 11/18] BLENDER: Workaround internal server error comparing
+Subject: [PATCH 10/17] BLENDER: Workaround internal server error comparing
  branches on some repos
 
 https://projects.blender.org/infrastructure/blender-projects-platform/issues/61
@@ -12,16 +12,16 @@ And add trace log for investigation.
  1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/modules/git/repo_compare.go b/modules/git/repo_compare.go
-index 16fcdcf4c8..91d61d2158 100644
+index ff44506e13..b718ba6599 100644
 --- a/modules/git/repo_compare.go
 +++ b/modules/git/repo_compare.go
 @@ -39,9 +39,12 @@ func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, stri
  	if tmpRemote != "origin" {
  		tmpBaseName := RemotePrefix + tmpRemote + "/tmp_" + base
  		// Fetch commit into a temporary branch in order to be able to handle commits and tags
--		_, _, err := NewCommand(repo.Ctx, "fetch", "--no-tags").AddDynamicArguments(tmpRemote).AddDashesAndList(base + ":" + tmpBaseName).RunStdString(&RunOpts{Dir: repo.Path})
+-		_, _, err := NewCommand("fetch", "--no-tags").AddDynamicArguments(tmpRemote).AddDashesAndList(base+":"+tmpBaseName).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 +		// --no-write-commit-graph works around issue with commit-graph-chain.lock files that should not be there.
-+		_, _, err := NewCommand(repo.Ctx, "fetch", "--no-write-commit-graph", "--no-tags").AddDynamicArguments(tmpRemote).AddDashesAndList(base + ":" + tmpBaseName).RunStdString(&RunOpts{Dir: repo.Path})
++		_, _, err := NewCommand("fetch", "--no-write-commit-graph", "--no-tags").AddDynamicArguments(tmpRemote).AddDashesAndList(base+":"+tmpBaseName).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
  		if err == nil {
  			base = tmpBaseName
 +		} else {

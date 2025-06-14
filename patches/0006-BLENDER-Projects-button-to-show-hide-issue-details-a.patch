@@ -1,7 +1,7 @@
-From dc145e6f21466387dde81ce41664c4100ee271bb Mon Sep 17 00:00:00 2001
+From d424d073fb21437c7ab2b47716e52ccca1af1ef4 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 14:00:36 +0200
-Subject: [PATCH 06/18] BLENDER: Projects: button to show/hide issue details
+Subject: [PATCH 06/17] BLENDER: Projects: button to show/hide issue details
  and closed issue
 
 Both are off by default. This is implemented fully on the frontend, so
@@ -9,18 +9,18 @@ all issues and their details are still always loaded.
 ---
  templates/projects/view.tmpl      | 43 ++++++++++++++++++++++++++++++-
  templates/repo/issue/card.tmpl    | 25 ++++++++++--------
- web_src/css/features/projects.css |  2 +-
+ web_src/css/features/projects.css |  8 ++++++
  web_src/css/repo/issue-card.css   |  2 ++
- 4 files changed, 59 insertions(+), 13 deletions(-)
+ 4 files changed, 66 insertions(+), 12 deletions(-)
 
 diff --git a/templates/projects/view.tmpl b/templates/projects/view.tmpl
-index 217ffe6355..9640deee94 100644
+index 7e89db0005..413f306585 100644
 --- a/templates/projects/view.tmpl
 +++ b/templates/projects/view.tmpl
-@@ -19,6 +19,16 @@
- 						"TextNegativeOne" (ctx.Locale.Tr "repo.issues.filter_assginee_no_assignee")
- 					}}
- 				</div>
+@@ -17,6 +17,16 @@
+ 				"TextFilterMatchAny" (ctx.Locale.Tr "repo.issues.filter_assignee_any_assignee")
+ 			}}
+ 		</div>
 +			<div class="ui compact mini menu" style="margin-left: auto; margin-right: 1em;">
 +				<button class="item btn" onclick="clickDetailsView()">
 +					<span class="issue-card-details">Show Details</span>
@@ -33,8 +33,8 @@ index 217ffe6355..9640deee94 100644
 +			</div>
  		{{if $canWriteProject}}
  			<div class="ui compact mini menu">
- 				<a class="item" href="{{.Link}}/edit?redirect=project">
-@@ -168,7 +178,7 @@
+ 				<a class="item screen-full">
+@@ -112,7 +122,7 @@
  				<div class="divider"{{if .Color}} style="color: {{ContrastColor .Color}} !important"{{end}}></div>
  				<div class="ui cards" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
  					{{range (index $.IssuesMap .ID)}}
@@ -43,7 +43,7 @@ index 217ffe6355..9640deee94 100644
  							{{template "repo/issue/card" (dict "Issue" . "Page" $)}}
  						</div>
  					{{end}}
-@@ -178,6 +188,37 @@
+@@ -122,6 +132,37 @@
  	</div>
  </div>
  
@@ -78,11 +78,11 @@ index 217ffe6355..9640deee94 100644
 +	}
 +</script>
 +
- {{if .CanWriteProjects}}
- 	<div class="ui g-modal-confirm delete modal">
- 		<div class="header">
+ {{if $canWriteProject}}
+ <div class="ui small modal" id="project-column-modal-edit">
+ 	<div class="header">edit</div>
 diff --git a/templates/repo/issue/card.tmpl b/templates/repo/issue/card.tmpl
-index 2e19e86d7a..e27cf1cbb7 100644
+index 41fe6cea8f..99d77f4adf 100644
 --- a/templates/repo/issue/card.tmpl
 +++ b/templates/repo/issue/card.tmpl
 @@ -10,6 +10,14 @@
@@ -124,7 +124,7 @@ index 2e19e86d7a..e27cf1cbb7 100644
  		{{range index $.Page.LinkedPRs .ID}}
 -		<div class="meta tw-my-1">
 +		<div class="meta tw-my-1 issue-card-details tw-hidden">
- 			<a href="{{$.Issue.Repo.Link}}/pulls/{{.Index}}">
+ 			<a href="{{.Repo.Link}}/pulls/{{.Index}}">
  				<span class="tw-m-0 text {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "tw-mr-1 tw-align-middle"}}</span>
  				<span class="tw-align-middle">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
 @@ -54,25 +62,20 @@
@@ -157,18 +157,24 @@ index 2e19e86d7a..e27cf1cbb7 100644
  	{{end}}
  {{end}}
 diff --git a/web_src/css/features/projects.css b/web_src/css/features/projects.css
-index ef3b036217..ca5057118f 100644
+index 1d09e9c7ea..b6bd1d250d 100644
 --- a/web_src/css/features/projects.css
 +++ b/web_src/css/features/projects.css
-@@ -16,7 +16,7 @@
-   padding: 0.5rem !important;
-   width: 320px;
-   height: initial;
--  min-height: max(calc(100vh - 400px), 300px);
+@@ -19,6 +19,14 @@
+ }
+ 
+ .project-column {
++  background-color: var(--color-project-column-bg) !important;
++  border: 1px solid var(--color-secondary) !important;
++  border-radius: var(--border-radius);
++  margin: 0 0.5rem !important;
++  padding: 0.5rem !important;
++  width: 320px;
++  height: initial;
 +  min-height: max(calc(100vh - 225px), 300px);
    flex: 0 0 auto;
-   overflow: visible;
    display: flex;
+   flex-direction: column;
 diff --git a/web_src/css/repo/issue-card.css b/web_src/css/repo/issue-card.css
 index fb832bd05a..4fb9b42f46 100644
 --- a/web_src/css/repo/issue-card.css

@@ -1,14 +1,14 @@
-From 928a045c583cc4f0c631925e848a81446728f52b Mon Sep 17 00:00:00 2001
+From f7e10e1b5bf2cb41fa9423ddfff56ab11431a102 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 13:31:35 +0200
-Subject: [PATCH 02/18] BLENDER: Show warning for target branch switching
+Subject: [PATCH 02/17] BLENDER: Show warning for target branch switching
 
 ---
  templates/repo/issue/view_title.tmpl | 1 +
  1 file changed, 1 insertion(+)
 
 diff --git a/templates/repo/issue/view_title.tmpl b/templates/repo/issue/view_title.tmpl
-index 7bb00ff9a9..19a4331883 100644
+index b8f28dfd9b..27be7ed334 100644
 --- a/templates/repo/issue/view_title.tmpl
 +++ b/templates/repo/issue/view_title.tmpl
 @@ -118,6 +118,7 @@

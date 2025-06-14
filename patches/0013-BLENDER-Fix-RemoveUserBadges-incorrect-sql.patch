@@ -1,7 +1,7 @@
-From 9dbe882b8d5ad70237296bf2a3eb28094184b58e Mon Sep 17 00:00:00 2001
+From 76f2b9a26d8cb659caec84fd16ce69a9a0a293c7 Mon Sep 17 00:00:00 2001
 From: Oleg Komarov <oleg@blender.org>
 Date: Wed, 2 Apr 2025 17:11:01 +0200
-Subject: [PATCH 15/18] BLENDER: Fix RemoveUserBadges incorrect sql
+Subject: [PATCH 13/17] BLENDER: Fix RemoveUserBadges incorrect sql
 
 ---
  models/user/badge.go | 22 ++++++++++++++++------

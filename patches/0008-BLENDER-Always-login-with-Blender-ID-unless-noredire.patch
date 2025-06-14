@@ -1,7 +1,7 @@
-From d5dd5fed65a963e7564f00f9ec4bc80cd6b00519 Mon Sep 17 00:00:00 2001
+From 4bb623a96762b5457e7b8c0724bd1c48fe004fc2 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 14:04:49 +0200
-Subject: [PATCH 09/18] BLENDER: Always login with Blender ID, unless
+Subject: [PATCH 08/17] BLENDER: Always login with Blender ID, unless
  noredirect is specified
 
 ---
@@ -9,10 +9,10 @@ Subject: [PATCH 09/18] BLENDER: Always login with Blender ID, unless
  1 file changed, 24 insertions(+)
 
 diff --git a/routers/web/auth/auth.go b/routers/web/auth/auth.go
-index ee70889a53..2910d7bc39 100644
+index 87edbc357b..b98fad647a 100644
 --- a/routers/web/auth/auth.go
 +++ b/routers/web/auth/auth.go
-@@ -160,6 +160,26 @@ func CheckAutoLogin(ctx *context.Context) bool {
+@@ -164,6 +164,26 @@ func CheckAutoLogin(ctx *context.Context) bool {
  	return false
  }
  
@@ -39,7 +39,7 @@ index ee70889a53..2910d7bc39 100644
  func prepareSignInPageData(ctx *context.Context) {
  	ctx.Data["Title"] = ctx.Tr("sign_in")
  	ctx.Data["OAuth2Providers"], _ = oauth2.GetOAuth2Providers(ctx, optional.Some(true))
-@@ -181,6 +201,10 @@ func SignIn(ctx *context.Context) {
+@@ -185,6 +205,10 @@ func SignIn(ctx *context.Context) {
  	if CheckAutoLogin(ctx) {
  		return
  	}
