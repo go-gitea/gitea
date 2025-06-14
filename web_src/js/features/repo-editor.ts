@@ -141,37 +141,38 @@ export function initRepoEditor() {
     }
   });
 
+  const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form');
+
+  // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
+  // to enable or disable the commit button
+  const commitButton = document.querySelector<HTMLButtonElement>('#commit-button');
+  const dirtyFileClass = 'dirty-file';
+
+  // Enabling the button at the start if the page has posted
+  if (document.querySelector<HTMLInputElement>('input[name="page_has_posted"]')?.value === 'true') {
+    commitButton.disabled = false;
+  }
+
+  // Registering a custom listener for the file path and the file content
+  // FIXME: it is not quite right here (old bug), it causes double-init, the global areYouSure "dirty" class will also be added
+  applyAreYouSure(elForm, {
+    silent: true,
+    dirtyClass: dirtyFileClass,
+    fieldSelector: ':input:not(.commit-form-wrapper :input)',
+    change($form: any) {
+      const dirty = $form[0]?.classList.contains(dirtyFileClass);
+      commitButton.disabled = !dirty;
+    },
+  });
+
   // on the upload page, there is no editor(textarea)
   const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
   if (!editArea) return;
 
-  const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form');
   initEditPreviewTab(elForm);
 
   (async () => {
     const editor = await createCodeEditor(editArea, filenameInput);
-
-    // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
-    // to enable or disable the commit button
-    const commitButton = document.querySelector<HTMLButtonElement>('#commit-button');
-    const dirtyFileClass = 'dirty-file';
-
-    // Disabling the button at the start
-    if (document.querySelector<HTMLInputElement>('input[name="page_has_posted"]').value !== 'true') {
-      commitButton.disabled = true;
-    }
-
-    // Registering a custom listener for the file path and the file content
-    // FIXME: it is not quite right here (old bug), it causes double-init, the global areYouSure "dirty" class will also be added
-    applyAreYouSure(elForm, {
-      silent: true,
-      dirtyClass: dirtyFileClass,
-      fieldSelector: ':input:not(.commit-form-wrapper :input)',
-      change($form: any) {
-        const dirty = $form[0]?.classList.contains(dirtyFileClass);
-        commitButton.disabled = !dirty;
-      },
-    });
 
     // Update the editor from query params, if available,
     // only after the dirtyFileClass initialization
