@@ -13,8 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
-	packages_service "code.gitea.io/gitea/services/packages"
 	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 )
 
@@ -91,7 +91,7 @@ func DeletePackageVersion(ctx *context.Context) {
 		return
 	}
 
-	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
+	if err := common.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
 		ctx.ServerError("RemovePackageVersion", err)
 		return
 	}
