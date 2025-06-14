@@ -53,6 +53,10 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 			return nil
 		}
 
+		if err := CancelJobsByJobConcurrency(ctx, t.Job); err != nil {
+			return fmt.Errorf("CancelJobs: %w", err)
+		}
+
 		if err := t.LoadAttributes(ctx); err != nil {
 			return fmt.Errorf("task LoadAttributes: %w", err)
 		}
