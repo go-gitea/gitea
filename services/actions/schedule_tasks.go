@@ -157,6 +157,7 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 	if err != nil {
 		log.Error("LoadAttributes: %v", err)
 	}
+	notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 	for _, job := range allJobs {
 		notify_service.WorkflowJobStatusUpdate(ctx, run.Repo, run.TriggerUser, job, nil)
 	}
