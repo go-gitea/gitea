@@ -421,8 +421,10 @@ func SignOut(ctx *context.Context) {
 // SignUp render the register page
 func SignUp(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_up")
-
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
+
+	hasUsers, _ := user_model.HasUsers(ctx)
+	ctx.Data["IsFirstTimeRegistration"] = !hasUsers.HasAnyUser
 
 	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
@@ -610,7 +612,13 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 // sends a confirmation email if required.
 func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.User) (ok bool) {
 	// Auto-set admin for the only user.
-	if user_model.CountUsers(ctx, nil) == 1 {
+	hasUsers, err := user_model.HasUsers(ctx)
+	if err != nil {
+		ctx.ServerError("HasUsers", err)
+		return false
+	}
+	if hasUsers.HasOnlyOneUser {
+		// the only user is the one just created, will set it as admin
 		opts := &user_service.UpdateOptions{
 			IsActive:     optional.Some(true),
 			IsAdmin:      user_service.UpdateOptionFieldFromValue(true),
