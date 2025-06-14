@@ -291,14 +291,14 @@ func SearchVersions(ctx context.Context, opts *PackageSearchOptions) ([]*Package
 		Where(opts.ToConds())
 
 	opts.configureOrderBy(sess)
-
+	pvs := make([]*PackageVersion, 0, 10)
 	if opts.Paginator != nil {
 		sess = db.SetSessionPagination(sess, opts)
+		count, err := sess.FindAndCount(&pvs)
+		return pvs, count, err
 	}
-
-	pvs := make([]*PackageVersion, 0, 10)
-	count, err := sess.FindAndCount(&pvs)
-	return pvs, count, err
+	err := sess.Find(&pvs)
+	return pvs, int64(len(pvs)), err
 }
 
 // SearchLatestVersions gets the latest version of every package matching the search options

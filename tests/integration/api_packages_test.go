@@ -636,12 +636,16 @@ func TestPackageCleanup(t *testing.T) {
 			},
 			{
 				Name: "Mixed",
-				Versions: []version{
-					{Version: "keep", ShouldExist: true, Created: time.Now().Add(time.Duration(10000)).Unix()},
-					{Version: "dummy", ShouldExist: true, Created: 1},
-					{Version: "test-3", ShouldExist: true},
-					{Version: "test-4", ShouldExist: false, Created: 1},
-				},
+				Versions: func(limit, removeDays int) []version {
+					aa := []version{
+						{Version: "keep", ShouldExist: true, Created: time.Now().Add(time.Duration(10000)).Unix()},
+						{Version: "dummy", ShouldExist: true, Created: 1},
+					}
+					for i := range limit {
+						aa = append(aa, version{Version: fmt.Sprintf("test-%v", i+3), ShouldExist: util.Iif(i < removeDays, true, false), Created: time.Now().AddDate(0, 0, -i).Unix()})
+					}
+					return aa
+				}(220, 7),
 				Rule: &packages_model.PackageCleanupRule{
 					Enabled:       true,
 					KeepCount:     1,
@@ -686,7 +690,7 @@ func TestPackageCleanup(t *testing.T) {
 						err = packages_service.DeletePackageVersionAndReferences(db.DefaultContext, pv)
 						assert.NoError(t, err)
 					} else {
-						assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
+						assert.ErrorIs(t, err, packages_model.ErrPackageNotExist, v.Version)
 					}
 				}
 

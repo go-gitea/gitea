@@ -33,13 +33,7 @@ func CleanupTask(ctx context.Context, olderThan time.Duration) error {
 }
 
 func ExecuteCleanupRules(outerCtx context.Context) error {
-	ctx, committer, err := db.TxContext(outerCtx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	err = packages_model.IterateEnabledCleanupRules(ctx, func(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
+	return packages_model.IterateEnabledCleanupRules(outerCtx, func(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
 		select {
 		case <-outerCtx.Done():
 			return db.ErrCancelledf("While processing package cleanup rules")
@@ -63,10 +57,16 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 				PackageID:  p.ID,
 				IsInternal: optional.Some(false),
 				Sort:       packages_model.SortCreatedDesc,
-				Paginator:  db.NewAbsoluteListOptions(pcr.KeepCount, 200),
 			})
 			if err != nil {
 				return fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err)
+			}
+			if pcr.KeepCount > 0 {
+				if pcr.KeepCount < len(pvs) {
+					pvs = pvs[pcr.KeepCount:]
+				} else {
+					pvs = nil
+				}
 			}
 			versionDeleted := false
 			for _, pv := range pvs {
@@ -78,35 +78,30 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 						continue
 					}
 				}
-
 				toMatch := pv.LowerVersion
 				if pcr.MatchFullName {
 					toMatch = p.LowerName + "/" + pv.LowerVersion
 				}
-
 				if pcr.KeepPatternMatcher != nil && pcr.KeepPatternMatcher.MatchString(toMatch) {
 					log.Debug("Rule[%d]: keep '%s/%s' (keep pattern)", pcr.ID, p.Name, pv.Version)
 					continue
 				}
 				if pv.CreatedUnix.AsLocalTime().After(olderThan) {
-					log.Debug("Rule[%d]: keep '%s/%s' (remove days)", pcr.ID, p.Name, pv.Version)
+					log.Debug("Rule[%d]: keep '%s/%s' (remove days) %v", pcr.ID, p.Name, pv.Version, pv.CreatedUnix.FormatDate())
 					continue
 				}
 				if pcr.RemovePatternMatcher != nil && !pcr.RemovePatternMatcher.MatchString(toMatch) {
 					log.Debug("Rule[%d]: keep '%s/%s' (remove pattern)", pcr.ID, p.Name, pv.Version)
 					continue
 				}
-
 				log.Debug("Rule[%d]: remove '%s/%s'", pcr.ID, p.Name, pv.Version)
-
 				if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-					return fmt.Errorf("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %w", pcr.ID, err)
+					log.Error("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %w", pcr.ID, err)
+					continue
 				}
-
 				versionDeleted = true
 				anyVersionDeleted = true
 			}
-
 			if versionDeleted {
 				if pcr.Type == packages_model.TypeCargo {
 					owner, err := user_model.GetUserByID(ctx, pcr.OwnerID)
@@ -148,11 +143,6 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 		}
 		return nil
 	})
-	if err != nil {
-		return err
-	}
-
-	return committer.Commit()
 }
 
 func CleanupExpiredData(outerCtx context.Context, olderThan time.Duration) error {
