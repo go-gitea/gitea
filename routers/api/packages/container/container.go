@@ -59,7 +59,7 @@ func setResponseHeaders(resp http.ResponseWriter, h *containerHeaders) {
 	if h.Location != "" {
 		resp.Header().Set("Location", h.Location)
 	}
-	if h.Range != "" {
+	if h.Range != "" && h.Range != "0--1" { // a quick fix for backport, see https://github.com/go-gitea/gitea/pull/34725
 		resp.Header().Set("Range", h.Range)
 	}
 	if h.ContentType != "" {
