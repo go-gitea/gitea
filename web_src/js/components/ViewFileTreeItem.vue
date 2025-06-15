@@ -72,7 +72,7 @@ const doGotoSubModule = () => {
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     @click.stop="doLoadFileContent"
-    @auxclick.stop="doOpenContentInNewTab"
+    @click.middle.stop="doOpenContentInNewTab"
   >
     <!-- symlink -->
     <div class="item-content">
@@ -86,7 +86,7 @@ const doGotoSubModule = () => {
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     @click.stop="doLoadFileContent"
-    @auxclick.stop="doOpenContentInNewTab"
+    @click.middle.stop="doOpenContentInNewTab"
   >
     <!-- file -->
     <div class="item-content">
@@ -100,7 +100,7 @@ const doGotoSubModule = () => {
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     @click.stop="doLoadDirContent"
-    @auxclick.stop="doOpenContentInNewTab"
+    @click.middle.stop="doOpenContentInNewTab"
   >
     <!-- directory -->
     <div class="item-toggle">
