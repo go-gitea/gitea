@@ -14,7 +14,7 @@ type Item = {
 
 const props = defineProps<{
   item: Item,
-  navigateViewContent:(treePath: string) => void,
+  navigateViewContent:(treePath: string, newTab?: boolean) => void,
   loadChildren:(treePath: string, subPath?: string) => Promise<Item[]>,
   selectedItem?: string,
 }>();
@@ -44,6 +44,10 @@ const doLoadFileContent = () => {
   props.navigateViewContent(props.item.fullPath);
 };
 
+const doOpenContentInNewTab = () => {
+  props.navigateViewContent(props.item.fullPath, true);
+};
+
 const doGotoSubModule = () => {
   location.href = props.item.submoduleUrl;
 };
@@ -68,6 +72,7 @@ const doGotoSubModule = () => {
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     @click.stop="doLoadFileContent"
+    @click.middle.stop="doOpenContentInNewTab"
   >
     <!-- symlink -->
     <div class="item-content">
@@ -81,6 +86,7 @@ const doGotoSubModule = () => {
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     @click.stop="doLoadFileContent"
+    @click.middle.stop="doOpenContentInNewTab"
   >
     <!-- file -->
     <div class="item-content">
@@ -94,6 +100,7 @@ const doGotoSubModule = () => {
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     @click.stop="doLoadDirContent"
+    @click.middle.stop="doOpenContentInNewTab"
   >
     <!-- directory -->
     <div class="item-toggle">
