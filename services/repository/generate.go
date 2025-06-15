@@ -253,41 +253,33 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
 }
 
-func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
-	tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-" + repo.Name)
+// GenerateGitContent generates git content from a template repository
+func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) (err error) {
+	tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-" + generateRepo.Name)
 	if err != nil {
-		return fmt.Errorf("failed to create temp dir for repository %s: %w", repo.FullName(), err)
+		return fmt.Errorf("failed to create temp dir for repository %s: %w", generateRepo.FullName(), err)
 	}
 	defer cleanup()
 
-	if err = generateRepoCommit(ctx, repo, templateRepo, generateRepo, tmpDir); err != nil {
+	if err = generateRepoCommit(ctx, generateRepo, templateRepo, generateRepo, tmpDir); err != nil {
 		return fmt.Errorf("generateRepoCommit: %w", err)
 	}
 
 	// re-fetch repo
-	if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
+	if generateRepo, err = repo_model.GetRepositoryByID(ctx, generateRepo.ID); err != nil {
 		return fmt.Errorf("getRepositoryByID: %w", err)
 	}
 
 	// if there was no default branch supplied when generating the repo, use the default one from the template
-	if strings.TrimSpace(repo.DefaultBranch) == "" {
-		repo.DefaultBranch = templateRepo.DefaultBranch
+	if strings.TrimSpace(generateRepo.DefaultBranch) == "" {
+		generateRepo.DefaultBranch = templateRepo.DefaultBranch
 	}
 
-	if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+	if err = gitrepo.SetDefaultBranch(ctx, generateRepo, generateRepo.DefaultBranch); err != nil {
 		return fmt.Errorf("setDefaultBranch: %w", err)
 	}
-	if err = UpdateRepository(ctx, repo, false); err != nil {
+	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, generateRepo, "default_branch"); err != nil {
 		return fmt.Errorf("updateRepository: %w", err)
-	}
-
-	return nil
-}
-
-// GenerateGitContent generates git content from a template repository
-func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	if err := generateGitContent(ctx, generateRepo, templateRepo, generateRepo); err != nil {
-		return err
 	}
 
 	if err := repo_module.UpdateRepoSize(ctx, generateRepo); err != nil {
