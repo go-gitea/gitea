@@ -50,7 +50,11 @@
 								{{svg (MigrationIcon $release.Repo.GetOriginalURLHostname) 20 "tw-mr-1"}}{{$release.OriginalAuthor}}
 							{{else if $release.Publisher}}
 								{{ctx.AvatarUtils.Avatar $release.Publisher 20 "tw-mr-1"}}
-								<a href="{{$release.Publisher.HomeLink}}">{{$release.Publisher.GetDisplayName}}</a>
+								{{if gt $release.PublisherID 0}}
+									<a href="{{$release.Publisher.HomeLink}}">{{$release.Publisher.GetDisplayName}}</a>
+								{{else}}
+									{{$release.Publisher.GetDisplayName}}
+								{{end}}
 							{{else}}
 								Ghost
 							{{end}}
