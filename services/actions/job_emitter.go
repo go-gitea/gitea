@@ -78,6 +78,24 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
+	if len(jobs) > 0 {
+		runUpdated := true
+		for _, job := range jobs {
+			if !job.Status.IsDone() {
+				runUpdated = false
+				break
+			}
+		}
+		if runUpdated {
+			// Sync run status with db
+			jobs[0].Run = nil
+			if err := jobs[0].LoadAttributes(ctx); err != nil {
+				return err
+			}
+			run := jobs[0].Run
+			notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+		}
+	}
 	return nil
 }
 
