@@ -140,7 +140,7 @@ func CleanUploadFileName(name string) string {
 	name = util.PathJoinRel(name)
 	// Git disallows any filenames to have a .git directory in them.
 	for _, part := range strings.Split(name, "/") {
-		if strings.ToLower(part) == ".git" {
+		if strings.EqualFold(part, ".git") {
 			return ""
 		}
 	}

@@ -166,7 +166,7 @@ func UpdateLanguageStats(ctx context.Context, repo *Repository, commitID string,
 		llang := strings.ToLower(lang)
 		for _, s := range oldstats {
 			// Update already existing language
-			if strings.ToLower(s.Language) == llang {
+			if strings.EqualFold(s.Language, llang) {
 				s.CommitID = commitID
 				s.IsPrimary = llang == topLang
 				s.Size = size
