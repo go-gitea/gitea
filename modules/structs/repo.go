@@ -359,7 +359,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
-	// enum: git,github,gitea,gitlab,gogs,onedev,gitbucket,codebase
+	// enum: git,github,gitea,gitlab,gogs,onedev,gitbucket,codebase,codecommit
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`

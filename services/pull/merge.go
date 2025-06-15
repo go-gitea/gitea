@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -159,6 +160,41 @@ func expandDefaultMergeMessage(template string, vars map[string]string) (message
 // GetDefaultMergeMessage returns default message used when merging pull request
 func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (message, body string, err error) {
 	return getMergeMessage(ctx, baseGitRepo, pr, mergeStyle, nil)
+}
+
+func AddCommitMessageTailer(message, tailerKey, tailerValue string) string {
+	tailerLine := tailerKey + ": " + tailerValue
+	message = strings.ReplaceAll(message, "\r\n", "\n")
+	message = strings.ReplaceAll(message, "\r", "\n")
+	if strings.Contains(message, "\n"+tailerLine+"\n") || strings.HasSuffix(message, "\n"+tailerLine) {
+		return message
+	}
+
+	if !strings.HasSuffix(message, "\n") {
+		message += "\n"
+	}
+	pos1 := strings.LastIndexByte(message[:len(message)-1], '\n')
+	pos2 := -1
+	if pos1 != -1 {
+		pos2 = strings.IndexByte(message[pos1:], ':')
+		if pos2 != -1 {
+			pos2 += pos1
+		}
+	}
+	var lastLineKey string
+	if pos1 != -1 && pos2 != -1 {
+		lastLineKey = message[pos1+1 : pos2]
+	}
+
+	isLikelyTailerLine := lastLineKey != "" && unicode.IsUpper(rune(lastLineKey[0])) && strings.Contains(message, "-")
+	for i := 0; isLikelyTailerLine && i < len(lastLineKey); i++ {
+		r := rune(lastLineKey[i])
+		isLikelyTailerLine = unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-'
+	}
+	if !strings.HasSuffix(message, "\n\n") && !isLikelyTailerLine {
+		message += "\n"
+	}
+	return message + tailerLine
 }
 
 // ErrInvalidMergeStyle represents an error if merging with disabled merge strategy
@@ -396,10 +432,13 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 
 func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
 	cmdCommit := git.NewCommand("commit").AddOptionFormat("--message=%s", message)
-	if ctx.signKeyID == "" {
+	if ctx.signKey == nil {
 		cmdCommit.AddArguments("--no-gpg-sign")
 	} else {
-		cmdCommit.AddOptionFormat("-S%s", ctx.signKeyID)
+		if ctx.signKey.Format != "" {
+			cmdCommit.AddConfig("gpg.format", ctx.signKey.Format)
+		}
+		cmdCommit.AddOptionFormat("-S%s", ctx.signKey.KeyID)
 	}
 	if err := cmdCommit.Run(ctx, ctx.RunOpts()); err != nil {
 		log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())

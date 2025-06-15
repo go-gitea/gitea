@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/queue"
@@ -768,7 +769,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		}()
 
 		err = commitstatus_service.CreateCommitStatus(db.DefaultContext, baseRepo, user1, sha, &git_model.CommitStatus{
-			State:     api.CommitStatusSuccess,
+			State:     commitstatus.CommitStatusSuccess,
 			TargetURL: "https://gitea.com",
 			Context:   "gitea/actions",
 		})
@@ -848,7 +849,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		}()
 
 		err = commitstatus_service.CreateCommitStatus(db.DefaultContext, baseRepo, user1, sha, &git_model.CommitStatus{
-			State:     api.CommitStatusSuccess,
+			State:     commitstatus.CommitStatusSuccess,
 			TargetURL: "https://gitea.com",
 			Context:   "gitea/actions",
 		})
@@ -977,13 +978,11 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		}()
 
 		err = commitstatus_service.CreateCommitStatus(db.DefaultContext, baseRepo, user1, sha, &git_model.CommitStatus{
-			State:     api.CommitStatusSuccess,
+			State:     commitstatus.CommitStatusSuccess,
 			TargetURL: "https://gitea.com",
 			Context:   "gitea/actions",
 		})
 		assert.NoError(t, err)
-
-		time.Sleep(2 * time.Second)
 
 		// reload pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
@@ -996,8 +995,6 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		resp := approveSession.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		testSubmitReview(t, approveSession, htmlDoc.GetCSRF(), "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
-
-		time.Sleep(2 * time.Second)
 
 		// realod pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
