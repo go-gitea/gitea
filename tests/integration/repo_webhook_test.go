@@ -1068,15 +1068,13 @@ jobs:
 	// 4. Execute two Jobs
 	task := runner.fetchTask(t)
 	outcome := &mockTaskOutcome{
-		result:   runnerv1.Result_RESULT_SUCCESS,
-		execTime: time.Millisecond,
+		result: runnerv1.Result_RESULT_SUCCESS,
 	}
 	runner.execTask(t, task, outcome)
 
 	task = runner.fetchTask(t)
 	outcome = &mockTaskOutcome{
-		result:   runnerv1.Result_RESULT_FAILURE,
-		execTime: time.Millisecond,
+		result: runnerv1.Result_RESULT_FAILURE,
 	}
 	runner.execTask(t, task, outcome)
 
