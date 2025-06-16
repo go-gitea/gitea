@@ -313,13 +313,12 @@ func InitiateUploadBlob(ctx *context.Context) {
 
 	setResponseHeaders(ctx.Resp, &containerHeaders{
 		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, upload.ID),
-		Range:      "0-0",
 		UploadUUID: upload.ID,
 		Status:     http.StatusAccepted,
 	})
 }
 
-// https://docs.docker.com/registry/spec/api/#get-blob-upload
+// https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
 func GetUploadBlob(ctx *context.Context) {
 	uuid := ctx.PathParam("uuid")
 
@@ -333,13 +332,18 @@ func GetUploadBlob(ctx *context.Context) {
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Range:      fmt.Sprintf("0-%d", upload.BytesReceived),
+	// FIXME: undefined behavior when the uploaded content is empty: https://github.com/opencontainers/distribution-spec/issues/578
+	respHeaders := &containerHeaders{
 		UploadUUID: upload.ID,
 		Status:     http.StatusNoContent,
-	})
+	}
+	if upload.BytesReceived > 0 {
+		respHeaders.Range = fmt.Sprintf("0-%d", upload.BytesReceived-1)
+	}
+	setResponseHeaders(ctx.Resp, respHeaders)
 }
 
+// https://github.com/opencontainers/distribution-spec/blob/main/spec.md#single-post
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
 func UploadBlob(ctx *context.Context) {
 	image := ctx.PathParam("image")
@@ -377,12 +381,15 @@ func UploadBlob(ctx *context.Context) {
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
+	respHeaders := &containerHeaders{
 		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, uploader.ID),
-		Range:      fmt.Sprintf("0-%d", uploader.Size()-1),
 		UploadUUID: uploader.ID,
 		Status:     http.StatusAccepted,
-	})
+	}
+	if contentRange != "" {
+		respHeaders.Range = fmt.Sprintf("0-%d", uploader.Size()-1)
+	}
+	setResponseHeaders(ctx.Resp, respHeaders)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks

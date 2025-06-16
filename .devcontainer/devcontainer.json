@@ -4,7 +4,7 @@
   "features": {
     // installs nodejs into container
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "20"
+      "version": "lts"
     },
     "ghcr.io/devcontainers/features/git-lfs:1.2.2": {},
     "ghcr.io/devcontainers-contrib/features/poetry:2": {},
