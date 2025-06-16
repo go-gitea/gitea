@@ -12,9 +12,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/gobwas/glob"
 )
 
-func searchDirs(key string) (bool, error) {
+func searchTranslationKeyInDirs(key string) (bool, error) {
 	for _, dir := range []string{
 		"cmd",
 		"models",
@@ -23,7 +25,7 @@ func searchDirs(key string) (bool, error) {
 		"services",
 		"templates",
 	} {
-		found, err := searchLocaleFiles(dir, key)
+		found, err := searchTranslationKeyInDir(dir, key)
 		if err != nil {
 			return false, err
 		}
@@ -34,13 +36,15 @@ func searchDirs(key string) (bool, error) {
 	return false, nil
 }
 
-func searchLocaleFiles(dir, key string) (bool, error) {
+func searchTranslationKeyInDir(dir, key string) (bool, error) {
 	errFound := errors.New("found")
 	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if d.IsDir() || (!strings.HasSuffix(d.Name(), ".go") && !strings.HasSuffix(d.Name(), ".tmpl")) {
+		if d.IsDir() ||
+			(!strings.HasSuffix(d.Name(), ".go") && !strings.HasSuffix(d.Name(), ".tmpl")) ||
+			strings.HasSuffix(d.Name(), "_test.go") { // don't search in test files
 			return nil
 		}
 
@@ -58,6 +62,29 @@ func searchLocaleFiles(dir, key string) (bool, error) {
 		return true, nil
 	}
 	return false, err
+}
+
+var whitelist = []string{
+	"repo.signing.wont_sign.*",
+	"repo.issues.role.*",
+	"repo.commitstatus.*",
+	"admin.dashboard.*",
+	"admin.dashboard.cron.*",
+	"admin.dashboard.task.*",
+	"repo.migrate.*.description",
+	"actions.runners.status.*",
+	"projects.*.display_name",
+	"admin.notices.*",
+	"form.NewBranchName", // FIXME: used in integration tests only
+}
+
+func isWhitelisted(key string) bool {
+	for _, w := range whitelist {
+		if glob.MustCompile(w).Match(key) {
+			return true
+		}
+	}
+	return false
 }
 
 func main() {
@@ -79,8 +106,11 @@ func main() {
 			} else {
 				trKey = section.Name() + "." + key.Name()
 			}
+			if isWhitelisted(trKey) {
+				continue
+			}
 
-			found, err := searchDirs(trKey)
+			found, err := searchTranslationKeyInDirs(trKey)
 			if err != nil {
 				panic(err)
 			}
