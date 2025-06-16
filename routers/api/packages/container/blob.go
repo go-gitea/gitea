@@ -130,8 +130,8 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 		pv := &packages_model.PackageVersion{
 			PackageID:    p.ID,
 			CreatorID:    pi.Owner.ID,
-			Version:      container_model.UploadVersion,
-			LowerVersion: container_model.UploadVersion,
+			Version:      container_module.UploadVersion,
+			LowerVersion: container_module.UploadVersion,
 			IsInternal:   true,
 			MetadataJSON: "null",
 		}

@@ -46,21 +46,30 @@ func TestPackageNuGet(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	type FeedEntryProperties struct {
-		Version                  string                      `xml:"Version"`
-		NormalizedVersion        string                      `xml:"NormalizedVersion"`
 		Authors                  string                      `xml:"Authors"`
+		Copyright                string                      `xml:"Copyright,omitempty"`
+		Created                  nuget.TypedValue[time.Time] `xml:"Created"`
 		Dependencies             string                      `xml:"Dependencies"`
 		Description              string                      `xml:"Description"`
-		VersionDownloadCount     nuget.TypedValue[int64]     `xml:"VersionDownloadCount"`
+		DevelopmentDependency    nuget.TypedValue[bool]      `xml:"DevelopmentDependency"`
 		DownloadCount            nuget.TypedValue[int64]     `xml:"DownloadCount"`
-		PackageSize              nuget.TypedValue[int64]     `xml:"PackageSize"`
-		Created                  nuget.TypedValue[time.Time] `xml:"Created"`
+		ID                       string                      `xml:"Id"`
+		IconURL                  string                      `xml:"IconUrl,omitempty"`
+		Language                 string                      `xml:"Language,omitempty"`
 		LastUpdated              nuget.TypedValue[time.Time] `xml:"LastUpdated"`
-		Published                nuget.TypedValue[time.Time] `xml:"Published"`
+		LicenseURL               string                      `xml:"LicenseUrl,omitempty"`
+		MinClientVersion         string                      `xml:"MinClientVersion,omitempty"`
+		NormalizedVersion        string                      `xml:"NormalizedVersion"`
+		Owners                   string                      `xml:"Owners,omitempty"`
+		PackageSize              nuget.TypedValue[int64]     `xml:"PackageSize"`
 		ProjectURL               string                      `xml:"ProjectUrl,omitempty"`
+		Published                nuget.TypedValue[time.Time] `xml:"Published"`
 		ReleaseNotes             string                      `xml:"ReleaseNotes,omitempty"`
 		RequireLicenseAcceptance nuget.TypedValue[bool]      `xml:"RequireLicenseAcceptance"`
+		Tags                     string                      `xml:"Tags,omitempty"`
 		Title                    string                      `xml:"Title"`
+		Version                  string                      `xml:"Version"`
+		VersionDownloadCount     nuget.TypedValue[int64]     `xml:"VersionDownloadCount"`
 	}
 
 	type FeedEntry struct {
@@ -86,28 +95,54 @@ func TestPackageNuGet(t *testing.T) {
 	readToken := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadPackage)
 	badToken := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadNotification)
 
-	packageName := "test.package"
+	packageName := "test.package" // id
+	packageID := packageName
 	packageVersion := "1.0.3"
 	packageAuthors := "KN4CK3R"
 	packageDescription := "Gitea Test Package"
+
 	symbolFilename := "test.pdb"
 	symbolID := "d910bb6948bd4c6cb40155bcf52c3c94"
 
+	packageCopyright := "Package Copyright"
+	packageIconURL := "https://gitea.io/favicon.png"
+	packageLanguage := "Package Language"
+	packageLicenseURL := "https://gitea.io/license"
+	packageMinClientVersion := "1.0.0.0"
+	packageOwners := "Package Owners"
+	packageProjectURL := "https://gitea.io"
+	packageReleaseNotes := "Package Release Notes"
+	packageTags := "tag_1 tag_2 tag_3"
+	packageTitle := "Package Title"
+	packageDevelopmentDependency := true
+	packageRequireLicenseAcceptance := true
+
 	createNuspec := func(id, version string) string {
 		return `<?xml version="1.0" encoding="utf-8"?>
-<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
-	<metadata>
-		<id>` + id + `</id>
-		<version>` + version + `</version>
-		<authors>` + packageAuthors + `</authors>
-		<description>` + packageDescription + `</description>
-		<dependencies>
-			<group targetFramework=".NETStandard2.0">
-				<dependency id="Microsoft.CSharp" version="4.5.0" />
-			</group>
-		</dependencies>
-	</metadata>
-</package>`
+		<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+			<metadata minClientVersion="` + packageMinClientVersion + `">
+				<authors>` + packageAuthors + `</authors>
+				<copyright>` + packageCopyright + `</copyright>
+				<description>` + packageDescription + `</description>
+				<developmentDependency>true</developmentDependency>
+				<iconUrl>` + packageIconURL + `</iconUrl>
+				<id>` + id + `</id>
+				<language>` + packageLanguage + `</language>
+				<licenseUrl>` + packageLicenseURL + `</licenseUrl>
+				<owners>` + packageOwners + `</owners>
+				<projectUrl>` + packageProjectURL + `</projectUrl>
+				<releaseNotes>` + packageReleaseNotes + `</releaseNotes>
+				<requireLicenseAcceptance>true</requireLicenseAcceptance>
+				<tags>` + packageTags + `</tags>
+				<title>` + packageTitle + `</title>
+				<version>` + version + `</version>
+				<dependencies>
+					<group targetFramework=".NETStandard2.0">
+						<dependency id="Microsoft.CSharp" version="4.5.0" />
+					</group>
+				</dependencies>
+			</metadata>
+		</package>`
 	}
 
 	createPackage := func(id, version string) *bytes.Buffer {
@@ -393,7 +428,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
 					assert.NoError(t, err)
-					assert.Equal(t, int64(412), pb.Size)
+					assert.Equal(t, int64(610), pb.Size)
 				case fmt.Sprintf("%s.%s.snupkg", packageName, packageVersion):
 					assert.False(t, pf.IsLead)
 
@@ -405,7 +440,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
 					assert.NoError(t, err)
-					assert.Equal(t, int64(427), pb.Size)
+					assert.Equal(t, int64(996), pb.Size)
 				case symbolFilename:
 					assert.False(t, pf.IsLead)
 
@@ -736,10 +771,24 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				var result FeedEntry
 				decodeXML(t, resp, &result)
 
-				assert.Equal(t, packageName, result.Properties.Title)
-				assert.Equal(t, packageVersion, result.Properties.Version)
 				assert.Equal(t, packageAuthors, result.Properties.Authors)
 				assert.Equal(t, packageDescription, result.Properties.Description)
+				assert.Equal(t, packageID, result.Properties.ID)
+				assert.Equal(t, packageVersion, result.Properties.Version)
+
+				assert.Equal(t, packageCopyright, result.Properties.Copyright)
+				assert.Equal(t, packageDevelopmentDependency, result.Properties.DevelopmentDependency.Value)
+				assert.Equal(t, packageIconURL, result.Properties.IconURL)
+				assert.Equal(t, packageLanguage, result.Properties.Language)
+				assert.Equal(t, packageLicenseURL, result.Properties.LicenseURL)
+				assert.Equal(t, packageMinClientVersion, result.Properties.MinClientVersion)
+				assert.Equal(t, packageOwners, result.Properties.Owners)
+				assert.Equal(t, packageProjectURL, result.Properties.ProjectURL)
+				assert.Equal(t, packageReleaseNotes, result.Properties.ReleaseNotes)
+				assert.Equal(t, packageRequireLicenseAcceptance, result.Properties.RequireLicenseAcceptance.Value)
+				assert.Equal(t, packageTags, result.Properties.Tags)
+				assert.Equal(t, packageTitle, result.Properties.Title)
+
 				assert.Equal(t, "Microsoft.CSharp:4.5.0:.NETStandard2.0", result.Properties.Dependencies)
 			})
 
