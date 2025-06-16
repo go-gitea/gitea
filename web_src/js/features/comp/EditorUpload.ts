@@ -126,7 +126,10 @@ function handleClipboardText(textarea: HTMLTextAreaElement, e: ClipboardEvent, t
   const {value, selectionStart, selectionEnd} = textarea;
   const selectedText = value.substring(selectionStart, selectionEnd);
   const trimmedText = text.trim();
-  if (selectedText && isUrl(trimmedText) && !isUrl(selectedText)) {
+  const beforeSelection = value.substring(0, selectionStart);
+  const afterSelection = value.substring(selectionEnd);
+  const isInMarkdownLink = beforeSelection.endsWith('](') && afterSelection.startsWith(')');
+  if (selectedText && isUrl(trimmedText) && !isUrl(selectedText) && !isInMarkdownLink) {
     e.preventDefault();
     replaceTextareaSelection(textarea, `[${selectedText}](${trimmedText})`);
   }
