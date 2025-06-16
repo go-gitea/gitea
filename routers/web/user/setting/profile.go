@@ -71,7 +71,7 @@ func ProfilePost(ctx *context.Context) {
 
 	if form.Name != "" {
 		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeUsername) {
-			ctx.Flash.Error(ctx.Tr("user.form.change_username_disabled"))
+			ctx.Flash.Error(ctx.Tr("form.change_username_disabled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
 		}
@@ -107,7 +107,7 @@ func ProfilePost(ctx *context.Context) {
 
 	if form.FullName != "" {
 		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeFullName) {
-			ctx.Flash.Error(ctx.Tr("user.form.change_full_name_disabled"))
+			ctx.Flash.Error(ctx.Tr("form.change_full_name_disabled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
 		}
