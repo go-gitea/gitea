@@ -49,7 +49,12 @@ const doLoadFileContent = (event: MouseEvent) => {
   props.navigateViewContent(props.item.fullPath, openNewTab);
 };
 
-const doGotoSubModule = () => {
+const doGotoSubModule = (event: MouseEvent) => {
+  const openNewTab = event.button === 1 || event.ctrlKey || event.metaKey;
+  if (openNewTab) {
+    window.open(props.item.submoduleUrl, '_blank');
+    return;
+  }
   location.href = props.item.submoduleUrl;
 };
 </script>
@@ -60,6 +65,7 @@ const doGotoSubModule = () => {
     v-if="item.entryMode === 'commit'" class="tree-item type-submodule"
     :title="item.entryName"
     @click.stop="doGotoSubModule"
+    @click.middle.stop="doGotoSubModule"
   >
     <!-- submodule -->
     <div class="item-content">
