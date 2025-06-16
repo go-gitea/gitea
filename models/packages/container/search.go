@@ -25,6 +25,7 @@ type BlobSearchOptions struct {
 	Digest     string
 	Tag        string
 	IsManifest bool
+	OnlyLead   bool
 	Repository string
 }
 
@@ -44,6 +45,9 @@ func (opts *BlobSearchOptions) toConds() builder.Cond {
 	}
 	if opts.IsManifest {
 		cond = cond.And(builder.Eq{"package_file.lower_name": ManifestFilename})
+	}
+	if opts.OnlyLead {
+		cond = cond.And(builder.Eq{"package_file.is_lead": true})
 	}
 	if opts.Digest != "" {
 		var propsCond builder.Cond = builder.Eq{
@@ -73,11 +77,9 @@ func GetContainerBlob(ctx context.Context, opts *BlobSearchOptions) (*packages.P
 	pfds, err := getContainerBlobsLimit(ctx, opts, 1)
 	if err != nil {
 		return nil, err
-	}
-	if len(pfds) != 1 {
+	} else if len(pfds) == 0 {
 		return nil, ErrContainerBlobNotExist
 	}
-
 	return pfds[0], nil
 }
 
