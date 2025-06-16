@@ -42,7 +42,7 @@ const doLoadDirContent = () => {
 
 const doLoadFileContent = (event: MouseEvent) => {
   // open the file in a new tab if either
-  // - the auxiliary button (mouse wheel button) is the origin of the click
+  // - the auxiliary button (usually the mouse wheel button) is the origin of the click
   // - the ctrl key was pressed while clicking
   const openNewTab = event.button === 1 || event.ctrlKey;
   props.navigateViewContent(props.item.fullPath, openNewTab);
