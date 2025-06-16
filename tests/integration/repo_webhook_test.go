@@ -419,23 +419,23 @@ func Test_WebhookPushDevBranch(t *testing.T) {
 		defer gitRepo.Close()
 
 		// only for dev branch
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push", "new_branch")
+		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push", "new_dev_branch")
 
 		// 2. this should not trigger the webhook
 		testCreateFile(t, session, "user2", "repo1", "master", "test_webhook_push.md", "# a test file for webhook push", "")
 		assert.Empty(t, triggeredEvent)
 		assert.Empty(t, payloads)
 
-		_, err = gitRepo.GetBranchCommitID("new_branch")
+		_, err = gitRepo.GetBranchCommitID("new_dev_branch")
 		assert.Error(t, err)
 
 		fromBranchCommitID, err := gitRepo.GetBranchCommitID("develop")
 		assert.NoError(t, err)
 
 		// 3. trigger the webhook
-		testCreateFile(t, session, "user2", "repo1", "develop", "test_webhook_push.md", "# a test file for webhook push", "new_branch")
+		testCreateFile(t, session, "user2", "repo1", "develop", "test_webhook_push.md", "# a test file for webhook push", "new_dev_branch")
 
-		afterCommitID, err := gitRepo.GetBranchCommitID("new_branch")
+		afterCommitID, err := gitRepo.GetBranchCommitID("new_dev_branch")
 		assert.NoError(t, err)
 
 		beforeCommitID := git.Sha1ObjectFormat.EmptyObjectID().String()
@@ -443,11 +443,11 @@ func Test_WebhookPushDevBranch(t *testing.T) {
 		// 4. validate the webhook is triggered
 		assert.Equal(t, "push", triggeredEvent)
 		assert.Len(t, payloads, 1)
-		assert.Equal(t, "refs/heads/new_branch", payloads[0].Ref)
+		assert.Equal(t, "refs/heads/new_dev_branch", payloads[0].Ref)
 		assert.Equal(t, beforeCommitID, payloads[0].Before)
 		assert.Equal(t, afterCommitID, payloads[0].After)
 		assert.Equal(t, "repo1", payloads[0].Repo.Name)
-		assert.Equal(t, "new_branch", payloads[0].Branch())
+		assert.Equal(t, "new_dev_branch", payloads[0].Branch())
 		assert.Equal(t, "user2/repo1", payloads[0].Repo.FullName)
 		assert.Len(t, payloads[0].Commits, 1)
 		assert.Equal(t, afterCommitID, payloads[0].Commits[0].ID)
