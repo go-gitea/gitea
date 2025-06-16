@@ -40,12 +40,12 @@ const doLoadDirContent = () => {
   props.navigateViewContent(props.item.fullPath);
 };
 
-const doLoadFileContent = () => {
-  props.navigateViewContent(props.item.fullPath);
-};
-
-const doOpenContentInNewTab = () => {
-  props.navigateViewContent(props.item.fullPath, true);
+const doLoadFileContent = (event: MouseEvent) => {
+  // open the file in a new tab if either
+  // - the auxiliary button (mouse wheel button) is the origin of the click
+  // - the ctrl key was pressed while clicking
+  const openNewTab = event.button === 1 || event.ctrlKey;
+  props.navigateViewContent(props.item.fullPath, openNewTab);
 };
 
 const doGotoSubModule = () => {
@@ -72,7 +72,7 @@ const doGotoSubModule = () => {
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     @click.stop="doLoadFileContent"
-    @click.middle.stop="doOpenContentInNewTab"
+    @click.middle.stop="doLoadFileContent"
   >
     <!-- symlink -->
     <div class="item-content">
@@ -86,7 +86,7 @@ const doGotoSubModule = () => {
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     @click.stop="doLoadFileContent"
-    @click.middle.stop="doOpenContentInNewTab"
+    @click.middle.stop="doLoadFileContent"
   >
     <!-- file -->
     <div class="item-content">
@@ -100,7 +100,7 @@ const doGotoSubModule = () => {
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     @click.stop="doLoadDirContent"
-    @click.middle.stop="doOpenContentInNewTab"
+    @click.middle.stop="doLoadFileContent"
   >
     <!-- directory -->
     <div class="item-toggle">
