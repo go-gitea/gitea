@@ -1,7 +1,7 @@
 {
   "type": "module",
   "engines": {
-    "node": ">= 18.0.0"
+    "node": ">= 20.0.0"
   },
   "dependencies": {
     "@citation-js/core": "0.7.18",
