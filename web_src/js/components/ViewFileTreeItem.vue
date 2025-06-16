@@ -35,15 +35,16 @@ const doLoadChildren = async () => {
   }
 };
 
-const doLoadDirContent = () => {
-  doLoadChildren();
-  props.navigateViewContent(props.item.fullPath);
+const doLoadDirContent = (event: MouseEvent) => {
+  // open the directory in a new tab if either
+  // - the auxiliary button (usually the mouse wheel button) is the origin of the click
+  // - the ctrl key or meta key (for mac support) was pressed while clicking
+  const openNewTab = event.button === 1 || event.ctrlKey || event.metaKey;
+  if (!openNewTab) doLoadChildren();
+  props.navigateViewContent(props.item.fullPath, openNewTab);
 };
 
 const doLoadFileContent = (event: MouseEvent) => {
-  // open the file in a new tab if either
-  // - the auxiliary button (usually the mouse wheel button) is the origin of the click
-  // - the ctrl key or meta key (for mac support) was pressed while clicking
   const openNewTab = event.button === 1 || event.ctrlKey || event.metaKey;
   props.navigateViewContent(props.item.fullPath, openNewTab);
 };
@@ -100,7 +101,7 @@ const doGotoSubModule = () => {
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     @click.stop="doLoadDirContent"
-    @click.middle.stop="doLoadFileContent"
+    @click.middle.stop="doLoadDirContent"
   >
     <!-- directory -->
     <div class="item-toggle">
