@@ -577,6 +577,22 @@ func PrepareCompareDiff(
 	ctx.Data["AfterCommitID"] = headCommitID
 	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand")
 
+	formTitle := ctx.FormString("title")
+	formBody := ctx.FormString("body")
+	quickPull := ctx.FormBool("quick_pull")
+	
+	if formTitle != "" {
+		ctx.Data["TitleQuery"] = formTitle
+    }
+	
+	if formBody != "" {
+		ctx.Data["BodyQuery"] = formBody
+    }
+	
+	if ctx.Data["ExpandNewPrForm"] != true && (quickPull || formTitle != "" || formBody != "") {
+		ctx.Data["ExpandNewPrForm"] = true
+    }
+
 	if (headCommitID == ci.CompareInfo.MergeBase && !ci.DirectComparison) ||
 		headCommitID == ci.CompareInfo.BaseCommitID {
 		ctx.Data["IsNothingToCompare"] = true
