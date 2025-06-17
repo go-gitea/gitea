@@ -285,10 +285,10 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		}
 	}
 
-	prepareToRenderButtons(ctx, fInfo.isLFSFile, isRepresentableAsText, lfsLock)
+	prepareToRenderButtons(ctx, lfsLock)
 }
 
-func prepareToRenderButtons(ctx *context.Context, isLFSFile, isRepresentableAsText bool, lfsLock *git_model.LFSLock) {
+func prepareToRenderButtons(ctx *context.Context, lfsLock *git_model.LFSLock) {
 	// archived or mirror repository, the buttons should not be shown
 	if ctx.Repo.Repository.IsArchived || !ctx.Repo.Repository.CanEnableEditor() {
 		return
@@ -301,33 +301,16 @@ func prepareToRenderButtons(ctx *context.Context, isLFSFile, isRepresentableAsTe
 		return
 	}
 
-	if isLFSFile {
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
-	} else if !isRepresentableAsText {
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
-	}
-
 	if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
-		if !isLFSFile { // lfs file cannot be edited after fork
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
-		}
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 		return
 	}
 
 	// it's a lfs file and the user is not the owner of the lock
-	if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
-		ctx.Data["CanEditFile"] = false
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
-		ctx.Data["CanDeleteFile"] = false
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
-		return
-	}
-
-	if !isLFSFile { // lfs file cannot be edited
-		ctx.Data["CanEditFile"] = true
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
-	}
-	ctx.Data["CanDeleteFile"] = true
-	ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
+	isLFSLocked := lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID
+	ctx.Data["CanEditFile"] = !isLFSLocked
+	ctx.Data["EditFileTooltip"] = util.Iif(isLFSLocked, ctx.Tr("repo.editor.this_file_locked"), ctx.Tr("repo.editor.edit_this_file"))
+	ctx.Data["CanDeleteFile"] = !isLFSLocked
+	ctx.Data["DeleteFileTooltip"] = util.Iif(isLFSLocked, ctx.Tr("repo.editor.this_file_locked"), ctx.Tr("repo.editor.delete_this_file"))
 }
