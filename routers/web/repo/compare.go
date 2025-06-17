@@ -575,23 +575,13 @@ func PrepareCompareDiff(
 
 	ctx.Data["CommitRepoLink"] = ci.HeadRepo.Link()
 	ctx.Data["AfterCommitID"] = headCommitID
-	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand")
 
-	formTitle := ctx.FormString("title")
-	formBody := ctx.FormString("body")
-	quickPull := ctx.FormBool("quick_pull")
-	
-	if formTitle != "" {
-		ctx.Data["TitleQuery"] = formTitle
-    }
-	
-	if formBody != "" {
-		ctx.Data["BodyQuery"] = formBody
-    }
-	
-	if ctx.Data["ExpandNewPrForm"] != true && (quickPull || formTitle != "" || formBody != "") {
-		ctx.Data["ExpandNewPrForm"] = true
-    }
+	// follow GitHub's behavior: autofill the form and expand
+	newPrFormTitle := ctx.FormTrim("title")
+	newPrFormBody := ctx.FormTrim("body")
+	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand") || ctx.FormBool("quick_pull") || newPrFormTitle != "" || newPrFormBody != ""
+	ctx.Data["TitleQuery"] = newPrFormTitle
+	ctx.Data["BodyQuery"] = newPrFormBody
 
 	if (headCommitID == ci.CompareInfo.MergeBase && !ci.DirectComparison) ||
 		headCommitID == ci.CompareInfo.BaseCommitID {
@@ -820,21 +810,6 @@ func CompareDiff(ctx *context.Context) {
 			if ctx.Written() {
 				return
 			}
-
-			title := ctx.FormString("title")
-			body := ctx.FormString("body")
-			expandNewPRForm := ctx.FormBool("quick_pull")
-
-			if title != "" {
-				ctx.Data["TitleQuery"] = title
-			}
-			if body != "" {
-				ctx.Data["BodyQuery"] = body
-			}
-			if expandNewPRForm || title != "" || body != "" {
-				ctx.Data["ExpandNewPrForm"] = true
-			}
-
 			_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates, pageMetaData)
 			if len(templateErrs) > 0 {
 				ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
