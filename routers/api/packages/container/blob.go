@@ -20,6 +20,8 @@ import (
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
+
+	"github.com/opencontainers/go-digest"
 )
 
 // saveAsPackageBlob creates a package blob from an upload
@@ -128,8 +130,8 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 		pv := &packages_model.PackageVersion{
 			PackageID:    p.ID,
 			CreatorID:    pi.Owner.ID,
-			Version:      container_model.UploadVersion,
-			LowerVersion: container_model.UploadVersion,
+			Version:      container_module.UploadVersion,
+			LowerVersion: container_module.UploadVersion,
 			IsInternal:   true,
 			MetadataJSON: "null",
 		}
@@ -175,7 +177,7 @@ func createFileForBlob(ctx context.Context, pv *packages_model.PackageVersion, p
 	return nil
 }
 
-func deleteBlob(ctx context.Context, ownerID int64, image, digest string) error {
+func deleteBlob(ctx context.Context, ownerID int64, image string, digest digest.Digest) error {
 	releaser, err := globallock.Lock(ctx, containerPkgName(ownerID, image))
 	if err != nil {
 		return err
@@ -186,7 +188,7 @@ func deleteBlob(ctx context.Context, ownerID int64, image, digest string) error 
 		pfds, err := container_model.GetContainerBlobs(ctx, &container_model.BlobSearchOptions{
 			OwnerID: ownerID,
 			Image:   image,
-			Digest:  digest,
+			Digest:  string(digest),
 		})
 		if err != nil {
 			return err

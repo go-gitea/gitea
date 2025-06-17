@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -23,19 +24,19 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-func isValidMediaType(mt string) bool {
+func isMediaTypeValid(mt string) bool {
 	return strings.HasPrefix(mt, "application/vnd.docker.") || strings.HasPrefix(mt, "application/vnd.oci.")
 }
 
-func isImageManifestMediaType(mt string) bool {
+func isMediaTypeImageManifest(mt string) bool {
 	return strings.EqualFold(mt, oci.MediaTypeImageManifest) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.v2+json")
 }
 
-func isImageIndexMediaType(mt string) bool {
+func isMediaTypeImageIndex(mt string) bool {
 	return strings.EqualFold(mt, oci.MediaTypeImageIndex) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.list.v2+json")
 }
 
@@ -64,22 +65,22 @@ func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packag
 		return "", err
 	}
 
-	if !isValidMediaType(mci.MediaType) {
+	if !isMediaTypeValid(mci.MediaType) {
 		mci.MediaType = index.MediaType
-		if !isValidMediaType(mci.MediaType) {
+		if !isMediaTypeValid(mci.MediaType) {
 			return "", errManifestInvalid.WithMessage("MediaType not recognized")
 		}
 	}
 
-	if isImageManifestMediaType(mci.MediaType) {
-		return processImageManifest(ctx, mci, buf)
-	} else if isImageIndexMediaType(mci.MediaType) {
-		return processImageManifestIndex(ctx, mci, buf)
+	if isMediaTypeImageManifest(mci.MediaType) {
+		return processOciImageManifest(ctx, mci, buf)
+	} else if isMediaTypeImageIndex(mci.MediaType) {
+		return processOciImageIndex(ctx, mci, buf)
 	}
 	return "", errManifestInvalid
 }
 
-func processImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
+func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
 	manifestDigest := ""
 
 	err := func() error {
@@ -150,13 +151,13 @@ func processImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *p
 			return err
 		}
 
-		uploadVersion, err := packages_model.GetInternalVersionByNameAndVersion(ctx, mci.Owner.ID, packages_model.TypeContainer, mci.Image, container_model.UploadVersion)
+		uploadVersion, err := packages_model.GetInternalVersionByNameAndVersion(ctx, mci.Owner.ID, packages_model.TypeContainer, mci.Image, container_module.UploadVersion)
 		if err != nil && err != packages_model.ErrPackageNotExist {
 			return err
 		}
 
 		for _, ref := range blobReferences {
-			if err := createFileFromBlobReference(ctx, pv, uploadVersion, ref); err != nil {
+			if _, err = createFileFromBlobReference(ctx, pv, uploadVersion, ref); err != nil {
 				return err
 			}
 		}
@@ -196,7 +197,7 @@ func processImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *p
 	return manifestDigest, nil
 }
 
-func processImageManifestIndex(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
+func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
 	manifestDigest := ""
 
 	err := func() error {
@@ -221,7 +222,7 @@ func processImageManifestIndex(ctx context.Context, mci *manifestCreationInfo, b
 		}
 
 		for _, manifest := range index.Manifests {
-			if !isImageManifestMediaType(manifest.MediaType) {
+			if !isMediaTypeImageManifest(manifest.MediaType) {
 				return errManifestInvalid
 			}
 
@@ -349,24 +350,31 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 		LowerVersion: strings.ToLower(mci.Reference),
 		MetadataJSON: string(metadataJSON),
 	}
-	var pv *packages_model.PackageVersion
-	if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
+	pv, err := packages_model.GetOrInsertVersion(ctx, _pv)
+	if err != nil {
 		if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
 			log.Error("Error inserting package: %v", err)
 			return nil, err
 		}
 
-		if err = packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-			return nil, err
-		}
-
-		// keep download count on overwrite
-		_pv.DownloadCount = pv.DownloadCount
-
-		if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
-			if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
-				log.Error("Error inserting package: %v", err)
-				return nil, err
+		if isMediaTypeImageIndex(mci.MediaType) {
+			if pv.CreatedUnix.AsTime().Before(time.Now().Add(-24 * time.Hour)) {
+				if err = packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
+					return nil, err
+				}
+				// keep download count on overwriting
+				_pv.DownloadCount = pv.DownloadCount
+				if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
+					if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
+						log.Error("Error inserting package: %v", err)
+						return nil, err
+					}
+				}
+			} else {
+				err = packages_model.UpdateVersion(ctx, &packages_model.PackageVersion{ID: pv.ID, MetadataJSON: _pv.MetadataJSON})
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -376,14 +384,23 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 	}
 
 	if mci.IsTagged {
-		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestTagged, ""); err != nil {
-			log.Error("Error setting package version property: %v", err)
+		if err = packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestTagged, ""); err != nil {
 			return nil, err
 		}
+	} else {
+		props, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestTagged)
+		if err != nil {
+			return nil, err
+		}
+		for _, prop := range props {
+			if err = packages_model.DeletePropertyByID(ctx, prop.ID); err != nil {
+				return nil, err
+			}
+		}
 	}
+
 	for _, manifest := range metadata.Manifests {
-		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, manifest.Digest); err != nil {
-			log.Error("Error setting package version property: %v", err)
+		if err = packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, manifest.Digest); err != nil {
 			return nil, err
 		}
 	}
@@ -400,9 +417,9 @@ type blobReference struct {
 	IsLead       bool
 }
 
-func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *packages_model.PackageVersion, ref *blobReference) error {
+func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *packages_model.PackageVersion, ref *blobReference) (*packages_model.PackageFile, error) {
 	if ref.File.Blob.Size != ref.ExpectedSize {
-		return errSizeInvalid
+		return nil, errSizeInvalid
 	}
 
 	if ref.Name == "" {
@@ -410,20 +427,21 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 	}
 
 	pf := &packages_model.PackageFile{
-		VersionID: pv.ID,
-		BlobID:    ref.File.Blob.ID,
-		Name:      ref.Name,
-		LowerName: ref.Name,
-		IsLead:    ref.IsLead,
+		VersionID:    pv.ID,
+		BlobID:       ref.File.Blob.ID,
+		Name:         ref.Name,
+		LowerName:    ref.Name,
+		CompositeKey: string(ref.Digest),
+		IsLead:       ref.IsLead,
 	}
 	var err error
 	if pf, err = packages_model.TryInsertFile(ctx, pf); err != nil {
 		if errors.Is(err, packages_model.ErrDuplicatePackageFile) {
 			// Skip this blob because the manifest contains the same filesystem layer multiple times.
-			return nil
+			return pf, nil
 		}
 		log.Error("Error inserting package file: %v", err)
-		return err
+		return nil, err
 	}
 
 	props := map[string]string{
@@ -433,18 +451,18 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 	for name, value := range props {
 		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeFile, pf.ID, name, value); err != nil {
 			log.Error("Error setting package file property: %v", err)
-			return err
+			return nil, err
 		}
 	}
 
-	// Remove the file from the blob upload version
+	// Remove the ref file (old file) from the blob upload version
 	if uploadVersion != nil && ref.File.File != nil && uploadVersion.ID == ref.File.File.VersionID {
 		if err := packages_service.DeletePackageFile(ctx, ref.File.File); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return pf, nil
 }
 
 func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *packages_model.PackageVersion, buf *packages_module.HashedBuffer) (*packages_model.PackageBlob, bool, string, error) {
@@ -471,14 +489,34 @@ func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *pack
 	}
 
 	manifestDigest := digestFromHashSummer(buf)
-	err = createFileFromBlobReference(ctx, pv, nil, &blobReference{
+	pf, err := createFileFromBlobReference(ctx, pv, nil, &blobReference{
 		Digest:       digest.Digest(manifestDigest),
 		MediaType:    mci.MediaType,
-		Name:         container_model.ManifestFilename,
+		Name:         container_module.ManifestFilename,
 		File:         &packages_model.PackageFileDescriptor{Blob: pb},
 		ExpectedSize: pb.Size,
 		IsLead:       true,
 	})
+	if err != nil {
+		return nil, false, "", err
+	}
 
+	oldManifestFiles, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
+		OwnerID:     mci.Owner.ID,
+		PackageType: packages_model.TypeContainer,
+		VersionID:   pv.ID,
+		Query:       container_module.ManifestFilename,
+	})
+	if err != nil {
+		return nil, false, "", err
+	}
+	for _, oldManifestFile := range oldManifestFiles {
+		if oldManifestFile.ID != pf.ID && oldManifestFile.IsLead {
+			err = packages_model.UpdateFile(ctx, &packages_model.PackageFile{ID: oldManifestFile.ID, IsLead: false}, []string{"is_lead"})
+			if err != nil {
+				return nil, false, "", err
+			}
+		}
+	}
 	return pb, !exists, manifestDigest, err
 }

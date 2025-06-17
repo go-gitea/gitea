@@ -118,7 +118,7 @@ func initEmbeddedExtractor(c *cli.Command) error {
 
 func runList(_ context.Context, c *cli.Command) error {
 	if err := runListDo(c); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 		return err
 	}
 	return nil
@@ -126,7 +126,7 @@ func runList(_ context.Context, c *cli.Command) error {
 
 func runView(_ context.Context, c *cli.Command) error {
 	if err := runViewDo(c); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 		return err
 	}
 	return nil
@@ -134,7 +134,7 @@ func runView(_ context.Context, c *cli.Command) error {
 
 func runExtract(_ context.Context, c *cli.Command) error {
 	if err := runExtractDo(c); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 		return err
 	}
 	return nil
@@ -217,7 +217,7 @@ func runExtractDo(c *cli.Command) error {
 	for _, a := range matchedAssetFiles {
 		if err := extractAsset(destdir, a, overwrite, rename); err != nil {
 			// Non-fatal error
-			fmt.Fprintf(os.Stderr, "%s: %v", a.path, err)
+			_, _ = fmt.Fprintf(os.Stderr, "%s: %v\n", a.path, err)
 		}
 	}
 
