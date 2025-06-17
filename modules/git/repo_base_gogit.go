@@ -10,6 +10,7 @@ import (
 	"context"
 	"path/filepath"
 
+	giteacache "code.gitea.io/gitea/modules/cache"
 	gitealog "code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -28,14 +29,15 @@ const isGogit = true
 type Repository struct {
 	Path string
 
-	tagCache *ObjectCache[*Tag]
+	tagCache    *ObjectCache[*Tag]
+	commitCache map[string]*Commit
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
 	gpgSettings  *GPGSettings
 
 	Ctx             context.Context
-	LastCommitCache *LastCommitCache
+	lastCommitCache *lastCommitCache
 	objectFormat    ObjectFormat
 }
 
@@ -80,14 +82,18 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		return nil, err
 	}
 
-	return &Repository{
+	repo := &Repository{
 		Path:         repoPath,
 		gogitRepo:    gogitRepo,
 		gogitStorage: storage,
 		tagCache:     newObjectCache[*Tag](),
+		commitCache:  make(map[string]*Commit),
 		Ctx:          ctx,
 		objectFormat: ParseGogitHash(plumbing.ZeroHash).Type(),
-	}, nil
+	}
+	repo.lastCommitCache = newLastCommitCache(repo.Path, repo, giteacache.GetCache())
+
+	return repo, nil
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
@@ -99,8 +105,9 @@ func (repo *Repository) Close() error {
 		gitealog.Error("Error closing storage: %v", err)
 	}
 	repo.gogitStorage = nil
-	repo.LastCommitCache = nil
+	repo.lastCommitCache = nil
 	repo.tagCache = nil
+	repo.commitCache = nil
 	return nil
 }
 
