@@ -377,10 +377,8 @@ func workflowDispatchConfig(w *model.Workflow) *WorkflowDispatch {
 		if !decodeNode(w.RawOn, &val) {
 			return nil
 		}
-		for _, v := range val {
-			if v == "workflow_dispatch" {
-				return &WorkflowDispatch{}
-			}
+		if slices.Contains(val, "workflow_dispatch") {
+			return &WorkflowDispatch{}
 		}
 	case yaml.MappingNode:
 		var val map[string]yaml.Node

@@ -329,7 +329,7 @@ func ConvertScopedAccessTokens(x *xorm.Engine) error {
 	for _, token := range tokens {
 		var scopes []string
 		allNewScopesMap := make(map[AccessTokenScope]bool)
-		for _, oldScope := range strings.Split(token.Scope, ",") {
+		for oldScope := range strings.SplitSeq(token.Scope, ",") {
 			if newScopes, exists := accessTokenScopeMap[OldAccessTokenScope(oldScope)]; exists {
 				for _, newScope := range newScopes {
 					allNewScopesMap[newScope] = true

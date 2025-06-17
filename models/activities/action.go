@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -125,12 +126,7 @@ func (at ActionType) String() string {
 }
 
 func (at ActionType) InActions(actions ...string) bool {
-	for _, action := range actions {
-		if action == at.String() {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(actions, at.String())
 }
 
 // Action represents user operation type and other information to
