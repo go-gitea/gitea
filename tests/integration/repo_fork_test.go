@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	org_service "code.gitea.io/gitea/services/org"
 	"code.gitea.io/gitea/tests"
 
@@ -51,7 +52,8 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 		"repo_name":          forkRepoName,
 		"fork_single_branch": forkBranch,
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, fmt.Sprintf("/%s/%s", forkOwnerName, forkRepoName), test.RedirectURL(resp))
 
 	// Step4: check the existence of the forked repo
 	req = NewRequestf(t, "GET", "/%s/%s", forkOwnerName, forkRepoName)
