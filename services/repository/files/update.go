@@ -495,7 +495,7 @@ func CreateUpdateRenameFile(ctx context.Context, t *TemporaryUploadRepository, f
 	case "rename":
 		writeObjectRet, err = writeRepoObjectForRename(ctx, t, file)
 	default:
-		return util.NewInvalidArgumentErrorf("unknown operation: %s", file.Operation)
+		return util.NewInvalidArgumentErrorf("unknown file modification operation: '%s'", file.Operation)
 	}
 	if err != nil {
 		return err
