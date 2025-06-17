@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/contexttest"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
@@ -63,42 +64,32 @@ func getUpdateRepoFilesRenameOptions(repo *repo_model.Repository) *files_service
 		Files: []*files_service.ChangeRepoFile{
 			// move normally
 			{
-				Operation:     "rename",
-				FromTreePath:  "README.md",
-				TreePath:      "README.txt",
-				SHA:           "",
-				ContentReader: nil,
+				Operation:    "rename",
+				FromTreePath: "README.md",
+				TreePath:     "README.txt",
 			},
 			// move from in lfs
 			{
-				Operation:     "rename",
-				FromTreePath:  "crypt.bin",
-				TreePath:      "crypt1.bin",
-				SHA:           "",
-				ContentReader: nil,
+				Operation:    "rename",
+				FromTreePath: "crypt.bin",
+				TreePath:     "crypt1.bin",
 			},
 			// move from lfs to normal
 			{
-				Operation:     "rename",
-				FromTreePath:  "jpeg.jpg",
-				TreePath:      "jpeg.jpeg",
-				SHA:           "",
-				ContentReader: nil,
+				Operation:    "rename",
+				FromTreePath: "jpeg.jpg",
+				TreePath:     "jpeg.jpeg",
 			},
 			// move from normal to lfs
 			{
-				Operation:     "rename",
-				FromTreePath:  "CONTRIBUTING.md",
-				TreePath:      "CONTRIBUTING.md.bin",
-				SHA:           "",
-				ContentReader: nil,
+				Operation:    "rename",
+				FromTreePath: "CONTRIBUTING.md",
+				TreePath:     "CONTRIBUTING.md.bin",
 			},
 		},
 		OldBranch: repo.DefaultBranch,
 		NewBranch: repo.DefaultBranch,
 		Message:   "Rename files",
-		Author:    nil,
-		Committer: nil,
 	}
 }
 
@@ -292,58 +283,57 @@ func getExpectedFileResponseForRepoFilesUpdate(commitID, filename, lastCommitSHA
 	}
 }
 
-func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA string, lastCommitterWhen, lastAuthorWhen time.Time) *api.FilesResponse {
-	details := []map[string]any{
+func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA string) *api.FilesResponse {
+	details := []struct {
+		filename, sha, content string
+		size                   int64
+	}{
 		{
-			"filename": "README.txt",
-			"sha":      "8276d2a29779af982c0afa976bdb793b52d442a8",
-			"size":     22,
-			"content":  "IyBBbiBMRlMtZW5hYmxlZCByZXBvCg==",
+			filename: "README.txt",
+			sha:      "8276d2a29779af982c0afa976bdb793b52d442a8",
+			size:     22,
+			content:  "IyBBbiBMRlMtZW5hYmxlZCByZXBvCg==",
 		},
 		{
-			"filename": "crypt1.bin",
-			"sha":      "d4a41a0d4db4949e129bd22f871171ea988103ef",
-			"size":     129,
-			"content":  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6MmVjY2RiNDM4MjVkMmE0OWQ5OWQ1NDJkYWEyMDA3NWNmZjFkOTdkOWQyMzQ5YTg5NzdlZmU5YzAzNjYxNzM3YwpzaXplIDIwNDgK",
+			filename: "crypt1.bin",
+			sha:      "d4a41a0d4db4949e129bd22f871171ea988103ef",
+			size:     129,
+			content:  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6MmVjY2RiNDM4MjVkMmE0OWQ5OWQ1NDJkYWEyMDA3NWNmZjFkOTdkOWQyMzQ5YTg5NzdlZmU5YzAzNjYxNzM3YwpzaXplIDIwNDgK",
 		},
 		{
-			"filename": "jpeg.jpeg",
-			"sha":      "71911bf48766c7181518c1070911019fbb00b1fc",
-			"size":     107,
-			"content":  "/9j/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/yQALCAABAAEBAREA/8wABgAQEAX/2gAIAQEAAD8A0s8g/9k=",
+			filename: "jpeg.jpeg",
+			sha:      "71911bf48766c7181518c1070911019fbb00b1fc",
+			size:     107,
+			content:  "/9j/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/yQALCAABAAEBAREA/8wABgAQEAX/2gAIAQEAAD8A0s8g/9k=",
 		},
 		{
-			"filename": "CONTRIBUTING.md.bin",
-			"sha":      "2b6c6c4eaefa24b22f2092c3d54b263ff26feb58",
-			"size":     127,
-			"content":  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6N2I2YjJjODhkYmE5Zjc2MGExYTU4NDY5YjY3ZmVlMmI2OThlZjdlOTM5OWM0Y2E0ZjM0YTE0Y2NiZTM5ZjYyMwpzaXplIDI3Cg==",
+			filename: "CONTRIBUTING.md.bin",
+			sha:      "2b6c6c4eaefa24b22f2092c3d54b263ff26feb58",
+			size:     127,
+			content:  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6N2I2YjJjODhkYmE5Zjc2MGExYTU4NDY5YjY3ZmVlMmI2OThlZjdlOTM5OWM0Y2E0ZjM0YTE0Y2NiZTM5ZjYyMwpzaXplIDI3Cg==",
 		},
 	}
 
 	var responses []*api.ContentsResponse
 	for _, detail := range details {
-		encoding := "base64"
-		content := detail["content"].(string)
-		selfURL := setting.AppURL + "api/v1/repos/user2/lfs/contents/" + detail["filename"].(string) + "?ref=master"
-		htmlURL := setting.AppURL + "user2/lfs/src/branch/master/" + detail["filename"].(string)
-		gitURL := setting.AppURL + "api/v1/repos/user2/lfs/git/blobs/" + detail["sha"].(string)
-		downloadURL := setting.AppURL + "user2/lfs/raw/branch/master/" + detail["filename"].(string)
-
+		selfURL := setting.AppURL + "api/v1/repos/user2/lfs/contents/" + detail.filename + "?ref=master"
+		htmlURL := setting.AppURL + "user2/lfs/src/branch/master/" + detail.filename
+		gitURL := setting.AppURL + "api/v1/repos/user2/lfs/git/blobs/" + detail.sha
+		downloadURL := setting.AppURL + "user2/lfs/raw/branch/master/" + detail.filename
+		// don't set time related fields because there might be different time in one operation
 		responses = append(responses, &api.ContentsResponse{
-			Name:              detail["filename"].(string),
-			Path:              detail["filename"].(string),
-			SHA:               detail["sha"].(string),
-			LastCommitSHA:     lastCommitSHA,
-			LastCommitterDate: lastCommitterWhen,
-			LastAuthorDate:    lastAuthorWhen,
-			Type:              "file",
-			Size:              int64(detail["size"].(int)),
-			Encoding:          &encoding,
-			Content:           &content,
-			URL:               &selfURL,
-			HTMLURL:           &htmlURL,
-			GitURL:            &gitURL,
-			DownloadURL:       &downloadURL,
+			Name:          detail.filename,
+			Path:          detail.filename,
+			SHA:           detail.sha,
+			LastCommitSHA: lastCommitSHA,
+			Type:          "file",
+			Size:          detail.size,
+			Encoding:      util.ToPointer("base64"),
+			Content:       &detail.content,
+			URL:           &selfURL,
+			HTMLURL:       &htmlURL,
+			GitURL:        &gitURL,
+			DownloadURL:   &downloadURL,
 			Links: &api.FileLinksResponse{
 				Self:    &selfURL,
 				GitURL:  &gitURL,
@@ -365,14 +355,12 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 					Name:  "User Two",
 					Email: "user2@noreply.example.org",
 				},
-				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
 					Email: "user2@noreply.example.org",
 				},
-				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Parents: []*api.CommitMeta{
 				{
@@ -527,11 +515,10 @@ func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
-		doer := ctx.Doer
 		opts := getUpdateRepoFilesRenameOptions(repo)
 
 		// test
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, ctx.Doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
@@ -540,8 +527,12 @@ func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
 
 		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
 		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
-		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdateRename(commit.ID.String(), lastCommit.ID.String(), lastCommit.Committer.When, lastCommit.Author.When)
-		assert.Equal(t, expectedFileResponse, filesResponse)
+		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdateRename(commit.ID.String(), lastCommit.ID.String())
+		for _, file := range filesResponse.Files {
+			file.LastCommitterDate, file.LastAuthorDate = time.Time{}, time.Time{} // there might be different time in one operation, so we ignore them
+		}
+		assert.Len(t, filesResponse.Files, 4)
+		assert.Equal(t, expectedFileResponse.Files, filesResponse.Files)
 	})
 }
 
