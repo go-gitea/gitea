@@ -118,17 +118,26 @@ export function removeAttachmentLinksFromMarkdown(text: string, fileUuid: string
   return text;
 }
 
-function handleClipboardText(textarea: HTMLTextAreaElement, e: ClipboardEvent, text: string, isShiftDown: boolean) {
+export function pasteAsMarkdownLink(textarea: {value: string, selectionStart: number, selectionEnd: number}, pastedText: string): string | null {
+  const {value, selectionStart, selectionEnd} = textarea;
+  const selectedText = value.substring(selectionStart, selectionEnd);
+  const trimmedText = pastedText.trim();
+  const beforeSelection = value.substring(0, selectionStart);
+  const afterSelection = value.substring(selectionEnd);
+  const isInMarkdownLink = beforeSelection.endsWith('](') && afterSelection.startsWith(')');
+  const asMarkdownLink = selectedText && isUrl(trimmedText) && !isUrl(selectedText) && !isInMarkdownLink;
+  return asMarkdownLink ? `[${selectedText}](${trimmedText})` : null;
+}
+
+function handleClipboardText(textarea: HTMLTextAreaElement, e: ClipboardEvent, pastedText: string, isShiftDown: boolean) {
   // pasting with "shift" means "paste as original content" in most applications
   if (isShiftDown) return; // let the browser handle it
 
   // when pasting links over selected text, turn it into [text](link)
-  const {value, selectionStart, selectionEnd} = textarea;
-  const selectedText = value.substring(selectionStart, selectionEnd);
-  const trimmedText = text.trim();
-  if (selectedText && isUrl(trimmedText) && !isUrl(selectedText)) {
+  const pastedAsMarkdown = pasteAsMarkdownLink(textarea, pastedText);
+  if (pastedText) {
     e.preventDefault();
-    replaceTextareaSelection(textarea, `[${selectedText}](${trimmedText})`);
+    replaceTextareaSelection(textarea, pastedAsMarkdown);
   }
   // else, let the browser handle it
 }
