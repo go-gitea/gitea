@@ -33,7 +33,6 @@ export default {
     '!./templates/swagger/v1_json.tmpl',
     '!./templates/user/auth/oidc_wellknown.tmpl',
     '!**/*_test.go',
-    '!./modules/{public,options,templates}/bindata.go',
     './{build,models,modules,routers,services}/**/*.go',
     './templates/**/*.tmpl',
     './web_src/js/**/*.{ts,js,vue}',

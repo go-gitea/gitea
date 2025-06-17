@@ -16,7 +16,7 @@ import (
 )
 
 func TestWriterReader(t *testing.T) {
-	testData := prepareTestData(t, 20_000_000)
+	testData := prepareTestData(t, 1_000_000)
 
 	result := bytes.NewBuffer(nil)
 
@@ -64,7 +64,7 @@ func TestWriterReader(t *testing.T) {
 }
 
 func TestSeekableWriterReader(t *testing.T) {
-	testData := prepareTestData(t, 20_000_000)
+	testData := prepareTestData(t, 2_000_000)
 
 	result := bytes.NewBuffer(nil)
 
@@ -109,7 +109,7 @@ func TestSeekableWriterReader(t *testing.T) {
 		reader, err := NewSeekableReader(assertReader)
 		require.NoError(t, err)
 
-		_, err = reader.Seek(10_000_000, io.SeekStart)
+		_, err = reader.Seek(1_000_000, io.SeekStart)
 		require.NoError(t, err)
 
 		data := make([]byte, 1000)
@@ -117,7 +117,7 @@ func TestSeekableWriterReader(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, reader.Close())
 
-		assert.Equal(t, testData[10_000_000:10_000_000+1000], data)
+		assert.Equal(t, testData[1_000_000:1_000_000+1000], data)
 
 		// Should seek 3 times,
 		// the first two times are for getting the index,

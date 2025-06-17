@@ -523,7 +523,7 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .timeline-item,
 .repository.view.issue .comment-list .timeline-item-group {
-  padding: 16px 0;
+  padding: 8px 0;
 }
 
 .repository.view.issue .comment-list .timeline-item-group .timeline-item {
@@ -577,6 +577,11 @@ td .commit-summary {
   justify-content: center;
 }
 
+.repository.view.issue .comment-list .timeline-item.commits-list .badge {
+  margin-right: 0;
+  height: 28px;
+}
+
 .repository.view.issue .comment-list .timeline-item .badge .svg {
   width: 22px;
   height: 22px;
@@ -599,10 +604,6 @@ td .commit-summary {
 .repository.view.issue .comment-list .timeline-item.commits-list {
   padding-left: 15px;
   padding-top: 0;
-}
-
-.repository.view.issue .comment-list .timeline-item.commits-list .ui.avatar {
-  margin-right: 0.25em;
 }
 
 .repository.view.issue .comment-list .timeline-item.event > .commit-status-link {
@@ -1224,14 +1225,6 @@ td .commit-summary {
 
 .repository.quickstart .guide .item small {
   font-weight: var(--font-weight-normal);
-}
-
-.empty-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 40px;
-  padding-bottom: 40px;
 }
 
 .repository.packages .file-size {
@@ -2037,10 +2030,6 @@ tbody.commit-list {
 .migrate-entry:hover {
   transform: scale(105%);
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
-}
-
-.migrate-entry .description {
-  text-wrap: balance;
 }
 
 .commits-table .commits-table-right form {
