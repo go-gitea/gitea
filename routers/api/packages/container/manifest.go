@@ -151,7 +151,7 @@ func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf
 			return err
 		}
 
-		uploadVersion, err := packages_model.GetInternalVersionByNameAndVersion(ctx, mci.Owner.ID, packages_model.TypeContainer, mci.Image, container_model.UploadVersion)
+		uploadVersion, err := packages_model.GetInternalVersionByNameAndVersion(ctx, mci.Owner.ID, packages_model.TypeContainer, mci.Image, container_module.UploadVersion)
 		if err != nil && err != packages_model.ErrPackageNotExist {
 			return err
 		}
@@ -492,7 +492,7 @@ func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *pack
 	pf, err := createFileFromBlobReference(ctx, pv, nil, &blobReference{
 		Digest:       digest.Digest(manifestDigest),
 		MediaType:    mci.MediaType,
-		Name:         container_model.ManifestFilename,
+		Name:         container_module.ManifestFilename,
 		File:         &packages_model.PackageFileDescriptor{Blob: pb},
 		ExpectedSize: pb.Size,
 		IsLead:       true,
@@ -505,7 +505,7 @@ func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *pack
 		OwnerID:     mci.Owner.ID,
 		PackageType: packages_model.TypeContainer,
 		VersionID:   pv.ID,
-		Query:       container_model.ManifestFilename,
+		Query:       container_module.ManifestFilename,
 	})
 	if err != nil {
 		return nil, false, "", err
