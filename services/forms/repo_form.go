@@ -10,6 +10,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/context"
@@ -689,7 +690,7 @@ func (f *NewWikiForm) Validate(req *http.Request, errs binding.Errors) binding.E
 // EditRepoFileForm form for changing repository file
 type EditRepoFileForm struct {
 	TreePath      string `binding:"Required;MaxSize(500)"`
-	Content       string
+	Content       optional.Option[string]
 	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
