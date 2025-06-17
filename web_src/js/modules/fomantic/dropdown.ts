@@ -72,10 +72,10 @@ function updateSelectionLabel(label: HTMLElement) {
 }
 
 function onAfterFiltered(this: any) {
-  const $dropdown = $(this);
+  const $dropdown = $(this).closest('.ui.dropdown'); // "this" can be the "ui dropdown" or "<select>"
   const hideEmptyDividers = $dropdown.dropdown('setting', 'hideDividers') === 'empty';
   const itemsMenu = $dropdown[0].querySelector('.scrolling.menu') || $dropdown[0].querySelector('.menu');
-  if (hideEmptyDividers) hideScopedEmptyDividers(itemsMenu);
+  if (hideEmptyDividers && itemsMenu) hideScopedEmptyDividers(itemsMenu);
 }
 
 // delegate the dropdown's template functions and callback functions to add aria attributes.
