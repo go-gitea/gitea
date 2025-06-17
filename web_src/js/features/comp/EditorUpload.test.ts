@@ -20,4 +20,5 @@ test('preparePasteAsMarkdownLink', () => {
   expect(pasteAsMarkdownLink({value: 'foo', selectionStart: 0, selectionEnd: 3}, 'https://gitea.com')).toBe('[foo](https://gitea.com)');
   expect(pasteAsMarkdownLink({value: '(x)', selectionStart: 0, selectionEnd: 3}, 'https://gitea.com')).toBe('[(x)](https://gitea.com)');
   expect(pasteAsMarkdownLink({value: '[](url)', selectionStart: 3, selectionEnd: 6}, 'https://gitea.com')).toBeNull();
+  expect(pasteAsMarkdownLink({value: 'https://example.com', selectionStart: 0, selectionEnd: 19}, 'https://gitea.com')).toBeNull();
 });
