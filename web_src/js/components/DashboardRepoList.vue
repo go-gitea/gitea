@@ -6,7 +6,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
-type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning';
+type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning' | 'skipped';
 
 type CommitStatusMap = {
   [status in CommitStatus]: {
@@ -22,6 +22,7 @@ const commitStatus: CommitStatusMap = {
   error: {name: 'gitea-exclamation', color: 'red'},
   failure: {name: 'octicon-x', color: 'red'},
   warning: {name: 'gitea-exclamation', color: 'yellow'},
+  skipped: {name: 'octicon-skip', color: 'grey'},
 };
 
 export default defineComponent({
@@ -218,7 +219,9 @@ export default defineComponent({
       this.searchRepos();
     },
 
-    changePage(page: number) {
+    async changePage(page: number) {
+      if (this.isLoading) return;
+
       this.page = page;
       if (this.page > this.finalPage) {
         this.page = this.finalPage;
@@ -228,7 +231,7 @@ export default defineComponent({
       }
       this.repos = [];
       this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
-      this.searchRepos();
+      await this.searchRepos();
     },
 
     async searchRepos() {
@@ -298,7 +301,7 @@ export default defineComponent({
       return commitStatus[status].color;
     },
 
-    reposFilterKeyControl(e: KeyboardEvent) {
+    async reposFilterKeyControl(e: KeyboardEvent) {
       switch (e.key) {
         case 'Enter':
           document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
@@ -307,7 +310,7 @@ export default defineComponent({
           if (this.activeIndex > 0) {
             this.activeIndex--;
           } else if (this.page > 1) {
-            this.changePage(this.page - 1);
+            await this.changePage(this.page - 1);
             this.activeIndex = this.searchLimit - 1;
           }
           break;
@@ -316,17 +319,17 @@ export default defineComponent({
             this.activeIndex++;
           } else if (this.page < this.finalPage) {
             this.activeIndex = 0;
-            this.changePage(this.page + 1);
+            await this.changePage(this.page + 1);
           }
           break;
         case 'ArrowRight':
           if (this.page < this.finalPage) {
-            this.changePage(this.page + 1);
+            await this.changePage(this.page + 1);
           }
           break;
         case 'ArrowLeft':
           if (this.page > 1) {
-            this.changePage(this.page - 1);
+            await this.changePage(this.page - 1);
           }
           break;
       }
@@ -426,7 +429,7 @@ export default defineComponent({
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
             </a>
-            <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link" :data-tooltip-content="repo.locale_latest_commit_status_state">
+            <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link || null" :data-tooltip-content="repo.locale_latest_commit_status_state">
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
               <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class="'tw-ml-2 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>

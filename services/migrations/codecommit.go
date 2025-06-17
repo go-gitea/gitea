@@ -180,11 +180,15 @@ func (c *CodeCommitDownloader) GetPullRequests(ctx context.Context, page, perPag
 			continue
 		}
 		target := orig.PullRequestTargets[0]
+		description := ""
+		if orig.Description != nil {
+			description = *orig.Description
+		}
 		pr := &base.PullRequest{
 			Number:     number,
 			Title:      *orig.Title,
 			PosterName: c.getUsernameFromARN(*orig.AuthorArn),
-			Content:    *orig.Description,
+			Content:    description,
 			State:      "open",
 			Created:    *orig.CreationDate,
 			Updated:    *orig.LastActivityDate,
@@ -205,6 +209,10 @@ func (c *CodeCommitDownloader) GetPullRequests(ctx context.Context, page, perPag
 		if orig.PullRequestStatus == types.PullRequestStatusEnumClosed {
 			pr.State = "closed"
 			pr.Closed = orig.LastActivityDate
+		}
+		if pr.Merged {
+			pr.MergeCommitSHA = *target.MergeMetadata.MergeCommitId
+			pr.MergedTime = orig.LastActivityDate
 		}
 
 		_ = CheckAndEnsureSafePR(pr, c.baseURL, c)

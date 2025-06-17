@@ -257,8 +257,8 @@ func TestListStopWatches(t *testing.T) {
 }
 
 func TestUserLocationMapLink(t *testing.T) {
-	setting.Service.UserLocationMapURL = "https://example/foo/"
 	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Service.UserLocationMapURL, "https://example/foo/")()
 
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{

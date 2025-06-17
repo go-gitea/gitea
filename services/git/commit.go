@@ -34,9 +34,9 @@ func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository,
 	}
 
 	for _, c := range oldCommits {
-		committer, ok := emailUsers[c.Committer.Email]
-		if !ok && c.Committer != nil {
-			committer = &user_model.User{
+		committerUser := emailUsers.GetByEmail(c.Committer.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
+		if committerUser == nil {
+			committerUser = &user_model.User{
 				Name:  c.Committer.Name,
 				Email: c.Committer.Email,
 			}
@@ -44,7 +44,7 @@ func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository,
 
 		signCommit := &asymkey_model.SignCommit{
 			UserCommit:   c,
-			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.Commit, committer),
+			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.Commit, committerUser),
 		}
 
 		isOwnerMemberCollaborator := func(user *user_model.User) (bool, error) {
@@ -84,7 +84,7 @@ func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.Sig
 		commit := &git_model.SignCommitWithStatuses{
 			SignCommit: c,
 		}
-		statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptions{})
+		statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptionsAll)
 		if err != nil {
 			return nil, err
 		}

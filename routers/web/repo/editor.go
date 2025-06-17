@@ -145,10 +145,6 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		}
 
 		blob := entry.Blob()
-		if blob.Size() >= setting.UI.MaxDisplayFileSize {
-			ctx.NotFound(err)
-			return
-		}
 
 		buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
 		if err != nil {
@@ -162,22 +158,37 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		defer dataRc.Close()
 
-		ctx.Data["FileSize"] = blob.Size()
-
-		// Only some file types are editable online as text.
-		if !fInfo.st.IsRepresentableAsText() || fInfo.isLFSFile {
-			ctx.NotFound(nil)
-			return
+		if fInfo.isLFSFile {
+			lfsLock, err := git_model.GetTreePathLock(ctx, ctx.Repo.Repository.ID, ctx.Repo.TreePath)
+			if err != nil {
+				ctx.ServerError("GetTreePathLock", err)
+				return
+			}
+			if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
+				ctx.NotFound(nil)
+				return
+			}
 		}
 
-		d, _ := io.ReadAll(dataRc)
+		ctx.Data["FileSize"] = fInfo.fileSize
 
-		buf = append(buf, d...)
-		if content, err := charset.ToUTF8(buf, charset.ConvertOpts{KeepBOM: true}); err != nil {
-			log.Error("ToUTF8: %v", err)
-			ctx.Data["FileContent"] = string(buf)
+		// Only some file types are editable online as text.
+		if fInfo.isLFSFile {
+			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
+		} else if !fInfo.st.IsRepresentableAsText() {
+			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
+		} else if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
+			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_too_large_file")
 		} else {
-			ctx.Data["FileContent"] = content
+			d, _ := io.ReadAll(dataRc)
+
+			buf = append(buf, d...)
+			if content, err := charset.ToUTF8(buf, charset.ConvertOpts{KeepBOM: true}); err != nil {
+				log.Error("ToUTF8: %v", err)
+				ctx.Data["FileContent"] = string(buf)
+			} else {
+				ctx.Data["FileContent"] = content
+			}
 		}
 	} else {
 		// Append filename from query, or empty string to allow username the new file.
@@ -280,6 +291,10 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	operation := "update"
 	if isNewFile {
 		operation = "create"
+	} else if !form.Content.Has() && ctx.Repo.TreePath != form.TreePath {
+		// The form content only has data if file is representable as text, is not too large and not in lfs. If it doesn't
+		// have data, the only possible operation is a rename
+		operation = "rename"
 	}
 
 	if _, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
@@ -292,7 +307,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				Operation:     operation,
 				FromTreePath:  ctx.Repo.TreePath,
 				TreePath:      form.TreePath,
-				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content, "\r", "")),
+				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content.Value(), "\r", "")),
 			},
 		},
 		Signoff:   form.Signoff,

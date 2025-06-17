@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var giteaTemplate = []byte(`
@@ -64,4 +65,27 @@ func TestFileNameSanitize(t *testing.T) {
 	assert.Equal(t, "_", fileNameSanitize("con"))
 	assert.Equal(t, "_", fileNameSanitize("\u0000"))
 	assert.Equal(t, "目标", fileNameSanitize("目标"))
+}
+
+func TestTransformers(t *testing.T) {
+	cases := []struct {
+		name     string
+		expected string
+	}{
+		{"SNAKE", "abc_def_xyz"},
+		{"KEBAB", "abc-def-xyz"},
+		{"CAMEL", "abcDefXyz"},
+		{"PASCAL", "AbcDefXyz"},
+		{"LOWER", "abc_def-xyz"},
+		{"UPPER", "ABC_DEF-XYZ"},
+		{"TITLE", "Abc_def-Xyz"},
+	}
+
+	input := "Abc_Def-XYZ"
+	assert.Len(t, defaultTransformers, len(cases))
+	for i, c := range cases {
+		tf := defaultTransformers[i]
+		require.Equal(t, c.name, tf.Name)
+		assert.Equal(t, c.expected, tf.Transform(input), "case %s", c.name)
+	}
 }
