@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
+	container_service "code.gitea.io/gitea/services/packages/container"
 
 	"github.com/opencontainers/go-digest"
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
@@ -84,12 +85,11 @@ func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf
 	manifestDigest := ""
 
 	err := func() error {
-		var manifest oci.Manifest
-		if err := json.NewDecoder(buf).Decode(&manifest); err != nil {
+		manifest, configDescriptor, metadata, err := container_service.ParseManifestMetadata(ctx, buf, mci.Owner.ID, mci.Image)
+		if err != nil {
 			return err
 		}
-
-		if _, err := buf.Seek(0, io.SeekStart); err != nil {
+		if _, err = buf.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
 
@@ -99,28 +99,7 @@ func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf
 		}
 		defer committer.Close()
 
-		configDescriptor, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
-			OwnerID: mci.Owner.ID,
-			Image:   mci.Image,
-			Digest:  string(manifest.Config.Digest),
-		})
-		if err != nil {
-			return err
-		}
-
-		configReader, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(configDescriptor.Blob.HashSHA256))
-		if err != nil {
-			return err
-		}
-		defer configReader.Close()
-
-		metadata, err := container_module.ParseImageConfig(manifest.Config.MediaType, configReader)
-		if err != nil {
-			return err
-		}
-
 		blobReferences := make([]*blobReference, 0, 1+len(manifest.Layers))
-
 		blobReferences = append(blobReferences, &blobReference{
 			Digest:       manifest.Config.Digest,
 			MediaType:    manifest.Config.MediaType,
@@ -388,19 +367,16 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 			return nil, err
 		}
 	} else {
-		props, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestTagged)
-		if err != nil {
+		if err = packages_model.DeletePropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestTagged); err != nil {
 			return nil, err
-		}
-		for _, prop := range props {
-			if err = packages_model.DeletePropertyByID(ctx, prop.ID); err != nil {
-				return nil, err
-			}
 		}
 	}
 
+	if err = packages_model.DeletePropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference); err != nil {
+		return nil, err
+	}
 	for _, manifest := range metadata.Manifests {
-		if err = packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, manifest.Digest); err != nil {
+		if _, err = packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, manifest.Digest); err != nil {
 			return nil, err
 		}
 	}
