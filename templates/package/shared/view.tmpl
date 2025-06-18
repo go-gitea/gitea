@@ -1,4 +1,5 @@
 <div class="issue-title-header">
+	{{$packageVersionLink := print $.PackageDescriptor.PackageWebLink "/" (PathEscape .PackageDescriptor.Version.LowerVersion)}}
 	<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
 	<div>
 		{{$timeStr := DateUtils.TimeSince .PackageDescriptor.Version.CreatedUnix}}
@@ -74,7 +75,7 @@
 		<div class="ui relaxed list">
 			{{range .PackageDescriptor.Files}}
 			<div class="item">
-				<a href="{{$.Link}}/files/{{.File.ID}}">{{.File.Name}}</a>
+				<a href="{{$packageVersionLink}}/files/{{.File.ID}}">{{.File.Name}}</a>
 				<span class="text small file-size">{{FileSize .Blob.Size}}</span>
 			</div>
 			{{end}}
@@ -98,7 +99,7 @@
 			<div class="item">{{svg "octicon-issue-opened"}} <a href="{{.PackageDescriptor.Repository.Link}}/issues">{{ctx.Locale.Tr "repo.issues"}}</a></div>
 			{{end}}
 			{{if .CanWritePackages}}
-			<div class="item">{{svg "octicon-tools"}} <a href="{{.Link}}/settings">{{ctx.Locale.Tr "repo.settings"}}</a></div>
+			<div class="item">{{svg "octicon-tools"}} <a href="{{$packageVersionLink}}/settings">{{ctx.Locale.Tr "repo.settings"}}</a></div>
 			{{end}}
 		</div>
 		{{end}}

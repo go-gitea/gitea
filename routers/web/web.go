@@ -1012,6 +1012,7 @@ func registerWebRoutes(m *web.Router) {
 					m.Get("/versions", user.ListPackageVersions)
 					m.Group("/{version}", func() {
 						m.Get("", user.ViewPackageVersion)
+						m.Get("/{version_sub}", user.ViewPackageVersion)
 						m.Get("/files/{fileid}", user.DownloadPackageFile)
 						m.Group("/settings", func() {
 							m.Get("", user.PackageSettings)

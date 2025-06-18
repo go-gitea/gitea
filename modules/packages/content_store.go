@@ -28,8 +28,7 @@ func NewContentStore() *ContentStore {
 	return contentStore
 }
 
-// Get gets a package blob
-func (s *ContentStore) Get(key BlobHash256Key) (storage.Object, error) {
+func (s *ContentStore) OpenBlob(key BlobHash256Key) (storage.Object, error) {
 	return s.store.Open(KeyToRelativePath(key))
 }
 

@@ -599,6 +599,12 @@ func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (
 	return GetPackageBlobStream(ctx, pf, pb, nil)
 }
 
+func OpenBlobStream(pb *packages_model.PackageBlob) (io.ReadSeekCloser, error) {
+	cs := packages_module.NewContentStore()
+	key := packages_module.BlobHash256Key(pb.HashSHA256)
+	return cs.OpenBlob(key)
+}
+
 // GetPackageBlobStream returns the content of the specific package blob
 // If the storage supports direct serving and it's enabled, only the direct serving url is returned.
 func GetPackageBlobStream(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, serveDirectReqParams url.Values) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
@@ -617,7 +623,7 @@ func GetPackageBlobStream(ctx context.Context, pf *packages_model.PackageFile, p
 		}
 	}
 	if u == nil {
-		s, err = cs.Get(key)
+		s, err = cs.OpenBlob(key)
 	}
 
 	if err == nil {

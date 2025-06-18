@@ -562,8 +562,7 @@ func TestPackageContainer(t *testing.T) {
 				assert.ElementsMatch(t, []string{strings.ToLower(user.LowerName + "/" + image)}, getAllByName(pd.PackageProperties, container_module.PropertyRepository))
 				assert.True(t, has(pd.VersionProperties, container_module.PropertyManifestTagged))
 
-				// only the last manifest digest is associated with the version (OCI builders will push the index manifest digest as the final step)
-				assert.ElementsMatch(t, []string{untaggedManifestDigest}, getAllByName(pd.VersionProperties, container_module.PropertyManifestReference))
+				assert.ElementsMatch(t, []string{manifestDigest, untaggedManifestDigest}, getAllByName(pd.VersionProperties, container_module.PropertyManifestReference))
 
 				assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
 				metadata := pd.Metadata.(*container_module.Metadata)
