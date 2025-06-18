@@ -32,7 +32,7 @@ func CleanupTask(ctx context.Context, olderThan time.Duration) error {
 	return CleanupExpiredData(ctx, olderThan)
 }
 
-func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.PackageCleanupRule, p *packages_model.Package) (err error, versionDeleted bool) {
+func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.PackageCleanupRule, p *packages_model.Package) (versionDeleted bool, err error) {
 	olderThan := time.Now().AddDate(0, 0, -pcr.RemoveDays)
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		PackageID:  p.ID,
@@ -40,7 +40,7 @@ func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.Packa
 		Sort:       packages_model.SortCreatedDesc,
 	})
 	if err != nil {
-		return fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err), false
+		return false, fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err)
 	}
 	if pcr.KeepCount > 0 {
 		if pcr.KeepCount < len(pvs) {
@@ -52,7 +52,7 @@ func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.Packa
 	for _, pv := range pvs {
 		if pcr.Type == packages_model.TypeContainer {
 			if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
-				return fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err), false
+				return false, fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err)
 			} else if skip {
 				log.Debug("Rule[%d]: keep '%s/%s' (container)", pcr.ID, p.Name, pv.Version)
 				continue
@@ -81,7 +81,7 @@ func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.Packa
 		}
 		versionDeleted = true
 	}
-	return nil, versionDeleted
+	return versionDeleted, nil
 }
 
 func executeCleanupOneRule(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
@@ -98,7 +98,7 @@ func executeCleanupOneRule(ctx context.Context, pcr *packages_model.PackageClean
 	for _, p := range packages {
 		versionDeleted := false
 		err = db.WithTx(ctx, func(ctx context.Context) (err error) {
-			err, versionDeleted = executeCleanupOneRulePackage(ctx, pcr, p)
+			versionDeleted, err = executeCleanupOneRulePackage(ctx, pcr, p)
 			return err
 		})
 		if err != nil {
