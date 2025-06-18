@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	rubygems_module "code.gitea.io/gitea/modules/packages/rubygems"
@@ -309,7 +310,7 @@ func GetPackageInfo(ctx *context.Context) {
 		apiError(ctx, http.StatusNotFound, nil)
 		return
 	}
-	infoContent, err := makePackageInfo(ctx, versions)
+	infoContent, err := makePackageInfo(ctx, versions, cache.NewEphemeralCache())
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -317,7 +318,7 @@ func GetPackageInfo(ctx *context.Context) {
 	ctx.PlainText(http.StatusOK, infoContent)
 }
 
-// GetAllPackagesVersions returns a custom text based format containing information about all versions of all rubygems.
+// GetAllPackagesVersions returns a custom text-based format containing information about all versions of all rubygems.
 // ref: https://guides.rubygems.org/rubygems-org-compact-index-api/
 func GetAllPackagesVersions(ctx *context.Context) {
 	packages, err := packages_model.GetPackagesByType(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems)
@@ -326,6 +327,7 @@ func GetAllPackagesVersions(ctx *context.Context) {
 		return
 	}
 
+	ephemeralCache := cache.NewEphemeralCache()
 	out := &strings.Builder{}
 	out.WriteString("---\n")
 	for _, pkg := range packages {
@@ -338,7 +340,7 @@ func GetAllPackagesVersions(ctx *context.Context) {
 			continue
 		}
 
-		info, err := makePackageInfo(ctx, versions)
+		info, err := makePackageInfo(ctx, versions, ephemeralCache)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -348,12 +350,29 @@ func GetAllPackagesVersions(ctx *context.Context) {
 		_, _ = fmt.Fprintf(out, "%s ", pkg.Name)
 		for i, v := range versions {
 			sep := util.Iif(i == len(versions)-1, "", ",")
-			_, _ = fmt.Fprintf(out, "%s%s", v.Version, sep)
+			pd, err := packages_model.GetPackageDescriptorWithCache(ctx, v, ephemeralCache)
+			if errors.Is(err, util.ErrNotExist) {
+				continue
+			} else if err != nil {
+				apiError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+			writePackageVersionForList(pd.Metadata, v.Version, sep, out)
 		}
 		_, _ = fmt.Fprintf(out, " %x\n", md5.Sum([]byte(info)))
 	}
 
 	ctx.PlainText(http.StatusOK, out.String())
+}
+
+func writePackageVersionForList(metadata any, version, sep string, out *strings.Builder) {
+	if metadata, _ := metadata.(*rubygems_module.Metadata); metadata != nil && metadata.Platform != "" && metadata.Platform != "ruby" {
+		// VERSION_PLATFORM (see comment above in GetAllPackagesVersions)
+		_, _ = fmt.Fprintf(out, "%s_%s%s", version, metadata.Platform, sep)
+	} else {
+		// VERSION only
+		_, _ = fmt.Fprintf(out, "%s%s", version, sep)
+	}
 }
 
 func writePackageVersionRequirements(prefix string, reqs []rubygems_module.VersionRequirement, out *strings.Builder) {
@@ -367,11 +386,21 @@ func writePackageVersionRequirements(prefix string, reqs []rubygems_module.Versi
 	}
 }
 
-func makePackageVersionDependency(ctx *context.Context, version *packages_model.PackageVersion) (string, error) {
+func writePackageVersionForDependency(version, platform string, out *strings.Builder) {
+	if platform != "" && platform != "ruby" {
+		// VERSION-PLATFORM (see comment below in makePackageVersionDependency)
+		_, _ = fmt.Fprintf(out, "%s-%s ", version, platform)
+	} else {
+		// VERSION only
+		_, _ = fmt.Fprintf(out, "%s ", version)
+	}
+}
+
+func makePackageVersionDependency(ctx *context.Context, version *packages_model.PackageVersion, c *cache.EphemeralCache) (string, error) {
 	// format: VERSION[-PLATFORM] [DEPENDENCY[,DEPENDENCY,...]]|REQUIREMENT[,REQUIREMENT,...]
 	// DEPENDENCY: GEM:CONSTRAINT[&CONSTRAINT]
 	// REQUIREMENT: KEY:VALUE (always contains "checksum")
-	pd, err := packages_model.GetPackageDescriptor(ctx, version)
+	pd, err := packages_model.GetPackageDescriptorWithCache(ctx, version, c)
 	if err != nil {
 		return "", err
 	}
@@ -388,8 +417,7 @@ func makePackageVersionDependency(ctx *context.Context, version *packages_model.
 	}
 
 	buf := &strings.Builder{}
-	buf.WriteString(version.Version)
-	buf.WriteByte(' ')
+	writePackageVersionForDependency(version.Version, metadata.Platform, buf)
 	for i, dep := range metadata.RuntimeDependencies {
 		sep := util.Iif(i == 0, "", ",")
 		writePackageVersionRequirements(fmt.Sprintf("%s%s:", sep, dep.Name), dep.Version, buf)
@@ -404,10 +432,10 @@ func makePackageVersionDependency(ctx *context.Context, version *packages_model.
 	return buf.String(), nil
 }
 
-func makePackageInfo(ctx *context.Context, versions []*packages_model.PackageVersion) (string, error) {
+func makePackageInfo(ctx *context.Context, versions []*packages_model.PackageVersion, c *cache.EphemeralCache) (string, error) {
 	ret := "---\n"
 	for _, v := range versions {
-		dep, err := makePackageVersionDependency(ctx, v)
+		dep, err := makePackageVersionDependency(ctx, v, c)
 		if err != nil {
 			return "", err
 		}

@@ -44,7 +44,7 @@ func (opts *BlobSearchOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"package_version.lower_version": strings.ToLower(opts.Tag)})
 	}
 	if opts.IsManifest {
-		cond = cond.And(builder.Eq{"package_file.lower_name": ManifestFilename})
+		cond = cond.And(builder.Eq{"package_file.lower_name": container_module.ManifestFilename})
 	}
 	if opts.OnlyLead {
 		cond = cond.And(builder.Eq{"package_file.is_lead": true})
@@ -235,7 +235,7 @@ func SearchImageTags(ctx context.Context, opts *ImageTagsSearchOptions) ([]*pack
 func SearchExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) ([]*packages.PackageFile, error) {
 	var cond builder.Cond = builder.Eq{
 		"package_version.is_internal":   true,
-		"package_version.lower_version": UploadVersion,
+		"package_version.lower_version": container_module.UploadVersion,
 		"package.type":                  packages.TypeContainer,
 	}
 	cond = cond.And(builder.Lt{"package_file.created_unix": time.Now().Add(-olderThan).Unix()})
