@@ -43,6 +43,7 @@ func Test_AddUniqueIndexForProjectIssue(t *testing.T) {
 	for _, index := range tables[0].Indexes {
 		if index.Type == schemas.UniqueType {
 			found = true
+			assert.ElementsMatch(t, index.Cols, []string{"project_id", "issue_id"})
 			break
 		}
 	}
