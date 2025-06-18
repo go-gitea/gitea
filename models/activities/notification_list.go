@@ -208,10 +208,7 @@ func (nl NotificationList) LoadRepos(ctx context.Context) (repo_model.Repository
 	repos := make(map[int64]*repo_model.Repository, len(repoIDs))
 	left := len(repoIDs)
 	for left > 0 {
-		limit := db.DefaultMaxInSize
-		if left < limit {
-			limit = left
-		}
+		limit := min(left, db.DefaultMaxInSize)
 		rows, err := db.GetEngine(ctx).
 			In("id", repoIDs[:limit]).
 			Rows(new(repo_model.Repository))
@@ -282,10 +279,7 @@ func (nl NotificationList) LoadIssues(ctx context.Context) ([]int, error) {
 	issues := make(map[int64]*issues_model.Issue, len(issueIDs))
 	left := len(issueIDs)
 	for left > 0 {
-		limit := db.DefaultMaxInSize
-		if left < limit {
-			limit = left
-		}
+		limit := min(left, db.DefaultMaxInSize)
 		rows, err := db.GetEngine(ctx).
 			In("id", issueIDs[:limit]).
 			Rows(new(issues_model.Issue))
@@ -377,10 +371,7 @@ func (nl NotificationList) LoadUsers(ctx context.Context) ([]int, error) {
 	users := make(map[int64]*user_model.User, len(userIDs))
 	left := len(userIDs)
 	for left > 0 {
-		limit := db.DefaultMaxInSize
-		if left < limit {
-			limit = left
-		}
+		limit := min(left, db.DefaultMaxInSize)
 		rows, err := db.GetEngine(ctx).
 			In("id", userIDs[:limit]).
 			Rows(new(user_model.User))
@@ -428,10 +419,7 @@ func (nl NotificationList) LoadComments(ctx context.Context) ([]int, error) {
 	comments := make(map[int64]*issues_model.Comment, len(commentIDs))
 	left := len(commentIDs)
 	for left > 0 {
-		limit := db.DefaultMaxInSize
-		if left < limit {
-			limit = left
-		}
+		limit := min(left, db.DefaultMaxInSize)
 		rows, err := db.GetEngine(ctx).
 			In("id", commentIDs[:limit]).
 			Rows(new(issues_model.Comment))

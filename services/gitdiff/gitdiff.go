@@ -540,10 +540,7 @@ func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, 
 
 	// OK let's set a reasonable buffer size.
 	// This should be at least the size of maxLineCharacters or 4096 whichever is larger.
-	readerSize := maxLineCharacters
-	if readerSize < 4096 {
-		readerSize = 4096
-	}
+	readerSize := max(maxLineCharacters, 4096)
 
 	input := bufio.NewReaderSize(reader, readerSize)
 	line, err := input.ReadString('\n')

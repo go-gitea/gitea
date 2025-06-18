@@ -18,20 +18,19 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // argsSet checks that all the required arguments are set. args is a list of
 // arguments that must be set in the passed Context.
-func argsSet(c *cli.Context, args ...string) error {
+func argsSet(c *cli.Command, args ...string) error {
 	for _, a := range args {
 		if !c.IsSet(a) {
 			return errors.New(a + " is not set")
 		}
 
-		if util.IsEmptyString(c.String(a)) {
+		if c.Value(a) == nil {
 			return errors.New(a + " is required")
 		}
 	}
@@ -109,7 +108,7 @@ func setupConsoleLogger(level log.Level, colorize bool, out io.Writer) {
 	log.GetManager().GetLogger(log.DEFAULT).ReplaceAllWriters(writer)
 }
 
-func globalBool(c *cli.Context, name string) bool {
+func globalBool(c *cli.Command, name string) bool {
 	for _, ctx := range c.Lineage() {
 		if ctx.Bool(name) {
 			return true
@@ -120,8 +119,8 @@ func globalBool(c *cli.Context, name string) bool {
 
 // PrepareConsoleLoggerLevel by default, use INFO level for console logger, but some sub-commands (for git/ssh protocol) shouldn't output any log to stdout.
 // Any log appears in git stdout pipe will break the git protocol, eg: client can't push and hangs forever.
-func PrepareConsoleLoggerLevel(defaultLevel log.Level) func(*cli.Context) error {
-	return func(c *cli.Context) error {
+func PrepareConsoleLoggerLevel(defaultLevel log.Level) func(context.Context, *cli.Command) (context.Context, error) {
+	return func(ctx context.Context, c *cli.Command) (context.Context, error) {
 		level := defaultLevel
 		if globalBool(c, "quiet") {
 			level = log.FATAL
@@ -130,6 +129,6 @@ func PrepareConsoleLoggerLevel(defaultLevel log.Level) func(*cli.Context) error 
 			level = log.TRACE
 		}
 		log.SetConsoleLogger(log.DEFAULT, "console-default", level)
-		return nil
+		return ctx, nil
 	}
 }
