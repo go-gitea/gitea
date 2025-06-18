@@ -823,6 +823,7 @@ deps-tools: ## install tool dependencies
 	$(GO) install $(GOVULNCHECK_PACKAGE) & \
 	$(GO) install $(ACTIONLINT_PACKAGE) & \
 	$(GO) install $(GOPLS_PACKAGE) & \
+	$(GO) install $(GOPLS_MODERNIZE_PACKAGE) & \
 	wait
 
 node_modules: package-lock.json
