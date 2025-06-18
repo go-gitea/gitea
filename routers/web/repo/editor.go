@@ -288,13 +288,20 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		return
 	}
 
-	operation := "update"
+	var operation string
 	if isNewFile {
 		operation = "create"
-	} else if !form.Content.Has() && ctx.Repo.TreePath != form.TreePath {
-		// The form content only has data if file is representable as text, is not too large and not in lfs. If it doesn't
-		// have data, the only possible operation is a rename
+	} else if form.Content.Has() {
+		// The form content only has data if the file is representable as text, is not too large and not in lfs.
+		operation = "update"
+	} else if ctx.Repo.TreePath != form.TreePath {
+		// If it doesn't have data, the only possible operation is a "rename"
 		operation = "rename"
+	} else {
+		// It should never happen, just in case
+		ctx.Flash.Error(ctx.Tr("error.occurred"))
+		ctx.HTML(http.StatusOK, tplEditFile)
+		return
 	}
 
 	if _, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{

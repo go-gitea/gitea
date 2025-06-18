@@ -201,10 +201,10 @@ func copyUploadedLFSFileIntoRepository(ctx context.Context, info *uploadInfo, at
 
 		info.lfsMetaObject = &git_model.LFSMetaObject{Pointer: pointer, RepositoryID: t.repo.ID}
 
-		if objectHash, err = t.HashObject(ctx, strings.NewReader(pointer.StringContent())); err != nil {
+		if objectHash, err = t.HashObjectAndWrite(ctx, strings.NewReader(pointer.StringContent())); err != nil {
 			return err
 		}
-	} else if objectHash, err = t.HashObject(ctx, file); err != nil {
+	} else if objectHash, err = t.HashObjectAndWrite(ctx, file); err != nil {
 		return err
 	}
 
