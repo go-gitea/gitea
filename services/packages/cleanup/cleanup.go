@@ -76,7 +76,7 @@ func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.Packa
 		}
 		log.Debug("Rule[%d]: remove '%s/%s'", pcr.ID, p.Name, pv.Version)
 		if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-			log.Error("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %w", pcr.ID, err)
+			log.Error("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %v", pcr.ID, err)
 			continue
 		}
 		versionDeleted = true
