@@ -569,8 +569,6 @@ func matchPullRequestReviewEvent(prPayload *api.PullRequestPayload, evt *jobpars
 			for _, val := range vals {
 				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
 					matched = true
-				}
-				if matched {
 					break
 				}
 			}
@@ -615,8 +613,6 @@ func matchPullRequestReviewCommentEvent(prPayload *api.PullRequestPayload, evt *
 			for _, val := range vals {
 				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
 					matched = true
-				}
-				if matched {
 					break
 				}
 			}
