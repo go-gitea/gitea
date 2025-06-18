@@ -60,7 +60,7 @@ const doLoadFileContent = (e: MouseEvent) => {
 <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
 <template>
   <a
-    v-if="item.entryMode === 'commit'" class="tree-item type-submodule"
+    v-if="item.entryMode === 'commit'" class="tree-item type-submodule silenced"
     :title="item.entryName"
     :href="getWebUrl(item.fullPath)"
   >
@@ -72,7 +72,7 @@ const doLoadFileContent = (e: MouseEvent) => {
     </div>
   </a>
   <a
-    v-else-if="item.entryMode === 'symlink'" class="tree-item type-symlink"
+    v-else-if="item.entryMode === 'symlink'" class="tree-item type-symlink silenced"
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     :href="getWebUrl(item.fullPath)"
@@ -86,7 +86,7 @@ const doLoadFileContent = (e: MouseEvent) => {
     </div>
   </a>
   <a
-    v-else-if="item.entryMode !== 'tree'" class="tree-item type-file"
+    v-else-if="item.entryMode !== 'tree'" class="tree-item type-file silenced"
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     :href="getWebUrl(item.fullPath)"
@@ -100,7 +100,7 @@ const doLoadFileContent = (e: MouseEvent) => {
     </div>
   </a>
   <a
-    v-else class="tree-item type-directory"
+    v-else class="tree-item type-directory silenced"
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     :href="getWebUrl(item.fullPath)"
@@ -142,8 +142,6 @@ const doLoadFileContent = (e: MouseEvent) => {
 }
 
 .tree-item {
-  color: inherit;
-  text-decoration: inherit;
   display: grid;
   grid-template-columns: 16px 1fr;
   grid-template-areas: "toggle content";
