@@ -99,11 +99,7 @@ func Install(ctx *context.Context) {
 	form.SSLMode = setting.Database.SSLMode
 
 	curDBType := setting.Database.Type.String()
-	var isCurDBTypeSupported bool
-	if slices.Contains(setting.SupportedDatabaseTypes, curDBType) {
-		isCurDBTypeSupported = true
-	}
-	if !isCurDBTypeSupported {
+	if !slices.Contains(setting.SupportedDatabaseTypes, curDBType) {
 		curDBType = "mysql"
 	}
 	ctx.Data["CurDbType"] = curDBType
