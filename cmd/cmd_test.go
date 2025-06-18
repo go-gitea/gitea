@@ -5,9 +5,10 @@ package cmd
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v3"
-	"testing"
 )
 
 func TestDefaultCommand(t *testing.T) {
