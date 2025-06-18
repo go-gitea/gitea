@@ -47,7 +47,11 @@ func ListStargazers(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	stargazers, err := repo_model.GetStargazers(ctx, ctx.Repo.Repository, utils.GetListOptions(ctx))
+	opts := utils.GetListOptions(ctx)
+	// GetStargazers allows pagination bypass
+	opts.SetDefaultValues()
+
+	stargazers, err := repo_model.GetStargazers(ctx, ctx.Repo.Repository, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

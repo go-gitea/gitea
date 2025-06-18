@@ -408,6 +408,7 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 		sess.Asc("name")
 	}
 
+	// Pagination bypass used by some callers
 	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
@@ -483,6 +484,7 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 		sess.Asc("name")
 	}
 
+	// Why can we bypass limits here?
 	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
