@@ -177,6 +177,7 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 			} else if skip {
 				continue
 			}
+
 			toMatch := pv.LowerVersion
 			if pcr.MatchFullName {
 				toMatch = p.LowerName + "/" + pv.LowerVersion
@@ -190,6 +191,7 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 			if pcr.RemovePatternMatcher != nil && !pcr.RemovePatternMatcher.MatchString(toMatch) {
 				continue
 			}
+
 			pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 			if err != nil {
 				ctx.ServerError("GetPackageDescriptor", err)
