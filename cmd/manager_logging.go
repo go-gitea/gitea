@@ -118,7 +118,6 @@ var (
 								Name:    "rotate",
 								Aliases: []string{"r"},
 								Usage:   "Rotate logs",
-								Value:   true,
 							},
 							&cli.Int64Flag{
 								Name:    "max-size",
@@ -129,7 +128,6 @@ var (
 								Name:    "daily",
 								Aliases: []string{"d"},
 								Usage:   "Rotate logs daily",
-								Value:   true,
 							},
 							&cli.IntFlag{
 								Name:    "max-days",
@@ -140,7 +138,6 @@ var (
 								Name:    "compress",
 								Aliases: []string{"z"},
 								Usage:   "Compress rotated logs",
-								Value:   true,
 							},
 							&cli.IntFlag{
 								Name:    "compression-level",
