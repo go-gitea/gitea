@@ -37,15 +37,15 @@ async function loadViewContent(url: string) {
   document.querySelector('.repo-view-content').innerHTML = await response.text();
 }
 
-async function navigateTreeView(treePath: string, newTab?: boolean) {
-  const url = `${props.repoLink}/src/${props.currentRefNameSubURL}/${pathEscapeSegments(treePath)}`;
-  if (newTab) {
-    window.open(url, '_blank');
-    return;
-  }
+async function navigateTreeView(treePath: string) {
+  const url = getWebUrl(treePath);
   window.history.pushState({treePath, url}, null, url);
   selectedItem.value = treePath;
   await loadViewContent(url);
+}
+
+function getWebUrl(treePath: string) {
+  return `${props.repoLink}/src/${props.currentRefNameSubURL}/${pathEscapeSegments(treePath)}`;
 }
 
 onMounted(async () => {
@@ -62,7 +62,7 @@ onMounted(async () => {
 <template>
   <div class="view-file-tree-items" ref="elRoot">
     <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
-    <ViewFileTreeItem v-for="item in files" :key="item.name" :item="item" :selected-item="selectedItem" :navigate-view-content="navigateTreeView" :load-children="loadChildren"/>
+    <ViewFileTreeItem v-for="item in files" :key="item.name" :item="item" :selected-item="selectedItem" :get-web-url="getWebUrl" :navigate-view-content="navigateTreeView" :load-children="loadChildren"/>
   </div>
 </template>
 

@@ -14,8 +14,9 @@ type Item = {
 
 const props = defineProps<{
   item: Item,
-  navigateViewContent:(treePath: string, newTab?: boolean) => void,
+  navigateViewContent:(treePath: string) => void,
   loadChildren:(treePath: string, subPath?: string) => Promise<Item[]>,
+  getWebUrl:(treePath: string) => string,
   selectedItem?: string,
 }>();
 
@@ -23,7 +24,11 @@ const isLoading = ref(false);
 const children = ref(props.item.children);
 const collapsed = ref(!props.item.children);
 
-const doLoadChildren = async () => {
+const doLoadChildren = async (e?: MouseEvent) => {
+  // the event is only not undefined if the user explicitly clicked on the directory item toggle. the preventDefault
+  // stops the event from bubbling up and causing a directory content load
+  e?.preventDefault();
+
   collapsed.value = !collapsed.value;
   if (!collapsed.value && props.loadChildren) {
     isLoading.value = true;
@@ -35,37 +40,29 @@ const doLoadChildren = async () => {
   }
 };
 
-const doLoadDirContent = (event: MouseEvent) => {
-  // open the directory in a new tab if either
-  // - the auxiliary button (usually the mouse wheel button) is the origin of the click
-  // - the ctrl key or meta key (for mac support) was pressed while clicking
-  const openNewTab = event.button === 1 || event.ctrlKey || event.metaKey;
-  if (!openNewTab) doLoadChildren();
-  props.navigateViewContent(props.item.fullPath, openNewTab);
+const doLoadDirContent = (e: MouseEvent) => {
+  // only load the directory content without a window refresh if the user didn't press any special key
+  if (e.button !== 0 || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  e.preventDefault();
+
+  doLoadChildren();
+  props.navigateViewContent(props.item.fullPath);
 };
 
-const doLoadFileContent = (event: MouseEvent) => {
-  const openNewTab = event.button === 1 || event.ctrlKey || event.metaKey;
-  props.navigateViewContent(props.item.fullPath, openNewTab);
-};
+const doLoadFileContent = (e: MouseEvent) => {
+  if (e.button !== 0 || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  e.preventDefault();
 
-const doGotoSubModule = (event: MouseEvent) => {
-  const openNewTab = event.button === 1 || event.ctrlKey || event.metaKey;
-  if (openNewTab) {
-    window.open(props.item.submoduleUrl, '_blank');
-    return;
-  }
-  location.href = props.item.submoduleUrl;
+  props.navigateViewContent(props.item.fullPath);
 };
 </script>
 
 <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
 <template>
-  <div
+  <a
     v-if="item.entryMode === 'commit'" class="tree-item type-submodule"
     :title="item.entryName"
-    @click.stop="doGotoSubModule"
-    @click.middle.stop="doGotoSubModule"
+    :href="getWebUrl(item.fullPath)"
   >
     <!-- submodule -->
     <div class="item-content">
@@ -73,13 +70,13 @@ const doGotoSubModule = (event: MouseEvent) => {
       <span class="tw-contents" v-html="item.entryIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
-  </div>
-  <div
+  </a>
+  <a
     v-else-if="item.entryMode === 'symlink'" class="tree-item type-symlink"
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
+    :href="getWebUrl(item.fullPath)"
     @click.stop="doLoadFileContent"
-    @click.middle.stop="doLoadFileContent"
   >
     <!-- symlink -->
     <div class="item-content">
@@ -87,13 +84,13 @@ const doGotoSubModule = (event: MouseEvent) => {
       <span class="tw-contents" v-html="item.entryIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
-  </div>
-  <div
+  </a>
+  <a
     v-else-if="item.entryMode !== 'tree'" class="tree-item type-file"
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
+    :href="getWebUrl(item.fullPath)"
     @click.stop="doLoadFileContent"
-    @click.middle.stop="doLoadFileContent"
   >
     <!-- file -->
     <div class="item-content">
@@ -101,13 +98,13 @@ const doGotoSubModule = (event: MouseEvent) => {
       <span class="tw-contents" v-html="item.entryIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
-  </div>
-  <div
+  </a>
+  <a
     v-else class="tree-item type-directory"
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
+    :href="getWebUrl(item.fullPath)"
     @click.stop="doLoadDirContent"
-    @click.middle.stop="doLoadDirContent"
   >
     <!-- directory -->
     <div class="item-toggle">
@@ -119,10 +116,10 @@ const doGotoSubModule = (event: MouseEvent) => {
       <span class="tw-contents" v-html="(!collapsed && item.entryIconOpen) ? item.entryIconOpen : item.entryIcon"/>
       <span class="gt-ellipsis">{{ item.entryName }}</span>
     </div>
-  </div>
+  </a>
 
   <div v-if="children?.length" v-show="!collapsed" class="sub-items">
-    <ViewFileTreeItem v-for="childItem in children" :key="childItem.entryName" :item="childItem" :selected-item="selectedItem" :navigate-view-content="navigateViewContent" :load-children="loadChildren"/>
+    <ViewFileTreeItem v-for="childItem in children" :key="childItem.entryName" :item="childItem" :selected-item="selectedItem" :get-web-url="getWebUrl" :navigate-view-content="navigateViewContent" :load-children="loadChildren"/>
   </div>
 </template>
 <style scoped>
@@ -145,6 +142,8 @@ const doGotoSubModule = (event: MouseEvent) => {
 }
 
 .tree-item {
+  color: inherit;
+  text-decoration: inherit;
   display: grid;
   grid-template-columns: 16px 1fr;
   grid-template-areas: "toggle content";
