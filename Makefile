@@ -884,6 +884,11 @@ update-translations:
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
 
+.PHONY: check-locales
+check-locales:
+	@echo "Checking translations..."
+	$(GO) run build/check-locales.go
+
 .PHONY: generate-gitignore
 generate-gitignore: ## update gitignore files
 	$(GO) run build/generate-gitignores.go

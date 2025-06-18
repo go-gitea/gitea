@@ -6,7 +6,6 @@
 package main
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,7 +15,8 @@ import (
 	"github.com/gobwas/glob"
 )
 
-func searchTranslationKeyInDirs(key string) (bool, error) {
+func searchTranslationKeyInDirs(keys []string) ([]bool, error) {
+	res := make([]bool, len(keys))
 	for _, dir := range []string{
 		"cmd",
 		"models",
@@ -25,20 +25,15 @@ func searchTranslationKeyInDirs(key string) (bool, error) {
 		"services",
 		"templates",
 	} {
-		found, err := searchTranslationKeyInDir(dir, key)
-		if err != nil {
-			return false, err
-		}
-		if found {
-			return true, nil
+		if err := searchTranslationKeyInDir(dir, keys, &res); err != nil {
+			return nil, err
 		}
 	}
-	return false, nil
+	return res, nil
 }
 
-func searchTranslationKeyInDir(dir, key string) (bool, error) {
-	errFound := errors.New("found")
-	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+func searchTranslationKeyInDir(dir string, keys []string, res *[]bool) error {
+	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -52,16 +47,13 @@ func searchTranslationKeyInDir(dir, key string) (bool, error) {
 		if err != nil {
 			return err
 		}
-		if strings.Contains(string(bs), `"`+key+`"`) {
-			return errFound
+		for i, key := range keys {
+			if !(*res)[i] && strings.Contains(string(bs), `"`+key+`"`) {
+				(*res)[i] = true
+			}
 		}
-
 		return nil
 	})
-	if err == errFound {
-		return true, nil
-	}
-	return false, err
 }
 
 var whitelist = []string{
@@ -98,6 +90,7 @@ func main() {
 		panic(err)
 	}
 
+	keys := []string{}
 	for _, section := range iniFile.Sections() {
 		for _, key := range section.Keys() {
 			var trKey string
@@ -109,14 +102,23 @@ func main() {
 			if isWhitelisted(trKey) {
 				continue
 			}
-
-			found, err := searchTranslationKeyInDirs(trKey)
-			if err != nil {
-				panic(err)
-			}
-			if !found {
-				println("unused locale key:", trKey)
-			}
+			keys = append(keys, trKey)
 		}
+	}
+
+	results, err := searchTranslationKeyInDirs(keys)
+	if err != nil {
+		panic(err)
+	}
+
+	var found bool
+	for i, result := range results {
+		if !result {
+			found = true
+			println("unused locale key:", keys[i])
+		}
+	}
+	if found {
+		os.Exit(1) // exit with error if any unused locale key is found
 	}
 }
