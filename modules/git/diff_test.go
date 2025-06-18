@@ -154,7 +154,7 @@ func TestCutDiffAroundLine(t *testing.T) {
 }
 
 func BenchmarkCutDiffAroundLine(b *testing.B) {
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		CutDiffAroundLine(strings.NewReader(exampleDiff), 3, true, 3)
 	}
 }

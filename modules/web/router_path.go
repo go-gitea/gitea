@@ -99,7 +99,7 @@ func isValidMethod(name string) bool {
 func newRouterPathMatcher(methods, pattern string, h ...any) *routerPathMatcher {
 	middlewares, handlerFunc := wrapMiddlewareAndHandler(nil, h)
 	p := &routerPathMatcher{methods: make(container.Set[string]), middlewares: middlewares, handlerFunc: handlerFunc}
-	for _, method := range strings.Split(methods, ",") {
+	for method := range strings.SplitSeq(methods, ",") {
 		method = strings.TrimSpace(method)
 		if !isValidMethod(method) {
 			panic("invalid HTTP method: " + method)

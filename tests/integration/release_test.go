@@ -114,7 +114,7 @@ func TestCreateReleasePaging(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	// Create enough releases to have paging
-	for i := 0; i < 12; i++ {
+	for i := range 12 {
 		version := fmt.Sprintf("v0.0.%d", i)
 		createNewRelease(t, session, "/user2/repo1", version, version, false, false)
 	}

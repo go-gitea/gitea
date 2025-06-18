@@ -51,7 +51,7 @@ func generatePathTokens(input analysis.TokenStream, reversed bool) analysis.Toke
 		slices.Reverse(input)
 	}
 
-	for i := 0; i < len(input); i++ {
+	for i := range input {
 		var sb strings.Builder
 		sb.Write(input[0].Term)
 
