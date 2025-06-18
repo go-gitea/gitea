@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -203,13 +204,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 			}
 
 			// Find the file we want to delete in the index
-			inFilelist := false
-			for _, indexFile := range filesInIndex {
-				if indexFile == file.TreePath {
-					inFilelist = true
-					break
-				}
-			}
+			inFilelist := slices.Contains(filesInIndex, file.TreePath)
 			if !inFilelist {
 				return nil, ErrRepoFileDoesNotExist{
 					Path: file.TreePath,
@@ -467,11 +462,9 @@ func CreateUpdateRenameFile(ctx context.Context, t *TemporaryUploadRepository, f
 	}
 	// If is a new file (not updating) then the given path shouldn't exist
 	if file.Operation == "create" {
-		for _, indexFile := range filesInIndex {
-			if indexFile == file.TreePath {
-				return ErrRepoFileAlreadyExists{
-					Path: file.TreePath,
-				}
+		if slices.Contains(filesInIndex, file.TreePath) {
+			return ErrRepoFileAlreadyExists{
+				Path: file.TreePath,
 			}
 		}
 	}

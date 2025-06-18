@@ -73,8 +73,8 @@ func (o *IssuesOptions) Copy(edit ...func(options *IssuesOptions)) *IssuesOption
 // sortType string
 func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 	// Since this sortType is dynamically created, it has to be treated specially.
-	if strings.HasPrefix(sortType, ScopeSortPrefix) {
-		scope := strings.TrimPrefix(sortType, ScopeSortPrefix)
+	if after, ok := strings.CutPrefix(sortType, ScopeSortPrefix); ok {
+		scope := after
 		sess.Join("LEFT", "issue_label", "issue.id = issue_label.issue_id")
 		// "exclusive_order=0" means "no order is set", so exclude it from the JOIN criteria and then "LEFT JOIN" result is also null
 		sess.Join("LEFT", "label", "label.id = issue_label.label_id AND label.exclusive_order <> 0 AND label.name LIKE ?", scope+"/%")

@@ -89,8 +89,8 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 	}
 
 	if token != "" {
-		tokens := strings.Split(token, ",")
-		for _, token := range tokens {
+		tokens := strings.SplitSeq(token, ",")
+		for token := range tokens {
 			token = strings.TrimSpace(token)
 			ts := oauth2.StaticTokenSource(
 				&oauth2.Token{AccessToken: token},

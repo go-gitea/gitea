@@ -57,7 +57,7 @@ type ActionWorkflow struct {
 	HTMLURL   string    `json:"html_url"`
 	BadgeURL  string    `json:"badge_url"`
 	// swagger:strfmt date-time
-	DeletedAt time.Time `json:"deleted_at,omitempty"`
+	DeletedAt time.Time `json:"deleted_at"`
 }
 
 // ActionWorkflowResponse returns a ActionWorkflow
@@ -104,9 +104,9 @@ type ActionWorkflowStep struct {
 	Status     string `json:"status"`
 	Conclusion string `json:"conclusion,omitempty"`
 	// swagger:strfmt date-time
-	StartedAt time.Time `json:"started_at,omitempty"`
+	StartedAt time.Time `json:"started_at"`
 	// swagger:strfmt date-time
-	CompletedAt time.Time `json:"completed_at,omitempty"`
+	CompletedAt time.Time `json:"completed_at"`
 }
 
 // ActionWorkflowJob represents a WorkflowJob
@@ -129,9 +129,9 @@ type ActionWorkflowJob struct {
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	StartedAt time.Time `json:"started_at,omitempty"`
+	StartedAt time.Time `json:"started_at"`
 	// swagger:strfmt date-time
-	CompletedAt time.Time `json:"completed_at,omitempty"`
+	CompletedAt time.Time `json:"completed_at"`
 }
 
 // ActionRunnerLabel represents a Runner Label

@@ -156,8 +156,8 @@ func runCert(_ context.Context, c *cli.Command) error {
 		BasicConstraintsValid: true,
 	}
 
-	hosts := strings.Split(c.String("host"), ",")
-	for _, h := range hosts {
+	hosts := strings.SplitSeq(c.String("host"), ",")
+	for h := range hosts {
 		if ip := net.ParseIP(h); ip != nil {
 			template.IPAddresses = append(template.IPAddresses, ip)
 		} else {

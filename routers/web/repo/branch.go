@@ -45,10 +45,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	pageSize := setting.Git.BranchesRangeSize
 
 	kw := ctx.FormString("q")

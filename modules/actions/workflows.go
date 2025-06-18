@@ -6,6 +6,7 @@ package actions
 import (
 	"bytes"
 	"io"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -566,11 +567,8 @@ func matchPullRequestReviewEvent(prPayload *api.PullRequestPayload, evt *jobpars
 
 			matched := false
 			for _, val := range vals {
-				for _, action := range actions {
-					if glob.MustCompile(val, '/').Match(action) {
-						matched = true
-						break
-					}
+				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+					matched = true
 				}
 				if matched {
 					break
@@ -615,11 +613,8 @@ func matchPullRequestReviewCommentEvent(prPayload *api.PullRequestPayload, evt *
 
 			matched := false
 			for _, val := range vals {
-				for _, action := range actions {
-					if glob.MustCompile(val, '/').Match(action) {
-						matched = true
-						break
-					}
+				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+					matched = true
 				}
 				if matched {
 					break
