@@ -231,8 +231,7 @@ clean: ## delete backend and integration files
 		tests/e2e/reports/ tests/e2e/test-artifacts/ tests/e2e/test-snapshots/
 
 .PHONY: fmt
-fmt: ## format and fix the Go code
-	@$(GO) run $(GOPLS_MODERNIZE_PACKAGE) -fix ./...
+fmt: ## format the Go and template code
 	@GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
@@ -247,6 +246,19 @@ fmt-check: fmt
 	@diff=$$(git diff --color=always $(GO_SOURCES) templates $(WEB_DIRS)); \
 	if [ -n "$$diff" ]; then \
 	  echo "Please run 'make fmt' and commit the result:"; \
+	  printf "%s" "$${diff}"; \
+	  exit 1; \
+	fi
+
+.PHONY: fix
+fix: ## apply code fixes to Go code
+	$(GO) run $(GOPLS_MODERNIZE_PACKAGE) -fix ./...
+
+.PHONY: fix-check
+fix-check: fix
+	@diff=$$(git diff --color=always $(GO_SOURCES)); \
+	if [ -n "$$diff" ]; then \
+	  echo "Please run 'make fix' and commit the result:"; \
 	  printf "%s" "$${diff}"; \
 	  exit 1; \
 	fi
@@ -290,7 +302,7 @@ checks: checks-frontend checks-backend ## run various consistency checks
 checks-frontend: lockfile-check svg-check ## check frontend files
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check fmt-check swagger-validate security-check ## check backend files
+checks-backend: tidy-check swagger-check fmt-check fix-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
 lint: lint-frontend lint-backend lint-spell ## lint everything
