@@ -10,8 +10,8 @@
 		{{end}}
 	</div>
 </div>
-<div class="issue-content">
-	<div class="issue-content-left">
+<div class="packages-content">
+	<div class="packages-content-left">
 		{{template "package/content/alpine" .}}
 		{{template "package/content/arch" .}}
 		{{template "package/content/cargo" .}}
@@ -35,7 +35,7 @@
 		{{template "package/content/swift" .}}
 		{{template "package/content/vagrant" .}}
 	</div>
-	<div class="issue-content-right ui segment">
+	<div class="ui segment packages-content-right">
 		<strong>{{ctx.Locale.Tr "packages.details"}}</strong>
 		<div class="ui relaxed list flex-items-block">
 			<div class="item">{{svg .PackageDescriptor.Package.Type.SVGName}} {{.PackageDescriptor.Package.Type.Name}}</div>
@@ -76,7 +76,7 @@
 			{{range .PackageDescriptor.Files}}
 			<div class="item">
 				<a href="{{$packageVersionLink}}/files/{{.File.ID}}">{{.File.Name}}</a>
-				<span class="text small file-size">{{FileSize .Blob.Size}}</span>
+				<span class="text small tw-whitespace-nowrap">{{FileSize .Blob.Size}}</span>
 			</div>
 			{{end}}
 		</div>
