@@ -113,7 +113,7 @@ type Repository struct {
 	// enum: sha1,sha256
 	ObjectFormatName string `json:"object_format_name"`
 	// swagger:strfmt date-time
-	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
+	MirrorUpdated time.Time     `json:"mirror_updated"`
 	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
 	Topics        []string      `json:"topics"`
 	Licenses      []string      `json:"licenses"`

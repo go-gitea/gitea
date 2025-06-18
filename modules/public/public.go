@@ -44,7 +44,7 @@ func FileHandlerFunc() http.HandlerFunc {
 func parseAcceptEncoding(val string) container.Set[string] {
 	parts := strings.Split(val, ";")
 	types := make(container.Set[string])
-	for _, v := range strings.Split(parts[0], ",") {
+	for v := range strings.SplitSeq(parts[0], ",") {
 		types.Add(strings.TrimSpace(v))
 	}
 	return types

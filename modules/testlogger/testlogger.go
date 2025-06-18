@@ -92,7 +92,7 @@ func (w *testLoggerWriterCloser) Reset() {
 // Printf takes a format and args and prints the string to os.Stdout
 func Printf(format string, args ...any) {
 	if !log.CanColorStdout {
-		for i := 0; i < len(args); i++ {
+		for i := range args {
 			if c, ok := args[i].(*log.ColoredValue); ok {
 				args[i] = c.Value()
 			}

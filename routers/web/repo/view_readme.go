@@ -150,7 +150,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	}
 
 	ctx.Data["RawFileLink"] = ""
-	ctx.Data["ReadmeInList"] = true
+	ctx.Data["ReadmeInList"] = path.Join(subfolder, readmeFile.Name()) // the relative path to the readme file to the current tree path
 	ctx.Data["ReadmeExist"] = true
 	ctx.Data["FileIsSymlink"] = readmeFile.IsLink()
 
@@ -162,7 +162,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	defer dataRc.Close()
 
 	ctx.Data["FileIsText"] = fInfo.isTextFile
-	ctx.Data["FileTreePath"] = path.Join(subfolder, readmeFile.Name())
+	ctx.Data["FileTreePath"] = path.Join(ctx.Repo.TreePath, subfolder, readmeFile.Name())
 	ctx.Data["FileSize"] = fInfo.fileSize
 	ctx.Data["IsLFSFile"] = fInfo.isLFSFile
 

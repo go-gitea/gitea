@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -99,11 +100,8 @@ func Install(ctx *context.Context) {
 
 	curDBType := setting.Database.Type.String()
 	var isCurDBTypeSupported bool
-	for _, dbType := range setting.SupportedDatabaseTypes {
-		if dbType == curDBType {
-			isCurDBTypeSupported = true
-			break
-		}
+	if slices.Contains(setting.SupportedDatabaseTypes, curDBType) {
+		isCurDBTypeSupported = true
 	}
 	if !isCurDBTypeSupported {
 		curDBType = "mysql"

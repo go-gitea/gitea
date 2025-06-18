@@ -57,7 +57,7 @@ func cleanupExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) e
 		Type: packages_model.TypeContainer,
 		Version: packages_model.SearchValue{
 			ExactMatch: true,
-			Value:      container_model.UploadVersion,
+			Value:      container_module.UploadVersion,
 		},
 		IsInternal: optional.Some(true),
 		HasFiles:   optional.Some(false),
