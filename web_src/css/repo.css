@@ -1227,10 +1227,6 @@ td .commit-summary {
   font-weight: var(--font-weight-normal);
 }
 
-.repository.packages .file-size {
-  white-space: nowrap;
-}
-
 .repository .activity-header {
   display: flex;
   justify-content: space-between;
