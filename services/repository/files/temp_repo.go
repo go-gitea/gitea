@@ -164,8 +164,8 @@ func (t *TemporaryUploadRepository) RemoveFilesFromIndex(ctx context.Context, fi
 	return nil
 }
 
-// HashObject writes the provided content to the object db and returns its hash
-func (t *TemporaryUploadRepository) HashObject(ctx context.Context, content io.Reader) (string, error) {
+// HashObjectAndWrite writes the provided content to the object db and returns its hash
+func (t *TemporaryUploadRepository) HashObjectAndWrite(ctx context.Context, content io.Reader) (string, error) {
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
