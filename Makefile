@@ -36,7 +36,7 @@ XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
-GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.17.1
+GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.19.0
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
