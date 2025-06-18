@@ -135,7 +135,7 @@ function handleClipboardText(textarea: HTMLTextAreaElement, e: ClipboardEvent, p
 
   // when pasting links over selected text, turn it into [text](link)
   const pastedAsMarkdown = pasteAsMarkdownLink(textarea, pastedText);
-  if (pastedText) {
+  if (pastedAsMarkdown) {
     e.preventDefault();
     replaceTextareaSelection(textarea, pastedAsMarkdown);
   }
