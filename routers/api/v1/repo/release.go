@@ -247,6 +247,8 @@ func CreateRelease(ctx *context.APIContext) {
 			IsTag:        false,
 			Repo:         ctx.Repo.Repository,
 		}
+		// GitHub doesn't have "tag_message", GitLab has: https://docs.gitlab.com/api/releases/#create-a-release
+		// It doesn't need to be the same as the "release note"
 		if err := release_service.CreateRelease(ctx.Repo.GitRepo, rel, nil, form.TagMessage); err != nil {
 			if repo_model.IsErrReleaseAlreadyExist(err) {
 				ctx.APIError(http.StatusConflict, err)
