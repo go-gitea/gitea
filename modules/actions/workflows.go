@@ -565,17 +565,11 @@ func matchPullRequestReviewEvent(prPayload *api.PullRequestPayload, evt *jobpars
 				actions = append(actions, "submitted", "edited")
 			}
 
-			matched := false
 			for _, val := range vals {
 				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
-					matched = true
-				}
-				if matched {
+					matchTimes++
 					break
 				}
-			}
-			if matched {
-				matchTimes++
 			}
 		default:
 			log.Warn("pull request review event unsupported condition %q", cond)
@@ -611,17 +605,11 @@ func matchPullRequestReviewCommentEvent(prPayload *api.PullRequestPayload, evt *
 				actions = append(actions, "created", "edited")
 			}
 
-			matched := false
 			for _, val := range vals {
 				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
-					matched = true
-				}
-				if matched {
+					matchTimes++
 					break
 				}
-			}
-			if matched {
-				matchTimes++
 			}
 		default:
 			log.Warn("pull request review comment event unsupported condition %q", cond)
