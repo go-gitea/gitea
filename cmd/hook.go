@@ -480,7 +480,7 @@ func hookPrintResult(output, isCreate bool, branch, url string) {
 func pushOptions() map[string]string {
 	opts := make(map[string]string)
 	if pushCount, err := strconv.Atoi(os.Getenv(private.GitPushOptionCount)); err == nil {
-		for idx := 0; idx < pushCount; idx++ {
+		for idx := range pushCount {
 			opt := os.Getenv(fmt.Sprintf("GIT_PUSH_OPTION_%d", idx))
 			kv := strings.SplitN(opt, "=", 2)
 			if len(kv) == 2 {
@@ -732,7 +732,7 @@ func readPktLine(ctx context.Context, in *bufio.Reader, requestType pktLineType)
 
 	// read prefix
 	lengthBytes := make([]byte, 4)
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		lengthBytes[i], err = in.ReadByte()
 		if err != nil {
 			return nil, fail(ctx, "Protocol: stdin error", "Pkt-Line: read stdin failed : %v", err)

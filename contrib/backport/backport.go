@@ -337,8 +337,8 @@ func determineRemote(ctx context.Context, forkUser string) (string, string, erro
 		fmt.Fprintf(os.Stderr, "Unable to list git remotes:\n%s\n", string(out))
 		return "", "", fmt.Errorf("unable to determine forked remote: %w", err)
 	}
-	lines := strings.Split(string(out), "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(string(out), "\n")
+	for line := range lines {
 		fields := strings.Split(line, "\t")
 		name, remote := fields[0], fields[1]
 		// only look at pushers
@@ -356,12 +356,12 @@ func determineRemote(ctx context.Context, forkUser string) (string, string, erro
 		if !strings.Contains(remote, forkUser) {
 			continue
 		}
-		if strings.HasPrefix(remote, "git@github.com:") {
-			forkUser = strings.TrimPrefix(remote, "git@github.com:")
-		} else if strings.HasPrefix(remote, "https://github.com/") {
-			forkUser = strings.TrimPrefix(remote, "https://github.com/")
-		} else if strings.HasPrefix(remote, "https://www.github.com/") {
-			forkUser = strings.TrimPrefix(remote, "https://www.github.com/")
+		if after, ok := strings.CutPrefix(remote, "git@github.com:"); ok {
+			forkUser = after
+		} else if after, ok := strings.CutPrefix(remote, "https://github.com/"); ok {
+			forkUser = after
+		} else if after, ok := strings.CutPrefix(remote, "https://www.github.com/"); ok {
+			forkUser = after
 		} else if forkUser == "" {
 			return "", "", fmt.Errorf("unable to extract forkUser from remote %s: %s", name, remote)
 		}
