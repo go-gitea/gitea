@@ -25,8 +25,8 @@ const isLoading = ref(false);
 const children = ref(props.item.children);
 const collapsed = ref(!props.item.children);
 
-const doLoadChildren = async (e?: MouseEvent) => {
-  // the event is only not undefined if the user explicitly clicked on the directory item toggle. the preventDefault
+const doLoadChildren = async (e: MouseEvent | null) => {
+  // the event is only not null if the user explicitly clicked on the directory item toggle. the preventDefault
   // stops the event from bubbling up and causing a directory content load
   e?.preventDefault();
 
@@ -46,7 +46,7 @@ const doLoadDirContent = (e: MouseEvent) => {
   if (!isPlainClick(e)) return;
   e.preventDefault();
 
-  doLoadChildren();
+  doLoadChildren(null);
   props.navigateViewContent(props.item.fullPath);
 };
 
