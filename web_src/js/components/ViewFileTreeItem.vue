@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {SvgIcon} from '../svg.ts';
+import {isPlainClick} from '../utils/dom.ts';
 import {ref} from 'vue';
 
 type Item = {
@@ -42,7 +43,7 @@ const doLoadChildren = async (e?: MouseEvent) => {
 
 const doLoadDirContent = (e: MouseEvent) => {
   // only load the directory content without a window refresh if the user didn't press any special key
-  if (e.button !== 0 || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  if (!isPlainClick(e)) return;
   e.preventDefault();
 
   doLoadChildren();
@@ -50,7 +51,7 @@ const doLoadDirContent = (e: MouseEvent) => {
 };
 
 const doLoadFileContent = (e: MouseEvent) => {
-  if (e.button !== 0 || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  if (!isPlainClick(e)) return;
   e.preventDefault();
 
   props.navigateViewContent(props.item.fullPath);
