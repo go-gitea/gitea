@@ -6,6 +6,7 @@ package pull
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
@@ -100,9 +101,7 @@ func mergeFiles(oldFiles, newFiles map[string]ViewedState) map[string]ViewedStat
 		return oldFiles
 	}
 
-	for file, viewed := range newFiles {
-		oldFiles[file] = viewed
-	}
+	maps.Copy(oldFiles, newFiles)
 	return oldFiles
 }
 

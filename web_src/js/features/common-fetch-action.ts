@@ -56,8 +56,12 @@ async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: R
   actionElem.classList.remove('is-loading', 'loading-icon-2px');
 }
 
-async function formFetchAction(formEl: HTMLFormElement, e: SubmitEvent) {
+async function onFormFetchActionSubmit(formEl: HTMLFormElement, e: SubmitEvent) {
   e.preventDefault();
+  await submitFormFetchAction(formEl, submitEventSubmitter(e));
+}
+
+export async function submitFormFetchAction(formEl: HTMLFormElement, formSubmitter?: HTMLElement) {
   if (formEl.classList.contains('is-loading')) return;
 
   formEl.classList.add('is-loading');
@@ -68,7 +72,6 @@ async function formFetchAction(formEl: HTMLFormElement, e: SubmitEvent) {
   const formMethod = formEl.getAttribute('method') || 'get';
   const formActionUrl = formEl.getAttribute('action');
   const formData = new FormData(formEl);
-  const formSubmitter = submitEventSubmitter(e);
   const [submitterName, submitterValue] = [formSubmitter?.getAttribute('name'), formSubmitter?.getAttribute('value')];
   if (submitterName) {
     formData.append(submitterName, submitterValue || '');
@@ -96,7 +99,7 @@ async function formFetchAction(formEl: HTMLFormElement, e: SubmitEvent) {
   await fetchActionDoRequest(formEl, reqUrl, reqOpt);
 }
 
-async function linkAction(el: HTMLElement, e: Event) {
+async function onLinkActionClick(el: HTMLElement, e: Event) {
   // A "link-action" can post AJAX request to its "data-url"
   // Then the browser is redirected to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
   // If the "link-action" has "data-modal-confirm" attribute, a confirm modal dialog will be shown before taking action.
@@ -126,6 +129,6 @@ async function linkAction(el: HTMLElement, e: Event) {
 }
 
 export function initGlobalFetchAction() {
-  addDelegatedEventListener(document, 'submit', '.form-fetch-action', formFetchAction);
-  addDelegatedEventListener(document, 'click', '.link-action', linkAction);
+  addDelegatedEventListener(document, 'submit', '.form-fetch-action', onFormFetchActionSubmit);
+  addDelegatedEventListener(document, 'click', '.link-action', onLinkActionClick);
 }

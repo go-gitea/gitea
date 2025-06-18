@@ -1,0 +1,62 @@
+.file-view tr.active .lines-num,
+.file-view tr.active .lines-escape,
+.file-view tr.active .lines-code {
+  background: var(--color-highlight-bg);
+}
+
+/* set correct border radius on the last active lines, to avoid border overflow */
+.file-view tr.active:last-of-type .lines-code {
+  border-bottom-right-radius: var(--border-radius);
+}
+
+.file-view tr.active .lines-num {
+  position: relative;
+}
+
+/* add a darker "handler" at the beginning of the active line */
+.file-view tr.active .lines-num::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--color-highlight-fg);
+}
+
+.file-view .file-not-rendered-prompt {
+  padding: 1rem;
+  text-align: center;
+  font-size: 1rem !important; /* use consistent styles for various containers (code, markup, etc) */
+  line-height: var(--line-height-default) !important; /* same as above */
+}
+
+/* ".code-view" is always used with ".file-view", to show the code of a file */
+.file-view.code-view {
+  background: var(--color-code-bg);
+  border-radius: var(--border-radius);
+}
+
+.file-view.code-view table {
+  width: 100%;
+}
+
+.file-view.code-view .lines-num span::after {
+  cursor: pointer;
+}
+
+.file-view.code-view .lines-num:hover {
+  color: var(--color-text-dark);
+}
+
+.file-view.code-view .ui.button.code-line-button {
+  border: 1px solid var(--color-secondary);
+  padding: 1px 4px;
+  margin: 0;
+  min-height: 0;
+  position: absolute;
+  left: 6px;
+}
+
+.file-view.code-view .ui.button.code-line-button:hover {
+  background: var(--color-secondary);
+}

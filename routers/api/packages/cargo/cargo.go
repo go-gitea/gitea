@@ -95,10 +95,7 @@ type SearchResultMeta struct {
 
 // https://doc.rust-lang.org/cargo/reference/registries.html#search
 func SearchPackages(ctx *context.Context) {
-	page := ctx.FormInt("page")
-	if page < 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	perPage := ctx.FormInt("per_page")
 	paginator := db.ListOptions{
 		Page:     page,

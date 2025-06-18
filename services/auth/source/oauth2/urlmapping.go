@@ -14,11 +14,11 @@ type CustomURLMapping struct {
 
 // CustomURLSettings describes the urls values and availability to use when customizing OAuth2 provider URLs
 type CustomURLSettings struct {
-	AuthURL    Attribute `json:",omitempty"`
-	TokenURL   Attribute `json:",omitempty"`
-	ProfileURL Attribute `json:",omitempty"`
-	EmailURL   Attribute `json:",omitempty"`
-	Tenant     Attribute `json:",omitempty"`
+	AuthURL    Attribute
+	TokenURL   Attribute
+	ProfileURL Attribute
+	EmailURL   Attribute
+	Tenant     Attribute
 }
 
 // Attribute describes the availability, and required status for a custom url configuration

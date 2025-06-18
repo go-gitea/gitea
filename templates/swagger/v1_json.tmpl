@@ -15164,6 +15164,42 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/signing-key.pub": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get signing-key.pub for given repository",
+        "operationId": "repoSigningKeySSH",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ssh public key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/stargazers": {
       "get": {
         "produces": [
@@ -16990,6 +17026,26 @@
         "responses": {
           "200": {
             "description": "GPG armored public key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "/signing-key.pub": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Get default signing-key.pub",
+        "operationId": "getSigningKeySSH",
+        "responses": {
+          "200": {
+            "description": "ssh public key",
             "schema": {
               "type": "string"
             }
@@ -21030,7 +21086,17 @@
           "x-go-name": "SHA"
         },
         "state": {
-          "$ref": "#/definitions/CommitStatusState"
+          "type": "string",
+          "enum": [
+            "pending",
+            "success",
+            "error",
+            "failure",
+            "warning",
+            "skipped"
+          ],
+          "x-go-enum-desc": "pending CommitStatusPending  CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess  CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError  CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure  CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning  CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped  CommitStatusSkipped is for when CommitStatus is Skipped",
+          "x-go-name": "State"
         },
         "statuses": {
           "type": "array",
@@ -21258,7 +21324,17 @@
           "x-go-name": "ID"
         },
         "status": {
-          "$ref": "#/definitions/CommitStatusState"
+          "type": "string",
+          "enum": [
+            "pending",
+            "success",
+            "error",
+            "failure",
+            "warning",
+            "skipped"
+          ],
+          "x-go-enum-desc": "pending CommitStatusPending  CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess  CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError  CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure  CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning  CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped  CommitStatusSkipped is for when CommitStatus is Skipped",
+          "x-go-name": "State"
         },
         "target_url": {
           "type": "string",
@@ -21274,11 +21350,6 @@
           "x-go-name": "URL"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "CommitStatusState": {
-      "description": "CommitStatusState holds the state of a CommitStatus\nIt can be \"pending\", \"success\", \"error\" and \"failure\"",
-      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CommitUser": {
@@ -22329,7 +22400,17 @@
           "x-go-name": "Description"
         },
         "state": {
-          "$ref": "#/definitions/CommitStatusState"
+          "type": "string",
+          "enum": [
+            "pending",
+            "success",
+            "error",
+            "failure",
+            "warning",
+            "skipped"
+          ],
+          "x-go-enum-desc": "pending CommitStatusPending  CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess  CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError  CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure  CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning  CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped  CommitStatusSkipped is for when CommitStatus is Skipped",
+          "x-go-name": "State"
         },
         "target_url": {
           "type": "string",
@@ -24863,7 +24944,8 @@
             "gogs",
             "onedev",
             "gitbucket",
-            "codebase"
+            "codebase",
+            "codecommit"
           ],
           "x-go-name": "Service"
         },

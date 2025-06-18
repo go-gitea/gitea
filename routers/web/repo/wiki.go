@@ -417,10 +417,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	// get Commit Count
 	commitsHistory, err := wikiRepo.CommitsByFileAndRange(

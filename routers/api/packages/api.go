@@ -701,18 +701,18 @@ func ContainerRoutes() *web.Router {
 	r.Get("/_catalog", container.ReqContainerAccess, container.GetRepositoryList)
 	r.Group("/{username}", func() {
 		r.PathGroup("/*", func(g *web.RouterPathGroup) {
-			g.MatchPath("POST", "/<image:*>/blobs/uploads", reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.InitiateUploadBlob)
-			g.MatchPath("GET", "/<image:*>/tags/list", container.VerifyImageName, container.GetTagList)
+			g.MatchPath("POST", "/<image:*>/blobs/uploads", reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.PostBlobsUploads)
+			g.MatchPath("GET", "/<image:*>/tags/list", container.VerifyImageName, container.GetTagsList)
 			g.MatchPath("GET,PATCH,PUT,DELETE", `/<image:*>/blobs/uploads/<uuid:[-.=\w]+>`, reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, func(ctx *context.Context) {
 				switch ctx.Req.Method {
 				case http.MethodGet:
-					container.GetUploadBlob(ctx)
+					container.GetBlobsUpload(ctx)
 				case http.MethodPatch:
-					container.UploadBlob(ctx)
+					container.PatchBlobsUpload(ctx)
 				case http.MethodPut:
-					container.EndUploadBlob(ctx)
+					container.PutBlobsUpload(ctx)
 				default: /* DELETE */
-					container.CancelUploadBlob(ctx)
+					container.DeleteBlobsUpload(ctx)
 				}
 			})
 			g.MatchPath("HEAD", `/<image:*>/blobs/<digest>`, container.VerifyImageName, container.HeadBlob)
@@ -721,7 +721,7 @@ func ContainerRoutes() *web.Router {
 
 			g.MatchPath("HEAD", `/<image:*>/manifests/<reference>`, container.VerifyImageName, container.HeadManifest)
 			g.MatchPath("GET", `/<image:*>/manifests/<reference>`, container.VerifyImageName, container.GetManifest)
-			g.MatchPath("PUT", `/<image:*>/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.UploadManifest)
+			g.MatchPath("PUT", `/<image:*>/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.PutManifest)
 			g.MatchPath("DELETE", `/<image:*>/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteManifest)
 		})
 	}, container.ReqContainerAccess, context.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))

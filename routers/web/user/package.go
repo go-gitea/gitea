@@ -46,10 +46,7 @@ func ListPackages(ctx *context.Context) {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	query := ctx.FormTrim("q")
 	packageType := ctx.FormTrim("type")
 
@@ -320,10 +317,7 @@ func ListPackageVersions(ctx *context.Context) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	pagination := &db.ListOptions{
 		PageSize: setting.UI.PackagesPagingNum,
 		Page:     page,
@@ -407,7 +401,7 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
 
-	repos, _, _ := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
+	repos, _, _ := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
 		Actor:   pd.Owner,
 		Private: true,
 	})

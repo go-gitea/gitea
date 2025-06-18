@@ -76,14 +76,11 @@ func TestViewIssuesSortByType(t *testing.T) {
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	issuesSelection := getIssuesSelection(t, htmlDoc)
-	expectedNumIssues := unittest.GetCount(t,
+	expectedNumIssues := min(unittest.GetCount(t,
 		&issues_model.Issue{RepoID: repo.ID, PosterID: user.ID},
 		unittest.Cond("is_closed=?", false),
 		unittest.Cond("is_pull=?", false),
-	)
-	if expectedNumIssues > setting.UI.IssuePagingNum {
-		expectedNumIssues = setting.UI.IssuePagingNum
-	}
+	), setting.UI.IssuePagingNum)
 	assert.Equal(t, expectedNumIssues, issuesSelection.Length())
 
 	issuesSelection.Each(func(_ int, selection *goquery.Selection) {
@@ -491,10 +488,9 @@ func TestSearchIssues(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
-	}
+	expectedIssueCount := min(
+		// from the fixtures
+		20, setting.UI.IssuePagingNum)
 
 	link, _ := url.Parse("/issues/search")
 	req := NewRequest(t, "GET", link.String())
@@ -585,10 +581,9 @@ func TestSearchIssues(t *testing.T) {
 func TestSearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
-	}
+	expectedIssueCount := min(
+		// from the fixtures
+		20, setting.UI.IssuePagingNum)
 
 	session := loginUser(t, "user1")
 	link, _ := url.Parse("/issues/search")

@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"strconv"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/renderhelper"
@@ -114,7 +115,9 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		}
 
 		var err error
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
+			FootnoteContextID: strconv.FormatInt(comment.ID, 10),
+		})
 		if comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content); err != nil {
 			return nil, err
 		}

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/contexttest"
@@ -24,23 +25,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createSSHAuthorizedKeysTmpPath(t *testing.T) func() {
-	tmpDir := t.TempDir()
-
-	oldPath := setting.SSH.RootPath
-	setting.SSH.RootPath = tmpDir
-
-	return func() {
-		setting.SSH.RootPath = oldPath
-	}
-}
-
 func TestAddReadOnlyDeployKey(t *testing.T) {
-	if deferable := createSSHAuthorizedKeysTmpPath(t); deferable != nil {
-		defer deferable()
-	} else {
-		return
-	}
+	defer test.MockVariableValue(&setting.SSH.RootPath, t.TempDir())()
 	unittest.PrepareTestEnv(t)
 
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys")
@@ -64,11 +50,7 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 }
 
 func TestAddReadWriteOnlyDeployKey(t *testing.T) {
-	if deferable := createSSHAuthorizedKeysTmpPath(t); deferable != nil {
-		defer deferable()
-	} else {
-		return
-	}
+	defer test.MockVariableValue(&setting.SSH.RootPath, t.TempDir())()
 
 	unittest.PrepareTestEnv(t)
 

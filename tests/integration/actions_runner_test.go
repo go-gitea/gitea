@@ -115,10 +115,9 @@ func (r *mockRunner) fetchTask(t *testing.T, timeout ...time.Duration) *runnerv1
 }
 
 type mockTaskOutcome struct {
-	result   runnerv1.Result
-	outputs  map[string]string
-	logRows  []*runnerv1.LogRow
-	execTime time.Duration
+	result  runnerv1.Result
+	outputs map[string]string
+	logRows []*runnerv1.LogRow
 }
 
 func (r *mockRunner) execTask(t *testing.T, task *runnerv1.Task, outcome *mockTaskOutcome) {
@@ -145,7 +144,6 @@ func (r *mockRunner) execTask(t *testing.T, task *runnerv1.Task, outcome *mockTa
 		sentOutputKeys = append(sentOutputKeys, outputKey)
 		assert.ElementsMatch(t, sentOutputKeys, resp.Msg.SentOutputs)
 	}
-	time.Sleep(outcome.execTime)
 	resp, err := r.client.runnerServiceClient.UpdateTask(t.Context(), connect.NewRequest(&runnerv1.UpdateTaskRequest{
 		State: &runnerv1.TaskState{
 			Id:        task.Id,

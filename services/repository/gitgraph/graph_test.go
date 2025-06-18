@@ -6,6 +6,7 @@ package gitgraph
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -117,13 +118,7 @@ func TestReleaseUnusedColors(t *testing.T) {
 		if parser.firstAvailable == -1 {
 			// All in use
 			for _, color := range parser.availableColors {
-				found := false
-				for _, oldColor := range parser.oldColors {
-					if oldColor == color {
-						found = true
-						break
-					}
-				}
+				found := slices.Contains(parser.oldColors, color)
 				if !found {
 					t.Errorf("In testcase:\n%d\t%d\t%d %d =>\n%d\t%d\t%d %d: %d should be available but is not",
 						testcase.availableColors,
@@ -141,13 +136,7 @@ func TestReleaseUnusedColors(t *testing.T) {
 			// Some in use
 			for i := parser.firstInUse; i != parser.firstAvailable; i = (i + 1) % len(parser.availableColors) {
 				color := parser.availableColors[i]
-				found := false
-				for _, oldColor := range parser.oldColors {
-					if oldColor == color {
-						found = true
-						break
-					}
-				}
+				found := slices.Contains(parser.oldColors, color)
 				if !found {
 					t.Errorf("In testcase:\n%d\t%d\t%d %d =>\n%d\t%d\t%d %d: %d should be available but is not",
 						testcase.availableColors,
@@ -163,13 +152,7 @@ func TestReleaseUnusedColors(t *testing.T) {
 			}
 			for i := parser.firstAvailable; i != parser.firstInUse; i = (i + 1) % len(parser.availableColors) {
 				color := parser.availableColors[i]
-				found := false
-				for _, oldColor := range parser.oldColors {
-					if oldColor == color {
-						found = true
-						break
-					}
-				}
+				found := slices.Contains(parser.oldColors, color)
 				if found {
 					t.Errorf("In testcase:\n%d\t%d\t%d %d =>\n%d\t%d\t%d %d: %d should not be available but is",
 						testcase.availableColors,

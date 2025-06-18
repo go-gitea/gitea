@@ -113,7 +113,7 @@ type Repository struct {
 	// enum: sha1,sha256
 	ObjectFormatName string `json:"object_format_name"`
 	// swagger:strfmt date-time
-	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
+	MirrorUpdated time.Time     `json:"mirror_updated"`
 	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
 	Topics        []string      `json:"topics"`
 	Licenses      []string      `json:"licenses"`
@@ -359,7 +359,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
-	// enum: git,github,gitea,gitlab,gogs,onedev,gitbucket,codebase
+	// enum: git,github,gitea,gitlab,gogs,onedev,gitbucket,codebase,codecommit
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`

@@ -28,7 +28,7 @@ import (
 	"code.gitea.io/gitea/routers/install"
 
 	"github.com/felixge/fgprof"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // PIDFile could be set from build tag
@@ -130,19 +130,19 @@ func showWebStartupMessage(msg string) {
 	}
 }
 
-func serveInstall(ctx *cli.Context) error {
+func serveInstall(cmd *cli.Command) error {
 	showWebStartupMessage("Prepare to run install page")
 
 	routers.InitWebInstallPage(graceful.GetManager().HammerContext())
 
 	// Flag for port number in case first time run conflict
-	if ctx.IsSet("port") {
-		if err := setPort(ctx.String("port")); err != nil {
+	if cmd.IsSet("port") {
+		if err := setPort(cmd.String("port")); err != nil {
 			return err
 		}
 	}
-	if ctx.IsSet("install-port") {
-		if err := setPort(ctx.String("install-port")); err != nil {
+	if cmd.IsSet("install-port") {
+		if err := setPort(cmd.String("install-port")); err != nil {
 			return err
 		}
 	}
@@ -163,7 +163,7 @@ func serveInstall(ctx *cli.Context) error {
 	return nil
 }
 
-func serveInstalled(ctx *cli.Context) error {
+func serveInstalled(c *cli.Command) error {
 	setting.InitCfgProvider(setting.CustomConf)
 	setting.LoadCommonSettings()
 	setting.MustInstalled()
@@ -218,8 +218,8 @@ func serveInstalled(ctx *cli.Context) error {
 	setting.AppDataTempDir("").RemoveOutdated(3 * 24 * time.Hour)
 
 	// Override the provided port number within the configuration
-	if ctx.IsSet("port") {
-		if err := setPort(ctx.String("port")); err != nil {
+	if c.IsSet("port") {
+		if err := setPort(c.String("port")); err != nil {
 			return err
 		}
 	}
@@ -244,7 +244,7 @@ func servePprof() {
 	finished()
 }
 
-func runWeb(ctx *cli.Context) error {
+func runWeb(_ context.Context, cmd *cli.Command) error {
 	defer func() {
 		if panicked := recover(); panicked != nil {
 			log.Fatal("PANIC: %v\n%s", panicked, log.Stack(2))
@@ -262,12 +262,12 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Set pid file setting
-	if ctx.IsSet("pid") {
-		createPIDFile(ctx.String("pid"))
+	if cmd.IsSet("pid") {
+		createPIDFile(cmd.String("pid"))
 	}
 
 	if !setting.InstallLock {
-		if err := serveInstall(ctx); err != nil {
+		if err := serveInstall(cmd); err != nil {
 			return err
 		}
 	} else {
@@ -278,7 +278,7 @@ func runWeb(ctx *cli.Context) error {
 		go servePprof()
 	}
 
-	return serveInstalled(ctx)
+	return serveInstalled(cmd)
 }
 
 func setPort(port string) error {

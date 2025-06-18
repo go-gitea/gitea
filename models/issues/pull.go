@@ -649,12 +649,6 @@ func GetAllUnmergedAgitPullRequestByPoster(ctx context.Context, uid int64) ([]*P
 	return pulls, err
 }
 
-// Update updates all fields of pull request.
-func (pr *PullRequest) Update(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).ID(pr.ID).AllCols().Update(pr)
-	return err
-}
-
 // UpdateCols updates specific fields of pull request.
 func (pr *PullRequest) UpdateCols(ctx context.Context, cols ...string) error {
 	_, err := db.GetEngine(ctx).ID(pr.ID).Cols(cols...).Update(pr)
