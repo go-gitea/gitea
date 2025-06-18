@@ -4,6 +4,25 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.24.1](https://github.com/go-gitea/gitea/releases/tag/1.24.1) - 2025-06-18
+
+* ENHANCEMENTS
+  * Improve alignment of commit status icon on commit page (#34750) (#34757)
+  * Support title and body query parameters for new PRs (#34537) (#34752)
+
+* BUGFIXES
+  * When using rules to delete packages, remove unclean bugs (#34632) (#34761)
+  * Fix ghost user in feeds when pushing in an actions, it should be gitea-actions (#34703) (#34756)
+  * Prevent double markdown link brackets when pasting URL (#34745) (#34748)
+  * Prevent duplicate form submissions when creating forks (#34714) (#34735)
+  * Fix markdown wrap (#34697) (#34702)
+  * Fix pull requests API convert panic when head repository is deleted. (#34685) (#34687)
+  * Fix commit message rendering and some UI problems (#34680) (#34683)
+  * Fix container range bug (#34725) (#34732)
+  * Fix incorrect cli default values (#34765) (#34766)
+  * Fix dropdown filter (#34708) (#34711)
+  * Hide href attribute of a tag if there is no target_url (#34556) (#34684)
+
 ## [1.24.0](https://github.com/go-gitea/gitea/releases/tag/1.24.0) - 2025-05-26
 
 * BREAKING
