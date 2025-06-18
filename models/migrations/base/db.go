@@ -518,7 +518,7 @@ func ModifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
 
 func removeAllWithRetry(dir string) error {
 	var err error
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		err = os.RemoveAll(dir)
 		if err == nil {
 			break

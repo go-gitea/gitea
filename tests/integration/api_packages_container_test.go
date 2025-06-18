@@ -751,7 +751,7 @@ func TestPackageContainer(t *testing.T) {
 		url := fmt.Sprintf("%sv2/%s/parallel", setting.AppURL, user.Name)
 
 		var wg sync.WaitGroup
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			wg.Add(1)
 
 			content := []byte{byte(i)}

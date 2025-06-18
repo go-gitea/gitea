@@ -13,7 +13,7 @@ import (
 )
 
 func getCacheKey(repoPath, commitID, entryPath string) string {
-	hashBytes := sha256.Sum256([]byte(fmt.Sprintf("%s:%s:%s", repoPath, commitID, entryPath)))
+	hashBytes := sha256.Sum256(fmt.Appendf(nil, "%s:%s:%s", repoPath, commitID, entryPath))
 	return fmt.Sprintf("last_commit:%x", hashBytes)
 }
 

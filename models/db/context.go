@@ -67,7 +67,7 @@ func contextSafetyCheck(e Engine) {
 		_ = e.SQL("SELECT 1").Iterate(&m{}, func(int, any) error {
 			callers := make([]uintptr, 32)
 			callerNum := runtime.Callers(1, callers)
-			for i := 0; i < callerNum; i++ {
+			for i := range callerNum {
 				if funcName := runtime.FuncForPC(callers[i]).Name(); funcName == "xorm.io/xorm.(*Session).Iterate" {
 					contextSafetyDeniedFuncPCs = append(contextSafetyDeniedFuncPCs, callers[i])
 				}
@@ -82,7 +82,7 @@ func contextSafetyCheck(e Engine) {
 	// it should be very fast: xxxx ns/op
 	callers := make([]uintptr, 32)
 	callerNum := runtime.Callers(3, callers) // skip 3: runtime.Callers, contextSafetyCheck, GetEngine
-	for i := 0; i < callerNum; i++ {
+	for i := range callerNum {
 		if slices.Contains(contextSafetyDeniedFuncPCs, callers[i]) {
 			panic(errors.New("using database context in an iterator would cause corrupted results"))
 		}
