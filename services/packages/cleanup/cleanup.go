@@ -85,12 +85,6 @@ func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.Packa
 }
 
 func executeCleanupOneRule(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
-	select {
-	case <-ctx.Done():
-		return db.ErrCancelledf("While processing package cleanup rules")
-	default:
-	}
-
 	if err := pcr.CompiledPattern(); err != nil {
 		return fmt.Errorf("CleanupRule [%d]: CompilePattern failed: %w", pcr.ID, err)
 	}
@@ -156,6 +150,12 @@ func executeCleanupOneRule(ctx context.Context, pcr *packages_model.PackageClean
 
 func ExecuteCleanupRules(ctx context.Context) error {
 	return packages_model.IterateEnabledCleanupRules(ctx, func(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
+		select {
+		case <-ctx.Done():
+			return db.ErrCancelledf("While processing package cleanup rules")
+		default:
+		}
+
 		err := executeCleanupOneRule(ctx, pcr)
 		if err != nil {
 			log.Error("CleanupRule [%d]: executeCleanupOneRule failed: %v", pcr.ID, err)
