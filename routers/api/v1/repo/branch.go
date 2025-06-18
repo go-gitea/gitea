@@ -1181,7 +1181,7 @@ func MergeUpstream(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.MergeUpstreamRequest)
-	mergeStyle, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, form.Branch)
+	mergeStyle, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, form.Branch, form.FfOnly)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err)
