@@ -231,7 +231,7 @@ clean: ## delete backend and integration files
 		tests/e2e/reports/ tests/e2e/test-artifacts/ tests/e2e/test-snapshots/
 
 .PHONY: fmt
-fmt: ## format the Go code
+fmt: ## format and fix the Go code
 	@$(GO) run $(GOPLS_MODERNIZE_PACKAGE) -fix ./...
 	@GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
