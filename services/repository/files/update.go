@@ -370,14 +370,13 @@ func (err ErrSHAOrCommitIDNotProvided) Error() string {
 
 // handles the check for various issues for ChangeRepoFiles
 func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRepoFilesOptions) error {
-	// FIXME: should it also handle "rename" errors?
-	if file.Operation == "update" || file.Operation == "delete" {
+	if file.Operation == "update" || file.Operation == "delete" || file.Operation == "rename" {
 		fromEntry, err := commit.GetTreeEntryByPath(file.Options.fromTreePath)
 		if err != nil {
 			return err
 		}
 		if file.SHA != "" {
-			// If a SHA was given and the SHA given doesn't match the SHA of the fromTreePath, throw error
+			// If the SHA given doesn't match the SHA of the fromTreePath, throw error
 			if file.SHA != fromEntry.ID.String() {
 				return pull_service.ErrSHADoesNotMatch{
 					Path:       file.Options.treePath,
@@ -386,7 +385,7 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 				}
 			}
 		} else if opts.LastCommitID != "" {
-			// If a lastCommitID was given and it doesn't match the commitID of the head of the branch throw
+			// If a lastCommitID given doesn't match the branch head's commitID throw
 			// an error, but only if we aren't creating a new branch.
 			if commit.ID.String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
 				if changed, err := commit.FileChangedSinceCommit(file.Options.treePath, opts.LastCommitID); err != nil {
@@ -404,15 +403,14 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 			// haven't been made. We throw an error if one wasn't provided.
 			return ErrSHAOrCommitIDNotProvided{}
 		}
+		// FIXME: legacy hacky approach, it shouldn't prepare the "Options" in the "check" function
 		file.Options.executable = fromEntry.IsExecutable()
 	}
 
-	// FIXME: should it also handle "rename" errors?
-	if file.Operation == "create" || file.Operation == "update" {
-		// For the path where this file will be created/updated, we need to make
-		// sure no parts of the path are existing files or links except for the last
-		// item in the path which is the file name, and that shouldn't exist IF it is
-		// a new file OR is being moved to a new path.
+	if file.Operation == "create" || file.Operation == "update" || file.Operation == "rename" {
+		// For operation's target path, we need to make sure no parts of the path are existing files or links
+		// except for the last item in the path (which is the file name).
+		// And that shouldn't exist IF it is a new file OR is being moved to a new path.
 		treePathParts := strings.Split(file.Options.treePath, "/")
 		subTreePath := ""
 		for index, part := range treePathParts {
@@ -449,7 +447,7 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 					Type:    git.EntryModeTree,
 				}
 			} else if file.Options.fromTreePath != file.Options.treePath || file.Operation == "create" {
-				// The entry shouldn't exist if we are creating new file or moving to a new path
+				// The entry shouldn't exist if we are creating the new file or moving to a new path
 				return ErrRepoFileAlreadyExists{
 					Path: file.Options.treePath,
 				}
@@ -501,7 +499,7 @@ func CreateUpdateRenameFile(ctx context.Context, t *TemporaryUploadRepository, f
 		return err
 	}
 
-	// Add the object to the index
+	// Add the object to the index, the "file.Options.executable" is set in handleCheckErrors by the caller (legacy hacky approach)
 	if err = t.AddObjectToIndex(ctx, util.Iif(file.Options.executable, "100755", "100644"), writeObjectRet.ObjectHash, file.Options.treePath); err != nil {
 		return err
 	}
