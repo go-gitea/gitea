@@ -132,3 +132,13 @@ func PrepareConsoleLoggerLevel(defaultLevel log.Level) func(context.Context, *cl
 		return ctx, nil
 	}
 }
+
+func isValidDefaultSubCommand(cmd *cli.Command) (string, bool) {
+	// Dirty patch for urfave/cli's strange design.
+	// "./gitea bad-cmd" should not start the web server.
+	rootArgs := cmd.Root().Args().Slice()
+	if len(rootArgs) != 0 && rootArgs[0] != cmd.Name {
+		return rootArgs[0], false
+	}
+	return "", true
+}
