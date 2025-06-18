@@ -32,7 +32,7 @@ func TestDefaultCommand(t *testing.T) {
 		assert.NoError(t, cmd.Run(t.Context(), args))
 		assert.True(t, called)
 	}
-	test(t, []string{"app"}, "", true)
-	test(t, []string{"app", "test"}, "", true)
-	test(t, []string{"app", "other"}, "other", false)
+	test(t, []string{"./gitea"}, "", true)
+	test(t, []string{"./gitea", "test"}, "", true)
+	test(t, []string{"./gitea", "other"}, "other", false)
 }
