@@ -152,6 +152,8 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 		CmdDocs,
 	}
 
+	// TODO: we should eventually drop the default command,
+	// but not sure whether it would break Windows users who used to double-click the EXE to run.
 	app.DefaultCommand = CmdWeb.Name
 
 	app.Flags = append(app.Flags, cli.VersionFlag)
