@@ -243,10 +243,11 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		}
 	}
 
+	lfsContentStore := lfs.NewContentStore()
 	for _, file := range opts.Files {
 		switch file.Operation {
 		case "create", "update", "rename":
-			if err = CreateUpdateRenameFile(ctx, t, file, lfs.NewContentStore(), repo.ID, hasOldBranch); err != nil {
+			if err = CreateUpdateRenameFile(ctx, t, file, lfsContentStore, repo.ID, hasOldBranch); err != nil {
 				return nil, err
 			}
 		case "delete":
