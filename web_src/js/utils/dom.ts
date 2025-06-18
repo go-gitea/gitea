@@ -370,7 +370,7 @@ export function addDelegatedEventListener<T extends HTMLElement, E extends Event
   }, options);
 }
 
-// Check if a click is done without any special mouse or key inputs that would trigger special browser behavior.
+/** Returns whether a click event is a left-click without any modifiers held */
 export function isPlainClick(e: MouseEvent) {
   return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
 }
