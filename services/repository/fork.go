@@ -124,7 +124,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	defer func() {
 		if err != nil {
 			// we can not use the ctx because it maybe canceled or timeout
-			cleanupRepository(doer, repo.ID)
+			cleanupRepository(repo.ID)
 		}
 	}()
 
