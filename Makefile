@@ -251,7 +251,7 @@ fmt-check: fmt
 	fi
 
 .PHONY: fix
-fix: ## apply code fixes to Go code
+fix: ## apply automated fixes to Go code
 	$(GO) run $(GOPLS_MODERNIZE_PACKAGE) -fix ./...
 
 .PHONY: fix-check
