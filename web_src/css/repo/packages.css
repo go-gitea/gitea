@@ -6,7 +6,7 @@
 
 .packages-content-left {
   margin: 0 !important;
-  width: calc(100% - 216px);
+  width: calc(100% - 250px - 16px);
 }
 
 .packages-content-right {
