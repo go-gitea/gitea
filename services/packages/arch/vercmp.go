@@ -35,7 +35,7 @@ func parseEVR(evr string) (epoch, version, release string) {
 func compareSegments(a, b []string) int {
 	lenA, lenB := len(a), len(b)
 	l := min(lenA, lenB)
-	for i := 0; i < l; i++ {
+	for i := range l {
 		if r := compare(a[i], b[i]); r != 0 {
 			return r
 		}
