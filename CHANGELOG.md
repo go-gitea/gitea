@@ -22,6 +22,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix incorrect cli default values (#34765) (#34766)
   * Fix dropdown filter (#34708) (#34711)
   * Hide href attribute of a tag if there is no target_url (#34556) (#34684)
+  * Fix tag target (#34781) #34783
 
 ## [1.24.0](https://github.com/go-gitea/gitea/releases/tag/1.24.0) - 2025-05-26
 
