@@ -180,6 +180,10 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return err
 	}
 
+	if repo.IsEmpty {
+		_ = repo_model.UpdateRepositoryColsWithAutoTime(ctx, &repo_model.Repository{ID: repo.ID, IsEmpty: false}, "is_empty")
+	}
+
 	return repo_model.DeleteUploads(ctx, uploads...)
 }
 
