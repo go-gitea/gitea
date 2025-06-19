@@ -2,6 +2,7 @@
 import {SvgIcon} from '../svg.ts';
 import {isPlainClick} from '../utils/dom.ts';
 import {ref} from 'vue';
+import {type createViewFileTreeStore} from './ViewFileTreeStore.ts';
 
 type Item = {
   entryName: string;
@@ -15,12 +16,10 @@ type Item = {
 
 const props = defineProps<{
   item: Item,
-  navigateViewContent:(treePath: string) => void,
-  loadChildren:(treePath: string, subPath?: string) => Promise<Item[]>,
-  getWebUrl:(treePath: string) => string,
-  selectedItem?: string,
+  store: ReturnType<typeof createViewFileTreeStore>
 }>();
 
+const store = props.store;
 const isLoading = ref(false);
 const children = ref(props.item.children);
 const collapsed = ref(!props.item.children);
@@ -31,10 +30,10 @@ const doLoadChildren = async (e: MouseEvent | null) => {
   e?.preventDefault();
 
   collapsed.value = !collapsed.value;
-  if (!collapsed.value && props.loadChildren) {
+  if (!collapsed.value) {
     isLoading.value = true;
     try {
-      children.value = await props.loadChildren(props.item.fullPath);
+      children.value = await store.loadChildren(props.item.fullPath);
     } finally {
       isLoading.value = false;
     }
@@ -47,14 +46,14 @@ const doLoadDirContent = (e: MouseEvent) => {
   e.preventDefault();
 
   doLoadChildren(null);
-  props.navigateViewContent(props.item.fullPath);
+  store.navigateTreeView(props.item.fullPath);
 };
 
 const doLoadFileContent = (e: MouseEvent) => {
   if (!isPlainClick(e)) return;
   e.preventDefault();
 
-  props.navigateViewContent(props.item.fullPath);
+  store.navigateTreeView(props.item.fullPath);
 };
 </script>
 
@@ -63,7 +62,7 @@ const doLoadFileContent = (e: MouseEvent) => {
   <a
     v-if="item.entryMode === 'commit'" class="tree-item type-submodule silenced"
     :title="item.entryName"
-    :href="getWebUrl(item.fullPath)"
+    :href="store.getWebUrl(item.fullPath)"
   >
     <!-- submodule -->
     <div class="item-content">
@@ -74,9 +73,9 @@ const doLoadFileContent = (e: MouseEvent) => {
   </a>
   <a
     v-else-if="item.entryMode === 'symlink'" class="tree-item type-symlink silenced"
-    :class="{'selected': selectedItem === item.fullPath}"
+    :class="{'selected': store.selectedItem === item.fullPath}"
     :title="item.entryName"
-    :href="getWebUrl(item.fullPath)"
+    :href="store.getWebUrl(item.fullPath)"
     @click.stop="doLoadFileContent"
   >
     <!-- symlink -->
@@ -88,9 +87,9 @@ const doLoadFileContent = (e: MouseEvent) => {
   </a>
   <a
     v-else-if="item.entryMode !== 'tree'" class="tree-item type-file silenced"
-    :class="{'selected': selectedItem === item.fullPath}"
+    :class="{'selected': store.selectedItem === item.fullPath}"
     :title="item.entryName"
-    :href="getWebUrl(item.fullPath)"
+    :href="store.getWebUrl(item.fullPath)"
     @click.stop="doLoadFileContent"
   >
     <!-- file -->
@@ -102,9 +101,9 @@ const doLoadFileContent = (e: MouseEvent) => {
   </a>
   <a
     v-else class="tree-item type-directory silenced"
-    :class="{'selected': selectedItem === item.fullPath}"
+    :class="{'selected': store.selectedItem === item.fullPath}"
     :title="item.entryName"
-    :href="getWebUrl(item.fullPath)"
+    :href="store.getWebUrl(item.fullPath)"
     @click.stop="doLoadDirContent"
   >
     <!-- directory -->
@@ -120,7 +119,7 @@ const doLoadFileContent = (e: MouseEvent) => {
   </a>
 
   <div v-if="children?.length" v-show="!collapsed" class="sub-items">
-    <ViewFileTreeItem v-for="childItem in children" :key="childItem.entryName" :item="childItem" :selected-item="selectedItem" :get-web-url="getWebUrl" :navigate-view-content="navigateViewContent" :load-children="loadChildren"/>
+    <ViewFileTreeItem v-for="childItem in children" :key="childItem.entryName" :item="childItem" :store="store"/>
   </div>
 </template>
 <style scoped>
