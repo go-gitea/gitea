@@ -2,7 +2,11 @@
 	{{range .Repos}}
 		<div class="flex-item">
 			<div class="flex-item-leading">
-				{{template "repo/icon" .}}
+				{{if $.IsForksPage}}
+					{{ctx.AvatarUtils.Avatar .Owner 24}}
+				{{else}}
+					{{template "repo/icon" .}}
+				{{end}}
 			</div>
 			<div class="flex-item-main">
 				<div class="flex-item-header">
