@@ -58,10 +58,9 @@ const onItemClick = (e: MouseEvent) => {
       'type-file': item.entryMode === 'blob' || item.entryMode === 'exec',
     }"
     :title="item.entryName"
-    :href="store.getWebUrl(item.fullPath)"
+    :href="store.buildTreePathWebUrl(item.fullPath)"
     @click.stop="onItemClick"
   >
-    <!-- directory -->
     <div v-if="item.entryMode === 'tree'" class="item-toggle">
       <SvgIcon v-if="isLoading" name="octicon-sync" class="circular-spin"/>
       <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop="doLoadChildren"/>
@@ -77,6 +76,7 @@ const onItemClick = (e: MouseEvent) => {
     <ViewFileTreeItem v-for="childItem in children" :key="childItem.entryName" :item="childItem" :store="store"/>
   </div>
 </template>
+
 <style scoped>
 .sub-items {
   display: flex;

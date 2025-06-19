@@ -30,13 +30,13 @@ export function createViewFileTreeStore(props: { repoLink: string, treePath: str
     },
 
     async navigateTreeView(treePath: string) {
-      const url = store.getWebUrl(treePath);
+      const url = store.buildTreePathWebUrl(treePath);
       window.history.pushState({treePath, url}, null, url);
       store.selectedItem = treePath;
       await store.loadViewContent(url);
     },
 
-    getWebUrl(treePath: string) {
+    buildTreePathWebUrl(treePath: string) {
       return `${props.repoLink}/src/${props.currentRefNameSubURL}/${pathEscapeSegments(treePath)}`;
     },
   });
