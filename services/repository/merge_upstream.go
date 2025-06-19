@@ -18,7 +18,7 @@ import (
 )
 
 // MergeUpstream merges the base repository's default branch into the fork repository's current branch.
-func MergeUpstream(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, branch string) (mergeStyle string, err error) {
+func MergeUpstream(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, branch string, ffOnly bool) (mergeStyle string, err error) {
 	if err = repo.MustNotBeArchived(); err != nil {
 		return "", err
 	}
@@ -43,6 +43,11 @@ func MergeUpstream(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_
 	}
 	if !git.IsErrPushOutOfDate(err) && !git.IsErrPushRejected(err) {
 		return "", err
+	}
+
+	// If ff_only is requested and fast-forward failed, return error
+	if ffOnly {
+		return "", util.NewInvalidArgumentErrorf("fast-forward merge not possible: branch has diverged")
 	}
 
 	// TODO: FakePR: it is somewhat hacky, but it is the only way to "merge" at the moment
