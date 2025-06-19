@@ -63,7 +63,7 @@ const onItemClick = (e: MouseEvent) => {
   >
     <div v-if="item.entryMode === 'tree'" class="item-toggle">
       <SvgIcon v-if="isLoading" name="octicon-sync" class="circular-spin"/>
-      <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop="doLoadChildren"/>
+      <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop.prevent="doLoadChildren"/>
     </div>
     <div class="item-content">
       <!-- eslint-disable-next-line vue/no-v-html -->
