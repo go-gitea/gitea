@@ -60,8 +60,8 @@ function updateState(visible: boolean) {
 </script>
 
 <template>
+  <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
   <div v-if="store.fileTreeIsVisible" class="diff-file-tree-items">
-    <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
     <DiffFileTreeItem v-for="item in store.diffFileTree.TreeRoot.Children" :key="item.FullName" :item="item"/>
   </div>
 </template>
