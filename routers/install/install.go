@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -98,14 +99,7 @@ func Install(ctx *context.Context) {
 	form.SSLMode = setting.Database.SSLMode
 
 	curDBType := setting.Database.Type.String()
-	var isCurDBTypeSupported bool
-	for _, dbType := range setting.SupportedDatabaseTypes {
-		if dbType == curDBType {
-			isCurDBTypeSupported = true
-			break
-		}
-	}
-	if !isCurDBTypeSupported {
+	if !slices.Contains(setting.SupportedDatabaseTypes, curDBType) {
 		curDBType = "mysql"
 	}
 	ctx.Data["CurDbType"] = curDBType

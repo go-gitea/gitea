@@ -1,11 +1,11 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package structs
+package commitstatus
 
 // CommitStatusState holds the state of a CommitStatus
-// It can be "pending", "success", "error" and "failure"
-type CommitStatusState string
+// swagger:enum CommitStatusState
+type CommitStatusState string //nolint
 
 const (
 	// CommitStatusPending is for when the CommitStatus is Pending
@@ -18,33 +18,12 @@ const (
 	CommitStatusFailure CommitStatusState = "failure"
 	// CommitStatusWarning is for when the CommitStatus is Warning
 	CommitStatusWarning CommitStatusState = "warning"
+	// CommitStatusSkipped is for when CommitStatus is Skipped
+	CommitStatusSkipped CommitStatusState = "skipped"
 )
-
-var commitStatusPriorities = map[CommitStatusState]int{
-	CommitStatusError:   0,
-	CommitStatusFailure: 1,
-	CommitStatusWarning: 2,
-	CommitStatusPending: 3,
-	CommitStatusSuccess: 4,
-}
 
 func (css CommitStatusState) String() string {
 	return string(css)
-}
-
-// NoBetterThan returns true if this State is no better than the given State
-// This function only handles the states defined in CommitStatusPriorities
-func (css CommitStatusState) NoBetterThan(css2 CommitStatusState) bool {
-	// NoBetterThan only handles the 5 states above
-	if _, exist := commitStatusPriorities[css]; !exist {
-		return false
-	}
-
-	if _, exist := commitStatusPriorities[css2]; !exist {
-		return false
-	}
-
-	return commitStatusPriorities[css] <= commitStatusPriorities[css2]
 }
 
 // IsPending represents if commit status state is pending
@@ -70,4 +49,33 @@ func (css CommitStatusState) IsFailure() bool {
 // IsWarning represents if commit status state is warning
 func (css CommitStatusState) IsWarning() bool {
 	return css == CommitStatusWarning
+}
+
+// IsSkipped represents if commit status state is skipped
+func (css CommitStatusState) IsSkipped() bool {
+	return css == CommitStatusSkipped
+}
+
+type CommitStatusStates []CommitStatusState //nolint
+
+// According to https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
+// > Additionally, a combined state is returned. The state is one of:
+// > failure if any of the contexts report as error or failure
+// > pending if there are no statuses or a context is pending
+// > success if the latest status for all contexts is success
+func (css CommitStatusStates) Combine() CommitStatusState {
+	successCnt := 0
+	for _, state := range css {
+		switch {
+		case state.IsError() || state.IsFailure():
+			return CommitStatusFailure
+		case state.IsPending():
+		case state.IsSuccess() || state.IsWarning() || state.IsSkipped():
+			successCnt++
+		}
+	}
+	if successCnt > 0 && successCnt == len(css) {
+		return CommitStatusSuccess
+	}
+	return CommitStatusPending
 }

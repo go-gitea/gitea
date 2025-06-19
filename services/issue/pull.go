@@ -48,10 +48,6 @@ func IsCodeOwnerFile(f string) bool {
 }
 
 func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
-	return PullRequestCodeOwnersReviewSpecialCommits(ctx, pr, "", "") // no commit is provided, then it uses PR's base&head branch
-}
-
-func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_model.PullRequest, startCommitID, endCommitID string) ([]*ReviewRequestNotifier, error) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		return nil, err
 	}
@@ -100,19 +96,15 @@ func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_m
 		return nil, nil
 	}
 
-	if startCommitID == "" && endCommitID == "" {
-		// get the mergebase
-		mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
-		if err != nil {
-			return nil, err
-		}
-		startCommitID = mergeBase
-		endCommitID = pr.GetGitRefName()
+	// get the mergebase
+	mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
+	if err != nil {
+		return nil, err
 	}
 
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(startCommitID, endCommitID)
+	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitRefName())
 	if err != nil {
 		return nil, err
 	}
@@ -138,8 +130,23 @@ func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_m
 		return nil, err
 	}
 
+	// load all reviews from database
+	latestReivews, _, err := issues_model.GetReviewsByIssueID(ctx, pr.IssueID)
+	if err != nil {
+		return nil, err
+	}
+
+	contain := func(list issues_model.ReviewList, u *user_model.User) bool {
+		for _, review := range list {
+			if review.ReviewerTeamID == 0 && review.ReviewerID == u.ID {
+				return true
+			}
+		}
+		return false
+	}
+
 	for _, u := range uniqUsers {
-		if u.ID != issue.Poster.ID {
+		if u.ID != issue.Poster.ID && !contain(latestReivews, u) {
 			comment, err := issues_model.AddReviewRequest(ctx, issue, u, issue.Poster)
 			if err != nil {
 				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
@@ -155,6 +162,7 @@ func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_m
 			})
 		}
 	}
+
 	for _, t := range uniqTeams {
 		comment, err := issues_model.AddTeamReviewRequest(ctx, issue, t, issue.Poster)
 		if err != nil {

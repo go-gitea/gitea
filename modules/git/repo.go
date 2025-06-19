@@ -28,6 +28,7 @@ type GPGSettings struct {
 	Email            string
 	Name             string
 	PublicKeyContent string
+	Format           string
 }
 
 const prettyLogFormat = `--pretty=format:%H`
@@ -43,9 +44,9 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 		return commits, nil
 	}
 
-	parts := bytes.Split(logs, []byte{'\n'})
+	parts := bytes.SplitSeq(logs, []byte{'\n'})
 
-	for _, commitID := range parts {
+	for commitID := range parts {
 		commit, err := repo.GetCommit(string(commitID))
 		if err != nil {
 			return nil, err

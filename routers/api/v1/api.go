@@ -64,6 +64,7 @@
 package v1
 
 import (
+	gocontext "context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -211,10 +212,19 @@ func repoAssignment() func(ctx *context.APIContext) {
 			}
 			ctx.Repo.Permission.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, ctx.Repo.Permission.AccessMode)
 		} else {
-			ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			needTwoFactor, err := doerNeedTwoFactorAuth(ctx, ctx.Doer)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
+			}
+			if needTwoFactor {
+				ctx.Repo.Permission = access_model.PermissionNoAccess()
+			} else {
+				ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+				if err != nil {
+					ctx.APIErrorInternal(err)
+					return
+				}
 			}
 		}
 
@@ -223,6 +233,20 @@ func repoAssignment() func(ctx *context.APIContext) {
 			return
 		}
 	}
+}
+
+func doerNeedTwoFactorAuth(ctx gocontext.Context, doer *user_model.User) (bool, error) {
+	if !setting.TwoFactorAuthEnforced {
+		return false, nil
+	}
+	if doer == nil {
+		return false, nil
+	}
+	has, err := auth_model.HasTwoFactorOrWebAuthn(ctx, doer.ID)
+	if err != nil {
+		return false, err
+	}
+	return !has, nil
 }
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) {
@@ -947,7 +971,8 @@ func Routes() *web.Router {
 		// Misc (public accessible)
 		m.Group("", func() {
 			m.Get("/version", misc.Version)
-			m.Get("/signing-key.gpg", misc.SigningKey)
+			m.Get("/signing-key.gpg", misc.SigningKeyGPG)
+			m.Get("/signing-key.pub", misc.SigningKeySSH)
 			m.Post("/markup", reqToken(), bind(api.MarkupOption{}), misc.Markup)
 			m.Post("/markdown", reqToken(), bind(api.MarkdownOption{}), misc.Markdown)
 			m.Post("/markdown/raw", reqToken(), misc.MarkdownRaw)
@@ -1255,7 +1280,10 @@ func Routes() *web.Router {
 				}, reqToken(), reqAdmin())
 				m.Group("/actions", func() {
 					m.Get("/tasks", repo.ListActionTasks)
-					m.Get("/runs/{run}/artifacts", repo.GetArtifactsOfRun)
+					m.Group("/runs/{run}", func() {
+						m.Get("/artifacts", repo.GetArtifactsOfRun)
+						m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
+					})
 					m.Get("/artifacts", repo.GetArtifacts)
 					m.Group("/artifacts/{artifact_id}", func() {
 						m.Get("", repo.GetArtifact)
@@ -1400,7 +1428,8 @@ func Routes() *web.Router {
 				m.Combo("/file-contents", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo()).
 					Get(repo.GetFileContentsGet).
 					Post(bind(api.GetFilesOptions{}), repo.GetFileContentsPost) // POST method requires "write" permission, so we also support "GET" method above
-				m.Get("/signing-key.gpg", misc.SigningKey)
+				m.Get("/signing-key.gpg", misc.SigningKeyGPG)
+				m.Get("/signing-key.pub", misc.SigningKeySSH)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).
 						Put(reqToken(), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)

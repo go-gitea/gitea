@@ -73,7 +73,7 @@ func Search(ctx *context.APIContext) {
 		if ctx.PublicOnly {
 			visible = []structs.VisibleType{structs.VisibleTypePublic}
 		}
-		users, maxResults, err = user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
+		users, maxResults, err = user_model.SearchUsers(ctx, user_model.SearchUserOptions{
 			Actor:         ctx.Doer,
 			Keyword:       ctx.FormTrim("q"),
 			UID:           uid,

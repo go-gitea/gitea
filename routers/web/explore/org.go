@@ -44,7 +44,7 @@ func Organizations(ctx *context.Context) {
 		ctx.SetFormString("sort", sortOrder)
 	}
 
-	RenderUserSearch(ctx, &user_model.SearchUserOptions{
+	RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeOrganization,
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},

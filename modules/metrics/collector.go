@@ -184,7 +184,7 @@ func NewCollector() Collector {
 		Users: prometheus.NewDesc(
 			namespace+"users",
 			"Number of Users",
-			nil, nil,
+			[]string{"state"}, nil,
 		),
 		Watches: prometheus.NewDesc(
 			namespace+"watches",
@@ -373,7 +373,14 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(
 		c.Users,
 		prometheus.GaugeValue,
-		float64(stats.Counter.User),
+		float64(stats.Counter.UsersActive),
+		"active", // state label
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.Users,
+		prometheus.GaugeValue,
+		float64(stats.Counter.UsersNotActive),
+		"inactive", // state label
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.Watches,

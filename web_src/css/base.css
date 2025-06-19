@@ -29,6 +29,7 @@
   --checkbox-size: 15px; /* height and width of checkbox and radio inputs */
   --page-spacing: 16px; /* space between page elements */
   --page-margin-x: 32px; /* minimum space on left and right side of page */
+  --page-space-bottom: 64px; /* space between last page element and footer */
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {
@@ -317,6 +318,16 @@ a.label,
   background: var(--color-hover);
 }
 
+.empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 40px;
+  text-align: center;
+  text-wrap: balance;
+}
+
 .inline-code-block {
   padding: 2px 4px;
   border-radius: .24em;
@@ -479,7 +490,7 @@ img.ui.avatar,
 
 .full.height {
   flex-grow: 1;
-  padding-bottom: 80px;
+  padding-bottom: var(--page-space-bottom);
 }
 
 .status-page-error {
@@ -814,10 +825,6 @@ overflow-menu .ui.label {
   display: block;
 }
 
-.code-view .lines-num span::after {
-  cursor: pointer;
-}
-
 .lines-type-marker {
   vertical-align: top;
   white-space: nowrap;
@@ -854,37 +861,11 @@ overflow-menu .ui.label {
 .lines-escape {
   width: 0;
   white-space: nowrap;
+  padding: 0;
 }
 
 .lines-code {
   padding-left: 5px;
-}
-
-.file-view tr.active {
-  color: inherit !important;
-  background: inherit !important;
-}
-
-.file-view tr.active .lines-num,
-.file-view tr.active .lines-code {
-  background: var(--color-highlight-bg) !important;
-}
-
-.file-view tr.active:last-of-type .lines-code {
-  border-bottom-right-radius: var(--border-radius);
-}
-
-.file-view tr.active .lines-num {
-  position: relative;
-}
-
-.file-view tr.active .lines-num::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  width: 2px;
-  height: 100%;
-  background: var(--color-highlight-fg);
 }
 
 .code-inner {
@@ -948,26 +929,17 @@ overflow-menu .ui.label {
   margin-right: 4px;
 }
 
-.top-line-blame {
+tr.top-line-blame {
   border-top: 1px solid var(--color-secondary);
 }
 
-.code-view tr.top-line-blame:first-of-type {
-  border-top: none;
+tr.top-line-blame:first-of-type {
+  border-top: none; /* merge code lines belonging to the same commit into one block */
 }
 
 .lines-code .bottom-line,
 .lines-commit .bottom-line {
   border-bottom: 1px solid var(--color-secondary);
-}
-
-.code-view {
-  background: var(--color-code-bg);
-  border-radius: var(--border-radius);
-}
-
-.code-view table {
-  width: 100%;
 }
 
 .migrate .svg.gitea-git {
@@ -1160,6 +1132,7 @@ table th[data-sortt-desc] .svg {
   min-width: 0;
 }
 
+.ui.dropdown > .ui.button,
 .flex-text-block > .ui.button,
 .flex-text-inline > .ui.button {
   margin: 0; /* fomantic buttons have default margin, when we use them in a flex container with gap, we do not need these margins */
@@ -1195,16 +1168,6 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-}
-
-.ui.dropdown.text-flex-grow {
-  display: flex;
-}
-
-.ui.dropdown.text-flex-grow > .text {
-  display: flex;
-  flex-grow: 1;
-  justify-content: space-between;
 }
 
 .svg.octicon-file-directory-fill,

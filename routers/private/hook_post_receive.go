@@ -220,7 +220,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 
 		if len(cols) > 0 {
-			if err := repo_model.UpdateRepositoryCols(ctx, repo, cols...); err != nil {
+			if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, cols...); err != nil {
 				log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 					Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),

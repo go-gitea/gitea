@@ -78,7 +78,7 @@ func (te *TreeEntry) FollowLinks(optLimit ...int) (*TreeEntry, error) {
 	}
 	limit := util.OptionalArg(optLimit, 10)
 	entry := te
-	for i := 0; i < limit; i++ {
+	for range limit {
 		if !entry.IsLink() {
 			break
 		}

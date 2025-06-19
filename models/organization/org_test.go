@@ -334,28 +334,9 @@ func TestAccessibleReposEnv_RepoIDs(t *testing.T) {
 	testSuccess := func(userID int64, expectedRepoIDs []int64) {
 		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
-		repoIDs, err := env.RepoIDs(db.DefaultContext, 1, 100)
+		repoIDs, err := env.RepoIDs(db.DefaultContext)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedRepoIDs, repoIDs)
-	}
-	testSuccess(2, []int64{3, 5, 32})
-	testSuccess(4, []int64{3, 32})
-}
-
-func TestAccessibleReposEnv_Repos(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	testSuccess := func(userID int64, expectedRepoIDs []int64) {
-		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
-		assert.NoError(t, err)
-		repos, err := env.Repos(db.DefaultContext, 1, 100)
-		assert.NoError(t, err)
-		expectedRepos := make(repo_model.RepositoryList, len(expectedRepoIDs))
-		for i, repoID := range expectedRepoIDs {
-			expectedRepos[i] = unittest.AssertExistsAndLoadBean(t,
-				&repo_model.Repository{ID: repoID})
-		}
-		assert.Equal(t, expectedRepos, repos)
 	}
 	testSuccess(2, []int64{3, 5, 32})
 	testSuccess(4, []int64{3, 32})

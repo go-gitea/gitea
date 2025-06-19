@@ -109,7 +109,7 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 			return wikiGitRepo, nil, errBranch
 		}
 		// update the default branch in the database
-		errDb := repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, DefaultWikiBranch: gitRepoDefaultBranch}, "default_wiki_branch")
+		errDb := repo_model.UpdateRepositoryColsNoAutoTime(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, DefaultWikiBranch: gitRepoDefaultBranch}, "default_wiki_branch")
 		if errDb != nil {
 			return wikiGitRepo, nil, errDb
 		}
@@ -417,10 +417,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	// get Commit Count
 	commitsHistory, err := wikiRepo.CommitsByFileAndRange(

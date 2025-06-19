@@ -1012,6 +1012,7 @@ func registerWebRoutes(m *web.Router) {
 					m.Get("/versions", user.ListPackageVersions)
 					m.Group("/{version}", func() {
 						m.Get("", user.ViewPackageVersion)
+						m.Get("/{version_sub}", user.ViewPackageVersion)
 						m.Get("/files/{fileid}", user.DownloadPackageFile)
 						m.Group("/settings", func() {
 							m.Get("", user.PackageSettings)
@@ -1445,8 +1446,10 @@ func registerWebRoutes(m *web.Router) {
 				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 				m.Get("/logs", actions.Logs)
 			})
+			m.Get("/workflow", actions.ViewWorkflowFile)
 			m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 			m.Post("/approve", reqRepoActionsWriter, actions.Approve)
+			m.Post("/delete", reqRepoActionsWriter, actions.Delete)
 			m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 			m.Delete("/artifacts/{artifact_name}", reqRepoActionsWriter, actions.ArtifactsDeleteView)
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)

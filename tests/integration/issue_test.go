@@ -76,14 +76,11 @@ func TestViewIssuesSortByType(t *testing.T) {
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	issuesSelection := getIssuesSelection(t, htmlDoc)
-	expectedNumIssues := unittest.GetCount(t,
+	expectedNumIssues := min(unittest.GetCount(t,
 		&issues_model.Issue{RepoID: repo.ID, PosterID: user.ID},
 		unittest.Cond("is_closed=?", false),
 		unittest.Cond("is_pull=?", false),
-	)
-	if expectedNumIssues > setting.UI.IssuePagingNum {
-		expectedNumIssues = setting.UI.IssuePagingNum
-	}
+	), setting.UI.IssuePagingNum)
 	assert.Equal(t, expectedNumIssues, issuesSelection.Length())
 
 	issuesSelection.Each(func(_ int, selection *goquery.Selection) {
@@ -151,6 +148,15 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	return issueURL
 }
 
+func testIssueAssign(t *testing.T, session *TestSession, repoLink string, issueID, assigneeID int64) {
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf(repoLink+"/issues/assignee?issue_ids=%d", issueID), map[string]string{
+		"_csrf":  GetUserCSRFToken(t, session),
+		"id":     strconv.FormatInt(assigneeID, 10),
+		"action": "", // empty action means assign
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
 func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, status string) int64 {
 	req := NewRequest(t, "GET", issueURL)
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -182,6 +188,15 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 	id, err := strconv.Atoi(idStr)
 	assert.NoError(t, err)
 	return int64(id)
+}
+
+func testIssueChangeMilestone(t *testing.T, session *TestSession, repoLink string, issueID, milestoneID int64) {
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf(repoLink+"/issues/milestone?issue_ids=%d", issueID), map[string]string{
+		"_csrf": GetUserCSRFToken(t, session),
+		"id":    strconv.FormatInt(milestoneID, 10),
+	})
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, `{"ok":true}`, strings.TrimSpace(resp.Body.String()))
 }
 
 func TestNewIssue(t *testing.T) {
@@ -473,10 +488,7 @@ func TestSearchIssues(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
-	}
+	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
 
 	link, _ := url.Parse("/issues/search")
 	req := NewRequest(t, "GET", link.String())
@@ -567,10 +579,7 @@ func TestSearchIssues(t *testing.T) {
 func TestSearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
-	}
+	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
 
 	session := loginUser(t, "user1")
 	link, _ := url.Parse("/issues/search")
