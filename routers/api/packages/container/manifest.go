@@ -16,6 +16,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -72,6 +73,13 @@ func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packag
 			return "", errManifestInvalid.WithMessage("MediaType not recognized")
 		}
 	}
+
+	// .../container/manifest.go:453:createManifestBlob() [E] Error inserting package blob: Error 1062 (23000): Duplicate entry '..........' for key 'package_blob.UQE_package_blob_md5'
+	releaser, err := globallock.Lock(ctx, containerGlobalLockKey(mci.Owner.ID, mci.Image, "manifest"))
+	if err != nil {
+		return "", err
+	}
+	defer releaser()
 
 	if isMediaTypeImageManifest(mci.MediaType) {
 		return processOciImageManifest(ctx, mci, buf)
