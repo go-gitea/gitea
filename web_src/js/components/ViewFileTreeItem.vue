@@ -6,7 +6,7 @@ import {type createViewFileTreeStore} from './ViewFileTreeStore.ts';
 
 type Item = {
   entryName: string;
-  entryMode: string;
+  entryMode: 'blob' | 'exec' | 'tree' | 'commit' | 'symlink' | 'unknown';
   entryIcon: string;
   entryIconOpen: string;
   fullPath: string;
@@ -24,11 +24,7 @@ const isLoading = ref(false);
 const children = ref(props.item.children);
 const collapsed = ref(!props.item.children);
 
-const doLoadChildren = async (e: MouseEvent | null) => {
-  // the event is only not null if the user explicitly clicked on the directory item toggle. the preventDefault
-  // stops the event from bubbling up and causing a directory content load
-  e?.preventDefault();
-
+const doLoadChildren = async () => {
   collapsed.value = !collapsed.value;
   if (!collapsed.value) {
     isLoading.value = true;
@@ -40,74 +36,33 @@ const doLoadChildren = async (e: MouseEvent | null) => {
   }
 };
 
-const doLoadDirContent = (e: MouseEvent) => {
-  // only load the directory content without a window refresh if the user didn't press any special key
+const onItemClick = (e: MouseEvent) => {
+  // only handle the click event with page partial reloading if the user didn't press any special key
+  // let browsers handle special keys like "Ctrl+Click"
   if (!isPlainClick(e)) return;
   e.preventDefault();
-
-  doLoadChildren(null);
+  if (props.item.entryMode === 'tree') doLoadChildren();
   store.navigateTreeView(props.item.fullPath);
 };
 
-const doLoadFileContent = (e: MouseEvent) => {
-  if (!isPlainClick(e)) return;
-  e.preventDefault();
-
-  store.navigateTreeView(props.item.fullPath);
-};
 </script>
 
-<!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
 <template>
   <a
-    v-if="item.entryMode === 'commit'" class="tree-item type-submodule silenced"
+    class="tree-item silenced"
+    :class="{
+      'selected': store.selectedItem === item.fullPath,
+      'type-submodule': item.entryMode === 'commit',
+      'type-directory': item.entryMode === 'tree',
+      'type-symlink': item.entryMode === 'symlink',
+      'type-file': item.entryMode === 'blob' || item.entryMode === 'exec',
+    }"
     :title="item.entryName"
     :href="store.getWebUrl(item.fullPath)"
-  >
-    <!-- submodule -->
-    <div class="item-content">
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="tw-contents" v-html="item.entryIcon"/>
-      <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
-    </div>
-  </a>
-  <a
-    v-else-if="item.entryMode === 'symlink'" class="tree-item type-symlink silenced"
-    :class="{'selected': store.selectedItem === item.fullPath}"
-    :title="item.entryName"
-    :href="store.getWebUrl(item.fullPath)"
-    @click.stop="doLoadFileContent"
-  >
-    <!-- symlink -->
-    <div class="item-content">
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="tw-contents" v-html="item.entryIcon"/>
-      <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
-    </div>
-  </a>
-  <a
-    v-else-if="item.entryMode !== 'tree'" class="tree-item type-file silenced"
-    :class="{'selected': store.selectedItem === item.fullPath}"
-    :title="item.entryName"
-    :href="store.getWebUrl(item.fullPath)"
-    @click.stop="doLoadFileContent"
-  >
-    <!-- file -->
-    <div class="item-content">
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="tw-contents" v-html="item.entryIcon"/>
-      <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
-    </div>
-  </a>
-  <a
-    v-else class="tree-item type-directory silenced"
-    :class="{'selected': store.selectedItem === item.fullPath}"
-    :title="item.entryName"
-    :href="store.getWebUrl(item.fullPath)"
-    @click.stop="doLoadDirContent"
+    @click.stop="onItemClick"
   >
     <!-- directory -->
-    <div class="item-toggle">
+    <div v-if="item.entryMode === 'tree'" class="item-toggle">
       <SvgIcon v-if="isLoading" name="octicon-sync" class="circular-spin"/>
       <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop="doLoadChildren"/>
     </div>
