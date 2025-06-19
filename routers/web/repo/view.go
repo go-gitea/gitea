@@ -394,9 +394,9 @@ func Forks(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), pageSize, page, 5)
+	ctx.Data["IsForksPage"] = true
 	ctx.Data["Page"] = pager
-
-	ctx.Data["Forks"] = forks
+	ctx.Data["Repos"] = forks
 
 	ctx.HTML(http.StatusOK, tplForks)
 }
