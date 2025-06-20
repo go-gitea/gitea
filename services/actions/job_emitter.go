@@ -11,6 +11,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	notify_service "code.gitea.io/gitea/services/notify"
 
@@ -87,16 +88,19 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 			}
 		}
 		if runUpdated {
-			// Sync run status with db
-			jobs[0].Run = nil
-			if err := jobs[0].LoadAttributes(ctx); err != nil {
-				return err
-			}
-			run := jobs[0].Run
-			notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+			NotifyWorkflowRunStatusUpdateWithReload(ctx, jobs[0])
 		}
 	}
 	return nil
+}
+
+func NotifyWorkflowRunStatusUpdateWithReload(ctx context.Context, job *actions_model.ActionRunJob) {
+	job.Run = nil
+	if err := job.LoadAttributes(ctx); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+	notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 }
 
 type jobStatusResolver struct {
