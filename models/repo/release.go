@@ -93,6 +93,22 @@ func init() {
 	db.RegisterModel(new(Release))
 }
 
+func (r *Release) LoadPublisher(ctx context.Context) error {
+	if r.Publisher != nil {
+		return nil
+	}
+	var err error
+	r.Publisher, err = user_model.GetUserByID(ctx, r.PublisherID)
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			r.Publisher = user_model.NewGhostUser()
+		} else {
+			return err
+		}
+	}
+	return nil
+}
+
 // LoadAttributes load repo and publisher attributes for a release
 func (r *Release) LoadAttributes(ctx context.Context) error {
 	var err error
@@ -102,15 +118,8 @@ func (r *Release) LoadAttributes(ctx context.Context) error {
 			return err
 		}
 	}
-	if r.Publisher == nil {
-		r.Publisher, err = user_model.GetUserByID(ctx, r.PublisherID)
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				r.Publisher = user_model.NewGhostUser()
-			} else {
-				return err
-			}
-		}
+	if err := r.LoadPublisher(ctx); err != nil {
+		return err
 	}
 	return GetReleaseAttachments(ctx, r)
 }

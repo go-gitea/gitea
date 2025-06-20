@@ -25,6 +25,7 @@ type FindNotificationOptions struct {
 	UserID            int64
 	RepoID            int64
 	IssueID           int64
+	ReleaseID         int64
 	Status            []NotificationStatus
 	Source            []NotificationSource
 	UpdatedAfterUnix  int64
@@ -42,6 +43,9 @@ func (opts FindNotificationOptions) ToConds() builder.Cond {
 	}
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"notification.issue_id": opts.IssueID})
+	}
+	if opts.ReleaseID != 0 {
+		cond = cond.And(builder.Eq{"notification.release_id": opts.ReleaseID})
 	}
 	if len(opts.Status) > 0 {
 		if len(opts.Status) == 1 {
@@ -70,17 +74,9 @@ func (opts FindNotificationOptions) ToOrders() string {
 // for each watcher, or updates it if already exists
 // receiverID > 0 just send to receiver, else send to all watcher
 func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := createOrUpdateIssueNotifications(ctx, issueID, commentID, notificationAuthorID, receiverID); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		return createOrUpdateIssueNotifications(ctx, issueID, commentID, notificationAuthorID, receiverID)
+	})
 }
 
 func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
@@ -184,6 +180,9 @@ func (nl NotificationList) LoadAttributes(ctx context.Context) error {
 		return err
 	}
 	if _, err := nl.LoadComments(ctx); err != nil {
+		return err
+	}
+	if _, err := nl.LoadReleases(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -453,6 +452,31 @@ func (nl NotificationList) LoadComments(ctx context.Context) ([]int, error) {
 				continue
 			}
 			notification.Comment.Issue = notification.Issue
+		}
+	}
+	return failures, nil
+}
+
+func (nl NotificationList) LoadReleases(ctx context.Context) ([]int, error) {
+	if len(nl) == 0 {
+		return []int{}, nil
+	}
+
+	releaseIDs := nl.getPendingCommentIDs()
+	releases := make(map[int64]*repo_model.Release, len(releaseIDs))
+	if err := db.GetEngine(ctx).In("id", releaseIDs).Find(&releases); err != nil {
+		return nil, err
+	}
+
+	failures := []int{}
+	for i, notification := range nl {
+		if notification.ReleaseID > 0 && notification.Release == nil && releases[notification.ReleaseID] != nil {
+			notification.Release = releases[notification.ReleaseID]
+			if notification.Release == nil {
+				log.Error("Notification[%d]: ReleaseID[%d] failed to load", notification.ID, notification.ReleaseID)
+				failures = append(failures, i)
+				continue
+			}
 		}
 	}
 	return failures, nil

@@ -6,6 +6,7 @@ package user
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -78,6 +79,23 @@ func GetUsersByIDs(ctx context.Context, ids []int64) (UserList, error) {
 	}
 	err := db.GetEngine(ctx).In("id", ids).
 		Asc("name").
+		Find(&ous)
+	return ous, err
+}
+
+// GetUsersByUsernames returns all resolved users from a list of user names.
+func GetUsersByUsernames(ctx context.Context, userNames []string) (UserList, error) {
+	ous := make([]*User, 0, len(userNames))
+	if len(userNames) == 0 {
+		return ous, nil
+	}
+	for i, name := range userNames {
+		userNames[i] = strings.ToLower(name)
+	}
+
+	err := db.GetEngine(ctx).
+		Where("`type` = ?", UserTypeIndividual).
+		In("lower_name", userNames).
 		Find(&ous)
 	return ous, err
 }

@@ -83,6 +83,13 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 			URL:     n.Repository.Link(),
 			HTMLURL: n.Repository.HTMLURL(),
 		}
+	case activities_model.NotificationSourceRelease:
+		result.Subject = &api.NotificationSubject{
+			Type:    api.NotifySubjectRelease,
+			Title:   n.Release.Title,
+			URL:     n.Release.Link(),
+			HTMLURL: n.Release.HTMLURL(),
+		}
 	}
 
 	return result

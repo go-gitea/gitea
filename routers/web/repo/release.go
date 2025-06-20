@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
 	release_service "code.gitea.io/gitea/services/release"
+	activities_model "code.gitea.io/gitea/models/activities"
 )
 
 const (
@@ -296,6 +297,14 @@ func SingleRelease(ctx *context.Context) {
 	release := releases[0].Release
 	if release.IsTag && release.Title == "" {
 		release.Title = release.TagName
+	}
+
+	if ctx.IsSigned && !release.IsTag {
+		err = activities_model.SetReleaseReadBy(ctx, release.ID, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("SetReleaseReadBy", err)
+			return
+		}
 	}
 
 	ctx.Data["PageIsSingleTag"] = release.IsTag
