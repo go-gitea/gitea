@@ -37,15 +37,13 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 		RunID:       runID,
 		ListOptions: utils.GetListOptions(ctx),
 	}
-	if statuses, ok := ctx.Req.URL.Query()["status"]; ok {
-		for _, status := range statuses {
-			values, err := convertToInternal(status)
-			if err != nil {
-				ctx.APIError(http.StatusBadRequest, fmt.Errorf("Invalid status %s", status))
-				return
-			}
-			opts.Statuses = append(opts.Statuses, values...)
+	for _, status := range ctx.FormStrings("status") {
+		values, err := convertToInternal(status)
+		if err != nil {
+			ctx.APIError(http.StatusBadRequest, fmt.Errorf("Invalid status %s", status))
+			return
 		}
+		opts.Statuses = append(opts.Statuses, values...)
 	}
 
 	jobs, total, err := db.FindAndCount[actions_model.ActionRunJob](ctx, opts)
@@ -127,23 +125,21 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
-	if event := ctx.Req.URL.Query().Get("event"); event != "" {
+	if event := ctx.FormString("event"); event != "" {
 		opts.TriggerEvent = webhook.HookEventType(event)
 	}
-	if branch := ctx.Req.URL.Query().Get("branch"); branch != "" {
+	if branch := ctx.FormString("branch"); branch != "" {
 		opts.Ref = string(git.RefNameFromBranch(branch))
 	}
-	if statuses, ok := ctx.Req.URL.Query()["status"]; ok {
-		for _, status := range statuses {
-			values, err := convertToInternal(status)
-			if err != nil {
-				ctx.APIError(http.StatusBadRequest, fmt.Errorf("Invalid status %s", status))
-				return
-			}
-			opts.Status = append(opts.Status, values...)
+	for _, status := range ctx.FormStrings("status") {
+		values, err := convertToInternal(status)
+		if err != nil {
+			ctx.APIError(http.StatusBadRequest, fmt.Errorf("Invalid status %s", status))
+			return
 		}
+		opts.Status = append(opts.Status, values...)
 	}
-	if actor := ctx.Req.URL.Query().Get("actor"); actor != "" {
+	if actor := ctx.FormString("actor"); actor != "" {
 		user, err := user_model.GetUserByName(ctx, actor)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -151,7 +147,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 		}
 		opts.TriggerUserID = user.ID
 	}
-	if headSHA := ctx.Req.URL.Query().Get("head_sha"); headSHA != "" {
+	if headSHA := ctx.FormString("head_sha"); headSHA != "" {
 		opts.CommitSHA = headSHA
 	}
 
