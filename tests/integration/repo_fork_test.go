@@ -112,7 +112,8 @@ func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo1/forks")
 		resp := MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.Equal(t, 0, htmlDoc.Find(forkItemSelector).Length())
+		// current repository will also use class "flex-item" so we need to subtract 1
+		assert.Equal(t, 0, htmlDoc.Find(forkItemSelector).Length()-1)
 	})
 
 	t.Run("Logged in", func(t *testing.T) {
@@ -122,11 +123,13 @@ func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 		resp := user1Sess.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		// since user1 is an admin, he can get both of the forked repositories
-		assert.Equal(t, 2, htmlDoc.Find(forkItemSelector).Length())
+		// current repository will also use class "flex-item" so we need to subtract 1
+		assert.Equal(t, 2, htmlDoc.Find(forkItemSelector).Length()-1)
 
 		assert.NoError(t, org_service.AddTeamMember(db.DefaultContext, ownerTeam2, user1))
 		resp = user1Sess.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
-		assert.Equal(t, 2, htmlDoc.Find(forkItemSelector).Length())
+		// current repository will also use class "flex-item" so we need to subtract 1
+		assert.Equal(t, 2, htmlDoc.Find(forkItemSelector).Length()-1)
 	})
 }
