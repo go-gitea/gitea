@@ -1194,6 +1194,14 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 
 	runID := ctx.PathParamInt64("run")
 
+	// Avoid the list all jobs functionality for this api route to be used with a runID == 0.
+	if runID <= 0 {
+		ctx.APIError(http.StatusBadRequest, util.NewInvalidArgumentErrorf("runID must be a positive integer"))
+		return
+	}
+
+	// runID is used as an additional filter next to repoID to ensure that we only list jobs for the specified repoID and runID.
+	// no additional checks for runID are needed here
 	shared.ListJobs(ctx, 0, repoID, runID)
 }
 
