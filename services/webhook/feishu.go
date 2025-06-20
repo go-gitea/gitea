@@ -197,7 +197,7 @@ func (feishuConvertor) WorkflowJob(p *api.WorkflowJobPayload) (FeishuPayload, er
 // https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot
 func GenSign(secret string, timestamp int64) (string, error) {
 	// timestamp + key do sha256, then base64 encode
-	stringToSign := strconv.FormatInt(timestamp, 10) + "\n" + secret
+	stringToSign := fmt.Sprintf("%d\n%s", timestamp, secret)
 
 	h := hmac.New(sha256.New, []byte(stringToSign))
 	_, err := h.Write([]byte{})
