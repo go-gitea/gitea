@@ -4,10 +4,16 @@
 package webhook
 
 import (
+	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
@@ -16,10 +22,12 @@ import (
 )
 
 type (
-	// FeishuPayload represents
+	// FeishuPayload represents the payload for Feishu webhook
 	FeishuPayload struct {
-		MsgType string `json:"msg_type"` // text / post / image / share_chat / interactive / file /audio / media
-		Content struct {
+		Timestamp int64  `json:"timestamp,omitempty"` // Unix timestamp for signature verification
+		Sign      string `json:"sign,omitempty"`      // Signature for verification
+		MsgType   string `json:"msg_type"`           // text / post / image / share_chat / interactive / file /audio / media
+		Content   struct {
 			Text string `json:"text"`
 		} `json:"content"`
 	}
@@ -178,9 +186,64 @@ func (feishuConvertor) WorkflowJob(p *api.WorkflowJobPayload) (FeishuPayload, er
 	return newFeishuTextPayload(text), nil
 }
 
+// GenSign generates a signature for Feishu webhook
+// https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot
+func GenSign(secret string, timestamp int64) (string, error) {
+	// timestamp + key do sha256, then base64 encode
+	stringToSign := fmt.Sprintf("%v", timestamp) + "\n" + secret
+
+	h := hmac.New(sha256.New, []byte(stringToSign))
+	_, err := h.Write([]byte{})
+	if err != nil {
+		return "", err
+	}
+
+	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	return signature, nil
+}
+
 func newFeishuRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	var pc payloadConvertor[FeishuPayload] = feishuConvertor{}
-	return newJSONRequest(pc, w, t, true)
+	
+	// Get the payload first
+	payload, err := newPayload(pc, []byte(t.PayloadContent), t.EventType)
+	if err != nil {
+		return nil, nil, err
+	}
+	
+	// Add timestamp and signature if secret is provided
+	if w.Secret != "" {
+		timestamp := time.Now().Unix()
+		payload.Timestamp = timestamp
+		
+		// Generate signature
+		sign, err := GenSign(w.Secret, timestamp)
+		if err != nil {
+			return nil, nil, err
+		}
+		payload.Sign = sign
+	}
+	
+	// Marshal the payload
+	body, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		return nil, nil, err
+	}
+	
+	// Create the request
+	method := w.HTTPMethod
+	if method == "" {
+		method = http.MethodPost
+	}
+	
+	req, err := http.NewRequest(method, w.URL, bytes.NewReader(body))
+	if err != nil {
+		return nil, nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	
+	// Add default headers
+	return req, body, addDefaultHeaders(req, []byte(w.Secret), w, t, body)
 }
 
 func init() {
