@@ -776,7 +776,7 @@ func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *rep
 
 	status := convert.ToWorkflowRunAction(run.Status)
 
-	gitRepo, err := gitrepo.OpenRepository(context.Background(), repo)
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		log.Error("OpenRepository: %v", err)
 		return
