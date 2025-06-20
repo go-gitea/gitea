@@ -942,6 +942,8 @@ func Routes() *web.Router {
 				m.Get("/{runner_id}", reqToken(), reqChecker, act.GetRunner)
 				m.Delete("/{runner_id}", reqToken(), reqChecker, act.DeleteRunner)
 			})
+			m.Get("/runs", reqToken(), reqChecker, act.ListWorkflowRuns)
+			m.Get("/jobs", reqToken(), reqChecker, act.ListWorkflowJobs)
 		})
 	}
 
@@ -971,7 +973,8 @@ func Routes() *web.Router {
 		// Misc (public accessible)
 		m.Group("", func() {
 			m.Get("/version", misc.Version)
-			m.Get("/signing-key.gpg", misc.SigningKey)
+			m.Get("/signing-key.gpg", misc.SigningKeyGPG)
+			m.Get("/signing-key.pub", misc.SigningKeySSH)
 			m.Post("/markup", reqToken(), bind(api.MarkupOption{}), misc.Markup)
 			m.Post("/markdown", reqToken(), bind(api.MarkdownOption{}), misc.Markdown)
 			m.Post("/markdown/raw", reqToken(), misc.MarkdownRaw)
@@ -1077,6 +1080,9 @@ func Routes() *web.Router {
 					m.Get("/{runner_id}", reqToken(), user.GetRunner)
 					m.Delete("/{runner_id}", reqToken(), user.DeleteRunner)
 				})
+
+				m.Get("/runs", reqToken(), user.ListWorkflowRuns)
+				m.Get("/jobs", reqToken(), user.ListWorkflowJobs)
 			})
 
 			m.Get("/followers", user.ListMyFollowers)
@@ -1201,6 +1207,7 @@ func Routes() *web.Router {
 				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions))
 
 				m.Group("/actions/jobs", func() {
+					m.Get("/{job_id}", repo.GetWorkflowJob)
 					m.Get("/{job_id}/logs", repo.DownloadActionsRunJobLogs)
 				}, reqToken(), reqRepoReader(unit.TypeActions))
 
@@ -1279,9 +1286,13 @@ func Routes() *web.Router {
 				}, reqToken(), reqAdmin())
 				m.Group("/actions", func() {
 					m.Get("/tasks", repo.ListActionTasks)
-					m.Group("/runs/{run}", func() {
-						m.Get("/artifacts", repo.GetArtifactsOfRun)
-						m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
+					m.Group("/runs", func() {
+						m.Group("/{run}", func() {
+							m.Get("", repo.GetWorkflowRun)
+							m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
+							m.Get("/jobs", repo.ListWorkflowRunJobs)
+							m.Get("/artifacts", repo.GetArtifactsOfRun)
+						})
 					})
 					m.Get("/artifacts", repo.GetArtifacts)
 					m.Group("/artifacts/{artifact_id}", func() {
@@ -1427,7 +1438,8 @@ func Routes() *web.Router {
 				m.Combo("/file-contents", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo()).
 					Get(repo.GetFileContentsGet).
 					Post(bind(api.GetFilesOptions{}), repo.GetFileContentsPost) // POST method requires "write" permission, so we also support "GET" method above
-				m.Get("/signing-key.gpg", misc.SigningKey)
+				m.Get("/signing-key.gpg", misc.SigningKeyGPG)
+				m.Get("/signing-key.pub", misc.SigningKeySSH)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).
 						Put(reqToken(), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)
@@ -1732,11 +1744,15 @@ func Routes() *web.Router {
 					Patch(bind(api.EditHookOption{}), admin.EditHook).
 					Delete(admin.DeleteHook)
 			})
-			m.Group("/actions/runners", func() {
-				m.Get("", admin.ListRunners)
-				m.Post("/registration-token", admin.CreateRegistrationToken)
-				m.Get("/{runner_id}", admin.GetRunner)
-				m.Delete("/{runner_id}", admin.DeleteRunner)
+			m.Group("/actions", func() {
+				m.Group("/runners", func() {
+					m.Get("", admin.ListRunners)
+					m.Post("/registration-token", admin.CreateRegistrationToken)
+					m.Get("/{runner_id}", admin.GetRunner)
+					m.Delete("/{runner_id}", admin.DeleteRunner)
+				})
+				m.Get("/runs", admin.ListWorkflowRuns)
+				m.Get("/jobs", admin.ListWorkflowJobs)
 			})
 			m.Group("/runners", func() {
 				m.Get("/registration-token", admin.GetRegistrationToken)

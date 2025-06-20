@@ -162,7 +162,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 					IsActive: optional.Some(true),
 				}
 				if source.AdminFilter != "" {
-					opts.IsAdmin = optional.Some(su.IsAdmin)
+					opts.IsAdmin = user_service.UpdateOptionFieldFromSync(su.IsAdmin)
 				}
 				// Change existing restricted flag only if RestrictedFilter option is set
 				if !su.IsAdmin && source.RestrictedFilter != "" {

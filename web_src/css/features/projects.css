@@ -5,6 +5,7 @@
   flex-wrap: nowrap;
   overflow: auto;
   margin: 0 0.5em;
+  min-height: max(calc(100vh - 400px), 300px);
   max-height: calc(100vh - 120px);
 }
 

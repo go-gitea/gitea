@@ -223,7 +223,7 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 		return
 	}
 
-	s, u, _, err := packages_service.GetPackageBlobStream(ctx, pf, pb, nil)
+	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pf, pb, nil)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
