@@ -26,7 +26,7 @@ type (
 	FeishuPayload struct {
 		Timestamp int64  `json:"timestamp,omitempty"` // Unix timestamp for signature verification
 		Sign      string `json:"sign,omitempty"`      // Signature for verification
-		MsgType   string `json:"msg_type"`           // text / post / image / share_chat / interactive / file /audio / media
+		MsgType   string `json:"msg_type"`            // text / post / image / share_chat / interactive / file /audio / media
 		Content   struct {
 			Text string `json:"text"`
 		} `json:"content"`
@@ -204,18 +204,18 @@ func GenSign(secret string, timestamp int64) (string, error) {
 
 func newFeishuRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	var pc payloadConvertor[FeishuPayload] = feishuConvertor{}
-	
+
 	// Get the payload first
 	payload, err := newPayload(pc, []byte(t.PayloadContent), t.EventType)
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	// Add timestamp and signature if secret is provided
 	if w.Secret != "" {
 		timestamp := time.Now().Unix()
 		payload.Timestamp = timestamp
-		
+
 		// Generate signature
 		sign, err := GenSign(w.Secret, timestamp)
 		if err != nil {
@@ -223,25 +223,25 @@ func newFeishuRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_mo
 		}
 		payload.Sign = sign
 	}
-	
+
 	// Marshal the payload
 	body, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	// Create the request
 	method := w.HTTPMethod
 	if method == "" {
 		method = http.MethodPost
 	}
-	
+
 	req, err := http.NewRequest(method, w.URL, bytes.NewReader(body))
 	if err != nil {
 		return nil, nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	// Add default headers
 	return req, body, addDefaultHeaders(req, []byte(w.Secret), w, t, body)
 }
