@@ -693,6 +693,8 @@ func ContainerRoutes() *web.Router {
 		&container.Auth{},
 	})
 
+	// TODO: Content Discovery / References (not implemented yet)
+
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
 	r.Group("/token", func() {
 		r.Get("", container.Authenticate)

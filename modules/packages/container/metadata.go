@@ -4,7 +4,6 @@
 package container
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -72,20 +71,39 @@ type Manifest struct {
 	Size     int64  `json:"size"`
 }
 
+func IsMediaTypeValid(mt string) bool {
+	return strings.HasPrefix(mt, "application/vnd.docker.") || strings.HasPrefix(mt, "application/vnd.oci.")
+}
+
+func IsMediaTypeImageManifest(mt string) bool {
+	return strings.EqualFold(mt, oci.MediaTypeImageManifest) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.v2+json")
+}
+
+func IsMediaTypeImageIndex(mt string) bool {
+	return strings.EqualFold(mt, oci.MediaTypeImageIndex) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.list.v2+json")
+}
+
 // ParseImageConfig parses the metadata of an image config
-func ParseImageConfig(mt string, r io.Reader) (*Metadata, error) {
-	if strings.EqualFold(mt, helm.ConfigMediaType) {
+func ParseImageConfig(mediaType string, r io.Reader) (*Metadata, error) {
+	if strings.EqualFold(mediaType, helm.ConfigMediaType) {
 		return parseHelmConfig(r)
 	}
 
 	// fallback to OCI Image Config
-	return parseOCIImageConfig(r)
+	// FIXME: this fallback is not right, we should strictly check the media type in the future
+	metadata, err := parseOCIImageConfig(r)
+	if err != nil {
+		if !IsMediaTypeImageManifest(mediaType) {
+			return &Metadata{Platform: "unknown/unknown"}, nil
+		}
+		return nil, err
+	}
+	return metadata, nil
 }
 
 func parseOCIImageConfig(r io.Reader) (*Metadata, error) {
 	var image oci.Image
-	// EOF means empty input, still use the default data
-	if err := json.NewDecoder(r).Decode(&image); err != nil && !errors.Is(err, io.EOF) {
+	if err := json.NewDecoder(r).Decode(&image); err != nil {
 		return nil, err
 	}
 

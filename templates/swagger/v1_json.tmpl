@@ -75,6 +75,49 @@
         }
       }
     },
+    "/admin/actions/jobs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Lists all jobs",
+        "operationId": "listAdminWorkflowJobs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowJobsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/admin/actions/runners": {
       "get": {
         "produces": [
@@ -167,6 +210,73 @@
         "responses": {
           "204": {
             "description": "runner has been deleted"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/admin/actions/runs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Lists all runs",
+        "operationId": "listAdminWorkflowRuns",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workflow event name",
+            "name": "event",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow branch",
+            "name": "branch",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggered by user",
+            "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggering sha of the workflow run",
+            "name": "head_sha",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowRunsList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -1799,6 +1909,56 @@
         }
       }
     },
+    "/orgs/{org}/actions/jobs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get org-level workflow jobs",
+        "operationId": "getOrgWorkflowJobs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowJobsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/orgs/{org}/actions/runners": {
       "get": {
         "produces": [
@@ -1947,6 +2107,80 @@
         "responses": {
           "204": {
             "description": "runner has been deleted"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/actions/runs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get org-level workflow runs",
+        "operationId": "getOrgWorkflowRuns",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow event name",
+            "name": "event",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow branch",
+            "name": "branch",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggered by user",
+            "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggering sha of the workflow run",
+            "name": "head_sha",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowRunsList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -4519,6 +4753,109 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/jobs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Lists all jobs for a repository",
+        "operationId": "listWorkflowJobs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowJobsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/jobs/{job_id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets a specific workflow job for a workflow run",
+        "operationId": "getWorkflowJob",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the job",
+            "name": "job_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowJob"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/jobs/{job_id}/logs": {
       "get": {
         "produces": [
@@ -4758,7 +5095,132 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Lists all runs for a repository run",
+        "operationId": "getWorkflowRuns",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow event name",
+            "name": "event",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow branch",
+            "name": "branch",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggered by user",
+            "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggering sha of the workflow run",
+            "name": "head_sha",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ArtifactsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/runs/{run}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets a specific workflow run",
+        "operationId": "GetWorkflowRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
       "delete": {
         "produces": [
           "application/json"
@@ -4846,6 +5308,70 @@
         "responses": {
           "200": {
             "$ref": "#/responses/ArtifactsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/jobs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Lists all jobs for a workflow run",
+        "operationId": "listWorkflowRunJobs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "runid of the workflow run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowJobsList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -17584,6 +18110,49 @@
         }
       }
     },
+    "/user/actions/jobs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get workflow jobs",
+        "operationId": "getUserWorkflowJobs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowJobsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/user/actions/runners": {
       "get": {
         "produces": [
@@ -17691,6 +18260,73 @@
         "responses": {
           "204": {
             "description": "runner has been deleted"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/user/actions/runs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get workflow runs",
+        "operationId": "getUserWorkflowRuns",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workflow event name",
+            "name": "event",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow branch",
+            "name": "branch",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggered by user",
+            "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggering sha of the workflow run",
+            "name": "head_sha",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowRunsList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -20440,23 +21076,251 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "ActionWorkflowRun": {
-      "description": "ActionWorkflowRun represents a WorkflowRun",
+    "ActionWorkflowJob": {
+      "description": "ActionWorkflowJob represents a WorkflowJob",
       "type": "object",
       "properties": {
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CompletedAt"
+        },
+        "conclusion": {
+          "type": "string",
+          "x-go-name": "Conclusion"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "head_branch": {
+          "type": "string",
+          "x-go-name": "HeadBranch"
+        },
         "head_sha": {
           "type": "string",
           "x-go-name": "HeadSha"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
         },
         "id": {
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Labels"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "run_attempt": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RunAttempt"
+        },
+        "run_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RunID"
+        },
+        "run_url": {
+          "type": "string",
+          "x-go-name": "RunURL"
+        },
+        "runner_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RunnerID"
+        },
+        "runner_name": {
+          "type": "string",
+          "x-go-name": "RunnerName"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "StartedAt"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActionWorkflowStep"
+          },
+          "x-go-name": "Steps"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ActionWorkflowJobsResponse": {
+      "description": "ActionWorkflowJobsResponse returns ActionWorkflowJobs",
+      "type": "object",
+      "properties": {
+        "jobs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActionWorkflowJob"
+          },
+          "x-go-name": "Entries"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ActionWorkflowRun": {
+      "description": "ActionWorkflowRun represents a WorkflowRun",
+      "type": "object",
+      "properties": {
+        "actor": {
+          "$ref": "#/definitions/User"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CompletedAt"
+        },
+        "conclusion": {
+          "type": "string",
+          "x-go-name": "Conclusion"
+        },
+        "display_title": {
+          "type": "string",
+          "x-go-name": "DisplayTitle"
+        },
+        "event": {
+          "type": "string",
+          "x-go-name": "Event"
+        },
+        "head_branch": {
+          "type": "string",
+          "x-go-name": "HeadBranch"
+        },
+        "head_repository": {
+          "$ref": "#/definitions/Repository"
+        },
+        "head_sha": {
+          "type": "string",
+          "x-go-name": "HeadSha"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
+        },
         "repository_id": {
           "type": "integer",
           "format": "int64",
           "x-go-name": "RepositoryID"
+        },
+        "run_attempt": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RunAttempt"
+        },
+        "run_number": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RunNumber"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "StartedAt"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        },
+        "trigger_actor": {
+          "$ref": "#/definitions/User"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ActionWorkflowRunsResponse": {
+      "description": "ActionWorkflowRunsResponse returns ActionWorkflowRuns",
+      "type": "object",
+      "properties": {
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        },
+        "workflow_runs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActionWorkflowRun"
+          },
+          "x-go-name": "Entries"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ActionWorkflowStep": {
+      "description": "ActionWorkflowStep represents a step of a WorkflowJob",
+      "type": "object",
+      "properties": {
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CompletedAt"
+        },
+        "conclusion": {
+          "type": "string",
+          "x-go-name": "Conclusion"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "number": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Number"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "StartedAt"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -28613,6 +29477,30 @@
         "items": {
           "$ref": "#/definitions/WikiPageMetaData"
         }
+      }
+    },
+    "WorkflowJob": {
+      "description": "WorkflowJob",
+      "schema": {
+        "$ref": "#/definitions/ActionWorkflowJob"
+      }
+    },
+    "WorkflowJobsList": {
+      "description": "WorkflowJobsList",
+      "schema": {
+        "$ref": "#/definitions/ActionWorkflowJobsResponse"
+      }
+    },
+    "WorkflowRun": {
+      "description": "WorkflowRun",
+      "schema": {
+        "$ref": "#/definitions/ActionWorkflowRun"
+      }
+    },
+    "WorkflowRunsList": {
+      "description": "WorkflowRunsList",
+      "schema": {
+        "$ref": "#/definitions/ActionWorkflowRunsResponse"
       }
     },
     "conflict": {
