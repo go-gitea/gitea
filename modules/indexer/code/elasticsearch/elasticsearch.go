@@ -4,7 +4,6 @@
 package elasticsearch
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -137,7 +136,7 @@ const (
 	}`
 )
 
-func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
+func (b *Indexer) addUpdate(ctx context.Context, batch git.Batch, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -160,9 +159,11 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
 	}
 
-	if _, err := batchWriter.Write([]byte(update.BlobSha + "\n")); err != nil {
+	if _, err := batch.Write([]byte(update.BlobSha + "\n")); err != nil {
 		return nil, err
 	}
+
+	batchReader := batch.Reader()
 
 	_, _, size, err = git.ReadBatchLine(batchReader)
 	if err != nil {
@@ -215,7 +216,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 		defer batch.Close()
 
 		for _, update := range changes.Updates {
-			updateReqs, err := b.addUpdate(ctx, batch.Writer, batch.Reader, sha, update, repo)
+			updateReqs, err := b.addUpdate(ctx, batch, sha, update, repo)
 			if err != nil {
 				return err
 			}
