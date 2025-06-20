@@ -4,6 +4,14 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.24.2](https://github.com/go-gitea/gitea/releases/tag/1.24.2) - 2025-06-20
+
+* BUGFIXES
+  * Fix container range bug (#34795) (#34796)
+  * Upgrade chi to v5.2.2 (#34798) (#34799)
+* BUILD
+  * Bump poetry feature to new url for dev container (#34787) (#34790)
+
 ## [1.24.1](https://github.com/go-gitea/gitea/releases/tag/1.24.1) - 2025-06-18
 
 * ENHANCEMENTS
