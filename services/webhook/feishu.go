@@ -212,7 +212,7 @@ func newFeishuRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_mo
 		payload.Sign = feishuGenSign(w.Secret, timestamp)
 	}
 
-	return sendHTTPRequest(payload, w, t, false)
+	return prepareJSONRequest(payload, w, t, false /* no default headers */)
 }
 
 func init() {
