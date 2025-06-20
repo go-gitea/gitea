@@ -7,68 +7,45 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/repository/files"
 )
 
 func NewDiffPatch(ctx *context.Context) {
-	_ = prepareEditorCommitFormOptions(ctx, "_diffpatch")
+	prepareEditorCommitFormOptions(ctx, "_diffpatch")
 	if ctx.Written() {
 		return
 	}
+
 	ctx.Data["PageIsPatch"] = true
 	ctx.HTML(http.StatusOK, tplPatchFile)
 }
 
 // NewDiffPatchPost response for sending patch page
 func NewDiffPatchPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.EditRepoFileForm)
-	if ctx.HasError() {
-		ctx.JSONError(ctx.GetErrMsg())
-		return
-	}
-
-	formOpts := prepareEditorCommitFormOptions(ctx, "_diffpatch")
+	parsed := parseEditorCommitSubmittedForm[*forms.EditRepoFileForm](ctx)
 	if ctx.Written() {
 		return
 	}
 
-	branchName := util.Iif(form.CommitChoice == editorCommitChoiceNewBranch, form.NewBranchName, ctx.Repo.BranchName)
-	if branchName == ctx.Repo.BranchName && !formOpts.CommitFormBehaviors.CanCommitToBranch {
-		ctx.JSONError(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", branchName))
-		return
-	}
-
-	commitMessage := buildEditorCommitMessage(ctx.Locale.TrString("repo.editor.patch"), form.CommitSummary, form.CommitMessage)
-
-	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, form.CommitEmail)
-	if !valid {
-		ctx.Data["Err_CommitEmail"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.editor.invalid_commit_email"), tplPatchFile, &form)
-		return
-	}
-
-	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, &files.ApplyDiffPatchOptions{
-		LastCommitID: form.LastCommit,
+	defaultCommitMessage := ctx.Locale.TrString("repo.editor.patch")
+	_, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, &files.ApplyDiffPatchOptions{
+		LastCommitID: parsed.form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
-		NewBranch:    branchName,
-		Message:      commitMessage,
-		Content:      strings.ReplaceAll(form.Content.Value(), "\r", ""),
-		Author:       gitCommitter,
-		Committer:    gitCommitter,
+		NewBranch:    parsed.TargetBranchName,
+		Message:      parsed.GetCommitMessage(defaultCommitMessage),
+		Content:      strings.ReplaceAll(parsed.form.Content.Value(), "\r\n", "\n"),
+		Author:       parsed.GitCommitter,
+		Committer:    parsed.GitCommitter,
 	})
 	if err != nil {
-		editorHandleFileOperationError(ctx, branchName, err)
+		err = util.ErrorWrapLocale(err, "repo.editor.fail_to_apply_patch")
+	}
+	if err != nil {
+		editorHandleFileOperationError(ctx, parsed.TargetBranchName, err)
 		return
 	}
-
-	if form.CommitChoice == editorCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) {
-		ctx.JSONRedirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
-	} else {
-		ctx.JSONRedirect(ctx.Repo.RepoLink + "/commit/" + fileResponse.Commit.SHA)
-	}
+	redirectForCommitChoice(ctx, parsed, parsed.form.TreePath)
 }

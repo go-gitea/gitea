@@ -88,7 +88,8 @@ func (err ErrRepoFileDoesNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-type LazyReader interface {
+type LazyReadSeeker interface {
+	io.ReadSeeker
 	io.Closer
 	OpenLazyReader() error
 }
@@ -387,19 +388,29 @@ func (err ErrSHAOrCommitIDNotProvided) Error() string {
 
 // handles the check for various issues for ChangeRepoFiles
 func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRepoFilesOptions) error {
-	// create: old must not exist; update: old must exist; upload: old existence doesn't matter
-	if file.Operation == "update" || file.Operation == "delete" || file.Operation == "rename" {
-		fromEntry, err := commit.GetTreeEntryByPath(file.Options.fromTreePath)
-		if err != nil {
-			return err
+	// check old entry (fromTreePath/fromEntry)
+	if file.Operation == "update" || file.Operation == "upload" || file.Operation == "delete" || file.Operation == "rename" {
+		var fromEntryIDString string
+		{
+			fromEntry, err := commit.GetTreeEntryByPath(file.Options.fromTreePath)
+			if file.Operation == "upload" && git.IsErrNotExist(err) {
+				fromEntry = nil
+			} else if err != nil {
+				return err
+			}
+			if fromEntry != nil {
+				fromEntryIDString = fromEntry.ID.String()
+				file.Options.executable = fromEntry.IsExecutable() // FIXME: legacy hacky approach, it shouldn't prepare the "Options" in the "check" function
+			}
 		}
+
 		if file.SHA != "" {
 			// If the SHA given doesn't match the SHA of the fromTreePath, throw error
-			if file.SHA != fromEntry.ID.String() {
+			if file.SHA != fromEntryIDString {
 				return pull_service.ErrSHADoesNotMatch{
 					Path:       file.Options.treePath,
 					GivenSHA:   file.SHA,
-					CurrentSHA: fromEntry.ID.String(),
+					CurrentSHA: fromEntryIDString,
 				}
 			}
 		} else if opts.LastCommitID != "" {
@@ -421,10 +432,9 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 			// haven't been made. We throw an error if one wasn't provided.
 			return ErrSHAOrCommitIDNotProvided{}
 		}
-		// FIXME: legacy hacky approach, it shouldn't prepare the "Options" in the "check" function
-		file.Options.executable = fromEntry.IsExecutable()
 	}
 
+	// check new entry (treePath/treeEntry)
 	if file.Operation == "create" || file.Operation == "update" || file.Operation == "upload" || file.Operation == "rename" {
 		// For operation's target path, we need to make sure no parts of the path are existing files or links
 		// except for the last item in the path (which is the file name).
@@ -477,7 +487,7 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 }
 
 func modifyFile(ctx context.Context, t *TemporaryUploadRepository, file *ChangeRepoFile, contentStore *lfs.ContentStore, repoID int64) (addedLfsPointer *lfs.Pointer, _ error) {
-	if rd, ok := file.ContentReader.(LazyReader); ok {
+	if rd, ok := file.ContentReader.(LazyReadSeeker); ok {
 		if err := rd.OpenLazyReader(); err != nil {
 			return nil, fmt.Errorf("OpenLazyReader: %w", err)
 		}

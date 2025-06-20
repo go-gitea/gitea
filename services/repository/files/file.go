@@ -134,9 +134,8 @@ func (err ErrFilenameInvalid) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
-// CleanGitTreePath Trims a filename and returns empty string if it is a .git directory
+// CleanGitTreePath cleans a tree path for git, it returns an empty string the path is invalid (e.g.: contains ".git" part)
 func CleanGitTreePath(name string) string {
-	// Rebase the filename
 	name = util.PathJoinRel(name)
 	// Git disallows any filenames to have a .git directory in them.
 	for part := range strings.SplitSeq(name, "/") {

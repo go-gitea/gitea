@@ -6,15 +6,12 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
-// DiffPreviewPost render preview diff page
 func DiffPreviewPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.EditPreviewDiffForm)
+	content := ctx.FormString("content")
 	treePath := files_service.CleanGitTreePath(ctx.Repo.TreePath)
 	if treePath == "" {
 		ctx.HTTPError(http.StatusBadRequest, "file name to diff is invalid")
@@ -30,7 +27,7 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	diff, err := files_service.GetDiffPreview(ctx, ctx.Repo.Repository, ctx.Repo.BranchName, treePath, form.Content)
+	diff, err := files_service.GetDiffPreview(ctx, ctx.Repo.Repository, ctx.Repo.BranchName, treePath, content)
 	if err != nil {
 		ctx.ServerError("GetDiffPreview", err)
 		return

@@ -35,6 +35,8 @@ type lazyLocalFileReader struct {
 	mu            sync.Mutex
 }
 
+var _ LazyReadSeeker = (*lazyLocalFileReader)(nil)
+
 func (l *lazyLocalFileReader) Close() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()

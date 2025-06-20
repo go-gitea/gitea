@@ -156,7 +156,7 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 	})
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	redirect := test.RedirectURL(resp)
-	assert.Equal(t, "/user30/empty/src/branch/"+setting.Repository.DefaultBranch+"/", redirect)
+	assert.Equal(t, "/user30/empty/src/branch/"+setting.Repository.DefaultBranch, redirect)
 
 	req = NewRequest(t, "GET", redirect)
 	resp = session.MakeRequest(t, req, http.StatusOK)

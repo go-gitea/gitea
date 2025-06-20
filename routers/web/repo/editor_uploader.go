@@ -9,10 +9,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
-	"code.gitea.io/gitea/services/forms"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -54,12 +52,8 @@ func UploadFileToServer(ctx *context.Context) {
 
 // RemoveUploadFileFromServer remove file from server file dir
 func RemoveUploadFileFromServer(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RemoveUploadFileForm)
-	if form.File == "" {
-		ctx.Status(http.StatusNoContent)
-		return
-	}
-	if err := repo_model.DeleteUploadByUUID(ctx, form.File); err != nil {
+	fileUUID := ctx.FormString("file")
+	if err := repo_model.DeleteUploadByUUID(ctx, fileUUID); err != nil {
 		ctx.ServerError("DeleteUploadByUUID", err)
 		return
 	}

@@ -39,41 +39,26 @@ const (
 	editorCommitChoiceNewBranch string = "commit-to-new-branch"
 )
 
-type EditorCommitFormOptions struct {
-	CommitFormBehaviors *context.CommitFormBehaviors
-}
-
-func prepareEditorCommitFormOptions(ctx *context.Context, editorAction string) *EditorCommitFormOptions {
-	// Check if the filename (and additional path) is specified in the querystring
-	// (filename is a misnomer, but kept for compatibility with GitHub)
-	queryFilename := ctx.Req.URL.Query().Get("filename")
-	if queryFilename != "" {
-		newTreePath := path.Join(ctx.Repo.TreePath, queryFilename)
-		ctx.Redirect(fmt.Sprintf("%s/%s/%s/%s", ctx.Repo.RepoLink, editorAction, util.PathEscapeSegments(ctx.Repo.BranchName), util.PathEscapeSegments(newTreePath)))
-		return nil
-	}
-
+func prepareEditorCommitFormOptions(ctx *context.Context, editorAction string) {
 	cleanedTreePath := files_service.CleanGitTreePath(ctx.Repo.TreePath)
 	if cleanedTreePath != ctx.Repo.TreePath {
-		ctx.Redirect(fmt.Sprintf("%s/%s/%s/%s", ctx.Repo.RepoLink, editorAction, util.PathEscapeSegments(ctx.Repo.BranchName), util.PathEscapeSegments(cleanedTreePath)))
-		return nil
+		redirectTo := fmt.Sprintf("%s/%s/%s/%s", ctx.Repo.RepoLink, editorAction, util.PathEscapeSegments(ctx.Repo.BranchName), util.PathEscapeSegments(cleanedTreePath))
+		if ctx.Req.URL.RawQuery != "" {
+			redirectTo += "?" + ctx.Req.URL.RawQuery
+		}
+		ctx.Redirect(redirectTo)
+		return
 	}
-	ctx.Repo.TreePath = cleanedTreePath
 
 	commitFormBehaviors, err := ctx.Repo.PrepareCommitFormBehaviors(ctx, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("PrepareCommitFormBehaviors", err)
-		return nil
-	}
-	opts := &EditorCommitFormOptions{
-		CommitFormBehaviors: commitFormBehaviors,
+		return
 	}
 
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 	ctx.Data["TreePath"] = ctx.Repo.TreePath
-	ctx.Data["TreeNames"], ctx.Data["TreePaths"] = getParentTreeFields(ctx.Repo.TreePath)
 	ctx.Data["CommitFormBehaviors"] = commitFormBehaviors
-	ctx.Data["CommitFormOptions"] = opts
 
 	// for online editor
 	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
@@ -81,24 +66,83 @@ func prepareEditorCommitFormOptions(ctx *context.Context, editorAction string) *
 	ctx.Data["IsEditingFileOnly"] = ctx.FormString("return_uri") != ""
 	ctx.Data["ReturnURI"] = ctx.FormString("return_uri")
 
+	// form fields
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
-	ctx.Data["commit_choice"] = util.Iif(opts.CommitFormBehaviors.CanCommitToBranch, editorCommitChoiceDirect, editorCommitChoiceNewBranch)
+	ctx.Data["commit_choice"] = util.Iif(commitFormBehaviors.CanCommitToBranch, editorCommitChoiceDirect, editorCommitChoiceNewBranch)
 	ctx.Data["new_branch_name"] = getUniquePatchBranchName(ctx, ctx.Doer.LowerName, ctx.Repo.Repository)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
+}
 
-	return opts
+func prepareTreePathFieldsAndPaths(ctx *context.Context, treePath string) {
+	// show the tree path fields in the "breadcrumb" and help users to edit the target tree path
+	ctx.Data["TreeNames"], ctx.Data["TreePaths"] = getParentTreeFields(treePath)
+}
+
+type parsedEditorCommitForm[T any] struct {
+	form                T
+	commonForm          *forms.CommitCommonForm
+	CommitFormBehaviors *context.CommitFormBehaviors
+	TargetBranchName    string
+	GitCommitter        *files_service.IdentityOptions
+}
+
+func (f *parsedEditorCommitForm[T]) GetCommitMessage(defaultCommitMessage string) string {
+	commitMessage := util.IfZero(strings.TrimSpace(f.commonForm.CommitSummary), defaultCommitMessage)
+	if body := strings.TrimSpace(f.commonForm.CommitMessage); body != "" {
+		commitMessage += "\n\n" + body
+	}
+	return commitMessage
+}
+
+func parseEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *context.Context) *parsedEditorCommitForm[T] {
+	form := web.GetForm(ctx).(T)
+	if ctx.HasError() {
+		ctx.JSONError(ctx.GetErrMsg())
+		return nil
+	}
+
+	commonForm := form.GetCommitCommonForm()
+	commonForm.TreePath = files_service.CleanGitTreePath(commonForm.TreePath)
+
+	commitFormBehaviors, err := ctx.Repo.PrepareCommitFormBehaviors(ctx, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("PrepareCommitFormBehaviors", err)
+		return nil
+	}
+
+	// check commit behavior
+	targetBranchName := util.Iif(commonForm.CommitChoice == editorCommitChoiceNewBranch, commonForm.NewBranchName, ctx.Repo.BranchName)
+	if targetBranchName == ctx.Repo.BranchName && !commitFormBehaviors.CanCommitToBranch {
+		ctx.JSONError(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", targetBranchName))
+		return nil
+	}
+
+	// Committer user info
+	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, commonForm.CommitEmail)
+	if !valid {
+		ctx.JSONError(ctx.Tr("repo.editor.invalid_commit_email"))
+		return nil
+	}
+
+	return &parsedEditorCommitForm[T]{
+		form:                form,
+		commonForm:          commonForm,
+		CommitFormBehaviors: commitFormBehaviors,
+		TargetBranchName:    targetBranchName,
+		GitCommitter:        gitCommitter,
+	}
 }
 
 // redirectForCommitChoice redirects after committing the edit to a branch
-func redirectForCommitChoice(ctx *context.Context, formOpts *EditorCommitFormOptions, commitChoice, newBranchName, treePath string) {
-	if commitChoice == editorCommitChoiceNewBranch {
+func redirectForCommitChoice[T any](ctx *context.Context, parsed *parsedEditorCommitForm[T], treePath string) {
+	if parsed.commonForm.CommitChoice == editorCommitChoiceNewBranch {
 		// Redirect to a pull request when possible
 		redirectToPullRequest := false
-		repo, baseBranch, headBranch := ctx.Repo.Repository, ctx.Repo.BranchName, newBranchName
+		repo, baseBranch, headBranch := ctx.Repo.Repository, ctx.Repo.BranchName, parsed.TargetBranchName
 		if repo.UnitEnabled(ctx, unit.TypePullRequests) {
 			redirectToPullRequest = true
-		} else if formOpts.CommitFormBehaviors.CanCreateBasePullRequest {
+		} else if parsed.CommitFormBehaviors.CanCreateBasePullRequest {
 			redirectToPullRequest = true
 			baseBranch = repo.BaseRepo.DefaultBranch
 			headBranch = repo.Owner.Name + "/" + repo.Name + ":" + headBranch
@@ -112,7 +156,7 @@ func redirectForCommitChoice(ctx *context.Context, formOpts *EditorCommitFormOpt
 
 	returnURI := ctx.FormString("return_uri")
 	if returnURI == "" || !httplib.IsCurrentGiteaSiteURL(ctx, returnURI) {
-		returnURI = ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(newBranchName) + "/" + util.PathEscapeSegments(treePath)
+		returnURI = util.URLJoin(ctx.Repo.RepoLink, "src/branch", util.PathEscapeSegments(parsed.TargetBranchName), util.PathEscapeSegments(treePath))
 	}
 	ctx.JSONRedirect(returnURI)
 }
@@ -157,11 +201,30 @@ func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.Read
 	return buf, dataRc, fInfo
 }
 
-func editFile(ctx *context.Context, editorAction string) {
+func EditFile(ctx *context.Context) {
+	editorAction := ctx.PathParam("editor_action")
 	isNewFile := editorAction == "_new"
 	ctx.Data["IsNewFile"] = isNewFile
 
-	_ = prepareEditorCommitFormOptions(ctx, editorAction)
+	// Check if the filename (and additional path) is specified in the querystring
+	// (filename is a misnomer, but kept for compatibility with GitHub)
+	urlQuery := ctx.Req.URL.Query()
+	queryFilename := urlQuery.Get("filename")
+	if queryFilename != "" {
+		newTreePath := path.Join(ctx.Repo.TreePath, queryFilename)
+		redirectTo := fmt.Sprintf("%s/%s/%s/%s", ctx.Repo.RepoLink, editorAction, util.PathEscapeSegments(ctx.Repo.BranchName), util.PathEscapeSegments(newTreePath))
+		urlQuery.Del("filename")
+		if newQueryParams := urlQuery.Encode(); newQueryParams != "" {
+			redirectTo += "?" + newQueryParams
+		}
+		ctx.Redirect(redirectTo)
+		return
+	}
+
+	// on the "New File" page, we should add an empty path field to make end users could input a new name
+	prepareTreePathFieldsAndPaths(ctx, util.Iif(isNewFile, ctx.Repo.TreePath+"/", ctx.Repo.TreePath))
+
+	prepareEditorCommitFormOptions(ctx, editorAction)
 	if ctx.Written() {
 		return
 	}
@@ -202,52 +265,23 @@ func editFile(ctx *context.Context, editorAction string) {
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
 
-// EditFile render edit file page
-func EditFile(ctx *context.Context) {
-	editFile(ctx, "_edit")
-}
-
-// NewFile render create file page
-func NewFile(ctx *context.Context) {
-	editFile(ctx, "_new")
-}
-
-func editFilePost(ctx *context.Context, form *forms.EditRepoFileForm, editorAction string) {
-	form.TreePath = files_service.CleanGitTreePath(form.TreePath)
-	if ctx.HasError() {
-		ctx.JSONError(ctx.GetErrMsg())
-		return
-	}
-
+func EditFilePost(ctx *context.Context) {
+	editorAction := ctx.PathParam("editor_action")
 	isNewFile := editorAction == "_new"
-	formOpts := prepareEditorCommitFormOptions(ctx, editorAction)
+	parsed := parseEditorCommitSubmittedForm[*forms.EditRepoFileForm](ctx)
 	if ctx.Written() {
 		return
 	}
 
-	branchName := util.Iif(form.CommitChoice == editorCommitChoiceNewBranch, form.NewBranchName, ctx.Repo.BranchName)
-	if branchName == ctx.Repo.BranchName && !formOpts.CommitFormBehaviors.CanCommitToBranch {
-		ctx.JSONError(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", branchName))
-		return
-	}
-
-	defaultMessage := util.Iif(isNewFile, ctx.Locale.TrString("repo.editor.add", form.TreePath), ctx.Locale.TrString("repo.editor.update", form.TreePath))
-	commitMessage := buildEditorCommitMessage(defaultMessage, form.CommitSummary, form.CommitMessage)
-
-	// Committer user info
-	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, form.CommitEmail)
-	if !valid {
-		ctx.JSONError(ctx.Tr("repo.editor.invalid_commit_email"))
-		return
-	}
+	defaultCommitMessage := util.Iif(isNewFile, ctx.Locale.TrString("repo.editor.add", parsed.form.TreePath), ctx.Locale.TrString("repo.editor.update", parsed.form.TreePath))
 
 	var operation string
 	if isNewFile {
 		operation = "create"
-	} else if form.Content.Has() {
+	} else if parsed.form.Content.Has() {
 		// The form content only has data if the file is representable as text, is not too large and not in lfs.
 		operation = "update"
-	} else if ctx.Repo.TreePath != form.TreePath {
+	} else if ctx.Repo.TreePath != parsed.form.TreePath {
 		// If it doesn't have data, the only possible operation is a "rename"
 		operation = "rename"
 	} else {
@@ -257,41 +291,33 @@ func editFilePost(ctx *context.Context, form *forms.EditRepoFileForm, editorActi
 	}
 
 	_, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
-		LastCommitID: form.LastCommit,
+		LastCommitID: parsed.form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
-		NewBranch:    branchName,
-		Message:      commitMessage,
+		NewBranch:    parsed.TargetBranchName,
+		Message:      parsed.GetCommitMessage(defaultCommitMessage),
 		Files: []*files_service.ChangeRepoFile{
 			{
 				Operation:     operation,
 				FromTreePath:  ctx.Repo.TreePath,
-				TreePath:      form.TreePath,
-				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content.Value(), "\r", "")),
+				TreePath:      parsed.form.TreePath,
+				ContentReader: strings.NewReader(strings.ReplaceAll(parsed.form.Content.Value(), "\r", "")),
 			},
 		},
-		Signoff:   form.Signoff,
-		Author:    gitCommitter,
-		Committer: gitCommitter,
+		Signoff:   parsed.form.Signoff,
+		Author:    parsed.GitCommitter,
+		Committer: parsed.GitCommitter,
 	})
 	if err != nil {
-		editorHandleFileOperationError(ctx, branchName, err)
+		editorHandleFileOperationError(ctx, parsed.TargetBranchName, err)
 		return
 	}
 
-	redirectForCommitChoice(ctx, formOpts, form.CommitChoice, branchName, form.TreePath)
-}
-
-func EditFilePost(ctx *context.Context) {
-	editFilePost(ctx, web.GetForm(ctx).(*forms.EditRepoFileForm), "_edit")
-}
-
-func NewFilePost(ctx *context.Context) {
-	editFilePost(ctx, web.GetForm(ctx).(*forms.EditRepoFileForm), "_new")
+	redirectForCommitChoice(ctx, parsed, parsed.form.TreePath)
 }
 
 // DeleteFile render delete file page
 func DeleteFile(ctx *context.Context) {
-	_ = prepareEditorCommitFormOptions(ctx, "_delete")
+	prepareEditorCommitFormOptions(ctx, "_delete")
 	if ctx.Written() {
 		return
 	}
@@ -301,117 +327,70 @@ func DeleteFile(ctx *context.Context) {
 
 // DeleteFilePost response for deleting file
 func DeleteFilePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.DeleteRepoFileForm)
-	if ctx.HasError() {
-		ctx.JSONError(ctx.GetErrMsg())
+	parsed := parseEditorCommitSubmittedForm[*forms.DeleteRepoFileForm](ctx)
+	if ctx.Written() {
 		return
 	}
 
-	formOpts := prepareEditorCommitFormOptions(ctx, "_delete")
-
-	branchName := util.Iif(form.CommitChoice == editorCommitChoiceNewBranch, form.NewBranchName, ctx.Repo.BranchName)
-	if branchName == ctx.Repo.BranchName && !formOpts.CommitFormBehaviors.CanCommitToBranch {
-		ctx.JSONError(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", branchName))
-		return
-	}
-
-	commitMessage := buildEditorCommitMessage(ctx.Locale.TrString("repo.editor.delete", ctx.Repo.TreePath), form.CommitSummary, form.CommitMessage)
-
-	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, form.CommitEmail)
-	if !valid {
-		ctx.JSONError(ctx.Tr("repo.editor.invalid_commit_email"))
-		return
-	}
-
+	treePath := ctx.Repo.TreePath
 	_, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
-		LastCommitID: form.LastCommit,
+		LastCommitID: parsed.form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
-		NewBranch:    branchName,
+		NewBranch:    parsed.TargetBranchName,
 		Files: []*files_service.ChangeRepoFile{
 			{
 				Operation: "delete",
-				TreePath:  ctx.Repo.TreePath,
+				TreePath:  treePath,
 			},
 		},
-		Message:   commitMessage,
-		Signoff:   form.Signoff,
-		Author:    gitCommitter,
-		Committer: gitCommitter,
+		Message:   parsed.GetCommitMessage(ctx.Locale.TrString("repo.editor.delete", treePath)),
+		Signoff:   parsed.form.Signoff,
+		Author:    parsed.GitCommitter,
+		Committer: parsed.GitCommitter,
 	})
 	if err != nil {
-		editorHandleFileOperationError(ctx, branchName, err)
+		editorHandleFileOperationError(ctx, parsed.TargetBranchName, err)
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", ctx.Repo.TreePath))
-	redirectTreePath := getClosestParentWithFiles(ctx.Repo.GitRepo, ctx.Repo.BranchName, ctx.Repo.TreePath)
-	redirectForCommitChoice(ctx, formOpts, form.CommitChoice, branchName, redirectTreePath)
+	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", treePath))
+	redirectTreePath := getClosestParentWithFiles(ctx.Repo.GitRepo, parsed.TargetBranchName, treePath)
+	redirectForCommitChoice(ctx, parsed, redirectTreePath)
 }
 
-// UploadFile render upload file page
 func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
 	upload.AddUploadContext(ctx, "repo")
-	_ = prepareEditorCommitFormOptions(ctx, "_upload")
+	prepareTreePathFieldsAndPaths(ctx, ctx.Repo.TreePath)
+
+	prepareEditorCommitFormOptions(ctx, "_upload")
 	if ctx.Written() {
 		return
 	}
 	ctx.HTML(http.StatusOK, tplUploadFile)
 }
 
-// UploadFilePost response for uploading file
 func UploadFilePost(ctx *context.Context) {
-	ctx.Data["PageIsUpload"] = true
-
-	form := web.GetForm(ctx).(*forms.UploadRepoFileForm)
-	form.TreePath = files_service.CleanGitTreePath(form.TreePath)
-	if ctx.HasError() {
-		ctx.JSONError(ctx.GetErrMsg())
-		return
-	}
-
-	formOpts := prepareEditorCommitFormOptions(ctx, "_upload")
+	parsed := parseEditorCommitSubmittedForm[*forms.UploadRepoFileForm](ctx)
 	if ctx.Written() {
 		return
 	}
 
-	oldBranchName := ctx.Repo.BranchName
-
-	branchName := util.Iif(form.CommitChoice == editorCommitChoiceNewBranch, form.NewBranchName, ctx.Repo.BranchName)
-
-	if oldBranchName != branchName {
-		if exist, err := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, branchName); err == nil && exist {
-			ctx.JSONError(ctx.Tr("repo.editor.branch_already_exists", branchName))
-			return
-		}
-	} else if !formOpts.CommitFormBehaviors.CanCommitToBranch {
-		ctx.JSONError(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", branchName))
-		return
-	}
-
-	commitMessage := buildEditorCommitMessage(ctx.Locale.TrString("repo.editor.upload_files_to_dir", util.IfZero(form.TreePath, "/")), form.CommitSummary, form.CommitMessage)
-
-	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, form.CommitEmail)
-	if !valid {
-		ctx.JSONError(ctx.Tr("repo.editor.invalid_commit_email"))
-		return
-	}
-
+	defaultCommitMessage := ctx.Locale.TrString("repo.editor.upload_files_to_dir", util.IfZero(parsed.form.TreePath, "/"))
 	err := files_service.UploadRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.UploadRepoFileOptions{
-		LastCommitID: form.LastCommit,
-		OldBranch:    oldBranchName,
-		NewBranch:    branchName,
-		TreePath:     form.TreePath,
-		Message:      commitMessage,
-		Files:        form.Files,
-		Signoff:      form.Signoff,
-		Author:       gitCommitter,
-		Committer:    gitCommitter,
+		LastCommitID: parsed.form.LastCommit,
+		OldBranch:    ctx.Repo.BranchName,
+		NewBranch:    parsed.TargetBranchName,
+		TreePath:     parsed.form.TreePath,
+		Message:      parsed.GetCommitMessage(defaultCommitMessage),
+		Files:        parsed.form.Files,
+		Signoff:      parsed.form.Signoff,
+		Author:       parsed.GitCommitter,
+		Committer:    parsed.GitCommitter,
 	})
 	if err != nil {
-		editorHandleFileOperationError(ctx, branchName, err)
+		editorHandleFileOperationError(ctx, parsed.TargetBranchName, err)
 		return
 	}
-
-	redirectForCommitChoice(ctx, formOpts, form.CommitChoice, branchName, form.TreePath)
+	redirectForCommitChoice(ctx, parsed, parsed.form.TreePath)
 }

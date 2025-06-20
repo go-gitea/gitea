@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 	context_service "code.gitea.io/gitea/services/context"
 )
 
@@ -83,13 +82,4 @@ func getParentTreeFields(treePath string) (treeNames, treePaths []string) {
 		treePaths[i] = strings.Join(treeNames[:i+1], "/")
 	}
 	return treeNames, treePaths
-}
-
-func buildEditorCommitMessage(def, summary, body string) string {
-	message := util.IfZero(strings.TrimSpace(summary), def)
-	body = strings.TrimSpace(body)
-	if body != "" {
-		message += "\n\n" + body
-	}
-	return message
 }
