@@ -39,6 +39,10 @@
 							<div class="notifications-icon tw-ml-2 tw-mr-1 tw-self-start tw-mt-1">
 								{{if .Issue}}
 									{{template "shared/issueicon" .Issue}}
+								{{else if .Release}}
+									{{svg "octicon-tag" 16 "text grey"}}
+								{{else if .Commit}}
+									{{svg "octicon-git-commit" 16 "text grey"}}
 								{{else}}
 									{{svg "octicon-repo" 16 "text grey"}}
 								{{end}}
@@ -54,6 +58,10 @@
 									<span class="issue-title tw-break-anywhere">
 										{{if .Issue}}
 											{{.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}
+										{{else if .Release}}
+											{{.Release.Title}}
+										{{else if .Commit}}
+											{{.Commit.Summary}}
 										{{else}}
 											{{.Repository.FullName}}
 										{{end}}
@@ -63,6 +71,10 @@
 							<div class="notifications-updated tw-items-center tw-mr-2">
 								{{if .Issue}}
 									{{DateUtils.TimeSince .Issue.UpdatedUnix}}
+								{{else if .Release}}
+									{{DateUtils.TimeSince .Release.UpdatedUnix}}
+								{{else if .Commit}}
+									{{DateUtils.TimeSince .Commit.Committer.When}}
 								{{else}}
 									{{DateUtils.TimeSince .UpdatedUnix}}
 								{{end}}

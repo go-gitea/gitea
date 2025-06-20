@@ -13,6 +13,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -70,6 +71,7 @@ type Notification struct {
 	Comment    *issues_model.Comment  `xorm:"-"`
 	User       *user_model.User       `xorm:"-"`
 	Release    *repo_model.Release    `xorm:"-"`
+	Commit     *git.Commit            `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
