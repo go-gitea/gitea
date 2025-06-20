@@ -1136,7 +1136,7 @@ jobs:
 	assert.Equal(t, "workflow_run", webhookData.triggeredEvent)
 	// 1x push + 5x workflow_run requested chain
 	assert.Len(t, webhookData.payloads, 6)
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		assert.Equal(t, "requested", webhookData.payloads[i].Action)
 		assert.Equal(t, "queued", webhookData.payloads[i].WorkflowRun.Status)
 		assert.Equal(t, repo1.DefaultBranch, webhookData.payloads[i].WorkflowRun.HeadBranch)

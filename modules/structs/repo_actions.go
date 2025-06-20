@@ -104,9 +104,9 @@ type ActionWorkflowRun struct {
 	HeadRepository *Repository `json:"head_repository,omitempty"`
 	Conclusion     string      `json:"conclusion,omitempty"`
 	// swagger:strfmt date-time
-	StartedAt time.Time `json:"started_at,omitempty"`
+	StartedAt time.Time `json:"started_at"`
 	// swagger:strfmt date-time
-	CompletedAt time.Time `json:"completed_at,omitempty"`
+	CompletedAt time.Time `json:"completed_at"`
 }
 
 // ActionWorkflowRunsResponse returns ActionWorkflowRuns
