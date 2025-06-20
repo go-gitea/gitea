@@ -26,6 +26,7 @@ import (
 // ownerID != 0 and repoID == 0 means all jobs for the given user/org
 // ownerID != 0 and repoID != 0 undefined behavior
 // runID == 0 means all jobs
+// runID is used as an additional filter together with ownerID and repoID to only return jobs for the given run
 // Access rights are checked at the API route level
 func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 	if ownerID != 0 && repoID != 0 {
