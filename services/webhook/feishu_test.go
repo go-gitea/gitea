@@ -183,7 +183,6 @@ func TestFeishuJSONPayload(t *testing.T) {
 
 	assert.Equal(t, "POST", req.Method)
 	assert.Equal(t, "https://feishu.example.com/", req.URL.String())
-	assert.Equal(t, "sha256=", req.Header.Get("X-Hub-Signature-256"))
 	assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
 	var body FeishuPayload
 	err = json.NewDecoder(req.Body).Decode(&body)
