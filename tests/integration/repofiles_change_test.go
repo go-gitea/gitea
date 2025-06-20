@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/contexttest"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
@@ -55,6 +56,40 @@ func getUpdateRepoFilesOptions(repo *repo_model.Repository) *files_service.Chang
 		Message:   "Updates README.md",
 		Author:    nil,
 		Committer: nil,
+	}
+}
+
+func getUpdateRepoFilesRenameOptions(repo *repo_model.Repository) *files_service.ChangeRepoFilesOptions {
+	return &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			// move normally
+			{
+				Operation:    "rename",
+				FromTreePath: "README.md",
+				TreePath:     "README.txt",
+			},
+			// move from in lfs
+			{
+				Operation:    "rename",
+				FromTreePath: "crypt.bin",
+				TreePath:     "crypt1.bin",
+			},
+			// move from lfs to normal
+			{
+				Operation:    "rename",
+				FromTreePath: "jpeg.jpg",
+				TreePath:     "jpeg.jpeg",
+			},
+			// move from normal to lfs
+			{
+				Operation:    "rename",
+				FromTreePath: "CONTRIBUTING.md",
+				TreePath:     "CONTRIBUTING.md.bin",
+			},
+		},
+		OldBranch: repo.DefaultBranch,
+		NewBranch: repo.DefaultBranch,
+		Message:   "Rename files",
 	}
 }
 
@@ -248,6 +283,106 @@ func getExpectedFileResponseForRepoFilesUpdate(commitID, filename, lastCommitSHA
 	}
 }
 
+func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA string) *api.FilesResponse {
+	details := []struct {
+		filename, sha, content string
+		size                   int64
+	}{
+		{
+			filename: "README.txt",
+			sha:      "8276d2a29779af982c0afa976bdb793b52d442a8",
+			size:     22,
+			content:  "IyBBbiBMRlMtZW5hYmxlZCByZXBvCg==",
+		},
+		{
+			filename: "crypt1.bin",
+			sha:      "d4a41a0d4db4949e129bd22f871171ea988103ef",
+			size:     129,
+			content:  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6MmVjY2RiNDM4MjVkMmE0OWQ5OWQ1NDJkYWEyMDA3NWNmZjFkOTdkOWQyMzQ5YTg5NzdlZmU5YzAzNjYxNzM3YwpzaXplIDIwNDgK",
+		},
+		{
+			filename: "jpeg.jpeg",
+			sha:      "71911bf48766c7181518c1070911019fbb00b1fc",
+			size:     107,
+			content:  "/9j/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/yQALCAABAAEBAREA/8wABgAQEAX/2gAIAQEAAD8A0s8g/9k=",
+		},
+		{
+			filename: "CONTRIBUTING.md.bin",
+			sha:      "2b6c6c4eaefa24b22f2092c3d54b263ff26feb58",
+			size:     127,
+			content:  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6N2I2YjJjODhkYmE5Zjc2MGExYTU4NDY5YjY3ZmVlMmI2OThlZjdlOTM5OWM0Y2E0ZjM0YTE0Y2NiZTM5ZjYyMwpzaXplIDI3Cg==",
+		},
+	}
+
+	var responses []*api.ContentsResponse
+	for _, detail := range details {
+		selfURL := setting.AppURL + "api/v1/repos/user2/lfs/contents/" + detail.filename + "?ref=master"
+		htmlURL := setting.AppURL + "user2/lfs/src/branch/master/" + detail.filename
+		gitURL := setting.AppURL + "api/v1/repos/user2/lfs/git/blobs/" + detail.sha
+		downloadURL := setting.AppURL + "user2/lfs/raw/branch/master/" + detail.filename
+		// don't set time related fields because there might be different time in one operation
+		responses = append(responses, &api.ContentsResponse{
+			Name:          detail.filename,
+			Path:          detail.filename,
+			SHA:           detail.sha,
+			LastCommitSHA: lastCommitSHA,
+			Type:          "file",
+			Size:          detail.size,
+			Encoding:      util.ToPointer("base64"),
+			Content:       &detail.content,
+			URL:           &selfURL,
+			HTMLURL:       &htmlURL,
+			GitURL:        &gitURL,
+			DownloadURL:   &downloadURL,
+			Links: &api.FileLinksResponse{
+				Self:    &selfURL,
+				GitURL:  &gitURL,
+				HTMLURL: &htmlURL,
+			},
+		})
+	}
+
+	return &api.FilesResponse{
+		Files: responses,
+		Commit: &api.FileCommitResponse{
+			CommitMeta: api.CommitMeta{
+				URL: setting.AppURL + "api/v1/repos/user2/lfs/git/commits/" + commitID,
+				SHA: commitID,
+			},
+			HTMLURL: setting.AppURL + "user2/lfs/commit/" + commitID,
+			Author: &api.CommitUser{
+				Identity: api.Identity{
+					Name:  "User Two",
+					Email: "user2@noreply.example.org",
+				},
+			},
+			Committer: &api.CommitUser{
+				Identity: api.Identity{
+					Name:  "User Two",
+					Email: "user2@noreply.example.org",
+				},
+			},
+			Parents: []*api.CommitMeta{
+				{
+					URL: setting.AppURL + "api/v1/repos/user2/lfs/git/commits/73cf03db6ece34e12bf91e8853dc58f678f2f82d",
+					SHA: "73cf03db6ece34e12bf91e8853dc58f678f2f82d",
+				},
+			},
+			Message: "Rename files\n",
+			Tree: &api.CommitMeta{
+				URL: setting.AppURL + "api/v1/repos/user2/lfs/git/trees/5307376dc3a5557dc1c403c29a8984668ca9ecb5",
+				SHA: "5307376dc3a5557dc1c403c29a8984668ca9ecb5",
+			},
+		},
+		Verification: &api.PayloadCommitVerification{
+			Verified:  false,
+			Reason:    "gpg.error.not_signed_commit",
+			Signature: "",
+			Payload:   "",
+		},
+	}
+}
+
 func TestChangeRepoFilesForCreate(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
@@ -366,6 +501,38 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 		assert.Equal(t, expectedFileResponse.Content.URL, filesResponse.Files[0].URL)
 		assert.Equal(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
 		assert.Equal(t, expectedFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
+	})
+}
+
+func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		ctx, _ := contexttest.MockContext(t, "user2/lfs")
+		ctx.SetPathParam("id", "54")
+		contexttest.LoadRepo(t, ctx, 54)
+		contexttest.LoadRepoCommit(t, ctx)
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+
+		repo := ctx.Repo.Repository
+		opts := getUpdateRepoFilesRenameOptions(repo)
+
+		// test
+		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, ctx.Doer, opts)
+
+		// asserts
+		assert.NoError(t, err)
+		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
+		defer gitRepo.Close()
+
+		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
+		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
+		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdateRename(commit.ID.String(), lastCommit.ID.String())
+		for _, file := range filesResponse.Files {
+			file.LastCommitterDate, file.LastAuthorDate = time.Time{}, time.Time{} // there might be different time in one operation, so we ignore them
+		}
+		assert.Len(t, filesResponse.Files, 4)
+		assert.Equal(t, expectedFileResponse.Files, filesResponse.Files)
 	})
 }
 

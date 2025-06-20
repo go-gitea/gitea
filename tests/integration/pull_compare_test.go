@@ -13,7 +13,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
@@ -76,10 +75,9 @@ func TestPullCompare(t *testing.T) {
 		assert.Positive(t, editButtonCount, "Expected to find a button to edit a file in the PR diff view but there were none")
 
 		repoForked := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// delete the head repository and revisit the PR diff view
-		err := repo_service.DeleteRepositoryDirectly(db.DefaultContext, user2, repoForked.ID)
+		err := repo_service.DeleteRepositoryDirectly(db.DefaultContext, repoForked.ID)
 		assert.NoError(t, err)
 
 		req = NewRequest(t, "GET", prFilesURL)

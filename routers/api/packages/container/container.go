@@ -231,7 +231,7 @@ func GetRepositoryList(ctx *context.Context) {
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#mounting-a-blob-from-another-repository
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#single-post
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
-func InitiateUploadBlob(ctx *context.Context) {
+func PostBlobsUploads(ctx *context.Context) {
 	image := ctx.PathParam("image")
 
 	mount := ctx.FormTrim("mount")
@@ -313,14 +313,13 @@ func InitiateUploadBlob(ctx *context.Context) {
 
 	setResponseHeaders(ctx.Resp, &containerHeaders{
 		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, upload.ID),
-		Range:      "0-0",
 		UploadUUID: upload.ID,
 		Status:     http.StatusAccepted,
 	})
 }
 
-// https://docs.docker.com/registry/spec/api/#get-blob-upload
-func GetUploadBlob(ctx *context.Context) {
+// https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
+func GetBlobsUpload(ctx *context.Context) {
 	uuid := ctx.PathParam("uuid")
 
 	upload, err := packages_model.GetBlobUploadByID(ctx, uuid)
@@ -333,15 +332,20 @@ func GetUploadBlob(ctx *context.Context) {
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Range:      fmt.Sprintf("0-%d", upload.BytesReceived),
+	// FIXME: undefined behavior when the uploaded content is empty: https://github.com/opencontainers/distribution-spec/issues/578
+	respHeaders := &containerHeaders{
 		UploadUUID: upload.ID,
 		Status:     http.StatusNoContent,
-	})
+	}
+	if upload.BytesReceived > 0 {
+		respHeaders.Range = fmt.Sprintf("0-%d", upload.BytesReceived-1)
+	}
+	setResponseHeaders(ctx.Resp, respHeaders)
 }
 
+// https://github.com/opencontainers/distribution-spec/blob/main/spec.md#single-post
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
-func UploadBlob(ctx *context.Context) {
+func PatchBlobsUpload(ctx *context.Context) {
 	image := ctx.PathParam("image")
 
 	uploader, err := container_service.NewBlobUploader(ctx, ctx.PathParam("uuid"))
@@ -377,16 +381,19 @@ func UploadBlob(ctx *context.Context) {
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
+	respHeaders := &containerHeaders{
 		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, uploader.ID),
-		Range:      fmt.Sprintf("0-%d", uploader.Size()-1),
 		UploadUUID: uploader.ID,
 		Status:     http.StatusAccepted,
-	})
+	}
+	if contentRange != "" {
+		respHeaders.Range = fmt.Sprintf("0-%d", uploader.Size()-1)
+	}
+	setResponseHeaders(ctx.Resp, respHeaders)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
-func EndUploadBlob(ctx *context.Context) {
+func PutBlobsUpload(ctx *context.Context) {
 	image := ctx.PathParam("image")
 
 	digest := ctx.FormTrim("digest")
@@ -455,7 +462,7 @@ func EndUploadBlob(ctx *context.Context) {
 }
 
 // https://docs.docker.com/registry/spec/api/#delete-blob-upload
-func CancelUploadBlob(ctx *context.Context) {
+func DeleteBlobsUpload(ctx *context.Context) {
 	uuid := ctx.PathParam("uuid")
 
 	_, err := packages_model.GetBlobUploadByID(ctx, uuid)
@@ -479,16 +486,15 @@ func CancelUploadBlob(ctx *context.Context) {
 }
 
 func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescriptor, error) {
-	d := ctx.PathParam("digest")
-
-	if digest.Digest(d).Validate() != nil {
+	d := digest.Digest(ctx.PathParam("digest"))
+	if d.Validate() != nil {
 		return nil, container_model.ErrContainerBlobNotExist
 	}
 
 	return workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Image:   ctx.PathParam("image"),
-		Digest:  d,
+		Digest:  string(d),
 	})
 }
 
@@ -528,9 +534,8 @@ func GetBlob(ctx *context.Context) {
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#deleting-blobs
 func DeleteBlob(ctx *context.Context) {
-	d := ctx.PathParam("digest")
-
-	if digest.Digest(d).Validate() != nil {
+	d := digest.Digest(ctx.PathParam("digest"))
+	if d.Validate() != nil {
 		apiErrorDefined(ctx, errBlobUnknown)
 		return
 	}
@@ -546,7 +551,7 @@ func DeleteBlob(ctx *context.Context) {
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-manifests
-func UploadManifest(ctx *context.Context) {
+func PutManifest(ctx *context.Context) {
 	reference := ctx.PathParam("reference")
 
 	mci := &manifestCreationInfo{
@@ -602,18 +607,18 @@ func UploadManifest(ctx *context.Context) {
 }
 
 func getBlobSearchOptionsFromContext(ctx *context.Context) (*container_model.BlobSearchOptions, error) {
-	reference := ctx.PathParam("reference")
-
 	opts := &container_model.BlobSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
 		Image:      ctx.PathParam("image"),
 		IsManifest: true,
 	}
 
-	if digest.Digest(reference).Validate() == nil {
-		opts.Digest = reference
+	reference := ctx.PathParam("reference")
+	if d := digest.Digest(reference); d.Validate() == nil {
+		opts.Digest = string(d)
 	} else if referencePattern.MatchString(reference) {
 		opts.Tag = reference
+		opts.OnlyLead = true
 	} else {
 		return nil, container_model.ErrContainerBlobNotExist
 	}
@@ -700,7 +705,7 @@ func DeleteManifest(ctx *context.Context) {
 func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) {
 	serveDirectReqParams := make(url.Values)
 	serveDirectReqParams.Set("response-content-type", pfd.Properties.GetByName(container_module.PropertyMediaType))
-	s, u, _, err := packages_service.GetPackageBlobStream(ctx, pfd.File, pfd.Blob, serveDirectReqParams)
+	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, serveDirectReqParams)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -730,7 +735,7 @@ func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) 
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#content-discovery
-func GetTagList(ctx *context.Context) {
+func GetTagsList(ctx *context.Context) {
 	image := ctx.PathParam("image")
 
 	if _, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeContainer, image); err != nil {

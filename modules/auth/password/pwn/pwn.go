@@ -101,7 +101,7 @@ func (c *Client) CheckPassword(pw string, padding bool) (int, error) {
 	}
 	defer resp.Body.Close()
 
-	for _, pair := range strings.Split(string(body), "\n") {
+	for pair := range strings.SplitSeq(string(body), "\n") {
 		parts := strings.Split(pair, ":")
 		if len(parts) != 2 {
 			continue

@@ -39,12 +39,10 @@ func smtpCLIFlags() []cli.Flag {
 		&cli.BoolFlag{
 			Name:  "force-smtps",
 			Usage: "SMTPS is always used on port 465. Set this to force SMTPS on other ports.",
-			Value: true,
 		},
 		&cli.BoolFlag{
 			Name:  "skip-verify",
 			Usage: "Skip TLS verify.",
-			Value: true,
 		},
 		&cli.StringFlag{
 			Name:  "helo-hostname",
@@ -54,7 +52,6 @@ func smtpCLIFlags() []cli.Flag {
 		&cli.BoolFlag{
 			Name:  "disable-helo",
 			Usage: "Disable SMTP helo.",
-			Value: true,
 		},
 		&cli.StringFlag{
 			Name:  "allowed-domains",
@@ -64,7 +61,6 @@ func smtpCLIFlags() []cli.Flag {
 		&cli.BoolFlag{
 			Name:  "skip-local-2fa",
 			Usage: "Skip 2FA to log on.",
-			Value: true,
 		},
 		&cli.BoolFlag{
 			Name:  "active",
