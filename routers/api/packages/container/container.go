@@ -320,6 +320,7 @@ func InitiateUploadBlob(ctx *context.Context) {
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
 func GetUploadBlob(ctx *context.Context) {
+	image := ctx.PathParam("image")
 	uuid := ctx.PathParam("uuid")
 
 	upload, err := packages_model.GetBlobUploadByID(ctx, uuid)
@@ -334,6 +335,7 @@ func GetUploadBlob(ctx *context.Context) {
 
 	// FIXME: undefined behavior when the uploaded content is empty: https://github.com/opencontainers/distribution-spec/issues/578
 	respHeaders := &containerHeaders{
+		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, upload.ID),
 		UploadUUID: upload.ID,
 		Status:     http.StatusNoContent,
 	}
@@ -386,7 +388,7 @@ func UploadBlob(ctx *context.Context) {
 		UploadUUID: uploader.ID,
 		Status:     http.StatusAccepted,
 	}
-	if contentRange != "" {
+	if uploader.Size() > 0 {
 		respHeaders.Range = fmt.Sprintf("0-%d", uploader.Size()-1)
 	}
 	setResponseHeaders(ctx.Resp, respHeaders)
