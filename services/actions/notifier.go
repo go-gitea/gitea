@@ -6,13 +6,16 @@ package actions
 import (
 	"context"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -760,5 +763,43 @@ func (n *actionsNotifier) MigrateRepository(ctx context.Context, doer, u *user_m
 		Repository:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeOwner}),
 		Organization: convert.ToUser(ctx, u, nil),
 		Sender:       convert.ToUser(ctx, doer, nil),
+	}).Notify(ctx)
+}
+
+func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
+	ctx = withMethod(ctx, "WorkflowRunStatusUpdate")
+
+	var org *api.Organization
+	if repo.Owner.IsOrganization() {
+		org = convert.ToOrganization(ctx, organization.OrgFromUser(repo.Owner))
+	}
+
+	status := convert.ToWorkflowRunAction(run.Status)
+
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	if err != nil {
+		log.Error("OpenRepository: %v", err)
+		return
+	}
+	defer gitRepo.Close()
+
+	convertedWorkflow, err := convert.GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID)
+	if err != nil {
+		log.Error("GetActionWorkflow: %v", err)
+		return
+	}
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, repo, run)
+	if err != nil {
+		log.Error("ToActionWorkflowRun: %v", err)
+		return
+	}
+
+	newNotifyInput(repo, sender, webhook_module.HookEventWorkflowRun).WithPayload(&api.WorkflowRunPayload{
+		Action:       status,
+		Workflow:     convertedWorkflow,
+		WorkflowRun:  convertedRun,
+		Organization: org,
+		Repo:         convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeOwner}),
+		Sender:       convert.ToUser(ctx, sender, nil),
 	}).Notify(ctx)
 }
