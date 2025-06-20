@@ -396,9 +396,9 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, co
 
 	defaultBranch, _ := commit.GetBranchName()
 
-	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", repo.APIURL(), url.PathEscape(entry.Name()))
-	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", repo.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), url.PathEscape(entry.Name()))
-	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", repo.HTMLURL(ctx), url.PathEscape(entry.Name()), url.QueryEscape(repo.DefaultBranch))
+	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", repo.APIURL(), util.PathEscapeSegments(entry.Name()))
+	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", repo.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), util.PathEscapeSegments(entry.Name()))
+	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", repo.HTMLURL(ctx), util.PathEscapeSegments(entry.Name()), url.QueryEscape(repo.DefaultBranch))
 
 	// See https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#get-a-workflow
 	// State types:
