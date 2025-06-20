@@ -9,14 +9,15 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
@@ -190,7 +191,7 @@ func (feishuConvertor) WorkflowJob(p *api.WorkflowJobPayload) (FeishuPayload, er
 // https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot
 func GenSign(secret string, timestamp int64) (string, error) {
 	// timestamp + key do sha256, then base64 encode
-	stringToSign := fmt.Sprintf("%v", timestamp) + "\n" + secret
+	stringToSign := strconv.FormatInt(timestamp, 10) + "\n" + secret
 
 	h := hmac.New(sha256.New, []byte(stringToSign))
 	_, err := h.Write([]byte{})
