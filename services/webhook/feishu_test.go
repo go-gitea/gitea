@@ -190,3 +190,7 @@ func TestFeishuJSONPayload(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "[test/repo:test] \r\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1\r\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1", body.Content.Text)
 }
+
+func TestFeishuGenSign(t *testing.T) {
+	assert.Equal(t, "rWZ84lcag1x9aBFhn1gtV4ZN+4gme3pilfQNMk86vKg=", feishuGenSign("a", 1))
+}

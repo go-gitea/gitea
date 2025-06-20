@@ -4,20 +4,17 @@
 package webhook
 
 import (
-	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
@@ -193,27 +190,17 @@ func (feishuConvertor) WorkflowJob(p *api.WorkflowJobPayload) (FeishuPayload, er
 	return newFeishuTextPayload(text), nil
 }
 
-// GenSign generates a signature for Feishu webhook
+// feishuGenSign generates a signature for Feishu webhook
 // https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot
-func GenSign(secret string, timestamp int64) (string, error) {
-	// timestamp + key do sha256, then base64 encode
+func feishuGenSign(secret string, timestamp int64) string {
+	// key="{timestamp}\n{secret}", then hmac-sha256, then base64 encode
 	stringToSign := fmt.Sprintf("%d\n%s", timestamp, secret)
-
 	h := hmac.New(sha256.New, []byte(stringToSign))
-	_, err := h.Write([]byte{})
-	if err != nil {
-		return "", err
-	}
-
-	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
-	return signature, nil
+	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
 func newFeishuRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
-	var pc payloadConvertor[FeishuPayload] = feishuConvertor{}
-
-	// Get the payload first
-	payload, err := newPayload(pc, []byte(t.PayloadContent), t.EventType)
+	payload, err := newPayload(feishuConvertor{}, []byte(t.PayloadContent), t.EventType)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -222,35 +209,10 @@ func newFeishuRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_mo
 	if w.Secret != "" {
 		timestamp := time.Now().Unix()
 		payload.Timestamp = timestamp
-
-		// Generate signature
-		sign, err := GenSign(w.Secret, timestamp)
-		if err != nil {
-			return nil, nil, err
-		}
-		payload.Sign = sign
+		payload.Sign = feishuGenSign(w.Secret, timestamp)
 	}
 
-	// Marshal the payload
-	body, err := json.MarshalIndent(payload, "", "  ")
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Create the request
-	method := w.HTTPMethod
-	if method == "" {
-		method = http.MethodPost
-	}
-
-	req, err := http.NewRequest(method, w.URL, bytes.NewReader(body))
-	if err != nil {
-		return nil, nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// Add default headers
-	return req, body, addDefaultHeaders(req, []byte(w.Secret), w, t, body)
+	return sendHTTPRequest(payload, w, t, false)
 }
 
 func init() {

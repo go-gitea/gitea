@@ -95,7 +95,10 @@ func newJSONRequest[T any](pc payloadConvertor[T], w *webhook_model.Webhook, t *
 	if err != nil {
 		return nil, nil, err
 	}
+	return sendHTTPRequest(payload, w, t, withDefaultHeaders)
+}
 
+func sendHTTPRequest[T any](payload T, w *webhook_model.Webhook, t *webhook_model.HookTask, withDefaultHeaders bool) (*http.Request, []byte, error) {
 	body, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
 		return nil, nil, err
