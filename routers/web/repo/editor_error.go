@@ -38,13 +38,13 @@ func editorHandleFileOperationErrorRender(ctx *context_service.Context, message,
 }
 
 func editorHandleFileOperationError(ctx *context_service.Context, targetBranchName string, err error) {
-	if git.IsErrNotExist(err) {
-		ctx.JSONError(ctx.Tr("repo.editor.file_modifying_no_longer_exists", ctx.Repo.TreePath))
+	if errAs, ok := errorAs[git.ErrNotExist](err); ok {
+		ctx.JSONError(ctx.Tr("repo.editor.file_modifying_no_longer_exists", errAs.RelPath))
 	} else if git_model.IsErrLFSFileLocked(err) {
 		ctx.JSONError(ctx.Tr("repo.editor.upload_file_is_locked", err.(git_model.ErrLFSFileLocked).Path, err.(git_model.ErrLFSFileLocked).UserName))
 	} else if errAs, ok := errorAs[files_service.ErrFilenameInvalid](err); ok {
 		ctx.JSONError(ctx.Tr("repo.editor.filename_is_invalid", errAs.Path))
-	} else if errAs, ok := errorAs[files_service.ErrFilePathInvalid](errAs); ok {
+	} else if errAs, ok := errorAs[files_service.ErrFilePathInvalid](err); ok {
 		switch errAs.Type {
 		case git.EntryModeSymlink:
 			ctx.JSONError(ctx.Tr("repo.editor.file_is_a_symlink", errAs.Path))
@@ -55,13 +55,13 @@ func editorHandleFileOperationError(ctx *context_service.Context, targetBranchNa
 		default:
 			ctx.JSONError(ctx.Tr("repo.editor.filename_is_invalid", errAs.Path))
 		}
-	} else if errAs, ok := errorAs[files_service.ErrRepoFileAlreadyExists](errAs); ok {
+	} else if errAs, ok := errorAs[files_service.ErrRepoFileAlreadyExists](err); ok {
 		ctx.JSONError(ctx.Tr("repo.editor.file_already_exists", errAs.Path))
-	} else if errAs, ok := errorAs[git.ErrBranchNotExist](errAs); ok {
+	} else if errAs, ok := errorAs[git.ErrBranchNotExist](err); ok {
 		ctx.JSONError(ctx.Tr("repo.editor.branch_does_not_exist", errAs.Name))
-	} else if errAs, ok := errorAs[git_model.ErrBranchAlreadyExists](errAs); ok {
+	} else if errAs, ok := errorAs[git_model.ErrBranchAlreadyExists](err); ok {
 		ctx.JSONError(ctx.Tr("repo.editor.branch_already_exists", errAs.BranchName))
-	} else if files_service.IsErrCommitIDDoesNotMatch(errAs) {
+	} else if files_service.IsErrCommitIDDoesNotMatch(err) {
 		ctx.JSONError(ctx.Tr("repo.editor.commit_id_not_matching"))
 	} else if files_service.IsErrCommitIDDoesNotMatch(err) || git.IsErrPushOutOfDate(err) {
 		ctx.JSONError(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+util.PathEscapeSegments(ctx.Repo.CommitID)+"..."+util.PathEscapeSegments(targetBranchName)))
@@ -71,8 +71,10 @@ func editorHandleFileOperationError(ctx *context_service.Context, targetBranchNa
 		} else {
 			editorHandleFileOperationErrorRender(ctx, ctx.Locale.TrString("repo.editor.push_rejected"), ctx.Locale.TrString("repo.editor.push_rejected_summary"), errAs.Message)
 		}
+	} else if errors.Is(err, util.ErrNotExist) {
+		ctx.JSONError(ctx.Tr("error.not_found"))
 	} else {
-		setting.PanicInDevOrTesting("unclear err: %v", err)
+		setting.PanicInDevOrTesting("unclear err %T: %v", err, err)
 		editorHandleFileOperationErrorRender(ctx, ctx.Locale.TrString("repo.editor.failed_to_commit"), ctx.Locale.TrString("repo.editor.failed_to_commit_summary"), err.Error())
 	}
 }

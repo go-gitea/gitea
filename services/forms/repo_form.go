@@ -757,6 +757,7 @@ type UploadRepoFileForm struct {
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
+	LastCommit    string
 	Files         []string
 	Signoff       bool
 	CommitEmail   string

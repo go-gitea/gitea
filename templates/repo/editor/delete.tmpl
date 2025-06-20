@@ -5,7 +5,6 @@
 		{{template "base/alert" .}}
 		<form class="ui form form-fetch-action" method="post">
 			{{.CsrfTokenHtml}}
-			<input type="hidden" name="last_commit" value="{{.last_commit}}">
 			{{template "repo/editor/commit_form" .}}
 		</form>
 	</div>

@@ -389,24 +389,6 @@ func UploadFilePost(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.Repository.IsEmpty && form.TreePath != "" {
-		_, treePaths := getParentTreeFields(form.TreePath)
-		for _, parentTreePath := range treePaths {
-			entry, err := ctx.Repo.Commit.GetTreeEntryByPath(parentTreePath)
-			if git.IsErrNotExist(err) {
-				break // Means there is no item with that name, so we're good
-			} else if err != nil {
-				ctx.ServerError("GetTreeEntryByPath", err)
-				return
-			}
-			// User can only upload files to a directory, the directory name shouldn't be an existing file.
-			if !entry.IsDir() {
-				ctx.JSONError(ctx.Tr("repo.editor.directory_is_a_file", parentTreePath))
-				return
-			}
-		}
-	}
-
 	commitMessage := buildEditorCommitMessage(ctx.Locale.TrString("repo.editor.upload_files_to_dir", util.IfZero(form.TreePath, "/")), form.CommitSummary, form.CommitMessage)
 
 	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, form.CommitEmail)
@@ -416,7 +398,7 @@ func UploadFilePost(ctx *context.Context) {
 	}
 
 	err := files_service.UploadRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.UploadRepoFileOptions{
-		LastCommitID: ctx.Repo.CommitID,
+		LastCommitID: form.LastCommit,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,
 		TreePath:     form.TreePath,

@@ -5,7 +5,6 @@
 		{{template "base/alert" .}}
 		<form class="ui edit form form-fetch-action" method="post" action="{{.RepoLink}}/_cherrypick/{{.FromCommitID}}/{{.BranchName | PathEscapeSegments}}">
 			{{.CsrfTokenHtml}}
-			<input type="hidden" name="last_commit" value="{{.last_commit}}">
 			<input type="hidden" name="revert" value="{{if eq .CherryPickType "revert"}}true{{else}}false{{end}}">
 			<div class="repo-editor-header">
 				<div class="ui breadcrumb field">
