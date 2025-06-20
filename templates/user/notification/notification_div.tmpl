@@ -72,7 +72,7 @@
 								{{if .Issue}}
 									{{DateUtils.TimeSince .Issue.UpdatedUnix}}
 								{{else if .Release}}
-									{{DateUtils.TimeSince .Release.UpdatedUnix}}
+									{{DateUtils.TimeSince .Release.CreatedUnix}}
 								{{else if .Commit}}
 									{{DateUtils.TimeSince .Commit.Committer.When}}
 								{{else}}

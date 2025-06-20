@@ -68,11 +68,11 @@ func handler(items ...notificationOpts) []notificationOpts {
 				log.Error("CreateRepoTransferNotification: %v", err)
 			}
 		case activities_model.NotificationSourceCommit:
-			if err := activities_model.CreateCommitNotifications(db.DefaultContext, opts.RepoID, opts.NotificationAuthorID, opts.CommitID, opts.ReceiverID); err != nil {
+			if err := activities_model.CreateCommitNotifications(db.DefaultContext, opts.NotificationAuthorID, opts.RepoID, opts.CommitID, opts.ReceiverID); err != nil {
 				log.Error("Was unable to create commit notification: %v", err)
 			}
 		case activities_model.NotificationSourceRelease:
-			if err := activities_model.CreateOrUpdateReleaseNotifications(db.DefaultContext, opts.NotificationAuthorID, opts.ReleaseID, opts.ReceiverID); err != nil {
+			if err := activities_model.CreateOrUpdateReleaseNotifications(db.DefaultContext, opts.NotificationAuthorID, opts.RepoID, opts.ReleaseID, opts.ReceiverID); err != nil {
 				log.Error("Was unable to create release notification: %v", err)
 			}
 		case activities_model.NotificationSourceIssue, activities_model.NotificationSourcePullRequest:
@@ -96,6 +96,7 @@ func (ns *notificationService) CreateIssueComment(ctx context.Context, doer *use
 	opts := notificationOpts{
 		Source:               util.Iif(issue.IsPull, activities_model.NotificationSourcePullRequest, activities_model.NotificationSourceIssue),
 		IssueID:              issue.ID,
+		RepoID:               issue.RepoID,
 		NotificationAuthorID: doer.ID,
 	}
 	if comment != nil {
@@ -103,30 +104,22 @@ func (ns *notificationService) CreateIssueComment(ctx context.Context, doer *use
 	}
 	_ = ns.queue.Push(opts)
 	for _, mention := range mentions {
-		opts := notificationOpts{
-			IssueID:              issue.ID,
-			NotificationAuthorID: doer.ID,
-			ReceiverID:           mention.ID,
-		}
-		if comment != nil {
-			opts.CommentID = comment.ID
-		}
+		opts.ReceiverID = mention.ID
 		_ = ns.queue.Push(opts)
 	}
 }
 
 func (ns *notificationService) NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
-	_ = ns.queue.Push(notificationOpts{
+	opts := notificationOpts{
 		Source:               activities_model.NotificationSourceIssue,
+		RepoID:               issue.RepoID,
 		IssueID:              issue.ID,
 		NotificationAuthorID: issue.Poster.ID,
-	})
+	}
+	_ = ns.queue.Push(opts)
 	for _, mention := range mentions {
-		_ = ns.queue.Push(notificationOpts{
-			IssueID:              issue.ID,
-			NotificationAuthorID: issue.Poster.ID,
-			ReceiverID:           mention.ID,
-		})
+		opts.ReceiverID = mention.ID
+		_ = ns.queue.Push(opts)
 	}
 }
 
@@ -212,14 +205,7 @@ func (ns *notificationService) PullRequestReview(ctx context.Context, pr *issues
 	}
 	_ = ns.queue.Push(opts)
 	for _, mention := range mentions {
-		opts := notificationOpts{
-			IssueID:              pr.Issue.ID,
-			NotificationAuthorID: r.Reviewer.ID,
-			ReceiverID:           mention.ID,
-		}
-		if c != nil {
-			opts.CommentID = c.ID
-		}
+		opts.ReceiverID = mention.ID
 		_ = ns.queue.Push(opts)
 	}
 }
@@ -366,6 +352,7 @@ func (ns *notificationService) NewRelease(ctx context.Context, rel *repo_model.R
 func (ns *notificationService) UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 	opts := notificationOpts{
 		Source:               activities_model.NotificationSourceRelease,
+		RepoID:               rel.RepoID,
 		ReleaseID:            rel.ID,
 		NotificationAuthorID: rel.PublisherID,
 	}

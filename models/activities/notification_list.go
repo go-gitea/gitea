@@ -492,6 +492,7 @@ func (nl NotificationList) LoadReleases(ctx context.Context) ([]int, error) {
 				failures = append(failures, i)
 				continue
 			}
+			notification.Release.Repo = notification.Repository
 		}
 	}
 	return failures, nil

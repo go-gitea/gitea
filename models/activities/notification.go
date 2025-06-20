@@ -149,10 +149,11 @@ func CreateCommitNotifications(ctx context.Context, doerID, repoID int64, commit
 	return db.Insert(ctx, notification)
 }
 
-func CreateOrUpdateReleaseNotifications(ctx context.Context, doerID, releaseID, receiverID int64) error {
+func CreateOrUpdateReleaseNotifications(ctx context.Context, doerID, repoID, releaseID, receiverID int64) error {
 	notification := new(Notification)
 	if _, err := db.GetEngine(ctx).
 		Where("user_id = ?", receiverID).
+		And("repo_id = ?", repoID).
 		And("release_id = ?", releaseID).
 		Get(notification); err != nil {
 		return err
@@ -166,6 +167,7 @@ func CreateOrUpdateReleaseNotifications(ctx context.Context, doerID, releaseID, 
 
 	notification = &Notification{
 		Source:    NotificationSourceRelease,
+		RepoID:    repoID,
 		UserID:    receiverID,
 		Status:    NotificationStatusUnread,
 		ReleaseID: releaseID,
@@ -423,6 +425,17 @@ func SetReleaseReadBy(ctx context.Context, releaseID, userID int64) error {
 		"status":     NotificationStatusUnread,
 		"source":     NotificationSourceRelease,
 		"release_id": releaseID,
+	}).Cols("status").Update(&Notification{Status: NotificationStatusRead})
+	return err
+}
+
+// SetCommitReadBy sets issue to be read by given user.
+func SetCommitReadBy(ctx context.Context, repoID, userID int64, commitID string) error {
+	_, err := db.GetEngine(ctx).Where(builder.Eq{
+		"user_id":   userID,
+		"status":    NotificationStatusUnread,
+		"source":    NotificationSourceCommit,
+		"commit_id": commitID,
 	}).Cols("status").Update(&Notification{Status: NotificationStatusRead})
 	return err
 }
