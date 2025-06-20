@@ -563,8 +563,8 @@ func DeletePackageFile(ctx context.Context, pf *packages_model.PackageFile) erro
 	return packages_model.DeleteFileByID(ctx, pf.ID)
 }
 
-// GetFileStreamByPackageNameAndVersion returns the content of the specific package file
-func GetFileStreamByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo, pfi *PackageFileInfo) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+// OpenFileForDownloadByPackageNameAndVersion returns the content of the specific package file and increases the download counter.
+func OpenFileForDownloadByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo, pfi *PackageFileInfo) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %s, %s, %s, %s", pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pfi.Filename, pfi.CompositeKey)
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
@@ -576,32 +576,38 @@ func GetFileStreamByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo,
 		return nil, nil, nil, err
 	}
 
-	return GetFileStreamByPackageVersion(ctx, pv, pfi)
+	return OpenFileForDownloadByPackageVersion(ctx, pv, pfi)
 }
 
-// GetFileStreamByPackageVersion returns the content of the specific package file
-func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+// OpenFileForDownloadByPackageVersion returns the content of the specific package file and increases the download counter.
+func OpenFileForDownloadByPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, pfi.Filename, pfi.CompositeKey)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	return GetPackageFileStream(ctx, pf)
+	return OpenFileForDownload(ctx, pf)
 }
 
-// GetPackageFileStream returns the content of the specific package file
-func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+// OpenFileForDownload returns the content of the specific package file and increases the download counter.
+func OpenFileForDownload(ctx context.Context, pf *packages_model.PackageFile) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	return GetPackageBlobStream(ctx, pf, pb, nil)
+	return OpenBlobForDownload(ctx, pf, pb, nil)
 }
 
-// GetPackageBlobStream returns the content of the specific package blob
+func OpenBlobStream(pb *packages_model.PackageBlob) (io.ReadSeekCloser, error) {
+	cs := packages_module.NewContentStore()
+	key := packages_module.BlobHash256Key(pb.HashSHA256)
+	return cs.OpenBlob(key)
+}
+
+// OpenBlobForDownload returns the content of the specific package blob and increases the download counter.
 // If the storage supports direct serving and it's enabled, only the direct serving url is returned.
-func GetPackageBlobStream(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, serveDirectReqParams url.Values) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, serveDirectReqParams url.Values) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	key := packages_module.BlobHash256Key(pb.HashSHA256)
 
 	cs := packages_module.NewContentStore()
@@ -617,7 +623,7 @@ func GetPackageBlobStream(ctx context.Context, pf *packages_model.PackageFile, p
 		}
 	}
 	if u == nil {
-		s, err = cs.Get(key)
+		s, err = cs.OpenBlob(key)
 	}
 
 	if err == nil {

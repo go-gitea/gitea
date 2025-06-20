@@ -23,22 +23,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
+	container_service "code.gitea.io/gitea/services/packages/container"
 
 	"github.com/opencontainers/go-digest"
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 )
-
-func isMediaTypeValid(mt string) bool {
-	return strings.HasPrefix(mt, "application/vnd.docker.") || strings.HasPrefix(mt, "application/vnd.oci.")
-}
-
-func isMediaTypeImageManifest(mt string) bool {
-	return strings.EqualFold(mt, oci.MediaTypeImageManifest) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.v2+json")
-}
-
-func isMediaTypeImageIndex(mt string) bool {
-	return strings.EqualFold(mt, oci.MediaTypeImageIndex) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.list.v2+json")
-}
 
 // manifestCreationInfo describes a manifest to create
 type manifestCreationInfo struct {
@@ -65,16 +54,16 @@ func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packag
 		return "", err
 	}
 
-	if !isMediaTypeValid(mci.MediaType) {
+	if !container_module.IsMediaTypeValid(mci.MediaType) {
 		mci.MediaType = index.MediaType
-		if !isMediaTypeValid(mci.MediaType) {
+		if !container_module.IsMediaTypeValid(mci.MediaType) {
 			return "", errManifestInvalid.WithMessage("MediaType not recognized")
 		}
 	}
 
-	if isMediaTypeImageManifest(mci.MediaType) {
+	if container_module.IsMediaTypeImageManifest(mci.MediaType) {
 		return processOciImageManifest(ctx, mci, buf)
-	} else if isMediaTypeImageIndex(mci.MediaType) {
+	} else if container_module.IsMediaTypeImageIndex(mci.MediaType) {
 		return processOciImageIndex(ctx, mci, buf)
 	}
 	return "", errManifestInvalid
@@ -84,12 +73,11 @@ func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf
 	manifestDigest := ""
 
 	err := func() error {
-		var manifest oci.Manifest
-		if err := json.NewDecoder(buf).Decode(&manifest); err != nil {
+		manifest, configDescriptor, metadata, err := container_service.ParseManifestMetadata(ctx, buf, mci.Owner.ID, mci.Image)
+		if err != nil {
 			return err
 		}
-
-		if _, err := buf.Seek(0, io.SeekStart); err != nil {
+		if _, err = buf.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
 
@@ -99,28 +87,7 @@ func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf
 		}
 		defer committer.Close()
 
-		configDescriptor, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
-			OwnerID: mci.Owner.ID,
-			Image:   mci.Image,
-			Digest:  string(manifest.Config.Digest),
-		})
-		if err != nil {
-			return err
-		}
-
-		configReader, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(configDescriptor.Blob.HashSHA256))
-		if err != nil {
-			return err
-		}
-		defer configReader.Close()
-
-		metadata, err := container_module.ParseImageConfig(manifest.Config.MediaType, configReader)
-		if err != nil {
-			return err
-		}
-
 		blobReferences := make([]*blobReference, 0, 1+len(manifest.Layers))
-
 		blobReferences = append(blobReferences, &blobReference{
 			Digest:       manifest.Config.Digest,
 			MediaType:    manifest.Config.MediaType,
@@ -222,7 +189,7 @@ func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *p
 		}
 
 		for _, manifest := range index.Manifests {
-			if !isMediaTypeImageManifest(manifest.MediaType) {
+			if !container_module.IsMediaTypeImageManifest(manifest.MediaType) {
 				return errManifestInvalid
 			}
 
@@ -357,7 +324,7 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 			return nil, err
 		}
 
-		if isMediaTypeImageIndex(mci.MediaType) {
+		if container_module.IsMediaTypeImageIndex(mci.MediaType) {
 			if pv.CreatedUnix.AsTime().Before(time.Now().Add(-24 * time.Hour)) {
 				if err = packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
 					return nil, err
@@ -388,19 +355,16 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 			return nil, err
 		}
 	} else {
-		props, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestTagged)
-		if err != nil {
+		if err = packages_model.DeletePropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestTagged); err != nil {
 			return nil, err
-		}
-		for _, prop := range props {
-			if err = packages_model.DeletePropertyByID(ctx, prop.ID); err != nil {
-				return nil, err
-			}
 		}
 	}
 
+	if err = packages_model.DeletePropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference); err != nil {
+		return nil, err
+	}
 	for _, manifest := range metadata.Manifests {
-		if err = packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, manifest.Digest); err != nil {
+		if _, err = packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, manifest.Digest); err != nil {
 			return nil, err
 		}
 	}

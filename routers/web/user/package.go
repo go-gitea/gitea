@@ -4,6 +4,8 @@
 package user
 
 import (
+	gocontext "context"
+	"errors"
 	"net/http"
 	"net/url"
 
@@ -20,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
+	container_module "code.gitea.io/gitea/modules/packages/container"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/setting"
@@ -31,6 +34,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
+	container_service "code.gitea.io/gitea/services/packages/container"
 )
 
 const (
@@ -162,6 +166,24 @@ func RedirectToLastVersion(ctx *context.Context) {
 	ctx.Redirect(pd.VersionWebLink())
 }
 
+func viewPackageContainerImage(ctx gocontext.Context, pd *packages_model.PackageDescriptor, digest string) (*container_module.Metadata, error) {
+	manifestBlob, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
+		OwnerID: pd.Owner.ID,
+		Image:   pd.Package.LowerName,
+		Digest:  digest,
+	})
+	if err != nil {
+		return nil, err
+	}
+	manifestReader, err := packages_service.OpenBlobStream(manifestBlob.Blob)
+	if err != nil {
+		return nil, err
+	}
+	defer manifestReader.Close()
+	_, _, metadata, err := container_service.ParseManifestMetadata(ctx, manifestReader, pd.Owner.ID, pd.Package.LowerName)
+	return metadata, err
+}
+
 // ViewPackageVersion displays a single package version
 func ViewPackageVersion(ctx *context.Context) {
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
@@ -169,6 +191,7 @@ func ViewPackageVersion(ctx *context.Context) {
 		return
 	}
 
+	versionSub := ctx.PathParam("version_sub")
 	pd := ctx.Package.Descriptor
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
@@ -179,6 +202,9 @@ func ViewPackageVersion(ctx *context.Context) {
 		registryHostURL, _ = url.Parse(setting.AppURL)
 	}
 	ctx.Data["PackageRegistryHost"] = registryHostURL.Host
+
+	var pvs []*packages_model.PackageVersion
+	pvsTotal := int64(0)
 
 	switch pd.Package.Type {
 	case packages_model.TypeAlpine:
@@ -257,21 +283,26 @@ func ViewPackageVersion(ctx *context.Context) {
 
 		ctx.Data["Groups"] = util.Sorted(groups.Values())
 		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
-	}
-
-	var (
-		total int64
-		pvs   []*packages_model.PackageVersion
-	)
-	switch pd.Package.Type {
 	case packages_model.TypeContainer:
-		pvs, total, err = container_model.SearchImageTags(ctx, &container_model.ImageTagsSearchOptions{
+		imageMetadata := pd.Metadata
+		if versionSub != "" {
+			imageMetadata, err = viewPackageContainerImage(ctx, pd, versionSub)
+			if errors.Is(err, util.ErrNotExist) {
+				ctx.NotFound(nil)
+				return
+			} else if err != nil {
+				ctx.ServerError("viewPackageContainerImage", err)
+				return
+			}
+		}
+		ctx.Data["ContainerImageMetadata"] = imageMetadata
+		pvs, pvsTotal, err = container_model.SearchImageTags(ctx, &container_model.ImageTagsSearchOptions{
 			Paginator: db.NewAbsoluteListOptions(0, 5),
 			PackageID: pd.Package.ID,
 			IsTagged:  true,
 		})
 	default:
-		pvs, total, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		pvs, pvsTotal, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 			Paginator:  db.NewAbsoluteListOptions(0, 5),
 			PackageID:  pd.Package.ID,
 			IsInternal: optional.Some(false),
@@ -283,7 +314,7 @@ func ViewPackageVersion(ctx *context.Context) {
 	}
 
 	ctx.Data["LatestVersions"] = pvs
-	ctx.Data["TotalVersionCount"] = total
+	ctx.Data["TotalVersionCount"] = pvsTotal
 
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
@@ -482,9 +513,9 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf)
 	if err != nil {
-		ctx.ServerError("GetPackageFileStream", err)
+		ctx.ServerError("OpenFileForDownload", err)
 		return
 	}
 

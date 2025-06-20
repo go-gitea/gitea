@@ -369,3 +369,8 @@ export function addDelegatedEventListener<T extends HTMLElement, E extends Event
     listener(elem as T, e as E);
   }, options);
 }
+
+/** Returns whether a click event is a left-click without any modifiers held */
+export function isPlainClick(e: MouseEvent) {
+  return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
+}

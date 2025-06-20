@@ -49,7 +49,11 @@
 						{{/* "unknown/unknown" is attestation-manifest, so we should skip it */}}
 						{{if ne .Platform "unknown/unknown"}}
 						<tr>
-							<td><a class="tw-font-mono" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .Digest}}">{{StringUtils.TrimPrefix .Digest "sha256:" | ShortSha}}</a></td>
+							<td>
+								<a class="tw-font-mono" href="{{$.PackageDescriptor.PackageWebLink}}/{{$.PackageDescriptor.Version.LowerVersion}}/{{PathEscape .Digest}}">
+									{{StringUtils.TrimPrefix .Digest "sha256:" | ShortSha}}
+								</a>
+							</td>
 							<td>{{.Platform}}</td>
 							<td>{{FileSize .Size}}</td>
 						</tr>
@@ -65,12 +69,24 @@
 			{{.PackageDescriptor.Metadata.Description}}
 		</div>
 	{{end}}
-	{{if .PackageDescriptor.Metadata.ImageLayers}}
-		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.container.layers"}}</h4>
+
+	{{/* a container manifest may contain sub manifests, so here we try to display some information of the sub manifest,
+		not perfect, just better than before */}}
+	{{$imageMetadata := .ContainerImageMetadata}}
+	{{if $imageMetadata.ImageLayers}}
+		<h4 class="ui top attached header flex-text-block">
+			{{ctx.Locale.Tr "packages.container.layers"}}
+			{{/* only show the platform if the image metadata is not the package's, which means that it is a sub manifest */}}
+			{{if ne .ContainerImageMetadata .PackageDescriptor.Metadata}}
+				<span class="tw-text-sm flex-text-inline" title="{{ctx.Locale.Tr "packages.container.details.platform"}}">
+					({{svg "octicon-cpu" 12}} {{.ContainerImageMetadata.Platform}})
+				</span>
+			{{end}}
+		</h4>
 		<div class="ui attached segment tw-break-anywhere">
-			<table class="ui very basic compact table">
+			<table class="ui very basic compact table tw-font-mono">
 				<tbody>
-					{{range .PackageDescriptor.Metadata.ImageLayers}}
+					{{range $imageMetadata.ImageLayers}}
 						<tr>
 							<td>{{.}}</td>
 						</tr>
@@ -79,10 +95,10 @@
 			</table>
 		</div>
 	{{end}}
-	{{if .PackageDescriptor.Metadata.Labels}}
+	{{if $imageMetadata.Labels}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.container.labels"}}</h4>
 		<div class="ui attached segment">
-			<table class="ui very basic compact table">
+			<table class="ui very basic compact table tw-font-mono">
 				<thead>
 					<tr>
 						<th>{{ctx.Locale.Tr "packages.container.labels.key"}}</th>
@@ -90,7 +106,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{{range $key, $value := .PackageDescriptor.Metadata.Labels}}
+					{{range $key, $value := $imageMetadata.Labels}}
 						<tr>
 							<td class="tw-align-top">{{$key}}</td>
 							<td class="tw-break-anywhere">{{$value}}</td>
