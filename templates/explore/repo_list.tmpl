@@ -39,12 +39,12 @@
 						{{end}}
 						{{if not $.DisableStars}}
 							<a class="flex-text-inline" href="{{.Link}}/stars">
-								<span aria-label="{{ctx.Locale.Tr "repo.stars"}}">{{svg "octicon-star" 16}}</span>
+								<span class="tw-contents" aria-label="{{ctx.Locale.Tr "repo.stars"}}">{{svg "octicon-star" 16}}</span>
 								<span {{if ge .NumStars 1000}}data-tooltip-content="{{.NumStars}}"{{end}}>{{CountFmt .NumStars}}</span>
 							</a>
 						{{end}}
 						<a class="flex-text-inline" href="{{.Link}}/forks">
-							<span aria-label="{{ctx.Locale.Tr "repo.forks"}}">{{svg "octicon-git-branch" 16}}</span>
+							<span class="tw-contents" aria-label="{{ctx.Locale.Tr "repo.forks"}}">{{svg "octicon-git-branch" 16}}</span>
 							<span {{if ge .NumForks 1000}}data-tooltip-content="{{.NumForks}}"{{end}}>{{CountFmt .NumForks}}</span>
 						</a>
 					</div>

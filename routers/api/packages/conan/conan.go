@@ -480,7 +480,7 @@ func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKe
 		return
 	}
 
-	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,

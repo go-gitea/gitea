@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
@@ -26,28 +27,24 @@ import (
 
 func getExpectedContentsResponseForContents(ref, refType, lastCommitSHA string) *api.ContentsResponse {
 	treePath := "README.md"
-	sha := "4b4851ad51df6a7d9f25c979345979eaeb5b349f"
-	encoding := "base64"
-	content := "IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x"
 	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=" + ref
 	htmlURL := setting.AppURL + "user2/repo1/src/" + refType + "/" + ref + "/" + treePath
-	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha
-	downloadURL := setting.AppURL + "user2/repo1/raw/" + refType + "/" + ref + "/" + treePath
+	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f"
 	return &api.ContentsResponse{
 		Name:              treePath,
 		Path:              treePath,
-		SHA:               sha,
+		SHA:               "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
 		LastCommitSHA:     lastCommitSHA,
 		LastCommitterDate: time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
 		LastAuthorDate:    time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
 		Type:              "file",
 		Size:              30,
-		Encoding:          &encoding,
-		Content:           &content,
+		Encoding:          util.ToPointer("base64"),
+		Content:           util.ToPointer("IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x"),
 		URL:               &selfURL,
 		HTMLURL:           &htmlURL,
 		GitURL:            &gitURL,
-		DownloadURL:       &downloadURL,
+		DownloadURL:       util.ToPointer(setting.AppURL + "user2/repo1/raw/" + refType + "/" + ref + "/" + treePath),
 		Links: &api.FileLinksResponse{
 			Self:    &selfURL,
 			GitURL:  &gitURL,

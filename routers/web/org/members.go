@@ -28,10 +28,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgMembers"] = true
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	opts := &organization.FindOrgMembersOpts{
 		Doer:  ctx.Doer,
@@ -54,9 +51,8 @@ func Members(ctx *context.Context) {
 		return
 	}
 
-	_, err = shared_user.PrepareOrgHeader(ctx)
-	if err != nil {
-		ctx.ServerError("PrepareOrgHeader", err)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 

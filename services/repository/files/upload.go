@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -105,12 +106,12 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		}
 	}
 
-	var filename2attribute2info map[string]map[string]string
+	var attributesMap map[string]*attribute.Attributes
+	// when uploading to an empty repo, the old branch doesn't exist, but some "global gitattributes" or "info/attributes" may exist
 	if setting.LFS.StartServer {
-		filename2attribute2info, err = t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
-			Attributes: []string{"filter"},
+		attributesMap, err = attribute.CheckAttributes(ctx, t.gitRepo, "" /* use temp repo's working dir */, attribute.CheckAttributeOpts{
+			Attributes: []string{attribute.Filter},
 			Filenames:  names,
-			CachedOnly: true,
 		})
 		if err != nil {
 			return err
@@ -118,8 +119,14 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	// Copy uploaded files into repository.
+	// TODO: there is a small problem: when uploading LFS files with ".gitattributes", the "check-attr" runs before this loop,
+	// so LFS files are not able to be added as LFS objects. Ideally we need to do in 3 steps in the future:
+	// 1. Add ".gitattributes" to git index
+	// 2. Run "check-attr" (the previous attribute.CheckAttributes call)
+	// 3. Add files to git index (this loop)
+	// This problem is trivial so maybe no need to spend too much time on it at the moment.
 	for i := range infos {
-		if err := copyUploadedLFSFileIntoRepository(ctx, &infos[i], filename2attribute2info, t, opts.TreePath); err != nil {
+		if err := copyUploadedLFSFileIntoRepository(ctx, &infos[i], attributesMap, t, opts.TreePath); err != nil {
 			return err
 		}
 	}
@@ -176,7 +183,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	return repo_model.DeleteUploads(ctx, uploads...)
 }
 
-func copyUploadedLFSFileIntoRepository(ctx context.Context, info *uploadInfo, filename2attribute2info map[string]map[string]string, t *TemporaryUploadRepository, treePath string) error {
+func copyUploadedLFSFileIntoRepository(ctx context.Context, info *uploadInfo, attributesMap map[string]*attribute.Attributes, t *TemporaryUploadRepository, treePath string) error {
 	file, err := os.Open(info.upload.LocalPath())
 	if err != nil {
 		return err
@@ -184,7 +191,7 @@ func copyUploadedLFSFileIntoRepository(ctx context.Context, info *uploadInfo, fi
 	defer file.Close()
 
 	var objectHash string
-	if setting.LFS.StartServer && filename2attribute2info[info.upload.Name] != nil && filename2attribute2info[info.upload.Name]["filter"] == "lfs" {
+	if setting.LFS.StartServer && attributesMap[info.upload.Name] != nil && attributesMap[info.upload.Name].Get(attribute.Filter).ToString().Value() == "lfs" {
 		// Handle LFS
 		// FIXME: Inefficient! this should probably happen in models.Upload
 		pointer, err := lfs.GeneratePointer(file)
@@ -194,10 +201,10 @@ func copyUploadedLFSFileIntoRepository(ctx context.Context, info *uploadInfo, fi
 
 		info.lfsMetaObject = &git_model.LFSMetaObject{Pointer: pointer, RepositoryID: t.repo.ID}
 
-		if objectHash, err = t.HashObject(ctx, strings.NewReader(pointer.StringContent())); err != nil {
+		if objectHash, err = t.HashObjectAndWrite(ctx, strings.NewReader(pointer.StringContent())); err != nil {
 			return err
 		}
-	} else if objectHash, err = t.HashObject(ctx, file); err != nil {
+	} else if objectHash, err = t.HashObjectAndWrite(ctx, file); err != nil {
 		return err
 	}
 

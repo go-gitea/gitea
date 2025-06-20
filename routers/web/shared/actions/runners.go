@@ -57,9 +57,8 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 	}
 
 	if ctx.Data["PageIsOrgSettings"] == true {
-		err := shared_user.LoadHeaderCount(ctx)
-		if err != nil {
-			ctx.ServerError("LoadHeaderCount", err)
+		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+			ctx.ServerError("RenderUserOrgHeader", err)
 			return nil, nil
 		}
 		return &runnersCtx{
@@ -109,10 +108,7 @@ func Runners(ctx *context.Context) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	opts := actions_model.FindRunnerOptions{
 		ListOptions: db.ListOptions{
@@ -180,10 +176,7 @@ func RunnersEdit(ctx *context.Context) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	runnerID := ctx.PathParamInt64("runnerid")
 	ownerID := rCtx.OwnerID
@@ -198,7 +191,7 @@ func RunnersEdit(ctx *context.Context) {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
-	if !runner.Editable(ownerID, repoID) {
+	if !runner.EditableInContext(ownerID, repoID) {
 		err = errors.New("no permission to edit this runner")
 		ctx.NotFound(err)
 		return
@@ -251,7 +244,7 @@ func RunnersEditPost(ctx *context.Context) {
 		ctx.ServerError("RunnerDetailsEditPost.GetRunnerByID", err)
 		return
 	}
-	if !runner.Editable(ownerID, repoID) {
+	if !runner.EditableInContext(ownerID, repoID) {
 		ctx.NotFound(util.NewPermissionDeniedErrorf("no permission to edit this runner"))
 		return
 	}
@@ -305,7 +298,7 @@ func RunnerDeletePost(ctx *context.Context) {
 		return
 	}
 
-	if !runner.Editable(rCtx.OwnerID, rCtx.RepoID) {
+	if !runner.EditableInContext(rCtx.OwnerID, rCtx.RepoID) {
 		ctx.NotFound(util.NewPermissionDeniedErrorf("no permission to delete this runner"))
 		return
 	}

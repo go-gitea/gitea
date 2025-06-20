@@ -38,7 +38,7 @@ func TestLFSRender(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body).doc
 
 		fileInfo := doc.Find("div.file-info-entry").First().Text()
-		assert.Contains(t, fileInfo, "Stored with Git LFS")
+		assert.Contains(t, fileInfo, "LFS")
 
 		content := doc.Find("div.file-view").Text()
 		assert.Contains(t, content, "Testing documents in LFS")
@@ -54,7 +54,7 @@ func TestLFSRender(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body).doc
 
 		fileInfo := doc.Find("div.file-info-entry").First().Text()
-		assert.Contains(t, fileInfo, "Stored with Git LFS")
+		assert.Contains(t, fileInfo, "LFS")
 
 		src, exists := doc.Find(".file-view img").Attr("src")
 		assert.True(t, exists, "The image should be in an <img> tag")
@@ -71,7 +71,7 @@ func TestLFSRender(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body).doc
 
 		fileInfo := doc.Find("div.file-info-entry").First().Text()
-		assert.Contains(t, fileInfo, "Stored with Git LFS")
+		assert.Contains(t, fileInfo, "LFS")
 
 		rawLink, exists := doc.Find("div.file-view > div.view-raw > a").Attr("href")
 		assert.True(t, exists, "Download link should render instead of content because this is a binary file")

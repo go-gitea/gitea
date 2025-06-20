@@ -204,8 +204,9 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 
 	// Create repos.
 	repoIDs := make([]int64, 0)
-	for i := 0; i < 3; i++ {
-		r, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), repo_service.CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
+	for i := range 3 {
+		r, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(),
+			repo_service.CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)}, true)
 		assert.NoError(t, err, "CreateRepository %d", i)
 		if r != nil {
 			repoIDs = append(repoIDs, r.ID)
@@ -267,7 +268,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Create repo and check teams repositories.
-	r, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), repo_service.CreateRepoOptions{Name: "repo-last"})
+	r, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), repo_service.CreateRepoOptions{Name: "repo-last"}, true)
 	assert.NoError(t, err, "CreateRepository last")
 	if r != nil {
 		repoIDs = append(repoIDs, r.ID)
@@ -280,7 +281,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Remove repo and check teams repositories.
-	assert.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, repoIDs[0]), "DeleteRepository")
+	assert.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, repoIDs[0]), "DeleteRepository")
 	teamRepos[0] = repoIDs[1:]
 	teamRepos[1] = repoIDs[1:]
 	teamRepos[3] = repoIDs[1:3]
@@ -292,7 +293,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Wipe created items.
 	for i, rid := range repoIDs {
 		if i > 0 { // first repo already deleted.
-			assert.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, rid), "DeleteRepository %d", i)
+			assert.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, rid), "DeleteRepository %d", i)
 		}
 	}
 	assert.NoError(t, DeleteOrganization(db.DefaultContext, org, false), "DeleteOrganization")

@@ -31,16 +31,19 @@ if [ -e /data/ssh/ssh_host_ecdsa_cert ]; then
   SSH_ECDSA_CERT=${SSH_ECDSA_CERT:-"/data/ssh/ssh_host_ecdsa_cert"}
 fi
 
-if [ -e /data/ssh/ssh_host_ed25519-cert.pub ]; then
-  SSH_ED25519_CERT=${SSH_ED25519_CERT:-"/data/ssh/ssh_host_ed25519-cert.pub"}
+# In case someone wants to sign the `{keyname}.pub` key by `ssh-keygen -s ca -I identity ...` to
+# make use of the ssh-key certificate authority feature (see ssh-keygen CERTIFICATES section),
+# the generated key file name is `{keyname}-cert.pub`
+if [ -e /data/ssh/ssh_host_ed25519_key-cert.pub ]; then
+  SSH_ED25519_CERT=${SSH_ED25519_CERT:-"/data/ssh/ssh_host_ed25519_key-cert.pub"}
 fi
 
-if [ -e /data/ssh/ssh_host_rsa-cert.pub ]; then
-  SSH_RSA_CERT=${SSH_RSA_CERT:-"/data/ssh/ssh_host_rsa-cert.pub"}
+if [ -e /data/ssh/ssh_host_rsa_key-cert.pub ]; then
+  SSH_RSA_CERT=${SSH_RSA_CERT:-"/data/ssh/ssh_host_rsa_key-cert.pub"}
 fi
 
-if [ -e /data/ssh/ssh_host_ecdsa-cert.pub ]; then
-  SSH_ECDSA_CERT=${SSH_ECDSA_CERT:-"/data/ssh/ssh_host_ecdsa-cert.pub"}
+if [ -e /data/ssh/ssh_host_ecdsa_key-cert.pub ]; then
+  SSH_ECDSA_CERT=${SSH_ECDSA_CERT:-"/data/ssh/ssh_host_ecdsa_key-cert.pub"}
 fi
 
 if [ -d /etc/ssh ]; then

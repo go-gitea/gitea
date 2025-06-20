@@ -5,6 +5,7 @@ package convert
 
 import (
 	"context"
+	"net/url"
 
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
@@ -32,34 +33,29 @@ func ToCommitStatus(ctx context.Context, status *git_model.CommitStatus) *api.Co
 	return apiStatus
 }
 
+func ToCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) []*api.CommitStatus {
+	apiStatuses := make([]*api.CommitStatus, len(statuses))
+	for i, status := range statuses {
+		apiStatuses[i] = ToCommitStatus(ctx, status)
+	}
+	return apiStatuses
+}
+
 // ToCombinedStatus converts List of CommitStatus to a CombinedStatus
 func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, repo *api.Repository) *api.CombinedStatus {
 	if len(statuses) == 0 {
 		return nil
 	}
 
-	retStatus := &api.CombinedStatus{
-		SHA:        statuses[0].SHA,
+	combinedStatus := git_model.CalcCommitStatus(statuses)
+
+	return &api.CombinedStatus{
+		State:      combinedStatus.State,
+		Statuses:   ToCommitStatuses(ctx, statuses),
+		SHA:        combinedStatus.SHA,
 		TotalCount: len(statuses),
 		Repository: repo,
-		URL:        "",
+		CommitURL:  repo.URL + "/commits/" + url.PathEscape(combinedStatus.SHA),
+		URL:        repo.URL + "/commits/" + url.PathEscape(combinedStatus.SHA) + "/status",
 	}
-
-	retStatus.Statuses = make([]*api.CommitStatus, 0, len(statuses))
-	for _, status := range statuses {
-		retStatus.Statuses = append(retStatus.Statuses, ToCommitStatus(ctx, status))
-		if retStatus.State == "" || status.State.NoBetterThan(retStatus.State) {
-			retStatus.State = status.State
-		}
-	}
-	// According to https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
-	// > Additionally, a combined state is returned. The state is one of:
-	// > failure if any of the contexts report as error or failure
-	// > pending if there are no statuses or a context is pending
-	// > success if the latest status for all contexts is success
-	if retStatus.State.IsError() {
-		retStatus.State = api.CommitStatusFailure
-	}
-
-	return retStatus
 }

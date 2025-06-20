@@ -47,6 +47,7 @@ type Command struct {
 	globalArgsLength int
 	brokenArgs       []string
 	cmd              *exec.Cmd // for debug purpose only
+	configArgs       []string
 }
 
 func logArgSanitize(arg string) string {
@@ -78,6 +79,13 @@ func (c *Command) LogString() string {
 		a = append(a, debugQuote(logArgSanitize(c.args[i])))
 	}
 	return strings.Join(a, " ")
+}
+
+func (c *Command) ProcessState() string {
+	if c.cmd == nil {
+		return ""
+	}
+	return c.cmd.ProcessState.String()
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
@@ -186,6 +194,16 @@ func (c *Command) AddDashesAndList(list ...string) *Command {
 	// Some old code also checks `arg != ""`, IMO it's not necessary.
 	// If the check is needed, the list should be prepared before the call to this function
 	c.args = append(c.args, list...)
+	return c
+}
+
+func (c *Command) AddConfig(key, value string) *Command {
+	kv := key + "=" + value
+	if !isSafeArgumentValue(kv) {
+		c.brokenArgs = append(c.brokenArgs, key)
+	} else {
+		c.configArgs = append(c.configArgs, "-c", kv)
+	}
 	return c
 }
 
@@ -314,7 +332,7 @@ func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 
 	startTime := time.Now()
 
-	cmd := exec.CommandContext(ctx, c.prog, c.args...)
+	cmd := exec.CommandContext(ctx, c.prog, append(c.configArgs, c.args...)...)
 	c.cmd = cmd // for debug purpose only
 	if opts.Env == nil {
 		cmd.Env = os.Environ()

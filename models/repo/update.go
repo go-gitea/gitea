@@ -25,7 +25,7 @@ func UpdateRepositoryOwnerNames(ctx context.Context, ownerID int64, ownerName st
 	}
 	defer committer.Close()
 
-	if _, err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).Cols("owner_name").Update(&Repository{
+	if _, err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).Cols("owner_name").NoAutoTime().Update(&Repository{
 		OwnerName: ownerName,
 	}); err != nil {
 		return err
@@ -40,14 +40,20 @@ func UpdateRepositoryUpdatedTime(ctx context.Context, repoID int64, updateTime t
 	return err
 }
 
-// UpdateRepositoryCols updates repository's columns
-func UpdateRepositoryCols(ctx context.Context, repo *Repository, cols ...string) error {
+// UpdateRepositoryColsWithAutoTime updates repository's columns
+func UpdateRepositoryColsWithAutoTime(ctx context.Context, repo *Repository, cols ...string) error {
+	if len(cols) == 0 {
+		return nil
+	}
 	_, err := db.GetEngine(ctx).ID(repo.ID).Cols(cols...).Update(repo)
 	return err
 }
 
 // UpdateRepositoryColsNoAutoTime updates repository's columns and but applies time change automatically
 func UpdateRepositoryColsNoAutoTime(ctx context.Context, repo *Repository, cols ...string) error {
+	if len(cols) == 0 {
+		return nil
+	}
 	_, err := db.GetEngine(ctx).ID(repo.ID).Cols(cols...).NoAutoTime().Update(repo)
 	return err
 }

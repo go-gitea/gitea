@@ -50,6 +50,7 @@
 							data-label-id="{{.ID}}" data-label-name="{{.Name}}" data-label-color="{{.Color}}"
 							data-label-exclusive="{{.Exclusive}}" data-label-is-archived="{{gt .ArchivedUnix 0}}"
 							data-label-num-issues="{{.NumIssues}}" data-label-description="{{.Description}}"
+							data-label-exclusive-order="{{.ExclusiveOrder}}"
 						>{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
 						<a class="link-action" href="#" data-url="{{$.Link}}/delete?id={{.ID}}"
 							data-modal-confirm-header="{{ctx.Locale.Tr "repo.issues.label_deletion"}}"

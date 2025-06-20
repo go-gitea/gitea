@@ -525,6 +525,7 @@ $.fn.dropdown = function(parameters) {
               return true;
             }
             if(settings.onShow.call(element) !== false) {
+              settings.onAfterFiltered.call(element); // GITEA-PATCH: callback to correctly handle the filtered items
               module.animate.show(function() {
                 if( module.can.click() ) {
                   module.bind.intent();
@@ -4080,7 +4081,7 @@ $.fn.dropdown.settings = {
     search       : 'input.search, .menu > .search > input, .menu input.search',
     sizer        : '> span.sizer',
     text         : '> .text:not(.icon)',
-    unselectable : '.disabled, .filtered',
+    unselectable : '.disabled, .filtered, .tw-hidden', // GITEA-PATCH: tw-hidden hides the item so it is also unselectable
     clearIcon    : '> .remove.icon'
   },
 

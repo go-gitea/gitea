@@ -289,7 +289,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 	}
 
 	if err := pull_service.CheckPullMergeable(ctx, doer, &perm, pr, pull_service.MergeCheckTypeGeneral, false); err != nil {
-		if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
+		if errors.Is(err, pull_service.ErrNotReadyToMerge) {
 			log.Info("%-v was scheduled to automerge by an unauthorized user", pr)
 			return
 		}

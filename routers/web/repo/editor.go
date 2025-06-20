@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
@@ -146,40 +145,50 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		}
 
 		blob := entry.Blob()
-		if blob.Size() >= setting.UI.MaxDisplayFileSize {
-			ctx.NotFound(err)
-			return
-		}
 
-		dataRc, err := blob.DataAsync()
+		buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
 		if err != nil {
-			ctx.NotFound(err)
+			if git.IsErrNotExist(err) {
+				ctx.NotFound(err)
+			} else {
+				ctx.ServerError("getFileReader", err)
+			}
 			return
 		}
 
 		defer dataRc.Close()
 
-		ctx.Data["FileSize"] = blob.Size()
-		ctx.Data["FileName"] = blob.Name()
-
-		buf := make([]byte, 1024)
-		n, _ := util.ReadAtMost(dataRc, buf)
-		buf = buf[:n]
-
-		// Only some file types are editable online as text.
-		if !typesniffer.DetectContentType(buf).IsRepresentableAsText() {
-			ctx.NotFound(nil)
-			return
+		if fInfo.isLFSFile {
+			lfsLock, err := git_model.GetTreePathLock(ctx, ctx.Repo.Repository.ID, ctx.Repo.TreePath)
+			if err != nil {
+				ctx.ServerError("GetTreePathLock", err)
+				return
+			}
+			if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
+				ctx.NotFound(nil)
+				return
+			}
 		}
 
-		d, _ := io.ReadAll(dataRc)
+		ctx.Data["FileSize"] = fInfo.fileSize
 
-		buf = append(buf, d...)
-		if content, err := charset.ToUTF8(buf, charset.ConvertOpts{KeepBOM: true}); err != nil {
-			log.Error("ToUTF8: %v", err)
-			ctx.Data["FileContent"] = string(buf)
+		// Only some file types are editable online as text.
+		if fInfo.isLFSFile {
+			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
+		} else if !fInfo.st.IsRepresentableAsText() {
+			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
+		} else if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
+			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_too_large_file")
 		} else {
-			ctx.Data["FileContent"] = content
+			d, _ := io.ReadAll(dataRc)
+
+			buf = append(buf, d...)
+			if content, err := charset.ToUTF8(buf, charset.ConvertOpts{KeepBOM: true}); err != nil {
+				log.Error("ToUTF8: %v", err)
+				ctx.Data["FileContent"] = string(buf)
+			} else {
+				ctx.Data["FileContent"] = content
+			}
 		}
 	} else {
 		// Append filename from query, or empty string to allow username the new file.
@@ -279,9 +288,20 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		return
 	}
 
-	operation := "update"
+	var operation string
 	if isNewFile {
 		operation = "create"
+	} else if form.Content.Has() {
+		// The form content only has data if the file is representable as text, is not too large and not in lfs.
+		operation = "update"
+	} else if ctx.Repo.TreePath != form.TreePath {
+		// If it doesn't have data, the only possible operation is a "rename"
+		operation = "rename"
+	} else {
+		// It should never happen, just in case
+		ctx.Flash.Error(ctx.Tr("error.occurred"))
+		ctx.HTML(http.StatusOK, tplEditFile)
+		return
 	}
 
 	if _, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
@@ -294,7 +314,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				Operation:     operation,
 				FromTreePath:  ctx.Repo.TreePath,
 				TreePath:      form.TreePath,
-				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content, "\r", "")),
+				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content.Value(), "\r", "")),
 			},
 		},
 		Signoff:   form.Signoff,
@@ -375,12 +395,6 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				return
 			}
 			ctx.RenderWithErr(flashError, tplEditFile, &form)
-		}
-	}
-
-	if ctx.Repo.Repository.IsEmpty {
-		if isEmpty, err := ctx.Repo.GitRepo.IsEmpty(); err == nil && !isEmpty {
-			_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
 		}
 	}
 
@@ -792,7 +806,7 @@ func UploadFilePost(ctx *context.Context) {
 
 	if ctx.Repo.Repository.IsEmpty {
 		if isEmpty, err := ctx.Repo.GitRepo.IsEmpty(); err == nil && !isEmpty {
-			_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
+			_ = repo_model.UpdateRepositoryColsWithAutoTime(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
 		}
 	}
 
@@ -803,7 +817,7 @@ func cleanUploadFileName(name string) string {
 	// Rebase the filename
 	name = util.PathJoinRel(name)
 	// Git disallows any filenames to have a .git directory in them.
-	for _, part := range strings.Split(name, "/") {
+	for part := range strings.SplitSeq(name, "/") {
 		if strings.ToLower(part) == ".git" {
 			return ""
 		}

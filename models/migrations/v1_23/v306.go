@@ -9,5 +9,9 @@ func AddBlockAdminMergeOverrideBranchProtection(x *xorm.Engine) error {
 	type ProtectedBranch struct {
 		BlockAdminMergeOverride bool `xorm:"NOT NULL DEFAULT false"`
 	}
-	return x.Sync(new(ProtectedBranch))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(ProtectedBranch))
+	return err
 }

@@ -45,7 +45,7 @@
 		{{if $.Page.LinkedPRs}}
 		{{range index $.Page.LinkedPRs .ID}}
 		<div class="meta tw-my-1">
-			<a href="{{$.Issue.Repo.Link}}/pulls/{{.Index}}">
+			<a href="{{.Repo.Link}}/pulls/{{.Index}}">
 				<span class="tw-m-0 text {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "tw-mr-1 tw-align-middle"}}</span>
 				<span class="tw-align-middle">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
 			</a>

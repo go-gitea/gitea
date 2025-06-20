@@ -12,7 +12,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/tempdir"
 )
 
 var (
@@ -30,8 +30,12 @@ type BlobUploader struct {
 	reading bool
 }
 
-func buildFilePath(id string) string {
-	return util.FilePathJoinAbs(setting.Packages.ChunkedUploadPath, id)
+func uploadPathTempDir() *tempdir.TempDir {
+	return setting.AppDataTempDir("package-upload")
+}
+
+func buildFilePath(uploadPath *tempdir.TempDir, id string) string {
+	return uploadPath.JoinPath(id)
 }
 
 // NewBlobUploader creates a new blob uploader for the given id
@@ -48,7 +52,12 @@ func NewBlobUploader(ctx context.Context, id string) (*BlobUploader, error) {
 		}
 	}
 
-	f, err := os.OpenFile(buildFilePath(model.ID), os.O_RDWR|os.O_CREATE, 0o666)
+	uploadPath := uploadPathTempDir()
+	_, err = uploadPath.MkdirAllSub("")
+	if err != nil {
+		return nil, err
+	}
+	f, err := os.OpenFile(buildFilePath(uploadPath, model.ID), os.O_RDWR|os.O_CREATE, 0o666)
 	if err != nil {
 		return nil, err
 	}
@@ -118,13 +127,13 @@ func (u *BlobUploader) Read(p []byte) (int, error) {
 	return u.file.Read(p)
 }
 
-// Remove deletes the data and the model of a blob upload
+// RemoveBlobUploadByID Remove deletes the data and the model of a blob upload
 func RemoveBlobUploadByID(ctx context.Context, id string) error {
 	if err := packages_model.DeleteBlobUploadByID(ctx, id); err != nil {
 		return err
 	}
 
-	err := os.Remove(buildFilePath(id))
+	err := os.Remove(buildFilePath(uploadPathTempDir(), id))
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}

@@ -12,6 +12,8 @@ import (
 )
 
 // FormString returns the first value matching the provided key in the form as a string
+// It works the same as http.Request.FormValue:
+// try urlencoded request body first, then query string, then multipart form body
 func (b *Base) FormString(key string, def ...string) string {
 	s := b.Req.FormValue(key)
 	if s == "" {
@@ -20,7 +22,7 @@ func (b *Base) FormString(key string, def ...string) string {
 	return s
 }
 
-// FormStrings returns a string slice for the provided key from the form
+// FormStrings returns a values for the key in the form (including query parameters), similar to FormString
 func (b *Base) FormStrings(key string) []string {
 	if b.Req.Form == nil {
 		if err := b.Req.ParseMultipartForm(32 << 20); err != nil {

@@ -25,7 +25,7 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 
 	createdRepo, err := CreateRepositoryDirectly(git.DefaultContext, user2, user2, CreateRepoOptions{
 		Name: "created-repo",
-	})
+	}, true)
 	assert.NoError(t, err)
 	assert.NotNil(t, createdRepo)
 
@@ -35,7 +35,7 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: createdRepo.Name})
 
-	err = DeleteRepositoryDirectly(db.DefaultContext, user2, createdRepo.ID)
+	err = DeleteRepositoryDirectly(db.DefaultContext, createdRepo.ID)
 	assert.NoError(t, err)
 
 	// a failed creating because some mock data
@@ -44,7 +44,7 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 
 	createdRepo2, err := CreateRepositoryDirectly(db.DefaultContext, user2, user2, CreateRepoOptions{
 		Name: "created-repo",
-	})
+	}, true)
 	assert.Nil(t, createdRepo2)
 	assert.Error(t, err)
 

@@ -31,8 +31,8 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 		// It makes page handling terrible, but we prefer GitHub syntax
 		// And fall back to MediaWiki only when it is obvious from the look
 		// Of text and link contents
-		sl := strings.Split(content, "|")
-		for _, v := range sl {
+		sl := strings.SplitSeq(content, "|")
+		for v := range sl {
 			if equalPos := strings.IndexByte(v, '='); equalPos == -1 {
 				// There is no equal in this argument; this is a mandatory arg
 				if props["name"] == "" {

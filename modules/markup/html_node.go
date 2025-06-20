@@ -15,6 +15,14 @@ func isAnchorIDUserContent(s string) bool {
 	return strings.HasPrefix(s, "user-content-") || strings.Contains(s, ":user-content-")
 }
 
+func isAnchorIDFootnote(s string) bool {
+	return strings.HasPrefix(s, "fnref:user-content-") || strings.HasPrefix(s, "fn:user-content-")
+}
+
+func isAnchorHrefFootnote(s string) bool {
+	return strings.HasPrefix(s, "#fnref:user-content-") || strings.HasPrefix(s, "#fn:user-content-")
+}
+
 func processNodeAttrID(node *html.Node) {
 	// Add user-content- to IDs and "#" links if they don't already have them,
 	// and convert the link href to a relative link to the host root
@@ -23,6 +31,18 @@ func processNodeAttrID(node *html.Node) {
 			if !isAnchorIDUserContent(attr.Val) {
 				node.Attr[idx].Val = "user-content-" + attr.Val
 			}
+		}
+	}
+}
+
+func processFootnoteNode(ctx *RenderContext, node *html.Node) {
+	for idx, attr := range node.Attr {
+		if (attr.Key == "id" && isAnchorIDFootnote(attr.Val)) ||
+			(attr.Key == "href" && isAnchorHrefFootnote(attr.Val)) {
+			if footnoteContextID := ctx.RenderOptions.Metas["footnoteContextId"]; footnoteContextID != "" {
+				node.Attr[idx].Val = attr.Val + "-" + footnoteContextID
+			}
+			continue
 		}
 	}
 }

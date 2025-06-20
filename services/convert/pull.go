@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/cachegroup"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -60,14 +61,14 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		doerID = doer.ID
 	}
 
-	const repoDoerPermCacheKey = "repo_doer_perm_cache"
-	p, err := cache.GetWithContextCache(ctx, repoDoerPermCacheKey, fmt.Sprintf("%d_%d", pr.BaseRepoID, doerID),
-		func() (access_model.Permission, error) {
+	repoUserPerm, err := cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, fmt.Sprintf("%d-%d", pr.BaseRepoID, doerID),
+		func(ctx context.Context, _ string) (access_model.Permission, error) {
 			return access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
-		})
+		},
+	)
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
-		p.AccessMode = perm.AccessModeNone
+		repoUserPerm.AccessMode = perm.AccessModeNone
 	}
 
 	apiPullRequest := &api.PullRequest{
@@ -107,7 +108,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			Name:       pr.BaseBranch,
 			Ref:        pr.BaseBranch,
 			RepoID:     pr.BaseRepoID,
-			Repository: ToRepo(ctx, pr.BaseRepo, p),
+			Repository: ToRepo(ctx, pr.BaseRepo, repoUserPerm),
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
@@ -418,6 +419,9 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 		if baseBranch != nil {
 			apiPullRequest.Base.Sha = baseBranch.CommitID
 		}
+		if pr.HeadRepoID == pr.BaseRepoID {
+			apiPullRequest.Head.Repository = apiPullRequest.Base.Repository
+		}
 
 		// pull request head branch, both repository and branch could not exist
 		if pr.HeadRepo != nil {
@@ -430,20 +434,17 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			if exist {
 				apiPullRequest.Head.Ref = pr.HeadBranch
 			}
+			if pr.HeadRepoID != pr.BaseRepoID {
+				p, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
+				if err != nil {
+					log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
+					p.AccessMode = perm.AccessModeNone
+				}
+				apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
+			}
 		}
 		if apiPullRequest.Head.Ref == "" {
 			apiPullRequest.Head.Ref = pr.GetGitRefName()
-		}
-
-		if pr.HeadRepoID == pr.BaseRepoID {
-			apiPullRequest.Head.Repository = apiPullRequest.Base.Repository
-		} else {
-			p, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
-			if err != nil {
-				log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
-				p.AccessMode = perm.AccessModeNone
-			}
-			apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
 		}
 
 		if pr.Flow == issues_model.PullRequestFlowAGit {
