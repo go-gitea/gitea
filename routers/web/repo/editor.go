@@ -152,7 +152,7 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 			ctx.JSONError(ctx.Tr("repo.editor.fork_failed_to_push_branch", targetBranchName))
 			return nil
 		}
-		// since we have pushed the branch from base branch, so now we need to commit the changes directly
+		// we have pushed the base branch as the new branch, now we need to commit the changes directly to the new branch
 		oldBranchName = targetBranchName
 	}
 

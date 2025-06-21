@@ -407,7 +407,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 	assert.NotEmpty(t, lastCommit)
 
 	// change a file in the forked repo
-	req = NewRequestWithValues(t, "POST", formAction,
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s-1/_edit/%s/%s?from_base_branch=%s", user, repo, branch, filePath, branch),
 		map[string]string{
 			"_csrf":           GetUserCSRFToken(t, session),
 			"last_commit":     lastCommit,
@@ -418,7 +418,11 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		},
 	)
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.Equal(t, fmt.Sprintf("/%s/%s/compare/%s...%s/%s-1:%s-patch-1", owner, repo, branch, user, repo, user), test.RedirectURL(resp))
+	assert.Equal(t, fmt.Sprintf("/%s/%s/compare/%s...%s/%s-1:%s", owner, repo, branch, user, repo, newBranchName), test.RedirectURL(resp))
+
+	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s-1/src/branch/%s/%s", user, repo, newBranchName, filePath))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "new content in fork")
 }
 
 func TestForkToEditFile(t *testing.T) {
