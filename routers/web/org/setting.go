@@ -221,17 +221,19 @@ func Labels(ctx *context.Context) {
 // SettingsRename response for renaming organization
 func SettingsRename(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RenameOrgForm)
-	org := ctx.Org.Organization
+	if ctx.HasError() {
+		ctx.JSONError(ctx.GetErrMsg())
+		return
+	}
 
+	org := ctx.Org.Organization
 	if org.Name != form.OrgName {
-		ctx.Flash.Error(ctx.Tr("form.enterred_invalid_org_name"))
-		ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
+		ctx.JSONError(ctx.Tr("form.enterred_invalid_org_name"))
 		return
 	}
 
 	if org.Name == form.NewOrgName {
-		ctx.Flash.Error(ctx.Tr("org.settings.rename_no_change"))
-		ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
+		ctx.JSONError(ctx.Tr("org.settings.rename_no_change"))
 		return
 	}
 
@@ -239,22 +241,18 @@ func SettingsRename(ctx *context.Context) {
 
 	if err := user_service.RenameUser(ctx, org.AsUser(), form.NewOrgName); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) {
-			ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
+			ctx.JSONError(ctx.Tr("form.username_been_taken"))
 		} else if db.IsErrNameReserved(err) {
-			ctx.Flash.Error(ctx.Tr("repo.form.name_reserved"))
+			ctx.JSONError(ctx.Tr("repo.form.name_reserved"))
 		} else if db.IsErrNamePatternNotAllowed(err) {
-			ctx.Flash.Error(ctx.Tr("repo.form.name_pattern_not_allowed"))
+			ctx.JSONError(ctx.Tr("repo.form.name_pattern_not_allowed"))
 		} else {
 			log.Error("RenameOrganization: %v", err)
-			ctx.Flash.Error(util.Iif(ctx.Doer.IsAdmin, err.Error(), string(ctx.Tr("org.settings.rename_failed"))))
+			ctx.JSONError(util.Iif(ctx.Doer.IsAdmin, err.Error(), string(ctx.Tr("org.settings.rename_failed"))))
 		}
-		ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
 		return
 	}
 
-	ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(org.Name)
-
-	log.Trace("Organization renamed to %s", org.Name)
 	ctx.Flash.Success(ctx.Tr("org.settings.rename_success", oldOrgName, org.Name))
-	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
+	ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(org.Name) + "/settings")
 }
