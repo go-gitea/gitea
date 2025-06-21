@@ -1,0 +1,16 @@
+<div class="breadcrumb">
+	<a class="section" href="{{$.BranchLink}}">{{.Repository.Name}}</a>
+	{{$n := len .TreeNames}}
+	{{$l := Eval $n "-" 1}}
+	{{range $i, $v := .TreeNames}}
+		<div class="breadcrumb-divider">/</div>
+		{{if eq $i $l}}
+			<input id="file-name" maxlength="255" value="{{$v}}" placeholder="{{ctx.Locale.Tr (Iif $.PageIsUpload "repo.editor.add_subdir" "repo.editor.name_your_file")}}" data-editorconfig="{{$.EditorconfigJson}}" required autofocus>
+			<span data-tooltip-content="{{ctx.Locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>
+		{{else}}
+			<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
+		{{end}}
+	{{end}}
+	<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{or .ReturnURI (print $.BranchLink "/" (PathEscapeSegments .TreePath))}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
+	<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}">
+</div>
