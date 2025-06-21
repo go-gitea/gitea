@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
+import {computed, onMounted, onUnmounted, ref, shallowRef, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {toggleElem} from '../utils/dom.ts';
 
@@ -7,12 +7,12 @@ const {csrfToken, pageData} = window.config;
 
 const mergeForm = ref(pageData.pullRequestMergeForm);
 
-const mergeTitleFieldValue = ref('');
-const mergeMessageFieldValue = ref('');
-const deleteBranchAfterMerge = ref(false);
-const autoMergeWhenSucceed = ref(false);
+const mergeTitleFieldValue = shallowRef('');
+const mergeMessageFieldValue = shallowRef('');
+const deleteBranchAfterMerge = shallowRef(false);
+const autoMergeWhenSucceed = shallowRef(false);
 
-const mergeStyle = ref('');
+const mergeStyle = shallowRef('');
 const mergeStyleDetail = ref({
   hideMergeMessageTexts: false,
   textDoMerge: '',
@@ -21,10 +21,10 @@ const mergeStyleDetail = ref({
   hideAutoMerge: false,
 });
 
-const mergeStyleAllowedCount = ref(0);
+const mergeStyleAllowedCount = shallowRef(0);
 
-const showMergeStyleMenu = ref(false);
-const showActionForm = ref(false);
+const showMergeStyleMenu = shallowRef(false);
+const showActionForm = shallowRef(false);
 
 const mergeButtonStyleClass = computed(() => {
   if (mergeForm.value.allOverridableChecksOk) return 'primary';

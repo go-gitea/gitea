@@ -21,7 +21,7 @@ import {
 import {chartJsColors} from '../utils/color.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
-import {onMounted, ref} from 'vue';
+import {onMounted, ref, shallowRef} from 'vue';
 
 const {pageData} = window.config;
 
@@ -43,8 +43,8 @@ defineProps<{
   };
 }>();
 
-const isLoading = ref(false);
-const errorText = ref('');
+const isLoading = shallowRef(false);
+const errorText = shallowRef('');
 const repoLink = ref(pageData.repoLink || []);
 const data = ref<DayData[]>([]);
 
