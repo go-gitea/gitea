@@ -342,14 +342,15 @@ index 0000000000..bbbbbbbbbb
 }
 
 func forkToEdit(t *testing.T, session *TestSession, owner, repo, operation, branch, filePath string) {
-	// Attempt to edit file
+	// attempt to edit a file, see the guideline page
 	req := NewRequest(t, "GET", path.Join(owner, repo, operation, branch, filePath))
 	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "Fork Repository to Propose Changes")
 
-	// Fork
+	// fork the repository
 	req = NewRequestWithValues(t, "POST", path.Join(owner, repo, "_fork", branch), map[string]string{"_csrf": GetUserCSRFToken(t, session)})
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.Equal(t, `{"redirect":""}`, strings.TrimSpace(resp.Body.String()))
+	assert.JSONEq(t, `{"redirect":""}`, resp.Body.String())
 }
 
 func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, branch, filePath string) {
@@ -387,6 +388,37 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 	// Check the existence of the forked repo with unique name
 	req = NewRequestf(t, "GET", "/%s/%s-1", user, repo)
 	session.MakeRequest(t, req, http.StatusOK)
+
+	// the base repo's edit form should have the correct action and upload links (pointing to the forked repo)
+	req = NewRequest(t, "GET", path.Join(owner, repo, "_upload", branch, filePath))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	form := htmlDoc.doc.Find(".form-fetch-action")
+	formAction := form.AttrOr("action", "")
+	assert.Equal(t, fmt.Sprintf("/%s/%s-1/_upload/%s/%s?from_base_branch=%s", user, repo, branch, filePath, branch), formAction)
+	uploadLink := form.Find(".dropzone").AttrOr("data-link-url", "")
+	assert.Equal(t, fmt.Sprintf("/%s/%s-1/upload-file", user, repo), uploadLink)
+	newBranchName := form.Find("input[name=new_branch_name]").AttrOr("value", "")
+	assert.Equal(t, user+"-patch-1", newBranchName)
+	commitChoice := form.Find("input[name=commit_choice][checked]").AttrOr("value", "")
+	assert.Equal(t, "commit-to-new-branch", commitChoice)
+	lastCommit := form.Find("input[name=last_commit]").AttrOr("value", "")
+	assert.NotEmpty(t, lastCommit)
+
+	// change a file in the forked repo
+	req = NewRequestWithValues(t, "POST", formAction,
+		map[string]string{
+			"_csrf":           GetUserCSRFToken(t, session),
+			"last_commit":     lastCommit,
+			"tree_path":       filePath,
+			"content":         "new content in fork",
+			"commit_choice":   commitChoice,
+			"new_branch_name": newBranchName,
+		},
+	)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, fmt.Sprintf("/%s/%s/compare/%s...%s/%s-1:%s-patch-1", owner, repo, branch, user, repo, user), test.RedirectURL(resp))
 }
 
 func TestForkToEditFile(t *testing.T) {

@@ -121,7 +121,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		}
 		// now, we get our own forked repo; it must be writable by us.
 	}
-	submitToOriginRepo := targetRepo.ID == originRepo.ID
+	submitToForkedRepo := targetRepo.ID != originRepo.ID
 	err := targetRepo.GetBaseRepo(ctx)
 	if err != nil {
 		return nil, err
@@ -147,7 +147,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		return nil, err
 	}
 
-	canCommitToBranch := submitToOriginRepo && targetRepo.CanEnableEditor() && canPushWithProtection
+	canCommitToBranch := !submitToForkedRepo /* same repo */ && targetRepo.CanEnableEditor() && canPushWithProtection
 	if protectionRequireSigned {
 		canCommitToBranch = canCommitToBranch && willSign
 	}
@@ -157,7 +157,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 
 	cfb := &CommitFormOptions{
 		TargetRepo:        targetRepo,
-		WillSubmitToFork:  !submitToOriginRepo,
+		WillSubmitToFork:  submitToForkedRepo,
 		CanCommitToBranch: canCommitToBranch,
 		UserCanPush:       canPushWithProtection,
 		RequireSigned:     protectionRequireSigned,
@@ -168,14 +168,16 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		CanCreatePullRequest:     canCreatePullRequest,
 		CanCreateBasePullRequest: canCreateBasePullRequest,
 	}
-	editorAction, editorPathParamRemaining := ctx.PathParam("editor_action"), ctx.PathParam("*")
+	editorAction := ctx.PathParam("editor_action")
+	editorPathParamRemaining := util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+	if submitToForkedRepo {
+		// there is only "default branch" in forked repo, we will use "from_base_branch" to get a new branch from base repo
+		editorPathParamRemaining = util.PathEscapeSegments(targetRepo.DefaultBranch) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath) + "?from_base_branch=" + url.QueryEscape(branchName)
+	}
 	if editorAction == "_cherrypick" {
 		cfb.TargetFormAction = targetRepo.Link() + "/" + editorAction + "/" + ctx.PathParam("sha") + "/" + editorPathParamRemaining
 	} else {
 		cfb.TargetFormAction = targetRepo.Link() + "/" + editorAction + "/" + editorPathParamRemaining
-	}
-	if originRepo.ID != targetRepo.ID {
-		cfb.TargetFormAction += "?from_base_branch=" + url.QueryEscape(branchName)
 	}
 	return cfb, nil
 }
