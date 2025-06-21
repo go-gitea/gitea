@@ -176,9 +176,9 @@ func safeHTML(s any) template.HTML {
 	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
-// SanitizeHTML sanitizes the input by pre-defined markdown rules
+// SanitizeHTML sanitizes the input by default sanitization rules.
 func SanitizeHTML(s string) template.HTML {
-	return template.HTML(markup.Sanitize(s))
+	return markup.Sanitize(s)
 }
 
 func htmlEscape(s any) template.HTML {
