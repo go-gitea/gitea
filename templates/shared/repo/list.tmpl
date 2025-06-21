@@ -2,7 +2,7 @@
 	{{range .Repos}}
 		<div class="flex-item">
 			<div class="flex-item-leading">
-				{{if $.IsForksPage}}
+				{{if $.ShowRepoOwnerAvatar}}
 					{{ctx.AvatarUtils.Avatar .Owner 24}}
 				{{else}}
 					{{template "repo/icon" .}}
@@ -11,7 +11,7 @@
 			<div class="flex-item-main">
 				<div class="flex-item-header">
 					<div class="flex-item-title">
-						{{if and $.ShowOwnerOnList .Owner}}
+						{{if and $.ShowRepoOwnerOnList .Owner}}
 						<a class="text primary name" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
 						{{end}}
 						<a class="text primary name" href="{{.Link}}">{{.Name}}</a>
