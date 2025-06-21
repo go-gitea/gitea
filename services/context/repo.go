@@ -155,7 +155,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 	canCreateBasePullRequest := targetRepo.BaseRepo != nil && targetRepo.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests)
 	canCreatePullRequest := targetRepo.UnitEnabled(ctx, unit_model.TypePullRequests) || canCreateBasePullRequest
 
-	cfb := &CommitFormOptions{
+	opts := &CommitFormOptions{
 		TargetRepo:        targetRepo,
 		WillSubmitToFork:  submitToForkedRepo,
 		CanCommitToBranch: canCommitToBranch,
@@ -175,11 +175,11 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		editorPathParamRemaining = util.PathEscapeSegments(targetRepo.DefaultBranch) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath) + "?from_base_branch=" + url.QueryEscape(branchName)
 	}
 	if editorAction == "_cherrypick" {
-		cfb.TargetFormAction = targetRepo.Link() + "/" + editorAction + "/" + ctx.PathParam("sha") + "/" + editorPathParamRemaining
+		opts.TargetFormAction = targetRepo.Link() + "/" + editorAction + "/" + ctx.PathParam("sha") + "/" + editorPathParamRemaining
 	} else {
-		cfb.TargetFormAction = targetRepo.Link() + "/" + editorAction + "/" + editorPathParamRemaining
+		opts.TargetFormAction = targetRepo.Link() + "/" + editorAction + "/" + editorPathParamRemaining
 	}
-	return cfb, nil
+	return opts, nil
 }
 
 // CanUseTimetracker returns whether a user can use the timetracker.

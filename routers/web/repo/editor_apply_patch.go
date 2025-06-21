@@ -33,8 +33,8 @@ func NewDiffPatchPost(ctx *context.Context) {
 	defaultCommitMessage := ctx.Locale.TrString("repo.editor.patch")
 	_, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, &files.ApplyDiffPatchOptions{
 		LastCommitID: parsed.form.LastCommit,
-		OldBranch:    ctx.Repo.BranchName,
-		NewBranch:    parsed.TargetBranchName,
+		OldBranch:    parsed.OldBranchName,
+		NewBranch:    parsed.NewBranchName,
 		Message:      parsed.GetCommitMessage(defaultCommitMessage),
 		Content:      strings.ReplaceAll(parsed.form.Content.Value(), "\r\n", "\n"),
 		Author:       parsed.GitCommitter,
@@ -44,7 +44,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 		err = util.ErrorWrapLocale(err, "repo.editor.fail_to_apply_patch")
 	}
 	if err != nil {
-		editorHandleFileOperationError(ctx, parsed.TargetBranchName, err)
+		editorHandleFileOperationError(ctx, parsed.NewBranchName, err)
 		return
 	}
 	redirectForCommitChoice(ctx, parsed, parsed.form.TreePath)

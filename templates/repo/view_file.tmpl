@@ -62,16 +62,8 @@
 				</a>
 				{{end}}
 				{{if .Repository.CanEnableEditor}}
-					{{if .CanEditFile}}
-						<a class="btn-octicon" data-tooltip-content="{{.EditFileTooltip}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-pencil"}}</a>
-					{{else}}
-						<span class="btn-octicon disabled" data-tooltip-content="{{.EditFileTooltip}}">{{svg "octicon-pencil"}}</span>
-					{{end}}
-					{{if .CanDeleteFile}}
-						<a class="btn-octicon btn-octicon-danger" data-tooltip-content="{{.DeleteFileTooltip}}" href="{{.RepoLink}}/_delete/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-trash"}}</a>
-					{{else}}
-						<span class="btn-octicon disabled" data-tooltip-content="{{.DeleteFileTooltip}}">{{svg "octicon-trash"}}</span>
-					{{end}}
+					<a class="btn-octicon" data-tooltip-content="{{.EditFileTooltip}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-pencil"}}</a>
+					<a class="btn-octicon btn-octicon-danger" data-tooltip-content="{{.DeleteFileTooltip}}" href="{{.RepoLink}}/_delete/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-trash"}}</a>
 				{{end}}
 			{{else if .EscapeStatus.Escaped}}
 				<button class="ui mini basic button unescape-button tw-mr-1 tw-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>

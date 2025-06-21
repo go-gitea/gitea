@@ -95,7 +95,8 @@ type preparedEditorCommitForm[T any] struct {
 	form              T
 	commonForm        *forms.CommitCommonForm
 	CommitFormOptions *context.CommitFormOptions
-	TargetBranchName  string
+	OldBranchName     string
+	NewBranchName     string
 	GitCommitter      *files_service.IdentityOptions
 }
 
@@ -142,6 +143,7 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 		return nil
 	}
 
+	oldBranchName := ctx.Repo.BranchName
 	fromBaseBranch := ctx.FormString("from_base_branch")
 	if fromBaseBranch != "" {
 		err = editorPushBranchToForkedRepository(ctx, ctx.Doer, ctx.Repo.Repository.BaseRepo, fromBaseBranch, ctx.Repo.Repository, targetBranchName)
@@ -150,13 +152,16 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 			ctx.JSONError(ctx.Tr("repo.editor.fork_failed_to_push_branch", targetBranchName))
 			return nil
 		}
+		// since we have pushed the branch from base branch, so now we need to commit the changes directly
+		oldBranchName = targetBranchName
 	}
 
 	return &preparedEditorCommitForm[T]{
 		form:              form,
 		commonForm:        commonForm,
 		CommitFormOptions: commitFormOptions,
-		TargetBranchName:  targetBranchName,
+		OldBranchName:     oldBranchName,
+		NewBranchName:     targetBranchName,
 		GitCommitter:      gitCommitter,
 	}
 }
@@ -166,7 +171,7 @@ func redirectForCommitChoice[T any](ctx *context.Context, parsed *preparedEditor
 	if parsed.commonForm.CommitChoice == editorCommitChoiceNewBranch {
 		// Redirect to a pull request when possible
 		redirectToPullRequest := false
-		repo, baseBranch, headBranch := ctx.Repo.Repository, ctx.Repo.BranchName, parsed.TargetBranchName
+		repo, baseBranch, headBranch := ctx.Repo.Repository, parsed.OldBranchName, parsed.NewBranchName
 		if ctx.Repo.Repository.IsFork && parsed.CommitFormOptions.CanCreateBasePullRequest {
 			redirectToPullRequest = true
 			baseBranch = repo.BaseRepo.DefaultBranch
@@ -183,7 +188,7 @@ func redirectForCommitChoice[T any](ctx *context.Context, parsed *preparedEditor
 
 	returnURI := ctx.FormString("return_uri")
 	if returnURI == "" || !httplib.IsCurrentGiteaSiteURL(ctx, returnURI) {
-		returnURI = util.URLJoin(ctx.Repo.RepoLink, "src/branch", util.PathEscapeSegments(parsed.TargetBranchName), util.PathEscapeSegments(treePath))
+		returnURI = util.URLJoin(ctx.Repo.RepoLink, "src/branch", util.PathEscapeSegments(parsed.NewBranchName), util.PathEscapeSegments(treePath))
 	}
 	ctx.JSONRedirect(returnURI)
 }
@@ -319,8 +324,8 @@ func EditFilePost(ctx *context.Context) {
 
 	_, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
 		LastCommitID: parsed.form.LastCommit,
-		OldBranch:    ctx.Repo.BranchName,
-		NewBranch:    parsed.TargetBranchName,
+		OldBranch:    parsed.OldBranchName,
+		NewBranch:    parsed.NewBranchName,
 		Message:      parsed.GetCommitMessage(defaultCommitMessage),
 		Files: []*files_service.ChangeRepoFile{
 			{
@@ -335,7 +340,7 @@ func EditFilePost(ctx *context.Context) {
 		Committer: parsed.GitCommitter,
 	})
 	if err != nil {
-		editorHandleFileOperationError(ctx, parsed.TargetBranchName, err)
+		editorHandleFileOperationError(ctx, parsed.NewBranchName, err)
 		return
 	}
 
@@ -362,8 +367,8 @@ func DeleteFilePost(ctx *context.Context) {
 	treePath := ctx.Repo.TreePath
 	_, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
 		LastCommitID: parsed.form.LastCommit,
-		OldBranch:    ctx.Repo.BranchName,
-		NewBranch:    parsed.TargetBranchName,
+		OldBranch:    parsed.OldBranchName,
+		NewBranch:    parsed.NewBranchName,
 		Files: []*files_service.ChangeRepoFile{
 			{
 				Operation: "delete",
@@ -376,12 +381,12 @@ func DeleteFilePost(ctx *context.Context) {
 		Committer: parsed.GitCommitter,
 	})
 	if err != nil {
-		editorHandleFileOperationError(ctx, parsed.TargetBranchName, err)
+		editorHandleFileOperationError(ctx, parsed.NewBranchName, err)
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", treePath))
-	redirectTreePath := getClosestParentWithFiles(ctx.Repo.GitRepo, parsed.TargetBranchName, treePath)
+	redirectTreePath := getClosestParentWithFiles(ctx.Repo.GitRepo, parsed.NewBranchName, treePath)
 	redirectForCommitChoice(ctx, parsed, redirectTreePath)
 }
 
@@ -406,8 +411,8 @@ func UploadFilePost(ctx *context.Context) {
 	defaultCommitMessage := ctx.Locale.TrString("repo.editor.upload_files_to_dir", util.IfZero(parsed.form.TreePath, "/"))
 	err := files_service.UploadRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.UploadRepoFileOptions{
 		LastCommitID: parsed.form.LastCommit,
-		OldBranch:    ctx.Repo.BranchName,
-		NewBranch:    parsed.TargetBranchName,
+		OldBranch:    parsed.OldBranchName,
+		NewBranch:    parsed.NewBranchName,
 		TreePath:     parsed.form.TreePath,
 		Message:      parsed.GetCommitMessage(defaultCommitMessage),
 		Files:        parsed.form.Files,
@@ -416,7 +421,7 @@ func UploadFilePost(ctx *context.Context) {
 		Committer:    parsed.GitCommitter,
 	})
 	if err != nil {
-		editorHandleFileOperationError(ctx, parsed.TargetBranchName, err)
+		editorHandleFileOperationError(ctx, parsed.NewBranchName, err)
 		return
 	}
 	redirectForCommitChoice(ctx, parsed, parsed.form.TreePath)

@@ -53,8 +53,8 @@ func CherryPickPost(ctx *context.Context) {
 	defaultCommitMessage := util.Iif(parsed.form.Revert, ctx.Locale.TrString("repo.commit.revert-header", fromCommitID), ctx.Locale.TrString("repo.commit.cherry-pick-header", fromCommitID))
 	opts := &files.ApplyDiffPatchOptions{
 		LastCommitID: parsed.form.LastCommit,
-		OldBranch:    ctx.Repo.BranchName,
-		NewBranch:    parsed.TargetBranchName,
+		OldBranch:    parsed.OldBranchName,
+		NewBranch:    parsed.NewBranchName,
 		Message:      parsed.GetCommitMessage(defaultCommitMessage),
 		Author:       parsed.GitCommitter,
 		Committer:    parsed.GitCommitter,
@@ -78,7 +78,7 @@ func CherryPickPost(ctx *context.Context) {
 			}
 		}
 		if err != nil {
-			editorHandleFileOperationError(ctx, parsed.TargetBranchName, err)
+			editorHandleFileOperationError(ctx, parsed.NewBranchName, err)
 			return
 		}
 	}
