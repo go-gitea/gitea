@@ -3,7 +3,7 @@
   position: fixed;
   opacity: 0;
   transition: all .2s ease;
-  z-index: 500;
+  z-index: var(--z-index-toast);
   border-radius: var(--border-radius);
   box-shadow: 0 8px 24px var(--color-shadow);
   display: flex;
