@@ -1,5 +1,5 @@
 import {request} from '../modules/fetch.ts';
-import {showErrorToast} from '../modules/toast.ts';
+import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, submitEventSubmitter} from '../utils/dom.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import type {RequestOpts} from '../types.ts';
@@ -35,7 +35,10 @@ async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: R
         window.location.reload();
       }
       return;
-    } else if (resp.status >= 400 && resp.status < 500) {
+    }
+
+    hideToastsAll();
+    if (resp.status >= 400 && resp.status < 500) {
       const data = await resp.json();
       // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
       // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
