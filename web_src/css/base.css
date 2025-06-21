@@ -30,6 +30,10 @@
   --page-spacing: 16px; /* space between page elements */
   --page-margin-x: 32px; /* minimum space on left and right side of page */
   --page-space-bottom: 64px; /* space between last page element and footer */
+
+  /* z-index */
+  --z-index-modal: 1001; /* modal dialog, hard-coded from Fomantic modal.css */
+  --z-index-toast: 1002; /* should be larger than modal */
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {

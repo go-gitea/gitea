@@ -40,14 +40,17 @@ type ToastOpts = {
   preventDuplicates?: boolean,
 } & Options;
 
+type ToastifyElement = HTMLElement & {_giteaToastifyInstance?: Toast };
+
 // See https://github.com/apvarun/toastify-js#api for options
 function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast {
   const body = useHtmlBody ? String(message) : htmlEscape(message);
   const key = `${level}-${body}`;
+  const parent = document.querySelector('.ui.dimmer.active') ?? document.body;
 
-  // prevent showing duplicate toasts with same level and message, and give a visual feedback for end users
+  // prevent showing duplicate toasts with the same level and message, and give visual feedback for end users
   if (preventDuplicates) {
-    const toastEl = document.querySelector(`.toastify[data-toast-unique-key="${CSS.escape(key)}"]`);
+    const toastEl = parent.querySelector(`:scope > .toastify[data-toast-unique-key="${CSS.escape(key)}"]`);
     if (toastEl) {
       const toastDupNumEl = toastEl.querySelector('.toast-duplicate-number');
       showElem(toastDupNumEl);
@@ -59,6 +62,7 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
 
   const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
   const toast = Toastify({
+    selector: parent,
     text: `
       <div class='toast-icon'>${svg(icon)}</div>
       <div class='toast-body'><span class="toast-duplicate-number tw-hidden">1</span>${body}</div>
@@ -75,6 +79,7 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
   toast.showToast();
   toast.toastElement.querySelector('.toast-close').addEventListener('click', () => toast.hideToast());
   toast.toastElement.setAttribute('data-toast-unique-key', key);
+  (toast.toastElement as ToastifyElement)._giteaToastifyInstance = toast;
   return toast;
 }
 
@@ -88,4 +93,13 @@ export function showWarningToast(message: string, opts?: ToastOpts): Toast {
 
 export function showErrorToast(message: string, opts?: ToastOpts): Toast {
   return showToast(message, 'error', opts);
+}
+
+export function hideToastsFrom(parent: Element): void {
+  const toasts = parent.querySelectorAll(':scope > .toastify');
+  console.log(toasts);
+  for (const toast of toasts) {
+    const inst = (toast as ToastifyElement)._giteaToastifyInstance;
+    inst?.hideToast();
+  }
 }
