@@ -88,8 +88,26 @@ func (err ErrRepoFileDoesNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
+type LazyReadSeeker interface {
+	io.ReadSeeker
+	io.Closer
+	OpenLazyReader() error
+}
+
 // ChangeRepoFiles adds, updates or removes multiple files in the given repository
-func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *ChangeRepoFilesOptions) (*structs.FilesResponse, error) {
+func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *ChangeRepoFilesOptions) (_ *structs.FilesResponse, errRet error) {
+	var addedLfsPointers []lfs.Pointer
+	defer func() {
+		if errRet != nil {
+			for _, lfsPointer := range addedLfsPointers {
+				_, err := git_model.RemoveLFSMetaObjectByOid(ctx, repo.ID, lfsPointer.Oid)
+				if err != nil {
+					log.Error("ChangeRepoFiles: RemoveLFSMetaObjectByOid failed: %v", err)
+				}
+			}
+		}
+	}()
+
 	err := repo.MustNotBeArchived()
 	if err != nil {
 		return nil, err
@@ -127,14 +145,14 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		}
 
 		// Check that the path given in opts.treePath is valid (not a git path)
-		treePath := CleanUploadFileName(file.TreePath)
+		treePath := CleanGitTreePath(file.TreePath)
 		if treePath == "" {
 			return nil, ErrFilenameInvalid{
 				Path: file.TreePath,
 			}
 		}
 		// If there is a fromTreePath (we are copying it), also clean it up
-		fromTreePath := CleanUploadFileName(file.FromTreePath)
+		fromTreePath := CleanGitTreePath(file.FromTreePath)
 		if fromTreePath == "" && file.FromTreePath != "" {
 			return nil, ErrFilenameInvalid{
 				Path: file.FromTreePath,
@@ -241,9 +259,13 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	lfsContentStore := lfs.NewContentStore()
 	for _, file := range opts.Files {
 		switch file.Operation {
-		case "create", "update", "rename":
-			if err = CreateUpdateRenameFile(ctx, t, file, lfsContentStore, repo.ID, hasOldBranch); err != nil {
+		case "create", "update", "rename", "upload":
+			addedLfsPointer, err := modifyFile(ctx, t, file, lfsContentStore, repo.ID)
+			if err != nil {
 				return nil, err
+			}
+			if addedLfsPointer != nil {
+				addedLfsPointers = append(addedLfsPointers, *addedLfsPointer)
 			}
 		case "delete":
 			if err = t.RemoveFilesFromIndex(ctx, file.TreePath); err != nil {
@@ -366,18 +388,29 @@ func (err ErrSHAOrCommitIDNotProvided) Error() string {
 
 // handles the check for various issues for ChangeRepoFiles
 func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRepoFilesOptions) error {
-	if file.Operation == "update" || file.Operation == "delete" || file.Operation == "rename" {
-		fromEntry, err := commit.GetTreeEntryByPath(file.Options.fromTreePath)
-		if err != nil {
-			return err
+	// check old entry (fromTreePath/fromEntry)
+	if file.Operation == "update" || file.Operation == "upload" || file.Operation == "delete" || file.Operation == "rename" {
+		var fromEntryIDString string
+		{
+			fromEntry, err := commit.GetTreeEntryByPath(file.Options.fromTreePath)
+			if file.Operation == "upload" && git.IsErrNotExist(err) {
+				fromEntry = nil
+			} else if err != nil {
+				return err
+			}
+			if fromEntry != nil {
+				fromEntryIDString = fromEntry.ID.String()
+				file.Options.executable = fromEntry.IsExecutable() // FIXME: legacy hacky approach, it shouldn't prepare the "Options" in the "check" function
+			}
 		}
+
 		if file.SHA != "" {
 			// If the SHA given doesn't match the SHA of the fromTreePath, throw error
-			if file.SHA != fromEntry.ID.String() {
+			if file.SHA != fromEntryIDString {
 				return pull_service.ErrSHADoesNotMatch{
 					Path:       file.Options.treePath,
 					GivenSHA:   file.SHA,
-					CurrentSHA: fromEntry.ID.String(),
+					CurrentSHA: fromEntryIDString,
 				}
 			}
 		} else if opts.LastCommitID != "" {
@@ -399,11 +432,10 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 			// haven't been made. We throw an error if one wasn't provided.
 			return ErrSHAOrCommitIDNotProvided{}
 		}
-		// FIXME: legacy hacky approach, it shouldn't prepare the "Options" in the "check" function
-		file.Options.executable = fromEntry.IsExecutable()
 	}
 
-	if file.Operation == "create" || file.Operation == "update" || file.Operation == "rename" {
+	// check new entry (treePath/treeEntry)
+	if file.Operation == "create" || file.Operation == "update" || file.Operation == "upload" || file.Operation == "rename" {
 		// For operation's target path, we need to make sure no parts of the path are existing files or links
 		// except for the last item in the path (which is the file name).
 		// And that shouldn't exist IF it is a new file OR is being moved to a new path.
@@ -454,18 +486,23 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 	return nil
 }
 
-func CreateUpdateRenameFile(ctx context.Context, t *TemporaryUploadRepository, file *ChangeRepoFile, contentStore *lfs.ContentStore, repoID int64, hasOldBranch bool) error {
+func modifyFile(ctx context.Context, t *TemporaryUploadRepository, file *ChangeRepoFile, contentStore *lfs.ContentStore, repoID int64) (addedLfsPointer *lfs.Pointer, _ error) {
+	if rd, ok := file.ContentReader.(LazyReadSeeker); ok {
+		if err := rd.OpenLazyReader(); err != nil {
+			return nil, fmt.Errorf("OpenLazyReader: %w", err)
+		}
+		defer rd.Close()
+	}
+
 	// Get the two paths (might be the same if not moving) from the index if they exist
 	filesInIndex, err := t.LsFiles(ctx, file.TreePath, file.FromTreePath)
 	if err != nil {
-		return fmt.Errorf("UpdateRepoFile: %w", err)
+		return nil, fmt.Errorf("LsFiles: %w", err)
 	}
 	// If is a new file (not updating) then the given path shouldn't exist
 	if file.Operation == "create" {
 		if slices.Contains(filesInIndex, file.TreePath) {
-			return ErrRepoFileAlreadyExists{
-				Path: file.TreePath,
-			}
+			return nil, ErrRepoFileAlreadyExists{Path: file.TreePath}
 		}
 	}
 
@@ -474,7 +511,7 @@ func CreateUpdateRenameFile(ctx context.Context, t *TemporaryUploadRepository, f
 		for _, indexFile := range filesInIndex {
 			if indexFile == file.Options.fromTreePath {
 				if err = t.RemoveFilesFromIndex(ctx, file.FromTreePath); err != nil {
-					return err
+					return nil, err
 				}
 			}
 		}
@@ -482,45 +519,46 @@ func CreateUpdateRenameFile(ctx context.Context, t *TemporaryUploadRepository, f
 
 	var writeObjectRet *writeRepoObjectRet
 	switch file.Operation {
-	case "create", "update":
-		writeObjectRet, err = writeRepoObjectForCreateOrUpdate(ctx, t, file)
+	case "create", "update", "upload":
+		writeObjectRet, err = writeRepoObjectForModify(ctx, t, file)
 	case "rename":
 		writeObjectRet, err = writeRepoObjectForRename(ctx, t, file)
 	default:
-		return util.NewInvalidArgumentErrorf("unknown file modification operation: '%s'", file.Operation)
+		return nil, util.NewInvalidArgumentErrorf("unknown file modification operation: '%s'", file.Operation)
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Add the object to the index, the "file.Options.executable" is set in handleCheckErrors by the caller (legacy hacky approach)
 	if err = t.AddObjectToIndex(ctx, util.Iif(file.Options.executable, "100755", "100644"), writeObjectRet.ObjectHash, file.Options.treePath); err != nil {
-		return err
+		return nil, err
 	}
 
 	if writeObjectRet.LfsContent == nil {
-		return nil // No LFS pointer, so nothing to do
+		return nil, nil // No LFS pointer, so nothing to do
 	}
 	defer writeObjectRet.LfsContent.Close()
 
 	// Now we must store the content into an LFS object
 	lfsMetaObject, err := git_model.NewLFSMetaObject(ctx, repoID, writeObjectRet.LfsPointer)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if exist, err := contentStore.Exists(lfsMetaObject.Pointer); err != nil {
-		return err
-	} else if exist {
-		return nil
-	}
-
-	err = contentStore.Put(lfsMetaObject.Pointer, writeObjectRet.LfsContent)
+	exist, err := contentStore.Exists(lfsMetaObject.Pointer)
 	if err != nil {
-		if _, errRemove := git_model.RemoveLFSMetaObjectByOid(ctx, repoID, lfsMetaObject.Oid); errRemove != nil {
-			return fmt.Errorf("unable to remove failed inserted LFS object %s: %v (Prev Error: %w)", lfsMetaObject.Oid, errRemove, err)
+		return nil, err
+	}
+	if !exist {
+		err = contentStore.Put(lfsMetaObject.Pointer, writeObjectRet.LfsContent)
+		if err != nil {
+			if _, errRemove := git_model.RemoveLFSMetaObjectByOid(ctx, repoID, lfsMetaObject.Oid); errRemove != nil {
+				return nil, fmt.Errorf("unable to remove failed inserted LFS object %s: %v (Prev Error: %w)", lfsMetaObject.Oid, errRemove, err)
+			}
+			return nil, err
 		}
 	}
-	return err
+	return &lfsMetaObject.Pointer, nil
 }
 
 func checkIsLfsFileInGitAttributes(ctx context.Context, t *TemporaryUploadRepository, paths []string) (ret []bool, err error) {
@@ -544,8 +582,8 @@ type writeRepoObjectRet struct {
 	LfsPointer lfs.Pointer
 }
 
-// writeRepoObjectForCreateOrUpdate hashes the git object for create or update operations
-func writeRepoObjectForCreateOrUpdate(ctx context.Context, t *TemporaryUploadRepository, file *ChangeRepoFile) (ret *writeRepoObjectRet, err error) {
+// writeRepoObjectForModify hashes the git object for create or update operations
+func writeRepoObjectForModify(ctx context.Context, t *TemporaryUploadRepository, file *ChangeRepoFile) (ret *writeRepoObjectRet, err error) {
 	ret = &writeRepoObjectRet{}
 	treeObjectContentReader := file.ContentReader
 	if setting.LFS.StartServer {
@@ -574,7 +612,7 @@ func writeRepoObjectForCreateOrUpdate(ctx context.Context, t *TemporaryUploadRep
 	return ret, nil
 }
 
-// writeRepoObjectForRename the same as writeRepoObjectForCreateOrUpdate buf for "rename"
+// writeRepoObjectForRename the same as writeRepoObjectForModify buf for "rename"
 func writeRepoObjectForRename(ctx context.Context, t *TemporaryUploadRepository, file *ChangeRepoFile) (ret *writeRepoObjectRet, err error) {
 	lastCommitID, err := t.GetLastCommit(ctx)
 	if err != nil {
