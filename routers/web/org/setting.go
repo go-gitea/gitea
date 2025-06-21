@@ -142,28 +142,25 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
 }
 
-// SettingsDelete response for deleting an organization
-func SettingsDelete(ctx *context.Context) {
+// SettingsDeleteOrgPost response for deleting an organization
+func SettingsDeleteOrgPost(ctx *context.Context) {
 	if ctx.Org.Organization.Name != ctx.FormString("org_name") {
-		ctx.Flash.Error(ctx.Tr("form.enterred_invalid_org_name"))
-		ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
+		ctx.JSONError(ctx.Tr("form.enterred_invalid_org_name"))
 		return
 	}
 
-	if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
+	if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization, false /* no purge */); err != nil {
 		if repo_model.IsErrUserOwnRepos(err) {
-			ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
+			ctx.JSONError(ctx.Tr("form.org_still_own_repo"))
 		} else if packages_model.IsErrUserOwnPackages(err) {
-			ctx.Flash.Error(ctx.Tr("form.org_still_own_packages"))
+			ctx.JSONError(ctx.Tr("form.org_still_own_packages"))
 		} else {
 			log.Error("DeleteOrganization: %v", err)
-			ctx.Flash.Error(util.Iif(ctx.Doer.IsAdmin, err.Error(), string(ctx.Tr("org.settings.delete_failed"))))
+			ctx.JSONError(util.Iif(ctx.Doer.IsAdmin, err.Error(), string(ctx.Tr("org.settings.delete_failed"))))
 		}
-		ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
 		return
 	}
 
-	log.Trace("Organization deleted: %s", ctx.Org.Organization.Name)
 	ctx.Flash.Success(ctx.Tr("org.settings.delete_successful", ctx.Org.Organization.Name))
 	ctx.JSONRedirect(setting.AppSubURL + "/")
 }
@@ -218,28 +215,26 @@ func Labels(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
 }
 
-// SettingsRename response for renaming organization
-func SettingsRename(ctx *context.Context) {
+// SettingsRenamePost response for renaming organization
+func SettingsRenamePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RenameOrgForm)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
-	org := ctx.Org.Organization
-	if org.Name != form.OrgName {
+	oldOrgName, newOrgName := ctx.Org.Organization.Name, form.NewOrgName
+
+	if form.OrgName != oldOrgName {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_org_name"))
 		return
 	}
-
-	if org.Name == form.NewOrgName {
+	if newOrgName == oldOrgName {
 		ctx.JSONError(ctx.Tr("org.settings.rename_no_change"))
 		return
 	}
 
-	oldOrgName := org.Name
-
-	if err := user_service.RenameUser(ctx, org.AsUser(), form.NewOrgName); err != nil {
+	if err := user_service.RenameUser(ctx, ctx.Org.Organization.AsUser(), newOrgName); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) {
 			ctx.JSONError(ctx.Tr("form.username_been_taken"))
 		} else if db.IsErrNameReserved(err) {
@@ -253,6 +248,6 @@ func SettingsRename(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("org.settings.rename_success", oldOrgName, org.Name))
-	ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(org.Name) + "/settings")
+	ctx.Flash.Success(ctx.Tr("org.settings.rename_success", oldOrgName, newOrgName))
+	ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(newOrgName) + "/settings")
 }

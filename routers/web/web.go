@@ -964,8 +964,8 @@ func registerWebRoutes(m *web.Router) {
 					addSettingsVariablesRoutes()
 				}, actions.MustEnableActions)
 
-				m.Post("/rename", web.Bind(forms.RenameOrgForm{}), org.SettingsRename)
-				m.Post("/delete", org.SettingsDelete)
+				m.Post("/rename", web.Bind(forms.RenameOrgForm{}), org.SettingsRenamePost)
+				m.Post("/delete", org.SettingsDeleteOrgPost)
 
 				m.Group("/packages", func() {
 					m.Get("", org.Packages)
