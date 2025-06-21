@@ -7,7 +7,7 @@
       "version": "lts"
     },
     "ghcr.io/devcontainers/features/git-lfs:1.2.2": {},
-    "ghcr.io/devcontainers-contrib/features/poetry:2": {},
+    "ghcr.io/devcontainers-extra/features/poetry:2": {},
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.12"
     },

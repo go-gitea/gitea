@@ -297,11 +297,22 @@ func TestPackageContainer(t *testing.T) {
 					SetHeader("Content-Range", "1-10")
 				MakeRequest(t, req, http.StatusRequestedRangeNotSatisfiable)
 
-				contentRange := fmt.Sprintf("0-%d", len(blobContent)-1)
-				req.SetHeader("Content-Range", contentRange)
+				// first patch without Content-Range
+				req = NewRequestWithBody(t, "PATCH", setting.AppURL+uploadURL[1:], bytes.NewReader(blobContent[:1])).
+					AddTokenAuth(userToken)
+				resp = MakeRequest(t, req, http.StatusAccepted)
+				assert.NotEmpty(t, resp.Header().Get("Location"))
+				assert.Equal(t, "0-0", resp.Header().Get("Range"))
+
+				// then send remaining content with Content-Range
+				req = NewRequestWithBody(t, "PATCH", setting.AppURL+uploadURL[1:], bytes.NewReader(blobContent[1:])).
+					SetHeader("Content-Range", fmt.Sprintf("1-%d", len(blobContent)-1)).
+					AddTokenAuth(userToken)
 				resp = MakeRequest(t, req, http.StatusAccepted)
 
+				contentRange := fmt.Sprintf("0-%d", len(blobContent)-1)
 				assert.Equal(t, uuid, resp.Header().Get("Docker-Upload-Uuid"))
+				assert.NotEmpty(t, resp.Header().Get("Location"))
 				assert.Equal(t, contentRange, resp.Header().Get("Range"))
 
 				uploadURL = resp.Header().Get("Location")
@@ -311,6 +322,7 @@ func TestPackageContainer(t *testing.T) {
 				resp = MakeRequest(t, req, http.StatusNoContent)
 
 				assert.Equal(t, uuid, resp.Header().Get("Docker-Upload-Uuid"))
+				assert.Equal(t, uploadURL, resp.Header().Get("Location"))
 				assert.Equal(t, contentRange, resp.Header().Get("Range"))
 
 				pbu, err = packages_model.GetBlobUploadByID(db.DefaultContext, uuid)

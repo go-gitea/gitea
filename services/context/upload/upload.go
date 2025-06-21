@@ -113,5 +113,7 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 		ctx.Data["UploadAccepts"] = strings.ReplaceAll(setting.Repository.Upload.AllowedTypes, "|", ",")
 		ctx.Data["UploadMaxFiles"] = setting.Repository.Upload.MaxFiles
 		ctx.Data["UploadMaxSize"] = setting.Repository.Upload.FileMaxSize
+	default:
+		setting.PanicInDevOrTesting("Invalid upload type: %s", uploadType)
 	}
 }

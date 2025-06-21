@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +34,8 @@ func TestRepoLanguages(t *testing.T) {
 			"content":       "package main",
 			"commit_choice": "direct",
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.NotEmpty(t, test.RedirectURL(resp))
 
 		// let gitea calculate language stats
 		time.Sleep(time.Second)

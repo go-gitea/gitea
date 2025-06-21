@@ -1,10 +1,12 @@
 <script lang="ts" setup>
 import {SvgIcon} from '../svg.ts';
+import {isPlainClick} from '../utils/dom.ts';
 import {ref} from 'vue';
+import {type createViewFileTreeStore} from './ViewFileTreeStore.ts';
 
 type Item = {
   entryName: string;
-  entryMode: string;
+  entryMode: 'blob' | 'exec' | 'tree' | 'commit' | 'symlink' | 'unknown';
   entryIcon: string;
   entryIconOpen: string;
   fullPath: string;
@@ -14,103 +16,67 @@ type Item = {
 
 const props = defineProps<{
   item: Item,
-  navigateViewContent:(treePath: string) => void,
-  loadChildren:(treePath: string, subPath?: string) => Promise<Item[]>,
-  selectedItem?: string,
+  store: ReturnType<typeof createViewFileTreeStore>
 }>();
 
+const store = props.store;
 const isLoading = ref(false);
 const children = ref(props.item.children);
 const collapsed = ref(!props.item.children);
 
 const doLoadChildren = async () => {
   collapsed.value = !collapsed.value;
-  if (!collapsed.value && props.loadChildren) {
+  if (!collapsed.value) {
     isLoading.value = true;
     try {
-      children.value = await props.loadChildren(props.item.fullPath);
+      children.value = await store.loadChildren(props.item.fullPath);
     } finally {
       isLoading.value = false;
     }
   }
 };
 
-const doLoadDirContent = () => {
-  doLoadChildren();
-  props.navigateViewContent(props.item.fullPath);
+const onItemClick = (e: MouseEvent) => {
+  // only handle the click event with page partial reloading if the user didn't press any special key
+  // let browsers handle special keys like "Ctrl+Click"
+  if (!isPlainClick(e)) return;
+  e.preventDefault();
+  if (props.item.entryMode === 'tree') doLoadChildren();
+  store.navigateTreeView(props.item.fullPath);
 };
 
-const doLoadFileContent = () => {
-  props.navigateViewContent(props.item.fullPath);
-};
-
-const doGotoSubModule = () => {
-  location.href = props.item.submoduleUrl;
-};
 </script>
 
-<!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
 <template>
-  <div
-    v-if="item.entryMode === 'commit'" class="tree-item type-submodule"
+  <a
+    class="tree-item silenced"
+    :class="{
+      'selected': store.selectedItem === item.fullPath,
+      'type-submodule': item.entryMode === 'commit',
+      'type-directory': item.entryMode === 'tree',
+      'type-symlink': item.entryMode === 'symlink',
+      'type-file': item.entryMode === 'blob' || item.entryMode === 'exec',
+    }"
     :title="item.entryName"
-    @click.stop="doGotoSubModule"
+    :href="store.buildTreePathWebUrl(item.fullPath)"
+    @click.stop="onItemClick"
   >
-    <!-- submodule -->
-    <div class="item-content">
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="tw-contents" v-html="item.entryIcon"/>
-      <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
-    </div>
-  </div>
-  <div
-    v-else-if="item.entryMode === 'symlink'" class="tree-item type-symlink"
-    :class="{'selected': selectedItem === item.fullPath}"
-    :title="item.entryName"
-    @click.stop="doLoadFileContent"
-  >
-    <!-- symlink -->
-    <div class="item-content">
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="tw-contents" v-html="item.entryIcon"/>
-      <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
-    </div>
-  </div>
-  <div
-    v-else-if="item.entryMode !== 'tree'" class="tree-item type-file"
-    :class="{'selected': selectedItem === item.fullPath}"
-    :title="item.entryName"
-    @click.stop="doLoadFileContent"
-  >
-    <!-- file -->
-    <div class="item-content">
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="tw-contents" v-html="item.entryIcon"/>
-      <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
-    </div>
-  </div>
-  <div
-    v-else class="tree-item type-directory"
-    :class="{'selected': selectedItem === item.fullPath}"
-    :title="item.entryName"
-    @click.stop="doLoadDirContent"
-  >
-    <!-- directory -->
-    <div class="item-toggle">
+    <div v-if="item.entryMode === 'tree'" class="item-toggle">
       <SvgIcon v-if="isLoading" name="octicon-sync" class="circular-spin"/>
-      <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop="doLoadChildren"/>
+      <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop.prevent="doLoadChildren"/>
     </div>
     <div class="item-content">
       <!-- eslint-disable-next-line vue/no-v-html -->
       <span class="tw-contents" v-html="(!collapsed && item.entryIconOpen) ? item.entryIconOpen : item.entryIcon"/>
       <span class="gt-ellipsis">{{ item.entryName }}</span>
     </div>
-  </div>
+  </a>
 
   <div v-if="children?.length" v-show="!collapsed" class="sub-items">
-    <ViewFileTreeItem v-for="childItem in children" :key="childItem.entryName" :item="childItem" :selected-item="selectedItem" :navigate-view-content="navigateViewContent" :load-children="loadChildren"/>
+    <ViewFileTreeItem v-for="childItem in children" :key="childItem.entryName" :item="childItem" :store="store"/>
   </div>
 </template>
+
 <style scoped>
 .sub-items {
   display: flex;

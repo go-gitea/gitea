@@ -7,6 +7,7 @@ import {initDropzone} from './dropzone.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {applyAreYouSure, ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {submitFormFetchAction} from './common-fetch-action.ts';
 
 function initEditPreviewTab(elForm: HTMLFormElement) {
   const elTabMenu = elForm.querySelector('.repo-editor-menu');
@@ -143,31 +144,28 @@ export function initRepoEditor() {
 
   const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form');
 
+  // on the upload page, there is no editor(textarea)
+  const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
+  if (!editArea) return;
+
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
   const commitButton = document.querySelector<HTMLButtonElement>('#commit-button');
   const dirtyFileClass = 'dirty-file';
 
-  // Enabling the button at the start if the page has posted
-  if (document.querySelector<HTMLInputElement>('input[name="page_has_posted"]')?.value === 'true') {
-    commitButton.disabled = false;
-  }
-
+  const syncCommitButtonState = () => {
+    const dirty = elForm.classList.contains(dirtyFileClass);
+    commitButton.disabled = !dirty;
+  };
   // Registering a custom listener for the file path and the file content
   // FIXME: it is not quite right here (old bug), it causes double-init, the global areYouSure "dirty" class will also be added
   applyAreYouSure(elForm, {
     silent: true,
     dirtyClass: dirtyFileClass,
     fieldSelector: ':input:not(.commit-form-wrapper :input)',
-    change($form: any) {
-      const dirty = $form[0]?.classList.contains(dirtyFileClass);
-      commitButton.disabled = !dirty;
-    },
+    change: syncCommitButtonState,
   });
-
-  // on the upload page, there is no editor(textarea)
-  const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
-  if (!editArea) return;
+  syncCommitButtonState(); // disable the "commit" button when no content changes
 
   initEditPreviewTab(elForm);
 
@@ -182,7 +180,7 @@ export function initRepoEditor() {
       editor.setValue(value);
     }
 
-    commitButton?.addEventListener('click', async (e) => {
+    commitButton.addEventListener('click', async (e) => {
       // A modal which asks if an empty file should be committed
       if (!editArea.value) {
         e.preventDefault();
@@ -191,7 +189,7 @@ export function initRepoEditor() {
           content: elForm.getAttribute('data-text-empty-confirm-content'),
         })) {
           ignoreAreYouSure(elForm);
-          elForm.submit();
+          submitFormFetchAction(elForm);
         }
       }
     });

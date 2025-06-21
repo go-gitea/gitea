@@ -278,6 +278,12 @@ func (d discordConvertor) Status(p *api.CommitStatusPayload) (DiscordPayload, er
 	return d.createPayload(p.Sender, text, "", p.TargetURL, color), nil
 }
 
+func (d discordConvertor) WorkflowRun(p *api.WorkflowRunPayload) (DiscordPayload, error) {
+	text, color := getWorkflowRunPayloadInfo(p, noneLinkFormatter, false)
+
+	return d.createPayload(p.Sender, text, "", p.WorkflowRun.HTMLURL, color), nil
+}
+
 func (d discordConvertor) WorkflowJob(p *api.WorkflowJobPayload) (DiscordPayload, error) {
 	text, color := getWorkflowJobPayloadInfo(p, noneLinkFormatter, false)
 

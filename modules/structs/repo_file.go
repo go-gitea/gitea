@@ -66,6 +66,8 @@ func (o *UpdateFileOptions) Branch() string {
 	return o.FileOptions.BranchName
 }
 
+// FIXME: ChangeFileOperation.SHA is NOT required for update or delete if last commit is provided in the options.
+
 // ChangeFileOperation for creating, updating or deleting a file
 type ChangeFileOperation struct {
 	// indicates what to do with the file

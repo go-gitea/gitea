@@ -5,8 +5,11 @@
 package convert
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +17,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -22,6 +26,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -32,6 +37,7 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	"github.com/nektos/act/pkg/model"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -239,6 +245,242 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 		UpdatedAt:    t.Updated.AsLocalTime(),
 		RunStartedAt: t.Started.AsLocalTime(),
 	}, nil
+}
+
+func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
+	err := run.LoadAttributes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	status, conclusion := ToActionsStatus(run.Status)
+	return &api.ActionWorkflowRun{
+		ID:           run.ID,
+		URL:          fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
+		HTMLURL:      run.HTMLURL(),
+		RunNumber:    run.Index,
+		StartedAt:    run.Started.AsLocalTime(),
+		CompletedAt:  run.Stopped.AsLocalTime(),
+		Event:        string(run.Event),
+		DisplayTitle: run.Title,
+		HeadBranch:   git.RefName(run.Ref).BranchName(),
+		HeadSha:      run.CommitSHA,
+		Status:       status,
+		Conclusion:   conclusion,
+		Path:         fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
+		Repository:   ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		TriggerActor: ToUser(ctx, run.TriggerUser, nil),
+		// We do not have a way to get a different User for the actor than the trigger user
+		Actor: ToUser(ctx, run.TriggerUser, nil),
+	}, nil
+}
+
+func ToWorkflowRunAction(status actions_model.Status) string {
+	var action string
+	switch status {
+	case actions_model.StatusWaiting, actions_model.StatusBlocked:
+		action = "requested"
+	case actions_model.StatusRunning:
+		action = "in_progress"
+	}
+	if status.IsDone() {
+		action = "completed"
+	}
+	return action
+}
+
+func ToActionsStatus(status actions_model.Status) (string, string) {
+	var action string
+	var conclusion string
+	switch status {
+	// This is a naming conflict of the webhook between Gitea and GitHub Actions
+	case actions_model.StatusWaiting:
+		action = "queued"
+	case actions_model.StatusBlocked:
+		action = "waiting"
+	case actions_model.StatusRunning:
+		action = "in_progress"
+	}
+	if status.IsDone() {
+		action = "completed"
+		switch status {
+		case actions_model.StatusSuccess:
+			conclusion = "success"
+		case actions_model.StatusCancelled:
+			conclusion = "cancelled"
+		case actions_model.StatusFailure:
+			conclusion = "failure"
+		case actions_model.StatusSkipped:
+			conclusion = "skipped"
+		}
+	}
+	return action, conclusion
+}
+
+// ToActionWorkflowJob convert a actions_model.ActionRunJob to an api.ActionWorkflowJob
+// task is optional and can be nil
+func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task *actions_model.ActionTask, job *actions_model.ActionRunJob) (*api.ActionWorkflowJob, error) {
+	err := job.LoadAttributes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	jobIndex := 0
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, job.RunID)
+	if err != nil {
+		return nil, err
+	}
+	for i, j := range jobs {
+		if j.ID == job.ID {
+			jobIndex = i
+			break
+		}
+	}
+
+	status, conclusion := ToActionsStatus(job.Status)
+	var runnerID int64
+	var runnerName string
+	var steps []*api.ActionWorkflowStep
+
+	if job.TaskID != 0 {
+		if task == nil {
+			task, _, err = db.GetByID[actions_model.ActionTask](ctx, job.TaskID)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		runnerID = task.RunnerID
+		if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
+			runnerName = runner.Name
+		}
+		for i, step := range task.Steps {
+			stepStatus, stepConclusion := ToActionsStatus(job.Status)
+			steps = append(steps, &api.ActionWorkflowStep{
+				Name:        step.Name,
+				Number:      int64(i),
+				Status:      stepStatus,
+				Conclusion:  stepConclusion,
+				StartedAt:   step.Started.AsTime().UTC(),
+				CompletedAt: step.Stopped.AsTime().UTC(),
+			})
+		}
+	}
+
+	return &api.ActionWorkflowJob{
+		ID: job.ID,
+		// missing api endpoint for this location
+		URL:     fmt.Sprintf("%s/actions/jobs/%d", repo.APIURL(), job.ID),
+		HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), jobIndex),
+		RunID:   job.RunID,
+		// Missing api endpoint for this location, artifacts are available under a nested url
+		RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), job.RunID),
+		Name:        job.Name,
+		Labels:      job.RunsOn,
+		RunAttempt:  job.Attempt,
+		HeadSha:     job.Run.CommitSHA,
+		HeadBranch:  git.RefName(job.Run.Ref).BranchName(),
+		Status:      status,
+		Conclusion:  conclusion,
+		RunnerID:    runnerID,
+		RunnerName:  runnerName,
+		Steps:       steps,
+		CreatedAt:   job.Created.AsTime().UTC(),
+		StartedAt:   job.Started.AsTime().UTC(),
+		CompletedAt: job.Stopped.AsTime().UTC(),
+	}, nil
+}
+
+func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
+	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
+	cfg := cfgUnit.ActionsConfig()
+
+	defaultBranch, _ := commit.GetBranchName()
+
+	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", repo.APIURL(), util.PathEscapeSegments(entry.Name()))
+	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", repo.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), util.PathEscapeSegments(entry.Name()))
+	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", repo.HTMLURL(ctx), util.PathEscapeSegments(entry.Name()), url.QueryEscape(repo.DefaultBranch))
+
+	// See https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#get-a-workflow
+	// State types:
+	// - active
+	// - deleted
+	// - disabled_fork
+	// - disabled_inactivity
+	// - disabled_manually
+	state := "active"
+	if cfg.IsWorkflowDisabled(entry.Name()) {
+		state = "disabled_manually"
+	}
+
+	// The CreatedAt and UpdatedAt fields currently reflect the timestamp of the latest commit, which can later be refined
+	// by retrieving the first and last commits for the file history. The first commit would indicate the creation date,
+	// while the last commit would represent the modification date. The DeletedAt could be determined by identifying
+	// the last commit where the file existed. However, this implementation has not been done here yet, as it would likely
+	// cause a significant performance degradation.
+	createdAt := commit.Author.When
+	updatedAt := commit.Author.When
+
+	content, err := actions.GetContentFromEntry(entry)
+	name := entry.Name()
+	if err == nil {
+		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
+		if err == nil {
+			// Only use the name when specified in the workflow file
+			if workflow.Name != "" {
+				name = workflow.Name
+			}
+		} else {
+			log.Error("getActionWorkflowEntry: Failed to parse workflow: %v", err)
+		}
+	} else {
+		log.Error("getActionWorkflowEntry: Failed to get content from entry: %v", err)
+	}
+
+	return &api.ActionWorkflow{
+		ID:        entry.Name(),
+		Name:      name,
+		Path:      path.Join(folder, entry.Name()),
+		State:     state,
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
+		URL:       workflowURL,
+		HTMLURL:   workflowRepoURL,
+		BadgeURL:  badgeURL,
+	}
+}
+
+func ListActionWorkflows(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository) ([]*api.ActionWorkflow, error) {
+	defaultBranchCommit, err := gitrepo.GetBranchCommit(repo.DefaultBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	folder, entries, err := actions.ListWorkflows(defaultBranchCommit)
+	if err != nil {
+		return nil, err
+	}
+
+	workflows := make([]*api.ActionWorkflow, len(entries))
+	for i, entry := range entries {
+		workflows[i] = getActionWorkflowEntry(ctx, repo, defaultBranchCommit, folder, entry)
+	}
+
+	return workflows, nil
+}
+
+func GetActionWorkflow(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository, workflowID string) (*api.ActionWorkflow, error) {
+	entries, err := ListActionWorkflows(ctx, gitrepo, repo)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		if entry.ID == workflowID {
+			return entry, nil
+		}
+	}
+
+	return nil, util.NewNotExistErrorf("workflow %q not found", workflowID)
 }
 
 // ToActionArtifact convert a actions_model.ActionArtifact to an api.ActionArtifact
