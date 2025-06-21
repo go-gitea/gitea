@@ -340,3 +340,58 @@ index 0000000000..bbbbbbbbbb
 		})
 	})
 }
+
+func forkToEdit(t *testing.T, session *TestSession, owner, repo, operation, branch, filePath string) {
+	// Attempt to edit file
+	req := NewRequest(t, "GET", path.Join(owner, repo, operation, branch, filePath))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	// Fork
+	req = NewRequestWithValues(t, "POST", path.Join(owner, repo, "_fork", branch), map[string]string{"_csrf": GetUserCSRFToken(t, session)})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, `{"redirect":""}`, strings.TrimSpace(resp.Body.String()))
+}
+
+func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, branch, filePath string) {
+	// Fork repository because we can't edit it
+	forkToEdit(t, session, owner, repo, "_edit", branch, filePath)
+
+	// Archive the repository
+	req := NewRequestWithValues(t, "POST", path.Join(user, repo, "settings"),
+		map[string]string{
+			"_csrf":     GetUserCSRFToken(t, session),
+			"repo_name": repo,
+			"action":    "archive",
+		},
+	)
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	// Check editing archived repository is disabled
+	req = NewRequest(t, "GET", path.Join(owner, repo, "_edit", branch, filePath)).SetHeader("Accept", "text/html")
+	resp := session.MakeRequest(t, req, http.StatusNotFound)
+	assert.Contains(t, resp.Body.String(), "You have forked this repository but your fork is not editable.")
+
+	// Unfork the repository
+	req = NewRequestWithValues(t, "POST", path.Join(user, repo, "settings"),
+		map[string]string{
+			"_csrf":     GetUserCSRFToken(t, session),
+			"repo_name": repo,
+			"action":    "convert_fork",
+		},
+	)
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	// Fork repository again
+	forkToEdit(t, session, owner, repo, "_edit", branch, filePath)
+
+	// Check the existence of the forked repo with unique name
+	req = NewRequestf(t, "GET", "/%s/%s-1", user, repo)
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
+func TestForkToEditFile(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user4")
+		testForkToEditFile(t, session, "user4", "user2", "repo1", "master", "README.md")
+	})
+}

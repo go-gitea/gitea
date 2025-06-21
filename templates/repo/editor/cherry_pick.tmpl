@@ -3,7 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<form class="ui edit form form-fetch-action" method="post" action="{{.RepoLink}}/_cherrypick/{{.FromCommitID}}/{{.BranchName | PathEscapeSegments}}">
+		<form class="ui edit form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="revert" value="{{if eq .CherryPickType "revert"}}true{{else}}false{{end}}">
 			<div class="repo-editor-header">

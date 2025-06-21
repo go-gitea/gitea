@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -39,7 +40,7 @@ const (
 	editorCommitChoiceNewBranch string = "commit-to-new-branch"
 )
 
-func prepareEditorCommitFormOptions(ctx *context.Context, editorAction string) {
+func prepareEditorCommitFormOptions(ctx *context.Context, editorAction string) *context.CommitFormOptions {
 	cleanedTreePath := files_service.CleanGitTreePath(ctx.Repo.TreePath)
 	if cleanedTreePath != ctx.Repo.TreePath {
 		redirectTo := fmt.Sprintf("%s/%s/%s/%s", ctx.Repo.RepoLink, editorAction, util.PathEscapeSegments(ctx.Repo.BranchName), util.PathEscapeSegments(cleanedTreePath))
@@ -47,18 +48,28 @@ func prepareEditorCommitFormOptions(ctx *context.Context, editorAction string) {
 			redirectTo += "?" + ctx.Req.URL.RawQuery
 		}
 		ctx.Redirect(redirectTo)
-		return
+		return nil
 	}
 
-	commitFormBehaviors, err := ctx.Repo.PrepareCommitFormBehaviors(ctx, ctx.Doer)
+	commitFormOptions, err := context.PrepareCommitFormOptions(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Repo.RefFullName)
 	if err != nil {
-		ctx.ServerError("PrepareCommitFormBehaviors", err)
-		return
+		ctx.ServerError("PrepareCommitFormOptions", err)
+		return nil
+	}
+
+	if commitFormOptions.NeedFork {
+		ForkToEdit(ctx)
+		return nil
+	}
+
+	if commitFormOptions.WillSubmitToFork && !commitFormOptions.TargetRepo.CanEnableEditor() {
+		ctx.Data["NotFoundPrompt"] = ctx.Locale.Tr("repo.editor.fork_not_editable")
+		ctx.NotFound(nil)
 	}
 
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 	ctx.Data["TreePath"] = ctx.Repo.TreePath
-	ctx.Data["CommitFormBehaviors"] = commitFormBehaviors
+	ctx.Data["CommitFormOptions"] = commitFormOptions
 
 	// for online editor
 	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
@@ -69,9 +80,10 @@ func prepareEditorCommitFormOptions(ctx *context.Context, editorAction string) {
 	// form fields
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
-	ctx.Data["commit_choice"] = util.Iif(commitFormBehaviors.CanCommitToBranch, editorCommitChoiceDirect, editorCommitChoiceNewBranch)
-	ctx.Data["new_branch_name"] = getUniquePatchBranchName(ctx, ctx.Doer.LowerName, ctx.Repo.Repository)
+	ctx.Data["commit_choice"] = util.Iif(commitFormOptions.CanCommitToBranch, editorCommitChoiceDirect, editorCommitChoiceNewBranch)
+	ctx.Data["new_branch_name"] = getUniquePatchBranchName(ctx, ctx.Doer.LowerName, commitFormOptions.TargetRepo)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
+	return commitFormOptions
 }
 
 func prepareTreePathFieldsAndPaths(ctx *context.Context, treePath string) {
@@ -79,15 +91,15 @@ func prepareTreePathFieldsAndPaths(ctx *context.Context, treePath string) {
 	ctx.Data["TreeNames"], ctx.Data["TreePaths"] = getParentTreeFields(treePath)
 }
 
-type parsedEditorCommitForm[T any] struct {
-	form                T
-	commonForm          *forms.CommitCommonForm
-	CommitFormBehaviors *context.CommitFormBehaviors
-	TargetBranchName    string
-	GitCommitter        *files_service.IdentityOptions
+type preparedEditorCommitForm[T any] struct {
+	form              T
+	commonForm        *forms.CommitCommonForm
+	CommitFormOptions *context.CommitFormOptions
+	TargetBranchName  string
+	GitCommitter      *files_service.IdentityOptions
 }
 
-func (f *parsedEditorCommitForm[T]) GetCommitMessage(defaultCommitMessage string) string {
+func (f *preparedEditorCommitForm[T]) GetCommitMessage(defaultCommitMessage string) string {
 	commitMessage := util.IfZero(strings.TrimSpace(f.commonForm.CommitSummary), defaultCommitMessage)
 	if body := strings.TrimSpace(f.commonForm.CommitMessage); body != "" {
 		commitMessage += "\n\n" + body
@@ -95,7 +107,7 @@ func (f *parsedEditorCommitForm[T]) GetCommitMessage(defaultCommitMessage string
 	return commitMessage
 }
 
-func parseEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *context.Context) *parsedEditorCommitForm[T] {
+func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *context.Context) *preparedEditorCommitForm[T] {
 	form := web.GetForm(ctx).(T)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
@@ -105,15 +117,20 @@ func parseEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *cont
 	commonForm := form.GetCommitCommonForm()
 	commonForm.TreePath = files_service.CleanGitTreePath(commonForm.TreePath)
 
-	commitFormBehaviors, err := ctx.Repo.PrepareCommitFormBehaviors(ctx, ctx.Doer)
+	commitFormOptions, err := context.PrepareCommitFormOptions(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Repo.RefFullName)
 	if err != nil {
-		ctx.ServerError("PrepareCommitFormBehaviors", err)
+		ctx.ServerError("PrepareCommitFormOptions", err)
+		return nil
+	}
+	if commitFormOptions.NeedFork {
+		// It shouldn't happen, because we should have done the checks in the "GET" request. But just in case.
+		ctx.JSONError(ctx.Locale.TrString("error.not_found"))
 		return nil
 	}
 
 	// check commit behavior
 	targetBranchName := util.Iif(commonForm.CommitChoice == editorCommitChoiceNewBranch, commonForm.NewBranchName, ctx.Repo.BranchName)
-	if targetBranchName == ctx.Repo.BranchName && !commitFormBehaviors.CanCommitToBranch {
+	if targetBranchName == ctx.Repo.BranchName && !commitFormOptions.CanCommitToBranch {
 		ctx.JSONError(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", targetBranchName))
 		return nil
 	}
@@ -125,28 +142,38 @@ func parseEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *cont
 		return nil
 	}
 
-	return &parsedEditorCommitForm[T]{
-		form:                form,
-		commonForm:          commonForm,
-		CommitFormBehaviors: commitFormBehaviors,
-		TargetBranchName:    targetBranchName,
-		GitCommitter:        gitCommitter,
+	fromBaseBranch := ctx.FormString("from_base_branch")
+	if fromBaseBranch != "" {
+		err = editorPushBranchToForkedRepository(ctx, ctx.Doer, ctx.Repo.Repository.BaseRepo, fromBaseBranch, ctx.Repo.Repository, ctx.Repo.RefFullName.BranchName())
+		if err != nil {
+			log.Error("Unable to editorPushBranchToForkedRepository: %v", err)
+			ctx.JSONError(ctx.Tr("repo.editor.fork_failed_to_push_branch", targetBranchName))
+			return nil
+		}
+	}
+
+	return &preparedEditorCommitForm[T]{
+		form:              form,
+		commonForm:        commonForm,
+		CommitFormOptions: commitFormOptions,
+		TargetBranchName:  targetBranchName,
+		GitCommitter:      gitCommitter,
 	}
 }
 
 // redirectForCommitChoice redirects after committing the edit to a branch
-func redirectForCommitChoice[T any](ctx *context.Context, parsed *parsedEditorCommitForm[T], treePath string) {
+func redirectForCommitChoice[T any](ctx *context.Context, parsed *preparedEditorCommitForm[T], treePath string) {
 	if parsed.commonForm.CommitChoice == editorCommitChoiceNewBranch {
 		// Redirect to a pull request when possible
 		redirectToPullRequest := false
 		repo, baseBranch, headBranch := ctx.Repo.Repository, ctx.Repo.BranchName, parsed.TargetBranchName
-		if repo.UnitEnabled(ctx, unit.TypePullRequests) {
-			redirectToPullRequest = true
-		} else if parsed.CommitFormBehaviors.CanCreateBasePullRequest {
+		if ctx.Repo.Repository.IsFork && parsed.CommitFormOptions.CanCreateBasePullRequest {
 			redirectToPullRequest = true
 			baseBranch = repo.BaseRepo.DefaultBranch
 			headBranch = repo.Owner.Name + "/" + repo.Name + ":" + headBranch
 			repo = repo.BaseRepo
+		} else if repo.UnitEnabled(ctx, unit.TypePullRequests) {
+			redirectToPullRequest = true
 		}
 		if redirectToPullRequest {
 			ctx.JSONRedirect(repo.Link() + "/compare/" + util.PathEscapeSegments(baseBranch) + "..." + util.PathEscapeSegments(headBranch))
@@ -268,7 +295,7 @@ func EditFile(ctx *context.Context) {
 func EditFilePost(ctx *context.Context) {
 	editorAction := ctx.PathParam("editor_action")
 	isNewFile := editorAction == "_new"
-	parsed := parseEditorCommitSubmittedForm[*forms.EditRepoFileForm](ctx)
+	parsed := prepareEditorCommitSubmittedForm[*forms.EditRepoFileForm](ctx)
 	if ctx.Written() {
 		return
 	}
@@ -327,7 +354,7 @@ func DeleteFile(ctx *context.Context) {
 
 // DeleteFilePost response for deleting file
 func DeleteFilePost(ctx *context.Context) {
-	parsed := parseEditorCommitSubmittedForm[*forms.DeleteRepoFileForm](ctx)
+	parsed := prepareEditorCommitSubmittedForm[*forms.DeleteRepoFileForm](ctx)
 	if ctx.Written() {
 		return
 	}
@@ -360,18 +387,18 @@ func DeleteFilePost(ctx *context.Context) {
 
 func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
-	upload.AddUploadContext(ctx, "repo")
 	prepareTreePathFieldsAndPaths(ctx, ctx.Repo.TreePath)
-
-	prepareEditorCommitFormOptions(ctx, "_upload")
+	opts := prepareEditorCommitFormOptions(ctx, "_upload")
 	if ctx.Written() {
 		return
 	}
+	upload.AddUploadContextForRepo(ctx, opts.TargetRepo)
+
 	ctx.HTML(http.StatusOK, tplUploadFile)
 }
 
 func UploadFilePost(ctx *context.Context) {
-	parsed := parseEditorCommitSubmittedForm[*forms.UploadRepoFileForm](ctx)
+	parsed := prepareEditorCommitSubmittedForm[*forms.UploadRepoFileForm](ctx)
 	if ctx.Written() {
 		return
 	}

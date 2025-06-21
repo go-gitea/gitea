@@ -25,7 +25,7 @@ func NewDiffPatch(ctx *context.Context) {
 
 // NewDiffPatchPost response for sending patch page
 func NewDiffPatchPost(ctx *context.Context) {
-	parsed := parseEditorCommitSubmittedForm[*forms.EditRepoFileForm](ctx)
+	parsed := prepareEditorCommitSubmittedForm[*forms.EditRepoFileForm](ctx)
 	if ctx.Written() {
 		return
 	}
