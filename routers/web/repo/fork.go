@@ -189,17 +189,25 @@ func ForkPost(ctx *context.Context) {
 		}
 	}
 
-	repo, err := repo_service.ForkRepository(ctx, ctx.Doer, ctxUser, repo_service.ForkRepoOptions{
+	repo := ForkRepoTo(ctx, ctxUser, repo_service.ForkRepoOptions{
 		BaseRepo:     forkRepo,
 		Name:         form.RepoName,
 		Description:  form.Description,
 		SingleBranch: form.ForkSingleBranch,
 	})
+	if ctx.Written() {
+		return
+	}
+	ctx.JSONRedirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
+}
+
+func ForkRepoTo(ctx *context.Context, owner *user_model.User, forkOpts repo_service.ForkRepoOptions) *repo_model.Repository {
+	repo, err := repo_service.ForkRepository(ctx, ctx.Doer, owner, forkOpts)
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
 		switch {
 		case repo_model.IsErrReachLimitOfRepo(err):
-			maxCreationLimit := ctxUser.MaxCreationLimit()
+			maxCreationLimit := owner.MaxCreationLimit()
 			msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
 			ctx.JSONError(msg)
 		case repo_model.IsErrRepoAlreadyExist(err):
@@ -224,9 +232,7 @@ func ForkPost(ctx *context.Context) {
 		default:
 			ctx.ServerError("ForkPost", err)
 		}
-		return
+		return nil
 	}
-
-	log.Trace("Repository forked[%d]: %s/%s", forkRepo.ID, ctxUser.Name, repo.Name)
-	ctx.JSONRedirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
+	return repo
 }

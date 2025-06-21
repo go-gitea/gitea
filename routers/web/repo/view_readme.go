@@ -212,7 +212,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(template.HTML(contentEscaped), ctx.Locale)
 	}
 
-	if !fInfo.isLFSFile && ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
+	if !fInfo.isLFSFile && ctx.Repo.Repository.CanEnableEditor() {
 		ctx.Data["CanEditReadmeFile"] = true
 	}
 }

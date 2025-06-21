@@ -3,7 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<form class="ui comment form form-fetch-action" method="post">
+		<form class="ui comment form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}">
 			{{.CsrfTokenHtml}}
 			<div class="repo-editor-header">
 				{{template "repo/editor/common_breadcrumb" .}}

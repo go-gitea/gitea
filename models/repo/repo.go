@@ -653,7 +653,7 @@ func (repo *Repository) AllowsPulls(ctx context.Context) bool {
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
 func (repo *Repository) CanEnableEditor() bool {
-	return !repo.IsMirror
+	return !repo.IsMirror && !repo.IsArchived
 }
 
 // DescriptionHTML does special handles to description and return HTML string.
