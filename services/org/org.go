@@ -15,6 +15,7 @@ import (
 	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -101,4 +102,15 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 	}
 
 	return nil
+}
+
+func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organization, visibility structs.VisibleType) error {
+	if org.Visibility == visibility {
+		return nil
+	}
+
+	org.Visibility = visibility
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		return user_model.UpdateUserColsWithNoAutotime(ctx, org.AsUser(), "visibility")
+	})
 }

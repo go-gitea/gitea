@@ -39,6 +39,10 @@ func (vt VisibleType) IsPrivate() bool {
 	return vt == VisibleTypePrivate
 }
 
+func (vt VisibleType) IsValid() bool {
+	return vt.String() != ""
+}
+
 // VisibilityString provides the mode string of the visibility type (public, limited, private)
 func (vt VisibleType) String() string {
 	for k, v := range VisibilityModes {
@@ -55,4 +59,11 @@ func ExtractKeysFromMapString(in map[string]VisibleType) (keys []string) {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+func ConvertStringToVisibleType(s string) VisibleType {
+	if vt, ok := VisibilityModes[s]; ok {
+		return vt
+	}
+	return VisibleType(-1) // Invalid type
 }
