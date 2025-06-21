@@ -52,6 +52,8 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 
 	policy.AllowAttrs("src", "autoplay", "controls").OnElements("video")
 
+	policy.AllowAttrs("loading").OnElements("img")
+
 	// Allow generally safe attributes (reference: https://github.com/jch/html-pipeline)
 	generalSafeAttrs := []string{
 		"abbr", "accept", "accept-charset",

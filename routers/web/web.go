@@ -1316,11 +1316,11 @@ func registerWebRoutes(m *web.Router) {
 	m.Group("/{username}/{reponame}", func() { // repo code
 		m.Group("", func() {
 			m.Group("", func() {
-				m.Post("/_preview/*", web.Bind(forms.EditPreviewDiffForm{}), repo.DiffPreviewPost)
-				m.Combo("/_edit/*").Get(repo.EditFile).
+				m.Post("/_preview/*", repo.DiffPreviewPost)
+				m.Combo("/{editor_action:_edit}/*").Get(repo.EditFile).
 					Post(web.Bind(forms.EditRepoFileForm{}), repo.EditFilePost)
-				m.Combo("/_new/*").Get(repo.NewFile).
-					Post(web.Bind(forms.EditRepoFileForm{}), repo.NewFilePost)
+				m.Combo("/{editor_action:_new}/*").Get(repo.EditFile).
+					Post(web.Bind(forms.EditRepoFileForm{}), repo.EditFilePost)
 				m.Combo("/_delete/*").Get(repo.DeleteFile).
 					Post(web.Bind(forms.DeleteRepoFileForm{}), repo.DeleteFilePost)
 				m.Combo("/_upload/*", repo.MustBeAbleToUpload).Get(repo.UploadFile).
@@ -1332,7 +1332,7 @@ func registerWebRoutes(m *web.Router) {
 			}, context.RepoRefByType(git.RefTypeBranch), context.CanWriteToBranch(), repo.WebGitOperationCommonData)
 			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
-				m.Post("/upload-remove", web.Bind(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
+				m.Post("/upload-remove", repo.RemoveUploadFileFromServer)
 			}, repo.MustBeAbleToUpload, reqRepoCodeWriter)
 		}, repo.MustBeEditable, context.RepoMustNotBeArchived())
 

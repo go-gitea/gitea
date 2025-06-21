@@ -73,7 +73,7 @@ export async function submitFormFetchAction(formEl: HTMLFormElement, formSubmitt
   }
 
   const formMethod = formEl.getAttribute('method') || 'get';
-  const formActionUrl = formEl.getAttribute('action');
+  const formActionUrl = formEl.getAttribute('action') || window.location.href;
   const formData = new FormData(formEl);
   const [submitterName, submitterValue] = [formSubmitter?.getAttribute('name'), formSubmitter?.getAttribute('value')];
   if (submitterName) {
