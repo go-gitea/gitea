@@ -98,7 +98,7 @@ func (r *Release) LoadPublisher(ctx context.Context) error {
 		return nil
 	}
 	var err error
-	r.Publisher, err = user_model.GetUserByID(ctx, r.PublisherID)
+	r.Publisher, err = user_model.GetPossibleUserByID(ctx, r.PublisherID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			r.Publisher = user_model.NewGhostUser()
