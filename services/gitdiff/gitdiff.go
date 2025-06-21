@@ -95,6 +95,7 @@ type DiffLineSectionInfo struct {
 	RightIdx      int
 	LeftHunkSize  int
 	RightHunkSize int
+	HasComments   bool
 }
 
 // DiffHTMLOperation is the HTML version of diffmatchpatch.Diff
@@ -189,6 +190,7 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 		RightIdx:      rightLine,
 		LeftHunkSize:  leftHunk,
 		RightHunkSize: righHunk,
+		HasComments:   false,
 	}
 }
 
@@ -431,6 +433,7 @@ func (diffFile *DiffFile) GetTailSectionAndLimitedContent(leftCommit, rightCommi
 			LastRightIdx: lastLine.RightIdx,
 			LeftIdx:      leftLineCount,
 			RightIdx:     rightLineCount,
+			HasComments:  false,
 		},
 	}
 	tailSection := &DiffSection{FileName: diffFile.Name, Lines: []*DiffLine{tailDiffLine}}
@@ -501,14 +504,28 @@ type Diff struct {
 
 // LoadComments loads comments into each line
 func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, currentUser *user_model.User, showOutdatedComments bool) error {
-	allComments, err := issues_model.FetchCodeComments(ctx, issue, currentUser, showOutdatedComments)
+	allComments, err := issues_model.FetchCodeComments(ctx, issue, currentUser, showOutdatedComments, nil)
 	if err != nil {
 		return err
 	}
+
 	for _, file := range diff.Files {
 		if lineCommits, ok := allComments[file.Name]; ok {
 			for _, section := range file.Sections {
-				for _, line := range section.Lines {
+				for index, line := range section.Lines {
+					if line.SectionInfo != nil && line.Type == 4 && !(line.SectionInfo.LastRightIdx == 0 && index+1 == len(section.Lines)) {
+						start := int64(line.SectionInfo.LastRightIdx + 1)
+						end := int64(line.SectionInfo.RightIdx - 1)
+						for start <= end {
+							if _, ok := lineCommits[start]; ok {
+								if !line.SectionInfo.HasComments {
+									line.SectionInfo.HasComments = true
+									break
+								}
+							}
+							start++
+						}
+					}
 					if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
 						line.Comments = append(line.Comments, comments...)
 					}
