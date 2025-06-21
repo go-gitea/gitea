@@ -24,6 +24,7 @@ function fetchActionDoRedirect(redirect: string) {
 
 async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: RequestOpts) {
   try {
+    hideToastsAll();
     const resp = await request(url, opt);
     if (resp.status === 200) {
       let {redirect} = await resp.json();
@@ -37,7 +38,6 @@ async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: R
       return;
     }
 
-    hideToastsAll();
     if (resp.status >= 400 && resp.status < 500) {
       const data = await resp.json();
       // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
