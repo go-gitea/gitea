@@ -30,10 +30,10 @@
 		{{ctx.Locale.Tr "org.settings.rename"}}
 	</div>
 	<div class="content">
-		<div class="ui warning message">
-			{{ctx.Locale.Tr "org.settings.rename_notices_1"}}<br>
-			{{ctx.Locale.Tr "org.settings.rename_notices_2"}}
-		</div>
+		<ul class="ui warning message">
+			<li>{{ctx.Locale.Tr "org.settings.rename_notices_1"}}</li>
+			<li>{{ctx.Locale.Tr "org.settings.rename_notices_2"}}</li>
+		</ul>
 		<form class="ui form form-fetch-action" action="{{.Link}}/rename" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field">
@@ -65,12 +65,12 @@
 		{{ctx.Locale.Tr "org.settings.delete_account"}}
 	</div>
 	<div class="content">
-		<div class="ui warning message">
-			{{ctx.Locale.Tr "org.settings.delete_notices_1"}}<br/>
-			{{ctx.Locale.Tr "org.settings.delete_notices_2" .Org.Name}}<br/>
-			{{ctx.Locale.Tr "org.settings.delete_notices_3" .Org.Name}}<br/>
-			{{ctx.Locale.Tr "org.settings.delete_notices_4" .Org.Name}}
-		</div>
+		<ul class="ui warning message">
+			<li>{{ctx.Locale.Tr "org.settings.delete_notices_1"}}</li>
+			<li>{{ctx.Locale.Tr "org.settings.delete_notices_2" .Org.Name}}</li>
+			<li>{{ctx.Locale.Tr "org.settings.delete_notices_3" .Org.Name}}</li>
+			<li>{{ctx.Locale.Tr "org.settings.delete_notices_4" .Org.Name}}</li>
+		</ul>
 		<form class="ui form form-fetch-action" action="{{.Link}}/delete" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field">

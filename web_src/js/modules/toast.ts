@@ -97,7 +97,6 @@ export function showErrorToast(message: string, opts?: ToastOpts): Toast {
 
 export function hideToastsFrom(parent: Element): void {
   const toasts = parent.querySelectorAll(':scope > .toastify');
-  console.log(toasts);
   for (const toast of toasts) {
     const inst = (toast as ToastifyElement)._giteaToastifyInstance;
     inst?.hideToast();
