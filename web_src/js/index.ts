@@ -20,6 +20,8 @@ import {initStopwatch} from './features/stopwatch.ts';
 import {initFindFileInRepo} from './features/repo-findfile.ts';
 import {initMarkupContent} from './markup/content.ts';
 import {initPdfViewer} from './render/pdf.ts';
+import {initFileView} from './features/file-view.ts';
+import {register3DViewerPlugin} from './render/plugins/3d-viewer.ts';
 import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
 import {initRepoPullRequestAllowMaintainerEdit, initRepoPullRequestReview, initRepoIssueSidebarDependency, initRepoIssueFilterItemLabel} from './features/repo-issue.ts';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
@@ -163,6 +165,9 @@ onDomReady(() => {
     initColorPickers,
 
     initOAuth2SettingsDisableCheckbox,
+
+    initFileView,
+    register3DViewerPlugin,
   ]);
 
   // it must be the last one, then the "querySelectorAll" only needs to be executed once for global init functions.
