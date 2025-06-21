@@ -137,6 +137,22 @@ func getNotifications(ctx *context.Context) {
 	notifications = notifications.Without(failures)
 	failCount += len(failures)
 
+	failures, err = notifications.LoadCommits(ctx)
+	if err != nil {
+		ctx.ServerError("LoadCommits", err)
+		return
+	}
+	notifications = notifications.Without(failures)
+	failCount += len(failures)
+
+	failures, err = notifications.LoadReleases(ctx)
+	if err != nil {
+		ctx.ServerError("LoadReleases", err)
+		return
+	}
+	notifications = notifications.Without(failures)
+	failCount += len(failures)
+
 	if failCount > 0 {
 		ctx.Flash.Error(fmt.Sprintf("ERROR: %d notifications were removed due to missing parts - check the logs", failCount))
 	}
