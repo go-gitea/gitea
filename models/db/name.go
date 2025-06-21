@@ -72,6 +72,25 @@ func (err ErrNameCharsNotAllowed) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
+type ErrNameTooLong struct {
+	Name      string
+	MaxLength int
+}
+
+func (err ErrNameTooLong) Error() string {
+	return fmt.Sprintf("name is too long [name: %s, max length: %d]", err.Name, err.MaxLength)
+}
+
+// Unwrap unwraps this as a ErrInvalid err
+func (err ErrNameTooLong) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
+func IsErrNameTooLong(err error) bool {
+	_, ok := err.(ErrNameTooLong)
+	return ok
+}
+
 // IsUsableName checks if name is reserved or pattern of name is not allowed
 // based on given reserved names and patterns.
 // Names are exact match, patterns can be a prefix or suffix match with placeholder '*'.

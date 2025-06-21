@@ -52,18 +52,6 @@ func (f *UpdateOrgSettingForm) Validate(req *http.Request, errs binding.Errors) 
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-type RenameOrgForm struct {
-	OrgName    string `binding:"Required;Username;MaxSize(40)"`
-	NewOrgName string `binding:"Required;Username;MaxSize(40)"`
-}
-
-// ___________
-// \__    ___/___ _____    _____
-//   |    |_/ __ \\__  \  /     \
-//   |    |\  ___/ / __ \|  Y Y  \
-//   |____| \___  >____  /__|_|  /
-//              \/     \/      \/
-
 // CreateTeamForm form for creating team
 type CreateTeamForm struct {
 	TeamName         string `binding:"Required;AlphaDashDot;MaxSize(255)"`
