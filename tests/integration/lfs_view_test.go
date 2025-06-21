@@ -73,9 +73,14 @@ func TestLFSRender(t *testing.T) {
 		fileInfo := doc.Find("div.file-info-entry").First().Text()
 		assert.Contains(t, fileInfo, "LFS")
 
-		rawLink, exists := doc.Find("div.file-view > div.view-raw > a").Attr("href")
-		assert.True(t, exists, "Download link should render instead of content because this is a binary file")
-		assert.Equal(t, "/user2/lfs/media/branch/master/crypt.bin", rawLink, "The download link should use the proper /media link because it's in LFS")
+		// find new file view container
+		fileViewContainer := doc.Find("div.file-view-container")
+		assert.Positive(t, fileViewContainer.Length(), "File view container should exist")
+
+		// check data attribute instead of link href
+		dataURL, exists := fileViewContainer.Attr("data-url")
+		assert.True(t, exists, "File view container should have data-url attribute")
+		assert.Equal(t, "/user2/lfs/media/branch/master/crypt.bin", dataURL, "The data-url should use the proper /media link because it's in LFS")
 	})
 
 	// check that a directory with a README file shows its text
