@@ -618,13 +618,8 @@ var (
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom", "*.png"}
 )
 
-const MaxUsableUsernameLength = 40
-
 // IsUsableUsername returns an error when a username is reserved
 func IsUsableUsername(name string) error {
-	if len(name) > MaxUsableUsernameLength {
-		return db.ErrNameTooLong{Name: name, MaxLength: MaxUsableUsernameLength}
-	}
 	// Validate username make sure it satisfies requirement.
 	if !validation.IsValidUsername(name) {
 		// Note: usually this error is normally caught up earlier in the UI

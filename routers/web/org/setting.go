@@ -220,31 +220,30 @@ func Labels(ctx *context.Context) {
 
 // SettingsRename response for renaming organization
 func SettingsRename(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.RenameOrgForm)
 	org := ctx.Org.Organization
-	oldOrgName := ctx.FormString("org_name")
-	newOrgName := ctx.FormString("new_org_name")
 
-	if org.Name != oldOrgName {
+	if org.Name != form.OrgName {
 		ctx.Flash.Error(ctx.Tr("form.enterred_invalid_org_name"))
 		ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
 		return
 	}
 
-	if org.Name == newOrgName {
+	if org.Name == form.NewOrgName {
 		ctx.Flash.Error(ctx.Tr("org.settings.rename_no_change"))
 		ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
 		return
 	}
 
-	if err := user_service.RenameUser(ctx, org.AsUser(), newOrgName); err != nil {
+	oldOrgName := org.Name
+
+	if err := user_service.RenameUser(ctx, org.AsUser(), form.NewOrgName); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) {
-			ctx.Flash.Error(ctx.Tr("org.form.username_been_taken", newOrgName))
+			ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
 		} else if db.IsErrNameReserved(err) {
-			ctx.Flash.Error(ctx.Tr("org.form.name_reserved", newOrgName))
+			ctx.Flash.Error(ctx.Tr("repo.form.name_reserved"))
 		} else if db.IsErrNamePatternNotAllowed(err) {
-			ctx.Flash.Error(ctx.Tr("org.form.name_pattern_not_allowed", newOrgName))
-		} else if db.IsErrNameTooLong(err) {
-			ctx.Flash.Error(ctx.Tr("org.form.name_too_long", newOrgName, user_model.MaxUsableUsernameLength))
+			ctx.Flash.Error(ctx.Tr("repo.form.name_pattern_not_allowed"))
 		} else {
 			log.Error("RenameOrganization: %v", err)
 			ctx.Flash.Error(util.Iif(ctx.Doer.IsAdmin, err.Error(), string(ctx.Tr("org.settings.rename_failed"))))
