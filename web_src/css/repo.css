@@ -1839,6 +1839,7 @@ tbody.commit-list {
   border-radius: 0;
   display: flex;
   flex-direction: column;
+  gap: 0.5em;
 }
 
 /* fomantic's last-child selector does not work with hidden last child */
