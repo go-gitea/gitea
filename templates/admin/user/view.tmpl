@@ -26,7 +26,7 @@
 		{{ctx.Locale.Tr "admin.repositories"}} ({{ctx.Locale.Tr "admin.total" .ReposTotal}})
 	</h4>
 	<div class="ui attached segment">
-		{{template "explore/repo_list" .}}
+		{{template "shared/repo/list" .}}
 	</div>
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "settings.organization"}} ({{ctx.Locale.Tr "admin.total" .OrgsTotal}})
