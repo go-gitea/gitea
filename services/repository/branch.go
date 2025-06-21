@@ -544,6 +544,9 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 			}
 		}
 
+		if err := issues_model.DeleteIssueDevLinkByBranchName(ctx, repo.ID, branchName); err != nil {
+			return err
+		}
 		if pr != nil {
 			if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
 				return fmt.Errorf("DeleteBranch: %v", err)
