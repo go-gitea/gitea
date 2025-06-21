@@ -37,33 +37,6 @@
 						</div>
 
 						<div class="divider"></div>
-						<div class="field" id="visibility_box">
-							<label for="visibility">{{ctx.Locale.Tr "org.settings.visibility"}}</label>
-							{{range $mode := .AllowedOrgVisibilityModes}}
-								{{if $mode.IsPublic}}
-									<div class="field">
-										<div class="ui radio checkbox">
-											<input class="enable-system-radio" name="visibility" type="radio" value="0" {{if eq $.CurrentVisibility 0}}checked{{end}}>
-											<label>{{ctx.Locale.Tr "org.settings.visibility.public"}}</label>
-										</div>
-									</div>
-								{{else if $mode.IsLimited}}
-									<div class="field">
-										<div class="ui radio checkbox">
-											<input class="enable-system-radio" name="visibility" type="radio" value="1" {{if eq $.CurrentVisibility 1}}checked{{end}}>
-											<label>{{ctx.Locale.Tr "org.settings.visibility.limited"}}</label>
-										</div>
-									</div>
-								{{else if $mode.IsPrivate}}
-									<div class="field">
-										<div class="ui radio checkbox">
-											<input class="enable-system-radio" name="visibility" type="radio" value="2" {{if eq $.CurrentVisibility 2}}checked{{end}}>
-											<label>{{ctx.Locale.Tr "org.settings.visibility.private"}}</label>
-										</div>
-									</div>
-								{{end}}
-							{{end}}
-						</div>
 
 						<div class="field" id="permission_box">
 							<label>{{ctx.Locale.Tr "org.settings.permission"}}</label>
@@ -104,4 +77,10 @@
 					</form>
 				</div>
 			</div>
+		</div>
+	</div>
+</div>
+
+{{template "org/settings/options_dangerzone" .}}
+
 {{template "org/settings/layout_footer" .}}
