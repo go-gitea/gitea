@@ -236,11 +236,11 @@ func SettingsRenamePost(ctx *context.Context) {
 
 	if err := user_service.RenameUser(ctx, ctx.Org.Organization.AsUser(), newOrgName); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) {
-			ctx.JSONError(ctx.Tr("form.username_been_taken"))
+			ctx.JSONError(ctx.Tr("org.form.name_been_taken", newOrgName))
 		} else if db.IsErrNameReserved(err) {
-			ctx.JSONError(ctx.Tr("repo.form.name_reserved"))
+			ctx.JSONError(ctx.Tr("org.form.name_reserved", newOrgName))
 		} else if db.IsErrNamePatternNotAllowed(err) {
-			ctx.JSONError(ctx.Tr("repo.form.name_pattern_not_allowed"))
+			ctx.JSONError(ctx.Tr("org.form.name_pattern_not_allowed", newOrgName))
 		} else {
 			log.Error("RenameOrganization: %v", err)
 			ctx.JSONError(util.Iif(ctx.Doer.IsAdmin, err.Error(), string(ctx.Tr("org.settings.rename_failed"))))

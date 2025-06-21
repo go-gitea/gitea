@@ -53,8 +53,8 @@ func (f *UpdateOrgSettingForm) Validate(req *http.Request, errs binding.Errors) 
 }
 
 type RenameOrgForm struct {
-	OrgName    string `binding:"Required;Username;MaxSize(40)"`
-	NewOrgName string `binding:"Required;Username;MaxSize(40)"`
+	OrgName    string `binding:"Required"`
+	NewOrgName string `binding:"Required;Username;MaxSize(40)" locale:"org.org_name_holder"`
 }
 
 // ___________
