@@ -95,14 +95,14 @@ export function showErrorToast(message: string, opts?: ToastOpts): Toast {
   return showToast(message, 'error', opts);
 }
 
-function hideToastsByElement(el: Element): void {
+function hideToastByElement(el: Element): void {
   (el as ToastifyElement)?._giteaToastifyInstance?.hideToast();
 }
 
 export function hideToastsFrom(parent: Element): void {
-  queryElems(parent, ':scope > .toastify.on', hideToastsByElement);
+  queryElems(parent, ':scope > .toastify.on', hideToastByElement);
 }
 
 export function hideToastsAll(): void {
-  queryElems(document, '.toastify.on', hideToastsByElement);
+  queryElems(document, '.toastify.on', hideToastByElement);
 }
