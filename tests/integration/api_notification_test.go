@@ -252,13 +252,13 @@ func TestAPICommitNotification(t *testing.T) {
 
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/new_commit_notification.txt", user2.Name, repo1.Name), &createFileOptions).
 			AddTokenAuth(token1)
-		resp := MakeRequest(t, req, http.StatusCreated)
+		MakeRequest(t, req, http.StatusCreated)
 
 		// Check notifications are as expected
 		token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteNotification)
 		req = NewRequest(t, "GET", "/api/v1/notifications?all=true").
 			AddTokenAuth(token2)
-		resp = MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 		var apiNL []api.NotificationThread
 		DecodeJSON(t, resp, &apiNL)
 

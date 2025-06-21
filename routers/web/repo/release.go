@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/renderhelper"
@@ -31,7 +32,6 @@ import (
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
 	release_service "code.gitea.io/gitea/services/release"
-	activities_model "code.gitea.io/gitea/models/activities"
 )
 
 const (

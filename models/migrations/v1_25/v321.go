@@ -5,6 +5,7 @@ package v1_25 //nolint
 
 import (
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
