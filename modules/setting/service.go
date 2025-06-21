@@ -32,6 +32,8 @@ var Service = struct {
 	AllowedUserVisibilityModesSlice         AllowedVisibility `ini:"-"`
 	DefaultOrgVisibility                    string
 	DefaultOrgVisibilityMode                structs.VisibleType
+	AllowedOrgVisibilityModes               []string
+	AllowedOrgVisibilityModesSlice          AllowedVisibility `ini:"-"`
 	ActiveCodeLives                         int
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
@@ -108,6 +110,7 @@ var Service = struct {
 	}
 }{
 	AllowedUserVisibilityModesSlice: []bool{true, true, true},
+	AllowedOrgVisibilityModesSlice:  []bool{true, true, true},
 }
 
 // AllowedVisibility store in a 3 item bool array what is allowed
@@ -245,7 +248,34 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 		Service.DefaultUserVisibility = Service.AllowedUserVisibilityModes[0]
 	}
 	Service.DefaultUserVisibilityMode = structs.VisibilityModes[Service.DefaultUserVisibility]
-	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
+
+	// Process allowed organization visibility modes
+	modes = sec.Key("ALLOWED_ORG_VISIBILITY_MODES").Strings(",")
+	if len(modes) != 0 {
+		Service.AllowedOrgVisibilityModes = []string{}
+		Service.AllowedOrgVisibilityModesSlice = []bool{false, false, false}
+		for _, sMode := range modes {
+			if tp, ok := structs.VisibilityModes[sMode]; ok { // remove unsupported modes
+				Service.AllowedOrgVisibilityModes = append(Service.AllowedOrgVisibilityModes, sMode)
+				Service.AllowedOrgVisibilityModesSlice[tp] = true
+			} else {
+				log.Warn("ALLOWED_ORG_VISIBILITY_MODES %s is unsupported", sMode)
+			}
+		}
+	}
+
+	if len(Service.AllowedOrgVisibilityModes) == 0 {
+		Service.AllowedOrgVisibilityModes = []string{"public", "limited", "private"}
+		Service.AllowedOrgVisibilityModesSlice = []bool{true, true, true}
+	}
+
+	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").String()
+	if Service.DefaultOrgVisibility == "" {
+		Service.DefaultOrgVisibility = Service.AllowedOrgVisibilityModes[0]
+	} else if !Service.AllowedOrgVisibilityModesSlice[structs.VisibilityModes[Service.DefaultOrgVisibility]] {
+		log.Warn("DEFAULT_ORG_VISIBILITY %s is wrong or not in ALLOWED_ORG_VISIBILITY_MODES, using first allowed", Service.DefaultOrgVisibility)
+		Service.DefaultOrgVisibility = Service.AllowedOrgVisibilityModes[0]
+	}
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)

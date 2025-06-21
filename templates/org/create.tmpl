@@ -17,18 +17,24 @@
 				<div class="inline field required {{if .Err_OrgVisibility}}error{{end}}">
 					<label for="visibility">{{ctx.Locale.Tr "org.settings.visibility"}}</label>
 					<div class="inline-right">
-						<div class="ui radio checkbox">
-							<input class="enable-system-radio" name="visibility" type="radio" value="0" {{if .visibility.IsPublic}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "org.settings.visibility.public"}}</label>
-						</div>
-						<div class="ui radio checkbox">
-							<input class="enable-system-radio" name="visibility" type="radio" value="1" {{if .visibility.IsLimited}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "org.settings.visibility.limited"}}</label>
-						</div>
-						<div class="ui radio checkbox">
-							<input class="enable-system-radio" name="visibility" type="radio" value="2" {{if .visibility.IsPrivate}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "org.settings.visibility.private"}}</label>
-						</div>
+						{{range $mode := .AllowedOrgVisibilityModes}}
+							{{if $mode.IsPublic}}
+								<div class="ui radio checkbox">
+									<input class="enable-system-radio" name="visibility" type="radio" value="0" {{if $.visibility.IsPublic}}checked{{end}}>
+									<label>{{ctx.Locale.Tr "org.settings.visibility.public"}}</label>
+								</div>
+							{{else if $mode.IsLimited}}
+								<div class="ui radio checkbox">
+									<input class="enable-system-radio" name="visibility" type="radio" value="1" {{if $.visibility.IsLimited}}checked{{end}}>
+									<label>{{ctx.Locale.Tr "org.settings.visibility.limited"}}</label>
+								</div>
+							{{else if $mode.IsPrivate}}
+								<div class="ui radio checkbox">
+									<input class="enable-system-radio" name="visibility" type="radio" value="2" {{if $.visibility.IsPrivate}}checked{{end}}>
+									<label>{{ctx.Locale.Tr "org.settings.visibility.private"}}</label>
+								</div>
+							{{end}}
+						{{end}}
 					</div>
 				</div>
 
