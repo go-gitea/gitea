@@ -395,6 +395,7 @@ func Forks(ctx *context.Context) {
 
 	pager := context.NewPagination(int(total), pageSize, page, 5)
 	ctx.Data["IsForksPage"] = true
+	ctx.Data["ShowOwnerOnList"] = true
 	ctx.Data["Page"] = pager
 	ctx.Data["Repos"] = forks
 

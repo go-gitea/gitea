@@ -11,7 +11,7 @@
 			<div class="flex-item-main">
 				<div class="flex-item-header">
 					<div class="flex-item-title">
-						{{if and (or $.IsForksPage $.PageIsExplore $.PageIsProfileStarList) .Owner}}
+						{{if and $.ShowOwnerOnList .Owner}}
 						<a class="text primary name" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
 						{{end}}
 						<a class="text primary name" href="{{.Link}}">{{.Name}}</a>
