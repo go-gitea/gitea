@@ -47,7 +47,7 @@ func TestRender_StandardLinks(t *testing.T) {
 func TestRender_Images(t *testing.T) {
 	setting.AppURL = AppURL
 
-	test := func(input, expected string) {
+	render := func(input, expected string) {
 		buffer, err := markdown.RenderString(markup.NewTestRenderContext(FullURL), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
@@ -59,27 +59,32 @@ func TestRender_Images(t *testing.T) {
 	result := util.URLJoin(FullURL, url)
 	// hint: With Markdown v2.5.2, there is a new syntax: [link](URL){:target="_blank"} , but we do not support it now
 
-	test(
+	render(
 		"!["+title+"]("+url+")",
 		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
-	test(
+	render(
 		"[["+title+"|"+url+"]]",
 		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" title="`+title+`" alt="`+title+`"/></a></p>`)
-	test(
+	render(
 		"[!["+title+"]("+url+")]("+href+")",
 		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
-	test(
+	render(
 		"!["+title+"]("+url+")",
 		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
-	test(
+	render(
 		"[["+title+"|"+url+"]]",
 		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" title="`+title+`" alt="`+title+`"/></a></p>`)
-	test(
+	render(
 		"[!["+title+"]("+url+")]("+href+")",
 		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, false)()
+	render(
+		"<a><img src='a.jpg'></a>", // by the way, empty "a" tag will be removed
+		`<p dir="auto"><img src="http://localhost:3000/user13/repo11/a.jpg" loading="lazy"/></p>`)
 }
 
 func TestTotal_RenderString(t *testing.T) {

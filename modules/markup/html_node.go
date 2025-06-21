@@ -63,8 +63,11 @@ func processNodeA(ctx *RenderContext, node *html.Node) {
 
 func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 	next = img.NextSibling
+	attrSrc, hasLazy := "", false
 	for i, imgAttr := range img.Attr {
+		hasLazy = hasLazy || imgAttr.Key == "loading" && imgAttr.Val == "lazy"
 		if imgAttr.Key != "src" {
+			attrSrc = imgAttr.Val
 			continue
 		}
 
@@ -72,8 +75,8 @@ func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 		isLinkable := imgSrcOrigin != "" && !strings.HasPrefix(imgSrcOrigin, "data:")
 
 		// By default, the "<img>" tag should also be clickable,
-		// because frontend use `<img>` to paste the re-scaled image into the markdown,
-		// so it must match the default markdown image behavior.
+		// because frontend uses `<img>` to paste the re-scaled image into the Markdown,
+		// so it must match the default Markdown image behavior.
 		cnt := 0
 		for p := img.Parent; isLinkable && p != nil && cnt < 2; p = p.Parent {
 			if hasParentAnchor := p.Type == html.ElementNode && p.Data == "a"; hasParentAnchor {
@@ -97,6 +100,9 @@ func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 		imgAttr.Val = ctx.RenderHelper.ResolveLink(imgSrcOrigin, LinkTypeMedia)
 		imgAttr.Val = camoHandleLink(imgAttr.Val)
 		img.Attr[i] = imgAttr
+	}
+	if !RenderBehaviorForTesting.DisableAdditionalAttributes && !hasLazy && !strings.HasPrefix(attrSrc, "data:") {
+		img.Attr = append(img.Attr, html.Attribute{Key: "loading", Val: "lazy"})
 	}
 	return next
 }

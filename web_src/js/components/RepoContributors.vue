@@ -397,7 +397,7 @@ export default defineComponent({
         <div class="ui top attached header tw-flex tw-flex-1">
           <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
-            <img class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link" alt="">
+            <img loading="lazy" class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link" alt="">
           </a>
           <div class="tw-ml-2">
             <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
