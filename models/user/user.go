@@ -831,6 +831,20 @@ type CountUserFilter struct {
 	IsActive       optional.Option[bool]
 }
 
+// HasUsers checks whether there are any users in the database, or only one user exists.
+func HasUsers(ctx context.Context) (ret struct {
+	HasAnyUser, HasOnlyOneUser bool
+}, err error,
+) {
+	res, err := db.GetEngine(ctx).Table(&User{}).Cols("id").Limit(2).Query()
+	if err != nil {
+		return ret, fmt.Errorf("error checking user existence: %w", err)
+	}
+	ret.HasAnyUser = len(res) != 0
+	ret.HasOnlyOneUser = len(res) == 1
+	return ret, nil
+}
+
 // CountUsers returns number of users.
 func CountUsers(ctx context.Context, opts *CountUserFilter) int64 {
 	return countUsers(ctx, opts)
