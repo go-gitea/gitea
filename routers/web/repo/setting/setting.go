@@ -663,43 +663,34 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 func handleSettingsPostSigning(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
-	changed := false
 	trustModel := repo_model.ToTrustModel(form.TrustModel)
 	if trustModel != repo.TrustModel {
-		repo.TrustModel = trustModel
-		changed = true
-	}
-
-	if changed {
-		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
+		if err := repo_service.UpdateRepositoryTrustModel(ctx, repo, trustModel); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
+		log.Trace("Repository signing settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 	}
-	log.Trace("Repository signing settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }
 
 func handleSettingsPostAdmin(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
-	repo := ctx.Repo.Repository
 	if !ctx.Doer.IsAdmin {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
+	repo := ctx.Repo.Repository
+	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	if repo.IsFsckEnabled != form.EnableHealthCheck {
-		repo.IsFsckEnabled = form.EnableHealthCheck
+		if err := repo_service.UpdateRepositoryHealthCheck(ctx, repo, form.EnableHealthCheck); err != nil {
+			ctx.ServerError("UpdateRepository", err)
+			return
+		}
+		log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 	}
-
-	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
-		ctx.ServerError("UpdateRepository", err)
-		return
-	}
-
-	log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
