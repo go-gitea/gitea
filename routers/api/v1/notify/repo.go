@@ -214,14 +214,20 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 
 	changed := make([]*structs.NotificationThread, 0, len(nl))
 
+	if err := activities_model.NotificationList(nl).LoadAttributes(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	for _, n := range nl {
 		notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		_ = notif.LoadAttributes(ctx)
-		changed = append(changed, convert.ToNotificationThread(ctx, notif))
+		n.Status = notif.Status
+		n.UpdatedUnix = notif.UpdatedUnix
+		changed = append(changed, convert.ToNotificationThread(ctx, n))
 	}
 	ctx.JSON(http.StatusResetContent, changed)
 }

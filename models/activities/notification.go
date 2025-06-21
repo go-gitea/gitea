@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -241,6 +242,9 @@ func (n *Notification) LoadAttributes(ctx context.Context) (err error) {
 	if err = n.loadComment(ctx); err != nil {
 		return err
 	}
+	if err = n.loadCommit(ctx); err != nil {
+		return err
+	}
 	if err = n.loadRelease(ctx); err != nil {
 		return err
 	}
@@ -280,6 +284,31 @@ func (n *Notification) loadComment(ctx context.Context) (err error) {
 			}
 			return err
 		}
+	}
+	return nil
+}
+
+func (n *Notification) loadCommit(ctx context.Context) (err error) {
+	if n.Source != NotificationSourceCommit || n.CommitID == "" || n.Commit != nil {
+		return nil
+	}
+
+	if n.Repository == nil {
+		_ = n.loadRepo(ctx)
+		if n.Repository == nil {
+			return fmt.Errorf("repository not found for notification %d", n.ID)
+		}
+	}
+
+	repo, err := gitrepo.OpenRepository(ctx, n.Repository)
+	if err != nil {
+		return fmt.Errorf("OpenRepository [%d]: %w", n.Repository.ID, err)
+	}
+	defer repo.Close()
+
+	n.Commit, err = repo.GetCommit(n.CommitID)
+	if err != nil {
+		return fmt.Errorf("Notification[%d]: Failed to get repo for commit %s: %v", n.ID, n.CommitID, err)
 	}
 	return nil
 }
@@ -452,8 +481,7 @@ func SetNotificationStatus(ctx context.Context, notificationID int64, user *user
 	}
 
 	notification.Status = status
-
-	_, err = db.GetEngine(ctx).ID(notificationID).Update(notification)
+	_, err = db.GetEngine(ctx).ID(notificationID).Cols("status").Update(notification)
 	return notification, err
 }
 

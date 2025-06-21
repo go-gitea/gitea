@@ -25,7 +25,7 @@ type NotificationSubject struct {
 	LatestCommentURL     string            `json:"latest_comment_url"`
 	HTMLURL              string            `json:"html_url"`
 	LatestCommentHTMLURL string            `json:"latest_comment_html_url"`
-	Type                 NotifySubjectType `json:"type" binding:"In(Issue,Pull,Commit,Repository)"`
+	Type                 NotifySubjectType `json:"type" binding:"In(Issue,Pull,Commit,Repository,Release)"`
 	State                StateType         `json:"state"`
 }
 

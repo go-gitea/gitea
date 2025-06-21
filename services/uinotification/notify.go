@@ -5,6 +5,7 @@ package uinotification
 
 import (
 	"context"
+	"slices"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
@@ -361,6 +362,19 @@ func (ns *notificationService) UpdateRelease(ctx context.Context, doer *user_mod
 	if err != nil {
 		log.Error("GetRepoWatchersIDs: %v", err)
 		return
+	}
+
+	repo, err := repo_model.GetRepositoryByID(ctx, rel.RepoID)
+	if err != nil {
+		log.Error("GetRepositoryByID: %v", err)
+		return
+	}
+	if err := repo.LoadOwner(ctx); err != nil {
+		log.Error("LoadOwner: %v", err)
+		return
+	}
+	if !repo.Owner.IsOrganization() && !slices.Contains(repoWatcherIDs, repo.Owner.ID) && repo.Owner.ID != doer.ID {
+		repoWatcherIDs = append(repoWatcherIDs, repo.Owner.ID)
 	}
 
 	for _, watcherID := range repoWatcherIDs {

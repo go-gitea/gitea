@@ -172,16 +172,26 @@ type NotificationList []*Notification
 
 // LoadAttributes load Repo Issue User and Comment if not loaded
 func (nl NotificationList) LoadAttributes(ctx context.Context) error {
-	if _, _, err := nl.LoadRepos(ctx); err != nil {
+	repos, _, err := nl.LoadRepos(ctx)
+	if err != nil {
+		return err
+	}
+	if err := repos.LoadAttributes(ctx); err != nil {
 		return err
 	}
 	if _, err := nl.LoadIssues(ctx); err != nil {
+		return err
+	}
+	if err = nl.LoadIssuePullRequests(ctx); err != nil {
 		return err
 	}
 	if _, err := nl.LoadUsers(ctx); err != nil {
 		return err
 	}
 	if _, err := nl.LoadComments(ctx); err != nil {
+		return err
+	}
+	if _, err = nl.LoadCommits(ctx); err != nil {
 		return err
 	}
 	if _, err := nl.LoadReleases(ctx); err != nil {
