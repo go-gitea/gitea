@@ -85,4 +85,6 @@
 
 @import "./helpers.css";
 
+@import "./file-view.css";
+
 @tailwind utilities;

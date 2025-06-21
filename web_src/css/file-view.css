@@ -1,0 +1,71 @@
+/**
+ * File View & Render Plugin Styles
+ */
+
+/* file view container */
+.file-view-container {
+  position: relative;
+  width: 100%;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-view-container.is-loading {
+  position: relative;
+}
+
+.file-view-container.is-loading::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  margin-left: -20px;
+  margin-top: -20px;
+  border: 5px solid var(--color-secondary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.view-raw-fallback {
+  padding: 16px;
+  text-align: center;
+}
+
+/* 3D model viewer */
+.model3d-content {
+  width: 100% !important;
+  min-height: 400px !important;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* error message */
+.file-view-container .ui.error.message {
+  margin: 1em 0;
+  width: 100%;
+}
+
+.file-view-container .ui.error.message pre {
+  margin-top: 0.5em;
+  font-size: 12px;
+  max-height: 150px;
+  overflow: auto;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.5em;
+}

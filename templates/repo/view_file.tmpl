@@ -110,7 +110,7 @@
 					{{else if .IsPDFFile}}
 						<div class="pdf-content is-loading" data-global-init="initPdfViewer" data-src="{{$.RawFileLink}}" data-fallback-button-text="{{ctx.Locale.Tr "repo.diff.view_file"}}"></div>
 					{{else}}
-						<a href="{{$.RawFileLink}}" rel="nofollow" class="tw-p-4">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
+						<div class="file-view-container" data-global-init="initFileView" data-filename="{{.TreePath}}" data-url="{{$.RawFileLink}}" data-fallback-text="{{ctx.Locale.Tr "repo.file_view_raw"}}"></div>
 					{{end}}
 				</div>
 			{{else if .FileSize}}
