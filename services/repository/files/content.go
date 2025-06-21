@@ -42,7 +42,7 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, refComm
 	}
 
 	// Check that the path given in opts.treePath is valid (not a git path)
-	cleanTreePath := CleanUploadFileName(treePath)
+	cleanTreePath := CleanGitTreePath(treePath)
 	if cleanTreePath == "" && treePath != "" {
 		return nil, ErrFilenameInvalid{
 			Path: treePath,
@@ -103,7 +103,7 @@ func GetObjectTypeFromTreeEntry(entry *git.TreeEntry) ContentType {
 // GetContents gets the metadata on a file's contents. Ref can be a branch, commit or tag
 func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *utils.RefCommit, treePath string, forList bool) (*api.ContentsResponse, error) {
 	// Check that the path given in opts.treePath is valid (not a git path)
-	cleanTreePath := CleanUploadFileName(treePath)
+	cleanTreePath := CleanGitTreePath(treePath)
 	if cleanTreePath == "" && treePath != "" {
 		return nil, ErrFilenameInvalid{
 			Path: treePath,

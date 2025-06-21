@@ -20,6 +20,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/tests"
 
@@ -34,7 +35,7 @@ func TestCreateFile(t *testing.T) {
 	})
 }
 
-func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, filePath, content string) *httptest.ResponseRecorder {
+func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, filePath, content string) {
 	// Request editor page
 	newURL := fmt.Sprintf("/%s/%s/_new/%s/", user, repo, branch)
 	req := NewRequest(t, "GET", newURL)
@@ -52,7 +53,8 @@ func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, file
 		"content":       content,
 		"commit_choice": "direct",
 	})
-	return session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.NotEmpty(t, test.RedirectURL(resp))
 }
 
 func TestCreateFileOnProtectedBranch(t *testing.T) {
@@ -88,9 +90,9 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 			"commit_choice": "direct",
 		})
 
-		resp = session.MakeRequest(t, req, http.StatusOK)
-		// Check body for error message
-		assert.Contains(t, resp.Body.String(), "Cannot commit to protected branch &#34;master&#34;.")
+		resp = session.MakeRequest(t, req, http.StatusBadRequest)
+		respErr := test.ParseJSONError(resp.Body.Bytes())
+		assert.Equal(t, `Cannot commit to protected branch "master".`, respErr.ErrorMessage)
 
 		// remove the protected branch
 		csrf = GetUserCSRFToken(t, session)
@@ -131,7 +133,8 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 			"commit_choice": "direct",
 		},
 	)
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.NotEmpty(t, test.RedirectURL(resp))
 
 	// Verify the change
 	req = NewRequest(t, "GET", path.Join(user, repo, "raw/branch", branch, filePath))
@@ -161,7 +164,8 @@ func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, bra
 			"new_branch_name": targetBranch,
 		},
 	)
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.NotEmpty(t, test.RedirectURL(resp))
 
 	// Verify the change
 	req = NewRequest(t, "GET", path.Join(user, repo, "raw/branch", targetBranch, filePath))
@@ -211,9 +215,8 @@ func TestWebGitCommitEmail(t *testing.T) {
 			newCommit := getLastCommit(t)
 			if expectedUserName == "" {
 				require.Equal(t, lastCommit.ID.String(), newCommit.ID.String())
-				htmlDoc := NewHTMLParser(t, resp.Body)
-				errMsg := htmlDoc.doc.Find(".ui.negative.message").Text()
-				assert.Contains(t, errMsg, translation.NewLocale("en-US").Tr("repo.editor.invalid_commit_email"))
+				respErr := test.ParseJSONError(resp.Body.Bytes())
+				assert.Equal(t, translation.NewLocale("en-US").TrString("repo.editor.invalid_commit_email"), respErr.ErrorMessage)
 			} else {
 				require.NotEqual(t, lastCommit.ID.String(), newCommit.ID.String())
 				assert.Equal(t, expectedUserName, newCommit.Author.Name)
@@ -333,7 +336,7 @@ index 0000000000..bbbbbbbbbb
 			)
 
 			// By the way, test the "cherrypick" page: a successful revert redirects to the main branch
-			assert.Equal(t, "/user2/repo1/src/branch/master", resp1.Header().Get("Location"))
+			assert.Equal(t, "/user2/repo1/src/branch/master", test.RedirectURL(resp1))
 		})
 	})
 }
