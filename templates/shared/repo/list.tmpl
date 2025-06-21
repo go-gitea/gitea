@@ -2,12 +2,16 @@
 	{{range .Repos}}
 		<div class="flex-item">
 			<div class="flex-item-leading">
-				{{template "repo/icon" .}}
+				{{if $.ShowRepoOwnerAvatar}}
+					{{ctx.AvatarUtils.Avatar .Owner 24}}
+				{{else}}
+					{{template "repo/icon" .}}
+				{{end}}
 			</div>
 			<div class="flex-item-main">
 				<div class="flex-item-header">
 					<div class="flex-item-title">
-						{{if and (or $.PageIsExplore $.PageIsProfileStarList) .Owner}}
+						{{if and $.ShowRepoOwnerOnList .Owner}}
 						<a class="text primary name" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
 						{{end}}
 						<a class="text primary name" href="{{.Link}}">{{.Name}}</a>

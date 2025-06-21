@@ -84,7 +84,7 @@ func TestRepoForkToOrg(t *testing.T) {
 
 func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	forkItemSelector := ".repo-fork-item"
+	forkItemSelector := ".fork-list .flex-item"
 
 	user1Sess := loginUser(t, "user1")
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
