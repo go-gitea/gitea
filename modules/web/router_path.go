@@ -6,6 +6,7 @@ package web
 import (
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/container"
@@ -36,11 +37,21 @@ func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request)
 	g.r.chiRouter.NotFoundHandler().ServeHTTP(resp, req)
 }
 
+type RouterPathGroupPattern struct {
+	re          *regexp.Regexp
+	params      []routerPathParam
+	middlewares []any
+}
+
 // MatchPath matches the request method, and uses regexp to match the path.
-// The pattern uses "<...>" to define path parameters, for example: "/<name>" (different from chi router)
-// It is only designed to resolve some special cases which chi router can't handle.
+// The pattern uses "<...>" to define path parameters, for example, "/<name>" (different from chi router)
+// It is only designed to resolve some special cases that chi router can't handle.
 // For most cases, it shouldn't be used because it needs to iterate all rules to find the matched one (inefficient).
 func (g *RouterPathGroup) MatchPath(methods, pattern string, h ...any) {
+	g.MatchPattern(methods, g.PatternRegexp(pattern), h...)
+}
+
+func (g *RouterPathGroup) MatchPattern(methods string, pattern *RouterPathGroupPattern, h ...any) {
 	g.matchers = append(g.matchers, newRouterPathMatcher(methods, pattern, h...))
 }
 
@@ -96,8 +107,8 @@ func isValidMethod(name string) bool {
 	return false
 }
 
-func newRouterPathMatcher(methods, pattern string, h ...any) *routerPathMatcher {
-	middlewares, handlerFunc := wrapMiddlewareAndHandler(nil, h)
+func newRouterPathMatcher(methods string, patternRegexp *RouterPathGroupPattern, h ...any) *routerPathMatcher {
+	middlewares, handlerFunc := wrapMiddlewareAndHandler(patternRegexp.middlewares, h)
 	p := &routerPathMatcher{methods: make(container.Set[string]), middlewares: middlewares, handlerFunc: handlerFunc}
 	for method := range strings.SplitSeq(methods, ",") {
 		method = strings.TrimSpace(method)
@@ -106,19 +117,25 @@ func newRouterPathMatcher(methods, pattern string, h ...any) *routerPathMatcher 
 		}
 		p.methods.Add(method)
 	}
+	p.re, p.params = patternRegexp.re, patternRegexp.params
+	return p
+}
+
+func patternRegexp(pattern string, h ...any) *RouterPathGroupPattern {
+	p := &RouterPathGroupPattern{middlewares: slices.Clone(h)}
 	re := []byte{'^'}
 	lastEnd := 0
 	for lastEnd < len(pattern) {
 		start := strings.IndexByte(pattern[lastEnd:], '<')
 		if start == -1 {
-			re = append(re, pattern[lastEnd:]...)
+			re = append(re, regexp.QuoteMeta(pattern[lastEnd:])...)
 			break
 		}
 		end := strings.IndexByte(pattern[lastEnd+start:], '>')
 		if end == -1 {
 			panic("invalid pattern: " + pattern)
 		}
-		re = append(re, pattern[lastEnd:lastEnd+start]...)
+		re = append(re, regexp.QuoteMeta(pattern[lastEnd:lastEnd+start])...)
 		partName, partExp, _ := strings.Cut(pattern[lastEnd+start+1:lastEnd+start+end], ":")
 		lastEnd += start + end + 1
 
@@ -140,7 +157,10 @@ func newRouterPathMatcher(methods, pattern string, h ...any) *routerPathMatcher 
 		p.params = append(p.params, param)
 	}
 	re = append(re, '$')
-	reStr := string(re)
-	p.re = regexp.MustCompile(reStr)
+	p.re = regexp.MustCompile(string(re))
 	return p
+}
+
+func (g *RouterPathGroup) PatternRegexp(pattern string, h ...any) *RouterPathGroupPattern {
+	return patternRegexp(pattern, h...)
 }
