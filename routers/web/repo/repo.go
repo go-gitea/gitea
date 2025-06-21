@@ -88,7 +88,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	}
 
 	var orgsAvailable []*organization.Organization
-	for i := 0; i < len(orgs); i++ {
+	for i := range orgs {
 		if ctx.Doer.CanCreateRepoIn(orgs[i].AsUser()) {
 			orgsAvailable = append(orgsAvailable, orgs[i])
 		}
@@ -461,7 +461,7 @@ func SearchRepo(ctx *context.Context) {
 	if page <= 0 {
 		page = 1
 	}
-	opts := &repo_model.SearchRepoOptions{
+	opts := repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),

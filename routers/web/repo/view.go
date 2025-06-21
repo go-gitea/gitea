@@ -131,7 +131,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		ctx.Data["LatestCommitVerification"] = verification
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
 
-		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptionsAll)
+		statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptionsAll)
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
@@ -257,8 +257,9 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 	renderedIconPool := fileicon.NewRenderedIconPool()
 	fileIcons := map[string]template.HTML{}
 	for _, f := range files {
-		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIcon(renderedIconPool, f.Entry)
+		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFromGitTreeEntry(f.Entry))
 	}
+	fileIcons[".."] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
 	ctx.Data["FileIcons"] = fileIcons
 	ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 }
@@ -393,9 +394,10 @@ func Forks(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), pageSize, page, 5)
+	ctx.Data["ShowRepoOwnerAvatar"] = true
+	ctx.Data["ShowRepoOwnerOnList"] = true
 	ctx.Data["Page"] = pager
-
-	ctx.Data["Forks"] = forks
+	ctx.Data["Repos"] = forks
 
 	ctx.HTML(http.StatusOK, tplForks)
 }

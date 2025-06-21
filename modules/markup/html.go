@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
@@ -86,8 +87,8 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	// codePreviewPattern matches "http://domain/.../{owner}/{repo}/src/commit/{commit}/{filepath}#L10-L20"
 	v.codePreviewPattern = regexp.MustCompile(`https?://\S+/([^\s/]+)/([^\s/]+)/src/commit/([0-9a-f]{7,64})(/\S+)#(L\d+(-L\d+)?)`)
 
-	// cleans: "<foo/bar", "<any words/", ("<html", "<head", "<script", "<style")
-	v.tagCleaner = regexp.MustCompile(`(?i)<(/?\w+/\w+|/[\w ]+/|/?(html|head|script|style\b))`)
+	// cleans: "<foo/bar", "<any words/", ("<html", "<head", "<script", "<style", "<?", "<%")
+	v.tagCleaner = regexp.MustCompile(`(?i)<(/?\w+/\w+|/[\w ]+/|/?(html|head|script|style|%|\?)\b)`)
 	v.nulCleaner = strings.NewReplacer("\000", "")
 	return v
 })
@@ -109,13 +110,7 @@ func CustomLinkURLSchemes(schemes []string) {
 		if !validScheme.MatchString(s) {
 			continue
 		}
-		without := false
-		for _, sna := range xurls.SchemesNoAuthority {
-			if s == sna {
-				without = true
-				break
-			}
-		}
+		without := slices.Contains(xurls.SchemesNoAuthority, s)
 		if without {
 			s += ":"
 		} else {
@@ -253,7 +248,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	node, err := html.Parse(io.MultiReader(
 		// prepend "<html><body>"
 		strings.NewReader("<html><body>"),
-		// Strip out nuls - they're always invalid
+		// strip out NULLs (they're always invalid), and escape known tags
 		bytes.NewReader(globalVars().tagCleaner.ReplaceAll([]byte(globalVars().nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1"))),
 		// close the tags
 		strings.NewReader("</body></html>"),
@@ -320,6 +315,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 	}
 
 	processNodeAttrID(node)
+	processFootnoteNode(ctx, node) // FIXME: the footnote processing should be done in the "footnote.go" renderer directly
 
 	if isEmojiNode(node) {
 		// TextNode emoji will be converted to `<span class="emoji">`, then the next iteration will visit the "span"

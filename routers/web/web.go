@@ -964,7 +964,8 @@ func registerWebRoutes(m *web.Router) {
 					addSettingsVariablesRoutes()
 				}, actions.MustEnableActions)
 
-				m.Methods("GET,POST", "/delete", org.SettingsDelete)
+				m.Post("/rename", web.Bind(forms.RenameOrgForm{}), org.SettingsRenamePost)
+				m.Post("/delete", org.SettingsDeleteOrgPost)
 
 				m.Group("/packages", func() {
 					m.Get("", org.Packages)
@@ -1012,6 +1013,7 @@ func registerWebRoutes(m *web.Router) {
 					m.Get("/versions", user.ListPackageVersions)
 					m.Group("/{version}", func() {
 						m.Get("", user.ViewPackageVersion)
+						m.Get("/{version_sub}", user.ViewPackageVersion)
 						m.Get("/files/{fileid}", user.DownloadPackageFile)
 						m.Group("/settings", func() {
 							m.Get("", user.PackageSettings)
@@ -1314,11 +1316,11 @@ func registerWebRoutes(m *web.Router) {
 	m.Group("/{username}/{reponame}", func() { // repo code
 		m.Group("", func() {
 			m.Group("", func() {
-				m.Post("/_preview/*", web.Bind(forms.EditPreviewDiffForm{}), repo.DiffPreviewPost)
-				m.Combo("/_edit/*").Get(repo.EditFile).
+				m.Post("/_preview/*", repo.DiffPreviewPost)
+				m.Combo("/{editor_action:_edit}/*").Get(repo.EditFile).
 					Post(web.Bind(forms.EditRepoFileForm{}), repo.EditFilePost)
-				m.Combo("/_new/*").Get(repo.NewFile).
-					Post(web.Bind(forms.EditRepoFileForm{}), repo.NewFilePost)
+				m.Combo("/{editor_action:_new}/*").Get(repo.EditFile).
+					Post(web.Bind(forms.EditRepoFileForm{}), repo.EditFilePost)
 				m.Combo("/_delete/*").Get(repo.DeleteFile).
 					Post(web.Bind(forms.DeleteRepoFileForm{}), repo.DeleteFilePost)
 				m.Combo("/_upload/*", repo.MustBeAbleToUpload).Get(repo.UploadFile).
@@ -1330,7 +1332,7 @@ func registerWebRoutes(m *web.Router) {
 			}, context.RepoRefByType(git.RefTypeBranch), context.CanWriteToBranch(), repo.WebGitOperationCommonData)
 			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
-				m.Post("/upload-remove", web.Bind(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
+				m.Post("/upload-remove", repo.RemoveUploadFileFromServer)
 			}, repo.MustBeAbleToUpload, reqRepoCodeWriter)
 		}, repo.MustBeEditable, context.RepoMustNotBeArchived())
 
@@ -1445,8 +1447,10 @@ func registerWebRoutes(m *web.Router) {
 				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 				m.Get("/logs", actions.Logs)
 			})
+			m.Get("/workflow", actions.ViewWorkflowFile)
 			m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 			m.Post("/approve", reqRepoActionsWriter, actions.Approve)
+			m.Post("/delete", reqRepoActionsWriter, actions.Delete)
 			m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 			m.Delete("/artifacts/{artifact_name}", reqRepoActionsWriter, actions.ArtifactsDeleteView)
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)

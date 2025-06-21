@@ -15,6 +15,14 @@ func isAnchorIDUserContent(s string) bool {
 	return strings.HasPrefix(s, "user-content-") || strings.Contains(s, ":user-content-")
 }
 
+func isAnchorIDFootnote(s string) bool {
+	return strings.HasPrefix(s, "fnref:user-content-") || strings.HasPrefix(s, "fn:user-content-")
+}
+
+func isAnchorHrefFootnote(s string) bool {
+	return strings.HasPrefix(s, "#fnref:user-content-") || strings.HasPrefix(s, "#fn:user-content-")
+}
+
 func processNodeAttrID(node *html.Node) {
 	// Add user-content- to IDs and "#" links if they don't already have them,
 	// and convert the link href to a relative link to the host root
@@ -23,6 +31,18 @@ func processNodeAttrID(node *html.Node) {
 			if !isAnchorIDUserContent(attr.Val) {
 				node.Attr[idx].Val = "user-content-" + attr.Val
 			}
+		}
+	}
+}
+
+func processFootnoteNode(ctx *RenderContext, node *html.Node) {
+	for idx, attr := range node.Attr {
+		if (attr.Key == "id" && isAnchorIDFootnote(attr.Val)) ||
+			(attr.Key == "href" && isAnchorHrefFootnote(attr.Val)) {
+			if footnoteContextID := ctx.RenderOptions.Metas["footnoteContextId"]; footnoteContextID != "" {
+				node.Attr[idx].Val = attr.Val + "-" + footnoteContextID
+			}
+			continue
 		}
 	}
 }
@@ -43,8 +63,11 @@ func processNodeA(ctx *RenderContext, node *html.Node) {
 
 func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 	next = img.NextSibling
+	attrSrc, hasLazy := "", false
 	for i, imgAttr := range img.Attr {
+		hasLazy = hasLazy || imgAttr.Key == "loading" && imgAttr.Val == "lazy"
 		if imgAttr.Key != "src" {
+			attrSrc = imgAttr.Val
 			continue
 		}
 
@@ -52,8 +75,8 @@ func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 		isLinkable := imgSrcOrigin != "" && !strings.HasPrefix(imgSrcOrigin, "data:")
 
 		// By default, the "<img>" tag should also be clickable,
-		// because frontend use `<img>` to paste the re-scaled image into the markdown,
-		// so it must match the default markdown image behavior.
+		// because frontend uses `<img>` to paste the re-scaled image into the Markdown,
+		// so it must match the default Markdown image behavior.
 		cnt := 0
 		for p := img.Parent; isLinkable && p != nil && cnt < 2; p = p.Parent {
 			if hasParentAnchor := p.Type == html.ElementNode && p.Data == "a"; hasParentAnchor {
@@ -77,6 +100,9 @@ func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 		imgAttr.Val = ctx.RenderHelper.ResolveLink(imgSrcOrigin, LinkTypeMedia)
 		imgAttr.Val = camoHandleLink(imgAttr.Val)
 		img.Attr[i] = imgAttr
+	}
+	if !RenderBehaviorForTesting.DisableAdditionalAttributes && !hasLazy && !strings.HasPrefix(attrSrc, "data:") {
+		img.Attr = append(img.Attr, html.Attribute{Key: "loading", Val: "lazy"})
 	}
 	return next
 }

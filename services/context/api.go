@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -245,7 +246,7 @@ func APIContexter() func(http.Handler) http.Handler {
 // APIErrorNotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) APIErrorNotFound(objs ...any) {
-	message := ctx.Locale.TrString("error.not_found")
+	var message string
 	var errs []string
 	for _, obj := range objs {
 		// Ignore nil
@@ -259,9 +260,8 @@ func (ctx *APIContext) APIErrorNotFound(objs ...any) {
 			message = obj.(string)
 		}
 	}
-
 	ctx.JSON(http.StatusNotFound, map[string]any{
-		"message": message,
+		"message": util.IfZero(message, "not found"), // do not use locale in API
 		"url":     setting.API.SwaggerURL,
 		"errors":  errs,
 	})
@@ -365,11 +365,5 @@ func (ctx *APIContext) IsUserRepoAdmin() bool {
 
 // IsUserRepoWriter returns true if current user has "write" privilege in current repo
 func (ctx *APIContext) IsUserRepoWriter(unitTypes []unit.Type) bool {
-	for _, unitType := range unitTypes {
-		if ctx.Repo.CanWrite(unitType) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(unitTypes, ctx.Repo.CanWrite)
 }

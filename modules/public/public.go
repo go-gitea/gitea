@@ -44,7 +44,7 @@ func FileHandlerFunc() http.HandlerFunc {
 func parseAcceptEncoding(val string) container.Set[string] {
 	parts := strings.Split(val, ";")
 	types := make(container.Set[string])
-	for _, v := range strings.Split(parts[0], ",") {
+	for v := range strings.SplitSeq(parts[0], ",") {
 		types.Add(strings.TrimSpace(v))
 	}
 	return types
@@ -89,19 +89,16 @@ func handleRequest(w http.ResponseWriter, req *http.Request, fs http.FileSystem,
 	servePublicAsset(w, req, fi, fi.ModTime(), f)
 }
 
-type GzipBytesProvider interface {
-	GzipBytes() []byte
-}
-
 // servePublicAsset serve http content
 func servePublicAsset(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modtime time.Time, content io.ReadSeeker) {
 	setWellKnownContentType(w, fi.Name())
 	httpcache.SetCacheControlInHeader(w.Header(), httpcache.CacheControlForPublicStatic())
 	encodings := parseAcceptEncoding(req.Header.Get("Accept-Encoding"))
-	if encodings.Contains("gzip") {
-		// try to provide gzip content directly from bindata (provided by vfsgen۰CompressedFileInfo)
-		if compressed, ok := fi.(GzipBytesProvider); ok {
-			rdGzip := bytes.NewReader(compressed.GzipBytes())
+	fiEmbedded, _ := fi.(assetfs.EmbeddedFileInfo)
+	if encodings.Contains("gzip") && fiEmbedded != nil {
+		// try to provide gzip content directly from bindata
+		if gzipBytes, ok := fiEmbedded.GetGzipContent(); ok {
+			rdGzip := bytes.NewReader(gzipBytes)
 			// all gzipped static files (from bindata) are managed by Gitea, so we can make sure every file has the correct ext name
 			// then we can get the correct Content-Type, we do not need to do http.DetectContentType on the decompressed data
 			if w.Header().Get("Content-Type") == "" {
@@ -113,5 +110,4 @@ func servePublicAsset(w http.ResponseWriter, req *http.Request, fi os.FileInfo, 
 		}
 	}
 	http.ServeContent(w, req, fi.Name(), modtime, content)
-	return
 }

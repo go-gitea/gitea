@@ -1,6 +1,6 @@
 import {htmlEscape} from 'escape-goat';
 import {svg} from '../svg.ts';
-import {animateOnce, showElem} from '../utils/dom.ts';
+import {animateOnce, queryElems, showElem} from '../utils/dom.ts';
 import Toastify from 'toastify-js'; // don't use "async import", because when network error occurs, the "async import" also fails and nothing is shown
 import type {Intent} from '../types.ts';
 import type {SvgName} from '../svg.ts';
@@ -37,17 +37,20 @@ const levels: ToastLevels = {
 
 type ToastOpts = {
   useHtmlBody?: boolean,
-  preventDuplicates?: boolean,
+  preventDuplicates?: boolean | string,
 } & Options;
+
+type ToastifyElement = HTMLElement & {_giteaToastifyInstance?: Toast };
 
 // See https://github.com/apvarun/toastify-js#api for options
 function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast {
   const body = useHtmlBody ? String(message) : htmlEscape(message);
-  const key = `${level}-${body}`;
+  const parent = document.querySelector('.ui.dimmer.active') ?? document.body;
+  const duplicateKey = preventDuplicates ? (preventDuplicates === true ? `${level}-${body}` : preventDuplicates) : '';
 
-  // prevent showing duplicate toasts with same level and message, and give a visual feedback for end users
+  // prevent showing duplicate toasts with the same level and message, and give visual feedback for end users
   if (preventDuplicates) {
-    const toastEl = document.querySelector(`.toastify[data-toast-unique-key="${CSS.escape(key)}"]`);
+    const toastEl = parent.querySelector(`:scope > .toastify.on[data-toast-unique-key="${CSS.escape(duplicateKey)}"]`);
     if (toastEl) {
       const toastDupNumEl = toastEl.querySelector('.toast-duplicate-number');
       showElem(toastDupNumEl);
@@ -59,6 +62,7 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
 
   const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
   const toast = Toastify({
+    selector: parent,
     text: `
       <div class='toast-icon'>${svg(icon)}</div>
       <div class='toast-body'><span class="toast-duplicate-number tw-hidden">1</span>${body}</div>
@@ -74,7 +78,8 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
 
   toast.showToast();
   toast.toastElement.querySelector('.toast-close').addEventListener('click', () => toast.hideToast());
-  toast.toastElement.setAttribute('data-toast-unique-key', key);
+  toast.toastElement.setAttribute('data-toast-unique-key', duplicateKey);
+  (toast.toastElement as ToastifyElement)._giteaToastifyInstance = toast;
   return toast;
 }
 
@@ -88,4 +93,16 @@ export function showWarningToast(message: string, opts?: ToastOpts): Toast {
 
 export function showErrorToast(message: string, opts?: ToastOpts): Toast {
   return showToast(message, 'error', opts);
+}
+
+function hideToastByElement(el: Element): void {
+  (el as ToastifyElement)?._giteaToastifyInstance?.hideToast();
+}
+
+export function hideToastsFrom(parent: Element): void {
+  queryElems(parent, ':scope > .toastify.on', hideToastByElement);
+}
+
+export function hideToastsAll(): void {
+  queryElems(document, '.toastify.on', hideToastByElement);
 }

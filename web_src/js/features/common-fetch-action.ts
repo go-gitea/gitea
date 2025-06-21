@@ -1,5 +1,5 @@
 import {request} from '../modules/fetch.ts';
-import {showErrorToast} from '../modules/toast.ts';
+import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, submitEventSubmitter} from '../utils/dom.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import type {RequestOpts} from '../types.ts';
@@ -24,6 +24,7 @@ function fetchActionDoRedirect(redirect: string) {
 
 async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: RequestOpts) {
   try {
+    hideToastsAll();
     const resp = await request(url, opt);
     if (resp.status === 200) {
       let {redirect} = await resp.json();
@@ -35,7 +36,9 @@ async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: R
         window.location.reload();
       }
       return;
-    } else if (resp.status >= 400 && resp.status < 500) {
+    }
+
+    if (resp.status >= 400 && resp.status < 500) {
       const data = await resp.json();
       // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
       // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
@@ -56,8 +59,12 @@ async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: R
   actionElem.classList.remove('is-loading', 'loading-icon-2px');
 }
 
-async function formFetchAction(formEl: HTMLFormElement, e: SubmitEvent) {
+async function onFormFetchActionSubmit(formEl: HTMLFormElement, e: SubmitEvent) {
   e.preventDefault();
+  await submitFormFetchAction(formEl, submitEventSubmitter(e));
+}
+
+export async function submitFormFetchAction(formEl: HTMLFormElement, formSubmitter?: HTMLElement) {
   if (formEl.classList.contains('is-loading')) return;
 
   formEl.classList.add('is-loading');
@@ -66,9 +73,8 @@ async function formFetchAction(formEl: HTMLFormElement, e: SubmitEvent) {
   }
 
   const formMethod = formEl.getAttribute('method') || 'get';
-  const formActionUrl = formEl.getAttribute('action');
+  const formActionUrl = formEl.getAttribute('action') || window.location.href;
   const formData = new FormData(formEl);
-  const formSubmitter = submitEventSubmitter(e);
   const [submitterName, submitterValue] = [formSubmitter?.getAttribute('name'), formSubmitter?.getAttribute('value')];
   if (submitterName) {
     formData.append(submitterName, submitterValue || '');
@@ -96,7 +102,7 @@ async function formFetchAction(formEl: HTMLFormElement, e: SubmitEvent) {
   await fetchActionDoRequest(formEl, reqUrl, reqOpt);
 }
 
-async function linkAction(el: HTMLElement, e: Event) {
+async function onLinkActionClick(el: HTMLElement, e: Event) {
   // A "link-action" can post AJAX request to its "data-url"
   // Then the browser is redirected to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
   // If the "link-action" has "data-modal-confirm" attribute, a confirm modal dialog will be shown before taking action.
@@ -126,6 +132,6 @@ async function linkAction(el: HTMLElement, e: Event) {
 }
 
 export function initGlobalFetchAction() {
-  addDelegatedEventListener(document, 'submit', '.form-fetch-action', formFetchAction);
-  addDelegatedEventListener(document, 'click', '.link-action', linkAction);
+  addDelegatedEventListener(document, 'submit', '.form-fetch-action', onFormFetchActionSubmit);
+  addDelegatedEventListener(document, 'click', '.link-action', onLinkActionClick);
 }

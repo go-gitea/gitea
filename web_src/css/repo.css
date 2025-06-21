@@ -50,21 +50,31 @@
   width: 300px;
 }
 
-.issue-sidebar-combo .ui.dropdown .item:not(.checked) .item-check-mark {
-  visibility: hidden;
+.issue-content-right .ui.dropdown.full-width {
+  width: 100%;
 }
 
-.issue-content-right .dropdown > .menu {
+.issue-content-right .ui.dropdown.full-width > .fixed-text {
+  display: flex;
+  flex-grow: 1;
+  justify-content: space-between;
+}
+
+.issue-content-right .ui.dropdown > .menu {
   max-width: 270px;
   min-width: 0;
   max-height: 500px;
   overflow-x: auto;
 }
 
-.issue-content-right .dropdown > .menu .item-secondary-info small {
+.issue-content-right .ui.dropdown > .menu .item-secondary-info small {
   display: block;
   text-overflow: ellipsis;
   overflow: hidden;
+}
+
+.issue-sidebar-combo > .ui.dropdown .item:not(.checked) .item-check-mark {
+  visibility: hidden;
 }
 
 @media (max-width: 767.98px) {
@@ -127,11 +137,6 @@ td .commit-summary {
   .latest-commit .commit-id-short {
     display: none;
   }
-}
-
-.repo-path {
-  display: flex;
-  overflow-wrap: anywhere;
 }
 
 .repository.file.list .non-diff-file-content .header .icon {
@@ -513,7 +518,7 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .timeline-item,
 .repository.view.issue .comment-list .timeline-item-group {
-  padding: 16px 0;
+  padding: 8px 0;
 }
 
 .repository.view.issue .comment-list .timeline-item-group .timeline-item {
@@ -567,6 +572,11 @@ td .commit-summary {
   justify-content: center;
 }
 
+.repository.view.issue .comment-list .timeline-item.commits-list .badge {
+  margin-right: 0;
+  height: 28px;
+}
+
 .repository.view.issue .comment-list .timeline-item .badge .svg {
   width: 22px;
   height: 22px;
@@ -589,10 +599,6 @@ td .commit-summary {
 .repository.view.issue .comment-list .timeline-item.commits-list {
   padding-left: 15px;
   padding-top: 0;
-}
-
-.repository.view.issue .comment-list .timeline-item.commits-list .ui.avatar {
-  margin-right: 0.25em;
 }
 
 .repository.view.issue .comment-list .timeline-item.event > .commit-status-link {
@@ -1214,33 +1220,6 @@ td .commit-summary {
 
 .repository.quickstart .guide .item small {
   font-weight: var(--font-weight-normal);
-}
-
-.empty-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 40px;
-  padding-bottom: 40px;
-}
-
-.repository.packages .file-size {
-  white-space: nowrap;
-}
-
-.file-view.markup {
-  padding: 1em 2em;
-}
-
-.file-view.markup:has(.file-not-rendered-prompt) {
-  padding: 0; /* let the file-not-rendered-prompt layout itself */
-}
-
-.file-not-rendered-prompt {
-  padding: 1rem;
-  text-align: center;
-  font-size: 1rem !important; /* use consistent styles for various containers (code, markup, etc) */
-  line-height: var(--line-height-default) !important; /* same as above */
 }
 
 .repository .activity-header {
@@ -2042,10 +2021,6 @@ tbody.commit-list {
 .migrate-entry:hover {
   transform: scale(105%);
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
-}
-
-.migrate-entry .description {
-  text-wrap: balance;
 }
 
 .commits-table .commits-table-right form {

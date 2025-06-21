@@ -151,7 +151,7 @@ func ForkPost(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplFork)
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
@@ -159,12 +159,12 @@ func ForkPost(ctx *context.Context) {
 	traverseParentRepo := forkRepo
 	for {
 		if !repository.CanUserForkBetweenOwners(ctxUser.ID, traverseParentRepo.OwnerID) {
-			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
+			ctx.JSONError(ctx.Tr("repo.settings.new_owner_has_same_repo"))
 			return
 		}
 		repo := repo_model.GetForkedRepo(ctx, ctxUser.ID, traverseParentRepo.ID)
 		if repo != nil {
-			ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
+			ctx.JSONRedirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
 			return
 		}
 		if !traverseParentRepo.IsFork {
@@ -201,26 +201,26 @@ func ForkPost(ctx *context.Context) {
 		case repo_model.IsErrReachLimitOfRepo(err):
 			maxCreationLimit := ctxUser.MaxCreationLimit()
 			msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
-			ctx.RenderWithErr(msg, tplFork, &form)
+			ctx.JSONError(msg)
 		case repo_model.IsErrRepoAlreadyExist(err):
-			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
+			ctx.JSONError(ctx.Tr("repo.settings.new_owner_has_same_repo"))
 		case repo_model.IsErrRepoFilesAlreadyExist(err):
 			switch {
 			case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
-				ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tplFork, form)
+				ctx.JSONError(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"))
 			case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
-				ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tplFork, form)
+				ctx.JSONError(ctx.Tr("form.repository_files_already_exist.adopt"))
 			case setting.Repository.AllowDeleteOfUnadoptedRepositories:
-				ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tplFork, form)
+				ctx.JSONError(ctx.Tr("form.repository_files_already_exist.delete"))
 			default:
-				ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tplFork, form)
+				ctx.JSONError(ctx.Tr("form.repository_files_already_exist"))
 			}
 		case db.IsErrNameReserved(err):
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplFork, &form)
+			ctx.JSONError(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name))
 		case db.IsErrNamePatternNotAllowed(err):
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplFork, &form)
+			ctx.JSONError(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern))
 		case errors.Is(err, user_model.ErrBlockedUser):
-			ctx.RenderWithErr(ctx.Tr("repo.fork.blocked_user"), tplFork, form)
+			ctx.JSONError(ctx.Tr("repo.fork.blocked_user"))
 		default:
 			ctx.ServerError("ForkPost", err)
 		}
@@ -228,5 +228,5 @@ func ForkPost(ctx *context.Context) {
 	}
 
 	log.Trace("Repository forked[%d]: %s/%s", forkRepo.ID, ctxUser.Name, repo.Name)
-	ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
+	ctx.JSONRedirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
 }

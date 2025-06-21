@@ -4,7 +4,6 @@
 package v1_22 //nolint
 
 import (
-	"slices"
 	"testing"
 
 	"code.gitea.io/gitea/models/migrations/base"
@@ -44,7 +43,7 @@ func Test_AddUniqueIndexForProjectIssue(t *testing.T) {
 	for _, index := range tables[0].Indexes {
 		if index.Type == schemas.UniqueType {
 			found = true
-			slices.Equal(index.Cols, []string{"project_id", "issue_id"})
+			assert.ElementsMatch(t, index.Cols, []string{"project_id", "issue_id"})
 			break
 		}
 	}

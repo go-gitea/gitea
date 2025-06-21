@@ -4,18 +4,20 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
-var (
-	oauthCLIFlags = []cli.Flag{
+func oauthCLIFlags() []cli.Flag {
+	return []cli.Flag{
 		&cli.StringFlag{
 			Name:  "name",
 			Value: "",
@@ -120,23 +122,34 @@ var (
 			Usage: "Activate automatic team membership removal depending on groups",
 		},
 	}
+}
 
-	microcmdAuthAddOauth = &cli.Command{
-		Name:   "add-oauth",
-		Usage:  "Add new Oauth authentication source",
-		Action: runAddOauth,
-		Flags:  oauthCLIFlags,
+func microcmdAuthAddOauth() *cli.Command {
+	return &cli.Command{
+		Name:  "add-oauth",
+		Usage: "Add new Oauth authentication source",
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().runAddOauth(ctx, cmd)
+		},
+		Flags: oauthCLIFlags(),
 	}
+}
 
-	microcmdAuthUpdateOauth = &cli.Command{
-		Name:   "update-oauth",
-		Usage:  "Update existing Oauth authentication source",
-		Action: runUpdateOauth,
-		Flags:  append(oauthCLIFlags[:1], append([]cli.Flag{idFlag}, oauthCLIFlags[1:]...)...),
+func microcmdAuthUpdateOauth() *cli.Command {
+	return &cli.Command{
+		Name:  "update-oauth",
+		Usage: "Update existing Oauth authentication source",
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().runUpdateOauth(ctx, cmd)
+		},
+		Flags: append(oauthCLIFlags()[:1], append([]cli.Flag{&cli.Int64Flag{
+			Name:  "id",
+			Usage: "ID of authentication source",
+		}}, oauthCLIFlags()[1:]...)...),
 	}
-)
+}
 
-func parseOAuth2Config(c *cli.Context) *oauth2.Source {
+func parseOAuth2Config(c *cli.Command) *oauth2.Source {
 	var customURLMapping *oauth2.CustomURLMapping
 	if c.IsSet("use-custom-urls") {
 		customURLMapping = &oauth2.CustomURLMapping{
@@ -156,7 +169,6 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		OpenIDConnectAutoDiscoveryURL: c.String("auto-discover-url"),
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       c.String("icon-url"),
-		SkipLocalTwoFA:                c.Bool("skip-local-2fa"),
 		Scopes:                        c.StringSlice("scopes"),
 		RequiredClaimName:             c.String("required-claim-name"),
 		RequiredClaimValue:            c.String("required-claim-value"),
@@ -168,11 +180,8 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 	}
 }
 
-func runAddOauth(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	if err := initDB(ctx); err != nil {
+func (a *authService) runAddOauth(ctx context.Context, c *cli.Command) error {
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
@@ -184,27 +193,25 @@ func runAddOauth(c *cli.Context) error {
 		}
 	}
 
-	return auth_model.CreateSource(ctx, &auth_model.Source{
-		Type:     auth_model.OAuth2,
-		Name:     c.String("name"),
-		IsActive: true,
-		Cfg:      config,
+	return a.createAuthSource(ctx, &auth_model.Source{
+		Type:            auth_model.OAuth2,
+		Name:            c.String("name"),
+		IsActive:        true,
+		Cfg:             config,
+		TwoFactorPolicy: util.Iif(c.Bool("skip-local-2fa"), "skip", ""),
 	})
 }
 
-func runUpdateOauth(c *cli.Context) error {
+func (a *authService) runUpdateOauth(ctx context.Context, c *cli.Command) error {
 	if !c.IsSet("id") {
 		return errors.New("--id flag is missing")
 	}
 
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	if err := initDB(ctx); err != nil {
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
-	source, err := auth_model.GetSourceByID(ctx, c.Int64("id"))
+	source, err := a.getAuthSourceByID(ctx, c.Int64("id"))
 	if err != nil {
 		return err
 	}
@@ -294,6 +301,6 @@ func runUpdateOauth(c *cli.Context) error {
 
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
-
-	return auth_model.UpdateSource(ctx, source)
+	source.TwoFactorPolicy = util.Iif(c.Bool("skip-local-2fa"), "skip", "")
+	return a.updateAuthSource(ctx, source)
 }

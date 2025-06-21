@@ -10,7 +10,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -23,13 +22,14 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, treePath, content string) *httptest.ResponseRecorder {
+func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, treePath, content string) {
 	url := fmt.Sprintf("/%s/%s/_new/%s", user, repo, branch)
 	req := NewRequestWithValues(t, "POST", url, map[string]string{
 		"_csrf":         GetUserCSRFToken(t, session),
@@ -37,7 +37,8 @@ func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, tree
 		"tree_path":     treePath,
 		"content":       content,
 	})
-	return session.MakeRequest(t, req, http.StatusSeeOther)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.NotEmpty(t, test.RedirectURL(resp))
 }
 
 func TestEmptyRepo(t *testing.T) {
@@ -86,7 +87,7 @@ func TestEmptyRepoAddFile(t *testing.T) {
 		"content":       "newly-added-test-file",
 	})
 
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	redirect := test.RedirectURL(resp)
 	assert.Equal(t, "/user30/empty/src/branch/"+setting.Repository.DefaultBranch+"/test-file.md", redirect)
 
@@ -100,22 +101,29 @@ func TestEmptyRepoAddFile(t *testing.T) {
 	assert.Contains(t, resp.Body.String(), "test-file.md")
 
 	// if the repo is in incorrect state, it should be able to self-heal (recover to correct state)
-	user30EmptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
-	user30EmptyRepo.IsEmpty = true
-	user30EmptyRepo.DefaultBranch = "no-such"
-	_, err := db.GetEngine(db.DefaultContext).ID(user30EmptyRepo.ID).Cols("is_empty", "default_branch").Update(user30EmptyRepo)
-	require.NoError(t, err)
-	user30EmptyRepo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
-	assert.True(t, user30EmptyRepo.IsEmpty)
+	testEmptyOrBrokenRecover := func(t *testing.T, isEmpty, isBroken bool) {
+		user30EmptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
+		user30EmptyRepo.IsEmpty = isEmpty
+		user30EmptyRepo.Status = util.Iif(isBroken, repo_model.RepositoryBroken, repo_model.RepositoryReady)
+		user30EmptyRepo.DefaultBranch = "no-such"
+		_, err := db.GetEngine(db.DefaultContext).ID(user30EmptyRepo.ID).Cols("is_empty", "status", "default_branch").Update(user30EmptyRepo)
+		require.NoError(t, err)
+		user30EmptyRepo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
+		assert.Equal(t, isEmpty, user30EmptyRepo.IsEmpty)
+		assert.Equal(t, isBroken, user30EmptyRepo.Status == repo_model.RepositoryBroken)
 
-	req = NewRequest(t, "GET", "/user30/empty")
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	redirect = test.RedirectURL(resp)
-	assert.Equal(t, "/user30/empty", redirect)
+		req = NewRequest(t, "GET", "/user30/empty")
+		resp = session.MakeRequest(t, req, http.StatusSeeOther)
+		redirect = test.RedirectURL(resp)
+		assert.Equal(t, "/user30/empty", redirect)
 
-	req = NewRequest(t, "GET", "/user30/empty")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.Contains(t, resp.Body.String(), "test-file.md")
+		req = NewRequest(t, "GET", "/user30/empty")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "test-file.md")
+	}
+	testEmptyOrBrokenRecover(t, true, false)
+	testEmptyOrBrokenRecover(t, false, true)
+	testEmptyOrBrokenRecover(t, true, true)
 }
 
 func TestEmptyRepoUploadFile(t *testing.T) {
@@ -146,9 +154,9 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 		"files":         respMap["uuid"],
 		"tree_path":     "",
 	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	redirect := test.RedirectURL(resp)
-	assert.Equal(t, "/user30/empty/src/branch/"+setting.Repository.DefaultBranch+"/", redirect)
+	assert.Equal(t, "/user30/empty/src/branch/"+setting.Repository.DefaultBranch, redirect)
 
 	req = NewRequest(t, "GET", redirect)
 	resp = session.MakeRequest(t, req, http.StatusOK)

@@ -177,7 +177,7 @@ export default defineComponent({
     },
   },
 
-  async mounted() { // eslint-disable-line @typescript-eslint/no-misused-promises
+  async mounted() {
     // load job data and then auto-reload periodically
     // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
     await this.loadJob();
@@ -439,7 +439,8 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div class="ui container action-view-container">
+  <!-- make the view container full width to make users easier to read logs -->
+  <div class="ui fluid container">
     <div class="action-view-header">
       <div class="action-info-summary">
         <div class="action-info-summary-title">
@@ -495,14 +496,24 @@ export default defineComponent({
             {{ locale.artifactsTitle }}
           </div>
           <ul class="job-artifacts-list">
-            <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.name">
-              <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
-                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon"/>{{ artifact.name }}
-              </a>
-              <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)" class="job-artifacts-delete">
-                <SvgIcon name="octicon-trash" class="ui text black job-artifacts-icon"/>
-              </a>
-            </li>
+            <template v-for="artifact in artifacts" :key="artifact.name">
+              <li class="job-artifacts-item">
+                <template v-if="artifact.status !== 'expired'">
+                  <a class="flex-text-inline" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                    <SvgIcon name="octicon-file" class="text black"/>
+                    <span class="gt-ellipsis">{{ artifact.name }}</span>
+                  </a>
+                  <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
+                    <SvgIcon name="octicon-trash" class="text black"/>
+                  </a>
+                </template>
+                <span v-else class="flex-text-inline text light grey">
+                  <SvgIcon name="octicon-file"/>
+                  <span class="gt-ellipsis">{{ artifact.name }}</span>
+                  <span class="ui label text light grey tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
+                </span>
+              </li>
+            </template>
           </ul>
         </div>
       </div>
@@ -664,15 +675,12 @@ export default defineComponent({
   padding: 6px;
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 
 .job-artifacts-list {
   padding-left: 12px;
   list-style: none;
-}
-
-.job-artifacts-icon {
-  padding-right: 3px;
 }
 
 .job-brief-list {

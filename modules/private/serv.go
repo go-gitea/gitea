@@ -46,18 +46,16 @@ type ServCommandResults struct {
 }
 
 // ServCommand preps for a serv call
-func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, mode perm.AccessMode, verbs ...string) (*ServCommandResults, ResponseExtra) {
+func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, mode perm.AccessMode, verb, lfsVerb string) (*ServCommandResults, ResponseExtra) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/serv/command/%d/%s/%s?mode=%d",
 		keyID,
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
 		mode,
 	)
-	for _, verb := range verbs {
-		if verb != "" {
-			reqURL += "&verb=" + url.QueryEscape(verb)
-		}
-	}
+	reqURL += "&verb=" + url.QueryEscape(verb)
+	// reqURL += "&lfs_verb=" + url.QueryEscape(lfsVerb) // TODO: actually there is no use of this parameter. In the future, the URL construction should be more flexible
+	_ = lfsVerb
 	req := newInternalRequestAPI(ctx, reqURL, "GET")
 	return requestJSONResp(req, &ServCommandResults{})
 }

@@ -94,24 +94,22 @@ func RepoMustNotBeArchived() func(ctx *Context) {
 	}
 }
 
-// CanCommitToBranchResults represents the results of CanCommitToBranch
-type CanCommitToBranchResults struct {
-	CanCommitToBranch bool
-	EditorEnabled     bool
-	UserCanPush       bool
-	RequireSigned     bool
-	WillSign          bool
-	SigningKey        string
-	WontSignReason    string
+type CommitFormBehaviors struct {
+	CanCommitToBranch        bool
+	EditorEnabled            bool
+	UserCanPush              bool
+	RequireSigned            bool
+	WillSign                 bool
+	SigningKey               *git.SigningKey
+	WontSignReason           string
+	CanCreatePullRequest     bool
+	CanCreateBasePullRequest bool
 }
 
-// CanCommitToBranch returns true if repository is editable and user has proper access level
-//
-// and branch is not protected for push
-func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
+func (r *Repository) PrepareCommitFormBehaviors(ctx *Context, doer *user_model.User) (*CommitFormBehaviors, error) {
 	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, r.Repository.ID, r.BranchName)
 	if err != nil {
-		return CanCommitToBranchResults{}, err
+		return nil, err
 	}
 	userCanPush := true
 	requireSigned := false
@@ -123,7 +121,8 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 
 	sign, keyID, _, err := asymkey_service.SignCRUDAction(ctx, r.Repository.RepoPath(), doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
-	canCommit := r.CanEnableEditor(ctx, doer) && userCanPush
+	canEnableEditor := r.CanEnableEditor(ctx, doer)
+	canCommit := canEnableEditor && userCanPush
 	if requireSigned {
 		canCommit = canCommit && sign
 	}
@@ -137,14 +136,20 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 		}
 	}
 
-	return CanCommitToBranchResults{
+	canCreateBasePullRequest := ctx.Repo.Repository.BaseRepo != nil && ctx.Repo.Repository.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests)
+	canCreatePullRequest := ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypePullRequests) || canCreateBasePullRequest
+
+	return &CommitFormBehaviors{
 		CanCommitToBranch: canCommit,
-		EditorEnabled:     r.CanEnableEditor(ctx, doer),
+		EditorEnabled:     canEnableEditor,
 		UserCanPush:       userCanPush,
 		RequireSigned:     requireSigned,
 		WillSign:          sign,
 		SigningKey:        keyID,
 		WontSignReason:    wontSignReason,
+
+		CanCreatePullRequest:     canCreatePullRequest,
+		CanCreateBasePullRequest: canCreateBasePullRequest,
 	}, err
 }
 
@@ -340,10 +345,14 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
-		return
+	if ctx.DoerNeedTwoFactorAuth() {
+		ctx.Repo.Permission = access_model.PermissionNoAccess()
+	} else {
+		ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
 	}
 
 	if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() && !canWriteAsMaintainer(ctx) {
@@ -791,8 +800,8 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 	return func(ctx *Context) {
 		var err error
 		refType := detectRefType
-		if ctx.Repo.Repository.IsBeingCreated() {
-			return // no git repo, so do nothing, users will see a "migrating" UI provided by "migrate/migrating.tmpl"
+		if ctx.Repo.Repository.IsBeingCreated() || ctx.Repo.Repository.IsBroken() {
+			return // no git repo, so do nothing, users will see a "migrating" UI provided by "migrate/migrating.tmpl", or empty repo guide
 		}
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
@@ -931,6 +940,15 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 		if err != nil {
 			ctx.ServerError("GetCommitsCount", err)
 			return
+		}
+		if ctx.Repo.RefFullName.IsTag() {
+			rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, ctx.Repo.RefFullName.TagName())
+			if err == nil && rel.NumCommits <= 0 {
+				rel.NumCommits = ctx.Repo.CommitsCount
+				if err := repo_model.UpdateReleaseNumCommits(ctx, rel); err != nil {
+					log.Error("UpdateReleaseNumCommits", err)
+				}
+			}
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())

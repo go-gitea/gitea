@@ -470,6 +470,9 @@ func ChangeFiles(ctx *context.APIContext) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return
 		}
+		// FIXME: actually now we support more operations like "rename", "upload"
+		// FIXME: ChangeFileOperation.SHA is NOT required for update or delete if last commit is provided in the options.
+		// Need to fully fix them in API
 		changeRepoFile := &files_service.ChangeRepoFile{
 			Operation:     file.Operation,
 			TreePath:      file.Path,

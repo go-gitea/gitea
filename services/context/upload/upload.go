@@ -39,7 +39,7 @@ func Verify(buf []byte, fileName, allowedTypesStr string) error {
 	allowedTypesStr = strings.ReplaceAll(allowedTypesStr, "|", ",") // compat for old config format
 
 	allowedTypes := []string{}
-	for _, entry := range strings.Split(allowedTypesStr, ",") {
+	for entry := range strings.SplitSeq(allowedTypesStr, ",") {
 		entry = strings.ToLower(strings.TrimSpace(entry))
 		if entry != "" {
 			allowedTypes = append(allowedTypes, entry)
@@ -113,5 +113,7 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 		ctx.Data["UploadAccepts"] = strings.ReplaceAll(setting.Repository.Upload.AllowedTypes, "|", ",")
 		ctx.Data["UploadMaxFiles"] = setting.Repository.Upload.MaxFiles
 		ctx.Data["UploadMaxSize"] = setting.Repository.Upload.FileMaxSize
+	default:
+		setting.PanicInDevOrTesting("Invalid upload type: %s", uploadType)
 	}
 }

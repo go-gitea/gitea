@@ -194,7 +194,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
 	if sign {
-		commitTreeOpts.KeyID = signingKey
+		commitTreeOpts.Key = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}
@@ -316,7 +316,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
 	if sign {
-		commitTreeOpts.KeyID = signingKey
+		commitTreeOpts.Key = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}
@@ -365,7 +365,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		repo.DefaultWikiBranch = newBranch
-		if err := repo_model.UpdateRepositoryCols(ctx, repo, "default_wiki_branch"); err != nil {
+		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "default_wiki_branch"); err != nil {
 			return fmt.Errorf("unable to update database: %w", err)
 		}
 
