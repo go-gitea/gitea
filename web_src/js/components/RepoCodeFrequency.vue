@@ -49,7 +49,7 @@ defineProps<{
 
 const isLoading = shallowRef(false);
 const errorText = shallowRef('');
-const repoLink = pageData.repoLink || [];
+const repoLink = pageData.repoLink;
 const data = shallowRef<DayData[]>([]);
 
 onMounted(() => {
