@@ -10,7 +10,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -30,7 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, treePath, content string) *httptest.ResponseRecorder {
+func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, treePath, content string) {
 	url := fmt.Sprintf("/%s/%s/_new/%s", user, repo, branch)
 	req := NewRequestWithValues(t, "POST", url, map[string]string{
 		"_csrf":         GetUserCSRFToken(t, session),
@@ -38,7 +37,8 @@ func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, tree
 		"tree_path":     treePath,
 		"content":       content,
 	})
-	return session.MakeRequest(t, req, http.StatusSeeOther)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.NotEmpty(t, test.RedirectURL(resp))
 }
 
 func TestEmptyRepo(t *testing.T) {
@@ -87,7 +87,7 @@ func TestEmptyRepoAddFile(t *testing.T) {
 		"content":       "newly-added-test-file",
 	})
 
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	redirect := test.RedirectURL(resp)
 	assert.Equal(t, "/user30/empty/src/branch/"+setting.Repository.DefaultBranch+"/test-file.md", redirect)
 
@@ -154,9 +154,9 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 		"files":         respMap["uuid"],
 		"tree_path":     "",
 	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	redirect := test.RedirectURL(resp)
-	assert.Equal(t, "/user30/empty/src/branch/"+setting.Repository.DefaultBranch+"/", redirect)
+	assert.Equal(t, "/user30/empty/src/branch/"+setting.Repository.DefaultBranch, redirect)
 
 	req = NewRequest(t, "GET", redirect)
 	resp = session.MakeRequest(t, req, http.StatusOK)

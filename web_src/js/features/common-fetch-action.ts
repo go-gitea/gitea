@@ -1,5 +1,5 @@
 import {request} from '../modules/fetch.ts';
-import {showErrorToast} from '../modules/toast.ts';
+import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, submitEventSubmitter} from '../utils/dom.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import type {RequestOpts} from '../types.ts';
@@ -24,6 +24,7 @@ function fetchActionDoRedirect(redirect: string) {
 
 async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: RequestOpts) {
   try {
+    hideToastsAll();
     const resp = await request(url, opt);
     if (resp.status === 200) {
       let {redirect} = await resp.json();
@@ -35,7 +36,9 @@ async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: R
         window.location.reload();
       }
       return;
-    } else if (resp.status >= 400 && resp.status < 500) {
+    }
+
+    if (resp.status >= 400 && resp.status < 500) {
       const data = await resp.json();
       // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
       // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
@@ -70,7 +73,7 @@ export async function submitFormFetchAction(formEl: HTMLFormElement, formSubmitt
   }
 
   const formMethod = formEl.getAttribute('method') || 'get';
-  const formActionUrl = formEl.getAttribute('action');
+  const formActionUrl = formEl.getAttribute('action') || window.location.href;
   const formData = new FormData(formEl);
   const [submitterName, submitterValue] = [formSubmitter?.getAttribute('name'), formSubmitter?.getAttribute('value')];
   if (submitterName) {

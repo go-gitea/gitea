@@ -1,5 +1,7 @@
 import $ from 'jquery';
 import type {FomanticInitFunction} from '../../types.ts';
+import {queryElems} from '../../utils/dom.ts';
+import {hideToastsFrom} from '../toast.ts';
 
 const fomanticModalFn = $.fn.modal;
 
@@ -7,6 +9,7 @@ const fomanticModalFn = $.fn.modal;
 export function initAriaModalPatch() {
   if ($.fn.modal === ariaModalFn) throw new Error('initAriaModalPatch could only be called once');
   $.fn.modal = ariaModalFn;
+  $.fn.fomanticExt.onModalBeforeHidden = onModalBeforeHidden;
   (ariaModalFn as FomanticInitFunction).settings = fomanticModalFn.settings;
 }
 
@@ -26,4 +29,11 @@ function ariaModalFn(this: any, ...args: Parameters<FomanticInitFunction>) {
     }
   }
   return ret;
+}
+
+function onModalBeforeHidden(this: any) {
+  const $modal = $(this);
+  const elModal = $modal[0];
+  queryElems(elModal, 'form', (form: HTMLFormElement) => form.reset());
+  hideToastsFrom(elModal.closest('.ui.dimmer') ?? document.body);
 }
