@@ -47,9 +47,7 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 				requiredContextMatched = true
 			}
 		}
-		if !requiredContextMatched {
-			allRequiredContextsMatched = false
-		}
+		allRequiredContextsMatched = allRequiredContextsMatched && requiredContextMatched
 	}
 	if len(requiredCommitStatuses) == 0 {
 		return commitstatus.CommitStatusPending
