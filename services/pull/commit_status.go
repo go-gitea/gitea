@@ -38,12 +38,17 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 	}
 
 	requiredCommitStatuses := make([]*git_model.CommitStatus, 0, len(commitStatuses))
+	allRequiredContextsMatched := true
 	for _, gp := range requiredContextsGlob {
+		requiredContextMatched := false
 		for _, commitStatus := range commitStatuses {
 			if gp.Match(commitStatus.Context) {
 				requiredCommitStatuses = append(requiredCommitStatuses, commitStatus)
-				break
+				requiredContextMatched = true
 			}
+		}
+		if !requiredContextMatched {
+			allRequiredContextsMatched = false
 		}
 	}
 	if len(requiredCommitStatuses) == 0 {
@@ -51,7 +56,7 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 	}
 
 	returnedStatus := git_model.CalcCommitStatus(requiredCommitStatuses).State
-	if len(requiredCommitStatuses) == len(requiredContexts) {
+	if allRequiredContextsMatched {
 		return returnedStatus
 	}
 
