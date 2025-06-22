@@ -32,21 +32,41 @@ import (
 func TestEditor(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		sessionUser2 := loginUser(t, "user2")
-		t.Run("CreateFile", func(t *testing.T) {
-			testCreateFile(t, sessionUser2, "user2", "repo1", "master", "test.txt", "Content")
-		})
+		t.Run("EditFileNotAllowed", testEditFileNotAllowed)
+		t.Run("DiffPreview", testEditorDiffPreview)
+		t.Run("CreateFile", testEditorCreateFile)
 		t.Run("EditFile", func(t *testing.T) {
 			testEditFile(t, sessionUser2, "user2", "repo1", "master", "README.md", "Hello, World (direct)\n")
-		})
-		t.Run("EditFileToNewBranch", func(t *testing.T) {
 			testEditFileToNewBranch(t, sessionUser2, "user2", "repo1", "master", "feature/test", "README.md", "Hello, World (commit-to-new-branch)\n")
+		})
+		t.Run("PatchFile", testEditorPatchFile)
+		t.Run("DeleteFile", func(t *testing.T) {
+			viewLink := "/user2/repo1/src/branch/branch2/README.md"
+			sessionUser2.MakeRequest(t, NewRequest(t, "GET", viewLink), http.StatusOK)
+			testEditorActionPostRequest(t, sessionUser2, "/user2/repo1/_delete/branch2/README.md", map[string]string{"commit_choice": "direct"})
+			sessionUser2.MakeRequest(t, NewRequest(t, "GET", viewLink), http.StatusNotFound)
 		})
 		t.Run("ForkToEditFile", func(t *testing.T) {
 			testForkToEditFile(t, loginUser(t, "user4"), "user4", "user2", "repo1", "master", "README.md")
 		})
-		t.Run("WebGitCommitEmail", testWebGitCommitEmail)
-		t.Run("CreateFileOnProtectedBranch", testCreateFileOnProtectedBranch)
+		t.Run("WebGitCommitEmail", testEditorWebGitCommitEmail)
+		t.Run("ProtectedBranch", testEditorProtectedBranch)
 	})
+}
+
+func testEditorCreateFile(t *testing.T) {
+	session := loginUser(t, "user2")
+	testCreateFile(t, session, "user2", "repo1", "master", "test.txt", "Content")
+	testEditorActionPostRequestError(t, session, "/user2/repo1/_new/master/", map[string]string{
+		"tree_path":       "test.txt",
+		"commit_choice":   "direct",
+		"new_branch_name": "master",
+	}, `A file named "test.txt" already exists in this repository.`)
+	testEditorActionPostRequestError(t, session, "/user2/repo1/_new/master/", map[string]string{
+		"tree_path":       "test.txt",
+		"commit_choice":   "commit-to-new-branch",
+		"new_branch_name": "branch2",
+	}, `Branch "branch2" already exists in this repository.`)
 }
 
 func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, filePath, content string) {
@@ -57,7 +77,7 @@ func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, file
 	})
 }
 
-func testCreateFileOnProtectedBranch(t *testing.T) {
+func testEditorProtectedBranch(t *testing.T) {
 	session := loginUser(t, "user2")
 	// Change the "master" branch to "protected"
 	req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
@@ -88,6 +108,12 @@ func testEditorActionPostRequest(t *testing.T, session *TestSession, requestPath
 	return session.MakeRequest(t, req, NoExpectedStatus)
 }
 
+func testEditorActionPostRequestError(t *testing.T, session *TestSession, requestPath string, params map[string]string, errorMessage string) {
+	resp := testEditorActionPostRequest(t, session, requestPath, params)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, errorMessage, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+}
+
 func testEditorActionEdit(t *testing.T, session *TestSession, user, repo, editorAction, branch, filePath string, params map[string]string) *httptest.ResponseRecorder {
 	params["tree_path"] = util.IfZero(params["tree_path"], filePath)
 	newBranchName := util.Iif(params["commit_choice"] == "direct", branch, params["new_branch_name"])
@@ -115,7 +141,40 @@ func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, bra
 	})
 }
 
-func testWebGitCommitEmail(t *testing.T) {
+func testEditorDiffPreview(t *testing.T) {
+	session := loginUser(t, "user2")
+	req := NewRequestWithValues(t, "POST", "/user2/repo1/_preview/master/README.md", map[string]string{
+		"_csrf":   GetUserCSRFToken(t, session),
+		"content": "Hello, World (Edited)\n",
+	})
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), `<span class="added-code">Hello, World (Edited)</span>`)
+}
+
+func testEditorPatchFile(t *testing.T) {
+	session := loginUser(t, "user2")
+	pathContent := `diff --git a/patch-file-1.txt b/patch-file-1.txt
+new file mode 100644
+index 0000000000..aaaaaaaaaa
+--- /dev/null
++++ b/patch-file-1.txt
+@@ -0,0 +1 @@
++patched content
+`
+	patchForm := map[string]string{
+		"content":         pathContent,
+		"commit_choice":   "commit-to-new-branch",
+		"new_branch_name": "patched-branch",
+	}
+	testEditorActionPostRequest(t, session, "/user2/repo1/_diffpatch/master/", patchForm)
+	resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/raw/branch/patched-branch/patch-file-1.txt"), http.StatusOK)
+	assert.Equal(t, "patched content\n", resp.Body.String())
+
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_diffpatch/master/", patchForm)
+	assert.Equal(t, "Unable to apply patch", test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+}
+
+func testEditorWebGitCommitEmail(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	require.True(t, user.KeepEmailPrivate)
 
@@ -367,4 +426,27 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "new content in fork")
 	})
+}
+
+func testEditFileNotAllowed(t *testing.T) {
+	sessionUser1 := loginUser(t, "user1") // admin, all access
+	sessionUser4 := loginUser(t, "user4")
+	// "_cherrypick" has a different route pattern, so skip its test
+	operations := []string{"_new", "_edit", "_delete", "_upload", "_diffpatch"}
+	for _, operation := range operations {
+		t.Run(operation, func(t *testing.T) {
+			// Branch does not exist
+			targetLink := path.Join("user2", "repo1", operation, "missing", "README.md")
+			sessionUser1.MakeRequest(t, NewRequest(t, "GET", targetLink), http.StatusNotFound)
+
+			// Private repository
+			targetLink = path.Join("user2", "repo2", operation, "master", "Home.md")
+			sessionUser1.MakeRequest(t, NewRequest(t, "GET", targetLink), http.StatusOK)
+			sessionUser4.MakeRequest(t, NewRequest(t, "GET", targetLink), http.StatusNotFound)
+
+			// Empty repository
+			targetLink = path.Join("org41", "repo61", operation, "master", "README.md")
+			sessionUser1.MakeRequest(t, NewRequest(t, "GET", targetLink), http.StatusNotFound)
+		})
+	}
 }
