@@ -59,13 +59,12 @@ func TestAggregateJobStatus(t *testing.T) {
 		{[]Status{StatusCancelled, StatusBlocked}, StatusCancelled},
 
 		// failure with other status, fail fast
-		// Should "running" win? Maybe no: old code does make "running" win, but GitHub does fail fast.
 		{[]Status{StatusFailure}, StatusFailure},
 		{[]Status{StatusFailure, StatusSuccess}, StatusFailure},
 		{[]Status{StatusFailure, StatusSkipped}, StatusFailure},
 		{[]Status{StatusFailure, StatusCancelled}, StatusCancelled},
 		{[]Status{StatusFailure, StatusWaiting}, StatusFailure},
-		{[]Status{StatusFailure, StatusRunning}, StatusFailure},
+		{[]Status{StatusFailure, StatusRunning}, StatusRunning},
 		{[]Status{StatusFailure, StatusBlocked}, StatusFailure},
 
 		// skipped with other status
