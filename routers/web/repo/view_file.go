@@ -290,7 +290,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 
 func prepareToRenderButtons(ctx *context.Context, lfsLock *git_model.LFSLock) {
 	// archived or mirror repository, the buttons should not be shown
-	if ctx.Repo.Repository.IsArchived || !ctx.Repo.Repository.CanEnableEditor() {
+	if !ctx.Repo.Repository.CanEnableEditor() {
 		return
 	}
 
@@ -302,7 +302,9 @@ func prepareToRenderButtons(ctx *context.Context, lfsLock *git_model.LFSLock) {
 	}
 
 	if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
+		ctx.Data["CanEditFile"] = true
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
+		ctx.Data["CanDeleteFile"] = true
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 		return
 	}
