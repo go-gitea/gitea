@@ -195,7 +195,7 @@ func (telegramConvertor) WorkflowJob(p *api.WorkflowJobPayload) (TelegramPayload
 func createTelegramPayloadHTML(msgHTML string) TelegramPayload {
 	// https://core.telegram.org/bots/api#formatting-options
 	return TelegramPayload{
-		Message:           strings.TrimSpace(markup.Sanitize(msgHTML)),
+		Message:           strings.TrimSpace(string(markup.Sanitize(msgHTML))),
 		ParseMode:         "HTML",
 		DisableWebPreview: true,
 	}
