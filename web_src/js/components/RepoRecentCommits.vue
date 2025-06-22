@@ -45,7 +45,7 @@ defineProps<{
 
 const isLoading = shallowRef(false);
 const errorText = shallowRef('');
-const repoLink = ref(pageData.repoLink || []);
+const repoLink = pageData.repoLink || [];
 const data = ref<DayData[]>([]);
 
 onMounted(() => {
@@ -57,7 +57,7 @@ async function fetchGraphData() {
   try {
     let response: Response;
     do {
-      response = await GET(`${repoLink.value}/activity/recent-commits/data`);
+      response = await GET(`${repoLink}/activity/recent-commits/data`);
       if (response.status === 202) {
         await sleep(1000); // wait for 1 second before retrying
       }

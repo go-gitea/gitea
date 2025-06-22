@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {SvgIcon} from '../svg.ts';
 import {isPlainClick} from '../utils/dom.ts';
-import {ref, shallowRef} from 'vue';
+import {shallowRef} from 'vue';
 import {type createViewFileTreeStore} from './ViewFileTreeStore.ts';
 
 type Item = {
@@ -21,7 +21,7 @@ const props = defineProps<{
 
 const store = props.store;
 const isLoading = shallowRef(false);
-const children = ref(props.item.children);
+const children = shallowRef(props.item.children);
 const collapsed = shallowRef(!props.item.children);
 
 const doLoadChildren = async () => {

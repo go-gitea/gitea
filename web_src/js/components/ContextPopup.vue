@@ -2,13 +2,13 @@
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {getIssueColor, getIssueIcon} from '../features/issue.ts';
-import {computed, onMounted, ref, shallowRef, useTemplateRef} from 'vue';
+import {computed, onMounted, shallowRef, useTemplateRef} from 'vue';
 import type {IssuePathInfo} from '../types.ts';
 
 const {appSubUrl, i18n} = window.config;
 
 const loading = shallowRef(false);
-const issue = ref(null);
+const issue = shallowRef(null);
 const renderedLabels = shallowRef('');
 const i18nErrorOccurred = i18n.error_occurred;
 const i18nErrorMessage = shallowRef(null);

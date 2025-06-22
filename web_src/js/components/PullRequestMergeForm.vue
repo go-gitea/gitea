@@ -5,7 +5,7 @@ import {toggleElem} from '../utils/dom.ts';
 
 const {csrfToken, pageData} = window.config;
 
-const mergeForm = ref(pageData.pullRequestMergeForm);
+const mergeForm = shallowRef(pageData.pullRequestMergeForm);
 
 const mergeTitleFieldValue = shallowRef('');
 const mergeMessageFieldValue = shallowRef('');

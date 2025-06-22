@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 // @ts-expect-error - module exports no types
 import {VueBarGraph} from 'vue-bar-graph';
-import {computed, onMounted, ref, useTemplateRef} from 'vue';
+import {computed, onMounted, shallowRef, useTemplateRef} from 'vue';
 
-const colors = ref({
+const colors = shallowRef({
   barColor: 'green',
   textColor: 'black',
   textAltColor: 'white',
