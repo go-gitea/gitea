@@ -78,12 +78,6 @@
 		{{end}}
 	</div>
 	<input type="hidden" name="last_commit" value="{{.last_commit}}">
-
-	{{if .CommitFormOptions.WillSubmitToFork}}
-	<div class="ui blue message">
-		<p>{{ctx.Locale.Tr "repo.editor.fork_edit_description" .CommitFormOptions.TargetRepo.FullName}}</p>
-	</div>
-	{{end}}
 	<button id="commit-button" type="submit" class="ui primary button">
 		{{if eq .commit_choice "commit-to-new-branch"}}{{ctx.Locale.Tr "repo.editor.propose_file_change"}}{{else}}{{ctx.Locale.Tr "repo.editor.commit_changes"}}{{end}}
 	</button>

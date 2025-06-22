@@ -146,7 +146,17 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 	oldBranchName := ctx.Repo.BranchName
 	fromBaseBranch := ctx.FormString("from_base_branch")
 	if fromBaseBranch != "" {
-		err = editorPushBranchToForkedRepository(ctx, ctx.Doer, ctx.Repo.Repository.BaseRepo, fromBaseBranch, ctx.Repo.Repository, targetBranchName)
+		// if target branch exists, we should warn users
+		targetBranchExists, err := git_model.IsBranchExist(ctx, commitFormOptions.TargetRepo.ID, targetBranchName)
+		if err != nil {
+			ctx.ServerError("IsBranchExist", err)
+			return nil
+		}
+		if targetBranchExists {
+			ctx.JSONError(ctx.Tr("repo.editor.fork_branch_exists", targetBranchName))
+			return nil
+		}
+		err = editorPushBranchToForkedRepository(ctx, ctx.Doer, ctx.Repo.Repository.BaseRepo, fromBaseBranch, commitFormOptions.TargetRepo, targetBranchName)
 		if err != nil {
 			log.Error("Unable to editorPushBranchToForkedRepository: %v", err)
 			ctx.JSONError(ctx.Tr("repo.editor.fork_failed_to_push_branch", targetBranchName))

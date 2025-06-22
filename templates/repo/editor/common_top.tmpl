@@ -1,0 +1,5 @@
+{{if .CommitFormOptions.WillSubmitToFork}}
+<div class="ui blue message">
+	{{ctx.Locale.Tr "repo.editor.fork_edit_description" .CommitFormOptions.TargetRepo.FullName}}
+</div>
+{{end}}

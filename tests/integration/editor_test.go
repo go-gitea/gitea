@@ -342,9 +342,15 @@ index 0000000000..bbbbbbbbbb
 }
 
 func forkToEdit(t *testing.T, session *TestSession, owner, repo, operation, branch, filePath string) {
-	// attempt to edit a file, see the guideline page
-	req := NewRequest(t, "GET", path.Join(owner, repo, operation, branch, filePath))
+	// visit the base repo, see the "Add File" button
+	req := NewRequest(t, "GET", path.Join(owner, repo))
 	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	AssertHTMLElement(t, htmlDoc, ".repo-add-file", 1)
+
+	// attempt to edit a file, see the guideline page
+	req = NewRequest(t, "GET", path.Join(owner, repo, operation, branch, filePath))
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "Fork Repository to Propose Changes")
 
 	// fork the repository
@@ -406,20 +412,27 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 	lastCommit := form.Find("input[name=last_commit]").AttrOr("value", "")
 	assert.NotEmpty(t, lastCommit)
 
-	// change a file in the forked repo
-	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s-1/_edit/%s/%s?from_base_branch=%s", user, repo, branch, filePath, branch),
-		map[string]string{
-			"_csrf":           GetUserCSRFToken(t, session),
-			"last_commit":     lastCommit,
-			"tree_path":       filePath,
-			"content":         "new content in fork",
-			"commit_choice":   commitChoice,
-			"new_branch_name": newBranchName,
-		},
-	)
+	editRequestForm := map[string]string{
+		"_csrf":           GetUserCSRFToken(t, session),
+		"last_commit":     lastCommit,
+		"tree_path":       filePath,
+		"content":         "new content in fork",
+		"commit_choice":   commitChoice,
+		"new_branch_name": "master",
+	}
+	// change a file in the forked repo with existing branch name (should fail)
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s-1/_edit/%s/%s?from_base_branch=%s", user, repo, branch, filePath, branch), editRequestForm)
+	resp = session.MakeRequest(t, req, http.StatusBadRequest)
+	respJSON := test.ParseJSONError(resp.Body.Bytes())
+	assert.Equal(t, `Branch "master" already exists in your fork, please choose a new branch name.`, respJSON.ErrorMessage)
+
+	// change a file in the forked repo (should succeed)
+	editRequestForm["new_branch_name"] = newBranchName
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s-1/_edit/%s/%s?from_base_branch=%s", user, repo, branch, filePath, branch), editRequestForm)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, fmt.Sprintf("/%s/%s/compare/%s...%s/%s-1:%s", owner, repo, branch, user, repo, newBranchName), test.RedirectURL(resp))
 
+	// check the file in the fork's branch is changed
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s-1/src/branch/%s/%s", user, repo, newBranchName, filePath))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "new content in fork")
