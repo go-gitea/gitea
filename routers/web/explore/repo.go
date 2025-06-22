@@ -151,6 +151,7 @@ func Repos(ctx *context.Context) {
 	ctx.Data["CodePageIsDisabled"] = setting.Service.Explore.DisableCodePage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
+	ctx.Data["ShowRepoOwnerOnList"] = true
 	ctx.Data["PageIsExploreRepositories"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 

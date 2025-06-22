@@ -134,15 +134,17 @@ func (err ErrFilenameInvalid) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
-// CleanUploadFileName Trims a filename and returns empty string if it is a .git directory
-func CleanUploadFileName(name string) string {
-	// Rebase the filename
+// CleanGitTreePath cleans a tree path for git, it returns an empty string the path is invalid (e.g.: contains ".git" part)
+func CleanGitTreePath(name string) string {
 	name = util.PathJoinRel(name)
 	// Git disallows any filenames to have a .git directory in them.
 	for part := range strings.SplitSeq(name, "/") {
 		if strings.ToLower(part) == ".git" {
 			return ""
 		}
+	}
+	if name == "." {
+		name = ""
 	}
 	return name
 }
