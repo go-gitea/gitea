@@ -3,11 +3,12 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<form class="ui edit form form-fetch-action" method="post"
+		<form class="ui edit form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}"
 					data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}"
 					data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}"
 		>
 			{{.CsrfTokenHtml}}
+			{{template "repo/editor/common_top" .}}
 			<div class="repo-editor-header">
 				{{template "repo/editor/common_breadcrumb" .}}
 			</div>

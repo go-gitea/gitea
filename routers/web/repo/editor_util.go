@@ -11,9 +11,11 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	context_service "code.gitea.io/gitea/services/context"
 )
 
@@ -82,4 +84,27 @@ func getParentTreeFields(treePath string) (treeNames, treePaths []string) {
 		treePaths[i] = strings.Join(treeNames[:i+1], "/")
 	}
 	return treeNames, treePaths
+}
+
+// getUniqueRepositoryName Gets a unique repository name for a user
+// It will append a -<num> postfix if the name is already taken
+func getUniqueRepositoryName(ctx context.Context, ownerID int64, name string) string {
+	uniqueName := name
+	for i := 1; i < 1000; i++ {
+		_, err := repo_model.GetRepositoryByName(ctx, ownerID, uniqueName)
+		if err != nil || repo_model.IsErrRepoNotExist(err) {
+			return uniqueName
+		}
+		uniqueName = fmt.Sprintf("%s-%d", name, i)
+		i++
+	}
+	return ""
+}
+
+func editorPushBranchToForkedRepository(ctx context.Context, doer *user_model.User, baseRepo *repo_model.Repository, baseBranchName string, targetRepo *repo_model.Repository, targetBranchName string) error {
+	return git.Push(ctx, baseRepo.RepoPath(), git.PushOptions{
+		Remote: targetRepo.RepoPath(),
+		Branch: baseBranchName + ":" + targetBranchName,
+		Env:    repo_module.PushingEnvironment(doer, targetRepo),
+	})
 }
