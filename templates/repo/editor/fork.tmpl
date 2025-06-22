@@ -5,12 +5,12 @@
 		{{template "base/alert" .}}
 		<form class="ui form form-fetch-action" method="post" action="{{.RepoLink}}/_fork/{{.BranchName | PathEscapeSegments}}">
 			{{.CsrfTokenHtml}}
-			<div class="field center">
-				<h3>{{ctx.Locale.Tr "repo.editor.fork_create"}}</h3>
-				<p>{{ctx.Locale.Tr "repo.editor.fork_create_description"}}</p>
-				<button class="ui primary button">
-					{{ctx.Locale.Tr "repo.fork_repo"}}
-				</button>
+			<div class="tw-text-center">
+				<div class="tw-my-[40px]">
+					<h3>{{ctx.Locale.Tr "repo.editor.fork_create"}}</h3>
+					<p>{{ctx.Locale.Tr "repo.editor.fork_create_description"}}</p>
+				</div>
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.fork_repo"}}</button>
 			</div>
 		</form>
 	</div>

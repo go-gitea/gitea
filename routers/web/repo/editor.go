@@ -88,7 +88,7 @@ func prepareEditorCommitFormOptions(ctx *context.Context, editorAction string) *
 
 func prepareTreePathFieldsAndPaths(ctx *context.Context, treePath string) {
 	// show the tree path fields in the "breadcrumb" and help users to edit the target tree path
-	ctx.Data["TreeNames"], ctx.Data["TreePaths"] = getParentTreeFields(treePath)
+	ctx.Data["TreeNames"], ctx.Data["TreePaths"] = getParentTreeFields(strings.TrimPrefix(treePath, "/"))
 }
 
 type preparedEditorCommitForm[T any] struct {

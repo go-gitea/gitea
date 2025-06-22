@@ -8,6 +8,7 @@
 					data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}"
 		>
 			{{.CsrfTokenHtml}}
+			{{template "repo/editor/common_top" .}}
 			<div class="repo-editor-header">
 				<div class="breadcrumb">
 					{{ctx.Locale.Tr "repo.editor.patching"}}
@@ -19,7 +20,6 @@
 					<input id="file-name" type="hidden" value="diff.patch">
 				</div>
 			</div>
-			{{template "repo/editor/common_top" .}}
 			<div class="field">
 				<div class="ui compact small menu small-menu-items repo-editor-menu">
 					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
