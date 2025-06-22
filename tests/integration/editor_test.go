@@ -382,13 +382,13 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 
 	t.Run("CheckBaseRepoForm", func(t *testing.T) {
 		// the base repo's edit form should have the correct action and upload links (pointing to the forked repo)
-		req := NewRequest(t, "GET", path.Join(owner, repo, "_upload", branch, filePath))
+		req := NewRequest(t, "GET", path.Join(owner, repo, "_upload", branch, filePath)+"?foo=bar")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
 		uploadForm := htmlDoc.doc.Find(".form-fetch-action")
 		formAction := uploadForm.AttrOr("action", "")
-		assert.Equal(t, fmt.Sprintf("/%s/%s-1/_upload/%s/%s?from_base_branch=%s", user, repo, branch, filePath, branch), formAction)
+		assert.Equal(t, fmt.Sprintf("/%s/%s-1/_upload/%s/%s?from_base_branch=%s&foo=bar", user, repo, branch, filePath, branch), formAction)
 		uploadLink := uploadForm.Find(".dropzone").AttrOr("data-link-url", "")
 		assert.Equal(t, fmt.Sprintf("/%s/%s-1/upload-file", user, repo), uploadLink)
 		newBranchName := uploadForm.Find("input[name=new_branch_name]").AttrOr("value", "")

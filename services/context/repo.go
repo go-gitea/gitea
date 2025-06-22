@@ -179,6 +179,9 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 	} else {
 		opts.TargetFormAction = targetRepo.Link() + "/" + editorAction + "/" + editorPathParamRemaining
 	}
+	if ctx.Req.URL.RawQuery != "" {
+		opts.TargetFormAction += util.Iif(strings.Contains(opts.TargetFormAction, "?"), "&", "?") + ctx.Req.URL.RawQuery
+	}
 	return opts, nil
 }
 

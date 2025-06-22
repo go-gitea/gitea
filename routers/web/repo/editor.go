@@ -185,6 +185,12 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 
 // redirectForCommitChoice redirects after committing the edit to a branch
 func redirectForCommitChoice[T any](ctx *context.Context, parsed *preparedEditorCommitForm[T], treePath string) {
+	// when editing a file in a PR, it should return to the origin location
+	if returnURI := ctx.FormString("return_uri"); returnURI != "" && httplib.IsCurrentGiteaSiteURL(ctx, returnURI) {
+		ctx.JSONRedirect(returnURI)
+		return
+	}
+
 	if parsed.commonForm.CommitChoice == editorCommitChoiceNewBranch {
 		// Redirect to a pull request when possible
 		redirectToPullRequest := false
@@ -203,11 +209,9 @@ func redirectForCommitChoice[T any](ctx *context.Context, parsed *preparedEditor
 		}
 	}
 
-	returnURI := ctx.FormString("return_uri")
-	if returnURI == "" || !httplib.IsCurrentGiteaSiteURL(ctx, returnURI) {
-		returnURI = util.URLJoin(ctx.Repo.RepoLink, "src/branch", util.PathEscapeSegments(parsed.NewBranchName), util.PathEscapeSegments(treePath))
-	}
-	ctx.JSONRedirect(returnURI)
+	// redirect to the newly updated file
+	redirectTo := util.URLJoin(ctx.Repo.RepoLink, "src/branch", util.PathEscapeSegments(parsed.NewBranchName), util.PathEscapeSegments(treePath))
+	ctx.JSONRedirect(redirectTo)
 }
 
 func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.ReadCloser, fInfo *fileInfo) {
