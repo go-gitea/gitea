@@ -130,7 +130,9 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 	}
 
 	// check commit behavior
-	targetBranchName := util.Iif(commonForm.CommitChoice == editorCommitChoiceNewBranch, commonForm.NewBranchName, ctx.Repo.BranchName)
+	fromBaseBranch := ctx.FormString("from_base_branch")
+	commitToNewBranch := commonForm.CommitChoice == editorCommitChoiceNewBranch || fromBaseBranch != ""
+	targetBranchName := util.Iif(commitToNewBranch, commonForm.NewBranchName, ctx.Repo.BranchName)
 	if targetBranchName == ctx.Repo.BranchName && !commitFormOptions.CanCommitToBranch {
 		ctx.JSONError(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", targetBranchName))
 		return nil
@@ -143,19 +145,24 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 		return nil
 	}
 
-	oldBranchName := ctx.Repo.BranchName
-	fromBaseBranch := ctx.FormString("from_base_branch")
-	if fromBaseBranch != "" {
-		// if target branch exists, we should warn users
+	if commitToNewBranch {
+		// if target branch exists, we should stop
 		targetBranchExists, err := git_model.IsBranchExist(ctx, commitFormOptions.TargetRepo.ID, targetBranchName)
 		if err != nil {
 			ctx.ServerError("IsBranchExist", err)
 			return nil
-		}
-		if targetBranchExists {
-			ctx.JSONError(ctx.Tr("repo.editor.fork_branch_exists", targetBranchName))
+		} else if targetBranchExists {
+			if fromBaseBranch != "" {
+				ctx.JSONError(ctx.Tr("repo.editor.fork_branch_exists", targetBranchName))
+			} else {
+				ctx.JSONError(ctx.Tr("repo.editor.branch_already_exists", targetBranchName))
+			}
 			return nil
 		}
+	}
+
+	oldBranchName := ctx.Repo.BranchName
+	if fromBaseBranch != "" {
 		err = editorPushBranchToForkedRepository(ctx, ctx.Doer, ctx.Repo.Repository.BaseRepo, fromBaseBranch, commitFormOptions.TargetRepo, targetBranchName)
 		if err != nil {
 			log.Error("Unable to editorPushBranchToForkedRepository: %v", err)

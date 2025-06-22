@@ -65,8 +65,8 @@ func testEditorCreateFile(t *testing.T) {
 	testEditorActionPostRequestError(t, session, "/user2/repo1/_new/master/", map[string]string{
 		"tree_path":       "test.txt",
 		"commit_choice":   "commit-to-new-branch",
-		"new_branch_name": "branch2",
-	}, `Branch "branch2" already exists in this repository.`)
+		"new_branch_name": "master",
+	}, `Branch "master" already exists in this repository.`)
 }
 
 func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, filePath, content string) {
@@ -153,24 +153,27 @@ func testEditorDiffPreview(t *testing.T) {
 
 func testEditorPatchFile(t *testing.T) {
 	session := loginUser(t, "user2")
-	pathContent := `diff --git a/patch-file-1.txt b/patch-file-1.txt
+	pathContentCommon := `diff --git a/patch-file-1.txt b/patch-file-1.txt
 new file mode 100644
 index 0000000000..aaaaaaaaaa
 --- /dev/null
 +++ b/patch-file-1.txt
 @@ -0,0 +1 @@
-+patched content
-`
-	patchForm := map[string]string{
-		"content":         pathContent,
++`
+	testEditorActionPostRequest(t, session, "/user2/repo1/_diffpatch/master/", map[string]string{
+		"content":         pathContentCommon + "patched content\n",
 		"commit_choice":   "commit-to-new-branch",
 		"new_branch_name": "patched-branch",
-	}
-	testEditorActionPostRequest(t, session, "/user2/repo1/_diffpatch/master/", patchForm)
+	})
 	resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/raw/branch/patched-branch/patch-file-1.txt"), http.StatusOK)
 	assert.Equal(t, "patched content\n", resp.Body.String())
 
-	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_diffpatch/master/", patchForm)
+	// patch again, it should fail
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_diffpatch/patched-branch/", map[string]string{
+		"content":         pathContentCommon + "another patched content\n",
+		"commit_choice":   "commit-to-new-branch",
+		"new_branch_name": "patched-branch-1",
+	})
 	assert.Equal(t, "Unable to apply patch", test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 }
 
