@@ -53,7 +53,6 @@ linters:
       settings:
         printf:
           funcs:
-            - (code.gitea.io/gitea/modules/log).Error
             - (code.gitea.io/gitea/modules/log).Trace
             - (code.gitea.io/gitea/modules/log).Debug
             - (code.gitea.io/gitea/modules/log).Info
