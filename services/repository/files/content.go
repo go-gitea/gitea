@@ -5,13 +5,11 @@ package files
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"path"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -34,54 +32,48 @@ func (ct *ContentType) String() string {
 	return string(*ct)
 }
 
+type GetContentsOrListOptions struct {
+	TreePath                 string
+	IncludeSingleFileContent bool // include the file's content when the tree path is a file
+}
+
 // GetContentsOrList gets the metadata of a file's contents (*ContentsResponse) if treePath not a tree
 // directory, otherwise a listing of file contents ([]*ContentsResponse). Ref can be a branch, commit or tag
-func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, refCommit *utils.RefCommit, treePath string) (any, error) {
-	if repo.IsEmpty {
-		return make([]any, 0), nil
+func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, opts GetContentsOrListOptions) (ret api.ContentsExtResponse, _ error) {
+	entry, err := prepareGetContentsEntry(refCommit, &opts.TreePath)
+	if repo.IsEmpty && opts.TreePath == "" {
+		return api.ContentsExtResponse{DirContents: make([]*api.ContentsResponse, 0)}, nil
 	}
-
-	// Check that the path given in opts.treePath is valid (not a git path)
-	cleanTreePath := CleanGitTreePath(treePath)
-	if cleanTreePath == "" && treePath != "" {
-		return nil, ErrFilenameInvalid{
-			Path: treePath,
-		}
-	}
-	treePath = cleanTreePath
-
-	// Get the commit object for the ref
-	commit := refCommit.Commit
-
-	entry, err := commit.GetTreeEntryByPath(treePath)
 	if err != nil {
-		return nil, err
+		return ret, err
 	}
 
+	// get file contents
 	if entry.Type() != "tree" {
-		return GetContents(ctx, repo, refCommit, treePath, false)
+		ret.FileContents, err = getFileContentsByEntryInternal(ctx, repo, gitRepo, refCommit, entry, opts)
+		return ret, err
 	}
 
-	// We are in a directory, so we return a list of FileContentResponse objects
-	var fileList []*api.ContentsResponse
-
-	gitTree, err := commit.SubTree(treePath)
+	// list directory contents
+	gitTree, err := refCommit.Commit.SubTree(opts.TreePath)
 	if err != nil {
-		return nil, err
+		return ret, err
 	}
 	entries, err := gitTree.ListEntries()
 	if err != nil {
-		return nil, err
+		return ret, err
 	}
+	ret.DirContents = make([]*api.ContentsResponse, 0, len(entries))
 	for _, e := range entries {
-		subTreePath := path.Join(treePath, e.Name())
-		fileContentResponse, err := GetContents(ctx, repo, refCommit, subTreePath, true)
+		// never include file content when listing a directory
+		subTreePath := path.Join(opts.TreePath, e.Name())
+		fileContentResponse, err := GetFileContents(ctx, repo, gitRepo, refCommit, GetContentsOrListOptions{TreePath: subTreePath, IncludeSingleFileContent: false})
 		if err != nil {
-			return nil, err
+			return ret, err
 		}
-		fileList = append(fileList, fileContentResponse)
+		ret.DirContents = append(ret.DirContents, fileContentResponse)
 	}
-	return fileList, nil
+	return ret, nil
 }
 
 // GetObjectTypeFromTreeEntry check what content is behind it
@@ -100,35 +92,36 @@ func GetObjectTypeFromTreeEntry(entry *git.TreeEntry) ContentType {
 	}
 }
 
-// GetContents gets the metadata on a file's contents. Ref can be a branch, commit or tag
-func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *utils.RefCommit, treePath string, forList bool) (*api.ContentsResponse, error) {
+func prepareGetContentsEntry(refCommit *utils.RefCommit, treePath *string) (*git.TreeEntry, error) {
 	// Check that the path given in opts.treePath is valid (not a git path)
-	cleanTreePath := CleanGitTreePath(treePath)
-	if cleanTreePath == "" && treePath != "" {
-		return nil, ErrFilenameInvalid{
-			Path: treePath,
-		}
+	cleanTreePath := CleanGitTreePath(*treePath)
+	if cleanTreePath == "" && *treePath != "" {
+		return nil, ErrFilenameInvalid{Path: *treePath}
 	}
-	treePath = cleanTreePath
+	*treePath = cleanTreePath
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
-	if err != nil {
-		return nil, err
-	}
-	defer closer.Close()
-
-	commit := refCommit.Commit
-	entry, err := commit.GetTreeEntryByPath(treePath)
-	if err != nil {
-		return nil, err
-	}
-
+	// Only allow safe ref types
 	refType := refCommit.RefName.RefType()
 	if refType != git.RefTypeBranch && refType != git.RefTypeTag && refType != git.RefTypeCommit {
-		return nil, fmt.Errorf("no commit found for the ref [ref: %s]", refCommit.RefName)
+		return nil, util.NewNotExistErrorf("no commit found for the ref [ref: %s]", refCommit.RefName)
 	}
 
-	selfURL, err := url.Parse(repo.APIURL() + "/contents/" + util.PathEscapeSegments(treePath) + "?ref=" + url.QueryEscape(refCommit.InputRef))
+	return refCommit.Commit.GetTreeEntryByPath(*treePath)
+}
+
+// GetFileContents gets the metadata on a file's contents. Ref can be a branch, commit or tag
+func GetFileContents(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, opts GetContentsOrListOptions) (*api.ContentsResponse, error) {
+	entry, err := prepareGetContentsEntry(refCommit, &opts.TreePath)
+	if err != nil {
+		return nil, err
+	}
+	return getFileContentsByEntryInternal(ctx, repo, gitRepo, refCommit, entry, opts)
+}
+
+func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, entry *git.TreeEntry, opts GetContentsOrListOptions) (*api.ContentsResponse, error) {
+	refType := refCommit.RefName.RefType()
+	commit := refCommit.Commit
+	selfURL, err := url.Parse(repo.APIURL() + "/contents/" + util.PathEscapeSegments(opts.TreePath) + "?ref=" + url.QueryEscape(refCommit.InputRef))
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +132,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *ut
 		return nil, err
 	}
 
-	lastCommit, err := commit.GetCommitByPath(treePath)
+	lastCommit, err := refCommit.Commit.GetCommitByPath(opts.TreePath)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +140,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *ut
 	// All content types have these fields in populated
 	contentsResponse := &api.ContentsResponse{
 		Name:          entry.Name(),
-		Path:          treePath,
+		Path:          opts.TreePath,
 		SHA:           entry.ID.String(),
 		LastCommitSHA: lastCommit.ID.String(),
 		Size:          entry.Size(),
@@ -170,7 +163,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *ut
 	if entry.IsRegular() || entry.IsExecutable() {
 		contentsResponse.Type = string(ContentTypeRegular)
 		// if it is listing the repo root dir, don't waste system resources on reading content
-		if !forList {
+		if opts.IncludeSingleFileContent {
 			blobResponse, err := GetBlobBySHA(ctx, repo, gitRepo, entry.ID.String())
 			if err != nil {
 				return nil, err
@@ -190,7 +183,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *ut
 		contentsResponse.Target = &targetFromContent
 	} else if entry.IsSubModule() {
 		contentsResponse.Type = string(ContentTypeSubmodule)
-		submodule, err := commit.GetSubModule(treePath)
+		submodule, err := commit.GetSubModule(opts.TreePath)
 		if err != nil {
 			return nil, err
 		}
@@ -200,7 +193,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *ut
 	}
 	// Handle links
 	if entry.IsRegular() || entry.IsLink() || entry.IsExecutable() {
-		downloadURL, err := url.Parse(repo.HTMLURL() + "/raw/" + refCommit.RefName.RefWebLinkPath() + "/" + util.PathEscapeSegments(treePath))
+		downloadURL, err := url.Parse(repo.HTMLURL() + "/raw/" + refCommit.RefName.RefWebLinkPath() + "/" + util.PathEscapeSegments(opts.TreePath))
 		if err != nil {
 			return nil, err
 		}
@@ -208,7 +201,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *ut
 		contentsResponse.DownloadURL = &downloadURLString
 	}
 	if !entry.IsSubModule() {
-		htmlURL, err := url.Parse(repo.HTMLURL() + "/src/" + refCommit.RefName.RefWebLinkPath() + "/" + util.PathEscapeSegments(treePath))
+		htmlURL, err := url.Parse(repo.HTMLURL() + "/src/" + refCommit.RefName.RefWebLinkPath() + "/" + util.PathEscapeSegments(opts.TreePath))
 		if err != nil {
 			return nil, err
 		}

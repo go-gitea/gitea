@@ -905,6 +905,62 @@ func resolveRefCommit(ctx *context.APIContext, ref string, minCommitIDLen ...int
 	return refCommit
 }
 
+func GetContentsExt(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/contents-ext/{filepath} repository repoGetContentsExt
+	// ---
+	// summary: The extended "contents" API, get file metadata and/or content, or list a directory.
+	// description: It guarantees that only one of the response fields is set if the request succeeds.
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: filepath
+	//   in: path
+	//   description: path of the dir, file, symlink or submodule in the repo
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch."
+	//   type: string
+	//   required: false
+	// - name: includes
+	//   in: query
+	//   description: Set it to "file_content" to retrieve the file content when requesting a file, otherwise the response only contains the file's metadata.
+	//   type: string
+	//   required: false
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ContentsExtResponse"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	// TODO: add more includes options, like "lfs_content"
+	opts := files_service.GetContentsOrListOptions{TreePath: ctx.PathParam("*")}
+	for includeOpt := range strings.SplitSeq(ctx.FormString("includes"), ",") {
+		if includeOpt == "" {
+			continue
+		}
+		switch includeOpt {
+		case "file_content":
+			opts.IncludeSingleFileContent = true
+		default:
+			ctx.APIError(http.StatusBadRequest, fmt.Sprintf("unknown include option %q", includeOpt))
+			return
+		}
+	}
+	ctx.JSON(http.StatusOK, getRepoContents(ctx, opts))
+}
+
 // GetContents Get the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
 func GetContents(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetContents
@@ -938,22 +994,27 @@ func GetContents(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ContentsResponse"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
-	treePath := ctx.PathParam("*")
-	refCommit := resolveRefCommit(ctx, ctx.FormTrim("ref"))
+	ret := getRepoContents(ctx, files_service.GetContentsOrListOptions{TreePath: ctx.PathParam("*"), IncludeSingleFileContent: true})
 	if ctx.Written() {
 		return
 	}
+	ctx.JSON(http.StatusOK, util.Iif[any](ret.FileContents != nil, ret.FileContents, ret.DirContents))
+}
 
-	if fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, refCommit, treePath); err != nil {
+func getRepoContents(ctx *context.APIContext, opts files_service.GetContentsOrListOptions) *api.ContentsExtResponse {
+	refCommit := resolveRefCommit(ctx, ctx.FormTrim("ref"))
+	if ctx.Written() {
+		return nil
+	}
+	ret, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, refCommit, opts)
+	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound("GetContentsOrList", err)
-			return
+			return nil
 		}
 		ctx.APIErrorInternal(err)
-	} else {
-		ctx.JSON(http.StatusOK, fileList)
 	}
+	return &ret
 }
 
 // GetContentsList Get the metadata of all the entries of the root dir
@@ -1084,6 +1145,6 @@ func handleGetFileContents(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	filesResponse := files_service.GetContentsListFromTreePaths(ctx, ctx.Repo.Repository, refCommit, opts.Files)
+	filesResponse := files_service.GetContentsListFromTreePaths(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, refCommit, opts.Files)
 	ctx.JSON(http.StatusOK, util.SliceNilAsEmpty(filesResponse))
 }

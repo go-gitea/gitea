@@ -7518,6 +7518,62 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/contents-ext/{filepath}": {
+      "get": {
+        "description": "It guarantees that only one of the response fields is set if the request succeeds.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "The extended \"contents\" API, get file metadata and/or content, or list a directory.",
+        "operationId": "repoGetContentsExt",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "path of the dir, file, symlink or submodule in the repo",
+            "name": "filepath",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch.",
+            "name": "ref",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Set it to \"file_content\" to retrieve the file content when requesting a file, otherwise the response only contains the file's metadata.",
+            "name": "includes",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ContentsExtResponse"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/contents/{filepath}": {
       "get": {
         "produces": [
@@ -22255,6 +22311,22 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ContentsExtResponse": {
+      "type": "object",
+      "properties": {
+        "dir_contents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContentsResponse"
+          },
+          "x-go-name": "DirContents"
+        },
+        "file_contents": {
+          "$ref": "#/definitions/ContentsResponse"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ContentsResponse": {
       "description": "ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content",
       "type": "object",
@@ -28691,6 +28763,12 @@
       "description": "",
       "schema": {
         "$ref": "#/definitions/Compare"
+      }
+    },
+    "ContentsExtResponse": {
+      "description": "",
+      "schema": {
+        "$ref": "#/definitions/ContentsExtResponse"
       }
     },
     "ContentsListResponse": {

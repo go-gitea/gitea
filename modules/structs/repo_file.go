@@ -119,6 +119,11 @@ type FileLinksResponse struct {
 	HTMLURL *string `json:"html"`
 }
 
+type ContentsExtResponse struct {
+	FileContents *ContentsResponse   `json:"file_contents,omitempty"`
+	DirContents  []*ContentsResponse `json:"dir_contents,omitempty"`
+}
+
 // ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content
 type ContentsResponse struct {
 	Name          string `json:"name"`
