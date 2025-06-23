@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"testing"
 	"time"
 
@@ -202,6 +203,8 @@ func testAPIGetContentsRefFormats(t *testing.T) {
 }
 
 func testAPIGetContentsExt(t *testing.T) {
+	session := loginUser(t, "user2")
+	token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	t.Run("DirContents", func(t *testing.T) {
 		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs?ref=sub-home-md-img-check")
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -221,6 +224,20 @@ func testAPIGetContentsExt(t *testing.T) {
 		assert.Equal(t, "README.md", contentsResponse.DirContents[0].Name)
 		assert.Nil(t, contentsResponse.DirContents[0].Encoding)
 		assert.Nil(t, contentsResponse.DirContents[0].Content)
+
+		req = NewRequestf(t, "GET", "/api/v1/repos/user2/lfs/contents-ext?includes=file_content,lfs_metadata").AddTokenAuth(token2)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		contentsResponse = api.ContentsExtResponse{}
+		DecodeJSON(t, resp, &contentsResponse)
+		assert.Nil(t, contentsResponse.FileContents)
+		respFileIdx := slices.IndexFunc(contentsResponse.DirContents, func(response *api.ContentsResponse) bool { return response.Name == "jpeg.jpg" })
+		require.NotEqual(t, -1, respFileIdx)
+		respFile := contentsResponse.DirContents[respFileIdx]
+		assert.Equal(t, "jpeg.jpg", respFile.Name)
+		assert.Nil(t, respFile.Encoding)
+		assert.Nil(t, respFile.Content)
+		assert.Equal(t, util.ToPointer(int64(107)), respFile.LfsSize)
+		assert.Equal(t, util.ToPointer("0b8d8b5f15046343fd32f451df93acc2bdd9e6373be478b968e4cad6b6647351"), respFile.LfsOid)
 	})
 	t.Run("FileContents", func(t *testing.T) {
 		// by default, no file content is returned
@@ -242,5 +259,18 @@ func testAPIGetContentsExt(t *testing.T) {
 		assert.Equal(t, "README.md", contentsResponse.FileContents.Name)
 		assert.NotNil(t, contentsResponse.FileContents.Encoding)
 		assert.NotNil(t, contentsResponse.FileContents.Content)
+
+		req = NewRequestf(t, "GET", "/api/v1/repos/user2/lfs/contents-ext/jpeg.jpg?includes=file_content").AddTokenAuth(token2)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		contentsResponse = api.ContentsExtResponse{}
+		DecodeJSON(t, resp, &contentsResponse)
+		assert.Nil(t, contentsResponse.DirContents)
+		assert.NotNil(t, contentsResponse.FileContents)
+		respFile := contentsResponse.FileContents
+		assert.Equal(t, "jpeg.jpg", respFile.Name)
+		assert.NotNil(t, respFile.Encoding)
+		assert.NotNil(t, respFile.Content)
+		assert.Equal(t, util.ToPointer(int64(107)), respFile.LfsSize)
+		assert.Equal(t, util.ToPointer("0b8d8b5f15046343fd32f451df93acc2bdd9e6373be478b968e4cad6b6647351"), respFile.LfsOid)
 	})
 }

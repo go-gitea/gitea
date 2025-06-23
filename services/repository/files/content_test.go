@@ -107,7 +107,7 @@ func TestGetContents(t *testing.T) {
 		sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
 		ctx.SetPathParam("id", "1")
 		ctx.SetPathParam("sha", sha)
-		gbr, err := GetBlobBySHA(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("sha"))
+		gbr, err := GetBlobBySHA(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("sha"))
 		expectedGBR := &api.GitBlobResponse{
 			Content:  util.ToPointer("dHJlZSAyYTJmMWQ0NjcwNzI4YTJlMTAwNDllMzQ1YmQ3YTI3NjQ2OGJlYWI2CmF1dGhvciB1c2VyMSA8YWRkcmVzczFAZXhhbXBsZS5jb20+IDE0ODk5NTY0NzkgLTA0MDAKY29tbWl0dGVyIEV0aGFuIEtvZW5pZyA8ZXRoYW50a29lbmlnQGdtYWlsLmNvbT4gMTQ4OTk1NjQ3OSAtMDQwMAoKSW5pdGlhbCBjb21taXQK"),
 			Encoding: util.ToPointer("base64"),

@@ -150,6 +150,9 @@ type ContentsResponse struct {
 	// `submodule_git_url` is populated when `type` is `submodule`, otherwise null
 	SubmoduleGitURL *string            `json:"submodule_git_url"`
 	Links           *FileLinksResponse `json:"_links"`
+
+	LfsOid  *string `json:"lfs_oid"`
+	LfsSize *int64  `json:"lfs_size"`
 }
 
 // FileCommitResponse contains information generated from a Git commit for a repo's file.

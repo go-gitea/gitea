@@ -5,11 +5,14 @@ package files
 
 import (
 	"context"
+	"io"
 	"net/url"
 	"path"
+	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -35,6 +38,7 @@ func (ct *ContentType) String() string {
 type GetContentsOrListOptions struct {
 	TreePath                 string
 	IncludeSingleFileContent bool // include the file's content when the tree path is a file
+	IncludeLfsMetadata       bool
 }
 
 // GetContentsOrList gets the metadata of a file's contents (*ContentsResponse) if treePath not a tree
@@ -65,9 +69,10 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, gitRepo
 	}
 	ret.DirContents = make([]*api.ContentsResponse, 0, len(entries))
 	for _, e := range entries {
-		// never include file content when listing a directory
-		subTreePath := path.Join(opts.TreePath, e.Name())
-		fileContentResponse, err := GetFileContents(ctx, repo, gitRepo, refCommit, GetContentsOrListOptions{TreePath: subTreePath, IncludeSingleFileContent: false})
+		subOpts := opts
+		subOpts.TreePath = path.Join(opts.TreePath, e.Name())
+		subOpts.IncludeSingleFileContent = false // never include file content when listing a directory
+		fileContentResponse, err := GetFileContents(ctx, repo, gitRepo, refCommit, subOpts)
 		if err != nil {
 			return ret, err
 		}
@@ -118,7 +123,7 @@ func GetFileContents(ctx context.Context, repo *repo_model.Repository, gitRepo *
 	return getFileContentsByEntryInternal(ctx, repo, gitRepo, refCommit, entry, opts)
 }
 
-func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, entry *git.TreeEntry, opts GetContentsOrListOptions) (*api.ContentsResponse, error) {
+func getFileContentsByEntryInternal(_ context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, entry *git.TreeEntry, opts GetContentsOrListOptions) (*api.ContentsResponse, error) {
 	refType := refCommit.RefName.RefType()
 	commit := refCommit.Commit
 	selfURL, err := url.Parse(repo.APIURL() + "/contents/" + util.PathEscapeSegments(opts.TreePath) + "?ref=" + url.QueryEscape(refCommit.InputRef))
@@ -164,12 +169,17 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 		contentsResponse.Type = string(ContentTypeRegular)
 		// if it is listing the repo root dir, don't waste system resources on reading content
 		if opts.IncludeSingleFileContent {
-			blobResponse, err := GetBlobBySHA(ctx, repo, gitRepo, entry.ID.String())
+			blobResponse, err := GetBlobBySHA(repo, gitRepo, entry.ID.String())
 			if err != nil {
 				return nil, err
 			}
-			contentsResponse.Encoding = blobResponse.Encoding
-			contentsResponse.Content = blobResponse.Content
+			contentsResponse.Encoding, contentsResponse.Content = blobResponse.Encoding, blobResponse.Content
+			contentsResponse.LfsOid, contentsResponse.LfsSize = blobResponse.LfsOid, blobResponse.LfsSize
+		} else if opts.IncludeLfsMetadata {
+			contentsResponse.LfsOid, contentsResponse.LfsSize, err = parsePossibleLfsPointerBlob(gitRepo, entry.ID.String())
+			if err != nil {
+				return nil, err
+			}
 		}
 	} else if entry.IsDir() {
 		contentsResponse.Type = string(ContentTypeDir)
@@ -221,8 +231,7 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 	return contentsResponse, nil
 }
 
-// GetBlobBySHA get the GitBlobResponse of a repository using a sha hash.
-func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, sha string) (*api.GitBlobResponse, error) {
+func GetBlobBySHA(repo *repo_model.Repository, gitRepo *git.Repository, sha string) (*api.GitBlobResponse, error) {
 	gitBlob, err := gitRepo.GetBlob(sha)
 	if err != nil {
 		return nil, err
@@ -232,12 +241,49 @@ func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		URL:  repo.APIURL() + "/git/blobs/" + url.PathEscape(gitBlob.ID.String()),
 		Size: gitBlob.Size(),
 	}
-	if gitBlob.Size() <= setting.API.DefaultMaxBlobSize {
-		content, err := gitBlob.GetBlobContentBase64()
-		if err != nil {
-			return nil, err
-		}
-		ret.Encoding, ret.Content = util.ToPointer("base64"), &content
+
+	blobSize := gitBlob.Size()
+	if blobSize > setting.API.DefaultMaxBlobSize {
+		return ret, nil
+	}
+
+	var originContent *strings.Builder
+	if 0 < blobSize && blobSize < lfs.MetaFileMaxSize {
+		originContent = &strings.Builder{}
+	}
+
+	content, err := gitBlob.GetBlobContentBase64(originContent)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.Encoding, ret.Content = util.ToPointer("base64"), &content
+	if originContent != nil {
+		ret.LfsOid, ret.LfsSize = parsePossibleLfsPointerBuffer(strings.NewReader(originContent.String()))
 	}
 	return ret, nil
+}
+
+func parsePossibleLfsPointerBuffer(r io.Reader) (*string, *int64) {
+	p, _ := lfs.ReadPointer(r)
+	if p.IsValid() {
+		return &p.Oid, &p.Size
+	}
+	return nil, nil
+}
+
+func parsePossibleLfsPointerBlob(gitRepo *git.Repository, sha string) (*string, *int64, error) {
+	gitBlob, err := gitRepo.GetBlob(sha)
+	if err != nil {
+		return nil, nil, err
+	}
+	if gitBlob.Size() > lfs.MetaFileMaxSize {
+		return nil, nil, nil // not a LFS pointer
+	}
+	buf, err := gitBlob.GetBlobContent(lfs.MetaFileMaxSize)
+	if err != nil {
+		return nil, nil, err
+	}
+	oid, size := parsePossibleLfsPointerBuffer(strings.NewReader(buf))
+	return oid, size, nil
 }

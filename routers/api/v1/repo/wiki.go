@@ -499,7 +499,7 @@ func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) string {
 	if blob.Size() > setting.API.DefaultMaxBlobSize {
 		return ""
 	}
-	content, err := blob.GetBlobContentBase64()
+	content, err := blob.GetBlobContentBase64(nil)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return ""

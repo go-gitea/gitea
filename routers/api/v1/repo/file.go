@@ -908,8 +908,9 @@ func resolveRefCommit(ctx *context.APIContext, ref string, minCommitIDLen ...int
 func GetContentsExt(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/contents-ext/{filepath} repository repoGetContentsExt
 	// ---
-	// summary: The extended "contents" API, get file metadata and/or content, or list a directory.
+	// summary: The extended "contents" API, to get file metadata and/or content, or list a directory.
 	// description: It guarantees that only one of the response fields is set if the request succeeds.
+	//              Users can pass "includes=file_content" or "includes=lfs_metadata" to retrieve more fields.
 	// produces:
 	// - application/json
 	// parameters:
@@ -930,12 +931,13 @@ func GetContentsExt(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch."
+	//   description: the name of the commit/branch/tag, default to the repository’s default branch.
 	//   type: string
 	//   required: false
 	// - name: includes
 	//   in: query
-	//   description: Set it to "file_content" to retrieve the file content when requesting a file, otherwise the response only contains the file's metadata.
+	//   description: By default this API's response only contains file's metadata. Use comma-separated "includes" options to retrieve more fields.
+	//                Option "file_content" will try to retrieve the file content, option "lfs_metadata" will try to retrieve LFS metadata.
 	//   type: string
 	//   required: false
 	// responses:
@@ -944,7 +946,6 @@ func GetContentsExt(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// TODO: add more includes options, like "lfs_content"
 	opts := files_service.GetContentsOrListOptions{TreePath: ctx.PathParam("*")}
 	for includeOpt := range strings.SplitSeq(ctx.FormString("includes"), ",") {
 		if includeOpt == "" {
@@ -953,6 +954,8 @@ func GetContentsExt(ctx *context.APIContext) {
 		switch includeOpt {
 		case "file_content":
 			opts.IncludeSingleFileContent = true
+		case "lfs_metadata":
+			opts.IncludeLfsMetadata = true
 		default:
 			ctx.APIError(http.StatusBadRequest, fmt.Sprintf("unknown include option %q", includeOpt))
 			return
@@ -965,7 +968,8 @@ func GetContentsExt(ctx *context.APIContext) {
 func GetContents(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetContents
 	// ---
-	// summary: Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
+	// summary: Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir.
+	// description: This API follows GitHub's design, and it is not easy to use. Recommend to use our "contents-ext" API instead.
 	// produces:
 	// - application/json
 	// parameters:
@@ -1021,7 +1025,8 @@ func getRepoContents(ctx *context.APIContext, opts files_service.GetContentsOrLi
 func GetContentsList(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/contents repository repoGetContentsList
 	// ---
-	// summary: Gets the metadata of all the entries of the root dir
+	// summary: Gets the metadata of all the entries of the root dir.
+	// description: This API follows GitHub's design, and it is not easy to use. Recommend to use our "contents-ext" API instead.
 	// produces:
 	// - application/json
 	// parameters:
