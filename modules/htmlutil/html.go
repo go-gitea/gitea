@@ -33,7 +33,7 @@ func ParseSizeAndClass(defaultSize int, defaultClass string, others ...any) (int
 
 func HTMLFormat(s template.HTML, rawArgs ...any) template.HTML {
 	if !strings.Contains(string(s), "%") || len(rawArgs) == 0 {
-		panic("HTMLFormat requires at least one argument, don't abuse it")
+		panic("HTMLFormat requires one or more arguments")
 	}
 	args := slices.Clone(rawArgs)
 	for i, v := range args {
