@@ -49,6 +49,17 @@ linters:
       disabled-checks:
         - ifElseChain
         - singleCaseSwitch # Every time this occurred in the code, there was no other way.
+    govet:
+      settings:
+        printf:
+          funcs:
+            - (code.gitea.io/gitea/modules/log).Error
+            - (code.gitea.io/gitea/modules/log).Trace
+            - (code.gitea.io/gitea/modules/log).Debug
+            - (code.gitea.io/gitea/modules/log).Info
+            - (code.gitea.io/gitea/modules/log).Warn
+            - (code.gitea.io/gitea/modules/log).Error
+            - (code.gitea.io/gitea/modules/log).Critical
     revive:
       severity: error
       rules:
