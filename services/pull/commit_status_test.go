@@ -33,6 +33,11 @@ func TestMergeRequiredContextsCommitStatus(t *testing.T) {
 		{
 			{Context: "Build 1", State: structs.CommitStatusSuccess},
 			{Context: "Build 2", State: structs.CommitStatusSuccess},
+			{Context: "Build 2t", State: structs.CommitStatusFailure},
+		},
+		{
+			{Context: "Build 1", State: structs.CommitStatusSuccess},
+			{Context: "Build 2", State: structs.CommitStatusSuccess},
 			{Context: "Build 2t", State: structs.CommitStatusSuccess},
 		},
 		{
@@ -45,6 +50,7 @@ func TestMergeRequiredContextsCommitStatus(t *testing.T) {
 		{"Build*"},
 		{"Build*", "Build 2t*"},
 		{"Build*", "Build 2t*"},
+		{"Build*"},
 		{"Build*", "Build 2t*", "Build 3*"},
 		{"Build*", "Build *", "Build 2t*", "Build 1*"},
 	}
@@ -52,6 +58,7 @@ func TestMergeRequiredContextsCommitStatus(t *testing.T) {
 	testCasesExpected := []structs.CommitStatusState{
 		structs.CommitStatusSuccess,
 		structs.CommitStatusPending,
+		structs.CommitStatusFailure,
 		structs.CommitStatusFailure,
 		structs.CommitStatusPending,
 		structs.CommitStatusSuccess,

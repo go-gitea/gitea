@@ -35,14 +35,15 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 		}
 
 		for _, gp := range requiredContextsGlob {
-			var targetStatus structs.CommitStatusState
+			var targetStatuses []*git_model.CommitStatus
 			for _, commitStatus := range commitStatuses {
 				if gp.Match(commitStatus.Context) {
-					targetStatus = commitStatus.State
+					targetStatuses = append(targetStatuses, commitStatus)
 					matchedCount++
-					break
 				}
 			}
+
+			targetStatus := git_model.CalcCommitStatus(targetStatuses).State
 
 			// If required rule not match any action, then it is pending
 			if targetStatus == "" {
