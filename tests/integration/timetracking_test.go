@@ -46,11 +46,12 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 	AssertHTMLElement(t, htmlDoc, ".issue-add-time", canTrackTime)
 
 	issueLink := path.Join(user, repo, "issues", issue)
-	req = NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "toggle"), map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-	})
+
 	if canTrackTime {
-		session.MakeRequest(t, req, http.StatusOK)
+		reqStart := NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "start"), map[string]string{
+			"_csrf": htmlDoc.GetCSRF(),
+		})
+		session.MakeRequest(t, reqStart, http.StatusOK)
 
 		req = NewRequest(t, "GET", issueLink)
 		resp = session.MakeRequest(t, req, http.StatusOK)
@@ -65,10 +66,10 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 		// Sleep for 1 second to not get wrong order for stopping timer
 		time.Sleep(time.Second)
 
-		req = NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "toggle"), map[string]string{
+		reqStop := NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "stop"), map[string]string{
 			"_csrf": htmlDoc.GetCSRF(),
 		})
-		session.MakeRequest(t, req, http.StatusOK)
+		session.MakeRequest(t, reqStop, http.StatusOK)
 
 		req = NewRequest(t, "GET", issueLink)
 		resp = session.MakeRequest(t, req, http.StatusOK)
@@ -77,6 +78,9 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 		events = htmlDoc.doc.Find(".event > span.text")
 		assert.Contains(t, events.Last().Text(), "worked for ")
 	} else {
-		session.MakeRequest(t, req, http.StatusNotFound)
+		reqStart := NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "start"), map[string]string{
+			"_csrf": htmlDoc.GetCSRF(),
+		})
+		session.MakeRequest(t, reqStart, http.StatusNotFound)
 	}
 }

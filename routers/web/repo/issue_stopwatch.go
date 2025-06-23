@@ -10,17 +10,11 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-// IssueStopwatch creates or stops a stopwatch for the given issue.
-func IssueStopwatch(c *context.Context) {
+// IssueStartStopwatch creates a stopwatch for the given issue.
+func IssueStartStopwatch(c *context.Context) {
 	issue := GetActionIssue(c)
 	if c.Written() {
 		return
-	}
-
-	var showSuccessMessage bool
-
-	if !issues_model.StopwatchExists(c, c.Doer.ID, issue.ID) {
-		showSuccessMessage = true
 	}
 
 	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
@@ -28,13 +22,37 @@ func IssueStopwatch(c *context.Context) {
 		return
 	}
 
-	if err := issues_model.CreateOrStopIssueStopwatch(c, c.Doer, issue); err != nil {
-		c.ServerError("CreateOrStopIssueStopwatch", err)
+	if err := issues_model.CreateIssueStopwatch(c, c.Doer, issue); err != nil {
+		c.ServerError("CreateIssueStopwatch", err)
 		return
 	}
 
-	if showSuccessMessage {
-		c.Flash.Success(c.Tr("repo.issues.tracker_auto_close"))
+	c.Flash.Success(c.Tr("repo.issues.tracker_auto_close"))
+
+	c.JSONRedirect("")
+}
+
+// IssueStopStopwatch stops a stopwatch for the given issue.
+func IssueStopStopwatch(c *context.Context) {
+	issue := GetActionIssue(c)
+	if c.Written() {
+		return
+	}
+
+	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
+		c.NotFound(nil)
+		return
+	}
+
+	wasRunning := issues_model.StopwatchExists(c, c.Doer.ID, issue.ID)
+
+	if wasRunning {
+		if err := issues_model.FinishIssueStopwatch(c, c.Doer, issue); err != nil {
+			c.ServerError("FinishIssueStopwatch", err)
+			return
+		}
+	} else {
+		c.Flash.Warning(c.Tr("repo.issues.tracker_already_stopped"))
 	}
 
 	c.JSONRedirect("")
