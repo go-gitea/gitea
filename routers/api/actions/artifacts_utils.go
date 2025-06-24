@@ -26,7 +26,7 @@ var invalidArtifactNameChars = strings.Join([]string{"\\", "/", "\"", ":", "<", 
 func validateArtifactName(ctx *ArtifactContext, artifactName string) bool {
 	if strings.ContainsAny(artifactName, invalidArtifactNameChars) {
 		log.Error("Error checking artifact name contains invalid character")
-		ctx.Error(http.StatusBadRequest, "Error checking artifact name contains invalid character")
+		ctx.HTTPError(http.StatusBadRequest, "Error checking artifact name contains invalid character")
 		return false
 	}
 	return true
@@ -37,7 +37,7 @@ func validateRunID(ctx *ArtifactContext) (*actions.ActionTask, int64, bool) {
 	runID := ctx.PathParamInt64("run_id")
 	if task.Job.RunID != runID {
 		log.Error("Error runID not match")
-		ctx.Error(http.StatusBadRequest, "run-id does not match")
+		ctx.HTTPError(http.StatusBadRequest, "run-id does not match")
 		return nil, 0, false
 	}
 	return task, runID, true
@@ -48,7 +48,7 @@ func validateRunIDV4(ctx *ArtifactContext, rawRunID string) (*actions.ActionTask
 	runID, err := strconv.ParseInt(rawRunID, 10, 64)
 	if err != nil || task.Job.RunID != runID {
 		log.Error("Error runID not match")
-		ctx.Error(http.StatusBadRequest, "run-id does not match")
+		ctx.HTTPError(http.StatusBadRequest, "run-id does not match")
 		return nil, 0, false
 	}
 	return task, runID, true
@@ -62,7 +62,7 @@ func validateArtifactHash(ctx *ArtifactContext, artifactName string) bool {
 		return true
 	}
 	log.Error("Invalid artifact hash: %s", paramHash)
-	ctx.Error(http.StatusBadRequest, "Invalid artifact hash")
+	ctx.HTTPError(http.StatusBadRequest, "Invalid artifact hash")
 	return false
 }
 

@@ -6,9 +6,9 @@ package org
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -30,7 +30,7 @@ func TestDeleteOrganization(t *testing.T) {
 	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	err := DeleteOrganization(db.DefaultContext, org, false)
 	assert.Error(t, err)
-	assert.True(t, models.IsErrUserOwnRepos(err))
+	assert.True(t, repo_model.IsErrUserOwnRepos(err))
 
 	user := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 5})
 	assert.Error(t, DeleteOrganization(db.DefaultContext, user, false))

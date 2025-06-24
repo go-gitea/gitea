@@ -1,19 +1,17 @@
-import {hideElem, showElem} from '../utils/dom.ts';
+import {hideElem, showElem, type DOMEvent} from '../utils/dom.ts';
 import {GET, POST} from '../modules/fetch.ts';
-
-const {appSubUrl} = window.config;
 
 export function initRepoMigrationStatusChecker() {
   const repoMigrating = document.querySelector('#repo_migrating');
   if (!repoMigrating) return;
 
-  document.querySelector('#repo_migrating_retry').addEventListener('click', doMigrationRetry);
+  document.querySelector<HTMLButtonElement>('#repo_migrating_retry')?.addEventListener('click', doMigrationRetry);
 
-  const task = repoMigrating.getAttribute('data-migrating-task-id');
+  const repoLink = repoMigrating.getAttribute('data-migrating-repo-link');
 
   // returns true if the refresh still needs to be called after a while
   const refresh = async () => {
-    const res = await GET(`${appSubUrl}/user/task/${task}`);
+    const res = await GET(`${repoLink}/-/migrate/status`);
     if (res.status !== 200) return true; // continue to refresh if network error occurs
 
     const data = await res.json();
@@ -57,7 +55,7 @@ export function initRepoMigrationStatusChecker() {
   syncTaskStatus(); // no await
 }
 
-async function doMigrationRetry(e) {
+async function doMigrationRetry(e: DOMEvent<MouseEvent>) {
   await POST(e.target.getAttribute('data-migrating-task-retry-url'));
   window.location.reload();
 }

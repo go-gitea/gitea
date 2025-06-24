@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -20,8 +19,10 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/lfstransfer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
@@ -32,11 +33,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/kballard/go-shellquote"
-	"github.com/urfave/cli/v2"
-)
-
-const (
-	lfsAuthenticateVerb = "git-lfs-authenticate"
+	"github.com/urfave/cli/v3"
 )
 
 // CmdServ represents the available serv sub-command.
@@ -72,16 +69,6 @@ func setup(ctx context.Context, debug bool) {
 	}
 }
 
-var (
-	allowedCommands = map[string]perm.AccessMode{
-		"git-upload-pack":    perm.AccessModeRead,
-		"git-upload-archive": perm.AccessModeRead,
-		"git-receive-pack":   perm.AccessModeWrite,
-		lfsAuthenticateVerb:  perm.AccessModeNone,
-	}
-	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
-)
-
 // fail prints message to stdout, it's mainly used for git serv and git hook commands.
 // The output will be passed to git client and shown to user.
 func fail(ctx context.Context, userMessage, logMsgFmt string, args ...any) error {
@@ -92,19 +79,20 @@ func fail(ctx context.Context, userMessage, logMsgFmt string, args ...any) error
 	// There appears to be a chance to cause a zombie process and failure to read the Exit status
 	// if nothing is outputted on stdout.
 	_, _ = fmt.Fprintln(os.Stdout, "")
-	_, _ = fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
+	// add extra empty lines to separate our message from other git errors to get more attention
+	_, _ = fmt.Fprintln(os.Stderr, "error:")
+	_, _ = fmt.Fprintln(os.Stderr, "error:", userMessage)
+	_, _ = fmt.Fprintln(os.Stderr, "error:")
 
 	if logMsgFmt != "" {
 		logMsg := fmt.Sprintf(logMsgFmt, args...)
 		if !setting.IsProd {
 			_, _ = fmt.Fprintln(os.Stderr, "Gitea:", logMsg)
 		}
-		if userMessage != "" {
-			if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
-				logMsg = userMessage + " " + logMsg
-			} else {
-				logMsg = userMessage + ". " + logMsg
-			}
+		if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
+			logMsg = userMessage + " " + logMsg
+		} else {
+			logMsg = userMessage + ". " + logMsg
 		}
 		_ = private.SSHLog(ctx, true, logMsg)
 	}
@@ -124,10 +112,47 @@ func handleCliResponseExtra(extra private.ResponseExtra) error {
 	return nil
 }
 
-func runServ(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
+func getAccessMode(verb, lfsVerb string) perm.AccessMode {
+	switch verb {
+	case git.CmdVerbUploadPack, git.CmdVerbUploadArchive:
+		return perm.AccessModeRead
+	case git.CmdVerbReceivePack:
+		return perm.AccessModeWrite
+	case git.CmdVerbLfsAuthenticate, git.CmdVerbLfsTransfer:
+		switch lfsVerb {
+		case git.CmdSubVerbLfsUpload:
+			return perm.AccessModeWrite
+		case git.CmdSubVerbLfsDownload:
+			return perm.AccessModeRead
+		}
+	}
+	// should be unreachable
+	setting.PanicInDevOrTesting("unknown verb: %s %s", verb, lfsVerb)
+	return perm.AccessModeNone
+}
 
+func getLFSAuthToken(ctx context.Context, lfsVerb string, results *private.ServCommandResults) (string, error) {
+	now := time.Now()
+	claims := lfs.Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
+			NotBefore: jwt.NewNumericDate(now),
+		},
+		RepoID: results.RepoID,
+		Op:     lfsVerb,
+		UserID: results.UserID,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
+	if err != nil {
+		return "", fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
+	}
+	return "Bearer " + tokenString, nil
+}
+
+func runServ(ctx context.Context, c *cli.Command) error {
 	// FIXME: This needs to internationalised
 	setup(ctx, c.Bool("debug"))
 
@@ -142,6 +167,12 @@ func runServ(c *cli.Context) error {
 		}
 		return nil
 	}
+
+	defer func() {
+		if err := recover(); err != nil {
+			_ = fail(ctx, "Internal Server Error", "Panic: %v\n%s", err, log.Stack(2))
+		}
+	}()
 
 	keys := strings.Split(c.Args().First(), "-")
 	if len(keys) != 2 || keys[0] != "key" {
@@ -172,53 +203,37 @@ func runServ(c *cli.Context) error {
 		log.Debug("SSH_ORIGINAL_COMMAND: %s", os.Getenv("SSH_ORIGINAL_COMMAND"))
 	}
 
-	words, err := shellquote.Split(cmd)
+	sshCmdArgs, err := shellquote.Split(cmd)
 	if err != nil {
 		return fail(ctx, "Error parsing arguments", "Failed to parse arguments: %v", err)
 	}
 
-	if len(words) < 2 {
+	if len(sshCmdArgs) < 2 {
 		if git.DefaultFeatures().SupportProcReceive {
 			// for AGit Flow
 			if cmd == "ssh_info" {
-				fmt.Print(`{"type":"gitea","version":1}`)
+				fmt.Print(`{"type":"agit","version":1}`)
 				return nil
 			}
 		}
 		return fail(ctx, "Too few arguments", "Too few arguments in cmd: %s", cmd)
 	}
 
-	verb := words[0]
-	repoPath := words[1]
-	if repoPath[0] == '/' {
-		repoPath = repoPath[1:]
-	}
-
-	var lfsVerb string
-	if verb == lfsAuthenticateVerb {
-		if !setting.LFS.StartServer {
-			return fail(ctx, "Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
-		}
-
-		if len(words) > 2 {
-			lfsVerb = words[2]
-		}
-	}
-
-	rr := strings.SplitN(repoPath, "/", 2)
-	if len(rr) != 2 {
+	repoPath := strings.TrimPrefix(sshCmdArgs[1], "/")
+	repoPathFields := strings.SplitN(repoPath, "/", 2)
+	if len(repoPathFields) != 2 {
 		return fail(ctx, "Invalid repository path", "Invalid repository path: %v", repoPath)
 	}
 
-	username := rr[0]
-	reponame := strings.TrimSuffix(rr[1], ".git")
+	username := repoPathFields[0]
+	reponame := strings.TrimSuffix(repoPathFields[1], ".git") // “the-repo-name" or "the-repo-name.wiki"
 
 	// LowerCase and trim the repoPath as that's how they are stored.
 	// This should be done after splitting the repoPath into username and reponame
 	// so that username and reponame are not affected.
 	repoPath = strings.ToLower(strings.TrimSpace(repoPath))
 
-	if alphaDashDotPattern.MatchString(reponame) {
+	if !repo.IsValidSSHAccessRepoName(reponame) {
 		return fail(ctx, "Invalid repo name", "Invalid repo name: %s", reponame)
 	}
 
@@ -240,53 +255,53 @@ func runServ(c *cli.Context) error {
 		}()
 	}
 
-	requestedMode, has := allowedCommands[verb]
-	if !has {
+	verb, lfsVerb := sshCmdArgs[0], ""
+	if !git.IsAllowedVerbForServe(verb) {
 		return fail(ctx, "Unknown git command", "Unknown git command %s", verb)
 	}
 
-	if verb == lfsAuthenticateVerb {
-		if lfsVerb == "upload" {
-			requestedMode = perm.AccessModeWrite
-		} else if lfsVerb == "download" {
-			requestedMode = perm.AccessModeRead
-		} else {
-			return fail(ctx, "Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
+	if git.IsAllowedVerbForServeLfs(verb) {
+		if !setting.LFS.StartServer {
+			return fail(ctx, "LFS Server is not enabled", "")
+		}
+		if verb == git.CmdVerbLfsTransfer && !setting.LFS.AllowPureSSH {
+			return fail(ctx, "LFS SSH transfer is not enabled", "")
+		}
+		if len(sshCmdArgs) > 2 {
+			lfsVerb = sshCmdArgs[2]
 		}
 	}
+
+	requestedMode := getAccessMode(verb, lfsVerb)
 
 	results, extra := private.ServCommand(ctx, keyID, username, reponame, requestedMode, verb, lfsVerb)
 	if extra.HasError() {
 		return fail(ctx, extra.UserMsg, "ServCommand failed: %s", extra.Error)
 	}
 
+	// LFS SSH protocol
+	if verb == git.CmdVerbLfsTransfer {
+		token, err := getLFSAuthToken(ctx, lfsVerb, results)
+		if err != nil {
+			return err
+		}
+		return lfstransfer.Main(ctx, repoPath, lfsVerb, token)
+	}
+
 	// LFS token authentication
-	if verb == lfsAuthenticateVerb {
+	if verb == git.CmdVerbLfsAuthenticate {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
-		now := time.Now()
-		claims := lfs.Claims{
-			RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
-				NotBefore: jwt.NewNumericDate(now),
-			},
-			RepoID: results.RepoID,
-			Op:     lfsVerb,
-			UserID: results.UserID,
-		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-		// Sign and get the complete encoded token as a string using the secret
-		tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
+		token, err := getLFSAuthToken(ctx, lfsVerb, results)
 		if err != nil {
-			return fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
+			return err
 		}
 
 		tokenAuthentication := &git_model.LFSTokenResponse{
 			Header: make(map[string]string),
 			Href:   url,
 		}
-		tokenAuthentication.Header["Authorization"] = fmt.Sprintf("Bearer %s", tokenString)
+		tokenAuthentication.Header["Authorization"] = token
 
 		enc := json.NewEncoder(os.Stdout)
 		err = enc.Encode(tokenAuthentication)
@@ -327,9 +342,9 @@ func runServ(c *cli.Context) error {
 		repo_module.EnvPusherEmail+"="+results.UserEmail,
 		repo_module.EnvPusherID+"="+strconv.FormatInt(results.UserID, 10),
 		repo_module.EnvRepoID+"="+strconv.FormatInt(results.RepoID, 10),
-		repo_module.EnvPRID+"="+fmt.Sprintf("%d", 0),
-		repo_module.EnvDeployKeyID+"="+fmt.Sprintf("%d", results.DeployKeyID),
-		repo_module.EnvKeyID+"="+fmt.Sprintf("%d", results.KeyID),
+		repo_module.EnvPRID+"="+strconv.Itoa(0),
+		repo_module.EnvDeployKeyID+"="+strconv.FormatInt(results.DeployKeyID, 10),
+		repo_module.EnvKeyID+"="+strconv.FormatInt(results.KeyID, 10),
 		repo_module.EnvAppURL+"="+setting.AppURL,
 	)
 	// to avoid breaking, here only use the minimal environment variables for the "gitea serv" command.

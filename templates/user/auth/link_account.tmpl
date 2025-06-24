@@ -16,13 +16,18 @@
 		</div>
 	</overflow-menu>
 	<div class="ui middle very relaxed page grid">
-		<div class="column">
+		<div class="column tw-my-5">
+			{{/* these styles are quite tricky but it needs to be the same as the signin page */}}
 			<div class="ui tab {{if not .user_exists}}active{{end}}" data-tab="auth-link-signup-tab">
+				<div class="tw-flex tw-flex-col tw-gap-4 tw-max-w-2xl tw-m-auto">
 				{{if .AutoRegistrationFailedPrompt}}<div class="ui message">{{.AutoRegistrationFailedPrompt}}</div>{{end}}
 				{{template "user/auth/signup_inner" .}}
+				</div>
 			</div>
 			<div class="ui tab {{if .user_exists}}active{{end}}" data-tab="auth-link-signin-tab">
+				<div class="tw-flex tw-flex-col tw-gap-4 tw-max-w-2xl tw-m-auto">
 				{{template "user/auth/signin_inner" .}}
+				</div>
 			</div>
 		</div>
 	</div>

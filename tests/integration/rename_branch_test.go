@@ -11,7 +11,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	gitea_context "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -54,7 +53,7 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 	assert.Equal(t, "main", repo1.DefaultBranch)
 
 	// create branch1
-	csrf := GetCSRF(t, session, "/user2/repo1/src/branch/main")
+	csrf := GetUserCSRFToken(t, session)
 
 	req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/_new/branch/main", map[string]string{
 		"_csrf":           csrf,
@@ -82,9 +81,8 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 		"to":    "branch1",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
-	flashCookie := session.GetCookie(gitea_context.CookieNameFlash)
-	assert.NotNil(t, flashCookie)
-	assert.Contains(t, flashCookie.Value, "error")
+	flashMsg := session.GetCookieFlashMessage()
+	assert.NotEmpty(t, flashMsg.ErrorMsg)
 
 	branch2 = unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo1.ID, Name: "branch2"})
 	assert.Equal(t, "branch2", branch2.Name)
@@ -110,9 +108,8 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
-	flashCookie = session.GetCookie(gitea_context.CookieNameFlash)
-	assert.NotNil(t, flashCookie)
-	assert.Contains(t, flashCookie.Value, "success")
+	flashMsg = session.GetCookieFlashMessage()
+	assert.NotEmpty(t, flashMsg.SuccessMsg)
 
 	unittest.AssertNotExistsBean(t, &git_model.Branch{RepoID: repo1.ID, Name: "branch2"})
 	branch1 = unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo1.ID, Name: "branch1"})

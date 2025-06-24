@@ -41,8 +41,11 @@ func (repo *Repository) GetTagType(id ObjectID) (string, error) {
 		return "", err
 	}
 	_, typ, _, err := ReadBatchLine(rd)
-	if IsErrNotExist(err) {
-		return "", ErrNotExist{ID: id.String()}
+	if err != nil {
+		if IsErrNotExist(err) {
+			return "", ErrNotExist{ID: id.String()}
+		}
+		return "", err
 	}
 	return typ, nil
 }
@@ -51,7 +54,7 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	t, ok := repo.tagCache.Get(tagID.String())
 	if ok {
 		log.Debug("Hit cache: %s", tagID)
-		tagClone := *t.(*Tag)
+		tagClone := *t
 		tagClone.Name = name // This is necessary because lightweight tags may have same id
 		return &tagClone, nil
 	}

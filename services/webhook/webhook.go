@@ -27,16 +27,12 @@ import (
 	"github.com/gobwas/glob"
 )
 
-var webhookRequesters = map[webhook_module.HookType]func(context.Context, *webhook_model.Webhook, *webhook_model.HookTask) (req *http.Request, body []byte, err error){
-	webhook_module.SLACK:      newSlackRequest,
-	webhook_module.DISCORD:    newDiscordRequest,
-	webhook_module.DINGTALK:   newDingtalkRequest,
-	webhook_module.TELEGRAM:   newTelegramRequest,
-	webhook_module.MSTEAMS:    newMSTeamsRequest,
-	webhook_module.FEISHU:     newFeishuRequest,
-	webhook_module.MATRIX:     newMatrixRequest,
-	webhook_module.WECHATWORK: newWechatworkRequest,
-	webhook_module.PACKAGIST:  newPackagistRequest,
+type Requester func(context.Context, *webhook_model.Webhook, *webhook_model.HookTask) (req *http.Request, body []byte, err error)
+
+var webhookRequesters = map[webhook_module.HookType]Requester{}
+
+func RegisterWebhookRequester(hookType webhook_module.HookType, requester Requester) {
+	webhookRequesters[hookType] = requester
 }
 
 // IsValidHookTaskType returns true if a webhook registered
@@ -137,14 +133,8 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		return nil
 	}
 
-	for _, e := range w.EventCheckers() {
-		if event == e.Type {
-			if !e.Has() {
-				return nil
-			}
-
-			break
-		}
+	if !w.HasEvent(event) {
+		return nil
 	}
 
 	// Avoid sending "0 new commits" to non-integration relevant webhooks (e.g. slack, discord, etc.).

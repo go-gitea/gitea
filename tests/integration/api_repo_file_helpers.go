@@ -6,7 +6,6 @@ package integration
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -48,7 +47,7 @@ func deleteFileInBranch(user *user_model.User, repo *repo_model.Repository, tree
 func createOrReplaceFileInBranch(user *user_model.User, repo *repo_model.Repository, treePath, branchName, content string) error {
 	_, err := deleteFileInBranch(user, repo, treePath, branchName)
 
-	if err != nil && !models.IsErrRepoFileDoesNotExist(err) {
+	if err != nil && !files_service.IsErrRepoFileDoesNotExist(err) {
 		return err
 	}
 

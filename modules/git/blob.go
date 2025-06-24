@@ -7,6 +7,7 @@ package git
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"io"
 
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -34,8 +35,9 @@ func (b *Blob) GetBlobContent(limit int64) (string, error) {
 	return string(buf), err
 }
 
-// GetBlobLineCount gets line count of the blob
-func (b *Blob) GetBlobLineCount() (int, error) {
+// GetBlobLineCount gets line count of the blob.
+// It will also try to write the content to w if it's not nil, then we could pre-fetch the content without reading it again.
+func (b *Blob) GetBlobLineCount(w io.Writer) (int, error) {
 	reader, err := b.DataAsync()
 	if err != nil {
 		return 0, err
@@ -44,20 +46,20 @@ func (b *Blob) GetBlobLineCount() (int, error) {
 	buf := make([]byte, 32*1024)
 	count := 1
 	lineSep := []byte{'\n'}
-
-	c, err := reader.Read(buf)
-	if c == 0 && err == io.EOF {
-		return 0, nil
-	}
 	for {
+		c, err := reader.Read(buf)
+		if w != nil {
+			if _, err := w.Write(buf[:c]); err != nil {
+				return count, err
+			}
+		}
 		count += bytes.Count(buf[:c], lineSep)
 		switch {
-		case err == io.EOF:
+		case errors.Is(err, io.EOF):
 			return count, nil
 		case err != nil:
 			return count, err
 		}
-		c, err = reader.Read(buf)
 	}
 }
 

@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"crypto/subtle"
+	"errors"
 	"fmt"
 	"time"
 
@@ -298,7 +299,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if len(workflowJob.Steps) > 0 {
 		steps := make([]*ActionTaskStep, len(workflowJob.Steps))
 		for i, v := range workflowJob.Steps {
-			name, _ := util.SplitStringAtByteN(v.String(), 255)
+			name := util.EllipsisDisplayString(v.String(), 255)
 			steps[i] = &ActionTaskStep{
 				Name:   name,
 				TaskID: task.ID,
@@ -335,13 +336,18 @@ func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 		sess.Cols(cols...)
 	}
 	_, err := sess.Update(task)
+
+	// Automatically delete the ephemeral runner if the task is done
+	if err == nil && task.Status.IsDone() && util.SliceContainsString(cols, "status") {
+		return DeleteEphemeralRunner(ctx, task.RunnerID)
+	}
 	return err
 }
 
 // UpdateTaskByState updates the task by the state.
 // It will always update the task if the state is not final, even there is no change.
 // So it will update ActionTask.Updated to avoid the task being judged as a zombie task.
-func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionTask, error) {
+func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.TaskState) (*ActionTask, error) {
 	stepStates := map[int64]*runnerv1.StepState{}
 	for _, v := range state.Steps {
 		stepStates[v.Id] = v
@@ -360,6 +366,8 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 		return nil, err
 	} else if !has {
 		return nil, util.ErrNotExist
+	} else if runnerID != task.RunnerID {
+		return nil, errors.New("invalid runner for task")
 	}
 
 	if task.Status.IsDone() {

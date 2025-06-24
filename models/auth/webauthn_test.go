@@ -44,7 +44,7 @@ func TestWebAuthnCredential_UpdateSignCount(t *testing.T) {
 	cred := unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: 1})
 	cred.SignCount = 1
 	assert.NoError(t, cred.UpdateSignCount(db.DefaultContext))
-	unittest.AssertExistsIf(t, true, &auth_model.WebAuthnCredential{ID: 1, SignCount: 1})
+	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: 1, SignCount: 1})
 }
 
 func TestWebAuthnCredential_UpdateLargeCounter(t *testing.T) {
@@ -52,7 +52,7 @@ func TestWebAuthnCredential_UpdateLargeCounter(t *testing.T) {
 	cred := unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: 1})
 	cred.SignCount = 0xffffffff
 	assert.NoError(t, cred.UpdateSignCount(db.DefaultContext))
-	unittest.AssertExistsIf(t, true, &auth_model.WebAuthnCredential{ID: 1, SignCount: 0xffffffff})
+	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: 1, SignCount: 0xffffffff})
 }
 
 func TestCreateCredential(t *testing.T) {
@@ -63,5 +63,5 @@ func TestCreateCredential(t *testing.T) {
 	assert.Equal(t, "WebAuthn Created Credential", res.Name)
 	assert.Equal(t, []byte("Test"), res.CredentialID)
 
-	unittest.AssertExistsIf(t, true, &auth_model.WebAuthnCredential{Name: "WebAuthn Created Credential", UserID: 1})
+	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{Name: "WebAuthn Created Credential", UserID: 1})
 }

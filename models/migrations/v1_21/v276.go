@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 )
@@ -163,13 +164,15 @@ func migratePushMirrors(x *xorm.Engine) error {
 
 func getRemoteAddress(ownerName, repoName, remoteName string) (string, error) {
 	repoPath := filepath.Join(setting.RepoRootPath, strings.ToLower(ownerName), strings.ToLower(repoName)+".git")
-
+	if exist, _ := util.IsExist(repoPath); !exist {
+		return "", nil
+	}
 	remoteURL, err := git.GetRemoteAddress(context.Background(), repoPath, remoteName)
 	if err != nil {
 		return "", fmt.Errorf("get remote %s's address of %s/%s failed: %v", remoteName, ownerName, repoName, err)
 	}
 
-	u, err := giturl.Parse(remoteURL)
+	u, err := giturl.ParseGitURL(remoteURL)
 	if err != nil {
 		return "", err
 	}

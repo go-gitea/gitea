@@ -7,11 +7,14 @@ import (
 	"context"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestReadingBlameOutput(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	setting.AppDataPath = t.TempDir()
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	t.Run("Without .git-blame-ignore-revs", func(t *testing.T) {

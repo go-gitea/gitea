@@ -4,6 +4,8 @@
 package cache
 
 import (
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -22,7 +24,7 @@ func Init() error {
 		if err != nil {
 			return err
 		}
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			if err = c.Ping(); err == nil {
 				break
 			}
@@ -37,16 +39,21 @@ func Init() error {
 }
 
 const (
-	testCacheKey       = "DefaultCache.TestKey"
-	SlowCacheThreshold = 100 * time.Microsecond
+	testCacheKey = "DefaultCache.TestKey"
+	// SlowCacheThreshold marks cache tests as slow
+	// set to 30ms per discussion: https://github.com/go-gitea/gitea/issues/33190
+	// TODO: Replace with metrics histogram
+	SlowCacheThreshold = 30 * time.Millisecond
 )
 
+// Test performs delete, put and get operations on a predefined key
+// returns
 func Test() (time.Duration, error) {
 	if defaultCache == nil {
-		return 0, fmt.Errorf("default cache not initialized")
+		return 0, errors.New("default cache not initialized")
 	}
 
-	testData := fmt.Sprintf("%x", make([]byte, 500))
+	testData := hex.EncodeToString(make([]byte, 500))
 
 	start := time.Now()
 
@@ -58,10 +65,10 @@ func Test() (time.Duration, error) {
 	}
 	testVal, hit := defaultCache.Get(testCacheKey)
 	if !hit {
-		return 0, fmt.Errorf("expect cache hit but got none")
+		return 0, errors.New("expect cache hit but got none")
 	}
 	if testVal != testData {
-		return 0, fmt.Errorf("expect cache to return same value as stored but got other")
+		return 0, errors.New("expect cache to return same value as stored but got other")
 	}
 
 	return time.Since(start), nil

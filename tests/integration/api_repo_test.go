@@ -37,7 +37,7 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 		unittest.Cond("is_private = ?", false))
 	assert.Len(t, apiRepos, expectedLen)
 	for _, repo := range apiRepos {
-		assert.EqualValues(t, user.ID, repo.Owner.ID)
+		assert.Equal(t, user.ID, repo.Owner.ID)
 		assert.False(t, repo.Private)
 	}
 }
@@ -45,7 +45,7 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 func TestAPIUserReposWithWrongToken(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	wrongToken := fmt.Sprintf("Bearer %s", "wrong_token")
+	wrongToken := "Bearer " + "wrong_token"
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name).
 		AddTokenAuth(wrongToken)
 	resp := MakeRequest(t, req, http.StatusUnauthorized)
@@ -94,9 +94,9 @@ func TestAPISearchRepo(t *testing.T) {
 	}{
 		{
 			name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-				nil:   {count: 35},
-				user:  {count: 35},
-				user2: {count: 35},
+				nil:   {count: 36},
+				user:  {count: 36},
+				user2: {count: 36},
 			},
 		},
 		{
@@ -266,25 +266,25 @@ func TestAPIViewRepo(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &repo)
 	assert.EqualValues(t, 1, repo.ID)
-	assert.EqualValues(t, "repo1", repo.Name)
-	assert.EqualValues(t, 2, repo.Releases)
-	assert.EqualValues(t, 1, repo.OpenIssues)
-	assert.EqualValues(t, 3, repo.OpenPulls)
+	assert.Equal(t, "repo1", repo.Name)
+	assert.Equal(t, 2, repo.Releases)
+	assert.Equal(t, 1, repo.OpenIssues)
+	assert.Equal(t, 3, repo.OpenPulls)
 
 	req = NewRequest(t, "GET", "/api/v1/repos/user12/repo10")
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &repo)
 	assert.EqualValues(t, 10, repo.ID)
-	assert.EqualValues(t, "repo10", repo.Name)
-	assert.EqualValues(t, 1, repo.OpenPulls)
-	assert.EqualValues(t, 1, repo.Forks)
+	assert.Equal(t, "repo10", repo.Name)
+	assert.Equal(t, 1, repo.OpenPulls)
+	assert.Equal(t, 1, repo.Forks)
 
 	req = NewRequest(t, "GET", "/api/v1/repos/user5/repo4")
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &repo)
 	assert.EqualValues(t, 4, repo.ID)
-	assert.EqualValues(t, "repo4", repo.Name)
-	assert.EqualValues(t, 1, repo.Stars)
+	assert.Equal(t, "repo4", repo.Name)
+	assert.Equal(t, 1, repo.Stars)
 }
 
 func TestAPIOrgRepos(t *testing.T) {
@@ -337,9 +337,9 @@ func TestAPIOrgReposWithCodeUnitDisabled(t *testing.T) {
 	var units []unit_model.Type
 	units = append(units, unit_model.TypeCode)
 
-	if err := repo_service.UpdateRepositoryUnits(db.DefaultContext, repo21, nil, units); err != nil {
-		assert.Fail(t, "should have been able to delete code repository unit; failed to %v", err)
-	}
+	err := repo_service.UpdateRepositoryUnits(db.DefaultContext, repo21, nil, units)
+	assert.NoError(t, err, "should have been able to delete code repository unit")
+
 	assert.False(t, repo21.UnitEnabled(db.DefaultContext, unit_model.TypeCode))
 
 	session := loginUser(t, "user2")
@@ -403,12 +403,12 @@ func TestAPIRepoMigrate(t *testing.T) {
 			case "Remote visit addressed rate limitation.":
 				t.Log("test hit github rate limitation")
 			case "You can not import from disallowed hosts.":
-				assert.EqualValues(t, "private-ip", testCase.repoName)
+				assert.Equal(t, "private-ip", testCase.repoName)
 			default:
-				assert.FailNow(t, "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
+				assert.FailNow(t, "unexpected error", "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
 			}
 		} else {
-			assert.EqualValues(t, testCase.expectedStatus, resp.Code)
+			assert.Equal(t, testCase.expectedStatus, resp.Code)
 		}
 	}
 }
@@ -471,6 +471,15 @@ func TestAPIMirrorSyncNonMirrorRepo(t *testing.T) {
 	assert.Equal(t, "Repository is not a mirror", errRespJSON["message"])
 }
 
+func testAPIOrgCreateRepo(t *testing.T, session *TestSession, orgName, repoName string, status int) {
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/org/%s/repos", orgName), &api.CreateRepoOption{
+		Name: repoName,
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, status)
+}
+
 func TestAPIOrgRepoCreate(t *testing.T) {
 	testCases := []struct {
 		ctxUserID         int64
@@ -488,11 +497,7 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 	for _, testCase := range testCases {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID})
 		session := loginUser(t, user.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/org/%s/repos", testCase.orgName), &api.CreateRepoOption{
-			Name: testCase.repoName,
-		}).AddTokenAuth(token)
-		MakeRequest(t, req, testCase.expectedStatus)
+		testAPIOrgCreateRepo(t, session, testCase.orgName, testCase.repoName, testCase.expectedStatus)
 	}
 }
 
@@ -581,7 +586,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 
 	// cleanup
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-	_ = repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, repo.ID)
+	_ = repo_service.DeleteRepositoryDirectly(db.DefaultContext, repo.ID)
 }
 
 func transfer(t *testing.T) *repo_model.Repository {
@@ -718,8 +723,8 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	var reviewers []*api.User
 	DecodeJSON(t, resp, &reviewers)
-	if assert.Len(t, reviewers, 3) {
-		assert.ElementsMatch(t, []int64{1, 4, 11}, []int64{reviewers[0].ID, reviewers[1].ID, reviewers[2].ID})
+	if assert.Len(t, reviewers, 1) {
+		assert.ElementsMatch(t, []int64{2}, []int64{reviewers[0].ID})
 	}
 }
 
@@ -735,5 +740,5 @@ func TestAPIRepoGetAssignees(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	var assignees []*api.User
 	DecodeJSON(t, resp, &assignees)
-	assert.Len(t, assignees, 1)
+	assert.Len(t, assignees, 2)
 }

@@ -11,9 +11,9 @@ import (
 	"strings"
 	texttmpl "text/template"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}\s*$`)
@@ -24,7 +24,7 @@ func mailSubjectTextFuncMap() texttmpl.FuncMap {
 		"dict": dict,
 		"Eval": evalTokens,
 
-		"EllipsisString": base.EllipsisString,
+		"EllipsisString": util.EllipsisDisplayString,
 		"AppName": func() string {
 			return setting.AppName
 		},

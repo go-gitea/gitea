@@ -10,24 +10,21 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 )
 
 const (
-	tplPackagesList base.TplName = "admin/packages/list"
+	tplPackagesList templates.TplName = "admin/packages/list"
 )
 
 // Packages shows all packages
 func Packages(ctx *context.Context) {
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	query := ctx.FormTrim("q")
 	packageType := ctx.FormTrim("type")
 	sort := ctx.FormTrim("sort")
@@ -77,9 +74,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["TotalUnreferencedBlobSize"] = totalUnreferencedBlobSize
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamString("q", query)
-	pager.AddParamString("type", packageType)
-	pager.AddParamString("sort", sort)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)
@@ -99,7 +94,7 @@ func DeletePackageVersion(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
-	ctx.JSONRedirect(setting.AppSubURL + "/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")))
+	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")))
 }
 
 func CleanupExpiredData(ctx *context.Context) {
@@ -109,5 +104,5 @@ func CleanupExpiredData(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.packages.cleanup.success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/packages")
+	ctx.Redirect(setting.AppSubURL + "/-/admin/packages")
 }

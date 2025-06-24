@@ -1,12 +1,10 @@
 import {htmlEscape} from 'escape-goat';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 export async function initPdfViewer() {
-  const els = document.querySelectorAll('.pdf-content');
-  if (!els.length) return;
+  registerGlobalInitFunc('initPdfViewer', async (el: HTMLInputElement) => {
+    const pdfobject = await import(/* webpackChunkName: "pdfobject" */'pdfobject');
 
-  const pdfobject = await import(/* webpackChunkName: "pdfobject" */'pdfobject');
-
-  for (const el of els) {
     const src = el.getAttribute('data-src');
     const fallbackText = el.getAttribute('data-fallback-button-text');
     pdfobject.embed(src, el, {
@@ -15,5 +13,5 @@ export async function initPdfViewer() {
       `,
     });
     el.classList.remove('is-loading');
-  }
+  });
 }

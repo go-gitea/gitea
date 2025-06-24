@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -25,7 +26,8 @@ type Permission struct {
 	units     []*repo_model.RepoUnit
 	unitsMode map[unit.Type]perm_model.AccessMode
 
-	everyoneAccessMode map[unit.Type]perm_model.AccessMode
+	everyoneAccessMode  map[unit.Type]perm_model.AccessMode // the unit's minimal access mode for every signed-in user
+	anonymousAccessMode map[unit.Type]perm_model.AccessMode // the unit's minimal access mode for anonymous (non-signed-in) user
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -39,7 +41,7 @@ func (p *Permission) IsAdmin() bool {
 }
 
 // HasAnyUnitAccess returns true if the user might have at least one access mode to any unit of this repository.
-// It doesn't count the "everyone access mode".
+// It doesn't count the "public(anonymous/everyone) access mode".
 func (p *Permission) HasAnyUnitAccess() bool {
 	for _, v := range p.unitsMode {
 		if v >= perm_model.AccessModeRead {
@@ -49,13 +51,22 @@ func (p *Permission) HasAnyUnitAccess() bool {
 	return p.AccessMode >= perm_model.AccessModeRead
 }
 
-func (p *Permission) HasAnyUnitAccessOrEveryoneAccess() bool {
+func (p *Permission) HasAnyUnitPublicAccess() bool {
+	for _, v := range p.anonymousAccessMode {
+		if v >= perm_model.AccessModeRead {
+			return true
+		}
+	}
 	for _, v := range p.everyoneAccessMode {
 		if v >= perm_model.AccessModeRead {
 			return true
 		}
 	}
-	return p.HasAnyUnitAccess()
+	return false
+}
+
+func (p *Permission) HasAnyUnitAccessOrPublicAccess() bool {
+	return p.HasAnyUnitPublicAccess() || p.HasAnyUnitAccess()
 }
 
 // HasUnits returns true if the permission contains attached units
@@ -73,14 +84,16 @@ func (p *Permission) GetFirstUnitRepoID() int64 {
 }
 
 // UnitAccessMode returns current user access mode to the specify unit of the repository
-// It also considers "everyone access mode"
+// It also considers "public (anonymous/everyone) access mode"
 func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
 	// if the units map contains the access mode, use it, but admin/owner mode could override it
 	if m, ok := p.unitsMode[unitType]; ok {
 		return util.Iif(p.AccessMode >= perm_model.AccessModeAdmin, p.AccessMode, m)
 	}
 	// if the units map does not contain the access mode, return the default access mode if the unit exists
-	unitDefaultAccessMode := max(p.AccessMode, p.everyoneAccessMode[unitType])
+	unitDefaultAccessMode := p.AccessMode
+	unitDefaultAccessMode = max(unitDefaultAccessMode, p.anonymousAccessMode[unitType])
+	unitDefaultAccessMode = max(unitDefaultAccessMode, p.everyoneAccessMode[unitType])
 	hasUnit := slices.ContainsFunc(p.units, func(u *repo_model.RepoUnit) bool { return u.Type == unitType })
 	return util.Iif(hasUnit, unitDefaultAccessMode, perm_model.AccessModeNone)
 }
@@ -152,7 +165,7 @@ func (p *Permission) ReadableUnitTypes() []unit.Type {
 }
 
 func (p *Permission) LogString() string {
-	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): [ "
+	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): ["
 	args := []any{p.AccessMode.ToString(), len(p.units), len(p.unitsMode)}
 
 	for i, u := range p.units {
@@ -164,27 +177,77 @@ func (p *Permission) LogString() string {
 				config = err.Error()
 			}
 		}
-		format += "\nUnits[%d]: ID: %d RepoID: %d Type: %s Config: %s"
+		format += "\n\tunits[%d]: ID=%d RepoID=%d Type=%s Config=%s"
 		args = append(args, i, u.ID, u.RepoID, u.Type.LogString(), config)
 	}
 	for key, value := range p.unitsMode {
-		format += "\nUnitMode[%-v]: %-v"
+		format += "\n\tunitsMode[%-v]: %-v"
 		args = append(args, key.LogString(), value.LogString())
 	}
-	format += " ]>"
+	format += "\n\tanonymousAccessMode: %-v"
+	args = append(args, p.anonymousAccessMode)
+	format += "\n\teveryoneAccessMode: %-v"
+	args = append(args, p.everyoneAccessMode)
+	format += "\n\t]>"
 	return fmt.Sprintf(format, args...)
 }
 
-func applyEveryoneRepoPermission(user *user_model.User, perm *Permission) {
-	if user == nil || user.ID <= 0 {
+func applyPublicAccessPermission(unitType unit.Type, accessMode perm_model.AccessMode, modeMap *map[unit.Type]perm_model.AccessMode) {
+	if setting.Repository.ForcePrivate {
 		return
 	}
+	if accessMode >= perm_model.AccessModeRead && accessMode > (*modeMap)[unitType] {
+		if *modeMap == nil {
+			*modeMap = make(map[unit.Type]perm_model.AccessMode)
+		}
+		(*modeMap)[unitType] = accessMode
+	}
+}
+
+func finalProcessRepoUnitPermission(user *user_model.User, perm *Permission) {
+	// apply public (anonymous) access permissions
 	for _, u := range perm.units {
-		if u.EveryoneAccessMode >= perm_model.AccessModeRead && u.EveryoneAccessMode > perm.everyoneAccessMode[u.Type] {
-			if perm.everyoneAccessMode == nil {
-				perm.everyoneAccessMode = make(map[unit.Type]perm_model.AccessMode)
+		applyPublicAccessPermission(u.Type, u.AnonymousAccessMode, &perm.anonymousAccessMode)
+	}
+
+	if user == nil || user.ID <= 0 {
+		// for anonymous access, it could be:
+		// AccessMode is None or Read, units has repo units, unitModes is nil
+		return
+	}
+
+	// apply public (everyone) access permissions
+	for _, u := range perm.units {
+		applyPublicAccessPermission(u.Type, u.EveryoneAccessMode, &perm.everyoneAccessMode)
+	}
+
+	if perm.unitsMode == nil {
+		// if unitsMode is not set, then it means that the default p.AccessMode applies to all units
+		return
+	}
+
+	// remove no permission units
+	origPermUnits := perm.units
+	perm.units = make([]*repo_model.RepoUnit, 0, len(perm.units))
+	for _, u := range origPermUnits {
+		shouldKeep := false
+		for t := range perm.unitsMode {
+			if shouldKeep = u.Type == t; shouldKeep {
+				break
 			}
-			perm.everyoneAccessMode[u.Type] = u.EveryoneAccessMode
+		}
+		for t := range perm.anonymousAccessMode {
+			if shouldKeep = shouldKeep || u.Type == t; shouldKeep {
+				break
+			}
+		}
+		for t := range perm.everyoneAccessMode {
+			if shouldKeep = shouldKeep || u.Type == t; shouldKeep {
+				break
+			}
+		}
+		if shouldKeep {
+			perm.units = append(perm.units, u)
 		}
 	}
 }
@@ -193,11 +256,9 @@ func applyEveryoneRepoPermission(user *user_model.User, perm *Permission) {
 func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
 	defer func() {
 		if err == nil {
-			applyEveryoneRepoPermission(user, &perm)
+			finalProcessRepoUnitPermission(user, &perm)
 		}
-		if log.IsTrace() {
-			log.Trace("Permission Loaded for user %-v in repo %-v, permissions: %-+v", user, repo, perm)
-		}
+		log.Trace("Permission Loaded for user %-v in repo %-v, permissions: %-+v", user, repo, perm)
 	}()
 
 	if err = repo.LoadUnits(ctx); err != nil {
@@ -270,7 +331,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 
 	// if user in an owner team
 	for _, team := range teams {
-		if team.AccessMode >= perm_model.AccessModeAdmin {
+		if team.HasAdminAccess() {
 			perm.AccessMode = perm_model.AccessModeOwner
 			perm.unitsMode = nil
 			return perm, nil
@@ -290,16 +351,6 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		if !found && !repo.IsPrivate && !user.IsRestricted {
 			if _, ok := perm.unitsMode[u.Type]; !ok {
 				perm.unitsMode[u.Type] = perm_model.AccessModeRead
-			}
-		}
-	}
-
-	// remove no permission units
-	perm.units = make([]*repo_model.RepoUnit, 0, len(repo.Units))
-	for t := range perm.unitsMode {
-		for _, u := range repo.Units {
-			if u.Type == t {
-				perm.units = append(perm.units, u)
 			}
 		}
 	}
@@ -348,7 +399,7 @@ func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *use
 	}
 
 	for _, team := range teams {
-		if team.AccessMode >= perm_model.AccessModeAdmin {
+		if team.HasAdminAccess() {
 			return true, nil
 		}
 	}
@@ -470,4 +521,8 @@ func CheckRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *u
 	}
 
 	return perm.CanRead(unitType)
+}
+
+func PermissionNoAccess() Permission {
+	return Permission{AccessMode: perm_model.AccessModeNone}
 }

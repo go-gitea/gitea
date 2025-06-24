@@ -2,14 +2,13 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository projects view-project">
 	{{template "repo/header" .}}
 	<div class="ui container padded">
-		<div class="tw-flex tw-justify-between tw-items-center tw-mb-4">
-			{{template "repo/issue/navbar" .}}
+		<div class="flex-text-block tw-justify-end tw-mb-4">
+			<a class="ui small button" href="{{.RepoLink}}/labels">{{ctx.Locale.Tr "repo.labels"}}</a>
+			<a class="ui small button" href="{{.RepoLink}}/milestones">{{ctx.Locale.Tr "repo.milestones"}}</a>
 			<a class="ui small primary button" href="{{.RepoLink}}/issues/new/choose?project={{.Project.ID}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 		</div>
 	</div>
-	<div class="ui container fluid padded">
-		{{template "projects/view" .}}
-	</div>
+	{{template "projects/view" .}}
 </div>
 
 {{template "base/footer" .}}

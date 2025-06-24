@@ -96,3 +96,14 @@
   num_issues: 0
   num_closed_issues: 0
   archived_unix: 0
+
+-
+  id: 10
+  repo_id: 3
+  org_id: 0
+  name: repo3label1
+  color: '#112233'
+  exclusive: false
+  num_issues: 0
+  num_closed_issues: 0
+  archived_unix: 0

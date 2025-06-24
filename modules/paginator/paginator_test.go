@@ -76,9 +76,7 @@ func TestPaginator(t *testing.T) {
 	t.Run("Only current page", func(t *testing.T) {
 		p := New(0, 10, 1, 1)
 		pages := p.Pages()
-		assert.Len(t, pages, 1)
-		assert.Equal(t, 1, pages[0].Num())
-		assert.True(t, pages[0].IsCurrent())
+		assert.Empty(t, pages) // no "total", so no pages
 
 		p = New(1, 10, 1, 1)
 		pages = p.Pages()

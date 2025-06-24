@@ -6,6 +6,8 @@ package notify
 import (
 	"context"
 
+	actions_model "code.gitea.io/gitea/models/actions"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -271,9 +273,9 @@ func MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo
 }
 
 // TransferRepository notifies create repository to notifiers
-func TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, newOwnerName string) {
+func TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
 	for _, notifier := range notifiers {
-		notifier.TransferRepository(ctx, doer, repo, newOwnerName)
+		notifier.TransferRepository(ctx, doer, repo, oldOwnerName)
 	}
 }
 
@@ -365,5 +367,23 @@ func PackageDelete(ctx context.Context, doer *user_model.User, pd *packages_mode
 func ChangeDefaultBranch(ctx context.Context, repo *repo_model.Repository) {
 	for _, notifier := range notifiers {
 		notifier.ChangeDefaultBranch(ctx, repo)
+	}
+}
+
+func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, sender *user_model.User, status *git_model.CommitStatus) {
+	for _, notifier := range notifiers {
+		notifier.CreateCommitStatus(ctx, repo, commit, sender, status)
+	}
+}
+
+func WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
+	for _, notifier := range notifiers {
+		notifier.WorkflowRunStatusUpdate(ctx, repo, sender, run)
+	}
+}
+
+func WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
+	for _, notifier := range notifiers {
+		notifier.WorkflowJobStatusUpdate(ctx, repo, sender, job, task)
 	}
 }

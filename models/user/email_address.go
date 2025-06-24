@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"net/mail"
-	"regexp"
 	"strings"
 	"time"
 
@@ -152,8 +151,6 @@ func UpdateEmailAddress(ctx context.Context, email *EmailAddress) error {
 	_, err := db.GetEngine(ctx).ID(email.ID).AllCols().Update(email)
 	return err
 }
-
-var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 // ValidateEmail check if email is a valid & allowed address
 func ValidateEmail(email string) error {
@@ -357,8 +354,8 @@ func VerifyActiveEmailCode(ctx context.Context, code, email string) *EmailAddres
 	if user := GetVerifyUser(ctx, code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
-		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
-
+		opts := &TimeLimitCodeOptions{Purpose: TimeLimitCodeActivateEmail, NewEmail: email}
+		data := makeTimeLimitCodeHashData(opts, user)
 		if base.VerifyTimeLimitCode(time.Now(), data, setting.Service.ActiveCodeLives, prefix) {
 			emailAddress := &EmailAddress{UID: user.ID, Email: email}
 			if has, _ := db.GetEngine(ctx).Get(emailAddress); has {
@@ -486,10 +483,10 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 
 	// Activate/deactivate a user's primary email address and account
 	if addr.IsPrimary {
-		user, exist, err := db.Get[User](ctx, builder.Eq{"id": userID, "email": email})
+		user, exist, err := db.Get[User](ctx, builder.Eq{"id": userID})
 		if err != nil {
 			return err
-		} else if !exist {
+		} else if !exist || !strings.EqualFold(user.Email, email) {
 			return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)
 		}
 
@@ -514,7 +511,7 @@ func validateEmailBasic(email string) error {
 		return ErrEmailInvalid{email}
 	}
 
-	if !emailRegexp.MatchString(email) {
+	if !globalVars().emailRegexp.MatchString(email) {
 		return ErrEmailCharIsNotSupported{email}
 	}
 
@@ -544,4 +541,14 @@ func IsEmailDomainAllowed(email string) bool {
 	}
 
 	return validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email)
+}
+
+func GetActivatedEmailAddresses(ctx context.Context, uid int64) ([]string, error) {
+	emails := make([]string, 0, 2)
+	if err := db.GetEngine(ctx).Table("email_address").Select("email").
+		Where("uid=? AND is_activated=?", uid, true).Asc("id").
+		Find(&emails); err != nil {
+		return nil, err
+	}
+	return emails, nil
 }

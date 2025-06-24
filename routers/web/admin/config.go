@@ -11,13 +11,13 @@ import (
 	"strings"
 
 	system_model "code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/mailer"
@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	tplConfig         base.TplName = "admin/config"
-	tplConfigSettings base.TplName = "admin/config_settings"
+	tplConfig         templates.TplName = "admin/config"
+	tplConfigSettings templates.TplName = "admin/config_settings"
 )
 
 // SendTestMail send test mail to confirm mail service is OK
@@ -40,7 +40,7 @@ func SendTestMail(ctx *context.Context) {
 		ctx.Flash.Info(ctx.Tr("admin.config.test_mail_sent", email))
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/admin/config")
+	ctx.Redirect(setting.AppSubURL + "/-/admin/config")
 }
 
 // TestCache test the cache settings
@@ -56,12 +56,12 @@ func TestCache(ctx *context.Context) {
 		}
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/admin/config")
+	ctx.Redirect(setting.AppSubURL + "/-/admin/config")
 }
 
 func shadowPasswordKV(cfgItem, splitter string) string {
 	fields := strings.Split(cfgItem, splitter)
-	for i := 0; i < len(fields); i++ {
+	for i := range fields {
 		if strings.HasPrefix(fields[i], "password=") {
 			fields[i] = "password=******"
 			break

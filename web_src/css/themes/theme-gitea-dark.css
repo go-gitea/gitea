@@ -1,6 +1,10 @@
 @import "../chroma/dark.css";
 @import "../codemirror/dark.css";
 
+gitea-theme-meta-info {
+  --theme-display-name: "Dark";
+}
+
 :root {
   --is-dark-theme: true;
   --color-primary: #4183c4;
@@ -181,6 +185,7 @@
   --color-orange-badge-bg: #f2711c1a;
   --color-orange-badge-hover-bg: #f2711c4d;
   --color-git: #f05133;
+  --color-logo: #609926;
   /* target-based colors */
   --color-body: #1b1f23;
   --color-box-header: #1a1d1f;
@@ -203,6 +208,7 @@
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #e8f3ff28;
   --color-hover: #e8f3ff19;
+  --color-hover-opaque: #21252a; /* TODO: color-mix(in srgb, var(--color-body), var(--color-hover)); */
   --color-active: #e8f3ff24;
   --color-menu: #171a1e;
   --color-card: #171a1e;

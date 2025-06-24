@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"net/url"
 	"strings"
 	"testing"
 
@@ -14,15 +13,17 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOrgCounts(t *testing.T) {
-	onGiteaRun(t, testOrgCounts)
+	defer tests.PrepareTestEnv(t)()
+	testOrgCounts(t)
 }
 
-func testOrgCounts(t *testing.T, u *url.URL) {
+func testOrgCounts(t *testing.T) {
 	orgOwner := "user2"
 	orgName := "testOrg"
 	orgCollaborator := "user4"
@@ -119,8 +120,8 @@ func doCheckOrgCounts(username string, orgCounts map[string]int, strict bool, ca
 		})
 
 		orgs, err := db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
-			UserID:         user.ID,
-			IncludePrivate: true,
+			UserID:            user.ID,
+			IncludeVisibility: api.VisibleTypePrivate,
 		})
 		assert.NoError(t, err)
 
@@ -130,7 +131,7 @@ func doCheckOrgCounts(username string, orgCounts map[string]int, strict bool, ca
 			calcOrgCounts[org.LowerName] = org.NumRepos
 			count, ok := canonicalCounts[org.LowerName]
 			if ok {
-				assert.True(t, count == org.NumRepos, "Number of Repos in %s is %d when we expected %d", org.Name, org.NumRepos, count)
+				assert.Equal(t, count, org.NumRepos, "Number of Repos in %s is %d when we expected %d", org.Name, org.NumRepos, count)
 			} else {
 				assert.False(t, strict, "Did not expect to see %s with count %d", org.Name, org.NumRepos)
 			}

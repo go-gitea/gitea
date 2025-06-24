@@ -4,7 +4,6 @@
 package feed
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -16,14 +15,14 @@ import (
 
 // ShowBranchFeed shows tags and/or releases on the repo as RSS / Atom feed
 func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType string) {
-	commits, err := ctx.Repo.Commit.CommitsByRange(0, 10, "")
+	commits, err := ctx.Repo.Commit.CommitsByRange(0, 10, "", "", "")
 	if err != nil {
 		ctx.ServerError("ShowBranchFeed", err)
 		return
 	}
 
-	title := fmt.Sprintf("Latest commits for branch %s", ctx.Repo.BranchName)
-	link := &feeds.Link{Href: repo.HTMLURL() + "/" + ctx.Repo.BranchNameSubURL()}
+	title := "Latest commits for branch " + ctx.Repo.BranchName
+	link := &feeds.Link{Href: repo.HTMLURL() + "/" + ctx.Repo.RefTypeNameSubURL()}
 
 	feed := &feeds.Feed{
 		Title:       title,
@@ -43,6 +42,7 @@ func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType stri
 			},
 			Description: commit.Message(),
 			Content:     commit.Message(),
+			Created:     commit.Committer.When,
 		})
 	}
 

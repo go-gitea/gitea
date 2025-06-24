@@ -11,6 +11,19 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 )
 
+// GetSystemOrDefaultWebhooks returns webhooks by given argument or all if argument is missing.
+func GetSystemOrDefaultWebhooks(ctx context.Context, isSystemWebhook optional.Option[bool]) ([]*Webhook, error) {
+	webhooks := make([]*Webhook, 0, 5)
+	if !isSystemWebhook.Has() {
+		return webhooks, db.GetEngine(ctx).Where("repo_id=? AND owner_id=?", 0, 0).
+			Find(&webhooks)
+	}
+
+	return webhooks, db.GetEngine(ctx).
+		Where("repo_id=? AND owner_id=? AND is_system_webhook=?", 0, 0, isSystemWebhook.Value()).
+		Find(&webhooks)
+}
+
 // GetDefaultWebhooks returns all admin-default webhooks.
 func GetDefaultWebhooks(ctx context.Context) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)

@@ -66,11 +66,13 @@ func GetStarredRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
 	private := ctx.ContextUser.ID == ctx.Doer.ID
 	repos, err := getStarredRepos(ctx, ctx.ContextUser, private)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -97,10 +99,12 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
 	repos, err := getStarredRepos(ctx, ctx.Doer, true)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
+		ctx.APIErrorInternal(err)
 	}
 
 	ctx.SetTotalCountHeader(int64(ctx.Doer.NumStars))
@@ -128,11 +132,13 @@ func IsStarring(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
 	if repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
 		ctx.Status(http.StatusNoContent)
 	} else {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 	}
 }
 
@@ -163,9 +169,9 @@ func Star(ctx *context.APIContext) {
 	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	if err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Error(http.StatusForbidden, "BlockedUser", err)
+			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "StarRepo", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -193,10 +199,12 @@ func Unstar(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
 	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "StarRepo", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

@@ -68,7 +68,7 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	private := ctx.ContextUser.ID == ctx.Doer.ID
 	repos, total, err := getWatchedRepos(ctx, ctx.ContextUser, private)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
+		ctx.APIErrorInternal(err)
 	}
 
 	ctx.SetTotalCountHeader(total)
@@ -97,7 +97,7 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 
 	repos, total, err := getWatchedRepos(ctx, ctx.Doer, true)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
+		ctx.APIErrorInternal(err)
 	}
 
 	ctx.SetTotalCountHeader(total)
@@ -137,7 +137,7 @@ func IsWatching(ctx *context.APIContext) {
 			RepositoryURL: ctx.Repo.Repository.APIURL(),
 		})
 	} else {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 	}
 }
 
@@ -168,9 +168,9 @@ func Watch(ctx *context.APIContext) {
 	err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	if err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Error(http.StatusForbidden, "BlockedUser", err)
+			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "WatchRepo", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -208,7 +208,7 @@ func Unwatch(ctx *context.APIContext) {
 
 	err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "UnwatchRepo", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

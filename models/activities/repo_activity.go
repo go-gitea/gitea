@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -138,10 +139,7 @@ func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository
 		return v[i].Commits > v[j].Commits
 	})
 
-	cnt := count
-	if cnt > len(v) {
-		cnt = len(v)
-	}
+	cnt := min(count, len(v))
 
 	return v[:cnt], nil
 }
@@ -337,8 +335,10 @@ func newlyCreatedIssues(ctx context.Context, repoID int64, fromTime time.Time) *
 func activeIssues(ctx context.Context, repoID int64, fromTime time.Time) *xorm.Session {
 	sess := db.GetEngine(ctx).Where("issue.repo_id = ?", repoID).
 		And("issue.is_pull = ?", false).
-		And("issue.created_unix >= ?", fromTime.Unix()).
-		Or("issue.closed_unix >= ?", fromTime.Unix())
+		And(builder.Or(
+			builder.Gte{"issue.created_unix": fromTime.Unix()},
+			builder.Gte{"issue.closed_unix": fromTime.Unix()},
+		))
 
 	return sess
 }

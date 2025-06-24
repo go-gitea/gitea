@@ -4,7 +4,6 @@
 package webhook
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -43,7 +42,7 @@ func TestWebhook_History(t *testing.T) {
 	webhook = unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 2})
 	tasks, err = webhook.History(db.DefaultContext, 0)
 	assert.NoError(t, err)
-	assert.Len(t, tasks, 0)
+	assert.Empty(t, tasks)
 }
 
 func TestWebhook_UpdateEvent(t *testing.T) {
@@ -54,9 +53,9 @@ func TestWebhook_UpdateEvent(t *testing.T) {
 		SendEverything: false,
 		ChooseEvents:   false,
 		HookEvents: webhook_module.HookEvents{
-			Create:      false,
-			Push:        true,
-			PullRequest: false,
+			webhook_module.HookEventCreate:      false,
+			webhook_module.HookEventPush:        true,
+			webhook_module.HookEventPullRequest: false,
 		},
 	}
 	webhook.HookEvent = hookEvent
@@ -73,8 +72,8 @@ func TestWebhook_EventsArray(t *testing.T) {
 		"issues", "issue_assign", "issue_label", "issue_milestone", "issue_comment",
 		"pull_request", "pull_request_assign", "pull_request_label", "pull_request_milestone",
 		"pull_request_comment", "pull_request_review_approved", "pull_request_review_rejected",
-		"pull_request_review_comment", "pull_request_sync", "wiki", "repository", "release",
-		"package", "pull_request_review_request",
+		"pull_request_review_comment", "pull_request_sync", "pull_request_review_request", "wiki", "repository", "release",
+		"package", "status", "workflow_run", "workflow_job",
 	},
 		(&Webhook{
 			HookEvent: &webhook_module.HookEvent{SendEverything: true},
@@ -91,7 +90,7 @@ func TestWebhook_EventsArray(t *testing.T) {
 func TestCreateWebhook(t *testing.T) {
 	hook := &Webhook{
 		RepoID:      3,
-		URL:         "www.example.com/unit_test",
+		URL:         "https://www.example.com/unit_test",
 		ContentType: ContentTypeJSON,
 		Events:      `{"push_only":false,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":true}}`,
 	}
@@ -206,7 +205,7 @@ func TestHookTasks(t *testing.T) {
 
 	hookTasks, err = HookTasks(db.DefaultContext, unittest.NonexistentID, 1)
 	assert.NoError(t, err)
-	assert.Len(t, hookTasks, 0)
+	assert.Empty(t, hookTasks)
 }
 
 func TestCreateHookTask(t *testing.T) {
@@ -245,7 +244,7 @@ func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), PerWebhook, 168*time.Hour, 0))
 	unittest.AssertNotExistsBean(t, hookTask)
 }
 
@@ -261,7 +260,7 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), PerWebhook, 168*time.Hour, 0))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }
 
@@ -278,7 +277,7 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 1))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), PerWebhook, 168*time.Hour, 1))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }
 
@@ -295,7 +294,7 @@ func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), OlderThan, 168*time.Hour, 0))
 	unittest.AssertNotExistsBean(t, hookTask)
 }
 
@@ -311,7 +310,7 @@ func TestCleanupHookTaskTable_OlderThan_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), OlderThan, 168*time.Hour, 0))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }
 
@@ -328,6 +327,6 @@ func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *test
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), OlderThan, 168*time.Hour, 0))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }

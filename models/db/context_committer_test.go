@@ -4,7 +4,7 @@
 package db // it's not db_test, because this file is for testing the private type halfCommitter
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -80,7 +80,7 @@ func Test_halfCommitter(t *testing.T) {
 		testWithCommitter(mockCommitter, func(committer Committer) error {
 			defer committer.Close()
 			if true {
-				return fmt.Errorf("error")
+				return errors.New("error")
 			}
 			return committer.Commit()
 		})
@@ -94,7 +94,7 @@ func Test_halfCommitter(t *testing.T) {
 		testWithCommitter(mockCommitter, func(committer Committer) error {
 			committer.Close()
 			committer.Commit()
-			return fmt.Errorf("error")
+			return errors.New("error")
 		})
 
 		mockCommitter.Assert(t)

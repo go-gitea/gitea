@@ -1,15 +1,13 @@
 {{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings labels")}}
-				<div class="org-setting-content">
-					<div class="tw-flex tw-items-center">
-						<div class="tw-flex-1">
-							{{ctx.Locale.Tr "org.settings.labels_desc"}}
-						</div>
-						<button class="ui small primary new-label button">{{ctx.Locale.Tr "repo.issues.new_label"}}</button>
-					</div>
-					<div class="divider"></div>
-					{{template "repo/issue/labels/label_new" .}}
-					{{template "repo/issue/labels/label_list" .}}
-				</div>
-{{template "repo/issue/labels/edit_delete_label" .}}
+<div class="org-setting-content">
+	<div class="tw-flex tw-items-center">
+		<div class="tw-flex-1">
+			{{ctx.Locale.Tr "org.settings.labels_desc"}}
+		</div>
+		<button class="ui small primary new-label button">{{ctx.Locale.Tr "repo.issues.new_label"}}</button>
+	</div>
+	<div class="divider"></div>
+	{{template "repo/issue/labels/label_list" .}}
+	{{template "repo/issue/labels/label_edit_modal" .}}
+</div>
 {{template "org/settings/layout_footer" .}}
-

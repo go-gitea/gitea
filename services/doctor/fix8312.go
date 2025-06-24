@@ -6,11 +6,11 @@ package doctor
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/log"
+	org_service "code.gitea.io/gitea/services/org"
 
 	"xorm.io/builder"
 )
@@ -29,7 +29,7 @@ func fixOwnerTeamCreateOrgRepo(ctx context.Context, logger log.Logger, autofix b
 				return nil
 			}
 
-			return models.UpdateTeam(ctx, team, false, false)
+			return org_service.UpdateTeam(ctx, team, false, false)
 		},
 	)
 	if err != nil {

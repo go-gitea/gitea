@@ -6,6 +6,7 @@ package misc
 
 import (
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
@@ -14,5 +15,6 @@ import (
 // Markup render markup document to HTML
 func Markup(ctx *context.Context) {
 	form := web.GetForm(ctx).(*api.MarkupOption)
-	common.RenderMarkup(ctx.Base, ctx.Repo, form.Mode, form.Text, form.Context, form.FilePath, form.Wiki)
+	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck
+	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, form.FilePath)
 }

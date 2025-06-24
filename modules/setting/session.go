@@ -73,6 +73,4 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 	SessionConfig.ProviderConfig = string(shadowConfig)
 	SessionConfig.OriginalProvider = SessionConfig.Provider
 	SessionConfig.Provider = "VirtualSession"
-
-	log.Info("Session Service Enabled")
 }

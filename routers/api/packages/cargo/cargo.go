@@ -51,7 +51,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 // https://rust-lang.github.io/rfcs/2789-sparse-index.html
 func RepositoryConfig(ctx *context.Context) {
-	ctx.JSON(http.StatusOK, cargo_service.BuildConfig(ctx.Package.Owner, setting.Service.RequireSignInView || ctx.Package.Owner.Visibility != structs.VisibleTypePublic))
+	ctx.JSON(http.StatusOK, cargo_service.BuildConfig(ctx.Package.Owner, setting.Service.RequireSignInViewStrict || ctx.Package.Owner.Visibility != structs.VisibleTypePublic))
 }
 
 func EnumeratePackageVersions(ctx *context.Context) {
@@ -95,10 +95,7 @@ type SearchResultMeta struct {
 
 // https://doc.rust-lang.org/cargo/reference/registries.html#search
 func SearchPackages(ctx *context.Context) {
-	page := ctx.FormInt("page")
-	if page < 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	perPage := ctx.FormInt("per_page")
 	paginator := db.ListOptions{
 		Page:     page,
@@ -168,7 +165,7 @@ func ListOwners(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -181,7 +178,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -276,7 +273,7 @@ func UnyankPackage(ctx *context.Context) {
 func yankPackage(ctx *context.Context, yank bool) {
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeCargo, ctx.PathParam("package"), ctx.PathParam("version"))
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}

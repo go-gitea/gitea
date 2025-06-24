@@ -47,6 +47,7 @@
 }
 
 .archived-label-hint {
-  float: right;
-  margin: -12px;
+  position: absolute;
+  top: 10px;
+  right: 5px;
 }

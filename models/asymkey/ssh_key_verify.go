@@ -4,8 +4,8 @@
 package asymkey
 
 import (
-	"bytes"
 	"context"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
@@ -30,11 +30,11 @@ func VerifySSHKey(ctx context.Context, ownerID int64, fingerprint, token, signat
 		return "", ErrKeyNotExist{}
 	}
 
-	err = sshsig.Verify(bytes.NewBuffer([]byte(token)), []byte(signature), []byte(key.Content), "gitea")
+	err = sshsig.Verify(strings.NewReader(token), []byte(signature), []byte(key.Content), "gitea")
 	if err != nil {
 		// edge case for Windows based shells that will add CR LF if piped to ssh-keygen command
 		// see https://github.com/PowerShell/PowerShell/issues/5974
-		if sshsig.Verify(bytes.NewBuffer([]byte(token+"\r\n")), []byte(signature), []byte(key.Content), "gitea") != nil {
+		if sshsig.Verify(strings.NewReader(token+"\r\n"), []byte(signature), []byte(key.Content), "gitea") != nil {
 			log.Error("Unable to validate token signature. Error: %v", err)
 			return "", ErrSSHInvalidTokenSignature{
 				Fingerprint: key.Fingerprint,

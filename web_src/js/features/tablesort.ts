@@ -9,11 +9,11 @@ export function initTableSort() {
   }
 }
 
-function tableSort(normSort, revSort, isDefault) {
+function tableSort(normSort: string, revSort: string, isDefault: string) {
   if (!normSort) return false;
   if (!revSort) revSort = '';
 
-  const url = new URL(window.location);
+  const url = new URL(window.location.href);
   let urlSort = url.searchParams.get('sort');
   if (!urlSort && isDefault) urlSort = normSort;
 

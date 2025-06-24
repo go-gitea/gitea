@@ -17,7 +17,7 @@ import tailwindcssNesting from 'tailwindcss/nesting/index.js';
 import postcssNesting from 'postcss-nesting';
 
 const {EsbuildPlugin} = EsBuildLoader;
-const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
+const {SourceMapDevToolPlugin, DefinePlugin, EnvironmentPlugin} = webpack;
 const formatLicenseText = (licenseText) => wrapAnsi(licenseText || '', 80).trim();
 
 const glob = (pattern) => fastGlob.sync(pattern, {
@@ -77,10 +77,10 @@ export default {
   entry: {
     index: [
       fileURLToPath(new URL('web_src/js/globals.ts', import.meta.url)),
-      fileURLToPath(new URL('web_src/fomantic/build/semantic.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/fomantic/build/fomantic.js', import.meta.url)),
       fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
       fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
-      fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
+      fileURLToPath(new URL('web_src/fomantic/build/fomantic.css', import.meta.url)),
       fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
     ],
     webcomponents: [
@@ -213,6 +213,10 @@ export default {
       __VUE_PROD_DEVTOOLS__: false, // do not enable devtools support in production
       __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false, // https://github.com/vuejs/vue-cli/pull/7443
     }),
+    // all environment variables used in bundled js via process.env must be declared here
+    new EnvironmentPlugin({
+      TEST: 'false',
+    }),
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
@@ -245,7 +249,6 @@ export default {
       },
       override: {
         'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
-        'idiomorph@0.3.0': {licenseName: 'BSD-2-Clause'}, // https://github.com/bigskysoftware/idiomorph/pull/37
       },
       emitError: true,
       allow: '(Apache-2.0 OR 0BSD OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',

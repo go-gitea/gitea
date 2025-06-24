@@ -8,9 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-
-	"xorm.io/builder"
+	"code.gitea.io/gitea/models/unit"
 )
 
 // TeamRepo represents an team-repository relation.
@@ -29,29 +27,6 @@ func HasTeamRepo(ctx context.Context, orgID, teamID, repoID int64) bool {
 		And("repo_id=?", repoID).
 		Get(new(TeamRepo))
 	return has
-}
-
-type SearchTeamRepoOptions struct {
-	db.ListOptions
-	TeamID int64
-}
-
-// GetRepositories returns paginated repositories in team of organization.
-func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) (repo_model.RepositoryList, error) {
-	sess := db.GetEngine(ctx)
-	if opts.TeamID > 0 {
-		sess = sess.In("id",
-			builder.Select("repo_id").
-				From("team_repo").
-				Where(builder.Eq{"team_id": opts.TeamID}),
-		)
-	}
-	if opts.PageSize > 0 {
-		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-	var repos []*repo_model.Repository
-	return repos, sess.OrderBy("repository.name").
-		Find(&repos)
 }
 
 // AddTeamRepo adds a repo for an organization's team
@@ -80,6 +55,19 @@ func GetTeamsWithAccessToRepo(ctx context.Context, orgID, repoID int64, mode per
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		And("team_repo.org_id = ?", orgID).
 		And("team_repo.repo_id = ?", repoID).
+		OrderBy("name").
+		Find(&teams)
+}
+
+// GetTeamsWithAccessToRepoUnit returns all teams in an organization that have given access level to the repository special unit.
+func GetTeamsWithAccessToRepoUnit(ctx context.Context, orgID, repoID int64, mode perm.AccessMode, unitType unit.Type) ([]*Team, error) {
+	teams := make([]*Team, 0, 5)
+	return teams, db.GetEngine(ctx).Where("team_unit.access_mode >= ?", mode).
+		Join("INNER", "team_repo", "team_repo.team_id = team.id").
+		Join("INNER", "team_unit", "team_unit.team_id = team.id").
+		And("team_repo.org_id = ?", orgID).
+		And("team_repo.repo_id = ?", repoID).
+		And("team_unit.type = ?", unitType).
 		OrderBy("name").
 		Find(&teams)
 }

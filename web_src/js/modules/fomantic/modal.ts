@@ -1,4 +1,7 @@
 import $ from 'jquery';
+import type {FomanticInitFunction} from '../../types.ts';
+import {queryElems} from '../../utils/dom.ts';
+import {hideToastsFrom} from '../toast.ts';
 
 const fomanticModalFn = $.fn.modal;
 
@@ -6,12 +9,13 @@ const fomanticModalFn = $.fn.modal;
 export function initAriaModalPatch() {
   if ($.fn.modal === ariaModalFn) throw new Error('initAriaModalPatch could only be called once');
   $.fn.modal = ariaModalFn;
-  ariaModalFn.settings = fomanticModalFn.settings;
+  $.fn.fomanticExt.onModalBeforeHidden = onModalBeforeHidden;
+  (ariaModalFn as FomanticInitFunction).settings = fomanticModalFn.settings;
 }
 
 // the patched `$.fn.modal` modal function
 // * it does the one-time attaching on the first call
-function ariaModalFn(...args) {
+function ariaModalFn(this: any, ...args: Parameters<FomanticInitFunction>) {
   const ret = fomanticModalFn.apply(this, args);
   if (args[0] === 'show' || args[0]?.autoShow) {
     for (const el of this) {
@@ -25,4 +29,11 @@ function ariaModalFn(...args) {
     }
   }
   return ret;
+}
+
+function onModalBeforeHidden(this: any) {
+  const $modal = $(this);
+  const elModal = $modal[0];
+  queryElems(elModal, 'form', (form: HTMLFormElement) => form.reset());
+  hideToastsFrom(elModal.closest('.ui.dimmer') ?? document.body);
 }

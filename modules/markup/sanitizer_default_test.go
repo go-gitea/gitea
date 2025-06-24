@@ -19,7 +19,7 @@ func TestSanitizer(t *testing.T) {
 		// Code highlighting class
 		`<code class="random string"></code>`, `<code></code>`,
 		`<code class="language-random ui tab active menu attached animating sidebar following bar center"></code>`, `<code></code>`,
-		`<code class="language-go"></code>`, `<code class="language-go"></code>`,
+		`<span class="k"></span><span class="nb"></span>`, `<span class="k"></span><span class="nb"></span>`,
 
 		// Input checkbox
 		`<input type="hidden">`, ``,
@@ -38,10 +38,8 @@ func TestSanitizer(t *testing.T) {
 		// <kbd> tags
 		`<kbd>Ctrl + C</kbd>`, `<kbd>Ctrl + C</kbd>`,
 		`<i class="dropdown icon">NAUGHTY</i>`, `<i>NAUGHTY</i>`,
-		`<i class="icon dropdown"></i>`, `<i class="icon dropdown"></i>`,
 		`<input type="checkbox" disabled=""/>unchecked`, `<input type="checkbox" disabled=""/>unchecked`,
 		`<span class="emoji dropdown">NAUGHTY</span>`, `<span>NAUGHTY</span>`,
-		`<span class="emoji">contents</span>`, `<span class="emoji">contents</span>`,
 
 		// Color property
 		`<span style="color: red">Hello World</span>`, `<span style="color: red">Hello World</span>`,
@@ -64,9 +62,13 @@ func TestSanitizer(t *testing.T) {
 		`<a href="javascript:alert('xss')">bad</a>`, `bad`,
 		`<a href="vbscript:no">bad</a>`, `bad`,
 		`<a href="data:1234">bad</a>`, `bad`,
+
+		// Some classes and attributes are used by the frontend framework and will execute JS code, so make sure they are removed
+		`<div class="link-action" data-attr-class="foo" data-url="xxx">txt</div>`, `<div data-attr-class="foo">txt</div>`,
+		`<div class="form-fetch-action" data-markdown-generated-content="bar" data-global-init="a" data-global-click="b">txt</div>`, `<div data-markdown-generated-content="bar">txt</div>`,
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
-		assert.Equal(t, testCases[i+1], Sanitize(testCases[i]))
+		assert.Equal(t, testCases[i+1], string(Sanitize(testCases[i])))
 	}
 }

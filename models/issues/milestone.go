@@ -84,10 +84,9 @@ func (m *Milestone) BeforeUpdate() {
 // this object.
 func (m *Milestone) AfterLoad() {
 	m.NumOpenIssues = m.NumIssues - m.NumClosedIssues
-	if m.DeadlineUnix.Year() == 9999 {
+	if m.DeadlineUnix == 0 {
 		return
 	}
-
 	m.DeadlineString = m.DeadlineUnix.FormatDate()
 	if m.IsClosed {
 		m.IsOverdue = m.ClosedDateUnix >= m.DeadlineUnix

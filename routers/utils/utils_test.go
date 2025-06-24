@@ -5,6 +5,8 @@ package utils
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSanitizeFlashErrorString(t *testing.T) {
@@ -32,9 +34,8 @@ func TestSanitizeFlashErrorString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := SanitizeFlashErrorString(tt.arg); got != tt.want {
-				t.Errorf("SanitizeFlashErrorString() = '%v', want '%v'", got, tt.want)
-			}
+			got := SanitizeFlashErrorString(tt.arg)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

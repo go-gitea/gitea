@@ -21,11 +21,6 @@ import (
 	"xorm.io/builder"
 )
 
-// FindReposMapByIDs find repos as map
-func FindReposMapByIDs(ctx context.Context, repoIDs []int64, res map[int64]*Repository) error {
-	return db.GetEngine(ctx).In("id", repoIDs).Find(&res)
-}
-
 // RepositoryListDefaultPageSize is the default number of repositories
 // to load in memory when running administrative tasks on all (or almost
 // all) of them.
@@ -98,8 +93,7 @@ func (repos RepositoryList) IDs() []int64 {
 	return repoIDs
 }
 
-// LoadAttributes loads the attributes for the given RepositoryList
-func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
+func (repos RepositoryList) LoadOwners(ctx context.Context) error {
 	if len(repos) == 0 {
 		return nil
 	}
@@ -107,10 +101,6 @@ func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 	userIDs := container.FilterSlice(repos, func(repo *Repository) (int64, bool) {
 		return repo.OwnerID, true
 	})
-	repoIDs := make([]int64, len(repos))
-	for i := range repos {
-		repoIDs[i] = repos[i].ID
-	}
 
 	// Load owners.
 	users := make(map[int64]*user_model.User, len(userIDs))
@@ -123,12 +113,19 @@ func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 	for i := range repos {
 		repos[i].Owner = users[repos[i].OwnerID]
 	}
+	return nil
+}
+
+func (repos RepositoryList) LoadLanguageStats(ctx context.Context) error {
+	if len(repos) == 0 {
+		return nil
+	}
 
 	// Load primary language.
 	stats := make(LanguageStatList, 0, len(repos))
 	if err := db.GetEngine(ctx).
 		Where("`is_primary` = ? AND `language` != ?", true, "other").
-		In("`repo_id`", repoIDs).
+		In("`repo_id`", repos.IDs()).
 		Find(&stats); err != nil {
 		return fmt.Errorf("find primary languages: %w", err)
 	}
@@ -141,8 +138,16 @@ func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 			}
 		}
 	}
-
 	return nil
+}
+
+// LoadAttributes loads the attributes for the given RepositoryList
+func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
+	if err := repos.LoadOwners(ctx); err != nil {
+		return err
+	}
+
+	return repos.LoadLanguageStats(ctx)
 }
 
 // SearchRepoOptions holds the search options
@@ -354,7 +359,7 @@ func UserOrgPublicUnitRepoCond(userID, orgID int64) builder.Cond {
 }
 
 // SearchRepositoryCondition creates a query condition according search repository options
-func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
+func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 	cond := builder.NewCond()
 
 	if opts.Private {
@@ -444,7 +449,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	if opts.Keyword != "" {
 		// separate keyword
 		subQueryCond := builder.NewCond()
-		for _, v := range strings.Split(opts.Keyword, ",") {
+		for v := range strings.SplitSeq(opts.Keyword, ",") {
 			if opts.TopicOnly {
 				subQueryCond = subQueryCond.Or(builder.Eq{"topic.name": strings.ToLower(v)})
 			} else {
@@ -459,7 +464,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		keywordCond := builder.In("id", subQuery)
 		if !opts.TopicOnly {
 			likes := builder.NewCond()
-			for _, v := range strings.Split(opts.Keyword, ",") {
+			for v := range strings.SplitSeq(opts.Keyword, ",") {
 				likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
 
 				// If the string looks like "org/repo", match against that pattern too
@@ -546,18 +551,18 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 
 // SearchRepository returns repositories based on search options,
 // it returns results in given range and number of total results.
-func SearchRepository(ctx context.Context, opts *SearchRepoOptions) (RepositoryList, int64, error) {
+func SearchRepository(ctx context.Context, opts SearchRepoOptions) (RepositoryList, int64, error) {
 	cond := SearchRepositoryCondition(opts)
 	return SearchRepositoryByCondition(ctx, opts, cond, true)
 }
 
 // CountRepository counts repositories based on search options,
-func CountRepository(ctx context.Context, opts *SearchRepoOptions) (int64, error) {
+func CountRepository(ctx context.Context, opts SearchRepoOptions) (int64, error) {
 	return db.GetEngine(ctx).Where(SearchRepositoryCondition(opts)).Count(new(Repository))
 }
 
 // SearchRepositoryByCondition search repositories by condition
-func SearchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
+func SearchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
 	sess, count, err := searchRepositoryByCondition(ctx, opts, cond)
 	if err != nil {
 		return nil, 0, err
@@ -585,23 +590,25 @@ func SearchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 	return repos, count, nil
 }
 
-func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, cond builder.Cond) (db.Engine, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
+func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, cond builder.Cond) (db.Engine, int64, error) {
+	page := opts.Page
+	if page <= 0 {
+		page = 1
 	}
 
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = db.SearchOrderByAlphabetically
+	orderBy := opts.OrderBy
+	if len(orderBy) == 0 {
+		orderBy = db.SearchOrderByAlphabetically
 	}
 
 	args := make([]any, 0)
 	if opts.PriorityOwnerID > 0 {
-		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = ? THEN 0 ELSE owner_id END, %s", opts.OrderBy))
+		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = ? THEN 0 ELSE owner_id END, %s", orderBy))
 		args = append(args, opts.PriorityOwnerID)
 	} else if strings.Count(opts.Keyword, "/") == 1 {
 		// With "owner/repo" search times, prioritise results which match the owner field
 		orgName := strings.Split(opts.Keyword, "/")[0]
-		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_name LIKE ? THEN 0 ELSE 1 END, %s", opts.OrderBy))
+		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_name LIKE ? THEN 0 ELSE 1 END, %s", orderBy))
 		args = append(args, orgName)
 	}
 
@@ -618,9 +625,9 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 		}
 	}
 
-	sess = sess.Where(cond).OrderBy(opts.OrderBy.String(), args...)
+	sess = sess.Where(cond).OrderBy(orderBy.String(), args...)
 	if opts.PageSize > 0 {
-		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+		sess = sess.Limit(opts.PageSize, (page-1)*opts.PageSize)
 	}
 	return sess, count, nil
 }
@@ -684,14 +691,14 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
-func SearchRepositoryByName(ctx context.Context, opts *SearchRepoOptions) (RepositoryList, int64, error) {
+func SearchRepositoryByName(ctx context.Context, opts SearchRepoOptions) (RepositoryList, int64, error) {
 	opts.IncludeDescription = false
 	return SearchRepository(ctx, opts)
 }
 
 // SearchRepositoryIDs takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
-func SearchRepositoryIDs(ctx context.Context, opts *SearchRepoOptions) ([]int64, int64, error) {
+func SearchRepositoryIDs(ctx context.Context, opts SearchRepoOptions) ([]int64, int64, error) {
 	opts.IncludeDescription = false
 
 	cond := SearchRepositoryCondition(opts)
@@ -735,7 +742,7 @@ func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user
 }
 
 // GetUserRepositories returns a list of repositories of given user.
-func GetUserRepositories(ctx context.Context, opts *SearchRepoOptions) (RepositoryList, int64, error) {
+func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (RepositoryList, int64, error) {
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "updated_unix DESC"
 	}
@@ -762,5 +769,5 @@ func GetUserRepositories(ctx context.Context, opts *SearchRepoOptions) (Reposito
 
 	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make(RepositoryList, 0, opts.PageSize)
-	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
+	return repos, count, db.SetSessionPagination(sess, &opts).Find(&repos)
 }

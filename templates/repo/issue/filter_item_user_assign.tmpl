@@ -1,0 +1,39 @@
+{{/* This is a user list for filter, the data is provided by a local variable assignment
+* QueryParamKey: eg: "poster", "assignee"
+* QueryLink
+* UserSearchList
+* SelectedUserId: 0 or empty means default, -1 means "no user is set"
+* TextFilterTitle
+* TextFilterMatchNone: the text for "issues with no assignee"
+* TextFilterMatchAny: the text for "issues with any assignee"
+*/}}
+{{$queryLink := .QueryLink}}
+<div class="item ui dropdown jump {{if not .UserSearchList}}disabled{{end}}">
+	{{$.TextFilterTitle}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+	<div class="menu">
+		<div class="ui icon search input">
+			<i class="icon">{{svg "octicon-search" 16}}</i>
+			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_user_placeholder"}}">
+		</div>
+		{{if $.TextFilterMatchNone}}
+			{{$isSelected := eq .SelectedUserId "(none)"}}
+			<a class="item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL "(none)")}}">
+				{{svg "octicon-check" 14 (Iif $isSelected "" "tw-invisible")}} {{$.TextFilterMatchNone}}
+			</a>
+		{{end}}
+		{{if $.TextFilterMatchAny}}
+			{{$isSelected := eq .SelectedUserId "(any)"}}
+			<a class="item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL "(any)")}}">
+				{{svg "octicon-check" 14 (Iif $isSelected "" "tw-invisible")}} {{$.TextFilterMatchAny}}
+			</a>
+		{{end}}
+		<div class="divider"></div>
+		{{range $user := .UserSearchList}}
+			{{$isSelected := eq $.SelectedUserId (print $user.ID)}}
+			<a class="item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL $user.ID)}}">
+				{{svg "octicon-check" 14 (Iif $isSelected "" "tw-invisible")}}
+				{{ctx.AvatarUtils.Avatar $user 20}}{{template "repo/search_name" .}}
+			</a>
+		{{end}}
+	</div>
+</div>

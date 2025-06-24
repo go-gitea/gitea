@@ -14,7 +14,8 @@ import (
 )
 
 func TestRedirect(t *testing.T) {
-	req, _ := http.NewRequest("GET", "/", nil)
+	setting.IsInTesting = true
+	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 	cases := []struct {
 		url  string
@@ -28,20 +29,18 @@ func TestRedirect(t *testing.T) {
 	}
 	for _, c := range cases {
 		resp := httptest.NewRecorder()
-		b, cleanup := NewBaseContext(resp, req)
+		b := NewBaseContextForTest(resp, req)
 		resp.Header().Add("Set-Cookie", (&http.Cookie{Name: setting.SessionConfig.CookieName, Value: "dummy"}).String())
 		b.Redirect(c.url)
-		cleanup()
 		has := resp.Header().Get("Set-Cookie") == "i_like_gitea=dummy"
 		assert.Equal(t, c.keep, has, "url = %q", c.url)
 	}
 
-	req, _ = http.NewRequest("GET", "/", nil)
+	req, _ = http.NewRequest(http.MethodGet, "/", nil)
 	resp := httptest.NewRecorder()
 	req.Header.Add("HX-Request", "true")
-	b, cleanup := NewBaseContext(resp, req)
+	b := NewBaseContextForTest(resp, req)
 	b.Redirect("/other")
-	cleanup()
 	assert.Equal(t, "/other", resp.Header().Get("HX-Redirect"))
 	assert.Equal(t, http.StatusNoContent, resp.Code)
 }

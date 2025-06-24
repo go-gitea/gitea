@@ -25,6 +25,7 @@ type BranchProtection struct {
 	// Deprecated: true
 	BranchName                    string   `json:"branch_name"`
 	RuleName                      string   `json:"rule_name"`
+	Priority                      int64    `json:"priority"`
 	EnablePush                    bool     `json:"enable_push"`
 	EnablePushWhitelist           bool     `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
@@ -52,6 +53,7 @@ type BranchProtection struct {
 	RequireSignedCommits          bool     `json:"require_signed_commits"`
 	ProtectedFilePatterns         string   `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns"`
+	BlockAdminMergeOverride       bool     `json:"block_admin_merge_override"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -63,6 +65,7 @@ type CreateBranchProtectionOption struct {
 	// Deprecated: true
 	BranchName                    string   `json:"branch_name"`
 	RuleName                      string   `json:"rule_name"`
+	Priority                      int64    `json:"priority"`
 	EnablePush                    bool     `json:"enable_push"`
 	EnablePushWhitelist           bool     `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
@@ -90,10 +93,12 @@ type CreateBranchProtectionOption struct {
 	RequireSignedCommits          bool     `json:"require_signed_commits"`
 	ProtectedFilePatterns         string   `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns"`
+	BlockAdminMergeOverride       bool     `json:"block_admin_merge_override"`
 }
 
 // EditBranchProtectionOption options for editing a branch protection
 type EditBranchProtectionOption struct {
+	Priority                      *int64   `json:"priority"`
 	EnablePush                    *bool    `json:"enable_push"`
 	EnablePushWhitelist           *bool    `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
@@ -121,4 +126,19 @@ type EditBranchProtectionOption struct {
 	RequireSignedCommits          *bool    `json:"require_signed_commits"`
 	ProtectedFilePatterns         *string  `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       *string  `json:"unprotected_file_patterns"`
+	BlockAdminMergeOverride       *bool    `json:"block_admin_merge_override"`
+}
+
+// UpdateBranchProtectionPriories a list to update the branch protection rule priorities
+type UpdateBranchProtectionPriories struct {
+	IDs []int64 `json:"ids"`
+}
+
+type MergeUpstreamRequest struct {
+	Branch string `json:"branch"`
+	FfOnly bool   `json:"ff_only"`
+}
+
+type MergeUpstreamResponse struct {
+	MergeStyle string `json:"merge_type"`
 }

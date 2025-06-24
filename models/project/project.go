@@ -98,6 +98,9 @@ type Project struct {
 	Type         Type
 
 	RenderedContent template.HTML `xorm:"-"`
+	NumOpenIssues   int64         `xorm:"-"`
+	NumClosedIssues int64         `xorm:"-"`
+	NumIssues       int64         `xorm:"-"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -135,6 +138,14 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	return err
 }
 
+func ProjectLinkForOrg(org *user_model.User, projectID int64) string { //nolint
+	return fmt.Sprintf("%s/-/projects/%d", org.HomeLink(), projectID)
+}
+
+func ProjectLinkForRepo(repo *repo_model.Repository, projectID int64) string { //nolint
+	return fmt.Sprintf("%s/projects/%d", repo.Link(), projectID)
+}
+
 // Link returns the project's relative URL.
 func (p *Project) Link(ctx context.Context) string {
 	if p.OwnerID > 0 {
@@ -143,7 +154,7 @@ func (p *Project) Link(ctx context.Context) string {
 			log.Error("LoadOwner: %v", err)
 			return ""
 		}
-		return fmt.Sprintf("%s/-/projects/%d", p.Owner.HomeLink(), p.ID)
+		return ProjectLinkForOrg(p.Owner, p.ID)
 	}
 	if p.RepoID > 0 {
 		err := p.LoadRepo(ctx)
@@ -151,7 +162,7 @@ func (p *Project) Link(ctx context.Context) string {
 			log.Error("LoadRepo: %v", err)
 			return ""
 		}
-		return fmt.Sprintf("%s/projects/%d", p.Repo.Link(), p.ID)
+		return ProjectLinkForRepo(p.Repo, p.ID)
 	}
 	return ""
 }
@@ -245,12 +256,17 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 		return db.SearchOrderByRecentUpdated
 	case "leastupdate":
 		return db.SearchOrderByLeastUpdated
+	case "alphabetically":
+		return "title ASC"
+	case "reversealphabetically":
+		return "title DESC"
 	default:
 		return db.SearchOrderByNewest
 	}
 }
 
 // NewProject creates a new Project
+// The title will be cut off at 255 characters if it's longer than 255 characters.
 func NewProject(ctx context.Context, p *Project) error {
 	if !IsTemplateTypeValid(p.TemplateType) {
 		p.TemplateType = TemplateTypeNone
@@ -263,6 +279,8 @@ func NewProject(ctx context.Context, p *Project) error {
 	if !IsTypeValid(p.Type) {
 		return util.NewInvalidArgumentErrorf("project type is not valid")
 	}
+
+	p.Title = util.EllipsisDisplayString(p.Title, 255)
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := db.Insert(ctx, p); err != nil {
@@ -317,6 +335,7 @@ func UpdateProject(ctx context.Context, p *Project) error {
 		p.CardType = CardTypeTextOnly
 	}
 
+	p.Title = util.EllipsisDisplayString(p.Title, 255)
 	_, err := db.GetEngine(ctx).ID(p.ID).Cols(
 		"title",
 		"description",

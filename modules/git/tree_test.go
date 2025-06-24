@@ -19,9 +19,24 @@ func TestSubTree_Issue29101(t *testing.T) {
 	assert.NoError(t, err)
 
 	// old code could produce a different error if called multiple times
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		_, err = commit.SubTree("file1.txt")
 		assert.Error(t, err)
 		assert.True(t, IsErrNotExist(err))
 	}
+}
+
+func Test_GetTreePathLatestCommit(t *testing.T) {
+	repo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo6_blame"))
+	assert.NoError(t, err)
+	defer repo.Close()
+
+	commitID, err := repo.GetBranchCommitID("master")
+	assert.NoError(t, err)
+	assert.Equal(t, "544d8f7a3b15927cddf2299b4b562d6ebd71b6a7", commitID)
+
+	commit, err := repo.GetTreePathLatestCommit("master", "blame.txt")
+	assert.NoError(t, err)
+	assert.NotNil(t, commit)
+	assert.Equal(t, "45fb6cbc12f970b04eacd5cd4165edd11c8d7376", commit.ID.String())
 }

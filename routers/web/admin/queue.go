@@ -53,7 +53,7 @@ func QueueSet(ctx *context.Context) {
 		maxNumber, err = strconv.Atoi(maxNumberStr)
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.maxnumberworkers.error"))
-			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+			ctx.Redirect(setting.AppSubURL + "/-/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 			return
 		}
 		if maxNumber < -1 {
@@ -65,7 +65,7 @@ func QueueSet(ctx *context.Context) {
 
 	mq.SetWorkerMaxNumber(maxNumber)
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.changed"))
-	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }
 
 func QueueRemoveAllItems(ctx *context.Context) {
@@ -85,5 +85,5 @@ func QueueRemoveAllItems(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.remove_all_items_done"))
-	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }

@@ -12,11 +12,13 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
+	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
@@ -42,19 +44,26 @@ const DefaultLocale = "C"
 type Command struct {
 	prog             string
 	args             []string
-	parentContext    context.Context
-	desc             string
 	globalArgsLength int
 	brokenArgs       []string
+	cmd              *exec.Cmd // for debug purpose only
+	configArgs       []string
 }
 
-func (c *Command) String() string {
-	return c.toString(false)
+func logArgSanitize(arg string) string {
+	if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
+		return util.SanitizeCredentialURLs(arg)
+	} else if filepath.IsAbs(arg) {
+		base := filepath.Base(arg)
+		dir := filepath.Dir(arg)
+		return ".../" + filepath.Join(filepath.Base(dir), base)
+	}
+	return arg
 }
 
-func (c *Command) toString(sanitizing bool) string {
+func (c *Command) LogString() string {
 	// WARNING: this function is for debugging purposes only. It's much better than old code (which only joins args with space),
-	// It's impossible to make a simple and 100% correct implementation of argument quoting for different platforms.
+	// It's impossible to make a simple and 100% correct implementation of argument quoting for different platforms here.
 	debugQuote := func(s string) string {
 		if strings.ContainsAny(s, " `'\"\t\r\n") {
 			return fmt.Sprintf("%q", s)
@@ -63,19 +72,25 @@ func (c *Command) toString(sanitizing bool) string {
 	}
 	a := make([]string, 0, len(c.args)+1)
 	a = append(a, debugQuote(c.prog))
-	for _, arg := range c.args {
-		if sanitizing && (strings.Contains(arg, "://") && strings.Contains(arg, "@")) {
-			a = append(a, debugQuote(util.SanitizeCredentialURLs(arg)))
-		} else {
-			a = append(a, debugQuote(arg))
-		}
+	if c.globalArgsLength > 0 {
+		a = append(a, "...global...")
+	}
+	for i := c.globalArgsLength; i < len(c.args); i++ {
+		a = append(a, debugQuote(logArgSanitize(c.args[i])))
 	}
 	return strings.Join(a, " ")
 }
 
+func (c *Command) ProcessState() string {
+	if c.cmd == nil {
+		return ""
+	}
+	return c.cmd.ProcessState.String()
+}
+
 // NewCommand creates and returns a new Git Command based on given command and arguments.
 // Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
-func NewCommand(ctx context.Context, args ...internal.CmdArg) *Command {
+func NewCommand(args ...internal.CmdArg) *Command {
 	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
 	cargs := make([]string, 0, len(globalCommandArgs)+len(args))
 	for _, arg := range globalCommandArgs {
@@ -87,35 +102,21 @@ func NewCommand(ctx context.Context, args ...internal.CmdArg) *Command {
 	return &Command{
 		prog:             GitExecutable,
 		args:             cargs,
-		parentContext:    ctx,
 		globalArgsLength: len(globalCommandArgs),
 	}
 }
 
-// NewCommandContextNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
+// NewCommandNoGlobals creates and returns a new Git Command based on given command and arguments only with the specified args and don't use global command args
 // Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
-func NewCommandContextNoGlobals(ctx context.Context, args ...internal.CmdArg) *Command {
+func NewCommandNoGlobals(args ...internal.CmdArg) *Command {
 	cargs := make([]string, 0, len(args))
 	for _, arg := range args {
 		cargs = append(cargs, string(arg))
 	}
 	return &Command{
-		prog:          GitExecutable,
-		args:          cargs,
-		parentContext: ctx,
+		prog: GitExecutable,
+		args: cargs,
 	}
-}
-
-// SetParentContext sets the parent context for this command
-func (c *Command) SetParentContext(ctx context.Context) *Command {
-	c.parentContext = ctx
-	return c
-}
-
-// SetDescription sets the description for this command which be returned on c.String()
-func (c *Command) SetDescription(desc string) *Command {
-	c.desc = desc
-	return c
 }
 
 // isSafeArgumentValue checks if the argument is safe to be used as a value (not an option)
@@ -196,6 +197,16 @@ func (c *Command) AddDashesAndList(list ...string) *Command {
 	return c
 }
 
+func (c *Command) AddConfig(key, value string) *Command {
+	kv := key + "=" + value
+	if !isSafeArgumentValue(kv) {
+		c.brokenArgs = append(c.brokenArgs, key)
+	} else {
+		c.configArgs = append(c.configArgs, "-c", kv)
+	}
+	return c
+}
+
 // ToTrustedCmdArgs converts a list of strings (trusted as argument) to TrustedCmdArgs
 // In most cases, it shouldn't be used. Use NewCommand().AddXxx() function instead
 func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
@@ -236,10 +247,16 @@ type RunOpts struct {
 }
 
 func commonBaseEnvs() []string {
-	// at the moment, do not set "GIT_CONFIG_NOSYSTEM", users may have put some configs like "receive.certNonceSeed" in it
 	envs := []string{
-		"HOME=" + HomeDir(),        // make Gitea use internal git config only, to prevent conflicts with user's git config
-		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
+		// Make Gitea use internal git config only, to prevent conflicts with user's git config
+		// It's better to use GIT_CONFIG_GLOBAL, but it requires git >= 2.32, so we still use HOME at the moment.
+		"HOME=" + HomeDir(),
+		// Avoid using system git config, it would cause problems (eg: use macOS osxkeychain to show a modal dialog, auto installing lfs hooks)
+		// This might be a breaking change in 1.24, because some users said that they have put some configs like "receive.certNonceSeed" in "/etc/gitconfig"
+		// For these users, they need to migrate the necessary configs to Gitea's git config file manually.
+		"GIT_CONFIG_NOSYSTEM=1",
+		// Ignore replace references (https://git-scm.com/docs/git-replace)
+		"GIT_NO_REPLACE_OBJECTS=1",
 	}
 
 	// some environment variables should be passed to git command
@@ -270,9 +287,13 @@ func CommonCmdServEnvs() []string {
 var ErrBrokenCommand = errors.New("git command is broken")
 
 // Run runs the command with the RunOpts
-func (c *Command) Run(opts *RunOpts) error {
+func (c *Command) Run(ctx context.Context, opts *RunOpts) error {
+	return c.run(ctx, 1, opts)
+}
+
+func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 	if len(c.brokenArgs) != 0 {
-		log.Error("git command is broken: %s, broken args: %s", c.String(), strings.Join(c.brokenArgs, " "))
+		log.Error("git command is broken: %s, broken args: %s", c.LogString(), strings.Join(c.brokenArgs, " "))
 		return ErrBrokenCommand
 	}
 	if opts == nil {
@@ -285,35 +306,34 @@ func (c *Command) Run(opts *RunOpts) error {
 		timeout = defaultCommandExecutionTimeout
 	}
 
-	if len(opts.Dir) == 0 {
-		log.Debug("git.Command.Run: %s", c)
-	} else {
-		log.Debug("git.Command.RunDir(%s): %s", opts.Dir, c)
+	cmdLogString := c.LogString()
+	callerInfo := util.CallerFuncName(1 /* util */ + 1 /* this */ + skip /* parent */)
+	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
+		callerInfo = callerInfo[pos+1:]
 	}
+	// these logs are for debugging purposes only, so no guarantee of correctness or stability
+	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(opts.Dir), cmdLogString)
+	log.Debug("git.Command: %s", desc)
 
-	desc := c.desc
-	if desc == "" {
-		if opts.Dir == "" {
-			desc = fmt.Sprintf("git: %s", c.toString(true))
-		} else {
-			desc = fmt.Sprintf("git(dir:%s): %s", opts.Dir, c.toString(true))
-		}
-	}
+	_, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanGitRun)
+	defer span.End()
+	span.SetAttributeString(gtprof.TraceAttrFuncCaller, callerInfo)
+	span.SetAttributeString(gtprof.TraceAttrGitCommand, cmdLogString)
 
-	var ctx context.Context
 	var cancel context.CancelFunc
 	var finished context.CancelFunc
 
 	if opts.UseContextTimeout {
-		ctx, cancel, finished = process.GetManager().AddContext(c.parentContext, desc)
+		ctx, cancel, finished = process.GetManager().AddContext(ctx, desc)
 	} else {
-		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, timeout, desc)
+		ctx, cancel, finished = process.GetManager().AddContextTimeout(ctx, timeout, desc)
 	}
 	defer finished()
 
 	startTime := time.Now()
 
-	cmd := exec.CommandContext(ctx, c.prog, c.args...)
+	cmd := exec.CommandContext(ctx, c.prog, append(c.configArgs, c.args...)...)
+	c.cmd = cmd // for debug purpose only
 	if opts.Env == nil {
 		cmd.Env = os.Environ()
 	} else {
@@ -348,9 +368,10 @@ func (c *Command) Run(opts *RunOpts) error {
 	// We need to check if the context is canceled by the program on Windows.
 	// This is because Windows does not have signal checking when terminating the process.
 	// It always returns exit code 1, unlike Linux, which has many exit codes for signals.
+	// `err.Error()` returns "exit status 1" when using the `git check-attr` command after the context is canceled.
 	if runtime.GOOS == "windows" &&
 		err != nil &&
-		err.Error() == "" &&
+		(err.Error() == "" || err.Error() == "exit status 1") &&
 		cmd.ProcessState.ExitCode() == 1 &&
 		ctx.Err() == context.Canceled {
 		return ctx.Err()
@@ -400,8 +421,8 @@ func IsErrorExitCode(err error, code int) bool {
 }
 
 // RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
-func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
-	stdoutBytes, stderrBytes, err := c.RunStdBytes(opts)
+func (c *Command) RunStdString(ctx context.Context, opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
+	stdoutBytes, stderrBytes, err := c.runStdBytes(ctx, opts)
 	stdout = util.UnsafeBytesToString(stdoutBytes)
 	stderr = util.UnsafeBytesToString(stderrBytes)
 	if err != nil {
@@ -412,7 +433,11 @@ func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr Run
 }
 
 // RunStdBytes runs the command with options and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
-func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
+func (c *Command) RunStdBytes(ctx context.Context, opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
+	return c.runStdBytes(ctx, opts)
+}
+
+func (c *Command) runStdBytes(ctx context.Context, opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
 	if opts == nil {
 		opts = &RunOpts{}
 	}
@@ -435,7 +460,7 @@ func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunS
 		PipelineFunc:      opts.PipelineFunc,
 	}
 
-	err := c.Run(newOpts)
+	err := c.run(ctx, 2, newOpts)
 	stderr = stderrBuf.Bytes()
 	if err != nil {
 		return nil, stderr, &runStdError{err: err, stderr: util.UnsafeBytesToString(stderr)}

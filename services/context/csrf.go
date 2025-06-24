@@ -129,10 +129,8 @@ func (c *csrfProtector) PrepareForSessionUser(ctx *Context) {
 	}
 
 	if needsNew {
-		// FIXME: actionId.
 		c.token = GenerateCsrfToken(c.opt.Secret, c.id, "POST", time.Now())
-		cookie := newCsrfCookie(&c.opt, c.token)
-		ctx.Resp.Header().Add("Set-Cookie", cookie.String())
+		ctx.Resp.Header().Add("Set-Cookie", newCsrfCookie(&c.opt, c.token).String())
 	}
 
 	ctx.Data["CsrfToken"] = c.token

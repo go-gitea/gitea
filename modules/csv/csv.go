@@ -7,7 +7,7 @@ import (
 	"bytes"
 	stdcsv "encoding/csv"
 	"io"
-	"path/filepath"
+	"path"
 	"regexp"
 	"strings"
 
@@ -53,7 +53,7 @@ func CreateReaderAndDetermineDelimiter(ctx *markup.RenderContext, rd io.Reader) 
 func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 	extension := ".csv"
 	if ctx != nil {
-		extension = strings.ToLower(filepath.Ext(ctx.RelativePath))
+		extension = strings.ToLower(path.Ext(ctx.RenderOptions.RelativePath))
 	}
 
 	var delimiter rune

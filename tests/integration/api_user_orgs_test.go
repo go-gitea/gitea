@@ -76,7 +76,7 @@ func TestUserOrgs(t *testing.T) {
 
 	// unrelated user should not get private org membership of privateMemberUsername
 	orgs = getUserOrgs(t, unrelatedUsername, privateMemberUsername)
-	assert.Len(t, orgs, 0)
+	assert.Empty(t, orgs)
 
 	// not authenticated call should not be allowed
 	testUserOrgsUnauthenticated(t, privateMemberUsername)

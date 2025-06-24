@@ -1,12 +1,13 @@
 import {expect} from '@playwright/test';
 import {env} from 'node:process';
+import type {Browser, Page, WorkerInfo} from '@playwright/test';
 
 const ARTIFACTS_PATH = `tests/e2e/test-artifacts`;
 const LOGIN_PASSWORD = 'password';
 
 // log in user and store session info. This should generally be
 //  run in test.beforeAll(), then the session can be loaded in tests.
-export async function login_user(browser, workerInfo, user) {
+export async function login_user(browser: Browser, workerInfo: WorkerInfo, user: string) {
   // Set up a new context
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -17,8 +18,8 @@ export async function login_user(browser, workerInfo, user) {
   expect(response?.status()).toBe(200); // Status OK
 
   // Fill out form
-  await page.type('input[name=user_name]', user);
-  await page.type('input[name=password]', LOGIN_PASSWORD);
+  await page.locator('input[name=user_name]').fill(user);
+  await page.locator('input[name=password]').fill(LOGIN_PASSWORD);
   await page.click('form button.ui.primary.button:visible');
 
   await page.waitForLoadState('networkidle'); // eslint-disable-line playwright/no-networkidle
@@ -31,7 +32,7 @@ export async function login_user(browser, workerInfo, user) {
   return context;
 }
 
-export async function load_logged_in_context(browser, workerInfo, user) {
+export async function load_logged_in_context(browser: Browser, workerInfo: WorkerInfo, user: string) {
   let context;
   try {
     context = await browser.newContext({storageState: `${ARTIFACTS_PATH}/state-${user}-${workerInfo.workerIndex}.json`});
@@ -43,7 +44,7 @@ export async function load_logged_in_context(browser, workerInfo, user) {
   return context;
 }
 
-export async function save_visual(page) {
+export async function save_visual(page: Page) {
   // Optionally include visual testing
   if (env.VISUAL_TEST) {
     await page.waitForLoadState('networkidle'); // eslint-disable-line playwright/no-networkidle

@@ -19,10 +19,11 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -35,10 +36,10 @@ import (
 )
 
 const (
-	tplSettingsProfile      base.TplName = "user/settings/profile"
-	tplSettingsAppearance   base.TplName = "user/settings/appearance"
-	tplSettingsOrganization base.TplName = "user/settings/organization"
-	tplSettingsRepositories base.TplName = "user/settings/repos"
+	tplSettingsProfile      templates.TplName = "user/settings/profile"
+	tplSettingsAppearance   templates.TplName = "user/settings/appearance"
+	tplSettingsOrganization templates.TplName = "user/settings/organization"
+	tplSettingsRepositories templates.TplName = "user/settings/repos"
 )
 
 // Profile render user's profile page
@@ -69,6 +70,11 @@ func ProfilePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateProfileForm)
 
 	if form.Name != "" {
+		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeUsername) {
+			ctx.Flash.Error(ctx.Tr("user.form.change_username_disabled"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings")
+			return
+		}
 		if err := user_service.RenameUser(ctx, ctx.Doer, form.Name); err != nil {
 			switch {
 			case user_model.IsErrUserIsNotLocal(err):
@@ -91,7 +97,6 @@ func ProfilePost(ctx *context.Context) {
 	}
 
 	opts := &user_service.UpdateOptions{
-		FullName:            optional.Some(form.FullName),
 		KeepEmailPrivate:    optional.Some(form.KeepEmailPrivate),
 		Description:         optional.Some(form.Description),
 		Website:             optional.Some(form.Website),
@@ -99,6 +104,16 @@ func ProfilePost(ctx *context.Context) {
 		Visibility:          optional.Some(form.Visibility),
 		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
 	}
+
+	if form.FullName != "" {
+		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeFullName) {
+			ctx.Flash.Error(ctx.Tr("user.form.change_full_name_disabled"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings")
+			return
+		}
+		opts.FullName = optional.Some(form.FullName)
+	}
+
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
@@ -192,8 +207,8 @@ func Organization(ctx *context.Context) {
 			PageSize: setting.UI.Admin.UserPagingNum,
 			Page:     ctx.FormInt("page"),
 		},
-		UserID:         ctx.Doer.ID,
-		IncludePrivate: ctx.IsSigned,
+		UserID:            ctx.Doer.ID,
+		IncludeVisibility: structs.VisibleTypePrivate,
 	}
 
 	if opts.Page <= 0 {
@@ -208,7 +223,7 @@ func Organization(ctx *context.Context) {
 
 	ctx.Data["Orgs"] = orgs
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplSettingsOrganization)
 }
@@ -270,7 +285,7 @@ func Repos(ctx *context.Context) {
 			return
 		}
 
-		userRepos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
+		userRepos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
 			Actor:   ctxUser,
 			Private: true,
 			ListOptions: db.ListOptions{
@@ -295,7 +310,7 @@ func Repos(ctx *context.Context) {
 		ctx.Data["Dirs"] = repoNames
 		ctx.Data["ReposMap"] = repos
 	} else {
-		repos, count64, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
+		repos, count64, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
 		if err != nil {
 			ctx.ServerError("GetUserRepositories", err)
 			return
@@ -315,7 +330,7 @@ func Repos(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplSettingsRepositories)
 }
@@ -324,13 +339,7 @@ func Repos(ctx *context.Context) {
 func Appearance(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.appearance")
 	ctx.Data["PageIsSettingsAppearance"] = true
-
-	allThemes := webtheme.GetAvailableThemes()
-	if webtheme.IsThemeAvailable(setting.UI.DefaultTheme) {
-		allThemes = util.SliceRemoveAll(allThemes, setting.UI.DefaultTheme)
-		allThemes = append([]string{setting.UI.DefaultTheme}, allThemes...) // move the default theme to the top
-	}
-	ctx.Data["AllThemes"] = allThemes
+	ctx.Data["AllThemes"] = webtheme.GetAvailableThemes()
 	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	var hiddenCommentTypes *big.Int

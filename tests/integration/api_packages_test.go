@@ -15,14 +15,15 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
-	container_model "code.gitea.io/gitea/models/packages/container"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -34,7 +35,7 @@ func TestPackageAPI(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
 	tokenReadPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
-	tokenDeletePackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWritePackage)
+	tokenWritePackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWritePackage)
 
 	packageName := "test-package"
 	packageVersion := "1.0.3"
@@ -48,7 +49,7 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("ListPackages", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s", user.Name)).
+		req := NewRequest(t, "GET", "/api/v1/packages/"+user.Name).
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
@@ -82,47 +83,101 @@ func TestPackageAPI(t *testing.T) {
 		assert.Equal(t, packageVersion, p.Version)
 		assert.NotNil(t, p.Creator)
 		assert.Equal(t, user.Name, p.Creator.UserName)
+	})
 
-		t.Run("RepositoryLink", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
+	t.Run("ListPackageVersions", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-			p, err := packages_model.GetPackageByName(db.DefaultContext, user.ID, packages_model.TypeGeneric, packageName)
-			assert.NoError(t, err)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s", user.Name, packageName)).
+			AddTokenAuth(tokenReadPackage)
+		resp := MakeRequest(t, req, http.StatusOK)
 
-			// no repository link
-			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
-				AddTokenAuth(tokenReadPackage)
-			resp := MakeRequest(t, req, http.StatusOK)
+		var apiPackages []*api.Package
+		DecodeJSON(t, resp, &apiPackages)
 
-			var ap1 *api.Package
-			DecodeJSON(t, resp, &ap1)
-			assert.Nil(t, ap1.Repository)
+		assert.Len(t, apiPackages, 1)
+		assert.Equal(t, string(packages_model.TypeGeneric), apiPackages[0].Type)
+		assert.Equal(t, packageName, apiPackages[0].Name)
+		assert.Equal(t, packageVersion, apiPackages[0].Version)
+	})
 
-			// link to public repository
-			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, 1))
+	t.Run("LatestPackageVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
-				AddTokenAuth(tokenReadPackage)
-			resp = MakeRequest(t, req, http.StatusOK)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/latest", user.Name, packageName)).
+			AddTokenAuth(tokenReadPackage)
+		resp := MakeRequest(t, req, http.StatusOK)
 
-			var ap2 *api.Package
-			DecodeJSON(t, resp, &ap2)
-			assert.NotNil(t, ap2.Repository)
-			assert.EqualValues(t, 1, ap2.Repository.ID)
+		var apiPackage *api.Package
+		DecodeJSON(t, resp, &apiPackage)
 
-			// link to private repository
-			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, 2))
+		assert.Equal(t, string(packages_model.TypeGeneric), apiPackage.Type)
+		assert.Equal(t, packageName, apiPackage.Name)
+		assert.Equal(t, packageVersion, apiPackage.Version)
+	})
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
-				AddTokenAuth(tokenReadPackage)
-			resp = MakeRequest(t, req, http.StatusOK)
+	t.Run("RepositoryLink", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-			var ap3 *api.Package
-			DecodeJSON(t, resp, &ap3)
-			assert.Nil(t, ap3.Repository)
+		_, err := packages_model.GetPackageByName(db.DefaultContext, user.ID, packages_model.TypeGeneric, packageName)
+		assert.NoError(t, err)
 
-			assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(db.DefaultContext, 2))
+		// no repository link
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
+			AddTokenAuth(tokenReadPackage)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var ap1 *api.Package
+		DecodeJSON(t, resp, &ap1)
+		assert.Nil(t, ap1.Repository)
+
+		// create a repository
+		newRepo, err := repo_service.CreateRepository(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
+			Name: "repo4",
 		})
+		assert.NoError(t, err)
+
+		// link to public repository
+		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/link/%s", user.Name, packageName, newRepo.Name)).AddTokenAuth(tokenWritePackage)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
+			AddTokenAuth(tokenReadPackage)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		var ap2 *api.Package
+		DecodeJSON(t, resp, &ap2)
+		assert.NotNil(t, ap2.Repository)
+		assert.Equal(t, newRepo.ID, ap2.Repository.ID)
+
+		// link to repository without write access, should fail
+		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/link/%s", user.Name, packageName, "repo3")).AddTokenAuth(tokenWritePackage)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		// remove link
+		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/unlink", user.Name, packageName)).AddTokenAuth(tokenWritePackage)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
+			AddTokenAuth(tokenReadPackage)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		var ap3 *api.Package
+		DecodeJSON(t, resp, &ap3)
+		assert.Nil(t, ap3.Repository)
+
+		// force link to a repository the currently logged-in user doesn't have access to
+		privateRepoID := int64(6)
+		assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, ap1.ID, privateRepoID))
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).AddTokenAuth(tokenReadPackage)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		var ap4 *api.Package
+		DecodeJSON(t, resp, &ap4)
+		assert.Nil(t, ap4.Repository)
+
+		assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(db.DefaultContext, privateRepoID))
 	})
 
 	t.Run("ListPackageFiles", func(t *testing.T) {
@@ -152,11 +207,11 @@ func TestPackageAPI(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s", user.Name, packageName, packageVersion)).
-			AddTokenAuth(tokenDeletePackage)
+			AddTokenAuth(tokenWritePackage)
 		MakeRequest(t, req, http.StatusNotFound)
 
 		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
-			AddTokenAuth(tokenDeletePackage)
+			AddTokenAuth(tokenWritePackage)
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }
@@ -384,7 +439,7 @@ func TestPackageAccess(t *testing.T) {
 			{limitedOrgNoMember, http.StatusOK},
 			{publicOrgNoMember, http.StatusOK},
 		} {
-			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s", target.Owner.Name)).
+			req := NewRequest(t, "GET", "/api/v1/packages/"+target.Owner.Name).
 				AddTokenAuth(tokenReadPackage)
 			MakeRequest(t, req, target.ExpectedStatus)
 		}
@@ -483,7 +538,7 @@ func TestPackageCleanup(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, pbs)
 
-		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_model.UploadVersion)
+		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_module.UploadVersion)
 		assert.NoError(t, err)
 
 		err = packages_cleanup_service.CleanupTask(db.DefaultContext, duration)
@@ -493,7 +548,7 @@ func TestPackageCleanup(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Empty(t, pbs)
 
-		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_model.UploadVersion)
+		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_module.UploadVersion)
 		assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
 	})
 
@@ -581,12 +636,16 @@ func TestPackageCleanup(t *testing.T) {
 			},
 			{
 				Name: "Mixed",
-				Versions: []version{
-					{Version: "keep", ShouldExist: true, Created: time.Now().Add(time.Duration(10000)).Unix()},
-					{Version: "dummy", ShouldExist: true, Created: 1},
-					{Version: "test-3", ShouldExist: true},
-					{Version: "test-4", ShouldExist: false, Created: 1},
-				},
+				Versions: func(limit, removeDays int) []version {
+					aa := []version{
+						{Version: "keep", ShouldExist: true, Created: time.Now().Add(time.Duration(10000)).Unix()},
+						{Version: "dummy", ShouldExist: true, Created: 1},
+					}
+					for i := range limit {
+						aa = append(aa, version{Version: fmt.Sprintf("test-%v", i+3), ShouldExist: util.Iif(i < removeDays, true, false), Created: time.Now().AddDate(0, 0, -i).Unix()})
+					}
+					return aa
+				}(220, 7),
 				Rule: &packages_model.PackageCleanupRule{
 					Enabled:       true,
 					KeepCount:     1,
@@ -631,7 +690,7 @@ func TestPackageCleanup(t *testing.T) {
 						err = packages_service.DeletePackageVersionAndReferences(db.DefaultContext, pv)
 						assert.NoError(t, err)
 					} else {
-						assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
+						assert.ErrorIs(t, err, packages_model.ErrPackageNotExist, v.Version)
 					}
 				}
 

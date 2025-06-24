@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPullRequest_LoadAttributes(t *testing.T) {
@@ -76,14 +77,55 @@ func TestPullRequestsNewest(t *testing.T) {
 	}
 }
 
+func TestPullRequests_Closed_RecentSortType(t *testing.T) {
+	// Issue ID | Closed At.  | Updated At
+	//    2     | 1707270001  | 1707270001
+	//    3     | 1707271000  | 1707279999
+	//    11    | 1707279999  | 1707275555
+	tests := []struct {
+		sortType             string
+		expectedIssueIDOrder []int64
+	}{
+		{"recentupdate", []int64{3, 11, 2}},
+		{"recentclose", []int64{11, 3, 2}},
+	}
+
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	_, err := db.Exec(db.DefaultContext, "UPDATE issue SET closed_unix = 1707270001, updated_unix = 1707270001, is_closed = true WHERE id = 2")
+	require.NoError(t, err)
+	_, err = db.Exec(db.DefaultContext, "UPDATE issue SET closed_unix = 1707271000, updated_unix = 1707279999, is_closed = true WHERE id = 3")
+	require.NoError(t, err)
+	_, err = db.Exec(db.DefaultContext, "UPDATE issue SET closed_unix = 1707279999, updated_unix = 1707275555, is_closed = true WHERE id = 11")
+	require.NoError(t, err)
+
+	for _, test := range tests {
+		t.Run(test.sortType, func(t *testing.T) {
+			prs, _, err := issues_model.PullRequests(db.DefaultContext, 1, &issues_model.PullRequestsOptions{
+				ListOptions: db.ListOptions{
+					Page: 1,
+				},
+				State:    "closed",
+				SortType: test.sortType,
+			})
+			require.NoError(t, err)
+
+			if assert.Len(t, prs, len(test.expectedIssueIDOrder)) {
+				for i := range test.expectedIssueIDOrder {
+					assert.Equal(t, test.expectedIssueIDOrder[i], prs[i].IssueID)
+				}
+			}
+		})
+	}
+}
+
 func TestLoadRequestedReviewers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.NoError(t, pull.LoadIssue(db.DefaultContext))
 	issue := pull.Issue
 	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
-	assert.Len(t, pull.RequestedReviewers, 0)
+	assert.Empty(t, pull.RequestedReviewers)
 
 	user1, err := user_model.GetUserByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
@@ -93,7 +135,7 @@ func TestLoadRequestedReviewers(t *testing.T) {
 	assert.NotNil(t, comment)
 
 	assert.NoError(t, pull.LoadRequestedReviewers(db.DefaultContext))
-	assert.Len(t, pull.RequestedReviewers, 1)
+	assert.Len(t, pull.RequestedReviewers, 6)
 
 	comment, err = issues_model.RemoveReviewRequest(db.DefaultContext, issue, user1, &user_model.User{})
 	assert.NoError(t, err)
@@ -206,19 +248,6 @@ func TestGetPullRequestByIssueID(t *testing.T) {
 	assert.True(t, issues_model.IsErrPullRequestNotExist(err))
 }
 
-func TestPullRequest_Update(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
-	pr.BaseBranch = "baseBranch"
-	pr.HeadBranch = "headBranch"
-	pr.Update(db.DefaultContext)
-
-	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
-	assert.Equal(t, "baseBranch", pr.BaseBranch)
-	assert.Equal(t, "headBranch", pr.HeadBranch)
-	unittest.CheckConsistencyFor(t, pr)
-}
-
 func TestPullRequest_UpdateCols(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := &issues_model.PullRequest{
@@ -232,22 +261,6 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 	assert.Equal(t, "master", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
 	unittest.CheckConsistencyFor(t, pr)
-}
-
-func TestPullRequestList_LoadAttributes(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	prs := []*issues_model.PullRequest{
-		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}),
-		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}),
-	}
-	assert.NoError(t, issues_model.PullRequestList(prs).LoadAttributes(db.DefaultContext))
-	for _, pr := range prs {
-		assert.NotNil(t, pr.Issue)
-		assert.Equal(t, pr.IssueID, pr.Issue.ID)
-	}
-
-	assert.NoError(t, issues_model.PullRequestList([]*issues_model.PullRequest{}).LoadAttributes(db.DefaultContext))
 }
 
 // TODO TestAddTestPullRequestTask
@@ -301,7 +314,7 @@ func TestDeleteOrphanedObjects(t *testing.T) {
 
 	countAfter, err := db.GetEngine(db.DefaultContext).Count(&issues_model.PullRequest{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, countBefore, countAfter)
+	assert.Equal(t, countBefore, countAfter)
 }
 
 func TestParseCodeOwnersLine(t *testing.T) {
@@ -334,7 +347,7 @@ func TestGetApprovers(t *testing.T) {
 	setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly = false
 	approvers := pr.GetApprovers(db.DefaultContext)
 	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: Org Six <org6@example.com>\n"
-	assert.EqualValues(t, expected, approvers)
+	assert.Equal(t, expected, approvers)
 }
 
 func TestGetPullRequestByMergedCommit(t *testing.T) {

@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // prAutoMergeQueue represents a queue to handle update pull request tests
@@ -35,7 +36,7 @@ func Init() error {
 
 	prAutoMergeQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_auto_merge", handler)
 	if prAutoMergeQueue == nil {
-		return fmt.Errorf("unable to create pr_auto_merge queue")
+		return errors.New("unable to create pr_auto_merge queue")
 	}
 	go graceful.GetManager().RunWithCancel(prAutoMergeQueue)
 	return nil
@@ -63,9 +64,9 @@ func addToQueue(pr *issues_model.PullRequest, sha string) {
 }
 
 // ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
-func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string) (scheduled bool, err error) {
+func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string, deleteBranchAfterMerge bool) (scheduled bool, err error) {
 	err = db.WithTx(ctx, func(ctx context.Context) error {
-		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message); err != nil {
+		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message, deleteBranchAfterMerge); err != nil {
 			return err
 		}
 		scheduled = true
@@ -247,13 +248,13 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 
 	switch pr.Flow {
 	case issues_model.PullRequestFlowGithub:
-		headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
-		if pr.HeadRepo == nil || !headBranchExist {
+		headBranchExist := pr.HeadRepo != nil && gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch)
+		if !headBranchExist {
 			log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch: %s]", pr, pr.HeadRepoID, pr.HeadBranch)
 			return
 		}
 	case issues_model.PullRequestFlowAGit:
-		headBranchExist := git.IsReferenceExist(ctx, baseGitRepo.Path, pr.GetGitRefName())
+		headBranchExist := gitrepo.IsReferenceExist(ctx, pr.BaseRepo, pr.GetGitRefName())
 		if !headBranchExist {
 			log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch(Agit): %s]", pr, pr.HeadRepoID, pr.HeadBranch)
 			return
@@ -288,7 +289,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 	}
 
 	if err := pull_service.CheckPullMergeable(ctx, doer, &perm, pr, pull_service.MergeCheckTypeGeneral, false); err != nil {
-		if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
+		if errors.Is(err, pull_service.ErrNotReadyToMerge) {
 			log.Info("%-v was scheduled to automerge by an unauthorized user", pr)
 			return
 		}
@@ -302,5 +303,11 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 		// The resolution is add a new column on automerge table named `error_message` to store the error message and displayed
 		// on the pull request page. But this should not be finished in a bug fix PR which will be backport to release branch.
 		return
+	}
+
+	if pr.Flow == issues_model.PullRequestFlowGithub && scheduledPRM.DeleteBranchAfterMerge {
+		if err := repo_service.DeleteBranch(ctx, doer, pr.HeadRepo, headGitRepo, pr.HeadBranch, pr); err != nil {
+			log.Error("DeletePullRequestHeadBranch: %v", err)
+		}
 	}
 }

@@ -18,8 +18,32 @@ func FullSteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
 		return fullStepsOfEmptySteps(task)
 	}
 
-	firstStep := task.Steps[0]
+	// firstStep is the first step that has run or running, not include preStep.
+	// For example,
+	// 1. preStep(Success) -> step1(Success) -> step2(Running) -> step3(Waiting) -> postStep(Waiting): firstStep is step1.
+	// 2. preStep(Success) -> step1(Skipped) -> step2(Success) -> postStep(Success): firstStep is step2.
+	// 3. preStep(Success) -> step1(Running) -> step2(Waiting) -> postStep(Waiting): firstStep is step1.
+	// 4. preStep(Success) -> step1(Skipped) -> step2(Skipped) -> postStep(Skipped): firstStep is nil.
+	// 5. preStep(Success) -> step1(Cancelled) -> step2(Cancelled) -> postStep(Cancelled): firstStep is nil.
+	var firstStep *actions_model.ActionTaskStep
+	// lastHasRunStep is the last step that has run.
+	// For example,
+	// 1. preStep(Success) -> step1(Success) -> step2(Running) -> step3(Waiting) -> postStep(Waiting): lastHasRunStep is step1.
+	// 2. preStep(Success) -> step1(Success) -> step2(Success) -> step3(Success) -> postStep(Success): lastHasRunStep is step3.
+	// 3. preStep(Success) -> step1(Success) -> step2(Failure) -> step3 -> postStep(Waiting): lastHasRunStep is step2.
+	// So its Stopped is the Started of postStep when there are no more steps to run.
+	var lastHasRunStep *actions_model.ActionTaskStep
+
 	var logIndex int64
+	for _, step := range task.Steps {
+		if firstStep == nil && (step.Status.HasRun() || step.Status.IsRunning()) {
+			firstStep = step
+		}
+		if step.Status.HasRun() {
+			lastHasRunStep = step
+		}
+		logIndex += step.LogLength
+	}
 
 	preStep := &actions_model.ActionTaskStep{
 		Name:      preStepName,
@@ -28,32 +52,17 @@ func FullSteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
 		Status:    actions_model.StatusRunning,
 	}
 
-	if firstStep.Status.HasRun() || firstStep.Status.IsRunning() {
+	// No step has run or is running, so preStep is equal to the task
+	if firstStep == nil {
+		preStep.Stopped = task.Stopped
+		preStep.Status = task.Status
+	} else {
 		preStep.LogLength = firstStep.LogIndex
 		preStep.Stopped = firstStep.Started
 		preStep.Status = actions_model.StatusSuccess
-	} else if task.Status.IsDone() {
-		preStep.Stopped = task.Stopped
-		preStep.Status = actions_model.StatusFailure
-		if task.Status.IsSkipped() {
-			preStep.Status = actions_model.StatusSkipped
-		}
 	}
 	logIndex += preStep.LogLength
 
-	// lastHasRunStep is the last step that has run.
-	// For example,
-	// 1. preStep(Success) -> step1(Success) -> step2(Running) -> step3(Waiting) -> postStep(Waiting): lastHasRunStep is step1.
-	// 2. preStep(Success) -> step1(Success) -> step2(Success) -> step3(Success) -> postStep(Success): lastHasRunStep is step3.
-	// 3. preStep(Success) -> step1(Success) -> step2(Failure) -> step3 -> postStep(Waiting): lastHasRunStep is step2.
-	// So its Stopped is the Started of postStep when there are no more steps to run.
-	var lastHasRunStep *actions_model.ActionTaskStep
-	for _, step := range task.Steps {
-		if step.Status.HasRun() {
-			lastHasRunStep = step
-		}
-		logIndex += step.LogLength
-	}
 	if lastHasRunStep == nil {
 		lastHasRunStep = preStep
 	}

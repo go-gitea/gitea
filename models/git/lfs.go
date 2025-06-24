@@ -112,7 +112,6 @@ type LFSMetaObject struct {
 	ID           int64 `xorm:"pk autoincr"`
 	lfs.Pointer  `xorm:"extends"`
 	RepositoryID int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Existing     bool               `xorm:"-"`
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
 }
@@ -136,8 +135,6 @@ var ErrLFSObjectNotExist = db.ErrNotExist{Resource: "LFS Meta object"}
 // NewLFSMetaObject stores a given populated LFSMetaObject structure in the database
 // if it is not already present.
 func NewLFSMetaObject(ctx context.Context, repoID int64, p lfs.Pointer) (*LFSMetaObject, error) {
-	var err error
-
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
@@ -148,7 +145,6 @@ func NewLFSMetaObject(ctx context.Context, repoID int64, p lfs.Pointer) (*LFSMet
 	if err != nil {
 		return nil, err
 	} else if exist {
-		m.Existing = true
 		return m, committer.Commit()
 	}
 

@@ -4,7 +4,6 @@
 package migrations
 
 import (
-	"context"
 	"net/http"
 	"net/url"
 	"testing"
@@ -22,11 +21,12 @@ func TestOneDevDownloadRepo(t *testing.T) {
 	}
 
 	u, _ := url.Parse("https://code.onedev.io")
-	downloader := NewOneDevDownloader(context.Background(), u, "", "", "go-gitea-test_repo")
+	ctx := t.Context()
+	downloader := NewOneDevDownloader(ctx, u, "", "", "go-gitea-test_repo")
 	if err != nil {
 		t.Fatalf("NewOneDevDownloader is nil: %v", err)
 	}
-	repo, err := downloader.GetRepoInfo()
+	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)
 	assertRepositoryEqual(t, &base.Repository{
 		Name:        "go-gitea-test_repo",
@@ -36,7 +36,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 		OriginalURL: "https://code.onedev.io/projects/go-gitea-test_repo",
 	}, repo)
 
-	milestones, err := downloader.GetMilestones()
+	milestones, err := downloader.GetMilestones(ctx)
 	assert.NoError(t, err)
 	deadline := time.Unix(1620086400, 0)
 	assertMilestonesEqual(t, []*base.Milestone{
@@ -51,11 +51,11 @@ func TestOneDevDownloadRepo(t *testing.T) {
 		},
 	}, milestones)
 
-	labels, err := downloader.GetLabels()
+	labels, err := downloader.GetLabels(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, labels, 6)
 
-	issues, isEnd, err := downloader.GetIssues(1, 2)
+	issues, isEnd, err := downloader.GetIssues(ctx, 1, 2)
 	assert.NoError(t, err)
 	assert.False(t, isEnd)
 	assertIssuesEqual(t, []*base.Issue{
@@ -94,7 +94,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 		},
 	}, issues)
 
-	comments, _, err := downloader.GetComments(&base.Issue{
+	comments, _, err := downloader.GetComments(ctx, &base.Issue{
 		Number:       4,
 		ForeignIndex: 398,
 		Context:      onedevIssueContext{IsPullRequest: false},
@@ -110,7 +110,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 		},
 	}, comments)
 
-	prs, _, err := downloader.GetPullRequests(1, 1)
+	prs, _, err := downloader.GetPullRequests(ctx, 1, 1)
 	assert.NoError(t, err)
 	assertPullRequestsEqual(t, []*base.PullRequest{
 		{
@@ -136,7 +136,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(&base.PullRequest{Number: 5, ForeignIndex: 186})
+	rvs, err := downloader.GetReviews(ctx, &base.PullRequest{Number: 5, ForeignIndex: 186})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

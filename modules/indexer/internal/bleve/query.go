@@ -28,6 +28,16 @@ func MatchPhraseQuery(matchPhrase, field, analyzer string, fuzziness int) *query
 	return q
 }
 
+// MatchAndQuery generates a match query for the given phrase, field and analyzer
+func MatchAndQuery(matchPhrase, field, analyzer string, fuzziness int) *query.MatchQuery {
+	q := bleve.NewMatchQuery(matchPhrase)
+	q.FieldVal = field
+	q.Analyzer = analyzer
+	q.Fuzziness = fuzziness
+	q.Operator = query.MatchQueryOperatorAnd
+	return q
+}
+
 // BoolFieldQuery generates a bool field query for the given value and field
 func BoolFieldQuery(value bool, field string) *query.BoolFieldQuery {
 	q := bleve.NewBoolFieldQuery(value)
@@ -35,18 +45,18 @@ func BoolFieldQuery(value bool, field string) *query.BoolFieldQuery {
 	return q
 }
 
-func NumericRangeInclusiveQuery(min, max optional.Option[int64], field string) *query.NumericRangeQuery {
+func NumericRangeInclusiveQuery(minOption, maxOption optional.Option[int64], field string) *query.NumericRangeQuery {
 	var minF, maxF *float64
 	var minI, maxI *bool
-	if min.Has() {
+	if minOption.Has() {
 		minF = new(float64)
-		*minF = float64(min.Value())
+		*minF = float64(minOption.Value())
 		minI = new(bool)
 		*minI = true
 	}
-	if max.Has() {
+	if maxOption.Has() {
 		maxF = new(float64)
-		*maxF = float64(max.Value())
+		*maxF = float64(maxOption.Value())
 		maxI = new(bool)
 		*maxI = true
 	}

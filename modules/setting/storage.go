@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -30,12 +31,7 @@ var storageTypes = []StorageType{
 
 // IsValidStorageType returns true if the given storage type is valid
 func IsValidStorageType(storageType StorageType) bool {
-	for _, t := range storageTypes {
-		if t == storageType {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(storageTypes, storageType)
 }
 
 // MinioStorageConfig represents the configuration for a minio storage
@@ -43,6 +39,7 @@ type MinioStorageConfig struct {
 	Endpoint           string `ini:"MINIO_ENDPOINT" json:",omitempty"`
 	AccessKeyID        string `ini:"MINIO_ACCESS_KEY_ID" json:",omitempty"`
 	SecretAccessKey    string `ini:"MINIO_SECRET_ACCESS_KEY" json:",omitempty"`
+	IamEndpoint        string `ini:"MINIO_IAM_ENDPOINT" json:",omitempty"`
 	Bucket             string `ini:"MINIO_BUCKET" json:",omitempty"`
 	Location           string `ini:"MINIO_LOCATION" json:",omitempty"`
 	BasePath           string `ini:"MINIO_BASE_PATH" json:",omitempty"`
@@ -209,8 +206,8 @@ func getStorageTargetSection(rootCfg ConfigProvider, name, typ string, sec Confi
 	targetSec, _ := rootCfg.GetSection(storageSectionName + "." + name)
 	if targetSec != nil {
 		targetType := targetSec.Key("STORAGE_TYPE").String()
-		switch {
-		case targetType == "":
+		switch targetType {
+		case "":
 			if targetSec.Key("PATH").String() == "" { // both storage type and path are empty, use default
 				return getDefaultStorageSection(rootCfg), targetSecIsDefault, nil
 			}

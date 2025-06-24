@@ -1,5 +1,5 @@
 import {encodeURLEncodedBase64, decodeURLEncodedBase64} from '../utils.ts';
-import {showElem} from '../utils/dom.ts';
+import {hideElem, showElem} from '../utils/dom.ts';
 import {GET, POST} from '../modules/fetch.ts';
 
 const {appSubUrl} = window.config;
@@ -8,6 +8,12 @@ export async function initUserAuthWebAuthn() {
   const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
   const elSignInPasskeyBtn = document.querySelector('.signin-passkey');
   if (!elPrompt && !elSignInPasskeyBtn) {
+    return;
+  }
+
+  // webauthn is only supported on secure contexts
+  if (!window.isSecureContext) {
+    hideElem(elSignInPasskeyBtn);
     return;
   }
 
@@ -40,14 +46,15 @@ async function loginPasskey() {
   try {
     const credential = await navigator.credentials.get({
       publicKey: options.publicKey,
-    });
+    }) as PublicKeyCredential;
+    const credResp = credential.response as AuthenticatorAssertionResponse;
 
     // Move data into Arrays in case it is super long
-    const authData = new Uint8Array(credential.response.authenticatorData);
-    const clientDataJSON = new Uint8Array(credential.response.clientDataJSON);
+    const authData = new Uint8Array(credResp.authenticatorData);
+    const clientDataJSON = new Uint8Array(credResp.clientDataJSON);
     const rawId = new Uint8Array(credential.rawId);
-    const sig = new Uint8Array(credential.response.signature);
-    const userHandle = new Uint8Array(credential.response.userHandle);
+    const sig = new Uint8Array(credResp.signature);
+    const userHandle = new Uint8Array(credResp.userHandle);
 
     const res = await POST(`${appSubUrl}/user/webauthn/passkey/login`, {
       data: {
@@ -113,7 +120,7 @@ async function login2FA() {
   }
 }
 
-async function verifyAssertion(assertedCredential) {
+async function verifyAssertion(assertedCredential: any) { // TODO: Credential type does not work
   // Move data into Arrays in case it is super long
   const authData = new Uint8Array(assertedCredential.response.authenticatorData);
   const clientDataJSON = new Uint8Array(assertedCredential.response.clientDataJSON);
@@ -147,7 +154,7 @@ async function verifyAssertion(assertedCredential) {
   window.location.href = reply?.redirect ?? `${appSubUrl}/`;
 }
 
-async function webauthnRegistered(newCredential) {
+async function webauthnRegistered(newCredential: any) { // TODO: Credential type does not work
   const attestationObject = new Uint8Array(newCredential.response.attestationObject);
   const clientDataJSON = new Uint8Array(newCredential.response.clientDataJSON);
   const rawId = new Uint8Array(newCredential.rawId);
@@ -175,7 +182,7 @@ async function webauthnRegistered(newCredential) {
   window.location.reload();
 }
 
-function webAuthnError(errorType, message) {
+function webAuthnError(errorType: string, message:string = '') {
   const elErrorMsg = document.querySelector(`#webauthn-error-msg`);
 
   if (errorType === 'general') {
@@ -207,10 +214,9 @@ function detectWebAuthnSupport() {
 }
 
 export function initUserAuthWebAuthnRegister() {
-  const elRegister = document.querySelector('#register-webauthn');
-  if (!elRegister) {
-    return;
-  }
+  const elRegister = document.querySelector<HTMLInputElement>('#register-webauthn');
+  if (!elRegister) return;
+
   if (!detectWebAuthnSupport()) {
     elRegister.disabled = true;
     return;
@@ -222,7 +228,7 @@ export function initUserAuthWebAuthnRegister() {
 }
 
 async function webAuthnRegisterRequest() {
-  const elNickname = document.querySelector('#nickname');
+  const elNickname = document.querySelector<HTMLInputElement>('#nickname');
 
   const formData = new FormData();
   formData.append('name', elNickname.value);

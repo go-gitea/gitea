@@ -9,25 +9,27 @@ import (
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	pull_model "code.gitea.io/gitea/models/pull"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
+	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
-	tplDiffConversation     base.TplName = "repo/diff/conversation"
-	tplConversationOutdated base.TplName = "repo/diff/conversation_outdated"
-	tplTimelineConversation base.TplName = "repo/issue/view_content/conversation"
-	tplNewComment           base.TplName = "repo/diff/new_comment"
+	tplDiffConversation     templates.TplName = "repo/diff/conversation"
+	tplConversationOutdated templates.TplName = "repo/diff/conversation_outdated"
+	tplTimelineConversation templates.TplName = "repo/issue/view_content/conversation"
+	tplNewComment           templates.TplName = "repo/diff/new_comment"
 )
 
 // RenderNewCodeCommentForm will render the form for creating a new review comment
@@ -131,7 +133,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("comment's repoID is incorrect", errors.New("comment's repoID is incorrect"))
+		ctx.NotFound(errors.New("comment's repoID is incorrect"))
 		return
 	}
 
@@ -141,12 +143,12 @@ func UpdateResolveConversation(ctx *context.Context) {
 		return
 	}
 	if !permResult {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
 	if !comment.Issue.IsPull {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
@@ -157,7 +159,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 			return
 		}
 	} else {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
@@ -207,12 +209,13 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
 
-	if origin == "diff" {
+	switch origin {
+	case "diff":
 		ctx.HTML(http.StatusOK, tplDiffConversation)
-	} else if origin == "timeline" {
+	case "timeline":
 		ctx.HTML(http.StatusOK, tplTimelineConversation)
-	} else {
-		ctx.Error(http.StatusBadRequest, "Unknown origin: "+origin)
+	default:
+		ctx.HTTPError(http.StatusBadRequest, "Unknown origin: "+origin)
 	}
 }
 
@@ -331,4 +334,119 @@ func UpdateViewedFiles(ctx *context.Context) {
 	if err := pull_model.UpdateReviewState(ctx, ctx.Doer.ID, pull.ID, data.HeadCommitSHA, updatedFiles); err != nil {
 		ctx.ServerError("UpdateReview", err)
 	}
+}
+
+// UpdatePullReviewRequest add or remove review request
+func UpdatePullReviewRequest(ctx *context.Context) {
+	issues := getActionIssues(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	reviewID := ctx.FormInt64("id")
+	action := ctx.FormString("action")
+
+	// TODO: Not support 'clear' now
+	if action != "attach" && action != "detach" {
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+
+	for _, issue := range issues {
+		if err := issue.LoadRepo(ctx); err != nil {
+			ctx.ServerError("issue.LoadRepo", err)
+			return
+		}
+
+		if !issue.IsPull {
+			log.Warn(
+				"UpdatePullReviewRequest: refusing to add review request for non-PR issue %-v#%d",
+				issue.Repo, issue.Index,
+			)
+			ctx.Status(http.StatusForbidden)
+			return
+		}
+		if reviewID < 0 {
+			// negative reviewIDs represent team requests
+			if err := issue.Repo.LoadOwner(ctx); err != nil {
+				ctx.ServerError("issue.Repo.LoadOwner", err)
+				return
+			}
+
+			if !issue.Repo.Owner.IsOrganization() {
+				log.Warn(
+					"UpdatePullReviewRequest: refusing to add team review request for %s#%d owned by non organization UID[%d]",
+					issue.Repo.FullName(), issue.Index, issue.Repo.ID,
+				)
+				ctx.Status(http.StatusForbidden)
+				return
+			}
+
+			team, err := organization.GetTeamByID(ctx, -reviewID)
+			if err != nil {
+				ctx.ServerError("GetTeamByID", err)
+				return
+			}
+
+			if team.OrgID != issue.Repo.OwnerID {
+				log.Warn(
+					"UpdatePullReviewRequest: refusing to add team review request for UID[%d] team %s to %s#%d owned by UID[%d]",
+					team.OrgID, team.Name, issue.Repo.FullName(), issue.Index, issue.Repo.ID)
+				ctx.Status(http.StatusForbidden)
+				return
+			}
+
+			_, err = issue_service.TeamReviewRequest(ctx, issue, ctx.Doer, team, action == "attach")
+			if err != nil {
+				if issues_model.IsErrNotValidReviewRequest(err) {
+					log.Warn(
+						"UpdatePullReviewRequest: refusing to add invalid team review request for UID[%d] team %s to %s#%d owned by UID[%d]: Error: %v",
+						team.OrgID, team.Name, issue.Repo.FullName(), issue.Index, issue.Repo.ID,
+						err,
+					)
+					ctx.Status(http.StatusForbidden)
+					return
+				}
+				ctx.ServerError("TeamReviewRequest", err)
+				return
+			}
+			continue
+		}
+
+		reviewer, err := user_model.GetUserByID(ctx, reviewID)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				log.Warn(
+					"UpdatePullReviewRequest: requested reviewer [%d] for %-v to %-v#%d is not exist: Error: %v",
+					reviewID, issue.Repo, issue.Index,
+					err,
+				)
+				ctx.Status(http.StatusForbidden)
+				return
+			}
+			ctx.ServerError("GetUserByID", err)
+			return
+		}
+
+		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, &ctx.Repo.Permission, reviewer, action == "attach")
+		if err != nil {
+			if issues_model.IsErrNotValidReviewRequest(err) {
+				log.Warn(
+					"UpdatePullReviewRequest: refusing to add invalid review request for %-v to %-v#%d: Error: %v",
+					reviewer, issue.Repo, issue.Index,
+					err,
+				)
+				ctx.Status(http.StatusForbidden)
+				return
+			}
+			if issues_model.IsErrReviewRequestOnClosedPR(err) {
+				ctx.Status(http.StatusForbidden)
+				return
+			}
+			ctx.ServerError("ReviewRequest", err)
+			return
+		}
+	}
+
+	ctx.JSONOK()
 }

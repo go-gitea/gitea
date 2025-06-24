@@ -5,7 +5,6 @@ package repository_test
 
 import (
 	"bytes"
-	"context"
 	"testing"
 	"time"
 
@@ -36,7 +35,7 @@ func TestGarbageCollectLFSMetaObjects(t *testing.T) {
 	lfsOid := storeObjectInRepo(t, repo.ID, &lfsContent)
 
 	// gc
-	err = repo_service.GarbageCollectLFSMetaObjects(context.Background(), repo_service.GarbageCollectLFSMetaObjectsOptions{
+	err = repo_service.GarbageCollectLFSMetaObjects(t.Context(), repo_service.GarbageCollectLFSMetaObjectsOptions{
 		AutoFix:                 true,
 		OlderThan:               time.Now().Add(7 * 24 * time.Hour).Add(5 * 24 * time.Hour),
 		UpdatedLessRecentlyThan: time.Now().Add(7 * 24 * time.Hour).Add(3 * 24 * time.Hour),

@@ -9,5 +9,5 @@ import (
 )
 
 func RedirectToDefaultSetting(ctx *context.Context) {
-	ctx.Redirect(setting.AppSubURL + "/admin/actions/runners")
+	ctx.Redirect(setting.AppSubURL + "/-/admin/actions/runners")
 }
