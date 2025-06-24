@@ -57,7 +57,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	} else if !ok {
-		ctx.APIError(http.StatusConflict, "annot start a stopwatch again if it already exists")
+		ctx.APIError(http.StatusConflict, "cannot start a stopwatch again if it already exists")
 		return
 	}
 
