@@ -1398,7 +1398,7 @@ outer:
 		}
 	}
 
-	return review, err
+	return review, nil
 }
 
 // CommentAsDiff returns c.Patch as *Diff
