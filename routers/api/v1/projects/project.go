@@ -36,19 +36,19 @@ func innerCreateProject(ctx *context.APIContext, projectType project_model.Type)
 	}
 
 	if err := project_model.NewProject(ctx, project); err != nil {
-		ctx.Error(http.StatusInternalServerError, "NewProject", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	project, err := project_model.GetProjectByID(ctx, project.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "NewProject", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	projectResponse, err := convert.ToAPIProject(ctx, project)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "NewProject", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -161,16 +161,16 @@ func GetProject(ctx *context.APIContext) {
 	project, err := project_model.GetProjectByID(ctx, ctx.FormInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound()
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetProjectByID", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	projectResponse, err := convert.ToAPIProject(ctx, project)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetProjectByID", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, projectResponse)
@@ -205,9 +205,9 @@ func UpdateProject(ctx *context.APIContext) {
 	project, err := project_model.GetProjectByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound()
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "UpdateProject", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -220,12 +220,12 @@ func UpdateProject(ctx *context.APIContext) {
 
 	err = project_model.UpdateProject(ctx, project)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateProject", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	projectResponse, err := convert.ToAPIProject(ctx, project)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateProject", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, projectResponse)
@@ -250,7 +250,7 @@ func DeleteProject(ctx *context.APIContext) {
 	//    "$ref": "#/responses/notFound"
 
 	if err := project_model.DeleteProjectByID(ctx, ctx.FormInt64(":id")); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteProjectByID", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -290,7 +290,7 @@ func ListUserProjects(ctx *context.APIContext) {
 		ListOptions: db.ListOptions{Page: ctx.FormInt("page")},
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListUserProjets", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -299,7 +299,7 @@ func ListUserProjects(ctx *context.APIContext) {
 
 	apiProjects, err := convert.ToAPIProjectList(ctx, projects)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListUserProjects", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -344,7 +344,7 @@ func ListOrgProjects(ctx *context.APIContext) {
 		Type:        project_model.TypeOrganization,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListOrgProjects", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -353,7 +353,7 @@ func ListOrgProjects(ctx *context.APIContext) {
 
 	apiProjects, err := convert.ToAPIProjectList(ctx, projects)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListOrgProjects", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -405,7 +405,7 @@ func ListRepoProjects(ctx *context.APIContext) {
 		ListOptions: db.ListOptions{Page: page},
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListRepoProjects", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -414,7 +414,7 @@ func ListRepoProjects(ctx *context.APIContext) {
 
 	apiProjects, err := convert.ToAPIProjectList(ctx, projects)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListRepoProjects", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
