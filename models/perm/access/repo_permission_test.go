@@ -6,12 +6,16 @@ package access
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	perm_model "code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHasAnyUnitAccess(t *testing.T) {
@@ -151,4 +155,46 @@ func TestUnitAccessMode(t *testing.T) {
 		},
 	}
 	assert.Equal(t, perm_model.AccessModeRead, perm.UnitAccessMode(unit.TypeWiki), "has unit, and map, use map")
+}
+
+func TestGetUserRepoPermission(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	repo32 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32}) // org public repo
+	require.NoError(t, repo32.LoadOwner(ctx))
+	require.True(t, repo32.Owner.IsOrganization())
+
+	require.NoError(t, db.TruncateBeans(ctx, &organization.Team{}, &organization.TeamUser{}, &organization.TeamRepo{}, &organization.TeamUnit{}))
+	org := repo32.Owner
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	team := &organization.Team{OrgID: org.ID, LowerName: "test_team"}
+	require.NoError(t, db.Insert(ctx, team))
+
+	t.Run("DoerInTeamWithNoRepo", func(t *testing.T) {
+		require.NoError(t, db.Insert(ctx, &organization.TeamUser{OrgID: org.ID, TeamID: team.ID, UID: user.ID}))
+		perm, err := GetUserRepoPermission(ctx, repo32, user)
+		require.NoError(t, err)
+		assert.Equal(t, perm_model.AccessModeRead, perm.AccessMode)
+		assert.Nil(t, perm.unitsMode) // doer in the team, but has no access to the repo
+	})
+
+	require.NoError(t, db.Insert(ctx, &organization.TeamRepo{OrgID: org.ID, TeamID: team.ID, RepoID: repo32.ID}))
+	require.NoError(t, db.Insert(ctx, &organization.TeamUnit{OrgID: org.ID, TeamID: team.ID, Type: unit.TypeCode, AccessMode: perm_model.AccessModeNone}))
+	t.Run("DoerWithTeamUnitAccessNone", func(t *testing.T) {
+		perm, err := GetUserRepoPermission(ctx, repo32, user)
+		require.NoError(t, err)
+		assert.Equal(t, perm_model.AccessModeRead, perm.AccessMode)
+		assert.Equal(t, perm_model.AccessModeRead, perm.unitsMode[unit.TypeCode])
+		assert.Equal(t, perm_model.AccessModeRead, perm.unitsMode[unit.TypeIssues])
+	})
+
+	require.NoError(t, db.TruncateBeans(ctx, &organization.TeamUnit{}))
+	require.NoError(t, db.Insert(ctx, &organization.TeamUnit{OrgID: org.ID, TeamID: team.ID, Type: unit.TypeCode, AccessMode: perm_model.AccessModeWrite}))
+	t.Run("DoerWithTeamUnitAccessWrite", func(t *testing.T) {
+		perm, err := GetUserRepoPermission(ctx, repo32, user)
+		require.NoError(t, err)
+		assert.Equal(t, perm_model.AccessModeRead, perm.AccessMode)
+		assert.Equal(t, perm_model.AccessModeWrite, perm.unitsMode[unit.TypeCode])
+		assert.Equal(t, perm_model.AccessModeRead, perm.unitsMode[unit.TypeIssues])
+	})
 }
