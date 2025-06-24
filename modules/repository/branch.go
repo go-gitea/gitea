@@ -42,9 +42,9 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 		return 0, fmt.Errorf("GetObjectFormat: %w", err)
 	}
 	if objFmt.Name() != repo.ObjectFormatName {
-		repo.ObjectFormatName = objFmt.Name() // keep consistent with db
+		repo.ObjectFormatName = objFmt.Name()
 		if err = repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "object_format_name"); err != nil {
-			return 0, fmt.Errorf("UpdateRepository: %w", err)
+			return 0, fmt.Errorf("UpdateRepositoryColsWithAutoTime: %w", err)
 		}
 	}
 
