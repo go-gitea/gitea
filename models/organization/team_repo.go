@@ -52,6 +52,7 @@ func RemoveTeamRepo(ctx context.Context, teamID, repoID int64) error {
 
 // GetTeamsWithAccessToAnyRepoUnit returns all teams in an organization that have given access level to the repository special unit.
 // This function is only used for finding some teams that can be used as branch protection allowlist or reviewers, it isn't really used for access control.
+// FIXME: TEAM-UNIT-PERMISSION this logic is not complete, search the fixme keyword to see more details
 func GetTeamsWithAccessToAnyRepoUnit(ctx context.Context, orgID, repoID int64, mode perm.AccessMode, unitType unit.Type, unitTypesMore ...unit.Type) ([]*Team, error) {
 	teams := make([]*Team, 0, 5)
 

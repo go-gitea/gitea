@@ -63,6 +63,7 @@
 									{{.Name}}
 								</a>
 								<div class="flex-item-body flex-text-block">
+									{{/*FIXME: TEAM-UNIT-PERMISSION this display is not right, search the fixme keyword to see more details */}}
 									{{svg "octicon-shield-lock"}}
 									{{if eq .AccessMode 0}}
 										{{ctx.Locale.Tr "repo.settings.collaboration.per_unit"}}
