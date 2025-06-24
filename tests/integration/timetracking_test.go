@@ -46,11 +46,10 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 	AssertHTMLElement(t, htmlDoc, ".issue-add-time", canTrackTime)
 
 	issueLink := path.Join(user, repo, "issues", issue)
-
+	reqStart := NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "start"), map[string]string{
+		"_csrf": htmlDoc.GetCSRF(),
+	})
 	if canTrackTime {
-		reqStart := NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "start"), map[string]string{
-			"_csrf": htmlDoc.GetCSRF(),
-		})
 		session.MakeRequest(t, reqStart, http.StatusOK)
 
 		req = NewRequest(t, "GET", issueLink)
@@ -78,9 +77,6 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 		events = htmlDoc.doc.Find(".event > span.text")
 		assert.Contains(t, events.Last().Text(), "worked for ")
 	} else {
-		reqStart := NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "start"), map[string]string{
-			"_csrf": htmlDoc.GetCSRF(),
-		})
 		session.MakeRequest(t, reqStart, http.StatusNotFound)
 	}
 }

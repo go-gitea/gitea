@@ -22,13 +22,14 @@ func IssueStartStopwatch(c *context.Context) {
 		return
 	}
 
-	if err := issues_model.CreateIssueStopwatch(c, c.Doer, issue); err != nil {
+	if ok, err := issues_model.CreateIssueStopwatch(c, c.Doer, issue); err != nil {
 		c.ServerError("CreateIssueStopwatch", err)
 		return
+	} else if !ok {
+		c.Flash.Warning(c.Tr("repo.issues.stopwatch_already_created"))
+	} else {
+		c.Flash.Success(c.Tr("repo.issues.tracker_auto_close"))
 	}
-
-	c.Flash.Success(c.Tr("repo.issues.tracker_auto_close"))
-
 	c.JSONRedirect("")
 }
 
@@ -44,17 +45,12 @@ func IssueStopStopwatch(c *context.Context) {
 		return
 	}
 
-	wasRunning := issues_model.StopwatchExists(c, c.Doer.ID, issue.ID)
-
-	if wasRunning {
-		if err := issues_model.FinishIssueStopwatch(c, c.Doer, issue); err != nil {
-			c.ServerError("FinishIssueStopwatch", err)
-			return
-		}
-	} else {
-		c.Flash.Warning(c.Tr("repo.issues.tracker_already_stopped"))
+	if ok, err := issues_model.FinishIssueStopwatch(c, c.Doer, issue); err != nil {
+		c.ServerError("FinishIssueStopwatch", err)
+		return
+	} else if !ok {
+		c.Flash.Warning(c.Tr("repo.issues.stopwatch_already_stopped"))
 	}
-
 	c.JSONRedirect("")
 }
 
@@ -69,7 +65,7 @@ func CancelStopwatch(c *context.Context) {
 		return
 	}
 
-	if err := issues_model.CancelStopwatch(c, c.Doer, issue); err != nil {
+	if _, err := issues_model.CancelStopwatch(c, c.Doer, issue); err != nil {
 		c.ServerError("CancelStopwatch", err)
 		return
 	}
