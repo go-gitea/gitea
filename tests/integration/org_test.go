@@ -10,12 +10,17 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOrgRepos(t *testing.T) {
@@ -217,4 +222,32 @@ func TestTeamSearch(t *testing.T) {
 	session = loginUser(t, user5.Name)
 	req = NewRequestf(t, "GET", "/org/%s/teams/-/search?q=%s", org.Name, "team")
 	session.MakeRequest(t, req, http.StatusNotFound)
+
+	t.Run("SearchWithPermission", func(t *testing.T) {
+		ctx := t.Context()
+		const testOrgID int64 = 500
+		const testRepoID int64 = 2000
+		testTeam := &organization.Team{OrgID: testOrgID, LowerName: "test_team", AccessMode: perm.AccessModeNone}
+		require.NoError(t, db.Insert(ctx, testTeam))
+		require.NoError(t, db.Insert(ctx, &organization.TeamRepo{OrgID: testOrgID, TeamID: testTeam.ID, RepoID: testRepoID}))
+		require.NoError(t, db.Insert(ctx, &organization.TeamUnit{OrgID: testOrgID, TeamID: testTeam.ID, Type: unit.TypeCode, AccessMode: perm.AccessModeRead}))
+		require.NoError(t, db.Insert(ctx, &organization.TeamUnit{OrgID: testOrgID, TeamID: testTeam.ID, Type: unit.TypeIssues, AccessMode: perm.AccessModeWrite}))
+
+		teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, testOrgID, testRepoID, perm.AccessModeRead, unit.TypeCode, unit.TypeIssues)
+		require.NoError(t, err)
+		assert.Len(t, teams, 1) // can read "code" or "issues"
+
+		teams, err = organization.GetTeamsWithAccessToAnyRepoUnit(ctx, testOrgID, testRepoID, perm.AccessModeWrite, unit.TypeCode)
+		require.NoError(t, err)
+		assert.Empty(t, teams) // cannot write "code"
+
+		teams, err = organization.GetTeamsWithAccessToAnyRepoUnit(ctx, testOrgID, testRepoID, perm.AccessModeWrite, unit.TypeIssues)
+		require.NoError(t, err)
+		assert.Len(t, teams, 1) // can write "issues"
+
+		_, _ = db.GetEngine(ctx).ID(testTeam.ID).Update(&organization.Team{AccessMode: perm.AccessModeWrite})
+		teams, err = organization.GetTeamsWithAccessToAnyRepoUnit(ctx, testOrgID, testRepoID, perm.AccessModeWrite, unit.TypeCode)
+		require.NoError(t, err)
+		assert.Len(t, teams, 1) // team permission is "write", so can write "code"
+	})
 }

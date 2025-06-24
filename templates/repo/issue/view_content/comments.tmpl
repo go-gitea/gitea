@@ -163,6 +163,7 @@
 				</span>
 				<div class="detail flex-text-block">
 					{{svg "octicon-git-commit"}}
+					{{/* the content is a link like <a href="{RepoLink}/commit/{CommitID}">message title</a> (from CreateRefComment) */}}
 					<span class="text grey muted-links">{{.Content | SanitizeHTML}}</span>
 				</div>
 			</div>

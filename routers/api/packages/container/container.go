@@ -32,7 +32,7 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
 
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 )
 
 // maximum size of a container manifest
