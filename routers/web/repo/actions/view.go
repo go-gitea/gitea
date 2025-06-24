@@ -249,7 +249,7 @@ func ViewPost(ctx *context_module.Context) {
 			ID:       v.ID,
 			Name:     v.Name,
 			Status:   v.Status.String(),
-			CanRerun: resp.State.Run.CanRerun,
+			CanRerun: resp.State.Run.CanRerun && !v.Status.IsSkipped(),
 			Duration: v.Duration().String(),
 		})
 	}
