@@ -24,7 +24,7 @@ import (
 const ScopeSortPrefix = "scope-"
 
 // IssuesOptions represents options of an issue.
-type IssuesOptions struct { //nolint
+type IssuesOptions struct { //nolint:revive // export stutter, not a large issue
 	Paginator          *db.ListOptions
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	AllPublic          bool    // include also all public repositories
