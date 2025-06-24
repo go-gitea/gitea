@@ -6,7 +6,6 @@ package templates
 
 import (
 	"fmt"
-	"html"
 	"html/template"
 	"net/url"
 	"strconv"
@@ -38,9 +37,7 @@ func NewFuncMap() template.FuncMap {
 		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
 		"Iif":          iif,
 		"Eval":         evalTokens,
-		"SafeHTML":     safeHTML,
 		"HTMLFormat":   htmlFormat,
-		"HTMLEscape":   htmlEscape,
 		"QueryEscape":  queryEscape,
 		"QueryBuild":   QueryBuild,
 		"JSEscape":     jsEscapeSafe,
@@ -165,30 +162,9 @@ func NewFuncMap() template.FuncMap {
 	}
 }
 
-// safeHTML render raw as HTML
-func safeHTML(s any) template.HTML {
-	switch v := s.(type) {
-	case string:
-		return template.HTML(v)
-	case template.HTML:
-		return v
-	}
-	panic(fmt.Sprintf("unexpected type %T", s))
-}
-
 // SanitizeHTML sanitizes the input by default sanitization rules.
 func SanitizeHTML(s string) template.HTML {
 	return markup.Sanitize(s)
-}
-
-func htmlEscape(s any) template.HTML {
-	switch v := s.(type) {
-	case string:
-		return template.HTML(html.EscapeString(v))
-	case template.HTML:
-		return v
-	}
-	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
 func htmlFormat(s any, args ...any) template.HTML {
