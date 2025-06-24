@@ -1163,6 +1163,11 @@ func Routes() *web.Router {
 					m.Delete("", user.UnblockUser)
 				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
 			})
+
+			m.Group("/projects", func() {
+				m.Get("", projects.ListUserProjects)
+				m.Post("", bind(api.NewProjectPayload{}), projects.CreateUserProject)
+			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Repositories (requires repo scope, org scope)
@@ -1462,6 +1467,10 @@ func Routes() *web.Router {
 				}, reqAdmin(), reqToken())
 
 				m.Get("/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), repo.DownloadArchive)
+
+				m.Group("/projects", func() {
+					m.Post("", bind(api.NewProjectPayload{}), projects.CreateRepoProject)
+				})
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
@@ -1594,10 +1603,6 @@ func Routes() *web.Router {
 						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
 						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
 				})
-				m.Group("/projects", func() {
-					m.Combo("").Get(projects.ListRepoProjects).
-						Post(bind(api.NewProjectPayload{}), projects.CreateRepoProject)
-				}, mustEnableIssues)
 			}, repoAssignment())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 
@@ -1686,6 +1691,10 @@ func Routes() *web.Router {
 					m.Delete("", org.UnblockUser)
 				})
 			}, reqToken(), reqOrgOwnership())
+
+			m.Group("/projects", func() {
+				m.Post("", bind(api.NewProjectPayload{}), projects.CreateOrgProject)
+			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(reqToken(), org.GetTeam).
@@ -1764,11 +1773,6 @@ func Routes() *web.Router {
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin())
 
-		m.Group("/projects", func() {
-			m.Combo("/{id}").Get(projects.GetProject).
-				Patch(bind(api.UpdateProjectPayload{}), projects.UpdateProject).
-				Delete(projects.DeleteProject)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue), reqToken())
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
