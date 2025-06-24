@@ -61,7 +61,6 @@ func GetTeamsWithAccessToAnyRepoUnit(ctx context.Context, orgID, repoID int64, m
 		And(builder.In("team_unit.type", append([]unit.Type{unitType}, unitTypesMore...))).
 		And(builder.Expr("team_unit.access_mode >= ?", mode))
 
-	// FIXME: maybe it should also check "team.includes_all_repositories = true" in the future
 	err := db.GetEngine(ctx).
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		And("team_repo.org_id = ?", orgID).
