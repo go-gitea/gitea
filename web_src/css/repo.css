@@ -1552,9 +1552,9 @@ td .commit-summary {
 .labels-list {
   display: inline-flex;
   flex-wrap: wrap;
-  overflow: hidden;
   gap: 0.25rem;
-  line-height: 1;
+  align-content: center;
+  contain: paint;
 }
 
 /* To let labels break up and wrap across multiple lines, we use display: contents here. The parent
