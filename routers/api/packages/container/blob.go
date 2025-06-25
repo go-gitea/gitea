@@ -20,6 +20,8 @@ import (
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
+
+	"github.com/opencontainers/go-digest"
 )
 
 // saveAsPackageBlob creates a package blob from an upload
@@ -88,14 +90,14 @@ func mountBlob(ctx context.Context, pi *packages_service.PackageInfo, pb *packag
 	})
 }
 
-func containerPkgName(piOwnerID int64, piName string) string {
-	return fmt.Sprintf("pkg_%d_container_%s", piOwnerID, strings.ToLower(piName))
+func containerGlobalLockKey(piOwnerID int64, piName, usage string) string {
+	return fmt.Sprintf("pkg_%d_container_%s_%s", piOwnerID, strings.ToLower(piName), usage)
 }
 
 func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageInfo) (*packages_model.PackageVersion, error) {
 	var uploadVersion *packages_model.PackageVersion
 
-	releaser, err := globallock.Lock(ctx, containerPkgName(pi.Owner.ID, pi.Name))
+	releaser, err := globallock.Lock(ctx, containerGlobalLockKey(pi.Owner.ID, pi.Name, "package"))
 	if err != nil {
 		return nil, err
 	}
@@ -128,8 +130,8 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 		pv := &packages_model.PackageVersion{
 			PackageID:    p.ID,
 			CreatorID:    pi.Owner.ID,
-			Version:      container_model.UploadVersion,
-			LowerVersion: container_model.UploadVersion,
+			Version:      container_module.UploadVersion,
+			LowerVersion: container_module.UploadVersion,
 			IsInternal:   true,
 			MetadataJSON: "null",
 		}
@@ -175,8 +177,8 @@ func createFileForBlob(ctx context.Context, pv *packages_model.PackageVersion, p
 	return nil
 }
 
-func deleteBlob(ctx context.Context, ownerID int64, image, digest string) error {
-	releaser, err := globallock.Lock(ctx, containerPkgName(ownerID, image))
+func deleteBlob(ctx context.Context, ownerID int64, image string, digest digest.Digest) error {
+	releaser, err := globallock.Lock(ctx, containerGlobalLockKey(ownerID, image, "blob"))
 	if err != nil {
 		return err
 	}
@@ -186,7 +188,7 @@ func deleteBlob(ctx context.Context, ownerID int64, image, digest string) error 
 		pfds, err := container_model.GetContainerBlobs(ctx, &container_model.BlobSearchOptions{
 			OwnerID: ownerID,
 			Image:   image,
-			Digest:  digest,
+			Digest:  string(digest),
 		})
 		if err != nil {
 			return err

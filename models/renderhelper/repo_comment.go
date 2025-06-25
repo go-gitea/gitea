@@ -44,30 +44,31 @@ type RepoCommentOptions struct {
 	DeprecatedRepoName  string // it is only a patch for the non-standard "markup" api
 	DeprecatedOwnerName string // it is only a patch for the non-standard "markup" api
 	CurrentRefPath      string // eg: "branch/main" or "commit/11223344"
+	FootnoteContextID   string // the extra context ID for footnotes, used to avoid conflicts with other footnotes in the same page
 }
 
 func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repository, opts ...RepoCommentOptions) *markup.RenderContext {
-	helper := &RepoComment{
-		repoLink: repo.Link(),
-		opts:     util.OptionalArg(opts),
-	}
+	helper := &RepoComment{opts: util.OptionalArg(opts)}
 	rctx := markup.NewRenderContext(ctx)
 	helper.ctx = rctx
+	var metas map[string]string
 	if repo != nil {
 		helper.repoLink = repo.Link()
 		helper.commitChecker = newCommitChecker(ctx, repo)
-		rctx = rctx.WithMetas(repo.ComposeCommentMetas(ctx))
+		metas = repo.ComposeCommentMetas(ctx)
 	} else {
-		// this is almost dead code, only to pass the incorrect tests
-		helper.repoLink = fmt.Sprintf("%s/%s", helper.opts.DeprecatedOwnerName, helper.opts.DeprecatedRepoName)
-		rctx = rctx.WithMetas(map[string]string{
-			"user": helper.opts.DeprecatedOwnerName,
-			"repo": helper.opts.DeprecatedRepoName,
-
-			"markdownNewLineHardBreak":     "true",
-			"markupAllowShortIssuePattern": "true",
-		})
+		// repo can be nil when rendering a commit message in user's dashboard feedback whose repository has been deleted
+		metas = map[string]string{}
+		if helper.opts.DeprecatedOwnerName != "" {
+			// this is almost dead code, only to pass the incorrect tests
+			helper.repoLink = fmt.Sprintf("%s/%s", helper.opts.DeprecatedOwnerName, helper.opts.DeprecatedRepoName)
+			metas["user"] = helper.opts.DeprecatedOwnerName
+			metas["repo"] = helper.opts.DeprecatedRepoName
+		}
+		metas["markdownNewLineHardBreak"] = "true"
+		metas["markupAllowShortIssuePattern"] = "true"
 	}
-	rctx = rctx.WithHelper(helper)
+	metas["footnoteContextId"] = helper.opts.FootnoteContextID
+	rctx = rctx.WithMetas(metas).WithHelper(helper)
 	return rctx
 }

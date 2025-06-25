@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -16,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 func TestMain(m *testing.M) {
@@ -27,10 +28,10 @@ func makePathOutput(workPath, customPath, customConf string) string {
 	return fmt.Sprintf("WorkPath=%s\nCustomPath=%s\nCustomConf=%s", workPath, customPath, customConf)
 }
 
-func newTestApp(testCmdAction func(ctx *cli.Context) error) *cli.App {
+func newTestApp(testCmdAction cli.ActionFunc) *cli.Command {
 	app := NewMainApp(AppVersion{})
 	testCmd := &cli.Command{Name: "test-cmd", Action: testCmdAction}
-	prepareSubcommandWithConfig(testCmd, appGlobalFlags())
+	prepareSubcommandWithGlobalFlags(testCmd)
 	app.Commands = append(app.Commands, testCmd)
 	app.DefaultCommand = testCmd.Name
 	return app
@@ -42,7 +43,7 @@ type runResult struct {
 	ExitCode int
 }
 
-func runTestApp(app *cli.App, args ...string) (runResult, error) {
+func runTestApp(app *cli.Command, args ...string) (runResult, error) {
 	outBuf := new(strings.Builder)
 	errBuf := new(strings.Builder)
 	app.Writer = outBuf
@@ -65,7 +66,7 @@ func TestCliCmd(t *testing.T) {
 	defaultCustomConf := filepath.Join(defaultCustomPath, "conf/app.ini")
 
 	cli.CommandHelpTemplate = "(command help template)"
-	cli.AppHelpTemplate = "(app help template)"
+	cli.RootCommandHelpTemplate = "(app help template)"
 	cli.SubcommandHelpTemplate = "(subcommand help template)"
 
 	cases := []struct {
@@ -109,12 +110,12 @@ func TestCliCmd(t *testing.T) {
 		},
 	}
 
-	app := newTestApp(func(ctx *cli.Context) error {
-		_, _ = fmt.Fprint(ctx.App.Writer, makePathOutput(setting.AppWorkPath, setting.CustomPath, setting.CustomConf))
-		return nil
-	})
 	for _, c := range cases {
 		t.Run(c.cmd, func(t *testing.T) {
+			app := newTestApp(func(ctx context.Context, cmd *cli.Command) error {
+				_, _ = fmt.Fprint(cmd.Root().Writer, makePathOutput(setting.AppWorkPath, setting.CustomPath, setting.CustomConf))
+				return nil
+			})
 			for k, v := range c.env {
 				t.Setenv(k, v)
 			}
@@ -128,28 +129,28 @@ func TestCliCmd(t *testing.T) {
 }
 
 func TestCliCmdError(t *testing.T) {
-	app := newTestApp(func(ctx *cli.Context) error { return errors.New("normal error") })
+	app := newTestApp(func(ctx context.Context, cmd *cli.Command) error { return errors.New("normal error") })
 	r, err := runTestApp(app, "./gitea", "test-cmd")
 	assert.Error(t, err)
 	assert.Equal(t, 1, r.ExitCode)
 	assert.Empty(t, r.Stdout)
 	assert.Equal(t, "Command error: normal error\n", r.Stderr)
 
-	app = newTestApp(func(ctx *cli.Context) error { return cli.Exit("exit error", 2) })
+	app = newTestApp(func(ctx context.Context, cmd *cli.Command) error { return cli.Exit("exit error", 2) })
 	r, err = runTestApp(app, "./gitea", "test-cmd")
 	assert.Error(t, err)
 	assert.Equal(t, 2, r.ExitCode)
 	assert.Empty(t, r.Stdout)
 	assert.Equal(t, "exit error\n", r.Stderr)
 
-	app = newTestApp(func(ctx *cli.Context) error { return nil })
+	app = newTestApp(func(ctx context.Context, cmd *cli.Command) error { return nil })
 	r, err = runTestApp(app, "./gitea", "test-cmd", "--no-such")
 	assert.Error(t, err)
 	assert.Equal(t, 1, r.ExitCode)
-	assert.Equal(t, "Incorrect Usage: flag provided but not defined: -no-such\n\n", r.Stdout)
-	assert.Empty(t, r.Stderr) // the cli package's strange behavior, the error message is not in stderr ....
+	assert.Empty(t, r.Stdout)
+	assert.Equal(t, "Incorrect Usage: flag provided but not defined: -no-such\n\n", r.Stderr)
 
-	app = newTestApp(func(ctx *cli.Context) error { return nil })
+	app = newTestApp(func(ctx context.Context, cmd *cli.Command) error { return nil })
 	r, err = runTestApp(app, "./gitea", "test-cmd")
 	assert.NoError(t, err)
 	assert.Equal(t, -1, r.ExitCode) // the cli.OsExiter is not called

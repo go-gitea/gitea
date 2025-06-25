@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // ErrDuplicatePackageVersion indicates a duplicated package version error
@@ -187,7 +188,7 @@ type PackageSearchOptions struct {
 	HasFileWithName string                // only results are found which are associated with a file with the specific name
 	HasFiles        optional.Option[bool] // only results are found which have associated files
 	Sort            VersionSort
-	db.Paginator
+	Paginator       db.Paginator
 }
 
 func (opts *PackageSearchOptions) ToConds() builder.Cond {
@@ -282,6 +283,18 @@ func (opts *PackageSearchOptions) configureOrderBy(e db.Engine) {
 	e.Desc("package_version.id") // Sort by id for stable order with duplicates in the other field
 }
 
+func searchVersionsBySession(sess *xorm.Session, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
+	opts.configureOrderBy(sess)
+	pvs := make([]*PackageVersion, 0, 10)
+	if opts.Paginator != nil {
+		sess = db.SetSessionPagination(sess, opts.Paginator)
+		count, err := sess.FindAndCount(&pvs)
+		return pvs, count, err
+	}
+	err := sess.Find(&pvs)
+	return pvs, int64(len(pvs)), err
+}
+
 // SearchVersions gets all versions of packages matching the search options
 func SearchVersions(ctx context.Context, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
 	sess := db.GetEngine(ctx).
@@ -289,16 +302,7 @@ func SearchVersions(ctx context.Context, opts *PackageSearchOptions) ([]*Package
 		Table("package_version").
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Where(opts.ToConds())
-
-	opts.configureOrderBy(sess)
-
-	if opts.Paginator != nil {
-		sess = db.SetSessionPagination(sess, opts)
-	}
-
-	pvs := make([]*PackageVersion, 0, 10)
-	count, err := sess.FindAndCount(&pvs)
-	return pvs, count, err
+	return searchVersionsBySession(sess, opts)
 }
 
 // SearchLatestVersions gets the latest version of every package matching the search options
@@ -316,15 +320,7 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Where(builder.In("package_version.id", in))
 
-	opts.configureOrderBy(sess)
-
-	if opts.Paginator != nil {
-		sess = db.SetSessionPagination(sess, opts)
-	}
-
-	pvs := make([]*PackageVersion, 0, 10)
-	count, err := sess.FindAndCount(&pvs)
-	return pvs, count, err
+	return searchVersionsBySession(sess, opts)
 }
 
 // ExistVersion checks if a version matching the search options exist

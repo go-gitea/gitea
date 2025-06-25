@@ -39,7 +39,7 @@ export default defineComponent({
     return {
       tab,
       repos: [],
-      reposTotalCount: 0,
+      reposTotalCount: null,
       reposFilter,
       archivedFilter,
       privateFilter,
@@ -113,9 +113,6 @@ export default defineComponent({
     const el = document.querySelector('#dashboard-repo-list');
     this.changeReposFilter(this.reposFilter);
     fomanticQuery(el.querySelector('.ui.dropdown')).dropdown();
-    nextTick(() => {
-      this.$refs.search?.focus();
-    });
 
     this.textArchivedFilterTitles = {
       'archived': this.textShowOnlyArchived,
@@ -219,7 +216,9 @@ export default defineComponent({
       this.searchRepos();
     },
 
-    changePage(page: number) {
+    async changePage(page: number) {
+      if (this.isLoading) return;
+
       this.page = page;
       if (this.page > this.finalPage) {
         this.page = this.finalPage;
@@ -229,7 +228,7 @@ export default defineComponent({
       }
       this.repos = [];
       this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
-      this.searchRepos();
+      await this.searchRepos();
     },
 
     async searchRepos() {
@@ -241,12 +240,20 @@ export default defineComponent({
 
       let response, json;
       try {
+        const firstLoad = this.reposTotalCount === null;
         if (!this.reposTotalCount) {
           const totalCountSearchURL = `${this.subUrl}/repo/search?count_only=1&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           response = await GET(totalCountSearchURL);
           this.reposTotalCount = parseInt(response.headers.get('X-Total-Count') ?? '0');
         }
-
+        if (firstLoad && this.reposTotalCount) {
+          nextTick(() => {
+            // MDN: If there's no focused element, this is the Document.body or Document.documentElement.
+            if ((document.activeElement === document.body || document.activeElement === document.documentElement)) {
+              this.$refs.search.focus({preventScroll: true});
+            }
+          });
+        }
         response = await GET(searchedURL);
         json = await response.json();
       } catch {
@@ -299,7 +306,7 @@ export default defineComponent({
       return commitStatus[status].color;
     },
 
-    reposFilterKeyControl(e: KeyboardEvent) {
+    async reposFilterKeyControl(e: KeyboardEvent) {
       switch (e.key) {
         case 'Enter':
           document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
@@ -308,7 +315,7 @@ export default defineComponent({
           if (this.activeIndex > 0) {
             this.activeIndex--;
           } else if (this.page > 1) {
-            this.changePage(this.page - 1);
+            await this.changePage(this.page - 1);
             this.activeIndex = this.searchLimit - 1;
           }
           break;
@@ -317,17 +324,17 @@ export default defineComponent({
             this.activeIndex++;
           } else if (this.page < this.finalPage) {
             this.activeIndex = 0;
-            this.changePage(this.page + 1);
+            await this.changePage(this.page + 1);
           }
           break;
         case 'ArrowRight':
           if (this.page < this.finalPage) {
-            this.changePage(this.page + 1);
+            await this.changePage(this.page + 1);
           }
           break;
         case 'ArrowLeft':
           if (this.page > 1) {
-            this.changePage(this.page - 1);
+            await this.changePage(this.page - 1);
           }
           break;
       }
@@ -348,7 +355,7 @@ export default defineComponent({
       <h4 class="ui top attached header tw-flex tw-items-center">
         <div class="tw-flex-1 tw-flex tw-items-center">
           {{ textMyRepos }}
-          <span class="ui grey label tw-ml-2">{{ reposTotalCount }}</span>
+          <span v-if="reposTotalCount" class="ui grey label tw-ml-2">{{ reposTotalCount }}</span>
         </div>
         <a class="tw-flex tw-items-center muted" :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
@@ -419,7 +426,7 @@ export default defineComponent({
       </div>
       <div v-if="repos.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
-          <li class="tw-flex tw-items-center tw-py-2" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
+          <li class="tw-flex tw-items-center tw-py-2" v-for="(repo, index) in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="16" class="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
@@ -427,7 +434,7 @@ export default defineComponent({
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
             </a>
-            <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link" :data-tooltip-content="repo.locale_latest_commit_status_state">
+            <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link || null" :data-tooltip-content="repo.locale_latest_commit_status_state">
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
               <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class="'tw-ml-2 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>

@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 func Test_CmdKeys(t *testing.T) {
@@ -36,18 +36,21 @@ func Test_CmdKeys(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				out := new(bytes.Buffer)
-				app := cli.NewApp()
-				app.Writer = out
-				app.Commands = []*cli.Command{cmd.CmdKeys}
+				var stdout, stderr bytes.Buffer
+				app := &cli.Command{
+					Writer:    &stdout,
+					ErrWriter: &stderr,
+					Commands:  []*cli.Command{cmd.CmdKeys},
+				}
 				cmd.CmdKeys.HideHelp = true
-				err := app.Run(append([]string{"prog"}, tt.args...))
+				err := app.Run(t.Context(), append([]string{"prog"}, tt.args...))
 				if tt.wantErr {
 					assert.Error(t, err)
+					assert.Equal(t, tt.expectedOutput, stderr.String())
 				} else {
 					assert.NoError(t, err)
+					assert.Equal(t, tt.expectedOutput, stdout.String())
 				}
-				assert.Equal(t, tt.expectedOutput, out.String())
 			})
 		}
 	})

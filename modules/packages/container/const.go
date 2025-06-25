@@ -4,6 +4,8 @@
 package container
 
 const (
+	ContentTypeDockerDistributionManifestV2 = "application/vnd.docker.distribution.manifest.v2+json"
+
 	ManifestFilename = "manifest.json"
 	UploadVersion    = "_upload"
 )

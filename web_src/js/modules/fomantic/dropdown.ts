@@ -9,9 +9,9 @@ const fomanticDropdownFn = $.fn.dropdown;
 // use our own `$().dropdown` function to patch Fomantic's dropdown module
 export function initAriaDropdownPatch() {
   if ($.fn.dropdown === ariaDropdownFn) throw new Error('initAriaDropdownPatch could only be called once');
-  $.fn.dropdown.settings.onAfterFiltered = onAfterFiltered;
   $.fn.dropdown = ariaDropdownFn;
   $.fn.fomanticExt.onResponseKeepSelectedItem = onResponseKeepSelectedItem;
+  $.fn.fomanticExt.onDropdownAfterFiltered = onDropdownAfterFiltered;
   (ariaDropdownFn as FomanticInitFunction).settings = fomanticDropdownFn.settings;
 }
 
@@ -71,11 +71,11 @@ function updateSelectionLabel(label: HTMLElement) {
   }
 }
 
-function onAfterFiltered(this: any) {
-  const $dropdown = $(this);
+function onDropdownAfterFiltered(this: any) {
+  const $dropdown = $(this).closest('.ui.dropdown'); // "this" can be the "ui dropdown" or "<select>"
   const hideEmptyDividers = $dropdown.dropdown('setting', 'hideDividers') === 'empty';
   const itemsMenu = $dropdown[0].querySelector('.scrolling.menu') || $dropdown[0].querySelector('.menu');
-  if (hideEmptyDividers) hideScopedEmptyDividers(itemsMenu);
+  if (hideEmptyDividers && itemsMenu) hideScopedEmptyDividers(itemsMenu);
 }
 
 // delegate the dropdown's template functions and callback functions to add aria attributes.

@@ -232,7 +232,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 
 	if len(addTags)+len(delTags) > 0 {
-		if err := PushUpdateAddDeleteTags(ctx, repo, gitRepo, addTags, delTags); err != nil {
+		if err := PushUpdateAddDeleteTags(ctx, repo, gitRepo, pusher, addTags, delTags); err != nil {
 			return fmt.Errorf("PushUpdateAddDeleteTags: %w", err)
 		}
 	}
@@ -342,17 +342,17 @@ func pushDeleteBranch(ctx context.Context, repo *repo_model.Repository, pusher *
 }
 
 // PushUpdateAddDeleteTags updates a number of added and delete tags
-func PushUpdateAddDeleteTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, addTags, delTags []string) error {
+func PushUpdateAddDeleteTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pusher *user_model.User, addTags, delTags []string) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := repo_model.PushUpdateDeleteTags(ctx, repo, delTags); err != nil {
 			return err
 		}
-		return pushUpdateAddTags(ctx, repo, gitRepo, addTags)
+		return pushUpdateAddTags(ctx, repo, gitRepo, pusher, addTags)
 	})
 }
 
 // pushUpdateAddTags updates a number of add tags
-func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, tags []string) error {
+func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pusher *user_model.User, tags []string) error {
 	if len(tags) == 0 {
 		return nil
 	}
@@ -378,8 +378,6 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 
 	newReleases := make([]*repo_model.Release, 0, len(lowerTags)-len(relMap))
 
-	emailToUser := make(map[string]*user_model.User)
-
 	for i, lowerTag := range lowerTags {
 		tag, err := gitRepo.GetTag(tags[i])
 		if err != nil {
@@ -397,21 +395,9 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		if sig == nil {
 			sig = commit.Committer
 		}
-		var author *user_model.User
-		createdAt := time.Unix(1, 0)
 
+		createdAt := time.Unix(1, 0)
 		if sig != nil {
-			var ok bool
-			author, ok = emailToUser[sig.Email]
-			if !ok {
-				author, err = user_model.GetUserByEmail(ctx, sig.Email)
-				if err != nil && !user_model.IsErrUserNotExist(err) {
-					return fmt.Errorf("GetUserByEmail: %w", err)
-				}
-				if author != nil {
-					emailToUser[sig.Email] = author
-				}
-			}
 			createdAt = sig.When
 		}
 
@@ -435,10 +421,8 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 				IsDraft:      false,
 				IsPrerelease: false,
 				IsTag:        true,
+				PublisherID:  pusher.ID,
 				CreatedUnix:  timeutil.TimeStamp(createdAt.Unix()),
-			}
-			if author != nil {
-				rel.PublisherID = author.ID
 			}
 
 			newReleases = append(newReleases, rel)
@@ -448,12 +432,10 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			if rel.IsTag {
 				rel.Title = parts[0]
 				rel.Note = note
-				if author != nil {
-					rel.PublisherID = author.ID
-				}
 			} else {
 				rel.IsDraft = false
 			}
+			rel.PublisherID = pusher.ID
 			if err = repo_model.UpdateRelease(ctx, rel); err != nil {
 				return fmt.Errorf("Update: %w", err)
 			}
