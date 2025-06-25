@@ -87,8 +87,8 @@ linters:
         - name: var-declaration
         - name: var-naming
           arguments:
-            - [] #AllowList - do not remove as args for the rule are positional and won't work without lists first
-            - [] #DenyList
+            - [] # AllowList - do not remove as args for the rule are positional and won't work without lists first
+            - [] # DenyList
             - - skip-package-name-checks: true # supress errors from underscore in migration packages
     staticcheck:
       checks:
