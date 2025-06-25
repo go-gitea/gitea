@@ -77,6 +77,13 @@
   visibility: hidden;
 }
 
+.issue-sidebar-combo > .ui.list.labels-list {
+  display: flex;
+  flex-wrap: wrap;
+  overflow: hidden;
+  gap: 0.25em;
+}
+
 @media (max-width: 767.98px) {
   .issue-content-left,
   .issue-content-right {
@@ -1545,21 +1552,7 @@ td .commit-summary {
 }
 
 .labels-list {
-  display: contents; /* enable the list to break across multiple lines */
-  line-height: 16px;
-}
-
-.labels-list > * {
-  margin-right: .25rem;
-  margin-bottom: .25rem;
-}
-
-.labels-list > :last-child {
-  margin-right: 0;
-}
-
-#issue-list .labels-list > * {
-  margin: 0; /* gap from `.flex-item .flex-item-title` is in effect */
+  display: contents; /* let parent to layout, recommended to use flex gap */
 }
 
 .labels-list .label, .scope-parent > .label {
