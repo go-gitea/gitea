@@ -1,7 +1,7 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_16 //nolint:revive // version underscore
+package v1_16
 
 import (
 	"code.gitea.io/gitea/models/migrations/base"

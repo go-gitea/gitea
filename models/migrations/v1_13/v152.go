@@ -1,7 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_13 //nolint:revive // version underscore
+package v1_13
 
 import "xorm.io/xorm"
 
