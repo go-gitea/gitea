@@ -7424,7 +7424,7 @@
     },
     "/repos/{owner}/{repo}/contents": {
       "get": {
-        "description": "This API follows GitHub's design, and it is not easy to use. Recommend to use our \"contents-ext\" API instead.",
+        "description": "This API follows GitHub's design, and it is not easy to use. Recommend users to use our \"contents-ext\" API instead.",
         "produces": [
           "application/json"
         ],
@@ -7521,7 +7521,7 @@
     },
     "/repos/{owner}/{repo}/contents-ext/{filepath}": {
       "get": {
-        "description": "It guarantees that only one of the response fields is set if the request succeeds. Users can pass \"includes=file_content\" or \"includes=lfs_metadata\" to retrieve more fields.",
+        "description": "It guarantees that only one of the response fields is set if the request succeeds. Users can pass \"includes=file_content\" or \"includes=lfs_metadata\" to retrieve more fields. \"includes=file_content\" only works for single file, if you need to retrieve file contents in batch, use \"file-contents\" API after listing the directory.",
         "produces": [
           "application/json"
         ],
@@ -7577,7 +7577,7 @@
     },
     "/repos/{owner}/{repo}/contents/{filepath}": {
       "get": {
-        "description": "This API follows GitHub's design, and it is not easy to use. Recommend to use our \"contents-ext\" API instead.",
+        "description": "This API follows GitHub's design, and it is not easy to use. Recommend users to use the \"contents-ext\" API instead.",
         "produces": [
           "application/json"
         ],
@@ -7909,7 +7909,7 @@
     },
     "/repos/{owner}/{repo}/file-contents": {
       "get": {
-        "description": "See the POST method. This GET method supports to use JSON encoded request body in query parameter.",
+        "description": "See the POST method. This GET method supports using JSON encoded request body in query parameter.",
         "produces": [
           "application/json"
         ],
@@ -12876,7 +12876,7 @@
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch",
             "name": "ref",
             "in": "query"
           }
@@ -15020,7 +15020,7 @@
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch",
             "name": "ref",
             "in": "query"
           }
@@ -21867,7 +21867,7 @@
       ],
       "properties": {
         "content": {
-          "description": "new or updated file content, must be base64 encoded",
+          "description": "new or updated file content, it must be base64 encoded",
           "type": "string",
           "x-go-name": "ContentBase64"
         },
@@ -21877,11 +21877,13 @@
           "x-go-name": "FromPath"
         },
         "operation": {
-          "description": "indicates what to do with the file",
+          "description": "indicates what to do with the file: \"create\" for creating a new file, \"update\" for updating an existing file,\n\"upload\" for creating or updating a file, \"rename\" for renaming a file, and \"delete\" for deleting an existing file.",
           "type": "string",
           "enum": [
             "create",
             "update",
+            "upload",
+            "rename",
             "delete"
           ],
           "x-go-name": "Operation"
@@ -21892,7 +21894,7 @@
           "x-go-name": "Path"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists, required for update or delete",
+          "description": "the bolb ID (SHA) for the file that already exists, required for changing existing files",
           "type": "string",
           "x-go-name": "SHA"
         }
@@ -23657,7 +23659,7 @@
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists",
+          "description": "the blob ID (SHA) for the file that already exists, it is required for changing existing files",
           "type": "string",
           "x-go-name": "SHA"
         },
@@ -28106,7 +28108,7 @@
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists",
+          "description": "the blob ID (SHA) for the file that already exists, it is required for changing existing files",
           "type": "string",
           "x-go-name": "SHA"
         },
