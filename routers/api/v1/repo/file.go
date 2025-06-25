@@ -754,7 +754,7 @@ func DeleteFile(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	apiOpts, opts := getAPIChangeRepoFileOptions[*api.UpdateFileOptions](ctx)
+	apiOpts, opts := getAPIChangeRepoFileOptions[*api.DeleteFileOptions](ctx)
 	if ctx.Written() {
 		return
 	}
