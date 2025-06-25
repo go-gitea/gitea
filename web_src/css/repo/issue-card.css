@@ -28,9 +28,7 @@
 .issue-card-bottom {
   display: flex;
   width: 100%;
-  flex-wrap: wrap;
-  gap: 0.5em 0.25em;
-  align-items: center;
+  gap: 0.25em;
 }
 
 .issue-card-assignees {
