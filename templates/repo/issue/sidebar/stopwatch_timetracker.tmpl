@@ -16,14 +16,14 @@
 					</a>
 					<div class="divider"></div>
 					{{if $.IsStopwatchRunning}}
-					<a class="item issue-stop-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/toggle">
+					<a class="item issue-stop-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/stop">
 						{{svg "octicon-stopwatch"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_stop"}}
 					</a>
 					<a class="item issue-cancel-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/cancel">
 						{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_discard"}}
 					</a>
 					{{else}}
-					<a class="item issue-start-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/toggle">
+					<a class="item issue-start-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/start">
 						{{svg "octicon-stopwatch"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_start"}}
 					</a>
 					<a class="item issue-add-time show-modal" data-modal="#issue-time-manually-add-modal">

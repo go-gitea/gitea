@@ -1356,6 +1356,7 @@ func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.
 	// But as that does not work for all potential errors, we simply mark all files as unchanged and drop the error which always works, even if not as good as possible
 	if err != nil {
 		log.Error("Could not get changed files between %s and %s for pull request %d in repo with path %s. Assuming no changes. Error: %w", review.CommitSHA, latestCommit, pull.Index, gitRepo.Path, err)
+		err = nil //nolint
 	}
 
 	filesChangedSinceLastDiff := make(map[string]pull_model.ViewedState)
@@ -1397,7 +1398,7 @@ outer:
 		}
 	}
 
-	return review, err
+	return review, nil
 }
 
 // CommentAsDiff returns c.Patch as *Diff
