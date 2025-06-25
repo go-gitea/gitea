@@ -751,6 +751,8 @@ func DeleteFile(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/error"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 

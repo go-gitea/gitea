@@ -112,7 +112,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		deleteFileOptions.SHA = "badsha"
 		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
 			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusBadRequest)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 		// Test creating a file in repo16 by user4 who does not have write access
 		fileID++
