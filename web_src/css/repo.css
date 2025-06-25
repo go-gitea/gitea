@@ -1559,7 +1559,7 @@ td .commit-summary {
 }
 
 #issue-list .labels-list > * {
-  margin: 0;
+  margin: 0; /* gap from `.flex-item .flex-item-title` is in effect */
 }
 
 .labels-list .label, .scope-parent > .label {
