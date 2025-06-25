@@ -42,6 +42,7 @@ func (p *Permission) IsAdmin() bool {
 
 // HasAnyUnitAccess returns true if the user might have at least one access mode to any unit of this repository.
 // It doesn't count the "public(anonymous/everyone) access mode".
+// TODO: most calls to this function should be replaced with `HasAnyUnitAccessOrPublicAccess`
 func (p *Permission) HasAnyUnitAccess() bool {
 	for _, v := range p.unitsMode {
 		if v >= perm_model.AccessModeRead {
