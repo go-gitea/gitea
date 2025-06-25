@@ -1557,8 +1557,8 @@ td .commit-summary {
   line-height: 1;
 }
 
-/* To let labels break up and wrap across multiple line, we use display: contents here. The parent
-   element (.flex-item .flex-item-title) must have 0.25rem gap for consistent label gap. */
+/* To let labels break up and wrap across multiple lines, we use display: contents here. The parent
+   element (.flex-item-title) must have 0.25rem gap for consistent label gap. */
 .flex-list .labels-list {
   display: contents;
 }
