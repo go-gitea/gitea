@@ -1545,10 +1545,21 @@ td .commit-summary {
 }
 
 .labels-list {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 2.5px;
-  align-items: center;
+  display: contents; /* enable the list to break across multiple lines */
+  line-height: 16px;
+}
+
+.labels-list > * {
+  margin-right: .25rem;
+  margin-bottom: .25rem;
+}
+
+.labels-list > :last-child {
+  margin-right: 0;
+}
+
+#issue-list .labels-list > * {
+  margin: 0;
 }
 
 .labels-list .label, .scope-parent > .label {
