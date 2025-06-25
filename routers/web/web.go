@@ -1253,7 +1253,8 @@ func registerWebRoutes(m *web.Router) {
 					m.Post("/add", web.Bind(forms.AddTimeManuallyForm{}), repo.AddTimeManually)
 					m.Post("/{timeid}/delete", repo.DeleteTime)
 					m.Group("/stopwatch", func() {
-						m.Post("/toggle", repo.IssueStopwatch)
+						m.Post("/start", repo.IssueStartStopwatch)
+						m.Post("/stop", repo.IssueStopStopwatch)
 						m.Post("/cancel", repo.CancelStopwatch)
 					})
 				})
