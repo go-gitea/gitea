@@ -228,7 +228,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			}
 		}
 
-		if !ctx.Repo.Permission.HasAnyUnitAccess() {
+		if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() {
 			ctx.APIErrorNotFound()
 			return
 		}
@@ -1248,7 +1248,7 @@ func Routes() *web.Router {
 				}, reqToken())
 				m.Get("/raw/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
 				m.Get("/media/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
-				m.Get("/archive/*", reqRepoReader(unit.TypeCode), repo.GetArchive)
+				m.Methods("HEAD,GET", "/archive/*", reqRepoReader(unit.TypeCode), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
 					Post(reqToken(), reqRepoReader(unit.TypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
 				m.Post("/merge-upstream", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeCode), bind(api.MergeUpstreamRequest{}), repo.MergeUpstream)
@@ -1435,6 +1435,10 @@ func Routes() *web.Router {
 						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.DeleteFile)
 					}, reqToken())
 				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
+				m.Group("/contents-ext", func() {
+					m.Get("", repo.GetContentsExt)
+					m.Get("/*", repo.GetContentsExt)
+				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
 				m.Combo("/file-contents", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo()).
 					Get(repo.GetFileContentsGet).
 					Post(bind(api.GetFilesOptions{}), repo.GetFileContentsPost) // POST method requires "write" permission, so we also support "GET" method above
@@ -1460,7 +1464,7 @@ func Routes() *web.Router {
 					m.Delete("", repo.DeleteAvatar)
 				}, reqAdmin(), reqToken())
 
-				m.Get("/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), repo.DownloadArchive)
+				m.Methods("HEAD,GET", "/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), repo.DownloadArchive)
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
