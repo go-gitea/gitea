@@ -75,6 +75,7 @@
 
 .issue-content-right .ui.list {
   margin: 0.5em 0;
+  max-width: 100%;
 }
 
 .issue-sidebar-combo > .ui.dropdown .item:not(.checked) .item-check-mark {
@@ -1560,10 +1561,6 @@ td .commit-summary {
    element (.flex-item .flex-item-title) must have 0.25rem gap for consistent label gap. */
 .flex-list .labels-list {
   display: contents;
-}
-
-.issue-content-right .labels-list {
-  max-width: 100%;
 }
 
 .labels-list .label,
