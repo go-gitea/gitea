@@ -79,7 +79,7 @@ type ChangeFileOperation struct {
 	Path string `json:"path" binding:"Required;MaxSize(500)"`
 	// new or updated file content, it must be base64 encoded
 	ContentBase64 string `json:"content"`
-	// the bolb ID (SHA) for the file that already exists, required for changing existing files
+	// the blob ID (SHA) for the file that already exists, required for changing existing files
 	SHA string `json:"sha"`
 	// old path of the file to move
 	FromPath string `json:"from_path"`
