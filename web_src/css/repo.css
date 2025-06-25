@@ -1552,7 +1552,7 @@ td .commit-summary {
 .labels-list {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: 2px 0.25rem; /* 2px to make vertical gap look equal */
   align-content: center;
   contain: paint;
 }
