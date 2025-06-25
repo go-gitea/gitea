@@ -10,9 +10,9 @@ import (
 )
 
 func TestCleanUploadFileName(t *testing.T) {
-	assert.Empty(t, CleanGitTreePath(""))
-	assert.Empty(t, CleanGitTreePath("."))
+	assert.Equal(t, "", CleanGitTreePath(""))  //nolint:testifylint // for readability and alignment
+	assert.Equal(t, "", CleanGitTreePath(".")) //nolint:testifylint // for readability and alignment
 	assert.Equal(t, "a/b", CleanGitTreePath("a/b"))
-	assert.Empty(t, CleanGitTreePath(".git/b"))
-	assert.Empty(t, CleanGitTreePath("a/.git"))
+	assert.Equal(t, "", CleanGitTreePath(".git/b")) //nolint:testifylint // for readability and alignment
+	assert.Equal(t, "", CleanGitTreePath("a/.git")) //nolint:testifylint // for readability and alignment
 }
