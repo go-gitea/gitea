@@ -28,8 +28,7 @@
 .issue-card-bottom {
   display: flex;
   width: 100%;
-  justify-content: space-between;
-  gap: 0.25em;
+  flex-wrap: wrap;
 }
 
 .issue-card-assignees {
@@ -37,5 +36,5 @@
   align-items: center;
   gap: 0.25em;
   justify-content: end;
-  flex-wrap: wrap;
+  margin-left: auto;
 }
