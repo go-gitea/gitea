@@ -16,6 +16,8 @@
   border: 0 solid transparent;
   border-radius: 0.28571429rem;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 a.ui.label {
