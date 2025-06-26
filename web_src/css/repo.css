@@ -629,11 +629,6 @@ td .commit-summary {
   border: 1px solid var(--color-light-border);
 }
 
-.repository.view.issue .comment-list .timeline-item.with-labels-list .ui.label {
-  margin: 0 2px;
-  line-height: var(--line-height-default);
-}
-
 @media (max-width: 767.98px) {
   .repository.view.issue .comment-list .timeline-item .ui.segments {
     margin-left: -2rem;
@@ -1576,6 +1571,15 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
   padding-top: 0;
   padding-bottom: 0;
 }
+
+.with-labels-list-inline .labels-list a > .ui.label {
+  margin-left: 0.25em;
+}
+
+.with-labels-list-inline .labels-list .ui.label {
+  line-height: var(--line-height-default);
+}
+
 
 /* Scoped labels with different colors on left and right */
 .ui.label.scope-parent {
