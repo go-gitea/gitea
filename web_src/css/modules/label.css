@@ -13,7 +13,7 @@
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   border: 0 solid transparent;
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -331,7 +331,6 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
 
 .ui.label.scope-middle {
   border-radius: 0;
-  margin-left: 0;
 }
 
 .ui.label.scope-right {
