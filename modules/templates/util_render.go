@@ -137,7 +137,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 
 	if labelScope == "" {
 		// Regular label
-		return htmlutil.HTMLFormat(`<div class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s">%s</div>`,
+		return htmlutil.HTMLFormat(`<div class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s"><span class="gt-ellipsis">%s</span></div>`,
 			extraCSSClasses, textColor, label.Color, descriptionText, ut.RenderEmoji(label.Name))
 	}
 

@@ -82,6 +82,17 @@
   visibility: hidden;
 }
 
+.issue-content-right .ui.list.labels-list {
+  display: flex;
+  gap: 0.25em;
+  flex-wrap: wrap;
+}
+
+.issue-content-right .ui.list.labels-list .item {
+  display: inline-flex;
+  min-width: 0;
+}
+
 @media (max-width: 767.98px) {
   .issue-content-left,
   .issue-content-right {
@@ -1549,18 +1560,11 @@ td .commit-summary {
   border-bottom-right-radius: 4px;
 }
 
+/* To let labels break up and wrap across multiple lines (issue title, comment event), use "display: contents here" to apply parent layout.
+If the labels-list itself needs some layouts, use extra classes or "tw" helpers. */
 .labels-list {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 2px 0.25rem; /* 2px to make vertical gap look equal */
-  align-content: center;
-  contain: paint;
-}
-
-/* To let labels break up and wrap across multiple lines, we use display: contents here. The parent
-   element (.flex-item-title) must have 0.25rem gap for consistent label gap. */
-.flex-list .labels-list {
   display: contents;
+  font-size: var(--font-size-label); /* it must match the label font size, otherwise the height mismatches */
 }
 
 .labels-list .label,

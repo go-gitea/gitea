@@ -63,10 +63,12 @@
 
 	{{if or .Labels .Assignees}}
 	<div class="issue-card-bottom">
-		<div class="labels-list">
+		<div class="flex-text-inline tw-flex-wrap tw-overflow-hidden">
+			<div class="labels-list">
 			{{range .Labels}}
 				<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{ctx.RenderUtils.RenderLabel .}}</a>
 			{{end}}
+			</div>
 		</div>
 		<div class="issue-card-assignees">
 			{{range .Assignees}}
