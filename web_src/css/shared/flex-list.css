@@ -33,14 +33,6 @@
   color: var(--color-primary) !important;
 }
 
-.flex-item .flex-item-icon {
-  align-self: baseline; /* mainly used by the issue list, to align the leading icon with the title */
-}
-
-.flex-item .flex-item-icon + .flex-item-main {
-  align-self: baseline;
-}
-
 .flex-item .flex-item-trailing {
   display: flex;
   gap: 0.5rem;
