@@ -63,7 +63,9 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, Name: repoName})
-	assert.True(t, repo.HasWiki())
+	exist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	assert.NoError(t, err)
+	assert.True(t, exist)
 	assert.Equal(t, repo_model.RepositoryReady, repo.Status)
 
 	milestones, err := db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
