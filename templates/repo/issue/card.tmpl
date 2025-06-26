@@ -63,18 +63,18 @@
 
 	{{if or .Labels .Assignees}}
 	<div class="issue-card-bottom">
-		<div class="flex-text-inline tw-flex-wrap tw-overflow-hidden">
-			<div class="labels-list">
+		<div class="issue-card-bottom-part labels-list">
 			{{range .Labels}}
 				<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{ctx.RenderUtils.RenderLabel .}}</a>
 			{{end}}
-			</div>
 		</div>
-		<div class="issue-card-assignees">
+		{{if .Assignees}}
+		<div class="issue-card-bottom-part tw-justify-end">
 			{{range .Assignees}}
 				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 24}}</a>
 			{{end}}
 		</div>
+		{{end}}
 	</div>
 	{{end}}
 {{end}}
