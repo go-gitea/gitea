@@ -1258,13 +1258,8 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 }
 
 func stopTimerIfAvailable(ctx *context.Context, user *user_model.User, issue *issues_model.Issue) error {
-	if issues_model.StopwatchExists(ctx, user.ID, issue.ID) {
-		if err := issues_model.CreateOrStopIssueStopwatch(ctx, user, issue); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	_, err := issues_model.FinishIssueStopwatch(ctx, user, issue)
+	return err
 }
 
 func PullsNewRedirect(ctx *context.Context) {

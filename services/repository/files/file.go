@@ -19,12 +19,12 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-func GetContentsListFromTreePaths(ctx context.Context, repo *repo_model.Repository, refCommit *utils.RefCommit, treePaths []string) (files []*api.ContentsResponse) {
+func GetContentsListFromTreePaths(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, treePaths []string) (files []*api.ContentsResponse) {
 	var size int64
 	for _, treePath := range treePaths {
-		fileContents, _ := GetContents(ctx, repo, refCommit, treePath, false) // ok if fails, then will be nil
+		fileContents, _ := GetFileContents(ctx, repo, gitRepo, refCommit, GetContentsOrListOptions{TreePath: treePath, IncludeSingleFileContent: true}) // ok if fails, then will be nil
 		if fileContents != nil && fileContents.Content != nil && *fileContents.Content != "" {
-			// if content isn't empty (e.g. due to the single blob being too large), add file size to response size
+			// if content isn't empty (e.g., due to the single blob being too large), add file size to response size
 			size += int64(len(*fileContents.Content))
 		}
 		if size > setting.API.DefaultMaxResponseSize {
@@ -38,8 +38,8 @@ func GetContentsListFromTreePaths(ctx context.Context, repo *repo_model.Reposito
 	return files
 }
 
-func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, refCommit *utils.RefCommit, treeNames []string) (*api.FilesResponse, error) {
-	files := GetContentsListFromTreePaths(ctx, repo, refCommit, treeNames)
+func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, treeNames []string) (*api.FilesResponse, error) {
+	files := GetContentsListFromTreePaths(ctx, repo, gitRepo, refCommit, treeNames)
 	fileCommitResponse, _ := GetFileCommitResponse(repo, refCommit.Commit) // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(ctx, refCommit.Commit)
 	filesResponse := &api.FilesResponse{
