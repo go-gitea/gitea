@@ -113,7 +113,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return nil, err
 	}
 
-	// If no branch name is set, assume default branch
+	// If no branch name is set, assume the default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
 	}
