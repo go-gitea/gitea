@@ -7,10 +7,9 @@
   gap: .25rem;
   min-width: 0;
   max-width: 100%;
-  line-height: 1;
   background: var(--color-label-bg);
   color: var(--color-label-text);
-  padding: 0.3em 0.5em;
+  padding: 2px 6px;
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   border: 0 solid transparent;

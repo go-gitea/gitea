@@ -36,6 +36,7 @@
   flex-wrap: wrap;
   gap: 0.5em;
   justify-content: end;
+  align-items: center;
 }
 
 .issue-label-list > .item .label-operation a {

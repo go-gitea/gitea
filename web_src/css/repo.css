@@ -631,6 +631,7 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .timeline-item.with-labels-list .ui.label {
   margin: 0 2px;
+  line-height: var(--line-height-default);
 }
 
 @media (max-width: 767.98px) {
@@ -1570,10 +1571,10 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
   max-width: 100%; /* for ellipsis */
 }
 
-.labels-list .label,
-.scope-parent > .label {
-  padding: 0 6px;
+.labels-list .ui.label {
   min-height: 20px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 /* Scoped labels with different colors on left and right */
