@@ -8,13 +8,13 @@ import (
 )
 
 func FixRepoTopics(x *xorm.Engine) error {
-	type Topic struct { //nolint:unused
+	type Topic struct { //nolint:unused // struct is not used
 		ID        int64  `xorm:"pk autoincr"`
 		Name      string `xorm:"UNIQUE VARCHAR(25)"`
 		RepoCount int
 	}
 
-	type RepoTopic struct { //nolint:unused
+	type RepoTopic struct { //nolint:unused // struct is not used
 		RepoID  int64 `xorm:"pk"`
 		TopicID int64 `xorm:"pk"`
 	}

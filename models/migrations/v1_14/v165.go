@@ -16,7 +16,7 @@ func ConvertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 		return nil
 	}
 
-	type HookTask struct { //nolint:unused
+	type HookTask struct { //nolint:unused // struct is not used
 		Typ string `xorm:"VARCHAR(16) index"`
 	}
 
@@ -42,7 +42,7 @@ func ConvertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 		return err
 	}
 
-	type Webhook struct { //nolint:unused
+	type Webhook struct { //nolint:unused // struct is not used
 		Type string `xorm:"VARCHAR(16) index"`
 	}
 

@@ -105,7 +105,7 @@ func isWritableDir(path string) error {
 		return err
 	}
 	if err := os.Remove(tmpFile.Name()); err != nil {
-		fmt.Printf("Warning: can't remove temporary file: '%s'\n", tmpFile.Name()) //nolint:forbidigo
+		fmt.Printf("Warning: can't remove temporary file: '%s'\n", tmpFile.Name()) //nolint:forbidigo // TODO: This should log instead. There's no reason not to.
 	}
 	tmpFile.Close()
 	return nil

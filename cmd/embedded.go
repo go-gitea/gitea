@@ -303,7 +303,7 @@ func compileCollectPatterns(args []string) ([]glob.Glob, error) {
 	for i := range args {
 		if g, err := glob.Compile(args[i], '/'); err != nil {
 			return nil, fmt.Errorf("'%s': Invalid glob pattern: %w", args[i], err)
-		} else { //nolint:revive
+		} else { //nolint:revive // could be flattened, kept for readability
 			pat[i] = g
 		}
 	}

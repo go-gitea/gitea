@@ -45,7 +45,7 @@ func withMethod(ctx context.Context, method string) context.Context {
 		}
 	}
 	// FIXME: review the use of this nolint directive
-	return context.WithValue(ctx, methodCtxKey, method) //nolint:staticcheck
+	return context.WithValue(ctx, methodCtxKey, method) //nolint:staticcheck // SA1029, usage of anonymous struct as key
 }
 
 // getMethod gets the notification method that this context currently executes.

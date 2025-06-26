@@ -217,7 +217,7 @@ func (diffSection *DiffSection) GetLine(idx int) *DiffLine {
 // GetLine gets a specific line by type (add or del) and file line number
 // This algorithm is not quite right.
 // Actually now we have "Match" field, it is always right, so use it instead in new GetLine
-func (diffSection *DiffSection) getLineLegacy(lineType DiffLineType, idx int) *DiffLine { //nolint:unused
+func (diffSection *DiffSection) getLineLegacy(lineType DiffLineType, idx int) *DiffLine { //nolint:unused // dead code
 	var (
 		difference    = 0
 		addCount      = 0
@@ -1356,7 +1356,7 @@ func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.
 	// But as that does not work for all potential errors, we simply mark all files as unchanged and drop the error which always works, even if not as good as possible
 	if err != nil {
 		log.Error("Could not get changed files between %s and %s for pull request %d in repo with path %s. Assuming no changes. Error: %w", review.CommitSHA, latestCommit, pull.Index, gitRepo.Path, err)
-		err = nil //nolint:ineffassign,wastedassign
+		err = nil //nolint:ineffassign,wastedassign // reset error
 	}
 
 	filesChangedSinceLastDiff := make(map[string]pull_model.ViewedState)

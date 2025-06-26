@@ -102,13 +102,12 @@ func escapeTemplate(t *template.Template) error {
 	return nil
 }
 
-//nolint:unused
 type htmlTemplate struct {
-	escapeErr error
+	escapeErr error //nolint:unused // field is not used
 	text      *texttemplate.Template
 }
 
-//nolint:unused
+//nolint:unused // tmpl, muTmpl, option and parseFuncs are unused
 type textTemplateCommon struct {
 	tmpl   map[string]*template.Template // Map from name to defined templates.
 	muTmpl sync.RWMutex                  // protects tmpl
@@ -120,7 +119,7 @@ type textTemplateCommon struct {
 	execFuncs  map[string]reflect.Value
 }
 
-//nolint:unused
+//nolint:unused // name, leftDelim and rightDelim are unused
 type textTemplate struct {
 	name string
 	*parse.Tree
