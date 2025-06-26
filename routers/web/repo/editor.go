@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
+	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -135,6 +136,11 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 	targetBranchName := util.Iif(commitToNewBranch, commonForm.NewBranchName, ctx.Repo.BranchName)
 	if targetBranchName == ctx.Repo.BranchName && !commitFormOptions.CanCommitToBranch {
 		ctx.JSONError(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", targetBranchName))
+		return nil
+	}
+
+	if !issues.CanMaintainerWriteToBranch(ctx, ctx.Repo.Permission, targetBranchName, ctx.Doer) {
+		ctx.NotFound(nil)
 		return nil
 	}
 

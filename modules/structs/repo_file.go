@@ -22,6 +22,23 @@ type FileOptions struct {
 	Signoff bool `json:"signoff"`
 }
 
+type FileOptionsWithSHA struct {
+	FileOptions
+	// the blob ID (SHA) for the file that already exists, it is required for changing existing files
+	// required: true
+	SHA string `json:"sha" binding:"Required"`
+}
+
+func (f *FileOptions) GetFileOptions() *FileOptions {
+	return f
+}
+
+type FileOptionsInterface interface {
+	GetFileOptions() *FileOptions
+}
+
+var _ FileOptionsInterface = (*FileOptions)(nil)
+
 // CreateFileOptions options for creating files
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type CreateFileOptions struct {
@@ -31,29 +48,16 @@ type CreateFileOptions struct {
 	ContentBase64 string `json:"content"`
 }
 
-// Branch returns branch name
-func (o *CreateFileOptions) Branch() string {
-	return o.FileOptions.BranchName
-}
-
 // DeleteFileOptions options for deleting files (used for other File structs below)
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type DeleteFileOptions struct {
-	FileOptions
-	// sha is the SHA for the file that already exists
-	// required: true
-	SHA string `json:"sha" binding:"Required"`
-}
-
-// Branch returns branch name
-func (o *DeleteFileOptions) Branch() string {
-	return o.FileOptions.BranchName
+	FileOptionsWithSHA
 }
 
 // UpdateFileOptions options for updating files
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type UpdateFileOptions struct {
-	DeleteFileOptions
+	FileOptionsWithSHA
 	// content must be base64 encoded
 	// required: true
 	ContentBase64 string `json:"content"`
@@ -61,25 +65,21 @@ type UpdateFileOptions struct {
 	FromPath string `json:"from_path" binding:"MaxSize(500)"`
 }
 
-// Branch returns branch name
-func (o *UpdateFileOptions) Branch() string {
-	return o.FileOptions.BranchName
-}
-
-// FIXME: ChangeFileOperation.SHA is NOT required for update or delete if last commit is provided in the options.
+// FIXME: there is no LastCommitID in FileOptions, actually it should be an alternative to the SHA in ChangeFileOperation
 
 // ChangeFileOperation for creating, updating or deleting a file
 type ChangeFileOperation struct {
-	// indicates what to do with the file
+	// indicates what to do with the file: "create" for creating a new file, "update" for updating an existing file,
+	// "upload" for creating or updating a file, "rename" for renaming a file, and "delete" for deleting an existing file.
 	// required: true
-	// enum: create,update,delete
+	// enum: create,update,upload,rename,delete
 	Operation string `json:"operation" binding:"Required"`
 	// path to the existing or new file
 	// required: true
 	Path string `json:"path" binding:"Required;MaxSize(500)"`
-	// new or updated file content, must be base64 encoded
+	// new or updated file content, it must be base64 encoded
 	ContentBase64 string `json:"content"`
-	// sha is the SHA for the file that already exists, required for update or delete
+	// the blob ID (SHA) for the file that already exists, required for changing existing files
 	SHA string `json:"sha"`
 	// old path of the file to move
 	FromPath string `json:"from_path"`
@@ -94,20 +94,10 @@ type ChangeFilesOptions struct {
 	Files []*ChangeFileOperation `json:"files" binding:"Required"`
 }
 
-// Branch returns branch name
-func (o *ChangeFilesOptions) Branch() string {
-	return o.FileOptions.BranchName
-}
-
-// FileOptionInterface provides a unified interface for the different file options
-type FileOptionInterface interface {
-	Branch() string
-}
-
 // ApplyDiffPatchFileOptions options for applying a diff patch
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type ApplyDiffPatchFileOptions struct {
-	DeleteFileOptions
+	FileOptions
 	// required: true
 	Content string `json:"content"`
 }
@@ -117,6 +107,11 @@ type FileLinksResponse struct {
 	Self    *string `json:"self"`
 	GitURL  *string `json:"git"`
 	HTMLURL *string `json:"html"`
+}
+
+type ContentsExtResponse struct {
+	FileContents *ContentsResponse   `json:"file_contents,omitempty"`
+	DirContents  []*ContentsResponse `json:"dir_contents,omitempty"`
 }
 
 // ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content
@@ -145,6 +140,9 @@ type ContentsResponse struct {
 	// `submodule_git_url` is populated when `type` is `submodule`, otherwise null
 	SubmoduleGitURL *string            `json:"submodule_git_url"`
 	Links           *FileLinksResponse `json:"_links"`
+
+	LfsOid  *string `json:"lfs_oid"`
+	LfsSize *int64  `json:"lfs_size"`
 }
 
 // FileCommitResponse contains information generated from a Git commit for a repo's file.

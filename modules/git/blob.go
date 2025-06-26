@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
+	"strings"
 
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -63,33 +64,37 @@ func (b *Blob) GetBlobLineCount(w io.Writer) (int, error) {
 	}
 }
 
-// GetBlobContentBase64 Reads the content of the blob with a base64 encode and returns the encoded string
-func (b *Blob) GetBlobContentBase64() (string, error) {
+// GetBlobContentBase64 Reads the content of the blob with a base64 encoding and returns the encoded string
+func (b *Blob) GetBlobContentBase64(originContent *strings.Builder) (string, error) {
 	dataRc, err := b.DataAsync()
 	if err != nil {
 		return "", err
 	}
 	defer dataRc.Close()
 
-	pr, pw := io.Pipe()
-	encoder := base64.NewEncoder(base64.StdEncoding, pw)
-
-	go func() {
-		_, err := io.Copy(encoder, dataRc)
-		_ = encoder.Close()
-
-		if err != nil {
-			_ = pw.CloseWithError(err)
-		} else {
-			_ = pw.Close()
+	base64buf := &strings.Builder{}
+	encoder := base64.NewEncoder(base64.StdEncoding, base64buf)
+	buf := make([]byte, 32*1024)
+loop:
+	for {
+		n, err := dataRc.Read(buf)
+		if n > 0 {
+			if originContent != nil {
+				_, _ = originContent.Write(buf[:n])
+			}
+			if _, err := encoder.Write(buf[:n]); err != nil {
+				return "", err
+			}
 		}
-	}()
-
-	out, err := io.ReadAll(pr)
-	if err != nil {
-		return "", err
+		switch {
+		case errors.Is(err, io.EOF):
+			break loop
+		case err != nil:
+			return "", err
+		}
 	}
-	return string(out), nil
+	_ = encoder.Close()
+	return base64buf.String(), nil
 }
 
 // GuessContentType guesses the content type of the blob.
