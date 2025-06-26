@@ -304,8 +304,7 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
   padding-bottom: 0;
 }
 
-.with-labels-list-inline .labels-list .ui.label + .ui.label,
-.with-labels-list-inline .labels-list a + a {
+.with-labels-list-inline .labels-list .ui.label + .ui.label {
   margin-left: 0.25em;
 }
 

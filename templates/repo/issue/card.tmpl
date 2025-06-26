@@ -65,8 +65,10 @@
 	<div class="issue-card-bottom">
 		{{/* the labels container must always be present, to help the assignees list right-aligned */}}
 		<div class="issue-card-bottom-part labels-list">
-			{{range .Labels}}
-				<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{ctx.RenderUtils.RenderLabel .}}</a>
+			{{range $label := .Labels}}
+				{{$link := print $.Issue.Repo.Link "/issues"}}
+				{{$link = QueryBuild $link "labels" $label.ID}}
+				{{ctx.RenderUtils.RenderLabelWithLink $label $link}}
 			{{end}}
 		</div>
 		{{if .Assignees}}

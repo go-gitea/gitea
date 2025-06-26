@@ -205,6 +205,10 @@ func TestRenderLabels(t *testing.T) {
 	issue = &issues.Issue{IsPull: true}
 	expected = `/owner/repo/pulls?labels=123`
 	assert.Contains(t, ut.RenderLabels([]*issues.Label{label}, "/owner/repo", issue), expected)
+
+	expectedLabel := `<a href="&lt;&gt;" class="ui label " style="color: #fff !important; background-color: label-color !important;" data-tooltip-content title=""><span class="gt-ellipsis">label-name</span></a>`
+	assert.Equal(t, expectedLabel, string(ut.RenderLabelWithLink(label, "<>")))
+	assert.Equal(t, expectedLabel, string(ut.RenderLabelWithLink(label, template.URL("<>"))))
 }
 
 func TestUserMention(t *testing.T) {
