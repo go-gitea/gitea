@@ -629,6 +629,10 @@ td .commit-summary {
   border: 1px solid var(--color-light-border);
 }
 
+.repository.view.issue .comment-list .timeline-item.with-labels-list .ui.label {
+  margin: 0 2px;
+}
+
 @media (max-width: 767.98px) {
   .repository.view.issue .comment-list .timeline-item .ui.segments {
     margin-left: -2rem;

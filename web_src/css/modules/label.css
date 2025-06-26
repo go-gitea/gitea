@@ -18,13 +18,6 @@
   white-space: nowrap;
 }
 
-.ui.label:first-child {
-  margin-left: 0;
-}
-.ui.label:last-child {
-  margin-right: 0;
-}
-
 a.ui.label {
   cursor: pointer;
 }
