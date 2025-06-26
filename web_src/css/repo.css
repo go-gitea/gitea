@@ -1572,7 +1572,8 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
   padding-bottom: 0;
 }
 
-.with-labels-list-inline .labels-list a > .ui.label {
+.with-labels-list-inline .labels-list .ui.label + .ui.label,
+.with-labels-list-inline .labels-list a + a {
   margin-left: 0.25em;
 }
 
@@ -1588,6 +1589,10 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
   gap: 0 !important;
 }
 
+.ui.label.scope-parent > .ui.label {
+  margin: 0 !important; /* scoped label's margin is handled by the parent */
+}
+
 .archived-label {
   filter: grayscale(0.5);
   opacity: 0.5;
@@ -1596,19 +1601,16 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
 .ui.label.scope-left {
   border-bottom-right-radius: 0;
   border-top-right-radius: 0;
-  margin-right: 0;
 }
 
 .ui.label.scope-middle {
   border-radius: 0;
   margin-left: 0;
-  margin-right: 0;
 }
 
 .ui.label.scope-right {
   border-bottom-left-radius: 0;
   border-top-left-radius: 0;
-  margin-left: 0;
 }
 
 .repo-button-row {
