@@ -665,8 +665,9 @@ func handleSettingsPostSigning(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 	trustModel := repo_model.ToTrustModel(form.TrustModel)
 	if trustModel != repo.TrustModel {
-		if err := repo_service.UpdateRepositoryTrustModel(ctx, repo, trustModel); err != nil {
-			ctx.ServerError("UpdateRepository", err)
+		repo.TrustModel = trustModel
+		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "trust_model"); err != nil {
+			ctx.ServerError("UpdateRepositoryColsNoAutoTime", err)
 			return
 		}
 		log.Trace("Repository signing settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -685,8 +686,9 @@ func handleSettingsPostAdmin(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	if repo.IsFsckEnabled != form.EnableHealthCheck {
-		if err := repo_service.UpdateRepositoryHealthCheck(ctx, repo, form.EnableHealthCheck); err != nil {
-			ctx.ServerError("UpdateRepository", err)
+		repo.IsFsckEnabled = form.EnableHealthCheck
+		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_fsck_enabled"); err != nil {
+			ctx.ServerError("UpdateRepositoryColsNoAutoTime", err)
 			return
 		}
 		log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)

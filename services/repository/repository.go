@@ -124,26 +124,6 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	})
 }
 
-func UpdateRepositoryTrustModel(ctx context.Context, repo *repo_model.Repository, trustModel repo_model.TrustModelType) (err error) {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		repo.TrustModel = trustModel
-		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "trust_model"); err != nil {
-			return fmt.Errorf("UpdateRepositoryColsNoAutoTime: %w", err)
-		}
-		return nil
-	})
-}
-
-func UpdateRepositoryHealthCheck(ctx context.Context, repo *repo_model.Repository, healthCheckEnabled bool) (err error) {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		repo.IsFsckEnabled = healthCheckEnabled
-		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_fsck_enabled"); err != nil {
-			return fmt.Errorf("UpdateRepositoryColsNoAutoTime: %w", err)
-		}
-		return nil
-	})
-}
-
 func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error) {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		repo.IsPrivate = false
