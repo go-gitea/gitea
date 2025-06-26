@@ -88,11 +88,6 @@
   flex-wrap: wrap;
 }
 
-.issue-content-right .ui.list.labels-list .item {
-  display: inline-flex;
-  min-width: 0;
-}
-
 @media (max-width: 767.98px) {
   .issue-content-left,
   .issue-content-right {
@@ -1565,6 +1560,10 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
 .labels-list {
   display: contents;
   font-size: var(--font-size-label); /* it must match the label font size, otherwise the height mismatches */
+}
+
+.labels-list a {
+  max-width: 100%; /* for ellipsis */
 }
 
 .labels-list .label,
