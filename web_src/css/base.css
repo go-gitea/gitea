@@ -35,7 +35,8 @@
   --z-index-modal: 1001; /* modal dialog, hard-coded from Fomantic modal.css */
   --z-index-toast: 1002; /* should be larger than modal */
 
-  --font-size-label: 12px;
+  --font-size-label: 12px; /* font size of individual labels */
+  --gap-label: .25rem; /* gap between labels */
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {

@@ -4,7 +4,7 @@
 .ui.label {
   display: inline-flex;
   align-items: center;
-  gap: .25rem;
+  gap: var(--gap-label);
   min-width: 0;
   max-width: 100%;
   background: var(--color-label-bg);
@@ -305,7 +305,7 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
 }
 
 .with-labels-list-inline .labels-list .ui.label + .ui.label {
-  margin-left: 0.25em;
+  margin-left: var(--gap-label);
 }
 
 .with-labels-list-inline .labels-list .ui.label {

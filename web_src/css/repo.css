@@ -84,7 +84,7 @@
 
 .issue-content-right .ui.list.labels-list {
   display: flex;
-  gap: 0.25em;
+  gap: var(--gap-label);
   flex-wrap: wrap;
 }
 
