@@ -205,7 +205,7 @@ func (ut *RenderUtils) renderLabelWithTag(label *issues_model.Label, tagName, ta
 	return htmlutil.HTMLFormat(`<%s %s class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 		`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
 		`<div class="ui label scope-right" style="color: %s !important; background-color: %s !important">%s</div>`+
-		`</span>`,
+		`</%s>`,
 		tagName, tagAttrs,
 		extraCSSClasses, descriptionText,
 		textColor, scopeColor, scopeHTML,
