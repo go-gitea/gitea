@@ -7424,13 +7424,14 @@
     },
     "/repos/{owner}/{repo}/contents": {
       "get": {
+        "description": "This API follows GitHub's design, and it is not easy to use. Recommend users to use our \"contents-ext\" API instead.",
         "produces": [
           "application/json"
         ],
         "tags": [
           "repository"
         ],
-        "summary": "Gets the metadata of all the entries of the root dir",
+        "summary": "Gets the metadata of all the entries of the root dir.",
         "operationId": "repoGetContentsList",
         "parameters": [
           {
@@ -7518,15 +7519,72 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/contents/{filepath}": {
+    "/repos/{owner}/{repo}/contents-ext/{filepath}": {
       "get": {
+        "description": "It guarantees that only one of the response fields is set if the request succeeds. Users can pass \"includes=file_content\" or \"includes=lfs_metadata\" to retrieve more fields. \"includes=file_content\" only works for single file, if you need to retrieve file contents in batch, use \"file-contents\" API after listing the directory.",
         "produces": [
           "application/json"
         ],
         "tags": [
           "repository"
         ],
-        "summary": "Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir",
+        "summary": "The extended \"contents\" API, to get file metadata and/or content, or list a directory.",
+        "operationId": "repoGetContentsExt",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "path of the dir, file, symlink or submodule in the repo",
+            "name": "filepath",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the name of the commit/branch/tag, default to the repository’s default branch.",
+            "name": "ref",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "By default this API's response only contains file's metadata. Use comma-separated \"includes\" options to retrieve more fields. Option \"file_content\" will try to retrieve the file content, option \"lfs_metadata\" will try to retrieve LFS metadata.",
+            "name": "includes",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ContentsExtResponse"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/contents/{filepath}": {
+      "get": {
+        "description": "This API follows GitHub's design, and it is not easy to use. Recommend users to use the \"contents-ext\" API instead.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir.",
         "operationId": "repoGetContents",
         "parameters": [
           {
@@ -7744,6 +7802,9 @@
           "404": {
             "$ref": "#/responses/error"
           },
+          "422": {
+            "$ref": "#/responses/error"
+          },
           "423": {
             "$ref": "#/responses/repoArchivedError"
           }
@@ -7851,7 +7912,7 @@
     },
     "/repos/{owner}/{repo}/file-contents": {
       "get": {
-        "description": "See the POST method. This GET method supports to use JSON encoded request body in query parameter.",
+        "description": "See the POST method. This GET method supports using JSON encoded request body in query parameter.",
         "produces": [
           "application/json"
         ],
@@ -11635,7 +11696,7 @@
             "$ref": "#/responses/notFound"
           },
           "409": {
-            "description": "Cannot cancel a non existent stopwatch"
+            "description": "Cannot cancel a non-existent stopwatch"
           }
         }
       }
@@ -11741,7 +11802,7 @@
             "$ref": "#/responses/notFound"
           },
           "409": {
-            "description": "Cannot stop a non existent stopwatch"
+            "description": "Cannot stop a non-existent stopwatch"
           }
         }
       }
@@ -12818,7 +12879,7 @@
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch",
             "name": "ref",
             "in": "query"
           }
@@ -14962,7 +15023,7 @@
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch",
             "name": "ref",
             "in": "query"
           }
@@ -21809,7 +21870,7 @@
       ],
       "properties": {
         "content": {
-          "description": "new or updated file content, must be base64 encoded",
+          "description": "new or updated file content, it must be base64 encoded",
           "type": "string",
           "x-go-name": "ContentBase64"
         },
@@ -21819,11 +21880,13 @@
           "x-go-name": "FromPath"
         },
         "operation": {
-          "description": "indicates what to do with the file",
+          "description": "indicates what to do with the file: \"create\" for creating a new file, \"update\" for updating an existing file,\n\"upload\" for creating or updating a file, \"rename\" for renaming a file, and \"delete\" for deleting an existing file.",
           "type": "string",
           "enum": [
             "create",
             "update",
+            "upload",
+            "rename",
             "delete"
           ],
           "x-go-name": "Operation"
@@ -21834,7 +21897,7 @@
           "x-go-name": "Path"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists, required for update or delete",
+          "description": "the blob ID (SHA) for the file that already exists, required for changing existing files",
           "type": "string",
           "x-go-name": "SHA"
         }
@@ -22255,6 +22318,22 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ContentsExtResponse": {
+      "type": "object",
+      "properties": {
+        "dir_contents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContentsResponse"
+          },
+          "x-go-name": "DirContents"
+        },
+        "file_contents": {
+          "$ref": "#/definitions/ContentsResponse"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ContentsResponse": {
       "description": "ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content",
       "type": "object",
@@ -22297,6 +22376,15 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "LastCommitterDate"
+        },
+        "lfs_oid": {
+          "type": "string",
+          "x-go-name": "LfsOid"
+        },
+        "lfs_size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LfsSize"
         },
         "name": {
           "type": "string",
@@ -23574,7 +23662,7 @@
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists",
+          "description": "the blob ID (SHA) for the file that already exists, it is required for changing existing files",
           "type": "string",
           "x-go-name": "SHA"
         },
@@ -24946,6 +25034,15 @@
         "encoding": {
           "type": "string",
           "x-go-name": "Encoding"
+        },
+        "lfs_oid": {
+          "type": "string",
+          "x-go-name": "LfsOid"
+        },
+        "lfs_size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LfsSize"
         },
         "sha": {
           "type": "string",
@@ -28014,7 +28111,7 @@
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists",
+          "description": "the blob ID (SHA) for the file that already exists, it is required for changing existing files",
           "type": "string",
           "x-go-name": "SHA"
         },
@@ -28691,6 +28788,12 @@
       "description": "",
       "schema": {
         "$ref": "#/definitions/Compare"
+      }
+    },
+    "ContentsExtResponse": {
+      "description": "",
+      "schema": {
+        "$ref": "#/definitions/ContentsExtResponse"
       }
     },
     "ContentsListResponse": {

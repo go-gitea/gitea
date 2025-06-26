@@ -286,6 +286,8 @@ const (
 	HookIssueReOpened HookIssueAction = "reopened"
 	// HookIssueEdited edited
 	HookIssueEdited HookIssueAction = "edited"
+	// HookIssueDeleted is an issue action for deleting an issue
+	HookIssueDeleted HookIssueAction = "deleted"
 	// HookIssueAssigned assigned
 	HookIssueAssigned HookIssueAction = "assigned"
 	// HookIssueUnassigned unassigned

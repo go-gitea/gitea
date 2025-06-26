@@ -134,7 +134,9 @@
   margin-bottom: 16px;
 }
 
-/* override p:last-child from base.css */
+/* override p:last-child from base.css.
+Fomantic assumes that <p>/<hX> elements only have margins between elements, but not for the first's top or last's bottom.
+In markup content, we always use bottom margin for all elements */
 .markup p:last-child {
   margin-bottom: 16px;
 }

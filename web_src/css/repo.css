@@ -139,11 +139,6 @@ td .commit-summary {
   }
 }
 
-.repo-path {
-  display: flex;
-  overflow-wrap: anywhere;
-}
-
 .repository.file.list .non-diff-file-content .header .icon {
   font-size: 1em;
 }
@@ -1839,6 +1834,7 @@ tbody.commit-list {
   border-radius: 0;
   display: flex;
   flex-direction: column;
+  gap: 0.5em;
 }
 
 /* fomantic's last-child selector does not work with hidden last child */

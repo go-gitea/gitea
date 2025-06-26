@@ -42,6 +42,7 @@ func (p *Permission) IsAdmin() bool {
 
 // HasAnyUnitAccess returns true if the user might have at least one access mode to any unit of this repository.
 // It doesn't count the "public(anonymous/everyone) access mode".
+// TODO: most calls to this function should be replaced with `HasAnyUnitAccessOrPublicAccess`
 func (p *Permission) HasAnyUnitAccess() bool {
 	for _, v := range p.unitsMode {
 		if v >= perm_model.AccessModeRead {
@@ -267,7 +268,6 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	perm.units = repo.Units
 
 	// anonymous user visit private repo.
-	// TODO: anonymous user visit public unit of private repo???
 	if user == nil && repo.IsPrivate {
 		perm.AccessMode = perm_model.AccessModeNone
 		return perm, nil
@@ -286,7 +286,8 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	}
 
 	// Prevent strangers from checking out public repo of private organization/users
-	// Allow user if they are collaborator of a repo within a private user or a private organization but not a member of the organization itself
+	// Allow user if they are a collaborator of a repo within a private user or a private organization but not a member of the organization itself
+	// TODO: rename it to "IsOwnerVisibleToDoer"
 	if !organization.HasOrgOrUserVisible(ctx, repo.Owner, user) && !isCollaborator {
 		perm.AccessMode = perm_model.AccessModeNone
 		return perm, nil
@@ -304,13 +305,26 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		return perm, nil
 	}
 
-	// plain user
+	// plain user TODO: this check should be replaced, only need to check collaborator access mode
 	perm.AccessMode, err = accessLevel(ctx, user, repo)
 	if err != nil {
 		return perm, err
 	}
 
 	if !repo.Owner.IsOrganization() {
+		return perm, nil
+	}
+
+	// now: the owner is visible to doer, if the repo is public, then the min access mode is read
+	minAccessMode := util.Iif(!repo.IsPrivate && !user.IsRestricted, perm_model.AccessModeRead, perm_model.AccessModeNone)
+	perm.AccessMode = max(perm.AccessMode, minAccessMode)
+
+	// get units mode from teams
+	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
+	if err != nil {
+		return perm, err
+	}
+	if len(teams) == 0 {
 		return perm, nil
 	}
 
@@ -323,12 +337,6 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		}
 	}
 
-	// get units mode from teams
-	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
-	if err != nil {
-		return perm, err
-	}
-
 	// if user in an owner team
 	for _, team := range teams {
 		if team.HasAdminAccess() {
@@ -339,19 +347,12 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	}
 
 	for _, u := range repo.Units {
-		var found bool
 		for _, team := range teams {
+			unitAccessMode := minAccessMode
 			if teamMode, exist := team.UnitAccessModeEx(ctx, u.Type); exist {
-				perm.unitsMode[u.Type] = max(perm.unitsMode[u.Type], teamMode)
-				found = true
+				unitAccessMode = max(perm.unitsMode[u.Type], unitAccessMode, teamMode)
 			}
-		}
-
-		// for a public repo on an organization, a non-restricted user has read permission on non-team defined units.
-		if !found && !repo.IsPrivate && !user.IsRestricted {
-			if _, ok := perm.unitsMode[u.Type]; !ok {
-				perm.unitsMode[u.Type] = perm_model.AccessModeRead
-			}
+			perm.unitsMode[u.Type] = unitAccessMode
 		}
 	}
 

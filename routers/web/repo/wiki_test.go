@@ -164,7 +164,7 @@ func TestEditWiki(t *testing.T) {
 	EditWiki(ctx)
 	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	assert.EqualValues(t, "Home", ctx.Data["Title"])
-	assert.Equal(t, wikiContent(t, ctx.Repo.Repository, "Home"), ctx.Data["content"])
+	assert.Equal(t, wikiContent(t, ctx.Repo.Repository, "Home"), ctx.Data["WikiEditContent"])
 
 	ctx, _ = contexttest.MockContext(t, "user2/repo1/wiki/jpeg.jpg?action=_edit")
 	ctx.SetPathParam("*", "jpeg.jpg")

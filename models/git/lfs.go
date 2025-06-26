@@ -112,7 +112,6 @@ type LFSMetaObject struct {
 	ID           int64 `xorm:"pk autoincr"`
 	lfs.Pointer  `xorm:"extends"`
 	RepositoryID int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Existing     bool               `xorm:"-"`
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
 }
@@ -146,7 +145,6 @@ func NewLFSMetaObject(ctx context.Context, repoID int64, p lfs.Pointer) (*LFSMet
 	if err != nil {
 		return nil, err
 	} else if exist {
-		m.Existing = true
 		return m, committer.Commit()
 	}
 

@@ -27,7 +27,7 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 	content := "This is updated text"
 	contentEncoded := base64.StdEncoding.EncodeToString([]byte(content))
 	return &api.UpdateFileOptions{
-		DeleteFileOptions: api.DeleteFileOptions{
+		FileOptionsWithSHA: api.FileOptionsWithSHA{
 			FileOptions: api.FileOptions{
 				BranchName:    "master",
 				NewBranchName: "master",
