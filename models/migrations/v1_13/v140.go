@@ -21,12 +21,7 @@ func FixLanguageStatsToSaveSize(x *xorm.Engine) error {
 	// RepoIndexerType specifies the repository indexer type
 	type RepoIndexerType int
 
-	const (
-		// RepoIndexerTypeCode code indexer - 0
-		RepoIndexerTypeCode RepoIndexerType = iota //nolint:unused // const is not used
-		// RepoIndexerTypeStats repository stats indexer - 1
-		RepoIndexerTypeStats
-	)
+	const RepoIndexerTypeStats RepoIndexerType = 1
 
 	// RepoIndexerStatus see models/repo_indexer.go
 	type RepoIndexerStatus struct {

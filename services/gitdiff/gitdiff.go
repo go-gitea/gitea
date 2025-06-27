@@ -214,51 +214,6 @@ func (diffSection *DiffSection) GetLine(idx int) *DiffLine {
 	return diffSection.Lines[idx]
 }
 
-// GetLine gets a specific line by type (add or del) and file line number
-// This algorithm is not quite right.
-// Actually now we have "Match" field, it is always right, so use it instead in new GetLine
-func (diffSection *DiffSection) getLineLegacy(lineType DiffLineType, idx int) *DiffLine { //nolint:unused // dead code
-	var (
-		difference    = 0
-		addCount      = 0
-		delCount      = 0
-		matchDiffLine *DiffLine
-	)
-
-LOOP:
-	for _, diffLine := range diffSection.Lines {
-		switch diffLine.Type {
-		case DiffLineAdd:
-			addCount++
-		case DiffLineDel:
-			delCount++
-		default:
-			if matchDiffLine != nil {
-				break LOOP
-			}
-			difference = diffLine.RightIdx - diffLine.LeftIdx
-			addCount = 0
-			delCount = 0
-		}
-
-		switch lineType {
-		case DiffLineDel:
-			if diffLine.RightIdx == 0 && diffLine.LeftIdx == idx-difference {
-				matchDiffLine = diffLine
-			}
-		case DiffLineAdd:
-			if diffLine.LeftIdx == 0 && diffLine.RightIdx == idx+difference {
-				matchDiffLine = diffLine
-			}
-		}
-	}
-
-	if addCount == delCount {
-		return matchDiffLine
-	}
-	return nil
-}
-
 func defaultDiffMatchPatch() *diffmatchpatch.DiffMatchPatch {
 	dmp := diffmatchpatch.New()
 	dmp.DiffEditCost = 100

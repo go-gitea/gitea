@@ -158,7 +158,7 @@ const (
 	targetSecIsSec                                  // target section is from the name seciont [name]
 )
 
-func getStorageSectionByType(rootCfg ConfigProvider, typ string) (ConfigSection, targetSecType, error) { //nolint:unparam // targetSecType is always 0
+func getStorageSectionByType(rootCfg ConfigProvider, typ string) (ConfigSection, targetSecType, error) { //nolint:unparam // FIXME: targetSecType is always 0, wrong design?
 	targetSec, err := rootCfg.GetSection(storageSectionName + "." + typ)
 	if err != nil {
 		if !IsValidStorageType(StorageType(typ)) {
