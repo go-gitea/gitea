@@ -14,7 +14,7 @@ type AddTimeOption struct {
 	Time int64 `json:"time" binding:"Required"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created"`
-	// User who spent the time (optional)
+	// username of the user who spent the time working on the issue (optional)
 	User string `json:"user_name"`
 }
 
@@ -26,7 +26,8 @@ type TrackedTime struct {
 	// Time in seconds
 	Time int64 `json:"time"`
 	// deprecated (only for backwards compatibility)
-	UserID   int64  `json:"user_id"`
+	UserID int64 `json:"user_id"`
+	// username of the user
 	UserName string `json:"user_name"`
 	// deprecated (only for backwards compatibility)
 	IssueID int64  `json:"issue_id"`

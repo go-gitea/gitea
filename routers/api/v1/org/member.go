@@ -123,7 +123,7 @@ func ListPublicMembers(ctx *context.APIContext) {
 // IsMember check if a user is a member of an organization
 func IsMember(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/members/{username} organization orgIsMember
-	// ---  
+	// ---
 	// summary: Check if a user is a member of an organization
 	// parameters:
 	// - name: org
