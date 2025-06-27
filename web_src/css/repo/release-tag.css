@@ -70,8 +70,12 @@
   flex-wrap: wrap;
 }
 
+#release-list .release-entry .attachment-list > .item a {
+  min-width: 300px;
+}
+
 #release-list .release-entry .attachment-list .attachment-right-info {
-  flex-grow: 1;
+  flex-shrink: 0;
   min-width: 300px;
 }
 
