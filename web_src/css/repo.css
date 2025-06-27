@@ -864,6 +864,10 @@ td .commit-summary {
   font-size: 14px;
 }
 
+.repository.branches .commit-divergence {
+  min-width: 180px;
+}
+
 .repository.branches .commit-divergence .bar-group {
   position: relative;
   float: left;
