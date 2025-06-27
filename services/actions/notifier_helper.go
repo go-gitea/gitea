@@ -33,7 +33,9 @@ import (
 	"github.com/nektos/act/pkg/model"
 )
 
-var methodCtxKey struct{}
+type methodCtxKeyType struct{}
+
+var methodCtxKey methodCtxKeyType
 
 // withMethod sets the notification method that this context currently executes.
 // Used for debugging/ troubleshooting purposes.
@@ -44,8 +46,7 @@ func withMethod(ctx context.Context, method string) context.Context {
 			return ctx
 		}
 	}
-	// FIXME: review the use of this nolint directive
-	return context.WithValue(ctx, methodCtxKey, method) //nolint:staticcheck
+	return context.WithValue(ctx, methodCtxKey, method)
 }
 
 // getMethod gets the notification method that this context currently executes.

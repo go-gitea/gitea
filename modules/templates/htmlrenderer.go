@@ -42,7 +42,7 @@ var (
 
 var ErrTemplateNotInitialized = errors.New("template system is not initialized, check your log for errors")
 
-func (h *HTMLRender) HTML(w io.Writer, status int, tplName TplName, data any, ctx context.Context) error { //nolint:revive
+func (h *HTMLRender) HTML(w io.Writer, status int, tplName TplName, data any, ctx context.Context) error { //nolint:revive // we don't use ctx, only pass it to the template executor
 	name := string(tplName)
 	if respWriter, ok := w.(http.ResponseWriter); ok {
 		if respWriter.Header().Get("Content-Type") == "" {
@@ -57,7 +57,7 @@ func (h *HTMLRender) HTML(w io.Writer, status int, tplName TplName, data any, ct
 	return t.Execute(w, data)
 }
 
-func (h *HTMLRender) TemplateLookup(name string, ctx context.Context) (TemplateExecutor, error) { //nolint:revive
+func (h *HTMLRender) TemplateLookup(name string, ctx context.Context) (TemplateExecutor, error) { //nolint:revive // we don't use ctx, only pass it to the template executor
 	tmpls := h.templates.Load()
 	if tmpls == nil {
 		return nil, ErrTemplateNotInitialized

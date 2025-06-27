@@ -3,11 +3,14 @@
 	{{range .Issues}}
 		<div class="flex-item">
 
-			<div class="flex-item-icon">
-				{{if $.CanWriteIssuesOrPulls}}
-				<input type="checkbox" autocomplete="off" class="issue-checkbox tw-mr-4" data-issue-id={{.ID}} aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
-				{{end}}
-				{{template "shared/issueicon" .}}
+			<div class="flex-item-leading">
+				{{/* using some tw helpers is the only way to align the checkbox */}}
+				<div class="flex-text-inline tw-mt-[2px]">
+					{{if $.CanWriteIssuesOrPulls}}
+						<input type="checkbox" autocomplete="off" class="issue-checkbox tw-mr-[14px]" data-issue-id={{.ID}} aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
+					{{end}}
+					{{template "shared/issueicon" .}}
+				</div>
 			</div>
 
 			<div class="flex-item-main">
@@ -19,7 +22,7 @@
 								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
 							{{end}}
 						{{end}}
-						<span class="labels-list tw-ml-1">
+						<span class="labels-list">
 							{{range .Labels}}
 								<a href="?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.RenderUtils.RenderLabel .}}</a>
 							{{end}}
@@ -32,7 +35,7 @@
 					</div>
 					{{end}}
 				</div>
-				<div class="flex-item-body">
+				<div class="flex-item-body tw-mt-1">
 					<a class="index" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{if eq $.listType "dashboard"}}
 							{{.Repo.FullName}}#{{.Index}}

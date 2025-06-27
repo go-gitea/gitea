@@ -4,25 +4,19 @@
 .ui.label {
   display: inline-flex;
   align-items: center;
-  gap: .25rem;
+  gap: var(--gap-inline);
   min-width: 0;
-  vertical-align: middle;
-  line-height: 1;
+  max-width: 100%;
   background: var(--color-label-bg);
   color: var(--color-label-text);
-  padding: 0.3em 0.5em;
-  font-size: 0.85714286rem;
+  padding: 2px 6px;
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   border: 0 solid transparent;
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   white-space: nowrap;
-}
-
-.ui.label:first-child {
-  margin-left: 0;
-}
-.ui.label:last-child {
-  margin-right: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 a.ui.label {
@@ -291,4 +285,59 @@ a.ui.ui.ui.basic.grey.label:hover {
 }
 .ui.large.label {
   font-size: 1rem;
+}
+
+/* To let labels break up and wrap across multiple lines (issue title, comment event), use "display: contents here" to apply parent layout.
+If the labels-list itself needs some layouts, use extra classes or "tw" helpers. */
+.labels-list {
+  display: contents;
+  font-size: var(--font-size-label); /* it must match the label font size, otherwise the height mismatches */
+}
+
+.labels-list a {
+  max-width: 100%; /* for ellipsis */
+}
+
+.labels-list .ui.label {
+  min-height: 20px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.with-labels-list-inline .labels-list .ui.label + .ui.label {
+  margin-left: var(--gap-inline);
+}
+
+.with-labels-list-inline .labels-list .ui.label {
+  line-height: var(--line-height-default);
+}
+
+/* Scoped labels with different colors on left and right */
+.ui.label.scope-parent {
+  background: none !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+.ui.label.scope-parent > .ui.label {
+  margin: 0 !important; /* scoped label's margin is handled by the parent */
+}
+
+.ui.label.scope-left {
+  border-bottom-right-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.ui.label.scope-middle {
+  border-radius: 0;
+}
+
+.ui.label.scope-right {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+}
+
+.ui.label.archived-label {
+  filter: grayscale(0.5);
+  opacity: 0.5;
 }
