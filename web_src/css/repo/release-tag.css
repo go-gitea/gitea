@@ -71,7 +71,7 @@
 }
 
 #release-list .release-entry .attachment-list .attachment-right-info {
-  flex-grow: 1;
+  flex-shrink: 0;
   min-width: 300px;
 }
 
