@@ -1,5 +1,6 @@
 import {applyRenderPlugin} from '../modules/file-render-plugin.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {createElementFromAttrs} from '../utils/dom.ts';
 
 /**
  * init file view renderer
@@ -30,12 +31,16 @@ export function initFileView(): void {
       if (!success) {
         // show default view raw file link
         const fallbackText = container.getAttribute('data-fallback-text');
-
-        container.innerHTML = `
-          <div class="view-raw-fallback">
-            <a href="${fileLink}" class="ui basic button" target="_blank">${fallbackText}</a>
-          </div>
-        `;
+        const wrapper = createElementFromAttrs(
+          'div',
+          {class: 'view-raw-fallback'},
+          createElementFromAttrs('a', {
+            class: 'ui basic button',
+            target: '_blank',
+            href: fileLink,
+          }, fallbackText || ''),
+        );
+        container.replaceChildren(wrapper);
       }
     } catch (error) {
       console.error('file view init error:', error);
@@ -43,14 +48,18 @@ export function initFileView(): void {
       // show error message
       const fallbackText = container.getAttribute('data-fallback-text');
       const errorHeader = container.getAttribute('data-error-header');
-
-      container.innerHTML = `
-        <div class="ui error message">
-          <div class="header">${errorHeader}</div>
-          <pre>${JSON.stringify({treePath, fileLink}, null, 2)}</pre>
-          <a class="ui basic button" href="${fileLink || '#'}" target="_blank">${fallbackText}</a>
-        </div>
-      `;
+      const errorDiv = createElementFromAttrs(
+        'div',
+        {class: 'ui error message'},
+        createElementFromAttrs('div', {class: 'header'}, errorHeader || ''),
+        createElementFromAttrs('pre', null, JSON.stringify({treePath, fileLink}, null, 2)),
+        createElementFromAttrs('a', {
+          class: 'ui basic button',
+          href: fileLink || '#',
+          target: '_blank',
+        }, fallbackText || ''),
+      );
+      container.replaceChildren(errorDiv);
     } finally {
       // remove loading state
       container.classList.remove('is-loading');

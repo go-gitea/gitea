@@ -28,32 +28,18 @@ export function register3DViewerPlugin(): void {
 
     // render 3D model
     async render(container: HTMLElement, fileUrl: string): Promise<void> {
-      // add loading indicator
-      container.classList.add('is-loading');
-
       try {
-        // dynamically load 3D rendering library
         const OV = await import(/* webpackChunkName: "online-3d-viewer" */'online-3d-viewer');
-
-        // configure container style
         container.classList.add('model3d-content');
-
-        // initialize 3D viewer
         const viewer = new OV.EmbeddedViewer(container, {
-          backgroundColor: new OV.RGBAColor(59, 68, 76, 0), // transparent
+          backgroundColor: new OV.RGBAColor(59, 68, 76, 0),
           defaultColor: new OV.RGBColor(65, 131, 196),
           edgeSettings: new OV.EdgeSettings(false, new OV.RGBColor(0, 0, 0), 1),
         });
-
-        // load model from url
         viewer.LoadModelFromUrlList([fileUrl]);
       } catch (error) {
-        // handle render error
         console.error('error rendering 3D model:', error);
         throw error;
-      } finally {
-        // remove loading state
-        container.classList.remove('is-loading');
       }
     },
   };

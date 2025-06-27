@@ -19,7 +19,6 @@ import {initRepoIssueContentHistory} from './features/repo-issue-content.ts';
 import {initStopwatch} from './features/stopwatch.ts';
 import {initFindFileInRepo} from './features/repo-findfile.ts';
 import {initMarkupContent} from './markup/content.ts';
-import {initPdfViewer} from './render/pdf.ts';
 import {initFileView} from './features/file-view.ts';
 import {register3DViewerPlugin} from './render/plugins/3d-viewer.ts';
 import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
@@ -67,6 +66,7 @@ import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton}
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
+import {registerPdfViewerPlugin} from './render/plugins/pdf-viewer.ts';
 
 initGiteaFomantic();
 initSubmitEventPolyfill();
@@ -161,12 +161,12 @@ onDomReady(() => {
     initUserAuthWebAuthnRegister,
     initUserSettings,
     initRepoDiffView,
-    initPdfViewer,
     initColorPickers,
 
     initOAuth2SettingsDisableCheckbox,
 
     register3DViewerPlugin,
+    registerPdfViewerPlugin,
     initFileView,
   ]);
 

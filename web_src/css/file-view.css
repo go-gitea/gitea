@@ -27,6 +27,28 @@
   justify-content: center;
 }
 
+/* PDF viewer */
+.pdf-view-content {
+  width: 100%;
+  height: 600px;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdf-view-content .pdf-fallback-button {
+  margin: 50px auto;
+}
+
+.file-view-container .pdfobject {
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.pdf-view-content.is-loading {
+  height: var(--height-loading);
+}
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);
