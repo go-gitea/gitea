@@ -48,7 +48,7 @@
   align-items: center;
   /* labels are under effect of this gap here because they are display:contents. Ideally we should make wrapping
      of labels work without display: contents and set this to a static value again. */
-  gap: var(--gap-label);
+  gap: var(--gap-inline);
   max-width: 100%;
   color: var(--color-text);
   font-size: 16px;
