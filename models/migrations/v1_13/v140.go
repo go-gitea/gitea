@@ -1,7 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_13 //nolint
+package v1_13
 
 import (
 	"fmt"
@@ -21,12 +21,7 @@ func FixLanguageStatsToSaveSize(x *xorm.Engine) error {
 	// RepoIndexerType specifies the repository indexer type
 	type RepoIndexerType int
 
-	const (
-		// RepoIndexerTypeCode code indexer - 0
-		RepoIndexerTypeCode RepoIndexerType = iota //nolint:unused
-		// RepoIndexerTypeStats repository stats indexer - 1
-		RepoIndexerTypeStats
-	)
+	const RepoIndexerTypeStats RepoIndexerType = 1
 
 	// RepoIndexerStatus see models/repo_indexer.go
 	type RepoIndexerStatus struct {

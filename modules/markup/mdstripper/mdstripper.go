@@ -46,7 +46,7 @@ func (r *stripRenderer) Render(w io.Writer, source []byte, doc ast.Node) error {
 				coalesce := prevSibIsText
 				r.processString(
 					w,
-					v.Text(source), //nolint:staticcheck
+					v.Text(source), //nolint:staticcheck // Text is deprecated
 					coalesce)
 				if v.SoftLineBreak() {
 					r.doubleSpace(w)
