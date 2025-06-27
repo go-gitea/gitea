@@ -169,7 +169,7 @@
 			</div>
 		{{else if eq .Type 7}}
 			{{if or .AddedLabels .RemovedLabels}}
-				<div class="timeline-item event" id="{{.HashTag}}">
+				<div class="timeline-item event with-labels-list-inline" id="{{.HashTag}}">
 					<span class="badge">{{svg "octicon-tag"}}</span>
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 					<span class="text grey muted-links">
