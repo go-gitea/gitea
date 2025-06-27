@@ -78,7 +78,7 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 	hostName, _, err := net.SplitHostPort(u.Host)
 	if err != nil {
 		// u.Host can be "host" or "host:port"
-		err = nil //nolint
+		err = nil //nolint:ineffassign,wastedassign
 		hostName = u.Host
 	}
 
