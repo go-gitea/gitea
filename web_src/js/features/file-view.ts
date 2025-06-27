@@ -10,16 +10,16 @@ export function initFileView(): void {
   // register file view renderer init function
   registerGlobalInitFunc('initFileView', async (container: HTMLElement) => {
     // get file info
-    const filename = container.getAttribute('data-filename');
-    const fileUrl = container.getAttribute('data-url');
+    const treePath = container.getAttribute('data-tree-path');
+    const fileLink = container.getAttribute('data-raw-file-link');
 
     // mark loading state
     container.classList.add('is-loading');
 
     try {
       // check if filename and url exist
-      if (!filename || !fileUrl) {
-        console.error(`missing filename(${filename}) or file url(${fileUrl}) for rendering`);
+      if (!treePath || !fileLink) {
+        console.error(`missing file name(${treePath}) or file url(${fileLink}) for rendering`);
         throw new Error('missing necessary file info');
       }
 
@@ -29,11 +29,11 @@ export function initFileView(): void {
       // if no suitable plugin is found, show default view
       if (!success) {
         // show default view raw file link
-        const fallbackText = container.getAttribute('data-fallback-text') || 'View Raw File';
+        const fallbackText = container.getAttribute('data-fallback-text');
 
         container.innerHTML = `
           <div class="view-raw-fallback">
-            <a href="${fileUrl}" class="ui basic button" target="_blank">${fallbackText}</a>
+            <a href="${fileLink}" class="ui basic button" target="_blank">${fallbackText}</a>
           </div>
         `;
       }
@@ -41,14 +41,14 @@ export function initFileView(): void {
       console.error('file view init error:', error);
 
       // show error message
-      const fallbackText = container.getAttribute('data-fallback-text') || 'View Raw File';
+      const fallbackText = container.getAttribute('data-fallback-text');
+      const errorHeader = container.getAttribute('data-error-header');
 
       container.innerHTML = `
         <div class="ui error message">
-          <div class="header">Failed to render file</div>
-          <p>Error: ${String(error)}</p>
-          <pre>${JSON.stringify({filename, fileUrl}, null, 2)}</pre>
-          <a class="ui basic button" href="${fileUrl || '#'}" target="_blank">${fallbackText}</a>
+          <div class="header">${errorHeader}</div>
+          <pre>${JSON.stringify({treePath, fileLink}, null, 2)}</pre>
+          <a class="ui basic button" href="${fileLink || '#'}" target="_blank">${fallbackText}</a>
         </div>
       `;
     } finally {

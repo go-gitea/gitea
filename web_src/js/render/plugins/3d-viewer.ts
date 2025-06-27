@@ -50,16 +50,7 @@ export function register3DViewerPlugin(): void {
       } catch (error) {
         // handle render error
         console.error('error rendering 3D model:', error);
-
-        // add error message and download button
-        const fallbackText = container.getAttribute('data-fallback-text') || 'View Raw File';
-        container.innerHTML = `
-          <div class="ui error message">
-            <div class="header">Failed to render 3D model</div>
-            <p>The 3D model could not be displayed in the browser.</p>
-            <a class="ui basic button" href="${fileUrl}" target="_blank">${fallbackText}</a>
-          </div>
-        `;
+        throw error;
       } finally {
         // remove loading state
         container.classList.remove('is-loading');

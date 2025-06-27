@@ -42,11 +42,11 @@ function findPlugin(filename: string, mimeType: string): FileRenderPlugin | null
 export async function applyRenderPlugin(container: HTMLElement): Promise<boolean> {
   try {
     // get file info from container element
-    const filename = container.getAttribute('data-filename') || '';
-    const fileUrl = container.getAttribute('data-url') || '';
+    const treePath = container.getAttribute('data-tree-path') || '';
+    const fileLink = container.getAttribute('data-raw-file-link') || '';
 
-    if (!filename || !fileUrl) {
-      console.warn('Missing filename or file URL for renderer');
+    if (!treePath || !fileLink) {
+      console.warn('Missing file name or file URL for renderer');
       return false;
     }
 
@@ -54,13 +54,13 @@ export async function applyRenderPlugin(container: HTMLElement): Promise<boolean
     const mimeType = container.getAttribute('data-mime-type') || '';
 
     // find plugin that can handle this file
-    const plugin = findPlugin(filename, mimeType);
+    const plugin = findPlugin(treePath, mimeType);
     if (!plugin) {
       return false;
     }
 
     // apply plugin to render file
-    await plugin.render(container, fileUrl);
+    await plugin.render(container, fileLink);
     return true;
   } catch (error) {
     console.error('Error applying render plugin:', error);

@@ -166,8 +166,8 @@ onDomReady(() => {
 
     initOAuth2SettingsDisableCheckbox,
 
-    initFileView,
     register3DViewerPlugin,
+    initFileView,
   ]);
 
   // it must be the last one, then the "querySelectorAll" only needs to be executed once for global init functions.
