@@ -78,9 +78,9 @@ func TestLFSRender(t *testing.T) {
 		assert.Positive(t, fileViewContainer.Length(), "File view container should exist")
 
 		// check data attribute instead of link href
-		dataURL, exists := fileViewContainer.Attr("data-url")
-		assert.True(t, exists, "File view container should have data-url attribute")
-		assert.Equal(t, "/user2/lfs/media/branch/master/crypt.bin", dataURL, "The data-url should use the proper /media link because it's in LFS")
+		dataURL, exists := fileViewContainer.Attr("data-raw-file-link")
+		assert.True(t, exists, "File view container should have data-raw-file-link attribute")
+		assert.Equal(t, "/user2/lfs/media/branch/master/crypt.bin", dataURL, "The data-raw-file-link should use the proper /media link because it's in LFS")
 	})
 
 	// check that a directory with a README file shows its text
