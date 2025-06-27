@@ -107,8 +107,6 @@
 						<audio controls src="{{$.RawFileLink}}">
 							<strong>{{ctx.Locale.Tr "repo.audio_not_supported_in_browser"}}</strong>
 						</audio>
-					{{else if .IsPDFFile}}
-						<div class="file-view-container" data-global-init="initFileView" data-tree-path="{{.TreePath}}" data-raw-file-link="{{$.RawFileLink}}" data-fallback-text="{{ctx.Locale.Tr "repo.file_view_raw"}}" data-error-header="{{ctx.Locale.Tr "repo.file_render_failed"}}"></div>
 					{{else}}
 						<div class="file-view-container" data-global-init="initFileView" data-tree-path="{{.TreePath}}" data-raw-file-link="{{$.RawFileLink}}" data-fallback-text="{{ctx.Locale.Tr "repo.file_view_raw"}}" data-error-header="{{ctx.Locale.Tr "repo.file_render_failed"}}"></div>
 					{{end}}
