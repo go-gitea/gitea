@@ -10,9 +10,18 @@ import (
 )
 
 func TestCleanUploadFileName(t *testing.T) {
-	assert.Equal(t, "", CleanGitTreePath(""))  //nolint
-	assert.Equal(t, "", CleanGitTreePath(".")) //nolint
-	assert.Equal(t, "a/b", CleanGitTreePath("a/b"))
-	assert.Equal(t, "", CleanGitTreePath(".git/b")) //nolint
-	assert.Equal(t, "", CleanGitTreePath("a/.git")) //nolint
+	cases := []struct {
+		input, expected string
+	}{
+		{"", ""},
+		{".", ""},
+		{"a/./b", "a/b"},
+		{"a.git", "a.git"},
+		{".git/b", ""},
+		{"a/.git", ""},
+		{"/a/../../b", "b"},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.expected, CleanGitTreePath(c.input), "input: %q", c.input)
+	}
 }
