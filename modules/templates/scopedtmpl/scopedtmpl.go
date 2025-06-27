@@ -109,7 +109,7 @@ type htmlTemplate struct {
 
 type textTemplateCommon struct {
 	_/*tmpl*/ map[string]*template.Template
-	_/*muTmpl*/ sync.RWMutex //
+	_/*muTmpl*/ sync.RWMutex
 	_/*option*/ struct {
 		missingKey int
 	}

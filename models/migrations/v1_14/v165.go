@@ -39,7 +39,7 @@ func ConvertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 		return err
 	}
 
-	// Webhook: string `xorm:"VARCHAR(16) index"`
+	// Webhook: Type string `xorm:"VARCHAR(16) index"`
 	if err := base.ModifyColumn(x, "webhook", &schemas.Column{
 		Name: "type",
 		SQLType: schemas.SQLType{

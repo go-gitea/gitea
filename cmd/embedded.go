@@ -301,8 +301,7 @@ func compileCollectPatterns(args []string) (_ []glob.Glob, err error) {
 	}
 	pat := make([]glob.Glob, len(args))
 	for i := range args {
-		pat[i], err = glob.Compile(args[i], '/')
-		if err != nil {
+		if pat[i], err = glob.Compile(args[i], '/'); err != nil {
 			return nil, fmt.Errorf("invalid glob patterh %q: %w", args[i], err)
 		}
 	}
