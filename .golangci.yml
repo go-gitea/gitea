@@ -46,6 +46,7 @@ linters:
             - pkg: gitea.com/go-chi/cache
               desc: do not use the go-chi cache package, use gitea's cache system
     nolintlint:
+      allow-unused: false
       require-explanation: true
       require-specific: true
     gocritic:
