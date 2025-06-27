@@ -132,3 +132,7 @@ func IsValidUsername(name string) bool {
 	vars := globalVars()
 	return vars.validUsernamePattern.MatchString(name) && !vars.invalidUsernamePattern.MatchString(name)
 }
+
+func IsValidSlug(slug string) bool {
+	return IsValidUsername(slug)
+}
