@@ -205,6 +205,17 @@ func TestRenderLabels(t *testing.T) {
 	issue = &issues.Issue{IsPull: true}
 	expected = `/owner/repo/pulls?labels=123`
 	assert.Contains(t, ut.RenderLabels([]*issues.Label{label}, "/owner/repo", issue), expected)
+
+	expectedLabel := `<a href="&lt;&gt;" class="ui label " style="color: #fff !important; background-color: label-color !important;" data-tooltip-content title=""><span class="gt-ellipsis">label-name</span></a>`
+	assert.Equal(t, expectedLabel, string(ut.RenderLabelWithLink(label, "<>")))
+	assert.Equal(t, expectedLabel, string(ut.RenderLabelWithLink(label, template.URL("<>"))))
+
+	label = &issues.Label{ID: 123, Name: "</>", Exclusive: true}
+	expectedLabel = `<a href="" class="ui label  scope-parent" data-tooltip-content title=""><div class="ui label scope-left" style="color: #fff !important; background-color: #000000 !important">&lt;</div><div class="ui label scope-right" style="color: #fff !important; background-color: #000000 !important">&gt;</div></a>`
+	assert.Equal(t, expectedLabel, string(ut.RenderLabelWithLink(label, "")))
+	label = &issues.Label{ID: 123, Name: "</>", Exclusive: true, ExclusiveOrder: 1}
+	expectedLabel = `<a href="" class="ui label  scope-parent" data-tooltip-content title=""><div class="ui label scope-left" style="color: #fff !important; background-color: #000000 !important">&lt;</div><div class="ui label scope-middle" style="color: #fff !important; background-color: #000000 !important">&gt;</div><div class="ui label scope-right">1</div></a>`
+	assert.Equal(t, expectedLabel, string(ut.RenderLabelWithLink(label, "")))
 }
 
 func TestUserMention(t *testing.T) {

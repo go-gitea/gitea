@@ -99,15 +99,14 @@ func checkConfigurationFiles(ctx context.Context, logger log.Logger, autofix boo
 func isWritableDir(path string) error {
 	// There's no platform-independent way of checking if a directory is writable
 	// https://stackoverflow.com/questions/20026320/how-to-tell-if-folder-exists-and-is-writable
-
 	tmpFile, err := os.CreateTemp(path, "doctors-order")
 	if err != nil {
 		return err
 	}
 	if err := os.Remove(tmpFile.Name()); err != nil {
-		fmt.Printf("Warning: can't remove temporary file: '%s'\n", tmpFile.Name()) //nolint:forbidigo
+		log.Warn("can't remove temporary file: %q", tmpFile.Name())
 	}
-	tmpFile.Close()
+	_ = tmpFile.Close()
 	return nil
 }
 
