@@ -4,7 +4,7 @@
 package optional_test
 
 import (
-	std_json "encoding/json" //nolint:depguard // for comparision with std
+	std_json "encoding/json" //nolint:depguard // for comparison with std
 	"testing"
 
 	"code.gitea.io/gitea/modules/json"
