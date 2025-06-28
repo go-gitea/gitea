@@ -178,7 +178,7 @@ jobs:
           GOOS: linux
           GOARCH: 386
 
-  translations:
+  i18n-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -186,7 +186,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: make check-locales
+      - run: make i18n-check
 
   docs:
     if: needs.files-changed.outputs.docs == 'true' || needs.files-changed.outputs.actions == 'true'
