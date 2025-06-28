@@ -1,0 +1,93 @@
+<h4 class="ui top attached error header">
+	{{ctx.Locale.Tr "repo.settings.danger_zone"}}
+</h4>
+<div class="ui attached error danger segment">
+	<div class="flex-list">
+		<div class="flex-item tw-items-center">
+			<div class="flex-item-main">
+				<div class="flex-item-title">{{ctx.Locale.Tr "org.settings.rename"}}</div>
+				<div class="flex-item-body">{{ctx.Locale.Tr "org.settings.rename_desc"}}</div>
+			</div>
+			<div class="flex-item-trailing">
+				<button class="ui basic red show-modal button" data-modal="#rename-org-modal">{{ctx.Locale.Tr "org.settings.rename"}}</button>
+			</div>
+		</div>
+
+		<div class="flex-item">
+			<div class="flex-item-main">
+				<div class="flex-item-title">{{ctx.Locale.Tr "org.settings.delete_account"}}</div>
+				<div class="flex-item-body">{{ctx.Locale.Tr "org.settings.delete_prompt"}}</div>
+			</div>
+			<div class="flex-item-trailing">
+				<button class="ui basic red show-modal button" data-modal="#delete-org-modal">{{ctx.Locale.Tr "org.settings.delete_account"}}</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="ui small modal" id="rename-org-modal">
+	<div class="header">
+		{{ctx.Locale.Tr "org.settings.rename"}}
+	</div>
+	<div class="content">
+		<ul class="ui warning message">
+			<li>{{ctx.Locale.Tr "org.settings.rename_notices_1"}}</li>
+			<li>{{ctx.Locale.Tr "org.settings.rename_notices_2"}}</li>
+		</ul>
+		<form class="ui form form-fetch-action" action="{{.Link}}/rename" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field">
+				<label>
+					{{ctx.Locale.Tr "org.settings.name_confirm"}}
+					<span class="text red">{{.Org.Name}}</span>
+				</label>
+			</div>
+			<div class="required field">
+				<label for="org_name_to_rename">{{ctx.Locale.Tr "org.org_name_holder"}}</label>
+				<input id="org_name_to_rename" name="org_name" required>
+			</div>
+
+			<div class="required field">
+				<label>{{ctx.Locale.Tr "org.settings.rename_new_org_name"}}</label>
+				<input name="new_org_name" required>
+			</div>
+
+			<div class="actions">
+				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+				<button class="ui red button">{{ctx.Locale.Tr "org.settings.rename"}}</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<div class="ui small modal" id="delete-org-modal">
+	<div class="header">
+		{{ctx.Locale.Tr "org.settings.delete_account"}}
+	</div>
+	<div class="content">
+		<ul class="ui warning message">
+			<li>{{ctx.Locale.Tr "org.settings.delete_notices_1"}}</li>
+			<li>{{ctx.Locale.Tr "org.settings.delete_notices_2" .Org.Name}}</li>
+			<li>{{ctx.Locale.Tr "org.settings.delete_notices_3" .Org.Name}}</li>
+			<li>{{ctx.Locale.Tr "org.settings.delete_notices_4" .Org.Name}}</li>
+		</ul>
+		<form class="ui form form-fetch-action" action="{{.Link}}/delete" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field">
+				<label>
+					{{ctx.Locale.Tr "org.settings.name_confirm"}}
+					<span class="text red">{{.Org.Name}}</span>
+				</label>
+			</div>
+			<div class="required field">
+				<label>{{ctx.Locale.Tr "org.org_name_holder"}}</label>
+				<input name="org_name" required>
+			</div>
+
+			<div class="actions">
+				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+				<button class="ui red button">{{ctx.Locale.Tr "org.settings.delete_account"}}</button>
+			</div>
+		</form>
+	</div>
+</div>

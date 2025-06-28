@@ -26,7 +26,7 @@ import (
 
 // saveAsPackageBlob creates a package blob from an upload
 // The uploaded blob gets stored in a special upload version to link them to the package/image
-func saveAsPackageBlob(ctx context.Context, hsr packages_module.HashedSizeReader, pci *packages_service.PackageCreationInfo) (*packages_model.PackageBlob, error) { //nolint:unparam
+func saveAsPackageBlob(ctx context.Context, hsr packages_module.HashedSizeReader, pci *packages_service.PackageCreationInfo) (*packages_model.PackageBlob, error) { //nolint:unparam // PackageBlob is never used
 	pb := packages_service.NewPackageBlob(hsr)
 
 	exists := false
@@ -90,14 +90,14 @@ func mountBlob(ctx context.Context, pi *packages_service.PackageInfo, pb *packag
 	})
 }
 
-func containerPkgName(piOwnerID int64, piName string) string {
-	return fmt.Sprintf("pkg_%d_container_%s", piOwnerID, strings.ToLower(piName))
+func containerGlobalLockKey(piOwnerID int64, piName, usage string) string {
+	return fmt.Sprintf("pkg_%d_container_%s_%s", piOwnerID, strings.ToLower(piName), usage)
 }
 
 func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageInfo) (*packages_model.PackageVersion, error) {
 	var uploadVersion *packages_model.PackageVersion
 
-	releaser, err := globallock.Lock(ctx, containerPkgName(pi.Owner.ID, pi.Name))
+	releaser, err := globallock.Lock(ctx, containerGlobalLockKey(pi.Owner.ID, pi.Name, "package"))
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func createFileForBlob(ctx context.Context, pv *packages_model.PackageVersion, p
 }
 
 func deleteBlob(ctx context.Context, ownerID int64, image string, digest digest.Digest) error {
-	releaser, err := globallock.Lock(ctx, containerPkgName(ownerID, image))
+	releaser, err := globallock.Lock(ctx, containerGlobalLockKey(ownerID, image, "blob"))
 	if err != nil {
 		return err
 	}

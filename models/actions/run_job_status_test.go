@@ -58,14 +58,14 @@ func TestAggregateJobStatus(t *testing.T) {
 		{[]Status{StatusCancelled, StatusRunning}, StatusCancelled},
 		{[]Status{StatusCancelled, StatusBlocked}, StatusCancelled},
 
-		// failure with other status, fail fast
-		// Should "running" win? Maybe no: old code does make "running" win, but GitHub does fail fast.
+		// failure with other status, usually fail fast, but "running" wins to match GitHub's behavior
+		// another reason that we can't make "failure" wins over "running": it would cause a weird behavior that user cannot cancel a workflow or get current running workflows correctly by filter after a job fail.
 		{[]Status{StatusFailure}, StatusFailure},
 		{[]Status{StatusFailure, StatusSuccess}, StatusFailure},
 		{[]Status{StatusFailure, StatusSkipped}, StatusFailure},
 		{[]Status{StatusFailure, StatusCancelled}, StatusCancelled},
 		{[]Status{StatusFailure, StatusWaiting}, StatusFailure},
-		{[]Status{StatusFailure, StatusRunning}, StatusFailure},
+		{[]Status{StatusFailure, StatusRunning}, StatusRunning},
 		{[]Status{StatusFailure, StatusBlocked}, StatusFailure},
 
 		// skipped with other status

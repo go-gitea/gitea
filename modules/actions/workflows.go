@@ -246,6 +246,10 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 		webhook_module.HookEventPackage:
 		return matchPackageEvent(payload.(*api.PackagePayload), evt)
 
+	case // workflow_run
+		webhook_module.HookEventWorkflowRun:
+		return matchWorkflowRunEvent(payload.(*api.WorkflowRunPayload), evt)
+
 	default:
 		log.Warn("unsupported event %q", triggedEvent)
 		return false
@@ -565,17 +569,11 @@ func matchPullRequestReviewEvent(prPayload *api.PullRequestPayload, evt *jobpars
 				actions = append(actions, "submitted", "edited")
 			}
 
-			matched := false
 			for _, val := range vals {
 				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
-					matched = true
-				}
-				if matched {
+					matchTimes++
 					break
 				}
-			}
-			if matched {
-				matchTimes++
 			}
 		default:
 			log.Warn("pull request review event unsupported condition %q", cond)
@@ -611,17 +609,11 @@ func matchPullRequestReviewCommentEvent(prPayload *api.PullRequestPayload, evt *
 				actions = append(actions, "created", "edited")
 			}
 
-			matched := false
 			for _, val := range vals {
 				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
-					matched = true
-				}
-				if matched {
+					matchTimes++
 					break
 				}
-			}
-			if matched {
-				matchTimes++
 			}
 		default:
 			log.Warn("pull request review comment event unsupported condition %q", cond)
@@ -699,6 +691,56 @@ func matchPackageEvent(payload *api.PackagePayload, evt *jobparser.Event) bool {
 			}
 		default:
 			log.Warn("package event unsupported condition %q", cond)
+		}
+	}
+	return matchTimes == len(evt.Acts())
+}
+
+func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
+	if len(evt.Acts()) == 0 {
+		return true
+	}
+
+	matchTimes := 0
+	// all acts conditions should be satisfied
+	for cond, vals := range evt.Acts() {
+		switch cond {
+		case "types":
+			action := payload.Action
+			for _, val := range vals {
+				if glob.MustCompile(val, '/').Match(action) {
+					matchTimes++
+					break
+				}
+			}
+		case "workflows":
+			workflow := payload.Workflow
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Skip(patterns, []string{workflow.Name}, &workflowpattern.EmptyTraceWriter{}) {
+				matchTimes++
+			}
+		case "branches":
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Skip(patterns, []string{payload.WorkflowRun.HeadBranch}, &workflowpattern.EmptyTraceWriter{}) {
+				matchTimes++
+			}
+		case "branches-ignore":
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Filter(patterns, []string{payload.WorkflowRun.HeadBranch}, &workflowpattern.EmptyTraceWriter{}) {
+				matchTimes++
+			}
+		default:
+			log.Warn("workflow run event unsupported condition %q", cond)
 		}
 	}
 	return matchTimes == len(evt.Acts())

@@ -73,8 +73,19 @@
   overflow: hidden;
 }
 
+.issue-content-right .ui.list {
+  margin: 0.5em 0;
+  max-width: 100%;
+}
+
 .issue-sidebar-combo > .ui.dropdown .item:not(.checked) .item-check-mark {
   visibility: hidden;
+}
+
+.issue-content-right .ui.list.labels-list {
+  display: flex;
+  gap: var(--gap-inline);
+  flex-wrap: wrap;
 }
 
 @media (max-width: 767.98px) {
@@ -137,11 +148,6 @@ td .commit-summary {
   .latest-commit .commit-id-short {
     display: none;
   }
-}
-
-.repo-path {
-  display: flex;
-  overflow-wrap: anywhere;
 }
 
 .repository.file.list .non-diff-file-content .header .icon {
@@ -1227,10 +1233,6 @@ td .commit-summary {
   font-weight: var(--font-weight-normal);
 }
 
-.repository.packages .file-size {
-  white-space: nowrap;
-}
-
 .repository .activity-header {
   display: flex;
   justify-content: space-between;
@@ -1553,49 +1555,6 @@ td .commit-summary {
   border-bottom-right-radius: 4px;
 }
 
-.labels-list {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 2.5px;
-  align-items: center;
-}
-
-.labels-list .label, .scope-parent > .label {
-  padding: 0 6px;
-  min-height: 20px;
-  line-height: 1.3; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
-}
-
-/* Scoped labels with different colors on left and right */
-.ui.label.scope-parent {
-  background: none !important;
-  padding: 0 !important;
-  gap: 0 !important;
-}
-
-.archived-label {
-  filter: grayscale(0.5);
-  opacity: 0.5;
-}
-
-.ui.label.scope-left {
-  border-bottom-right-radius: 0;
-  border-top-right-radius: 0;
-  margin-right: 0;
-}
-
-.ui.label.scope-middle {
-  border-radius: 0;
-  margin-left: 0;
-  margin-right: 0;
-}
-
-.ui.label.scope-right {
-  border-bottom-left-radius: 0;
-  border-top-left-radius: 0;
-  margin-left: 0;
-}
-
 .repo-button-row {
   margin: 8px 0;
   display: flex;
@@ -1843,6 +1802,7 @@ tbody.commit-list {
   border-radius: 0;
   display: flex;
   flex-direction: column;
+  gap: 0.5em;
 }
 
 /* fomantic's last-child selector does not work with hidden last child */

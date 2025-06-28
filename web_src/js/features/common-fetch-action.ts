@@ -1,11 +1,11 @@
 import {request} from '../modules/fetch.ts';
-import {showErrorToast} from '../modules/toast.ts';
+import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, submitEventSubmitter} from '../utils/dom.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import type {RequestOpts} from '../types.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 
-const {appSubUrl, i18n} = window.config;
+const {appSubUrl} = window.config;
 
 // fetchActionDoRedirect does real redirection to bypass the browser's limitations of "location"
 // more details are in the backend's fetch-redirect handler
@@ -23,10 +23,20 @@ function fetchActionDoRedirect(redirect: string) {
 }
 
 async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: RequestOpts) {
+  const showErrorForResponse = (code: number, message: string) => {
+    showErrorToast(`Error ${code || 'request'}: ${message}`);
+  };
+
+  let respStatus = 0;
+  let respText = '';
   try {
+    hideToastsAll();
     const resp = await request(url, opt);
-    if (resp.status === 200) {
-      let {redirect} = await resp.json();
+    respStatus = resp.status;
+    respText = await resp.text();
+    const respJson = JSON.parse(respText);
+    if (respStatus === 200) {
+      let {redirect} = respJson;
       redirect = redirect || actionElem.getAttribute('data-redirect');
       ignoreAreYouSure(actionElem); // ignore the areYouSure check before reloading
       if (redirect) {
@@ -35,22 +45,21 @@ async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: R
         window.location.reload();
       }
       return;
-    } else if (resp.status >= 400 && resp.status < 500) {
-      const data = await resp.json();
+    }
+
+    if (respStatus >= 400 && respStatus < 500 && respJson?.errorMessage) {
       // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
       // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
-      if (data.errorMessage) {
-        showErrorToast(data.errorMessage, {useHtmlBody: data.renderFormat === 'html'});
-      } else {
-        showErrorToast(`server error: ${resp.status}`);
-      }
+      showErrorToast(respJson.errorMessage, {useHtmlBody: respJson.renderFormat === 'html'});
     } else {
-      showErrorToast(`server error: ${resp.status}`);
+      showErrorForResponse(respStatus, respText);
     }
   } catch (e) {
-    if (e.name !== 'AbortError') {
-      console.error('error when doRequest', e);
-      showErrorToast(`${i18n.network_error} ${e}`);
+    if (e.name === 'SyntaxError') {
+      showErrorForResponse(respStatus, (respText || '').substring(0, 100));
+    } else if (e.name !== 'AbortError') {
+      console.error('fetchActionDoRequest error', e);
+      showErrorForResponse(respStatus, `${e}`);
     }
   }
   actionElem.classList.remove('is-loading', 'loading-icon-2px');
@@ -70,7 +79,7 @@ export async function submitFormFetchAction(formEl: HTMLFormElement, formSubmitt
   }
 
   const formMethod = formEl.getAttribute('method') || 'get';
-  const formActionUrl = formEl.getAttribute('action');
+  const formActionUrl = formEl.getAttribute('action') || window.location.href;
   const formData = new FormData(formEl);
   const [submitterName, submitterValue] = [formSubmitter?.getAttribute('name'), formSubmitter?.getAttribute('value')];
   if (submitterName) {

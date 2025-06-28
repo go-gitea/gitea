@@ -1,101 +1,97 @@
 {{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings options")}}
-			<div class="org-setting-content">
-				<h4 class="ui top attached header">
-					{{ctx.Locale.Tr "org.settings.options"}}
-				</h4>
-				<div class="ui attached segment">
-					<form class="ui form" action="{{.Link}}" method="post">
-						{{.CsrfTokenHtml}}
-						<div class="required field {{if .Err_Name}}error{{end}}">
-							<label for="org_name">{{ctx.Locale.Tr "org.org_name_holder"}}
-								<span class="text red tw-hidden" id="org-name-change-prompt">
-									<br>{{ctx.Locale.Tr "org.settings.change_orgname_prompt"}}<br>{{ctx.Locale.Tr "org.settings.change_orgname_redirect_prompt"}}
-								</span>
-							</label>
-							<input id="org_name" name="name" value="{{.Org.Name}}" data-org-name="{{.Org.Name}}" required maxlength="40">
-						</div>
-						<div class="field {{if .Err_FullName}}error{{end}}">
-							<label for="full_name">{{ctx.Locale.Tr "org.org_full_name_holder"}}</label>
-							<input id="full_name" name="full_name" value="{{.Org.FullName}}" maxlength="100">
-						</div>
-						<div class="field {{if .Err_Email}}error{{end}}">
-							<label for="email">{{ctx.Locale.Tr "org.settings.email"}}</label>
-							<input id="email" name="email" type="email" value="{{.Org.Email}}" maxlength="255">
-						</div>
-						<div class="field {{if .Err_Description}}error{{end}}">
-							{{/* it is rendered as markdown, but the length is limited, so at the moment we do not use the markdown editor here */}}
-							<label for="description">{{ctx.Locale.Tr "org.org_desc"}}</label>
-							<textarea id="description" name="description" rows="2" maxlength="255">{{.Org.Description}}</textarea>
-						</div>
-						<div class="field {{if .Err_Website}}error{{end}}">
-							<label for="website">{{ctx.Locale.Tr "org.settings.website"}}</label>
-							<input id="website" name="website" type="url" value="{{.Org.Website}}" maxlength="255">
-						</div>
-						<div class="field">
-							<label for="location">{{ctx.Locale.Tr "org.settings.location"}}</label>
-							<input id="location" name="location"  value="{{.Org.Location}}" maxlength="50">
-						</div>
 
-						<div class="divider"></div>
-						<div class="field" id="visibility_box">
-							<label for="visibility">{{ctx.Locale.Tr "org.settings.visibility"}}</label>
-							<div class="field">
-								<div class="ui radio checkbox">
-									<input class="enable-system-radio" name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 0}}checked{{end}}>
-									<label>{{ctx.Locale.Tr "org.settings.visibility.public"}}</label>
-								</div>
-							</div>
-							<div class="field">
-								<div class="ui radio checkbox">
-									<input class="enable-system-radio" name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}>
-									<label>{{ctx.Locale.Tr "org.settings.visibility.limited"}}</label>
-								</div>
-							</div>
-							<div class="field">
-								<div class="ui radio checkbox">
-									<input class="enable-system-radio" name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}>
-									<label>{{ctx.Locale.Tr "org.settings.visibility.private"}}</label>
-								</div>
-							</div>
-						</div>
+<div class="ui segments org-setting-content">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "org.settings.options"}}
+	</h4>
+	<div class="ui attached segment">
+		<form class="ui form" action="{{.Link}}" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field {{if .Err_FullName}}error{{end}}">
+				<label for="full_name">{{ctx.Locale.Tr "org.org_full_name_holder"}}</label>
+				<input id="full_name" name="full_name" value="{{.Org.FullName}}" maxlength="100">
+			</div>
+			<div class="field {{if .Err_Email}}error{{end}}">
+				<label for="email">{{ctx.Locale.Tr "org.settings.email"}}</label>
+				<input id="email" name="email" type="email" value="{{.Org.Email}}" maxlength="255">
+			</div>
+			<div class="field {{if .Err_Description}}error{{end}}">
+				{{/* it is rendered as markdown, but the length is limited, so at the moment we do not use the markdown editor here */}}
+				<label for="description">{{ctx.Locale.Tr "org.org_desc"}}</label>
+				<textarea id="description" name="description" rows="2" maxlength="255">{{.Org.Description}}</textarea>
+			</div>
+			<div class="field {{if .Err_Website}}error{{end}}">
+				<label for="website">{{ctx.Locale.Tr "org.settings.website"}}</label>
+				<input id="website" name="website" type="url" value="{{.Org.Website}}" maxlength="255">
+			</div>
+			<div class="field">
+				<label for="location">{{ctx.Locale.Tr "org.settings.location"}}</label>
+				<input id="location" name="location"  value="{{.Org.Location}}" maxlength="50">
+			</div>
 
-						<div class="field" id="permission_box">
-							<label>{{ctx.Locale.Tr "org.settings.permission"}}</label>
-							<div class="field">
-								<div class="ui checkbox">
-									<input type="checkbox" name="repo_admin_change_team_access" {{if .RepoAdminChangeTeamAccess}}checked{{end}}>
-									<label>{{ctx.Locale.Tr "org.settings.repoadminchangeteam"}}</label>
-								</div>
-							</div>
-						</div>
-
-						{{if .SignedUser.IsAdmin}}
-						<div class="divider"></div>
-
-						<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
-							<label for="max_repo_creation">{{ctx.Locale.Tr "admin.users.max_repo_creation"}}</label>
-							<input id="max_repo_creation" name="max_repo_creation" type="number" min="-1" value="{{.Org.MaxRepoCreation}}">
-							<p class="help">{{ctx.Locale.Tr "admin.users.max_repo_creation_desc"}}</p>
-						</div>
-						{{end}}
-
-						<div class="field">
-							<button class="ui primary button">{{ctx.Locale.Tr "org.settings.update_settings"}}</button>
-						</div>
-					</form>
-
-					<div class="divider"></div>
-
-					<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
-						{{.CsrfTokenHtml}}
-						<div class="inline field">
-							{{template "shared/avatar_upload_crop" dict "LabelText" (ctx.Locale.Tr "settings.choose_new_avatar")}}
-						</div>
-						<div class="field">
-							<button class="ui primary button">{{ctx.Locale.Tr "settings.update_avatar"}}</button>
-							<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{ctx.Locale.Tr "settings.delete_current_avatar"}}</button>
-						</div>
-					</form>
+			<div class="divider"></div>
+			<div class="field" id="visibility_box">
+				<label for="visibility">{{ctx.Locale.Tr "org.settings.visibility"}}</label>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input class="enable-system-radio" name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 0}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "org.settings.visibility.public"}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input class="enable-system-radio" name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "org.settings.visibility.limited"}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input class="enable-system-radio" name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "org.settings.visibility.private"}}</label>
+					</div>
 				</div>
 			</div>
+
+			<div class="field" id="permission_box">
+				<label>{{ctx.Locale.Tr "org.settings.permission"}}</label>
+				<div class="field">
+					<div class="ui checkbox">
+						<input type="checkbox" name="repo_admin_change_team_access" {{if .RepoAdminChangeTeamAccess}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "org.settings.repoadminchangeteam"}}</label>
+					</div>
+				</div>
+			</div>
+
+			{{if .SignedUser.IsAdmin}}
+			<div class="divider"></div>
+
+			<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
+				<label for="max_repo_creation">{{ctx.Locale.Tr "admin.users.max_repo_creation"}}</label>
+				<input id="max_repo_creation" name="max_repo_creation" type="number" min="-1" value="{{.Org.MaxRepoCreation}}">
+				<p class="help">{{ctx.Locale.Tr "admin.users.max_repo_creation_desc"}}</p>
+			</div>
+			{{end}}
+
+			<div class="field">
+				<button class="ui primary button">{{ctx.Locale.Tr "org.settings.update_settings"}}</button>
+			</div>
+		</form>
+
+		<div class="divider"></div>
+
+		<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
+			{{.CsrfTokenHtml}}
+			<div class="inline field">
+				{{template "shared/avatar_upload_crop" dict "LabelText" (ctx.Locale.Tr "settings.choose_new_avatar")}}
+			</div>
+			<div class="field">
+				<button class="ui primary button">{{ctx.Locale.Tr "settings.update_avatar"}}</button>
+				<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{ctx.Locale.Tr "settings.delete_current_avatar"}}</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+{{template "org/settings/options_dangerzone" .}}
+
 {{template "org/settings/layout_footer" .}}

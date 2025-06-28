@@ -16,6 +16,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -28,18 +29,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 )
-
-func isMediaTypeValid(mt string) bool {
-	return strings.HasPrefix(mt, "application/vnd.docker.") || strings.HasPrefix(mt, "application/vnd.oci.")
-}
-
-func isMediaTypeImageManifest(mt string) bool {
-	return strings.EqualFold(mt, oci.MediaTypeImageManifest) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.v2+json")
-}
-
-func isMediaTypeImageIndex(mt string) bool {
-	return strings.EqualFold(mt, oci.MediaTypeImageIndex) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.list.v2+json")
-}
 
 // manifestCreationInfo describes a manifest to create
 type manifestCreationInfo struct {
@@ -66,16 +55,23 @@ func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packag
 		return "", err
 	}
 
-	if !isMediaTypeValid(mci.MediaType) {
+	if !container_module.IsMediaTypeValid(mci.MediaType) {
 		mci.MediaType = index.MediaType
-		if !isMediaTypeValid(mci.MediaType) {
+		if !container_module.IsMediaTypeValid(mci.MediaType) {
 			return "", errManifestInvalid.WithMessage("MediaType not recognized")
 		}
 	}
 
-	if isMediaTypeImageManifest(mci.MediaType) {
+	// .../container/manifest.go:453:createManifestBlob() [E] Error inserting package blob: Error 1062 (23000): Duplicate entry '..........' for key 'package_blob.UQE_package_blob_md5'
+	releaser, err := globallock.Lock(ctx, containerGlobalLockKey(mci.Owner.ID, mci.Image, "manifest"))
+	if err != nil {
+		return "", err
+	}
+	defer releaser()
+
+	if container_module.IsMediaTypeImageManifest(mci.MediaType) {
 		return processOciImageManifest(ctx, mci, buf)
-	} else if isMediaTypeImageIndex(mci.MediaType) {
+	} else if container_module.IsMediaTypeImageIndex(mci.MediaType) {
 		return processOciImageIndex(ctx, mci, buf)
 	}
 	return "", errManifestInvalid
@@ -201,7 +197,7 @@ func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *p
 		}
 
 		for _, manifest := range index.Manifests {
-			if !isMediaTypeImageManifest(manifest.MediaType) {
+			if !container_module.IsMediaTypeImageManifest(manifest.MediaType) {
 				return errManifestInvalid
 			}
 
@@ -336,7 +332,7 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 			return nil, err
 		}
 
-		if isMediaTypeImageIndex(mci.MediaType) {
+		if container_module.IsMediaTypeImageIndex(mci.MediaType) {
 			if pv.CreatedUnix.AsTime().Before(time.Now().Add(-24 * time.Hour)) {
 				if err = packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
 					return nil, err

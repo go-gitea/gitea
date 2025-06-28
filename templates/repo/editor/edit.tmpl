@@ -3,30 +3,14 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<form class="ui edit form" method="post"
+		<form class="ui edit form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}"
 					data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}"
 					data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}"
 		>
 			{{.CsrfTokenHtml}}
-			<input type="hidden" name="last_commit" value="{{.last_commit}}">
-			<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
+			{{template "repo/editor/common_top" .}}
 			<div class="repo-editor-header">
-				<div class="ui breadcrumb field{{if .Err_TreePath}} error{{end}}">
-					<a class="section" href="{{$.BranchLink}}">{{.Repository.Name}}</a>
-					{{$n := len .TreeNames}}
-					{{$l := Eval $n "-" 1}}
-					{{range $i, $v := .TreeNames}}
-						<div class="breadcrumb-divider">/</div>
-						{{if eq $i $l}}
-							<input id="file-name" maxlength="255" value="{{$v}}" placeholder="{{ctx.Locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.EditorconfigJson}}" required autofocus>
-							<span data-tooltip-content="{{ctx.Locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>
-						{{else}}
-							<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
-						{{end}}
-					{{end}}
-					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{if .ReturnURI}}{{.ReturnURI}}{{else}}{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
-					<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
-				</div>
+				{{template "repo/editor/common_breadcrumb" .}}
 			</div>
 			{{if not .NotEditableReason}}
 				<div class="field">

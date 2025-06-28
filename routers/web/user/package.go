@@ -513,9 +513,9 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf)
 	if err != nil {
-		ctx.ServerError("GetPackageFileStream", err)
+		ctx.ServerError("OpenFileForDownload", err)
 		return
 	}
 

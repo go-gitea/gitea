@@ -9,11 +9,11 @@ import (
 	"code.gitea.io/gitea/modules/json"
 )
 
-type JsonUtils struct{} //nolint:revive
+type JsonUtils struct{} //nolint:revive // variable naming triggers on Json, wants JSON
 
 var jsonUtils = JsonUtils{}
 
-func NewJsonUtils() *JsonUtils { //nolint:revive
+func NewJsonUtils() *JsonUtils { //nolint:revive // variable naming triggers on Json, wants JSON
 	return &jsonUtils
 }
 

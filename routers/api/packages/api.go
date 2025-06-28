@@ -5,8 +5,6 @@ package packages
 
 import (
 	"net/http"
-	"regexp"
-	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
@@ -282,42 +280,10 @@ func CommonRoutes() *web.Router {
 				})
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/conda", func() {
-			var (
-				downloadPattern = regexp.MustCompile(`\A(.+/)?(.+)/((?:[^/]+(?:\.tar\.bz2|\.conda))|(?:current_)?repodata\.json(?:\.bz2)?)\z`)
-				uploadPattern   = regexp.MustCompile(`\A(.+/)?([^/]+(?:\.tar\.bz2|\.conda))\z`)
-			)
-
-			r.Get("/*", func(ctx *context.Context) {
-				m := downloadPattern.FindStringSubmatch(ctx.PathParam("*"))
-				if len(m) == 0 {
-					ctx.Status(http.StatusNotFound)
-					return
-				}
-
-				ctx.SetPathParam("channel", strings.TrimSuffix(m[1], "/"))
-				ctx.SetPathParam("architecture", m[2])
-				ctx.SetPathParam("filename", m[3])
-
-				switch m[3] {
-				case "repodata.json", "repodata.json.bz2", "current_repodata.json", "current_repodata.json.bz2":
-					conda.EnumeratePackages(ctx)
-				default:
-					conda.DownloadPackageFile(ctx)
-				}
-			})
-			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), func(ctx *context.Context) {
-				m := uploadPattern.FindStringSubmatch(ctx.PathParam("*"))
-				if len(m) == 0 {
-					ctx.Status(http.StatusNotFound)
-					return
-				}
-
-				ctx.SetPathParam("channel", strings.TrimSuffix(m[1], "/"))
-				ctx.SetPathParam("filename", m[2])
-
-				conda.UploadPackageFile(ctx)
-			})
+		r.PathGroup("/conda/*", func(g *web.RouterPathGroup) {
+			g.MatchPath("GET", "/<architecture>/<filename>", conda.ListOrGetPackages)
+			g.MatchPath("GET", "/<channel:*>/<architecture>/<filename>", conda.ListOrGetPackages)
+			g.MatchPath("PUT", "/<channel:*>/<filename>", reqPackageAccess(perm.AccessModeWrite), conda.UploadPackageFile)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cran", func() {
 			r.Group("/src", func() {
@@ -358,60 +324,15 @@ func CommonRoutes() *web.Router {
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/go", func() {
 			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), goproxy.UploadPackage)
-			r.Get("/sumdb/sum.golang.org/supported", func(ctx *context.Context) {
-				ctx.Status(http.StatusNotFound)
-			})
+			r.Get("/sumdb/sum.golang.org/supported", http.NotFound)
 
-			// Manual mapping of routes because the package name contains slashes which chi does not support
 			// https://go.dev/ref/mod#goproxy-protocol
-			r.Get("/*", func(ctx *context.Context) {
-				path := ctx.PathParam("*")
-
-				if strings.HasSuffix(path, "/@latest") {
-					ctx.SetPathParam("name", path[:len(path)-len("/@latest")])
-					ctx.SetPathParam("version", "latest")
-
-					goproxy.PackageVersionMetadata(ctx)
-					return
-				}
-
-				parts := strings.SplitN(path, "/@v/", 2)
-				if len(parts) != 2 {
-					ctx.Status(http.StatusNotFound)
-					return
-				}
-
-				ctx.SetPathParam("name", parts[0])
-
-				// <package/name>/@v/list
-				if parts[1] == "list" {
-					goproxy.EnumeratePackageVersions(ctx)
-					return
-				}
-
-				// <package/name>/@v/<version>.zip
-				if strings.HasSuffix(parts[1], ".zip") {
-					ctx.SetPathParam("version", parts[1][:len(parts[1])-len(".zip")])
-
-					goproxy.DownloadPackageFile(ctx)
-					return
-				}
-				// <package/name>/@v/<version>.info
-				if strings.HasSuffix(parts[1], ".info") {
-					ctx.SetPathParam("version", parts[1][:len(parts[1])-len(".info")])
-
-					goproxy.PackageVersionMetadata(ctx)
-					return
-				}
-				// <package/name>/@v/<version>.mod
-				if strings.HasSuffix(parts[1], ".mod") {
-					ctx.SetPathParam("version", parts[1][:len(parts[1])-len(".mod")])
-
-					goproxy.PackageVersionGoModContent(ctx)
-					return
-				}
-
-				ctx.Status(http.StatusNotFound)
+			r.PathGroup("/*", func(g *web.RouterPathGroup) {
+				g.MatchPath("GET", "/<name:*>/@<version:latest>", goproxy.PackageVersionMetadata)
+				g.MatchPath("GET", "/<name:*>/@v/list", goproxy.EnumeratePackageVersions)
+				g.MatchPath("GET", "/<name:*>/@v/<version>.zip", goproxy.DownloadPackageFile)
+				g.MatchPath("GET", "/<name:*>/@v/<version>.info", goproxy.PackageVersionMetadata)
+				g.MatchPath("GET", "/<name:*>/@v/<version>.mod", goproxy.PackageVersionGoModContent)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
@@ -532,82 +453,24 @@ func CommonRoutes() *web.Router {
 				})
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
+
 		r.Group("/pypi", func() {
 			r.Post("/", reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
 			r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 			r.Get("/simple/{id}", pypi.PackageMetadata)
 		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/rpm", func() {
-			r.Group("/repository.key", func() {
-				r.Head("", rpm.GetRepositoryKey)
-				r.Get("", rpm.GetRepositoryKey)
-			})
 
-			var (
-				repoPattern     = regexp.MustCompile(`\A(.*?)\.repo\z`)
-				uploadPattern   = regexp.MustCompile(`\A(.*?)/upload\z`)
-				filePattern     = regexp.MustCompile(`\A(.*?)/package/([^/]+)/([^/]+)/([^/]+)(?:/([^/]+\.rpm)|)\z`)
-				repoFilePattern = regexp.MustCompile(`\A(.*?)/repodata/([^/]+)\z`)
-			)
-
-			r.Methods("HEAD,GET,PUT,DELETE", "*", func(ctx *context.Context) {
-				path := ctx.PathParam("*")
-				isHead := ctx.Req.Method == http.MethodHead
-				isGetHead := ctx.Req.Method == http.MethodHead || ctx.Req.Method == http.MethodGet
-				isPut := ctx.Req.Method == http.MethodPut
-				isDelete := ctx.Req.Method == http.MethodDelete
-
-				m := repoPattern.FindStringSubmatch(path)
-				if len(m) == 2 && isGetHead {
-					ctx.SetPathParam("group", strings.Trim(m[1], "/"))
-					rpm.GetRepositoryConfig(ctx)
-					return
-				}
-
-				m = repoFilePattern.FindStringSubmatch(path)
-				if len(m) == 3 && isGetHead {
-					ctx.SetPathParam("group", strings.Trim(m[1], "/"))
-					ctx.SetPathParam("filename", m[2])
-					if isHead {
-						rpm.CheckRepositoryFileExistence(ctx)
-					} else {
-						rpm.GetRepositoryFile(ctx)
-					}
-					return
-				}
-
-				m = uploadPattern.FindStringSubmatch(path)
-				if len(m) == 2 && isPut {
-					reqPackageAccess(perm.AccessModeWrite)(ctx)
-					if ctx.Written() {
-						return
-					}
-					ctx.SetPathParam("group", strings.Trim(m[1], "/"))
-					rpm.UploadPackageFile(ctx)
-					return
-				}
-
-				m = filePattern.FindStringSubmatch(path)
-				if len(m) == 6 && (isGetHead || isDelete) {
-					ctx.SetPathParam("group", strings.Trim(m[1], "/"))
-					ctx.SetPathParam("name", m[2])
-					ctx.SetPathParam("version", m[3])
-					ctx.SetPathParam("architecture", m[4])
-					if isGetHead {
-						rpm.DownloadPackageFile(ctx)
-					} else {
-						reqPackageAccess(perm.AccessModeWrite)(ctx)
-						if ctx.Written() {
-							return
-						}
-						rpm.DeletePackageFile(ctx)
-					}
-					return
-				}
-
-				ctx.Status(http.StatusNotFound)
-			})
+		r.Methods("HEAD,GET", "/rpm.repo", reqPackageAccess(perm.AccessModeRead), rpm.GetRepositoryConfig)
+		r.PathGroup("/rpm/*", func(g *web.RouterPathGroup) {
+			g.MatchPath("HEAD,GET", "/repository.key", rpm.GetRepositoryKey)
+			g.MatchPath("HEAD,GET", "/<group:*>.repo", rpm.GetRepositoryConfig)
+			g.MatchPath("HEAD", "/<group:*>/repodata/<filename>", rpm.CheckRepositoryFileExistence)
+			g.MatchPath("GET", "/<group:*>/repodata/<filename>", rpm.GetRepositoryFile)
+			g.MatchPath("PUT", "/<group:*>/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
+			g.MatchPath("HEAD,GET", "/<group:*>/package/<name>/<version>/<architecture>", rpm.DownloadPackageFile)
+			g.MatchPath("DELETE", "/<group:*>/package/<name>/<version>/<architecture>", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
 		}, reqPackageAccess(perm.AccessModeRead))
+
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
 			r.Get("/latest_specs.4.8.gz", rubygems.EnumeratePackagesLatest)
@@ -621,6 +484,7 @@ func CommonRoutes() *web.Router {
 				r.Delete("/yank", rubygems.DeletePackage)
 			}, reqPackageAccess(perm.AccessModeWrite))
 		}, reqPackageAccess(perm.AccessModeRead))
+
 		r.Group("/swift", func() {
 			r.Group("", func() { // Needs to be unauthenticated.
 				r.Post("", swift.CheckAuthenticate)
@@ -632,31 +496,12 @@ func CommonRoutes() *web.Router {
 						r.Get("", swift.EnumeratePackageVersions)
 						r.Get(".json", swift.EnumeratePackageVersions)
 					}, swift.CheckAcceptMediaType(swift.AcceptJSON))
-					r.Group("/{version}", func() {
-						r.Get("/Package.swift", swift.CheckAcceptMediaType(swift.AcceptSwift), swift.DownloadManifest)
-						r.Put("", reqPackageAccess(perm.AccessModeWrite), swift.CheckAcceptMediaType(swift.AcceptJSON), swift.UploadPackageFile)
-						r.Get("", func(ctx *context.Context) {
-							// Can't use normal routes here: https://github.com/go-chi/chi/issues/781
-
-							version := ctx.PathParam("version")
-							if strings.HasSuffix(version, ".zip") {
-								swift.CheckAcceptMediaType(swift.AcceptZip)(ctx)
-								if ctx.Written() {
-									return
-								}
-								ctx.SetPathParam("version", version[:len(version)-4])
-								swift.DownloadPackageFile(ctx)
-							} else {
-								swift.CheckAcceptMediaType(swift.AcceptJSON)(ctx)
-								if ctx.Written() {
-									return
-								}
-								if strings.HasSuffix(version, ".json") {
-									ctx.SetPathParam("version", version[:len(version)-5])
-								}
-								swift.PackageVersionMetadata(ctx)
-							}
-						})
+					r.PathGroup("/*", func(g *web.RouterPathGroup) {
+						g.MatchPath("GET", "/<version>.json", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.PackageVersionMetadata)
+						g.MatchPath("GET", "/<version>.zip", swift.CheckAcceptMediaType(swift.AcceptZip), swift.DownloadPackageFile)
+						g.MatchPath("GET", "/<version>/Package.swift", swift.CheckAcceptMediaType(swift.AcceptSwift), swift.DownloadManifest)
+						g.MatchPath("GET", "/<version>", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.PackageVersionMetadata)
+						g.MatchPath("PUT", "/<version>", reqPackageAccess(perm.AccessModeWrite), swift.CheckAcceptMediaType(swift.AcceptJSON), swift.UploadPackageFile)
 					})
 				})
 				r.Get("/identifiers", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.LookupPackageIdentifiers)
@@ -693,6 +538,8 @@ func ContainerRoutes() *web.Router {
 		&container.Auth{},
 	})
 
+	// TODO: Content Discovery / References (not implemented yet)
+
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
 	r.Group("/token", func() {
 		r.Get("", container.Authenticate)
@@ -703,18 +550,13 @@ func ContainerRoutes() *web.Router {
 		r.PathGroup("/*", func(g *web.RouterPathGroup) {
 			g.MatchPath("POST", "/<image:*>/blobs/uploads", reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.PostBlobsUploads)
 			g.MatchPath("GET", "/<image:*>/tags/list", container.VerifyImageName, container.GetTagsList)
-			g.MatchPath("GET,PATCH,PUT,DELETE", `/<image:*>/blobs/uploads/<uuid:[-.=\w]+>`, reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, func(ctx *context.Context) {
-				switch ctx.Req.Method {
-				case http.MethodGet:
-					container.GetBlobsUpload(ctx)
-				case http.MethodPatch:
-					container.PatchBlobsUpload(ctx)
-				case http.MethodPut:
-					container.PutBlobsUpload(ctx)
-				default: /* DELETE */
-					container.DeleteBlobsUpload(ctx)
-				}
-			})
+
+			patternBlobsUploadsUUID := g.PatternRegexp(`/<image:*>/blobs/uploads/<uuid:[-.=\w]+>`, reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName)
+			g.MatchPattern("GET", patternBlobsUploadsUUID, container.GetBlobsUpload)
+			g.MatchPattern("PATCH", patternBlobsUploadsUUID, container.PatchBlobsUpload)
+			g.MatchPattern("PUT", patternBlobsUploadsUUID, container.PutBlobsUpload)
+			g.MatchPattern("DELETE", patternBlobsUploadsUUID, container.DeleteBlobsUpload)
+
 			g.MatchPath("HEAD", `/<image:*>/blobs/<digest>`, container.VerifyImageName, container.HeadBlob)
 			g.MatchPath("GET", `/<image:*>/blobs/<digest>`, container.VerifyImageName, container.GetBlob)
 			g.MatchPath("DELETE", `/<image:*>/blobs/<digest>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteBlob)

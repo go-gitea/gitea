@@ -25,11 +25,6 @@ declare module 'htmx.org/dist/htmx.esm.js' {
   export default value;
 }
 
-declare module 'uint8-to-base64' {
-  export function encode(arrayBuffer: Uint8Array): string;
-  export function decode(base64str: string): Uint8Array;
-}
-
 declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
   const value = await import('swagger-ui-dist');
   export default value.SwaggerUIBundle;

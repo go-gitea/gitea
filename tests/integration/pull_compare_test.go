@@ -159,7 +159,8 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 					"commit_summary": "user2 updated the file",
 					"commit_choice":  "direct",
 				})
-				user2Session.MakeRequest(t, req, http.StatusSeeOther)
+				resp = user2Session.MakeRequest(t, req, http.StatusOK)
+				assert.NotEmpty(t, test.RedirectURL(resp))
 			}
 		}
 	})

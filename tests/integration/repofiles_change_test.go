@@ -287,6 +287,8 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 	details := []struct {
 		filename, sha, content string
 		size                   int64
+		lfsOid                 *string
+		lfsSize                *int64
 	}{
 		{
 			filename: "README.txt",
@@ -299,6 +301,8 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 			sha:      "d4a41a0d4db4949e129bd22f871171ea988103ef",
 			size:     129,
 			content:  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6MmVjY2RiNDM4MjVkMmE0OWQ5OWQ1NDJkYWEyMDA3NWNmZjFkOTdkOWQyMzQ5YTg5NzdlZmU5YzAzNjYxNzM3YwpzaXplIDIwNDgK",
+			lfsOid:   util.ToPointer("2eccdb43825d2a49d99d542daa20075cff1d97d9d2349a8977efe9c03661737c"),
+			lfsSize:  util.ToPointer(int64(2048)),
 		},
 		{
 			filename: "jpeg.jpeg",
@@ -311,6 +315,8 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 			sha:      "2b6c6c4eaefa24b22f2092c3d54b263ff26feb58",
 			size:     127,
 			content:  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6N2I2YjJjODhkYmE5Zjc2MGExYTU4NDY5YjY3ZmVlMmI2OThlZjdlOTM5OWM0Y2E0ZjM0YTE0Y2NiZTM5ZjYyMwpzaXplIDI3Cg==",
+			lfsOid:   util.ToPointer("7b6b2c88dba9f760a1a58469b67fee2b698ef7e9399c4ca4f34a14ccbe39f623"),
+			lfsSize:  util.ToPointer(int64(27)),
 		},
 	}
 
@@ -339,6 +345,8 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 				GitURL:  &gitURL,
 				HTMLURL: &htmlURL,
 			},
+			LfsOid:  detail.lfsOid,
+			LfsSize: detail.lfsSize,
 		})
 	}
 
