@@ -41,6 +41,9 @@
 						</a>
 					{{else}}
 						<a class="entry-name" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
+						{{if $entry.IsLink}}
+							<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}?follow_symlink=1">{{svg "octicon-link"}}</a>
+						{{end}}
 					{{end}}
 				{{end}}
 			</div>
