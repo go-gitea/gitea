@@ -183,12 +183,6 @@ td .commit-summary {
   cursor: default;
 }
 
-.view-raw {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
 .view-raw > * {
   max-width: 100%;
 }

@@ -8,16 +8,11 @@ export function registerPdfViewerPlugin(): void {
       return filename.toLowerCase().endsWith('.pdf');
     },
     async render(container: HTMLElement, fileUrl: string): Promise<void> {
-      try {
-        const PDFObject = await import(/* webpackChunkName: "pdfobject" */'pdfobject');
-        container.classList.add('pdf-view-content');
-        const fallbackText = container.getAttribute('data-fallback-text');
-        PDFObject.default.embed(fileUrl, container, {
-          fallbackLink: `<a role="button" class="ui basic button pdf-fallback-button" href="${fileUrl}" target="_blank">${fallbackText}</a>`,
-        });
-      } catch (error) {
-        console.error('error rendering PDF:', error);
-        throw error;
+      const PDFObject = await import(/* webpackChunkName: "pdfobject" */'pdfobject');
+      // TODO: the PDFObject library does not support dynamic height adjustment,
+      container.style.height = `${window.innerHeight - 100}px`;
+      if (!PDFObject.default.embed(fileUrl, container)) {
+        throw new Error('Unable to render the PDF file');
       }
     },
   };

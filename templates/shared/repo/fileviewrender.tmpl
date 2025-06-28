@@ -2,5 +2,7 @@
 	data-raw-file-link="{{$.RawFileLink}}"
 	data-fallback-text="{{ctx.Locale.Tr "repo.file_view_raw"}}"
 	data-error-header="{{ctx.Locale.Tr "repo.file_render_failed"}}">
-	<a class="file-view-raw-prompt" href="{{$.RawFileLink}}" rel="nofollow" class="tw-p-4">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
+	<div class="file-view-raw-prompt tw-p-4">
+		<a href="{{$.RawFileLink}}" rel="nofollow">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
+	</div>
 </div>

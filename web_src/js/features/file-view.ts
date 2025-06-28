@@ -21,7 +21,7 @@ export function initFileViewRender(): void {
 
     let rendered = false, errorMsg = '';
     try {
-      rendered = await applyRenderPlugin(container);
+      rendered = await applyRenderPlugin(container, rawFileLink);
     } catch (e) {
       errorMsg = `${e}`;
     }
@@ -36,7 +36,7 @@ export function initFileViewRender(): void {
 
     if (errorMsg) {
       const elErrorMessage = createElementFromHTML(htmlEscape`<div class="ui error message">${errorMsg}</div>`);
-      container.insertBefore(elErrorMessage, elViewRawPrompt);
+      elViewRawPrompt.insertAdjacentElement('afterbegin', elErrorMessage);
     }
   });
 }

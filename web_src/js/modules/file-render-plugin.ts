@@ -42,6 +42,7 @@ export async function applyRenderPlugin(container: HTMLElement, rawFileLink: str
     if (!plugin) return false;
 
     container.classList.add('is-loading');
+    container.setAttribute('data-render-name', plugin.name);
     await plugin.render(container, rawFileLink);
     return true;
   } finally {
