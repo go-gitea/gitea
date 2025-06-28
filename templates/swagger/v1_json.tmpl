@@ -6120,6 +6120,122 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List workflow runs for a workflow",
+        "operationId": "ActionsListWorkflowRuns",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the workflow",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Returns someone's workflow runs. Use the login for the user who created the push associated with the check suite or workflow run.",
+            "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Returns workflow runs associated with a branch. Use the name of the branch of the push.",
+            "name": "branch",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Returns workflow run triggered by the event you specify. For example, push, pull_request or issue.",
+            "name": "event",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Returns workflow runs with the check run status or conclusion that you specify. Can be one of completed, action_required, cancelled, failure, neutral, skipped, stale, success, timed_out, in_progress, queued, requested, waiting, pending",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Returns workflow runs created within the given date-time range. For more information on the syntax, see \"Understanding the search syntax\".",
+            "name": "created",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": false,
+            "description": "If true pull requests are omitted from the response (empty array).",
+            "name": "exclude_pull_requests",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "Returns workflow runs with the check_suite_id that you specify.",
+            "name": "check_suite_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Only returns workflow runs that are associated with the specified head_sha.",
+            "name": "head_sha",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowRunsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/activities/feeds": {
       "get": {
         "produces": [

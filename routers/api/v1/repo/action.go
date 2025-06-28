@@ -1122,6 +1122,39 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	//   description: id of the workflow
 	//   type: string
 	//   required: true
+	// - name: actor
+	//   in: query
+	//   description: Returns someone's workflow runs. Use the login for the user who created the push associated with the check suite or workflow run.
+	//   type: string
+	// - name: branch
+	//   in: query
+	//   description: Returns workflow runs associated with a branch. Use the name of the branch of the push.
+	//   type: string
+	// - name: event
+	//   in: query
+	//   description: Returns workflow run triggered by the event you specify. For example, push, pull_request or issue.
+	//   type: string
+	// - name: status
+	//   in: query
+	//   description: Returns workflow runs with the check run status or conclusion that you specify. Can be one of completed, action_required, cancelled, failure, neutral, skipped, stale, success, timed_out, in_progress, queued, requested, waiting, pending
+	//   type: string
+	// - name: created
+	//   in: query
+	//   description: Returns workflow runs created within the given date-time range. For more information on the syntax, see "Understanding the search syntax".
+	//   type: string
+	// - name: exclude_pull_requests
+	//   in: query
+	//   description: If true pull requests are omitted from the response (empty array).
+	//   type: boolean
+	//   default: false
+	// - name: check_suite_id
+	//   in: query
+	//   description: Returns workflow runs with the check_suite_id that you specify.
+	//   type: integer
+	// - name: head_sha
+	//   in: query
+	//   description: Only returns workflow runs that are associated with the specified head_sha.
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
