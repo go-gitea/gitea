@@ -1100,6 +1100,52 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
+func ActionsListWorkflowRuns(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs repository ActionsListWorkflowRuns
+	// ---
+	// summary: List workflow runs for a workflow
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: workflow_id
+	//   in: path
+	//   description: id of the workflow
+	//   type: string
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRunsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "500":
+	//     "$ref": "#/responses/error"
+	shared.ListRuns(ctx, 0, ctx.Repo.Repository.ID)
+}
+
 // GetWorkflowRun Gets a specific workflow run.
 func GetWorkflowRun(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run} repository GetWorkflowRun

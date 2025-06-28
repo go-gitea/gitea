@@ -6,6 +6,8 @@ package shared
 import (
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -123,6 +125,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	opts := actions_model.FindRunOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
+		WorkflowID:  ctx.PathParam("workflow_id"),
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
@@ -150,6 +153,77 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	}
 	if headSHA := ctx.FormString("head_sha"); headSHA != "" {
 		opts.CommitSHA = headSHA
+	}
+	
+	// Handle exclude_pull_requests parameter
+	if exclude := ctx.FormString("exclude_pull_requests"); exclude != "" {
+		if exclude == "true" || exclude == "1" {
+			opts.ExcludePullRequests = true
+		}
+	}
+	
+	// Handle check_suite_id parameter
+	if checkSuiteID := ctx.FormInt64("check_suite_id"); checkSuiteID > 0 {
+		opts.CheckSuiteID = checkSuiteID
+	}
+	
+	// Handle created parameter for date filtering
+	if created := ctx.FormString("created"); created != "" {
+		// Parse the date range in the format like ">=2023-01-01", "<=2023-12-31", or "2023-01-01..2023-12-31"
+		if strings.Contains(created, "..\u002e") {
+			// Range format: "2023-01-01..2023-12-31"
+			dateRange := strings.Split(created, "..") 
+			if len(dateRange) == 2 {
+				startDate, err := time.Parse("2006-01-02", dateRange[0])
+				if err == nil {
+					opts.CreatedAfter = startDate
+				}
+				
+				endDate, err := time.Parse("2006-01-02", dateRange[1])
+				if err == nil {
+					// Set to end of day
+					endDate = endDate.Add(24*time.Hour - time.Second)
+					opts.CreatedBefore = endDate
+				}
+			}
+		} else if strings.HasPrefix(created, ">=") {
+			// Greater than or equal format: ">=2023-01-01"
+			dateStr := strings.TrimPrefix(created, ">=")
+			startDate, err := time.Parse("2006-01-02", dateStr)
+			if err == nil {
+				opts.CreatedAfter = startDate
+			}
+		} else if strings.HasPrefix(created, ">") {
+			// Greater than format: ">2023-01-01"
+			dateStr := strings.TrimPrefix(created, ">")
+			startDate, err := time.Parse("2006-01-02", dateStr)
+			if err == nil {
+				opts.CreatedAfter = startDate.Add(24 * time.Hour)
+			}
+		} else if strings.HasPrefix(created, "<=") {
+			// Less than or equal format: "<=2023-12-31"
+			dateStr := strings.TrimPrefix(created, "<=")
+			endDate, err := time.Parse("2006-01-02", dateStr)
+			if err == nil {
+				// Set to end of day
+				endDate = endDate.Add(24*time.Hour - time.Second)
+				opts.CreatedBefore = endDate
+			}
+		} else if strings.HasPrefix(created, "<") {
+			// Less than format: "<2023-12-31"
+			dateStr := strings.TrimPrefix(created, "<")
+			endDate, err := time.Parse("2006-01-02", dateStr)
+			if err == nil {
+				opts.CreatedBefore = endDate
+			}
+		} else {
+			// Exact date format: "2023-01-01"
+			exactDate, err := time.Parse("2006-01-02", created)
+			if err == nil {
+				opts.CreatedAfter = exactDate
+				opts.CreatedBefore = exactDate.Add(24*time.Hour - time.Second)
+			}
+		}
 	}
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
