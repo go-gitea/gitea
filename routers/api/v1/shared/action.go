@@ -186,32 +186,32 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 					opts.CreatedBefore = endDate
 				}
 			}
-		} else if strings.HasPrefix(created, ">=") {
+		} else if after, ok := strings.CutPrefix(created, ">="); ok {
 			// Greater than or equal format: ">=2023-01-01"
-			dateStr := strings.TrimPrefix(created, ">=")
+			dateStr := after
 			startDate, err := time.Parse("2006-01-02", dateStr)
 			if err == nil {
 				opts.CreatedAfter = startDate
 			}
-		} else if strings.HasPrefix(created, ">") {
+		} else if after, ok := strings.CutPrefix(created, ">"); ok {
 			// Greater than format: ">2023-01-01"
-			dateStr := strings.TrimPrefix(created, ">")
+			dateStr := after
 			startDate, err := time.Parse("2006-01-02", dateStr)
 			if err == nil {
 				opts.CreatedAfter = startDate.Add(24 * time.Hour)
 			}
-		} else if strings.HasPrefix(created, "<=") {
+		} else if after, ok := strings.CutPrefix(created, "<="); ok {
 			// Less than or equal format: "<=2023-12-31"
-			dateStr := strings.TrimPrefix(created, "<=")
+			dateStr := after
 			endDate, err := time.Parse("2006-01-02", dateStr)
 			if err == nil {
 				// Set to end of day
 				endDate = endDate.Add(24*time.Hour - time.Second)
 				opts.CreatedBefore = endDate
 			}
-		} else if strings.HasPrefix(created, "<") {
+		} else if after, ok := strings.CutPrefix(created, "<"); ok {
 			// Less than format: "<2023-12-31"
-			dateStr := strings.TrimPrefix(created, "<")
+			dateStr := after
 			endDate, err := time.Parse("2006-01-02", dateStr)
 			if err == nil {
 				opts.CreatedBefore = endDate
