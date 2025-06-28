@@ -4,15 +4,11 @@
  * This module provides a plugin architecture for rendering different file types
  * in the browser without requiring backend support for identifying file types.
  */
-
-/**
- * Interface for file render plugins
- */
 export type FileRenderPlugin = {
   // unique plugin name
   name: string;
 
-  // test if plugin can handle specified file
+  // test if plugin can handle a specified file
   canHandle: (filename: string, mimeType: string) => boolean;
 
   // render file content
@@ -39,31 +35,16 @@ function findPlugin(filename: string, mimeType: string): FileRenderPlugin | null
 /**
  * apply render plugin to specified container
  */
-export async function applyRenderPlugin(container: HTMLElement): Promise<boolean> {
+export async function applyRenderPlugin(container: HTMLElement, rawFileLink: string): Promise<boolean> {
   try {
-    // get file info from container element
-    const treePath = container.getAttribute('data-tree-path') || '';
-    const fileLink = container.getAttribute('data-raw-file-link') || '';
-
-    if (!treePath || !fileLink) {
-      console.warn('Missing file name or file URL for renderer');
-      return false;
-    }
-
-    // get mime type (optional)
     const mimeType = container.getAttribute('data-mime-type') || '';
+    const plugin = findPlugin(rawFileLink, mimeType);
+    if (!plugin) return false;
 
-    // find plugin that can handle this file
-    const plugin = findPlugin(treePath, mimeType);
-    if (!plugin) {
-      return false;
-    }
-
-    // apply plugin to render file
-    await plugin.render(container, fileLink);
+    container.classList.add('is-loading');
+    await plugin.render(container, rawFileLink);
     return true;
-  } catch (error) {
-    console.error('Error applying render plugin:', error);
-    return false;
+  } finally {
+    container.classList.remove('is-loading');
   }
 }

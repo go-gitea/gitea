@@ -237,8 +237,6 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["LineEscapeStatus"] = statuses
 		}
 
-	case fInfo.st.IsPDF():
-		ctx.Data["IsPDFFile"] = true
 	case fInfo.st.IsVideo():
 		ctx.Data["IsVideoFile"] = true
 	case fInfo.st.IsAudio():
