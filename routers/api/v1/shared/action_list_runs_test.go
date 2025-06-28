@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/contexttest"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -79,7 +80,7 @@ func TestListRunsExcludePullRequestsParam(t *testing.T) {
 	ctx, _ := contexttest.MockAPIContext(t, "user2/repo1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadUser(t, ctx, 2)
-	
+
 	// Set up form value
 	setFormValue(ctx, "exclude_pull_requests", "true")
 
@@ -87,7 +88,7 @@ func TestListRunsExcludePullRequestsParam(t *testing.T) {
 	opts := actions_model.FindRunOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	}
-	
+
 	if exclude := ctx.FormString("exclude_pull_requests"); exclude != "" {
 		if exclude == "true" || exclude == "1" {
 			opts.ExcludePullRequests = true
@@ -101,13 +102,13 @@ func TestListRunsExcludePullRequestsParam(t *testing.T) {
 	ctx2, _ := contexttest.MockAPIContext(t, "user2/repo1")
 	contexttest.LoadRepo(t, ctx2, 1)
 	contexttest.LoadUser(t, ctx2, 2)
-	
+
 	setFormValue(ctx2, "exclude_pull_requests", "1")
 
 	opts2 := actions_model.FindRunOptions{
 		RepoID: ctx2.Repo.Repository.ID,
 	}
-	
+
 	if exclude := ctx2.FormString("exclude_pull_requests"); exclude != "" {
 		if exclude == "true" || exclude == "1" {
 			opts2.ExcludePullRequests = true
@@ -121,13 +122,13 @@ func TestListRunsExcludePullRequestsParam(t *testing.T) {
 	ctx3, _ := contexttest.MockAPIContext(t, "user2/repo1")
 	contexttest.LoadRepo(t, ctx3, 1)
 	contexttest.LoadUser(t, ctx3, 2)
-	
+
 	setFormValue(ctx3, "exclude_pull_requests", "false")
 
 	opts3 := actions_model.FindRunOptions{
 		RepoID: ctx3.Repo.Repository.ID,
 	}
-	
+
 	if exclude := ctx3.FormString("exclude_pull_requests"); exclude != "" {
 		if exclude == "true" || exclude == "1" {
 			opts3.ExcludePullRequests = true
@@ -144,19 +145,19 @@ func TestListRunsCheckSuiteIDParam(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	const testSuiteID int64 = 12345
-	
+
 	// Test case: With check_suite_id parameter
 	ctx, _ := contexttest.MockAPIContext(t, "user2/repo1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadUser(t, ctx, 2)
-	
+
 	setFormValue(ctx, "check_suite_id", "12345")
 
 	// Call the actual parsing logic from ListRuns
 	opts := actions_model.FindRunOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	}
-	
+
 	// This simulates the logic in ListRuns
 	if checkSuiteID := ctx.FormInt64("check_suite_id"); checkSuiteID > 0 {
 		opts.CheckSuiteID = checkSuiteID
@@ -175,20 +176,20 @@ func TestListRunsCreatedParam(t *testing.T) {
 	ctx, _ := contexttest.MockAPIContext(t, "user2/repo1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadUser(t, ctx, 2)
-	
+
 	setFormValue(ctx, "created", "2023-01-01..2023-12-31")
 
 	opts := actions_model.FindRunOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	}
-	
+
 	// Simulate the date parsing logic from ListRuns
 	if created := ctx.FormString("created"); created != "" {
 		if created == "2023-01-01..2023-12-31" {
 			startDate, _ := time.Parse("2006-01-02", "2023-01-01")
 			endDate, _ := time.Parse("2006-01-02", "2023-12-31")
 			endDate = endDate.Add(24*time.Hour - time.Second)
-			
+
 			opts.CreatedAfter = startDate
 			opts.CreatedBefore = endDate
 		}
@@ -198,7 +199,7 @@ func TestListRunsCreatedParam(t *testing.T) {
 	expectedStart, _ := time.Parse("2006-01-02", "2023-01-01")
 	expectedEnd, _ := time.Parse("2006-01-02", "2023-12-31")
 	expectedEnd = expectedEnd.Add(24*time.Hour - time.Second)
-	
+
 	assert.Equal(t, expectedStart, opts.CreatedAfter)
 	assert.Equal(t, expectedEnd, opts.CreatedBefore)
 
@@ -206,13 +207,13 @@ func TestListRunsCreatedParam(t *testing.T) {
 	ctx2, _ := contexttest.MockAPIContext(t, "user2/repo1")
 	contexttest.LoadRepo(t, ctx2, 1)
 	contexttest.LoadUser(t, ctx2, 2)
-	
+
 	setFormValue(ctx2, "created", ">=2023-01-01")
 
 	opts2 := actions_model.FindRunOptions{
 		RepoID: ctx2.Repo.Repository.ID,
 	}
-	
+
 	// Simulate the date parsing logic for >= format
 	if created := ctx2.FormString("created"); created != "" {
 		if created == ">=2023-01-01" {
@@ -231,13 +232,13 @@ func TestListRunsCreatedParam(t *testing.T) {
 	ctx3, _ := contexttest.MockAPIContext(t, "user2/repo1")
 	contexttest.LoadRepo(t, ctx3, 1)
 	contexttest.LoadUser(t, ctx3, 2)
-	
+
 	setFormValue(ctx3, "created", "2023-06-15")
 
 	opts3 := actions_model.FindRunOptions{
 		RepoID: ctx3.Repo.Repository.ID,
 	}
-	
+
 	// Simulate the date parsing logic for exact date
 	if created := ctx3.FormString("created"); created != "" {
 		if created == "2023-06-15" {
