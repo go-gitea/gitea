@@ -254,12 +254,12 @@ func LastCommit(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplRepoViewList)
 }
 
-func prepareDirectoryFileIcons(ctx *context.Context, parentDir string, files []git.CommitInfo) {
+func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 	renderedIconPool := fileicon.NewRenderedIconPool()
 	fileIcons := map[string]template.HTML{}
 	for _, f := range files {
-		fullPath := path.Join(parentDir, f.Entry.Name())
-		entryInfo := fileicon.EntryInfoFromGitTreeEntry(f.Commit, fullPath, f.Entry)
+		fullPath := path.Join(ctx.Repo.TreePath, f.Entry.Name())
+		entryInfo := fileicon.EntryInfoFromGitTreeEntry(ctx.Repo.Commit, fullPath, f.Entry)
 		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
 	}
 	fileIcons[".."] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
@@ -308,7 +308,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 	ctx.Data["Files"] = files
-	prepareDirectoryFileIcons(ctx, ctx.Repo.TreePath, files)
+	prepareDirectoryFileIcons(ctx, files)
 	for _, f := range files {
 		if f.Commit == nil {
 			ctx.Data["HasFilesWithoutLatestCommit"] = true
