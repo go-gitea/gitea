@@ -144,19 +144,16 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	}
 
 	readmeFullPath := path.Join(ctx.Repo.TreePath, subfolder, readmeFile.Name())
-	target := readmeFile
+	readmeTargetEntry := readmeFile
 	if readmeFile.IsLink() {
-		res, _ := git.EntryFollowLinks(ctx.Repo.Commit, readmeFullPath, readmeFile)
-		if res != nil {
-			target = res.TargetEntry
+		if res, err := git.EntryFollowLinks(ctx.Repo.Commit, readmeFullPath, readmeFile); err == nil {
+			readmeTargetEntry = res.TargetEntry
 		} else {
-			target = nil
+			readmeTargetEntry = nil // if we cannot resolve the symlink, we cannot render the readme, ignore the error
 		}
 	}
-	if target == nil {
-		// if findReadmeFile() failed and/or gave us a broken symlink (which it shouldn't)
-		// simply skip rendering the README
-		return
+	if readmeTargetEntry == nil {
+		return // if no valid README entry found, skip rendering the README
 	}
 
 	ctx.Data["RawFileLink"] = ""
@@ -164,7 +161,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	ctx.Data["ReadmeExist"] = true
 	ctx.Data["FileIsSymlink"] = readmeFile.IsLink()
 
-	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, target.Blob())
+	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, readmeTargetEntry.Blob())
 	if err != nil {
 		ctx.ServerError("getFileReader", err)
 		return

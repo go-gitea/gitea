@@ -72,7 +72,7 @@ func EntryFollowLinks(commit *Commit, firstFullPath string, firstTreeEntry *Tree
 		}
 	}
 	if treeEntry.IsLink() {
-		return res, util.ErrorWrap(util.ErrUnprocessableContent, "%q has too many links", fullPath)
+		return res, util.ErrorWrap(util.ErrUnprocessableContent, "%q has too many links", firstFullPath)
 	}
 	return res, nil
 }

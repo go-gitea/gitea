@@ -386,23 +386,16 @@ func redirectSrcToRaw(ctx *context.Context) bool {
 	return false
 }
 
-func redirectFollowSymlink(ctx *context.Context) bool {
-	if ctx.Repo.TreePath != "" && ctx.FormBool("follow_symlink") {
-		// Redirect to the symlink target path
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
-		if err != nil {
-			HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
-			return true
-		}
-		if entry.IsLink() {
-			res, err := git.EntryFollowLinks(ctx.Repo.Commit, ctx.Repo.TreePath, entry)
-			if err != nil {
-				return false // don't handle the links we cannot resolve
-			}
+func redirectFollowSymlink(ctx *context.Context, treePathEntry *git.TreeEntry) bool {
+	if ctx.Repo.TreePath == "" || !ctx.FormBool("follow_symlink") {
+		return false
+	}
+	if treePathEntry.IsLink() {
+		if res, err := git.EntryFollowLinks(ctx.Repo.Commit, ctx.Repo.TreePath, treePathEntry); err == nil {
 			redirect := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(res.TargetFullPath) + "?" + ctx.Req.URL.RawQuery
 			ctx.Redirect(redirect)
 			return true
-		}
+		} // else: don't handle the links we cannot resolve, so ignore the error
 	}
 	return false
 }
@@ -410,9 +403,6 @@ func redirectFollowSymlink(ctx *context.Context) bool {
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if handleRepoHomeFeed(ctx) {
-		return
-	}
-	if redirectFollowSymlink(ctx) {
 		return
 	}
 	if redirectSrcToRaw(ctx) {
@@ -446,6 +436,10 @@ func Home(ctx *context.Context) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
+		return
+	}
+
+	if redirectFollowSymlink(ctx, entry) {
 		return
 	}
 
