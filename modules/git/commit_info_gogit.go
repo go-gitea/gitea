@@ -71,7 +71,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 			commitsInfo[i].Commit = entryCommit
 		}
 
-		// If the entry if a submodule add a submodule file for this
+		// If the entry is a submodule add a submodule file for this
 		if entry.IsSubModule() {
 			subModuleURL := ""
 			var fullPath string
@@ -85,8 +85,8 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 			} else if subModule != nil {
 				subModuleURL = subModule.URL
 			}
-			subModuleFile := NewSubModuleFile(commitsInfo[i].Commit, subModuleURL, entry.ID.String())
-			commitsInfo[i].SubModuleFile = subModuleFile
+			subModuleFile := NewCommitSubmoduleFile(subModuleURL, entry.ID.String())
+			commitsInfo[i].SubmoduleFile = subModuleFile
 		}
 	}
 

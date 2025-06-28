@@ -2,7 +2,10 @@
   /* fonts */
   --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
   --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
-  --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
+  /* GitHub explicitly sets font names like: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
+  Actually "Twemoji Mozilla" emoji font is widely used by browsers like Firefox, Pale Moon, and it is more likely up-to-dated than the system emoji font.
+  So not setting emoji font seems to be the best choice, here we just use a non-existing dummy font name and let browsers choose. */
+  --fonts-emoji: -emoji-fallback;
   /* font weights - use between 400 and 600 for general purposes. Avoid 700 as it is perceived too bold */
   --font-weight-light: 300;
   --font-weight-normal: 400;
@@ -18,14 +21,65 @@
   /* other variables */
   --border-radius: 4px;
   --border-radius-medium: 6px;
-  --border-radius-circle: 50%;
+  --border-radius-full: 99999px; /* TODO: use calc(infinity * 1px) */
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
+  --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
   --tab-size: 4;
+  --checkbox-size: 15px; /* height and width of checkbox and radio inputs */
+  --page-spacing: 16px; /* space between page elements */
+  --page-margin-x: 32px; /* minimum space on left and right side of page */
+  --page-space-bottom: 64px; /* space between last page element and footer */
+
+  /* z-index */
+  --z-index-modal: 1001; /* modal dialog, hard-coded from Fomantic modal.css */
+  --z-index-toast: 1002; /* should be larger than modal */
+
+  --font-size-label: 12px; /* font size of individual labels */
+
+  --gap-inline: 0.25rem; /* gap for inline texts and elements, for example: the spaces for sentence with labels, button text, etc */
+  --gap-block: 0.25rem; /* gap for element blocks, for example: spaces between buttons, menu image & title, header icon & title etc */
+}
+
+@media (min-width: 768px) and (max-width: 1200px) {
+  :root {
+    --page-margin-x: 16px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  :root {
+    --page-margin-x: 8px;
+  }
 }
 
 :root * {
   --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", sans-serif, var(--fonts-emoji);
+}
+
+*, ::before, ::after {
+  /* these are needed for tailwind borders to work because we do not load tailwind's base
+     https://github.com/tailwindlabs/tailwindcss/blob/master/src/css/preflight.css */
+  border-width: 0;
+  border-style: solid;
+  border-color: currentcolor;
+}
+
+html, body {
+  height: 100%;
+  font-size: 14px;
+}
+
+body {
+  line-height: 20px;
+  font-family: var(--fonts-regular);
+  color: var(--color-text);
+  background-color: var(--color-body);
+  tab-size: var(--tab-size);
+  display: flex;
+  flex-direction: column;
+  overflow-x: visible;
+  overflow-wrap: break-word;
 }
 
 textarea {
@@ -36,8 +90,15 @@ pre,
 code,
 kbd,
 samp {
-  font-size: 0.9em; /* compensate for monospace fonts being usually slightly larger */
   font-family: var(--fonts-monospace);
+}
+
+pre,
+code,
+kbd,
+samp,
+.tw-font-mono {
+  font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 
 b,
@@ -51,13 +112,65 @@ h6 {
   font-weight: var(--font-weight-semibold);
 }
 
-body {
-  color: var(--color-text);
-  background-color: var(--color-body);
-  tab-size: var(--tab-size);
-  display: flex;
-  flex-direction: column;
-  overflow-wrap: break-word;
+h1,
+h2,
+h3,
+h4,
+h5 {
+  line-height: 1.28571429;
+  margin: calc(2rem - 0.1428571428571429em) 0 1rem;
+  font-weight: var(--font-weight-medium);
+  padding: 0;
+}
+
+h1 {
+  min-height: 1rem;
+  font-size: 2rem;
+}
+
+h2 {
+  font-size: 1.71428571rem;
+}
+
+h3 {
+  font-size: 1.28571429rem;
+}
+
+h4 {
+  font-size: 1.07142857rem;
+}
+
+h5 {
+  font-size: 1rem;
+}
+
+h1:first-child,
+h2:first-child,
+h3:first-child,
+h4:first-child,
+h5:first-child {
+  margin-top: 0;
+}
+
+h1:last-child,
+h2:last-child,
+h3:last-child,
+h4:last-child,
+h5:last-child {
+  margin-bottom: 0;
+}
+
+p {
+  margin: 0 0 1em;
+  line-height: 1.4285;
+}
+
+p:first-child {
+  margin-top: 0;
+}
+
+p:last-child {
+  margin-bottom: 0;
 }
 
 table {
@@ -96,31 +209,7 @@ progress::-moz-progress-bar {
 }
 
 * {
-  scrollbar-color: var(--color-primary) transparent;
   caret-color: var(--color-caret);
-}
-
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-  box-shadow: inset 0 0 0 6px var(--color-primary);
-  border: 2px solid transparent;
-  border-radius: var(--border-radius);
-}
-
-::-webkit-scrollbar-thumb:window-inactive {
-  box-shadow: inset 0 0 0 6px var(--color-primary);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  box-shadow: inset 0 0 0 6px var(--color-primary-dark-2);
-}
-
-::-webkit-scrollbar-corner {
-  background: transparent;
 }
 
 ::file-selector-button {
@@ -136,8 +225,8 @@ progress::-moz-progress-bar {
 }
 
 ::selection {
-  background: var(--color-primary-light-1) !important;
-  color: var(--color-white) !important;
+  background: var(--color-primary-light-1);
+  color: var(--color-white);
 }
 
 ::placeholder,
@@ -148,6 +237,7 @@ progress::-moz-progress-bar {
 }
 
 .unselectable,
+.btn,
 .button,
 .lines-num,
 .lines-commit,
@@ -161,28 +251,41 @@ progress::-moz-progress-bar {
 a {
   color: var(--color-primary);
   cursor: pointer;
+  text-decoration-line: none;
   text-decoration-skip-ink: all;
 }
 
-/* muted link = only colored when hovered */
-/* silenced link = never colored */
+a:hover {
+  text-decoration-line: underline;
+}
+
+/* a = always colored, underlined on hover */
+/* a.muted = colored on hover, underlined on hover */
+/* a.suppressed = never colored, underlined on hover */
+/* a.silenced = never colored, never underlined */
 
 a.muted,
+a.suppressed,
 a.silenced,
 .muted-links a {
   color: inherit;
 }
 
 a:hover,
+a.suppressed:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
 .muted-links a:hover {
   color: var(--color-primary);
 }
 
-a.silenced:hover {
+a.silenced:hover,
+a.suppressed:hover {
   color: inherit;
-  text-decoration: none;
+}
+
+a.silenced:hover {
+  text-decoration-line: none;
 }
 
 a.label,
@@ -190,16 +293,20 @@ a.label,
 .ui .menu a,
 .ui.cards a.card,
 .issue-keyword a {
-  text-decoration: none !important;
+  text-decoration-line: none !important;
 }
 
 .ui.search > .results {
   background: var(--color-body);
   border-color: var(--color-secondary);
+  overflow-wrap: anywhere; /* allow text to wrap as fomantic limits this to 18em width */
 }
 
 .ui.search > .results .result {
   background: var(--color-body);
+  border-color: var(--color-secondary);
+  display: flex;
+  align-items: center;
 }
 
 .ui.search > .results .result .title {
@@ -220,83 +327,20 @@ a.label,
   background: var(--color-hover);
 }
 
+.empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 40px;
+  text-align: center;
+  text-wrap: balance;
+}
+
 .inline-code-block {
   padding: 2px 4px;
-  border-radius: var(--border-radius-medium);
-  background-color: var(--color-markup-code-block);
-}
-
-.ui.dividing.header {
-  border-bottom-color: var(--color-secondary);
-}
-
-.page-content {
-  margin-top: 15px;
-}
-
-.page-content .header-wrapper,
-.page-content .new-menu {
-  margin-top: -15px !important;
-  padding-top: 15px !important;
-}
-
-/* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
-.ui.input > input {
-  line-height: var(--line-height-default);
-  text-align: start; /* Override fomantic's `text-align: left` to make RTL work via HTML `dir="auto"` */
-}
-
-/* fix Fomantic's line-height causing vertical scrollbars to appear */
-ul.ui.list li,
-ol.ui.list li,
-.ui.list > .item,
-.ui.list .list > .item {
-  line-height: var(--line-height-default);
-}
-
-.ui.input.focus > input,
-.ui.input > input:focus {
-  border-color: var(--color-primary);
-}
-
-.ui.action.input .ui.ui.button {
-  border-color: var(--color-input-border);
-  padding-top: 0; /* the ".action.input" is "flex + stretch", so let the buttons layout themselves */
-  padding-bottom: 0;
-}
-
-/* currently used for search bar dropdowns in repo search and explore code */
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
-  min-width: 10em;
-}
-
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(:focus,:hover) {
-  border-right-color: transparent;
-}
-
-.ui.action.input:not([class*="left action"]) > input,
-.ui.action.input:not([class*="left action"]) > input:hover {
-  border-right: 1px solid transparent;
-}
-
-.ui.action.input:not([class*="left action"]) > input:focus {
-  border-right-color: var(--color-primary);
-}
-
-.ui.menu,
-.ui.vertical.menu {
-  background: var(--color-menu);
-  border-color: var(--color-secondary);
-}
-
-.ui.menu .item {
-  color: var(--color-text);
-  user-select: auto;
-  line-height: var(--line-height-default); /* fomantic uses "1" which causes overflow problems because "1" doesn't consider the descent part */
-}
-
-.ui.menu .item > .svg {
-  margin-right: 0.35em;
+  border-radius: .24em;
+  background-color: var(--color-label-bg);
 }
 
 .ui.menu .dropdown.item:hover,
@@ -304,42 +348,6 @@ ol.ui.list li,
 .ui.menu details.item summary:hover {
   color: var(--color-text);
   background: var(--color-hover);
-}
-
-.ui.menu .active.item,
-.ui.menu .active.item:hover,
-.ui.vertical.menu .active.item,
-.ui.vertical.menu .active.item:hover {
-  color: var(--color-text);
-  background: var(--color-active);
-}
-
-.ui.menu a.item:active {
-  color: var(--color-text);
-  background: none;
-}
-
-.ui.ui.menu .item.disabled {
-  color: var(--color-text-light-3);
-}
-
-.ui.menu .item::before, .ui.vertical.menu .item::before {
-  background: var(--color-secondary);
-}
-
-/* sub menu of vertical menu */
-.ui.vertical.menu .item .menu .item {
-  color: var(--color-text-light-2);
-  text-indent: 16px;
-}
-
-.ui.vertical.menu .item .menu .item:hover,
-.ui.vertical.menu .item .menu a.item:hover {
-  color: var(--color-text-light-1);
-}
-
-.ui.vertical.menu .item .menu .active.item {
-  color: var(--color-text);
 }
 
 /* slightly more contrast for filters on issue list */
@@ -352,12 +360,18 @@ ol.ui.list li,
   border-color: var(--color-secondary);
 }
 
+.ui.dropdown .menu > .header {
+  text-transform: none; /* reset fomantic's "uppercase" */
+}
+
 .ui.dropdown .menu > .header:not(.ui) {
   color: var(--color-text);
+  font-size: 0.95em; /* reset fomantic's small font-size */
 }
 
 .ui.dropdown .menu > .item {
   color: var(--color-text);
+  line-height: var(--line-height-default);
 }
 
 .ui.dropdown .menu > .item:hover {
@@ -400,85 +414,20 @@ ol.ui.list li,
   background: var(--color-hover);
 }
 
-.ui.menu .ui.dropdown .menu > .selected.item {
-  color: var(--color-text) !important;
-  background: var(--color-hover) !important;
-}
-
 .ui.dropdown .menu > .message:not(.ui) {
   color: var(--color-text-light-2);
+}
+
+/* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
+.ui.dropdown > .text > .img {
+  margin-left: 0;
+  float: none;
+  margin-right: 0.78571429rem;
 }
 
 .ui.dropdown > .text > .description,
 .ui.dropdown .menu > .item > .description {
   color: var(--color-text-light-2);
-}
-
-.ui.list .list > .item .header,
-.ui.list > .item .header {
-  color: var(--color-text-dark);
-}
-
-.ui.list .list > .item > .content,
-.ui.list > .item > .content {
-  color: var(--color-text);
-}
-
-.ui.list .list > .item .description,
-.ui.list > .item .description {
-  color: var(--color-text);
-}
-
-/* replace item margin on secondary menu items with gap and remove both the
-   negative margins on the menu as well as margin on the items */
-.ui.secondary.menu {
-  margin-left: 0;
-  margin-right: 0;
-  gap: .35714286em;
-}
-.ui.secondary.menu .item {
-  margin-left: 0;
-  margin-right: 0;
-}
-
-.ui.secondary.menu .dropdown.item:hover,
-.ui.secondary.menu a.item:hover {
-  color: var(--color-text);
-  background: var(--color-hover);
-}
-
-.ui.secondary.menu .active.item,
-.ui.secondary.menu .active.item:hover {
-  color: var(--color-text);
-  background: var(--color-active);
-}
-
-.ui.secondary.menu.tight .item {
-  padding-left: 0.85714286em;
-  padding-right: 0.85714286em;
-}
-
-/* remove the menu clearfix so that it won't add undesired gaps when using "gap" */
-.ui.menu::after {
-  content: normal;
-}
-
-.ui.menu .dropdown.item .menu {
-  background: var(--color-body);
-}
-
-.ui.menu .ui.dropdown .menu > .item {
-  color: var(--color-text) !important;
-}
-
-.ui.menu .ui.dropdown .menu > .item:hover {
-  color: var(--color-text) !important;
-  background: var(--color-hover) !important;
-}
-
-.ui.menu .ui.dropdown .menu > .active.item {
-  color: var(--color-text) !important;
-  background: var(--color-active) !important;
 }
 
 /* styles from removed fomantic transition module */
@@ -491,102 +440,11 @@ ol.ui.list li,
   visibility: visible !important;
 }
 
-.ui.message {
-  background: var(--color-box-body);
-  color: var(--color-text);
-  box-shadow: none !important;
-  border: 1px solid var(--color-secondary);
-}
-
-.ui.info.message .header,
-.ui.blue.message .header {
-  color: var(--color-blue);
-}
-
-.ui.info.message,
-.ui.attached.info.message,
-.ui.blue.message,
-.ui.attached.blue.message {
-  background: var(--color-info-bg);
-  color: var(--color-info-text);
-  border-color: var(--color-info-border);
-}
-
-.ui.success.message .header,
-.ui.positive.message .header,
-.ui.green.message .header {
-  color: var(--color-green);
-}
-
-.ui.success.message,
-.ui.attached.success.message,
-.ui.positive.message,
-.ui.attached.positive.message {
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-  border-color: var(--color-success-border);
-}
-
-.ui.error.message .header,
-.ui.negative.message .header,
-.ui.red.message .header {
-  color: var(--color-red);
-}
-
-.ui.error.message,
-.ui.attached.error.message,
-.ui.red.message,
-.ui.attached.red.message,
-.ui.negative.message,
-.ui.attached.negative.message {
-  background: var(--color-error-bg);
-  color: var(--color-error-text);
-  border-color: var(--color-error-border);
-}
-
-.ui.warning.message .header,
-.ui.yellow.message .header {
-  color: var(--color-yellow);
-}
-
-.ui.warning.message,
-.ui.attached.warning.message,
-.ui.yellow.message,
-.ui.attached.yellow.message {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-  border-color: var(--color-warning-border);
-}
-
-.ui.error.header {
-  background: var(--color-error-bg) !important;
-  color: var(--color-error-text) !important;
-  border-color: var(--color-error-border) !important;
-}
-
-.ui.error.segment {
-  border-color: var(--color-error-border) !important;
-}
-
-.ui.warning.header {
-  background: var(--color-warning-bg) !important;
-  color: var(--color-warning-text) !important;
-  border-color: var(--color-warning-border) !important;
-}
-
-.ui.warning.segment {
-  border-color: var(--color-warning-border) !important;
-}
-
 .ui.selection.active.dropdown,
 .ui.selection.active.dropdown:hover,
 .ui.selection.active.dropdown .menu,
 .ui.selection.active.dropdown:hover .menu {
   border-color: var(--color-primary);
-}
-
-.ui.selection.dropdown .menu {
-  margin: 0 -1.25px;
 }
 
 .ui.pointing.dropdown > .menu:not(.hidden)::after {
@@ -625,96 +483,12 @@ ol.ui.list li,
   color: var(--color-primary);
 }
 
-.ui.attached.table {
-  border-color: var(--color-secondary);
-}
-
-.ui.table {
-  color: var(--color-text);
-  background: var(--color-box-body);
-  border-color: var(--color-secondary);
-  text-align: start; /* Override fomantic's `text-align: left` to make RTL work via HTML `dir="auto"` */
-}
-
-.ui.table th,
-.ui.table td {
-  transition: none;
-}
-
-.ui.table > tr > td,
-.ui.table > tbody > tr > td {
-  border-top-color: var(--color-secondary-alpha-50);
-}
-
-.ui.striped.table > tr:nth-child(2n),
-.ui.striped.table > tbody > tr:nth-child(2n),
-.ui.basic.striped.table > tbody > tr:nth-child(2n) {
-  background: var(--color-light);
-}
-
-.ui.ui.ui.ui.table tr.active,
-.ui.ui.table td.active {
-  color: var(--color-text);
-  background: var(--color-active);
-}
-
-.ui.ui.selectable.table > tbody > tr:hover,
-.ui.table tbody tr td.selectable:hover {
-  color: var(--color-text);
-  background-color: var(--color-secondary-alpha-40);
-}
-
-.ui.ui.ui.ui.table tr.grey:not(.marked),
-.ui.ui.table td.grey:not(.marked) {
-  background: var(--color-body);
-  color: var(--color-text);
-}
-
-.ui.table > thead > tr > th {
-  background: var(--color-box-header);
-  border-color: var(--color-secondary);
-  color: var(--color-text);
-}
-
-.ui.basic.table > tbody > tr {
-  border-color: var(--color-secondary);
-}
-
-.ui.table > tfoot > tr > th,
-.ui.table > tfoot > tr > td {
-  border-color: var(--color-secondary);
-  background: var(--color-box-body);
-  color: var(--color-text);
-}
-
-/* reduce table padding, needed especially for dense admin tables */
-.ui.table > thead > tr > th,
-.ui.table > tbody > tr > td,
-.ui.table > tr > td {
-  padding: 6px 5px;
-}
-/* use more horizontal padding on first and last items for visuals */
-.ui.table > thead > tr > th:first-of-type,
-.ui.table > tbody > tr > td:first-of-type,
-.ui.table > tr > td:first-of-type {
-  padding-left: 10px;
-}
-.ui.table > thead > tr > th:last-of-type,
-.ui.table > tbody > tr > td:last-of-type,
-.ui.table > tr > td:last-of-type {
-  padding-right: 10px;
-}
-
 img.ui.avatar,
 .ui.avatar img,
 .ui.avatar svg {
   border-radius: var(--border-radius);
   object-fit: contain;
   aspect-ratio: 1;
-}
-
-.ui.divided.list > .item {
-  border-color: var(--color-secondary);
 }
 
 .ui.error.message .header,
@@ -725,140 +499,36 @@ img.ui.avatar,
 
 .full.height {
   flex-grow: 1;
-  padding-bottom: 80px;
+  padding-bottom: var(--page-space-bottom);
 }
 
-/* overwrite semantic width of containers inside the main page content div (div with class "page-content") */
-.page-content .ui.ui.ui.container:not(.fluid) {
-  width: 1280px;
-  max-width: calc(100% - 64px);
-  margin-left: auto;
-  margin-right: auto;
+.status-page-error {
+  margin-top: max(45vh - 90px, 80px);
+  margin-bottom: 80px;
 }
 
-.ui.container.fluid.padded {
-  padding: 0 32px;
+.status-page-error-title {
+  font-size: 48px;
+  margin-bottom: 14px; /* some elements below may use tw-my-4 or tw-my-8, so use 14px as a minimal margin */
+  line-height: initial;
+  text-align: center;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-light-2);
 }
 
-/* enable fluid page widths for medium size viewports */
-@media (min-width: 768px) and (max-width: 1200px) {
-  .page-content .ui.ui.ui.container:not(.fluid) {
-    max-width: calc(100% - 32px);
-  }
-  .ui.container.fluid.padded {
-    padding: 0 16px;
-  }
+/* add margin below .secondary nav when it is the first child */
+.page-content > :first-child.secondary-nav {
+  margin-bottom: 14px;
 }
 
-@media (max-width: 767.98px) {
-  .page-content .ui.ui.ui.container:not(.fluid) {
-    max-width: calc(100% - 16px);
-  }
-  .ui.container.fluid.padded {
-    padding: 0 8px;
-  }
+/* add margin to all pages when there is no .secondary.nav */
+.page-content > :first-child:not(.secondary-nav) {
+  margin-top: var(--page-spacing);
 }
-
-.ui.pagination.menu .active.item {
-  color: var(--color-text);
-  background: var(--color-active);
-}
-
-.ui.loading.segment::before,
-.ui.loading.form::before {
-  background: none;
-}
-
-.ui.loading.form > *,
-.ui.loading.segment > * {
-  opacity: 0.35;
-}
-
-.ui.form .fields.error .field textarea,
-.ui.form .fields.error .field select,
-.ui.form .fields.error .field input:not([type]),
-.ui.form .fields.error .field input[type="date"],
-.ui.form .fields.error .field input[type="datetime-local"],
-.ui.form .fields.error .field input[type="email"],
-.ui.form .fields.error .field input[type="number"],
-.ui.form .fields.error .field input[type="password"],
-.ui.form .fields.error .field input[type="search"],
-.ui.form .fields.error .field input[type="tel"],
-.ui.form .fields.error .field input[type="time"],
-.ui.form .fields.error .field input[type="text"],
-.ui.form .fields.error .field input[type="file"],
-.ui.form .fields.error .field input[type="url"],
-.ui.form .fields.error .field .ui.dropdown,
-.ui.form .fields.error .field .ui.dropdown .item,
-.ui.form .field.error .ui.dropdown,
-.ui.form .field.error .ui.dropdown .text,
-.ui.form .field.error .ui.dropdown .item,
-.ui.form .field.error textarea,
-.ui.form .field.error select,
-.ui.form .field.error input:not([type]),
-.ui.form .field.error input[type="date"],
-.ui.form .field.error input[type="datetime-local"],
-.ui.form .field.error input[type="email"],
-.ui.form .field.error input[type="number"],
-.ui.form .field.error input[type="password"],
-.ui.form .field.error input[type="search"],
-.ui.form .field.error input[type="tel"],
-.ui.form .field.error input[type="time"],
-.ui.form .field.error input[type="text"],
-.ui.form .field.error input[type="file"],
-.ui.form .field.error input[type="url"],
-.ui.form .field.error select:focus,
-.ui.form .field.error input:not([type]):focus,
-.ui.form .field.error input[type="date"]:focus,
-.ui.form .field.error input[type="datetime-local"]:focus,
-.ui.form .field.error input[type="email"]:focus,
-.ui.form .field.error input[type="number"]:focus,
-.ui.form .field.error input[type="password"]:focus,
-.ui.form .field.error input[type="search"]:focus,
-.ui.form .field.error input[type="tel"]:focus,
-.ui.form .field.error input[type="time"]:focus,
-.ui.form .field.error input[type="text"]:focus,
-.ui.form .field.error input[type="file"]:focus,
-.ui.form .field.error input[type="url"]:focus {
-  background-color: var(--color-error-bg);
-  border-color: var(--color-error-border);
-  color: var(--color-error-text);
-}
-
-.ui.form .fields.error .field .ui.dropdown,
-.ui.form .field.error .ui.dropdown,
-.ui.form .fields.error .field .ui.dropdown:hover,
-.ui.form .field.error .ui.dropdown:hover {
-  border-color: var(--color-error-border) !important;
-}
-
-.ui.form .fields.error .field .ui.dropdown .menu .item:hover,
-.ui.form .field.error .ui.dropdown .menu .item:hover {
-  background-color: var(--color-error-bg-hover);
-}
-
-.ui.form .fields.error .field .ui.dropdown .menu .active.item,
-.ui.form .field.error .ui.dropdown .menu .active.item {
-  background-color: var(--color-error-bg-active) !important;
-}
-
-.ui.form .fields.error .dropdown .menu,
-.ui.form .field.error .dropdown .menu {
-  border-color: var(--color-error-border) !important;
-}
-
-/* A fix for text visibility issue in Chrome autofill in dark mode. */
-/* It's a problem from Formatic UI, and this rule overrides it. */
-.ui.form .field.field input:-webkit-autofill {
-  -webkit-text-fill-color: var(--color-black) !important;
-}
-
-.ui.form .field.muted {
-  opacity: var(--opacity-disabled);
-}
-
-.ui.loading.loading.input > i.icon svg {
-  visibility: hidden;
+/* if .ui.grid is the first child the first grid-column has 'padding-top: 1rem' which we need
+   to compensate here */
+.page-content > :first-child.ui.grid {
+  margin-top: calc(var(--page-spacing) - 1rem);
 }
 
 .text.primary {
@@ -877,36 +547,16 @@ img.ui.avatar,
   color: var(--color-yellow) !important;
 }
 
-.text.olive {
-  color: var(--color-olive) !important;
-}
-
 .text.green {
   color: var(--color-green) !important;
-}
-
-.text.teal {
-  color: var(--color-teal) !important;
 }
 
 .text.blue {
   color: var(--color-blue) !important;
 }
 
-.text.violet {
-  color: var(--color-violet) !important;
-}
-
 .text.purple {
   color: var(--color-purple) !important;
-}
-
-.text.pink {
-  color: var(--color-pink) !important;
-}
-
-.text.brown {
-  color: var(--color-brown) !important;
 }
 
 .text.black {
@@ -941,25 +591,7 @@ img.ui.avatar,
   font-size: 0.75em;
 }
 
-.ui.form .ui.button {
-  font-weight: var(--font-weight-normal);
-}
-
-.ui.floating.label {
-  z-index: 10;
-}
-
-.ui.transparent.label {
-  background-color: transparent;
-}
-
-.ui.menu,
-.ui.vertical.menu,
-.ui.segment {
-  box-shadow: none;
-}
-
-/* replace fomantic popover box shadows */
+/* popover box shadows */
 .ui.dropdown .menu,
 .ui.upward.dropdown > .menu,
 .ui.menu .dropdown.item .menu,
@@ -973,67 +605,11 @@ img.ui.avatar,
   box-shadow: 0 6px 18px var(--color-shadow) !important;
 }
 
-.ui.dimmer {
-  background: var(--color-overlay-backdrop);
-}
-
-/* Override semantic selector '.ui.menu:not(.vertical) .item > .button' */
-/* This fixes the commit graph button on the commits page */
-/* modal svg icons, copied from fomantic except width and height */
-/* center text in fomantic modal dialogs */
-.ui .menu:not(.vertical) .item > .button.compact {
-  padding: 0.58928571em 1.125em;
-}
-
-.ui .menu:not(.vertical) .item > .button.small {
-  font-size: 0.92857143rem;
-}
-
-.ui.menu .ui.dropdown.item .menu .item {
-  width: 100%;
-}
-
-.ui.dropdown .menu > .item > .floating.label {
-  z-index: 11;
-}
-
-.ui.dropdown .menu .menu > .item > .floating.label {
-  z-index: 21;
-}
-
-.ui.dropdown .menu > .header {
-  font-size: 0.8em;
-}
-
-.ui .text.left {
-  text-align: left !important;
-}
-
-.ui .text.right {
-  text-align: right !important;
-}
-
-.ui .text.normal {
-  font-weight: var(--font-weight-normal);
-}
-
-.ui .text.italic {
-  font-style: italic;
-}
-
 .ui .text.truncate {
   overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
-}
-
-.ui .text.thin {
-  font-weight: var(--font-weight-normal);
-}
-
-.ui .text.middle {
-  vertical-align: middle;
 }
 
 .ui .message.flash-message {
@@ -1052,45 +628,12 @@ img.ui.avatar,
   vertical-align: middle;
 }
 
-.ui .info.segment.top h3,
-.ui .info.segment.top h4 {
-  margin-top: 0;
-}
-
-.ui .info.segment.top h3:last-child {
-  margin-top: 4px;
-}
-
-.ui .info.segment.top > :last-child {
-  margin-bottom: 0;
-}
-
-.ui .normal.header {
-  font-weight: var(--font-weight-normal);
-}
-
-.ui .form .autofill-dummy {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  z-index: -10000;
-}
-
-.ui .form .sub.field {
-  margin-left: 25px;
-}
-
 .ui .sha.label {
   font-family: var(--fonts-monospace);
   font-size: 13px;
   font-weight: var(--font-weight-normal);
-  margin: 0 6px;
-  padding: 5px 10px;
-}
-
-.ui .sha.label .shortsha {
-  display: inline-block; /* not sure whether it is still needed */
+  padding: 3px 5px;
+  flex-shrink: 0;
 }
 
 .ui .button.truncate {
@@ -1112,46 +655,6 @@ img.ui.avatar,
   font-weight: var(--font-weight-normal);
 }
 
-.ui .background.red {
-  background-color: var(--color-red) !important;
-}
-
-.ui .background.blue {
-  background-color: var(--color-blue) !important;
-}
-
-.ui .background.black {
-  background-color: var(--color-black) !important;
-}
-
-.ui .background.grey {
-  background-color: var(--color-grey) !important;
-}
-
-.ui .background.light.grey {
-  background-color: var(--color-grey) !important;
-}
-
-.ui .background.green {
-  background-color: var(--color-green) !important;
-}
-
-.ui .background.purple {
-  background-color: var(--color-purple) !important;
-}
-
-.ui .background.yellow {
-  background-color: var(--color-yellow) !important;
-}
-
-.ui .background.orange {
-  background-color: var(--color-orange) !important;
-}
-
-.ui .background.gold {
-  background-color: var(--color-gold) !important;
-}
-
 .ui .migrate {
   color: var(--color-text-light-2) !important;
 }
@@ -1168,79 +671,11 @@ img.ui.avatar,
   border: 1px solid;
 }
 
-.ui .border.red {
-  border-color: var(--color-red) !important;
-}
-
-.ui .border.blue {
-  border-color: var(--color-blue) !important;
-}
-
-.ui .border.black {
-  border-color: var(--color-black) !important;
-}
-
-.ui .border.grey {
-  border-color: var(--color-grey) !important;
-}
-
-.ui .border.light.grey {
-  border-color: var(--color-grey) !important;
-}
-
-.ui .border.green {
-  border-color: var(--color-green) !important;
-}
-
-.ui .border.purple {
-  border-color: var(--color-purple) !important;
-}
-
-.ui .border.yellow {
-  border-color: var(--color-yellow) !important;
-}
-
-.ui .border.orange {
-  border-color: var(--color-orange) !important;
-}
-
-.ui .border.gold {
-  border-color: var(--color-gold) !important;
-}
-
-@media (max-width: 767.98px) {
-  .ui.pagination.menu .item:not(.active,.navigation),
-  .ui.pagination.menu .item.navigation span.navigation_label {
-    display: none;
-  }
-}
-
-.ui.pagination.menu.narrow .item {
-  padding-left: 8px;
-  padding-right: 8px;
-  min-width: 1em;
-  text-align: center;
-}
-
-.ui.pagination.menu.narrow .item .icon {
-  margin-right: 0;
-}
-
-.ui.icon.header svg {
-  width: 3em;
-  height: 3em;
-  float: none;
-  display: block;
-  line-height: var(--line-height-default);
-  padding: 0;
-  margin: 0 auto 0.5rem;
-  opacity: 1;
-}
-
-.ui.floating.dropdown .overflow.menu .scrolling.menu.items {
+.ui.dropdown .menu.context-user-switch .scrolling.menu {
   border-radius: 0 !important;
   box-shadow: none !important;
   border-bottom: 1px solid var(--color-secondary);
+  max-width: 80vw;
 }
 
 .user-menu > .item {
@@ -1254,6 +689,7 @@ img.ui.avatar,
 
 .ui.dropdown .scrolling.menu {
   border-color: var(--color-secondary);
+  border-radius: 0 0 var(--border-radius) var(--border-radius) !important;
 }
 
 .color-preview {
@@ -1265,97 +701,90 @@ img.ui.avatar,
 }
 
 .attention-icon {
-  vertical-align: text-top;
+  margin: 2px 6px 0 0;
 }
 
-.attention-note {
-  font-weight: unset;
-  color: var(--color-info-text);
+blockquote.attention-note {
+  border-left-color: var(--color-blue-dark-1);
+}
+strong.attention-note, svg.attention-note {
+  color: var(--color-blue-dark-1);
 }
 
-.attention-warning {
-  font-weight: unset;
+blockquote.attention-tip {
+  border-left-color: var(--color-success-text);
+}
+strong.attention-tip, svg.attention-tip {
+  color: var(--color-success-text);
+}
+
+blockquote.attention-important {
+  border-left-color: var(--color-violet-dark-1);
+}
+strong.attention-important, svg.attention-important {
+  color: var(--color-violet-dark-1);
+}
+
+blockquote.attention-warning {
+  border-left-color: var(--color-warning-text);
+}
+strong.attention-warning, svg.attention-warning {
   color: var(--color-warning-text);
 }
 
-.center:not(.popup) {
+blockquote.attention-caution {
+  border-left-color: var(--color-red-dark-1);
+}
+strong.attention-caution, svg.attention-caution {
+  color: var(--color-red-dark-1);
+}
+
+/* FIXME: this is a longstanding dirty patch since 2015, it only makes the pages more messy and shouldn't be used */
+.center {
   text-align: center;
 }
 
-@media (max-width: 767.98px) {
-  /* double selector so it wins over .gt-df etc */
-  .not-mobile.not-mobile {
-    display: none !important;
-  }
-}
-
-.ui.menu.new-menu {
-  margin-bottom: 15px;
-  background: var(--color-header-wrapper);
+overflow-menu {
   border-bottom: 1px solid var(--color-secondary) !important;
-  overflow: auto;
-}
-
-.ui.menu.new-menu .new-menu-inner {
   display: flex;
-  margin-left: auto;
-  margin-right: auto;
-  overflow-x: auto;
-  width: 100%;
-  mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
 }
 
-.ui.menu.new-menu .item {
+overflow-menu .overflow-menu-items {
+  display: flex;
+  flex: 1;
+}
+
+overflow-menu .overflow-menu-items .item {
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
 }
 
-@media (max-width: 767.98px) {
-  .ui.menu.new-menu .item {
-    width: auto !important;
-  }
+overflow-menu .overflow-menu-items .item-flex-space {
+  flex: 1;
 }
 
-.ui.menu.new-menu .item:first-child {
-  margin-left: auto; /* "justify-content: center" doesn't work with "overflow: auto", so use margin: auto */
+overflow-menu .overflow-menu-button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  text-align: center;
+  width: 32px;
+  padding: 0;
 }
 
-.ui.menu.new-menu .item:last-child {
-  padding-right: 30px !important;
-  margin-right: auto;
+/* match the styles of ".ui.secondary.pointing.menu .active.item" */
+overflow-menu.ui.secondary.pointing.menu .overflow-menu-button.active {
+  padding: 2px 0 0;
+  border-bottom: 2px solid currentcolor;
+  background-color: transparent;
+  font-weight: var(--font-weight-medium);
 }
 
-.ui.menu.new-menu::-webkit-scrollbar {
-  height: 6px;
-  display: none;
+overflow-menu .overflow-menu-button:hover {
+  color: var(--color-text-dark);
 }
 
-.ui.menu.new-menu::-webkit-scrollbar-track {
-  background: none !important;
-}
-
-.ui.menu.new-menu::-webkit-scrollbar-thumb {
-  box-shadow: none !important;
-}
-
-.ui.menu.new-menu:hover::-webkit-scrollbar {
-  display: block;
-}
-
-.repos-search {
-  padding-bottom: 0 !important;
-}
-
-.repos-filter {
-  margin-top: 0 !important;
-  border-bottom-width: 0 !important;
-  margin-bottom: 2px !important;
-  justify-content: space-evenly;
-}
-
-.ui.secondary.pointing.menu.repos-filter .item {
-  padding-left: 4.5px;
-  padding-right: 4.5px;
+overflow-menu .ui.label {
+  margin-left: 7px !important; /* save some space */
 }
 
 .activity-bar-graph {
@@ -1375,73 +804,23 @@ img.ui.avatar,
   margin-top: 3em !important;
 }
 
-/* multiple radio or checkboxes as inline element */
-.inline-grouped-list {
-  display: inline-block;
-  vertical-align: top;
-}
-
-.inline-grouped-list > .ui {
-  display: block;
-  margin-top: 5px;
-  margin-bottom: 10px;
-}
-
-.inline-grouped-list > .ui:first-child {
-  margin-top: 1px;
-}
-
-.ui.label {
-  padding: 0.3em 0.5em;
-  transition: none;
-  white-space: nowrap;
-}
-
-.ui.label,
-.ui.menu .item > .label {
-  background: var(--color-label-bg);
-  color: var(--color-label-text);
-}
-
-.ui.label > a {
-  opacity: .75; /* increase contrast over default fomantic .5 */
-}
-
-.ui.active.label {
-  background: var(--color-label-active-bg);
-  border-color: var(--color-label-active-bg);
-  color: var(--color-label-text);
-}
-
-.ui.labels a.label:hover,
-a.ui.label:hover {
-  background: var(--color-label-hover-bg);
-  border-color: var(--color-label-hover-bg);
-  color: var(--color-label-text);
-}
-
-.ui.labels a.active.label:hover,
-a.ui.active.label:hover {
-  background: var(--color-label-active-bg);
-  border-color: var(--color-label-active-bg);
-  color: var(--color-label-text);
-}
-
 .lines-blame-btn {
-  padding-left: 10px;
-  padding-right: 10px;
-  text-align: right !important;
-  background-color: var(--color-code-sidebar-bg);
-  width: 2%;
+  padding: 0 0 0 5px;
+  display: flex;
+  justify-content: center;
 }
 
 .lines-num {
-  padding-left: 10px;
-  padding-right: 10px;
+  padding: 0 8px;
   text-align: right !important;
-  color: var(--color-text-light-1);
-  width: 1%;
-  font-family: var(--fonts-monospace);
+  color: var(--color-text-light-2);
+  width: 1%; /* this apparently needs to be a percentage so that code column stretches in diffs */
+  min-width: 72px;
+  white-space: nowrap;
+}
+
+.code-diff .lines-num {
+  min-width: 50px;
 }
 
 .lines-num span.bottom-line::after {
@@ -1452,12 +831,12 @@ a.ui.active.label:hover {
   content: attr(data-line-number);
   line-height: 20px !important;
   padding: 0 10px;
-  cursor: pointer;
   display: block;
 }
 
 .lines-type-marker {
   vertical-align: top;
+  white-space: nowrap;
 }
 
 .lines-num,
@@ -1490,53 +869,37 @@ a.ui.active.label:hover {
 
 .lines-escape {
   width: 0;
+  white-space: nowrap;
+  padding: 0;
 }
 
 .lines-code {
-  background-color: var(--color-code-bg);
   padding-left: 5px;
-}
-
-.lines-code.active,
-.lines-code .active {
-  background: var(--color-active-line) !important;
-}
-
-.blame .lines-num {
-  padding: 0 !important;
-  background-color: var(--color-code-sidebar-bg);
-}
-
-.blame .lines-code {
-  padding: 0 !important;
 }
 
 .code-inner {
   font: 12px var(--fonts-monospace);
   white-space: pre-wrap;
-  word-break: break-all;
   overflow-wrap: anywhere;
+  line-height: inherit; /* needed for inline code preview in markup */
 }
 
 .blame .code-inner {
-  white-space: pre;
-  word-break: normal;
-  word-wrap: normal; /* not using overflow-wrap because safari does not treat is an an alias */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .lines-commit {
   vertical-align: top;
-  color: var(--color-grey);
+  color: var(--color-text-light-1);
   padding: 0 !important;
-  background: var(--color-code-sidebar-bg);
   width: 1%;
 }
 
 .lines-commit .blame-info {
-  width: 350px;
-  max-width: 350px;
+  width: min(26vw, 300px);
   display: block;
-  padding: 0 0 0 10px;
+  padding: 0 0 0 6px;
   line-height: 20px;
   box-sizing: content-box;
 }
@@ -1558,164 +921,23 @@ a.ui.active.label:hover {
   flex-shrink: 0;
 }
 
-.lines-commit .ui.avatar {
-  height: 18px;
-  width: 18px;
-  display: block;
-  margin-top: 1px;
+.blame-avatar {
+  display: flex;
+  align-items: center;
+  margin-right: 4px;
 }
 
-.top-line-blame {
+tr.top-line-blame {
   border-top: 1px solid var(--color-secondary);
+}
+
+tr.top-line-blame:first-of-type {
+  border-top: none; /* merge code lines belonging to the same commit into one block */
 }
 
 .lines-code .bottom-line,
 .lines-commit .bottom-line {
   border-bottom: 1px solid var(--color-secondary);
-}
-
-.code-view table {
-  width: 100%;
-}
-
-.ui.primary.label,
-.ui.primary.labels .label,
-.ui.ui.ui.primary.label {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary-dark-2);
-}
-
-.ui.basic.labels .primary.label,
-.ui.ui.ui.basic.primary.label {
-  background: transparent;
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.ui.basic.labels a.primary.label:hover,
-a.ui.ui.ui.basic.primary.label:hover {
-  background: var(--color-hover);
-  border-color: var(--color-primary-dark-1);
-  color: var(--color-primary-dark-1);
-}
-
-.ui.basic.labels .secondary.label,
-.ui.ui.ui.basic.secondary.label {
-  background: transparent;
-  border-color: var(--color-secondary);
-  color: var(--color-secondary);
-}
-
-.ui.basic.labels .orange.label,
-.ui.ui.ui.basic.orange.label {
-  background: transparent;
-  border-color: var(--color-orange);
-  color: var(--color-orange);
-}
-
-.ui.basic.labels .green.label,
-.ui.ui.ui.basic.green.label {
-  background: transparent;
-  border-color: var(--color-green);
-  color: var(--color-green);
-}
-
-.ui.basic.labels .olive.label,
-.ui.ui.ui.basic.olive.label {
-  background: transparent;
-  border-color: var(--color-olive);
-  color: var(--color-olive);
-}
-
-.ui.basic.labels .teal.label,
-.ui.ui.ui.basic.teal.label {
-  background: transparent;
-  border-color: var(--color-teal);
-  color: var(--color-teal);
-}
-
-.ui.basic.labels .blue.label,
-.ui.ui.ui.basic.blue.label {
-  background: transparent;
-  border-color: var(--color-blue);
-  color: var(--color-blue);
-}
-
-.ui.basic.labels .violet.label,
-.ui.ui.ui.basic.violet.label {
-  background: transparent;
-  border-color: var(--color-violet);
-  color: var(--color-violet);
-}
-
-.ui.basic.labels .purple.label,
-.ui.ui.ui.basic.purple.label {
-  background: transparent;
-  border-color: var(--color-purple);
-  color: var(--color-purple);
-}
-
-.ui.basic.labels .pink.label,
-.ui.ui.ui.basic.pink.label {
-  background: transparent;
-  border-color: var(--color-pink);
-  color: var(--color-pink);
-}
-
-.ui.basic.labels .red.label,
-.ui.ui.ui.basic.red.label {
-  background: transparent;
-  border-color: var(--color-red);
-  color: var(--color-red);
-}
-
-.ui.basic.labels .brown.label,
-.ui.ui.ui.basic.brown.label {
-  background: transparent;
-  border-color: var(--color-brown);
-  color: var(--color-brown);
-}
-
-.ui.basic.labels .yellow.label,
-.ui.ui.ui.basic.yellow.label {
-  background: transparent;
-  border-color: var(--color-yellow);
-  color: var(--color-yellow);
-}
-
-.ui.basic.labels .grey.label,
-.ui.ui.ui.basic.grey.label {
-  background: transparent;
-  border-color: var(--color-grey);
-  color: var(--color-grey);
-}
-
-.ui.basic.labels .black.label,
-.ui.ui.ui.basic.black.label {
-  background: transparent;
-  border-color: var(--color-black);
-  color: var(--color-black);
-}
-
-.ui.basic.labels .label,
-.ui.basic.label,
-.ui.secondary.labels .ui.basic.label {
-  background: var(--color-button);
-  border-color: var(--color-light-border);
-  color: var(--color-text-light);
-}
-
-.ui.basic.labels a.label:hover,
-a.ui.basic.label:hover {
-  color: var(--color-text);
-  border-color: var(--color-light-border);
-  background: var(--color-hover);
-}
-
-.ui.label > img {
-  width: auto !important;
-  vertical-align: middle;
-  height: 2.1666em !important;
 }
 
 .migrate .svg.gitea-git {
@@ -1724,59 +946,9 @@ a.ui.basic.label:hover {
 
 .color-icon {
   display: inline-block;
-  border-radius: var(--border-radius-circle);
+  border-radius: var(--border-radius-full);
   height: 14px;
   width: 14px;
-}
-
-.ui.label > .color-icon {
-  margin-left: 0;
-}
-
-.ui.segment,
-.ui.segments,
-.ui.attached.segment {
-  background: var(--color-box-body);
-  color: var(--color-text);
-  border-color: var(--color-secondary);
-}
-
-.ui.segments > .segment {
-  border-color: var(--color-secondary);
-}
-
-.ui.secondary.segment {
-  background: var(--color-secondary-bg);
-  color: var(--color-text-light);
-}
-
-.ui.attached.header {
-  position: relative;
-  background: var(--color-box-header);
-  border-color: var(--color-secondary);
-}
-
-/* fix misaligned right buttons on box headers */
-.ui.attached.header > .ui.right {
-  position: absolute;
-  right: 0.78571429rem;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.25em;
-}
-
-/* the default ".ui.attached.header > .ui.right" is only able to contain "tiny" buttons, other buttons are too large */
-.ui.attached.header > .ui.right .ui.tiny.button {
-  padding: 6px 10px;
-  font-weight: var(--font-weight-normal);
-}
-
-/* if a .top.attached.header is followed by a .segment, add some margin */
-.ui.segments + .ui.top.attached.header,
-.ui.attached.segment + .ui.top.attached.header {
-  margin-top: 1rem;
 }
 
 .rss-icon {
@@ -1811,17 +983,8 @@ table th[data-sortt-desc] .svg {
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
 }
 
-.emoji,
-.reaction {
-  font-size: 1.25em;
-  line-height: var(--line-height-default);
-  font-style: normal !important;
-  font-weight: var(--font-weight-normal) !important;
-  vertical-align: -0.075em;
-}
-
-.emoji img,
-.reaction img {
+/* for "image" emojis like ":git:"  ":gitea:" and ":github:" (see CUSTOM_EMOJIS config option) */
+.emoji img {
   border-width: 0 !important;
   margin: 0 !important;
   width: 1em !important;
@@ -1829,71 +992,28 @@ table th[data-sortt-desc] .svg {
   vertical-align: -0.15em;
 }
 
-/* for the jquery.minicolors plugin */
-.minicolors-panel {
-  background: var(--color-secondary-dark-1) !important;
-}
-
-/* https://github.com/go-gitea/gitea/pull/11486 */
-.ui.sub.header {
-  text-transform: none;
-}
-
-.ui.tabular.menu {
-  border-color: var(--color-secondary);
-}
-
-.ui.tabular.menu .item {
-  padding: 11px 12px;
+.ui.tabular.menu .item,
+.ui.secondary.pointing.menu .item {
+  padding: 11.55px 12px !important; /* match .dashboard-navbar in height */
   color: var(--color-text-light-2);
 }
 
-.ui.tabular.menu .item:hover {
+.ui.tabular.menu .item:hover,
+.ui.secondary.pointing.menu a.item:hover {
   color: var(--color-text);
 }
 
 .ui.tabular.menu .active.item,
-.ui.tabular.menu .active.item:hover {
-  background: var(--color-body);
-  border-color: var(--color-secondary);
-  color: var(--color-text);
-  margin-top: 1px; /* offset fomantic's margin-bottom: -1px */
-}
-
-.ui.segment .ui.tabular.menu .active.item,
-.ui.segment .ui.tabular.menu .active.item:hover {
-  background: var(--color-box-body);
-}
-
-.ui.secondary.pointing.menu {
-  border-color: var(--color-secondary);
-}
-
-.ui.secondary.pointing.menu .item {
-  color: var(--color-text-light-2);
-}
-
 .ui.secondary.pointing.menu .active.item,
-.ui.secondary.pointing.menu .active.item:hover,
-.ui.secondary.pointing.menu .dropdown.item:hover,
-.ui.secondary.pointing.menu a.item:hover {
-  color: var(--color-text-dark);
+.resize-for-semibold::before {
+  font-weight: var(--font-weight-semibold);
 }
 
-.ui.header {
-  color: var(--color-text);
-}
-
-.ui.header .ui.label {
-  margin-left: 0.25rem;
-}
-
-.ui.header > .ui.label.compact {
-  margin-top: inherit;
-}
-
-.ui.header .sub.header {
-  color: var(--color-text-light-1);
+.resize-for-semibold::before {
+  content: attr(data-text);
+  visibility: hidden;
+  display: block;
+  height: 0;
 }
 
 .flash-error details code,
@@ -1902,26 +1022,13 @@ table th[data-sortt-desc] .svg {
   text-align: left;
 }
 
-.truncated-item-container {
-  display: flex !important;
-  align-items: center;
-}
-
-.ellipsis-button {
-  padding: 0 5px 8px !important;
-  display: inline-block !important;
-  font-weight: var(--font-weight-semibold) !important;
-  line-height: 6px !important;
-  vertical-align: middle !important;
-}
-
-.truncated-item-name {
-  line-height: 2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: -0.5em;
-  margin-bottom: -0.5em;
+.ui.button.ellipsis-button {
+  padding: 0 5px 8px;
+  display: inline-block;
+  font-weight: var(--font-weight-semibold);
+  line-height: 8px;
+  vertical-align: middle;
+  min-height: 0;
 }
 
 .precolors {
@@ -1988,25 +1095,24 @@ table th[data-sortt-desc] .svg {
 .btn,
 .ui.ui.button,
 .ui.ui.dropdown,
-.ui.ui.label,
-.flex-items-inline > .item,
 .flex-text-inline {
   display: inline-flex;
   align-items: center;
-  gap: .25rem;
+  gap: var(--gap-inline);
   vertical-align: middle;
+  min-width: 0; /* make ellipsis work */
 }
 
-.ui.ui.button {
-  justify-content: center;
+.ui.multiple.selection.dropdown {
+  flex-wrap: wrap;
+}
+
+.ui.ui.dropdown.selection {
+  min-width: 14em; /* match the default min width */
 }
 
 .ui.dropdown .ui.label .svg {
   vertical-align: middle;
-}
-
-.ui.ui.circular.label {
-  justify-content: center;
 }
 
 .ui.ui.labeled.button {
@@ -2014,15 +1120,62 @@ table th[data-sortt-desc] .svg {
   align-items: stretch;
 }
 
-.ui.ui.icon.input .icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
+.ui.list.flex-items-block > .item,
+.ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,
 .flex-text-block {
   display: flex;
   align-items: center;
-  gap: .25rem;
+  gap: var(--gap-block);
+  min-width: 0;
+}
+
+.ui.dropdown > .ui.button,
+.flex-text-block > .ui.button,
+.flex-text-inline > .ui.button {
+  margin: 0; /* fomantic buttons have default margin, when we use them in a flex container with gap, we do not need these margins */
+}
+
+/* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content
+the "!important" is necessary to override Fomantic UI menu item styles, meanwhile we should keep the "hidden" items still hidden */
+.ui.dropdown .menu.flex-items-menu > .item:not(.hidden, .filtered, .tw-hidden) {
+  display: flex !important;
+  align-items: center;
+  gap: var(--gap-block);
+  min-width: 0;
+}
+.ui.dropdown .menu.flex-items-menu > .item img,
+.ui.dropdown .menu.flex-items-menu > .item svg {
+  margin: 0; /* use gap, but not margin */
+}
+
+.ui.dropdown.ellipsis-text-items {
+  /* reset y padding and use the line-height below instead, to avoid the "overflow: hidden" clips the larger image in the "text" element */
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ui.dropdown.ellipsis-text-items > .text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 2.71; /* matches fomantic dropdown's default min-height */
+}
+
+.ui.dropdown.ellipsis-text-items .menu > .item {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.svg.octicon-file-directory-fill,
+.svg.octicon-file-directory-open-fill,
+.svg.octicon-file-submodule {
+  color: var(--color-primary);
+}
+
+.svg.octicon-file,
+.svg.octicon-file-symlink-file,
+.svg.octicon-file-directory-symlink {
+  color: var(--color-secondary-dark-7);
 }

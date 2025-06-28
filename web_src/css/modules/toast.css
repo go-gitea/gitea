@@ -3,7 +3,7 @@
   position: fixed;
   opacity: 0;
   transition: all .2s ease;
-  z-index: 500;
+  z-index: var(--z-index-toast);
   border-radius: var(--border-radius);
   box-shadow: 0 8px 24px var(--color-shadow);
   display: flex;
@@ -22,17 +22,31 @@
   overflow-wrap: anywhere;
 }
 
-.toast-close,
-.toast-icon {
-  color: currentcolor;
+.toast-close {
   border-radius: var(--border-radius);
-  background: transparent;
-  border: none;
-  display: flex;
   width: 30px;
   height: 30px;
   justify-content: center;
+}
+
+.toast-icon {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
   align-items: center;
+  justify-content: center;
+}
+
+.toast-duplicate-number::before {
+  content: "(";
+}
+.toast-duplicate-number {
+  display: inline-block;
+  margin-right: 5px;
+  user-select: none;
+}
+.toast-duplicate-number::after {
+  content: ")";
 }
 
 .toast-close:hover {

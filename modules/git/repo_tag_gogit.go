@@ -72,7 +72,7 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	t, ok := repo.tagCache.Get(tagID.String())
 	if ok {
 		log.Debug("Hit cache: %s", tagID)
-		tagClone := *t.(*Tag)
+		tagClone := *t
 		tagClone.Name = name // This is necessary because lightweight tags may have same id
 		return &tagClone, nil
 	}

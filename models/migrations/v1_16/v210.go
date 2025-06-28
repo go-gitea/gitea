@@ -1,7 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_16 //nolint
+package v1_16
 
 import (
 	"encoding/base32"
@@ -40,11 +40,6 @@ func RemigrateU2FCredentials(x *xorm.Engine) error {
 	switch x.Dialect().URI().DBType {
 	case schemas.MYSQL:
 		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY COLUMN credential_id VARCHAR(410)")
-		if err != nil {
-			return err
-		}
-	case schemas.ORACLE:
-		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY credential_id VARCHAR(410)")
 		if err != nil {
 			return err
 		}

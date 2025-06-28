@@ -68,7 +68,8 @@ func CheckCollations(x *xorm.Engine) (*CheckCollationsResult, error) {
 
 	var candidateCollations []string
 	if x.Dialect().URI().DBType == schemas.MYSQL {
-		if _, err = x.SQL("SELECT @@collation_database").Get(&res.DatabaseCollation); err != nil {
+		_, err = x.SQL("SELECT DEFAULT_COLLATION_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", setting.Database.Name).Get(&res.DatabaseCollation)
+		if err != nil {
 			return nil, err
 		}
 		res.IsCollationCaseSensitive = func(s string) bool {
@@ -139,7 +140,7 @@ func CheckCollations(x *xorm.Engine) (*CheckCollationsResult, error) {
 }
 
 func CheckCollationsDefaultEngine() (*CheckCollationsResult, error) {
-	return CheckCollations(x)
+	return CheckCollations(xormEngine)
 }
 
 func alterDatabaseCollation(x *xorm.Engine, collation string) error {
@@ -166,8 +167,7 @@ func preprocessDatabaseCollation(x *xorm.Engine) {
 
 	// try to alter database collation to expected if the database is empty, it might fail in some cases (and it isn't necessary to succeed)
 	// at the moment, there is no "altering" solution for MSSQL, site admin should manually change the database collation
-	// and there is a bug https://github.com/go-testfixtures/testfixtures/pull/182 mssql: Invalid object name 'information_schema.tables'.
-	if !r.CollationEquals(r.DatabaseCollation, r.ExpectedCollation) && r.ExistingTableNumber == 0 && x.Dialect().URI().DBType == schemas.MYSQL {
+	if !r.CollationEquals(r.DatabaseCollation, r.ExpectedCollation) && r.ExistingTableNumber == 0 {
 		if err = alterDatabaseCollation(x, r.ExpectedCollation); err != nil {
 			log.Error("Failed to change database collation to %q: %v", r.ExpectedCollation, err)
 		} else {

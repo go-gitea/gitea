@@ -6,10 +6,12 @@ package issues
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -47,8 +49,8 @@ type Milestone struct {
 	RepoID          int64                  `xorm:"INDEX"`
 	Repo            *repo_model.Repository `xorm:"-"`
 	Name            string
-	Content         string `xorm:"TEXT"`
-	RenderedContent string `xorm:"-"`
+	Content         string        `xorm:"TEXT"`
+	RenderedContent template.HTML `xorm:"-"`
 	IsClosed        bool
 	NumIssues       int
 	NumClosedIssues int
@@ -82,10 +84,9 @@ func (m *Milestone) BeforeUpdate() {
 // this object.
 func (m *Milestone) AfterLoad() {
 	m.NumOpenIssues = m.NumIssues - m.NumClosedIssues
-	if m.DeadlineUnix.Year() == 9999 {
+	if m.DeadlineUnix == 0 {
 		return
 	}
-
 	m.DeadlineString = m.DeadlineUnix.FormatDate()
 	if m.IsClosed {
 		m.IsOverdue = m.ClosedDateUnix >= m.DeadlineUnix
@@ -301,7 +302,7 @@ func DeleteMilestoneByRepoID(ctx context.Context, repoID, id int64) error {
 	}
 	numClosedMilestones, err := db.Count[Milestone](ctx, FindMilestoneOptions{
 		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolTrue,
+		IsClosed: optional.Some(true),
 	})
 	if err != nil {
 		return err

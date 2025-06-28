@@ -7,15 +7,15 @@ import (
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/context"
 )
 
 // UpdatePublicKeyInRepo update public key and deploy key updates
 func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
-	keyID := ctx.ParamsInt64(":id")
-	repoID := ctx.ParamsInt64(":repoid")
+	keyID := ctx.PathParamInt64("id")
+	repoID := ctx.PathParamInt64("repoid")
 	if err := asymkey_model.UpdatePublicKeyUpdated(ctx, keyID); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),

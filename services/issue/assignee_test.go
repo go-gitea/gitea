@@ -39,7 +39,8 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, issue.Assignees)
 
-	// Check they're gone
+	// Reload to check they're gone
+	issue.ResetAttributesLoaded()
 	assert.NoError(t, issue.LoadAssignees(db.DefaultContext))
 	assert.Empty(t, issue.Assignees)
 	assert.Empty(t, issue.Assignee)

@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_20 //nolint
+package v1_20
 
 import (
 	"strings"
@@ -104,7 +104,7 @@ func ChangeContainerMetadataMultiArch(x *xorm.Engine) error {
 
 		// Convert to new metadata format
 
-		new := &MetadataNew{
+		newMetadata := &MetadataNew{
 			Type:             old.Type,
 			IsTagged:         old.IsTagged,
 			Platform:         old.Platform,
@@ -119,7 +119,7 @@ func ChangeContainerMetadataMultiArch(x *xorm.Engine) error {
 			Manifests:        manifests,
 		}
 
-		metadataJSON, err := json.Marshal(new)
+		metadataJSON, err := json.Marshal(newMetadata)
 		if err != nil {
 			return err
 		}

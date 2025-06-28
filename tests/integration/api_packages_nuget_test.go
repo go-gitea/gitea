@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/packages/nuget"
+	packageService "code.gitea.io/gitea/services/packages"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -45,21 +46,30 @@ func TestPackageNuGet(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	type FeedEntryProperties struct {
-		Version                  string                      `xml:"Version"`
-		NormalizedVersion        string                      `xml:"NormalizedVersion"`
 		Authors                  string                      `xml:"Authors"`
+		Copyright                string                      `xml:"Copyright,omitempty"`
+		Created                  nuget.TypedValue[time.Time] `xml:"Created"`
 		Dependencies             string                      `xml:"Dependencies"`
 		Description              string                      `xml:"Description"`
-		VersionDownloadCount     nuget.TypedValue[int64]     `xml:"VersionDownloadCount"`
+		DevelopmentDependency    nuget.TypedValue[bool]      `xml:"DevelopmentDependency"`
 		DownloadCount            nuget.TypedValue[int64]     `xml:"DownloadCount"`
-		PackageSize              nuget.TypedValue[int64]     `xml:"PackageSize"`
-		Created                  nuget.TypedValue[time.Time] `xml:"Created"`
+		ID                       string                      `xml:"Id"`
+		IconURL                  string                      `xml:"IconUrl,omitempty"`
+		Language                 string                      `xml:"Language,omitempty"`
 		LastUpdated              nuget.TypedValue[time.Time] `xml:"LastUpdated"`
-		Published                nuget.TypedValue[time.Time] `xml:"Published"`
+		LicenseURL               string                      `xml:"LicenseUrl,omitempty"`
+		MinClientVersion         string                      `xml:"MinClientVersion,omitempty"`
+		NormalizedVersion        string                      `xml:"NormalizedVersion"`
+		Owners                   string                      `xml:"Owners,omitempty"`
+		PackageSize              nuget.TypedValue[int64]     `xml:"PackageSize"`
 		ProjectURL               string                      `xml:"ProjectUrl,omitempty"`
+		Published                nuget.TypedValue[time.Time] `xml:"Published"`
 		ReleaseNotes             string                      `xml:"ReleaseNotes,omitempty"`
 		RequireLicenseAcceptance nuget.TypedValue[bool]      `xml:"RequireLicenseAcceptance"`
+		Tags                     string                      `xml:"Tags,omitempty"`
 		Title                    string                      `xml:"Title"`
+		Version                  string                      `xml:"Version"`
+		VersionDownloadCount     nuget.TypedValue[int64]     `xml:"VersionDownloadCount"`
 	}
 
 	type FeedEntry struct {
@@ -81,38 +91,70 @@ func TestPackageNuGet(t *testing.T) {
 	}
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWritePackage)
+	writeToken := getUserToken(t, user.Name, auth_model.AccessTokenScopeWritePackage)
+	readToken := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadPackage)
+	badToken := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadNotification)
 
-	packageName := "test.package"
+	packageName := "test.package" // id
+	packageID := packageName
 	packageVersion := "1.0.3"
 	packageAuthors := "KN4CK3R"
 	packageDescription := "Gitea Test Package"
+
 	symbolFilename := "test.pdb"
 	symbolID := "d910bb6948bd4c6cb40155bcf52c3c94"
 
-	createPackage := func(id, version string) io.Reader {
-		var buf bytes.Buffer
-		archive := zip.NewWriter(&buf)
-		w, _ := archive.Create("package.nuspec")
-		w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
+	packageCopyright := "Package Copyright"
+	packageIconURL := "https://gitea.io/favicon.png"
+	packageLanguage := "Package Language"
+	packageLicenseURL := "https://gitea.io/license"
+	packageMinClientVersion := "1.0.0.0"
+	packageOwners := "Package Owners"
+	packageProjectURL := "https://gitea.io"
+	packageReleaseNotes := "Package Release Notes"
+	packageTags := "tag_1 tag_2 tag_3"
+	packageTitle := "Package Title"
+	packageDevelopmentDependency := true
+	packageRequireLicenseAcceptance := true
+
+	createNuspec := func(id, version string) string {
+		return `<?xml version="1.0" encoding="utf-8"?>
 		<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
-			<metadata>
-				<id>` + id + `</id>
-				<version>` + version + `</version>
+			<metadata minClientVersion="` + packageMinClientVersion + `">
 				<authors>` + packageAuthors + `</authors>
+				<copyright>` + packageCopyright + `</copyright>
 				<description>` + packageDescription + `</description>
+				<developmentDependency>true</developmentDependency>
+				<iconUrl>` + packageIconURL + `</iconUrl>
+				<id>` + id + `</id>
+				<language>` + packageLanguage + `</language>
+				<licenseUrl>` + packageLicenseURL + `</licenseUrl>
+				<owners>` + packageOwners + `</owners>
+				<projectUrl>` + packageProjectURL + `</projectUrl>
+				<releaseNotes>` + packageReleaseNotes + `</releaseNotes>
+				<requireLicenseAcceptance>true</requireLicenseAcceptance>
+				<tags>` + packageTags + `</tags>
+				<title>` + packageTitle + `</title>
+				<version>` + version + `</version>
 				<dependencies>
 					<group targetFramework=".NETStandard2.0">
 						<dependency id="Microsoft.CSharp" version="4.5.0" />
 					</group>
 				</dependencies>
 			</metadata>
-		</package>`))
+		</package>`
+	}
+
+	createPackage := func(id, version string) *bytes.Buffer {
+		var buf bytes.Buffer
+		archive := zip.NewWriter(&buf)
+		w, _ := archive.Create("package.nuspec")
+		w.Write([]byte(createNuspec(id, version)))
 		archive.Close()
 		return &buf
 	}
 
-	content, _ := io.ReadAll(createPackage(packageName, packageVersion))
+	content := createPackage(packageName, packageVersion).Bytes()
 
 	url := fmt.Sprintf("/api/packages/%s/nuget", user.Name)
 
@@ -123,34 +165,44 @@ func TestPackageNuGet(t *testing.T) {
 			privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Visibility: structs.VisibleTypePrivate})
 
 			cases := []struct {
-				Owner        string
-				UseBasicAuth bool
-				UseTokenAuth bool
+				Owner          string
+				UseBasicAuth   bool
+				token          string
+				expectedStatus int
 			}{
-				{privateUser.Name, false, false},
-				{privateUser.Name, true, false},
-				{privateUser.Name, false, true},
-				{user.Name, false, false},
-				{user.Name, true, false},
-				{user.Name, false, true},
+				{privateUser.Name, false, "", http.StatusOK},
+				{privateUser.Name, true, "", http.StatusOK},
+				{privateUser.Name, false, writeToken, http.StatusOK},
+				{privateUser.Name, false, readToken, http.StatusOK},
+				{privateUser.Name, false, badToken, http.StatusOK},
+				{user.Name, false, "", http.StatusOK},
+				{user.Name, true, "", http.StatusOK},
+				{user.Name, false, writeToken, http.StatusOK},
+				{user.Name, false, readToken, http.StatusOK},
+				{user.Name, false, badToken, http.StatusOK},
 			}
 
 			for _, c := range cases {
-				url := fmt.Sprintf("/api/packages/%s/nuget", c.Owner)
+				t.Run(c.Owner, func(t *testing.T) {
+					url := fmt.Sprintf("/api/packages/%s/nuget", c.Owner)
 
-				req := NewRequest(t, "GET", url)
-				if c.UseBasicAuth {
-					req.AddBasicAuth(user.Name)
-				} else if c.UseTokenAuth {
-					addNuGetAPIKeyHeader(req, token)
-				}
-				resp := MakeRequest(t, req, http.StatusOK)
+					req := NewRequest(t, "GET", url)
+					if c.UseBasicAuth {
+						req.AddBasicAuth(user.Name)
+					} else if c.token != "" {
+						addNuGetAPIKeyHeader(req, c.token)
+					}
+					resp := MakeRequest(t, req, c.expectedStatus)
+					if c.expectedStatus != http.StatusOK {
+						return
+					}
 
-				var result nuget.ServiceIndexResponseV2
-				decodeXML(t, resp, &result)
+					var result nuget.ServiceIndexResponseV2
+					decodeXML(t, resp, &result)
 
-				assert.Equal(t, setting.AppURL+url[1:], result.Base)
-				assert.Equal(t, "Packages", result.Workspace.Collection.Href)
+					assert.Equal(t, setting.AppURL+url[1:], result.Base)
+					assert.Equal(t, "Packages", result.Workspace.Collection.Href)
+				})
 			}
 		})
 
@@ -160,56 +212,67 @@ func TestPackageNuGet(t *testing.T) {
 			privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Visibility: structs.VisibleTypePrivate})
 
 			cases := []struct {
-				Owner        string
-				UseBasicAuth bool
-				UseTokenAuth bool
+				Owner          string
+				UseBasicAuth   bool
+				token          string
+				expectedStatus int
 			}{
-				{privateUser.Name, false, false},
-				{privateUser.Name, true, false},
-				{privateUser.Name, false, true},
-				{user.Name, false, false},
-				{user.Name, true, false},
-				{user.Name, false, true},
+				{privateUser.Name, false, "", http.StatusOK},
+				{privateUser.Name, true, "", http.StatusOK},
+				{privateUser.Name, false, writeToken, http.StatusOK},
+				{privateUser.Name, false, readToken, http.StatusOK},
+				{privateUser.Name, false, badToken, http.StatusOK},
+				{user.Name, false, "", http.StatusOK},
+				{user.Name, true, "", http.StatusOK},
+				{user.Name, false, writeToken, http.StatusOK},
+				{user.Name, false, readToken, http.StatusOK},
+				{user.Name, false, badToken, http.StatusOK},
 			}
 
 			for _, c := range cases {
-				url := fmt.Sprintf("/api/packages/%s/nuget", c.Owner)
+				t.Run(c.Owner, func(t *testing.T) {
+					url := fmt.Sprintf("/api/packages/%s/nuget", c.Owner)
 
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
-				if c.UseBasicAuth {
-					req.AddBasicAuth(user.Name)
-				} else if c.UseTokenAuth {
-					addNuGetAPIKeyHeader(req, token)
-				}
-				resp := MakeRequest(t, req, http.StatusOK)
-
-				var result nuget.ServiceIndexResponseV3
-				DecodeJSON(t, resp, &result)
-
-				assert.Equal(t, "3.0.0", result.Version)
-				assert.NotEmpty(t, result.Resources)
-
-				root := setting.AppURL + url[1:]
-				for _, r := range result.Resources {
-					switch r.Type {
-					case "SearchQueryService":
-						fallthrough
-					case "SearchQueryService/3.0.0-beta":
-						fallthrough
-					case "SearchQueryService/3.0.0-rc":
-						assert.Equal(t, root+"/query", r.ID)
-					case "RegistrationsBaseUrl":
-						fallthrough
-					case "RegistrationsBaseUrl/3.0.0-beta":
-						fallthrough
-					case "RegistrationsBaseUrl/3.0.0-rc":
-						assert.Equal(t, root+"/registration", r.ID)
-					case "PackageBaseAddress/3.0.0":
-						assert.Equal(t, root+"/package", r.ID)
-					case "PackagePublish/2.0.0":
-						assert.Equal(t, root, r.ID)
+					req := NewRequest(t, "GET", url+"/index.json")
+					if c.UseBasicAuth {
+						req.AddBasicAuth(user.Name)
+					} else if c.token != "" {
+						addNuGetAPIKeyHeader(req, c.token)
 					}
-				}
+					resp := MakeRequest(t, req, c.expectedStatus)
+
+					if c.expectedStatus != http.StatusOK {
+						return
+					}
+
+					var result nuget.ServiceIndexResponseV3
+					DecodeJSON(t, resp, &result)
+
+					assert.Equal(t, "3.0.0", result.Version)
+					assert.NotEmpty(t, result.Resources)
+
+					root := setting.AppURL + url[1:]
+					for _, r := range result.Resources {
+						switch r.Type {
+						case "SearchQueryService":
+							fallthrough
+						case "SearchQueryService/3.0.0-beta":
+							fallthrough
+						case "SearchQueryService/3.0.0-rc":
+							assert.Equal(t, root+"/query", r.ID)
+						case "RegistrationsBaseUrl":
+							fallthrough
+						case "RegistrationsBaseUrl/3.0.0-beta":
+							fallthrough
+						case "RegistrationsBaseUrl/3.0.0-rc":
+							assert.Equal(t, root+"/registration", r.ID)
+						case "PackageBaseAddress/3.0.0":
+							assert.Equal(t, root+"/package", r.ID)
+						case "PackagePublish/2.0.0":
+							assert.Equal(t, root, r.ID)
+						}
+					}
+				})
 			}
 		})
 	})
@@ -218,13 +281,14 @@ func TestPackageNuGet(t *testing.T) {
 		t.Run("DependencyPackage", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
+			// create with username/password
 			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
 			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
-			assert.Len(t, pvs, 1)
+			assert.Len(t, pvs, 1, "Should have one version")
 
 			pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
 			assert.NoError(t, err)
@@ -235,13 +299,67 @@ func TestPackageNuGet(t *testing.T) {
 
 			pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 			assert.NoError(t, err)
-			assert.Len(t, pfs, 1)
-			assert.Equal(t, fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion), pfs[0].Name)
-			assert.True(t, pfs[0].IsLead)
+			assert.Len(t, pfs, 2, "Should have 2 files: nuget and nuspec")
+			for _, pf := range pfs {
+				switch pf.Name {
+				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
+					assert.True(t, pf.IsLead)
 
-			pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					assert.NoError(t, err)
+					assert.Equal(t, int64(len(content)), pb.Size)
+				case packageName + ".nuspec":
+					assert.False(t, pf.IsLead)
+				default:
+					assert.Fail(t, "unexpected filename", "unexpected filename: %v", pf.Name)
+				}
+			}
+
+			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusConflict)
+
+			// delete the package
+			assert.NoError(t, packageService.DeletePackageVersionAndReferences(db.DefaultContext, pvs[0]))
+
+			// create failure with token without write access
+			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
+				AddTokenAuth(readToken)
+			MakeRequest(t, req, http.StatusUnauthorized)
+
+			// create with token
+			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
+				AddTokenAuth(writeToken)
+			MakeRequest(t, req, http.StatusCreated)
+
+			pvs, err = packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
-			assert.Equal(t, int64(len(content)), pb.Size)
+			assert.Len(t, pvs, 1, "Should have one version")
+
+			pd, err = packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+			assert.NoError(t, err)
+			assert.NotNil(t, pd.SemVer)
+			assert.IsType(t, &nuget_module.Metadata{}, pd.Metadata)
+			assert.Equal(t, packageName, pd.Package.Name)
+			assert.Equal(t, packageVersion, pd.Version.Version)
+
+			pfs, err = packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+			assert.NoError(t, err)
+			assert.Len(t, pfs, 2, "Should have 2 files: nuget and nuspec")
+			for _, pf := range pfs {
+				switch pf.Name {
+				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
+					assert.True(t, pf.IsLead)
+
+					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					assert.NoError(t, err)
+					assert.Equal(t, int64(len(content)), pb.Size)
+				case packageName + ".nuspec":
+					assert.False(t, pf.IsLead)
+				default:
+					assert.Fail(t, "unexpected filename", "unexpected filename: %v", pf.Name)
+				}
+			}
 
 			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
 				AddBasicAuth(user.Name)
@@ -277,15 +395,15 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				return &buf
 			}
 
-			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage("unknown-package", "SymbolsPackage")).
+			req := NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage("unknown-package", "SymbolsPackage")).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "DummyPackage")).
+			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage(packageName, "DummyPackage")).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "SymbolsPackage")).
+			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage(packageName, "SymbolsPackage")).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
@@ -302,16 +420,27 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 			pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 			assert.NoError(t, err)
-			assert.Len(t, pfs, 3)
+			assert.Len(t, pfs, 4, "Should have 4 files: nupkg, snupkg, nuspec and pdb")
 			for _, pf := range pfs {
 				switch pf.Name {
 				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
+					assert.True(t, pf.IsLead)
+
+					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					assert.NoError(t, err)
+					assert.Equal(t, int64(610), pb.Size)
 				case fmt.Sprintf("%s.%s.snupkg", packageName, packageVersion):
 					assert.False(t, pf.IsLead)
 
 					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(616), pb.Size)
+				case packageName + ".nuspec":
+					assert.False(t, pf.IsLead)
+
+					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					assert.NoError(t, err)
+					assert.Equal(t, int64(996), pb.Size)
 				case symbolFilename:
 					assert.False(t, pf.IsLead)
 
@@ -325,11 +454,11 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					assert.Equal(t, nuget_module.PropertySymbolID, pps[0].Name)
 					assert.Equal(t, symbolID, pps[0].Value)
 				default:
-					assert.FailNow(t, "unexpected file: %v", pf.Name)
+					assert.FailNow(t, "unexpected file", "unexpected file: %v", pf.Name)
 				}
 			}
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "SymbolsPackage")).
+			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage(packageName, "SymbolsPackage")).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 		})
@@ -352,6 +481,12 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, content, resp.Body.Bytes())
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.nuspec", url, packageName, packageVersion, packageName)).
+			AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		assert.Equal(t, createNuspec(packageName, packageVersion), resp.Body.String())
 
 		checkDownloadCount(1)
 
@@ -400,22 +535,33 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 	t.Run("SearchService", func(t *testing.T) {
 		cases := []struct {
-			Query           string
-			Skip            int
-			Take            int
-			ExpectedTotal   int64
-			ExpectedResults int
+			Query              string
+			Skip               int
+			Take               int
+			ExpectedTotal      int64
+			ExpectedResults    int
+			ExpectedExactMatch bool
 		}{
-			{"", 0, 0, 1, 1},
-			{"", 0, 10, 1, 1},
-			{"gitea", 0, 10, 0, 0},
-			{"test", 0, 10, 1, 1},
-			{"test", 1, 10, 1, 0},
+			{"", 0, 0, 4, 4, false},
+			{"", 0, 10, 4, 4, false},
+			{"gitea", 0, 10, 0, 0, false},
+			{"test", 0, 10, 1, 1, false},
+			{"test", 1, 10, 1, 0, false},
+			{"almost.similar", 0, 0, 3, 3, true},
 		}
 
-		req := NewRequestWithBody(t, "PUT", url, createPackage(packageName, "1.0.99")).
-			AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusCreated)
+		fakePackages := []string{
+			packageName,
+			"almost.similar.dependency",
+			"almost.similar",
+			"almost.similar.dependant",
+		}
+
+		for _, fakePackageName := range fakePackages {
+			req := NewRequestWithBody(t, "PUT", url, createPackage(fakePackageName, "1.0.99")).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+		}
 
 		t.Run("v2", func(t *testing.T) {
 			t.Run("Search()", func(t *testing.T) {
@@ -462,8 +608,65 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				}
 			})
 
+			t.Run("Packages()", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				t.Run("substringof", func(t *testing.T) {
+					defer tests.PrintCurrentTest(t)()
+
+					for i, c := range cases {
+						req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages()?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+							AddBasicAuth(user.Name)
+						resp := MakeRequest(t, req, http.StatusOK)
+
+						var result FeedResponse
+						decodeXML(t, resp, &result)
+
+						assert.Equal(t, c.ExpectedTotal, result.Count, "case %d: unexpected total hits", i)
+						assert.Len(t, result.Entries, c.ExpectedResults, "case %d: unexpected result count", i)
+
+						req = NewRequest(t, "GET", fmt.Sprintf("%s/Packages()/$count?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+							AddBasicAuth(user.Name)
+						resp = MakeRequest(t, req, http.StatusOK)
+
+						assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
+					}
+				})
+
+				t.Run("IdEq", func(t *testing.T) {
+					defer tests.PrintCurrentTest(t)()
+
+					for i, c := range cases {
+						if c.Query == "" {
+							// Ignore the `tolower(Id) eq ''` as it's unlikely to happen
+							continue
+						}
+						req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages()?$filter=(tolower(Id) eq '%s')&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+							AddBasicAuth(user.Name)
+						resp := MakeRequest(t, req, http.StatusOK)
+
+						var result FeedResponse
+						decodeXML(t, resp, &result)
+
+						expectedCount := 0
+						if c.ExpectedExactMatch {
+							expectedCount = 1
+						}
+
+						assert.Equal(t, int64(expectedCount), result.Count, "case %d: unexpected total hits", i)
+						assert.Len(t, result.Entries, expectedCount, "case %d: unexpected result count", i)
+
+						req = NewRequest(t, "GET", fmt.Sprintf("%s/Packages()/$count?$filter=(tolower(Id) eq '%s')&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+							AddBasicAuth(user.Name)
+						resp = MakeRequest(t, req, http.StatusOK)
+
+						assert.Equal(t, strconv.FormatInt(int64(expectedCount), 10), resp.Body.String(), "case %d: unexpected total hits", i)
+					}
+				})
+			})
+
 			t.Run("Next", func(t *testing.T) {
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/Search()?searchTerm='test'&$skip=0&$top=1", url)).
+				req := NewRequest(t, "GET", url+"/Search()?searchTerm='test'&$skip=0&$top=1").
 					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
@@ -519,9 +722,11 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			})
 		})
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, "1.0.99")).
-			AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusNoContent)
+		for _, fakePackageName := range fakePackages {
+			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, fakePackageName, "1.0.99")).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+		}
 	})
 
 	t.Run("RegistrationService", func(t *testing.T) {
@@ -566,10 +771,24 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				var result FeedEntry
 				decodeXML(t, resp, &result)
 
-				assert.Equal(t, packageName, result.Properties.Title)
-				assert.Equal(t, packageVersion, result.Properties.Version)
 				assert.Equal(t, packageAuthors, result.Properties.Authors)
 				assert.Equal(t, packageDescription, result.Properties.Description)
+				assert.Equal(t, packageID, result.Properties.ID)
+				assert.Equal(t, packageVersion, result.Properties.Version)
+
+				assert.Equal(t, packageCopyright, result.Properties.Copyright)
+				assert.Equal(t, packageDevelopmentDependency, result.Properties.DevelopmentDependency.Value)
+				assert.Equal(t, packageIconURL, result.Properties.IconURL)
+				assert.Equal(t, packageLanguage, result.Properties.Language)
+				assert.Equal(t, packageLicenseURL, result.Properties.LicenseURL)
+				assert.Equal(t, packageMinClientVersion, result.Properties.MinClientVersion)
+				assert.Equal(t, packageOwners, result.Properties.Owners)
+				assert.Equal(t, packageProjectURL, result.Properties.ProjectURL)
+				assert.Equal(t, packageReleaseNotes, result.Properties.ReleaseNotes)
+				assert.Equal(t, packageRequireLicenseAcceptance, result.Properties.RequireLicenseAcceptance.Value)
+				assert.Equal(t, packageTags, result.Properties.Tags)
+				assert.Equal(t, packageTitle, result.Properties.Title)
+
 				assert.Equal(t, "Microsoft.CSharp:4.5.0:.NETStandard2.0", result.Properties.Dependencies)
 			})
 

@@ -11,8 +11,11 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	notify_service "code.gitea.io/gitea/services/notify"
 
+	"github.com/nektos/act/pkg/jobparser"
 	"xorm.io/builder"
 )
 
@@ -48,6 +51,7 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 	if err != nil {
 		return err
 	}
+	var updatedjobs []*actions_model.ActionRunJob
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		idToJobs := make(map[string][]*actions_model.ActionRunJob, len(jobs))
 		for _, job := range jobs {
@@ -63,6 +67,7 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 				} else if n != 1 {
 					return fmt.Errorf("no affected for updating blocked job %v", job.ID)
 				}
+				updatedjobs = append(updatedjobs, job)
 			}
 		}
 		return nil
@@ -70,18 +75,46 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 		return err
 	}
 	CreateCommitStatus(ctx, jobs...)
+	for _, job := range updatedjobs {
+		_ = job.LoadAttributes(ctx)
+		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+	}
+	if len(jobs) > 0 {
+		runUpdated := true
+		for _, job := range jobs {
+			if !job.Status.IsDone() {
+				runUpdated = false
+				break
+			}
+		}
+		if runUpdated {
+			NotifyWorkflowRunStatusUpdateWithReload(ctx, jobs[0])
+		}
+	}
 	return nil
+}
+
+func NotifyWorkflowRunStatusUpdateWithReload(ctx context.Context, job *actions_model.ActionRunJob) {
+	job.Run = nil
+	if err := job.LoadAttributes(ctx); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+	notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 }
 
 type jobStatusResolver struct {
 	statuses map[int64]actions_model.Status
 	needs    map[int64][]int64
+	jobMap   map[int64]*actions_model.ActionRunJob
 }
 
 func newJobStatusResolver(jobs actions_model.ActionJobList) *jobStatusResolver {
 	idToJobs := make(map[string][]*actions_model.ActionRunJob, len(jobs))
+	jobMap := make(map[int64]*actions_model.ActionRunJob)
 	for _, job := range jobs {
 		idToJobs[job.JobID] = append(idToJobs[job.JobID], job)
+		jobMap[job.ID] = job
 	}
 
 	statuses := make(map[int64]actions_model.Status, len(jobs))
@@ -97,6 +130,7 @@ func newJobStatusResolver(jobs actions_model.ActionJobList) *jobStatusResolver {
 	return &jobStatusResolver{
 		statuses: statuses,
 		needs:    needs,
+		jobMap:   jobMap,
 	}
 }
 
@@ -135,7 +169,21 @@ func (r *jobStatusResolver) resolve() map[int64]actions_model.Status {
 			if allSucceed {
 				ret[id] = actions_model.StatusWaiting
 			} else {
-				ret[id] = actions_model.StatusSkipped
+				// Check if the job has an "if" condition
+				hasIf := false
+				if wfJobs, _ := jobparser.Parse(r.jobMap[id].WorkflowPayload); len(wfJobs) == 1 {
+					_, wfJob := wfJobs[0].Job()
+					hasIf = len(wfJob.If.Value) > 0
+				}
+
+				if hasIf {
+					// act_runner will check the "if" condition
+					ret[id] = actions_model.StatusWaiting
+				} else {
+					// If the "if" condition is empty and not all dependent jobs completed successfully,
+					// the job should be skipped.
+					ret[id] = actions_model.StatusSkipped
+				}
 			}
 		}
 	}

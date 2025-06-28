@@ -6,9 +6,9 @@ package settings
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/context"
 )
 
 // GetGeneralUISettings returns instance's global settings for ui
@@ -43,6 +43,7 @@ func GetGeneralAPISettings(ctx *context.APIContext) {
 		DefaultPagingNum:       setting.API.DefaultPagingNum,
 		DefaultGitTreesPerPage: setting.API.DefaultGitTreesPerPage,
 		DefaultMaxBlobSize:     setting.API.DefaultMaxBlobSize,
+		DefaultMaxResponseSize: setting.API.DefaultMaxResponseSize,
 	})
 }
 

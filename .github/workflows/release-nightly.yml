@@ -9,10 +9,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  disk-clean:
-    uses: ./.github/workflows/disk-clean.yml
   nightly-binary:
-    runs-on: nscloud
+    runs-on: namespace-profile-gitea-release-binary
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -24,7 +22,9 @@ jobs:
           check-latest: true
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
       - run: make deps-frontend deps-backend
       # xgo build
       - run: make release
@@ -47,7 +47,7 @@ jobs:
         run: |
           REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
           echo "Cleaned name is ${REF_NAME}"
-          echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
+          echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
       - name: configure aws
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -58,7 +58,9 @@ jobs:
         run: |
           aws s3 sync dist/release s3://${{ secrets.AWS_S3_BUCKET }}/gitea/${{ steps.clean_name.outputs.branch }} --no-progress
   nightly-docker-rootful:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-gitea-release-docker
+    permissions:
+      packages: write # to publish to ghcr.io
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -85,17 +87,27 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to GHCR using PAT
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: fetch go modules
         run: make vendor
       - name: build rootful docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64,linux/riscv64
           push: true
-          tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}
+          tags: |-
+            gitea/gitea:${{ steps.clean_name.outputs.branch }}
+            ghcr.io/go-gitea/gitea:${{ steps.clean_name.outputs.branch }}
   nightly-docker-rootless:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-gitea-release-docker
+    permissions:
+      packages: write # to publish to ghcr.io
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -122,6 +134,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to GHCR using PAT
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: fetch go modules
         run: make vendor
       - name: build rootless docker image
@@ -131,4 +149,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           file: Dockerfile.rootless
-          tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}-rootless
+          tags: |-
+            gitea/gitea:${{ steps.clean_name.outputs.branch }}-rootless
+            ghcr.io/go-gitea/gitea:${{ steps.clean_name.outputs.branch }}-rootless

@@ -10,10 +10,12 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -54,19 +56,31 @@ func startTasks(ctx context.Context) error {
 			// cancel running jobs if the event is push
 			if row.Schedule.Event == webhook_module.HookEventPush {
 				// cancel running jobs of the same workflow
-				if err := actions_model.CancelRunningJobs(
+				if err := CancelPreviousJobs(
 					ctx,
 					row.RepoID,
 					row.Schedule.Ref,
 					row.Schedule.WorkflowID,
 					webhook_module.HookEventSchedule,
 				); err != nil {
-					log.Error("CancelRunningJobs: %v", err)
+					log.Error("CancelPreviousJobs: %v", err)
 				}
 			}
 
-			cfg := row.Repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-			if cfg.IsWorkflowDisabled(row.Schedule.WorkflowID) {
+			if row.Repo.IsArchived {
+				// Skip if the repo is archived
+				continue
+			}
+
+			cfg, err := row.Repo.GetUnit(ctx, unit.TypeActions)
+			if err != nil {
+				if repo_model.IsErrUnitTypeNotExist(err) {
+					// Skip the actions unit of this repo is disabled.
+					continue
+				}
+				return fmt.Errorf("GetUnit: %w", err)
+			}
+			if cfg.ActionsConfig().IsWorkflowDisabled(row.Schedule.WorkflowID) {
 				continue
 			}
 
@@ -119,8 +133,14 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		Status:        actions_model.StatusWaiting,
 	}
 
+	vars, err := actions_model.GetVariablesOfRun(ctx, run)
+	if err != nil {
+		log.Error("GetVariablesOfRun: %v", err)
+		return err
+	}
+
 	// Parse the workflow specification from the cron schedule
-	workflows, err := jobparser.Parse(cron.Content)
+	workflows, err := jobparser.Parse(cron.Content, jobparser.WithVars(vars))
 	if err != nil {
 		return err
 	}
@@ -128,6 +148,18 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 	// Insert the action run and its associated jobs into the database
 	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
 		return err
+	}
+	allJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+	if err != nil {
+		log.Error("FindRunJobs: %v", err)
+	}
+	err = run.LoadAttributes(ctx)
+	if err != nil {
+		log.Error("LoadAttributes: %v", err)
+	}
+	notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+	for _, job := range allJobs {
+		notify_service.WorkflowJobStatusUpdate(ctx, run.Repo, run.TriggerUser, job, nil)
 	}
 
 	// Return nil if no errors occurred

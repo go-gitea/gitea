@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       pgsql:
-        image: postgres:12
+        image: postgres:14
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -49,7 +49,10 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-      - run: make test-pgsql-migration test-pgsql
+      - name: run migration tests
+        run: make test-pgsql-migration
+      - name: run tests
+        run: make test-pgsql
         timeout-minutes: 50
         env:
           TAGS: bindata gogit
@@ -72,7 +75,10 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
-      - run: make test-sqlite-migration test-sqlite
+      - name: run migration tests
+        run: make test-sqlite-migration
+      - name: run tests
+        run: make test-sqlite
         timeout-minutes: 50
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
@@ -92,7 +98,7 @@ jobs:
         ports:
           - "9200:9200"
       meilisearch:
-        image: getmeili/meilisearch:v1.2.0
+        image: getmeili/meilisearch:v1
         env:
           MEILI_ENV: development # disable auth
         ports:
@@ -113,6 +119,10 @@ jobs:
           MINIO_SECRET_KEY: 12345678
         ports:
           - "9000:9000"
+      devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
+        image: mcr.microsoft.com/azure-storage/azurite:latest
+        ports:
+          - 10000:10000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -120,7 +130,7 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
@@ -144,12 +154,15 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:8.0
+        # the bitnami mysql image has more options than the official one, it's easier to customize
+        image: bitnami/mysql:8.0
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
         ports:
           - "3306:3306"
+        options: >-
+          --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
         image: elasticsearch:7.5.0
         env:
@@ -175,8 +188,11 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
+      - name: run migration tests
+        run: make test-mysql-migration
       - name: run tests
-        run: make test-mysql-migration integration-test-coverage
+        # run: make integration-test-coverage (at the moment, no coverage is really handled)
+        run: make test-mysql
         env:
           TAGS: bindata
           RACE_ENABLED: true
@@ -189,13 +205,17 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2017-latest
+        image: mcr.microsoft.com/mssql/server:2019-latest
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
           SA_PASSWORD: MwantsaSecurePassword1
         ports:
           - "1433:1433"
+      devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
+        image: mcr.microsoft.com/azure-storage/azurite:latest
+        ports:
+          - 10000:10000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -203,12 +223,14 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql" | sudo tee -a /etc/hosts'
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
           TAGS: bindata
-      - run: make test-mssql-migration test-mssql
+      - run: make test-mssql-migration
+      - name: run tests
+        run: make test-mssql
         timeout-minutes: 50
         env:
           TAGS: bindata

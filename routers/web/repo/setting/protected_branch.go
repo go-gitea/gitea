@@ -4,9 +4,11 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,10 +16,13 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/repo"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
@@ -26,7 +31,7 @@ import (
 )
 
 const (
-	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
+	tplProtectedBranch templates.TplName = "repo/settings/protected_branch"
 )
 
 // ProtectedBranchRules render the page to protect the repository
@@ -68,7 +73,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["PageIsSettingsBranches"] = true
-	c.Data["Title"] = c.Tr("repo.settings.protected_branch") + " - " + rule.RuleName
+	c.Data["Title"] = c.Locale.TrString("repo.settings.protected_branch") + " - " + rule.RuleName
 
 	users, err := access_model.GetRepoReaders(c, c.Repo.Repository)
 	if err != nil {
@@ -77,6 +82,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 	c.Data["Users"] = users
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(rule.WhitelistUserIDs), ",")
+	c.Data["force_push_allowlist_users"] = strings.Join(base.Int64sToStrings(rule.ForcePushAllowlistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistUserIDs), ",")
 	c.Data["status_check_contexts"] = strings.Join(rule.StatusCheckContexts, "\n")
@@ -84,13 +90,14 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["recent_status_checks"] = contexts
 
 	if c.Repo.Owner.IsOrganization() {
-		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c, c.Repo.Repository.ID, perm.AccessModeRead)
+		teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(c, c.Repo.Owner.ID, c.Repo.Repository.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 		if err != nil {
 			c.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return
 		}
 		c.Data["Teams"] = teams
 		c.Data["whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.WhitelistTeamIDs), ",")
+		c.Data["force_push_allowlist_teams"] = strings.Join(base.Int64sToStrings(rule.ForcePushAllowlistTeamIDs), ",")
 		c.Data["merge_whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistTeamIDs), ",")
 		c.Data["approvals_whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistTeamIDs), ",")
 	}
@@ -105,7 +112,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	var protectBranch *git_model.ProtectedBranch
 	if f.RuleName == "" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_rule_name"))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit", ctx.Repo.RepoLink))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/branches/edit")
 		return
 	}
 
@@ -149,7 +156,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		}
 	}
 
-	var whitelistUsers, whitelistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams []int64
+	var whitelistUsers, whitelistTeams, forcePushAllowlistUsers, forcePushAllowlistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams []int64
 	protectBranch.RuleName = f.RuleName
 	if f.RequiredApprovals < 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
@@ -176,6 +183,27 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		protectBranch.CanPush = false
 		protectBranch.EnableWhitelist = false
 		protectBranch.WhitelistDeployKeys = false
+	}
+
+	switch f.EnableForcePush {
+	case "all":
+		protectBranch.CanForcePush = true
+		protectBranch.EnableForcePushAllowlist = false
+		protectBranch.ForcePushAllowlistDeployKeys = false
+	case "whitelist":
+		protectBranch.CanForcePush = true
+		protectBranch.EnableForcePushAllowlist = true
+		protectBranch.ForcePushAllowlistDeployKeys = f.ForcePushAllowlistDeployKeys
+		if strings.TrimSpace(f.ForcePushAllowlistUsers) != "" {
+			forcePushAllowlistUsers, _ = base.StringsToInt64s(strings.Split(f.ForcePushAllowlistUsers, ","))
+		}
+		if strings.TrimSpace(f.ForcePushAllowlistTeams) != "" {
+			forcePushAllowlistTeams, _ = base.StringsToInt64s(strings.Split(f.ForcePushAllowlistTeams, ","))
+		}
+	default:
+		protectBranch.CanForcePush = false
+		protectBranch.EnableForcePushAllowlist = false
+		protectBranch.ForcePushAllowlistDeployKeys = false
 	}
 
 	protectBranch.EnableMergeWhitelist = f.EnableMergeWhitelist
@@ -233,31 +261,20 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.ProtectedFilePatterns = f.ProtectedFilePatterns
 	protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns
 	protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
+	protectBranch.BlockAdminMergeOverride = f.BlockAdminMergeOverride
 
-	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
+	if err = pull_service.CreateOrUpdateProtectedBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
+		ForcePushUserIDs: forcePushAllowlistUsers,
+		ForcePushTeamIDs: forcePushAllowlistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
 		ApprovalsTeamIDs: approvalsWhitelistTeams,
-	})
-	if err != nil {
-		ctx.ServerError("UpdateProtectBranch", err)
+	}); err != nil {
+		ctx.ServerError("CreateOrUpdateProtectedBranch", err)
 		return
-	}
-
-	// FIXME: since we only need to recheck files protected rules, we could improve this
-	matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.Repository.ID, protectBranch.RuleName)
-	if err != nil {
-		ctx.ServerError("FindAllMatchedBranches", err)
-		return
-	}
-	for _, branchName := range matchedBranches {
-		if err = pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, branchName); err != nil {
-			ctx.ServerError("CheckPRsForBaseBranch", err)
-			return
-		}
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", protectBranch.RuleName))
@@ -266,34 +283,44 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 
 // DeleteProtectedBranchRulePost delete protected branch rule by id
 func DeleteProtectedBranchRulePost(ctx *context.Context) {
-	ruleID := ctx.ParamsInt64("id")
+	ruleID := ctx.PathParamInt64("id")
 	if ruleID <= 0 {
-		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
-		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", strconv.FormatInt(ruleID, 10)))
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 		return
 	}
 
 	rule, err := git_model.GetProtectedBranchRuleByID(ctx, ctx.Repo.Repository.ID, ruleID)
 	if err != nil {
-		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
-		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", strconv.FormatInt(ruleID, 10)))
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 		return
 	}
 
 	if rule == nil {
-		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
-		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", strconv.FormatInt(ruleID, 10)))
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 		return
 	}
 
 	if err := git_model.DeleteProtectedBranch(ctx, ctx.Repo.Repository, ruleID); err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", rule.RuleName))
-		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", rule.RuleName))
-	ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
+}
+
+func UpdateBranchProtectionPriories(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.ProtectBranchPriorityForm)
+	repo := ctx.Repo.Repository
+
+	if err := git_model.UpdateProtectBranchPriorities(ctx, repo, form.IDs); err != nil {
+		ctx.ServerError("UpdateProtectBranchPriorities", err)
+		return
+	}
 }
 
 // RenameBranchPost responses for rename a branch
@@ -301,34 +328,46 @@ func RenameBranchPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RenameBranchForm)
 
 	if !ctx.Repo.CanCreateBranch() {
-		ctx.NotFound("RenameBranch", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.GetErrMsg())
-		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 		return
 	}
 
 	msg, err := repository.RenameBranch(ctx, ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, form.From, form.To)
 	if err != nil {
-		ctx.ServerError("RenameBranch", err)
+		switch {
+		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
+			ctx.Flash.Error(ctx.Tr("repo.branch.rename_default_or_protected_branch_error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/branches")
+		case git_model.IsErrBranchAlreadyExists(err):
+			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", form.To))
+			ctx.Redirect(ctx.Repo.RepoLink + "/branches")
+		case errors.Is(err, git_model.ErrBranchIsProtected):
+			ctx.Flash.Error(ctx.Tr("repo.branch.rename_protected_branch_failed"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/branches")
+		default:
+			ctx.ServerError("RenameBranch", err)
+		}
 		return
 	}
 
 	if msg == "target_exist" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_exist", form.To))
-		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 		return
 	}
 
 	if msg == "from_not_exist" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_not_exist", form.From))
-		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.rename_branch_success", form.From, form.To))
-	ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+	ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 }

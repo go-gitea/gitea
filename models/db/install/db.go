@@ -11,7 +11,7 @@ import (
 )
 
 func getXORMEngine() *xorm.Engine {
-	return db.DefaultContext.(*db.Context).Engine().(*xorm.Engine)
+	return db.GetEngine(db.DefaultContext).(*xorm.Engine)
 }
 
 // CheckDatabaseConnection checks the database connection

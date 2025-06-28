@@ -9,13 +9,21 @@ _test
 
 # IntelliJ
 .idea
+.run
+
+# IntelliJ Gateway
+.uuid
+
 # Goland's output filename can not be set manually
 /go_build_*
 /gitea_*
 
 # MS VSCode
 .vscode
-__debug_bin
+__debug_bin*
+
+# Visual Studio
+/.vs/
 
 *.cgo1.go
 *.cgo2.c
@@ -28,19 +36,16 @@ _testmain.go
 *.exe
 *.test
 *.prof
+*.tsbuildinfo
 
 *coverage.out
 coverage.all
 cpu.out
 
-/modules/migration/bindata.go
-/modules/migration/bindata.go.hash
-/modules/options/bindata.go
-/modules/options/bindata.go.hash
-/modules/public/bindata.go
-/modules/public/bindata.go.hash
-/modules/templates/bindata.go
-/modules/templates/bindata.go.hash
+/modules/migration/bindata.*
+/modules/options/bindata.*
+/modules/public/bindata.*
+/modules/templates/bindata.*
 
 *.db
 *.log
@@ -58,7 +63,7 @@ cpu.out
 /data
 /indexers
 /log
-/public/img/avatar
+/public/assets/img/avatar
 /tests/integration/gitea-integration-*
 /tests/integration/indexers-*
 /tests/e2e/gitea-e2e-*
@@ -77,23 +82,13 @@ cpu.out
 /public/assets/css
 /public/assets/fonts
 /public/assets/licenses.txt
-/public/assets/img/webpack
 /vendor
-/web_src/fomantic/node_modules
-/web_src/fomantic/build/*
-!/web_src/fomantic/build/semantic.js
-!/web_src/fomantic/build/semantic.css
-!/web_src/fomantic/build/themes
-/web_src/fomantic/build/themes/*
-!/web_src/fomantic/build/themes/default
-/web_src/fomantic/build/themes/default/assets/*
-!/web_src/fomantic/build/themes/default/assets/fonts
-/web_src/fomantic/build/themes/default/assets/fonts/*
-!/web_src/fomantic/build/themes/default/assets/fonts/icons.woff2
-!/web_src/fomantic/build/themes/default/assets/fonts/outline-icons.woff2
 /VERSION
 /.air
 /.go-licenses
+
+# Files and folders that were previously generated
+/public/assets/img/webpack
 
 # Snapcraft
 /gitea_a*.txt
@@ -105,6 +100,9 @@ prime/
 *.snap-build
 *_source.tar.bz2
 .DS_Store
+
+# nix-direnv generated files
+.direnv/
 
 # Make evidence files
 /.make_evidence

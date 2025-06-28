@@ -8,13 +8,13 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 )
 
 // AddDependency adds new dependencies
 func AddDependency(ctx *context.Context) {
-	issueIndex := ctx.ParamsInt64("index")
+	issueIndex := ctx.PathParamInt64("index")
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
 		ctx.ServerError("GetIssueByIndex", err)
@@ -23,7 +23,7 @@ func AddDependency(ctx *context.Context) {
 
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull) {
-		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
+		ctx.HTTPError(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
 
@@ -88,7 +88,7 @@ func AddDependency(ctx *context.Context) {
 
 // RemoveDependency removes the dependency
 func RemoveDependency(ctx *context.Context) {
-	issueIndex := ctx.ParamsInt64("index")
+	issueIndex := ctx.PathParamInt64("index")
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
 		ctx.ServerError("GetIssueByIndex", err)
@@ -97,7 +97,7 @@ func RemoveDependency(ctx *context.Context) {
 
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull) {
-		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
+		ctx.HTTPError(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
 
@@ -109,7 +109,7 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	// Dependency Type
-	depTypeStr := ctx.Req.PostForm.Get("dependencyType")
+	depTypeStr := ctx.Req.PostFormValue("dependencyType")
 
 	var depType issues_model.DependencyType
 
@@ -119,7 +119,7 @@ func RemoveDependency(ctx *context.Context) {
 	case "blocking":
 		depType = issues_model.DependencyTypeBlocking
 	default:
-		ctx.Error(http.StatusBadRequest, "GetDependecyType")
+		ctx.HTTPError(http.StatusBadRequest, "GetDependecyType")
 		return
 	}
 

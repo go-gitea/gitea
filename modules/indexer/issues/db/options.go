@@ -6,30 +6,16 @@ package db
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	issue_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/optional"
 )
 
 func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_model.IssuesOptions, error) {
-	// See the comment of issues_model.SearchOptions for the reason why we need to convert
-	convertID := func(id *int64) int64 {
-		if id == nil {
-			return 0
-		}
-		if *id == 0 {
-			return db.NoConditionID
-		}
-		return *id
-	}
-	convertInt64 := func(i *int64) int64 {
-		if i == nil {
-			return 0
-		}
-		return *i
-	}
 	var sortType string
 	switch options.SortBy {
 	case internal.SortByCreatedAsc:
@@ -38,7 +24,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		sortType = "leastupdate"
 	case internal.SortByCommentsAsc:
 		sortType = "leastcomment"
-	case internal.SortByDeadlineAsc:
+	case internal.SortByDeadlineDesc:
 		sortType = "farduedate"
 	case internal.SortByCreatedDesc:
 		sortType = "newest"
@@ -46,10 +32,26 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		sortType = "recentupdate"
 	case internal.SortByCommentsDesc:
 		sortType = "mostcomment"
-	case internal.SortByDeadlineDesc:
+	case internal.SortByDeadlineAsc:
 		sortType = "nearduedate"
 	default:
-		sortType = "newest"
+		if strings.HasPrefix(string(options.SortBy), issue_model.ScopeSortPrefix) {
+			sortType = string(options.SortBy)
+		} else {
+			sortType = "newest"
+		}
+	}
+
+	// See the comment of issues_model.SearchOptions for the reason why we need to convert
+	convertID := func(id optional.Option[int64]) int64 {
+		if !id.Has() {
+			return 0
+		}
+		value := id.Value()
+		if value == 0 {
+			return db.NoConditionID
+		}
+		return value
 	}
 
 	opts := &issue_model.IssuesOptions{
@@ -57,28 +59,27 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		RepoIDs:            options.RepoIDs,
 		AllPublic:          options.AllPublic,
 		RepoCond:           nil,
-		AssigneeID:         convertID(options.AssigneeID),
-		PosterID:           convertID(options.PosterID),
+		AssigneeID:         options.AssigneeID,
+		PosterID:           options.PosterID,
 		MentionedID:        convertID(options.MentionID),
 		ReviewRequestedID:  convertID(options.ReviewRequestedID),
 		ReviewedID:         convertID(options.ReviewedID),
 		SubscriberID:       convertID(options.SubscriberID),
 		ProjectID:          convertID(options.ProjectID),
-		ProjectBoardID:     convertID(options.ProjectBoardID),
+		ProjectColumnID:    convertID(options.ProjectColumnID),
 		IsClosed:           options.IsClosed,
 		IsPull:             options.IsPull,
 		IncludedLabelNames: nil,
 		ExcludedLabelNames: nil,
 		IncludeMilestones:  nil,
 		SortType:           sortType,
-		IssueIDs:           nil,
-		UpdatedAfterUnix:   convertInt64(options.UpdatedAfterUnix),
-		UpdatedBeforeUnix:  convertInt64(options.UpdatedBeforeUnix),
+		UpdatedAfterUnix:   options.UpdatedAfterUnix.Value(),
+		UpdatedBeforeUnix:  options.UpdatedBeforeUnix.Value(),
 		PriorityRepoID:     0,
-		IsArchived:         0,
-		Org:                nil,
+		IsArchived:         options.IsArchived,
+		Owner:              nil,
 		Team:               nil,
-		User:               nil,
+		Doer:               nil,
 	}
 
 	if len(options.MilestoneIDs) == 1 && options.MilestoneIDs[0] == 0 {

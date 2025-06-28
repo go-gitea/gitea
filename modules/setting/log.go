@@ -7,7 +7,6 @@ import (
 	"fmt"
 	golog "log"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -41,7 +40,7 @@ func loadLogGlobalFrom(rootCfg ConfigProvider) {
 	Log.BufferLen = sec.Key("BUFFER_LEN").MustInt(10000)
 	Log.Mode = sec.Key("MODE").MustString("console")
 
-	Log.RootPath = sec.Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
+	Log.RootPath = sec.Key("ROOT_PATH").MustString(filepath.Join(AppWorkPath, "log"))
 	if !filepath.IsAbs(Log.RootPath) {
 		Log.RootPath = filepath.Join(AppWorkPath, Log.RootPath)
 	}
@@ -185,13 +184,22 @@ func InitLoggersForTest() {
 	initAllLoggers()
 }
 
+var initLoggerDisabled bool
+
 // initAllLoggers creates all the log services
 func initAllLoggers() {
+	if initLoggerDisabled {
+		return
+	}
 	initManagedLoggers(log.GetManager(), CfgProvider)
 
 	golog.SetFlags(0)
 	golog.SetPrefix("")
 	golog.SetOutput(log.LoggerToWriter(log.GetLogger(log.DEFAULT).Info))
+}
+
+func DisableLoggerInit() {
+	initLoggerDisabled = true
 }
 
 func initManagedLoggers(manager *log.LoggerManager, cfg ConfigProvider) {
@@ -219,8 +227,8 @@ func initLoggerByName(manager *log.LoggerManager, rootCfg ConfigProvider, logger
 	}
 
 	var eventWriters []log.EventWriter
-	modes := strings.Split(modeVal, ",")
-	for _, modeName := range modes {
+	modes := strings.SplitSeq(modeVal, ",")
+	for modeName := range modes {
 		modeName = strings.TrimSpace(modeName)
 		if modeName == "" {
 			continue

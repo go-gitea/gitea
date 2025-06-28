@@ -6,6 +6,7 @@ package auth
 import (
 	"context"
 	"crypto/md5"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base32"
 	"encoding/base64"
@@ -18,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/minio/sha256-simd"
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -163,4 +163,14 @@ func DeleteTwoFactorByID(ctx context.Context, id, userID int64) error {
 		return ErrTwoFactorNotEnrolled{userID}
 	}
 	return nil
+}
+
+func HasTwoFactorOrWebAuthn(ctx context.Context, id int64) (bool, error) {
+	has, err := HasTwoFactorByUID(ctx, id)
+	if err != nil {
+		return false, err
+	} else if has {
+		return true, nil
+	}
+	return HasWebAuthnRegistrationsByUID(ctx, id)
 }

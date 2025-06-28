@@ -8,17 +8,16 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/auth/source/ldap"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 func TestAddLdapBindDn(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	osExiter := cli.OsExiter
-	defer func() { cli.OsExiter = osExiter }()
-	cli.OsExiter = func(code int) {}
+	defer test.MockVariableValue(&cli.OsExiter, func(code int) {})()
 
 	// Test cases
 	cases := []struct {
@@ -51,6 +50,13 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--attributes-in-bind",
 				"--synchronize-users",
 				"--page-size", "99",
+				"--enable-groups",
+				"--group-search-base-dn", "ou=group,dc=full-domain-bind,dc=org",
+				"--group-member-attribute", "memberUid",
+				"--group-user-attribute", "uid",
+				"--group-filter", "(|(cn=gitea_users)(cn=admins))",
+				"--group-team-map", `{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}`,
+				"--group-team-map-removal",
 			},
 			source: &auth.Source{
 				Type:          auth.LDAP,
@@ -78,6 +84,13 @@ func TestAddLdapBindDn(t *testing.T) {
 					AdminFilter:           "(memberOf=cn=admin-group,ou=example,dc=full-domain-bind,dc=org)",
 					RestrictedFilter:      "(memberOf=cn=restricted-group,ou=example,dc=full-domain-bind,dc=org)",
 					Enabled:               true,
+					GroupsEnabled:         true,
+					GroupDN:               "ou=group,dc=full-domain-bind,dc=org",
+					GroupMemberUID:        "memberUid",
+					UserUID:               "uid",
+					GroupFilter:           "(|(cn=gitea_users)(cn=admins))",
+					GroupTeamMap:          `{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}`,
+					GroupTeamMapRemoval:   true,
 				},
 			},
 		},
@@ -121,7 +134,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 				"--email-attribute", "mail",
 			},
-			errMsg: "Unknown security protocol name: zzzzz",
+			errMsg: "unknown security protocol name: zzzzz",
 		},
 		// case 3
 		{
@@ -215,22 +228,23 @@ func TestAddLdapBindDn(t *testing.T) {
 				return nil
 			},
 			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
-				assert.FailNow(t, "case %d: should not call updateAuthSource", n)
+				assert.FailNow(t, "updateAuthSource called", "case %d: should not call updateAuthSource", n)
 				return nil
 			},
 			getAuthSourceByID: func(ctx context.Context, id int64) (*auth.Source, error) {
-				assert.FailNow(t, "case %d: should not call getAuthSourceByID", n)
+				assert.FailNow(t, "getAuthSourceByID called", "case %d: should not call getAuthSourceByID", n)
 				return nil, nil
 			},
 		}
 
 		// Create a copy of command to test
-		app := cli.NewApp()
-		app.Flags = microcmdAuthAddLdapBindDn.Flags
-		app.Action = service.addLdapBindDn
+		app := cli.Command{
+			Flags:  microcmdAuthAddLdapBindDn().Flags,
+			Action: service.addLdapBindDn,
+		}
 
 		// Run it
-		err := app.Run(c.args)
+		err := app.Run(t.Context(), c.args)
 		if c.errMsg != "" {
 			assert.EqualError(t, err, c.errMsg, "case %d: error should match", n)
 		} else {
@@ -242,9 +256,7 @@ func TestAddLdapBindDn(t *testing.T) {
 
 func TestAddLdapSimpleAuth(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	osExiter := cli.OsExiter
-	defer func() { cli.OsExiter = osExiter }()
-	cli.OsExiter = func(code int) {}
+	defer test.MockVariableValue(&cli.OsExiter, func(code int) {})()
 
 	// Test cases
 	cases := []struct {
@@ -334,12 +346,12 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--name", "ldap (simple auth) source",
 				"--security-protocol", "zzzzz",
 				"--host", "ldap-server",
-				"--port", "123",
+				"--port", "1234",
 				"--user-filter", "(&(objectClass=posixAccount)(cn=%s))",
 				"--email-attribute", "mail",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "Unknown security protocol name: zzzzz",
+			errMsg: "unknown security protocol name: zzzzz",
 		},
 		// case 3
 		{
@@ -446,22 +458,23 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				return nil
 			},
 			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
-				assert.FailNow(t, "case %d: should not call updateAuthSource", n)
+				assert.FailNow(t, "updateAuthSource called", "case %d: should not call updateAuthSource", n)
 				return nil
 			},
 			getAuthSourceByID: func(ctx context.Context, id int64) (*auth.Source, error) {
-				assert.FailNow(t, "case %d: should not call getAuthSourceByID", n)
+				assert.FailNow(t, "getAuthSourceById called", "case %d: should not call getAuthSourceByID", n)
 				return nil, nil
 			},
 		}
 
 		// Create a copy of command to test
-		app := cli.NewApp()
-		app.Flags = microcmdAuthAddLdapSimpleAuth.Flags
-		app.Action = service.addLdapSimpleAuth
+		app := &cli.Command{
+			Flags:  microcmdAuthAddLdapSimpleAuth().Flags,
+			Action: service.addLdapSimpleAuth,
+		}
 
 		// Run it
-		err := app.Run(c.args)
+		err := app.Run(t.Context(), c.args)
 		if c.errMsg != "" {
 			assert.EqualError(t, err, c.errMsg, "case %d: error should match", n)
 		} else {
@@ -473,9 +486,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 
 func TestUpdateLdapBindDn(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	osExiter := cli.OsExiter
-	defer func() { cli.OsExiter = osExiter }()
-	cli.OsExiter = func(code int) {}
+	defer test.MockVariableValue(&cli.OsExiter, func(code int) {})()
 
 	// Test cases
 	cases := []struct {
@@ -510,6 +521,13 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--bind-password", "secret-bind-full",
 				"--synchronize-users",
 				"--page-size", "99",
+				"--enable-groups",
+				"--group-search-base-dn", "ou=group,dc=full-domain-bind,dc=org",
+				"--group-member-attribute", "memberUid",
+				"--group-user-attribute", "uid",
+				"--group-filter", "(|(cn=gitea_users)(cn=admins))",
+				"--group-team-map", `{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}`,
+				"--group-team-map-removal",
 			},
 			id: 23,
 			existingAuthSource: &auth.Source{
@@ -545,6 +563,13 @@ func TestUpdateLdapBindDn(t *testing.T) {
 					AdminFilter:           "(memberOf=cn=admin-group,ou=example,dc=full-domain-bind,dc=org)",
 					RestrictedFilter:      "(memberOf=cn=restricted-group,ou=example,dc=full-domain-bind,dc=org)",
 					Enabled:               true,
+					GroupsEnabled:         true,
+					GroupDN:               "ou=group,dc=full-domain-bind,dc=org",
+					GroupMemberUID:        "memberUid",
+					UserUID:               "uid",
+					GroupFilter:           "(|(cn=gitea_users)(cn=admins))",
+					GroupTeamMap:          `{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}`,
+					GroupTeamMapRemoval:   true,
 				},
 			},
 		},
@@ -836,7 +861,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--security-protocol", "xxxxx",
 			},
-			errMsg: "Unknown security protocol name: xxxxx",
+			errMsg: "unknown security protocol name: xxxxx",
 		},
 		// case 22
 		{
@@ -855,7 +880,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				Type: auth.OAuth2,
 				Cfg:  &ldap.Source{},
 			},
-			errMsg: "Invalid authentication type. expected: LDAP (via BindDN), actual: OAuth2",
+			errMsg: "invalid authentication type. expected: LDAP (via BindDN), actual: OAuth2",
 		},
 		// case 24
 		{
@@ -897,7 +922,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				return nil
 			},
 			createAuthSource: func(ctx context.Context, authSource *auth.Source) error {
-				assert.FailNow(t, "case %d: should not call createAuthSource", n)
+				assert.FailNow(t, "createAuthSource called", "case %d: should not call createAuthSource", n)
 				return nil
 			},
 			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
@@ -919,12 +944,12 @@ func TestUpdateLdapBindDn(t *testing.T) {
 		}
 
 		// Create a copy of command to test
-		app := cli.NewApp()
-		app.Flags = microcmdAuthUpdateLdapBindDn.Flags
-		app.Action = service.updateLdapBindDn
-
+		app := cli.Command{
+			Flags:  microcmdAuthUpdateLdapBindDn().Flags,
+			Action: service.updateLdapBindDn,
+		}
 		// Run it
-		err := app.Run(c.args)
+		err := app.Run(t.Context(), c.args)
 		if c.errMsg != "" {
 			assert.EqualError(t, err, c.errMsg, "case %d: error should match", n)
 		} else {
@@ -936,9 +961,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 
 func TestUpdateLdapSimpleAuth(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	osExiter := cli.OsExiter
-	defer func() { cli.OsExiter = osExiter }()
-	cli.OsExiter = func(code int) {}
+	defer test.MockVariableValue(&cli.OsExiter, func(code int) {})()
 
 	// Test cases
 	cases := []struct {
@@ -1229,7 +1252,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--security-protocol", "xxxxx",
 			},
-			errMsg: "Unknown security protocol name: xxxxx",
+			errMsg: "unknown security protocol name: xxxxx",
 		},
 		// case 18
 		{
@@ -1248,7 +1271,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				Type: auth.PAM,
 				Cfg:  &ldap.Source{},
 			},
-			errMsg: "Invalid authentication type. expected: LDAP (simple auth), actual: PAM",
+			errMsg: "invalid authentication type. expected: LDAP (simple auth), actual: PAM",
 		},
 		// case 20
 		{
@@ -1287,7 +1310,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				return nil
 			},
 			createAuthSource: func(ctx context.Context, authSource *auth.Source) error {
-				assert.FailNow(t, "case %d: should not call createAuthSource", n)
+				assert.FailNow(t, "createAuthSource called", "case %d: should not call createAuthSource", n)
 				return nil
 			},
 			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
@@ -1309,12 +1332,12 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 		}
 
 		// Create a copy of command to test
-		app := cli.NewApp()
-		app.Flags = microcmdAuthUpdateLdapSimpleAuth.Flags
-		app.Action = service.updateLdapSimpleAuth
-
+		app := cli.Command{
+			Flags:  microcmdAuthUpdateLdapSimpleAuth().Flags,
+			Action: service.updateLdapSimpleAuth,
+		}
 		// Run it
-		err := app.Run(c.args)
+		err := app.Run(t.Context(), c.args)
 		if c.errMsg != "" {
 			assert.EqualError(t, err, c.errMsg, "case %d: error should match", n)
 		} else {

@@ -4,13 +4,12 @@
 package archiver
 
 import (
-	"errors"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/contexttest"
+	"code.gitea.io/gitea/services/contexttest"
 
 	_ "code.gitea.io/gitea/models/actions"
 
@@ -34,11 +33,11 @@ func TestArchive_Basic(t *testing.T) {
 	bogusReq, err := NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".zip")
 	assert.NoError(t, err)
 	assert.NotNil(t, bogusReq)
-	assert.EqualValues(t, firstCommit+".zip", bogusReq.GetArchiveName())
+	assert.Equal(t, firstCommit+".zip", bogusReq.GetArchiveName())
 
 	// Check a series of bogus requests.
 	// Step 1, valid commit with a bad extension.
-	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".dilbert")
+	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".unknown")
 	assert.Error(t, err)
 	assert.Nil(t, bogusReq)
 
@@ -55,12 +54,12 @@ func TestArchive_Basic(t *testing.T) {
 	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, "master.zip")
 	assert.NoError(t, err)
 	assert.NotNil(t, bogusReq)
-	assert.EqualValues(t, "master.zip", bogusReq.GetArchiveName())
+	assert.Equal(t, "master.zip", bogusReq.GetArchiveName())
 
 	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, "test/archive.zip")
 	assert.NoError(t, err)
 	assert.NotNil(t, bogusReq)
-	assert.EqualValues(t, "test-archive.zip", bogusReq.GetArchiveName())
+	assert.Equal(t, "test-archive.zip", bogusReq.GetArchiveName())
 
 	// Now two valid requests, firstCommit with valid extensions.
 	zipReq, err := NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".zip")
@@ -71,7 +70,7 @@ func TestArchive_Basic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, tgzReq)
 
-	secondReq, err := NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, secondCommit+".zip")
+	secondReq, err := NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, secondCommit+".bundle")
 	assert.NoError(t, err)
 	assert.NotNil(t, secondReq)
 
@@ -80,13 +79,13 @@ func TestArchive_Basic(t *testing.T) {
 	inFlight[1] = tgzReq
 	inFlight[2] = secondReq
 
-	ArchiveRepository(db.DefaultContext, zipReq)
-	ArchiveRepository(db.DefaultContext, tgzReq)
-	ArchiveRepository(db.DefaultContext, secondReq)
+	doArchive(db.DefaultContext, zipReq)
+	doArchive(db.DefaultContext, tgzReq)
+	doArchive(db.DefaultContext, secondReq)
 
 	// Make sure sending an unprocessed request through doesn't affect the queue
 	// count.
-	ArchiveRepository(db.DefaultContext, zipReq)
+	doArchive(db.DefaultContext, zipReq)
 
 	// Sleep two seconds to make sure the queue doesn't change.
 	time.Sleep(2 * time.Second)
@@ -101,7 +100,7 @@ func TestArchive_Basic(t *testing.T) {
 	// We still have the other three stalled at completion, waiting to remove
 	// from archiveInProgress.  Try to submit this new one before its
 	// predecessor has cleared out of the queue.
-	ArchiveRepository(db.DefaultContext, zipReq2)
+	doArchive(db.DefaultContext, zipReq2)
 
 	// Now we'll submit a request and TimedWaitForCompletion twice, before and
 	// after we release it.  We should trigger both the timeout and non-timeout
@@ -109,7 +108,7 @@ func TestArchive_Basic(t *testing.T) {
 	timedReq, err := NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, secondCommit+".tar.gz")
 	assert.NoError(t, err)
 	assert.NotNil(t, timedReq)
-	ArchiveRepository(db.DefaultContext, timedReq)
+	doArchive(db.DefaultContext, timedReq)
 
 	zipReq2, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".zip")
 	assert.NoError(t, err)
@@ -120,7 +119,7 @@ func TestArchive_Basic(t *testing.T) {
 	// It's fine to go ahead and set it to nil now.
 
 	assert.Equal(t, zipReq, zipReq2)
-	assert.False(t, zipReq == zipReq2)
+	assert.NotSame(t, zipReq, zipReq2)
 
 	// Same commit, different compression formats should have different names.
 	// Ideally, the extension would match what we originally requested.
@@ -129,6 +128,6 @@ func TestArchive_Basic(t *testing.T) {
 }
 
 func TestErrUnknownArchiveFormat(t *testing.T) {
-	err := ErrUnknownArchiveFormat{RequestFormat: "master"}
-	assert.True(t, errors.Is(err, ErrUnknownArchiveFormat{}))
+	err := ErrUnknownArchiveFormat{RequestNameType: "xxx"}
+	assert.ErrorIs(t, err, ErrUnknownArchiveFormat{})
 }

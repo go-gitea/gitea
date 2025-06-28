@@ -40,7 +40,7 @@ class ConanPackageConan(ConanFile):
 
 func TestParseConanfile(t *testing.T) {
 	metadata, err := ParseConanfile(strings.NewReader(contentConanfile))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, license, metadata.License)
 	assert.Equal(t, author, metadata.Author)
 	assert.Equal(t, homepage, metadata.ProjectURL)

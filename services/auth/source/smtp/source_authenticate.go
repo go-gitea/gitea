@@ -12,6 +12,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -71,21 +72,16 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		Email:       userName,
 		Passwd:      password,
 		LoginType:   auth_model.SMTP,
-		LoginSource: source.authSource.ID,
+		LoginSource: source.AuthSource.ID,
 		LoginName:   userName,
 	}
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
-		IsActive: util.OptionalBoolTrue,
+		IsActive: optional.Some(true),
 	}
 
-	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, user, &user_model.Meta{}, overwriteDefault); err != nil {
 		return user, err
 	}
 
 	return user, nil
-}
-
-// IsSkipLocalTwoFA returns if this source should skip local 2fa for password authentication
-func (source *Source) IsSkipLocalTwoFA() bool {
-	return source.SkipLocalTwoFA
 }

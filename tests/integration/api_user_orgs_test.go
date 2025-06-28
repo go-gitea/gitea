@@ -29,6 +29,7 @@ func TestUserOrgs(t *testing.T) {
 
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
 	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
+	org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
 
 	assert.Equal(t, []*api.Organization{
 		{
@@ -55,6 +56,18 @@ func TestUserOrgs(t *testing.T) {
 			Location:    "",
 			Visibility:  "public",
 		},
+		{
+			ID:          35,
+			Name:        org35.Name,
+			UserName:    org35.Name,
+			FullName:    org35.FullName,
+			Email:       org35.Email,
+			AvatarURL:   org35.AvatarLink(db.DefaultContext),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "private",
+		},
 	}, orgs)
 
 	// user itself should get it's org's he is a member of
@@ -63,7 +76,7 @@ func TestUserOrgs(t *testing.T) {
 
 	// unrelated user should not get private org membership of privateMemberUsername
 	orgs = getUserOrgs(t, unrelatedUsername, privateMemberUsername)
-	assert.Len(t, orgs, 0)
+	assert.Empty(t, orgs)
 
 	// not authenticated call should not be allowed
 	testUserOrgsUnauthenticated(t, privateMemberUsername)
@@ -102,6 +115,7 @@ func TestMyOrgs(t *testing.T) {
 	DecodeJSON(t, resp, &orgs)
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
 	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
+	org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
 
 	assert.Equal(t, []*api.Organization{
 		{
@@ -127,6 +141,18 @@ func TestMyOrgs(t *testing.T) {
 			Website:     "",
 			Location:    "",
 			Visibility:  "public",
+		},
+		{
+			ID:          35,
+			Name:        org35.Name,
+			UserName:    org35.Name,
+			FullName:    org35.FullName,
+			Email:       org35.Email,
+			AvatarURL:   org35.AvatarLink(db.DefaultContext),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "private",
 		},
 	}, orgs)
 }

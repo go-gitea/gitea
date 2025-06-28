@@ -17,12 +17,13 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 
 	"github.com/hashicorp/go-version"
@@ -42,8 +43,8 @@ func apiError(ctx *context.Context, status int, obj any) {
 // packageNameFromParams gets the package name from the url parameters
 // Variations: /name/, /@scope/name/, /@scope%2Fname/
 func packageNameFromParams(ctx *context.Context) string {
-	scope := ctx.Params("scope")
-	id := ctx.Params("id")
+	scope := ctx.PathParam("scope")
+	id := ctx.PathParam("id")
 	if scope != "" {
 		return fmt.Sprintf("@%s/%s", scope, id)
 	}
@@ -81,10 +82,10 @@ func PackageMetadata(ctx *context.Context) {
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
-	packageVersion := ctx.Params("version")
-	filename := ctx.Params("filename")
+	packageVersion := ctx.PathParam("version")
+	filename := ctx.PathParam("filename")
 
-	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -97,7 +98,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -110,7 +111,7 @@ func DownloadPackageFile(ctx *context.Context) {
 
 // DownloadPackageFileByName finds the version and serves the contents of a package
 func DownloadPackageFileByName(ctx *context.Context) {
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
@@ -120,7 +121,7 @@ func DownloadPackageFileByName(ctx *context.Context) {
 			Value:      packageNameFromParams(ctx),
 		},
 		HasFileWithName: filename,
-		IsInternal:      util.OptionalBoolFalse,
+		IsInternal:      optional.Some(false),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -131,7 +132,7 @@ func DownloadPackageFileByName(ctx *context.Context) {
 		return
 	}
 
-	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageVersion(
 		ctx,
 		pvs[0],
 		&packages_service.PackageFileInfo{
@@ -139,7 +140,7 @@ func DownloadPackageFileByName(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -162,7 +163,7 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	repo, err := repo_model.GetRepositoryByURL(ctx, npmPackage.Metadata.Repository.URL)
+	repo, err := repo_model.GetRepositoryByURLRelax(ctx, npmPackage.Metadata.Repository.URL)
 	if err == nil {
 		canWrite := repo.OwnerID == ctx.Doer.ID
 
@@ -253,7 +254,7 @@ func DeletePreview(ctx *context.Context) {
 // DeletePackageVersion deletes the package version
 func DeletePackageVersion(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
-	packageVersion := ctx.Params("version")
+	packageVersion := ctx.PathParam("version")
 
 	err := packages_service.RemovePackageVersionByNameAndVersion(
 		ctx,
@@ -266,7 +267,7 @@ func DeletePackageVersion(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -340,7 +341,7 @@ func AddPackageTag(ctx *context.Context) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName, version)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -348,7 +349,7 @@ func AddPackageTag(ctx *context.Context) {
 		return
 	}
 
-	if err := setPackageTag(ctx, ctx.Params("tag"), pv, false); err != nil {
+	if err := setPackageTag(ctx, ctx.PathParam("tag"), pv, false); err != nil {
 		if err == errInvalidTagName {
 			apiError(ctx, http.StatusBadRequest, err)
 			return
@@ -369,7 +370,7 @@ func DeletePackageTag(ctx *context.Context) {
 	}
 
 	if len(pvs) != 0 {
-		if err := setPackageTag(ctx, ctx.Params("tag"), pvs[0], true); err != nil {
+		if err := setPackageTag(ctx, ctx.PathParam("tag"), pvs[0], true); err != nil {
 			if err == errInvalidTagName {
 				apiError(ctx, http.StatusBadRequest, err)
 				return
@@ -395,7 +396,7 @@ func setPackageTag(ctx std_ctx.Context, tag string, pv *packages_model.PackageVe
 			Properties: map[string]string{
 				npm_module.TagProperty: tag,
 			},
-			IsInternal: util.OptionalBoolFalse,
+			IsInternal: optional.Some(false),
 		})
 		if err != nil {
 			return err
@@ -431,7 +432,7 @@ func PackageSearch(ctx *context.Context) {
 	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
 		Type:       packages_model.TypeNpm,
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Name: packages_model.SearchValue{
 			ExactMatch: false,
 			Value:      ctx.FormTrim("text"),

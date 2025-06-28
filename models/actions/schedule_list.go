@@ -18,19 +18,15 @@ type ScheduleList []*ActionSchedule
 
 // GetUserIDs returns a slice of user's id
 func (schedules ScheduleList) GetUserIDs() []int64 {
-	ids := make(container.Set[int64], len(schedules))
-	for _, schedule := range schedules {
-		ids.Add(schedule.TriggerUserID)
-	}
-	return ids.Values()
+	return container.FilterSlice(schedules, func(schedule *ActionSchedule) (int64, bool) {
+		return schedule.TriggerUserID, true
+	})
 }
 
 func (schedules ScheduleList) GetRepoIDs() []int64 {
-	ids := make(container.Set[int64], len(schedules))
-	for _, schedule := range schedules {
-		ids.Add(schedule.RepoID)
-	}
-	return ids.Values()
+	return container.FilterSlice(schedules, func(schedule *ActionSchedule) (int64, bool) {
+		return schedule.RepoID, true
+	})
 }
 
 func (schedules ScheduleList) LoadTriggerUser(ctx context.Context) error {
@@ -44,6 +40,9 @@ func (schedules ScheduleList) LoadTriggerUser(ctx context.Context) error {
 			schedule.TriggerUser = user_model.NewActionsUser()
 		} else {
 			schedule.TriggerUser = users[schedule.TriggerUserID]
+			if schedule.TriggerUser == nil {
+				schedule.TriggerUser = user_model.NewGhostUser()
+			}
 		}
 	}
 	return nil

@@ -18,7 +18,7 @@
 						<div class="flex-item-main">
 							<details>
 								<summary><span class="flex-item-title">{{.Name}}</span></summary>
-								<p class="gt-my-2">
+								<p class="tw-my-1">
 									{{ctx.Locale.Tr "settings.repo_and_org_access"}}:
 									{{if .DisplayPublicOnly}}
 										{{ctx.Locale.Tr "settings.permissions_public_only"}}
@@ -26,8 +26,8 @@
 										{{ctx.Locale.Tr "settings.permissions_access_all"}}
 									{{end}}
 								</p>
-								<p class="gt-my-2">{{ctx.Locale.Tr "settings.permissions_list"}}</p>
-								<ul class="gt-my-2">
+								<p class="tw-my-1">{{ctx.Locale.Tr "settings.permissions_list"}}</p>
+								<ul class="tw-my-1">
 								{{range .Scope.StringSlice}}
 									{{if (ne . $.AccessTokenScopePublicOnly)}}
 										<li>{{.}}</li>
@@ -36,12 +36,12 @@
 								</ul>
 							</details>
 							<div class="flex-item-body">
-								<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} — {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} — {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 							</div>
 						</div>
 						<div class="flex-item-trailing">
 								<button class="ui red tiny button delete-button" data-modal-id="delete-token" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-									{{svg "octicon-trash" 16 "gt-mr-2"}}
+									{{svg "octicon-trash" 16 "tw-mr-1"}}
 									{{ctx.Locale.Tr "settings.delete_token"}}
 								</button>
 						</div>
@@ -49,50 +49,42 @@
 				{{end}}
 			</div>
 		</div>
-		<div class="ui attached bottom segment">
-			<h5 class="ui top header">
-				{{ctx.Locale.Tr "settings.generate_new_token"}}
-			</h5>
-			<form id="scoped-access-form" class="ui form ignore-dirty" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
-				<div class="field {{if .Err_Name}}error{{end}}">
-					<label for="name">{{ctx.Locale.Tr "settings.token_name"}}</label>
-					<input id="name" name="name" value="{{.name}}" autofocus required maxlength="255">
-				</div>
-				<div class="field">
-					<label>{{ctx.Locale.Tr "settings.repo_and_org_access"}}</label>
-					<label class="gt-cursor-pointer">
-						<input class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="{{$.AccessTokenScopePublicOnly}}">
-						{{ctx.Locale.Tr "settings.permissions_public_only"}}
-					</label>
-					<label class="gt-cursor-pointer">
-						<input class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="" checked>
-						{{ctx.Locale.Tr "settings.permissions_access_all"}}
-					</label>
-				</div>
-				<details class="ui optional field">
-					<summary class="gt-pb-4 gt-pl-2">
-						{{ctx.Locale.Tr "settings.select_permissions"}}
-					</summary>
-					<p class="activity meta">
-						<i>{{ctx.Locale.Tr "settings.access_token_desc" (printf `href="/api/swagger" target="_blank"`) (printf `href="https://docs.gitea.com/development/oauth2-provider#scopes" target="_blank"`) | Str2html}}</i>
-					</p>
-					<div class="scoped-access-token-mount">
-						<scoped-access-token-selector
-							:is-admin="{{if .IsAdmin}}true{{else}}false{{end}}"
-							no-access-label="{{ctx.Locale.Tr "settings.permission_no_access"}}"
-							read-label="{{ctx.Locale.Tr "settings.permission_read"}}"
-							write-label="{{ctx.Locale.Tr "settings.permission_write"}}"
-						></scoped-access-token-selector>
+		<div class="ui bottom attached segment">
+			<details {{if or .name (not .Tokens)}}open{{end}}>
+				<summary><h4 class="ui header tw-inline-block tw-my-2">{{ctx.Locale.Tr "settings.generate_new_token"}}</h4></summary>
+				<form class="ui form ignore-dirty" action="{{.Link}}" method="post">
+					{{.CsrfTokenHtml}}
+					<div class="field {{if .Err_Name}}error{{end}}">
+						<label for="name">{{ctx.Locale.Tr "settings.token_name"}}</label>
+						<input id="name" name="name" value="{{.name}}" required maxlength="255">
 					</div>
-				</details>
-				<button id="scoped-access-submit" class="ui primary button">
-					{{ctx.Locale.Tr "settings.generate_token"}}
-				</button>
-			</form>{{/* Fomantic ".ui.form .warning.message" is hidden by default, so put the warning message out of the form*/}}
-			<div id="scoped-access-warning" class="ui warning message center gt-hidden">
-				{{ctx.Locale.Tr "settings.at_least_one_permission"}}
-			</div>
+					<div class="field">
+						<div class="tw-my-2">{{ctx.Locale.Tr "settings.repo_and_org_access"}}</div>
+						<label class="gt-checkbox">
+							<input type="radio" name="scope-public-only" value="{{$.AccessTokenScopePublicOnly}}"> {{ctx.Locale.Tr "settings.permissions_public_only"}}
+						</label>
+						<label class="gt-checkbox">
+							<input type="radio" name="scope-public-only" value="" checked> {{ctx.Locale.Tr "settings.permissions_access_all"}}
+						</label>
+					</div>
+					<div>
+						<div class="tw-my-2">{{ctx.Locale.Tr "settings.access_token_desc" (HTMLFormat `href="%s/api/swagger" target="_blank"` AppSubUrl) (HTMLFormat `href="%s" target="_blank"` "https://docs.gitea.com/development/oauth2-provider#scopes")}}</div>
+						<table class="ui table unstackable tw-my-2">
+						{{range $category := .TokenCategories}}
+							<tr>
+								<td>{{$category}}</td>
+								<td><label class="gt-checkbox"><input type="radio" name="scope-{{$category}}" value="" checked> {{ctx.Locale.Tr "settings.permission_no_access"}}</label></td>
+								<td><label class="gt-checkbox"><input type="radio" name="scope-{{$category}}" value="read:{{$category}}"> {{ctx.Locale.Tr "settings.permission_read"}}</label></td>
+								<td><label class="gt-checkbox"><input type="radio" name="scope-{{$category}}" value="write:{{$category}}"> {{ctx.Locale.Tr "settings.permission_write"}}</label></td>
+							</tr>
+						{{end}}
+						</table>
+					</div>
+					<button class="ui primary button">
+						{{ctx.Locale.Tr "settings.generate_token"}}
+					</button>
+				</form>
+			</details>
 		</div>
 
 		{{if .EnableOAuth2}}
@@ -109,7 +101,7 @@
 	<div class="content">
 		<p>{{ctx.Locale.Tr "settings.access_token_deletion_desc"}}</p>
 	</div>
-	{{template "base/modal_actions_confirm" (dict "ModalButtonColors" "yellow")}}
+	{{template "base/modal_actions_confirm"}}
 </div>
 
 {{template "user/settings/layout_footer" .}}

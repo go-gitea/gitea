@@ -7,8 +7,7 @@ package git
 
 import (
 	"context"
-	"fmt"
-	"io"
+	"maps"
 	"path"
 	"sort"
 
@@ -29,7 +28,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 	var revs map[string]*Commit
 	if commit.repo.LastCommitCache != nil {
 		var unHitPaths []string
-		revs, unHitPaths, err = getLastCommitForPathsByCache(ctx, commit.ID.String(), treePath, entryPaths, commit.repo.LastCommitCache)
+		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, commit.repo.LastCommitCache)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -40,9 +39,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 				return nil, nil, err
 			}
 
-			for pth, found := range commits {
-				revs[pth] = found
-			}
+			maps.Copy(revs, commits)
 		}
 	} else {
 		sort.Strings(entryPaths)
@@ -65,7 +62,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 			log.Debug("missing commit for %s", entry.Name())
 		}
 
-		// If the entry if a submodule add a submodule file for this
+		// If the entry is a submodule add a submodule file for this
 		if entry.IsSubModule() {
 			subModuleURL := ""
 			var fullPath string
@@ -79,14 +76,14 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 			} else if subModule != nil {
 				subModuleURL = subModule.URL
 			}
-			subModuleFile := NewSubModuleFile(commitsInfo[i].Commit, subModuleURL, entry.ID.String())
-			commitsInfo[i].SubModuleFile = subModuleFile
+			subModuleFile := NewCommitSubmoduleFile(subModuleURL, entry.ID.String())
+			commitsInfo[i].SubmoduleFile = subModuleFile
 		}
 	}
 
 	// Retrieve the commit for the treePath itself (see above). We basically
-	// get it for free during the tree traversal and it's used for listing
-	// pages to display information about newest commit for a given path.
+	// get it for free during the tree traversal, and it's used for listing
+	// pages to display information about the newest commit for a given path.
 	var treeCommit *Commit
 	var ok bool
 	if treePath == "" {
@@ -97,7 +94,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 	return commitsInfo, treeCommit, nil
 }
 
-func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
+func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
 	var unHitEntryPaths []string
 	results := make(map[string]*Commit)
 	for _, p := range paths {
@@ -124,40 +121,23 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 		return nil, err
 	}
 
-	batchStdinWriter, batchReader, cancel := commit.repo.CatFileBatch(ctx)
-	defer cancel()
-
 	commitsMap := map[string]*Commit{}
 	commitsMap[commit.ID.String()] = commit
 
 	commitCommits := map[string]*Commit{}
 	for path, commitID := range revs {
+		if len(commitID) == 0 {
+			continue
+		}
+
 		c, ok := commitsMap[commitID]
 		if ok {
 			commitCommits[path] = c
 			continue
 		}
 
-		if len(commitID) == 0 {
-			continue
-		}
-
-		_, err := batchStdinWriter.Write([]byte(commitID + "\n"))
+		c, err := commit.repo.GetCommit(commitID) // Ensure the commit exists in the repository
 		if err != nil {
-			return nil, err
-		}
-		_, typ, size, err := ReadBatchLine(batchReader)
-		if err != nil {
-			return nil, err
-		}
-		if typ != "commit" {
-			return nil, fmt.Errorf("unexpected type: %s for commit id: %s", typ, commitID)
-		}
-		c, err = CommitFromReader(commit.repo, MustIDFromString(commitID), io.LimitReader(batchReader, size))
-		if err != nil {
-			return nil, err
-		}
-		if _, err := batchReader.Discard(1); err != nil {
 			return nil, err
 		}
 		commitCommits[path] = c

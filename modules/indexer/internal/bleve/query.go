@@ -4,6 +4,8 @@
 package bleve
 
 import (
+	"code.gitea.io/gitea/modules/optional"
+
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/search/query"
 )
@@ -18,10 +20,21 @@ func NumericEqualityQuery(value int64, field string) *query.NumericRangeQuery {
 }
 
 // MatchPhraseQuery generates a match phrase query for the given phrase, field and analyzer
-func MatchPhraseQuery(matchPhrase, field, analyzer string) *query.MatchPhraseQuery {
+func MatchPhraseQuery(matchPhrase, field, analyzer string, fuzziness int) *query.MatchPhraseQuery {
 	q := bleve.NewMatchPhraseQuery(matchPhrase)
 	q.FieldVal = field
 	q.Analyzer = analyzer
+	q.Fuzziness = fuzziness
+	return q
+}
+
+// MatchAndQuery generates a match query for the given phrase, field and analyzer
+func MatchAndQuery(matchPhrase, field, analyzer string, fuzziness int) *query.MatchQuery {
+	q := bleve.NewMatchQuery(matchPhrase)
+	q.FieldVal = field
+	q.Analyzer = analyzer
+	q.Fuzziness = fuzziness
+	q.Operator = query.MatchQueryOperatorAnd
 	return q
 }
 
@@ -32,18 +45,18 @@ func BoolFieldQuery(value bool, field string) *query.BoolFieldQuery {
 	return q
 }
 
-func NumericRangeInclusiveQuery(min, max *int64, field string) *query.NumericRangeQuery {
+func NumericRangeInclusiveQuery(minOption, maxOption optional.Option[int64], field string) *query.NumericRangeQuery {
 	var minF, maxF *float64
 	var minI, maxI *bool
-	if min != nil {
+	if minOption.Has() {
 		minF = new(float64)
-		*minF = float64(*min)
+		*minF = float64(minOption.Value())
 		minI = new(bool)
 		*minI = true
 	}
-	if max != nil {
+	if maxOption.Has() {
 		maxF = new(float64)
-		*maxF = float64(*max)
+		*maxF = float64(maxOption.Value())
 		maxI = new(bool)
 		*maxI = true
 	}

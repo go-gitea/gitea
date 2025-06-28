@@ -6,6 +6,7 @@ package git
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/process"
@@ -13,6 +14,14 @@ import (
 
 // LoadPublicKeyContent will load the key from gpg
 func (gpgSettings *GPGSettings) LoadPublicKeyContent() error {
+	if gpgSettings.Format == SigningKeyFormatSSH {
+		content, err := os.ReadFile(gpgSettings.KeyID)
+		if err != nil {
+			return fmt.Errorf("unable to read SSH public key file: %s, %w", gpgSettings.KeyID, err)
+		}
+		gpgSettings.PublicKeyContent = string(content)
+		return nil
+	}
 	content, stderr, err := process.GetManager().Exec(
 		"gpg -a --export",
 		"gpg", "-a", "--export", gpgSettings.KeyID)
@@ -33,7 +42,7 @@ func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, 
 		Sign: true,
 	}
 
-	value, _, _ := NewCommand(repo.Ctx, "config", "--get", "commit.gpgsign").RunStdString(&RunOpts{Dir: repo.Path})
+	value, _, _ := NewCommand("config", "--get", "commit.gpgsign").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	sign, valid := ParseBool(strings.TrimSpace(value))
 	if !sign || !valid {
 		gpgSettings.Sign = false
@@ -41,13 +50,16 @@ func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, 
 		return gpgSettings, nil
 	}
 
-	signingKey, _, _ := NewCommand(repo.Ctx, "config", "--get", "user.signingkey").RunStdString(&RunOpts{Dir: repo.Path})
+	signingKey, _, _ := NewCommand("config", "--get", "user.signingkey").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	gpgSettings.KeyID = strings.TrimSpace(signingKey)
 
-	defaultEmail, _, _ := NewCommand(repo.Ctx, "config", "--get", "user.email").RunStdString(&RunOpts{Dir: repo.Path})
+	format, _, _ := NewCommand("config", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	gpgSettings.Format = strings.TrimSpace(format)
+
+	defaultEmail, _, _ := NewCommand("config", "--get", "user.email").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	gpgSettings.Email = strings.TrimSpace(defaultEmail)
 
-	defaultName, _, _ := NewCommand(repo.Ctx, "config", "--get", "user.name").RunStdString(&RunOpts{Dir: repo.Path})
+	defaultName, _, _ := NewCommand("config", "--get", "user.name").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	gpgSettings.Name = strings.TrimSpace(defaultName)
 
 	if err := gpgSettings.LoadPublicKeyContent(); err != nil {

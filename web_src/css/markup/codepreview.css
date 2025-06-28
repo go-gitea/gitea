@@ -1,0 +1,36 @@
+.markup .code-preview-container {
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  margin: 0.25em 0;
+}
+
+.markup .code-preview-container .code-preview-header {
+  border-bottom: 1px solid var(--color-secondary);
+  padding: 0.5em;
+  font-size: 12px;
+}
+
+.markup .code-preview-container table {
+  width: 100%;
+  max-height: 240px; /* 12 lines at 20px per line */
+  overflow-y: auto;
+  margin: 0; /* override ".markup table {margin}" */
+}
+
+/* workaround to hide empty p before container - more details are in "html_codepreview.go" */
+.markup p:empty:has(+ .code-preview-container) {
+  display: none;
+}
+
+/* override the polluted styles from the content.css: ".markup table ..." */
+.markup .code-preview-container table tr {
+  border: 0 !important;
+}
+.markup .code-preview-container table th,
+.markup .code-preview-container table td {
+  border: 0 !important;
+  padding: 0 0 0 5px !important;
+}
+.markup .code-preview-container table tr:nth-child(2n) {
+  background: none !important;
+}

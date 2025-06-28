@@ -152,3 +152,19 @@ func (r *indexerNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 func (r *indexerNotifier) IssueClearLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
 	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
 }
+
+func (r *indexerNotifier) MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+	issue_indexer.UpdateIssueIndexer(ctx, pr.Issue.ID)
+}
+
+func (r *indexerNotifier) AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+	issue_indexer.UpdateIssueIndexer(ctx, pr.Issue.ID)
+}

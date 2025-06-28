@@ -1,24 +1,21 @@
 <div class="ui centered grid">
 	<div class="twelve wide computer column">
-		<div class="ui attached left aligned segment">
-			<p>{{ctx.Locale.Tr "repo.issues.label_templates.info"}}</p>
-			<br>
-			<form class="ui form center" action="{{.Link}}/initialize" method="post">
-				{{.CsrfTokenHtml}}
-				<div class="field">
-					<div class="ui selection dropdown">
-						<input type="hidden" name="template_name" value="Default">
-						<div class="default text">{{ctx.Locale.Tr "repo.issues.label_templates.helper"}}</div>
-						<div class="menu">
-							{{range .LabelTemplateFiles}}
-								<div class="item" data-value="{{.DisplayName}}">{{.DisplayName}}<br><i>({{.Description}})</i></div>
-							{{end}}
-						</div>
-						{{svg "octicon-triangle-down" 18 "dropdown icon"}}
+		<p>{{ctx.Locale.Tr "repo.issues.label_templates.info"}}</p>
+		<form class="ui form center" action="{{.Link}}/initialize" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field">
+				<div class="ui selection dropdown">
+					<input type="hidden" name="template_name" value="Default">
+					<div class="default text">{{ctx.Locale.Tr "repo.issues.label_templates.helper"}}</div>
+					<div class="menu">
+						{{range .LabelTemplateFiles}}
+							<div class="item" data-value="{{.DisplayName}}">{{.DisplayName}}<br><i>({{.Description}})</i></div>
+						{{end}}
 					</div>
+					{{svg "octicon-triangle-down" 18 "dropdown icon"}}
 				</div>
-				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.issues.label_templates.use"}}</button>
-			</form>
-		</div>
+			</div>
+			<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.issues.label_templates.use"}}</button>
+		</form>
 	</div>
 </div>

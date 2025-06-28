@@ -10,9 +10,8 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -111,18 +110,18 @@ func ListRepoNotifications(ctx *context.APIContext) {
 
 	totalCount, err := db.Count[activities_model.Notification](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	nl, err := db.Find[activities_model.Notification](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	err = activities_model.NotificationList(nl).LoadAttributes(ctx)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -184,7 +183,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	if len(qLastRead) > 0 {
 		tmpLastRead, err := time.Parse(time.RFC3339, qLastRead)
 		if err != nil {
-			ctx.Error(http.StatusBadRequest, "Parse", err)
+			ctx.APIError(http.StatusBadRequest, err)
 			return
 		}
 		if !tmpLastRead.IsZero() {
@@ -201,11 +200,10 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	if !ctx.FormBool("all") {
 		statuses := ctx.FormStrings("status-types")
 		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread"})
-		log.Error("%v", opts.Status)
 	}
 	nl, err := db.Find[activities_model.Notification](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -219,7 +217,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	for _, n := range nl {
 		notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
 		if err != nil {
-			ctx.InternalServerError(err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		_ = notif.LoadAttributes(ctx)

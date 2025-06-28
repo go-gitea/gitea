@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -30,19 +31,20 @@ import (
 // handle elsewhere.
 type ArchiveRequest struct {
 	RepoID   int64
-	refName  string
 	Type     git.ArchiveType
 	CommitID string
+
+	archiveRefShortName string // the ref short name to download the archive, for example: "master", "v1.0.0", "commit id"
 }
 
 // ErrUnknownArchiveFormat request archive format is not supported
 type ErrUnknownArchiveFormat struct {
-	RequestFormat string
+	RequestNameType string
 }
 
 // Error implements error
 func (err ErrUnknownArchiveFormat) Error() string {
-	return fmt.Sprintf("unknown format: %s", err.RequestFormat)
+	return "unknown format: " + err.RequestNameType
 }
 
 // Is implements error
@@ -53,12 +55,12 @@ func (ErrUnknownArchiveFormat) Is(err error) bool {
 
 // RepoRefNotFoundError is returned when a requested reference (commit, tag) was not found.
 type RepoRefNotFoundError struct {
-	RefName string
+	RefShortName string
 }
 
 // Error implements error.
 func (e RepoRefNotFoundError) Error() string {
-	return fmt.Sprintf("unrecognized repository reference: %s", e.RefName)
+	return "unrecognized repository reference: " + e.RefShortName
 }
 
 func (e RepoRefNotFoundError) Is(err error) bool {
@@ -67,36 +69,22 @@ func (e RepoRefNotFoundError) Is(err error) bool {
 }
 
 // NewRequest creates an archival request, based on the URI.  The
-// resulting ArchiveRequest is suitable for being passed to ArchiveRepository()
+// resulting ArchiveRequest is suitable for being passed to Await()
 // if it's determined that the request still needs to be satisfied.
-func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest, error) {
-	r := &ArchiveRequest{
-		RepoID: repoID,
+func NewRequest(repoID int64, repo *git.Repository, archiveRefExt string) (*ArchiveRequest, error) {
+	// here the archiveRefShortName is not a clear ref, it could be a tag, branch or commit id
+	archiveRefShortName, archiveType := git.SplitArchiveNameType(archiveRefExt)
+	if archiveType == git.ArchiveUnknown {
+		return nil, ErrUnknownArchiveFormat{archiveRefExt}
 	}
-
-	var ext string
-	switch {
-	case strings.HasSuffix(uri, ".zip"):
-		ext = ".zip"
-		r.Type = git.ZIP
-	case strings.HasSuffix(uri, ".tar.gz"):
-		ext = ".tar.gz"
-		r.Type = git.TARGZ
-	case strings.HasSuffix(uri, ".bundle"):
-		ext = ".bundle"
-		r.Type = git.BUNDLE
-	default:
-		return nil, ErrUnknownArchiveFormat{RequestFormat: uri}
-	}
-
-	r.refName = strings.TrimSuffix(uri, ext)
 
 	// Get corresponding commit.
-	commitID, err := repo.ConvertToGitID(r.refName)
+	commitID, err := repo.ConvertToGitID(archiveRefShortName)
 	if err != nil {
-		return nil, RepoRefNotFoundError{RefName: r.refName}
+		return nil, RepoRefNotFoundError{RefShortName: archiveRefShortName}
 	}
 
+	r := &ArchiveRequest{RepoID: repoID, archiveRefShortName: archiveRefShortName, Type: archiveType}
 	r.CommitID = commitID.String()
 	return r, nil
 }
@@ -104,11 +92,11 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 // GetArchiveName returns the name of the caller, based on the ref used by the
 // caller to create this request.
 func (aReq *ArchiveRequest) GetArchiveName() string {
-	return strings.ReplaceAll(aReq.refName, "/", "-") + "." + aReq.Type.String()
+	return strings.ReplaceAll(aReq.archiveRefShortName, "/", "-") + "." + aReq.Type.String()
 }
 
 // Await awaits the completion of an ArchiveRequest. If the archive has
-// already been prepared the method returns immediately. Otherwise an archiver
+// already been prepared the method returns immediately. Otherwise, an archiver
 // process will be started and its completion awaited. On success the returned
 // RepoArchiver may be used to download the archive. Note that even if the
 // context is cancelled/times out a started archiver will still continue to run
@@ -150,13 +138,14 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 	}
 }
 
+// doArchive satisfies the ArchiveRequest being passed in.  Processing
+// will occur in a separate goroutine, as this phase may take a while to
+// complete.  If the archive already exists, doArchive will not do
+// anything.  In all cases, the caller should be examining the *ArchiveRequest
+// being returned for completion, as it may be different than the one they passed
+// in.
 func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
-	txCtx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-	ctx, _, finished := process.GetManager().AddContext(txCtx, fmt.Sprintf("ArchiveRequest[%d]: %s", r.RepoID, r.GetArchiveName()))
+	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("ArchiveRequest[%d]: %s", r.RepoID, r.GetArchiveName()))
 	defer finished()
 
 	archiver, err := repo_model.GetRepoArchiver(ctx, r.RepoID, r.Type, r.CommitID)
@@ -191,7 +180,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 				return nil, err
 			}
 		}
-		return archiver, committer.Commit()
+		return archiver, nil
 	}
 
 	if !errors.Is(err, os.ErrNotExist) {
@@ -200,8 +189,8 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 
 	rd, w := io.Pipe()
 	defer func() {
-		w.Close()
-		rd.Close()
+		_ = w.Close()
+		_ = rd.Close()
 	}()
 	done := make(chan error, 1) // Ensure that there is some capacity which will ensure that the goroutine below can always finish
 	repo, err := repo_model.GetRepositoryByID(ctx, archiver.RepoID)
@@ -209,7 +198,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 		return nil, fmt.Errorf("archiver.LoadRepo failed: %w", err)
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +211,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 			}
 		}()
 
-		if archiver.Type == git.BUNDLE {
+		if archiver.Type == git.ArchiveBundle {
 			err = gitRepo.CreateBundle(
 				ctx,
 				archiver.CommitID,
@@ -260,17 +249,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 		}
 	}
 
-	return archiver, committer.Commit()
-}
-
-// ArchiveRepository satisfies the ArchiveRequest being passed in.  Processing
-// will occur in a separate goroutine, as this phase may take a while to
-// complete.  If the archive already exists, ArchiveRepository will not do
-// anything.  In all cases, the caller should be examining the *ArchiveRequest
-// being returned for completion, as it may be different than the one they passed
-// in.
-func ArchiveRepository(ctx context.Context, request *ArchiveRequest) (*repo_model.RepoArchiver, error) {
-	return doArchive(ctx, request)
+	return archiver, nil
 }
 
 var archiverQueue *queue.WorkerPoolQueue[*ArchiveRequest]
@@ -280,8 +259,10 @@ func Init(ctx context.Context) error {
 	handler := func(items ...*ArchiveRequest) []*ArchiveRequest {
 		for _, archiveReq := range items {
 			log.Trace("ArchiverData Process: %#v", archiveReq)
-			if _, err := doArchive(ctx, archiveReq); err != nil {
+			if archiver, err := doArchive(ctx, archiveReq); err != nil {
 				log.Error("Archive %v failed: %v", archiveReq, err)
+			} else {
+				log.Trace("ArchiverData Success: %#v", archiver)
 			}
 		}
 		return nil

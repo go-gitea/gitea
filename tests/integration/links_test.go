@@ -36,8 +36,7 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user2/repo1/",
 		"/user2/repo1/projects",
 		"/user2/repo1/projects/1",
-		"/assets/img/404.png",
-		"/assets/img/500.png",
+		"/user2/repo1/releases/tag/delete-tag", // It's the only one existing record on release.yml which has is_tag: true
 		"/.well-known/security.txt",
 	}
 
@@ -50,18 +49,22 @@ func TestLinksNoLogin(t *testing.T) {
 func TestRedirectsNoLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	redirects := map[string]string{
-		"/user2/repo1/commits/master":                "/user2/repo1/commits/branch/master",
-		"/user2/repo1/src/master":                    "/user2/repo1/src/branch/master",
-		"/user2/repo1/src/master/file.txt":           "/user2/repo1/src/branch/master/file.txt",
-		"/user2/repo1/src/master/directory/file.txt": "/user2/repo1/src/branch/master/directory/file.txt",
-		"/user/avatar/Ghost/-1":                      "/assets/img/avatar_default.png",
-		"/api/v1/swagger":                            "/api/swagger",
+	redirects := []struct{ from, to string }{
+		{"/user2/repo1/commits/master", "/user2/repo1/commits/branch/master"},
+		{"/user2/repo1/src/master", "/user2/repo1/src/branch/master"},
+		{"/user2/repo1/src/master/a%2fb.txt", "/user2/repo1/src/branch/master/a%2fb.txt"},
+		{"/user2/repo1/src/master/directory/file.txt?a=1", "/user2/repo1/src/branch/master/directory/file.txt?a=1"},
+		{"/user2/repo1/src/branch/master/directory/file.txt?raw=1&other=2", "/user2/repo1/raw/branch/master/directory/file.txt"},
+		{"/user2/repo1/tree/a%2fb?a=1", "/user2/repo1/src/a%2fb?a=1"},
+		{"/user2/repo1/blob/123456/%20?a=1", "/user2/repo1/src/commit/123456/%20?a=1"},
+		{"/user/avatar/GhosT/-1", "/assets/img/avatar_default.png"},
+		{"/user/avatar/Gitea-ActionS/0", "/assets/img/avatar_default.png"},
+		{"/api/v1/swagger", "/api/swagger"},
 	}
-	for link, redirectLink := range redirects {
-		req := NewRequest(t, "GET", link)
+	for _, c := range redirects {
+		req := NewRequest(t, "GET", c.from)
 		resp := MakeRequest(t, req, http.StatusSeeOther)
-		assert.EqualValues(t, path.Join(setting.AppSubURL, redirectLink), test.RedirectURL(resp))
+		assert.Equal(t, path.Join(setting.AppSubURL, c.to), test.RedirectURL(resp))
 	}
 }
 

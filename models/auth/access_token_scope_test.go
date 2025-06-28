@@ -17,6 +17,7 @@ type scopeTestNormalize struct {
 }
 
 func TestAccessTokenScope_Normalize(t *testing.T) {
+	assert.Equal(t, []string{"activitypub", "admin", "issue", "misc", "notification", "organization", "package", "repository", "user"}, GetAccessTokenCategories())
 	tests := []scopeTestNormalize{
 		{"", "", nil},
 		{"write:misc,write:notification,read:package,write:notification,public-only", "public-only,write:misc,write:notification,read:package", nil},
@@ -25,13 +26,13 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 		{"write:activitypub,write:admin,write:misc,write:notification,write:organization,write:package,write:issue,write:repository,write:user,public-only", "public-only,all", nil},
 	}
 
-	for _, scope := range []string{"activitypub", "admin", "misc", "notification", "organization", "package", "issue", "repository", "user"} {
+	for _, scope := range GetAccessTokenCategories() {
 		tests = append(tests,
-			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("read:%s", scope)), AccessTokenScope(fmt.Sprintf("read:%s", scope)), nil},
-			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("write:%s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), nil},
-			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("write:%[1]s,read:%[1]s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), nil},
-			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("read:%[1]s,write:%[1]s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), nil},
-			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("read:%[1]s,write:%[1]s,write:%[1]s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), nil},
+			scopeTestNormalize{AccessTokenScope("read:" + scope), AccessTokenScope("read:" + scope), nil},
+			scopeTestNormalize{AccessTokenScope("write:" + scope), AccessTokenScope("write:" + scope), nil},
+			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("write:%[1]s,read:%[1]s", scope)), AccessTokenScope("write:" + scope), nil},
+			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("read:%[1]s,write:%[1]s", scope)), AccessTokenScope("write:" + scope), nil},
+			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("read:%[1]s,write:%[1]s,write:%[1]s", scope)), AccessTokenScope("write:" + scope), nil},
 		)
 	}
 
@@ -59,23 +60,23 @@ func TestAccessTokenScope_HasScope(t *testing.T) {
 		{"public-only", "read:issue", false, nil},
 	}
 
-	for _, scope := range []string{"activitypub", "admin", "misc", "notification", "organization", "package", "issue", "repository", "user"} {
+	for _, scope := range GetAccessTokenCategories() {
 		tests = append(tests,
 			scopeTestHasScope{
-				AccessTokenScope(fmt.Sprintf("read:%s", scope)),
-				AccessTokenScope(fmt.Sprintf("read:%s", scope)), true, nil,
+				AccessTokenScope("read:" + scope),
+				AccessTokenScope("read:" + scope), true, nil,
 			},
 			scopeTestHasScope{
-				AccessTokenScope(fmt.Sprintf("write:%s", scope)),
-				AccessTokenScope(fmt.Sprintf("write:%s", scope)), true, nil,
+				AccessTokenScope("write:" + scope),
+				AccessTokenScope("write:" + scope), true, nil,
 			},
 			scopeTestHasScope{
-				AccessTokenScope(fmt.Sprintf("write:%s", scope)),
-				AccessTokenScope(fmt.Sprintf("read:%s", scope)), true, nil,
+				AccessTokenScope("write:" + scope),
+				AccessTokenScope("read:" + scope), true, nil,
 			},
 			scopeTestHasScope{
-				AccessTokenScope(fmt.Sprintf("read:%s", scope)),
-				AccessTokenScope(fmt.Sprintf("write:%s", scope)), false, nil,
+				AccessTokenScope("read:" + scope),
+				AccessTokenScope("write:" + scope), false, nil,
 			},
 		)
 	}

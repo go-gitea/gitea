@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/options"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 )
 
 // Returns a list of all License templates
@@ -37,7 +37,6 @@ func ListLicenseTemplates(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// Returns information about a gitignore template
 func GetLicenseTemplateInfo(ctx *context.APIContext) {
 	// swagger:operation GET /licenses/{name} miscellaneous getLicenseTemplateInfo
 	// ---
@@ -55,11 +54,11 @@ func GetLicenseTemplateInfo(ctx *context.APIContext) {
 	//     "$ref": "#/responses/LicenseTemplateInfo"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	name := util.PathJoinRelX(ctx.Params("name"))
+	name := util.PathJoinRelX(ctx.PathParam("name"))
 
 	text, err := options.License(name)
 	if err != nil {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 

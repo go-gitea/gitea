@@ -17,12 +17,12 @@ import (
 )
 
 // Routes registers the installation routes
-func Routes() *web.Route {
-	base := web.NewRoute()
+func Routes() *web.Router {
+	base := web.NewRouter()
 	base.Use(common.ProtocolMiddlewares()...)
 	base.Methods("GET, HEAD", "/assets/*", public.FileHandlerFunc())
 
-	r := web.NewRoute()
+	r := web.NewRouter()
 	r.Use(common.Sessioner(), Contexter())
 	r.Get("/", Install) // it must be on the root, because the "install.js" use the window.location to replace the "localhost" AppURL
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
@@ -36,7 +36,7 @@ func Routes() *web.Route {
 
 func installNotFound(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "text/html; charset=utf-8")
-	w.Header().Add("Refresh", fmt.Sprintf("1; url=%s", setting.AppSubURL+"/"))
+	w.Header().Add("Refresh", "1; url="+setting.AppSubURL+"/")
 	// do not use 30x status, because the "post-install" page needs to use 404/200 to detect if Gitea has been installed.
 	// the fetch API could follow 30x requests to the page with 200 status.
 	w.WriteHeader(http.StatusNotFound)

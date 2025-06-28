@@ -1,31 +1,30 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//nolint:forbidigo
+//nolint:forbidigo // use of print functions is allowed in cli
 package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path"
 	"strconv"
 	"strings"
-	"syscall"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/urfave/cli/v2"
+	"github.com/google/go-github/v71/github"
+	"github.com/urfave/cli/v3"
 	"gopkg.in/yaml.v3"
 )
 
 const defaultVersion = "v1.18" // to backport to
 
 func main() {
-	app := cli.NewApp()
+	app := &cli.Command{}
 	app.Name = "backport"
 	app.Usage = "Backport provided PR-number on to the current or previous released version"
 	app.Description = `Backport will look-up the PR in Gitea's git log and attempt to cherry-pick it on the current version`
@@ -64,6 +63,11 @@ func main() {
 			Value: "",
 			Usage: "Forked user name on Github",
 		},
+		&cli.StringFlag{
+			Name:  "gh-access-token",
+			Value: "",
+			Usage: "Access token for GitHub api request",
+		},
 		&cli.BoolFlag{
 			Name:  "no-fetch",
 			Usage: "Set this flag to prevent fetch of remote branches",
@@ -85,7 +89,7 @@ func main() {
 			Usage: "Set this flag to continue from a git cherry-pick that has broken",
 		},
 	}
-	cli.AppHelpTemplate = `NAME:
+	cli.RootCommandHelpTemplate = `NAME:
 	{{.Name}} - {{.Usage}}
 USAGE:
 	{{.HelpName}} {{if .VisibleFlags}}[options]{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{else}}[arguments...]{{end}}
@@ -99,16 +103,12 @@ OPTIONS:
 `
 
 	app.Action = runBackport
-
-	if err := app.Run(os.Args); err != nil {
+	if err := app.Run(context.Background(), os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to backport: %v\n", err)
 	}
 }
 
-func runBackport(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runBackport(ctx context.Context, c *cli.Command) error {
 	continuing := c.Bool("continue")
 
 	var pr string
@@ -153,7 +153,7 @@ func runBackport(c *cli.Context) error {
 
 	args := c.Args().Slice()
 	if len(args) == 0 && pr == "" {
-		return fmt.Errorf("no PR number provided\nProvide a PR number to backport")
+		return errors.New("no PR number provided\nProvide a PR number to backport")
 	} else if len(args) != 1 && pr == "" {
 		return fmt.Errorf("multiple PRs provided %v\nOnly a single PR can be backported at a time", args)
 	}
@@ -169,9 +169,10 @@ func runBackport(c *cli.Context) error {
 	fmt.Printf("* Backporting %s to %s as %s\n", pr, localReleaseBranch, backportBranch)
 
 	sha := c.String("cherry-pick")
+	accessToken := c.String("gh-access-token")
 	if sha == "" {
 		var err error
-		sha, err = determineSHAforPR(ctx, pr)
+		sha, err = determineSHAforPR(ctx, pr, accessToken)
 		if err != nil {
 			return err
 		}
@@ -336,8 +337,8 @@ func determineRemote(ctx context.Context, forkUser string) (string, string, erro
 		fmt.Fprintf(os.Stderr, "Unable to list git remotes:\n%s\n", string(out))
 		return "", "", fmt.Errorf("unable to determine forked remote: %w", err)
 	}
-	lines := strings.Split(string(out), "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(string(out), "\n")
+	for line := range lines {
 		fields := strings.Split(line, "\t")
 		name, remote := fields[0], fields[1]
 		// only look at pushers
@@ -355,12 +356,12 @@ func determineRemote(ctx context.Context, forkUser string) (string, string, erro
 		if !strings.Contains(remote, forkUser) {
 			continue
 		}
-		if strings.HasPrefix(remote, "git@github.com:") {
-			forkUser = strings.TrimPrefix(remote, "git@github.com:")
-		} else if strings.HasPrefix(remote, "https://github.com/") {
-			forkUser = strings.TrimPrefix(remote, "https://github.com/")
-		} else if strings.HasPrefix(remote, "https://www.github.com/") {
-			forkUser = strings.TrimPrefix(remote, "https://www.github.com/")
+		if after, ok := strings.CutPrefix(remote, "git@github.com:"); ok {
+			forkUser = after
+		} else if after, ok := strings.CutPrefix(remote, "https://github.com/"); ok {
+			forkUser = after
+		} else if after, ok := strings.CutPrefix(remote, "https://www.github.com/"); ok {
+			forkUser = after
 		} else if forkUser == "" {
 			return "", "", fmt.Errorf("unable to extract forkUser from remote %s: %s", name, remote)
 		}
@@ -427,13 +428,16 @@ func readVersion() string {
 	return strings.Join(split[:2], ".")
 }
 
-func determineSHAforPR(ctx context.Context, prStr string) (string, error) {
+func determineSHAforPR(ctx context.Context, prStr, accessToken string) (string, error) {
 	prNum, err := strconv.Atoi(prStr)
 	if err != nil {
 		return "", err
 	}
 
 	client := github.NewClient(http.DefaultClient)
+	if accessToken != "" {
+		client = client.WithAuthToken(accessToken)
+	}
 
 	pr, _, err := client.PullRequests.Get(ctx, "go-gitea", "gitea", prNum)
 	if err != nil {
@@ -449,26 +453,4 @@ func determineSHAforPR(ctx context.Context, prStr string) (string, error) {
 	}
 
 	return "", nil
-}
-
-func installSignals() (context.Context, context.CancelFunc) {
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		// install notify
-		signalChannel := make(chan os.Signal, 1)
-
-		signal.Notify(
-			signalChannel,
-			syscall.SIGINT,
-			syscall.SIGTERM,
-		)
-		select {
-		case <-signalChannel:
-		case <-ctx.Done():
-		}
-		cancel()
-		signal.Reset()
-	}()
-
-	return ctx, cancel
 }

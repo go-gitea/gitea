@@ -8,32 +8,13 @@ package pipeline
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"code.gitea.io/gitea/modules/git"
 )
-
-// LFSResult represents commits found using a provided pointer file hash
-type LFSResult struct {
-	Name           string
-	SHA            string
-	Summary        string
-	When           time.Time
-	ParentIDs      []git.ObjectID
-	BranchName     string
-	FullCommitName string
-}
-
-type lfsResultSlice []*LFSResult
-
-func (a lfsResultSlice) Len() int           { return len(a) }
-func (a lfsResultSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a lfsResultSlice) Less(i, j int) bool { return a[j].When.After(a[i].When) }
 
 // FindLFSFile finds commits that contain a provided pointer file hash
 func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, error) {
@@ -51,7 +32,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	go func() {
 		stderr := strings.Builder{}
-		err := git.NewCommand(repo.Ctx, "rev-list", "--all").Run(&git.RunOpts{
+		err := git.NewCommand("rev-list", "--all").Run(repo.Ctx, &git.RunOpts{
 			Dir:    repo.Path,
 			Stdout: revListWriter,
 			Stderr: &stderr,
@@ -65,7 +46,10 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel := repo.CatFileBatch(repo.Ctx)
+	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(repo.Ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
 
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
@@ -130,18 +114,18 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 			case "tree":
 				var n int64
 				for n < size {
-					mode, fname, binObjectID, count, err := git.ParseTreeLine(objectID.Type(), batchReader, modeBuf, fnameBuf, workingShaBuf)
+					mode, fname, binObjectID, count, err := git.ParseCatFileTreeLine(objectID.Type(), batchReader, modeBuf, fnameBuf, workingShaBuf)
 					if err != nil {
 						return nil, err
 					}
 					n += int64(count)
 					if bytes.Equal(binObjectID, objectID.RawValue()) {
 						result := LFSResult{
-							Name:      curPath + string(fname),
-							SHA:       curCommit.ID.String(),
-							Summary:   strings.Split(strings.TrimSpace(curCommit.CommitMessage), "\n")[0],
-							When:      curCommit.Author.When,
-							ParentIDs: curCommit.Parents,
+							Name:         curPath + string(fname),
+							SHA:          curCommit.ID.String(),
+							Summary:      strings.Split(strings.TrimSpace(curCommit.CommitMessage), "\n")[0],
+							When:         curCommit.Author.When,
+							ParentHashes: curCommit.Parents,
 						}
 						resultsMap[curCommit.ID.String()+":"+curPath+string(fname)] = &result
 					} else if string(mode) == git.EntryModeTree.String() {
@@ -169,6 +153,10 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 				} else {
 					break commitReadingLoop
 				}
+			default:
+				if err := git.DiscardFull(batchReader, size+1); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -179,7 +167,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	for _, result := range resultsMap {
 		hasParent := false
-		for _, parentID := range result.ParentIDs {
+		for _, parentID := range result.ParentHashes {
 			if _, hasParent = resultsMap[parentID.String()+":"+result.Name]; hasParent {
 				break
 			}
@@ -228,7 +216,6 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 				errChan <- err
 				break
 			}
-
 		}
 	}()
 
@@ -237,7 +224,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 	select {
 	case err, has := <-errChan:
 		if has {
-			return nil, fmt.Errorf("Unable to obtain name for LFS files. Error: %w", err)
+			return nil, lfsError("unable to obtain name for LFS files", err)
 		}
 	default:
 	}

@@ -7,16 +7,16 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
-
-	"github.com/minio/sha256-simd"
 )
 
 // AesEncrypt encrypts text and given key with AES.
+// It is only internally used at the moment to use "SECRET_KEY" for some database values.
 func AesEncrypt(key, text []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -28,12 +28,13 @@ func AesEncrypt(key, text []byte) ([]byte, error) {
 	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
 		return nil, fmt.Errorf("AesEncrypt unable to read IV: %w", err)
 	}
-	cfb := cipher.NewCFBEncrypter(block, iv)
+	cfb := cipher.NewCFBEncrypter(block, iv) //nolint:staticcheck // need to migrate and refactor to a new approach
 	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
 	return ciphertext, nil
 }
 
 // AesDecrypt decrypts text and given key with AES.
+// It is only internally used at the moment to use "SECRET_KEY" for some database values.
 func AesDecrypt(key, text []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -44,7 +45,7 @@ func AesDecrypt(key, text []byte) ([]byte, error) {
 	}
 	iv := text[:aes.BlockSize]
 	text = text[aes.BlockSize:]
-	cfb := cipher.NewCFBDecrypter(block, iv)
+	cfb := cipher.NewCFBDecrypter(block, iv) //nolint:staticcheck // need to migrate and refactor to a new approach
 	cfb.XORKeyStream(text, text)
 	data, err := base64.StdEncoding.DecodeString(string(text))
 	if err != nil {

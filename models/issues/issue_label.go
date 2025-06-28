@@ -111,6 +111,7 @@ func NewIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 		return err
 	}
 
+	issue.isLabelsLoaded = false
 	issue.Labels = nil
 	if err = issue.LoadLabels(ctx); err != nil {
 		return err
@@ -160,6 +161,8 @@ func NewIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 		return err
 	}
 
+	// reload all labels
+	issue.isLabelsLoaded = false
 	issue.Labels = nil
 	if err = issue.LoadLabels(ctx); err != nil {
 		return err
@@ -203,6 +206,7 @@ func DeleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 	}
 
 	issue.Labels = nil
+	issue.isLabelsLoaded = false
 	return issue.LoadLabels(ctx)
 }
 
@@ -325,11 +329,12 @@ func FixIssueLabelWithOutsideLabels(ctx context.Context) (int64, error) {
 
 // LoadLabels loads labels
 func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
-	if issue.Labels == nil && issue.ID != 0 {
+	if !issue.isLabelsLoaded && issue.Labels == nil && issue.ID != 0 {
 		issue.Labels, err = GetLabelsByIssueID(ctx, issue.ID)
 		if err != nil {
 			return fmt.Errorf("getLabelsByIssueID [%d]: %w", issue.ID, err)
 		}
+		issue.isLabelsLoaded = true
 	}
 	return nil
 }

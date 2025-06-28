@@ -41,8 +41,7 @@ func (g *Manager) start() {
 	// Make SVC process
 	run := svc.Run
 
-	//lint:ignore SA1019 We use IsAnInteractiveSession because IsWindowsService has a different permissions profile
-	isAnInteractiveSession, err := svc.IsAnInteractiveSession() //nolint:staticcheck
+	isAnInteractiveSession, err := svc.IsAnInteractiveSession() //nolint:staticcheck // must use IsAnInteractiveSession because IsWindowsService has a different permissions profile
 	if err != nil {
 		log.Error("Unable to ascertain if running as an Windows Service: %v", err)
 		return
@@ -149,25 +148,35 @@ hammerLoop:
 func (g *Manager) awaitServer(limit time.Duration) bool {
 	c := make(chan struct{})
 	go func() {
-		defer close(c)
-		g.createServerWaitGroup.Wait()
+		g.createServerCond.L.Lock()
+		for {
+			if g.createdServer >= numberOfServersToCreate {
+				g.createServerCond.L.Unlock()
+				close(c)
+				return
+			}
+			select {
+			case <-g.IsShutdown():
+				g.createServerCond.L.Unlock()
+				return
+			default:
+			}
+			g.createServerCond.Wait()
+		}
 	}()
+
+	var tc <-chan time.Time
 	if limit > 0 {
-		select {
-		case <-c:
-			return true // completed normally
-		case <-time.After(limit):
-			return false // timed out
-		case <-g.IsShutdown():
-			return false
-		}
-	} else {
-		select {
-		case <-c:
-			return true // completed normally
-		case <-g.IsShutdown():
-			return false
-		}
+		tc = time.After(limit)
+	}
+	select {
+	case <-c:
+		return true // completed normally
+	case <-tc:
+		return false // timed out
+	case <-g.IsShutdown():
+		g.createServerCond.Signal()
+		return false
 	}
 }
 

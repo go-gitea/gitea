@@ -46,18 +46,18 @@ type PackageFile struct {
 func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 	e := db.GetEngine(ctx)
 
-	key := &PackageFile{
-		VersionID:    pf.VersionID,
-		LowerName:    pf.LowerName,
-		CompositeKey: pf.CompositeKey,
-	}
+	existing := &PackageFile{}
 
-	has, err := e.Get(key)
+	has, err := e.Where(builder.Eq{
+		"version_id":    pf.VersionID,
+		"lower_name":    pf.LowerName,
+		"composite_key": pf.CompositeKey,
+	}).Get(existing)
 	if err != nil {
 		return nil, err
 	}
 	if has {
-		return pf, ErrDuplicatePackageFile
+		return existing, ErrDuplicatePackageFile
 	}
 	if _, err = e.Insert(pf); err != nil {
 		return nil, err
@@ -93,13 +93,13 @@ func GetFileForVersionByName(ctx context.Context, versionID int64, name, key str
 		return nil, ErrPackageFileNotExist
 	}
 
-	pf := &PackageFile{
-		VersionID:    versionID,
-		LowerName:    strings.ToLower(name),
-		CompositeKey: key,
-	}
+	pf := &PackageFile{}
 
-	has, err := db.GetEngine(ctx).Get(pf)
+	has, err := db.GetEngine(ctx).Where(builder.Eq{
+		"version_id":    versionID,
+		"lower_name":    strings.ToLower(name),
+		"composite_key": key,
+	}).Get(pf)
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +112,11 @@ func GetFileForVersionByName(ctx context.Context, versionID int64, name, key str
 // DeleteFileByID deletes a file
 func DeleteFileByID(ctx context.Context, fileID int64) error {
 	_, err := db.GetEngine(ctx).ID(fileID).Delete(&PackageFile{})
+	return err
+}
+
+func UpdateFile(ctx context.Context, pf *PackageFile, cols []string) error {
+	_, err := db.GetEngine(ctx).ID(pf.ID).Cols(cols...).Update(pf)
 	return err
 }
 
@@ -219,6 +224,11 @@ func SearchFiles(ctx context.Context, opts *PackageFileSearchOptions) ([]*Packag
 	pfs := make([]*PackageFile, 0, 10)
 	count, err := sess.FindAndCount(&pfs)
 	return pfs, count, err
+}
+
+// HasFiles tests if there are files of packages matching the search options
+func HasFiles(ctx context.Context, opts *PackageFileSearchOptions) (bool, error) {
+	return db.Exist[PackageFile](ctx, opts.toConds())
 }
 
 // CalculateFileSize sums up all blob sizes matching the search options.

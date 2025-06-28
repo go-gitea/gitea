@@ -110,6 +110,19 @@ func GetProtectedTagByID(ctx context.Context, id int64) (*ProtectedTag, error) {
 	return tag, nil
 }
 
+// GetProtectedTagByNamePattern gets protected tag by name_pattern
+func GetProtectedTagByNamePattern(ctx context.Context, repoID int64, pattern string) (*ProtectedTag, error) {
+	tag := &ProtectedTag{NamePattern: pattern, RepoID: repoID}
+	has, err := db.GetEngine(ctx).Get(tag)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, nil
+	}
+	return tag, nil
+}
+
 // IsUserAllowedToControlTag checks if a user can control the specific tag.
 // It returns true if the tag name is not protected or the user is allowed to control it.
 func IsUserAllowedToControlTag(ctx context.Context, tags []*ProtectedTag, tagName string, userID int64) (bool, error) {

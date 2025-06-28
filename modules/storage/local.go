@@ -114,7 +114,7 @@ func (l *LocalStorage) Delete(path string) error {
 }
 
 // URL gets the redirect URL to a file
-func (l *LocalStorage) URL(path, name string) (*url.URL, error) {
+func (l *LocalStorage) URL(path, name string, reqParams url.Values) (*url.URL, error) {
 	return nil, ErrURLNotSupported
 }
 

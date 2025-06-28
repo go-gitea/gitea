@@ -7,6 +7,7 @@
 			data-modal-header="{{ctx.Locale.Tr "actions.variables.creation"}}"
 			data-modal-dialog-variable-name=""
 			data-modal-dialog-variable-data=""
+			data-modal-dialog-variable-description=""
 		>
 			{{ctx.Locale.Tr "actions.variables.creation"}}
 		</button>
@@ -16,7 +17,7 @@
 	{{if .Variables}}
 	<div class="flex-list">
 		{{range .Variables}}
-		<div class="flex-item gt-ac">
+		<div class="flex-item tw-items-center">
 			<div class="flex-item-leading">
 				{{svg "octicon-pencil" 32}}
 			</div>
@@ -25,24 +26,28 @@
 					{{.Name}}
 				</div>
 				<div class="flex-item-body">
+					{{if .Description}}{{.Description}}{{else}}-{{end}}
+				</div>
+				<div class="flex-item-body">
 					{{.Data}}
 				</div>
 			</div>
 			<div class="flex-item-trailing">
 				<span class="color-text-light-2">
-					{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}}
+					{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}}
 				</span>
-				<button class="btn interact-bg gt-p-3 show-modal"
+				<button class="btn interact-bg tw-p-2 show-modal"
 					data-tooltip-content="{{ctx.Locale.Tr "actions.variables.edit"}}"
 					data-modal="#edit-variable-modal"
 					data-modal-form.action="{{$.Link}}/{{.ID}}/edit"
 					data-modal-header="{{ctx.Locale.Tr "actions.variables.edit"}}"
 					data-modal-dialog-variable-name="{{.Name}}"
 					data-modal-dialog-variable-data="{{.Data}}"
+					data-modal-dialog-variable-description="{{.Description}}"
 				>
 					{{svg "octicon-pencil"}}
 				</button>
-				<button class="btn interact-bg gt-p-3 link-action"
+				<button class="btn interact-bg tw-p-2 link-action"
 					data-tooltip-content="{{ctx.Locale.Tr "actions.variables.deletion"}}"
 					data-url="{{$.Link}}/{{.ID}}/delete"
 					data-modal-confirm="{{ctx.Locale.Tr "actions.variables.deletion.description"}}"
@@ -82,7 +87,18 @@
 				<textarea required
 					name="data"
 					id="dialog-variable-data"
+					maxlength="{{.DataMaxLength}}"
 					placeholder="{{ctx.Locale.Tr "secrets.creation.value_placeholder"}}"
+				></textarea>
+			</div>
+			<div class="field">
+				<label for="dialog-variable-description">{{ctx.Locale.Tr "secrets.creation.description"}}</label>
+				<textarea
+					name="description"
+					id="dialog-variable-description"
+					rows="2"
+					maxlength="{{.DescriptionMaxLength}}"
+					placeholder="{{ctx.Locale.Tr "secrets.creation.description_placeholder"}}"
 				></textarea>
 			</div>
 		</div>

@@ -1,0 +1,12 @@
+{
+        "version": "10",
+        "aliases": {
+                "s3": {
+                        "url": "https://s3.amazonaws.com",
+                        "accessKey": "ExampleAccessKeyIDMinioFile",
+                        "secretKey": "ExampleSecretAccessKeyIDMinioFile",
+                        "api": "S3v4",
+                        "path": "dns"
+                }
+        }
+}

@@ -21,16 +21,18 @@ type MarkupOption struct {
 	//
 	// in: body
 	Text string
-	// Mode to render (comment, gfm, markdown, file)
+	// Mode to render (markdown, comment, wiki, file)
 	//
 	// in: body
 	Mode string
-	// Context to render
+	// URL path for rendering issue, media and file links
+	// Expected format: /subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}/{file/dir}
 	//
 	// in: body
 	Context string
-	// Is it a wiki page ?
+	// Is it a wiki page? (use mode=wiki instead)
 	//
+	// Deprecated: true
 	// in: body
 	Wiki bool
 	// File path for detecting extension in file mode
@@ -49,16 +51,18 @@ type MarkdownOption struct {
 	//
 	// in: body
 	Text string
-	// Mode to render (comment, gfm, markdown)
+	// Mode to render (markdown, comment, wiki, file)
 	//
 	// in: body
 	Mode string
-	// Context to render
+	// URL path for rendering issue, media and file links
+	// Expected format: /subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}/{file/dir}
 	//
 	// in: body
 	Context string
-	// Is it a wiki page ?
+	// Is it a wiki page? (use mode=wiki instead)
 	//
+	// Deprecated: true
 	// in: body
 	Wiki bool
 }

@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -30,15 +31,16 @@ func (m *mailNotifier) CreateIssueComment(ctx context.Context, doer *user_model.
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
 	var act activities_model.ActionType
-	if comment.Type == issues_model.CommentTypeClose {
+	switch comment.Type {
+	case issues_model.CommentTypeClose:
 		act = activities_model.ActionCloseIssue
-	} else if comment.Type == issues_model.CommentTypeReopen {
+	case issues_model.CommentTypeReopen:
 		act = activities_model.ActionReopenIssue
-	} else if comment.Type == issues_model.CommentTypeComment {
+	case issues_model.CommentTypeComment:
 		act = activities_model.ActionCommentIssue
-	} else if comment.Type == issues_model.CommentTypeCode {
+	case issues_model.CommentTypeCode:
 		act = activities_model.ActionCommentIssue
-	} else if comment.Type == issues_model.CommentTypePullRequestPush {
+	case issues_model.CommentTypePullRequestPush:
 		act = 0
 	}
 
@@ -94,11 +96,12 @@ func (m *mailNotifier) NewPullRequest(ctx context.Context, pr *issues_model.Pull
 
 func (m *mailNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, r *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	var act activities_model.ActionType
-	if comment.Type == issues_model.CommentTypeClose {
+	switch comment.Type {
+	case issues_model.CommentTypeClose:
 		act = activities_model.ActionCloseIssue
-	} else if comment.Type == issues_model.CommentTypeReopen {
+	case issues_model.CommentTypeReopen:
 		act = activities_model.ActionReopenIssue
-	} else if comment.Type == issues_model.CommentTypeComment {
+	case issues_model.CommentTypeComment:
 		act = activities_model.ActionCommentPull
 	}
 	if err := MailParticipantsComment(ctx, comment, act, pr.Issue, mentions); err != nil {
@@ -114,7 +117,7 @@ func (m *mailNotifier) PullRequestCodeComment(ctx context.Context, pr *issues_mo
 
 func (m *mailNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
 	// mail only sent to added assignees and not self-assignee
-	if !removed && doer.ID != assignee.ID && assignee.EmailNotifications() != user_model.EmailNotificationsDisabled {
+	if !removed && doer.ID != assignee.ID && assignee.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
 		ct := fmt.Sprintf("Assigned #%d.", issue.Index)
 		if err := SendIssueAssignedMail(ctx, issue, doer, ct, comment, []*user_model.User{assignee}); err != nil {
 			log.Error("Error in SendIssueAssignedMail for issue[%d] to assignee[%d]: %v", issue.ID, assignee.ID, err)
@@ -123,7 +126,7 @@ func (m *mailNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model
 }
 
 func (m *mailNotifier) PullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
-	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotifications() != user_model.EmailNotificationsDisabled {
+	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
 		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL())
 		if err := SendIssueAssignedMail(ctx, issue, doer, ct, comment, []*user_model.User{reviewer}); err != nil {
 			log.Error("Error in SendIssueAssignedMail for issue[%d] to reviewer[%d]: %v", issue.ID, reviewer.ID, err)
@@ -169,7 +172,7 @@ func (m *mailNotifier) PullRequestPushCommits(ctx context.Context, doer *user_mo
 		log.Error("comment.Issue.PullRequest.LoadBaseRepo: %v", err)
 		return
 	}
-	if err := comment.LoadPushCommits(ctx); err != nil {
+	if err := issue_service.LoadCommentPushCommits(ctx, comment); err != nil {
 		log.Error("comment.LoadPushCommits: %v", err)
 	}
 	m.CreateIssueComment(ctx, doer, comment.Issue.Repo, comment.Issue, comment, nil)

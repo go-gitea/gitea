@@ -9,68 +9,68 @@ import (
 	"fmt"
 
 	user_model "code.gitea.io/gitea/models/user"
-	pwd "code.gitea.io/gitea/modules/auth/password"
+	"code.gitea.io/gitea/modules/auth/password"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	user_service "code.gitea.io/gitea/services/user"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
-var microcmdUserChangePassword = &cli.Command{
-	Name:   "change-password",
-	Usage:  "Change a user's password",
-	Action: runChangePassword,
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:    "username",
-			Aliases: []string{"u"},
-			Value:   "",
-			Usage:   "The user to change password for",
+func microcmdUserChangePassword() *cli.Command {
+	return &cli.Command{
+		Name:   "change-password",
+		Usage:  "Change a user's password",
+		Action: runChangePassword,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:     "username",
+				Aliases:  []string{"u"},
+				Usage:    "The user to change password for",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "password",
+				Aliases:  []string{"p"},
+				Usage:    "New password to set for user",
+				Required: true,
+			},
+			&cli.BoolFlag{
+				Name:  "must-change-password",
+				Usage: "User must change password (can be disabled by --must-change-password=false)",
+				Value: true,
+			},
 		},
-		&cli.StringFlag{
-			Name:    "password",
-			Aliases: []string{"p"},
-			Value:   "",
-			Usage:   "New password to set for user",
-		},
-	},
+	}
 }
 
-func runChangePassword(c *cli.Context) error {
-	if err := argsSet(c, "username", "password"); err != nil {
-		return err
+func runChangePassword(ctx context.Context, c *cli.Command) error {
+	if !setting.IsInTesting {
+		if err := initDB(ctx); err != nil {
+			return err
+		}
 	}
 
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	if err := initDB(ctx); err != nil {
-		return err
-	}
-	if len(c.String("password")) < setting.MinPasswordLength {
-		return fmt.Errorf("Password is not long enough. Needs to be at least %d", setting.MinPasswordLength)
-	}
-
-	if !pwd.IsComplexEnough(c.String("password")) {
-		return errors.New("Password does not meet complexity requirements")
-	}
-	pwned, err := pwd.IsPwned(context.Background(), c.String("password"))
+	user, err := user_model.GetUserByName(ctx, c.String("username"))
 	if err != nil {
 		return err
 	}
-	if pwned {
-		return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
-	}
-	uname := c.String("username")
-	user, err := user_model.GetUserByName(ctx, uname)
-	if err != nil {
-		return err
-	}
-	if err = user.SetPassword(c.String("password")); err != nil {
-		return err
-	}
 
-	if err = user_model.UpdateUserCols(ctx, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
-		return err
+	opts := &user_service.UpdateAuthOptions{
+		Password:           optional.Some(c.String("password")),
+		MustChangePassword: optional.Some(c.Bool("must-change-password")),
+	}
+	if err := user_service.UpdateAuth(ctx, user, opts); err != nil {
+		switch {
+		case errors.Is(err, password.ErrMinLength):
+			return fmt.Errorf("password is not long enough, needs to be at least %d characters", setting.MinPasswordLength)
+		case errors.Is(err, password.ErrComplexity):
+			return errors.New("password does not meet complexity requirements")
+		case errors.Is(err, password.ErrIsPwned):
+			return errors.New("the password is in a list of stolen passwords previously exposed in public data breaches, please try again with a different password, to see more details: https://haveibeenpwned.com/Passwords")
+		default:
+			return err
+		}
 	}
 
 	fmt.Printf("%s's password has been successfully updated!\n", user.Name)

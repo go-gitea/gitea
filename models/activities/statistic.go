@@ -9,6 +9,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -16,20 +17,24 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // Statistic contains the database statistics
 type Statistic struct {
 	Counter struct {
-		User, Org, PublicKey,
+		UsersActive, UsersNotActive,
+		Org, PublicKey,
 		Repo, Watch, Star, Access,
 		Issue, IssueClosed, IssueOpen,
 		Comment, Oauth, Follow,
 		Mirror, Release, AuthSource, Webhook,
 		Milestone, Label, HookTask,
 		Team, UpdateTask, Project,
-		ProjectBoard, Attachment int64
+		ProjectColumn, Attachment,
+		Branches, Tags, CommitStatus int64
 		IssueByLabel      []IssueByLabelCount
 		IssueByRepository []IssueByRepositoryCount
 	}
@@ -51,13 +56,28 @@ type IssueByRepositoryCount struct {
 // GetStatistic returns the database statistics
 func GetStatistic(ctx context.Context) (stats Statistic) {
 	e := db.GetEngine(ctx)
-	stats.Counter.User = user_model.CountUsers(ctx, nil)
-	stats.Counter.Org, _ = db.Count[organization.Organization](ctx, organization.FindOrgOptions{IncludePrivate: true})
+
+	// Number of active users
+	usersActiveOpts := user_model.CountUserFilter{
+		IsActive: optional.Some(true),
+	}
+	stats.Counter.UsersActive = user_model.CountUsers(ctx, &usersActiveOpts)
+
+	// Number of inactive users
+	usersNotActiveOpts := user_model.CountUserFilter{
+		IsActive: optional.Some(false),
+	}
+	stats.Counter.UsersNotActive = user_model.CountUsers(ctx, &usersNotActiveOpts)
+
+	stats.Counter.Org, _ = db.Count[organization.Organization](ctx, organization.FindOrgOptions{IncludeVisibility: structs.VisibleTypePrivate})
 	stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
 	stats.Counter.Repo, _ = repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{})
 	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
 	stats.Counter.Star, _ = e.Count(new(repo_model.Star))
 	stats.Counter.Access, _ = e.Count(new(access_model.Access))
+	stats.Counter.Branches, _ = e.Count(new(git_model.Branch))
+	stats.Counter.Tags, _ = e.Where("is_draft=?", false).Count(new(repo_model.Release))
+	stats.Counter.CommitStatus, _ = e.Count(new(git_model.CommitStatus))
 
 	type IssueCount struct {
 		Count    int64
@@ -110,6 +130,6 @@ func GetStatistic(ctx context.Context) (stats Statistic) {
 	stats.Counter.Team, _ = e.Count(new(organization.Team))
 	stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
 	stats.Counter.Project, _ = e.Count(new(project_model.Project))
-	stats.Counter.ProjectBoard, _ = e.Count(new(project_model.Board))
+	stats.Counter.ProjectColumn, _ = e.Count(new(project_model.Column))
 	return stats
 }

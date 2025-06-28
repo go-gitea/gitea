@@ -6,7 +6,6 @@ package util
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -15,50 +14,6 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
-
-// OptionalBool a boolean that can be "null"
-type OptionalBool byte
-
-const (
-	// OptionalBoolNone a "null" boolean value
-	OptionalBoolNone OptionalBool = iota
-	// OptionalBoolTrue a "true" boolean value
-	OptionalBoolTrue
-	// OptionalBoolFalse a "false" boolean value
-	OptionalBoolFalse
-)
-
-// IsTrue return true if equal to OptionalBoolTrue
-func (o OptionalBool) IsTrue() bool {
-	return o == OptionalBoolTrue
-}
-
-// IsFalse return true if equal to OptionalBoolFalse
-func (o OptionalBool) IsFalse() bool {
-	return o == OptionalBoolFalse
-}
-
-// IsNone return true if equal to OptionalBoolNone
-func (o OptionalBool) IsNone() bool {
-	return o == OptionalBoolNone
-}
-
-// OptionalBoolOf get the corresponding OptionalBool of a bool
-func OptionalBoolOf(b bool) OptionalBool {
-	if b {
-		return OptionalBoolTrue
-	}
-	return OptionalBoolFalse
-}
-
-// OptionalBoolParse get the corresponding OptionalBool of a string using strconv.ParseBool
-func OptionalBoolParse(s string) OptionalBool {
-	b, e := strconv.ParseBool(s)
-	if e != nil {
-		return OptionalBoolNone
-	}
-	return OptionalBoolOf(b)
-}
 
 // IsEmptyString checks if the provided string is empty
 func IsEmptyString(s string) bool {
@@ -247,12 +202,54 @@ func ToPointer[T any](val T) *T {
 	return &val
 }
 
-func Base64FixedDecode(encoding *base64.Encoding, src []byte, length int) ([]byte, error) {
-	decoded := make([]byte, encoding.DecodedLen(len(src))+3)
-	if n, err := encoding.Decode(decoded, src); err != nil {
-		return nil, err
-	} else if n != length {
-		return nil, fmt.Errorf("invalid base64 decoded length: %d, expects: %d", n, length)
+// Iif is an "inline-if", it returns "trueVal" if "condition" is true, otherwise "falseVal"
+func Iif[T any](condition bool, trueVal, falseVal T) T {
+	if condition {
+		return trueVal
 	}
-	return decoded[:length], nil
+	return falseVal
+}
+
+// IfZero returns "def" if "v" is a zero value, otherwise "v"
+func IfZero[T comparable](v, def T) T {
+	var zero T
+	if v == zero {
+		return def
+	}
+	return v
+}
+
+func IfEmpty[T any](v, def []T) []T {
+	if len(v) == 0 {
+		return def
+	}
+	return v
+}
+
+// OptionalArg helps the "optional argument" in Golang:
+//
+//	func foo(optArg ...int) { return OptionalArg(optArg) }
+//		calling `foo()` gets zero value 0, calling `foo(100)` gets 100
+//	func bar(optArg ...int) { return OptionalArg(optArg, 42) }
+//		calling `bar()` gets default value 42, calling `bar(100)` gets 100
+//
+// Passing more than 1 item to `optArg` or `defaultValue` is undefined behavior.
+// At the moment only the first item is used.
+func OptionalArg[T any](optArg []T, defaultValue ...T) (ret T) {
+	if len(optArg) >= 1 {
+		return optArg[0]
+	}
+	if len(defaultValue) >= 1 {
+		return defaultValue[0]
+	}
+	return ret
+}
+
+func ReserveLineBreakForTextarea(input string) string {
+	// Since the content is from a form which is a textarea, the line endings are \r\n.
+	// It's a standard behavior of HTML.
+	// But we want to store them as \n like what GitHub does.
+	// And users are unlikely to really need to keep the \r.
+	// Other than this, we should respect the original content, even leading or trailing spaces.
+	return strings.ReplaceAll(input, "\r\n", "\n")
 }

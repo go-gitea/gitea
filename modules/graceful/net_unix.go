@@ -129,25 +129,17 @@ func getProvidedFDs() (savedErr error) {
 	return savedErr
 }
 
-// CloseProvidedListeners closes all unused provided listeners.
-func CloseProvidedListeners() error {
+// closeProvidedListeners closes all unused provided listeners.
+func closeProvidedListeners() {
 	mutex.Lock()
 	defer mutex.Unlock()
-	var returnableError error
 	for _, l := range providedListeners {
 		err := l.Close()
 		if err != nil {
 			log.Error("Error in closing unused provided listener: %v", err)
-			if returnableError != nil {
-				returnableError = fmt.Errorf("%v & %w", returnableError, err)
-			} else {
-				returnableError = err
-			}
 		}
 	}
 	providedListeners = []net.Listener{}
-
-	return returnableError
 }
 
 // DefaultGetListener obtains a listener for the stream-oriented local network address:

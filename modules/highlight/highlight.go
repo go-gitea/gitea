@@ -11,6 +11,7 @@ import (
 	gohtml "html"
 	"html/template"
 	"io"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -83,7 +84,7 @@ func Code(fileName, language, code string) (output template.HTML, lexerName stri
 	}
 
 	if lexer == nil {
-		if val, ok := highlightMapping[filepath.Ext(fileName)]; ok {
+		if val, ok := highlightMapping[path.Ext(fileName)]; ok {
 			// use mapped value to find lexer
 			lexer = lexers.Get(val)
 		}

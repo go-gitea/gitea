@@ -17,7 +17,6 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 			ptree:     t,
 			ID:        t.ID,
 			name:      "",
-			fullName:  "",
 			entryMode: EntryModeTree,
 		}, nil
 	}

@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"strconv"
-	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -21,25 +21,6 @@ const (
 	GitQuarantinePath               = "GIT_QUARANTINE_PATH"
 	GitPushOptionCount              = "GIT_PUSH_OPTION_COUNT"
 )
-
-// GitPushOptions is a wrapper around a map[string]string
-type GitPushOptions map[string]string
-
-// GitPushOptions keys
-const (
-	GitPushOptionRepoPrivate  = "repo.private"
-	GitPushOptionRepoTemplate = "repo.template"
-)
-
-// Bool checks for a key in the map and parses as a boolean
-func (g GitPushOptions) Bool(key string, def bool) bool {
-	if val, ok := g[key]; ok {
-		if b, err := strconv.ParseBool(val); err == nil {
-			return b
-		}
-	}
-	return def
-}
 
 // HookOptions represents the options for the Hook calls
 type HookOptions struct {
@@ -53,6 +34,7 @@ type HookOptions struct {
 	GitQuarantinePath               string
 	GitPushOptions                  GitPushOptions
 	PullRequestID                   int64
+	PushTrigger                     repository.PushTrigger
 	DeployKeyID                     int64 // if the pusher is a DeployKey, then UserID is the repo's org user.
 	IsWiki                          bool
 	ActionPerm                      int
@@ -87,38 +69,45 @@ type HookProcReceiveResult struct {
 
 // HookProcReceiveRefResult represents an individual result from ProcReceive
 type HookProcReceiveRefResult struct {
-	OldOID       string
-	NewOID       string
-	Ref          string
-	OriginalRef  git.RefName
-	IsForcePush  bool
-	IsNotMatched bool
-	Err          string
+	OldOID            string
+	NewOID            string
+	Ref               string
+	OriginalRef       git.RefName
+	IsForcePush       bool
+	IsNotMatched      bool
+	Err               string
+	IsCreatePR        bool
+	URL               string
+	ShouldShowMessage bool
+	HeadBranch        string
+}
+
+func newInternalRequestAPIForHooks(ctx context.Context, hookName, ownerName, repoName string, opts HookOptions) *httplib.Request {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/%s/%s/%s", hookName, url.PathEscape(ownerName), url.PathEscape(repoName))
+	req := newInternalRequestAPI(ctx, reqURL, "POST", opts)
+	// This "timeout" applies to http.Client's timeout: A Timeout of zero means no timeout.
+	// This "timeout" was previously set to `time.Duration(60+len(opts.OldCommitIDs))` seconds, but it caused unnecessary timeout failures.
+	// It should be good enough to remove the client side timeout, only respect the "ctx" and server side timeout.
+	req.SetReadWriteTimeout(0)
+	return req
 }
 
 // HookPreReceive check whether the provided commits are allowed
 func HookPreReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) ResponseExtra {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s", url.PathEscape(ownerName), url.PathEscape(repoName))
-	req := newInternalRequest(ctx, reqURL, "POST", opts)
-	req.SetReadWriteTimeout(time.Duration(60+len(opts.OldCommitIDs)) * time.Second)
-	_, extra := requestJSONResp(req, &responseText{})
+	req := newInternalRequestAPIForHooks(ctx, "pre-receive", ownerName, repoName, opts)
+	_, extra := requestJSONResp(req, &ResponseText{})
 	return extra
 }
 
 // HookPostReceive updates services and users
 func HookPostReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (*HookPostReceiveResult, ResponseExtra) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/post-receive/%s/%s", url.PathEscape(ownerName), url.PathEscape(repoName))
-	req := newInternalRequest(ctx, reqURL, "POST", opts)
-	req.SetReadWriteTimeout(time.Duration(60+len(opts.OldCommitIDs)) * time.Second)
+	req := newInternalRequestAPIForHooks(ctx, "post-receive", ownerName, repoName, opts)
 	return requestJSONResp(req, &HookPostReceiveResult{})
 }
 
 // HookProcReceive proc-receive hook
 func HookProcReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (*HookProcReceiveResult, ResponseExtra) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/proc-receive/%s/%s", url.PathEscape(ownerName), url.PathEscape(repoName))
-
-	req := newInternalRequest(ctx, reqURL, "POST", opts)
-	req.SetReadWriteTimeout(time.Duration(60+len(opts.OldCommitIDs)) * time.Second)
+	req := newInternalRequestAPIForHooks(ctx, "proc-receive", ownerName, repoName, opts)
 	return requestJSONResp(req, &HookProcReceiveResult{})
 }
 
@@ -129,15 +118,15 @@ func SetDefaultBranch(ctx context.Context, ownerName, repoName, branch string) R
 		url.PathEscape(repoName),
 		url.PathEscape(branch),
 	)
-	req := newInternalRequest(ctx, reqURL, "POST")
-	_, extra := requestJSONResp(req, &responseText{})
+	req := newInternalRequestAPI(ctx, reqURL, "POST")
+	_, extra := requestJSONResp(req, &ResponseText{})
 	return extra
 }
 
 // SSHLog sends ssh error log response
 func SSHLog(ctx context.Context, isErr bool, msg string) error {
 	reqURL := setting.LocalURL + "api/internal/ssh/log"
-	req := newInternalRequest(ctx, reqURL, "POST", &SSHLogOption{IsError: isErr, Message: msg})
-	_, extra := requestJSONResp(req, &responseText{})
+	req := newInternalRequestAPI(ctx, reqURL, "POST", &SSHLogOption{IsError: isErr, Message: msg})
+	_, extra := requestJSONResp(req, &ResponseText{})
 	return extra.Error
 }

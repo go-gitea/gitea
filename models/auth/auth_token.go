@@ -15,7 +15,7 @@ import (
 
 var ErrAuthTokenNotExist = util.NewNotExistErrorf("auth token does not exist")
 
-type AuthToken struct { //nolint:revive
+type AuthToken struct { //nolint:revive // export stutter
 	ID          string `xorm:"pk"`
 	TokenHash   string
 	UserID      int64              `xorm:"INDEX"`
@@ -51,6 +51,11 @@ func UpdateAuthTokenByID(ctx context.Context, t *AuthToken) error {
 
 func DeleteAuthTokenByID(ctx context.Context, id string) error {
 	_, err := db.GetEngine(ctx).ID(id).Delete(&AuthToken{})
+	return err
+}
+
+func DeleteAuthTokensByUserID(ctx context.Context, uid int64) error {
+	_, err := db.GetEngine(ctx).Where(builder.Eq{"user_id": uid}).Delete(&AuthToken{})
 	return err
 }
 

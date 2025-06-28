@@ -5,8 +5,8 @@ package repo
 
 import (
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -21,11 +21,6 @@ func LockIssue(ctx *context.Context) {
 
 	if issue.IsLocked {
 		ctx.JSONError(ctx.Tr("repo.issues.lock_duplicate"))
-		return
-	}
-
-	if !form.HasValidReason() {
-		ctx.JSONError(ctx.Tr("repo.issues.lock.unknown_reason"))
 		return
 	}
 

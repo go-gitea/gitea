@@ -7,14 +7,11 @@ package forms
 import (
 	"mime/multipart"
 	"net/http"
-	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/binding"
 )
@@ -109,11 +106,7 @@ func (f *RegisterForm) Validate(req *http.Request, errs binding.Errors) binding.
 // domains in the whitelist or if it doesn't match any of
 // domains in the blocklist, if any such list is not empty.
 func (f *RegisterForm) IsEmailDomainAllowed() bool {
-	if len(setting.Service.EmailDomainAllowList) == 0 {
-		return !validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, f.Email)
-	}
-
-	return validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, f.Email)
+	return user_model.IsEmailDomainAllowed(f.Email)
 }
 
 // MustChangePasswordForm form for updating your password after account creation
@@ -166,6 +159,7 @@ func (f *AuthorizationForm) Validate(req *http.Request, errs binding.Errors) bin
 // GrantApplicationForm form for authorizing oauth2 clients
 type GrantApplicationForm struct {
 	ClientID    string `binding:"Required"`
+	Granted     bool
 	RedirectURI string
 	State       string
 	Scope       string
@@ -277,27 +271,13 @@ func (f *AddEmailForm) Validate(req *http.Request, errs binding.Errors) binding.
 
 // UpdateThemeForm form for updating a users' theme
 type UpdateThemeForm struct {
-	Theme string `binding:"Required;MaxSize(30)"`
+	Theme string `binding:"Required;MaxSize(255)"`
 }
 
 // Validate validates the field
 func (f *UpdateThemeForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// IsThemeExists checks if the theme is a theme available in the config.
-func (f UpdateThemeForm) IsThemeExists() bool {
-	var exists bool
-
-	for _, v := range setting.UI.Themes {
-		if strings.EqualFold(v, f.Theme) {
-			exists = true
-			break
-		}
-	}
-
-	return exists
 }
 
 // ChangePasswordForm form for changing password
@@ -343,8 +323,9 @@ func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Er
 
 // AddSecretForm for adding secrets
 type AddSecretForm struct {
-	Name string `binding:"Required;MaxSize(255)"`
-	Data string `binding:"Required;MaxSize(65535)"`
+	Name        string `binding:"Required;MaxSize(255)"`
+	Data        string `binding:"Required;MaxSize(65535)"`
+	Description string `binding:"MaxSize(65535)"`
 }
 
 // Validate validates the fields
@@ -354,8 +335,9 @@ func (f *AddSecretForm) Validate(req *http.Request, errs binding.Errors) binding
 }
 
 type EditVariableForm struct {
-	Name string `binding:"Required;MaxSize(255)"`
-	Data string `binding:"Required;MaxSize(65535)"`
+	Name        string `binding:"Required;MaxSize(255)"`
+	Data        string `binding:"Required;MaxSize(65535)"`
+	Description string `binding:"MaxSize(65535)"`
 }
 
 func (f *EditVariableForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
@@ -365,8 +347,7 @@ func (f *EditVariableForm) Validate(req *http.Request, errs binding.Errors) bind
 
 // NewAccessTokenForm form for creating access token
 type NewAccessTokenForm struct {
-	Name  string `binding:"Required;MaxSize(255)" locale:"settings.token_name"`
-	Scope []string
+	Name string `binding:"Required;MaxSize(255)" locale:"settings.token_name"`
 }
 
 // Validate validates the fields
@@ -375,17 +356,12 @@ func (f *NewAccessTokenForm) Validate(req *http.Request, errs binding.Errors) bi
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-func (f *NewAccessTokenForm) GetScope() (auth_model.AccessTokenScope, error) {
-	scope := strings.Join(f.Scope, ",")
-	s, err := auth_model.AccessTokenScope(scope).Normalize()
-	return s, err
-}
-
 // EditOAuth2ApplicationForm form for editing oauth2 applications
 type EditOAuth2ApplicationForm struct {
-	Name               string `binding:"Required;MaxSize(255)" form:"application_name"`
-	RedirectURIs       string `binding:"Required" form:"redirect_uris"`
-	ConfidentialClient bool   `form:"confidential_client"`
+	Name                       string `binding:"Required;MaxSize(255)" form:"application_name"`
+	RedirectURIs               string `binding:"Required;ValidUrlList" form:"redirect_uris"`
+	ConfidentialClient         bool   `form:"confidential_client"`
+	SkipSecondaryAuthorization bool   `form:"skip_secondary_authorization"`
 }
 
 // Validate validates the fields
@@ -446,6 +422,17 @@ type PackageSettingForm struct {
 
 // Validate validates the fields
 func (f *PackageSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type BlockUserForm struct {
+	Action  string `binding:"Required;In(block,unblock,note)"`
+	Blockee string `binding:"Required"`
+	Note    string
+}
+
+func (f *BlockUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

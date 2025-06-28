@@ -5,6 +5,7 @@ package externalaccount
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
@@ -70,18 +71,23 @@ func LinkAccountToUser(ctx context.Context, user *user_model.User, gothUser goth
 	return nil
 }
 
-// UpdateExternalUser updates external user's information
-func UpdateExternalUser(ctx context.Context, user *user_model.User, gothUser goth.User) error {
+// EnsureLinkExternalToUser link the gothUser to the user
+func EnsureLinkExternalToUser(ctx context.Context, user *user_model.User, gothUser goth.User) error {
 	externalLoginUser, err := toExternalLoginUser(ctx, user, gothUser)
 	if err != nil {
 		return err
 	}
 
-	return user_model.UpdateExternalUserByExternalID(ctx, externalLoginUser)
+	return user_model.EnsureLinkExternalToUser(ctx, externalLoginUser)
 }
 
 // UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
 func UpdateMigrationsByType(ctx context.Context, tp structs.GitServiceType, externalUserID string, userID int64) error {
+	// Skip update if externalUserID is not a valid numeric ID or exceeds int64
+	if _, err := strconv.ParseInt(externalUserID, 10, 64); err != nil {
+		return nil
+	}
+
 	if err := issues_model.UpdateIssuesMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
 		return err
 	}

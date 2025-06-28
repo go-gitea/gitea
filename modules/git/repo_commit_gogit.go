@@ -14,9 +14,16 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// GetRefCommitID returns the last commit ID string of given reference (branch or tag).
+// GetRefCommitID returns the last commit ID string of given reference.
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	ref, err := repo.gogitRepo.Reference(plumbing.ReferenceName(name), true)
+	if plumbing.IsHash(name) {
+		return name, nil
+	}
+	refName := plumbing.ReferenceName(name)
+	if err := refName.Validate(); err != nil {
+		return "", err
+	}
+	ref, err := repo.gogitRepo.Reference(refName, true)
 	if err != nil {
 		if err == plumbing.ErrReferenceNotFound {
 			return "", ErrNotExist{
@@ -41,7 +48,10 @@ func (repo *Repository) RemoveReference(name string) error {
 
 // ConvertToHash returns a Hash object from a potential ID string
 func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
-	objectFormat := repo.objectFormat
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
 	if len(commitID) == hash.HexSize && objectFormat.IsValid(commitID) {
 		ID, err := NewIDFromString(commitID)
 		if err == nil {
@@ -49,7 +59,7 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		}
 	}
 
-	actualCommitID, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify").AddDynamicArguments(commitID).RunStdString(&RunOpts{Dir: repo.Path})
+	actualCommitID, _, err := NewCommand("rev-parse", "--verify").AddDynamicArguments(commitID).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	actualCommitID = strings.TrimSpace(actualCommitID)
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown revision or path") ||

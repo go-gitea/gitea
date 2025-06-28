@@ -36,7 +36,7 @@ type Collector struct {
 	Oauths             *prometheus.Desc
 	Organizations      *prometheus.Desc
 	Projects           *prometheus.Desc
-	ProjectBoards      *prometheus.Desc
+	ProjectColumns     *prometheus.Desc
 	PublicKeys         *prometheus.Desc
 	Releases           *prometheus.Desc
 	Repositories       *prometheus.Desc
@@ -146,9 +146,9 @@ func NewCollector() Collector {
 			"Number of projects",
 			nil, nil,
 		),
-		ProjectBoards: prometheus.NewDesc(
-			namespace+"projects_boards",
-			"Number of project boards",
+		ProjectColumns: prometheus.NewDesc(
+			namespace+"projects_boards", // TODO: change the key name will affect the consume's result history
+			"Number of project columns",
 			nil, nil,
 		),
 		PublicKeys: prometheus.NewDesc(
@@ -184,7 +184,7 @@ func NewCollector() Collector {
 		Users: prometheus.NewDesc(
 			namespace+"users",
 			"Number of Users",
-			nil, nil,
+			[]string{"state"}, nil,
 		),
 		Watches: prometheus.NewDesc(
 			namespace+"watches",
@@ -219,7 +219,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.Oauths
 	ch <- c.Organizations
 	ch <- c.Projects
-	ch <- c.ProjectBoards
+	ch <- c.ProjectColumns
 	ch <- c.PublicKeys
 	ch <- c.Releases
 	ch <- c.Repositories
@@ -336,9 +336,9 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 		float64(stats.Counter.Project),
 	)
 	ch <- prometheus.MustNewConstMetric(
-		c.ProjectBoards,
+		c.ProjectColumns,
 		prometheus.GaugeValue,
-		float64(stats.Counter.ProjectBoard),
+		float64(stats.Counter.ProjectColumn),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.PublicKeys,
@@ -373,7 +373,14 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(
 		c.Users,
 		prometheus.GaugeValue,
-		float64(stats.Counter.User),
+		float64(stats.Counter.UsersActive),
+		"active", // state label
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.Users,
+		prometheus.GaugeValue,
+		float64(stats.Counter.UsersNotActive),
+		"inactive", // state label
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.Watches,

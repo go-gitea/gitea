@@ -14,3 +14,7 @@
   id: 4
   assignee_id: 2
   issue_id: 17
+-
+  id: 5
+  assignee_id: 10
+  issue_id: 6

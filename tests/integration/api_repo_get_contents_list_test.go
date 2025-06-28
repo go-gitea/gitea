@@ -6,14 +6,16 @@ package integration
 import (
 	"net/http"
 	"net/url"
-	"path/filepath"
+	"path"
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -30,16 +32,18 @@ func getExpectedContentsListResponseForContents(ref, refType, lastCommitSHA stri
 	downloadURL := setting.AppURL + "user2/repo1/raw/" + refType + "/" + ref + "/" + treePath
 	return []*api.ContentsResponse{
 		{
-			Name:          filepath.Base(treePath),
-			Path:          treePath,
-			SHA:           sha,
-			LastCommitSHA: lastCommitSHA,
-			Type:          "file",
-			Size:          30,
-			URL:           &selfURL,
-			HTMLURL:       &htmlURL,
-			GitURL:        &gitURL,
-			DownloadURL:   &downloadURL,
+			Name:              path.Base(treePath),
+			Path:              treePath,
+			SHA:               sha,
+			LastCommitSHA:     lastCommitSHA,
+			LastCommitterDate: time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
+			LastAuthorDate:    time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
+			Type:              "file",
+			Size:              30,
+			URL:               &selfURL,
+			HTMLURL:           &htmlURL,
+			GitURL:            &gitURL,
+			DownloadURL:       &downloadURL,
 			Links: &api.FileLinksResponse{
 				Self:    &selfURL,
 				GitURL:  &gitURL,
@@ -71,7 +75,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Get the commit ID of the default branch
-	gitRepo, err := git.OpenRepository(git.DefaultContext, repo1.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -98,7 +102,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	lastCommit, err := gitRepo.GetCommitByPath("README.md")
 	assert.NoError(t, err)
 	expectedContentsListResponse := getExpectedContentsListResponseForContents(ref, refType, lastCommit.ID.String())
-	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
+	assert.Equal(t, expectedContentsListResponse, contentsListResponse)
 
 	// No ref
 	refType = "branch"
@@ -108,7 +112,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	assert.NotNil(t, contentsListResponse)
 
 	expectedContentsListResponse = getExpectedContentsListResponseForContents(repo1.DefaultBranch, refType, lastCommit.ID.String())
-	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
+	assert.Equal(t, expectedContentsListResponse, contentsListResponse)
 
 	// ref is the branch we created above in setup
 	ref = newBranch
@@ -122,7 +126,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	lastCommit, err = branchCommit.GetCommitByPath("README.md")
 	assert.NoError(t, err)
 	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType, lastCommit.ID.String())
-	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
+	assert.Equal(t, expectedContentsListResponse, contentsListResponse)
 
 	// ref is the new tag we created above in setup
 	ref = newTag
@@ -136,7 +140,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	lastCommit, err = tagCommit.GetCommitByPath("README.md")
 	assert.NoError(t, err)
 	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType, lastCommit.ID.String())
-	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
+	assert.Equal(t, expectedContentsListResponse, contentsListResponse)
 
 	// ref is a commit
 	ref = commitID
@@ -146,7 +150,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
 	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType, commitID)
-	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
+	assert.Equal(t, expectedContentsListResponse, contentsListResponse)
 
 	// Test file contents a file with a bad ref
 	ref = "badref"

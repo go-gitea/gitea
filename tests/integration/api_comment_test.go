@@ -106,8 +106,34 @@ func TestAPICreateComment(t *testing.T) {
 
 	var updatedComment api.Comment
 	DecodeJSON(t, resp, &updatedComment)
-	assert.EqualValues(t, commentBody, updatedComment.Body)
+	assert.Equal(t, commentBody, updatedComment.Body)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: updatedComment.ID, IssueID: issue.ID, Content: commentBody})
+
+	t.Run("BlockedByRepoOwner", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/comments", repo.OwnerName, repo.Name, issue.Index), map[string]string{
+			"body": commentBody,
+		}).AddTokenAuth(getUserToken(t, user34.Name, auth_model.AccessTokenScopeWriteRepository))
+		MakeRequest(t, req, http.StatusForbidden)
+	})
+
+	t.Run("BlockedByIssuePoster", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 13})
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/comments", repo.OwnerName, repo.Name, issue.Index), map[string]string{
+			"body": commentBody,
+		}).AddTokenAuth(getUserToken(t, user34.Name, auth_model.AccessTokenScopeWriteRepository))
+		MakeRequest(t, req, http.StatusForbidden)
+	})
 }
 
 func TestAPIGetComment(t *testing.T) {
@@ -148,7 +174,7 @@ func TestAPIGetSystemUserComment(t *testing.T) {
 		user_model.NewGhostUser(),
 		user_model.NewActionsUser(),
 	} {
-		body := fmt.Sprintf("Hello %s", systemUser.Name)
+		body := "Hello " + systemUser.Name
 		comment, err := issues_model.CreateComment(db.DefaultContext, &issues_model.CreateCommentOptions{
 			Type:    issues_model.CommentTypeComment,
 			Doer:    systemUser,
@@ -207,8 +233,8 @@ func TestAPIEditComment(t *testing.T) {
 
 	var updatedComment api.Comment
 	DecodeJSON(t, resp, &updatedComment)
-	assert.EqualValues(t, comment.ID, updatedComment.ID)
-	assert.EqualValues(t, newCommentBody, updatedComment.Body)
+	assert.Equal(t, comment.ID, updatedComment.ID)
+	assert.Equal(t, newCommentBody, updatedComment.Body)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID, IssueID: issue.ID, Content: newCommentBody})
 }
 

@@ -7,11 +7,14 @@ package issues
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/label"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -84,6 +87,7 @@ type Label struct {
 	OrgID           int64 `xorm:"INDEX"`
 	Name            string
 	Exclusive       bool
+	ExclusiveOrder  int `xorm:"DEFAULT 0"` // 0 means no exclusive order
 	Description     string
 	Color           string `xorm:"VARCHAR(7)"`
 	NumIssues       int
@@ -115,10 +119,15 @@ func (l *Label) CalOpenIssues() {
 func (l *Label) SetArchived(isArchived bool) {
 	if !isArchived {
 		l.ArchivedUnix = timeutil.TimeStamp(0)
-	} else if isArchived && l.ArchivedUnix.IsZero() {
+	} else if isArchived && !l.IsArchived() {
 		// Only change the date when it is newly archived.
 		l.ArchivedUnix = timeutil.TimeStampNow()
 	}
+}
+
+// IsArchived returns true if label is an archived
+func (l *Label) IsArchived() bool {
+	return !l.ArchivedUnix.IsZero()
 }
 
 // CalOpenOrgIssues calculates the open issues of a label for a specific repo
@@ -126,7 +135,7 @@ func (l *Label) CalOpenOrgIssues(ctx context.Context, repoID, labelID int64) {
 	counts, _ := CountIssuesByRepo(ctx, &IssuesOptions{
 		RepoIDs:  []int64{repoID},
 		LabelIDs: []int64{labelID},
-		IsClosed: util.OptionalBoolFalse,
+		IsClosed: optional.Some(false),
 	})
 
 	for _, count := range counts {
@@ -136,28 +145,33 @@ func (l *Label) CalOpenOrgIssues(ctx context.Context, repoID, labelID int64) {
 
 // LoadSelectedLabelsAfterClick calculates the set of selected labels when a label is clicked
 func (l *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64, currentSelectedExclusiveScopes []string) {
-	var labelQuerySlice []string
+	labelQueryParams := container.Set[string]{}
 	labelSelected := false
-	labelID := strconv.FormatInt(l.ID, 10)
-	labelScope := l.ExclusiveScope()
-	for i, s := range currentSelectedLabels {
-		if s == l.ID {
+	exclusiveScope := l.ExclusiveScope()
+	for i, curSel := range currentSelectedLabels {
+		if curSel == l.ID {
 			labelSelected = true
-		} else if -s == l.ID {
+		} else if -curSel == l.ID {
 			labelSelected = true
 			l.IsExcluded = true
-		} else if s != 0 {
+		} else if curSel != 0 {
 			// Exclude other labels in the same scope from selection
-			if s < 0 || labelScope == "" || labelScope != currentSelectedExclusiveScopes[i] {
-				labelQuerySlice = append(labelQuerySlice, strconv.FormatInt(s, 10))
+			if curSel < 0 || exclusiveScope == "" || exclusiveScope != currentSelectedExclusiveScopes[i] {
+				labelQueryParams.Add(strconv.FormatInt(curSel, 10))
 			}
 		}
 	}
+
 	if !labelSelected {
-		labelQuerySlice = append(labelQuerySlice, labelID)
+		labelQueryParams.Add(strconv.FormatInt(l.ID, 10))
 	}
 	l.IsSelected = labelSelected
-	l.QueryString = strings.Join(labelQuerySlice, ",")
+
+	// Sort and deduplicate the ids to avoid the crawlers asking for the
+	// same thing with simply a different order of parameters
+	labelQuerySliceStrings := labelQueryParams.Values()
+	slices.Sort(labelQuerySliceStrings) // the sort is still needed because the underlying map of Set doesn't guarantee order
+	l.QueryString = strings.Join(labelQuerySliceStrings, ",")
 }
 
 // BelongsToOrg returns true if label is an organization label
@@ -165,17 +179,12 @@ func (l *Label) BelongsToOrg() bool {
 	return l.OrgID > 0
 }
 
-// IsArchived returns true if label is an archived
-func (l *Label) IsArchived() bool {
-	return l.ArchivedUnix > 0
-}
-
 // BelongsToRepo returns true if label is a repository label
 func (l *Label) BelongsToRepo() bool {
 	return l.RepoID > 0
 }
 
-// Return scope substring of label name, or empty string if none exists
+// ExclusiveScope returns scope substring of label name, or empty string if none exists
 func (l *Label) ExclusiveScope() string {
 	if !l.Exclusive {
 		return ""
@@ -228,7 +237,7 @@ func UpdateLabel(ctx context.Context, l *Label) error {
 	}
 	l.Color = color
 
-	return updateLabelCols(ctx, l, "name", "description", "color", "exclusive", "archived_unix")
+	return updateLabelCols(ctx, l, "name", "description", "color", "exclusive", "exclusive_order", "archived_unix")
 }
 
 // DeleteLabel delete a label
@@ -291,6 +300,9 @@ func GetLabelByID(ctx context.Context, labelID int64) (*Label, error) {
 // GetLabelsByIDs returns a list of labels by IDs
 func GetLabelsByIDs(ctx context.Context, labelIDs []int64, cols ...string) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
+	if len(labelIDs) == 0 {
+		return labels, nil
+	}
 	return labels, db.GetEngine(ctx).Table("label").
 		In("id", labelIDs).
 		Asc("name").
@@ -341,6 +353,17 @@ func GetLabelIDsInRepoByNames(ctx context.Context, repoID int64, labelNames []st
 		Find(&labelIDs)
 }
 
+// GetLabelIDsInOrgByNames returns a list of labelIDs by names in a given org.
+func GetLabelIDsInOrgByNames(ctx context.Context, orgID int64, labelNames []string) ([]int64, error) {
+	labelIDs := make([]int64, 0, len(labelNames))
+	return labelIDs, db.GetEngine(ctx).Table("label").
+		Where("org_id = ?", orgID).
+		In("name", labelNames).
+		Asc("name").
+		Cols("id").
+		Find(&labelIDs)
+}
+
 // BuildLabelNamesIssueIDsCondition returns a builder where get issue ids match label names
 func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
 	return builder.Select("issue_label.issue_id").
@@ -356,6 +379,9 @@ func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
 // it silently ignores label IDs that do not belong to the repository.
 func GetLabelsInRepoByIDs(ctx context.Context, repoID int64, labelIDs []int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
+	if len(labelIDs) == 0 {
+		return labels, nil
+	}
 	return labels, db.GetEngine(ctx).
 		Where("repo_id = ?", repoID).
 		In("id", labelIDs).
@@ -382,7 +408,7 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 		sess.Asc("name")
 	}
 
-	if listOptions.Page != 0 {
+	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 
@@ -428,6 +454,9 @@ func GetLabelInOrgByID(ctx context.Context, orgID, labelID int64) (*Label, error
 // it silently ignores label IDs that do not belong to the organization.
 func GetLabelsInOrgByIDs(ctx context.Context, orgID int64, labelIDs []int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
+	if len(labelIDs) == 0 {
+		return labels, nil
+	}
 	return labels, db.GetEngine(ctx).
 		Where("org_id = ?", orgID).
 		In("id", labelIDs).
@@ -454,7 +483,7 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 		sess.Asc("name")
 	}
 
-	if listOptions.Page != 0 {
+	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 

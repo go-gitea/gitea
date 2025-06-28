@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
@@ -19,6 +20,7 @@ import (
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/setting"
 	conan_router "code.gitea.io/gitea/routers/api/packages/conan"
+	package_service "code.gitea.io/gitea/services/packages"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -89,18 +91,18 @@ func uploadConanPackageV1(t *testing.T, baseURL, token, name, version, user, cha
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("%s/digest", recipeURL)).
+	req = NewRequest(t, "GET", recipeURL+"/digest").
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("%s/download_urls", recipeURL)).
+	req = NewRequest(t, "GET", recipeURL+"/download_urls").
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
-	req = NewRequest(t, "POST", fmt.Sprintf("%s/upload_urls", recipeURL))
+	req = NewRequest(t, "POST", recipeURL+"/upload_urls")
 	MakeRequest(t, req, http.StatusUnauthorized)
 
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("%s/upload_urls", recipeURL), map[string]int64{
+	req = NewRequestWithJSON(t, "POST", recipeURL+"/upload_urls", map[string]int64{
 		conanfileName: int64(len(contentConanfile)),
 		"removed.txt": 0,
 	}).AddTokenAuth(token)
@@ -125,18 +127,18 @@ func uploadConanPackageV1(t *testing.T, baseURL, token, name, version, user, cha
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("%s/digest", packageURL)).
+	req = NewRequest(t, "GET", packageURL+"/digest").
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("%s/download_urls", packageURL)).
+	req = NewRequest(t, "GET", packageURL+"/download_urls").
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
-	req = NewRequest(t, "POST", fmt.Sprintf("%s/upload_urls", packageURL))
+	req = NewRequest(t, "POST", packageURL+"/upload_urls")
 	MakeRequest(t, req, http.StatusUnauthorized)
 
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("%s/upload_urls", packageURL), map[string]int64{
+	req = NewRequestWithJSON(t, "POST", packageURL+"/upload_urls", map[string]int64{
 		conaninfoName: int64(len(contentConaninfo)),
 		"removed.txt": 0,
 	}).AddTokenAuth(token)
@@ -165,7 +167,7 @@ func uploadConanPackageV2(t *testing.T, baseURL, token, name, version, user, cha
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("%s/files", recipeURL)).
+	req = NewRequest(t, "GET", recipeURL+"/files").
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
@@ -178,7 +180,7 @@ func uploadConanPackageV2(t *testing.T, baseURL, token, name, version, user, cha
 
 	packageURL := fmt.Sprintf("%s/packages/%s/revisions/%s", recipeURL, conanPackageReference, packageRevision)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("%s/files", packageURL)).
+	req = NewRequest(t, "GET", packageURL+"/files").
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
@@ -186,7 +188,7 @@ func uploadConanPackageV2(t *testing.T, baseURL, token, name, version, user, cha
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("%s/files", packageURL)).
+	req = NewRequest(t, "GET", packageURL+"/files").
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
@@ -217,7 +219,7 @@ func TestPackageConan(t *testing.T) {
 		t.Run("Ping", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/v1/ping", url))
+			req := NewRequest(t, "GET", url+"/v1/ping")
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			assert.Equal(t, "revisions", resp.Header().Get("X-Conan-Server-Capabilities"))
@@ -225,21 +227,88 @@ func TestPackageConan(t *testing.T) {
 
 		token := ""
 
-		t.Run("Authenticate", func(t *testing.T) {
+		t.Run("UserName/Password Authenticate", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/v1/users/authenticate", url)).
+			req := NewRequest(t, "GET", url+"/v1/users/authenticate").
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			token = resp.Body.String()
 			assert.NotEmpty(t, token)
+
+			pkgMeta, err := package_service.ParseAuthorizationToken(token)
+			assert.NoError(t, err)
+			assert.Equal(t, user.ID, pkgMeta.UserID)
+			assert.Equal(t, auth_model.AccessTokenScopeAll, pkgMeta.Scope)
+		})
+
+		badToken := ""
+		t.Run("Token Scope Authentication", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			session := loginUser(t, user.Name)
+
+			badToken = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadNotification)
+
+			testCase := func(t *testing.T, scope auth_model.AccessTokenScope, expectedAuthStatusCode, expectedStatusCode int) {
+				t.Helper()
+
+				token := getTokenForLoggedInUser(t, session, scope)
+
+				req := NewRequest(t, "GET", url+"/v1/users/authenticate").
+					AddTokenAuth(token)
+				resp := MakeRequest(t, req, expectedAuthStatusCode)
+				if expectedAuthStatusCode != http.StatusOK {
+					return
+				}
+
+				body := resp.Body.String()
+				assert.NotEmpty(t, body)
+
+				pkgMeta, err := package_service.ParseAuthorizationToken(body)
+				assert.NoError(t, err)
+				assert.Equal(t, user.ID, pkgMeta.UserID)
+				assert.Equal(t, scope, pkgMeta.Scope)
+
+				recipeURL := fmt.Sprintf("%s/v1/conans/%s/%s/%s/%s", url, "TestScope", version1, "testing", channel1)
+
+				req = NewRequestWithJSON(t, "POST", recipeURL+"/upload_urls", map[string]int64{
+					conanfileName: 64,
+					"removed.txt": 0,
+				}).AddTokenAuth(token)
+				MakeRequest(t, req, expectedStatusCode)
+			}
+
+			t.Run("No Package permission", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				testCase(t, auth_model.AccessTokenScopeReadNotification, http.StatusUnauthorized, http.StatusForbidden)
+			})
+
+			t.Run("Package Read permission", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				testCase(t, auth_model.AccessTokenScopeReadPackage, http.StatusOK, http.StatusUnauthorized)
+			})
+
+			t.Run("Package Write permission", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				testCase(t, auth_model.AccessTokenScopeWritePackage, http.StatusOK, http.StatusOK)
+			})
+
+			t.Run("All permission", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				testCase(t, auth_model.AccessTokenScopeAll, http.StatusOK, http.StatusOK)
+			})
 		})
 
 		t.Run("CheckCredentials", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/v1/users/check_credentials", url)).
+			req := NewRequest(t, "GET", url+"/v1/users/check_credentials").
 				AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
 		})
@@ -287,7 +356,7 @@ func TestPackageConan(t *testing.T) {
 
 						assert.Equal(t, int64(len(contentConaninfo)), pb.Size)
 					} else {
-						assert.FailNow(t, "unknown file: %s", pf.Name)
+						assert.FailNow(t, "unknown file", "unknown file: %s", pf.Name)
 					}
 				}
 			})
@@ -307,14 +376,14 @@ func TestPackageConan(t *testing.T) {
 			assert.Contains(t, fileHashes, conanfileName)
 			assert.Equal(t, "7abc52241c22090782c54731371847a8", fileHashes[conanfileName])
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%s/digest", recipeURL))
+			req = NewRequest(t, "GET", recipeURL+"/digest")
 			resp = MakeRequest(t, req, http.StatusOK)
 
 			downloadURLs := make(map[string]string)
 			DecodeJSON(t, resp, &downloadURLs)
 			assert.Contains(t, downloadURLs, conanfileName)
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%s/download_urls", recipeURL))
+			req = NewRequest(t, "GET", recipeURL+"/download_urls")
 			resp = MakeRequest(t, req, http.StatusOK)
 
 			DecodeJSON(t, resp, &downloadURLs)
@@ -335,14 +404,14 @@ func TestPackageConan(t *testing.T) {
 			assert.Contains(t, fileHashes, conaninfoName)
 			assert.Equal(t, "7628bfcc5b17f1470c468621a78df394", fileHashes[conaninfoName])
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%s/digest", packageURL))
+			req = NewRequest(t, "GET", packageURL+"/digest")
 			resp = MakeRequest(t, req, http.StatusOK)
 
 			downloadURLs = make(map[string]string)
 			DecodeJSON(t, resp, &downloadURLs)
 			assert.Contains(t, downloadURLs, conaninfoName)
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%s/download_urls", packageURL))
+			req = NewRequest(t, "GET", packageURL+"/download_urls")
 			resp = MakeRequest(t, req, http.StatusOK)
 
 			DecodeJSON(t, resp, &downloadURLs)
@@ -431,6 +500,11 @@ func TestPackageConan(t *testing.T) {
 
 					req := NewRequestWithJSON(t, "POST", fmt.Sprintf("%s/v1/conans/%s/%s/%s/%s/packages/delete", url, name, version1, user1, c.Channel), map[string][]string{
 						"package_ids": c.References,
+					}).AddTokenAuth(badToken)
+					MakeRequest(t, req, http.StatusUnauthorized)
+
+					req = NewRequestWithJSON(t, "POST", fmt.Sprintf("%s/v1/conans/%s/%s/%s/%s/packages/delete", url, name, version1, user1, c.Channel), map[string][]string{
+						"package_ids": c.References,
 					}).AddTokenAuth(token)
 					MakeRequest(t, req, http.StatusOK)
 
@@ -457,6 +531,10 @@ func TestPackageConan(t *testing.T) {
 					assert.NotEmpty(t, revisions)
 
 					req := NewRequest(t, "DELETE", fmt.Sprintf("%s/v1/conans/%s/%s/%s/%s", url, name, version1, user1, c.Channel)).
+						AddTokenAuth(badToken)
+					MakeRequest(t, req, http.StatusUnauthorized)
+
+					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v1/conans/%s/%s/%s/%s", url, name, version1, user1, c.Channel)).
 						AddTokenAuth(token)
 					MakeRequest(t, req, http.StatusOK)
 
@@ -472,7 +550,7 @@ func TestPackageConan(t *testing.T) {
 		t.Run("Ping", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/v2/ping", url))
+			req := NewRequest(t, "GET", url+"/v2/ping")
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			assert.Equal(t, "revisions", resp.Header().Get("X-Conan-Server-Capabilities"))
@@ -480,23 +558,89 @@ func TestPackageConan(t *testing.T) {
 
 		token := ""
 
-		t.Run("Authenticate", func(t *testing.T) {
+		t.Run("UserName/Password Authenticate", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/v2/users/authenticate", url)).
+			req := NewRequest(t, "GET", url+"/v2/users/authenticate").
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			body := resp.Body.String()
 			assert.NotEmpty(t, body)
 
-			token = fmt.Sprintf("Bearer %s", body)
+			pkgMeta, err := package_service.ParseAuthorizationToken(body)
+			assert.NoError(t, err)
+			assert.Equal(t, user.ID, pkgMeta.UserID)
+			assert.Equal(t, auth_model.AccessTokenScopeAll, pkgMeta.Scope)
+
+			token = "Bearer " + body
+		})
+
+		badToken := ""
+
+		t.Run("Token Scope Authentication", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			session := loginUser(t, user.Name)
+
+			badToken = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadNotification)
+
+			testCase := func(t *testing.T, scope auth_model.AccessTokenScope, expectedAuthStatusCode, expectedStatusCode int) {
+				t.Helper()
+
+				token := getTokenForLoggedInUser(t, session, scope)
+
+				req := NewRequest(t, "GET", url+"/v2/users/authenticate").
+					AddTokenAuth(token)
+				resp := MakeRequest(t, req, expectedAuthStatusCode)
+				if expectedAuthStatusCode != http.StatusOK {
+					return
+				}
+
+				body := resp.Body.String()
+				assert.NotEmpty(t, body)
+
+				pkgMeta, err := package_service.ParseAuthorizationToken(body)
+				assert.NoError(t, err)
+				assert.Equal(t, user.ID, pkgMeta.UserID)
+				assert.Equal(t, scope, pkgMeta.Scope)
+
+				recipeURL := fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s", url, "TestScope", version1, "testing", channel1, revision1)
+
+				req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/files/%s", recipeURL, conanfileName), strings.NewReader("Demo Conan file")).
+					AddTokenAuth(token)
+				MakeRequest(t, req, expectedStatusCode)
+			}
+
+			t.Run("No Package permission", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				testCase(t, auth_model.AccessTokenScopeReadNotification, http.StatusUnauthorized, http.StatusUnauthorized)
+			})
+
+			t.Run("Package Read permission", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				testCase(t, auth_model.AccessTokenScopeReadPackage, http.StatusOK, http.StatusUnauthorized)
+			})
+
+			t.Run("Package Write permission", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				testCase(t, auth_model.AccessTokenScopeWritePackage, http.StatusOK, http.StatusCreated)
+			})
+
+			t.Run("All permission", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				testCase(t, auth_model.AccessTokenScopeAll, http.StatusOK, http.StatusCreated)
+			})
 		})
 
 		t.Run("CheckCredentials", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/v2/users/check_credentials", url)).
+			req := NewRequest(t, "GET", url+"/v2/users/check_credentials").
 				AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
 		})
@@ -511,7 +655,7 @@ func TestPackageConan(t *testing.T) {
 
 				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeConan)
 				assert.NoError(t, err)
-				assert.Len(t, pvs, 2)
+				assert.Len(t, pvs, 3)
 			})
 		})
 
@@ -520,7 +664,7 @@ func TestPackageConan(t *testing.T) {
 
 			recipeURL := fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s", url, name, version1, user1, channel1)
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/latest", recipeURL))
+			req := NewRequest(t, "GET", recipeURL+"/latest")
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			obj := make(map[string]string)
@@ -663,10 +807,18 @@ func TestPackageConan(t *testing.T) {
 				checkPackageRevisionCount(2)
 
 				req := NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages/%s/revisions/%s", url, name, version1, user1, channel1, revision1, conanPackageReference, revision1)).
+					AddTokenAuth(badToken)
+				MakeRequest(t, req, http.StatusUnauthorized)
+
+				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages/%s/revisions/%s", url, name, version1, user1, channel1, revision1, conanPackageReference, revision1)).
 					AddTokenAuth(token)
 				MakeRequest(t, req, http.StatusOK)
 
 				checkPackageRevisionCount(1)
+
+				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages/%s", url, name, version1, user1, channel1, revision1, conanPackageReference)).
+					AddTokenAuth(badToken)
+				MakeRequest(t, req, http.StatusUnauthorized)
 
 				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages/%s", url, name, version1, user1, channel1, revision1, conanPackageReference)).
 					AddTokenAuth(token)
@@ -677,6 +829,10 @@ func TestPackageConan(t *testing.T) {
 				rref = rref.WithRevision(revision2)
 
 				checkPackageReferenceCount(1)
+
+				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages", url, name, version1, user1, channel1, revision2)).
+					AddTokenAuth(badToken)
+				MakeRequest(t, req, http.StatusUnauthorized)
 
 				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages", url, name, version1, user1, channel1, revision2)).
 					AddTokenAuth(token)
@@ -699,10 +855,18 @@ func TestPackageConan(t *testing.T) {
 				checkRecipeRevisionCount(2)
 
 				req := NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s", url, name, version1, user1, channel1, revision1)).
+					AddTokenAuth(badToken)
+				MakeRequest(t, req, http.StatusUnauthorized)
+
+				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s", url, name, version1, user1, channel1, revision1)).
 					AddTokenAuth(token)
 				MakeRequest(t, req, http.StatusOK)
 
 				checkRecipeRevisionCount(1)
+
+				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s", url, name, version1, user1, channel1)).
+					AddTokenAuth(badToken)
+				MakeRequest(t, req, http.StatusUnauthorized)
 
 				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s", url, name, version1, user1, channel1)).
 					AddTokenAuth(token)

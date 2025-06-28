@@ -14,12 +14,13 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	composer_module "code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -52,10 +53,7 @@ func ServiceIndex(ctx *context.Context) {
 // SearchPackages searches packages, only "q" is supported
 // https://packagist.org/apidoc#search-packages
 func SearchPackages(ctx *context.Context) {
-	page := ctx.FormInt("page")
-	if page < 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	perPage := ctx.FormInt("per_page")
 	paginator := db.ListOptions{
 		Page:     page,
@@ -66,7 +64,7 @@ func SearchPackages(ctx *context.Context) {
 		OwnerID:    ctx.Package.Owner.ID,
 		Type:       packages_model.TypeComposer,
 		Name:       packages_model.SearchValue{Value: ctx.FormTrim("q")},
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator:  &paginator,
 	}
 	if ctx.FormTrim("type") != "" {
@@ -133,8 +131,8 @@ func EnumeratePackages(ctx *context.Context) {
 // PackageMetadata returns the metadata for a single package
 // https://packagist.org/apidoc#get-package-data
 func PackageMetadata(ctx *context.Context) {
-	vendorName := ctx.Params("vendorname")
-	projectName := ctx.Params("projectname")
+	vendorName := ctx.PathParam("vendorname")
+	projectName := ctx.PathParam("projectname")
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeComposer, vendorName+"/"+projectName)
 	if err != nil {
@@ -162,20 +160,20 @@ func PackageMetadata(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeComposer,
-			Name:        ctx.Params("package"),
-			Version:     ctx.Params("version"),
+			Name:        ctx.PathParam("package"),
+			Version:     ctx.PathParam("version"),
 		},
 		&packages_service.PackageFileInfo{
-			Filename: ctx.Params("filename"),
+			Filename: ctx.PathParam("filename"),
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}

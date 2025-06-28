@@ -14,7 +14,6 @@ import (
 	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -22,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -81,7 +81,7 @@ func baseURL(ctx *context.Context) string {
 
 // https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#list-all-versions-of-a-package
 func EnumeratePackageVersions(ctx *context.Context) {
-	packageName := ctx.Params("id")
+	packageName := ctx.PathParam("id")
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName)
 	if err != nil {
@@ -119,12 +119,12 @@ func EnumeratePackageVersions(ctx *context.Context) {
 
 // https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#deprecated-inspect-a-specific-version-of-a-package
 func PackageVersionMetadata(ctx *context.Context) {
-	packageName := ctx.Params("id")
-	packageVersion := ctx.Params("version")
+	packageName := ctx.PathParam("id")
+	packageVersion := ctx.PathParam("version")
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -228,12 +228,12 @@ func UploadPackageFile(ctx *context.Context) {
 
 // https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#publishing-packages
 func FinalizePackage(ctx *context.Context) {
-	packageName := ctx.Params("id")
-	packageVersion := ctx.Params("version")
+	packageName := ctx.PathParam("id")
+	packageVersion := ctx.PathParam("version")
 
 	_, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -253,12 +253,12 @@ func FinalizePackage(ctx *context.Context) {
 
 // https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#deprecated-download-a-specific-version-of-a-package
 func DownloadPackageFile(ctx *context.Context) {
-	packageName := ctx.Params("id")
-	packageVersion := strings.TrimSuffix(ctx.Params("version"), ".tar.gz")
+	packageName := ctx.PathParam("id")
+	packageVersion := strings.TrimSuffix(ctx.PathParam("version"), ".tar.gz")
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -274,7 +274,7 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pf := pd.Files[0].File
 
-	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

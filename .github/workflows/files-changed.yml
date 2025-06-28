@@ -35,7 +35,7 @@ jobs:
       yaml: ${{ steps.changes.outputs.yaml }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@v3
         id: changes
         with:
           filters: |
@@ -48,21 +48,23 @@ jobs:
               - "Makefile"
               - ".golangci.yml"
               - ".editorconfig"
+              - "options/locale/locale_en-US.ini"
 
             frontend:
-              - "**/*.js"
+              - "*.js"
+              - "*.ts"
               - "web_src/**"
+              - "tools/*.js"
+              - "tools/*.ts"
               - "assets/emoji.json"
               - "package.json"
               - "package-lock.json"
               - "Makefile"
-              - ".eslintrc.yaml"
-              - ".stylelintrc.yaml"
+              - ".eslintrc.cjs"
               - ".npmrc"
 
             docs:
               - "**/*.md"
-              - "docs/**"
               - ".markdownlint.yaml"
               - "package.json"
               - "package-lock.json"
@@ -72,6 +74,7 @@ jobs:
               - "Makefile"
 
             templates:
+              - "tools/lint-templates-*.js"
               - "templates/**/*.tmpl"
               - "pyproject.toml"
               - "poetry.lock"
@@ -84,6 +87,7 @@ jobs:
 
             swagger:
               - "templates/swagger/v1_json.tmpl"
+              - "templates/swagger/v1_input.json"
               - "Makefile"
               - "package.json"
               - "package-lock.json"

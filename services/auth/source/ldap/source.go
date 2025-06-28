@@ -24,6 +24,8 @@ import (
 
 // Source Basic LDAP authentication service
 type Source struct {
+	auth.ConfigBase `json:"-"`
+
 	Name                  string // canonical name (ie. corporate.ad)
 	Host                  string // LDAP host
 	Port                  int    // port number
@@ -54,10 +56,6 @@ type Source struct {
 	GroupTeamMap          string // Map LDAP groups to teams
 	GroupTeamMapRemoval   bool   // Remove user from teams which are synchronized and user is not a member of the corresponding LDAP group
 	UserUID               string // User Attribute listed in Group
-	SkipLocalTwoFA        bool   `json:",omitempty"` // Skip Local 2fa for users authenticated with this source
-
-	// reference to the authSource
-	authSource *auth.Source
 }
 
 // FromDB fills up a LDAPConfig from serialized format.
@@ -107,12 +105,7 @@ func (source *Source) UseTLS() bool {
 
 // ProvidesSSHKeys returns if this source provides SSH Keys
 func (source *Source) ProvidesSSHKeys() bool {
-	return len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
-}
-
-// SetAuthSource sets the related AuthSource
-func (source *Source) SetAuthSource(authSource *auth.Source) {
-	source.authSource = authSource
+	return strings.TrimSpace(source.AttributeSSHPublicKey) != ""
 }
 
 func init() {

@@ -8,18 +8,21 @@ import (
 	gotemplate "html/template"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/languagestats"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 )
 
 type blameRow struct {
@@ -39,80 +42,63 @@ type blameRow struct {
 
 // RefBlame render blame page
 func RefBlame(ctx *context.Context) {
-	fileName := ctx.Repo.TreePath
-	if len(fileName) == 0 {
-		ctx.NotFound("Blame FileName", nil)
-		return
-	}
-
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
-	treeLink := branchLink
-	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
-
-	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-	}
-
-	var treeNames []string
-	paths := make([]string, 0, 5)
-	if len(ctx.Repo.TreePath) > 0 {
-		treeNames = strings.Split(ctx.Repo.TreePath, "/")
-		for i := range treeNames {
-			paths = append(paths, strings.Join(treeNames[:i+1], "/"))
-		}
-
-		ctx.Data["HasParentPath"] = true
-		if len(paths)-2 >= 0 {
-			ctx.Data["ParentPath"] = "/" + paths[len(paths)-1]
-		}
-	}
+	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["IsBlame"] = true
 
 	// Get current entry user currently looking at.
+	if ctx.Repo.TreePath == "" {
+		ctx.NotFound(nil)
+		return
+	}
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return
 	}
 
-	blob := entry.Blob()
+	treeNames := strings.Split(ctx.Repo.TreePath, "/")
+	var paths []string
+	for i := range treeNames {
+		paths = append(paths, strings.Join(treeNames[:i+1], "/"))
+	}
 
 	ctx.Data["Paths"] = paths
-	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
-	ctx.Data["BranchLink"] = branchLink
+	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
+	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
-	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-	ctx.Data["PageIsViewCode"] = true
+	blob := entry.Blob()
+	fileSize := blob.Size()
+	ctx.Data["FileSize"] = fileSize
+	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
 
-	ctx.Data["IsBlame"] = true
+	tplName := tplRepoViewContent
+	if !ctx.FormBool("only_content") {
+		prepareHomeTreeSideBarSwitch(ctx)
+		tplName = tplRepoView
+	}
 
-	ctx.Data["FileSize"] = blob.Size()
-	ctx.Data["FileName"] = blob.Name()
+	if fileSize >= setting.UI.MaxDisplayFileSize {
+		ctx.Data["IsFileTooLarge"] = true
+		ctx.HTML(http.StatusOK, tplName)
+		return
+	}
 
-	ctx.Data["NumLines"], err = blob.GetBlobLineCount()
-	ctx.Data["NumLinesSet"] = true
-
+	ctx.Data["NumLines"], err = blob.GetBlobLineCount(nil)
 	if err != nil {
-		ctx.NotFound("GetBlobLineCount", err)
+		ctx.NotFound(err)
 		return
 	}
 
 	bypassBlameIgnore, _ := strconv.ParseBool(ctx.FormString("bypass-blame-ignore"))
-
-	result, err := performBlame(ctx, ctx.Repo.Repository.RepoPath(), ctx.Repo.Commit, fileName, bypassBlameIgnore)
+	result, err := performBlame(ctx, ctx.Repo.Repository, ctx.Repo.Commit, ctx.Repo.TreePath, bypassBlameIgnore)
 	if err != nil {
-		ctx.NotFound("CreateBlameReader", err)
+		ctx.NotFound(err)
 		return
 	}
 
 	ctx.Data["UsesIgnoreRevs"] = result.UsesIgnoreRevs
 	ctx.Data["FaultyIgnoreRevsFile"] = result.FaultyIgnoreRevsFile
-
-	// Get Topics of this repo
-	renderRepoTopics(ctx)
-	if ctx.Written() {
-		return
-	}
 
 	commitNames := processBlameParts(ctx, result.Parts)
 	if ctx.Written() {
@@ -121,7 +107,7 @@ func RefBlame(ctx *context.Context) {
 
 	renderBlame(ctx, result.Parts, commitNames)
 
-	ctx.HTML(http.StatusOK, tplRepoHome)
+	ctx.HTML(http.StatusOK, tplName)
 }
 
 type blameResult struct {
@@ -130,13 +116,10 @@ type blameResult struct {
 	FaultyIgnoreRevsFile bool
 }
 
-func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
-	objectFormat, err := ctx.Repo.GitRepo.GetObjectFormat()
-	if err != nil {
-		ctx.NotFound("CreateBlameReader", err)
-		return nil, err
-	}
-	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repoPath, commit, file, bypassBlameIgnore)
+func performBlame(ctx *context.Context, repo *repo_model.Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
+	objectFormat := ctx.Repo.GetObjectFormat()
+
+	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repo.RepoPath(), commit, file, bypassBlameIgnore)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +135,7 @@ func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, fil
 		if len(r.Parts) == 0 && r.UsesIgnoreRevs {
 			// try again without ignored revs
 
-			blameReader, err = git.CreateBlameReader(ctx, objectFormat, repoPath, commit, file, true)
+			blameReader, err = git.CreateBlameReader(ctx, objectFormat, repo.RepoPath(), commit, file, true)
 			if err != nil {
 				return nil, err
 			}
@@ -224,7 +207,7 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 			commit, err = ctx.Repo.GitRepo.GetCommit(sha)
 			if err != nil {
 				if git.IsErrNotExist(err) {
-					ctx.NotFound("Repo.GitRepo.GetCommit", err)
+					ctx.NotFound(err)
 				} else {
 					ctx.ServerError("Repo.GitRepo.GetCommit", err)
 				}
@@ -237,7 +220,12 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 	}
 
 	// populate commit email addresses to later look up avatars.
-	for _, c := range user_model.ValidateCommitsWithEmails(ctx, commits) {
+	validatedCommits, err := user_model.ValidateCommitsWithEmails(ctx, commits)
+	if err != nil {
+		ctx.ServerError("ValidateCommitsWithEmails", err)
+		return nil
+	}
+	for _, c := range validatedCommits {
 		commitNames[c.ID.String()] = c
 	}
 
@@ -247,31 +235,11 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames map[string]*user_model.UserCommit) {
 	repoLink := ctx.Repo.RepoLink
 
-	language := ""
-
-	indexFilename, worktree, deleteTemporaryFile, err := ctx.Repo.GitRepo.ReadTreeToTemporaryIndex(ctx.Repo.CommitID)
-	if err == nil {
-		defer deleteTemporaryFile()
-
-		filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
-			CachedOnly: true,
-			Attributes: []string{"linguist-language", "gitlab-language"},
-			Filenames:  []string{ctx.Repo.TreePath},
-			IndexFile:  indexFilename,
-			WorkTree:   worktree,
-		})
-		if err != nil {
-			log.Error("Unable to load attributes for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
-		}
-
-		language = filename2attribute2info[ctx.Repo.TreePath]["linguist-language"]
-		if language == "" || language == "unspecified" {
-			language = filename2attribute2info[ctx.Repo.TreePath]["gitlab-language"]
-		}
-		if language == "unspecified" {
-			language = ""
-		}
+	language, err := languagestats.GetFileLanguage(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
+	if err != nil {
+		log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
 	}
+
 	lines := make([]string, 0)
 	rows := make([]*blameRow, 0)
 	escapeStatus := &charset.EscapeStatus{}
@@ -296,13 +264,13 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 				commitCnt++
 
 				// User avatar image
-				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Locale)
+				commitSince := templates.TimeSince(commit.Author.When)
 
 				var avatar string
 				if commit.User != nil {
-					avatar = string(avatarUtils.Avatar(commit.User, 18, "gt-mr-3"))
+					avatar = string(avatarUtils.Avatar(commit.User, 18))
 				} else {
-					avatar = string(avatarUtils.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "gt-mr-3"))
+					avatar = string(avatarUtils.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "tw-mr-2"))
 				}
 
 				br.Avatar = gotemplate.HTML(avatar)
@@ -318,8 +286,7 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 			if i != len(lines)-1 {
 				line += "\n"
 			}
-			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
-			line, lexerNameForLine := highlight.Code(fileName, language, line)
+			line, lexerNameForLine := highlight.Code(path.Base(ctx.Repo.TreePath), language, line)
 
 			// set lexer name to the first detected lexer. this is certainly suboptimal and
 			// we should instead highlight the whole file at once
