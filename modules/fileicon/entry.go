@@ -6,17 +6,17 @@ package fileicon
 import "code.gitea.io/gitea/modules/git"
 
 type EntryInfo struct {
-	FullName      string
+	BaseName      string
 	EntryMode     git.EntryMode
 	SymlinkToMode git.EntryMode
 	IsOpen        bool
 }
 
-func EntryInfoFromGitTreeEntry(gitEntry *git.TreeEntry) *EntryInfo {
-	ret := &EntryInfo{FullName: gitEntry.Name(), EntryMode: gitEntry.Mode()}
+func EntryInfoFromGitTreeEntry(commit *git.Commit, fullPath string, gitEntry *git.TreeEntry) *EntryInfo {
+	ret := &EntryInfo{BaseName: gitEntry.Name(), EntryMode: gitEntry.Mode()}
 	if gitEntry.IsLink() {
-		if te, err := gitEntry.FollowLink(); err == nil && te.IsDir() {
-			ret.SymlinkToMode = te.Mode()
+		if res, err := git.EntryFollowLink(commit, fullPath, gitEntry); err == nil && res.TargetEntry.IsDir() {
+			ret.SymlinkToMode = res.TargetEntry.Mode()
 		}
 	}
 	return ret

@@ -57,14 +57,7 @@ func (te *TreeEntry) Size() int64 {
 	return te.size
 }
 
-func (te *TreeEntry) FullPath() string {
-	if te.fullName == "" {
-		return te.Name()
-	}
-	return te.fullName
-}
-
-// IsSubModule if the entry is a sub module
+// IsSubModule if the entry is a submodule
 func (te *TreeEntry) IsSubModule() bool {
 	return te.entryMode.IsSubModule()
 }

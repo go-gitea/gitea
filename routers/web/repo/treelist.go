@@ -111,7 +111,7 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 		item := &WebDiffFileItem{FullName: file.HeadPath, DiffStatus: file.Status}
 		item.IsViewed = filesViewedState[item.FullName] == pull_model.Viewed
 		item.NameHash = git.HashFilePathForWebUI(item.FullName)
-		item.FileIcon = fileicon.RenderEntryIconHTML(renderedIconPool, &fileicon.EntryInfo{FullName: file.HeadPath, EntryMode: file.HeadMode})
+		item.FileIcon = fileicon.RenderEntryIconHTML(renderedIconPool, &fileicon.EntryInfo{BaseName: file.HeadPath, EntryMode: file.HeadMode})
 
 		switch file.HeadMode {
 		case git.EntryModeTree:
