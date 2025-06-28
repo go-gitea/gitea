@@ -34,6 +34,11 @@
   /* z-index */
   --z-index-modal: 1001; /* modal dialog, hard-coded from Fomantic modal.css */
   --z-index-toast: 1002; /* should be larger than modal */
+
+  --font-size-label: 12px; /* font size of individual labels */
+
+  --gap-inline: 0.25rem; /* gap for inline texts and elements, for example: the spaces for sentence with labels, button text, etc */
+  --gap-block: 0.25rem; /* gap for element blocks, for example: spaces between buttons, menu image & title, header icon & title etc */
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {
@@ -1093,7 +1098,7 @@ table th[data-sortt-desc] .svg {
 .flex-text-inline {
   display: inline-flex;
   align-items: center;
-  gap: .25rem;
+  gap: var(--gap-inline);
   vertical-align: middle;
   min-width: 0; /* make ellipsis work */
 }
@@ -1121,7 +1126,7 @@ table th[data-sortt-desc] .svg {
 .flex-text-block {
   display: flex;
   align-items: center;
-  gap: .5rem;
+  gap: var(--gap-block);
   min-width: 0;
 }
 
@@ -1136,7 +1141,7 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
 .ui.dropdown .menu.flex-items-menu > .item:not(.hidden, .filtered, .tw-hidden) {
   display: flex !important;
   align-items: center;
-  gap: .5rem;
+  gap: var(--gap-block);
   min-width: 0;
 }
 .ui.dropdown .menu.flex-items-menu > .item img,
