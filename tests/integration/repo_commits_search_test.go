@@ -22,7 +22,7 @@ func testRepoCommitsSearch(t *testing.T, query, commit string) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
-	sel := doc.doc.Find("#commits-table tbody tr td.sha a")
+	sel := doc.doc.Find(".commit-table .flex-list .flex-item .sha a")
 	assert.Equal(t, commit, strings.TrimSpace(sel.Text()))
 }
 
