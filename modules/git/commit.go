@@ -277,8 +277,8 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 	var keywords, authors, committers []string
 	var after, before string
 
-	fields := strings.Fields(searchString)
-	for _, k := range fields {
+	fields := strings.FieldsSeq(searchString)
+	for k := range fields {
 		switch {
 		case strings.HasPrefix(k, "author:"):
 			authors = append(authors, strings.TrimPrefix(k, "author:"))

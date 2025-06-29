@@ -35,9 +35,9 @@ type User struct {
 	// Is the user an administrator
 	IsAdmin bool `json:"is_admin"`
 	// swagger:strfmt date-time
-	LastLogin time.Time `json:"last_login,omitempty"`
+	LastLogin time.Time `json:"last_login"`
 	// swagger:strfmt date-time
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// Is user restricted
 	Restricted bool `json:"restricted"`
 	// Is user active

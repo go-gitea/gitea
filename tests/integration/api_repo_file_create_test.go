@@ -130,7 +130,7 @@ func BenchmarkAPICreateFileSmall(b *testing.B) {
 		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
 
 		b.ResetTimer()
-		for n := 0; n < b.N; n++ {
+		for n := 0; b.Loop(); n++ {
 			treePath := fmt.Sprintf("update/file%d.txt", n)
 			_, _ = createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
 		}
@@ -145,7 +145,7 @@ func BenchmarkAPICreateFileMedium(b *testing.B) {
 		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
 
 		b.ResetTimer()
-		for n := 0; n < b.N; n++ {
+		for n := 0; b.Loop(); n++ {
 			treePath := fmt.Sprintf("update/file%d.txt", n)
 			copy(data, treePath)
 			_, _ = createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)

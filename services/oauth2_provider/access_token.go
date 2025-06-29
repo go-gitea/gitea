@@ -1,7 +1,7 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package oauth2_provider //nolint
+package oauth2_provider
 
 import (
 	"context"
@@ -85,7 +85,7 @@ func GrantAdditionalScopes(grantScopes string) auth.AccessTokenScope {
 	}
 
 	var accessScopes []string // the scopes for access control, but not for general information
-	for _, scope := range strings.Split(grantScopes, " ") {
+	for scope := range strings.SplitSeq(grantScopes, " ") {
 		if scope != "" && !slices.Contains(generalScopesSupported, scope) {
 			accessScopes = append(accessScopes, scope)
 		}

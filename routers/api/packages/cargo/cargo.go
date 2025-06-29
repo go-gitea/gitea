@@ -95,10 +95,7 @@ type SearchResultMeta struct {
 
 // https://doc.rust-lang.org/cargo/reference/registries.html#search
 func SearchPackages(ctx *context.Context) {
-	page := ctx.FormInt("page")
-	if page < 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	perPage := ctx.FormInt("per_page")
 	paginator := db.ListOptions{
 		Page:     page,
@@ -168,7 +165,7 @@ func ListOwners(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,

@@ -45,6 +45,10 @@ linters:
               desc: do not use the ini package, use gitea's config system instead
             - pkg: gitea.com/go-chi/cache
               desc: do not use the go-chi cache package, use gitea's cache system
+    nolintlint:
+      allow-unused: false
+      require-explanation: true
+      require-specific: true
     gocritic:
       disabled-checks:
         - ifElseChain
@@ -83,6 +87,10 @@ linters:
         - name: unreachable-code
         - name: var-declaration
         - name: var-naming
+          arguments:
+            - [] # AllowList - do not remove as args for the rule are positional and won't work without lists first
+            - [] # DenyList
+            - - skip-package-name-checks: true # supress errors from underscore in migration packages
     staticcheck:
       checks:
         - all

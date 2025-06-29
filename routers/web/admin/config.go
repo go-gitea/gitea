@@ -61,7 +61,7 @@ func TestCache(ctx *context.Context) {
 
 func shadowPasswordKV(cfgItem, splitter string) string {
 	fields := strings.Split(cfgItem, splitter)
-	for i := 0; i < len(fields); i++ {
+	for i := range fields {
 		if strings.HasPrefix(fields[i], "password=") {
 			fields[i] = "password=******"
 			break
@@ -200,7 +200,7 @@ func ChangeConfig(ctx *context.Context) {
 	value := ctx.FormString("value")
 	cfg := setting.Config()
 
-	marshalBool := func(v string) (string, error) { //nolint:unparam
+	marshalBool := func(v string) (string, error) { //nolint:unparam // error is always nil
 		if b, _ := strconv.ParseBool(v); b {
 			return "true", nil
 		}

@@ -32,127 +32,136 @@ func CleanupTask(ctx context.Context, olderThan time.Duration) error {
 	return CleanupExpiredData(ctx, olderThan)
 }
 
-func ExecuteCleanupRules(outerCtx context.Context) error {
-	ctx, committer, err := db.TxContext(outerCtx)
+func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.PackageCleanupRule, p *packages_model.Package) (versionDeleted bool, err error) {
+	olderThan := time.Now().AddDate(0, 0, -pcr.RemoveDays)
+	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		PackageID:  p.ID,
+		IsInternal: optional.Some(false),
+		Sort:       packages_model.SortCreatedDesc,
+	})
 	if err != nil {
-		return err
+		return false, fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err)
 	}
-	defer committer.Close()
+	if pcr.KeepCount > 0 {
+		if pcr.KeepCount < len(pvs) {
+			pvs = pvs[pcr.KeepCount:]
+		} else {
+			pvs = nil
+		}
+	}
+	for _, pv := range pvs {
+		if pcr.Type == packages_model.TypeContainer {
+			if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
+				return false, fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err)
+			} else if skip {
+				log.Debug("Rule[%d]: keep '%s/%s' (container)", pcr.ID, p.Name, pv.Version)
+				continue
+			}
+		}
+		toMatch := pv.LowerVersion
+		if pcr.MatchFullName {
+			toMatch = p.LowerName + "/" + pv.LowerVersion
+		}
+		if pcr.KeepPatternMatcher != nil && pcr.KeepPatternMatcher.MatchString(toMatch) {
+			log.Debug("Rule[%d]: keep '%s/%s' (keep pattern)", pcr.ID, p.Name, pv.Version)
+			continue
+		}
+		if pv.CreatedUnix.AsLocalTime().After(olderThan) {
+			log.Debug("Rule[%d]: keep '%s/%s' (remove days) %v", pcr.ID, p.Name, pv.Version, pv.CreatedUnix.FormatDate())
+			continue
+		}
+		if pcr.RemovePatternMatcher != nil && !pcr.RemovePatternMatcher.MatchString(toMatch) {
+			log.Debug("Rule[%d]: keep '%s/%s' (remove pattern)", pcr.ID, p.Name, pv.Version)
+			continue
+		}
+		log.Debug("Rule[%d]: remove '%s/%s'", pcr.ID, p.Name, pv.Version)
+		if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
+			log.Error("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %v", pcr.ID, err)
+			continue
+		}
+		versionDeleted = true
+	}
+	return versionDeleted, nil
+}
 
-	err = packages_model.IterateEnabledCleanupRules(ctx, func(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
+func executeCleanupOneRule(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
+	if err := pcr.CompiledPattern(); err != nil {
+		return fmt.Errorf("CleanupRule [%d]: CompilePattern failed: %w", pcr.ID, err)
+	}
+
+	packages, err := packages_model.GetPackagesByType(ctx, pcr.OwnerID, pcr.Type)
+	if err != nil {
+		return fmt.Errorf("CleanupRule [%d]: GetPackagesByType failed: %w", pcr.ID, err)
+	}
+
+	anyVersionDeleted := false
+	for _, p := range packages {
+		versionDeleted := false
+		err = db.WithTx(ctx, func(ctx context.Context) (err error) {
+			versionDeleted, err = executeCleanupOneRulePackage(ctx, pcr, p)
+			return err
+		})
+		if err != nil {
+			log.Error("CleanupRule [%d]: executeCleanupOneRulePackage(%d) failed: %v", pcr.ID, p.ID, err)
+			continue
+		}
+		anyVersionDeleted = anyVersionDeleted || versionDeleted
+		if versionDeleted {
+			if pcr.Type == packages_model.TypeCargo {
+				owner, err := user_model.GetUserByID(ctx, pcr.OwnerID)
+				if err != nil {
+					return fmt.Errorf("GetUserByID failed: %w", err)
+				}
+				if err := cargo_service.UpdatePackageIndexIfExists(ctx, owner, owner, p.ID); err != nil {
+					return fmt.Errorf("CleanupRule [%d]: cargo.UpdatePackageIndexIfExists failed: %w", pcr.ID, err)
+				}
+			}
+		}
+	}
+
+	if anyVersionDeleted {
+		switch pcr.Type {
+		case packages_model.TypeDebian:
+			if err := debian_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
+				return fmt.Errorf("CleanupRule [%d]: debian.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
+			}
+		case packages_model.TypeAlpine:
+			if err := alpine_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
+				return fmt.Errorf("CleanupRule [%d]: alpine.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
+			}
+		case packages_model.TypeRpm:
+			if err := rpm_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
+				return fmt.Errorf("CleanupRule [%d]: rpm.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
+			}
+		case packages_model.TypeArch:
+			release, err := arch_service.AquireRegistryLock(ctx, pcr.OwnerID)
+			if err != nil {
+				return err
+			}
+			defer release()
+
+			if err := arch_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
+				return fmt.Errorf("CleanupRule [%d]: arch.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
+			}
+		}
+	}
+	return nil
+}
+
+func ExecuteCleanupRules(ctx context.Context) error {
+	return packages_model.IterateEnabledCleanupRules(ctx, func(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
 		select {
-		case <-outerCtx.Done():
+		case <-ctx.Done():
 			return db.ErrCancelledf("While processing package cleanup rules")
 		default:
 		}
 
-		if err := pcr.CompiledPattern(); err != nil {
-			return fmt.Errorf("CleanupRule [%d]: CompilePattern failed: %w", pcr.ID, err)
-		}
-
-		olderThan := time.Now().AddDate(0, 0, -pcr.RemoveDays)
-
-		packages, err := packages_model.GetPackagesByType(ctx, pcr.OwnerID, pcr.Type)
+		err := executeCleanupOneRule(ctx, pcr)
 		if err != nil {
-			return fmt.Errorf("CleanupRule [%d]: GetPackagesByType failed: %w", pcr.ID, err)
-		}
-
-		anyVersionDeleted := false
-		for _, p := range packages {
-			pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-				PackageID:  p.ID,
-				IsInternal: optional.Some(false),
-				Sort:       packages_model.SortCreatedDesc,
-				Paginator:  db.NewAbsoluteListOptions(pcr.KeepCount, 200),
-			})
-			if err != nil {
-				return fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err)
-			}
-			versionDeleted := false
-			for _, pv := range pvs {
-				if pcr.Type == packages_model.TypeContainer {
-					if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
-						return fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err)
-					} else if skip {
-						log.Debug("Rule[%d]: keep '%s/%s' (container)", pcr.ID, p.Name, pv.Version)
-						continue
-					}
-				}
-
-				toMatch := pv.LowerVersion
-				if pcr.MatchFullName {
-					toMatch = p.LowerName + "/" + pv.LowerVersion
-				}
-
-				if pcr.KeepPatternMatcher != nil && pcr.KeepPatternMatcher.MatchString(toMatch) {
-					log.Debug("Rule[%d]: keep '%s/%s' (keep pattern)", pcr.ID, p.Name, pv.Version)
-					continue
-				}
-				if pv.CreatedUnix.AsLocalTime().After(olderThan) {
-					log.Debug("Rule[%d]: keep '%s/%s' (remove days)", pcr.ID, p.Name, pv.Version)
-					continue
-				}
-				if pcr.RemovePatternMatcher != nil && !pcr.RemovePatternMatcher.MatchString(toMatch) {
-					log.Debug("Rule[%d]: keep '%s/%s' (remove pattern)", pcr.ID, p.Name, pv.Version)
-					continue
-				}
-
-				log.Debug("Rule[%d]: remove '%s/%s'", pcr.ID, p.Name, pv.Version)
-
-				if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-					return fmt.Errorf("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %w", pcr.ID, err)
-				}
-
-				versionDeleted = true
-				anyVersionDeleted = true
-			}
-
-			if versionDeleted {
-				if pcr.Type == packages_model.TypeCargo {
-					owner, err := user_model.GetUserByID(ctx, pcr.OwnerID)
-					if err != nil {
-						return fmt.Errorf("GetUserByID failed: %w", err)
-					}
-					if err := cargo_service.UpdatePackageIndexIfExists(ctx, owner, owner, p.ID); err != nil {
-						return fmt.Errorf("CleanupRule [%d]: cargo.UpdatePackageIndexIfExists failed: %w", pcr.ID, err)
-					}
-				}
-			}
-		}
-
-		if anyVersionDeleted {
-			switch pcr.Type {
-			case packages_model.TypeDebian:
-				if err := debian_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
-					return fmt.Errorf("CleanupRule [%d]: debian.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
-				}
-			case packages_model.TypeAlpine:
-				if err := alpine_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
-					return fmt.Errorf("CleanupRule [%d]: alpine.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
-				}
-			case packages_model.TypeRpm:
-				if err := rpm_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
-					return fmt.Errorf("CleanupRule [%d]: rpm.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
-				}
-			case packages_model.TypeArch:
-				release, err := arch_service.AquireRegistryLock(ctx, pcr.OwnerID)
-				if err != nil {
-					return err
-				}
-				defer release()
-
-				if err := arch_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
-					return fmt.Errorf("CleanupRule [%d]: arch.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
-				}
-			}
+			log.Error("CleanupRule [%d]: executeCleanupOneRule failed: %v", pcr.ID, err)
 		}
 		return nil
 	})
-	if err != nil {
-		return err
-	}
-
-	return committer.Commit()
 }
 
 func CleanupExpiredData(outerCtx context.Context, olderThan time.Duration) error {

@@ -118,7 +118,7 @@ func initEmbeddedExtractor(c *cli.Command) error {
 
 func runList(_ context.Context, c *cli.Command) error {
 	if err := runListDo(c); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 		return err
 	}
 	return nil
@@ -126,7 +126,7 @@ func runList(_ context.Context, c *cli.Command) error {
 
 func runView(_ context.Context, c *cli.Command) error {
 	if err := runViewDo(c); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 		return err
 	}
 	return nil
@@ -134,7 +134,7 @@ func runView(_ context.Context, c *cli.Command) error {
 
 func runExtract(_ context.Context, c *cli.Command) error {
 	if err := runExtractDo(c); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 		return err
 	}
 	return nil
@@ -217,7 +217,7 @@ func runExtractDo(c *cli.Command) error {
 	for _, a := range matchedAssetFiles {
 		if err := extractAsset(destdir, a, overwrite, rename); err != nil {
 			// Non-fatal error
-			fmt.Fprintf(os.Stderr, "%s: %v", a.path, err)
+			_, _ = fmt.Fprintf(os.Stderr, "%s: %v\n", a.path, err)
 		}
 	}
 
@@ -295,16 +295,14 @@ func collectAssetFilesByPattern(c *cli.Command, globs []glob.Glob, path string, 
 	}
 }
 
-func compileCollectPatterns(args []string) ([]glob.Glob, error) {
+func compileCollectPatterns(args []string) (_ []glob.Glob, err error) {
 	if len(args) == 0 {
 		args = []string{"**"}
 	}
 	pat := make([]glob.Glob, len(args))
 	for i := range args {
-		if g, err := glob.Compile(args[i], '/'); err != nil {
-			return nil, fmt.Errorf("'%s': Invalid glob pattern: %w", args[i], err)
-		} else { //nolint:revive
-			pat[i] = g
+		if pat[i], err = glob.Compile(args[i], '/'); err != nil {
+			return nil, fmt.Errorf("invalid glob patterh %q: %w", args[i], err)
 		}
 	}
 	return pat, nil
