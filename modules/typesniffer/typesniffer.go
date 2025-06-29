@@ -6,19 +6,14 @@ package typesniffer
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
-	"io"
 	"net/http"
 	"regexp"
 	"slices"
 	"strings"
 	"sync"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
-// Use at most this many bytes to determine Content Type.
-const sniffLen = 1024
+const SniffContentSize = 1024
 
 const (
 	MimeTypeImageSvg  = "image/svg+xml"
@@ -42,7 +37,7 @@ type SniffedType struct {
 	contentType string
 }
 
-// IsText detects if the content format is plain text.
+// IsText detects if the content format is text family, including text/plain, text/html, text/css, etc.
 func (ct SniffedType) IsText() bool {
 	return strings.Contains(ct.contentType, "text/")
 }
@@ -66,12 +61,12 @@ func (ct SniffedType) IsPDF() bool {
 	return strings.Contains(ct.contentType, "application/pdf")
 }
 
-// IsVideo detects if data is an video format
+// IsVideo detects if data is a video format
 func (ct SniffedType) IsVideo() bool {
 	return strings.Contains(ct.contentType, "video/")
 }
 
-// IsAudio detects if data is an video format
+// IsAudio detects if data is a video format
 func (ct SniffedType) IsAudio() bool {
 	return strings.Contains(ct.contentType, "audio/")
 }
@@ -85,10 +80,6 @@ func (ct SniffedType) IsRepresentableAsText() bool {
 // IsBrowsableBinaryType returns whether a non-text type can be displayed in a browser
 func (ct SniffedType) IsBrowsableBinaryType() bool {
 	return ct.IsImage() || ct.IsSvgImage() || ct.IsPDF() || ct.IsVideo() || ct.IsAudio()
-}
-
-func (ct SniffedType) IsApplicationOctetStream() bool {
-	return ct.contentType == "application/octet-stream"
 }
 
 // GetMimeType returns the mime type
@@ -116,16 +107,16 @@ func detectFileTypeBox(data []byte) (brands []string, found bool) {
 	return brands, true
 }
 
-// DetectContentType extends http.DetectContentType with more content types. Defaults to text/unknown if input is empty.
+// DetectContentType extends http.DetectContentType with more content types. Defaults to text/plain if input is empty.
 func DetectContentType(data []byte) SniffedType {
 	if len(data) == 0 {
-		return SniffedType{"text/unknown"}
+		return SniffedType{"text/plain"}
 	}
 
 	ct := http.DetectContentType(data)
 
-	if len(data) > sniffLen {
-		data = data[:sniffLen]
+	if len(data) > SniffContentSize {
+		data = data[:SniffContentSize]
 	}
 
 	vars := globalVars()
@@ -143,7 +134,7 @@ func DetectContentType(data []byte) SniffedType {
 
 	if strings.HasPrefix(ct, "audio/") && bytes.HasPrefix(data, []byte("ID3")) {
 		// The MP3 detection is quite inaccurate, any content with "ID3" prefix will result in "audio/mpeg".
-		// So remove the "ID3" prefix and detect again, if result is text, then it must be text content.
+		// So remove the "ID3" prefix and detect again, then if the result is "text", it must be text content.
 		// This works especially because audio files contain many unprintable/invalid characters like `0x00`
 		ct2 := http.DetectContentType(data[3:])
 		if strings.HasPrefix(ct2, "text/") {
@@ -168,16 +159,4 @@ func DetectContentType(data []byte) SniffedType {
 		}
 	}
 	return SniffedType{ct}
-}
-
-// DetectContentTypeFromReader guesses the content type contained in the reader.
-func DetectContentTypeFromReader(r io.Reader) (SniffedType, error) {
-	buf := make([]byte, sniffLen)
-	n, err := util.ReadAtMost(r, buf)
-	if err != nil {
-		return SniffedType{}, fmt.Errorf("DetectContentTypeFromReader io error: %w", err)
-	}
-	buf = buf[:n]
-
-	return DetectContentType(buf), nil
 }

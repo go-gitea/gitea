@@ -17,7 +17,7 @@ func TestDetectContentTypeLongerThanSniffLen(t *testing.T) {
 	// Pre-condition: Shorter than sniffLen detects SVG.
 	assert.Equal(t, "image/svg+xml", DetectContentType([]byte(`<!-- Comment --><svg></svg>`)).contentType)
 	// Longer than sniffLen detects something else.
-	assert.NotEqual(t, "image/svg+xml", DetectContentType([]byte(`<!-- `+strings.Repeat("x", sniffLen)+` --><svg></svg>`)).contentType)
+	assert.NotEqual(t, "image/svg+xml", DetectContentType([]byte(`<!-- `+strings.Repeat("x", SniffContentSize)+` --><svg></svg>`)).contentType)
 }
 
 func TestIsTextFile(t *testing.T) {
