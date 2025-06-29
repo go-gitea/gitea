@@ -77,7 +77,6 @@ type FindRunOptions struct {
 	CreatedAfter        time.Time
 	CreatedBefore       time.Time
 	ExcludePullRequests bool
-	CheckSuiteID        int64
 }
 
 func (opts FindRunOptions) ToConds() builder.Cond {
@@ -114,9 +113,6 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	}
 	if opts.ExcludePullRequests {
 		cond = cond.And(builder.Neq{"`action_run`.trigger_event": webhook_module.HookEventPullRequest})
-	}
-	if opts.CheckSuiteID > 0 {
-		cond = cond.And(builder.Eq{"`action_run`.check_suite_id": opts.CheckSuiteID})
 	}
 	return cond
 }

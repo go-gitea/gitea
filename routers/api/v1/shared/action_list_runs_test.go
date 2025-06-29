@@ -4,13 +4,11 @@
 package shared
 
 import (
-	"net/url"
 	"testing"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -18,15 +16,6 @@ import (
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m)
-}
-
-// setFormValue is a helper function to set form values in test context
-func setFormValue(ctx *context.APIContext, key, value string) {
-	// Initialize the form if it's nil
-	if ctx.Req.Form == nil {
-		ctx.Req.Form = make(url.Values)
-	}
-	ctx.Req.Form.Set(key, value)
 }
 
 // TestListRunsWorkflowFiltering tests that ListRuns properly handles
@@ -77,94 +66,53 @@ func TestListRunsExcludePullRequestsParam(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	// Test case 1: With exclude_pull_requests=true
-	ctx, _ := contexttest.MockAPIContext(t, "user2/repo1")
+	ctx, _ := contexttest.MockAPIContext(t, "user2/repo1?exclude_pull_requests=true")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadUser(t, ctx, 2)
-
-	// Set up form value
-	setFormValue(ctx, "exclude_pull_requests", "true")
 
 	// Call the actual parsing logic from ListRuns
 	opts := actions_model.FindRunOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	}
 
-	if exclude := ctx.FormString("exclude_pull_requests"); exclude != "" {
-		if exclude == "true" || exclude == "1" {
-			opts.ExcludePullRequests = true
-		}
+	if ctx.FormBool("exclude_pull_requests") {
+		opts.ExcludePullRequests = true
 	}
 
 	// Verify the ExcludePullRequests is correctly set based on the form value
 	assert.True(t, opts.ExcludePullRequests)
 
 	// Test case 2: With exclude_pull_requests=1
-	ctx2, _ := contexttest.MockAPIContext(t, "user2/repo1")
+	ctx2, _ := contexttest.MockAPIContext(t, "user2/repo1?exclude_pull_requests=1")
 	contexttest.LoadRepo(t, ctx2, 1)
 	contexttest.LoadUser(t, ctx2, 2)
-
-	setFormValue(ctx2, "exclude_pull_requests", "1")
 
 	opts2 := actions_model.FindRunOptions{
 		RepoID: ctx2.Repo.Repository.ID,
 	}
 
-	if exclude := ctx2.FormString("exclude_pull_requests"); exclude != "" {
-		if exclude == "true" || exclude == "1" {
-			opts2.ExcludePullRequests = true
-		}
+	if ctx2.FormBool("exclude_pull_requests") {
+		opts2.ExcludePullRequests = true
 	}
 
 	// Verify the ExcludePullRequests is correctly set for "1" value
 	assert.True(t, opts2.ExcludePullRequests)
 
 	// Test case 3: With exclude_pull_requests=false (should not set the flag)
-	ctx3, _ := contexttest.MockAPIContext(t, "user2/repo1")
+	ctx3, _ := contexttest.MockAPIContext(t, "user2/repo1?exclude_pull_requests=false")
 	contexttest.LoadRepo(t, ctx3, 1)
 	contexttest.LoadUser(t, ctx3, 2)
-
-	setFormValue(ctx3, "exclude_pull_requests", "false")
 
 	opts3 := actions_model.FindRunOptions{
 		RepoID: ctx3.Repo.Repository.ID,
 	}
 
-	if exclude := ctx3.FormString("exclude_pull_requests"); exclude != "" {
-		if exclude == "true" || exclude == "1" {
-			opts3.ExcludePullRequests = true
-		}
+	if ctx3.FormBool("exclude_pull_requests") {
+		opts3.ExcludePullRequests = true
 	}
 
 	// Verify the ExcludePullRequests is NOT set for "false" value
 	assert.False(t, opts3.ExcludePullRequests)
-}
-
-// TestListRunsCheckSuiteIDParam tests that ListRuns properly handles
-// the check_suite_id parameter.
-func TestListRunsCheckSuiteIDParam(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-
-	const testSuiteID int64 = 12345
-
-	// Test case: With check_suite_id parameter
-	ctx, _ := contexttest.MockAPIContext(t, "user2/repo1")
-	contexttest.LoadRepo(t, ctx, 1)
-	contexttest.LoadUser(t, ctx, 2)
-
-	setFormValue(ctx, "check_suite_id", "12345")
-
-	// Call the actual parsing logic from ListRuns
-	opts := actions_model.FindRunOptions{
-		RepoID: ctx.Repo.Repository.ID,
-	}
-
-	// This simulates the logic in ListRuns
-	if checkSuiteID := ctx.FormInt64("check_suite_id"); checkSuiteID > 0 {
-		opts.CheckSuiteID = checkSuiteID
-	}
-
-	// Verify the CheckSuiteID is correctly set based on the form value
-	assert.Equal(t, testSuiteID, opts.CheckSuiteID)
 }
 
 // TestListRunsCreatedParam tests that ListRuns properly handles
@@ -173,11 +121,9 @@ func TestListRunsCreatedParam(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	// Test case 1: With created in date range format
-	ctx, _ := contexttest.MockAPIContext(t, "user2/repo1")
+	ctx, _ := contexttest.MockAPIContext(t, "user2/repo1?created=2023-01-01..2023-12-31")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadUser(t, ctx, 2)
-
-	setFormValue(ctx, "created", "2023-01-01..2023-12-31")
 
 	opts := actions_model.FindRunOptions{
 		RepoID: ctx.Repo.Repository.ID,
@@ -204,11 +150,9 @@ func TestListRunsCreatedParam(t *testing.T) {
 	assert.Equal(t, expectedEnd, opts.CreatedBefore)
 
 	// Test case 2: With created in ">=" format
-	ctx2, _ := contexttest.MockAPIContext(t, "user2/repo1")
+	ctx2, _ := contexttest.MockAPIContext(t, "user2/repo1?created=>=2023-01-01")
 	contexttest.LoadRepo(t, ctx2, 1)
 	contexttest.LoadUser(t, ctx2, 2)
-
-	setFormValue(ctx2, "created", ">=2023-01-01")
 
 	opts2 := actions_model.FindRunOptions{
 		RepoID: ctx2.Repo.Repository.ID,
@@ -229,11 +173,9 @@ func TestListRunsCreatedParam(t *testing.T) {
 	assert.True(t, opts2.CreatedBefore.IsZero())
 
 	// Test case 3: With created in exact date format
-	ctx3, _ := contexttest.MockAPIContext(t, "user2/repo1")
+	ctx3, _ := contexttest.MockAPIContext(t, "user2/repo1?created=2023-06-15")
 	contexttest.LoadRepo(t, ctx3, 1)
 	contexttest.LoadUser(t, ctx3, 2)
-
-	setFormValue(ctx3, "created", "2023-06-15")
 
 	opts3 := actions_model.FindRunOptions{
 		RepoID: ctx3.Repo.Repository.ID,

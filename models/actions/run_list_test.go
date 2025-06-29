@@ -28,22 +28,6 @@ func TestFindRunOptions_ToConds_ExcludePullRequests(t *testing.T) {
 	assert.Contains(t, args, webhook.HookEventPullRequest)
 }
 
-func TestFindRunOptions_ToConds_CheckSuiteID(t *testing.T) {
-	// Test when CheckSuiteID is set
-	const testSuiteID int64 = 12345
-	opts := FindRunOptions{
-		CheckSuiteID: testSuiteID,
-	}
-	cond := opts.ToConds()
-
-	// Convert the condition to SQL for assertion
-	sql, args, err := builder.ToSQL(cond)
-	assert.NoError(t, err)
-	// The condition should contain the check_suite_id equal to the test value
-	assert.Contains(t, sql, "`action_run`.check_suite_id=")
-	assert.Contains(t, args, testSuiteID)
-}
-
 func TestFindRunOptions_ToConds_CreatedDateRange(t *testing.T) {
 	// Test when CreatedAfter and CreatedBefore are set
 	startDate := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)

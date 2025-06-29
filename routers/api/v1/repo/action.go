@@ -1149,7 +1149,7 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	//   default: false
 	// - name: check_suite_id
 	//   in: query
-	//   description: Returns workflow runs with the check_suite_id that you specify.
+	//   description: Not supported in Gitea API. (GitHub API compatibility - parameter ignored).
 	//   type: integer
 	// - name: head_sha
 	//   in: query
