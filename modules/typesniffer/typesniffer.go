@@ -32,12 +32,12 @@ var (
 	svgTagInXMLRegex = regexp.MustCompile(`(?si)\A<\?xml\b.*?\?>\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg\b`)
 )
 
-// SniffedType contains information about a blobs type.
+// SniffedType contains information about a blob's type.
 type SniffedType struct {
 	contentType string
 }
 
-// IsText etects if content format is plain text.
+// IsText detects if the content format is plain text.
 func (ct SniffedType) IsText() bool {
 	return strings.Contains(ct.contentType, "text/")
 }

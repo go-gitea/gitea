@@ -6,13 +6,11 @@ package console
 import (
 	"bytes"
 	"io"
-	"path"
 
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 
 	trend "github.com/buildkite/terminal-to-html/v3"
-	"github.com/go-enry/go-enry/v2"
 )
 
 func init() {
@@ -41,14 +39,19 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 
 // CanRender implements markup.RendererContentDetector
 func (Renderer) CanRender(filename string, input io.Reader) bool {
-	buf, err := io.ReadAll(input)
-	if err != nil {
-		return false
-	}
-	if enry.GetLanguage(path.Base(filename), buf) != enry.OtherLanguage {
-		return false
-	}
-	return bytes.ContainsRune(buf, '\x1b')
+	/*
+		buf, err := io.ReadAll(input)
+		if err != nil {
+			return false
+		}
+		if enry.GetLanguage(path.Base(filename), buf) != enry.OtherLanguage {
+			return false
+		}
+		return bytes.ContainsRune(buf, '\x1b')
+	*/
+	// FIXME: this check is not right, it is too broad and will match any file containing ANSI escape codes.
+	// So only use the defined "Extensions" to avoid conflicts with other renderers.
+	return false
 }
 
 // Render renders terminal colors to HTML with all specific handling stuff.

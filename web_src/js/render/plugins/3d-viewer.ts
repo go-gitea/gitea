@@ -10,7 +10,7 @@ export function newRenderPlugin3DViewer(): FileRenderPlugin {
   // .ifc, .igs, .iges, .stp, .step are: TEXT
   // .stl .ply: TEXT or BINARY
   // .obj .off .wrl: TEXT
-  // TODO: So we need to be able to render when the file is recognized as plaintext file by backend
+  // So we need to be able to render when the file is recognized as plaintext file by backend
   const SUPPORTED_EXTENSIONS = [
     '.3dm', '.3ds', '.3mf', '.amf', '.bim', '.brep',
     '.dae', '.fbx', '.fcstd', '.glb', '.gltf',
