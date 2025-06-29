@@ -36,9 +36,9 @@ func TestCommitListActions(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo1/wiki/Home?action=_revision")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		AssertHTMLElement(t, htmlDoc, ".commit-list .copy-commit-id", true)
-		AssertHTMLElement(t, htmlDoc, `.commit-list .view-single-diff`, false)
-		AssertHTMLElement(t, htmlDoc, `.commit-list .view-commit-path`, false)
+		AssertHTMLElement(t, htmlDoc, ".commit-table .copy-commit-id", true)
+		AssertHTMLElement(t, htmlDoc, `.commit-table .view-single-diff`, false)
+		AssertHTMLElement(t, htmlDoc, `.commit-table .view-commit-path`, false)
 	})
 
 	t.Run("RepoCommitList", func(t *testing.T) {
@@ -48,9 +48,9 @@ func TestCommitListActions(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		AssertHTMLElement(t, htmlDoc, `.commit-list .copy-commit-id`, true)
-		AssertHTMLElement(t, htmlDoc, `.commit-list .view-single-diff`, false)
-		AssertHTMLElement(t, htmlDoc, `.commit-list .view-commit-path`, true)
+		AssertHTMLElement(t, htmlDoc, `.commit-table .copy-commit-id`, true)
+		AssertHTMLElement(t, htmlDoc, `.commit-table .view-single-diff`, false)
+		AssertHTMLElement(t, htmlDoc, `.commit-table .view-commit-path`, true)
 	})
 
 	t.Run("RepoFileHistory", func(t *testing.T) {
@@ -60,8 +60,8 @@ func TestCommitListActions(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		AssertHTMLElement(t, htmlDoc, `.commit-list .copy-commit-id`, true)
-		AssertHTMLElement(t, htmlDoc, `.commit-list .view-single-diff`, true)
-		AssertHTMLElement(t, htmlDoc, `.commit-list .view-commit-path`, true)
+		AssertHTMLElement(t, htmlDoc, `.commit-table .copy-commit-id`, true)
+		AssertHTMLElement(t, htmlDoc, `.commit-table .view-single-diff`, true)
+		AssertHTMLElement(t, htmlDoc, `.commit-table .view-commit-path`, true)
 	})
 }
