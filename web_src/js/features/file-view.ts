@@ -1,20 +1,25 @@
-import {findFileRenderPlugin} from '../modules/file-render-plugin.ts';
+import type {FileRenderPlugin} from '../render/plugin.ts';
+import {newRenderPlugin3DViewer} from '../render/plugins/3d-viewer.ts';
+import {newRenderPluginPdfViewer} from '../render/plugins/pdf-viewer.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
-import {register3DViewerPlugin} from '../render/plugins/3d-viewer.ts';
-import {registerPdfViewerPlugin} from '../render/plugins/pdf-viewer.ts';
 import {htmlEscape} from 'escape-goat';
 import {basename} from '../utils.ts';
 
-export function initFileViewRender(): void {
-  let pluginRegistered = false;
+const plugins: FileRenderPlugin[] = [];
 
+function initPluginsOnce(): void {
+  if (plugins.length) return;
+  plugins.push(newRenderPlugin3DViewer(), newRenderPluginPdfViewer());
+}
+
+function findFileRenderPlugin(filename: string, mimeType: string): FileRenderPlugin | null {
+  return plugins.find((plugin) => plugin.canHandle(filename, mimeType)) || null;
+}
+
+export function initFileViewRender(): void {
   registerGlobalInitFunc('initFileViewRender', async (container: HTMLElement) => {
-    if (!pluginRegistered) {
-      pluginRegistered = true;
-      register3DViewerPlugin();
-      registerPdfViewerPlugin();
-    }
+    initPluginsOnce();
 
     const rawFileLink = container.getAttribute('data-raw-file-link');
     const mimeType = container.getAttribute('data-mime-type') || ''; // not used yet

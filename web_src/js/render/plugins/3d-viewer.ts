@@ -1,13 +1,16 @@
-import type {FileRenderPlugin} from '../../modules/file-render-plugin.ts';
-import {registerFileRenderPlugin} from '../../modules/file-render-plugin.ts';
+import type {FileRenderPlugin} from '../plugin.ts';
+import {extname} from '../../utils.ts';
 
-/**
- * 3D model file render plugin
- *
- * support common 3D model file formats, use online-3d-viewer library for rendering
- */
-export function register3DViewerPlugin(): void {
-  // supported 3D file extensions
+// support common 3D model file formats, use online-3d-viewer library for rendering
+export function newRenderPlugin3DViewer(): FileRenderPlugin {
+  // Some extensions are text-based formats:
+  // .3mf .amf .brep: XML
+  // .fbx: XML or BINARY
+  // .dae .gltf: JSON
+  // .ifc, .igs, .iges, .stp, .step are: TEXT
+  // .stl .ply: TEXT or BINARY
+  // .obj .off .wrl: TEXT
+  // TODO: So we need to be able to render when the file is recognized as plaintext file by backend
   const SUPPORTED_EXTENSIONS = [
     '.3dm', '.3ds', '.3mf', '.amf', '.bim', '.brep',
     '.dae', '.fbx', '.fcstd', '.glb', '.gltf',
@@ -15,17 +18,14 @@ export function register3DViewerPlugin(): void {
     '.stl', '.obj', '.off', '.ply', '.wrl',
   ];
 
-  // create and register plugin
-  const plugin: FileRenderPlugin = {
+  return {
     name: '3d-model-viewer',
 
-    // check if file extension is a supported 3D file
     canHandle(filename: string, _mimeType: string): boolean {
-      const ext = filename.substring(filename.lastIndexOf('.')).toLowerCase();
+      const ext = extname(filename).toLowerCase();
       return SUPPORTED_EXTENSIONS.includes(ext);
     },
 
-    // render 3D model
     async render(container: HTMLElement, fileUrl: string): Promise<void> {
       const OV = await import(/* webpackChunkName: "online-3d-viewer" */'online-3d-viewer');
       container.classList.add('model3d-content');
@@ -37,6 +37,4 @@ export function register3DViewerPlugin(): void {
       viewer.LoadModelFromUrlList([fileUrl]);
     },
   };
-
-  registerFileRenderPlugin(plugin);
 }
