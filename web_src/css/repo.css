@@ -50,21 +50,42 @@
   width: 300px;
 }
 
-.issue-sidebar-combo .ui.dropdown .item:not(.checked) .item-check-mark {
-  visibility: hidden;
+.issue-content-right .ui.dropdown.full-width {
+  width: 100%;
 }
 
-.issue-content-right .dropdown > .menu {
+.issue-content-right .ui.dropdown.full-width > .fixed-text {
+  display: flex;
+  flex-grow: 1;
+  justify-content: space-between;
+}
+
+.issue-content-right .ui.dropdown > .menu {
   max-width: 270px;
   min-width: 0;
   max-height: 500px;
   overflow-x: auto;
 }
 
-.issue-content-right .dropdown > .menu .item-secondary-info small {
+.issue-content-right .ui.dropdown > .menu .item-secondary-info small {
   display: block;
   text-overflow: ellipsis;
   overflow: hidden;
+}
+
+.issue-content-right .ui.list {
+  margin: 0.5em 0;
+  max-width: 100%;
+}
+
+.issue-sidebar-combo > .ui.dropdown .item:not(.checked) .item-check-mark {
+  visibility: hidden;
+}
+
+.issue-content-right .ui.list.labels-list {
+  display: flex;
+  gap: var(--gap-inline);
+  flex-wrap: wrap;
 }
 
 @media (max-width: 767.98px) {
@@ -127,11 +148,6 @@ td .commit-summary {
   .latest-commit .commit-id-short {
     display: none;
   }
-}
-
-.repo-path {
-  display: flex;
-  overflow-wrap: anywhere;
 }
 
 .repository.file.list .non-diff-file-content .header .icon {
@@ -476,14 +492,6 @@ td .commit-summary {
   margin-right: 5px;
 }
 
-.repository.view.issue .merge.box .branch-update.grid .row {
-  padding-bottom: 1rem;
-}
-
-.repository.view.issue .merge.box .branch-update.grid .row .icon {
-  margin-top: 1.1rem;
-}
-
 .repository.view.issue .comment-list:not(.prevent-before-timeline)::before {
   display: block;
   content: "";
@@ -521,7 +529,7 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .timeline-item,
 .repository.view.issue .comment-list .timeline-item-group {
-  padding: 16px 0;
+  padding: 8px 0;
 }
 
 .repository.view.issue .comment-list .timeline-item-group .timeline-item {
@@ -575,6 +583,11 @@ td .commit-summary {
   justify-content: center;
 }
 
+.repository.view.issue .comment-list .timeline-item.commits-list .badge {
+  margin-right: 0;
+  height: 28px;
+}
+
 .repository.view.issue .comment-list .timeline-item .badge .svg {
   width: 22px;
   height: 22px;
@@ -597,10 +610,6 @@ td .commit-summary {
 .repository.view.issue .comment-list .timeline-item.commits-list {
   padding-left: 15px;
   padding-top: 0;
-}
-
-.repository.view.issue .comment-list .timeline-item.commits-list .ui.avatar {
-  margin-right: 0.25em;
 }
 
 .repository.view.issue .comment-list .timeline-item.event > .commit-status-link {
@@ -1224,33 +1233,6 @@ td .commit-summary {
   font-weight: var(--font-weight-normal);
 }
 
-.empty-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 40px;
-  padding-bottom: 40px;
-}
-
-.repository.packages .file-size {
-  white-space: nowrap;
-}
-
-.file-view.markup {
-  padding: 1em 2em;
-}
-
-.file-view.markup:has(.file-not-rendered-prompt) {
-  padding: 0; /* let the file-not-rendered-prompt layout itself */
-}
-
-.file-not-rendered-prompt {
-  padding: 1rem;
-  text-align: center;
-  font-size: 1rem !important; /* use consistent styles for various containers (code, markup, etc) */
-  line-height: var(--line-height-default) !important; /* same as above */
-}
-
 .repository .activity-header {
   display: flex;
   justify-content: space-between;
@@ -1573,49 +1555,6 @@ td .commit-summary {
   border-bottom-right-radius: 4px;
 }
 
-.labels-list {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 2.5px;
-  align-items: center;
-}
-
-.labels-list .label, .scope-parent > .label {
-  padding: 0 6px;
-  min-height: 20px;
-  line-height: 1.3; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
-}
-
-/* Scoped labels with different colors on left and right */
-.ui.label.scope-parent {
-  background: none !important;
-  padding: 0 !important;
-  gap: 0 !important;
-}
-
-.archived-label {
-  filter: grayscale(0.5);
-  opacity: 0.5;
-}
-
-.ui.label.scope-left {
-  border-bottom-right-radius: 0;
-  border-top-right-radius: 0;
-  margin-right: 0;
-}
-
-.ui.label.scope-middle {
-  border-radius: 0;
-  margin-left: 0;
-  margin-right: 0;
-}
-
-.ui.label.scope-right {
-  border-bottom-left-radius: 0;
-  border-top-left-radius: 0;
-  margin-left: 0;
-}
-
 .repo-button-row {
   margin: 8px 0;
   display: flex;
@@ -1629,21 +1568,17 @@ td .commit-summary {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .repo-button-row-left {
   flex-grow: 1;
 }
 
-.repo-button-row .button {
-  padding: 6px 10px !important;
-  height: 30px;
+.repo-button-row .ui.button {
   flex-shrink: 0;
   margin: 0;
-}
-
-.repo-button-row .button.dropdown:not(.icon) {
-  padding-right: 22px !important; /* normal buttons have !important paddings, so we need to override it for dropdown (Add File) icons */
+  min-height: 30px;
 }
 
 tbody.commit-list {
@@ -1788,12 +1723,12 @@ tbody.commit-list {
 .resolved-placeholder {
   display: flex;
   align-items: center;
-  font-size: 14px !important;
-  padding: 8px !important;
-  font-weight: var(--font-weight-normal) !important;
-  border: 1px solid var(--color-secondary) !important;
-  border-radius: var(--border-radius) !important;
-  margin: 4px !important;
+  justify-content: space-between;
+  margin: 4px;
+  padding: 8px;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  background: var(--color-box-header);
 }
 
 .resolved-placeholder + .comment-code-cloud {
@@ -1867,6 +1802,7 @@ tbody.commit-list {
   border-radius: 0;
   display: flex;
   flex-direction: column;
+  gap: 0.5em;
 }
 
 /* fomantic's last-child selector does not work with hidden last child */
@@ -2056,10 +1992,6 @@ tbody.commit-list {
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
 }
 
-.migrate-entry .description {
-  text-wrap: balance;
-}
-
 .commits-table .commits-table-right form {
   display: flex;
   align-items: center;
@@ -2221,10 +2153,11 @@ tbody.commit-list {
   max-width: min(400px, 90vw);
 }
 
-.branch-selector-dropdown .branch-dropdown-button {
+.branch-selector-dropdown .ui.button.branch-dropdown-button {
   margin: 0;
   max-width: 340px;
   line-height: var(--line-height-default);
+  padding: 0 0.5em 0 0.75em;
 }
 
 /* FIXME: These media selectors are not ideal (just keep them from old code).

@@ -828,6 +828,21 @@ func IsLastAdminUser(ctx context.Context, user *User) bool {
 type CountUserFilter struct {
 	LastLoginSince *int64
 	IsAdmin        optional.Option[bool]
+	IsActive       optional.Option[bool]
+}
+
+// HasUsers checks whether there are any users in the database, or only one user exists.
+func HasUsers(ctx context.Context) (ret struct {
+	HasAnyUser, HasOnlyOneUser bool
+}, err error,
+) {
+	res, err := db.GetEngine(ctx).Table(&User{}).Cols("id").Limit(2).Query()
+	if err != nil {
+		return ret, fmt.Errorf("error checking user existence: %w", err)
+	}
+	ret.HasAnyUser = len(res) != 0
+	ret.HasOnlyOneUser = len(res) == 1
+	return ret, nil
 }
 
 // CountUsers returns number of users.
@@ -847,6 +862,10 @@ func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
 
 		if opts.IsAdmin.Has() {
 			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.Value()})
+		}
+
+		if opts.IsActive.Has() {
+			cond = cond.And(builder.Eq{"is_active": opts.IsActive.Value()})
 		}
 	}
 
@@ -1146,8 +1165,8 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([
 	}
 
 	for _, c := range oldCommits {
-		user, ok := emailUserMap[c.Author.Email]
-		if !ok {
+		user := emailUserMap.GetByEmail(c.Author.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
+		if user == nil {
 			user = &User{
 				Name:  c.Author.Name,
 				Email: c.Author.Email,
@@ -1161,7 +1180,15 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([
 	return newCommits, nil
 }
 
-func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, error) {
+type EmailUserMap struct {
+	m map[string]*User
+}
+
+func (eum *EmailUserMap) GetByEmail(email string) *User {
+	return eum.m[strings.ToLower(email)]
+}
+
+func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, error) {
 	if len(emails) == 0 {
 		return nil, nil
 	}
@@ -1171,7 +1198,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, e
 	for _, email := range emails {
 		if strings.HasSuffix(email, "@"+setting.Service.NoReplyAddress) {
 			username := strings.TrimSuffix(email, "@"+setting.Service.NoReplyAddress)
-			needCheckUserNames.Add(username)
+			needCheckUserNames.Add(strings.ToLower(username))
 		} else {
 			needCheckEmails.Add(strings.ToLower(email))
 		}
@@ -1198,7 +1225,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, e
 		for _, email := range emailAddresses {
 			user := users[email.UID]
 			if user != nil {
-				results[user.GetEmail()] = user
+				results[email.LowerEmail] = user
 			}
 		}
 	}
@@ -1208,9 +1235,9 @@ func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, e
 		return nil, err
 	}
 	for _, user := range users {
-		results[user.GetPlaceholderEmail()] = user
+		results[strings.ToLower(user.GetPlaceholderEmail())] = user
 	}
-	return results, nil
+	return &EmailUserMap{results}, nil
 }
 
 // GetUserByEmail returns the user object by given e-mail if exists.

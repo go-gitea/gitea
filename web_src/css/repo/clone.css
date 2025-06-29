@@ -1,14 +1,16 @@
 /* only used by "repo/empty.tmpl" */
 .clone-buttons-combo {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   flex: 1;
 }
 
-.clone-buttons-combo input {
-  border-left: none !important;
-  border-radius: 0 !important;
-  height: 30px;
+.clone-buttons-combo > .ui.button:not(:last-child) {
+  border-right: none;
+}
+
+.ui.action.input.clone-buttons-combo input {
+  border-radius: 0; /* override fomantic border-radius for ".ui.input > input" */
 }
 
 /* used by the clone-panel popup */

@@ -35,7 +35,7 @@ func AvatarHTML(src string, size int, class, name string) template.HTML {
 	}
 
 	// use empty alt, otherwise if the image fails to load, the width will follow the "alt" text's width
-	return template.HTML(`<img loading="lazy" alt="" class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
+	return template.HTML(`<img loading="lazy" alt class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
 }
 
 // Avatar renders user avatars. args: user, size (int), class (string)

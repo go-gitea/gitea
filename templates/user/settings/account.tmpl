@@ -43,11 +43,11 @@
 			<div class="ui list flex-items-block">
 				{{if $.EnableNotifyMail}}
 				<div class="item">
-					<div class="tw-mb-2">{{ctx.Locale.Tr "settings.email_desc"}}</div>
-					<form action="{{AppSubUrl}}/user/settings/account/email" class="ui form" method="post">
+					<form class="ui form tw-w-full" action="{{AppSubUrl}}/user/settings/account/email" method="post">
 						{{$.CsrfTokenHtml}}
 						<input name="_method" type="hidden" value="NOTIFICATION">
-						<div class="tw-flex tw-flex-wrap tw-gap-2">
+						<div class="field">
+							<label>{{ctx.Locale.Tr "settings.email_desc"}}</label>
 							<div class="ui selection dropdown">
 								<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -59,6 +59,8 @@
 									<div data-value="disabled" class="{{if eq .EmailNotificationsPreference "disabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.disable"}}</div>
 								</div>
 							</div>
+						</div>
+						<div class="field">
 							<button class="ui primary button">{{ctx.Locale.Tr "settings.email_notifications.submit"}}</button>
 						</div>
 					</form>

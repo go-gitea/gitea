@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/services/doctor"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 func TestDoctorRun(t *testing.T) {
@@ -22,12 +22,13 @@ func TestDoctorRun(t *testing.T) {
 
 		SkipDatabaseInitialization: true,
 	})
-	app := cli.NewApp()
-	app.Commands = []*cli.Command{cmdDoctorCheck}
-	err := app.Run([]string{"./gitea", "check", "--run", "test-check"})
+	app := &cli.Command{
+		Commands: []*cli.Command{cmdDoctorCheck},
+	}
+	err := app.Run(t.Context(), []string{"./gitea", "check", "--run", "test-check"})
 	assert.NoError(t, err)
-	err = app.Run([]string{"./gitea", "check", "--run", "no-such"})
+	err = app.Run(t.Context(), []string{"./gitea", "check", "--run", "no-such"})
 	assert.ErrorContains(t, err, `unknown checks: "no-such"`)
-	err = app.Run([]string{"./gitea", "check", "--run", "test-check,no-such"})
+	err = app.Run(t.Context(), []string{"./gitea", "check", "--run", "test-check,no-such"})
 	assert.ErrorContains(t, err, `unknown checks: "no-such"`)
 }

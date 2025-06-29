@@ -9,9 +9,9 @@ const fomanticDropdownFn = $.fn.dropdown;
 // use our own `$().dropdown` function to patch Fomantic's dropdown module
 export function initAriaDropdownPatch() {
   if ($.fn.dropdown === ariaDropdownFn) throw new Error('initAriaDropdownPatch could only be called once');
-  $.fn.dropdown.settings.onAfterFiltered = onAfterFiltered;
   $.fn.dropdown = ariaDropdownFn;
   $.fn.fomanticExt.onResponseKeepSelectedItem = onResponseKeepSelectedItem;
+  $.fn.fomanticExt.onDropdownAfterFiltered = onDropdownAfterFiltered;
   (ariaDropdownFn as FomanticInitFunction).settings = fomanticDropdownFn.settings;
 }
 
@@ -71,11 +71,11 @@ function updateSelectionLabel(label: HTMLElement) {
   }
 }
 
-function onAfterFiltered(this: any) {
-  const $dropdown = $(this);
+function onDropdownAfterFiltered(this: any) {
+  const $dropdown = $(this).closest('.ui.dropdown'); // "this" can be the "ui dropdown" or "<select>"
   const hideEmptyDividers = $dropdown.dropdown('setting', 'hideDividers') === 'empty';
   const itemsMenu = $dropdown[0].querySelector('.scrolling.menu') || $dropdown[0].querySelector('.menu');
-  if (hideEmptyDividers) hideScopedEmptyDividers(itemsMenu);
+  if (hideEmptyDividers && itemsMenu) hideScopedEmptyDividers(itemsMenu);
 }
 
 // delegate the dropdown's template functions and callback functions to add aria attributes.
@@ -228,12 +228,13 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
   dropdown.addEventListener('keydown', (e: KeyboardEvent) => {
     // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
     if (e.key === 'Enter') {
-      const dropdownCall = fomanticDropdownFn.bind($(dropdown));
-      let $item = dropdownCall('get item', dropdownCall('get value'));
-      if (!$item) $item = $(menu).find('> .item.selected'); // when dropdown filters items by input, there is no "value", so query the "selected" item
+      const elItem = menu.querySelector<HTMLElement>(':scope > .item.selected, .menu > .item.selected');
       // if the selected item is clickable, then trigger the click event.
       // we can not click any item without check, because Fomantic code might also handle the Enter event. that would result in double click.
-      if ($item?.[0]?.matches('a, .js-aria-clickable')) $item[0].click();
+      if (elItem?.matches('a, .js-aria-clickable') && !elItem.matches('.tw-hidden, .filtered')) {
+        e.preventDefault();
+        elItem.click();
+      }
     }
   });
 

@@ -27,7 +27,7 @@
 		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
 			{{if .ReadmeInList}}
 				{{svg "octicon-book" 16 "tw-mr-2"}}
-				<strong><a class="muted" href="#readme">{{.FileTreePath}}</a></strong>
+				<strong><a class="muted" href="#readme">{{.ReadmeInList}}</a></strong>
 			{{else}}
 				{{template "repo/file_info" .}}
 			{{end}}
@@ -98,7 +98,7 @@
 			{{else if not .IsTextSource}}
 				<div class="view-raw">
 					{{if .IsImageFile}}
-						<img src="{{$.RawFileLink}}">
+						<img alt="{{$.RawFileLink}}" src="{{$.RawFileLink}}">
 					{{else if .IsVideoFile}}
 						<video controls src="{{$.RawFileLink}}">
 							<strong>{{ctx.Locale.Tr "repo.video_not_supported_in_browser"}}</strong>

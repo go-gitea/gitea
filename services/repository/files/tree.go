@@ -94,11 +94,7 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	if len(entries) > perPage {
 		tree.Truncated = true
 	}
-	if rangeStart+perPage < len(entries) {
-		rangeEnd = rangeStart + perPage
-	} else {
-		rangeEnd = len(entries)
-	}
+	rangeEnd = min(rangeStart+perPage, len(entries))
 	tree.Entries = make([]api.GitEntry, rangeEnd-rangeStart)
 	for e := rangeStart; e < rangeEnd; e++ {
 		i := e - rangeStart
@@ -165,19 +161,11 @@ func newTreeViewNodeFromEntry(ctx context.Context, renderedIconPool *fileicon.Re
 		FullPath:  path.Join(parentDir, entry.Name()),
 	}
 
-	if entry.IsLink() {
-		// TODO: symlink to a folder or a file, the icon differs
-		target, err := entry.FollowLink()
-		if err == nil {
-			_ = target.IsDir()
-			// if target.IsDir() { } else { }
-		}
-	}
-
-	if node.EntryIcon == "" {
-		node.EntryIcon = fileicon.RenderEntryIcon(renderedIconPool, entry)
-		// TODO: no open icon support yet
-		// node.EntryIconOpen = fileicon.RenderEntryIconOpen(renderedIconPool, entry)
+	entryInfo := fileicon.EntryInfoFromGitTreeEntry(entry)
+	node.EntryIcon = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
+	if entryInfo.EntryMode.IsDir() {
+		entryInfo.IsOpen = true
+		node.EntryIconOpen = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
 	}
 
 	if node.EntryMode == "commit" {

@@ -1173,11 +1173,6 @@ select.ui.dropdown {
   border-radius: 0.28571429rem !important;
 }
 
-/* GITEA-PATCH: gitea also have "right menu" support */
-.ui.dropdown > .right.menu {
-  left: auto;
-  right: 0;
-}
 /* Leftward Opening Menu */
 .ui.dropdown > .left.menu {
   left: auto !important;

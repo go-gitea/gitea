@@ -47,7 +47,7 @@
 								<h3>{{ctx.Locale.Tr "repo.create_new_repo_command"}}</h3>
 								<div class="markup">
 									<pre><code>touch README.md
-git init
+git init{{if ne .Repository.ObjectFormatName "sha1"}} --object-format={{.Repository.ObjectFormatName}}{{end}}{{/* for sha256 repo, it needs to set "object-format" explicitly*/}}
 {{if ne .Repository.DefaultBranch "master"}}git checkout -b {{.Repository.DefaultBranch}}{{end}}
 git add README.md
 git commit -m "first commit"
