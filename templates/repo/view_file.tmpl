@@ -59,7 +59,7 @@
 				</div>
 				<a download class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.download_file"}}" href="{{$.RawFileLink}}">{{svg "octicon-download"}}</a>
 				<a class="btn-octicon {{if not .CanCopyContent}}disabled{{end}}" data-global-click="onCopyContentButtonClick"
-					{{if or .IsImageFile (and .IsRepresentableAsText (not .IsDisplayingSource))}}data-raw-link="{{$.RawFileLink}}"{{end}}
+					{{if not .IsDisplayingSource}}data-raw-file-link="{{$.RawFileLink}}"{{end}}
 					data-tooltip-content="{{if .CanCopyContent}}{{ctx.Locale.Tr "copy_content"}}{{else}}{{ctx.Locale.Tr "copy_type_unsupported"}}{{end}}"
 				>{{svg "octicon-copy"}}</a>
 				{{if .EnableFeed}}

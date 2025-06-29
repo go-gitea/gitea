@@ -225,12 +225,11 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 		return
 	}
 
-	isRepresentableAsText := fInfo.st.IsRepresentableAsText()
 	ctx.Data["IsLFSFile"] = fInfo.isLFSFile()
 	ctx.Data["FileSize"] = fInfo.fileSize
-	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
+	ctx.Data["IsRepresentableAsText"] = fInfo.st.IsRepresentableAsText()
 	ctx.Data["IsExecutable"] = entry.IsExecutable()
-	ctx.Data["CanCopyContent"] = isRepresentableAsText
+	ctx.Data["CanCopyContent"] = fInfo.st.IsRepresentableAsText() || fInfo.st.IsImage()
 
 	attrs, ok := prepareFileViewLfsAttrs(ctx)
 	if !ok {

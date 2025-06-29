@@ -2,6 +2,20 @@ import type {FileRenderPlugin} from '../plugin.ts';
 import {extname} from '../../utils.ts';
 
 // support common 3D model file formats, use online-3d-viewer library for rendering
+
+// eslint-disable-next-line multiline-comment-style
+/* a simple text STL file example:
+solid SimpleTriangle
+  facet normal 0 0 1
+    outer loop
+      vertex 0 0 0
+      vertex 1 0 0
+      vertex 0 1 0
+    endloop
+  endfacet
+endsolid SimpleTriangle
+*/
+
 export function newRenderPlugin3DViewer(): FileRenderPlugin {
   // Some extensions are text-based formats:
   // .3mf .amf .brep: XML
@@ -28,7 +42,6 @@ export function newRenderPlugin3DViewer(): FileRenderPlugin {
 
     async render(container: HTMLElement, fileUrl: string): Promise<void> {
       const OV = await import(/* webpackChunkName: "online-3d-viewer" */'online-3d-viewer');
-      container.classList.add('model3d-content');
       const viewer = new OV.EmbeddedViewer(container, {
         backgroundColor: new OV.RGBAColor(59, 68, 76, 0),
         defaultColor: new OV.RGBColor(65, 131, 196),

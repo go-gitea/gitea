@@ -9,17 +9,17 @@ const {i18n} = window.config;
 export function initCopyContent() {
   registerGlobalEventFunc('click', 'onCopyContentButtonClick', async (btn: HTMLElement) => {
     if (btn.classList.contains('disabled') || btn.classList.contains('is-loading')) return;
-    const rawLink = btn.getAttribute('data-raw-link');
+    const rawFileLink = btn.getAttribute('data-raw-file-link');
 
     let content, isRasterImage = false;
 
     // when "data-raw-link" is present, we perform a fetch. this is either because
     // the text to copy is not in the DOM, or it is an image that should be
     // fetched to copy in full resolution
-    if (rawLink) {
+    if (rawFileLink) {
       btn.classList.add('is-loading', 'loading-icon-2px');
       try {
-        const res = await GET(rawLink, {credentials: 'include', redirect: 'follow'});
+        const res = await GET(rawFileLink, {credentials: 'include', redirect: 'follow'});
         const contentType = res.headers.get('content-type');
 
         if (contentType.startsWith('image/') && !contentType.startsWith('image/svg')) {
