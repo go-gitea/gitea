@@ -28,15 +28,15 @@
 							{{template "repo/commit_sign_badge" dict "Commit" . "CommitBaseLink" $commitBaseLink "CommitSignVerification" .Verification}}
 						</div>
 						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
-						{{if IsMultilineCommitMessage .Message}}
-							<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .Message $.Repository}}</pre>
-						{{end}}
 						{{if $.CommitsTagsMap}}
 							{{range (index $.CommitsTagsMap .ID.String)}}
 								{{- template "repo/tag/name" dict "RepoLink" $.Repository.Link "TagName" .TagName "IsRelease" (not .IsTag) -}}
 							{{end}}
 						{{end}}
 					</div>
+					{{if IsMultilineCommitMessage .Message}}
+						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .Message $.Repository}}</pre>
+					{{end}}
 					<div class="flex-item-body">
 						{{$userName := .Author.Name}}
 						{{if .User}}
