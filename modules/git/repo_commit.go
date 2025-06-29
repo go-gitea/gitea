@@ -205,22 +205,29 @@ func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bo
 }
 
 // FileCommitsCount return the number of files at a revision
-func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
+func (repo *Repository) FileCommitsCount(revision, file string, followRename ...bool) (int64, error) {
+	_followRename := false
+	if len(followRename) > 0 {
+		_followRename = followRename[0]
+	}
+
 	return CommitsCount(repo.Ctx,
 		CommitsCountOptions{
-			RepoPath: repo.Path,
-			Revision: []string{revision},
-			RelPath:  []string{file},
+			RepoPath:     repo.Path,
+			Revision:     []string{revision},
+			RelPath:      []string{file},
+			FollowRename: _followRename,
 		})
 }
 
 type CommitsByFileAndRangeOptions struct {
-	Revision string
-	File     string
-	Not      string
-	Page     int
-	Since    string
-	Until    string
+	Revision     string
+	File         string
+	Not          string
+	Page         int
+	Since        string
+	Until        string
+	FollowRename bool
 }
 
 // CommitsByFileAndRange return the commits according revision file and the page
@@ -232,9 +239,18 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	}()
 	go func() {
 		stderr := strings.Builder{}
-		gitCmd := NewCommand("rev-list").
-			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
+		var gitCmd *Command
+
+		if !opts.FollowRename {
+			gitCmd = NewCommand("rev-list")
+		} else {
+			gitCmd = NewCommand("--no-pager", "log").
+				AddOptionFormat("--pretty=format:%%H").
+				AddOptionFormat("--follow")
+		}
+		gitCmd.AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
 			AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
+
 		gitCmd.AddDynamicArguments(opts.Revision)
 
 		if opts.Not != "" {
@@ -253,7 +269,8 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 			Stdout: stdoutWriter,
 			Stderr: &stderr,
 		})
-		if err != nil {
+
+		if err != nil && !(opts.FollowRename && err == io.ErrUnexpectedEOF) {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
 			_ = stdoutWriter.Close()
@@ -270,7 +287,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	shaline := make([]byte, length+1)
 	for {
 		n, err := io.ReadFull(stdoutReader, shaline)
-		if err != nil || n < length {
+		if (err != nil && !(opts.FollowRename && err == io.ErrUnexpectedEOF)) || n < length {
 			if err == io.EOF {
 				err = nil
 			}
