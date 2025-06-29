@@ -221,5 +221,9 @@ type swaggerParameterBodies struct {
 	UpdateVariableOption api.UpdateVariableOption
 
 	// in:body
-	LockIssueOption api.LockIssueOption
+	NewProjectPayload api.NewProjectPayload
+
+	// in:body
+	UpdateProjectPayload api.UpdateProjectPayload
+	LockIssueOption      api.LockIssueOption
 }
