@@ -74,7 +74,7 @@ func TestLFSRender(t *testing.T) {
 		assert.Contains(t, fileInfo, "LFS")
 
 		// find new file view container
-		fileViewContainer := doc.Find("div.file-view-container")
+		fileViewContainer := doc.Find("div.file-view-render-container")
 		assert.Positive(t, fileViewContainer.Length(), "File view container should exist")
 
 		// check data attribute instead of link href
