@@ -1,3 +1,0 @@
-.file-view-render-container :last-child {
-  border-radius: 0 0 var(--border-radius) var(--border-radius); /* to match the "ui segment" bottom radius */
-}

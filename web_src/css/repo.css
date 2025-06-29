@@ -183,23 +183,6 @@ td .commit-summary {
   cursor: default;
 }
 
-.view-raw > * {
-  max-width: 100%;
-}
-
-.view-raw audio,
-.view-raw video,
-.view-raw img {
-  margin: 1rem 0;
-  border-radius: 0;
-  object-fit: contain;
-}
-
-.view-raw img[src$=".svg" i] {
-  max-height: 600px !important;
-  max-width: 600px !important;
-}
-
 .repository.file.list .non-diff-file-content .plain-text {
   padding: 1em 2em;
 }
