@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -59,10 +60,10 @@ func prepareFileViewLfsAttrs(ctx *context.Context) (*attribute.Attributes, bool)
 	return attrs, true
 }
 
-func handleFileViewRenderMarkup(ctx *context.Context, filename string, prefetchBuf []byte, utf8Reader io.Reader) bool {
+func handleFileViewRenderMarkup(ctx *context.Context, filename string, sniffedType typesniffer.SniffedType, prefetchBuf []byte, utf8Reader io.Reader) bool {
 	markupType := markup.DetectMarkupTypeByFileName(filename)
 	if markupType == "" {
-		markupType = markup.DetectRendererType(filename, bytes.NewReader(prefetchBuf))
+		markupType = markup.DetectRendererType(filename, sniffedType, prefetchBuf)
 	}
 	if markupType == "" {
 		return false
@@ -97,15 +98,16 @@ func handleFileViewRenderMarkup(ctx *context.Context, filename string, prefetchB
 }
 
 func handleFileViewRenderSource(ctx *context.Context, filename string, attrs *attribute.Attributes, fInfo *fileInfo, utf8Reader io.Reader) bool {
-	if ctx.FormString("display") == "rendered" {
-		return false
-	}
-
-	if !fInfo.st.IsRepresentableAsText() {
+	if ctx.FormString("display") == "rendered" || !fInfo.st.IsRepresentableAsText() {
 		return false
 	}
 
 	if !fInfo.st.IsText() {
+		if ctx.FormString("display") == "" {
+			// not text but representable as text, e.g. SVG
+			// since there is no "display" is specified, let other renders to handle
+			return false
+		}
 		ctx.Data["HasSourceRenderedToggle"] = true
 	}
 
@@ -239,7 +241,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	switch {
 	case fInfo.fileSize >= setting.UI.MaxDisplayFileSize:
 		ctx.Data["IsFileTooLarge"] = true
-	case handleFileViewRenderMarkup(ctx, entry.Name(), buf, utf8Reader):
+	case handleFileViewRenderMarkup(ctx, entry.Name(), fInfo.st, buf, utf8Reader):
 		// it also sets ctx.Data["FileContent"] and more
 		ctx.Data["IsMarkup"] = true
 	case handleFileViewRenderSource(ctx, entry.Name(), attrs, fInfo, utf8Reader):

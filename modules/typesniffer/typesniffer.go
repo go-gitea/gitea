@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/util"
 )
@@ -26,11 +27,15 @@ const (
 	MimeTypeApplicationOctetStream = "application/octet-stream"
 )
 
-var (
-	svgComment       = regexp.MustCompile(`(?s)<!--.*?-->`)
-	svgTagRegex      = regexp.MustCompile(`(?si)\A\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg\b`)
-	svgTagInXMLRegex = regexp.MustCompile(`(?si)\A<\?xml\b.*?\?>\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg\b`)
-)
+var globalVars = sync.OnceValue(func() (ret struct {
+	svgComment, svgTagRegex, svgTagInXMLRegex *regexp.Regexp
+},
+) {
+	ret.svgComment = regexp.MustCompile(`(?s)<!--.*?-->`)
+	ret.svgTagRegex = regexp.MustCompile(`(?si)\A\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg\b`)
+	ret.svgTagInXMLRegex = regexp.MustCompile(`(?si)\A<\?xml\b.*?\?>\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg\b`)
+	return ret
+})
 
 // SniffedType contains information about a blob's type.
 type SniffedType struct {
@@ -40,6 +45,10 @@ type SniffedType struct {
 // IsText detects if the content format is plain text.
 func (ct SniffedType) IsText() bool {
 	return strings.Contains(ct.contentType, "text/")
+}
+
+func (ct SniffedType) IsTextPlain() bool {
+	return strings.Contains(ct.contentType, "text/plain")
 }
 
 // IsImage detects if data is an image format
@@ -76,6 +85,10 @@ func (ct SniffedType) IsRepresentableAsText() bool {
 // IsBrowsableBinaryType returns whether a non-text type can be displayed in a browser
 func (ct SniffedType) IsBrowsableBinaryType() bool {
 	return ct.IsImage() || ct.IsSvgImage() || ct.IsPDF() || ct.IsVideo() || ct.IsAudio()
+}
+
+func (ct SniffedType) IsApplicationOctetStream() bool {
+	return ct.contentType == "application/octet-stream"
 }
 
 // GetMimeType returns the mime type
@@ -115,14 +128,15 @@ func DetectContentType(data []byte) SniffedType {
 		data = data[:sniffLen]
 	}
 
+	vars := globalVars()
 	// SVG is unsupported by http.DetectContentType, https://github.com/golang/go/issues/15888
 	detectByHTML := strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html")
 	detectByXML := strings.Contains(ct, "text/xml")
 	if detectByHTML || detectByXML {
-		dataProcessed := svgComment.ReplaceAll(data, nil)
+		dataProcessed := vars.svgComment.ReplaceAll(data, nil)
 		dataProcessed = bytes.TrimSpace(dataProcessed)
-		if detectByHTML && svgTagRegex.Match(dataProcessed) ||
-			detectByXML && svgTagInXMLRegex.Match(dataProcessed) {
+		if detectByHTML && vars.svgTagRegex.Match(dataProcessed) ||
+			detectByXML && vars.svgTagInXMLRegex.Match(dataProcessed) {
 			ct = MimeTypeImageSvg
 		}
 	}
