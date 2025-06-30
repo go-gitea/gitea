@@ -26,7 +26,7 @@ import (
 
 // saveAsPackageBlob creates a package blob from an upload
 // The uploaded blob gets stored in a special upload version to link them to the package/image
-func saveAsPackageBlob(ctx context.Context, hsr packages_module.HashedSizeReader, pci *packages_service.PackageCreationInfo) (*packages_model.PackageBlob, error) { //nolint:unparam
+func saveAsPackageBlob(ctx context.Context, hsr packages_module.HashedSizeReader, pci *packages_service.PackageCreationInfo) (*packages_model.PackageBlob, error) { //nolint:unparam // PackageBlob is never used
 	pb := packages_service.NewPackageBlob(hsr)
 
 	exists := false
@@ -95,15 +95,13 @@ func containerGlobalLockKey(piOwnerID int64, piName, usage string) string {
 }
 
 func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageInfo) (*packages_model.PackageVersion, error) {
-	var uploadVersion *packages_model.PackageVersion
-
 	releaser, err := globallock.Lock(ctx, containerGlobalLockKey(pi.Owner.ID, pi.Name, "package"))
 	if err != nil {
 		return nil, err
 	}
 	defer releaser()
 
-	err = db.WithTx(ctx, func(ctx context.Context) error {
+	return db.WithTx2(ctx, func(ctx context.Context) (*packages_model.PackageVersion, error) {
 		created := true
 		p := &packages_model.Package{
 			OwnerID:   pi.Owner.ID,
@@ -115,7 +113,7 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 		if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
 			if !errors.Is(err, packages_model.ErrDuplicatePackage) {
 				log.Error("Error inserting package: %v", err)
-				return err
+				return nil, err
 			}
 			created = false
 		}
@@ -123,7 +121,7 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 		if created {
 			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(pi.Owner.LowerName+"/"+pi.Name)); err != nil {
 				log.Error("Error setting package property: %v", err)
-				return err
+				return nil, err
 			}
 		}
 
@@ -138,16 +136,11 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 		if pv, err = packages_model.GetOrInsertVersion(ctx, pv); err != nil {
 			if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
 				log.Error("Error inserting package: %v", err)
-				return err
+				return nil, err
 			}
 		}
-
-		uploadVersion = pv
-
-		return nil
+		return pv, nil
 	})
-
-	return uploadVersion, err
 }
 
 func createFileForBlob(ctx context.Context, pv *packages_model.PackageVersion, pb *packages_model.PackageBlob) error {

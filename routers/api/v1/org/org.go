@@ -82,7 +82,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose organizations are to be listed
 	//   type: string
 	//   required: true
 	// - name: page
@@ -112,7 +112,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose permissions are to be obtained
 	//   type: string
 	//   required: true
 	// - name: org
