@@ -163,6 +163,7 @@ func getFileContentsByEntryInternal(_ context.Context, repo *repo_model.Reposito
 	if lastCommit.Author != nil {
 		contentsResponse.LastAuthorDate = lastCommit.Author.When
 	}
+	contentsResponse.LastCommitMessage = lastCommit.Message()
 
 	// Now populate the rest of the ContentsResponse based on entry type
 	if entry.IsRegular() || entry.IsExecutable() {

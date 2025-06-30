@@ -123,7 +123,8 @@ type ContentsResponse struct {
 	// swagger:strfmt date-time
 	LastCommitterDate time.Time `json:"last_committer_date"`
 	// swagger:strfmt date-time
-	LastAuthorDate time.Time `json:"last_author_date"`
+	LastAuthorDate    time.Time `json:"last_author_date"`
+	LastCommitMessage string    `json:"last_commit_message"`
 	// `type` will be `file`, `dir`, `symlink`, or `submodule`
 	Type string `json:"type"`
 	Size int64  `json:"size"`
