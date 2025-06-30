@@ -24,7 +24,13 @@ export function newRenderPlugin3DViewer(): FileRenderPlugin {
   // .ifc, .igs, .iges, .stp, .step are: TEXT
   // .stl .ply: TEXT or BINARY
   // .obj .off .wrl: TEXT
-  // So we need to be able to render when the file is recognized as plaintext file by backend
+  // So we need to be able to render when the file is recognized as plaintext file by backend.
+  //
+  // It needs more logic to make it overall right (render a text 3D model automatically):
+  // we need to distinguish the ambiguous filename extensions.
+  // For example: "*.obj, *.off, *.step" might be or not be a 3D model file.
+  // So when it is a text file, we can't assume that "we only render it by 3D plugin",
+  // otherwise the end users would be impossible to view its real content when the file is not a 3D model.
   const SUPPORTED_EXTENSIONS = [
     '.3dm', '.3ds', '.3mf', '.amf', '.bim', '.brep',
     '.dae', '.fbx', '.fcstd', '.glb', '.gltf',
@@ -41,6 +47,7 @@ export function newRenderPlugin3DViewer(): FileRenderPlugin {
     },
 
     async render(container: HTMLElement, fileUrl: string): Promise<void> {
+      // TODO: height and/or max-height?
       const OV = await import(/* webpackChunkName: "online-3d-viewer" */'online-3d-viewer');
       const viewer = new OV.EmbeddedViewer(container, {
         backgroundColor: new OV.RGBAColor(59, 68, 76, 0),

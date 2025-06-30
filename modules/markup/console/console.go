@@ -52,26 +52,16 @@ func (Renderer) CanRender(filename string, sniffedType typesniffer.SniffedType, 
 	rs := []rune(s)
 	cnt := 0
 	firstErrPos := -1
+	isCtrlSep := func(p int) bool {
+		return p < len(rs) && (rs[p] == ';' || rs[p] == 'm')
+	}
 	for i, c := range rs {
 		if c == 0 {
 			return false
 		}
 		if c == '\x1b' {
-			match, c2, c3, c4, c5 := false, false, false, false, false
-			if i+2 < len(rs) {
-				match = rs[i+1] == '['
-				c2 = rs[i+2] == ';' || rs[i+2] == 'm'
-			}
-			if i+3 < len(rs) {
-				c3 = rs[i+3] == ';' || rs[i+3] == 'm'
-			}
-			if i+4 < len(rs) {
-				c4 = rs[i+4] == ';' || rs[i+4] == 'm'
-			}
-			if i+5 < len(rs) {
-				c5 = rs[i+5] == ';' || rs[i+5] == 'm'
-			}
-			if match && (c2 || c3 || c4 || c5) {
+			match := i+1 < len(rs) && rs[i+1] == '['
+			if match && (isCtrlSep(i+2) || isCtrlSep(i+3) || isCtrlSep(i+4) || isCtrlSep(i+5)) {
 				cnt++
 			}
 		}
@@ -82,7 +72,7 @@ func (Renderer) CanRender(filename string, sniffedType typesniffer.SniffedType, 
 	if firstErrPos != -1 && firstErrPos != len(rs)-1 {
 		return false
 	}
-	return cnt >= 2
+	return cnt >= 2 // only render it as console output if there are at least two escape sequences
 }
 
 // Render renders terminal colors to HTML with all specific handling stuff.

@@ -22,6 +22,10 @@ func TestRenderConsole(t *testing.T) {
 		{"\x1b[1;2m \x1b[123m 啊", `<span class="term-fg2">  啊</span>`},
 		{"\x1b[1;2m \x1b[123m \xef", `<span class="term-fg2">  �</span>`},
 		{"\x1b[1;2m \x1b[123m \xef \xef", ``},
+		{"\x1b[12", ``},
+		{"\x1b[1", ``},
+		{"\x1b[FOO\x1b[", ``},
+		{"\x1b[mFOO\x1b[m", `FOO`},
 	}
 
 	var render Renderer

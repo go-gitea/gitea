@@ -236,6 +236,11 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 		return
 	}
 
+	// TODO: in the future maybe we need more accurate flags, for example:
+	// * IsRepresentableAsText: some files are text, some are not
+	// * IsRenderableXxx: some files are rendered by backend "markup" engine, some are rendered by frontend (pdf, 3d)
+	// * DefaultViewMode: when there is no "display" query parameter, which view mode should be used by default, source or rendered
+
 	utf8Reader := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 	switch {
 	case fInfo.fileSize >= setting.UI.MaxDisplayFileSize:

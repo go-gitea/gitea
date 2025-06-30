@@ -23,6 +23,7 @@ function showRenderRawFileButton(elFileView: HTMLElement, renderContainer: HTMLE
   const displayingRendered = Boolean(renderContainer);
   toggleClass(toggleButtons.querySelectorAll('.file-view-toggle-source'), 'active', !displayingRendered); // it may not exist
   toggleClass(toggleButtons.querySelector('.file-view-toggle-rendered'), 'active', displayingRendered);
+  // TODO: if there is only one button, hide it?
 }
 
 async function renderRawFileToContainer(container: HTMLElement, rawFileLink: string, mimeType: string) {
