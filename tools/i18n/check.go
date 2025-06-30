@@ -6,17 +6,25 @@
 package main
 
 import (
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+	"text/template"
+	"text/template/parse"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 
 	"github.com/gobwas/glob"
 )
 
-func searchTranslationKeyInDirs(keys []string) ([]bool, error) {
+func searchTranslationKeyInDirs(keys []string) ([]bool, []string, error) {
 	res := make([]bool, len(keys))
+	untranslatedKeysSum := make([]string, 0, 20)
 	for _, dir := range []string{
 		"cmd",
 		"models",
@@ -25,15 +33,19 @@ func searchTranslationKeyInDirs(keys []string) ([]bool, error) {
 		"services",
 		"templates",
 	} {
-		if err := searchTranslationKeyInDir(dir, keys, &res); err != nil {
-			return nil, err
+		untranslatedKeys, err := checkTranslationKeysInDir(dir, keys, &res)
+		if err != nil {
+			return nil, nil, err
 		}
+
+		untranslatedKeysSum = append(untranslatedKeysSum, untranslatedKeys...)
 	}
-	return res, nil
+	return res, untranslatedKeysSum, nil
 }
 
-func searchTranslationKeyInDir(dir string, keys []string, res *[]bool) error {
-	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+func checkTranslationKeysInDir(dir string, keys []string, res *[]bool) ([]string, error) {
+	var untranslatedSum []string
+	if err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -43,17 +55,154 @@ func searchTranslationKeyInDir(dir string, keys []string, res *[]bool) error {
 			return nil
 		}
 
-		bs, err := os.ReadFile(path)
+		// search unused keys in the file
+		if err := searchUnusedKeyInFile(dir, path, keys, res); err != nil {
+			return err
+		}
+
+		// search untranslated keys in the file
+		untranslated, err := searchUnTranslatedKeyInFile(dir, path, keys)
 		if err != nil {
 			return err
 		}
-		for i, key := range keys {
-			if !(*res)[i] && strings.Contains(string(bs), `"`+key+`"`) {
-				(*res)[i] = true
+		untranslatedSum = append(untranslatedSum, untranslated...)
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return untranslatedSum, nil
+}
+
+func searchUnusedKeyInFile(dir, path string, keys []string, res *[]bool) error {
+	bs, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	for i, key := range keys {
+		if !(*res)[i] && strings.Contains(string(bs), `"`+key+`"`) {
+			(*res)[i] = true
+		}
+	}
+	return nil
+}
+
+func searchUntranslatedKeyInGoFile(dir, path string, keys []string) ([]string, error) {
+	if filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") {
+		return nil, nil
+	}
+
+	var untranslated []string
+	fs := token.NewFileSet()
+	node, err := parser.ParseFile(fs, path, nil, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	ast.Inspect(node, func(n ast.Node) bool {
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		if funIdent, ok := call.Fun.(*ast.SelectorExpr); ok {
+			switch funIdent.Sel.Name {
+			case "Tr", "TrString":
+				if len(call.Args) >= 1 {
+					if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+						key := strings.Trim(lit.Value, `"`)
+						if !slices.Contains(keys, key) {
+							untranslated = append(untranslated, key)
+						}
+					}
+				}
+			case "TrN":
+				if len(call.Args) >= 3 {
+					if lit, ok := call.Args[1].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+						key := strings.Trim(lit.Value, `"`)
+						if !slices.Contains(keys, key) {
+							untranslated = append(untranslated, key)
+						}
+					}
+					if lit, ok := call.Args[2].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+						key := strings.Trim(lit.Value, `"`)
+						if !slices.Contains(keys, key) {
+							untranslated = append(untranslated, key)
+						}
+					}
+				}
 			}
 		}
-		return nil
+		return true
 	})
+
+	return untranslated, err
+}
+
+func extractI18nKeys(node parse.Node) []string {
+	switch n := node.(type) {
+	case *parse.ListNode:
+		var keys []string
+		for _, sub := range n.Nodes {
+			keys = append(keys, extractI18nKeys(sub)...)
+		}
+		return keys
+	case *parse.ActionNode:
+		return extractI18nKeys(n.Pipe)
+	case *parse.PipeNode:
+		var keys []string
+		for _, cmd := range n.Cmds {
+			keys = append(keys, extractI18nKeys(cmd)...)
+		}
+		return keys
+	case *parse.CommandNode:
+		if len(n.Args) >= 2 {
+			if ident, ok := n.Args[0].(*parse.IdentifierNode); ok && ident.Ident == "ctx.locale.Tr" {
+				if str, ok := n.Args[1].(*parse.StringNode); ok {
+					return []string{str.Text}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func searchUntranslatedKeyInTemplateFile(dir, path string, keys []string) ([]string, error) {
+	if filepath.Ext(path) != ".tmpl" {
+		return nil, nil
+	}
+
+	bs, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// The template parser requires the function map otherwise it will return failure
+	t, err := template.New("test").Funcs(templates.NewFuncMap()).Parse(string(bs))
+	if err != nil {
+		return nil, err
+	}
+
+	untranslatedKeys := []string{}
+	keysFoundInTempl := extractI18nKeys(t.Root)
+	for _, key := range keysFoundInTempl {
+		if !slices.Contains(keys, key) {
+			untranslatedKeys = append(untranslatedKeys, key)
+		}
+	}
+	return untranslatedKeys, nil
+}
+
+func searchUnTranslatedKeyInFile(dir, path string, keys []string) ([]string, error) {
+	untranslatedKeys, err := searchUntranslatedKeyInGoFile(dir, path, keys)
+	if err != nil {
+		return nil, err
+	}
+
+	untranslatedKeysInTmpl, err := searchUntranslatedKeyInTemplateFile(dir, path, keys)
+	if err != nil {
+		return nil, err
+	}
+	return append(untranslatedKeys, untranslatedKeysInTmpl...), nil
 }
 
 var whitelist = []string{
@@ -106,7 +255,7 @@ func main() {
 		}
 	}
 
-	results, err := searchTranslationKeyInDirs(keys)
+	results, untranslatedKeys, err := searchTranslationKeyInDirs(keys)
 	if err != nil {
 		panic(err)
 	}
@@ -114,10 +263,23 @@ func main() {
 	var found bool
 	for i, result := range results {
 		if !result {
-			found = true
-			println("unused locale key:", keys[i])
+			if !found {
+				println("unused locale keys found\n---")
+				found = true
+			}
+			println(keys[i])
 		}
 	}
+
+	if len(untranslatedKeys) > 0 {
+		found = true
+		println("\nuntranslated locale keys found\n---")
+	}
+	for _, key := range untranslatedKeys {
+		println(key)
+	}
+	println()
+
 	if found {
 		os.Exit(1) // exit with error if any unused locale key is found
 	}
