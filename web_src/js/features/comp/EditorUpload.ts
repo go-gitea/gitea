@@ -114,6 +114,7 @@ async function handleUploadFiles(editor: CodeMirrorEditor | TextareaEditor, drop
 
 export function removeAttachmentLinksFromMarkdown(text: string, fileUuid: string) {
   text = text.replace(new RegExp(`!?\\[([^\\]]+)\\]\\(/?attachments/${fileUuid}\\)`, 'g'), '');
+  // eslint-disable-next-line github/unescaped-html-literal
   text = text.replace(new RegExp(`<img[^>]+src="/?attachments/${fileUuid}"[^>]*>`, 'g'), '');
   return text;
 }

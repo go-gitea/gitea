@@ -220,6 +220,7 @@ export const SvgIcon = defineComponent({
     const classes = Array.from(svgOuter.classList);
     if (this.symbolId) {
       classes.push('tw-hidden', 'svg-symbol-container');
+      // eslint-disable-next-line github/unescaped-html-literal
       svgInnerHtml = `<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${svgInnerHtml}</symbol>`;
     }
     // create VNode

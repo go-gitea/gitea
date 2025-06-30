@@ -1,4 +1,4 @@
-import {htmlEscape} from 'escape-goat';
+import {html, htmlEscape} from '../utils/html.ts';
 import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
 import {
   addDelegatedEventListener,
@@ -45,8 +45,7 @@ export function initRepoIssueSidebarDependency() {
           if (String(issue.id) === currIssueId) continue;
           filteredResponse.results.push({
             value: issue.id,
-            name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
-<div class="text small tw-break-anywhere">${htmlEscape(issue.repository.full_name)}</div>`,
+            name: html`<div class="gt-ellipsis">#${issue.number} ${issue.title}</div><div class="text small tw-break-anywhere">${issue.repository.full_name}</div>`,
           });
         }
         return filteredResponse;

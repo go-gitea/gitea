@@ -11,7 +11,7 @@ test('svgParseOuterInner', () => {
   const {svgOuter, svgInnerHtml} = svgParseOuterInner('octicon-repo');
   expect(svgOuter.nodeName).toMatch('svg');
   expect(svgOuter.classList.contains('octicon-repo')).toBeTruthy();
-  expect(svgInnerHtml).toContain('<path');
+  expect(svgInnerHtml).toContain('path ');
 });
 
 test('SvgIcon', () => {

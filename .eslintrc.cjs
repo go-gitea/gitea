@@ -423,7 +423,7 @@ module.exports = {
     'github/no-useless-passive': [2],
     'github/prefer-observers': [2],
     'github/require-passive-events': [2],
-    'github/unescaped-html-literal': [0],
+    'github/unescaped-html-literal': [2],
     'grouped-accessor-pairs': [2],
     'guard-for-in': [0],
     'id-blacklist': [0],

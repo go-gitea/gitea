@@ -1,4 +1,4 @@
-import {htmlEscape} from 'escape-goat';
+import {htmlEscape} from '../utils/html.ts';
 
 type Processor = (el: HTMLElement) => string | HTMLElement | void;
 
@@ -41,6 +41,7 @@ function prepareProcessors(ctx:ProcessorContext): Processors {
       const widthAttr = el.hasAttribute('width') ? ` width="${htmlEscape(el.getAttribute('width') || '')}"` : '';
       const heightAttr = el.hasAttribute('height') ? ` height="${htmlEscape(el.getAttribute('height') || '')}"` : '';
       if (widthAttr || heightAttr) {
+        // eslint-disable-next-line github/unescaped-html-literal
         return `<img alt="${htmlEscape(alt)}"${widthAttr}${heightAttr} src="${htmlEscape(src)}">`;
       }
       return `![${alt}](${src})`;
