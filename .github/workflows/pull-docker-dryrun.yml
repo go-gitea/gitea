@@ -16,24 +16,43 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
+      - name: Get cleaned branch name
+        id: clean_name
+        run: |
+          # if main then say nightly otherwise cleanup name
+          if [ "${{ github.base_ref }}" = "refs/heads/main" ]; then
+            echo "branch=nightly" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          REF_NAME=$(echo "${{ github.base_ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
+          echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
           push: false
           tags: gitea/gitea:linux-amd64
-          cache-from: type=registry,ref=gitea/gitea:buildcache-pr-amd64
-          cache-to: type=registry,ref=gitea/gitea:buildcache-pr-amd64,mode=max
+          platforms: linux/amd64,linux/arm64,linux/riscv64
+          cache-from: type=registry,ref=gitea/gitea:buildcache-${{ steps.clean_name.outputs.branch }}
 
   rootless:
     if: needs.files-changed.outputs.docker == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
+      - name: Get cleaned branch name
+        id: clean_name
+        run: |
+          # if main then say nightly otherwise cleanup name
+          if [ "${{ github.base_ref }}" = "refs/heads/main" ]; then
+            echo "branch=nightly" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          REF_NAME=$(echo "${{ github.base_ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
+          echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
           push: false
           file: Dockerfile.rootless
           tags: gitea/gitea:linux-amd64
-          cache-from: type=registry,ref=gitea/gitea:buildcache-pr-amd64-rootless
-          cache-to: type=registry,ref=gitea/gitea:buildcache-pr-amd64-rootless,mode=max
+          cache-from: type=registry,ref=gitea/gitea:buildcache-${{ steps.clean_name.outputs.branch }}-rootless
