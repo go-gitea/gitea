@@ -98,6 +98,8 @@ jobs:
           tags: |-
             gitea/gitea:${{ steps.clean_name.outputs.branch }}
             ghcr.io/go-gitea/gitea:${{ steps.clean_name.outputs.branch }}
+          cache-from: type=registry,ref=gitea/gitea:buildcache-${{ steps.clean_name.outputs.branch }}
+          cache-to: type=registry,ref=gitea/gitea:buildcache-${{ steps.clean_name.outputs.branch }},mode=max
   nightly-docker-rootless:
     runs-on: namespace-profile-gitea-release-docker
     permissions:
@@ -141,3 +143,5 @@ jobs:
           tags: |-
             gitea/gitea:${{ steps.clean_name.outputs.branch }}-rootless
             ghcr.io/go-gitea/gitea:${{ steps.clean_name.outputs.branch }}-rootless
+          cache-from: type=registry,ref=gitea/gitea:buildcache-${{ steps.clean_name.outputs.branch }}-rootless
+          cache-to: type=registry,ref=gitea/gitea:buildcache-${{ steps.clean_name.outputs.branch }}-rootless,mode=max

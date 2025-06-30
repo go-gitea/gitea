@@ -115,6 +115,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=gitea/gitea:buildcache-${{ steps.clean_name.outputs.branch }}
   docker-rootless:
     runs-on: namespace-profile-gitea-release-docker
     steps:
@@ -162,3 +163,4 @@ jobs:
           file: Dockerfile.rootless
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=gitea/gitea:buildcache-${{ steps.clean_name.outputs.branch }}-rootless
