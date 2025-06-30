@@ -27,6 +27,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRepoView(t *testing.T) {
@@ -41,6 +42,7 @@ func TestRepoView(t *testing.T) {
 	t.Run("BlameFileInRepo", testBlameFileInRepo)
 	t.Run("ViewRepoDirectory", testViewRepoDirectory)
 	t.Run("ViewRepoDirectoryReadme", testViewRepoDirectoryReadme)
+	t.Run("ViewRepoSymlink", testViewRepoSymlink)
 	t.Run("MarkDownReadmeImage", testMarkDownReadmeImage)
 	t.Run("MarkDownReadmeImageSubfolder", testMarkDownReadmeImageSubfolder)
 	t.Run("GeneratedSourceLink", testGeneratedSourceLink)
@@ -410,6 +412,21 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 	missing("nested-special", "/user2/readme-test/src/branch/special-subdir-nested/subproject") // the special subdirs should only trigger on the repo root
 	missing("special-subdir-nested", "/user2/readme-test/src/branch/special-subdir-nested/")
 	missing("symlink-loop", "/user2/readme-test/src/branch/symlink-loop/")
+}
+
+func testViewRepoSymlink(t *testing.T) {
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2/readme-test/src/branch/symlink")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	AssertHTMLElement(t, htmlDoc, ".entry-symbol-link", true)
+	followSymbolLinkHref := htmlDoc.Find(".entry-symbol-link").AttrOr("href", "")
+	require.Equal(t, "/user2/readme-test/src/branch/symlink/README.md?follow_symlink=1", followSymbolLinkHref)
+
+	req = NewRequest(t, "GET", followSymbolLinkHref)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, "/user2/readme-test/src/branch/symlink/some/other/path/awefulcake.txt?follow_symlink=1", resp.Header().Get("Location"))
 }
 
 func testMarkDownReadmeImage(t *testing.T) {

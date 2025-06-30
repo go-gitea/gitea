@@ -20,7 +20,8 @@ import (
 
 // Commit represents a git commit.
 type Commit struct {
-	Tree
+	Tree // FIXME: bad design, this field can be nil if the commit is from "last commit cache"
+
 	ID            ObjectID // The ID of this commit object
 	Author        *Signature
 	Committer     *Signature
