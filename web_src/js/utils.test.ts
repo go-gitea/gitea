@@ -3,7 +3,6 @@ import {
   parseUrl, translateMonth, translateDay, blobToDataURI,
   toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseRepoOwnerPathInfo,
 } from './utils.ts';
-import {html} from './utils/html.ts';
 
 test('dirname', () => {
   expect(dirname('/path/to/file.js')).toEqual('/path/to');
@@ -31,7 +30,7 @@ test('isObject', () => {
 });
 
 test('stripTags', () => {
-  expect(stripTags(html`<a>test</a>`)).toEqual('test');
+  expect(stripTags('<a>test</a>')).toEqual('test');
 });
 
 test('parseIssueHref', () => {

@@ -1,8 +1,7 @@
 import {showGlobalErrorMessage} from './bootstrap.ts';
-import {html} from './utils/html.ts';
 
 test('showGlobalErrorMessage', () => {
-  document.body.innerHTML = html`<div class="page-content"></div>`;
+  document.body.innerHTML = '<div class="page-content"></div>';
   showGlobalErrorMessage('test msg 1');
   showGlobalErrorMessage('test msg 2');
   showGlobalErrorMessage('test msg 1'); // duplicated
