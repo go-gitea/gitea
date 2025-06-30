@@ -66,6 +66,20 @@ func UpdateProperty(ctx context.Context, pp *PackageProperty) error {
 	return err
 }
 
+func InsertOrUpdateProperty(ctx context.Context, refType PropertyType, refID int64, name, value string) error {
+	pp := PackageProperty{RefType: refType, RefID: refID, Name: name}
+	ok, err := db.GetEngine(ctx).Get(&pp)
+	if err != nil {
+		return err
+	}
+	if ok {
+		_, err = db.GetEngine(ctx).Where("ref_type=? AND ref_id=? AND name=?", refType, refID, name).Cols("value").Update(&PackageProperty{Value: value})
+		return err
+	}
+	_, err = InsertProperty(ctx, refType, refID, name, value)
+	return err
+}
+
 // DeleteAllProperties deletes all properties of a ref
 func DeleteAllProperties(ctx context.Context, refType PropertyType, refID int64) error {
 	_, err := db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ?", refType, refID).Delete(&PackageProperty{})
@@ -78,8 +92,8 @@ func DeletePropertyByID(ctx context.Context, propertyID int64) error {
 	return err
 }
 
-// DeletePropertyByName deletes properties by name
-func DeletePropertyByName(ctx context.Context, refType PropertyType, refID int64, name string) error {
+// DeletePropertiesByName deletes properties by name
+func DeletePropertiesByName(ctx context.Context, refType PropertyType, refID int64, name string) error {
 	_, err := db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ? AND name = ?", refType, refID, name).Delete(&PackageProperty{})
 	return err
 }

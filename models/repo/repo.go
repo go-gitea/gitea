@@ -5,6 +5,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"maps"
@@ -14,6 +15,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
@@ -58,23 +60,42 @@ type ErrRepoIsArchived struct {
 }
 
 func (err ErrRepoIsArchived) Error() string {
-	return fmt.Sprintf("%s is archived", err.Repo.LogString())
+	return err.Repo.LogString() + " is archived"
 }
 
-var (
-	validRepoNamePattern   = regexp.MustCompile(`[-.\w]+`)
-	invalidRepoNamePattern = regexp.MustCompile(`[.]{2,}`)
-	reservedRepoNames      = []string{".", "..", "-"}
-	reservedRepoPatterns   = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
-)
+type globalVarsStruct struct {
+	validRepoNamePattern     *regexp.Regexp
+	invalidRepoNamePattern   *regexp.Regexp
+	reservedRepoNames        []string
+	reservedRepoNamePatterns []string
+}
+
+var globalVars = sync.OnceValue(func() *globalVarsStruct {
+	return &globalVarsStruct{
+		validRepoNamePattern:     regexp.MustCompile(`^[-.\w]+$`),
+		invalidRepoNamePattern:   regexp.MustCompile(`[.]{2,}`),
+		reservedRepoNames:        []string{".", "..", "-"},
+		reservedRepoNamePatterns: []string{"*.wiki", "*.git", "*.rss", "*.atom"},
+	}
+})
 
 // IsUsableRepoName returns true when name is usable
 func IsUsableRepoName(name string) error {
-	if !validRepoNamePattern.MatchString(name) || invalidRepoNamePattern.MatchString(name) {
+	vars := globalVars()
+	if !vars.validRepoNamePattern.MatchString(name) || vars.invalidRepoNamePattern.MatchString(name) {
 		// Note: usually this error is normally caught up earlier in the UI
 		return db.ErrNameCharsNotAllowed{Name: name}
 	}
-	return db.IsUsableName(reservedRepoNames, reservedRepoPatterns, name)
+	return db.IsUsableName(vars.reservedRepoNames, vars.reservedRepoNamePatterns, name)
+}
+
+// IsValidSSHAccessRepoName is like IsUsableRepoName, but it allows "*.wiki" because wiki repo needs to be accessed in SSH code
+func IsValidSSHAccessRepoName(name string) bool {
+	vars := globalVars()
+	if !vars.validRepoNamePattern.MatchString(name) || vars.invalidRepoNamePattern.MatchString(name) {
+		return false
+	}
+	return db.IsUsableName(vars.reservedRepoNames, vars.reservedRepoNamePatterns[1:], name) == nil
 }
 
 // TrustModelType defines the types of trust model for this repository
@@ -204,12 +225,24 @@ func init() {
 	db.RegisterModel(new(Repository))
 }
 
-func (repo *Repository) GetName() string {
-	return repo.Name
+func RelativePath(ownerName, repoName string) string {
+	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
 }
 
-func (repo *Repository) GetOwnerName() string {
-	return repo.OwnerName
+// RelativePath should be an unix style path like username/reponame.git
+func (repo *Repository) RelativePath() string {
+	return RelativePath(repo.OwnerName, repo.Name)
+}
+
+type StorageRepo string
+
+// RelativePath should be an unix style path like username/reponame.git
+func (sr StorageRepo) RelativePath() string {
+	return string(sr)
+}
+
+func (repo *Repository) WikiStorageRepo() StorageRepo {
+	return StorageRepo(strings.ToLower(repo.OwnerName) + "/" + strings.ToLower(repo.Name) + ".wiki.git")
 }
 
 // SanitizedOriginalURL returns a sanitized OriginalURL
@@ -402,32 +435,33 @@ func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit
 		return ru
 	}
 
-	if tp == unit.TypeExternalWiki {
+	switch tp {
+	case unit.TypeExternalWiki:
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(ExternalWikiConfig),
 		}
-	} else if tp == unit.TypeExternalTracker {
+	case unit.TypeExternalTracker:
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(ExternalTrackerConfig),
 		}
-	} else if tp == unit.TypePullRequests {
+	case unit.TypePullRequests:
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(PullRequestsConfig),
 		}
-	} else if tp == unit.TypeIssues {
+	case unit.TypeIssues:
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(IssuesConfig),
 		}
-	} else if tp == unit.TypeActions {
+	case unit.TypeActions:
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(ActionsConfig),
 		}
-	} else if tp == unit.TypeProjects {
+	case unit.TypeProjects:
 		cfg := new(ProjectsConfig)
 		cfg.ProjectsMode = ProjectsModeNone
 		return &RepoUnit{
@@ -487,15 +521,15 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 			"repo": repo.Name,
 		}
 
-		unit, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
+		unitExternalTracker, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
 		if err == nil {
-			metas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
-			switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
+			metas["format"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerFormat
+			switch unitExternalTracker.ExternalTrackerConfig().ExternalTrackerStyle {
 			case markup.IssueNameStyleAlphanumeric:
 				metas["style"] = markup.IssueNameStyleAlphanumeric
 			case markup.IssueNameStyleRegexp:
 				metas["style"] = markup.IssueNameStyleRegexp
-				metas["regexp"] = unit.ExternalTrackerConfig().ExternalTrackerRegexpPattern
+				metas["regexp"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerRegexpPattern
 			default:
 				metas["style"] = markup.IssueNameStyleNumeric
 			}
@@ -519,11 +553,11 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 	return repo.commonRenderingMetas
 }
 
-// ComposeMetas composes a map of metas for properly rendering comments or comment-like contents (commit message)
-func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
+// ComposeCommentMetas composes a map of metas for properly rendering comments or comment-like contents (commit message)
+func (repo *Repository) ComposeCommentMetas(ctx context.Context) map[string]string {
 	metas := maps.Clone(repo.composeCommonMetas(ctx))
-	metas["markdownLineBreakStyle"] = "comment"
-	metas["markupAllowShortIssuePattern"] = "true"
+	metas["markdownNewLineHardBreak"] = strconv.FormatBool(setting.Markdown.RenderOptionsComment.NewLineHardBreak)
+	metas["markupAllowShortIssuePattern"] = strconv.FormatBool(setting.Markdown.RenderOptionsComment.ShortIssuePattern)
 	return metas
 }
 
@@ -531,16 +565,17 @@ func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
 func (repo *Repository) ComposeWikiMetas(ctx context.Context) map[string]string {
 	// does wiki need the "teams" and "org" from common metas?
 	metas := maps.Clone(repo.composeCommonMetas(ctx))
-	metas["markdownLineBreakStyle"] = "document"
-	metas["markupAllowShortIssuePattern"] = "true"
+	metas["markdownNewLineHardBreak"] = strconv.FormatBool(setting.Markdown.RenderOptionsWiki.NewLineHardBreak)
+	metas["markupAllowShortIssuePattern"] = strconv.FormatBool(setting.Markdown.RenderOptionsWiki.ShortIssuePattern)
 	return metas
 }
 
-// ComposeDocumentMetas composes a map of metas for properly rendering documents (repo files)
-func (repo *Repository) ComposeDocumentMetas(ctx context.Context) map[string]string {
+// ComposeRepoFileMetas composes a map of metas for properly rendering documents (repo files)
+func (repo *Repository) ComposeRepoFileMetas(ctx context.Context) map[string]string {
 	// does document(file) need the "teams" and "org" from common metas?
 	metas := maps.Clone(repo.composeCommonMetas(ctx))
-	metas["markdownLineBreakStyle"] = "document"
+	metas["markdownNewLineHardBreak"] = strconv.FormatBool(setting.Markdown.RenderOptionsRepoFile.NewLineHardBreak)
+	metas["markupAllowShortIssuePattern"] = strconv.FormatBool(setting.Markdown.RenderOptionsRepoFile.ShortIssuePattern)
 	return metas
 }
 
@@ -618,7 +653,7 @@ func (repo *Repository) AllowsPulls(ctx context.Context) bool {
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
 func (repo *Repository) CanEnableEditor() bool {
-	return !repo.IsMirror
+	return !repo.IsMirror && !repo.IsArchived
 }
 
 // DescriptionHTML does special handles to description and return HTML string.
@@ -635,13 +670,15 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 type CloneLink struct {
 	SSH   string
 	HTTPS string
+	Tea   string
 }
 
-// ComposeHTTPSCloneURL returns HTTPS clone URL based on given owner and repository name.
+// ComposeHTTPSCloneURL returns HTTPS clone URL based on the given owner and repository name.
 func ComposeHTTPSCloneURL(ctx context.Context, owner, repo string) string {
 	return fmt.Sprintf("%s%s/%s.git", httplib.GuessCurrentAppURL(ctx), url.PathEscape(owner), url.PathEscape(repo))
 }
 
+// ComposeSSHCloneURL returns SSH clone URL based on the given owner and repository name.
 func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) string {
 	sshUser := setting.SSH.User
 	sshDomain := setting.SSH.Domain
@@ -675,11 +712,17 @@ func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) strin
 	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 }
 
+// ComposeTeaCloneCommand returns Tea CLI clone command based on the given owner and repository name.
+func ComposeTeaCloneCommand(ctx context.Context, owner, repo string) string {
+	return fmt.Sprintf("tea clone %s/%s", url.PathEscape(owner), url.PathEscape(repo))
+}
+
 func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string) *CloneLink {
-	cl := new(CloneLink)
-	cl.SSH = ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName)
-	cl.HTTPS = ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName)
-	return cl
+	return &CloneLink{
+		SSH:   ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
+		HTTPS: ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
+		Tea:   ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
+	}
 }
 
 // CloneLink returns clone URLs of repository.
@@ -788,7 +831,7 @@ func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repo
 func GetRepositoryByURL(ctx context.Context, repoURL string) (*Repository, error) {
 	ret, err := giturl.ParseRepositoryURL(ctx, repoURL)
 	if err != nil || ret.OwnerName == "" {
-		return nil, fmt.Errorf("unknown or malformed repository URL")
+		return nil, errors.New("unknown or malformed repository URL")
 	}
 	return GetRepositoryByOwnerAndName(ctx, ret.OwnerName, ret.RepoName)
 }
@@ -820,6 +863,9 @@ func GetRepositoryByID(ctx context.Context, id int64) (*Repository, error) {
 // GetRepositoriesMapByIDs returns the repositories by given id slice.
 func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repository, error) {
 	repos := make(map[int64]*Repository, len(ids))
+	if len(ids) == 0 {
+		return repos, nil
+	}
 	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
 }
 

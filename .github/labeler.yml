@@ -41,7 +41,7 @@ modifies/internal:
           - ".dockerignore"
           - "docker/**"
           - ".editorconfig"
-          - ".eslintrc.yaml"
+          - ".eslintrc.cjs"
           - ".golangci.yml"
           - ".gitpod.yml"
           - ".markdownlint.yaml"
@@ -49,7 +49,7 @@ modifies/internal:
           - "stylelint.config.js"
           - ".yamllint.yaml"
           - ".github/**"
-          - ".gitea/"
+          - ".gitea/**"
           - ".devcontainer/**"
           - "build.go"
           - "build/**"
@@ -73,9 +73,9 @@ modifies/go:
 modifies/frontend:
   - changed-files:
       - any-glob-to-any-file:
-          - "**/*.js"
-          - "**/*.ts"
-          - "**/*.vue"
+          - "*.js"
+          - "*.ts"
+          - "web_src/**"
 
 docs-update-needed:
   - changed-files:

@@ -36,15 +36,6 @@ _testmain.go
 coverage.all
 cpu.out
 
-/modules/migration/bindata.go
-/modules/migration/bindata.go.hash
-/modules/options/bindata.go
-/modules/options/bindata.go.hash
-/modules/public/bindata.go
-/modules/public/bindata.go.hash
-/modules/templates/bindata.go
-/modules/templates/bindata.go.hash
-
 *.db
 *.log
 
@@ -79,18 +70,6 @@ cpu.out
 /public/assets/fonts
 /public/assets/img/avatar
 /vendor
-/web_src/fomantic/node_modules
-/web_src/fomantic/build/*
-!/web_src/fomantic/build/semantic.js
-!/web_src/fomantic/build/semantic.css
-!/web_src/fomantic/build/themes
-/web_src/fomantic/build/themes/*
-!/web_src/fomantic/build/themes/default
-/web_src/fomantic/build/themes/default/assets/*
-!/web_src/fomantic/build/themes/default/assets/fonts
-/web_src/fomantic/build/themes/default/assets/fonts/*
-!/web_src/fomantic/build/themes/default/assets/fonts/icons.woff2
-!/web_src/fomantic/build/themes/default/assets/fonts/outline-icons.woff2
 /VERSION
 /.air
 /.go-licenses

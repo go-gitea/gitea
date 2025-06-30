@@ -178,12 +178,6 @@ func (org *Organization) HomeLink() string {
 	return org.AsUser().HomeLink()
 }
 
-// CanCreateRepo returns if user login can create a repository
-// NOTE: functions calling this assume a failure due to repository count limit; if new checks are added, those functions should be revised
-func (org *Organization) CanCreateRepo() bool {
-	return org.AsUser().CanCreateRepo()
-}
-
 // FindOrgMembersOpts represensts find org members conditions
 type FindOrgMembersOpts struct {
 	db.ListOptions
@@ -607,9 +601,4 @@ func getUserTeamIDsQueryBuilder(orgID, userID int64) *builder.Builder {
 			"team_user.org_id": orgID,
 			"team_user.uid":    userID,
 		})
-}
-
-// TeamsWithAccessToRepo returns all teams that have given access level to the repository.
-func (org *Organization) TeamsWithAccessToRepo(ctx context.Context, repoID int64, mode perm.AccessMode) ([]*Team, error) {
-	return GetTeamsWithAccessToRepo(ctx, org.ID, repoID, mode)
 }

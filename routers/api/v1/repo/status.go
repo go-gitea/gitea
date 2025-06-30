@@ -55,7 +55,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateStatusOption)
 	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
-		ctx.Error(http.StatusBadRequest, "sha not given", nil)
+		ctx.APIError(http.StatusBadRequest, nil)
 		return
 	}
 	status := &git_model.CommitStatus{
@@ -65,7 +65,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 		Context:     form.Context,
 	}
 	if err := commitstatus_service.CreateCommitStatus(ctx, ctx.Repo.Repository, ctx.Doer, sha, status); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateCommitStatus", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -177,20 +177,14 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	filter := utils.ResolveRefOrSha(ctx, ctx.PathParam("ref"))
+	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"), 7)
 	if ctx.Written() {
 		return
 	}
-
-	getCommitStatuses(ctx, filter) // By default filter is maybe the raw SHA
+	getCommitStatuses(ctx, refCommit.CommitID)
 }
 
-func getCommitStatuses(ctx *context.APIContext, sha string) {
-	if len(sha) == 0 {
-		ctx.Error(http.StatusBadRequest, "ref/sha not given", nil)
-		return
-	}
-	sha = utils.MustConvertToSHA1(ctx.Base, ctx.Repo, sha)
+func getCommitStatuses(ctx *context.APIContext, commitID string) {
 	repo := ctx.Repo.Repository
 
 	listOptions := utils.GetListOptions(ctx)
@@ -198,12 +192,12 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](ctx, &git_model.CommitStatusOptions{
 		ListOptions: listOptions,
 		RepoID:      repo.ID,
-		SHA:         sha,
+		SHA:         commitID,
 		SortType:    ctx.FormTrim("sort"),
 		State:       ctx.FormTrim("state"),
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommitStatuses", fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %w", repo.FullName(), sha, ctx.FormInt("page"), err))
+		ctx.APIErrorInternal(fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %w", repo.FullName(), commitID, ctx.FormInt("page"), err))
 		return
 	}
 
@@ -257,18 +251,25 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	sha := utils.ResolveRefOrSha(ctx, ctx.PathParam("ref"))
+	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"), 7)
 	if ctx.Written() {
 		return
 	}
 
 	repo := ctx.Repo.Repository
 
-	statuses, count, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, utils.GetListOptions(ctx))
+	statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, refCommit.Commit.ID.String(), utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s]: %w", repo.FullName(), sha, err))
+		ctx.APIErrorInternal(fmt.Errorf("GetLatestCommitStatus[%s, %s]: %w", repo.FullName(), refCommit.CommitID, err))
 		return
 	}
+
+	count, err := git_model.CountLatestCommitStatus(ctx, repo.ID, refCommit.Commit.ID.String())
+	if err != nil {
+		ctx.APIErrorInternal(fmt.Errorf("CountLatestCommitStatus[%s, %s]: %w", repo.FullName(), refCommit.CommitID, err))
+		return
+	}
+	ctx.SetTotalCountHeader(count)
 
 	if len(statuses) == 0 {
 		ctx.JSON(http.StatusOK, &api.CombinedStatus{})
@@ -276,7 +277,5 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	}
 
 	combiStatus := convert.ToCombinedStatus(ctx, statuses, convert.ToRepo(ctx, repo, ctx.Repo.Permission))
-
-	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, combiStatus)
 }

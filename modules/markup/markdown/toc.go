@@ -4,7 +4,6 @@
 package markdown
 
 import (
-	"fmt"
 	"net/url"
 
 	"code.gitea.io/gitea/modules/translation"
@@ -50,7 +49,7 @@ func createTOCNode(toc []Header, lang string, detailsAttrs map[string]string) as
 		}
 		li := ast.NewListItem(currentLevel * 2)
 		a := ast.NewLink()
-		a.Destination = []byte(fmt.Sprintf("#%s", url.QueryEscape(header.ID)))
+		a.Destination = []byte("#" + url.QueryEscape(header.ID))
 		a.AppendChild(a, ast.NewString([]byte(header.Text)))
 		li.AppendChild(li, a)
 		ul.AppendChild(ul, li)

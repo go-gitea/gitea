@@ -216,17 +216,18 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div class="ui dropdown custom branch-selector-dropdown ellipsis-items-nowrap">
-    <div tabindex="0" class="ui button branch-dropdown-button" @click="menuVisible = !menuVisible">
+  <div class="ui dropdown custom branch-selector-dropdown ellipsis-text-items">
+    <div tabindex="0" class="ui compact button branch-dropdown-button" @click="menuVisible = !menuVisible">
       <span class="flex-text-block gt-ellipsis">
         <template v-if="dropdownFixedText">{{ dropdownFixedText }}</template>
         <template v-else>
           <svg-icon v-if="currentRefType === 'tag'" name="octicon-tag"/>
-          <svg-icon v-else name="octicon-git-branch"/>
-          <strong ref="dropdownRefName" class="tw-ml-2 tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
+          <svg-icon v-else-if="currentRefType === 'branch'" name="octicon-git-branch"/>
+          <svg-icon v-else name="octicon-git-commit"/>
+          <strong ref="dropdownRefName" class="tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
         </template>
       </span>
-      <svg-icon name="octicon-triangle-down" :size="14" class-name="dropdown icon"/>
+      <svg-icon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
     </div>
     <div class="menu transition" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak>
       <div class="ui icon search input">
@@ -235,10 +236,10 @@ export default defineComponent({
       </div>
       <div v-if="showTabBranches" class="branch-tag-tab">
         <a class="branch-tag-item muted" :class="{active: selectedTab === 'branches'}" href="#" @click="handleTabSwitch('branches')">
-          <svg-icon name="octicon-git-branch" :size="16" class-name="tw-mr-1"/>{{ textBranches }}
+          <svg-icon name="octicon-git-branch" :size="16" class="tw-mr-1"/>{{ textBranches }}
         </a>
         <a v-if="showTabTags" class="branch-tag-item muted" :class="{active: selectedTab === 'tags'}" href="#" @click="handleTabSwitch('tags')">
-          <svg-icon name="octicon-tag" :size="16" class-name="tw-mr-1"/>{{ textTags }}
+          <svg-icon name="octicon-tag" :size="16" class="tw-mr-1"/>{{ textTags }}
         </a>
       </div>
       <div class="branch-tag-divider"/>

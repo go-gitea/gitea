@@ -109,7 +109,7 @@ func WalkShowRef(ctx context.Context, repoPath string, extraArgs TrustedCmdArgs,
 		stderrBuilder := &strings.Builder{}
 		args := TrustedCmdArgs{"for-each-ref", "--format=%(objectname) %(refname)"}
 		args = append(args, extraArgs...)
-		err := NewCommand(ctx, args...).Run(&RunOpts{
+		err := NewCommand(args...).Run(ctx, &RunOpts{
 			Dir:    repoPath,
 			Stdout: stdoutWriter,
 			Stderr: stderrBuilder,

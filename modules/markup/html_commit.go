@@ -43,7 +43,6 @@ func createCodeLink(href, content, class string) *html.Node {
 	code := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Code.String(),
-		Attr: []html.Attribute{{Key: "class", Val: "nohighlight"}},
 	}
 
 	code.AppendChild(text)
@@ -63,7 +62,7 @@ func anyHashPatternExtract(s string) (ret anyHashPatternResult, ok bool) {
 		// if url ends in '.', it's very likely that it is not part of the actual url but used to finish a sentence.
 		ret.PosEnd--
 		ret.FullURL = ret.FullURL[:len(ret.FullURL)-1]
-		for i := 0; i < len(m); i++ {
+		for i := range m {
 			m[i] = min(m[i], ret.PosEnd)
 		}
 	}
@@ -189,7 +188,7 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 			continue
 		}
 
-		link := ctx.RenderHelper.ResolveLink(util.URLJoin(ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], "commit", hash), LinkTypeApp)
+		link := "/:root/" + util.URLJoin(ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], "commit", hash)
 		replaceContent(node, m[2], m[3], createCodeLink(link, base.ShortSha(hash), "commit"))
 		start = 0
 		node = node.NextSibling.NextSibling
@@ -205,9 +204,9 @@ func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
 			return
 		}
 
-		reftext := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
-		linkHref := ctx.RenderHelper.ResolveLink(util.URLJoin(ref.Owner, ref.Name, "commit", ref.CommitSha), LinkTypeApp)
-		link := createLink(ctx, linkHref, reftext, "commit")
+		refText := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
+		linkHref := "/:root/" + util.URLJoin(ref.Owner, ref.Name, "commit", ref.CommitSha)
+		link := createLink(ctx, linkHref, refText, "commit")
 
 		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
 		node = node.NextSibling.NextSibling

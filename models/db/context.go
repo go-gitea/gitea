@@ -67,7 +67,7 @@ func contextSafetyCheck(e Engine) {
 		_ = e.SQL("SELECT 1").Iterate(&m{}, func(int, any) error {
 			callers := make([]uintptr, 32)
 			callerNum := runtime.Callers(1, callers)
-			for i := 0; i < callerNum; i++ {
+			for i := range callerNum {
 				if funcName := runtime.FuncForPC(callers[i]).Name(); funcName == "xorm.io/xorm.(*Session).Iterate" {
 					contextSafetyDeniedFuncPCs = append(contextSafetyDeniedFuncPCs, callers[i])
 				}
@@ -82,7 +82,7 @@ func contextSafetyCheck(e Engine) {
 	// it should be very fast: xxxx ns/op
 	callers := make([]uintptr, 32)
 	callerNum := runtime.Callers(3, callers) // skip 3: runtime.Callers, contextSafetyCheck, GetEngine
-	for i := 0; i < callerNum; i++ {
+	for i := range callerNum {
 		if slices.Contains(contextSafetyDeniedFuncPCs, callers[i]) {
 			panic(errors.New("using database context in an iterator would cause corrupted results"))
 		}
@@ -176,6 +176,15 @@ func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error 
 		return err
 	}
 	return txWithNoCheck(parentCtx, f)
+}
+
+// WithTx2 is similar to WithTx, but it has two return values: result and error.
+func WithTx2[T any](parentCtx context.Context, f func(ctx context.Context) (T, error)) (ret T, errRet error) {
+	errRet = WithTx(parentCtx, func(ctx context.Context) (errInner error) {
+		ret, errInner = f(ctx)
+		return errInner
+	})
+	return ret, errRet
 }
 
 func txWithNoCheck(parentCtx context.Context, f func(ctx context.Context) error) error {
@@ -289,6 +298,9 @@ func FindIDs(ctx context.Context, tableName, idCol string, cond builder.Cond) ([
 // DecrByIDs decreases the given column for entities of the "bean" type with one of the given ids by one
 // Timestamps of the entities won't be updated
 func DecrByIDs(ctx context.Context, ids []int64, decrCol string, bean any) error {
+	if len(ids) == 0 {
+		return nil
+	}
 	_, err := GetEngine(ctx).Decr(decrCol).In("id", ids).NoAutoCondition().NoAutoTime().Update(bean)
 	return err
 }

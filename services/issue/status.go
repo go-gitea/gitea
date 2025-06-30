@@ -24,14 +24,14 @@ func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model
 	comment, err := issues_model.CloseIssue(dbCtx, issue, doer)
 	if err != nil {
 		if issues_model.IsErrDependenciesLeft(err) {
-			if err := issues_model.FinishIssueStopwatchIfPossible(dbCtx, doer, issue); err != nil {
+			if _, err := issues_model.FinishIssueStopwatch(dbCtx, doer, issue); err != nil {
 				log.Error("Unable to stop stopwatch for issue[%d]#%d: %v", issue.ID, issue.Index, err)
 			}
 		}
 		return err
 	}
 
-	if err := issues_model.FinishIssueStopwatchIfPossible(dbCtx, doer, issue); err != nil {
+	if _, err := issues_model.FinishIssueStopwatch(dbCtx, doer, issue); err != nil {
 		return err
 	}
 

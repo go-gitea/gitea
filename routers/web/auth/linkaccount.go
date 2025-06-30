@@ -260,7 +260,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	}
 
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyInternalRegistration {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 

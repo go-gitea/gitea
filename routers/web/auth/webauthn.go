@@ -51,7 +51,7 @@ func WebAuthn(ctx *context.Context) {
 // WebAuthnPasskeyAssertion submits a WebAuthn challenge for the passkey login to the browser
 func WebAuthnPasskeyAssertion(ctx *context.Context) {
 	if !setting.Service.EnablePasskeyAuth {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -72,7 +72,7 @@ func WebAuthnPasskeyAssertion(ctx *context.Context) {
 // WebAuthnPasskeyLogin handles the WebAuthn login process using a Passkey
 func WebAuthnPasskeyLogin(ctx *context.Context) {
 	if !setting.Service.EnablePasskeyAuth {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 

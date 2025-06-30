@@ -76,7 +76,7 @@ func TestBlockUser(t *testing.T) {
 		blockeeName := "user10"
 
 		t.Run("Block", func(t *testing.T) {
-			req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName))
+			req := NewRequest(t, "PUT", "/api/v1/user/blocks/"+blockeeName)
 			MakeRequest(t, req, http.StatusUnauthorized)
 
 			assert.EqualValues(t, 1, countStars(t, blockerID, blockeeID))
@@ -84,7 +84,7 @@ func TestBlockUser(t *testing.T) {
 			assert.EqualValues(t, 1, countRepositoryTransfers(t, blockerID, blockeeID))
 			assert.EqualValues(t, 1, countCollaborations(t, blockerID, blockeeID))
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName)).
+			req = NewRequest(t, "GET", "/api/v1/user/blocks/"+blockeeName).
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusNotFound)
 
@@ -97,15 +97,15 @@ func TestBlockUser(t *testing.T) {
 			assert.EqualValues(t, 0, countRepositoryTransfers(t, blockerID, blockeeID))
 			assert.EqualValues(t, 0, countCollaborations(t, blockerID, blockeeID))
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName)).
+			req = NewRequest(t, "GET", "/api/v1/user/blocks/"+blockeeName).
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusNoContent)
 
-			req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName)).
+			req = NewRequest(t, "PUT", "/api/v1/user/blocks/"+blockeeName).
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusBadRequest) // can't block blocked user
 
-			req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/blocks/%s", "org3")).
+			req = NewRequest(t, "PUT", "/api/v1/user/blocks/"+"org3").
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusBadRequest) // can't block organization
 
@@ -124,18 +124,18 @@ func TestBlockUser(t *testing.T) {
 		})
 
 		t.Run("Unblock", func(t *testing.T) {
-			req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName))
+			req := NewRequest(t, "DELETE", "/api/v1/user/blocks/"+blockeeName)
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName)).
+			req = NewRequest(t, "DELETE", "/api/v1/user/blocks/"+blockeeName).
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusNoContent)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName)).
+			req = NewRequest(t, "DELETE", "/api/v1/user/blocks/"+blockeeName).
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/blocks/%s", "org3")).
+			req = NewRequest(t, "DELETE", "/api/v1/user/blocks/"+"org3").
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusBadRequest)
 

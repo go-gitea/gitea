@@ -17,12 +17,12 @@ import (
 func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (string, error) {
 	var cmd *Command
 	if DefaultFeatures().CheckVersionAtLeast("2.7") {
-		cmd = NewCommand(ctx, "remote", "get-url").AddDynamicArguments(remoteName)
+		cmd = NewCommand("remote", "get-url").AddDynamicArguments(remoteName)
 	} else {
-		cmd = NewCommand(ctx, "config", "--get").AddDynamicArguments("remote." + remoteName + ".url")
+		cmd = NewCommand("config", "--get").AddDynamicArguments("remote." + remoteName + ".url")
 	}
 
-	result, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
+	result, _, err := cmd.RunStdString(ctx, &RunOpts{Dir: repoPath})
 	if err != nil {
 		return "", err
 	}

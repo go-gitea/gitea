@@ -11,6 +11,24 @@
   content_encoding: ""
   artifact_path: "abc.txt"
   artifact_name: "artifact-download"
+  status: 2
+  created_unix: 1712338649
+  updated_unix: 1712338649
+  expired_unix: 1720114649
+
+-
+  id: 2
+  run_id: 791
+  runner_id: 1
+  repo_id: 4
+  owner_id: 1
+  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
+  storage_path: ""
+  file_size: 1024
+  file_compressed_size: 1024
+  content_encoding: "30/20/1712348022422036662.chunk"
+  artifact_path: "abc.txt"
+  artifact_name: "artifact-download-incomplete"
   status: 1
   created_unix: 1712338649
   updated_unix: 1712338649
@@ -65,6 +83,60 @@
   content_encoding: "application/zip"
   artifact_path: "artifact-v4-download.zip"
   artifact_name: "artifact-v4-download"
+  status: 2
+  created_unix: 1730330775
+  updated_unix: 1730330775
+  expired_unix: 1738106775
+
+-
+  id: 23
+  run_id: 793
+  runner_id: 1
+  repo_id: 2
+  owner_id: 2
+  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
+  storage_path: "27/5/1730330775594233150.chunk"
+  file_size: 1024
+  file_compressed_size: 1024
+  content_encoding: "application/zip"
+  artifact_path: "artifact-v4-download.zip"
+  artifact_name: "artifact-v4-download"
+  status: 2
+  created_unix: 1730330775
+  updated_unix: 1730330775
+  expired_unix: 1738106775
+
+-
+  id: 24
+  run_id: 795
+  runner_id: 1
+  repo_id: 2
+  owner_id: 2
+  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
+  storage_path: "27/5/1730330775594233150.chunk"
+  file_size: 1024
+  file_compressed_size: 1024
+  content_encoding: "application/zip"
+  artifact_path: "artifact-795-1.zip"
+  artifact_name: "artifact-795-1"
+  status: 2
+  created_unix: 1730330775
+  updated_unix: 1730330775
+  expired_unix: 1738106775
+
+-
+  id: 25
+  run_id: 795
+  runner_id: 1
+  repo_id: 2
+  owner_id: 2
+  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
+  storage_path: "27/5/1730330775594233150.chunk"
+  file_size: 1024
+  file_compressed_size: 1024
+  content_encoding: "application/zip"
+  artifact_path: "artifact-795-2.zip"
+  artifact_name: "artifact-795-2"
   status: 2
   created_unix: 1730330775
   updated_unix: 1730330775

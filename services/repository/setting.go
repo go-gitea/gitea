@@ -7,7 +7,6 @@ import (
 	"context"
 	"slices"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -29,7 +28,7 @@ func UpdateRepositoryUnits(ctx context.Context, repo *repo_model.Repository, uni
 	}
 
 	if slices.Contains(deleteUnitTypes, unit.TypeActions) {
-		if err := actions_model.CleanRepoScheduleTasks(ctx, repo); err != nil {
+		if err := actions_service.CleanRepoScheduleTasks(ctx, repo); err != nil {
 			log.Error("CleanRepoScheduleTasks: %v", err)
 		}
 	}

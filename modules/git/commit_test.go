@@ -4,7 +4,6 @@
 package git
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -60,8 +59,7 @@ func TestGetFullCommitIDError(t *testing.T) {
 }
 
 func TestCommitFromReader(t *testing.T) {
-	commitString := `feaf4ba6bc635fec442f46ddd4512416ec43c2c2 commit 1074
-tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
+	commitString := `tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
 parent 37991dec2c8e592043f47155ce4808d4580f9123
 author silverwind <me@silverwind.io> 1563741793 +0200
 committer silverwind <me@silverwind.io> 1563741793 +0200
@@ -94,7 +92,7 @@ empty commit`
 	assert.NoError(t, err)
 	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
-	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
+	assert.Equal(t, `-----BEGIN PGP SIGNATURE-----
 
 iQIzBAABCAAdFiEEWPb2jX6FS2mqyJRQLmK0HJOGlEMFAl00zmEACgkQLmK0HJOG
 lEMDFBAAhQKKqLD1VICygJMEB8t1gBmNLgvziOLfpX4KPWdPtBk3v/QJ7OrfMrVK
@@ -109,26 +107,24 @@ sD53z/f0J+We4VZjY+pidvA9BGZPFVdR3wd3xGs8/oH6UWaLJAMGkLG6dDb3qDLm
 mfeFhT57UbE4qukTDIQ0Y0WM40UYRTakRaDY7ubhXgLgx09Cnp9XTVMsHgT6j9/i
 1pxsB104XLWjQHTjr1JtiaBQEwFh9r2OKTcpvaLcbNtYpo7CzOs=
 =FRsO
------END PGP SIGNATURE-----
-`, commitFromReader.Signature.Signature)
-	assert.EqualValues(t, `tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
+-----END PGP SIGNATURE-----`, commitFromReader.Signature.Signature)
+	assert.Equal(t, `tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
 parent 37991dec2c8e592043f47155ce4808d4580f9123
 author silverwind <me@silverwind.io> 1563741793 +0200
 committer silverwind <me@silverwind.io> 1563741793 +0200
 
 empty commit`, commitFromReader.Signature.Payload)
-	assert.EqualValues(t, "silverwind <me@silverwind.io>", commitFromReader.Author.String())
+	assert.Equal(t, "silverwind <me@silverwind.io>", commitFromReader.Author.String())
 
 	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
 	commitFromReader.CommitMessage += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
-	assert.EqualValues(t, commitFromReader, commitFromReader2)
+	assert.Equal(t, commitFromReader, commitFromReader2)
 }
 
 func TestCommitWithEncodingFromReader(t *testing.T) {
-	commitString := `feaf4ba6bc635fec442f46ddd4512416ec43c2c2 commit 1074
-tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
+	commitString := `tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
 parent 47b24e7ab977ed31c5a39989d570847d6d0052af
 author KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 committer KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
@@ -160,7 +156,7 @@ ISO-8859-1`
 	assert.NoError(t, err)
 	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
-	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
+	assert.Equal(t, `-----BEGIN PGP SIGNATURE-----
 
 iQGzBAABCgAdFiEE9HRrbqvYxPT8PXbefPSEkrowAa8FAmYGg7IACgkQfPSEkrow
 Aa9olwv+P0HhtCM6CRvlUmPaqswRsDPNR4i66xyXGiSxdI9V5oJL7HLiQIM7KrFR
@@ -173,22 +169,21 @@ SONRzusmu5n3DgV956REL7x62h7JuqmBz/12HZkr0z0zgXkcZ04q08pSJATX5N1F
 yN+tWxTsWg+zhDk96d5Esdo9JMjcFvPv0eioo30GAERaz1hoD7zCMT4jgUFTQwgz
 jw4YcO5u
 =r3UU
------END PGP SIGNATURE-----
-`, commitFromReader.Signature.Signature)
-	assert.EqualValues(t, `tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
+-----END PGP SIGNATURE-----`, commitFromReader.Signature.Signature)
+	assert.Equal(t, `tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
 parent 47b24e7ab977ed31c5a39989d570847d6d0052af
 author KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 committer KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 encoding ISO-8859-1
 
 ISO-8859-1`, commitFromReader.Signature.Payload)
-	assert.EqualValues(t, "KN4CK3R <admin@oldschoolhack.me>", commitFromReader.Author.String())
+	assert.Equal(t, "KN4CK3R <admin@oldschoolhack.me>", commitFromReader.Author.String())
 
 	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
 	commitFromReader.CommitMessage += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
-	assert.EqualValues(t, commitFromReader, commitFromReader2)
+	assert.Equal(t, commitFromReader, commitFromReader2)
 }
 
 func TestHasPreviousCommit(t *testing.T) {
@@ -347,15 +342,15 @@ func TestGetCommitFileStatusMerges(t *testing.T) {
 
 func Test_GetCommitBranchStart(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(context.Background(), bareRepo1Path)
+	repo, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 	commit, err := repo.GetBranchCommit("branch1")
 	assert.NoError(t, err)
-	assert.EqualValues(t, "2839944139e0de9737a044f78b0e4b40d989a9e3", commit.ID.String())
+	assert.Equal(t, "2839944139e0de9737a044f78b0e4b40d989a9e3", commit.ID.String())
 
 	startCommitID, err := repo.GetCommitBranchStart(os.Environ(), "branch1", commit.ID.String())
 	assert.NoError(t, err)
 	assert.NotEmpty(t, startCommitID)
-	assert.EqualValues(t, "9c9aef8dd84e02bc7ec12641deb4c930a7c30185", startCommitID)
+	assert.Equal(t, "95bb4d39648ee7e325106df01a621c530863a653", startCommitID)
 }

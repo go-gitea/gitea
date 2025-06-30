@@ -96,7 +96,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 	defer cancel()
 
-	if err := testPatch(ctx, prCtx, pr); err != nil {
+	if err := testPullRequestTmpRepoBranchMergeable(ctx, prCtx, pr); err != nil {
 		return err
 	}
 
@@ -176,7 +176,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		if !pr.IsWorkInProgress(ctx) {
-			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, issue, pr)
+			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, pr)
 			if err != nil {
 				return err
 			}
@@ -314,12 +314,12 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	pr.BaseBranch = targetBranch
 
 	// Refresh patch
-	if err := TestPatch(pr); err != nil {
+	if err := testPullRequestBranchMergeable(pr); err != nil {
 		return err
 	}
 
 	// Update target branch, PR diff and status
-	// This is the same as checkAndUpdateStatus in check service, but also updates base_branch
+	// This is the same as markPullRequestAsMergeable in check service, but also updates base_branch
 	if pr.Status == issues_model.PullRequestStatusChecking {
 		pr.Status = issues_model.PullRequestStatusMergeable
 	}
@@ -372,19 +372,29 @@ func checkForInvalidation(ctx context.Context, requests issues_model.PullRequest
 	return nil
 }
 
+type TestPullRequestOptions struct {
+	RepoID      int64
+	Doer        *user_model.User
+	Branch      string
+	IsSync      bool // True means it's a pull request synchronization, false means it's triggered for pull request merging or updating
+	IsForcePush bool
+	OldCommitID string
+	NewCommitID string
+}
+
 // AddTestPullRequestTask adds new test tasks by given head/base repository and head/base branch,
 // and generate new patch for testing as needed.
-func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, isSync bool, oldCommitID, newCommitID string) {
-	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", repoID, branch)
+func AddTestPullRequestTask(opts TestPullRequestOptions) {
+	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", opts.RepoID, opts.Branch)
 	graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
 		// There is no sensible way to shut this down ":-("
 		// If you don't let it run all the way then you will lose data
 		// TODO: graceful: AddTestPullRequestTask needs to become a queue!
 
 		// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
-		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repoID, branch)
+		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, opts.RepoID, opts.Branch)
 		if err != nil {
-			log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repoID, branch, err)
+			log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", opts.RepoID, opts.Branch, err)
 			return
 		}
 
@@ -399,26 +409,25 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 				continue
 			}
 
-			AddToTaskQueue(ctx, pr)
-			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
+			StartPullRequestCheckImmediately(ctx, pr)
+			comment, err := CreatePushPullComment(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID)
 			if err == nil && comment != nil {
-				notify_service.PullRequestPushCommits(ctx, doer, pr, comment)
+				notify_service.PullRequestPushCommits(ctx, opts.Doer, pr, comment)
 			}
 		}
 
-		if isSync {
-			requests := issues_model.PullRequestList(prs)
-			if err = requests.LoadAttributes(ctx); err != nil {
+		if opts.IsSync {
+			if err = prs.LoadAttributes(ctx); err != nil {
 				log.Error("PullRequestList.LoadAttributes: %v", err)
 			}
-			if invalidationErr := checkForInvalidation(ctx, requests, repoID, doer, branch); invalidationErr != nil {
+			if invalidationErr := checkForInvalidation(ctx, prs, opts.RepoID, opts.Doer, opts.Branch); invalidationErr != nil {
 				log.Error("checkForInvalidation: %v", invalidationErr)
 			}
 			if err == nil {
 				for _, pr := range prs {
 					objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
-					if newCommitID != "" && newCommitID != objectFormat.EmptyObjectID().String() {
-						changed, err := checkIfPRContentChanged(ctx, pr, oldCommitID, newCommitID)
+					if opts.NewCommitID != "" && opts.NewCommitID != objectFormat.EmptyObjectID().String() {
+						changed, err := checkIfPRContentChanged(ctx, pr, opts.OldCommitID, opts.NewCommitID)
 						if err != nil {
 							log.Error("checkIfPRContentChanged: %v", err)
 						}
@@ -434,12 +443,12 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 								log.Error("GetFirstMatchProtectedBranchRule: %v", err)
 							}
 							if pb != nil && pb.DismissStaleApprovals {
-								if err := DismissApprovalReviews(ctx, doer, pr); err != nil {
+								if err := DismissApprovalReviews(ctx, opts.Doer, pr); err != nil {
 									log.Error("DismissApprovalReviews: %v", err)
 								}
 							}
 						}
-						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, newCommitID); err != nil {
+						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
 						divergence, err := GetDiverging(ctx, pr)
@@ -453,21 +462,31 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 						}
 					}
 
-					notify_service.PullRequestSynchronized(ctx, doer, pr)
+					if !pr.IsWorkInProgress(ctx) {
+						reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(ctx, pr)
+						if err != nil {
+							log.Error("PullRequestCodeOwnersReview: %v", err)
+						}
+						if len(reviewNotifiers) > 0 {
+							issue_service.ReviewRequestNotify(ctx, pr.Issue, opts.Doer, reviewNotifiers)
+						}
+					}
+
+					notify_service.PullRequestSynchronized(ctx, opts.Doer, pr)
 				}
 			}
 		}
 
-		log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", repoID, branch)
-		prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
+		log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", opts.RepoID, opts.Branch)
+		prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, opts.RepoID, opts.Branch)
 		if err != nil {
-			log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", repoID, branch, err)
+			log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", opts.RepoID, opts.Branch, err)
 			return
 		}
 		for _, pr := range prs {
 			divergence, err := GetDiverging(ctx, pr)
 			if err != nil {
-				if git_model.IsErrBranchNotExist(err) && !git.IsBranchExist(ctx, pr.HeadRepo.RepoPath(), pr.HeadBranch) {
+				if git_model.IsErrBranchNotExist(err) && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
 					log.Warn("Cannot test PR %s/%d: head_branch %s no longer exists", pr.BaseRepo.Name, pr.IssueID, pr.HeadBranch)
 				} else {
 					log.Error("GetDiverging: %v", err)
@@ -478,7 +497,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 					log.Error("UpdateCommitDivergence: %v", err)
 				}
 			}
-			AddToTaskQueue(ctx, pr)
+			StartPullRequestCheckDelayable(ctx, pr)
 		}
 	})
 }
@@ -505,14 +524,14 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		return false, fmt.Errorf("GetMergeBase: %w", err)
 	}
 
-	cmd := git.NewCommand(ctx, "diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, base)
+	cmd := git.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, base)
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return false, fmt.Errorf("unable to open pipe for to run diff: %w", err)
 	}
 
 	stderr := new(bytes.Buffer)
-	if err := cmd.Run(&git.RunOpts{
+	if err := cmd.Run(ctx, &git.RunOpts{
 		Dir:    prCtx.tmpBasePath,
 		Stdout: stdoutWriter,
 		Stderr: stderr,
@@ -629,7 +648,7 @@ func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 		return err
 	}
 
-	_, _, err = git.NewCommand(ctx, "update-ref").AddDynamicArguments(pr.GetGitRefName(), pr.HeadCommitID).RunStdString(&git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+	_, _, err = git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitRefName(), pr.HeadCommitID).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
 	if err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}
@@ -645,7 +664,7 @@ func retargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int6
 		return err
 	}
 
-	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+	if err := prs.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
@@ -672,11 +691,11 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 		return err
 	}
 
-	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+	if err := prs.LoadAttributes(ctx); err != nil {
 		return err
 	}
-	issues_model.PullRequestList(prs).SetHeadRepo(repo)
-	if err := issues_model.PullRequestList(prs).LoadRepositories(ctx); err != nil {
+	prs.SetHeadRepo(repo)
+	if err := prs.LoadRepositories(ctx); err != nil {
 		return err
 	}
 
@@ -707,11 +726,11 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 		return err
 	}
 
-	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+	if err := prs.LoadAttributes(ctx); err != nil {
 		return err
 	}
-	issues_model.PullRequestList(prs).SetBaseRepo(repo)
-	if err := issues_model.PullRequestList(prs).LoadRepositories(ctx); err != nil {
+	prs.SetBaseRepo(repo)
+	if err := prs.LoadRepositories(ctx); err != nil {
 		return err
 	}
 
@@ -739,12 +758,12 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 
 	var errs []error
 	for _, branch := range branches {
-		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch.Name)
+		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch)
 		if err != nil {
 			return err
 		}
 
-		if err = issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+		if err = prs.LoadAttributes(ctx); err != nil {
 			return err
 		}
 
@@ -926,12 +945,6 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	return stringBuilder.String()
 }
 
-// GetIssuesLastCommitStatus returns a map of issue ID to the most recent commit's latest status
-func GetIssuesLastCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64]*git_model.CommitStatus, error) {
-	_, lastStatus, err := GetIssuesAllCommitStatus(ctx, issues)
-	return lastStatus, err
-}
-
 // GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status
 func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64][]*git_model.CommitStatus, map[int64]*git_model.CommitStatus, error) {
 	if err := issues.LoadPullRequests(ctx); err != nil {
@@ -985,7 +998,7 @@ func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues
 		return nil, nil, shaErr
 	}
 
-	statuses, _, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
+	statuses, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
 	lastStatus = git_model.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }

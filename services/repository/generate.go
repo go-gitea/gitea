@@ -17,11 +17,11 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
@@ -42,10 +42,8 @@ type expansion struct {
 var defaultTransformers = []transformer{
 	{Name: "SNAKE", Transform: xstrings.ToSnakeCase},
 	{Name: "KEBAB", Transform: xstrings.ToKebabCase},
-	{Name: "CAMEL", Transform: func(str string) string {
-		return xstrings.FirstRuneToLower(xstrings.ToCamelCase(str))
-	}},
-	{Name: "PASCAL", Transform: xstrings.ToCamelCase},
+	{Name: "CAMEL", Transform: xstrings.ToCamelCase},
+	{Name: "PASCAL", Transform: xstrings.ToPascalCase},
 	{Name: "LOWER", Transform: strings.ToLower},
 	{Name: "UPPER", Transform: strings.ToUpper},
 	{Name: "TITLE", Transform: util.ToTitleCase},
@@ -236,8 +234,8 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return err
 	}
 
-	if stdout, _, err := git.NewCommand(ctx, "remote", "add", "origin").AddDynamicArguments(repo.RepoPath()).
-		RunStdString(&git.RunOpts{Dir: tmpDir, Env: env}); err != nil {
+	if stdout, _, err := git.NewCommand("remote", "add", "origin").AddDynamicArguments(repo.RepoPath()).
+		RunStdString(ctx, &git.RunOpts{Dir: tmpDir, Env: env}); err != nil {
 		log.Error("Unable to add %v as remote origin to temporary repo to %s: stdout %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git remote add: %w", err)
 	}
@@ -255,46 +253,33 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
 }
 
-func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
+// GenerateGitContent generates git content from a template repository
+func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) (err error) {
+	tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-" + generateRepo.Name)
 	if err != nil {
-		return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.RepoPath(), err)
+		return fmt.Errorf("failed to create temp dir for repository %s: %w", generateRepo.FullName(), err)
 	}
+	defer cleanup()
 
-	defer func() {
-		if err := util.RemoveAll(tmpDir); err != nil {
-			log.Error("RemoveAll: %v", err)
-		}
-	}()
-
-	if err = generateRepoCommit(ctx, repo, templateRepo, generateRepo, tmpDir); err != nil {
+	if err = generateRepoCommit(ctx, generateRepo, templateRepo, generateRepo, tmpDir); err != nil {
 		return fmt.Errorf("generateRepoCommit: %w", err)
 	}
 
 	// re-fetch repo
-	if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
+	if generateRepo, err = repo_model.GetRepositoryByID(ctx, generateRepo.ID); err != nil {
 		return fmt.Errorf("getRepositoryByID: %w", err)
 	}
 
 	// if there was no default branch supplied when generating the repo, use the default one from the template
-	if strings.TrimSpace(repo.DefaultBranch) == "" {
-		repo.DefaultBranch = templateRepo.DefaultBranch
+	if strings.TrimSpace(generateRepo.DefaultBranch) == "" {
+		generateRepo.DefaultBranch = templateRepo.DefaultBranch
 	}
 
-	if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+	if err = gitrepo.SetDefaultBranch(ctx, generateRepo, generateRepo.DefaultBranch); err != nil {
 		return fmt.Errorf("setDefaultBranch: %w", err)
 	}
-	if err = UpdateRepository(ctx, repo, false); err != nil {
+	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, generateRepo, "default_branch"); err != nil {
 		return fmt.Errorf("updateRepository: %w", err)
-	}
-
-	return nil
-}
-
-// GenerateGitContent generates git content from a template repository
-func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	if err := generateGitContent(ctx, generateRepo, templateRepo, generateRepo); err != nil {
-		return err
 	}
 
 	if err := repo_module.UpdateRepoSize(ctx, generateRepo); err != nil {
@@ -326,58 +311,6 @@ type GenerateRepoOptions struct {
 func (gro GenerateRepoOptions) IsValid() bool {
 	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar ||
 		gro.IssueLabels || gro.ProtectedBranch // or other items as they are added
-}
-
-// generateRepository generates a repository from a template
-func generateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *repo_model.Repository, opts GenerateRepoOptions) (_ *repo_model.Repository, err error) {
-	generateRepo := &repo_model.Repository{
-		OwnerID:          owner.ID,
-		Owner:            owner,
-		OwnerName:        owner.Name,
-		Name:             opts.Name,
-		LowerName:        strings.ToLower(opts.Name),
-		Description:      opts.Description,
-		DefaultBranch:    opts.DefaultBranch,
-		IsPrivate:        opts.Private,
-		IsEmpty:          !opts.GitContent || templateRepo.IsEmpty,
-		IsFsckEnabled:    templateRepo.IsFsckEnabled,
-		TemplateID:       templateRepo.ID,
-		TrustModel:       templateRepo.TrustModel,
-		ObjectFormatName: templateRepo.ObjectFormatName,
-	}
-
-	if err = CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false); err != nil {
-		return nil, err
-	}
-
-	repoPath := generateRepo.RepoPath()
-	isExist, err := util.IsExist(repoPath)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
-		return nil, err
-	}
-	if isExist {
-		return nil, repo_model.ErrRepoFilesAlreadyExist{
-			Uname: generateRepo.OwnerName,
-			Name:  generateRepo.Name,
-		}
-	}
-
-	if err = repo_module.CheckInitRepository(ctx, owner.Name, generateRepo.Name, generateRepo.ObjectFormatName); err != nil {
-		return generateRepo, err
-	}
-
-	if err = repo_module.CheckDaemonExportOK(ctx, generateRepo); err != nil {
-		return generateRepo, fmt.Errorf("checkDaemonExportOK: %w", err)
-	}
-
-	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
-		log.Error("GenerateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", generateRepo, stdout, err)
-		return generateRepo, fmt.Errorf("error in GenerateRepository(git update-server-info): %w", err)
-	}
-
-	return generateRepo, nil
 }
 
 var fileNameSanitizeRegexp = regexp.MustCompile(`(?i)\.\.|[<>:\"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)

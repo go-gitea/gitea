@@ -20,7 +20,7 @@ type testAccessLoggerMock struct {
 	logs []string
 }
 
-func (t *testAccessLoggerMock) Log(skip int, level log.Level, format string, v ...any) {
+func (t *testAccessLoggerMock) Log(skip int, event *log.Event, format string, v ...any) {
 	t.logs = append(t.logs, fmt.Sprintf(format, v...))
 }
 
@@ -59,7 +59,7 @@ func TestAccessLogger(t *testing.T) {
 	recorder.logger = mockLogger
 	req := &http.Request{
 		RemoteAddr: "remote-addr",
-		Method:     "GET",
+		Method:     http.MethodGet,
 		Proto:      "https",
 		URL:        &url.URL{Path: "/path"},
 	}

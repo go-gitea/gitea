@@ -28,6 +28,9 @@ type payloadConvertor[T any] interface {
 	Release(*api.ReleasePayload) (T, error)
 	Wiki(*api.WikiPayload) (T, error)
 	Package(*api.PackagePayload) (T, error)
+	Status(*api.CommitStatusPayload) (T, error)
+	WorkflowRun(*api.WorkflowRunPayload) (T, error)
+	WorkflowJob(*api.WorkflowJobPayload) (T, error)
 }
 
 func convertUnmarshalledJSON[T, P any](convert func(P) (T, error), data []byte) (t T, err error) {
@@ -77,6 +80,12 @@ func newPayload[T any](rc payloadConvertor[T], data []byte, event webhook_module
 		return convertUnmarshalledJSON(rc.Wiki, data)
 	case webhook_module.HookEventPackage:
 		return convertUnmarshalledJSON(rc.Package, data)
+	case webhook_module.HookEventStatus:
+		return convertUnmarshalledJSON(rc.Status, data)
+	case webhook_module.HookEventWorkflowRun:
+		return convertUnmarshalledJSON(rc.WorkflowRun, data)
+	case webhook_module.HookEventWorkflowJob:
+		return convertUnmarshalledJSON(rc.WorkflowJob, data)
 	}
 	return t, fmt.Errorf("newPayload unsupported event: %s", event)
 }
@@ -86,7 +95,10 @@ func newJSONRequest[T any](pc payloadConvertor[T], w *webhook_model.Webhook, t *
 	if err != nil {
 		return nil, nil, err
 	}
+	return prepareJSONRequest(payload, w, t, withDefaultHeaders)
+}
 
+func prepareJSONRequest[T any](payload T, w *webhook_model.Webhook, t *webhook_model.HookTask, withDefaultHeaders bool) (*http.Request, []byte, error) {
 	body, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
 		return nil, nil, err
@@ -104,7 +116,7 @@ func newJSONRequest[T any](pc payloadConvertor[T], w *webhook_model.Webhook, t *
 	req.Header.Set("Content-Type", "application/json")
 
 	if withDefaultHeaders {
-		return req, body, addDefaultHeaders(req, []byte(w.Secret), t, body)
+		return req, body, addDefaultHeaders(req, []byte(w.Secret), w, t, body)
 	}
 	return req, body, nil
 }

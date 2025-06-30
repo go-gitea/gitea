@@ -1,8 +1,8 @@
 name: cron-licenses
 
 on:
-  schedule:
-    - cron: "7 0 * * 1" # every Monday at 00:07 UTC
+  # schedule:
+  #   - cron: "7 0 * * 1" # every Monday at 00:07 UTC
   workflow_dispatch:
 
 jobs:
@@ -15,7 +15,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: make generate-license generate-gitignore
+      - run: make generate-gitignore
         timeout-minutes: 40
       - name: push translations to repo
         uses: appleboy/git-push-action@v0.0.3

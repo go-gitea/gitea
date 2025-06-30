@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -92,8 +93,7 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 
 func TestSettingLandingPage(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	landingPage := setting.LandingPageURL
+	defer test.MockVariableValue(&setting.LandingPageURL)()
 
 	setting.LandingPageURL = setting.LandingPageHome
 	req := NewRequest(t, "GET", "/")
@@ -113,6 +113,4 @@ func TestSettingLandingPage(t *testing.T) {
 	req = NewRequest(t, "GET", "/")
 	resp = MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "/user/login", resp.Header().Get("Location"))
-
-	setting.LandingPageURL = landingPage
 }

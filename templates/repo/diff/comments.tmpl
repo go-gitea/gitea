@@ -8,7 +8,7 @@
 		{{template "shared/user/avatarlink" dict "user" .Poster}}
 	{{end}}
 	<div class="content comment-container">
-		<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between">
+		<div class="comment-header">
 			<div class="comment-header-left tw-flex tw-items-center">
 				{{if .OriginalAuthor}}
 					<span class="text black tw-font-semibold tw-mr-1">
@@ -48,7 +48,9 @@
 						</div>
 					{{end}}
 				{{end}}
-				{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.root.RepoLink .ID)}}
+				{{if not $.root.Repository.IsArchived}}
+					{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.root.RepoLink .ID)}}
+				{{end}}
 				{{template "repo/issue/view_content/context_menu" dict "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
 			</div>
 		</div>

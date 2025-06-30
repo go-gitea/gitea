@@ -6,6 +6,7 @@ package middleware
 import (
 	"fmt"
 	"html/template"
+	"net/http"
 	"net/url"
 
 	"code.gitea.io/gitea/modules/reqctx"
@@ -64,4 +65,28 @@ func (f *Flash) Info(msg any, current ...bool) {
 func (f *Flash) Success(msg any, current ...bool) {
 	f.SuccessMsg = flashMsgStringOrHTML(msg)
 	f.set("success", f.SuccessMsg, current...)
+}
+
+func ParseCookieFlashMessage(val string) *Flash {
+	if vals, _ := url.ParseQuery(val); len(vals) > 0 {
+		return &Flash{
+			Values:     vals,
+			ErrorMsg:   vals.Get("error"),
+			SuccessMsg: vals.Get("success"),
+			InfoMsg:    vals.Get("info"),
+			WarningMsg: vals.Get("warning"),
+		}
+	}
+	return nil
+}
+
+func GetSiteCookieFlashMessage(dataStore reqctx.RequestDataStore, req *http.Request, cookieName string) (string, *Flash) {
+	// Get the last flash message from cookie
+	lastFlashCookie := GetSiteCookie(req, cookieName)
+	lastFlashMsg := ParseCookieFlashMessage(lastFlashCookie)
+	if lastFlashMsg != nil {
+		lastFlashMsg.DataStore = dataStore
+		return lastFlashCookie, lastFlashMsg
+	}
+	return lastFlashCookie, nil
 }

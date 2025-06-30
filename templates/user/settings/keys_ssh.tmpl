@@ -78,7 +78,16 @@
 							<input readonly="" value="{{$.TokenToSign}}">
 							<div class="help">
 								<p>{{ctx.Locale.Tr "settings.ssh_token_help"}}</p>
-								<p><code>{{printf "echo -n '%s' | ssh-keygen -Y sign -n gitea -f /path_to_PrivateKey_or_RelatedPublicKey" $.TokenToSign}}</code></p>
+								<p><code>echo -n '{{$.TokenToSign}}' | ssh-keygen -Y sign -n gitea -f /path_to_PrivateKey_or_RelatedPublicKey</code></p>
+								<details>
+									<summary>Windows PowerShell</summary>
+									<p><code>cmd /c "&lt;NUL set /p=`"{{$.TokenToSign}}`"| ssh-keygen -Y sign -n gitea -f /path_to_PrivateKey_or_RelatedPublicKey"</code></p>
+								</details>
+								<br>
+								<details>
+									<summary>Windows CMD</summary>
+									<p><code>set /p={{$.TokenToSign}}| ssh-keygen -Y sign -n gitea -f /path_to_PrivateKey_or_RelatedPublicKey</code></p>
+								</details>
 							</div>
 							<br>
 						</div>

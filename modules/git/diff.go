@@ -34,8 +34,8 @@ func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer 
 // GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
 func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io.Writer) error {
 	stderr := new(bytes.Buffer)
-	cmd := NewCommand(ctx, "show", "--pretty=format:revert %H%n", "-R").AddDynamicArguments(commitID)
-	if err := cmd.Run(&RunOpts{
+	cmd := NewCommand("show", "--pretty=format:revert %H%n", "-R").AddDynamicArguments(commitID)
+	if err := cmd.Run(ctx, &RunOpts{
 		Dir:    repoPath,
 		Stdout: writer,
 		Stderr: stderr,
@@ -56,7 +56,7 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 		files = append(files, file)
 	}
 
-	cmd := NewCommand(repo.Ctx)
+	cmd := NewCommand()
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {
@@ -89,7 +89,7 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	}
 
 	stderr := new(bytes.Buffer)
-	if err = cmd.Run(&RunOpts{
+	if err = cmd.Run(repo.Ctx, &RunOpts{
 		Dir:    repo.Path,
 		Stdout: writer,
 		Stderr: stderr,
@@ -301,8 +301,8 @@ func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID str
 	affectedFiles := make([]string, 0, 32)
 
 	// Run `git diff --name-only` to get the names of the changed files
-	err = NewCommand(repo.Ctx, "diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID).
-		Run(&RunOpts{
+	err = NewCommand("diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID).
+		Run(repo.Ctx, &RunOpts{
 			Env:    env,
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,

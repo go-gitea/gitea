@@ -33,10 +33,24 @@ func resolveLinkRelative(ctx context.Context, base, cur, link string, absolute b
 	return finalLink
 }
 
-func (ctx *RenderContext) ResolveLinkRelative(base, cur, link string) (finalLink string) {
+func (ctx *RenderContext) ResolveLinkRelative(base, cur, link string) string {
+	if strings.HasPrefix(link, "/:") {
+		setting.PanicInDevOrTesting("invalid link %q, forgot to cut?", link)
+	}
 	return resolveLinkRelative(ctx, base, cur, link, ctx.RenderOptions.UseAbsoluteLink)
 }
 
-func (ctx *RenderContext) ResolveLinkApp(link string) string {
+func (ctx *RenderContext) ResolveLinkRoot(link string) string {
 	return ctx.ResolveLinkRelative(setting.AppSubURL+"/", "", link)
+}
+
+func ParseRenderedLink(s, preferLinkType string) (linkType, link string) {
+	if strings.HasPrefix(s, "/:") {
+		p := strings.IndexByte(s[1:], '/')
+		if p == -1 {
+			return s, ""
+		}
+		return s[:p+1], s[p+2:]
+	}
+	return preferLinkType, s
 }

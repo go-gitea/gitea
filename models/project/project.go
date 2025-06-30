@@ -97,6 +97,9 @@ type Project struct {
 	Type         Type
 
 	RenderedContent template.HTML `xorm:"-"`
+	NumOpenIssues   int64         `xorm:"-"`
+	NumClosedIssues int64         `xorm:"-"`
+	NumIssues       int64         `xorm:"-"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -126,11 +129,11 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	return err
 }
 
-func ProjectLinkForOrg(org *user_model.User, projectID int64) string { //nolint
+func ProjectLinkForOrg(org *user_model.User, projectID int64) string { //nolint:revive // export stutter
 	return fmt.Sprintf("%s/-/projects/%d", org.HomeLink(), projectID)
 }
 
-func ProjectLinkForRepo(repo *repo_model.Repository, projectID int64) string { //nolint
+func ProjectLinkForRepo(repo *repo_model.Repository, projectID int64) string { //nolint:revive // export stutter
 	return fmt.Sprintf("%s/projects/%d", repo.Link(), projectID)
 }
 
@@ -244,6 +247,10 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 		return db.SearchOrderByRecentUpdated
 	case "leastupdate":
 		return db.SearchOrderByLeastUpdated
+	case "alphabetically":
+		return "title ASC"
+	case "reversealphabetically":
+		return "title DESC"
 	default:
 		return db.SearchOrderByNewest
 	}

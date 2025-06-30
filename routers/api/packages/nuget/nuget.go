@@ -36,7 +36,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 	})
 }
 
-func xmlResponse(ctx *context.Context, status int, obj any) { //nolint:unparam
+func xmlResponse(ctx *context.Context, status int, obj any) { //nolint:unparam // status is always StatusOK
 	ctx.Resp.Header().Set("Content-Type", "application/atom+xml; charset=utf-8")
 	ctx.Resp.WriteHeader(status)
 	if _, err := ctx.Resp.Write([]byte(xml.Header)); err != nil {
@@ -405,7 +405,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	packageVersion := ctx.PathParam("version")
 	filename := ctx.PathParam("filename")
 
-	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -488,7 +488,7 @@ func UploadPackage(ctx *context.Context) {
 		pv,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: strings.ToLower(fmt.Sprintf("%s.nuspec", np.ID)),
+				Filename: strings.ToLower(np.ID + ".nuspec"),
 			},
 			Data: nuspecBuf,
 		},
@@ -669,7 +669,7 @@ func DownloadSymbolFile(ctx *context.Context) {
 		return
 	}
 
-	s, u, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
+	s, u, pf, err := packages_service.OpenFileForDownload(ctx, pfs[0])
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)

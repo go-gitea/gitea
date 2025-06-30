@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -164,12 +166,24 @@ func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, err
 	return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
 }
 
+func (run *ActionRun) GetWorkflowRunEventPayload() (*api.WorkflowRunPayload, error) {
+	if run.Event == webhook_module.HookEventWorkflowRun {
+		var payload api.WorkflowRunPayload
+		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
+			return nil, err
+		}
+		return &payload, nil
+	}
+	return nil, fmt.Errorf("event %s is not a workflow run event", run.Event)
+}
+
 func (run *ActionRun) IsSchedule() bool {
 	return run.ScheduleID > 0
 }
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
 	_, err := db.GetEngine(ctx).ID(repo.ID).
+		NoAutoTime().
 		SetExpr("num_action_runs",
 			builder.Select("count(*)").From("action_run").
 				Where(builder.Eq{"repo_id": repo.ID}),
@@ -194,7 +208,7 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 
 // CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.
 // It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
-func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
+func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) ([]*ActionRunJob, error) {
 	// Find all runs in the specified repository, reference, and workflow with non-final status
 	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
 		RepoID:       repoID,
@@ -204,13 +218,15 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// If there are no runs found, there's no need to proceed with cancellation, so return nil.
 	if total == 0 {
-		return nil
+		return nil, nil
 	}
+
+	cancelledJobs := make([]*ActionRunJob, 0, total)
 
 	// Iterate over each found run and cancel its associated jobs.
 	for _, run := range runs {
@@ -219,7 +235,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 			RunID: run.ID,
 		})
 		if err != nil {
-			return err
+			return cancelledJobs, err
 		}
 
 		// Iterate over each job and attempt to cancel it.
@@ -238,27 +254,29 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 				// Update the job's status and stopped time in the database.
 				n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
 				if err != nil {
-					return err
+					return cancelledJobs, err
 				}
 
 				// If the update affected 0 rows, it means the job has changed in the meantime, so we need to try again.
 				if n == 0 {
-					return fmt.Errorf("job has changed, try again")
+					return cancelledJobs, errors.New("job has changed, try again")
 				}
 
+				cancelledJobs = append(cancelledJobs, job)
 				// Continue with the next job.
 				continue
 			}
 
 			// If the job has an associated task, try to stop the task, effectively cancelling the job.
 			if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
-				return err
+				return cancelledJobs, err
 			}
+			cancelledJobs = append(cancelledJobs, job)
 		}
 	}
 
 	// Return nil to indicate successful cancellation of all running and waiting jobs.
-	return nil
+	return cancelledJobs, nil
 }
 
 // InsertRun inserts a run
@@ -337,13 +355,13 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	return committer.Commit()
 }
 
-func GetRunByID(ctx context.Context, id int64) (*ActionRun, error) {
+func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, error) {
 	var run ActionRun
-	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&run)
+	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", runID, repoID).Get(&run)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, fmt.Errorf("run with id %d: %w", id, util.ErrNotExist)
+		return nil, fmt.Errorf("run with id %d: %w", runID, util.ErrNotExist)
 	}
 
 	return &run, nil
@@ -408,23 +426,16 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 		return err
 	}
 	if affected == 0 {
-		return fmt.Errorf("run has changed")
+		return errors.New("run has changed")
 		// It's impossible that the run is not found, since Gitea never deletes runs.
 	}
 
 	if run.Status != 0 || slices.Contains(cols, "status") {
 		if run.RepoID == 0 {
-			run, err = GetRunByID(ctx, run.ID)
-			if err != nil {
-				return err
-			}
+			setting.PanicInDevOrTesting("RepoID should not be 0")
 		}
-		if run.Repo == nil {
-			repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
-			if err != nil {
-				return err
-			}
-			run.Repo = repo
+		if err = run.LoadRepo(ctx); err != nil {
+			return err
 		}
 		if err := updateRepoRunsNumbers(ctx, run.Repo); err != nil {
 			return err

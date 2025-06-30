@@ -84,16 +84,20 @@ func handlePackageFile(ctx *context.Context, serveContent bool) {
 }
 
 func serveMavenMetadata(ctx *context.Context, params parameters) {
-	// /com/foo/project/maven-metadata.xml[.md5/.sha1/.sha256/.sha512]
-
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, params.toInternalPackageName())
-	if errors.Is(err, util.ErrNotExist) {
-		pvs, err = packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, params.toInternalPackageNameLegacy())
-	}
+	// path pattern: /com/foo/project/maven-metadata.xml[.md5/.sha1/.sha256/.sha512]
+	// in case there are legacy package names ("GroupID-ArtifactID") we need to check both, new packages always use ":" as separator("GroupID:ArtifactID")
+	pvsLegacy, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, params.toInternalPackageNameLegacy())
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, params.toInternalPackageName())
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	pvs = append(pvsLegacy, pvs...)
+
 	if len(pvs) == 0 {
 		apiError(ctx, http.StatusNotFound, packages_model.ErrPackageNotExist)
 		return
@@ -110,7 +114,7 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 		return pds[i].Version.CreatedUnix < pds[j].Version.CreatedUnix
 	})
 
-	xmlMetadata, err := xml.Marshal(createMetadataResponse(pds))
+	xmlMetadata, err := xml.Marshal(createMetadataResponse(pds, params.GroupID, params.ArtifactID))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -219,7 +223,7 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 		return
 	}
 
-	s, u, _, err := packages_service.GetPackageBlobStream(ctx, pf, pb, nil)
+	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pf, pb, nil)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

@@ -5,6 +5,7 @@ package user
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -114,10 +115,10 @@ func GetUserAllSettings(ctx context.Context, uid int64) (map[string]*Setting, er
 
 func validateUserSettingKey(key string) error {
 	if len(key) == 0 {
-		return fmt.Errorf("setting key must be set")
+		return errors.New("setting key must be set")
 	}
 	if strings.ToLower(key) != key {
-		return fmt.Errorf("setting key should be lowercase")
+		return errors.New("setting key should be lowercase")
 	}
 	return nil
 }

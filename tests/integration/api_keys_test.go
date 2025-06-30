@@ -143,7 +143,7 @@ func TestCreateUserKey(t *testing.T) {
 	})
 
 	// Search by fingerprint
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/keys?fingerprint=%s", newPublicKey.Fingerprint)).
+	req = NewRequest(t, "GET", "/api/v1/user/keys?fingerprint="+newPublicKey.Fingerprint).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
@@ -183,7 +183,7 @@ func TestCreateUserKey(t *testing.T) {
 	token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteUser)
 
 	// Should find key even though not ours, but we shouldn't know whose it is
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/keys?fingerprint=%s", newPublicKey.Fingerprint)).
+	req = NewRequest(t, "GET", "/api/v1/user/keys?fingerprint="+newPublicKey.Fingerprint).
 		AddTokenAuth(token2)
 	resp = MakeRequest(t, req, http.StatusOK)
 

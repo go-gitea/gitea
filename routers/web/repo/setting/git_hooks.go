@@ -34,7 +34,7 @@ func GitHooksEdit(ctx *context.Context) {
 	hook, err := ctx.Repo.GitRepo.GetHook(name)
 	if err != nil {
 		if err == git.ErrNotValidHook {
-			ctx.NotFound("GetHook", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetHook", err)
 		}
@@ -50,7 +50,7 @@ func GitHooksEditPost(ctx *context.Context) {
 	hook, err := ctx.Repo.GitRepo.GetHook(name)
 	if err != nil {
 		if err == git.ErrNotValidHook {
-			ctx.NotFound("GetHook", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetHook", err)
 		}

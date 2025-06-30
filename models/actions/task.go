@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"crypto/subtle"
+	"errors"
 	"fmt"
 	"time"
 
@@ -277,14 +278,13 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		return nil, false, err
 	}
 
-	var workflowJob *jobparser.Job
-	if gots, err := jobparser.Parse(job.WorkflowPayload); err != nil {
+	parsedWorkflows, err := jobparser.Parse(job.WorkflowPayload)
+	if err != nil {
 		return nil, false, fmt.Errorf("parse workflow of job %d: %w", job.ID, err)
-	} else if len(gots) != 1 {
+	} else if len(parsedWorkflows) != 1 {
 		return nil, false, fmt.Errorf("workflow of job %d: not single workflow", job.ID)
-	} else { //nolint:revive
-		_, workflowJob = gots[0].Job()
 	}
+	_, workflowJob := parsedWorkflows[0].Job()
 
 	if _, err := e.Insert(task); err != nil {
 		return nil, false, err
@@ -335,6 +335,11 @@ func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 		sess.Cols(cols...)
 	}
 	_, err := sess.Update(task)
+
+	// Automatically delete the ephemeral runner if the task is done
+	if err == nil && task.Status.IsDone() && util.SliceContainsString(cols, "status") {
+		return DeleteEphemeralRunner(ctx, task.RunnerID)
+	}
 	return err
 }
 
@@ -361,7 +366,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 	} else if !has {
 		return nil, util.ErrNotExist
 	} else if runnerID != task.RunnerID {
-		return nil, fmt.Errorf("invalid runner for task")
+		return nil, errors.New("invalid runner for task")
 	}
 
 	if task.Status.IsDone() {

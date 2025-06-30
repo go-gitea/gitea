@@ -30,15 +30,15 @@ func TestSettings(t *testing.T) {
 	settings, err := user_model.GetSettings(db.DefaultContext, 99, []string{keyName})
 	assert.NoError(t, err)
 	assert.Len(t, settings, 1)
-	assert.EqualValues(t, newSetting.SettingValue, settings[keyName].SettingValue)
+	assert.Equal(t, newSetting.SettingValue, settings[keyName].SettingValue)
 
 	settingValue, err := user_model.GetUserSetting(db.DefaultContext, 99, keyName)
 	assert.NoError(t, err)
-	assert.EqualValues(t, newSetting.SettingValue, settingValue)
+	assert.Equal(t, newSetting.SettingValue, settingValue)
 
 	settingValue, err = user_model.GetUserSetting(db.DefaultContext, 99, "no_such")
 	assert.NoError(t, err)
-	assert.EqualValues(t, "", settingValue)
+	assert.Empty(t, settingValue)
 
 	// updated setting
 	updatedSetting := &user_model.Setting{UserID: 99, SettingKey: keyName, SettingValue: "Updated"}
@@ -49,7 +49,7 @@ func TestSettings(t *testing.T) {
 	settings, err = user_model.GetUserAllSettings(db.DefaultContext, 99)
 	assert.NoError(t, err)
 	assert.Len(t, settings, 1)
-	assert.EqualValues(t, updatedSetting.SettingValue, settings[updatedSetting.SettingKey].SettingValue)
+	assert.Equal(t, updatedSetting.SettingValue, settings[updatedSetting.SettingKey].SettingValue)
 
 	// delete setting
 	err = user_model.DeleteUserSetting(db.DefaultContext, 99, keyName)

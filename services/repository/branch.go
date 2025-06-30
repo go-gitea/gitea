@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	actions_service "code.gitea.io/gitea/services/actions"
 	notify_service "code.gitea.io/gitea/services/notify"
 	release_service "code.gitea.io/gitea/services/release"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -302,7 +303,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 	// For other batches, it will hit optimization 4.
 
 	if len(branchNames) != len(commitIDs) {
-		return fmt.Errorf("branchNames and commitIDs length not match")
+		return errors.New("branchNames and commitIDs length not match")
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
@@ -409,11 +410,11 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "target_exist", nil
 	}
 
-	if gitRepo.IsBranchExist(to) {
+	if gitrepo.IsBranchExist(ctx, repo, to) {
 		return "target_exist", nil
 	}
 
-	if !gitRepo.IsBranchExist(from) {
+	if !gitrepo.IsBranchExist(ctx, repo, from) {
 		return "from_not_exist", nil
 	}
 
@@ -452,7 +453,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 				log.Error("DeleteCronTaskByRepo: %v", err)
 			}
 			// cancel running cron jobs of this repository and delete old schedules
-			if err := actions_model.CancelPreviousJobs(
+			if err := actions_service.CancelPreviousJobs(
 				ctx,
 				repo.ID,
 				from,
@@ -617,12 +618,12 @@ func AddAllRepoBranchesToSyncQueue(ctx context.Context) error {
 	return nil
 }
 
-func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, newBranchName string) error {
+func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, newBranchName string) error {
 	if repo.DefaultBranch == newBranchName {
 		return nil
 	}
 
-	if !gitRepo.IsBranchExist(newBranchName) {
+	if !gitrepo.IsBranchExist(ctx, repo, newBranchName) {
 		return git_model.ErrBranchNotExist{
 			BranchName: newBranchName,
 		}
@@ -639,7 +640,7 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 			log.Error("DeleteCronTaskByRepo: %v", err)
 		}
 		// cancel running cron jobs of this repository and delete old schedules
-		if err := actions_model.CancelPreviousJobs(
+		if err := actions_service.CancelPreviousJobs(
 			ctx,
 			repo.ID,
 			oldDefaultBranchName,
@@ -660,6 +661,11 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 		}); err != nil {
 			log.Error("AddRepoToLicenseUpdaterQueue: %v", err)
 		}
+	}
+
+	// clear divergence cache
+	if err := DelRepoDivergenceFromCache(ctx, repo.ID); err != nil {
+		log.Error("DelRepoDivergenceFromCache: %v", err)
 	}
 
 	notify_service.ChangeDefaultBranch(ctx, repo)

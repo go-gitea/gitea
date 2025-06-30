@@ -42,7 +42,7 @@ func IssueWatch(ctx *context.Context) {
 				log.Trace("Permission Denied: Not logged in")
 			}
 		}
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 

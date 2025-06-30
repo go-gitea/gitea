@@ -7,7 +7,7 @@
 			</div>
 		</h4>
 		<div class="ui attached segment">
-			{{template "shared/repo_search" .}}
+			{{template "shared/repo/search" .}}
 		</div>
 		<div class="ui attached table segment">
 			<table class="ui very basic striped table unstackable">
@@ -86,6 +86,8 @@
 							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
 						</tr>
+					{{else}}
+						<tr><td class="tw-text-center" colspan="12">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 					{{end}}
 				</tbody>
 			</table>
@@ -101,7 +103,7 @@
 	</div>
 	<div class="content">
 		<p>{{ctx.Locale.Tr "repo.settings.delete_desc"}}</p>
-		{{ctx.Locale.Tr "repo.settings.delete_notices_2" (`<span class="name"></span>`|SafeHTML)}}<br>
+		{{ctx.Locale.Tr "repo.settings.delete_notices_2" (HTMLFormat `<span class="%s"></span>` "name")}}<br>
 		{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}<br>
 	</div>
 	{{template "base/modal_actions_confirm" .}}

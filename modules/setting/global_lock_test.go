@@ -16,7 +16,7 @@ func TestLoadGlobalLockConfig(t *testing.T) {
 		assert.NoError(t, err)
 
 		loadGlobalLockFrom(cfg)
-		assert.EqualValues(t, "memory", GlobalLock.ServiceType)
+		assert.Equal(t, "memory", GlobalLock.ServiceType)
 	})
 
 	t.Run("RedisGlobalLockConfig", func(t *testing.T) {
@@ -29,7 +29,7 @@ SERVICE_CONN_STR = addrs=127.0.0.1:6379 db=0
 		assert.NoError(t, err)
 
 		loadGlobalLockFrom(cfg)
-		assert.EqualValues(t, "redis", GlobalLock.ServiceType)
-		assert.EqualValues(t, "addrs=127.0.0.1:6379 db=0", GlobalLock.ServiceConnStr)
+		assert.Equal(t, "redis", GlobalLock.ServiceType)
+		assert.Equal(t, "addrs=127.0.0.1:6379 db=0", GlobalLock.ServiceConnStr)
 	})
 }

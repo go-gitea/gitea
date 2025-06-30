@@ -1,7 +1,5 @@
 {{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .HasMerged) (not .Issue.IsClosed) (not .IsPullWorkInProgress)}}
-	<div class="toggle-wip tw-mt-2" data-title="{{.Issue.Title}}" data-wip-prefix="{{index .PullRequestWorkInProgressPrefixes 0}}" data-update-url="{{.Issue.Link}}/title">
-		<a class="muted">
-			{{ctx.Locale.Tr "repo.pulls.still_in_progress"}} {{ctx.Locale.Tr "repo.pulls.add_prefix" (index .PullRequestWorkInProgressPrefixes 0)}}
-		</a>
-	</div>
+	<a class="toggle-wip tw-block tw-mt-2" data-title="{{.Issue.Title}}" data-wip-prefix="{{index .PullRequestWorkInProgressPrefixes 0}}" data-update-url="{{.Issue.Link}}/title">
+		{{ctx.Locale.Tr "repo.pulls.still_in_progress"}} {{ctx.Locale.Tr "repo.pulls.add_prefix" (index .PullRequestWorkInProgressPrefixes 0)}}
+	</a>
 {{end}}

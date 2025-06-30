@@ -30,7 +30,7 @@ func RenderFile(ctx *context.Context) {
 	}
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("GetBlobByPath", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetBlobByPath", err)
 		}

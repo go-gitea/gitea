@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -39,7 +40,7 @@ func WebfingerQuery(ctx *context.Context) {
 
 	resource, err := url.Parse(ctx.FormTrim("resource"))
 	if err != nil {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
@@ -50,11 +51,11 @@ func WebfingerQuery(ctx *context.Context) {
 		// allow only the current host
 		parts := strings.SplitN(resource.Opaque, "@", 2)
 		if len(parts) != 2 {
-			ctx.Error(http.StatusBadRequest)
+			ctx.HTTPError(http.StatusBadRequest)
 			return
 		}
 		if parts[1] != appURL.Host {
-			ctx.Error(http.StatusBadRequest)
+			ctx.HTTPError(http.StatusBadRequest)
 			return
 		}
 
@@ -65,30 +66,30 @@ func WebfingerQuery(ctx *context.Context) {
 			err = user_model.ErrUserNotExist{}
 		}
 	default:
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 		} else {
 			log.Error("Error getting user: %s Error: %v", resource.Opaque, err)
-			ctx.Error(http.StatusInternalServerError)
+			ctx.HTTPError(http.StatusInternalServerError)
 		}
 		return
 	}
 
 	if !user_model.IsUserVisibleToViewer(ctx, u, ctx.Doer) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
 	aliases := []string{
 		u.HTMLURL(),
-		appURL.String() + "api/v1/activitypub/user-id/" + fmt.Sprint(u.ID),
+		appURL.String() + "api/v1/activitypub/user-id/" + strconv.FormatInt(u.ID, 10),
 	}
 	if !u.KeepEmailPrivate {
-		aliases = append(aliases, fmt.Sprintf("mailto:%s", u.Email))
+		aliases = append(aliases, "mailto:"+u.Email)
 	}
 
 	links := []*webfingerLink{
@@ -104,7 +105,7 @@ func WebfingerQuery(ctx *context.Context) {
 		{
 			Rel:  "self",
 			Type: "application/activity+json",
-			Href: appURL.String() + "api/v1/activitypub/user-id/" + fmt.Sprint(u.ID),
+			Href: appURL.String() + "api/v1/activitypub/user-id/" + strconv.FormatInt(u.ID, 10),
 		},
 		{
 			Rel:  "http://openid.net/specs/connect/1.0/issuer",

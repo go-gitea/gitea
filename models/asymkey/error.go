@@ -25,7 +25,7 @@ func (err ErrKeyUnableVerify) Error() string {
 }
 
 // ErrKeyIsPrivate is returned when the provided key is a private key not a public key
-var ErrKeyIsPrivate = util.NewSilentWrapErrorf(util.ErrInvalidArgument, "the provided key is a private key")
+var ErrKeyIsPrivate = util.ErrorWrap(util.ErrInvalidArgument, "the provided key is a private key")
 
 // ErrKeyNotExist represents a "KeyNotExist" kind of error.
 type ErrKeyNotExist struct {
@@ -132,7 +132,7 @@ func IsErrGPGKeyParsing(err error) bool {
 }
 
 func (err ErrGPGKeyParsing) Error() string {
-	return fmt.Sprintf("failed to parse gpg key %s", err.ParseError.Error())
+	return "failed to parse gpg key " + err.ParseError.Error()
 }
 
 // ErrGPGKeyNotExist represents a "GPGKeyNotExist" kind of error.

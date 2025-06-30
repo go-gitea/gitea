@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"slices"
 	"strconv"
 	"unicode/utf8"
 
@@ -19,8 +20,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/references"
@@ -198,12 +197,7 @@ func (t CommentType) HasMailReplySupport() bool {
 }
 
 func (t CommentType) CountedAsConversation() bool {
-	for _, ct := range ConversationCountedCommentType() {
-		if t == ct {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(ConversationCountedCommentType(), t)
 }
 
 // ConversationCountedCommentType returns the comment types that are counted as a conversation
@@ -616,7 +610,7 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 		if err != nil {
 			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
-		for i := 0; i < len(attachments); i++ {
+		for i := range attachments {
 			attachments[i].IssueID = c.IssueID
 			attachments[i].CommentID = c.ID
 			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
@@ -772,41 +766,6 @@ func (c *Comment) CodeCommentLink(ctx context.Context) string {
 		return ""
 	}
 	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
-}
-
-// LoadPushCommits Load push commits
-func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
-	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullRequestPush {
-		return nil
-	}
-
-	var data PushActionContent
-
-	err = json.Unmarshal([]byte(c.Content), &data)
-	if err != nil {
-		return err
-	}
-
-	c.IsForcePush = data.IsForcePush
-
-	if c.IsForcePush {
-		if len(data.CommitIDs) != 2 {
-			return nil
-		}
-		c.OldCommit = data.CommitIDs[0]
-		c.NewCommit = data.CommitIDs[1]
-	} else {
-		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, c.Issue.Repo)
-		if err != nil {
-			return err
-		}
-		defer closer.Close()
-
-		c.Commits = git_model.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
-		c.CommitsNum = int64(len(c.Commits))
-	}
-
-	return err
 }
 
 // CreateComment creates comment with context

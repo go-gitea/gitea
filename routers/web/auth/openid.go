@@ -4,7 +4,7 @@
 package auth
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"net/url"
 
@@ -55,13 +55,13 @@ func allowedOpenIDURI(uri string) (err error) {
 			}
 		}
 		// must match one of this or be refused
-		return fmt.Errorf("URI not allowed by whitelist")
+		return errors.New("URI not allowed by whitelist")
 	}
 
 	// A blacklist match expliclty forbids
 	for _, pat := range setting.Service.OpenIDBlacklist {
 		if pat.MatchString(uri) {
-			return fmt.Errorf("URI forbidden by blacklist")
+			return errors.New("URI forbidden by blacklist")
 		}
 	}
 
@@ -99,7 +99,7 @@ func SignInOpenIDPost(ctx *context.Context) {
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
 	if err != nil {
 		log.Error("Error in OpenID redirect URL: %s, %v", redirectTo, err.Error())
-		ctx.RenderWithErr(fmt.Sprintf("Unable to find OpenID provider in %s", redirectTo), tplSignInOpenID, &form)
+		ctx.RenderWithErr("Unable to find OpenID provider in "+redirectTo, tplSignInOpenID, &form)
 		return
 	}
 
@@ -337,7 +337,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	ctx.Data["OpenID"] = oid
 
 	if setting.Service.AllowOnlyInternalRegistration {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -349,10 +349,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		context.VerifyCaptcha(ctx, tplSignUpOID, form)
 	}
 
-	length := setting.MinPasswordLength
-	if length < 256 {
-		length = 256
-	}
+	length := max(setting.MinPasswordLength, 256)
 	password, err := util.CryptoRandomString(int64(length))
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignUpOID, form)

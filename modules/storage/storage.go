@@ -93,7 +93,7 @@ func Clean(storage ObjectStorage) error {
 }
 
 // SaveFrom saves data to the ObjectStorage with path p from the callback
-func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) error) error {
+func SaveFrom(objStorage ObjectStorage, path string, callback func(w io.Writer) error) error {
 	pr, pw := io.Pipe()
 	defer pr.Close()
 	go func() {
@@ -103,7 +103,7 @@ func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) err
 		}
 	}()
 
-	_, err := objStorage.Save(p, pr, -1)
+	_, err := objStorage.Save(path, pr, -1)
 	return err
 }
 

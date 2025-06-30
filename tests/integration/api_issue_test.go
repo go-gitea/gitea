@@ -166,7 +166,7 @@ func TestAPICreateIssueParallel(t *testing.T) {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repoBefore.Name)
 
 	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		wg.Add(1)
 		go func(parentT *testing.T, i int) {
 			parentT.Run(fmt.Sprintf("ParallelCreateIssue_%d", i), func(t *testing.T) {
@@ -267,10 +267,7 @@ func TestAPISearchIssues(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// as this API was used in the frontend, it uses UI page size
-	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
-	}
+	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)
@@ -313,7 +310,7 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "22", resp.Header().Get("X-Total-Count"))
+	assert.Equal(t, "22", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 20)
 
 	query.Add("limit", "10")
@@ -321,7 +318,7 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "22", resp.Header().Get("X-Total-Count"))
+	assert.Equal(t, "22", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 10)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}}
@@ -371,10 +368,7 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// as this API was used in the frontend, it uses UI page size
-	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
-	}
+	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)

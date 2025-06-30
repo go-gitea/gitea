@@ -45,10 +45,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	pageSize := setting.Git.BranchesRangeSize
 
 	kw := ctx.FormString("q")
@@ -93,7 +90,7 @@ func Branches(ctx *context.Context) {
 
 // DeleteBranchPost responses for delete merged branch
 func DeleteBranchPost(ctx *context.Context) {
-	defer redirect(ctx)
+	defer jsonRedirectBranches(ctx)
 	branchName := ctx.FormString("name")
 
 	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName, nil); err != nil {
@@ -120,7 +117,7 @@ func DeleteBranchPost(ctx *context.Context) {
 
 // RestoreBranchPost responses for delete merged branch
 func RestoreBranchPost(ctx *context.Context) {
-	defer redirect(ctx)
+	defer jsonRedirectBranches(ctx)
 
 	branchID := ctx.FormInt64("branch_id")
 	branchName := ctx.FormString("name")
@@ -170,7 +167,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	ctx.Flash.Success(ctx.Tr("repo.branch.restore_success", deletedBranch.Name))
 }
 
-func redirect(ctx *context.Context) {
+func jsonRedirectBranches(ctx *context.Context) {
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/branches?page=" + url.QueryEscape(ctx.FormString("page")))
 }
 
@@ -178,7 +175,7 @@ func redirect(ctx *context.Context) {
 func CreateBranch(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewBranchForm)
 	if !ctx.Repo.CanCreateBranch() {
-		ctx.NotFound("CreateBranch", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -261,10 +258,10 @@ func CreateBranch(ctx *context.Context) {
 
 func MergeUpstream(ctx *context.Context) {
 	branchName := ctx.FormString("branch")
-	_, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, branchName)
+	_, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, branchName, false)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.JSONError(ctx.Tr("error.not_found"))
+			ctx.JSONErrorNotFound()
 			return
 		} else if pull_service.IsErrMergeConflicts(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.merge_conflict"))

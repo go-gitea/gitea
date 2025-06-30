@@ -5,16 +5,14 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -306,7 +304,7 @@ func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) 
 	if err != nil {
 		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 	}
-	for i := 0; i < len(attachments); i++ {
+	for i := range attachments {
 		attachments[i].IssueID = issueID
 		if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
@@ -386,10 +384,10 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 	}
 
 	if opts.Issue.Index <= 0 {
-		return fmt.Errorf("no issue index provided")
+		return errors.New("no issue index provided")
 	}
 	if opts.Issue.ID > 0 {
-		return fmt.Errorf("issue exist")
+		return errors.New("issue exist")
 	}
 
 	if _, err := e.Insert(opts.Issue); err != nil {
@@ -611,7 +609,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 				unittype = unit.TypePullRequests
 			}
 			for _, team := range teams {
-				if team.AccessMode >= perm.AccessModeAdmin {
+				if team.HasAdminAccess() {
 					checked = append(checked, team.ID)
 					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 					continue
@@ -715,137 +713,13 @@ func UpdateReactionsMigrationsByType(ctx context.Context, gitServiceType api.Git
 	return err
 }
 
-// DeleteIssuesByRepoID deletes issues by repositories id
-func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []string, err error) {
-	// MariaDB has a performance bug: https://jira.mariadb.org/browse/MDEV-16289
-	// so here it uses "DELETE ... WHERE IN" with pre-queried IDs.
-	sess := db.GetEngine(ctx)
-
-	for {
-		issueIDs := make([]int64, 0, db.DefaultMaxInSize)
-
-		err := sess.Table(&Issue{}).Where("repo_id = ?", repoID).OrderBy("id").Limit(db.DefaultMaxInSize).Cols("id").Find(&issueIDs)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(issueIDs) == 0 {
-			break
-		}
-
-		// Delete content histories
-		_, err = sess.In("issue_id", issueIDs).Delete(&ContentHistory{})
-		if err != nil {
-			return nil, err
-		}
-
-		// Delete comments and attachments
-		_, err = sess.In("issue_id", issueIDs).Delete(&Comment{})
-		if err != nil {
-			return nil, err
-		}
-
-		// Dependencies for issues in this repository
-		_, err = sess.In("issue_id", issueIDs).Delete(&IssueDependency{})
-		if err != nil {
-			return nil, err
-		}
-
-		// Delete dependencies for issues in other repositories
-		_, err = sess.In("dependency_id", issueIDs).Delete(&IssueDependency{})
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = sess.In("issue_id", issueIDs).Delete(&IssueUser{})
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = sess.In("issue_id", issueIDs).Delete(&Reaction{})
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = sess.In("issue_id", issueIDs).Delete(&IssueWatch{})
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = sess.In("issue_id", issueIDs).Delete(&Stopwatch{})
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = sess.In("issue_id", issueIDs).Delete(&TrackedTime{})
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = sess.In("issue_id", issueIDs).Delete(&project_model.ProjectIssue{})
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = sess.In("dependent_issue_id", issueIDs).Delete(&Comment{})
-		if err != nil {
-			return nil, err
-		}
-
-		var attachments []*repo_model.Attachment
-		err = sess.In("issue_id", issueIDs).Find(&attachments)
-		if err != nil {
-			return nil, err
-		}
-
-		for j := range attachments {
-			attachmentPaths = append(attachmentPaths, attachments[j].RelativePath())
-		}
-
-		_, err = sess.In("issue_id", issueIDs).Delete(&repo_model.Attachment{})
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = sess.In("id", issueIDs).Delete(&Issue{})
-		if err != nil {
-			return nil, err
-		}
+func GetOrphanedIssueRepoIDs(ctx context.Context) ([]int64, error) {
+	var repoIDs []int64
+	if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").
+		Join("LEFT", "repository", "issue.repo_id=repository.id").
+		Where(builder.IsNull{"repository.id"}).
+		Find(&repoIDs); err != nil {
+		return nil, err
 	}
-
-	return attachmentPaths, err
-}
-
-// DeleteOrphanedIssues delete issues without a repo
-func DeleteOrphanedIssues(ctx context.Context) error {
-	var attachmentPaths []string
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		var ids []int64
-
-		if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").
-			Join("LEFT", "repository", "issue.repo_id=repository.id").
-			Where(builder.IsNull{"repository.id"}).GroupBy("issue.repo_id").
-			Find(&ids); err != nil {
-			return err
-		}
-
-		for i := range ids {
-			paths, err := DeleteIssuesByRepoID(ctx, ids[i])
-			if err != nil {
-				return err
-			}
-			attachmentPaths = append(attachmentPaths, paths...)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	// Remove issue attachment files.
-	for i := range attachmentPaths {
-		system_model.RemoveAllWithNotice(ctx, "Delete issue attachment", attachmentPaths[i])
-	}
-	return nil
+	return repoIDs, nil
 }

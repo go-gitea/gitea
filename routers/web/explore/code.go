@@ -5,6 +5,7 @@ package explore
 
 import (
 	"net/http"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -72,10 +73,10 @@ func Code(ctx *context.Context) {
 
 	if (len(repoIDs) > 0) || isAdmin {
 		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
-			RepoIDs:        repoIDs,
-			Keyword:        prepareSearch.Keyword,
-			IsKeywordFuzzy: prepareSearch.IsFuzzy,
-			Language:       prepareSearch.Language,
+			RepoIDs:    repoIDs,
+			Keyword:    prepareSearch.Keyword,
+			SearchMode: prepareSearch.SearchMode,
+			Language:   prepareSearch.Language,
 			Paginator: &db.ListOptions{
 				Page:     page,
 				PageSize: setting.UI.RepoSearchPagingNum,
@@ -93,14 +94,7 @@ func Code(ctx *context.Context) {
 
 		loadRepoIDs := make([]int64, 0, len(searchResults))
 		for _, result := range searchResults {
-			var find bool
-			for _, id := range loadRepoIDs {
-				if id == result.RepoID {
-					find = true
-					break
-				}
-			}
-			if !find {
+			if !slices.Contains(loadRepoIDs, result.RepoID) {
 				loadRepoIDs = append(loadRepoIDs, result.RepoID)
 			}
 		}

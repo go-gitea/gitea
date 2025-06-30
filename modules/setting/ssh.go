@@ -4,8 +4,6 @@
 package setting
 
 import (
-	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -32,8 +30,6 @@ var SSH = struct {
 	ServerKeyExchanges                    []string           `ini:"SSH_SERVER_KEY_EXCHANGES"`
 	ServerMACs                            []string           `ini:"SSH_SERVER_MACS"`
 	ServerHostKeys                        []string           `ini:"SSH_SERVER_HOST_KEYS"`
-	KeyTestPath                           string             `ini:"SSH_KEY_TEST_PATH"`
-	KeygenPath                            string             `ini:"SSH_KEYGEN_PATH"`
 	AuthorizedKeysBackup                  bool               `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
 	AuthorizedPrincipalsBackup            bool               `ini:"SSH_AUTHORIZED_PRINCIPALS_BACKUP"`
 	AuthorizedKeysCommandTemplate         string             `ini:"SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE"`
@@ -55,10 +51,6 @@ var SSH = struct {
 	StartBuiltinServer:            false,
 	Domain:                        "",
 	Port:                          22,
-	ServerCiphers:                 []string{"chacha20-poly1305@openssh.com", "aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "aes256-gcm@openssh.com"},
-	ServerKeyExchanges:            []string{"curve25519-sha256", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "diffie-hellman-group14-sha256", "diffie-hellman-group14-sha1"},
-	ServerMACs:                    []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"},
-	KeygenPath:                    "",
 	MinimumKeySizeCheck:           true,
 	MinimumKeySizes:               map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 3071},
 	ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
@@ -111,30 +103,27 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 	}
 	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
 
-	SSH.RootPath = path.Join(homeDir, ".ssh")
-	serverCiphers := sec.Key("SSH_SERVER_CIPHERS").Strings(",")
-	if len(serverCiphers) > 0 {
-		SSH.ServerCiphers = serverCiphers
-	}
-	serverKeyExchanges := sec.Key("SSH_SERVER_KEY_EXCHANGES").Strings(",")
-	if len(serverKeyExchanges) > 0 {
-		SSH.ServerKeyExchanges = serverKeyExchanges
-	}
-	serverMACs := sec.Key("SSH_SERVER_MACS").Strings(",")
-	if len(serverMACs) > 0 {
-		SSH.ServerMACs = serverMACs
-	}
-	SSH.KeyTestPath = os.TempDir()
+	SSH.RootPath = filepath.Join(homeDir, ".ssh")
+
 	if err = sec.MapTo(&SSH); err != nil {
 		log.Fatal("Failed to map SSH settings: %v", err)
 	}
+
+	serverCiphers := sec.Key("SSH_SERVER_CIPHERS").Strings(",")
+	SSH.ServerCiphers = util.Iif(len(serverCiphers) > 0, serverCiphers, nil)
+
+	serverKeyExchanges := sec.Key("SSH_SERVER_KEY_EXCHANGES").Strings(",")
+	SSH.ServerKeyExchanges = util.Iif(len(serverKeyExchanges) > 0, serverKeyExchanges, nil)
+
+	serverMACs := sec.Key("SSH_SERVER_MACS").Strings(",")
+	SSH.ServerMACs = util.Iif(len(serverMACs) > 0, serverMACs, nil)
+
 	for i, key := range SSH.ServerHostKeys {
 		if !filepath.IsAbs(key) {
 			SSH.ServerHostKeys[i] = filepath.Join(AppDataPath, key)
 		}
 	}
 
-	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").String()
 	SSH.Port = sec.Key("SSH_PORT").MustInt(22)
 	SSH.ListenPort = sec.Key("SSH_LISTEN_PORT").MustInt(SSH.Port)
 	SSH.UseProxyProtocol = sec.Key("SSH_SERVER_USE_PROXY_PROTOCOL").MustBool(false)

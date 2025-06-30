@@ -5,6 +5,7 @@ package util
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -100,7 +101,7 @@ func TestEllipsisString(t *testing.T) {
 			{limit: 7, left: "\xef\x03\xfe\xef\x03\xfe", right: ""},
 		}
 		for _, c := range invalidCases {
-			t.Run(fmt.Sprintf("%d", c.limit), func(t *testing.T) {
+			t.Run(strconv.Itoa(c.limit), func(t *testing.T) {
 				left, right := EllipsisDisplayStringX("\xef\x03\xfe\xef\x03\xfe", c.limit)
 				assert.Equal(t, c.left, left, "left")
 				assert.Equal(t, c.right, right, "right")
@@ -115,15 +116,15 @@ func TestEllipsisString(t *testing.T) {
 }
 
 func TestTruncateRunes(t *testing.T) {
-	assert.Equal(t, "", TruncateRunes("", 0))
-	assert.Equal(t, "", TruncateRunes("", 1))
+	assert.Empty(t, TruncateRunes("", 0))
+	assert.Empty(t, TruncateRunes("", 1))
 
-	assert.Equal(t, "", TruncateRunes("ab", 0))
+	assert.Empty(t, TruncateRunes("ab", 0))
 	assert.Equal(t, "a", TruncateRunes("ab", 1))
 	assert.Equal(t, "ab", TruncateRunes("ab", 2))
 	assert.Equal(t, "ab", TruncateRunes("ab", 3))
 
-	assert.Equal(t, "", TruncateRunes("测试", 0))
+	assert.Empty(t, TruncateRunes("测试", 0))
 	assert.Equal(t, "测", TruncateRunes("测试", 1))
 	assert.Equal(t, "测试", TruncateRunes("测试", 2))
 	assert.Equal(t, "测试", TruncateRunes("测试", 3))

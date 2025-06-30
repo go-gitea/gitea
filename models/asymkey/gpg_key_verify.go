@@ -50,7 +50,7 @@ func VerifyGPGKey(ctx context.Context, ownerID int64, keyID, token, signature st
 		return "", err
 	}
 
-	sig, err := extractSignature(signature)
+	sig, err := ExtractSignature(signature)
 	if err != nil {
 		return "", ErrGPGInvalidTokenSignature{
 			ID:      key.KeyID,
@@ -85,7 +85,7 @@ func VerifyGPGKey(ctx context.Context, ownerID int64, keyID, token, signature st
 	}
 
 	if signer == nil {
-		log.Error("Unable to validate token signature. Error: %v", err)
+		log.Debug("VerifyGPGKey failed: no signer")
 		return "", ErrGPGInvalidTokenSignature{
 			ID: key.KeyID,
 		}

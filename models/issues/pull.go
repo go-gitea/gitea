@@ -6,10 +6,10 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -102,27 +102,6 @@ const (
 	PullRequestStatusEmpty
 	PullRequestStatusAncestor
 )
-
-func (status PullRequestStatus) String() string {
-	switch status {
-	case PullRequestStatusConflict:
-		return "CONFLICT"
-	case PullRequestStatusChecking:
-		return "CHECKING"
-	case PullRequestStatusMergeable:
-		return "MERGEABLE"
-	case PullRequestStatusManuallyMerged:
-		return "MANUALLY_MERGED"
-	case PullRequestStatusError:
-		return "ERROR"
-	case PullRequestStatusEmpty:
-		return "EMPTY"
-	case PullRequestStatusAncestor:
-		return "ANCESTOR"
-	default:
-		return strconv.Itoa(int(status))
-	}
-}
 
 // PullRequestFlow the flow of pull request
 type PullRequestFlow int
@@ -670,12 +649,6 @@ func GetAllUnmergedAgitPullRequestByPoster(ctx context.Context, uid int64) ([]*P
 	return pulls, err
 }
 
-// Update updates all fields of pull request.
-func (pr *PullRequest) Update(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).ID(pr.ID).AllCols().Update(pr)
-	return err
-}
-
 // UpdateCols updates specific fields of pull request.
 func (pr *PullRequest) UpdateCols(ctx context.Context, cols ...string) error {
 	_, err := db.GetEngine(ctx).ID(pr.ID).Cols(cols...).Update(pr)
@@ -732,7 +705,7 @@ func (pr *PullRequest) GetWorkInProgressPrefix(ctx context.Context) string {
 // UpdateCommitDivergence update Divergence of a pull request
 func (pr *PullRequest) UpdateCommitDivergence(ctx context.Context, ahead, behind int) error {
 	if pr.ID == 0 {
-		return fmt.Errorf("pull ID is 0")
+		return errors.New("pull ID is 0")
 	}
 	pr.CommitsAhead = ahead
 	pr.CommitsBehind = behind
@@ -925,7 +898,7 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 		if strings.Contains(user, "/") {
 			s := strings.Split(user, "/")
 			if len(s) != 2 {
-				warnings = append(warnings, fmt.Sprintf("incorrect codeowner group: %s", user))
+				warnings = append(warnings, "incorrect codeowner group: "+user)
 				continue
 			}
 			orgName := s[0]
@@ -933,12 +906,12 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 
 			org, err := org_model.GetOrgByName(ctx, orgName)
 			if err != nil {
-				warnings = append(warnings, fmt.Sprintf("incorrect codeowner organization: %s", user))
+				warnings = append(warnings, "incorrect codeowner organization: "+user)
 				continue
 			}
 			teams, err := org.LoadTeams(ctx)
 			if err != nil {
-				warnings = append(warnings, fmt.Sprintf("incorrect codeowner team: %s", user))
+				warnings = append(warnings, "incorrect codeowner team: "+user)
 				continue
 			}
 
@@ -950,7 +923,7 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 		} else {
 			u, err := user_model.GetUserByName(ctx, user)
 			if err != nil {
-				warnings = append(warnings, fmt.Sprintf("incorrect codeowner user: %s", user))
+				warnings = append(warnings, "incorrect codeowner user: "+user)
 				continue
 			}
 			rule.Users = append(rule.Users, u)

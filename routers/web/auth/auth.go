@@ -76,6 +76,10 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 		}
 		return false, nil
 	}
+	userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
+	if err != nil {
+		return false, fmt.Errorf("HasTwoFactorOrWebAuthn: %w", err)
+	}
 
 	isSucceed = true
 
@@ -87,9 +91,9 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
 	if err := updateSession(ctx, nil, map[string]any{
-		// Set session IDs
-		"uid":   u.ID,
-		"uname": u.Name,
+		session.KeyUID:                  u.ID,
+		session.KeyUname:                u.Name,
+		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		return false, fmt.Errorf("unable to updateSession: %w", err)
 	}
@@ -192,7 +196,7 @@ func SignIn(ctx *context.Context) {
 // SignInPost response for sign in request
 func SignInPost(ctx *context.Context) {
 	if !setting.Service.EnablePasswordSignInForm {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -239,9 +243,8 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	// Now handle 2FA:
-
 	// First of all if the source can skip local two fa we're done
-	if skipper, ok := source.Cfg.(auth_service.LocalTwoFASkipper); ok && skipper.IsSkipLocalTwoFA() {
+	if source.TwoFactorShouldSkip() {
 		handleSignIn(ctx, u, form.Remember)
 		return
 	}
@@ -262,7 +265,7 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	if !hasTOTPtwofa && !hasWebAuthnTwofa {
-		// No two factor auth configured we can sign in the user
+		// No two-factor auth configured we can sign in the user
 		handleSignIn(ctx, u, form.Remember)
 		return
 	}
@@ -311,8 +314,14 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 	}
 
+	userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
+	if err != nil {
+		ctx.ServerError("HasTwoFactorOrWebAuthn", err)
+		return setting.AppSubURL + "/"
+	}
+
 	if err := updateSession(ctx, []string{
-		// Delete the openid, 2fa and linkaccount data
+		// Delete the openid, 2fa and link_account data
 		"openid_verified_uri",
 		"openid_signin_remember",
 		"openid_determined_email",
@@ -321,8 +330,9 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		"twofaRemember",
 		"linkAccount",
 	}, map[string]any{
-		"uid":   u.ID,
-		"uname": u.Name,
+		session.KeyUID:                  u.ID,
+		session.KeyUname:                u.Name,
+		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return setting.AppSubURL + "/"
@@ -411,8 +421,10 @@ func SignOut(ctx *context.Context) {
 // SignUp render the register page
 func SignUp(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_up")
-
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
+
+	hasUsers, _ := user_model.HasUsers(ctx)
+	ctx.Data["IsFirstTimeRegistration"] = !hasUsers.HasAnyUser
 
 	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
@@ -456,7 +468,7 @@ func SignUpPost(ctx *context.Context) {
 
 	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -534,7 +546,8 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 	}
 	if err := user_model.CreateUser(ctx, u, meta, overwrites); err != nil {
 		if allowLink && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
-			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
+			switch setting.OAuth2Client.AccountLinking {
+			case setting.OAuth2AccountLinkingAuto:
 				var user *user_model.User
 				user = &user_model.User{Name: u.Name}
 				hasUser, err := user_model.GetUser(ctx, user)
@@ -550,7 +563,7 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 				// TODO: probably we should respect 'remember' user's choice...
 				linkAccount(ctx, user, *gothUser, true)
 				return false // user is already created here, all redirects are handled
-			} else if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingLogin {
+			case setting.OAuth2AccountLinkingLogin:
 				showLinkingLogin(ctx, *gothUser)
 				return false // user will be created only after linking login
 			}
@@ -599,10 +612,16 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 // sends a confirmation email if required.
 func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.User) (ok bool) {
 	// Auto-set admin for the only user.
-	if user_model.CountUsers(ctx, nil) == 1 {
+	hasUsers, err := user_model.HasUsers(ctx)
+	if err != nil {
+		ctx.ServerError("HasUsers", err)
+		return false
+	}
+	if hasUsers.HasOnlyOneUser {
+		// the only user is the one just created, will set it as admin
 		opts := &user_service.UpdateOptions{
 			IsActive:     optional.Some(true),
-			IsAdmin:      optional.Some(true),
+			IsAdmin:      user_service.UpdateOptionFieldFromValue(true),
 			SetLastLogin: true,
 		}
 		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
@@ -767,7 +786,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	}
 	if err := user_model.UpdateUserCols(ctx, user, "is_active", "rands"); err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.NotFound("UpdateUserCols", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("UpdateUser", err)
 		}

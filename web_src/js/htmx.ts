@@ -1,5 +1,5 @@
 import {showErrorToast} from './modules/toast.ts';
-import 'idiomorph/dist/idiomorph-ext.js'; // https://github.com/bigskysoftware/idiomorph#htmx
+import 'idiomorph/htmx';
 import type {HtmxResponseInfo} from 'htmx.org';
 
 type HtmxEvent = Event & {detail: HtmxResponseInfo};

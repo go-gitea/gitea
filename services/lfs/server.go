@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"path"
@@ -134,7 +135,9 @@ func DownloadHandler(ctx *context.Context) {
 	}
 
 	contentLength := toByte + 1 - fromByte
-	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(contentLength, 10))
+	contentLengthStr := strconv.FormatInt(contentLength, 10)
+	ctx.Resp.Header().Set("Content-Length", contentLengthStr)
+	ctx.Resp.Header().Set("X-Gitea-LFS-Content-Length", contentLengthStr) // we need this header to make sure it won't be affected by reverse proxy or compression
 	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
 
 	filename := ctx.PathParam("filename")
@@ -162,11 +165,12 @@ func BatchHandler(ctx *context.Context) {
 	}
 
 	var isUpload bool
-	if br.Operation == "upload" {
+	switch br.Operation {
+	case "upload":
 		isUpload = true
-	} else if br.Operation == "download" {
+	case "download":
 		isUpload = false
-	} else {
+	default:
 		log.Trace("Attempt to BATCH with invalid operation: %s", br.Operation)
 		writeStatus(ctx, http.StatusBadRequest)
 		return
@@ -199,7 +203,7 @@ func BatchHandler(ctx *context.Context) {
 
 		exists, err := contentStore.Exists(p)
 		if err != nil {
-			log.Error("Unable to check if LFS OID[%s] exist. Error: %v", p.Oid, rc.User, rc.Repo, err)
+			log.Error("Unable to check if LFS object with ID '%s' exists for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
 		}
@@ -477,9 +481,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			rep.Actions["upload"] = &lfs_module.Link{Href: rc.UploadLink(pointer), Header: header}
 
 			verifyHeader := make(map[string]string)
-			for key, value := range header {
-				verifyHeader[key] = value
-			}
+			maps.Copy(verifyHeader, header)
 
 			// This is only needed to workaround https://github.com/git-lfs/git-lfs/issues/3662
 			verifyHeader["Accept"] = lfs_module.AcceptHeader
@@ -569,15 +571,15 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 
 	claims, claimsOk := token.Claims.(*Claims)
 	if !token.Valid || !claimsOk {
-		return nil, fmt.Errorf("invalid token claim")
+		return nil, errors.New("invalid token claim")
 	}
 
 	if claims.RepoID != target.ID {
-		return nil, fmt.Errorf("invalid token claim")
+		return nil, errors.New("invalid token claim")
 	}
 
 	if mode == perm_model.AccessModeWrite && claims.Op != "upload" {
-		return nil, fmt.Errorf("invalid token claim")
+		return nil, errors.New("invalid token claim")
 	}
 
 	u, err := user_model.GetUserByID(ctx, claims.UserID)
@@ -590,12 +592,12 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 
 func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Repository, mode perm_model.AccessMode) (*user_model.User, error) {
 	if authorization == "" {
-		return nil, fmt.Errorf("no token")
+		return nil, errors.New("no token")
 	}
 
 	parts := strings.SplitN(authorization, " ", 2)
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("no token")
+		return nil, errors.New("no token")
 	}
 	tokenSHA := parts[1]
 	switch strings.ToLower(parts[0]) {
@@ -604,7 +606,7 @@ func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Rep
 	case "token":
 		return handleLFSToken(ctx, tokenSHA, target, mode)
 	}
-	return nil, fmt.Errorf("token not found")
+	return nil, errors.New("token not found")
 }
 
 func requireAuth(ctx *context.Context) {

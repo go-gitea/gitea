@@ -35,11 +35,11 @@ func TestAPIListStopWatches(t *testing.T) {
 	stopwatch := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: owner.ID})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: stopwatch.IssueID})
 	if assert.Len(t, apiWatches, 1) {
-		assert.EqualValues(t, stopwatch.CreatedUnix.AsTime().Unix(), apiWatches[0].Created.Unix())
-		assert.EqualValues(t, issue.Index, apiWatches[0].IssueIndex)
-		assert.EqualValues(t, issue.Title, apiWatches[0].IssueTitle)
-		assert.EqualValues(t, repo.Name, apiWatches[0].RepoName)
-		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
+		assert.Equal(t, stopwatch.CreatedUnix.AsTime().Unix(), apiWatches[0].Created.Unix())
+		assert.Equal(t, issue.Index, apiWatches[0].IssueIndex)
+		assert.Equal(t, issue.Title, apiWatches[0].IssueTitle)
+		assert.Equal(t, repo.Name, apiWatches[0].RepoName)
+		assert.Equal(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
 		assert.Positive(t, apiWatches[0].Seconds)
 	}
 }

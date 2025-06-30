@@ -14,25 +14,26 @@ type Batch struct {
 	Writer WriteCloserError
 }
 
-func (repo *Repository) NewBatch(ctx context.Context) (*Batch, error) {
+// NewBatch creates a new batch for the given repository, the Close must be invoked before release the batch
+func NewBatch(ctx context.Context, repoPath string) (*Batch, error) {
 	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-	if err := ensureValidGitRepository(ctx, repo.Path); err != nil {
+	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
 		return nil, err
 	}
 
 	var batch Batch
-	batch.Writer, batch.Reader, batch.cancel = catFileBatch(ctx, repo.Path)
+	batch.Writer, batch.Reader, batch.cancel = catFileBatch(ctx, repoPath)
 	return &batch, nil
 }
 
-func (repo *Repository) NewBatchCheck(ctx context.Context) (*Batch, error) {
+func NewBatchCheck(ctx context.Context, repoPath string) (*Batch, error) {
 	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-	if err := ensureValidGitRepository(ctx, repo.Path); err != nil {
+	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
 		return nil, err
 	}
 
 	var check Batch
-	check.Writer, check.Reader, check.cancel = catFileBatchCheck(ctx, repo.Path)
+	check.Writer, check.Reader, check.cancel = catFileBatchCheck(ctx, repoPath)
 	return &check, nil
 }
 

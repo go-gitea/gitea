@@ -47,7 +47,7 @@ func Benchmark_Blob_Data(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		r, err := testBlob.DataAsync()
 		if err != nil {
 			b.Fatal(err)

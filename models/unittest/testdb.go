@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/tempdir"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
@@ -35,8 +36,8 @@ func fatalTestError(fmtStr string, args ...any) {
 	os.Exit(1)
 }
 
-// InitSettings initializes config provider and load common settings for tests
-func InitSettings() {
+// InitSettingsForTesting initializes config provider and load common settings for tests
+func InitSettingsForTesting() {
 	setting.IsInTesting = true
 	log.OsExiter = func(code int) {
 		if code != 0 {
@@ -75,7 +76,7 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 	testOpts := util.OptionalArg(testOptsArg, &TestOptions{})
 	giteaRoot = test.SetupGiteaRoot()
 	setting.CustomPath = filepath.Join(giteaRoot, "custom")
-	InitSettings()
+	InitSettingsForTesting()
 
 	fixturesOpts := FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: testOpts.FixtureFiles}
 	if err := CreateTestEngine(fixturesOpts); err != nil {
@@ -92,15 +93,19 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 	setting.SSH.Domain = "try.gitea.io"
 	setting.Database.Type = "sqlite3"
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
-	repoRootPath, err := os.MkdirTemp(os.TempDir(), "repos")
+	repoRootPath, cleanup1, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("repos")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
+	defer cleanup1()
+
 	setting.RepoRootPath = repoRootPath
-	appDataPath, err := os.MkdirTemp(os.TempDir(), "appdata")
+	appDataPath, cleanup2, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("appdata")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
+	defer cleanup2()
+
 	setting.AppDataPath = appDataPath
 	setting.AppWorkPath = giteaRoot
 	setting.StaticRootPath = giteaRoot
@@ -152,13 +157,6 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 		if err := testOpts.TearDown(); err != nil {
 			fatalTestError("tear down failed: %v\n", err)
 		}
-	}
-
-	if err = util.RemoveAll(repoRootPath); err != nil {
-		fatalTestError("util.RemoveAll: %v\n", err)
-	}
-	if err = util.RemoveAll(appDataPath); err != nil {
-		fatalTestError("util.RemoveAll: %v\n", err)
 	}
 	os.Exit(exitStatus)
 }

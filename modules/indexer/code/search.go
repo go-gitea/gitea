@@ -77,7 +77,7 @@ func HighlightSearchResultCode(filename, language string, lineNums []int, code s
 
 	// The lineNums outputted by highlight.Code might not match the original lineNums, because "highlight" removes the last `\n`
 	lines := make([]*ResultLine, min(len(highlightedLines), len(lineNums)))
-	for i := 0; i < len(lines); i++ {
+	for i := range lines {
 		lines[i] = &ResultLine{
 			Num:              lineNums[i],
 			FormattedContent: template.HTML(highlightedLines[i]),
@@ -129,7 +129,6 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 }
 
 // PerformSearch perform a search on a repository
-// if isFuzzy is true set the Damerau-Levenshtein distance from 0 to 2
 func PerformSearch(ctx context.Context, opts *SearchOptions) (int, []*Result, []*SearchResultLanguages, error) {
 	if opts == nil || len(opts.Keyword) == 0 {
 		return 0, nil, nil, nil

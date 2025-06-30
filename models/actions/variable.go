@@ -6,10 +6,12 @@ package actions
 import (
 	"context"
 	"strings"
+	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -32,32 +34,46 @@ type ActionVariable struct {
 	RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name)"`
 	Name        string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
 	Data        string             `xorm:"LONGTEXT NOT NULL"`
+	Description string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
+
+const (
+	VariableDataMaxLength        = 65536
+	VariableDescriptionMaxLength = 4096
+)
 
 func init() {
 	db.RegisterModel(new(ActionVariable))
 }
 
-func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data string) (*ActionVariable, error) {
+func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data, description string) (*ActionVariable, error) {
 	if ownerID != 0 && repoID != 0 {
 		// It's trying to create a variable that belongs to a repository, but OwnerID has been set accidentally.
 		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
 		ownerID = 0
 	}
 
+	if utf8.RuneCountInString(data) > VariableDataMaxLength {
+		return nil, util.NewInvalidArgumentErrorf("data too long")
+	}
+
+	description = util.TruncateRunes(description, VariableDescriptionMaxLength)
+
 	variable := &ActionVariable{
-		OwnerID: ownerID,
-		RepoID:  repoID,
-		Name:    strings.ToUpper(name),
-		Data:    data,
+		OwnerID:     ownerID,
+		RepoID:      repoID,
+		Name:        strings.ToUpper(name),
+		Data:        data,
+		Description: description,
 	}
 	return variable, db.Insert(ctx, variable)
 }
 
 type FindVariablesOpts struct {
 	db.ListOptions
+	IDs     []int64
 	RepoID  int64
 	OwnerID int64 // it will be ignored if RepoID is set
 	Name    string
@@ -65,6 +81,15 @@ type FindVariablesOpts struct {
 
 func (opts FindVariablesOpts) ToConds() builder.Cond {
 	cond := builder.NewCond()
+
+	if len(opts.IDs) > 0 {
+		if len(opts.IDs) == 1 {
+			cond = cond.And(builder.Eq{"id": opts.IDs[0]})
+		} else {
+			cond = cond.And(builder.In("id", opts.IDs))
+		}
+	}
+
 	// Since we now support instance-level variables,
 	// there is no need to check for null values for `owner_id` and `repo_id`
 	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -85,12 +110,18 @@ func FindVariables(ctx context.Context, opts FindVariablesOpts) ([]*ActionVariab
 	return db.Find[ActionVariable](ctx, opts)
 }
 
-func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error) {
-	count, err := db.GetEngine(ctx).ID(variable.ID).Cols("name", "data").
-		Update(&ActionVariable{
-			Name: variable.Name,
-			Data: variable.Data,
-		})
+func UpdateVariableCols(ctx context.Context, variable *ActionVariable, cols ...string) (bool, error) {
+	if utf8.RuneCountInString(variable.Data) > VariableDataMaxLength {
+		return false, util.NewInvalidArgumentErrorf("data too long")
+	}
+
+	variable.Description = util.TruncateRunes(variable.Description, VariableDescriptionMaxLength)
+
+	variable.Name = strings.ToUpper(variable.Name)
+	count, err := db.GetEngine(ctx).
+		ID(variable.ID).
+		Cols(cols...).
+		Update(variable)
 	return count != 0, err
 }
 
@@ -136,4 +167,18 @@ func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, 
 	}
 
 	return variables, nil
+}
+
+func CountWrongRepoLevelVariables(ctx context.Context) (int64, error) {
+	var result int64
+	_, err := db.GetEngine(ctx).SQL("SELECT count(`id`) FROM `action_variable` WHERE `repo_id` > 0 AND `owner_id` > 0").Get(&result)
+	return result, err
+}
+
+func UpdateWrongRepoLevelVariables(ctx context.Context) (int64, error) {
+	result, err := db.GetEngine(ctx).Exec("UPDATE `action_variable` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0")
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

@@ -174,10 +174,28 @@ func (t telegramConvertor) Package(p *api.PackagePayload) (TelegramPayload, erro
 	return createTelegramPayloadHTML(text), nil
 }
 
+func (t telegramConvertor) Status(p *api.CommitStatusPayload) (TelegramPayload, error) {
+	text, _ := getStatusPayloadInfo(p, htmlLinkFormatter, true)
+
+	return createTelegramPayloadHTML(text), nil
+}
+
+func (telegramConvertor) WorkflowRun(p *api.WorkflowRunPayload) (TelegramPayload, error) {
+	text, _ := getWorkflowRunPayloadInfo(p, htmlLinkFormatter, true)
+
+	return createTelegramPayloadHTML(text), nil
+}
+
+func (telegramConvertor) WorkflowJob(p *api.WorkflowJobPayload) (TelegramPayload, error) {
+	text, _ := getWorkflowJobPayloadInfo(p, htmlLinkFormatter, true)
+
+	return createTelegramPayloadHTML(text), nil
+}
+
 func createTelegramPayloadHTML(msgHTML string) TelegramPayload {
 	// https://core.telegram.org/bots/api#formatting-options
 	return TelegramPayload{
-		Message:           strings.TrimSpace(markup.Sanitize(msgHTML)),
+		Message:           strings.TrimSpace(string(markup.Sanitize(msgHTML))),
 		ParseMode:         "HTML",
 		DisableWebPreview: true,
 	}
@@ -186,4 +204,8 @@ func createTelegramPayloadHTML(msgHTML string) TelegramPayload {
 func newTelegramRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	var pc payloadConvertor[TelegramPayload] = telegramConvertor{}
 	return newJSONRequest(pc, w, t, true)
+}
+
+func init() {
+	RegisterWebhookRequester(webhook_module.TELEGRAM, newTelegramRequest)
 }

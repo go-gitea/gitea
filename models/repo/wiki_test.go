@@ -4,7 +4,6 @@
 package repo_test
 
 import (
-	"context"
 	"path/filepath"
 	"testing"
 
@@ -19,7 +18,7 @@ func TestRepository_WikiCloneLink(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	cloneLink := repo.WikiCloneLink(context.Background(), nil)
+	cloneLink := repo.WikiCloneLink(t.Context(), nil)
 	assert.Equal(t, "ssh://sshuser@try.gitea.io:3000/user2/repo1.wiki.git", cloneLink.SSH)
 	assert.Equal(t, "https://try.gitea.io/user2/repo1.wiki.git", cloneLink.HTTPS)
 }
