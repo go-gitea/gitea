@@ -467,8 +467,8 @@ func CommonRoutes() *web.Router {
 			g.MatchPath("HEAD", "/<group:*>/repodata/<filename>", rpm.CheckRepositoryFileExistence)
 			g.MatchPath("GET", "/<group:*>/repodata/<filename>", rpm.GetRepositoryFile)
 			g.MatchPath("PUT", "/<group:*>/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
-			g.MatchPath("HEAD,GET", "/<group:*>/package/<name>/<version>/<architecture>", rpm.DownloadPackageFile)
-			g.MatchPath("DELETE", "/<group:*>/package/<name>/<version>/<architecture>", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
+			g.MatchPath("HEAD,GET", "/<group:*>/package/<name>/<version>/<architecture>/<*>", rpm.DownloadPackageFile)
+			g.MatchPath("DELETE", "/<group:*>/package/<name>/<version>/<architecture>/<*>", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
 		}, reqPackageAccess(perm.AccessModeRead))
 
 		r.Group("/rubygems", func() {

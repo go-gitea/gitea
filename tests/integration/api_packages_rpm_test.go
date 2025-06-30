@@ -157,7 +157,8 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 			t.Run("Download", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture))
+				rpmFileName := fmt.Sprintf("%s-%s-%s.rpm", packageName, packageVersion, packageArchitecture)
+				req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture, rpmFileName))
 				resp := MakeRequest(t, req, http.StatusOK)
 
 				assert.Equal(t, content, resp.Body.Bytes())

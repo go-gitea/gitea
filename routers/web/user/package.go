@@ -301,16 +301,17 @@ func ViewPackageVersion(ctx *context.Context) {
 			PackageID: pd.Package.ID,
 			IsTagged:  true,
 		})
-	default:
+	}
+	if pd.Package.Type != packages_model.TypeContainer {
 		pvs, pvsTotal, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 			Paginator:  db.NewAbsoluteListOptions(0, 5),
 			PackageID:  pd.Package.ID,
 			IsInternal: optional.Some(false),
 		})
-	}
-	if err != nil {
-		ctx.ServerError("", err)
-		return
+		if err != nil {
+			ctx.ServerError("", err)
+			return
+		}
 	}
 
 	ctx.Data["LatestVersions"] = pvs
