@@ -1,5 +1,5 @@
 export function htmlEscape(s: string, ...args: Array<any>): string {
-  if (args.length !== 0) throw new Error('use html or htmlRaw instead of htmlEscape');
+  if (args.length !== 0) throw new Error('use html or htmlRaw instead of htmlEscape'); // check legacy usages
   return s.replace(/&/g, '&amp;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')

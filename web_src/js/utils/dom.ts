@@ -312,10 +312,9 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
 
 // Warning: Do not enter any unsanitized variables here
 export function createElementFromHTML<T extends HTMLElement>(htmlString: string): T {
-  // FIXME: maybe we need to use other approaches to create elements from HTML, e.g. using DOMParser
   htmlString = htmlString.trim();
   // some tags like "tr" are special, it must use a correct parent container to create
-  // eslint-disable-next-line github/unescaped-html-literal
+  // eslint-disable-next-line github/unescaped-html-literal -- FIXME: maybe we need to use other approaches to create elements from HTML, e.g. using DOMParser
   if (htmlString.startsWith('<tr')) {
     const container = document.createElement('table');
     container.innerHTML = htmlString;
