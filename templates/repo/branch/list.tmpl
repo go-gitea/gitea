@@ -108,14 +108,14 @@
 							</td>
 							<td class="two wide ui">
 								{{if and (not .DBBranch.IsDeleted) $.DefaultBranchBranch}}
-								<div class="commit-divergence">
+								<div class="commit-divergence" data-tooltip-content="{{ctx.Locale.TrN .CommitsBehind "repo.branch.commits_behind_1" "repo.branch.commits_behind_n" .CommitsBehind $.DefaultBranchBranch.DBBranch.Name}}, {{ctx.Locale.TrN .CommitsAhead "repo.branch.commits_ahead_1" "repo.branch.commits_ahead_n" .CommitsAhead}}">
 									<div class="bar-group">
-										<div class="count count-behind" data-tooltip-content="{{if eq .CommitsBehind 1}}{{ctx.Locale.Tr "repo.branch.commits_behind_1" .CommitsBehind $.DefaultBranchBranch.DBBranch.Name}}{{else}}{{ctx.Locale.Tr "repo.branch.commits_behind_n" .CommitsBehind $.DefaultBranchBranch.DBBranch.Name}}{{end}}">{{.CommitsBehind}}</div>
+										<div class="count count-behind">{{.CommitsBehind}}</div>
 										{{/* old code bears 0/0.0 = NaN output, so it might output invalid "width: NaNpx", it just works and doesn't caues any problem. */}}
 										<div class="bar bar-behind" style="width: {{Eval 100 "*" .CommitsBehind "/" "(" .CommitsBehind "+" .CommitsAhead "+" 0.0 ")"}}%"></div>
 									</div>
 									<div class="bar-group">
-										<div class="count count-ahead" data-tooltip-content="{{if eq .CommitsAhead 1}}{{ctx.Locale.Tr "repo.branch.commits_ahead_1" .CommitsAhead $.DefaultBranchBranch.DBBranch.Name}}{{else}}{{ctx.Locale.Tr "repo.branch.commits_ahead_n" .CommitsAhead $.DefaultBranchBranch.DBBranch.Name}}{{end}}">{{.CommitsAhead}}</div>
+										<div class="count count-ahead">{{.CommitsAhead}}</div>
 										<div class="bar bar-ahead" style="width: {{Eval 100 "*" .CommitsAhead "/" "(" .CommitsBehind "+" .CommitsAhead "+" 0.0 ")"}}%"></div>
 									</div>
 								</div>
