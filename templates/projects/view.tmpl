@@ -130,12 +130,12 @@
 			<input class="project-column-id" type="hidden" name="id">
 			<div class="required field">
 				<label class="project-column-title-label" for="project-column-title-input">title</label>
-				<input id="project-column-title-input" name="title" value="{{.Title}}" required>
+				<input id="project-column-title-input" name="title" required>
 			</div>
 			<div class="field">
 				<label class="project-column-color-label" for="project-column-color-input">color</label>
 				<div class="js-color-picker-input column">
-					<input maxlength="7" placeholder="#c320f6" id="project-column-color-input" name="color" value="{{.Color}}">
+					<input maxlength="7" placeholder="#c320f6" id="project-column-color-input" name="color">
 					{{template "repo/issue/label_precolors"}}
 				</div>
 			</div>
