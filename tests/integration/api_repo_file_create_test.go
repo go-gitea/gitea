@@ -57,8 +57,8 @@ func normalizeFileContentResponseCommitTime(c *api.ContentsResponse) {
 }
 
 type apiFileResponseInfo struct {
-	repoFullName, commitID, treePath, lastCommitSHA string
-	lastCommitterWhen, lastAuthorWhen               time.Time
+	repoFullName, commitID, treePath, lastCommitSHA, lastCommitMessage string
+	lastCommitterWhen, lastAuthorWhen                                  time.Time
 }
 
 func getExpectedFileResponseForCreate(info apiFileResponseInfo) *api.FileResponse {
@@ -77,6 +77,7 @@ func getExpectedFileResponseForCreate(info apiFileResponseInfo) *api.FileRespons
 			LastCommitSHA:     info.lastCommitSHA,
 			LastCommitterDate: info.lastCommitterWhen,
 			LastAuthorDate:    info.lastAuthorWhen,
+			LastCommitMessage: info.lastCommitMessage,
 			Size:              16,
 			Type:              "file",
 			Encoding:          &encoding,
@@ -193,6 +194,7 @@ func TestAPICreateFile(t *testing.T) {
 				lastCommitSHA:     lastCommit.ID.String(),
 				lastCommitterWhen: lastCommit.Committer.When,
 				lastAuthorWhen:    lastCommit.Author.When,
+				lastCommitMessage: lastCommit.Message(),
 			})
 			var fileResponse api.FileResponse
 			DecodeJSON(t, resp, &fileResponse)

@@ -38,6 +38,7 @@ func getExpectedContentsListResponseForContents(ref, refType, lastCommitSHA stri
 			LastCommitSHA:     lastCommitSHA,
 			LastCommitterDate: time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
 			LastAuthorDate:    time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
+			LastCommitMessage: "Initial commit",
 			Type:              "file",
 			Size:              30,
 			URL:               &selfURL,
