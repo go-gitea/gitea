@@ -165,19 +165,11 @@ func newTreeViewNodeFromEntry(ctx context.Context, renderedIconPool *fileicon.Re
 		FullPath:  path.Join(parentDir, entry.Name()),
 	}
 
-	if entry.IsLink() {
-		// TODO: symlink to a folder or a file, the icon differs
-		target, err := entry.FollowLink()
-		if err == nil {
-			_ = target.IsDir()
-			// if target.IsDir() { } else { }
-		}
-	}
-
-	if node.EntryIcon == "" {
-		node.EntryIcon = fileicon.RenderEntryIcon(renderedIconPool, entry)
-		// TODO: no open icon support yet
-		// node.EntryIconOpen = fileicon.RenderEntryIconOpen(renderedIconPool, entry)
+	entryInfo := fileicon.EntryInfoFromGitTreeEntry(entry)
+	node.EntryIcon = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
+	if entryInfo.EntryMode.IsDir() {
+		entryInfo.IsOpen = true
+		node.EntryIconOpen = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
 	}
 
 	if node.EntryMode == "commit" {

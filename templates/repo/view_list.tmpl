@@ -4,12 +4,12 @@
 		{{template "repo/latest_commit" .}}
 		<div>{{if and .LatestCommit .LatestCommit.Committer}}{{DateUtils.TimeSince .LatestCommit.Committer.When}}{{end}}</div>
 	</div>
+	{{$.FileIconPoolHTML}}
 	{{if .HasParentPath}}
 	<a class="repo-file-line parent-link silenced" href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">
-		{{svg "octicon-file-directory-fill"}} ..
+		{{index $.FileIcons ".."}} ..
 	</a>
 	{{end}}
-	{{$.FileIconPoolHTML}}
 	{{range $item := .Files}}
 		<div class="repo-file-item">
 			{{$entry := $item.Entry}}
