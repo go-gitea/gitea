@@ -1,5 +1,3 @@
-/* eslint-disable @eslint-community/eslint-comments/disable-enable-pair */
-/* eslint-disable github/unescaped-html-literal */
 import {html, htmlEscape, htmlRaw} from './html.ts';
 
 test('html', async () => {

@@ -91,6 +91,7 @@ module.exports = {
       plugins: ['@vitest/eslint-plugin'],
       globals: vitestPlugin.environments.env.globals,
       rules: {
+        'github/unescaped-html-literal': [0],
         '@vitest/consistent-test-filename': [0],
         '@vitest/consistent-test-it': [0],
         '@vitest/expect-expect': [0],

@@ -1,5 +1,3 @@
-// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
-/* eslint-disable github/unescaped-html-literal */
 import {renderAnsi} from './ansi.ts';
 
 test('renderAnsi', () => {

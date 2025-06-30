@@ -1,5 +1,3 @@
-// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair
-/* eslint-disable github/unescaped-html-literal */
 import {convertHtmlToMarkdown} from './html2markdown.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 
