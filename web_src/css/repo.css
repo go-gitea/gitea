@@ -612,12 +612,6 @@ td .commit-summary {
   padding-top: 0;
 }
 
-.repository.view.issue .comment-list .timeline-item.event > .commit-status-link {
-  float: right;
-  margin-right: 8px;
-  margin-top: 4px;
-}
-
 .repository.view.issue .comment-list .timeline-item .comparebox {
   line-height: 32px;
   vertical-align: middle;
@@ -916,17 +910,6 @@ td .commit-summary {
 .repository.commits .header .search input {
   font-weight: var(--font-weight-normal);
   padding: 5px 10px;
-}
-
-.repository #commits-table td:not(.message) {
-  white-space: nowrap;
-}
-.repository #commits-table thead .sha {
-  width: 200px;
-}
-
-.repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n) {
-  background-color: var(--color-light) !important;
 }
 
 .repository .data-table {
@@ -1581,10 +1564,6 @@ td .commit-summary {
   min-height: 30px;
 }
 
-tbody.commit-list {
-  vertical-align: baseline;
-}
-
 .message-wrapper,
 .author-wrapper {
   overflow: hidden;
@@ -1604,42 +1583,10 @@ tbody.commit-list {
   max-width: calc(100% - 2.5rem);
 }
 
-/* in the commit list, messages can wrap so we can use inline */
-.commit-list .message-wrapper {
-  display: inline;
-  overflow-wrap: anywhere;
-}
-
 @media (max-width: 767.98px) {
-  tr.commit-list {
-    width: 100%;
-  }
   .author-wrapper {
     max-width: 80px;
   }
-}
-
-@media (min-width: 768px) and (max-width: 991.98px) {
-  tr.commit-list {
-    width: 723px;
-  }
-}
-
-@media (min-width: 992px) and (max-width: 1200px) {
-  tr.commit-list {
-    width: 933px;
-  }
-}
-
-@media (min-width: 1201px) {
-  tr.commit-list {
-    width: 1127px;
-  }
-}
-
-.commit-list .commit-status-link {
-  display: inline-block;
-  vertical-align: middle;
 }
 
 .commit-body {
@@ -2049,10 +1996,6 @@ tbody.commit-list {
   }
   .commit-table {
     overflow-x: auto;
-  }
-  .commit-table td.sha,
-  .commit-table th.sha {
-    display: none !important;
   }
   .comment-header {
     flex-wrap: wrap;
