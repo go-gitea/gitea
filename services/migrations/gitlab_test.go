@@ -4,7 +4,6 @@
 package migrations
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -17,7 +16,7 @@ import (
 	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 func TestGitlabDownloadRepo(t *testing.T) {
@@ -31,12 +30,12 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Skipf("Can't access test repo, skipping %s", t.Name())
 	}
-
-	downloader, err := NewGitlabDownloader(context.Background(), "https://gitlab.com", "gitea/test_repo", "", "", gitlabPersonalAccessToken)
+	ctx := t.Context()
+	downloader, err := NewGitlabDownloader(ctx, "https://gitlab.com", "gitea/test_repo", "", "", gitlabPersonalAccessToken)
 	if err != nil {
 		t.Fatalf("NewGitlabDownloader is nil: %v", err)
 	}
-	repo, err := downloader.GetRepoInfo()
+	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)
 	// Repo Owner is blank in Gitlab Group repos
 	assertRepositoryEqual(t, &base.Repository{
@@ -48,12 +47,12 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		DefaultBranch: "master",
 	}, repo)
 
-	topics, err := downloader.GetTopics()
+	topics, err := downloader.GetTopics(ctx)
 	assert.NoError(t, err)
-	assert.True(t, len(topics) == 2)
-	assert.EqualValues(t, []string{"migration", "test"}, topics)
+	assert.Len(t, topics, 2)
+	assert.Equal(t, []string{"migration", "test"}, topics)
 
-	milestones, err := downloader.GetMilestones()
+	milestones, err := downloader.GetMilestones(ctx)
 	assert.NoError(t, err)
 	assertMilestonesEqual(t, []*base.Milestone{
 		{
@@ -71,7 +70,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, milestones)
 
-	labels, err := downloader.GetLabels()
+	labels, err := downloader.GetLabels(ctx)
 	assert.NoError(t, err)
 	assertLabelsEqual(t, []*base.Label{
 		{
@@ -112,7 +111,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, labels)
 
-	releases, err := downloader.GetReleases()
+	releases, err := downloader.GetReleases(ctx)
 	assert.NoError(t, err)
 	assertReleasesEqual(t, []*base.Release{
 		{
@@ -126,7 +125,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, releases)
 
-	issues, isEnd, err := downloader.GetIssues(1, 2)
+	issues, isEnd, err := downloader.GetIssues(ctx, 1, 2)
 	assert.NoError(t, err)
 	assert.False(t, isEnd)
 
@@ -214,7 +213,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, issues)
 
-	comments, _, err := downloader.GetComments(&base.Issue{
+	comments, _, err := downloader.GetComments(ctx, &base.Issue{
 		Number:       2,
 		ForeignIndex: 2,
 		Context:      gitlabIssueContext{IsMergeRequest: false},
@@ -255,7 +254,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, comments)
 
-	prs, _, err := downloader.GetPullRequests(1, 1)
+	prs, _, err := downloader.GetPullRequests(ctx, 1, 1)
 	assert.NoError(t, err)
 	assertPullRequestsEqual(t, []*base.PullRequest{
 		{
@@ -304,7 +303,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(&base.PullRequest{Number: 1, ForeignIndex: 1})
+	rvs, err := downloader.GetReviews(ctx, &base.PullRequest{Number: 1, ForeignIndex: 1})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -323,7 +322,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, rvs)
 
-	rvs, err = downloader.GetReviews(&base.PullRequest{Number: 2, ForeignIndex: 2})
+	rvs, err = downloader.GetReviews(ctx, &base.PullRequest{Number: 2, ForeignIndex: 2})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -423,9 +422,8 @@ func TestGitlabGetReviews(t *testing.T) {
 	defer gitlabClientMockTeardown(server)
 
 	repoID := 1324
-
+	ctx := t.Context()
 	downloader := &GitlabDownloader{
-		ctx:    context.Background(),
 		client: client,
 		repoID: repoID,
 	}
@@ -465,7 +463,7 @@ func TestGitlabGetReviews(t *testing.T) {
 		mux.HandleFunc(fmt.Sprintf("/api/v4/projects/%d/merge_requests/%d/approvals", testCase.repoID, testCase.prID), mock)
 
 		id := int64(testCase.prID)
-		rvs, err := downloader.GetReviews(&base.Issue{Number: id, ForeignIndex: id})
+		rvs, err := downloader.GetReviews(ctx, &base.Issue{Number: id, ForeignIndex: id})
 		assert.NoError(t, err)
 		assertReviewsEqual(t, []*base.Review{&review}, rvs)
 	}
@@ -503,7 +501,7 @@ func TestAwardsToReactions(t *testing.T) {
 	assert.NoError(t, json.Unmarshal([]byte(testResponse), &awards))
 
 	reactions := downloader.awardsToReactions(awards)
-	assert.EqualValues(t, []*base.Reaction{
+	assert.Equal(t, []*base.Reaction{
 		{
 			UserName: "lafriks",
 			UserID:   1241334,
@@ -515,4 +513,103 @@ func TestAwardsToReactions(t *testing.T) {
 			Content:  "thumbsup",
 		},
 	}, reactions)
+}
+
+func TestNoteToComment(t *testing.T) {
+	downloader := &GitlabDownloader{}
+
+	now := time.Now()
+	makeTestNote := func(id int, body string, system bool) gitlab.Note {
+		return gitlab.Note{
+			ID: id,
+			Author: struct {
+				ID        int    `json:"id"`
+				Username  string `json:"username"`
+				Email     string `json:"email"`
+				Name      string `json:"name"`
+				State     string `json:"state"`
+				AvatarURL string `json:"avatar_url"`
+				WebURL    string `json:"web_url"`
+			}{
+				ID:       72,
+				Email:    "test@example.com",
+				Username: "test",
+			},
+			Body:      body,
+			CreatedAt: &now,
+			System:    system,
+		}
+	}
+	notes := []gitlab.Note{
+		makeTestNote(1, "This is a regular comment", false),
+		makeTestNote(2, "enabled an automatic merge for abcd1234", true),
+		makeTestNote(3, "changed target branch from `master` to `main`", true),
+		makeTestNote(4, "canceled the automatic merge", true),
+	}
+	comments := []base.Comment{{
+		IssueIndex:  17,
+		Index:       1,
+		PosterID:    72,
+		PosterName:  "test",
+		PosterEmail: "test@example.com",
+		CommentType: "",
+		Content:     "This is a regular comment",
+		Created:     now,
+		Meta:        map[string]any{},
+	}, {
+		IssueIndex:  17,
+		Index:       2,
+		PosterID:    72,
+		PosterName:  "test",
+		PosterEmail: "test@example.com",
+		CommentType: "pull_scheduled_merge",
+		Content:     "enabled an automatic merge for abcd1234",
+		Created:     now,
+		Meta:        map[string]any{},
+	}, {
+		IssueIndex:  17,
+		Index:       3,
+		PosterID:    72,
+		PosterName:  "test",
+		PosterEmail: "test@example.com",
+		CommentType: "change_target_branch",
+		Content:     "changed target branch from `master` to `main`",
+		Created:     now,
+		Meta: map[string]any{
+			"OldRef": "master",
+			"NewRef": "main",
+		},
+	}, {
+		IssueIndex:  17,
+		Index:       4,
+		PosterID:    72,
+		PosterName:  "test",
+		PosterEmail: "test@example.com",
+		CommentType: "pull_cancel_scheduled_merge",
+		Content:     "canceled the automatic merge",
+		Created:     now,
+		Meta:        map[string]any{},
+	}}
+
+	for i, note := range notes {
+		actualComment := *downloader.convertNoteToComment(17, &note)
+		assert.Equal(t, actualComment, comments[i])
+	}
+}
+
+func TestGitlabIIDResolver(t *testing.T) {
+	r := gitlabIIDResolver{}
+	r.recordIssueIID(1)
+	r.recordIssueIID(2)
+	r.recordIssueIID(3)
+	r.recordIssueIID(2)
+	assert.EqualValues(t, 4, r.generatePullRequestNumber(1))
+	assert.EqualValues(t, 13, r.generatePullRequestNumber(10))
+
+	assert.Panics(t, func() {
+		r := gitlabIIDResolver{}
+		r.recordIssueIID(1)
+		assert.EqualValues(t, 2, r.generatePullRequestNumber(1))
+		r.recordIssueIID(3) // the generation procedure has been started, it shouldn't accept any new issue IID, so it panics
+	})
 }

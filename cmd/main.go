@@ -4,36 +4,37 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // cmdHelp is our own help subcommand with more information
+// Keep in mind that the "./gitea help"(subcommand) is different from "./gitea --help"(flag), the flag doesn't parse the config or output "DEFAULT CONFIGURATION:" information
 func cmdHelp() *cli.Command {
 	c := &cli.Command{
 		Name:      "help",
 		Aliases:   []string{"h"},
 		Usage:     "Shows a list of commands or help for one command",
 		ArgsUsage: "[command]",
-		Action: func(c *cli.Context) (err error) {
-			lineage := c.Lineage() // The order is from child to parent: help, doctor, Gitea, {Command:nil}
+		Action: func(ctx context.Context, c *cli.Command) (err error) {
+			lineage := c.Lineage() // The order is from child to parent: help, doctor, Gitea
 			targetCmdIdx := 0
-			if c.Command.Name == "help" {
+			if c.Name == "help" {
 				targetCmdIdx = 1
 			}
-			if lineage[targetCmdIdx+1].Command != nil {
-				err = cli.ShowCommandHelp(lineage[targetCmdIdx+1], lineage[targetCmdIdx].Command.Name)
+			if lineage[targetCmdIdx] != lineage[targetCmdIdx].Root() {
+				err = cli.ShowCommandHelp(ctx, lineage[targetCmdIdx+1] /* parent cmd */, lineage[targetCmdIdx].Name /* sub cmd */)
 			} else {
 				err = cli.ShowAppHelp(c)
 			}
-			_, _ = fmt.Fprintf(c.App.Writer, `
+			_, _ = fmt.Fprintf(c.Root().Writer, `
 DEFAULT CONFIGURATION:
    AppPath:    %s
    WorkPath:   %s
@@ -47,16 +48,10 @@ DEFAULT CONFIGURATION:
 	return c
 }
 
-var helpFlag = cli.HelpFlag
-
-func init() {
-	// cli.HelpFlag = nil TODO: after https://github.com/urfave/cli/issues/1794 we can use this
-}
-
 func appGlobalFlags() []cli.Flag {
 	return []cli.Flag{
 		// make the builtin flags at the top
-		helpFlag,
+		cli.HelpFlag,
 
 		// shared configuration flags, they are for global and for each sub-command at the same time
 		// eg: such command is valid: "./gitea --config /tmp/app.ini web --config /tmp/app.ini", while it's discouraged indeed
@@ -80,25 +75,25 @@ func appGlobalFlags() []cli.Flag {
 	}
 }
 
-func prepareSubcommandWithConfig(command *cli.Command, globalFlags []cli.Flag) {
-	command.Flags = append(append([]cli.Flag{}, globalFlags...), command.Flags...)
+func prepareSubcommandWithGlobalFlags(command *cli.Command) {
+	command.Flags = append(append([]cli.Flag{}, appGlobalFlags()...), command.Flags...)
 	command.Action = prepareWorkPathAndCustomConf(command.Action)
 	command.HideHelp = true
 	if command.Name != "help" {
-		command.Subcommands = append(command.Subcommands, cmdHelp())
+		command.Commands = append(command.Commands, cmdHelp())
 	}
-	for i := range command.Subcommands {
-		prepareSubcommandWithConfig(command.Subcommands[i], globalFlags)
+	for i := range command.Commands {
+		prepareSubcommandWithGlobalFlags(command.Commands[i])
 	}
 }
 
 // prepareWorkPathAndCustomConf wraps the Action to prepare the work path and custom config
 // It can't use "Before", because each level's sub-command's Before will be called one by one, so the "init" would be done multiple times
-func prepareWorkPathAndCustomConf(action cli.ActionFunc) func(ctx *cli.Context) error {
-	return func(ctx *cli.Context) error {
+func prepareWorkPathAndCustomConf(action cli.ActionFunc) func(context.Context, *cli.Command) error {
+	return func(ctx context.Context, cmd *cli.Command) error {
 		var args setting.ArgWorkPathAndCustomConf
 		// from children to parent, check the global flags
-		for _, curCtx := range ctx.Lineage() {
+		for _, curCtx := range cmd.Lineage() {
 			if curCtx.IsSet("work-path") && args.WorkPath == "" {
 				args.WorkPath = curCtx.String("work-path")
 			}
@@ -110,31 +105,37 @@ func prepareWorkPathAndCustomConf(action cli.ActionFunc) func(ctx *cli.Context) 
 			}
 		}
 		setting.InitWorkPathAndCommonConfig(os.Getenv, args)
-		if ctx.Bool("help") || action == nil {
+		if cmd.Bool("help") || action == nil {
 			// the default behavior of "urfave/cli": "nil action" means "show help"
-			return cmdHelp().Action(ctx)
+			return cmdHelp().Action(ctx, cmd)
 		}
-		return action(ctx)
+		return action(ctx, cmd)
 	}
 }
 
-func NewMainApp(version, versionExtra string) *cli.App {
-	app := cli.NewApp()
-	app.Name = "Gitea"
+type AppVersion struct {
+	Version string
+	Extra   string
+}
+
+func NewMainApp(appVer AppVersion) *cli.Command {
+	app := &cli.Command{}
+	app.Name = "gitea" // must be lower-cased because it appears in the "USAGE" section like "gitea doctor [command [command options]]"
 	app.Usage = "A painless self-hosted Git service"
-	app.Description = `By default, Gitea will start serving using the web-server with no argument, which can alternatively be run by running the subcommand "web".`
-	app.Version = version + versionExtra
-	app.EnableBashCompletion = true
+	app.Description = `Gitea program contains "web" and other subcommands. If no subcommand is given, it starts the web server by default. Use "web" subcommand for more web server arguments, use other subcommands for other purposes.`
+	app.Version = appVer.Version + appVer.Extra
+	app.EnableShellCompletion = true
 
 	// these sub-commands need to use config file
 	subCmdWithConfig := []*cli.Command{
+		cmdHelp(), // the "help" sub-command was used to show the more information for "work path" and "custom config"
 		CmdWeb,
 		CmdServ,
 		CmdHook,
+		CmdKeys,
 		CmdDump,
 		CmdAdmin,
 		CmdMigrate,
-		CmdKeys,
 		CmdDoctor,
 		CmdManager,
 		CmdEmbedded,
@@ -142,38 +143,37 @@ func NewMainApp(version, versionExtra string) *cli.App {
 		CmdDumpRepository,
 		CmdRestoreRepository,
 		CmdActions,
-		cmdHelp(), // the "help" sub-command was used to show the more information for "work path" and "custom config"
 	}
-
-	cmdConvert := util.ToPointer(*cmdDoctorConvert)
-	cmdConvert.Hidden = true // still support the legacy "./gitea doctor" by the hidden sub-command, remove it in next release
-	subCmdWithConfig = append(subCmdWithConfig, cmdConvert)
 
 	// these sub-commands do not need the config file, and they do not depend on any path or environment variable.
 	subCmdStandalone := []*cli.Command{
-		CmdCert,
+		cmdCert(),
 		CmdGenerate,
 		CmdDocs,
 	}
 
+	// TODO: we should eventually drop the default command,
+	// but not sure whether it would break Windows users who used to double-click the EXE to run.
 	app.DefaultCommand = CmdWeb.Name
 
-	globalFlags := appGlobalFlags()
 	app.Flags = append(app.Flags, cli.VersionFlag)
-	app.Flags = append(app.Flags, globalFlags...)
+	app.Flags = append(app.Flags, appGlobalFlags()...)
 	app.HideHelp = true // use our own help action to show helps (with more information like default config)
 	app.Before = PrepareConsoleLoggerLevel(log.INFO)
 	for i := range subCmdWithConfig {
-		prepareSubcommandWithConfig(subCmdWithConfig[i], globalFlags)
+		prepareSubcommandWithGlobalFlags(subCmdWithConfig[i])
 	}
 	app.Commands = append(app.Commands, subCmdWithConfig...)
 	app.Commands = append(app.Commands, subCmdStandalone...)
 
+	setting.InitGiteaEnvVars()
 	return app
 }
 
-func RunMainApp(app *cli.App, args ...string) error {
-	err := app.Run(args)
+func RunMainApp(app *cli.Command, args ...string) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+	err := app.Run(ctx, args)
 	if err == nil {
 		return nil
 	}

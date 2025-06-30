@@ -6,9 +6,11 @@ package actions
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -18,11 +20,12 @@ import (
 // ActionRunJob represents a job of a run
 type ActionRunJob struct {
 	ID                int64
-	RunID             int64      `xorm:"index"`
-	Run               *ActionRun `xorm:"-"`
-	RepoID            int64      `xorm:"index"`
-	OwnerID           int64      `xorm:"index"`
-	CommitSHA         string     `xorm:"index"`
+	RunID             int64                  `xorm:"index"`
+	Run               *ActionRun             `xorm:"-"`
+	RepoID            int64                  `xorm:"index"`
+	Repo              *repo_model.Repository `xorm:"-"`
+	OwnerID           int64                  `xorm:"index"`
+	CommitSHA         string                 `xorm:"index"`
 	IsForkPullRequest bool
 	Name              string `xorm:"VARCHAR(255)"`
 	Attempt           int64
@@ -48,11 +51,22 @@ func (job *ActionRunJob) Duration() time.Duration {
 
 func (job *ActionRunJob) LoadRun(ctx context.Context) error {
 	if job.Run == nil {
-		run, err := GetRunByID(ctx, job.RunID)
+		run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
 		if err != nil {
 			return err
 		}
 		job.Run = run
+	}
+	return nil
+}
+
+func (job *ActionRunJob) LoadRepo(ctx context.Context) error {
+	if job.Repo == nil {
+		repo, err := repo_model.GetRepositoryByID(ctx, job.RepoID)
+		if err != nil {
+			return err
+		}
+		job.Repo = repo
 	}
 	return nil
 }
@@ -82,7 +96,7 @@ func GetRunJobByID(ctx context.Context, id int64) (*ActionRunJob, error) {
 	return &job, nil
 }
 
-func GetRunJobsByRunID(ctx context.Context, runID int64) ([]*ActionRunJob, error) {
+func GetRunJobsByRunID(ctx context.Context, runID int64) (ActionJobList, error) {
 	var jobs []*ActionRunJob
 	if err := db.GetEngine(ctx).Where("run_id=?", runID).OrderBy("id").Find(&jobs); err != nil {
 		return nil, err
@@ -107,64 +121,79 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return 0, err
 	}
 
-	if affected == 0 || (!util.SliceContains(cols, "status") && job.Status == 0) {
+	if affected == 0 || (!slices.Contains(cols, "status") && job.Status == 0) {
 		return affected, nil
 	}
 
-	if affected != 0 && util.SliceContains(cols, "status") && job.Status.IsWaiting() {
+	if affected != 0 && slices.Contains(cols, "status") && job.Status.IsWaiting() {
 		// if the status of job changes to waiting again, increase tasks version.
 		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
-			return affected, err
+			return 0, err
 		}
 	}
 
 	if job.RunID == 0 {
 		var err error
 		if job, err = GetRunJobByID(ctx, job.ID); err != nil {
-			return affected, err
+			return 0, err
 		}
 	}
 
-	jobs, err := GetRunJobsByRunID(ctx, job.RunID)
-	if err != nil {
-		return affected, err
+	{
+		// Other goroutines may aggregate the status of the run and update it too.
+		// So we need load the run and its jobs before updating the run.
+		run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
+		if err != nil {
+			return 0, err
+		}
+		jobs, err := GetRunJobsByRunID(ctx, job.RunID)
+		if err != nil {
+			return 0, err
+		}
+		run.Status = AggregateJobStatus(jobs)
+		if run.Started.IsZero() && run.Status.IsRunning() {
+			run.Started = timeutil.TimeStampNow()
+		}
+		if run.Stopped.IsZero() && run.Status.IsDone() {
+			run.Stopped = timeutil.TimeStampNow()
+		}
+		if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
+			return 0, fmt.Errorf("update run %d: %w", run.ID, err)
+		}
 	}
 
-	runStatus := aggregateJobStatus(jobs)
-
-	run := &ActionRun{
-		ID:     job.RunID,
-		Status: runStatus,
-	}
-	if runStatus.IsDone() {
-		run.Stopped = timeutil.TimeStampNow()
-	}
-	return affected, UpdateRun(ctx, run)
+	return affected, nil
 }
 
-func aggregateJobStatus(jobs []*ActionRunJob) Status {
-	allDone := true
-	allWaiting := true
-	hasFailure := false
+func AggregateJobStatus(jobs []*ActionRunJob) Status {
+	allSuccessOrSkipped := len(jobs) != 0
+	allSkipped := len(jobs) != 0
+	var hasFailure, hasCancelled, hasWaiting, hasRunning, hasBlocked bool
 	for _, job := range jobs {
-		if !job.Status.IsDone() {
-			allDone = false
-		}
-		if job.Status != StatusWaiting && !job.Status.IsDone() {
-			allWaiting = false
-		}
-		if job.Status == StatusFailure || job.Status == StatusCancelled {
-			hasFailure = true
-		}
+		allSuccessOrSkipped = allSuccessOrSkipped && (job.Status == StatusSuccess || job.Status == StatusSkipped)
+		allSkipped = allSkipped && job.Status == StatusSkipped
+		hasFailure = hasFailure || job.Status == StatusFailure
+		hasCancelled = hasCancelled || job.Status == StatusCancelled
+		hasWaiting = hasWaiting || job.Status == StatusWaiting
+		hasRunning = hasRunning || job.Status == StatusRunning
+		hasBlocked = hasBlocked || job.Status == StatusBlocked
 	}
-	if allDone {
-		if hasFailure {
-			return StatusFailure
-		}
+	switch {
+	case allSkipped:
+		return StatusSkipped
+	case allSuccessOrSkipped:
 		return StatusSuccess
-	}
-	if allWaiting {
+	case hasCancelled:
+		return StatusCancelled
+	case hasRunning:
+		return StatusRunning
+	case hasFailure:
+		return StatusFailure
+	case hasWaiting:
 		return StatusWaiting
+	case hasBlocked:
+		return StatusBlocked
+	default:
+		return StatusUnknown // it shouldn't happen
 	}
-	return StatusRunning
 }

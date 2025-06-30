@@ -15,12 +15,12 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -80,31 +80,27 @@ func ListDeployKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/DeployKeyList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	opts := &asymkey_model.ListDeployKeysOptions{
+	opts := asymkey_model.ListDeployKeysOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 		KeyID:       ctx.FormInt64("key_id"),
 		Fingerprint: ctx.FormString("fingerprint"),
 	}
 
-	keys, err := asymkey_model.ListDeployKeys(ctx, opts)
+	keys, count, err := db.FindAndCount[asymkey_model.DeployKey](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-
-	count, err := asymkey_model.CountDeployKeys(opts)
-	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	apiKeys := make([]*api.DeployKey, len(keys))
 	for i := range keys {
-		if err := keys[i].GetContent(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetContent", err)
+		if err := keys[i].GetContent(ctx); err != nil {
+			ctx.APIErrorInternal(err)
 			return
 		}
 		apiKeys[i] = convert.ToDeployKey(apiLink, keys[i])
@@ -144,19 +140,27 @@ func GetDeployKey(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/DeployKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	key, err := asymkey_model.GetDeployKeyByID(ctx, ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetDeployKeyByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if asymkey_model.IsErrDeployKeyNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetDeployKeyByID", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
-	if err = key.GetContent(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetContent", err)
+	// this check make it more consistent
+	if key.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIErrorNotFound()
+		return
+	}
+
+	if err = key.GetContent(ctx); err != nil {
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -171,11 +175,11 @@ func GetDeployKey(ctx *context.APIContext) {
 // HandleCheckKeyStringError handle check key error
 func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 	if db.IsErrSSHDisabled(err) {
-		ctx.Error(http.StatusUnprocessableEntity, "", "SSH is disabled")
+		ctx.APIError(http.StatusUnprocessableEntity, "SSH is disabled")
 	} else if asymkey_model.IsErrKeyUnableVerify(err) {
-		ctx.Error(http.StatusUnprocessableEntity, "", "Unable to verify key content")
+		ctx.APIError(http.StatusUnprocessableEntity, "Unable to verify key content")
 	} else {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid key content: %w", err))
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid key content: %w", err))
 	}
 }
 
@@ -183,15 +187,15 @@ func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 func HandleAddKeyError(ctx *context.APIContext, err error) {
 	switch {
 	case asymkey_model.IsErrDeployKeyAlreadyExist(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "This key has already been added to this repository")
+		ctx.APIError(http.StatusUnprocessableEntity, "This key has already been added to this repository")
 	case asymkey_model.IsErrKeyAlreadyExist(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "Key content has been used as non-deploy key")
+		ctx.APIError(http.StatusUnprocessableEntity, "Key content has been used as non-deploy key")
 	case asymkey_model.IsErrKeyNameAlreadyUsed(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "Key title has been used")
+		ctx.APIError(http.StatusUnprocessableEntity, "Key title has been used")
 	case asymkey_model.IsErrDeployKeyNameAlreadyUsed(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "A key with the same name already exists")
+		ctx.APIError(http.StatusUnprocessableEntity, "A key with the same name already exists")
 	default:
-		ctx.Error(http.StatusInternalServerError, "AddKey", err)
+		ctx.APIErrorInternal(err)
 	}
 }
 
@@ -222,6 +226,8 @@ func CreateDeployKey(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/DeployKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -232,7 +238,7 @@ func CreateDeployKey(ctx *context.APIContext) {
 		return
 	}
 
-	key, err := asymkey_model.AddDeployKey(ctx.Repo.Repository.ID, form.Title, content, form.ReadOnly)
+	key, err := asymkey_model.AddDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, content, form.ReadOnly)
 	if err != nil {
 		HandleAddKeyError(ctx, err)
 		return
@@ -270,12 +276,14 @@ func DeleteDeploykey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	if err := asymkey_service.DeleteDeployKey(ctx.Doer, ctx.ParamsInt64(":id")); err != nil {
+	if err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.PathParamInt64("id")); err != nil {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
-			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
+			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteDeployKey", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

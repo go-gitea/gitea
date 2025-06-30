@@ -9,9 +9,9 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -108,26 +108,26 @@ func ListRepoNotifications(ctx *context.APIContext) {
 	}
 	opts.RepoID = ctx.Repo.Repository.ID
 
-	totalCount, err := activities_model.CountNotifications(ctx, opts)
+	totalCount, err := db.Count[activities_model.Notification](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
-	nl, err := activities_model.GetNotifications(ctx, opts)
+	nl, err := db.Find[activities_model.Notification](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
-	err = nl.LoadAttributes(ctx)
+	err = activities_model.NotificationList(nl).LoadAttributes(ctx)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	ctx.SetTotalCountHeader(totalCount)
 
-	ctx.JSON(http.StatusOK, convert.ToNotifications(nl))
+	ctx.JSON(http.StatusOK, convert.ToNotifications(ctx, nl))
 }
 
 // ReadRepoNotifications mark notification threads as read on a specific repo
@@ -183,7 +183,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	if len(qLastRead) > 0 {
 		tmpLastRead, err := time.Parse(time.RFC3339, qLastRead)
 		if err != nil {
-			ctx.Error(http.StatusBadRequest, "Parse", err)
+			ctx.APIError(http.StatusBadRequest, err)
 			return
 		}
 		if !tmpLastRead.IsZero() {
@@ -200,11 +200,10 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	if !ctx.FormBool("all") {
 		statuses := ctx.FormStrings("status-types")
 		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread"})
-		log.Error("%v", opts.Status)
 	}
-	nl, err := activities_model.GetNotifications(ctx, opts)
+	nl, err := db.Find[activities_model.Notification](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -218,11 +217,11 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	for _, n := range nl {
 		notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
 		if err != nil {
-			ctx.InternalServerError(err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		_ = notif.LoadAttributes(ctx)
-		changed = append(changed, convert.ToNotificationThread(notif))
+		changed = append(changed, convert.ToNotificationThread(ctx, notif))
 	}
 	ctx.JSON(http.StatusResetContent, changed)
 }

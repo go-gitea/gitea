@@ -5,60 +5,61 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/references"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
 
 // UpdateIssueCols updates cols of issue
 func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
-	if _, err := db.GetEngine(ctx).ID(issue.ID).Cols(cols...).Update(issue); err != nil {
-		return err
-	}
-	return nil
+	_, err := db.GetEngine(ctx).ID(issue.ID).Cols(cols...).Update(issue)
+	return err
 }
 
-func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
-	// Reload the issue
-	currentIssue, err := GetIssueByID(ctx, issue.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Nothing should be performed if current status is same as target status
-	if currentIssue.IsClosed == isClosed {
-		if !issue.IsPull {
-			return nil, ErrIssueWasClosed{
-				ID: issue.ID,
-			}
-		}
-		return nil, ErrPullWasClosed{
-			ID: issue.ID,
-		}
-	}
-
-	issue.IsClosed = isClosed
-	return doChangeIssueStatus(ctx, issue, doer, isMergePull)
+// ErrIssueIsClosed is used when close a closed issue
+type ErrIssueIsClosed struct {
+	ID     int64
+	RepoID int64
+	Index  int64
+	IsPull bool
 }
 
-func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
+// IsErrIssueIsClosed checks if an error is a ErrIssueIsClosed.
+func IsErrIssueIsClosed(err error) bool {
+	_, ok := err.(ErrIssueIsClosed)
+	return ok
+}
+
+func (err ErrIssueIsClosed) Error() string {
+	return fmt.Sprintf("%s [id: %d, repo_id: %d, index: %d] is already closed", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.RepoID, err.Index)
+}
+
+func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
+	if issue.IsClosed {
+		return nil, ErrIssueIsClosed{
+			ID:     issue.ID,
+			RepoID: issue.RepoID,
+			Index:  issue.Index,
+			IsPull: issue.IsPull,
+		}
+	}
+
 	// Check for open dependencies
-	if issue.IsClosed && issue.Repo.IsDependenciesEnabled(ctx) {
+	if issue.Repo.IsDependenciesEnabled(ctx) {
 		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
 		noDeps, err := IssueNoDependenciesLeft(ctx, issue)
 		if err != nil {
@@ -70,16 +71,63 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		}
 	}
 
-	if issue.IsClosed {
-		issue.ClosedUnix = timeutil.TimeStampNow()
-	} else {
-		issue.ClosedUnix = 0
-	}
+	issue.IsClosed = true
+	issue.ClosedUnix = timeutil.TimeStampNow()
 
-	if err := UpdateIssueCols(ctx, issue, "is_closed", "closed_unix"); err != nil {
+	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix").
+		Where("is_closed = ?", false).
+		Update(issue); err != nil {
 		return nil, err
+	} else if cnt != 1 {
+		return nil, ErrIssueAlreadyChanged
 	}
 
+	return updateIssueNumbers(ctx, issue, doer, util.Iif(isMergePull, CommentTypeMergePull, CommentTypeClose))
+}
+
+// ErrIssueIsOpen is used when reopen an opened issue
+type ErrIssueIsOpen struct {
+	ID     int64
+	RepoID int64
+	IsPull bool
+	Index  int64
+}
+
+// IsErrIssueIsOpen checks if an error is a ErrIssueIsOpen.
+func IsErrIssueIsOpen(err error) bool {
+	_, ok := err.(ErrIssueIsOpen)
+	return ok
+}
+
+func (err ErrIssueIsOpen) Error() string {
+	return fmt.Sprintf("%s [id: %d, repo_id: %d, index: %d] is already open", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.RepoID, err.Index)
+}
+
+func setIssueAsReopen(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
+	if !issue.IsClosed {
+		return nil, ErrIssueIsOpen{
+			ID:     issue.ID,
+			RepoID: issue.RepoID,
+			Index:  issue.Index,
+			IsPull: issue.IsPull,
+		}
+	}
+
+	issue.IsClosed = false
+	issue.ClosedUnix = 0
+
+	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix").
+		Where("is_closed = ?", true).
+		Update(issue); err != nil {
+		return nil, err
+	} else if cnt != 1 {
+		return nil, ErrIssueAlreadyChanged
+	}
+
+	return updateIssueNumbers(ctx, issue, doer, CommentTypeReopen)
+}
+
+func updateIssueNumbers(ctx context.Context, issue *Issue, doer *user_model.User, cmtType CommentType) (*Comment, error) {
 	// Update issue count of labels
 	if err := issue.LoadLabels(ctx); err != nil {
 		return nil, err
@@ -102,14 +150,6 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		return nil, err
 	}
 
-	// New action comment
-	cmtType := CommentTypeClose
-	if !issue.IsClosed {
-		cmtType = CommentTypeReopen
-	} else if isMergePull {
-		cmtType = CommentTypeMergePull
-	}
-
 	return CreateComment(ctx, &CreateCommentOptions{
 		Type:  cmtType,
 		Doer:  doer,
@@ -118,8 +158,8 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 	})
 }
 
-// ChangeIssueStatus changes issue status to open or closed.
-func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed bool) (*Comment, error) {
+// CloseIssue changes issue status to closed.
+func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -127,7 +167,45 @@ func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 		return nil, err
 	}
 
-	return changeIssueStatus(ctx, issue, doer, isClosed, false)
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+
+	comment, err := SetIssueAsClosed(ctx, issue, doer, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := committer.Commit(); err != nil {
+		return nil, err
+	}
+	return comment, nil
+}
+
+// ReopenIssue changes issue status to open.
+func ReopenIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
+	if err := issue.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+	if err := issue.LoadPoster(ctx); err != nil {
+		return nil, err
+	}
+
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+
+	comment, err := setIssueAsReopen(ctx, issue, doer)
+	if err != nil {
+		return nil, err
+	}
+	if err := committer.Commit(); err != nil {
+		return nil, err
+	}
+	return comment, nil
 }
 
 // ChangeIssueTitle changes the title of this issue, as the given user.
@@ -138,6 +216,7 @@ func ChangeIssueTitle(ctx context.Context, issue *Issue, doer *user_model.User, 
 	}
 	defer committer.Close()
 
+	issue.Title = util.EllipsisDisplayString(issue.Title, 255)
 	if err = UpdateIssueCols(ctx, issue, "name"); err != nil {
 		return fmt.Errorf("updateIssueCols: %w", err)
 	}
@@ -165,8 +244,8 @@ func ChangeIssueTitle(ctx context.Context, issue *Issue, doer *user_model.User, 
 }
 
 // ChangeIssueRef changes the branch of this issue, as the given user.
-func ChangeIssueRef(issue *Issue, doer *user_model.User, oldRef string) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeIssueRef(ctx context.Context, issue *Issue, doer *user_model.User, oldRef string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -215,8 +294,8 @@ func AddDeletePRBranchComment(ctx context.Context, doer *user_model.User, repo *
 }
 
 // UpdateIssueAttachments update attachments by UUIDs for the issue
-func UpdateIssueAttachments(issueID int64, uuids []string) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -225,7 +304,7 @@ func UpdateIssueAttachments(issueID int64, uuids []string) (err error) {
 	if err != nil {
 		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 	}
-	for i := 0; i < len(attachments); i++ {
+	for i := range attachments {
 		attachments[i].IssueID = issueID
 		if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
@@ -235,8 +314,8 @@ func UpdateIssueAttachments(issueID int64, uuids []string) (err error) {
 }
 
 // ChangeIssueContent changes issue content, as the given user.
-func ChangeIssueContent(issue *Issue, doer *user_model.User, content string) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeIssueContent(ctx context.Context, issue *Issue, doer *user_model.User, content string, contentVersion int) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -254,9 +333,14 @@ func ChangeIssueContent(issue *Issue, doer *user_model.User, content string) (er
 	}
 
 	issue.Content = content
+	issue.ContentVersion = contentVersion + 1
 
-	if err = UpdateIssueCols(ctx, issue, "content"); err != nil {
-		return fmt.Errorf("UpdateIssueCols: %w", err)
+	affected, err := db.GetEngine(ctx).ID(issue.ID).Cols("content", "content_version").Where("content_version = ?", contentVersion).Update(issue)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrIssueAlreadyChanged
 	}
 
 	if err = SaveIssueContentHistory(ctx, doer.ID, issue.ID, 0,
@@ -300,10 +384,10 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 	}
 
 	if opts.Issue.Index <= 0 {
-		return fmt.Errorf("no issue index provided")
+		return errors.New("no issue index provided")
 	}
 	if opts.Issue.ID > 0 {
-		return fmt.Errorf("issue exist")
+		return errors.New("issue exist")
 	}
 
 	if _, err := e.Insert(opts.Issue); err != nil {
@@ -360,19 +444,10 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 		return err
 	}
 
-	if len(opts.Attachments) > 0 {
-		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
-		if err != nil {
-			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
-		}
-
-		for i := 0; i < len(attachments); i++ {
-			attachments[i].IssueID = opts.Issue.ID
-			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
-			}
-		}
+	if err := UpdateIssueAttachments(ctx, opts.Issue.ID, opts.Attachments); err != nil {
+		return err
 	}
+
 	if err = opts.Issue.LoadAttributes(ctx); err != nil {
 		return err
 	}
@@ -381,8 +456,9 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 }
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+// The title will be cut off at 255 characters if it's longer than 255 characters.
+func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -394,6 +470,7 @@ func NewIssue(repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids
 	}
 
 	issue.Index = idx
+	issue.Title = util.EllipsisDisplayString(issue.Title, 255)
 
 	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
@@ -429,69 +506,13 @@ func UpdateIssueMentions(ctx context.Context, issueID int64, mentions []*user_mo
 	return nil
 }
 
-// UpdateIssueByAPI updates all allowed fields of given issue.
-// If the issue status is changed a statusChangeComment is returned
-// similarly if the title is changed the titleChanged bool is set to true
-func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment *Comment, titleChanged bool, err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return nil, false, err
-	}
-	defer committer.Close()
-
-	if err := issue.LoadRepo(ctx); err != nil {
-		return nil, false, fmt.Errorf("loadRepo: %w", err)
-	}
-
-	// Reload the issue
-	currentIssue, err := GetIssueByID(ctx, issue.ID)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if _, err := db.GetEngine(ctx).ID(issue.ID).Cols(
-		"name", "content", "milestone_id", "priority",
-		"deadline_unix", "updated_unix", "is_locked").
-		Update(issue); err != nil {
-		return nil, false, err
-	}
-
-	titleChanged = currentIssue.Title != issue.Title
-	if titleChanged {
-		opts := &CreateCommentOptions{
-			Type:     CommentTypeChangeTitle,
-			Doer:     doer,
-			Repo:     issue.Repo,
-			Issue:    issue,
-			OldTitle: currentIssue.Title,
-			NewTitle: issue.Title,
-		}
-		_, err := CreateComment(ctx, opts)
-		if err != nil {
-			return nil, false, fmt.Errorf("createComment: %w", err)
-		}
-	}
-
-	if currentIssue.IsClosed != issue.IsClosed {
-		statusChangeComment, err = doChangeIssueStatus(ctx, issue, doer, false)
-		if err != nil {
-			return nil, false, err
-		}
-	}
-
-	if err := issue.AddCrossReferences(ctx, doer, true); err != nil {
-		return nil, false, err
-	}
-	return statusChangeComment, titleChanged, committer.Commit()
-}
-
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
-func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *user_model.User) (err error) {
+func UpdateIssueDeadline(ctx context.Context, issue *Issue, deadlineUnix timeutil.TimeStamp, doer *user_model.User) (err error) {
 	// if the deadline hasn't changed do nothing
 	if issue.DeadlineUnix == deadlineUnix {
 		return nil
 	}
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -510,17 +531,6 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *us
 	return committer.Commit()
 }
 
-// DeleteInIssue delete records in beans with external key issue_id = ?
-func DeleteInIssue(ctx context.Context, issueID int64, beans ...any) error {
-	e := db.GetEngine(ctx)
-	for _, bean := range beans {
-		if _, err := e.In("issue_id", issueID).Delete(bean); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // FindAndUpdateIssueMentions finds users mentioned in the given content string, and saves them in the database.
 func FindAndUpdateIssueMentions(ctx context.Context, issue *Issue, doer *user_model.User, content string) (mentions []*user_model.User, err error) {
 	rawMentions := references.FindAllMentionsMarkdown(content)
@@ -528,6 +538,15 @@ func FindAndUpdateIssueMentions(ctx context.Context, issue *Issue, doer *user_mo
 	if err != nil {
 		return nil, fmt.Errorf("UpdateIssueMentions [%d]: %w", issue.ID, err)
 	}
+
+	notBlocked := make([]*user_model.User, 0, len(mentions))
+	for _, user := range mentions {
+		if !user_model.IsUserBlockedBy(ctx, doer, user.ID) {
+			notBlocked = append(notBlocked, user)
+		}
+	}
+	mentions = notBlocked
+
 	if err = UpdateIssueMentions(ctx, issue.ID, mentions); err != nil {
 		return nil, fmt.Errorf("UpdateIssueMentions [%d]: %w", issue.ID, err)
 	}
@@ -590,7 +609,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 				unittype = unit.TypePullRequests
 			}
 			for _, team := range teams {
-				if team.AccessMode >= perm.AccessModeAdmin {
+				if team.HasAdminAccess() {
 					checked = append(checked, team.ID)
 					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 					continue
@@ -669,8 +688,8 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 }
 
 // UpdateIssuesMigrationsByType updates all migrated repositories' issues from gitServiceType to replace originalAuthorID to posterID
-func UpdateIssuesMigrationsByType(gitServiceType api.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Table("issue").
+func UpdateIssuesMigrationsByType(ctx context.Context, gitServiceType api.GitServiceType, originalAuthorID string, posterID int64) error {
+	_, err := db.GetEngine(ctx).Table("issue").
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
 		Update(map[string]any{
@@ -682,8 +701,8 @@ func UpdateIssuesMigrationsByType(gitServiceType api.GitServiceType, originalAut
 }
 
 // UpdateReactionsMigrationsByType updates all migrated repositories' reactions from gitServiceType to replace originalAuthorID to posterID
-func UpdateReactionsMigrationsByType(gitServiceType api.GitServiceType, originalAuthorID string, userID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Table("reaction").
+func UpdateReactionsMigrationsByType(ctx context.Context, gitServiceType api.GitServiceType, originalAuthorID string, userID int64) error {
+	_, err := db.GetEngine(ctx).Table("reaction").
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(gitServiceType)).
 		Update(map[string]any{
@@ -694,122 +713,13 @@ func UpdateReactionsMigrationsByType(gitServiceType api.GitServiceType, original
 	return err
 }
 
-// DeleteIssuesByRepoID deletes issues by repositories id
-func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []string, err error) {
-	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"issue.repo_id": repoID})
-
-	sess := db.GetEngine(ctx)
-	// Delete content histories
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&ContentHistory{}); err != nil {
+func GetOrphanedIssueRepoIDs(ctx context.Context) ([]int64, error) {
+	var repoIDs []int64
+	if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").
+		Join("LEFT", "repository", "issue.repo_id=repository.id").
+		Where(builder.IsNull{"repository.id"}).
+		Find(&repoIDs); err != nil {
 		return nil, err
 	}
-
-	// Delete comments and attachments
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Comment{}); err != nil {
-		return nil, err
-	}
-
-	// Dependencies for issues in this repository
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueDependency{}); err != nil {
-		return nil, err
-	}
-
-	// Delete dependencies for issues in other repositories
-	if _, err = sess.In("dependency_id", deleteCond).
-		Delete(&IssueDependency{}); err != nil {
-		return nil, err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueUser{}); err != nil {
-		return nil, err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Reaction{}); err != nil {
-		return nil, err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueWatch{}); err != nil {
-		return nil, err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Stopwatch{}); err != nil {
-		return nil, err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&TrackedTime{}); err != nil {
-		return nil, err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&project_model.ProjectIssue{}); err != nil {
-		return nil, err
-	}
-
-	if _, err = sess.In("dependent_issue_id", deleteCond).
-		Delete(&Comment{}); err != nil {
-		return nil, err
-	}
-
-	var attachments []*repo_model.Attachment
-	if err = sess.In("issue_id", deleteCond).
-		Find(&attachments); err != nil {
-		return nil, err
-	}
-
-	for j := range attachments {
-		attachmentPaths = append(attachmentPaths, attachments[j].RelativePath())
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&repo_model.Attachment{}); err != nil {
-		return nil, err
-	}
-
-	if _, err = db.DeleteByBean(ctx, &Issue{RepoID: repoID}); err != nil {
-		return nil, err
-	}
-
-	return attachmentPaths, err
-}
-
-// DeleteOrphanedIssues delete issues without a repo
-func DeleteOrphanedIssues(ctx context.Context) error {
-	var attachmentPaths []string
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		var ids []int64
-
-		if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").
-			Join("LEFT", "repository", "issue.repo_id=repository.id").
-			Where(builder.IsNull{"repository.id"}).GroupBy("issue.repo_id").
-			Find(&ids); err != nil {
-			return err
-		}
-
-		for i := range ids {
-			paths, err := DeleteIssuesByRepoID(ctx, ids[i])
-			if err != nil {
-				return err
-			}
-			attachmentPaths = append(attachmentPaths, paths...)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	// Remove issue attachment files.
-	for i := range attachmentPaths {
-		system_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
-	}
-	return nil
+	return repoIDs, nil
 }

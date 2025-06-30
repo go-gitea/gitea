@@ -4,32 +4,31 @@
 package user
 
 import (
-	"net/http"
-
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/services/context"
 )
 
-// GetUserByParamsName get user by name
-func GetUserByParamsName(ctx *context.APIContext, name string) *user_model.User {
-	username := ctx.Params(name)
+// GetUserByPathParam get user by the path param name
+// it will redirect to the user's new name if the user's name has been changed
+func GetUserByPathParam(ctx *context.APIContext, name string) *user_model.User {
+	username := ctx.PathParam(name)
 	user, err := user_model.GetUserByName(ctx, username)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			if redirectUserID, err2 := user_model.LookupUserRedirect(username); err2 == nil {
+			if redirectUserID, err2 := user_model.LookupUserRedirect(ctx, username); err2 == nil {
 				context.RedirectToUser(ctx.Base, username, redirectUserID)
 			} else {
-				ctx.NotFound("GetUserByName", err)
+				ctx.APIErrorNotFound("GetUserByName", err)
 			}
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil
 	}
 	return user
 }
 
-// GetUserByParams returns user whose name is presented in URL (":username").
-func GetUserByParams(ctx *context.APIContext) *user_model.User {
-	return GetUserByParamsName(ctx, ":username")
+// GetContextUserByPathParam returns user whose name is presented in URL (path param "username").
+func GetContextUserByPathParam(ctx *context.APIContext) *user_model.User {
+	return GetUserByPathParam(ctx, "username")
 }

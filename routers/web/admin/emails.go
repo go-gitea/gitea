@@ -10,15 +10,16 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/user"
 )
 
 const (
-	tplEmails base.TplName = "admin/emails/list"
+	tplEmails templates.TplName = "admin/emails/list"
 )
 
 // Emails show all emails
@@ -68,14 +69,14 @@ func Emails(ctx *context.Context) {
 	opts.Keyword = ctx.FormTrim("q")
 	opts.SortType = orderBy
 	if len(ctx.FormString("is_activated")) != 0 {
-		opts.IsActivated = util.OptionalBoolOf(ctx.FormBool("activated"))
+		opts.IsActivated = optional.Some(ctx.FormBool("activated"))
 	}
 	if len(ctx.FormString("is_primary")) != 0 {
-		opts.IsPrimary = util.OptionalBoolOf(ctx.FormBool("primary"))
+		opts.IsPrimary = optional.Some(ctx.FormBool("primary"))
 	}
 
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
-		baseEmails, count, err = user_model.SearchEmails(opts)
+		baseEmails, count, err = user_model.SearchEmails(ctx, opts)
 		if err != nil {
 			ctx.ServerError("SearchEmails", err)
 			return
@@ -93,7 +94,7 @@ func Emails(ctx *context.Context) {
 	ctx.Data["Emails"] = emails
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplEmails)
@@ -115,13 +116,13 @@ func ActivateEmail(ctx *context.Context) {
 	activate, oka := truefalse[ctx.FormString("activate")]
 
 	if uid == 0 || len(email) == 0 || !okp || !oka {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
 	log.Info("Changing activation for User ID: %d, email: %s, primary: %v to %v", uid, email, primary, activate)
 
-	if err := user_model.ActivateUserEmail(uid, email, activate); err != nil {
+	if err := user_model.ActivateUserEmail(ctx, uid, email, activate); err != nil {
 		log.Error("ActivateUserEmail(%v,%v,%v): %v", uid, email, activate, err)
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Flash.Error(ctx.Tr("admin.emails.duplicate_active"))
@@ -133,7 +134,7 @@ func ActivateEmail(ctx *context.Context) {
 		ctx.Flash.Info(ctx.Tr("admin.emails.updated"))
 	}
 
-	redirect, _ := url.Parse(setting.AppSubURL + "/admin/emails")
+	redirect, _ := url.Parse(setting.AppSubURL + "/-/admin/emails")
 	q := url.Values{}
 	if val := ctx.FormTrim("q"); len(val) > 0 {
 		q.Set("q", val)
@@ -149,4 +150,33 @@ func ActivateEmail(ctx *context.Context) {
 	}
 	redirect.RawQuery = q.Encode()
 	ctx.Redirect(redirect.String())
+}
+
+// DeleteEmail serves a POST request for delete a user's email
+func DeleteEmail(ctx *context.Context) {
+	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
+	if err != nil || u == nil {
+		ctx.ServerError("GetUserByID", err)
+		return
+	}
+
+	email, err := user_model.GetEmailAddressByID(ctx, u.ID, ctx.FormInt64("id"))
+	if err != nil || email == nil {
+		ctx.ServerError("GetEmailAddressByID", err)
+		return
+	}
+
+	if err := user.DeleteEmailAddresses(ctx, u, []string{email.Email}); err != nil {
+		if user_model.IsErrPrimaryEmailCannotDelete(err) {
+			ctx.Flash.Error(ctx.Tr("admin.emails.delete_primary_email_error"))
+			ctx.JSONRedirect("")
+			return
+		}
+		ctx.ServerError("DeleteEmailAddresses", err)
+		return
+	}
+	log.Trace("Email address deleted: %s %s", u.Name, email.Email)
+
+	ctx.Flash.Success(ctx.Tr("admin.emails.deletion_success"))
+	ctx.JSONRedirect("")
 }

@@ -14,12 +14,12 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 	alpine_service "code.gitea.io/gitea/services/packages/alpine"
 )
@@ -31,7 +31,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 }
 
 func GetRepositoryKey(ctx *context.Context) {
-	_, pub, err := alpine_service.GetOrCreateKeyPair(ctx.Package.Owner.ID)
+	_, pub, err := alpine_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -62,18 +62,18 @@ func GetRepositoryKey(ctx *context.Context) {
 }
 
 func GetRepositoryFile(ctx *context.Context) {
-	pv, err := alpine_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
+	pv, err := alpine_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageVersion(
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
-			Filename:     alpine_service.IndexFilename,
-			CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")),
+			Filename:     alpine_service.IndexArchiveFilename,
+			CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.PathParam("branch"), ctx.PathParam("repository"), ctx.PathParam("architecture")),
 		},
 	)
 	if err != nil {
@@ -89,19 +89,19 @@ func GetRepositoryFile(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
-	branch := strings.TrimSpace(ctx.Params("branch"))
-	repository := strings.TrimSpace(ctx.Params("repository"))
+	branch := strings.TrimSpace(ctx.PathParam("branch"))
+	repository := strings.TrimSpace(ctx.PathParam("repository"))
 	if branch == "" || repository == "" {
 		apiError(ctx, http.StatusBadRequest, "invalid branch or repository")
 		return
 	}
 
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
@@ -114,7 +114,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	pck, err := alpine_module.ParsePackage(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) || err == io.EOF {
+		if errors.Is(err, util.ErrInvalidArgument) || errors.Is(err, io.EOF) {
 			apiError(ctx, http.StatusBadRequest, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -134,6 +134,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -163,7 +164,7 @@ func UploadPackageFile(ctx *context.Context) {
 	if err != nil {
 		switch err {
 		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
 		default:
@@ -181,22 +182,41 @@ func UploadPackageFile(ctx *context.Context) {
 }
 
 func DownloadPackageFile(ctx *context.Context) {
-	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
+	branch := ctx.PathParam("branch")
+	repository := ctx.PathParam("repository")
+	architecture := ctx.PathParam("architecture")
+
+	opts := &packages_model.PackageFileSearchOptions{
 		OwnerID:      ctx.Package.Owner.ID,
 		PackageType:  packages_model.TypeAlpine,
-		Query:        ctx.Params("filename"),
-		CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")),
-	})
+		Query:        ctx.PathParam("filename"),
+		CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
+	}
+	pfs, _, err := packages_model.SearchFiles(ctx, opts)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if len(pfs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
-		return
+	if len(pfs) == 0 {
+		// Try again with architecture 'noarch'
+		if architecture == alpine_module.NoArch {
+			apiError(ctx, http.StatusNotFound, nil)
+			return
+		}
+
+		opts.CompositeKey = fmt.Sprintf("%s|%s|%s", branch, repository, alpine_module.NoArch)
+		if pfs, _, err = packages_model.SearchFiles(ctx, opts); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		if len(pfs) == 0 {
+			apiError(ctx, http.StatusNotFound, nil)
+			return
+		}
 	}
 
-	s, u, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
+	s, u, pf, err := packages_service.OpenFileForDownload(ctx, pfs[0])
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -210,12 +230,12 @@ func DownloadPackageFile(ctx *context.Context) {
 }
 
 func DeletePackageFile(ctx *context.Context) {
-	branch, repository, architecture := ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")
+	branch, repository, architecture := ctx.PathParam("branch"), ctx.PathParam("repository"), ctx.PathParam("architecture")
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:      ctx.Package.Owner.ID,
 		PackageType:  packages_model.TypeAlpine,
-		Query:        ctx.Params("filename"),
+		Query:        ctx.PathParam("filename"),
 		CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
 	})
 	if err != nil {
@@ -227,7 +247,7 @@ func DeletePackageFile(ctx *context.Context) {
 		return
 	}
 
-	if err := packages_service.RemovePackageFileAndVersionIfUnreferenced(ctx.Doer, pfs[0]); err != nil {
+	if err := packages_service.RemovePackageFileAndVersionIfUnreferenced(ctx, ctx.Doer, pfs[0]); err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {

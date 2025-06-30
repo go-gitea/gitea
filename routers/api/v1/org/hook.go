@@ -6,10 +6,10 @@ package org
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -37,6 +37,8 @@ func ListHooks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	utils.ListOwnerHooks(
 		ctx,
@@ -66,15 +68,17 @@ func GetHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	hook, err := utils.GetOwnerHook(ctx, ctx.ContextUser.ID, ctx.ParamsInt64("id"))
+	hook, err := utils.GetOwnerHook(ctx, ctx.ContextUser.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		return
 	}
 
 	apiHook, err := webhook_service.ToHook(ctx.ContextUser.HomeLink(), hook)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, apiHook)
@@ -103,6 +107,8 @@ func CreateHook(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Hook"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	utils.AddOwnerHook(
 		ctx,
@@ -139,12 +145,14 @@ func EditHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	utils.EditOwnerHook(
 		ctx,
 		ctx.ContextUser,
 		web.GetForm(ctx).(*api.EditHookOption),
-		ctx.ParamsInt64("id"),
+		ctx.PathParamInt64("id"),
 	)
 }
 
@@ -170,10 +178,12 @@ func DeleteHook(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	utils.DeleteOwnerHook(
 		ctx,
 		ctx.ContextUser,
-		ctx.ParamsInt64("id"),
+		ctx.PathParamInt64("id"),
 	)
 }

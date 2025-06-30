@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/context"
 )
 
 type languageResponse []*repo_model.LanguageStat
@@ -70,7 +70,7 @@ func GetLanguages(ctx *context.APIContext) {
 	langs, err := repo_model.GetLanguageStats(ctx, ctx.Repo.Repository)
 	if err != nil {
 		log.Error("GetLanguageStats failed: %v", err)
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

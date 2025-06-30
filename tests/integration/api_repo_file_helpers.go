@@ -29,6 +29,32 @@ func createFileInBranch(user *user_model.User, repo *repo_model.Repository, tree
 	return files_service.ChangeRepoFiles(git.DefaultContext, repo, user, opts)
 }
 
+func deleteFileInBranch(user *user_model.User, repo *repo_model.Repository, treePath, branchName string) (*api.FilesResponse, error) {
+	opts := &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation: "delete",
+				TreePath:  treePath,
+			},
+		},
+		OldBranch: branchName,
+		Author:    nil,
+		Committer: nil,
+	}
+	return files_service.ChangeRepoFiles(git.DefaultContext, repo, user, opts)
+}
+
+func createOrReplaceFileInBranch(user *user_model.User, repo *repo_model.Repository, treePath, branchName, content string) error {
+	_, err := deleteFileInBranch(user, repo, treePath, branchName)
+
+	if err != nil && !files_service.IsErrRepoFileDoesNotExist(err) {
+		return err
+	}
+
+	_, err = createFileInBranch(user, repo, treePath, branchName, content)
+	return err
+}
+
 func createFile(user *user_model.User, repo *repo_model.Repository, treePath string) (*api.FilesResponse, error) {
 	return createFileInBranch(user, repo, treePath, repo.DefaultBranch, "This is a NEW file")
 }

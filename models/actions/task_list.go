@@ -16,14 +16,9 @@ import (
 type TaskList []*ActionTask
 
 func (tasks TaskList) GetJobIDs() []int64 {
-	ids := make(container.Set[int64], len(tasks))
-	for _, t := range tasks {
-		if t.JobID == 0 {
-			continue
-		}
-		ids.Add(t.JobID)
-	}
-	return ids.Values()
+	return container.FilterSlice(tasks, func(t *ActionTask) (int64, bool) {
+		return t.JobID, t.JobID != 0
+	})
 }
 
 func (tasks TaskList) LoadJobs(ctx context.Context) error {
@@ -53,19 +48,22 @@ func (tasks TaskList) LoadAttributes(ctx context.Context) error {
 type FindTaskOptions struct {
 	db.ListOptions
 	RepoID        int64
+	JobID         int64
 	OwnerID       int64
 	CommitSHA     string
 	Status        Status
 	UpdatedBefore timeutil.TimeStamp
 	StartedBefore timeutil.TimeStamp
 	RunnerID      int64
-	IDOrderDesc   bool
 }
 
-func (opts FindTaskOptions) toConds() builder.Cond {
+func (opts FindTaskOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.JobID > 0 {
+		cond = cond.And(builder.Eq{"job_id": opts.JobID})
 	}
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
@@ -88,18 +86,6 @@ func (opts FindTaskOptions) toConds() builder.Cond {
 	return cond
 }
 
-func FindTasks(ctx context.Context, opts FindTaskOptions) (TaskList, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds())
-	if opts.PageSize > 0 && opts.Page >= 1 {
-		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-	if opts.IDOrderDesc {
-		e.OrderBy("id DESC")
-	}
-	var tasks TaskList
-	return tasks, e.Find(&tasks)
-}
-
-func CountTasks(ctx context.Context, opts FindTaskOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(ActionTask))
+func (opts FindTaskOptions) ToOrders() string {
+	return "`id` DESC"
 }

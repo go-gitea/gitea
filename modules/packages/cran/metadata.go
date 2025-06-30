@@ -185,8 +185,6 @@ func ParseDescription(r io.Reader) (*Package, error) {
 }
 
 func setField(p *Package, data string) error {
-	const listDelimiter = ", "
-
 	if data == "" {
 		return nil
 	}
@@ -215,19 +213,19 @@ func setField(p *Package, data string) error {
 	case "Description":
 		p.Metadata.Description = value
 	case "URL":
-		p.Metadata.ProjectURL = splitAndTrim(value, listDelimiter)
+		p.Metadata.ProjectURL = splitAndTrim(value)
 	case "License":
 		p.Metadata.License = value
 	case "Author":
-		p.Metadata.Authors = splitAndTrim(authorReplacePattern.ReplaceAllString(value, ""), listDelimiter)
+		p.Metadata.Authors = splitAndTrim(authorReplacePattern.ReplaceAllString(value, ""))
 	case "Depends":
-		p.Metadata.Depends = splitAndTrim(value, listDelimiter)
+		p.Metadata.Depends = splitAndTrim(value)
 	case "Imports":
-		p.Metadata.Imports = splitAndTrim(value, listDelimiter)
+		p.Metadata.Imports = splitAndTrim(value)
 	case "Suggests":
-		p.Metadata.Suggests = splitAndTrim(value, listDelimiter)
+		p.Metadata.Suggests = splitAndTrim(value)
 	case "LinkingTo":
-		p.Metadata.LinkingTo = splitAndTrim(value, listDelimiter)
+		p.Metadata.LinkingTo = splitAndTrim(value)
 	case "NeedsCompilation":
 		p.Metadata.NeedsCompilation = value == "yes"
 	}
@@ -235,8 +233,8 @@ func setField(p *Package, data string) error {
 	return nil
 }
 
-func splitAndTrim(s, sep string) []string {
-	items := strings.Split(s, sep)
+func splitAndTrim(s string) []string {
+	items := strings.Split(s, ", ")
 	for i := range items {
 		items[i] = strings.TrimSpace(items[i])
 	}

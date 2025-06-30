@@ -1,0 +1,11 @@
+{{$label := .Label}}
+<a class="item muted {{if $label.IsChecked}}checked{{else if $label.IsArchived}}tw-hidden{{end}}" href="#"
+	data-scope="{{$label.ExclusiveScope}}" data-value="{{$label.ID}}" {{if $label.IsArchived}}data-is-archived{{end}}
+>
+	<span class="item-check-mark">{{svg (Iif $label.ExclusiveScope "octicon-dot-fill" "octicon-check")}}</span>
+	{{ctx.RenderUtils.RenderLabel $label}}
+	<div class="item-secondary-info">
+		{{if $label.Description}}<div class="tw-pl-[20px]"><small>{{$label.Description | ctx.RenderUtils.RenderEmoji}}</small></div>{{end}}
+		<div class="archived-label-hint">{{template "repo/issue/labels/label_archived" $label}}</div>
+	</div>
+</a>

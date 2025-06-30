@@ -41,12 +41,20 @@ type PackageBlob struct {
 func GetOrInsertBlob(ctx context.Context, pb *PackageBlob) (*PackageBlob, bool, error) {
 	e := db.GetEngine(ctx)
 
-	has, err := e.Get(pb)
+	existing := &PackageBlob{}
+
+	has, err := e.Where(builder.Eq{
+		"size":        pb.Size,
+		"hash_md5":    pb.HashMD5,
+		"hash_sha1":   pb.HashSHA1,
+		"hash_sha256": pb.HashSHA256,
+		"hash_sha512": pb.HashSHA512,
+	}).Get(existing)
 	if err != nil {
 		return nil, false, err
 	}
 	if has {
-		return pb, true, nil
+		return existing, true, nil
 	}
 	if _, err = e.Insert(pb); err != nil {
 		return nil, false, err

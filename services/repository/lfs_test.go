@@ -1,11 +1,10 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repository
+package repository_test
 
 import (
 	"bytes"
-	"context"
 	"testing"
 	"time"
 
@@ -16,12 +15,13 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGarbageCollectLFSMetaObjects(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	unittest.PrepareTestEnv(t)
 
 	setting.LFS.StartServer = true
 	err := storage.Init()
@@ -35,7 +35,7 @@ func TestGarbageCollectLFSMetaObjects(t *testing.T) {
 	lfsOid := storeObjectInRepo(t, repo.ID, &lfsContent)
 
 	// gc
-	err = GarbageCollectLFSMetaObjects(context.Background(), GarbageCollectLFSMetaObjectsOptions{
+	err = repo_service.GarbageCollectLFSMetaObjects(t.Context(), repo_service.GarbageCollectLFSMetaObjectsOptions{
 		AutoFix:                 true,
 		OlderThan:               time.Now().Add(7 * 24 * time.Hour).Add(5 * 24 * time.Hour),
 		UpdatedLessRecentlyThan: time.Now().Add(7 * 24 * time.Hour).Add(3 * 24 * time.Hour),
@@ -51,7 +51,7 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	pointer, err := lfs.GeneratePointer(bytes.NewReader(*content))
 	assert.NoError(t, err)
 
-	_, err = git_model.NewLFSMetaObject(db.DefaultContext, &git_model.LFSMetaObject{Pointer: pointer, RepositoryID: repositoryID})
+	_, err = git_model.NewLFSMetaObject(db.DefaultContext, repositoryID, pointer)
 	assert.NoError(t, err)
 	contentStore := lfs.NewContentStore()
 	exist, err := contentStore.Exists(pointer)

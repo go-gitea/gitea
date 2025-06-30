@@ -11,21 +11,21 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sitemap"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/web/auth"
 	"code.gitea.io/gitea/routers/web/user"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
 	// tplHome home page template
-	tplHome base.TplName = "home"
+	tplHome templates.TplName = "home"
 )
 
 // Home render home page
@@ -54,8 +54,7 @@ func Home(ctx *context.Context) {
 	}
 
 	// Check auto-login.
-	uname := ctx.GetSiteCookie(setting.CookieUserName)
-	if len(uname) != 0 {
+	if ctx.GetSiteCookie(setting.CookieRememberName) != "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login")
 		return
 	}
@@ -69,10 +68,10 @@ func Home(ctx *context.Context) {
 func HomeSitemap(ctx *context.Context) {
 	m := sitemap.NewSitemapIndex()
 	if !setting.Service.Explore.DisableUsersPage {
-		_, cnt, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+		_, cnt, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
 			Type:        user_model.UserTypeIndividual,
 			ListOptions: db.ListOptions{PageSize: 1},
-			IsActive:    util.OptionalBoolTrue,
+			IsActive:    optional.Some(true),
 			Visible:     []structs.VisibleType{structs.VisibleTypePublic},
 		})
 		if err != nil {
@@ -87,7 +86,7 @@ func HomeSitemap(ctx *context.Context) {
 		}
 	}
 
-	_, cnt, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	_, cnt, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 1,
 		},
@@ -114,5 +113,5 @@ func HomeSitemap(ctx *context.Context) {
 // NotFound render 404 page
 func NotFound(ctx *context.Context) {
 	ctx.Data["Title"] = "Page Not Found"
-	ctx.NotFound("home.NotFound", nil)
+	ctx.NotFound(nil)
 }

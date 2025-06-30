@@ -9,7 +9,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/services/contexttest"
 	"code.gitea.io/gitea/services/gitdiff"
 
 	"github.com/stretchr/testify/assert"
@@ -17,12 +17,12 @@ import (
 
 func TestGetDiffPreview(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadRepoCommit(t, ctx)
-	test.LoadUser(t, ctx, 2)
-	test.LoadGitRepo(t, ctx)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1")
+	ctx.SetPathParam("id", "1")
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadRepoCommit(t, ctx)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 
 	branch := ctx.Repo.Repository.DefaultBranch
@@ -30,14 +30,11 @@ func TestGetDiffPreview(t *testing.T) {
 	content := "# repo1\n\nDescription for repo1\nthis is a new line"
 
 	expectedDiff := &gitdiff.Diff{
-		TotalAddition: 2,
-		TotalDeletion: 1,
 		Files: []*gitdiff.DiffFile{
 			{
 				Name:        "README.md",
 				OldName:     "README.md",
 				NameHash:    "8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d",
-				Index:       1,
 				Addition:    2,
 				Deletion:    1,
 				Type:        2,
@@ -50,7 +47,6 @@ func TestGetDiffPreview(t *testing.T) {
 				Sections: []*gitdiff.DiffSection{
 					{
 						FileName: "README.md",
-						Name:     "",
 						Lines: []*gitdiff.DiffLine{
 							{
 								LeftIdx:  0,
@@ -114,7 +110,6 @@ func TestGetDiffPreview(t *testing.T) {
 		},
 		IsIncomplete: false,
 	}
-	expectedDiff.NumFiles = len(expectedDiff.Files)
 
 	t.Run("with given branch", func(t *testing.T) {
 		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, branch, treePath, content)
@@ -123,7 +118,7 @@ func TestGetDiffPreview(t *testing.T) {
 		assert.NoError(t, err)
 		bs, err := json.Marshal(diff)
 		assert.NoError(t, err)
-		assert.EqualValues(t, string(expectedBs), string(bs))
+		assert.Equal(t, string(expectedBs), string(bs))
 	})
 
 	t.Run("empty branch, same results", func(t *testing.T) {
@@ -133,18 +128,18 @@ func TestGetDiffPreview(t *testing.T) {
 		assert.NoError(t, err)
 		bs, err := json.Marshal(diff)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expectedBs, bs)
+		assert.Equal(t, expectedBs, bs)
 	})
 }
 
 func TestGetDiffPreviewErrors(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadRepoCommit(t, ctx)
-	test.LoadUser(t, ctx, 2)
-	test.LoadGitRepo(t, ctx)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1")
+	ctx.SetPathParam("id", "1")
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadRepoCommit(t, ctx)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 
 	branch := ctx.Repo.Repository.DefaultBranch

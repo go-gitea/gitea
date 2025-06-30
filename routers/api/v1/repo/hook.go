@@ -7,16 +7,17 @@ package repo
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
@@ -50,21 +51,17 @@ func ListHooks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	opts := &webhook.ListWebhookOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 	}
 
-	count, err := webhook.CountWebhooksByOpts(opts)
+	hooks, count, err := db.FindAndCount[webhook.Webhook](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-
-	hooks, err := webhook.ListWebhooksByOpts(ctx, opts)
-	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -72,7 +69,7 @@ func ListHooks(ctx *context.APIContext) {
 	for i := range hooks {
 		apiHooks[i], err = webhook_service.ToHook(ctx.Repo.RepoLink, hooks[i])
 		if err != nil {
-			ctx.InternalServerError(err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -112,14 +109,14 @@ func GetHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64("id")
 	hook, err := utils.GetRepoHook(ctx, repo.Repository.ID, hookID)
 	if err != nil {
 		return
 	}
 	apiHook, err := webhook_service.ToHook(repo.RepoLink, hook)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, apiHook)
@@ -157,6 +154,8 @@ func TestHook(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if ctx.Repo.Commit == nil {
 		// if repo does not have any commits, then don't send a webhook
@@ -169,7 +168,7 @@ func TestHook(ctx *context.APIContext) {
 		ref = r
 	}
 
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64("id")
 	hook, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		return
@@ -190,7 +189,7 @@ func TestHook(ctx *context.APIContext) {
 		Pusher:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
 		Sender:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
 	}); err != nil {
-		ctx.Error(http.StatusInternalServerError, "PrepareWebhook: ", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -224,6 +223,8 @@ func CreateHook(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Hook"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	utils.AddRepoHook(ctx, web.GetForm(ctx).(*api.CreateHookOption))
 }
@@ -259,8 +260,10 @@ func EditHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.EditHookOption)
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64("id")
 	utils.EditRepoHook(ctx, form, hookID)
 }
 
@@ -293,11 +296,11 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	if err := webhook.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id")); err != nil {
 		if webhook.IsErrWebhookNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteWebhookByRepoID", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

@@ -4,104 +4,57 @@
 package math
 
 import (
+	"code.gitea.io/gitea/modules/markup/internal"
+	giteaUtil "code.gitea.io/gitea/modules/util"
+
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/util"
 )
 
+type Options struct {
+	Enabled                  bool
+	ParseInlineDollar        bool // inline $$ xxx $$ text
+	ParseInlineParentheses   bool // inline \( xxx \) text
+	ParseBlockDollar         bool // block $$ multiple-line $$ text
+	ParseBlockSquareBrackets bool // block \[ multiple-line \] text
+}
+
 // Extension is a math extension
 type Extension struct {
-	enabled           bool
-	parseDollarInline bool
-	parseDollarBlock  bool
-}
-
-// Option is the interface Options should implement
-type Option interface {
-	SetOption(e *Extension)
-}
-
-type extensionFunc func(e *Extension)
-
-func (fn extensionFunc) SetOption(e *Extension) {
-	fn(e)
-}
-
-// Enabled enables or disables this extension
-func Enabled(enable ...bool) Option {
-	value := true
-	if len(enable) > 0 {
-		value = enable[0]
-	}
-	return extensionFunc(func(e *Extension) {
-		e.enabled = value
-	})
-}
-
-// WithInlineDollarParser enables or disables the parsing of $...$
-func WithInlineDollarParser(enable ...bool) Option {
-	value := true
-	if len(enable) > 0 {
-		value = enable[0]
-	}
-	return extensionFunc(func(e *Extension) {
-		e.parseDollarInline = value
-	})
-}
-
-// WithBlockDollarParser enables or disables the parsing of $$...$$
-func WithBlockDollarParser(enable ...bool) Option {
-	value := true
-	if len(enable) > 0 {
-		value = enable[0]
-	}
-	return extensionFunc(func(e *Extension) {
-		e.parseDollarBlock = value
-	})
-}
-
-// Math represents a math extension with default rendered delimiters
-var Math = &Extension{
-	enabled:           true,
-	parseDollarBlock:  true,
-	parseDollarInline: true,
+	renderInternal *internal.RenderInternal
+	options        Options
 }
 
 // NewExtension creates a new math extension with the provided options
-func NewExtension(opts ...Option) *Extension {
+func NewExtension(renderInternal *internal.RenderInternal, opts ...Options) *Extension {
+	opt := giteaUtil.OptionalArg(opts)
 	r := &Extension{
-		enabled:           true,
-		parseDollarBlock:  true,
-		parseDollarInline: true,
-	}
-
-	for _, o := range opts {
-		o.SetOption(r)
+		renderInternal: renderInternal,
+		options:        opt,
 	}
 	return r
 }
 
 // Extend extends goldmark with our parsers and renderers
 func (e *Extension) Extend(m goldmark.Markdown) {
-	if !e.enabled {
+	if !e.options.Enabled {
 		return
 	}
 
-	m.Parser().AddOptions(parser.WithBlockParsers(
-		util.Prioritized(NewBlockParser(e.parseDollarBlock), 701),
-	))
+	var inlines []util.PrioritizedValue
+	if e.options.ParseInlineParentheses {
+		inlines = append(inlines, util.Prioritized(NewInlineParenthesesParser(), 501))
+	}
+	inlines = append(inlines, util.Prioritized(NewInlineDollarParser(e.options.ParseInlineDollar), 502))
 
-	inlines := []util.PrioritizedValue{
-		util.Prioritized(NewInlineBracketParser(), 501),
-	}
-	if e.parseDollarInline {
-		inlines = append(inlines, util.Prioritized(NewInlineDollarParser(), 501))
-	}
 	m.Parser().AddOptions(parser.WithInlineParsers(inlines...))
-
+	m.Parser().AddOptions(parser.WithBlockParsers(
+		util.Prioritized(NewBlockParser(e.options.ParseBlockDollar, e.options.ParseBlockSquareBrackets), 701),
+	))
 	m.Renderer().AddOptions(renderer.WithNodeRenderers(
-		util.Prioritized(NewBlockRenderer(), 501),
-		util.Prioritized(NewInlineRenderer(), 502),
+		util.Prioritized(NewBlockRenderer(e.renderInternal), 501),
+		util.Prioritized(NewInlineRenderer(e.renderInternal), 502),
 	))
 }

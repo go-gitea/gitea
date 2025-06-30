@@ -12,18 +12,18 @@ import (
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-fed/httpsig"
+	"github.com/42wim/httpsig"
 	"golang.org/x/crypto/ssh"
 )
 
 // Ensure the struct implements the interface.
 var (
 	_ Method = &HTTPSign{}
-	_ Named  = &HTTPSign{}
 )
 
 // HTTPSign implements the Auth interface and authenticates requests (API requests
@@ -93,7 +93,9 @@ func VerifyPubKey(r *http.Request) (*asymkey_model.PublicKey, error) {
 
 	keyID := verifier.KeyId()
 
-	publicKeys, err := asymkey_model.SearchPublicKey(0, keyID)
+	publicKeys, err := db.Find[asymkey_model.PublicKey](r.Context(), asymkey_model.FindPublicKeyOptions{
+		Fingerprint: keyID,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +134,7 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 	// Check if it's really a ssh certificate
 	cert, ok := pk.(*ssh.Certificate)
 	if !ok {
-		return nil, fmt.Errorf("no certificate found")
+		return nil, errors.New("no certificate found")
 	}
 
 	c := &ssh.CertChecker{
@@ -151,7 +153,7 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 
 	// check the CA of the cert
 	if !c.IsUserAuthority(cert.SignatureKey) {
-		return nil, fmt.Errorf("CA check failed")
+		return nil, errors.New("CA check failed")
 	}
 
 	// Create a verifier
@@ -189,7 +191,7 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 	}
 
 	// No public key matching a principal in the certificate is registered in gitea
-	return nil, fmt.Errorf("no valid principal found")
+	return nil, errors.New("no valid principal found")
 }
 
 // doVerify iterates across the provided public keys attempting the verify the current request against each key in turn
@@ -203,7 +205,7 @@ func doVerify(verifier httpsig.Verifier, sshPublicKeys []ssh.PublicKey) error {
 		case strings.HasPrefix(publicKey.Type(), "ssh-ed25519"):
 			algos = []httpsig.Algorithm{httpsig.ED25519}
 		case strings.HasPrefix(publicKey.Type(), "ssh-rsa"):
-			algos = []httpsig.Algorithm{httpsig.RSA_SHA1, httpsig.RSA_SHA256, httpsig.RSA_SHA512}
+			algos = []httpsig.Algorithm{httpsig.RSA_SHA256, httpsig.RSA_SHA512}
 		}
 		for _, algo := range algos {
 			if err := verifier.Verify(cryptoPubkey, algo); err == nil {

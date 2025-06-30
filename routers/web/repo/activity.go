@@ -8,13 +8,14 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplActivity base.TplName = "repo/activity"
+	tplActivity templates.TplName = "repo/activity"
 )
 
 // Activity render the page to show repository latest changes
@@ -22,7 +23,9 @@ func Activity(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.activity")
 	ctx.Data["PageIsActivity"] = true
 
-	ctx.Data["Period"] = ctx.Params("period")
+	ctx.Data["PageIsPulse"] = true
+
+	ctx.Data["Period"] = ctx.PathParam("period")
 
 	timeUntil := time.Now()
 	var timeFrom time.Time
@@ -46,16 +49,30 @@ func Activity(ctx *context.Context) {
 		ctx.Data["Period"] = "weekly"
 		timeFrom = timeUntil.Add(-time.Hour * 168)
 	}
-	ctx.Data["DateFrom"] = timeFrom.UTC().Format(time.RFC3339)
-	ctx.Data["DateUntil"] = timeUntil.UTC().Format(time.RFC3339)
+	ctx.Data["DateFrom"] = timeFrom
+	ctx.Data["DateUntil"] = timeUntil
 	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + ctx.Data["Period"].(string))
 
+	canReadCode := ctx.Repo.CanRead(unit.TypeCode)
+	if canReadCode {
+		// GetActivityStats needs to read the default branch to get some information
+		branchExist, _ := git.IsBranchExist(ctx, ctx.Repo.Repository.ID, ctx.Repo.Repository.DefaultBranch)
+		if !branchExist {
+			ctx.Data["NotFoundPrompt"] = ctx.Tr("repo.branch.default_branch_not_exist", ctx.Repo.Repository.DefaultBranch)
+			ctx.NotFound(nil)
+			return
+		}
+	}
+
 	var err error
-	if ctx.Data["Activity"], err = activities_model.GetActivityStats(ctx, ctx.Repo.Repository, timeFrom,
+	// TODO: refactor these arguments to a struct
+	ctx.Data["Activity"], err = activities_model.GetActivityStats(ctx, ctx.Repo.Repository, timeFrom,
 		ctx.Repo.CanRead(unit.TypeReleases),
 		ctx.Repo.CanRead(unit.TypeIssues),
 		ctx.Repo.CanRead(unit.TypePullRequests),
-		ctx.Repo.CanRead(unit.TypeCode)); err != nil {
+		canReadCode,
+	)
+	if err != nil {
 		ctx.ServerError("GetActivityStats", err)
 		return
 	}
@@ -73,7 +90,7 @@ func ActivityAuthors(ctx *context.Context) {
 	timeUntil := time.Now()
 	var timeFrom time.Time
 
-	switch ctx.Params("period") {
+	switch ctx.PathParam("period") {
 	case "daily":
 		timeFrom = timeUntil.Add(-time.Hour * 24)
 	case "halfweekly":
@@ -92,7 +109,6 @@ func ActivityAuthors(ctx *context.Context) {
 		timeFrom = timeUntil.Add(-time.Hour * 168)
 	}
 
-	var err error
 	authors, err := activities_model.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, 10)
 	if err != nil {
 		ctx.ServerError("GetActivityStatsTopAuthors", err)

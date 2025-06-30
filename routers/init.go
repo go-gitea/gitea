@@ -5,23 +5,19 @@ package routers
 
 import (
 	"context"
+	"net/http"
 	"reflect"
 	"runtime"
 
 	"code.gitea.io/gitea/models"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	authmodel "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
-	code_indexer "code.gitea.io/gitea/modules/indexer/code"
-	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
@@ -29,7 +25,9 @@ import (
 	"code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/routing"
 	actions_router "code.gitea.io/gitea/routers/api/actions"
 	packages_router "code.gitea.io/gitea/routers/api/packages"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
@@ -37,19 +35,25 @@ import (
 	"code.gitea.io/gitea/routers/private"
 	web_routers "code.gitea.io/gitea/routers/web"
 	actions_service "code.gitea.io/gitea/services/actions"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/cron"
+	feed_service "code.gitea.io/gitea/services/feed"
+	indexer_service "code.gitea.io/gitea/services/indexer"
 	"code.gitea.io/gitea/services/mailer"
 	mailer_incoming "code.gitea.io/gitea/services/mailer/incoming"
 	markup_service "code.gitea.io/gitea/services/markup"
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	"code.gitea.io/gitea/services/oauth2_provider"
 	pull_service "code.gitea.io/gitea/services/pull"
+	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
+	"code.gitea.io/gitea/services/uinotification"
 	"code.gitea.io/gitea/services/webhook"
 )
 
@@ -73,7 +77,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 
 func syncAppConfForGit(ctx context.Context) error {
 	runtimeState := new(system.RuntimeState)
-	if err := system.AppState.Get(runtimeState); err != nil {
+	if err := system.AppState.Get(ctx, runtimeState); err != nil {
 		return err
 	}
 
@@ -94,9 +98,9 @@ func syncAppConfForGit(ctx context.Context) error {
 		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
-		mustInit(asymkey_model.RewriteAllPublicKeys)
+		mustInitCtx(ctx, asymkey_service.RewriteAllPublicKeys)
 
-		return system.AppState.Set(runtimeState)
+		return system.AppState.Set(ctx, runtimeState)
 	}
 	return nil
 }
@@ -110,7 +114,10 @@ func InitWebInstallPage(ctx context.Context) {
 // InitWebInstalled is for global installed configuration.
 func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, git.InitFull)
-	log.Info("Git version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
+	log.Info("Git version: %s (home: %s)", git.DefaultFeatures().VersionInfo(), git.HomeDir())
+	if !git.DefaultFeatures().SupportHashSha256 {
+		log.Warn("sha256 hash support is disabled - requires Git >= 2.42." + util.Iif(git.DefaultFeatures().UsingGogit, " Gogit is currently unsupported.", ""))
+	}
 
 	// Setup i18n
 	translation.InitLocales(ctx)
@@ -119,13 +126,14 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(storage.Init)
 
 	mailer.NewContext(ctx)
-	mustInit(cache.NewContext)
-	notification.NewContext()
-	mustInit(archiver.Init)
+	mustInit(cache.Init)
+	mustInit(feed_service.Init)
+	mustInit(uinotification.Init)
+	mustInitCtx(ctx, archiver.Init)
 
 	highlight.NewContext()
 	external.RegisterRenderers()
-	markup.Init(markup_service.ProcessorHelper())
+	markup.Init(markup_service.FormalRenderHelperFuncs())
 
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 support is enabled")
@@ -136,16 +144,16 @@ func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
 	mustInit(system.Init)
-	mustInit(oauth2.Init)
+	mustInitCtx(ctx, oauth2.Init)
+	mustInitCtx(ctx, oauth2_provider.Init)
+	mustInit(release_service.Init)
 
 	mustInitCtx(ctx, models.Init)
 	mustInitCtx(ctx, authmodel.Init)
-	mustInit(repo_service.Init)
+	mustInitCtx(ctx, repo_service.Init)
 
 	// Booting long running goroutines.
-	issue_indexer.InitIssueIndexer(false)
-	code_indexer.Init()
-	mustInit(stats_indexer.Init)
+	mustInit(indexer_service.Init)
 
 	mirror_service.InitSyncMirrors()
 	mustInit(webhook.Init)
@@ -163,16 +171,18 @@ func InitWebInstalled(ctx context.Context) {
 	auth.Init()
 	mustInit(svg.Init)
 
-	actions_service.Init()
+	mustInitCtx(ctx, actions_service.Init)
+
+	mustInit(repo_service.InitLicenseClassifier)
 
 	// Finally start up the cron
 	cron.NewContext(ctx)
 }
 
 // NormalRoutes represents non install routes
-func NormalRoutes() *web.Route {
+func NormalRoutes() *web.Router {
 	_ = templates.HTMLRenderer()
-	r := web.NewRoute()
+	r := web.NewRouter()
 	r.Use(common.ProtocolMiddlewares()...)
 
 	r.Mount("/", web_routers.Routes())
@@ -184,7 +194,8 @@ func NormalRoutes() *web.Route {
 	if setting.Packages.Enabled {
 		// This implements package support for most package managers
 		r.Mount("/api/packages", packages_router.CommonRoutes())
-		// This implements the OCI API (Note this is not preceded by /api but is instead /v2)
+		// This implements the OCI API, this container registry "/v2" endpoint must be in the root of the site.
+		// If site admin deploys Gitea in a sub-path, they must configure their reverse proxy to map the "https://host/v2" endpoint to Gitea.
 		r.Mount("/v2", packages_router.ContainerRoutes())
 	}
 
@@ -197,7 +208,13 @@ func NormalRoutes() *web.Route {
 		// TODO: this prefix should be generated with a token string with runner ?
 		prefix = "/api/actions_pipeline"
 		r.Mount(prefix, actions_router.ArtifactsRoutes(prefix))
+		prefix = actions_router.ArtifactV4RouteBase
+		r.Mount(prefix, actions_router.ArtifactsV4Routes(prefix))
 	}
 
+	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
+		defer routing.RecordFuncInfo(req.Context(), routing.GetFuncInfo(http.NotFound, "GlobalNotFound"))()
+		http.NotFound(w, req)
+	})
 	return r
 }

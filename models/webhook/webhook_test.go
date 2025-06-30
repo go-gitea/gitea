@@ -4,16 +4,14 @@
 package webhook
 
 import (
-	"context"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
-	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
@@ -33,16 +31,18 @@ func TestIsValidHookContentType(t *testing.T) {
 func TestWebhook_History(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	webhook := unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 1})
-	tasks, err := webhook.History(0)
+	tasks, err := webhook.History(db.DefaultContext, 0)
 	assert.NoError(t, err)
-	if assert.Len(t, tasks, 1) {
-		assert.Equal(t, int64(1), tasks[0].ID)
+	if assert.Len(t, tasks, 3) {
+		assert.Equal(t, int64(3), tasks[0].ID)
+		assert.Equal(t, int64(2), tasks[1].ID)
+		assert.Equal(t, int64(1), tasks[2].ID)
 	}
 
 	webhook = unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 2})
-	tasks, err = webhook.History(0)
+	tasks, err = webhook.History(db.DefaultContext, 0)
 	assert.NoError(t, err)
-	assert.Len(t, tasks, 0)
+	assert.Empty(t, tasks)
 }
 
 func TestWebhook_UpdateEvent(t *testing.T) {
@@ -53,9 +53,9 @@ func TestWebhook_UpdateEvent(t *testing.T) {
 		SendEverything: false,
 		ChooseEvents:   false,
 		HookEvents: webhook_module.HookEvents{
-			Create:      false,
-			Push:        true,
-			PullRequest: false,
+			webhook_module.HookEventCreate:      false,
+			webhook_module.HookEventPush:        true,
+			webhook_module.HookEventPullRequest: false,
 		},
 	}
 	webhook.HookEvent = hookEvent
@@ -72,8 +72,8 @@ func TestWebhook_EventsArray(t *testing.T) {
 		"issues", "issue_assign", "issue_label", "issue_milestone", "issue_comment",
 		"pull_request", "pull_request_assign", "pull_request_label", "pull_request_milestone",
 		"pull_request_comment", "pull_request_review_approved", "pull_request_review_rejected",
-		"pull_request_review_comment", "pull_request_sync", "wiki", "repository", "release",
-		"package", "pull_request_review_request",
+		"pull_request_review_comment", "pull_request_sync", "pull_request_review_request", "wiki", "repository", "release",
+		"package", "status", "workflow_run", "workflow_job",
 	},
 		(&Webhook{
 			HookEvent: &webhook_module.HookEvent{SendEverything: true},
@@ -90,7 +90,7 @@ func TestWebhook_EventsArray(t *testing.T) {
 func TestCreateWebhook(t *testing.T) {
 	hook := &Webhook{
 		RepoID:      3,
-		URL:         "www.example.com/unit_test",
+		URL:         "https://www.example.com/unit_test",
 		ContentType: ContentTypeJSON,
 		Events:      `{"push_only":false,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":true}}`,
 	}
@@ -101,29 +101,29 @@ func TestCreateWebhook(t *testing.T) {
 
 func TestGetWebhookByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hook, err := GetWebhookByRepoID(1, 1)
+	hook, err := GetWebhookByRepoID(db.DefaultContext, 1, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), hook.ID)
 
-	_, err = GetWebhookByRepoID(unittest.NonexistentID, unittest.NonexistentID)
+	_, err = GetWebhookByRepoID(db.DefaultContext, unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
 	assert.True(t, IsErrWebhookNotExist(err))
 }
 
 func TestGetWebhookByOwnerID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hook, err := GetWebhookByOwnerID(3, 3)
+	hook, err := GetWebhookByOwnerID(db.DefaultContext, 3, 3)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), hook.ID)
 
-	_, err = GetWebhookByOwnerID(unittest.NonexistentID, unittest.NonexistentID)
+	_, err = GetWebhookByOwnerID(db.DefaultContext, unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
 	assert.True(t, IsErrWebhookNotExist(err))
 }
 
 func TestGetActiveWebhooksByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{RepoID: 1, IsActive: util.OptionalBoolTrue})
+	hooks, err := db.Find[Webhook](db.DefaultContext, ListWebhookOptions{RepoID: 1, IsActive: optional.Some(true)})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(1), hooks[0].ID)
@@ -133,7 +133,7 @@ func TestGetActiveWebhooksByRepoID(t *testing.T) {
 
 func TestGetWebhooksByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{RepoID: 1})
+	hooks, err := db.Find[Webhook](db.DefaultContext, ListWebhookOptions{RepoID: 1})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 2) {
 		assert.Equal(t, int64(1), hooks[0].ID)
@@ -143,7 +143,7 @@ func TestGetWebhooksByRepoID(t *testing.T) {
 
 func TestGetActiveWebhooksByOwnerID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{OwnerID: 3, IsActive: util.OptionalBoolTrue})
+	hooks, err := db.Find[Webhook](db.DefaultContext, ListWebhookOptions{OwnerID: 3, IsActive: optional.Some(true)})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(3), hooks[0].ID)
@@ -153,7 +153,7 @@ func TestGetActiveWebhooksByOwnerID(t *testing.T) {
 
 func TestGetWebhooksByOwnerID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{OwnerID: 3})
+	hooks, err := db.Find[Webhook](db.DefaultContext, ListWebhookOptions{OwnerID: 3})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(3), hooks[0].ID)
@@ -167,17 +167,17 @@ func TestUpdateWebhook(t *testing.T) {
 	hook.IsActive = true
 	hook.ContentType = ContentTypeForm
 	unittest.AssertNotExistsBean(t, hook)
-	assert.NoError(t, UpdateWebhook(hook))
+	assert.NoError(t, UpdateWebhook(db.DefaultContext, hook))
 	unittest.AssertExistsAndLoadBean(t, hook)
 }
 
 func TestDeleteWebhookByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 2, RepoID: 1})
-	assert.NoError(t, DeleteWebhookByRepoID(1, 2))
+	assert.NoError(t, DeleteWebhookByRepoID(db.DefaultContext, 1, 2))
 	unittest.AssertNotExistsBean(t, &Webhook{ID: 2, RepoID: 1})
 
-	err := DeleteWebhookByRepoID(unittest.NonexistentID, unittest.NonexistentID)
+	err := DeleteWebhookByRepoID(db.DefaultContext, unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
 	assert.True(t, IsErrWebhookNotExist(err))
 }
@@ -185,32 +185,34 @@ func TestDeleteWebhookByRepoID(t *testing.T) {
 func TestDeleteWebhookByOwnerID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 3, OwnerID: 3})
-	assert.NoError(t, DeleteWebhookByOwnerID(3, 3))
+	assert.NoError(t, DeleteWebhookByOwnerID(db.DefaultContext, 3, 3))
 	unittest.AssertNotExistsBean(t, &Webhook{ID: 3, OwnerID: 3})
 
-	err := DeleteWebhookByOwnerID(unittest.NonexistentID, unittest.NonexistentID)
+	err := DeleteWebhookByOwnerID(db.DefaultContext, unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
 	assert.True(t, IsErrWebhookNotExist(err))
 }
 
 func TestHookTasks(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hookTasks, err := HookTasks(1, 1)
+	hookTasks, err := HookTasks(db.DefaultContext, 1, 1)
 	assert.NoError(t, err)
-	if assert.Len(t, hookTasks, 1) {
-		assert.Equal(t, int64(1), hookTasks[0].ID)
+	if assert.Len(t, hookTasks, 3) {
+		assert.Equal(t, int64(3), hookTasks[0].ID)
+		assert.Equal(t, int64(2), hookTasks[1].ID)
+		assert.Equal(t, int64(1), hookTasks[2].ID)
 	}
 
-	hookTasks, err = HookTasks(unittest.NonexistentID, 1)
+	hookTasks, err = HookTasks(db.DefaultContext, unittest.NonexistentID, 1)
 	assert.NoError(t, err)
-	assert.Len(t, hookTasks, 0)
+	assert.Empty(t, hookTasks)
 }
 
 func TestCreateHookTask(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:    3,
-		Payloader: &api.PushPayload{},
+		HookID:         3,
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
@@ -225,106 +227,106 @@ func TestUpdateHookTask(t *testing.T) {
 	hook.PayloadContent = "new payload content"
 	hook.IsDelivered = true
 	unittest.AssertNotExistsBean(t, hook)
-	assert.NoError(t, UpdateHookTask(hook))
+	assert.NoError(t, UpdateHookTask(db.DefaultContext, hook))
 	unittest.AssertExistsAndLoadBean(t, hook)
 }
 
 func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:      3,
-		Payloader:   &api.PushPayload{},
-		IsDelivered: true,
-		Delivered:   timeutil.TimeStampNanoNow(),
+		HookID:         3,
+		IsDelivered:    true,
+		Delivered:      timeutil.TimeStampNanoNow(),
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), PerWebhook, 168*time.Hour, 0))
 	unittest.AssertNotExistsBean(t, hookTask)
 }
 
 func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:      4,
-		Payloader:   &api.PushPayload{},
-		IsDelivered: false,
+		HookID:         4,
+		IsDelivered:    false,
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), PerWebhook, 168*time.Hour, 0))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }
 
 func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:      4,
-		Payloader:   &api.PushPayload{},
-		IsDelivered: true,
-		Delivered:   timeutil.TimeStampNanoNow(),
+		HookID:         4,
+		IsDelivered:    true,
+		Delivered:      timeutil.TimeStampNanoNow(),
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 1))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), PerWebhook, 168*time.Hour, 1))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }
 
 func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:      3,
-		Payloader:   &api.PushPayload{},
-		IsDelivered: true,
-		Delivered:   timeutil.TimeStampNano(time.Now().AddDate(0, 0, -8).UnixNano()),
+		HookID:         3,
+		IsDelivered:    true,
+		Delivered:      timeutil.TimeStampNano(time.Now().AddDate(0, 0, -8).UnixNano()),
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), OlderThan, 168*time.Hour, 0))
 	unittest.AssertNotExistsBean(t, hookTask)
 }
 
 func TestCleanupHookTaskTable_OlderThan_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:      4,
-		Payloader:   &api.PushPayload{},
-		IsDelivered: false,
+		HookID:         4,
+		IsDelivered:    false,
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), OlderThan, 168*time.Hour, 0))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }
 
 func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:      4,
-		Payloader:   &api.PushPayload{},
-		IsDelivered: true,
-		Delivered:   timeutil.TimeStampNano(time.Now().AddDate(0, 0, -6).UnixNano()),
+		HookID:         4,
+		IsDelivered:    true,
+		Delivered:      timeutil.TimeStampNano(time.Now().AddDate(0, 0, -6).UnixNano()),
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), OlderThan, 168*time.Hour, 0))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }

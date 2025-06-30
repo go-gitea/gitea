@@ -161,20 +161,20 @@ func FetchIssueContentHistoryList(dbCtx context.Context, issueID, commentID int6
 	}
 
 	for _, item := range res {
-		item.UserAvatarLink = avatars.GenerateUserAvatarFastLink(item.UserName, 0)
+		if item.UserID > 0 {
+			item.UserAvatarLink = avatars.GenerateUserAvatarFastLink(item.UserName, 0)
+		} else {
+			item.UserAvatarLink = avatars.DefaultAvatarLink()
+		}
 	}
 	return res, nil
 }
 
 // HasIssueContentHistory check if a ContentHistory entry exists
 func HasIssueContentHistory(dbCtx context.Context, issueID, commentID int64) (bool, error) {
-	exists, err := db.GetEngine(dbCtx).Cols("id").Exist(&ContentHistory{
-		IssueID:   issueID,
-		CommentID: commentID,
-	})
+	exists, err := db.GetEngine(dbCtx).Where(builder.Eq{"issue_id": issueID, "comment_id": commentID}).Exist(&ContentHistory{})
 	if err != nil {
-		log.Error("can not fetch issue content history. err=%v", err)
-		return false, err
+		return false, fmt.Errorf("can not check issue content history. err: %w", err)
 	}
 	return exists, err
 }
@@ -218,9 +218,9 @@ func GetIssueContentHistoryByID(dbCtx context.Context, id int64) (*ContentHistor
 }
 
 // GetIssueContentHistoryAndPrev get a history and the previous non-deleted history (to compare)
-func GetIssueContentHistoryAndPrev(dbCtx context.Context, id int64) (history, prevHistory *ContentHistory, err error) {
+func GetIssueContentHistoryAndPrev(dbCtx context.Context, issueID, id int64) (history, prevHistory *ContentHistory, err error) {
 	history = &ContentHistory{}
-	has, err := db.GetEngine(dbCtx).ID(id).Get(history)
+	has, err := db.GetEngine(dbCtx).Where("id=? AND issue_id=?", id, issueID).Get(history)
 	if err != nil {
 		log.Error("failed to get issue content history %v. err=%v", id, err)
 		return nil, nil, err

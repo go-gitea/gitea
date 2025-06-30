@@ -6,9 +6,12 @@ package unit
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
+	"sync/atomic"
 
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -18,52 +21,35 @@ type Type int
 
 // Enumerate all the unit types
 const (
-	TypeInvalid         Type = iota // 0 invalid
-	TypeCode                        // 1 code
-	TypeIssues                      // 2 issues
-	TypePullRequests                // 3 PRs
-	TypeReleases                    // 4 Releases
-	TypeWiki                        // 5 Wiki
-	TypeExternalWiki                // 6 ExternalWiki
-	TypeExternalTracker             // 7 ExternalTracker
-	TypeProjects                    // 8 Kanban board
-	TypePackages                    // 9 Packages
-	TypeActions                     // 10 Actions
+	TypeInvalid Type = iota // 0 invalid
+
+	TypeCode            // 1 code
+	TypeIssues          // 2 issues
+	TypePullRequests    // 3 PRs
+	TypeReleases        // 4 Releases
+	TypeWiki            // 5 Wiki
+	TypeExternalWiki    // 6 ExternalWiki
+	TypeExternalTracker // 7 ExternalTracker
+	TypeProjects        // 8 Projects
+	TypePackages        // 9 Packages
+	TypeActions         // 10 Actions
+
+	// FIXME: TEAM-UNIT-PERMISSION: the team unit "admin" permission's design is not right, when a new unit is added in the future,
+	// admin team won't inherit the correct admin permission for the new unit, need to have a complete fix before adding any new unit.
 )
 
-// Value returns integer value for unit type
+// Value returns integer value for unit type (used by template)
 func (u Type) Value() int {
 	return int(u)
 }
 
-func (u Type) String() string {
-	switch u {
-	case TypeCode:
-		return "TypeCode"
-	case TypeIssues:
-		return "TypeIssues"
-	case TypePullRequests:
-		return "TypePullRequests"
-	case TypeReleases:
-		return "TypeReleases"
-	case TypeWiki:
-		return "TypeWiki"
-	case TypeExternalWiki:
-		return "TypeExternalWiki"
-	case TypeExternalTracker:
-		return "TypeExternalTracker"
-	case TypeProjects:
-		return "TypeProjects"
-	case TypePackages:
-		return "TypePackages"
-	case TypeActions:
-		return "TypeActions"
-	}
-	return fmt.Sprintf("Unknown Type %d", u)
-}
-
 func (u Type) LogString() string {
-	return fmt.Sprintf("<UnitType:%d:%s>", u, u.String())
+	unit, ok := Units[u]
+	unitName := "unknown"
+	if ok {
+		unitName = unit.NameKey
+	}
+	return fmt.Sprintf("<UnitType:%d:%s>", u, unitName)
 }
 
 var (
@@ -90,6 +76,7 @@ var (
 		TypeWiki,
 		TypeProjects,
 		TypePackages,
+		TypeActions,
 	}
 
 	// ForkRepoUnits contains the default unit types for forks
@@ -98,15 +85,49 @@ var (
 		TypePullRequests,
 	}
 
+	// DefaultMirrorRepoUnits contains the default unit types for mirrors
+	DefaultMirrorRepoUnits = []Type{
+		TypeCode,
+		TypeIssues,
+		TypeReleases,
+		TypeWiki,
+		TypeProjects,
+		TypePackages,
+	}
+
+	// DefaultTemplateRepoUnits contains the default unit types for templates
+	DefaultTemplateRepoUnits = []Type{
+		TypeCode,
+		TypeIssues,
+		TypePullRequests,
+		TypeReleases,
+		TypeWiki,
+		TypeProjects,
+		TypePackages,
+	}
+
 	// NotAllowedDefaultRepoUnits contains units that can't be default
 	NotAllowedDefaultRepoUnits = []Type{
 		TypeExternalWiki,
 		TypeExternalTracker,
 	}
 
-	// DisabledRepoUnits contains the units that have been globally disabled
-	DisabledRepoUnits = []Type{}
+	disabledRepoUnitsAtomic atomic.Pointer[[]Type] // the units that have been globally disabled
 )
+
+// DisabledRepoUnitsGet returns the globally disabled units, it is a quick patch to fix data-race during testing.
+// Because the queue worker might read when a test is mocking the value. FIXME: refactor to a clear solution later.
+func DisabledRepoUnitsGet() []Type {
+	v := disabledRepoUnitsAtomic.Load()
+	if v == nil {
+		return nil
+	}
+	return *v
+}
+
+func DisabledRepoUnitsSet(v []Type) {
+	disabledRepoUnitsAtomic.Store(&v)
+}
 
 // Get valid set of default repository units from settings
 func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
@@ -117,7 +138,7 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 		units = make([]Type, 0, len(settingDefaultUnits))
 		for _, settingUnit := range settingDefaultUnits {
 			if !settingUnit.CanBeDefault() {
-				log.Warn("Not allowed as default unit: %s", settingUnit.String())
+				log.Warn("Not allowed as default unit: %s", settingUnit.LogString())
 				continue
 			}
 			units = append(units, settingUnit)
@@ -125,7 +146,7 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 	}
 
 	// Remove disabled units
-	for _, disabledUnit := range DisabledRepoUnits {
+	for _, disabledUnit := range DisabledRepoUnitsGet() {
 		for i, unit := range units {
 			if unit == disabledUnit {
 				units = append(units[:i], units[i+1:]...)
@@ -138,11 +159,11 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 
 // LoadUnitConfig load units from settings
 func LoadUnitConfig() error {
-	var invalidKeys []string
-	DisabledRepoUnits, invalidKeys = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
+	disabledRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DisabledRepoUnits...)
 	if len(invalidKeys) > 0 {
 		log.Warn("Invalid keys in disabled repo units: %s", strings.Join(invalidKeys, ", "))
 	}
+	DisabledRepoUnitsSet(disabledRepoUnits)
 
 	setDefaultRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
 	if len(invalidKeys) > 0 {
@@ -152,6 +173,7 @@ func LoadUnitConfig() error {
 	if len(DefaultRepoUnits) == 0 {
 		return errors.New("no default repository units found")
 	}
+	// default fork repo units
 	setDefaultForkRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultForkRepoUnits...)
 	if len(invalidKeys) > 0 {
 		log.Warn("Invalid keys in default fork repo units: %s", strings.Join(invalidKeys, ", "))
@@ -160,27 +182,35 @@ func LoadUnitConfig() error {
 	if len(DefaultForkRepoUnits) == 0 {
 		return errors.New("no default fork repository units found")
 	}
+	// default mirror repo units
+	setDefaultMirrorRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultMirrorRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default mirror repo units: %s", strings.Join(invalidKeys, ", "))
+	}
+	DefaultMirrorRepoUnits = validateDefaultRepoUnits(DefaultMirrorRepoUnits, setDefaultMirrorRepoUnits)
+	if len(DefaultMirrorRepoUnits) == 0 {
+		return errors.New("no default mirror repository units found")
+	}
+	// default template repo units
+	setDefaultTemplateRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultTemplateRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default template repo units: %s", strings.Join(invalidKeys, ", "))
+	}
+	DefaultTemplateRepoUnits = validateDefaultRepoUnits(DefaultTemplateRepoUnits, setDefaultTemplateRepoUnits)
+	if len(DefaultTemplateRepoUnits) == 0 {
+		return errors.New("no default template repository units found")
+	}
 	return nil
 }
 
 // UnitGlobalDisabled checks if unit type is global disabled
 func (u Type) UnitGlobalDisabled() bool {
-	for _, ud := range DisabledRepoUnits {
-		if u == ud {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(DisabledRepoUnitsGet(), u)
 }
 
 // CanBeDefault checks if the unit type can be a default repo unit
 func (u *Type) CanBeDefault() bool {
-	for _, nadU := range NotAllowedDefaultRepoUnits {
-		if *u == nadU {
-			return false
-		}
-	}
-	return true
+	return !slices.Contains(NotAllowedDefaultRepoUnits, *u)
 }
 
 // Unit is a section of one repository
@@ -189,16 +219,13 @@ type Unit struct {
 	NameKey       string
 	URI           string
 	DescKey       string
-	Idx           int
+	Priority      int
 	MaxAccessMode perm.AccessMode // The max access mode of the unit. i.e. Read means this unit can only be read.
 }
 
 // IsLessThan compares order of two units
 func (u Unit) IsLessThan(unit Unit) bool {
-	if (u.Type == TypeExternalTracker || u.Type == TypeExternalWiki) && unit.Type != TypeExternalTracker && unit.Type != TypeExternalWiki {
-		return false
-	}
-	return u.Idx < unit.Idx
+	return u.Priority < unit.Priority
 }
 
 // MaxPerm returns the max perms of this unit
@@ -234,7 +261,7 @@ var (
 		"repo.ext_issues",
 		"/issues",
 		"repo.ext_issues.desc",
-		1,
+		101,
 		perm.AccessModeRead,
 	}
 
@@ -270,7 +297,7 @@ var (
 		"repo.ext_wiki",
 		"/wiki",
 		"repo.ext_wiki.desc",
-		4,
+		102,
 		perm.AccessModeRead,
 	}
 
@@ -318,14 +345,13 @@ var (
 
 // FindUnitTypes give the unit key names and return valid unique units and invalid keys
 func FindUnitTypes(nameKeys ...string) (res []Type, invalidKeys []string) {
-	m := map[Type]struct{}{}
+	m := make(container.Set[Type])
 	for _, key := range nameKeys {
 		t := TypeFromKey(key)
 		if t == TypeInvalid {
 			invalidKeys = append(invalidKeys, key)
-		} else if _, ok := m[t]; !ok {
+		} else if m.Add(t) {
 			res = append(res, t)
-			m[t] = struct{}{}
 		}
 	}
 	return res, invalidKeys
@@ -346,23 +372,6 @@ func AllUnitKeyNames() []string {
 	res := make([]string, 0, len(Units))
 	for _, u := range Units {
 		res = append(res, u.NameKey)
-	}
-	return res
-}
-
-// MinUnitAccessMode returns the minial permission of the permission map
-func MinUnitAccessMode(unitsMap map[Type]perm.AccessMode) perm.AccessMode {
-	res := perm.AccessModeNone
-	for t, mode := range unitsMap {
-		// Don't allow `TypeExternal{Tracker,Wiki}` to influence this as they can only be set to READ perms.
-		if t == TypeExternalTracker || t == TypeExternalWiki {
-			continue
-		}
-
-		// get the minial permission great than AccessModeNone except all are AccessModeNone
-		if mode > perm.AccessModeNone && (res == perm.AccessModeNone || mode < res) {
-			res = mode
-		}
 	}
 	return res
 }

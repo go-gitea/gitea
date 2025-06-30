@@ -2,7 +2,7 @@
   overflow: hidden;
   font-size: 16px;
   line-height: 1.5 !important;
-  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .markup > *:first-child {
@@ -134,6 +134,13 @@
   margin-bottom: 16px;
 }
 
+/* override p:last-child from base.css.
+Fomantic assumes that <p>/<hX> elements only have margins between elements, but not for the first's top or last's bottom.
+In markup content, we always use bottom margin for all elements */
+.markup p:last-child {
+  margin-bottom: 16px;
+}
+
 .markup hr {
   height: 4px;
   padding: 0;
@@ -155,23 +162,29 @@
 
 .markup .task-list-item {
   list-style-type: none;
-  position: relative;
-  line-height: 1.5rem;
-  min-height: 1.5rem; /* // to render a checkbox list without content `- [ ]`, we need this min-height to make sure the <li> can be visible */
+}
+
+.markup .task-list-item p + ul {
+  margin-top: 16px;
 }
 
 .markup .task-list-item input[type="checkbox"] {
-  position: absolute;
-  top: 0.25em;
-  left: -1.6em;
+  margin: 0 .3em .25em -1.4em;
+  vertical-align: middle;
+  padding: 0;
 }
 
-.markup .task-list-item p {
-  line-height: 1.5rem;
+.markup .task-list-item input[type="checkbox"] + p {
+  margin-left: -0.2em;
+  display: inline;
+}
+
+.markup .task-list-item > p {
+  margin-inline: 16px;
 }
 
 .markup .task-list-item + .task-list-item {
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .markup input[type="checkbox"] {
@@ -180,7 +193,7 @@
   appearance: none;
   position: relative;
   border: 1px solid var(--color-secondary);
-  border-radius: 2px;
+  border-radius: var(--border-radius);
   background: var(--color-input-background);
   height: 14px;
   width: 14px;
@@ -198,10 +211,7 @@
 
 .markup input[type="checkbox"]::after {
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  right: 0;
+  inset: 0;
   pointer-events: none;
   background: var(--color-text);
   mask-size: cover;
@@ -264,7 +274,7 @@
   margin-left: 0;
   padding: 0 15px;
   color: var(--color-text-light-2);
-  border-left: 4px solid var(--color-secondary);
+  border-left: 0.25em solid var(--color-secondary);
 }
 
 .markup blockquote > :first-child {
@@ -278,7 +288,6 @@
 .markup table {
   display: block;
   width: 100%;
-  width: max-content;
   max-width: 100%;
   overflow: auto;
 }
@@ -307,10 +316,18 @@
   box-sizing: initial;
 }
 
+.file-view.markup {
+  padding: 1em 2em;
+}
+
+.file-view.markup:has(.file-not-rendered-prompt) {
+  padding: 0; /* let the file-not-rendered-prompt layout itself */
+}
+
 /* this background ensures images can break <hr>. We can only do this on
    cases where the background is known and not transparent. */
-.markup.file-view img,
-.markup.file-view video,
+.file-view.markup img,
+.file-view.markup video,
 .comment-body .markup img, /* regular comment */
 .comment-body .markup video,
 .comment-content .markup img, /* code comment */
@@ -327,12 +344,7 @@
 
 .markup img[align="left"],
 .markup video[align="left"] {
-  padding-right: 20px;
-}
-
-.markup .emoji {
-  max-width: none;
-  vertical-align: text-top;
+  padding-right: 28px;
 }
 
 .markup span.frame {
@@ -376,7 +388,7 @@
   text-align: center;
 }
 
-.markup span.align-center span img
+.markup span.align-center span img,
 .markup span.align-center span video {
   margin: 0 auto;
   text-align: center;
@@ -432,8 +444,8 @@
   margin: 0;
   font-size: 85%;
   white-space: break-spaces;
-  background-color: var(--color-markup-code-block);
-  border-radius: 4px;
+  background-color: var(--color-markup-code-inline);
+  border-radius: var(--border-radius);
 }
 
 .markup code br,
@@ -446,14 +458,25 @@
 }
 
 .markup pre > code {
-  padding: 0;
-  margin: 0;
   font-size: 100%;
+}
+
+.markup .code-block,
+.markup .code-block-container {
+  position: relative;
+}
+
+.markup .code-block-container.code-overflow-wrap pre > code {
   white-space: pre-wrap;
-  word-break: break-all;
-  overflow-wrap: break-word;
-  background: transparent;
-  border: 0;
+}
+
+.markup .code-block-container.code-overflow-scroll pre {
+  overflow-x: auto;
+}
+
+.markup .code-block-container.code-overflow-scroll pre > code {
+  white-space: pre;
+  overflow-wrap: normal;
 }
 
 .markup .highlight {
@@ -466,7 +489,7 @@
   font-size: 85%;
   line-height: 1.45;
   background-color: var(--color-markup-code-block);
-  border-radius: 4px;
+  border-radius: var(--border-radius);
 }
 
 .markup .highlight pre {
@@ -474,16 +497,11 @@
   word-break: normal;
 }
 
-.markup pre {
-  word-wrap: normal;
-}
-
 .markup pre code,
 .markup pre tt {
   display: inline;
   padding: 0;
   line-height: inherit;
-  word-wrap: normal;
   background-color: transparent;
   border: 0;
 }
@@ -502,9 +520,9 @@
   line-height: 10px;
   color: var(--color-text-light);
   vertical-align: middle;
-  background-color: var(--color-markup-code-block);
+  background-color: var(--color-markup-code-inline);
   border: 1px solid var(--color-secondary);
-  border-radius: 3px;
+  border-radius: var(--border-radius);
   box-shadow: inset 0 -1px 0 var(--color-secondary);
 }
 
@@ -514,21 +532,19 @@
   padding-left: 2em;
 }
 
-.file-revisions-btn {
-  display: block;
-  float: left;
-  margin-bottom: 2px !important;
-  padding: 11px !important;
-  margin-right: 10px !important;
+.markup details.frontmatter-content summary {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  margin-bottom: 0.25em;
 }
 
-.file-revisions-btn i {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
+.markup details.frontmatter-content svg {
+  vertical-align: middle;
+  margin: 0 0.25em;
 }
 
-.markup-render {
+.markup-content-iframe {
   display: block;
   border: none;
   width: 100%;

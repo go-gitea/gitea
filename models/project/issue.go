@@ -5,10 +5,10 @@ package project
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ProjectIssue saves relation from issue to a project
@@ -17,10 +17,10 @@ type ProjectIssue struct { //revive:disable-line:exported
 	IssueID   int64 `xorm:"INDEX"`
 	ProjectID int64 `xorm:"INDEX"`
 
-	// If 0, then it has not been added to a specific board in the project
-	ProjectBoardID int64 `xorm:"INDEX"`
+	// ProjectColumnID should not be zero since 1.22. If it's zero, the issue will not be displayed on UI and it might result in errors.
+	ProjectColumnID int64 `xorm:"'project_board_id' INDEX"`
 
-	// the sorting order on the board
+	// the sorting order on the column
 	Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
@@ -33,68 +33,41 @@ func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error 
 	return err
 }
 
-// NumIssues return counter of all issues assigned to a project
-func (p *Project) NumIssues() int {
-	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
-		Where("project_id=?", p.ID).
-		GroupBy("issue_id").
-		Cols("issue_id").
-		Count()
-	if err != nil {
-		log.Error("NumIssues: %v", err)
-		return 0
+func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Column) error {
+	if c.ProjectID != newColumn.ProjectID {
+		return errors.New("columns have to be in the same project")
 	}
-	return int(c)
-}
 
-// NumClosedIssues return counter of closed issues assigned to a project
-func (p *Project) NumClosedIssues() int {
-	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
-		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, true).
-		Cols("issue_id").
-		Count()
-	if err != nil {
-		log.Error("NumClosedIssues: %v", err)
-		return 0
+	if c.ID == newColumn.ID {
+		return nil
 	}
-	return int(c)
-}
 
-// NumOpenIssues return counter of open issues assigned to a project
-func (p *Project) NumOpenIssues() int {
-	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
-		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).
-		Cols("issue_id").
-		Count()
-	if err != nil {
-		log.Error("NumOpenIssues: %v", err)
-		return 0
+	res := struct {
+		MaxSorting int64
+		IssueCount int64
+	}{}
+	if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").
+		Table("project_issue").
+		Where("project_id=?", newColumn.ProjectID).
+		And("project_board_id=?", newColumn.ID).
+		Get(&res); err != nil {
+		return err
 	}
-	return int(c)
-}
 
-// MoveIssuesOnProjectBoard moves or keeps issues in a column and sorts them inside that column
-func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) error {
-	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		sess := db.GetEngine(ctx)
+	issues, err := c.GetIssues(ctx)
+	if err != nil {
+		return err
+	}
+	if len(issues) == 0 {
+		return nil
+	}
 
-		issueIDs := make([]int64, 0, len(sortedIssueIDs))
-		for _, issueID := range sortedIssueIDs {
-			issueIDs = append(issueIDs, issueID)
-		}
-		count, err := sess.Table(new(ProjectIssue)).Where("project_id=?", board.ProjectID).In("issue_id", issueIDs).Count()
-		if err != nil {
-			return err
-		}
-		if int(count) != len(sortedIssueIDs) {
-			return fmt.Errorf("all issues have to be added to a project first")
-		}
-
-		for sorting, issueID := range sortedIssueIDs {
-			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", board.ID, sorting, issueID)
-			if err != nil {
+	nextSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for i, issue := range issues {
+			issue.ProjectColumnID = newColumn.ID
+			issue.Sorting = nextSorting + int64(i)
+			if _, err := db.GetEngine(ctx).ID(issue.ID).Cols("project_board_id", "sorting").Update(issue); err != nil {
 				return err
 			}
 		}
@@ -102,7 +75,8 @@ func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) erro
 	})
 }
 
-func (b *Board) removeIssues(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", b.ID)
+// DeleteAllProjectIssueByIssueIDsAndProjectIDs delete all project's issues by issue's and project's ids
+func DeleteAllProjectIssueByIssueIDsAndProjectIDs(ctx context.Context, issueIDs, projectIDs []int64) error {
+	_, err := db.GetEngine(ctx).In("project_id", projectIDs).In("issue_id", issueIDs).Delete(&ProjectIssue{})
 	return err
 }

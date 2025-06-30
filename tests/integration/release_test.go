@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -39,7 +38,7 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 		postData["prerelease"] = "on"
 	}
 	if draft {
-		postData["draft"] = "Save Draft"
+		postData["draft"] = "1"
 	}
 	req = NewRequestWithValues(t, "POST", link, postData)
 
@@ -54,12 +53,12 @@ func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, ver
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	labelText := htmlDoc.doc.Find("#release-list > li .detail .label").First().Text()
-	assert.EqualValues(t, label, labelText)
+	assert.Equal(t, label, labelText)
 	titleText := htmlDoc.doc.Find("#release-list > li .detail h4 a").First().Text()
-	assert.EqualValues(t, version, titleText)
+	assert.Equal(t, version, titleText)
 
 	releaseList := htmlDoc.doc.Find("#release-list > li")
-	assert.EqualValues(t, count, releaseList.Length())
+	assert.Equal(t, count, releaseList.Length())
 }
 
 func TestViewReleases(t *testing.T) {
@@ -68,9 +67,6 @@ func TestViewReleases(t *testing.T) {
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
 	session.MakeRequest(t, req, http.StatusOK)
-
-	// if CI is to slow this test fail, so lets wait a bit
-	time.Sleep(time.Millisecond * 100)
 }
 
 func TestViewReleasesNoLogin(t *testing.T) {
@@ -86,7 +82,7 @@ func TestCreateRelease(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, false)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").Tr("repo.release.stable"), 4)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release.stable"), 4)
 }
 
 func TestCreateReleasePreRelease(t *testing.T) {
@@ -95,7 +91,7 @@ func TestCreateReleasePreRelease(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", true, false)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").Tr("repo.release.prerelease"), 4)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release.prerelease"), 4)
 }
 
 func TestCreateReleaseDraft(t *testing.T) {
@@ -104,7 +100,7 @@ func TestCreateReleaseDraft(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, true)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").Tr("repo.release.draft"), 4)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release.draft"), 4)
 }
 
 func TestCreateReleasePaging(t *testing.T) {
@@ -118,17 +114,17 @@ func TestCreateReleasePaging(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	// Create enough releases to have paging
-	for i := 0; i < 12; i++ {
+	for i := range 12 {
 		version := fmt.Sprintf("v0.0.%d", i)
 		createNewRelease(t, session, "/user2/repo1", version, version, false, false)
 	}
 	createNewRelease(t, session, "/user2/repo1", "v0.0.12", "v0.0.12", false, true)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.12", translation.NewLocale("en-US").Tr("repo.release.draft"), 10)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.12", translation.NewLocale("en-US").TrString("repo.release.draft"), 10)
 
 	// Check that user4 does not see draft and still see 10 latest releases
 	session2 := loginUser(t, "user4")
-	checkLatestReleaseAndCount(t, session2, "/user2/repo1", "v0.0.11", translation.NewLocale("en-US").Tr("repo.release.stable"), 10)
+	checkLatestReleaseAndCount(t, session2, "/user2/repo1", "v0.0.11", translation.NewLocale("en-US").TrString("repo.release.stable"), 10)
 }
 
 func TestViewReleaseListNoLogin(t *testing.T) {
@@ -142,7 +138,7 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 	rsp := MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, rsp.Body)
-	releases := htmlDoc.Find("#release-list li.ui.grid")
+	releases := htmlDoc.Find("#release-list .release-entry")
 	assert.Equal(t, 5, releases.Length())
 
 	links := make([]string, 0, 5)
@@ -157,14 +153,14 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 		commitsToMain = append(commitsToMain, s.Find(".ahead > a").Text())
 	})
 
-	assert.EqualValues(t, []string{
+	assert.Equal(t, []string{
 		"/user2/repo-release/releases/tag/empty-target-branch",
 		"/user2/repo-release/releases/tag/non-existing-target-branch",
 		"/user2/repo-release/releases/tag/v2.0",
 		"/user2/repo-release/releases/tag/v1.1",
 		"/user2/repo-release/releases/tag/v1.0",
 	}, links)
-	assert.EqualValues(t, []string{
+	assert.Equal(t, []string{
 		"1 commits", // like v1.1
 		"1 commits", // like v1.1
 		"0 commits",
@@ -173,17 +169,25 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 	}, commitsToMain)
 }
 
-func TestViewSingleReleaseNoLogin(t *testing.T) {
+func TestViewSingleRelease(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/user2/repo-release/releases/tag/v1.0")
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	// check the "number of commits to main since this release"
-	releaseList := htmlDoc.doc.Find("#release-list .ahead > a")
-	assert.EqualValues(t, 1, releaseList.Length())
-	assert.EqualValues(t, "3 commits", releaseList.First().Text())
+	t.Run("NoLogin", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/user2/repo-release/releases/tag/v1.0")
+		resp := MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		// check the "number of commits to main since this release"
+		releaseList := htmlDoc.doc.Find("#release-list .ahead > a")
+		assert.Equal(t, 1, releaseList.Length())
+		assert.Equal(t, "3 commits", releaseList.First().Text())
+	})
+	t.Run("Login", func(t *testing.T) {
+		session := loginUser(t, "user1")
+		req := NewRequest(t, "GET", "/user2/repo1/releases/tag/delete-tag") // "delete-tag" is the only one with is_tag=true (although strange name)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		// the New Release button should contain the tag name
+		assert.Contains(t, resp.Body.String(), `<a class="ui small primary button" href="/user2/repo1/releases/new?tag=delete-tag">`)
+	})
 }
 
 func TestViewReleaseListLogin(t *testing.T) {
@@ -198,7 +202,7 @@ func TestViewReleaseListLogin(t *testing.T) {
 	rsp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, rsp.Body)
-	releases := htmlDoc.Find("#release-list li.ui.grid")
+	releases := htmlDoc.Find("#release-list .release-entry")
 	assert.Equal(t, 3, releases.Length())
 
 	links := make([]string, 0, 5)
@@ -210,7 +214,7 @@ func TestViewReleaseListLogin(t *testing.T) {
 		links = append(links, link)
 	})
 
-	assert.EqualValues(t, []string{
+	assert.Equal(t, []string{
 		"/user2/repo1/releases/tag/draft-release",
 		"/user2/repo1/releases/tag/v1.0",
 		"/user2/repo1/releases/tag/v1.1",
@@ -229,13 +233,30 @@ func TestViewTagsList(t *testing.T) {
 	rsp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, rsp.Body)
-	tags := htmlDoc.Find(".tag-list tr")
+	tags := htmlDoc.Find(".tag-list-row-link")
 	assert.Equal(t, 3, tags.Length())
 
 	tagNames := make([]string, 0, 5)
 	tags.Each(func(i int, s *goquery.Selection) {
-		tagNames = append(tagNames, s.Find(".tag a.gt-df.gt-ac").Text())
+		tagNames = append(tagNames, s.Text())
 	})
 
-	assert.EqualValues(t, []string{"v1.0", "delete-tag", "v1.1"}, tagNames)
+	assert.Equal(t, []string{"v1.0", "delete-tag", "v1.1"}, tagNames)
+}
+
+func TestDownloadReleaseAttachment(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	tests.PrepareAttachmentsStorage(t)
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+
+	url := repo.Link() + "/releases/download/v1.1/README.md"
+
+	req := NewRequest(t, "GET", url)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	req = NewRequest(t, "GET", url)
+	session := loginUser(t, "user2")
+	session.MakeRequest(t, req, http.StatusOK)
 }

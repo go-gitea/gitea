@@ -4,6 +4,7 @@
 package asymkey
 
 import (
+	"context"
 	"strconv"
 	"time"
 
@@ -29,8 +30,8 @@ import (
 // This file provides functions relating verifying gpg keys
 
 // VerifyGPGKey marks a GPG key as verified
-func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func VerifyGPGKey(ctx context.Context, ownerID int64, keyID, token, signature string) (string, error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -45,7 +46,11 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 		return "", ErrGPGKeyNotExist{}
 	}
 
-	sig, err := extractSignature(signature)
+	if err := key.LoadSubKeys(ctx); err != nil {
+		return "", err
+	}
+
+	sig, err := ExtractSignature(signature)
 	if err != nil {
 		return "", ErrGPGInvalidTokenSignature{
 			ID:      key.KeyID,
@@ -62,7 +67,6 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 	}
 	if signer == nil {
 		signer, err = hashAndVerifyWithSubKeys(sig, token+"\n", key)
-
 		if err != nil {
 			return "", ErrGPGInvalidTokenSignature{
 				ID:      key.KeyID,
@@ -81,7 +85,7 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 	}
 
 	if signer == nil {
-		log.Error("Unable to validate token signature. Error: %v", err)
+		log.Debug("VerifyGPGKey failed: no signer")
 		return "", ErrGPGInvalidTokenSignature{
 			ID: key.KeyID,
 		}
@@ -106,8 +110,9 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 // VerificationToken returns token for the user that will be valid in minutes (time)
 func VerificationToken(user *user_model.User, minutes int) string {
 	return base.EncodeSha256(
-		time.Now().Truncate(1*time.Minute).Add(time.Duration(minutes)*time.Minute).Format(time.RFC1123Z) + ":" +
-			user.CreatedUnix.FormatLong() + ":" +
+		time.Now().Truncate(1*time.Minute).Add(time.Duration(minutes)*time.Minute).Format(
+			time.RFC1123Z) + ":" +
+			user.CreatedUnix.Format(time.RFC1123Z) + ":" +
 			user.Name + ":" +
 			user.Email + ":" +
 			strconv.FormatInt(user.ID, 10))

@@ -10,12 +10,17 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOrgRepos(t *testing.T) {
@@ -33,15 +38,15 @@ func TestOrgRepos(t *testing.T) {
 		t.Run(user, func(t *testing.T) {
 			session := loginUser(t, user)
 			for sortBy, repos := range cases {
-				req := NewRequest(t, "GET", "/user3?sort="+sortBy)
+				req := NewRequest(t, "GET", "/org3?sort="+sortBy)
 				resp := session.MakeRequest(t, req, http.StatusOK)
 
 				htmlDoc := NewHTMLParser(t, resp.Body)
 
 				sel := htmlDoc.doc.Find("a.name")
 				assert.Len(t, repos, len(sel.Nodes))
-				for i := 0; i < len(repos); i++ {
-					assert.EqualValues(t, repos[i], strings.TrimSpace(sel.Eq(i).Text()))
+				for i := range repos {
+					assert.Equal(t, repos[i], strings.TrimSpace(sel.Eq(i).Text()))
 				}
 			}
 		})
@@ -151,7 +156,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 
 	// assert restrictedUser cannot see the org or the public repo
 	restrictedSession := loginUser(t, restrictedUser)
-	req := NewRequest(t, "GET", fmt.Sprintf("/%s", orgName))
+	req := NewRequest(t, "GET", "/"+orgName)
 	restrictedSession.MakeRequest(t, req, http.StatusNotFound)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))
@@ -169,26 +174,26 @@ func TestOrgRestrictedUser(t *testing.T) {
 		Units:                   []string{"repo.code"},
 	}
 
-	req = NewRequestWithJSON(t, "POST",
-		fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", orgName, token), teamToCreate)
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", orgName), teamToCreate).
+		AddTokenAuth(token)
 
 	var apiTeam api.Team
 
 	resp := adminSession.MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, "CreateTeam_codereader", &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		teamToCreate.Permission, teamToCreate.Units, nil)
+		"none", teamToCreate.Units, nil)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		teamToCreate.Permission, teamToCreate.Units, nil)
+		"none", teamToCreate.Units, nil)
 	// teamID := apiTeam.ID
 
 	// Now we need to add the restricted user to the team
-	req = NewRequest(t, "PUT",
-		fmt.Sprintf("/api/v1/teams/%d/members/%s?token=%s", apiTeam.ID, restrictedUser, token))
+	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/teams/%d/members/%s", apiTeam.ID, restrictedUser)).
+		AddTokenAuth(token)
 	_ = adminSession.MakeRequest(t, req, http.StatusNoContent)
 
 	// Now we need to check if the restrictedUser can access the repo
-	req = NewRequest(t, "GET", fmt.Sprintf("/%s", orgName))
+	req = NewRequest(t, "GET", "/"+orgName)
 	restrictedSession.MakeRequest(t, req, http.StatusOK)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))
@@ -204,9 +209,7 @@ func TestTeamSearch(t *testing.T) {
 	var results TeamSearchResults
 
 	session := loginUser(t, user.Name)
-	csrf := GetCSRF(t, session, "/"+org.Name)
 	req := NewRequestf(t, "GET", "/org/%s/teams/-/search?q=%s", org.Name, "_team")
-	req.Header.Add("X-Csrf-Token", csrf)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &results)
 	assert.NotEmpty(t, results.Data)
@@ -217,8 +220,34 @@ func TestTeamSearch(t *testing.T) {
 	// no access if not organization member
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	session = loginUser(t, user5.Name)
-	csrf = GetCSRF(t, session, "/"+org.Name)
 	req = NewRequestf(t, "GET", "/org/%s/teams/-/search?q=%s", org.Name, "team")
-	req.Header.Add("X-Csrf-Token", csrf)
 	session.MakeRequest(t, req, http.StatusNotFound)
+
+	t.Run("SearchWithPermission", func(t *testing.T) {
+		ctx := t.Context()
+		const testOrgID int64 = 500
+		const testRepoID int64 = 2000
+		testTeam := &organization.Team{OrgID: testOrgID, LowerName: "test_team", AccessMode: perm.AccessModeNone}
+		require.NoError(t, db.Insert(ctx, testTeam))
+		require.NoError(t, db.Insert(ctx, &organization.TeamRepo{OrgID: testOrgID, TeamID: testTeam.ID, RepoID: testRepoID}))
+		require.NoError(t, db.Insert(ctx, &organization.TeamUnit{OrgID: testOrgID, TeamID: testTeam.ID, Type: unit.TypeCode, AccessMode: perm.AccessModeRead}))
+		require.NoError(t, db.Insert(ctx, &organization.TeamUnit{OrgID: testOrgID, TeamID: testTeam.ID, Type: unit.TypeIssues, AccessMode: perm.AccessModeWrite}))
+
+		teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, testOrgID, testRepoID, perm.AccessModeRead, unit.TypeCode, unit.TypeIssues)
+		require.NoError(t, err)
+		assert.Len(t, teams, 1) // can read "code" or "issues"
+
+		teams, err = organization.GetTeamsWithAccessToAnyRepoUnit(ctx, testOrgID, testRepoID, perm.AccessModeWrite, unit.TypeCode)
+		require.NoError(t, err)
+		assert.Empty(t, teams) // cannot write "code"
+
+		teams, err = organization.GetTeamsWithAccessToAnyRepoUnit(ctx, testOrgID, testRepoID, perm.AccessModeWrite, unit.TypeIssues)
+		require.NoError(t, err)
+		assert.Len(t, teams, 1) // can write "issues"
+
+		_, _ = db.GetEngine(ctx).ID(testTeam.ID).Update(&organization.Team{AccessMode: perm.AccessModeWrite})
+		teams, err = organization.GetTeamsWithAccessToAnyRepoUnit(ctx, testOrgID, testRepoID, perm.AccessModeWrite, unit.TypeCode)
+		require.NoError(t, err)
+		assert.Len(t, teams, 1) // team permission is "write", so can write "code"
+	})
 }

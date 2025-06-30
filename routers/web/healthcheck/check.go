@@ -121,10 +121,6 @@ func checkDatabase(ctx context.Context, checks checks) status {
 
 // cache checks gitea cache status
 func checkCache(checks checks) status {
-	if !setting.CacheService.Enabled {
-		return pass
-	}
-
 	st := componentStatus{}
 	if err := cache.GetCache().Ping(); err != nil {
 		st.Status = fail

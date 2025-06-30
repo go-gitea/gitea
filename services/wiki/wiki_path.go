@@ -9,7 +9,10 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/git"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // To define the wiki related concepts:
@@ -30,7 +33,7 @@ import (
 // TODO: support subdirectory in the future
 //
 // Although this package now has the ability to support subdirectory, but the route package doesn't:
-// * Double-escaping problem: the URL "/wiki/abc%2Fdef" becomes "/wiki/abc/def" by ctx.Params, which is incorrect
+// * Double-escaping problem: the URL "/wiki/abc%2Fdef" becomes "/wiki/abc/def" by ctx.PathParam, which is incorrect
 //   * This problem should have been 99% fixed, but it needs more tests.
 // * The old wiki code's behavior is always using %2F, instead of subdirectory, so there are a lot of legacy "%2F" files in user wikis.
 
@@ -154,4 +157,16 @@ func UserTitleToWebPath(base, title string) WebPath {
 		title = "unnamed"
 	}
 	return WebPath(title)
+}
+
+// ToWikiPageMetaData converts meta information to a WikiPageMetaData
+func ToWikiPageMetaData(wikiName WebPath, lastCommit *git.Commit, repo *repo_model.Repository) *api.WikiPageMetaData {
+	subURL := string(wikiName)
+	_, title := WebPathToUserTitle(wikiName)
+	return &api.WikiPageMetaData{
+		Title:      title,
+		HTMLURL:    util.URLJoin(repo.HTMLURL(), "wiki", subURL),
+		SubURL:     subURL,
+		LastCommit: convert.ToWikiCommit(lastCommit),
+	}
 }

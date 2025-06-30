@@ -5,17 +5,20 @@ package user
 
 import (
 	"net/http"
+	"slices"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/routers/common"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplUserCode base.TplName = "user/code"
+	tplUserCode templates.TplName = "user/code"
 )
 
 // CodeSearch render user/organization code search page
@@ -24,26 +27,17 @@ func CodeSearch(ctx *context.Context) {
 		ctx.Redirect(ctx.ContextUser.HomeLink())
 		return
 	}
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	shared_user.RenderUserHeader(ctx)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore.code")
-	ctx.Data["ContextUser"] = ctx.ContextUser
-
-	language := ctx.FormTrim("l")
-	keyword := ctx.FormTrim("q")
-
-	queryType := ctx.FormTrim("t")
-	isMatch := queryType == "match"
-
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["Language"] = language
-	ctx.Data["queryType"] = queryType
 	ctx.Data["IsCodePage"] = true
 
-	if keyword == "" {
+	prepareSearch := common.PrepareCodeSearch(ctx)
+	if prepareSearch.Keyword == "" {
 		ctx.HTML(http.StatusOK, tplUserCode)
 		return
 	}
@@ -71,7 +65,16 @@ func CodeSearch(ctx *context.Context) {
 	)
 
 	if len(repoIDs) > 0 {
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
+		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
+			RepoIDs:    repoIDs,
+			Keyword:    prepareSearch.Keyword,
+			SearchMode: prepareSearch.SearchMode,
+			Language:   prepareSearch.Language,
+			Paginator: &db.ListOptions{
+				Page:     page,
+				PageSize: setting.UI.RepoSearchPagingNum,
+			},
+		})
 		if err != nil {
 			if code_indexer.IsAvailable(ctx) {
 				ctx.ServerError("SearchResults", err)
@@ -84,19 +87,12 @@ func CodeSearch(ctx *context.Context) {
 
 		loadRepoIDs := make([]int64, 0, len(searchResults))
 		for _, result := range searchResults {
-			var find bool
-			for _, id := range loadRepoIDs {
-				if id == result.RepoID {
-					find = true
-					break
-				}
-			}
-			if !find {
+			if !slices.Contains(loadRepoIDs, result.RepoID) {
 				loadRepoIDs = append(loadRepoIDs, result.RepoID)
 			}
 		}
 
-		repoMaps, err := repo_model.GetRepositoriesMapByIDs(loadRepoIDs)
+		repoMaps, err := repo_model.GetRepositoriesMapByIDs(ctx, loadRepoIDs)
 		if err != nil {
 			ctx.ServerError("GetRepositoriesMapByIDs", err)
 			return
@@ -108,8 +104,7 @@ func CodeSearch(ctx *context.Context) {
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "l", "Language")
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplUserCode)

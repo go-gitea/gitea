@@ -6,17 +6,19 @@ package forms
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/binding"
 )
 
 // AuthenticationForm form for authentication
 type AuthenticationForm struct {
-	ID                            int64
-	Type                          int    `binding:"Range(2,7)"`
-	Name                          string `binding:"Required;MaxSize(30)"`
+	ID              int64
+	Type            int    `binding:"Range(2,7)"`
+	Name            string `binding:"Required;MaxSize(30)"`
+	TwoFactorPolicy string
+
 	Host                          string
 	Port                          int
 	BindDN                        string
@@ -74,7 +76,6 @@ type AuthenticationForm struct {
 	Oauth2RestrictedGroup         string
 	Oauth2GroupTeamMap            string `binding:"ValidGroupTeamMap"`
 	Oauth2GroupTeamMapRemoval     bool
-	SkipLocalTwoFA                bool
 	SSPIAutoCreateUsers           bool
 	SSPIAutoActivateUsers         bool
 	SSPIStripDomainNames          bool

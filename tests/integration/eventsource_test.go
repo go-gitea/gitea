@@ -65,17 +65,20 @@ func TestEventSourceManagerRun(t *testing.T) {
 	var apiNL []api.NotificationThread
 
 	// -- mark notifications as read --
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?status-types=unread&token=%s", token))
+	req := NewRequest(t, "GET", "/api/v1/notifications?status-types=unread").
+		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &apiNL)
 	assert.Len(t, apiNL, 2)
 
 	lastReadAt := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801 <- only Notification 4 is in this filter ...
-	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?last_read_at=%s&token=%s", user2.Name, repo1.Name, lastReadAt, token))
+	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?last_read_at=%s", user2.Name, repo1.Name, lastReadAt)).
+		AddTokenAuth(token)
 	session.MakeRequest(t, req, http.StatusResetContent)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?token=%s&status-types=unread", token))
+	req = NewRequest(t, "GET", "/api/v1/notifications?status-types=unread").
+		AddTokenAuth(token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiNL)
 	assert.Len(t, apiNL, 1)

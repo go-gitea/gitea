@@ -4,11 +4,13 @@
 package templates
 
 import (
+	"errors"
 	"fmt"
 	"html"
 	"html/template"
 	"reflect"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -32,7 +34,7 @@ func dictMerge(base map[string]any, arg any) bool {
 // The dot syntax is highly discouraged because it might cause unclear key conflicts. It's always good to use explicit keys.
 func dict(args ...any) (map[string]any, error) {
 	if len(args)%2 != 0 {
-		return nil, fmt.Errorf("invalid dict constructor syntax: must have key-value pairs")
+		return nil, errors.New("invalid dict constructor syntax: must have key-value pairs")
 	}
 	m := make(map[string]any, len(args)/2)
 	for i := 0; i < len(args); i += 2 {
@@ -51,7 +53,7 @@ func dict(args ...any) (map[string]any, error) {
 	return m, nil
 }
 
-func dumpVarMarshalable(v any, dumped map[uintptr]bool) (ret any, ok bool) {
+func dumpVarMarshalable(v any, dumped container.Set[uintptr]) (ret any, ok bool) {
 	if v == nil {
 		return nil, true
 	}
@@ -61,11 +63,10 @@ func dumpVarMarshalable(v any, dumped map[uintptr]bool) (ret any, ok bool) {
 	}
 	if e.CanAddr() {
 		addr := e.UnsafeAddr()
-		if dumped[addr] {
+		if !dumped.Add(addr) {
 			return "[dumped]", false
 		}
-		dumped[addr] = true
-		defer delete(dumped, addr)
+		defer dumped.Remove(addr)
 	}
 	switch e.Kind() {
 	case reflect.Bool, reflect.String,
@@ -107,7 +108,7 @@ func dumpVar(v any) template.HTML {
 	if setting.IsProd {
 		return "<pre>dumpVar: only available in dev mode</pre>"
 	}
-	m, ok := dumpVarMarshalable(v, map[uintptr]bool{})
+	m, ok := dumpVarMarshalable(v, make(container.Set[uintptr]))
 	var dumpStr string
 	jsonBytes, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {

@@ -4,12 +4,14 @@
 package user
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -29,17 +31,32 @@ type SearchUserOptions struct {
 	Actor         *User // The user doing the search
 	SearchByEmail bool  // Search by email as well as username/full name
 
-	IsActive           util.OptionalBool
-	IsAdmin            util.OptionalBool
-	IsRestricted       util.OptionalBool
-	IsTwoFactorEnabled util.OptionalBool
-	IsProhibitLogin    util.OptionalBool
+	SupportedSortOrders container.Set[string] // if not nil, only allow to use the sort orders in this set
 
-	ExtraParamStrings map[string]string
+	IsActive           optional.Option[bool]
+	IsAdmin            optional.Option[bool]
+	IsRestricted       optional.Option[bool]
+	IsTwoFactorEnabled optional.Option[bool]
+	IsProhibitLogin    optional.Option[bool]
+	IncludeReserved    bool
 }
 
-func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
-	var cond builder.Cond = builder.Eq{"type": opts.Type}
+func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Session {
+	var cond builder.Cond
+	cond = builder.Eq{"type": opts.Type}
+	if opts.IncludeReserved {
+		switch opts.Type {
+		case UserTypeIndividual:
+			cond = cond.Or(builder.Eq{"type": UserTypeUserReserved}).Or(
+				builder.Eq{"type": UserTypeBot},
+			).Or(
+				builder.Eq{"type": UserTypeRemoteUser},
+			)
+		case UserTypeOrganization:
+			cond = cond.Or(builder.Eq{"type": UserTypeOrganizationReserved})
+		}
+	}
+
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
 		keywordCond := builder.Or(
@@ -47,7 +64,19 @@ func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 			builder.Like{"LOWER(full_name)", lowerKeyword},
 		)
 		if opts.SearchByEmail {
-			keywordCond = keywordCond.Or(builder.Like{"LOWER(email)", lowerKeyword})
+			var emailCond builder.Cond
+			emailCond = builder.Like{"LOWER(email)", lowerKeyword}
+			if opts.Actor == nil {
+				emailCond = emailCond.And(builder.Eq{"keep_email_private": false})
+			} else if !opts.Actor.IsAdmin {
+				emailCond = emailCond.And(
+					builder.Or(
+						builder.Eq{"keep_email_private": false},
+						builder.Eq{"id": opts.Actor.ID},
+					),
+				)
+			}
+			keywordCond = keywordCond.Or(emailCond)
 		}
 
 		cond = cond.And(keywordCond)
@@ -71,24 +100,24 @@ func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 		cond = cond.And(builder.Eq{"login_name": opts.LoginName})
 	}
 
-	if !opts.IsActive.IsNone() {
-		cond = cond.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
+	if opts.IsActive.Has() {
+		cond = cond.And(builder.Eq{"is_active": opts.IsActive.Value()})
 	}
 
-	if !opts.IsAdmin.IsNone() {
-		cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.IsTrue()})
+	if opts.IsAdmin.Has() {
+		cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.Value()})
 	}
 
-	if !opts.IsRestricted.IsNone() {
-		cond = cond.And(builder.Eq{"is_restricted": opts.IsRestricted.IsTrue()})
+	if opts.IsRestricted.Has() {
+		cond = cond.And(builder.Eq{"is_restricted": opts.IsRestricted.Value()})
 	}
 
-	if !opts.IsProhibitLogin.IsNone() {
-		cond = cond.And(builder.Eq{"prohibit_login": opts.IsProhibitLogin.IsTrue()})
+	if opts.IsProhibitLogin.Has() {
+		cond = cond.And(builder.Eq{"prohibit_login": opts.IsProhibitLogin.Value()})
 	}
 
-	e := db.GetEngine(db.DefaultContext)
-	if opts.IsTwoFactorEnabled.IsNone() {
+	e := db.GetEngine(ctx)
+	if !opts.IsTwoFactorEnabled.Has() {
 		return e.Where(cond)
 	}
 
@@ -96,7 +125,7 @@ func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 	// While using LEFT JOIN, sometimes the performance might not be good, but it won't be a problem now, such SQL is seldom executed.
 	// There are some possible methods to refactor this SQL in future when we really need to optimize the performance (but not now):
 	// (1) add a column in user table (2) add a setting value in user_setting table (3) use search engines (bleve/elasticsearch)
-	if opts.IsTwoFactorEnabled.IsTrue() {
+	if opts.IsTwoFactorEnabled.Value() {
 		cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
 	} else {
 		cond = cond.And(builder.Expr("two_factor.uid IS NULL"))
@@ -108,22 +137,22 @@ func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 
 // SearchUsers takes options i.e. keyword and part of user name to search,
 // it returns results in given range and number of total results.
-func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
-	sessCount := opts.toSearchQueryBase()
+func SearchUsers(ctx context.Context, opts SearchUserOptions) (users []*User, _ int64, _ error) {
+	sessCount := opts.toSearchQueryBase(ctx)
 	defer sessCount.Close()
 	count, err := sessCount.Count(new(User))
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %w", err)
+		return nil, 0, fmt.Errorf("count: %w", err)
 	}
 
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = db.SearchOrderByAlphabetically
 	}
 
-	sessQuery := opts.toSearchQueryBase().OrderBy(opts.OrderBy.String())
+	sessQuery := opts.toSearchQueryBase(ctx).OrderBy(opts.OrderBy.String())
 	defer sessQuery.Close()
-	if opts.Page != 0 {
-		sessQuery = db.SetSessionPagination(sessQuery, opts)
+	if opts.Page > 0 {
+		sessQuery = db.SetSessionPagination(sessQuery, &opts)
 	}
 
 	// the sql may contain JOIN, so we must only select User related columns

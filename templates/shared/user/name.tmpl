@@ -1,5 +1,1 @@
-{{if .FullName}}
-	{{.FullName}} <span>(<a class="text primary" href="{{.HomeLink}}">{{.Name}}</a>)</span>
-{{else}}
-	<a class="text primary" href="{{.HomeLink}}">{{.Name}}</a>
-{{end}}
+<a class="text muted" href="{{.HomeLink}}">{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}</a>

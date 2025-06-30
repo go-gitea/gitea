@@ -27,12 +27,12 @@ func TestRepository_GetTags(t *testing.T) {
 	}
 	assert.Len(t, tags, 2)
 	assert.Len(t, tags, total)
-	assert.EqualValues(t, "signed-tag", tags[0].Name)
-	assert.EqualValues(t, "36f97d9a96457e2bab511db30fe2db03893ebc64", tags[0].ID.String())
-	assert.EqualValues(t, "tag", tags[0].Type)
-	assert.EqualValues(t, "test", tags[1].Name)
-	assert.EqualValues(t, "3ad28a9149a2864384548f3d17ed7f38014c9e8a", tags[1].ID.String())
-	assert.EqualValues(t, "tag", tags[1].Type)
+	assert.Equal(t, "signed-tag", tags[0].Name)
+	assert.Equal(t, "36f97d9a96457e2bab511db30fe2db03893ebc64", tags[0].ID.String())
+	assert.Equal(t, "tag", tags[0].Type)
+	assert.Equal(t, "test", tags[1].Name)
+	assert.Equal(t, "3ad28a9149a2864384548f3d17ed7f38014c9e8a", tags[1].ID.String())
+	assert.Equal(t, "tag", tags[1].Type)
 }
 
 func TestRepository_GetTag(t *testing.T) {
@@ -64,19 +64,13 @@ func TestRepository_GetTag(t *testing.T) {
 
 	// and try to get the Tag for lightweight tag
 	lTag, err := bareRepo1.GetTag(lTagName)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
-	if lTag == nil {
-		assert.NotNil(t, lTag)
-		assert.FailNow(t, "nil lTag: %s", lTagName)
-		return
-	}
-	assert.EqualValues(t, lTagName, lTag.Name)
-	assert.EqualValues(t, lTagCommitID, lTag.ID.String())
-	assert.EqualValues(t, lTagCommitID, lTag.Object.String())
-	assert.EqualValues(t, "commit", lTag.Type)
+	require.NoError(t, err)
+	require.NotNil(t, lTag, "nil lTag: %s", lTagName)
+
+	assert.Equal(t, lTagName, lTag.Name)
+	assert.Equal(t, lTagCommitID, lTag.ID.String())
+	assert.Equal(t, lTagCommitID, lTag.Object.String())
+	assert.Equal(t, "commit", lTag.Type)
 
 	// ANNOTATED TAGS
 	aTagCommitID := "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"
@@ -98,20 +92,14 @@ func TestRepository_GetTag(t *testing.T) {
 	}
 
 	aTag, err := bareRepo1.GetTag(aTagName)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
-	if aTag == nil {
-		assert.NotNil(t, aTag)
-		assert.FailNow(t, "nil aTag: %s", aTagName)
-		return
-	}
-	assert.EqualValues(t, aTagName, aTag.Name)
-	assert.EqualValues(t, aTagID, aTag.ID.String())
+	require.NoError(t, err)
+	require.NotNil(t, aTag, "nil aTag: %s", aTagName)
+
+	assert.Equal(t, aTagName, aTag.Name)
+	assert.Equal(t, aTagID, aTag.ID.String())
 	assert.NotEqual(t, aTagID, aTag.Object.String())
-	assert.EqualValues(t, aTagCommitID, aTag.Object.String())
-	assert.EqualValues(t, "tag", aTag.Type)
+	assert.Equal(t, aTagCommitID, aTag.Object.String())
+	assert.Equal(t, "tag", aTag.Type)
 
 	// RELEASE TAGS
 
@@ -129,14 +117,14 @@ func TestRepository_GetTag(t *testing.T) {
 		assert.NoError(t, err)
 		return
 	}
-	assert.EqualValues(t, rTagCommitID, rTagID)
+	assert.Equal(t, rTagCommitID, rTagID)
 
 	oTagID, err := bareRepo1.GetTagID(lTagName)
 	if err != nil {
 		assert.NoError(t, err)
 		return
 	}
-	assert.EqualValues(t, lTagCommitID, oTagID)
+	assert.Equal(t, lTagCommitID, oTagID)
 }
 
 func TestRepository_GetAnnotatedTag(t *testing.T) {
@@ -172,9 +160,9 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 		return
 	}
 	assert.NotNil(t, tag)
-	assert.EqualValues(t, aTagName, tag.Name)
-	assert.EqualValues(t, aTagID, tag.ID.String())
-	assert.EqualValues(t, "tag", tag.Type)
+	assert.Equal(t, aTagName, tag.Name)
+	assert.Equal(t, aTagID, tag.ID.String())
+	assert.Equal(t, "tag", tag.Type)
 
 	// Annotated tag's Commit ID should fail
 	tag2, err := bareRepo1.GetAnnotatedTag(aTagCommitID)
@@ -184,7 +172,6 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 
 	// Annotated tag's name should fail
 	tag3, err := bareRepo1.GetAnnotatedTag(aTagName)
-	assert.Error(t, err)
 	assert.Errorf(t, err, "Length must be 40: %d", len(aTagName))
 	assert.Nil(t, tag3)
 
@@ -209,8 +196,8 @@ func TestRepository_parseTagRef(t *testing.T) {
 			name: "lightweight tag",
 
 			givenRef: map[string]string{
-				"objecttype":    "commit",
-				"refname:short": "v1.9.1",
+				"objecttype":       "commit",
+				"refname:lstrip=2": "v1.9.1",
 				// object will be empty for lightweight tags
 				"object":     "",
 				"objectname": "ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889",
@@ -228,7 +215,7 @@ func TestRepository_parseTagRef(t *testing.T) {
 				ID:        MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
 				Object:    MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
 				Type:      "commit",
-				Tagger:    parseAuthorLine(t, "Foo Bar <foo@bar.com> 1565789218 +0300"),
+				Tagger:    parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
 				Message:   "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n",
 				Signature: nil,
 			},
@@ -238,8 +225,8 @@ func TestRepository_parseTagRef(t *testing.T) {
 			name: "annotated tag",
 
 			givenRef: map[string]string{
-				"objecttype":    "tag",
-				"refname:short": "v0.0.1",
+				"objecttype":       "tag",
+				"refname:lstrip=2": "v0.0.1",
 				// object will refer to commit hash for annotated tag
 				"object":     "3325fd8a973321fd59455492976c042dde3fd1ca",
 				"objectname": "8c68a1f06fc59c655b7e3905b159d761e91c53c9",
@@ -257,7 +244,7 @@ func TestRepository_parseTagRef(t *testing.T) {
 				ID:        MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
 				Object:    MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
 				Type:      "tag",
-				Tagger:    parseAuthorLine(t, "Foo Bar <foo@bar.com> 1565789218 +0300"),
+				Tagger:    parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
 				Message:   "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n",
 				Signature: nil,
 			},
@@ -267,11 +254,11 @@ func TestRepository_parseTagRef(t *testing.T) {
 			name: "annotated tag with signature",
 
 			givenRef: map[string]string{
-				"objecttype":    "tag",
-				"refname:short": "v0.0.1",
-				"object":        "3325fd8a973321fd59455492976c042dde3fd1ca",
-				"objectname":    "8c68a1f06fc59c655b7e3905b159d761e91c53c9",
-				"creator":       "Foo Bar <foo@bar.com> 1565789218 +0300",
+				"objecttype":       "tag",
+				"refname:lstrip=2": "v0.0.1",
+				"object":           "3325fd8a973321fd59455492976c042dde3fd1ca",
+				"objectname":       "8c68a1f06fc59c655b7e3905b159d761e91c53c9",
+				"creator":          "Foo Bar <foo@bar.com> 1565789218 +0300",
 				"contents": `Add changelog of v1.9.1 (#7859)
 
 * add changelog of v1.9.1
@@ -315,9 +302,9 @@ qbHDASXl
 				ID:      MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
 				Object:  MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
 				Type:    "tag",
-				Tagger:  parseAuthorLine(t, "Foo Bar <foo@bar.com> 1565789218 +0300"),
+				Tagger:  parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
 				Message: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md",
-				Signature: &CommitGPGSignature{
+				Signature: &CommitSignature{
 					Signature: `-----BEGIN PGP SIGNATURE-----
 
 aBCGzBAABCgAdFiEEyWRwv/q1Q6IjSv+D4IPOwzt33PoFAmI8jbIACgkQ4IPOwzt3
@@ -363,15 +350,4 @@ Add changelog of v1.9.1 (#7859)
 			}
 		})
 	}
-}
-
-func parseAuthorLine(t *testing.T, committer string) *Signature {
-	t.Helper()
-
-	sig, err := newSignatureFromCommitline([]byte(committer))
-	if err != nil {
-		t.Fatalf("parse author line '%s': %v", committer, err)
-	}
-
-	return sig
 }

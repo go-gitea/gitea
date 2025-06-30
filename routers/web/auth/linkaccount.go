@@ -11,24 +11,25 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/markbates/goth"
 )
 
-var tplLinkAccount base.TplName = "user/auth/link_account"
+var tplLinkAccount templates.TplName = "user/auth/link_account"
 
 // LinkAccount shows the page where the user can decide to login or create a new account
 func LinkAccount(ctx *context.Context) {
+	// FIXME: these common template variables should be prepared in one common function, but not just copy-paste again and again.
 	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
@@ -40,27 +41,43 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
 	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
+	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
 	ctx.Data["ShowRegistrationButton"] = false
+	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
 
 	// use this to set the right link into the signIn and signUp templates in the link_account template
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
 
-	gothUser := ctx.Session.Get("linkAccountGothUser")
-	if gothUser == nil {
-		ctx.ServerError("UserSignIn", errors.New("not in LinkAccount session"))
+	gothUser, ok := ctx.Session.Get("linkAccountGothUser").(goth.User)
+
+	// If you'd like to quickly debug the "link account" page layout, just uncomment the blow line
+	// Don't worry, when the below line exists, the lint won't pass: ineffectual assignment to gothUser (ineffassign)
+	// gothUser, ok = goth.User{Email: "invalid-email", Name: "."}, true // intentionally use invalid data to avoid pass the registration check
+
+	if !ok {
+		// no account in session, so just redirect to the login page, then the user could restart the process
+		ctx.Redirect(setting.AppSubURL + "/user/login")
 		return
 	}
 
-	gu, _ := gothUser.(goth.User)
-	uname := getUserName(&gu)
-	email := gu.Email
+	if missingFields, ok := gothUser.RawData["__giteaAutoRegMissingFields"].([]string); ok {
+		ctx.Data["AutoRegistrationFailedPrompt"] = ctx.Tr("auth.oauth_callback_unable_auto_reg", gothUser.Provider, strings.Join(missingFields, ","))
+	}
+
+	uname, err := extractUserNameFromOAuth2(&gothUser)
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
+	email := gothUser.Email
 	ctx.Data["user_name"] = uname
 	ctx.Data["email"] = email
 
-	if len(email) != 0 {
+	if email != "" {
 		u, err := user_model.GetUserByEmail(ctx, email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			ctx.ServerError("UserSignIn", err)
@@ -69,7 +86,7 @@ func LinkAccount(ctx *context.Context) {
 		if u != nil {
 			ctx.Data["user_exists"] = true
 		}
-	} else if len(uname) != 0 {
+	} else if uname != "" {
 		u, err := user_model.GetUserByName(ctx, uname)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			ctx.ServerError("UserSignIn", err)
@@ -83,7 +100,7 @@ func LinkAccount(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplLinkAccount)
 }
 
-func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl base.TplName, invoker string, err error) {
+func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl templates.TplName, invoker string, err error) {
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
 	} else if errors.Is(err, util.ErrInvalidArgument) {
@@ -124,8 +141,12 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
 	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
+	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
 	ctx.Data["ShowRegistrationButton"] = false
+	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
 
 	// use this to set the right link into the signIn and signUp templates in the link_account template
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
@@ -142,7 +163,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 		return
 	}
 
-	u, _, err := auth_service.UserSignIn(signInForm.UserName, signInForm.Password)
+	u, _, err := auth_service.UserSignIn(ctx, signInForm.UserName, signInForm.Password)
 	if err != nil {
 		handleSignInError(ctx, signInForm.UserName, &signInForm, tplLinkAccount, "UserLinkAccount", err)
 		return
@@ -152,19 +173,19 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 }
 
 func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, remember bool) {
-	updateAvatarIfNeed(gothUser.AvatarURL, u)
+	updateAvatarIfNeed(ctx, gothUser.AvatarURL, u)
 
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
 	// We deliberately ignore the skip local 2fa setting here because we are linking to a previous user here
-	_, err := auth.GetTwoFactorByUID(u.ID)
+	_, err := auth.GetTwoFactorByUID(ctx, u.ID)
 	if err != nil {
 		if !auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("UserLinkAccount", err)
 			return
 		}
 
-		err = externalaccount.LinkAccountToUser(u, gothUser)
+		err = externalaccount.LinkAccountToUser(ctx, u, gothUser)
 		if err != nil {
 			ctx.ServerError("UserLinkAccount", err)
 			return
@@ -185,7 +206,7 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 	}
 
 	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
-	regs, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+	regs, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
 	if err == nil && len(regs) > 0 {
 		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
@@ -211,8 +232,12 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
 	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
+	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
 	ctx.Data["ShowRegistrationButton"] = false
+	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
 
 	// use this to set the right link into the signIn and signUp templates in the link_account template
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
@@ -235,7 +260,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	}
 
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyInternalRegistration {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -271,7 +296,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
-	authSource, err := auth.GetActiveOAuth2SourceByName(gothUser.Provider)
+	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, gothUser.Provider)
 	if err != nil {
 		ctx.ServerError("CreateUser", err)
 		return

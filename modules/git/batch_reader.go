@@ -7,10 +7,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"math"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -26,14 +24,13 @@ type WriteCloserError interface {
 	CloseWithError(err error) error
 }
 
-// EnsureValidGitRepository runs git rev-parse in the repository path - thus ensuring that the repository is a valid repository.
+// ensureValidGitRepository runs git rev-parse in the repository path - thus ensuring that the repository is a valid repository.
 // Run before opening git cat-file.
 // This is needed otherwise the git cat-file will hang for invalid repositories.
-func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
+func ensureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
-	err := NewCommand(ctx, "rev-parse").
-		SetDescription(fmt.Sprintf("%s rev-parse [repo_path: %s]", GitExecutable, repoPath)).
-		Run(&RunOpts{
+	err := NewCommand("rev-parse").
+		Run(ctx, &RunOpts{
 			Dir:    repoPath,
 			Stderr: &stderr,
 		})
@@ -43,8 +40,8 @@ func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
 	return nil
 }
 
-// CatFileBatchCheck opens git cat-file --batch-check in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
+// catFileBatchCheck opens git cat-file --batch-check in the provided repo and returns a stdin pipe, a stdout reader and cancel function
+func catFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
 	batchStdinReader, batchStdinWriter := io.Pipe()
 	batchStdoutReader, batchStdoutWriter := io.Pipe()
 	ctx, ctxCancel := context.WithCancel(ctx)
@@ -62,14 +59,10 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 		cancel()
 	}()
 
-	_, filename, line, _ := runtime.Caller(2)
-	filename = strings.TrimPrefix(filename, callerPrefix)
-
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand(ctx, "cat-file", "--batch-check").
-			SetDescription(fmt.Sprintf("%s cat-file --batch-check [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
-			Run(&RunOpts{
+		err := NewCommand("cat-file", "--batch-check").
+			Run(ctx, &RunOpts{
 				Dir:    repoPath,
 				Stdin:  batchStdinReader,
 				Stdout: batchStdoutWriter,
@@ -93,8 +86,8 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 	return batchStdinWriter, batchReader, cancel
 }
 
-// CatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
+// catFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
+func catFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
 	batchStdinReader, batchStdinWriter := io.Pipe()
@@ -114,14 +107,10 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 		cancel()
 	}()
 
-	_, filename, line, _ := runtime.Caller(2)
-	filename = strings.TrimPrefix(filename, callerPrefix)
-
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand(ctx, "cat-file", "--batch").
-			SetDescription(fmt.Sprintf("%s cat-file --batch [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
-			Run(&RunOpts{
+		err := NewCommand("cat-file", "--batch").
+			Run(ctx, &RunOpts{
 				Dir:    repoPath,
 				Stdin:  batchStdinReader,
 				Stdout: batchStdoutWriter,
@@ -146,9 +135,8 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 }
 
 // ReadBatchLine reads the header line from cat-file --batch
-// We expect:
-// <sha> SP <type> SP <size> LF
-// sha is a 40byte not 20byte here
+// We expect: <oid> SP <type> SP <size> LF
+// then leaving the rest of the stream "<contents> LF" to be read
 func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err error) {
 	typ, err = rd.ReadString('\n')
 	if err != nil {
@@ -203,16 +191,7 @@ headerLoop:
 	}
 
 	// Discard the rest of the tag
-	discard := size - n + 1
-	for discard > math.MaxInt32 {
-		_, err := rd.Discard(math.MaxInt32)
-		if err != nil {
-			return id, err
-		}
-		discard -= math.MaxInt32
-	}
-	_, err := rd.Discard(int(discard))
-	return id, err
+	return id, DiscardFull(rd, size-n+1)
 }
 
 // ReadTreeID reads a tree ID from a cat-file --batch stream, throwing away the rest of the stream.
@@ -238,33 +217,23 @@ headerLoop:
 	}
 
 	// Discard the rest of the commit
-	discard := size - n + 1
-	for discard > math.MaxInt32 {
-		_, err := rd.Discard(math.MaxInt32)
-		if err != nil {
-			return id, err
-		}
-		discard -= math.MaxInt32
-	}
-	_, err := rd.Discard(int(discard))
-	return id, err
+	return id, DiscardFull(rd, size-n+1)
 }
 
 // git tree files are a list:
-// <mode-in-ascii> SP <fname> NUL <20-byte SHA>
+// <mode-in-ascii> SP <fname> NUL <binary Hash>
 //
 // Unfortunately this 20-byte notation is somewhat in conflict to all other git tools
-// Therefore we need some method to convert these 20-byte SHAs to a 40-byte SHA
+// Therefore we need some method to convert these binary hashes to hex hashes
 
-// constant hextable to help quickly convert between 20byte and 40byte hashes
+// constant hextable to help quickly convert between binary and hex representation
 const hextable = "0123456789abcdef"
 
-// To40ByteSHA converts a 20-byte SHA into a 40-byte sha. Input and output can be the
-// same 40 byte slice to support in place conversion without allocations.
+// BinToHexHeash converts a binary Hash into a hex encoded one. Input and output can be the
+// same byte slice to support in place conversion without allocations.
 // This is at least 100x quicker that hex.EncodeToString
-// NB This requires that out is a 40-byte slice
-func To40ByteSHA(sha, out []byte) []byte {
-	for i := 19; i >= 0; i-- {
+func BinToHex(objectFormat ObjectFormat, sha, out []byte) []byte {
+	for i := objectFormat.FullLength()/2 - 1; i >= 0; i-- {
 		v := sha[i]
 		vhi, vlo := v>>4, v&0x0f
 		shi, slo := hextable[vhi], hextable[vlo]
@@ -273,15 +242,15 @@ func To40ByteSHA(sha, out []byte) []byte {
 	return out
 }
 
-// ParseTreeLine reads an entry from a tree in a cat-file --batch stream
+// ParseCatFileTreeLine reads an entry from a tree in a cat-file --batch stream
 // This carefully avoids allocations - except where fnameBuf is too small.
 // It is recommended therefore to pass in an fnameBuf large enough to avoid almost all allocations
 //
 // Each line is composed of:
-// <mode-in-ascii-dropping-initial-zeros> SP <fname> NUL <20-byte SHA>
+// <mode-in-ascii-dropping-initial-zeros> SP <fname> NUL <binary HASH>
 //
-// We don't attempt to convert the 20-byte SHA to 40-byte SHA to save a lot of time
-func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
+// We don't attempt to convert the raw HASH to save a lot of time
+func ParseCatFileTreeLine(objectFormat ObjectFormat, rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
 	var readBytes []byte
 
 	// Read the Mode & fname
@@ -291,7 +260,7 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	}
 	idx := bytes.IndexByte(readBytes, ' ')
 	if idx < 0 {
-		log.Debug("missing space in readBytes ParseTreeLine: %s", readBytes)
+		log.Debug("missing space in readBytes ParseCatFileTreeLine: %s", readBytes)
 		return mode, fname, sha, n, &ErrNotExist{}
 	}
 
@@ -324,11 +293,12 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	fnameBuf = fnameBuf[:len(fnameBuf)-1]
 	fname = fnameBuf
 
-	// Deal with the 20-byte SHA
+	// Deal with the binary hash
 	idx = 0
-	for idx < 20 {
+	length := objectFormat.FullLength() / 2
+	for idx < length {
 		var read int
-		read, err = rd.Read(shaBuf[idx:20])
+		read, err = rd.Read(shaBuf[idx:length])
 		n += read
 		if err != nil {
 			return mode, fname, sha, n, err
@@ -339,9 +309,20 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	return mode, fname, sha, n, err
 }
 
-var callerPrefix string
-
-func init() {
-	_, filename, _, _ := runtime.Caller(0)
-	callerPrefix = strings.TrimSuffix(filename, "modules/git/batch_reader.go")
+func DiscardFull(rd *bufio.Reader, discard int64) error {
+	if discard > math.MaxInt32 {
+		n, err := rd.Discard(math.MaxInt32)
+		discard -= int64(n)
+		if err != nil {
+			return err
+		}
+	}
+	for discard > 0 {
+		n, err := rd.Discard(int(discard))
+		discard -= int64(n)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

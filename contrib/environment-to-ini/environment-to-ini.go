@@ -4,16 +4,17 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 func main() {
-	app := cli.NewApp()
+	app := cli.Command{}
 	app.Name = "environment-to-ini"
 	app.Usage = "Use provided environment to update configuration ini"
 	app.Description = `As a helper to allow docker users to update the gitea configuration
@@ -47,34 +48,38 @@ func main() {
 	on the configuration cheat sheet.`
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
-			Name:  "custom-path, C",
-			Value: setting.CustomPath,
-			Usage: "Custom path file path",
+			Name:    "custom-path",
+			Aliases: []string{"C"},
+			Value:   setting.CustomPath,
+			Usage:   "Custom path file path",
 		},
 		&cli.StringFlag{
-			Name:  "config, c",
-			Value: setting.CustomConf,
-			Usage: "Custom configuration file path",
+			Name:    "config",
+			Aliases: []string{"c"},
+			Value:   setting.CustomConf,
+			Usage:   "Custom configuration file path",
 		},
 		&cli.StringFlag{
-			Name:  "work-path, w",
-			Value: setting.AppWorkPath,
-			Usage: "Set the gitea working path",
+			Name:    "work-path",
+			Aliases: []string{"w"},
+			Value:   setting.AppWorkPath,
+			Usage:   "Set the gitea working path",
 		},
 		&cli.StringFlag{
-			Name:  "out, o",
-			Value: "",
-			Usage: "Destination file to write to",
+			Name:    "out",
+			Aliases: []string{"o"},
+			Value:   "",
+			Usage:   "Destination file to write to",
 		},
 	}
 	app.Action = runEnvironmentToIni
-	err := app.Run(os.Args)
+	err := app.Run(context.Background(), os.Args)
 	if err != nil {
 		log.Fatal("Failed to run app with %s: %v", os.Args, err)
 	}
 }
 
-func runEnvironmentToIni(c *cli.Context) error {
+func runEnvironmentToIni(_ context.Context, c *cli.Command) error {
 	// the config system may change the environment variables, so get a copy first, to be used later
 	env := append([]string{}, os.Environ()...)
 	setting.InitWorkPathAndCfgProvider(os.Getenv, setting.ArgWorkPathAndCustomConf{

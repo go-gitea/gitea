@@ -1,0 +1,31 @@
+<div class="latest-commit">
+{{if not .LatestCommit}}
+	…
+{{else}}
+	{{if .LatestCommitUser}}
+		{{ctx.AvatarUtils.Avatar .LatestCommitUser 24}}
+		{{if and .LatestCommitUser.FullName DefaultShowFullName}}
+			<a class="muted author-wrapper" title="{{.LatestCommitUser.FullName}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
+		{{else}}
+			<a class="muted author-wrapper" title="{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
+		{{end}}
+	{{else}}
+		{{if .LatestCommit.Author}}
+			{{ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
+			<span class="author-wrapper" title="{{.LatestCommit.Author.Name}}"><strong>{{.LatestCommit.Author.Name}}</strong></span>
+		{{end}}
+	{{end}}
+
+	{{template "repo/commit_sign_badge" dict "Commit" .LatestCommit "CommitBaseLink" (print .RepoLink "/commit") "CommitSignVerification" .LatestCommitVerification}}
+
+	{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses}}
+
+	{{$commitLink:= printf "%s/commit/%s" .RepoLink (PathEscape .LatestCommit.ID.String)}}
+	<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .LatestCommit.Message $commitLink $.Repository}}</span>
+		{{if IsMultilineCommitMessage .LatestCommit.Message}}
+			<button class="ui button ellipsis-button" aria-expanded="false" data-global-click="onRepoEllipsisButtonClick">...</button>
+			<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .LatestCommit.Message $.Repository}}</pre>
+		{{end}}
+	</span>
+{{end}}
+</div>

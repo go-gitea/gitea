@@ -6,9 +6,20 @@
 
 package git
 
-func (repo *Repository) getTree(id SHA1) (*Tree, error) {
-	gogitTree, err := repo.gogitRepo.TreeObject(id)
+import (
+	"errors"
+
+	"github.com/go-git/go-git/v5/plumbing"
+)
+
+func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
+	gogitTree, err := repo.gogitRepo.TreeObject(plumbing.Hash(id.RawValue()))
 	if err != nil {
+		if errors.Is(err, plumbing.ErrObjectNotFound) {
+			return nil, ErrNotExist{
+				ID: id.String(),
+			}
+		}
 		return nil, err
 	}
 
@@ -19,8 +30,13 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 
 // GetTree find the tree object in the repository.
 func (repo *Repository) GetTree(idStr string) (*Tree, error) {
-	if len(idStr) != SHAFullLength {
-		res, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify").AddDynamicArguments(idStr).RunStdString(&RunOpts{Dir: repo.Path})
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(idStr) != objectFormat.FullLength() {
+		res, _, err := NewCommand("rev-parse", "--verify").AddDynamicArguments(idStr).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 		if err != nil {
 			return nil, err
 		}
@@ -33,9 +49,9 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 		return nil, err
 	}
 	resolvedID := id
-	commitObject, err := repo.gogitRepo.CommitObject(id)
+	commitObject, err := repo.gogitRepo.CommitObject(plumbing.Hash(id.RawValue()))
 	if err == nil {
-		id = SHA1(commitObject.TreeHash)
+		id = ParseGogitHash(commitObject.TreeHash)
 	}
 	treeObject, err := repo.getTree(id)
 	if err != nil {

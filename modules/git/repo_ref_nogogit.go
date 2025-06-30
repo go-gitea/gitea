@@ -21,7 +21,7 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		err := NewCommand(repo.Ctx, "for-each-ref").Run(&RunOpts{
+		err := NewCommand("for-each-ref").Run(repo.Ctx, &RunOpts{
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,
 			Stderr: stderrBuilder,

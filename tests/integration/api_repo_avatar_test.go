@@ -38,7 +38,8 @@ func TestAPIUpdateRepoAvatar(t *testing.T) {
 		Image: base64.StdEncoding.EncodeToString(avatar),
 	}
 
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar?token=%s", repo.OwnerName, repo.Name, token), &opts)
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Test what happens if you don't have a valid Base64 string
@@ -46,7 +47,8 @@ func TestAPIUpdateRepoAvatar(t *testing.T) {
 		Image: "Invalid",
 	}
 
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar?token=%s", repo.OwnerName, repo.Name, token), &opts)
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test what happens if you use a file that is not an image
@@ -60,7 +62,8 @@ func TestAPIUpdateRepoAvatar(t *testing.T) {
 		Image: base64.StdEncoding.EncodeToString(text),
 	}
 
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar?token=%s", repo.OwnerName, repo.Name, token), &opts)
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusInternalServerError)
 }
 
@@ -71,6 +74,7 @@ func TestAPIDeleteRepoAvatar(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeWriteRepository)
 
-	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/avatar?token=%s", repo.OwnerName, repo.Name, token))
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 }

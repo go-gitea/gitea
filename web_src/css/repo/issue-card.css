@@ -1,11 +1,13 @@
 .issue-card {
   display: flex;
   flex-direction: column;
-  align-items: start;
+  gap: 4px;
+  align-items: stretch;
   border-radius: var(--border-radius);
   padding: 8px 10px;
   border: 1px solid var(--color-secondary);
   background: var(--color-card);
+  color: var(--color-text); /* it can't inherit from parent because the card already has its own background */
 }
 
 .issue-card-icon,
@@ -16,6 +18,27 @@
 
 .issue-card-title {
   flex: 1;
-  font-size: 18px;
-  margin-left: 4px;
+  font-size: 14px;
+}
+
+.issue-card.sortable-chosen .issue-card-title {
+  cursor: inherit;
+}
+
+.issue-card-bottom {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 1em;
+}
+
+.issue-card-bottom-part {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.25em;
+  flex-wrap: wrap;
+  overflow: hidden;
+  max-width: fit-content;
+  max-height: fit-content;
 }

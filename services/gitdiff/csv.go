@@ -7,8 +7,6 @@ import (
 	"encoding/csv"
 	"errors"
 	"io"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -136,7 +134,7 @@ func createCsvDiffSingle(reader *csv.Reader, celltype TableDiffCellType) ([]*Tab
 			return nil, err
 		}
 		cells := make([]*TableDiffCell, len(row))
-		for j := 0; j < len(row); j++ {
+		for j := range row {
 			if celltype == TableDiffCellDel {
 				cells[j] = &TableDiffCell{LeftCell: row[j], Type: celltype}
 			} else {
@@ -367,11 +365,11 @@ func getColumnMapping(baseCSVReader, headCSVReader *csvReader) ([]int, []int) {
 	}
 
 	// Loops through the baseRow and see if there is a match in the head row
-	for i := 0; i < len(baseRow); i++ {
+	for i := range baseRow {
 		base2HeadColMap[i] = unmappedColumn
 		baseCell, err := getCell(baseRow, i)
 		if err == nil {
-			for j := 0; j < len(headRow); j++ {
+			for j := range headRow {
 				if head2BaseColMap[j] == -1 {
 					headCell, err := getCell(headRow, j)
 					if err == nil && baseCell == headCell {
@@ -392,11 +390,11 @@ func getColumnMapping(baseCSVReader, headCSVReader *csvReader) ([]int, []int) {
 
 // tryMapColumnsByContent tries to map missing columns by the content of the first lines.
 func tryMapColumnsByContent(baseCSVReader *csvReader, base2HeadColMap []int, headCSVReader *csvReader, head2BaseColMap []int) {
-	for i := 0; i < len(base2HeadColMap); i++ {
+	for i := range base2HeadColMap {
 		headStart := 0
 		for base2HeadColMap[i] == unmappedColumn && headStart < len(head2BaseColMap) {
 			if head2BaseColMap[headStart] == unmappedColumn {
-				rows := util.Min(maxRowsToInspect, util.Max(0, util.Min(len(baseCSVReader.buffer), len(headCSVReader.buffer))-1))
+				rows := min(maxRowsToInspect, max(0, min(len(baseCSVReader.buffer), len(headCSVReader.buffer))-1))
 				same := 0
 				for j := 1; j <= rows; j++ {
 					baseCell, baseErr := getCell(baseCSVReader.buffer[j], i)
@@ -426,7 +424,7 @@ func getCell(row []string, column int) (string, error) {
 // countUnmappedColumns returns the count of unmapped columns.
 func countUnmappedColumns(mapping []int) int {
 	count := 0
-	for i := 0; i < len(mapping); i++ {
+	for i := range mapping {
 		if mapping[i] == unmappedColumn {
 			count++
 		}

@@ -1,15 +1,30 @@
 @import "./modules/normalize.css";
 @import "./modules/animations.css";
+
+/* fomantic replacements */
 @import "./modules/button.css";
-@import "./modules/select.css";
-@import "./modules/tippy.css";
-@import "./modules/modal.css";
-@import "./modules/breadcrumb.css";
+@import "./modules/container.css";
+@import "./modules/divider.css";
+@import "./modules/header.css";
+@import "./modules/input.css";
+@import "./modules/label.css";
+@import "./modules/list.css";
+@import "./modules/segment.css";
+@import "./modules/grid.css";
+@import "./modules/menu.css";
+@import "./modules/message.css";
+@import "./modules/table.css";
 @import "./modules/card.css";
+@import "./modules/checkbox.css";
+@import "./modules/dimmer.css";
+@import "./modules/modal.css";
+@import "./modules/tab.css";
+
+@import "./modules/tippy.css";
+@import "./modules/breadcrumb.css";
 @import "./modules/comment.css";
 @import "./modules/navbar.css";
 @import "./modules/toast.css";
-@import "./modules/divider.css";
 @import "./modules/svg.css";
 @import "./modules/flexcontainer.css";
 
@@ -24,19 +39,17 @@
 @import "./features/imagediff.css";
 @import "./features/codeeditor.css";
 @import "./features/projects.css";
-@import "./features/tribute.css";
+@import "./features/expander.css";
+@import "./features/cropper.css";
 @import "./features/console.css";
 
 @import "./markup/content.css";
 @import "./markup/codecopy.css";
+@import "./markup/codepreview.css";
 @import "./markup/asciicast.css";
 
 @import "./chroma/base.css";
-@import "./chroma/light.css";
-
 @import "./codemirror/base.css";
-@import "./codemirror/light.css";
-
 @import "./font_i18n.css";
 @import "./base.css";
 @import "./home.css";
@@ -49,8 +62,15 @@
 @import "./repo/issue-label.css";
 @import "./repo/issue-list.css";
 @import "./repo/list-header.css";
-@import "./repo/linebutton.css";
+@import "./repo/file-view.css";
 @import "./repo/wiki.css";
+@import "./repo/header.css";
+@import "./repo/home.css";
+@import "./repo/home-file-list.css";
+@import "./repo/reactions.css";
+@import "./repo/clone.css";
+@import "./repo/commit-sign.css";
+@import "./repo/packages.css";
 
 @import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";
@@ -62,4 +82,7 @@
 @import "./explore.css";
 @import "./review.css";
 @import "./actions.css";
+
 @import "./helpers.css";
+
+@tailwind utilities;

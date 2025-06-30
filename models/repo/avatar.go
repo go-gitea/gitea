@@ -9,10 +9,11 @@ import (
 	"image/png"
 	"io"
 	"net/url"
-	"strings"
+	"strconv"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -31,13 +32,13 @@ func ExistsWithAvatarAtStoragePath(ctx context.Context, storagePath string) (boo
 }
 
 // RelAvatarLink returns a relative link to the repository's avatar.
-func (repo *Repository) RelAvatarLink() string {
-	return repo.relAvatarLink(db.DefaultContext)
+func (repo *Repository) RelAvatarLink(ctx context.Context) string {
+	return repo.relAvatarLink(ctx)
 }
 
 // generateRandomAvatar generates a random avatar for repository.
 func generateRandomAvatar(ctx context.Context, repo *Repository) error {
-	idToString := fmt.Sprintf("%d", repo.ID)
+	idToString := strconv.FormatInt(repo.ID, 10)
 
 	seed := idToString
 	img, err := avatar.RandomImage([]byte(seed))
@@ -84,13 +85,13 @@ func (repo *Repository) relAvatarLink(ctx context.Context) string {
 	return setting.AppSubURL + "/repo-avatars/" + url.PathEscape(repo.Avatar)
 }
 
-// AvatarLink returns a link to the repository's avatar.
+// AvatarLink returns the full avatar url with http host or the empty string if the repo doesn't have an avatar.
+//
+// TODO: refactor it to a relative URL, but it is still used in API response at the moment
 func (repo *Repository) AvatarLink(ctx context.Context) string {
-	link := repo.relAvatarLink(ctx)
-	// we only prepend our AppURL to our known (relative, internal) avatar link to get an absolute URL
-	if strings.HasPrefix(link, "/") && !strings.HasPrefix(link, "//") {
-		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
+	relLink := repo.relAvatarLink(ctx)
+	if relLink != "" {
+		return httplib.MakeAbsoluteURL(ctx, relLink)
 	}
-	// otherwise, return the link as it is
-	return link
+	return ""
 }

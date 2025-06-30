@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -45,7 +46,7 @@ func IsErrWikiReservedName(err error) bool {
 }
 
 func (err ErrWikiReservedName) Error() string {
-	return fmt.Sprintf("wiki title is reserved: %s", err.Title)
+	return "wiki title is reserved: " + err.Title
 }
 
 func (err ErrWikiReservedName) Unwrap() error {
@@ -64,7 +65,7 @@ func IsErrWikiInvalidFileName(err error) bool {
 }
 
 func (err ErrWikiInvalidFileName) Error() string {
-	return fmt.Sprintf("Invalid wiki filename: %s", err.FileName)
+	return "Invalid wiki filename: " + err.FileName
 }
 
 func (err ErrWikiInvalidFileName) Unwrap() error {
@@ -72,8 +73,8 @@ func (err ErrWikiInvalidFileName) Unwrap() error {
 }
 
 // WikiCloneLink returns clone URLs of repository wiki.
-func (repo *Repository) WikiCloneLink() *CloneLink {
-	return repo.cloneLink(true)
+func (repo *Repository) WikiCloneLink(ctx context.Context, doer *user_model.User) *CloneLink {
+	return repo.cloneLink(ctx, doer, repo.Name+".wiki")
 }
 
 // WikiPath returns wiki data path by given user and repository name.

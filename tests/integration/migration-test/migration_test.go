@@ -21,75 +21,46 @@ import (
 	"code.gitea.io/gitea/models/migrations"
 	migrate_base "code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/tests"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"xorm.io/xorm"
 )
 
 var currentEngine *xorm.Engine
 
 func initMigrationTest(t *testing.T) func() {
-	log.RegisterEventWriter("test", testlogger.NewTestLoggerWriter)
-
-	deferFn := tests.PrintCurrentTest(t, 2)
-	giteaRoot := base.SetupGiteaRoot()
-	if giteaRoot == "" {
-		tests.Printf("Environment variable $GITEA_ROOT not set\n")
-		os.Exit(1)
-	}
-	setting.AppPath = path.Join(giteaRoot, "gitea")
+	testlogger.Init()
+	giteaRoot := test.SetupGiteaRoot()
+	setting.AppPath = filepath.Join(giteaRoot, "gitea")
 	if _, err := os.Stat(setting.AppPath); err != nil {
-		tests.Printf("Could not find gitea binary at %s\n", setting.AppPath)
-		os.Exit(1)
+		testlogger.Fatalf(fmt.Sprintf("Could not find gitea binary at %s\n", setting.AppPath))
 	}
 
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {
-		tests.Printf("Environment variable $GITEA_CONF not set\n")
-		os.Exit(1)
+		testlogger.Fatalf("Environment variable $GITEA_CONF not set\n")
 	} else if !path.IsAbs(giteaConf) {
-		setting.CustomConf = path.Join(giteaRoot, giteaConf)
+		setting.CustomConf = filepath.Join(giteaRoot, giteaConf)
 	} else {
 		setting.CustomConf = giteaConf
 	}
 
-	unittest.InitSettings()
+	unittest.InitSettingsForTesting()
 
-	assert.True(t, len(setting.RepoRootPath) != 0)
-	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
-	if err != nil {
-		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
-	}
-	for _, ownerDir := range ownerDirs {
-		if !ownerDir.Type().IsDir() {
-			continue
-		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
-		if err != nil {
-			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
-		}
-		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
-		}
-	}
-
-	assert.NoError(t, git.InitFull(context.Background()))
+	assert.NotEmpty(t, setting.RepoRootPath)
+	assert.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, git.InitFull(t.Context()))
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
-	return deferFn
+
+	return testlogger.PrintCurrentTest(t, 2)
 }
 
 func availableVersions() ([]string, error) {
@@ -141,16 +112,13 @@ func readSQLFromFile(version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(charset.RemoveBOMIfPresent(bytes)), nil
+	return string(charset.MaybeRemoveBOM(bytes, charset.ConvertOpts{})), nil
 }
 
-func restoreOldDB(t *testing.T, version string) bool {
+func restoreOldDB(t *testing.T, version string) {
 	data, err := readSQLFromFile(version)
-	assert.NoError(t, err)
-	if len(data) == 0 {
-		tests.Printf("No db found to restore for %s version: %s\n", setting.Database.Type, version)
-		return false
-	}
+	require.NoError(t, err)
+	require.NotEmpty(t, data, "No data found for %s version: %s", setting.Database.Type, version)
 
 	switch {
 	case setting.Database.Type.IsSQLite3():
@@ -172,10 +140,10 @@ func restoreOldDB(t *testing.T, version string) bool {
 		assert.NoError(t, err)
 		defer db.Close()
 
-		_, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name))
+		_, err = db.Exec("DROP DATABASE IF EXISTS " + setting.Database.Name)
 		assert.NoError(t, err)
 
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name))
+		_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + setting.Database.Name)
 		assert.NoError(t, err)
 		db.Close()
 
@@ -202,10 +170,10 @@ func restoreOldDB(t *testing.T, version string) bool {
 		}
 		defer db.Close()
 
-		_, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name))
+		_, err = db.Exec("DROP DATABASE IF EXISTS " + setting.Database.Name)
 		assert.NoError(t, err)
 
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name))
+		_, err = db.Exec("CREATE DATABASE " + setting.Database.Name)
 		assert.NoError(t, err)
 		db.Close()
 
@@ -218,19 +186,16 @@ func restoreOldDB(t *testing.T, version string) bool {
 				db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
 					setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
 			}
-			if !assert.NoError(t, err) {
-				return false
-			}
+			require.NoError(t, err)
 			defer db.Close()
 
 			schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
-			if !assert.NoError(t, err) || !assert.NotEmpty(t, schrows) {
-				return false
-			}
+			require.NoError(t, err)
+			require.NotEmpty(t, schrows)
 
 			if !schrows.Next() {
 				// Create and setup a DB schema
-				_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema))
+				_, err = db.Exec("CREATE SCHEMA " + setting.Database.Schema)
 				assert.NoError(t, err)
 			}
 			schrows.Close()
@@ -281,30 +246,26 @@ func restoreOldDB(t *testing.T, version string) bool {
 		}
 		db.Close()
 	}
-	return true
 }
 
-func wrappedMigrate(x *xorm.Engine) error {
+func wrappedMigrate(ctx context.Context, x *xorm.Engine) error {
 	currentEngine = x
 	return migrations.Migrate(x)
 }
 
 func doMigrationTest(t *testing.T, version string) {
-	defer tests.PrintCurrentTest(t)()
-	tests.Printf("Performing migration test for %s version: %s\n", setting.Database.Type, version)
-	if !restoreOldDB(t, version) {
-		return
-	}
+	defer testlogger.PrintCurrentTest(t)()
+	restoreOldDB(t, version)
 
 	setting.InitSQLLoggersForCli(log.INFO)
 
-	err := db.InitEngineWithMigration(context.Background(), wrappedMigrate)
+	err := db.InitEngineWithMigration(t.Context(), wrappedMigrate)
 	assert.NoError(t, err)
 	currentEngine.Close()
 
 	beans, _ := db.NamesToBean()
 
-	err = db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
+	err = db.InitEngineWithMigration(t.Context(), func(ctx context.Context, x *xorm.Engine) error {
 		currentEngine = x
 		return migrate_base.RecreateTables(beans...)(x)
 	})
@@ -312,7 +273,7 @@ func doMigrationTest(t *testing.T, version string) {
 	currentEngine.Close()
 
 	// We do this a second time to ensure that there is not a problem with retained indices
-	err = db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
+	err = db.InitEngineWithMigration(t.Context(), func(ctx context.Context, x *xorm.Engine) error {
 		currentEngine = x
 		return migrate_base.RecreateTables(beans...)(x)
 	})
@@ -326,14 +287,9 @@ func TestMigrations(t *testing.T) {
 
 	dialect := setting.Database.Type
 	versions, err := availableVersions()
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotEmpty(t, versions, "No old database versions available to migration test for %s", dialect)
 
-	if len(versions) == 0 {
-		tests.Printf("No old database versions available to migration test for %s\n", dialect)
-		return
-	}
-
-	tests.Printf("Preparing to test %d migrations for %s\n", len(versions), dialect)
 	for _, version := range versions {
 		t.Run(fmt.Sprintf("Migrate-%s-%s", dialect, version), func(t *testing.T) {
 			doMigrationTest(t, version)

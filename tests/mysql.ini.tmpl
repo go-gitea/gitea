@@ -28,6 +28,9 @@ TYPE = immediate
 [queue.push_update]
 TYPE = immediate
 
+[queue.webhook_sender]
+TYPE = immediate
+
 [repository]
 ROOT = {{REPO_TEST_DIR}}tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/gitea-repositories
 
@@ -44,6 +47,7 @@ SIGNING_KEY = none
 SSH_DOMAIN       = localhost
 HTTP_PORT        = 3001
 ROOT_URL         = http://localhost:3001/
+LOCAL_ROOT_URL   = http://127.0.0.1:3001/
 DISABLE_SSH      = false
 SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2201
@@ -64,7 +68,6 @@ FROM = mysql-{{TEST_TYPE}}-test@gitea.io
 [service]
 REGISTER_EMAIL_CONFIRM            = false
 REGISTER_MANUAL_CONFIRM           = false
-ENABLE_NOTIFY_MAIL                = false
 DISABLE_REGISTRATION              = false
 ENABLE_CAPTCHA                    = false
 REQUIRE_SIGNIN_VIEW               = false
@@ -95,10 +98,10 @@ COLORIZE             = true
 LEVEL                = Debug
 
 [security]
-DISABLE_GIT_HOOKS = false
 INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ
+DISABLE_QUERY_AUTH_TOKEN = true
 
 [lfs]
 PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/data/lfs
@@ -119,3 +122,6 @@ REPLY_TO_ADDRESS = incoming+%{token}@localhost
 
 [actions]
 ENABLED = true
+
+[webhook]
+ALLOWED_HOST_LIST = 127.0.0.1

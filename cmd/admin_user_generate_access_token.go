@@ -4,12 +4,14 @@
 package cmd
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var microcmdUserGenerateAccessToken = &cli.Command{
@@ -33,20 +35,17 @@ var microcmdUserGenerateAccessToken = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "scopes",
-			Value: "",
-			Usage: "Comma separated list of scopes to apply to access token",
+			Value: "all",
+			Usage: `Comma separated list of scopes to apply to access token, examples: "all", "public-only,read:issue", "write:repository,write:user"`,
 		},
 	},
 	Action: runGenerateAccessToken,
 }
 
-func runGenerateAccessToken(c *cli.Context) error {
+func runGenerateAccessToken(ctx context.Context, c *cli.Command) error {
 	if !c.IsSet("username") {
-		return fmt.Errorf("You must provide a username to generate a token for")
+		return errors.New("you must provide a username to generate a token for")
 	}
-
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	if err := initDB(ctx); err != nil {
 		return err
@@ -63,12 +62,12 @@ func runGenerateAccessToken(c *cli.Context) error {
 		UID:  user.ID,
 	}
 
-	exist, err := auth_model.AccessTokenByNameExists(t)
+	exist, err := auth_model.AccessTokenByNameExists(ctx, t)
 	if err != nil {
 		return err
 	}
 	if exist {
-		return fmt.Errorf("access token name has been used already")
+		return errors.New("access token name has been used already")
 	}
 
 	// make sure the scopes are valid
@@ -76,10 +75,13 @@ func runGenerateAccessToken(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("invalid access token scope provided: %w", err)
 	}
+	if !accessTokenScope.HasPermissionScope() {
+		return errors.New("access token does not have any permission")
+	}
 	t.Scope = accessTokenScope
 
 	// create the token
-	if err := auth_model.NewAccessToken(t); err != nil {
+	if err := auth_model.NewAccessToken(ctx, t); err != nil {
 		return err
 	}
 

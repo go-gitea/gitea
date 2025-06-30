@@ -16,15 +16,19 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// IsObjectExist returns true if given reference exists in the repository.
+// IsObjectExist returns true if the given object exists in the repository.
 func (repo *Repository) IsObjectExist(name string) bool {
 	if name == "" {
 		return false
 	}
 
-	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	if err != nil {
+		log.Debug("Error writing to CatFileBatchCheck %v", err)
+		return false
+	}
 	defer cancel()
-	_, err := wr.Write([]byte(name + "\n"))
+	_, err = wr.Write([]byte(name + "\n"))
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
@@ -39,9 +43,13 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 		return false
 	}
 
-	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	if err != nil {
+		log.Debug("Error writing to CatFileBatchCheck %v", err)
+		return false
+	}
 	defer cancel()
-	_, err := wr.Write([]byte(name + "\n"))
+	_, err = wr.Write([]byte(name + "\n"))
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
@@ -66,11 +74,6 @@ func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 }
 
 // WalkReferences walks all the references from the repository
-func WalkReferences(ctx context.Context, repoPath string, walkfn func(sha1, refname string) error) (int, error) {
-	return walkShowRef(ctx, repoPath, nil, 0, 0, walkfn)
-}
-
-// WalkReferences walks all the references from the repository
 // refType should be empty, ObjectTag or ObjectBranch. All other values are equivalent to empty.
 func (repo *Repository) WalkReferences(refType ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
 	var args TrustedCmdArgs
@@ -81,12 +84,12 @@ func (repo *Repository) WalkReferences(refType ObjectType, skip, limit int, walk
 		args = TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}
 	}
 
-	return walkShowRef(repo.Ctx, repo.Path, args, skip, limit, walkfn)
+	return WalkShowRef(repo.Ctx, repo.Path, args, skip, limit, walkfn)
 }
 
 // callShowRef return refs, if limit = 0 it will not limit
 func callShowRef(ctx context.Context, repoPath, trimPrefix string, extraArgs TrustedCmdArgs, skip, limit int) (branchNames []string, countAll int, err error) {
-	countAll, err = walkShowRef(ctx, repoPath, extraArgs, skip, limit, func(_, branchName string) error {
+	countAll, err = WalkShowRef(ctx, repoPath, extraArgs, skip, limit, func(_, branchName string) error {
 		branchName = strings.TrimPrefix(branchName, trimPrefix)
 		branchNames = append(branchNames, branchName)
 
@@ -95,7 +98,7 @@ func callShowRef(ctx context.Context, repoPath, trimPrefix string, extraArgs Tru
 	return branchNames, countAll, err
 }
 
-func walkShowRef(ctx context.Context, repoPath string, extraArgs TrustedCmdArgs, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {
+func WalkShowRef(ctx context.Context, repoPath string, extraArgs TrustedCmdArgs, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
 		_ = stdoutReader.Close()
@@ -106,7 +109,7 @@ func walkShowRef(ctx context.Context, repoPath string, extraArgs TrustedCmdArgs,
 		stderrBuilder := &strings.Builder{}
 		args := TrustedCmdArgs{"for-each-ref", "--format=%(objectname) %(refname)"}
 		args = append(args, extraArgs...)
-		err := NewCommand(ctx, args...).Run(&RunOpts{
+		err := NewCommand(args...).Run(ctx, &RunOpts{
 			Dir:    repoPath,
 			Stdout: stdoutWriter,
 			Stderr: stderrBuilder,
@@ -189,7 +192,7 @@ func walkShowRef(ctx context.Context, repoPath string, extraArgs TrustedCmdArgs,
 // GetRefsBySha returns all references filtered with prefix that belong to a sha commit hash
 func (repo *Repository) GetRefsBySha(sha, prefix string) ([]string, error) {
 	var revList []string
-	_, err := walkShowRef(repo.Ctx, repo.Path, nil, 0, 0, func(walkSha, refname string) error {
+	_, err := WalkShowRef(repo.Ctx, repo.Path, nil, 0, 0, func(walkSha, refname string) error {
 		if walkSha == sha && strings.HasPrefix(refname, prefix) {
 			revList = append(revList, refname)
 		}

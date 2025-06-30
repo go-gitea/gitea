@@ -4,6 +4,7 @@
 package lfs
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -12,27 +13,23 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/minio/sha256-simd"
 )
 
+// spec: https://github.com/git-lfs/git-lfs/blob/master/docs/spec.md
 const (
-	blobSizeCutoff = 1024
+	MetaFileMaxSize = 1024 // spec says the maximum size of a pointer file must be smaller than 1024
 
-	// MetaFileIdentifier is the string appearing at the first line of LFS pointer files.
-	// https://github.com/git-lfs/git-lfs/blob/master/docs/spec.md
-	MetaFileIdentifier = "version https://git-lfs.github.com/spec/v1"
+	MetaFileIdentifier = "version https://git-lfs.github.com/spec/v1" // the first line of a pointer file
 
-	// MetaFileOidPrefix appears in LFS pointer files on a line before the sha256 hash.
-	MetaFileOidPrefix = "oid sha256:"
+	MetaFileOidPrefix = "oid sha256:" // spec says the only supported hash is sha256 at the moment
 )
 
 var (
 	// ErrMissingPrefix occurs if the content lacks the LFS prefix
-	ErrMissingPrefix = errors.New("Content lacks the LFS prefix")
+	ErrMissingPrefix = errors.New("content lacks the LFS prefix")
 
 	// ErrInvalidStructure occurs if the content has an invalid structure
-	ErrInvalidStructure = errors.New("Content has an invalid structure")
+	ErrInvalidStructure = errors.New("content has an invalid structure")
 
 	// ErrInvalidOIDFormat occurs if the oid has an invalid format
 	ErrInvalidOIDFormat = errors.New("OID has an invalid format")
@@ -40,7 +37,7 @@ var (
 
 // ReadPointer tries to read LFS pointer data from the reader
 func ReadPointer(reader io.Reader) (Pointer, error) {
-	buf := make([]byte, blobSizeCutoff)
+	buf := make([]byte, MetaFileMaxSize)
 	n, err := io.ReadFull(reader, buf)
 	if err != nil && err != io.ErrUnexpectedEOF {
 		return Pointer{}, err
@@ -66,6 +63,7 @@ func ReadPointerFromBuffer(buf []byte) (Pointer, error) {
 		return p, ErrInvalidStructure
 	}
 
+	// spec says "key/value pairs MUST be sorted alphabetically in ascending order (version is exception and must be the first)"
 	oid := strings.TrimPrefix(splitLines[1], MetaFileOidPrefix)
 	if len(oid) != 64 || !oidPattern.MatchString(oid) {
 		return p, ErrInvalidOIDFormat

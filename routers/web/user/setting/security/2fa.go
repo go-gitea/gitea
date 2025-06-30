@@ -13,10 +13,12 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/context"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/pquerna/otp"
@@ -25,16 +27,22 @@ import (
 
 // RegenerateScratchTwoFactor regenerates the user's 2FA scratch code.
 func RegenerateScratchTwoFactor(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
+	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		} else {
+			ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
 		}
-		ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
 		return
 	}
 
@@ -44,7 +52,7 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	if err = auth.UpdateTwoFactor(t); err != nil {
+	if err = auth.UpdateTwoFactor(ctx, t); err != nil {
 		ctx.ServerError("SettingsTwoFactor: Failed to UpdateTwoFactor", err)
 		return
 	}
@@ -55,26 +63,33 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 
 // DisableTwoFactor deletes the user's 2FA settings.
 func DisableTwoFactor(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
+	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		} else {
+			ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
 		}
-		ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
 		return
 	}
 
-	if err = auth.DeleteTwoFactorByID(t.ID, ctx.Doer.ID); err != nil {
+	if err = auth.DeleteTwoFactorByID(ctx, t.ID, ctx.Doer.ID); err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			// There is a potential DB race here - we must have been disabled by another request in the intervening period
 			ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		} else {
+			ctx.ServerError("SettingsTwoFactor: Failed to DeleteTwoFactorByID", err)
 		}
-		ctx.ServerError("SettingsTwoFactor: Failed to DeleteTwoFactorByID", err)
 		return
 	}
 
@@ -142,10 +157,16 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 
 // EnrollTwoFactor shows the page where the user can enroll into 2FA.
 func EnrollTwoFactor(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
+	ctx.Data["ShowTwoFactorRequiredMessage"] = false
 
-	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
+	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if t != nil {
 		// already enrolled - we should redirect back!
 		log.Warn("Trying to re-enroll %-v in twofa when already enrolled", ctx.Doer)
@@ -167,11 +188,17 @@ func EnrollTwoFactor(ctx *context.Context) {
 
 // EnrollTwoFactorPost handles enrolling the user into 2FA.
 func EnrollTwoFactorPost(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
+
 	form := web.GetForm(ctx).(*forms.TwoFactorAuthForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
+	ctx.Data["ShowTwoFactorRequiredMessage"] = false
 
-	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
+	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if t != nil {
 		// already enrolled
 		ctx.Flash.Error(ctx.Tr("settings.twofa_is_enrolled"))
@@ -222,6 +249,10 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		return
 	}
 
+	newTwoFactorErr := auth.NewTwoFactor(ctx, t)
+	if newTwoFactorErr == nil {
+		_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)
+	}
 	// Now we have to delete the secrets - because if we fail to insert then it's highly likely that they have already been used
 	// If we can detect the unique constraint failure below we can move this to after the NewTwoFactor
 	if err := ctx.Session.Delete("twofaSecret"); err != nil {
@@ -237,10 +268,10 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		log.Error("Unable to save changes to the session: %v", err)
 	}
 
-	if err = auth.NewTwoFactor(t); err != nil {
+	if newTwoFactorErr != nil {
 		// FIXME: We need to handle a unique constraint fail here it's entirely possible that another request has beaten us.
 		// If there is a unique constraint fail we should just tolerate the error
-		ctx.ServerError("SettingsTwoFactor: Failed to save two factor", err)
+		ctx.ServerError("SettingsTwoFactor: Failed to save two factor", newTwoFactorErr)
 		return
 	}
 

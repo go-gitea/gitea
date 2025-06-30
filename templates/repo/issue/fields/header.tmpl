@@ -1,6 +1,6 @@
-{{if .item.Attributes.label}}
+{{if and (.item.Attributes.label) (not .item.Attributes.hide_label)}}
 	<h3>{{.item.Attributes.label}}{{if .item.Validations.required}}<label class="required"></label>{{end}}</h3>
 {{end}}
 {{if .item.Attributes.description}}
-	<span class="help">{{RenderMarkdownToHtml .Context .item.Attributes.description}}</span>
+	<span class="help">{{ctx.RenderUtils.MarkdownToHtml .item.Attributes.description}}</span>
 {{end}}

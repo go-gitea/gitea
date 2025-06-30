@@ -5,7 +5,6 @@
 package gitdiff
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -18,25 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
-	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
-
-func TestDiffToHTML(t *testing.T) {
-	assert.Equal(t, "foo <span class=\"added-code\">bar</span> biz", diffToHTML(nil, []dmp.Diff{
-		{Type: dmp.DiffEqual, Text: "foo "},
-		{Type: dmp.DiffInsert, Text: "bar"},
-		{Type: dmp.DiffDelete, Text: " baz"},
-		{Type: dmp.DiffEqual, Text: " biz"},
-	}, DiffLineAdd))
-
-	assert.Equal(t, "foo <span class=\"removed-code\">bar</span> biz", diffToHTML(nil, []dmp.Diff{
-		{Type: dmp.DiffEqual, Text: "foo "},
-		{Type: dmp.DiffDelete, Text: "bar"},
-		{Type: dmp.DiffInsert, Text: " baz"},
-		{Type: dmp.DiffEqual, Text: " biz"},
-	}, DiffLineDel))
-}
 
 func TestParsePatch_skipTo(t *testing.T) {
 	type testcase struct {
@@ -175,22 +158,16 @@ diff --git "\\a/README.md" "\\b/README.md"
 	}
 	for _, testcase := range tests {
 		t.Run(testcase.name, func(t *testing.T) {
-			got, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), testcase.skipTo)
+			got, err := ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), testcase.skipTo)
 			if (err != nil) != testcase.wantErr {
 				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
 				return
 			}
 
 			gotMarshaled, _ := json.MarshalIndent(got, "", "  ")
-			if got.NumFiles != 1 {
+			if len(got.Files) != 1 {
 				t.Errorf("ParsePath(%q) did not receive 1 file:\n%s", testcase.name, string(gotMarshaled))
 				return
-			}
-			if got.TotalAddition != testcase.addition {
-				t.Errorf("ParsePath(%q) does not have correct totalAddition %d, wanted %d", testcase.name, got.TotalAddition, testcase.addition)
-			}
-			if got.TotalDeletion != testcase.deletion {
-				t.Errorf("ParsePath(%q) did not have correct totalDeletion %d, wanted %d", testcase.name, got.TotalDeletion, testcase.deletion)
 			}
 			file := got.Files[0]
 			if file.Addition != testcase.addition {
@@ -400,22 +377,16 @@ index 6961180..9ba1a00 100644
 
 	for _, testcase := range tests {
 		t.Run(testcase.name, func(t *testing.T) {
-			got, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
+			got, err := ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
 			if (err != nil) != testcase.wantErr {
 				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
 				return
 			}
 
 			gotMarshaled, _ := json.MarshalIndent(got, "", "  ")
-			if got.NumFiles != 1 {
+			if len(got.Files) != 1 {
 				t.Errorf("ParsePath(%q) did not receive 1 file:\n%s", testcase.name, string(gotMarshaled))
 				return
-			}
-			if got.TotalAddition != testcase.addition {
-				t.Errorf("ParsePath(%q) does not have correct totalAddition %d, wanted %d", testcase.name, got.TotalAddition, testcase.addition)
-			}
-			if got.TotalDeletion != testcase.deletion {
-				t.Errorf("ParsePath(%q) did not have correct totalDeletion %d, wanted %d", testcase.name, got.TotalDeletion, testcase.deletion)
 			}
 			file := got.Files[0]
 			if file.Addition != testcase.addition {
@@ -445,25 +416,25 @@ index 0000000..6bb8f39
 `
 	diffBuilder.WriteString(diff)
 
-	for i := 0; i < 35; i++ {
+	for i := range 35 {
 		diffBuilder.WriteString("+line" + strconv.Itoa(i) + "\n")
 	}
 	diff = diffBuilder.String()
-	result, err := ParsePatch(20, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	result, err := ParsePatch(db.DefaultContext, 20, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
 	if !result.Files[0].IsIncomplete {
 		t.Errorf("Files should be incomplete! %v", result.Files[0])
 	}
-	result, err = ParsePatch(40, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	result, err = ParsePatch(db.DefaultContext, 40, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
 	if result.Files[0].IsIncomplete {
 		t.Errorf("Files should not be incomplete! %v", result.Files[0])
 	}
-	result, err = ParsePatch(40, 5, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	result, err = ParsePatch(db.DefaultContext, 40, 5, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
@@ -482,11 +453,11 @@ index 0000000..6bb8f39
 	diffBuilder.Reset()
 	diffBuilder.WriteString(diff)
 
-	for i := 0; i < 33; i++ {
+	for i := range 33 {
 		diffBuilder.WriteString("+line" + strconv.Itoa(i) + "\n")
 	}
 	diffBuilder.WriteString("+line33")
-	for i := 0; i < 512; i++ {
+	for range 512 {
 		diffBuilder.WriteString("0123456789ABCDEF")
 	}
 	diffBuilder.WriteByte('\n')
@@ -494,14 +465,14 @@ index 0000000..6bb8f39
 	diffBuilder.WriteString("+line" + strconv.Itoa(35) + "\n")
 	diff = diffBuilder.String()
 
-	result, err = ParsePatch(20, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	result, err = ParsePatch(db.DefaultContext, 20, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
 	if !result.Files[0].IsIncomplete {
 		t.Errorf("Files should be incomplete! %v", result.Files[0])
 	}
-	result, err = ParsePatch(40, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	result, err = ParsePatch(db.DefaultContext, 40, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
@@ -520,7 +491,7 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	_, err = ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
@@ -536,7 +507,7 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2), "")
+	_, err = ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
@@ -552,7 +523,7 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a), "")
+	_, err = ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
@@ -568,7 +539,7 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3), "")
+	_, err = ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
@@ -628,24 +599,25 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 }
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
-	gitRepo, err := git.OpenRepository(git.DefaultContext, "./testdata/academic-module")
-	if !assert.NoError(t, err) {
-		return
-	}
+	gitRepo, err := git.OpenRepository(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
+	require.NoError(t, err)
+
 	defer gitRepo.Close()
 	for _, behavior := range []git.TrustedCmdArgs{{"-w"}, {"--ignore-space-at-eol"}, {"-b"}, nil} {
-		diffs, err := GetDiff(gitRepo,
+		diffs, err := GetDiffForAPI(t.Context(), gitRepo,
 			&DiffOptions{
-				AfterCommitID:      "bd7063cc7c04689c4d082183d32a604ed27a24f9",
-				BeforeCommitID:     "559c156f8e0178b71cb44355428f24001b08fc68",
+				AfterCommitID:      "d8e0bbb45f200e67d9a784ce55bd90821af45ebd",
+				BeforeCommitID:     "72866af952e98d02a73003501836074b286a78f6",
 				MaxLines:           setting.Git.MaxGitDiffLines,
 				MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-				MaxFiles:           setting.Git.MaxGitDiffFiles,
+				MaxFiles:           1,
 				WhitespaceBehavior: behavior,
 			})
-		assert.NoError(t, err, fmt.Sprintf("Error when diff with %s", behavior))
+		require.NoError(t, err, "Error when diff with WhitespaceBehavior=%s", behavior)
+		assert.True(t, diffs.IsIncomplete)
+		assert.Len(t, diffs.Files, 1)
 		for _, f := range diffs.Files {
-			assert.True(t, len(f.Sections) > 0, fmt.Sprintf("%s should have sections", f.Name))
+			assert.NotEmpty(t, f.Sections, "Diff file %q should have sections", f.Name)
 		}
 	}
 }
@@ -665,6 +637,6 @@ func TestNoCrashes(t *testing.T) {
 	}
 	for _, testcase := range tests {
 		// It shouldn't crash, so don't care about the output.
-		ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
+		ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
 	}
 }

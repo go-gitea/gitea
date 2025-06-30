@@ -7,42 +7,45 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getExpectedContentsResponseForContents(ref, refType, lastCommitSHA string) *api.ContentsResponse {
 	treePath := "README.md"
-	sha := "4b4851ad51df6a7d9f25c979345979eaeb5b349f"
-	encoding := "base64"
-	content := "IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x"
 	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=" + ref
 	htmlURL := setting.AppURL + "user2/repo1/src/" + refType + "/" + ref + "/" + treePath
-	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha
-	downloadURL := setting.AppURL + "user2/repo1/raw/" + refType + "/" + ref + "/" + treePath
+	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f"
 	return &api.ContentsResponse{
-		Name:          treePath,
-		Path:          treePath,
-		SHA:           sha,
-		LastCommitSHA: lastCommitSHA,
-		Type:          "file",
-		Size:          30,
-		Encoding:      &encoding,
-		Content:       &content,
-		URL:           &selfURL,
-		HTMLURL:       &htmlURL,
-		GitURL:        &gitURL,
-		DownloadURL:   &downloadURL,
+		Name:              treePath,
+		Path:              treePath,
+		SHA:               "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
+		LastCommitSHA:     lastCommitSHA,
+		LastCommitterDate: time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
+		LastAuthorDate:    time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
+		Type:              "file",
+		Size:              30,
+		Encoding:          util.ToPointer("base64"),
+		Content:           util.ToPointer("IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x"),
+		URL:               &selfURL,
+		HTMLURL:           &htmlURL,
+		GitURL:            &gitURL,
+		DownloadURL:       util.ToPointer(setting.AppURL + "user2/repo1/raw/" + refType + "/" + ref + "/" + treePath),
 		Links: &api.FileLinksResponse{
 			Self:    &selfURL,
 			GitURL:  &gitURL,
@@ -52,13 +55,17 @@ func getExpectedContentsResponseForContents(ref, refType, lastCommitSHA string) 
 }
 
 func TestAPIGetContents(t *testing.T) {
-	onGiteaRun(t, testAPIGetContents)
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		testAPIGetContentsRefFormats(t)
+		testAPIGetContents(t, u)
+		testAPIGetContentsExt(t)
+	})
 }
 
 func testAPIGetContents(t *testing.T, u *url.URL) {
 	/*** SETUP ***/
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})         // owner of the repo3, is an org
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3, is an org
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})         // owner of neither repos
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})   // public repo
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
@@ -72,21 +79,22 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
-	// Make a new branch in repo1
-	newBranch := "test_branch"
-	err := repo_service.CreateNewBranch(git.DefaultContext, user2, repo1, repo1.DefaultBranch, newBranch)
-	assert.NoError(t, err)
 	// Get the commit ID of the default branch
-	gitRepo, err := git.OpenRepository(git.DefaultContext, repo1.RepoPath())
-	assert.NoError(t, err)
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
+	require.NoError(t, err)
 	defer gitRepo.Close()
 
+	// Make a new branch in repo1
+	newBranch := "test_branch"
+	err = repo_service.CreateNewBranch(git.DefaultContext, user2, repo1, gitRepo, repo1.DefaultBranch, newBranch)
+	require.NoError(t, err)
+
 	commitID, err := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// Make a new tag in repo1
 	newTag := "test_tag"
 	err = gitRepo.CreateTag(newTag, commitID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	/*** END SETUP ***/
 
 	// ref is default ref
@@ -96,19 +104,17 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	var contentsResponse api.ContentsResponse
 	DecodeJSON(t, resp, &contentsResponse)
-	assert.NotNil(t, contentsResponse)
 	lastCommit, _ := gitRepo.GetCommitByPath("README.md")
 	expectedContentsResponse := getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
-	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
+	assert.Equal(t, *expectedContentsResponse, contentsResponse)
 
 	// No ref
 	refType = "branch"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsResponse)
-	assert.NotNil(t, contentsResponse)
 	expectedContentsResponse = getExpectedContentsResponseForContents(repo1.DefaultBranch, refType, lastCommit.ID.String())
-	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
+	assert.Equal(t, *expectedContentsResponse, contentsResponse)
 
 	// ref is the branch we created above  in setup
 	ref = newBranch
@@ -116,11 +122,10 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsResponse)
-	assert.NotNil(t, contentsResponse)
 	branchCommit, _ := gitRepo.GetBranchCommit(ref)
 	lastCommit, _ = branchCommit.GetCommitByPath("README.md")
 	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
-	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
+	assert.Equal(t, *expectedContentsResponse, contentsResponse)
 
 	// ref is the new tag we created above in setup
 	ref = newTag
@@ -128,11 +133,10 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsResponse)
-	assert.NotNil(t, contentsResponse)
 	tagCommit, _ := gitRepo.GetTagCommit(ref)
 	lastCommit, _ = tagCommit.GetCommitByPath("README.md")
 	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
-	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
+	assert.Equal(t, *expectedContentsResponse, contentsResponse)
 
 	// ref is a commit
 	ref = commitID
@@ -140,9 +144,8 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsResponse)
-	assert.NotNil(t, contentsResponse)
 	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, commitID)
-	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
+	assert.Equal(t, *expectedContentsResponse, contentsResponse)
 
 	// Test file contents a file with a bad ref
 	ref = "badref"
@@ -150,41 +153,124 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test accessing private ref with user token that does not have access - should fail
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo16.Name, treePath, token4)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath).
+		AddTokenAuth(token4)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test access private ref of owner of token
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/readme.md?token=%s", user2.Name, repo16.Name, token2)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/readme.md", user2.Name, repo16.Name).
+		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusOK)
 
-	// Test access of org user3 private repo file by owner user2
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", user3.Name, repo3.Name, treePath, token2)
+	// Test access of org org3 private repo file by owner user2
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath).
+		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusOK)
 }
 
-func TestAPIGetContentsRefFormats(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		file := "README.md"
-		sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
-		content := "# repo1\n\nDescription for repo1"
+func testAPIGetContentsRefFormats(t *testing.T) {
+	file := "README.md"
+	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+	content := "# repo1\n\nDescription for repo1"
 
-		noRef := setting.AppURL + "api/v1/repos/user2/repo1/raw/" + file
-		refInPath := setting.AppURL + "api/v1/repos/user2/repo1/raw/" + sha + "/" + file
-		refInQuery := setting.AppURL + "api/v1/repos/user2/repo1/raw/" + file + "?ref=" + sha
+	resp := MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/"+file), http.StatusOK)
+	raw, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, content, string(raw))
 
-		resp := MakeRequest(t, NewRequest(t, http.MethodGet, noRef), http.StatusOK)
-		raw, err := io.ReadAll(resp.Body)
-		assert.NoError(t, err)
-		assert.EqualValues(t, content, string(raw))
+	resp = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/"+sha+"/"+file), http.StatusOK)
+	raw, err = io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, content, string(raw))
 
-		resp = MakeRequest(t, NewRequest(t, http.MethodGet, refInPath), http.StatusOK)
-		raw, err = io.ReadAll(resp.Body)
-		assert.NoError(t, err)
-		assert.EqualValues(t, content, string(raw))
+	resp = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/"+file+"?ref="+sha), http.StatusOK)
+	raw, err = io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, content, string(raw))
 
-		resp = MakeRequest(t, NewRequest(t, http.MethodGet, refInQuery), http.StatusOK)
-		raw, err = io.ReadAll(resp.Body)
-		assert.NoError(t, err)
-		assert.EqualValues(t, content, string(raw))
+	resp = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/"+file+"?ref=master"), http.StatusOK)
+	raw, err = io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, content, string(raw))
+
+	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/docs/README.md?ref=main"), http.StatusNotFound)
+	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/README.md?ref=main"), http.StatusOK)
+	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/docs/README.md?ref=sub-home-md-img-check"), http.StatusOK)
+	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/README.md?ref=sub-home-md-img-check"), http.StatusNotFound)
+
+	// FIXME: this is an incorrect behavior, non-existing branch falls back to default branch
+	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/README.md?ref=no-such"), http.StatusOK)
+}
+
+func testAPIGetContentsExt(t *testing.T) {
+	session := loginUser(t, "user2")
+	token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	t.Run("DirContents", func(t *testing.T) {
+		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs?ref=sub-home-md-img-check")
+		resp := MakeRequest(t, req, http.StatusOK)
+		var contentsResponse api.ContentsExtResponse
+		DecodeJSON(t, resp, &contentsResponse)
+		assert.Nil(t, contentsResponse.FileContents)
+		assert.Equal(t, "README.md", contentsResponse.DirContents[0].Name)
+		assert.Nil(t, contentsResponse.DirContents[0].Encoding)
+		assert.Nil(t, contentsResponse.DirContents[0].Content)
+
+		// "includes=file_content" shouldn't affect directory listing
+		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs?ref=sub-home-md-img-check&includes=file_content")
+		resp = MakeRequest(t, req, http.StatusOK)
+		contentsResponse = api.ContentsExtResponse{}
+		DecodeJSON(t, resp, &contentsResponse)
+		assert.Nil(t, contentsResponse.FileContents)
+		assert.Equal(t, "README.md", contentsResponse.DirContents[0].Name)
+		assert.Nil(t, contentsResponse.DirContents[0].Encoding)
+		assert.Nil(t, contentsResponse.DirContents[0].Content)
+
+		req = NewRequestf(t, "GET", "/api/v1/repos/user2/lfs/contents-ext?includes=file_content,lfs_metadata").AddTokenAuth(token2)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		contentsResponse = api.ContentsExtResponse{}
+		DecodeJSON(t, resp, &contentsResponse)
+		assert.Nil(t, contentsResponse.FileContents)
+		respFileIdx := slices.IndexFunc(contentsResponse.DirContents, func(response *api.ContentsResponse) bool { return response.Name == "jpeg.jpg" })
+		require.NotEqual(t, -1, respFileIdx)
+		respFile := contentsResponse.DirContents[respFileIdx]
+		assert.Equal(t, "jpeg.jpg", respFile.Name)
+		assert.Nil(t, respFile.Encoding)
+		assert.Nil(t, respFile.Content)
+		assert.Equal(t, util.ToPointer(int64(107)), respFile.LfsSize)
+		assert.Equal(t, util.ToPointer("0b8d8b5f15046343fd32f451df93acc2bdd9e6373be478b968e4cad6b6647351"), respFile.LfsOid)
+	})
+	t.Run("FileContents", func(t *testing.T) {
+		// by default, no file content is returned
+		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs/README.md?ref=sub-home-md-img-check")
+		resp := MakeRequest(t, req, http.StatusOK)
+		var contentsResponse api.ContentsExtResponse
+		DecodeJSON(t, resp, &contentsResponse)
+		assert.Nil(t, contentsResponse.DirContents)
+		assert.Equal(t, "README.md", contentsResponse.FileContents.Name)
+		assert.Nil(t, contentsResponse.FileContents.Encoding)
+		assert.Nil(t, contentsResponse.FileContents.Content)
+
+		// file content is only returned when `includes=file_content`
+		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs/README.md?ref=sub-home-md-img-check&includes=file_content")
+		resp = MakeRequest(t, req, http.StatusOK)
+		contentsResponse = api.ContentsExtResponse{}
+		DecodeJSON(t, resp, &contentsResponse)
+		assert.Nil(t, contentsResponse.DirContents)
+		assert.Equal(t, "README.md", contentsResponse.FileContents.Name)
+		assert.NotNil(t, contentsResponse.FileContents.Encoding)
+		assert.NotNil(t, contentsResponse.FileContents.Content)
+
+		req = NewRequestf(t, "GET", "/api/v1/repos/user2/lfs/contents-ext/jpeg.jpg?includes=file_content").AddTokenAuth(token2)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		contentsResponse = api.ContentsExtResponse{}
+		DecodeJSON(t, resp, &contentsResponse)
+		assert.Nil(t, contentsResponse.DirContents)
+		assert.NotNil(t, contentsResponse.FileContents)
+		respFile := contentsResponse.FileContents
+		assert.Equal(t, "jpeg.jpg", respFile.Name)
+		assert.NotNil(t, respFile.Encoding)
+		assert.NotNil(t, respFile.Content)
+		assert.Equal(t, util.ToPointer(int64(107)), respFile.LfsSize)
+		assert.Equal(t, util.ToPointer("0b8d8b5f15046343fd32f451df93acc2bdd9e6373be478b968e4cad6b6647351"), respFile.LfsOid)
 	})
 }

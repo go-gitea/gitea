@@ -23,7 +23,7 @@ func testRepoCommitsSearch(t *testing.T, query, commit string) {
 
 	doc := NewHTMLParser(t, resp.Body)
 	sel := doc.doc.Find("#commits-table tbody tr td.sha a")
-	assert.EqualValues(t, commit, strings.TrimSpace(sel.Text()))
+	assert.Equal(t, commit, strings.TrimSpace(sel.Text()))
 }
 
 func TestRepoCommitsSearch(t *testing.T) {
@@ -32,6 +32,7 @@ func TestRepoCommitsSearch(t *testing.T) {
 	testRepoCommitsSearch(t, "38a9cb", "")
 	testRepoCommitsSearch(t, "6e8e", "6e8eabd9a7")
 	testRepoCommitsSearch(t, "58e97", "58e97d1a24")
+	testRepoCommitsSearch(t, "[build]", "")
 	testRepoCommitsSearch(t, "author:alice", "6e8eabd9a7")
 	testRepoCommitsSearch(t, "author:alice 6e8ea", "6e8eabd9a7")
 	testRepoCommitsSearch(t, "committer:Tom", "58e97d1a24")

@@ -1,0 +1,4 @@
+{{if eq .PackageDescriptor.Package.Type "arch"}}
+	{{range .PackageDescriptor.Metadata.Licenses}}<div class="item" title="{{ctx.Locale.Tr "packages.details.license"}}">{{svg "octicon-law"}} {{.}}</div>{{end}}
+	{{if .PackageDescriptor.Metadata.ProjectURL}}<div class="item">{{svg "octicon-link-external"}} <a href="{{.PackageDescriptor.Metadata.ProjectURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.project_site"}}</a></div>{{end}}
+{{end}}

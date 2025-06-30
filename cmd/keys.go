@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,15 +12,16 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // CmdKeys represents the available keys sub-command
 var CmdKeys = &cli.Command{
-	Name:   "keys",
-	Usage:  "This command queries the Gitea database to get the authorized command for a given ssh key fingerprint",
-	Before: PrepareConsoleLoggerLevel(log.FATAL),
-	Action: runKeys,
+	Name:        "keys",
+	Usage:       "(internal) Should only be called by SSH server",
+	Description: "Queries the Gitea database to get the authorized command for a given ssh key fingerprint",
+	Before:      PrepareConsoleLoggerLevel(log.FATAL),
+	Action:      runKeys,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:    "expected",
@@ -48,7 +50,7 @@ var CmdKeys = &cli.Command{
 	},
 }
 
-func runKeys(c *cli.Context) error {
+func runKeys(ctx context.Context, c *cli.Command) error {
 	if !c.IsSet("username") {
 		return errors.New("No username provided")
 	}
@@ -67,16 +69,13 @@ func runKeys(c *cli.Context) error {
 		return errors.New("No key type and content provided")
 	}
 
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	setup(ctx, false)
+	setup(ctx, c.Bool("debug"))
 
 	authorizedString, extra := private.AuthorizedPublicKeyByContent(ctx, content)
 	// do not use handleCliResponseExtra or cli.NewExitError, if it exists immediately, it breaks some tests like Test_CmdKeys
 	if extra.Error != nil {
 		return extra.Error
 	}
-	_, _ = fmt.Fprintln(c.App.Writer, strings.TrimSpace(authorizedString))
+	_, _ = fmt.Fprintln(c.Root().Writer, strings.TrimSpace(authorizedString.Text))
 	return nil
 }

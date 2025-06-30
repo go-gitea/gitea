@@ -57,3 +57,12 @@ type EditOrgOption struct {
 	Visibility                string `json:"visibility" binding:"In(,public,limited,private)"`
 	RepoAdminChangeTeamAccess *bool  `json:"repo_admin_change_team_access"`
 }
+
+// RenameOrgOption options when renaming an organization
+type RenameOrgOption struct {
+	// New username for this org. This name cannot be in use yet by any other user.
+	//
+	// required: true
+	// unique: true
+	NewName string `json:"new_name" binding:"Required"`
+}

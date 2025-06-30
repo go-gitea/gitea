@@ -24,8 +24,8 @@ func TestGetRefEndNamesAndURLs(t *testing.T) {
 	repoLink := "/foo/bar"
 
 	endNames, urls := GetRefEndNamesAndURLs(issues, repoLink)
-	assert.EqualValues(t, map[int64]string{1: "branch1", 2: "tag1", 3: "c0ffee"}, endNames)
-	assert.EqualValues(t, map[int64]string{
+	assert.Equal(t, map[int64]string{1: "branch1", 2: "tag1", 3: "c0ffee"}, endNames)
+	assert.Equal(t, map[int64]string{
 		1: repoLink + "/src/branch/branch1",
 		2: repoLink + "/src/tag/tag1",
 		3: repoLink + "/src/commit/c0ffee",
@@ -44,7 +44,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 		ID:     issueIDs[2],
 	}
 
-	err = deleteIssue(db.DefaultContext, issue)
+	_, err = deleteIssue(db.DefaultContext, issue)
 	assert.NoError(t, err)
 	issueIDs, err = issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
@@ -55,7 +55,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	issue, err = issues_model.GetIssueByID(db.DefaultContext, 4)
 	assert.NoError(t, err)
-	err = deleteIssue(db.DefaultContext, issue)
+	_, err = deleteIssue(db.DefaultContext, issue)
 	assert.NoError(t, err)
 	assert.Len(t, attachments, 2)
 	for i := range attachments {
@@ -72,13 +72,13 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	issue2, err := issues_model.GetIssueByID(db.DefaultContext, 2)
 	assert.NoError(t, err)
-	err = issues_model.CreateIssueDependency(user, issue1, issue2)
+	err = issues_model.CreateIssueDependency(db.DefaultContext, user, issue1, issue2)
 	assert.NoError(t, err)
 	left, err := issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.False(t, left)
 
-	err = deleteIssue(db.DefaultContext, issue2)
+	_, err = deleteIssue(db.DefaultContext, issue2)
 	assert.NoError(t, err)
 	left, err = issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)

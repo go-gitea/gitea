@@ -20,26 +20,24 @@ func TestPushMirrorsIterate(t *testing.T) {
 
 	now := timeutil.TimeStampNow()
 
-	repo_model.InsertPushMirror(db.DefaultContext, &repo_model.PushMirror{
+	db.Insert(db.DefaultContext, &repo_model.PushMirror{
 		RemoteName:     "test-1",
 		LastUpdateUnix: now,
 		Interval:       1,
 	})
 
 	long, _ := time.ParseDuration("24h")
-	repo_model.InsertPushMirror(db.DefaultContext, &repo_model.PushMirror{
+	db.Insert(db.DefaultContext, &repo_model.PushMirror{
 		RemoteName:     "test-2",
 		LastUpdateUnix: now,
 		Interval:       long,
 	})
 
-	repo_model.InsertPushMirror(db.DefaultContext, &repo_model.PushMirror{
+	db.Insert(db.DefaultContext, &repo_model.PushMirror{
 		RemoteName:     "test-3",
 		LastUpdateUnix: now,
 		Interval:       0,
 	})
-
-	time.Sleep(1 * time.Millisecond)
 
 	repo_model.PushMirrorsIterate(db.DefaultContext, 1, func(idx int, bean any) error {
 		m, ok := bean.(*repo_model.PushMirror)

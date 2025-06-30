@@ -5,11 +5,27 @@ package structs
 
 import "time"
 
-// User represents a secret
+// Secret represents a secret
 // swagger:model
 type Secret struct {
 	// the secret's name
 	Name string `json:"name"`
+	// the secret's description
+	Description string `json:"description"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
+}
+
+// CreateOrUpdateSecretOption options when creating or updating secret
+// swagger:model
+type CreateOrUpdateSecretOption struct {
+	// Data of the secret to update
+	//
+	// required: true
+	Data string `json:"data" binding:"Required"`
+
+	// Description of the secret to update
+	//
+	// required: false
+	Description string `json:"description"`
 }

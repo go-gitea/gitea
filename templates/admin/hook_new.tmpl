@@ -1,33 +1,13 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin settings new webhook")}}
 	<div class="admin-setting-content">
-		<h4 class="ui top attached header">
-			{{if .PageIsAdminDefaultHooksNew}}
-				{{.locale.Tr "admin.defaulthooks.add_webhook"}}
-			{{else if .PageIsAdminSystemHooksNew}}
-				{{.locale.Tr "admin.systemhooks.add_webhook"}}
-			{{else if .Webhook.IsSystemWebhook}}
-				{{.locale.Tr "admin.systemhooks.update_webhook"}}
-			{{else}}
-				{{.locale.Tr "admin.defaulthooks.update_webhook"}}
-			{{end}}
-			<div class="ui right">
-				{{template "shared/webhook/icon" .}}
-			</div>
-		</h4>
-		<div class="ui attached segment">
-			{{template "repo/settings/webhook/gitea" .}}
-			{{template "repo/settings/webhook/gogs" .}}
-			{{template "repo/settings/webhook/slack" .}}
-			{{template "repo/settings/webhook/discord" .}}
-			{{template "repo/settings/webhook/dingtalk" .}}
-			{{template "repo/settings/webhook/telegram" .}}
-			{{template "repo/settings/webhook/msteams" .}}
-			{{template "repo/settings/webhook/feishu" .}}
-			{{template "repo/settings/webhook/matrix" .}}
-			{{template "repo/settings/webhook/wechatwork" .}}
-			{{template "repo/settings/webhook/packagist" .}}
-		</div>
-
-		{{template "repo/settings/webhook/history" .}}
+		{{$CustomHeaderTitle := ctx.Locale.Tr "admin.defaulthooks.update_webhook"}}
+		{{if .PageIsAdminDefaultHooksNew}}
+			{{$CustomHeaderTitle = ctx.Locale.Tr "admin.defaulthooks.add_webhook"}}
+		{{else if .PageIsAdminSystemHooksNew}}
+			{{$CustomHeaderTitle = ctx.Locale.Tr "admin.systemhooks.add_webhook"}}
+		{{else if .Webhook.IsSystemWebhook}}
+			{{$CustomHeaderTitle = ctx.Locale.Tr "admin.systemhooks.update_webhook"}}
+		{{end}}
+		{{template "webhook/new" (dict "ctxData" . "CustomHeaderTitle" $CustomHeaderTitle)}}
 	</div>
 {{template "admin/layout_footer" .}}

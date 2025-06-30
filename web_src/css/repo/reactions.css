@@ -1,0 +1,70 @@
+.bottom-reactions {
+  display: flex;
+  gap: 6px;
+  margin: 0 1em 1em;
+}
+
+.timeline-item .conversation-holder .bottom-reactions {
+  margin: 1em 0 0 36px;
+  padding-bottom: 8px;
+}
+
+.bottom-reactions .ui.label {
+  padding: 5px 8px;
+  font-weight: var(--font-weight-normal);
+}
+
+.bottom-reactions .ui.label.primary {
+  background-color: var(--color-reaction-active-bg) !important;
+}
+
+.bottom-reactions .ui.label:hover {
+  background-color: var(--color-reaction-hover-bg) !important;
+}
+
+.bottom-reactions .ui.label.disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.bottom-reactions .ui.label .reaction {
+  font-size: 16px;
+  display: flex;
+}
+
+.bottom-reactions .ui.label .reaction img {
+  height: 16px;
+  aspect-ratio: 1;
+}
+
+.bottom-reactions .reaction-count {
+  margin-left: 4px;
+}
+
+.ui.dropdown.select-reaction .menu {
+  min-width: 170px; /* item-outer-width * 4 */
+}
+
+.ui.dropdown.select-reaction .menu > .item {
+  float: left;
+  margin: 4px;
+  font-size: 20px;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-reactions .select-reaction {
+  padding: 0 10px;
+}
+
+.bottom-reactions .select-reaction:not(.active) {
+  visibility: hidden;
+}
+
+.bottom-reactions:hover .select-reaction {
+  visibility: visible;
+}

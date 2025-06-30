@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/log"
+	session_module "code.gitea.io/gitea/modules/session"
 
 	chiSession "gitea.com/go-chi/session"
 	"github.com/gorilla/sessions"
@@ -65,7 +66,7 @@ func (st *SessionsStore) Save(r *http.Request, w http.ResponseWriter, session *s
 	chiStore := chiSession.GetSession(r)
 
 	if session.IsNew {
-		_, _ = chiSession.RegenerateSession(w, r)
+		_, _ = session_module.RegenerateSession(w, r)
 		session.IsNew = false
 	}
 

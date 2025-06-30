@@ -6,10 +6,10 @@
 	data-accepts="{{.UploadAccepts}}"
 	data-max-file="{{.UploadMaxFiles}}"
 	data-max-size="{{.UploadMaxSize}}"
-	data-default-message="{{.locale.Tr "dropzone.default_message"}}"
-	data-invalid-input-type="{{.locale.Tr "dropzone.invalid_input_type"}}"
-	data-file-too-big="{{.locale.Tr "dropzone.file_too_big"}}"
-	data-remove-file="{{.locale.Tr "dropzone.remove_file"}}"
+	data-default-message="{{ctx.Locale.Tr "dropzone.default_message"}}"
+	data-invalid-input-type="{{ctx.Locale.Tr "dropzone.invalid_input_type"}}"
+	data-file-too-big="{{ctx.Locale.Tr "dropzone.file_too_big"}}"
+	data-remove-file="{{ctx.Locale.Tr "dropzone.remove_file"}}"
 >
 	<div class="files"></div>
 </div>

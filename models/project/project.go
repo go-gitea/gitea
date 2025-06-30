@@ -6,11 +6,13 @@ package project
 import (
 	"context"
 	"fmt"
+	"html/template"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -19,13 +21,7 @@ import (
 )
 
 type (
-	// BoardConfig is used to identify the type of board that is being created
-	BoardConfig struct {
-		BoardType   BoardType
-		Translation string
-	}
-
-	// CardConfig is used to identify the type of board card that is being used
+	// CardConfig is used to identify the type of column card that is being used
 	CardConfig struct {
 		CardType    CardType
 		Translation string
@@ -36,7 +32,7 @@ type (
 )
 
 const (
-	// TypeIndividual is a type of project board that is owned by an individual
+	// TypeIndividual is a type of project column that is owned by an individual
 	TypeIndividual Type = iota + 1
 
 	// TypeRepository is a project that is tied to a repository
@@ -66,45 +62,55 @@ func (err ErrProjectNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrProjectBoardNotExist represents a "ProjectBoardNotExist" kind of error.
-type ErrProjectBoardNotExist struct {
-	BoardID int64
+// ErrProjectColumnNotExist represents a "ErrProjectColumnNotExist" kind of error.
+type ErrProjectColumnNotExist struct {
+	ColumnID int64
 }
 
-// IsErrProjectBoardNotExist checks if an error is a ErrProjectBoardNotExist
-func IsErrProjectBoardNotExist(err error) bool {
-	_, ok := err.(ErrProjectBoardNotExist)
+// IsErrProjectColumnNotExist checks if an error is a ErrProjectColumnNotExist
+func IsErrProjectColumnNotExist(err error) bool {
+	_, ok := err.(ErrProjectColumnNotExist)
 	return ok
 }
 
-func (err ErrProjectBoardNotExist) Error() string {
-	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
+func (err ErrProjectColumnNotExist) Error() string {
+	return fmt.Sprintf("project column does not exist [id: %d]", err.ColumnID)
 }
 
-func (err ErrProjectBoardNotExist) Unwrap() error {
+func (err ErrProjectColumnNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// Project represents a project board
+// Project represents a project
 type Project struct {
-	ID          int64                  `xorm:"pk autoincr"`
-	Title       string                 `xorm:"INDEX NOT NULL"`
-	Description string                 `xorm:"TEXT"`
-	OwnerID     int64                  `xorm:"INDEX"`
-	Owner       *user_model.User       `xorm:"-"`
-	RepoID      int64                  `xorm:"INDEX"`
-	Repo        *repo_model.Repository `xorm:"-"`
-	CreatorID   int64                  `xorm:"NOT NULL"`
-	IsClosed    bool                   `xorm:"INDEX"`
-	BoardType   BoardType
-	CardType    CardType
-	Type        Type
+	ID           int64                  `xorm:"pk autoincr"`
+	Title        string                 `xorm:"INDEX NOT NULL"`
+	Description  string                 `xorm:"TEXT"`
+	OwnerID      int64                  `xorm:"INDEX"`
+	Owner        *user_model.User       `xorm:"-"`
+	RepoID       int64                  `xorm:"INDEX"`
+	Repo         *repo_model.Repository `xorm:"-"`
+	CreatorID    int64                  `xorm:"NOT NULL"`
+	IsClosed     bool                   `xorm:"INDEX"`
+	TemplateType TemplateType           `xorm:"'board_type'"` // TODO: rename the column to template_type
+	CardType     CardType
+	Type         Type
 
-	RenderedContent string `xorm:"-"`
+	RenderedContent template.HTML `xorm:"-"`
+	NumOpenIssues   int64         `xorm:"-"`
+	NumClosedIssues int64         `xorm:"-"`
+	NumIssues       int64         `xorm:"-"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
 	ClosedDateUnix timeutil.TimeStamp
+}
+
+// Ghost Project is a project which has been deleted
+const GhostProjectID = -1
+
+func (p *Project) IsGhost() bool {
+	return p.ID == GhostProjectID
 }
 
 func (p *Project) LoadOwner(ctx context.Context) (err error) {
@@ -123,23 +129,31 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	return err
 }
 
+func ProjectLinkForOrg(org *user_model.User, projectID int64) string { //nolint:revive // export stutter
+	return fmt.Sprintf("%s/-/projects/%d", org.HomeLink(), projectID)
+}
+
+func ProjectLinkForRepo(repo *repo_model.Repository, projectID int64) string { //nolint:revive // export stutter
+	return fmt.Sprintf("%s/projects/%d", repo.Link(), projectID)
+}
+
 // Link returns the project's relative URL.
-func (p *Project) Link() string {
+func (p *Project) Link(ctx context.Context) string {
 	if p.OwnerID > 0 {
-		err := p.LoadOwner(db.DefaultContext)
+		err := p.LoadOwner(ctx)
 		if err != nil {
 			log.Error("LoadOwner: %v", err)
 			return ""
 		}
-		return fmt.Sprintf("%s/-/projects/%d", p.Owner.HomeLink(), p.ID)
+		return ProjectLinkForOrg(p.Owner, p.ID)
 	}
 	if p.RepoID > 0 {
-		err := p.LoadRepo(db.DefaultContext)
+		err := p.LoadRepo(ctx)
 		if err != nil {
 			log.Error("LoadRepo: %v", err)
 			return ""
 		}
-		return fmt.Sprintf("%s/projects/%d", p.Repo.Link(), p.ID)
+		return ProjectLinkForRepo(p.Repo, p.ID)
 	}
 	return ""
 }
@@ -159,20 +173,18 @@ func (p *Project) IsRepositoryProject() bool {
 	return p.Type == TypeRepository
 }
 
+func (p *Project) CanBeAccessedByOwnerRepo(ownerID int64, repo *repo_model.Repository) bool {
+	if p.Type == TypeRepository {
+		return repo != nil && p.RepoID == repo.ID // if a project belongs to a repository, then its OwnerID is 0 and can be ignored
+	}
+	return p.OwnerID == ownerID && p.RepoID == 0
+}
+
 func init() {
 	db.RegisterModel(new(Project))
 }
 
-// GetBoardConfig retrieves the types of configurations project boards could have
-func GetBoardConfig() []BoardConfig {
-	return []BoardConfig{
-		{BoardTypeNone, "repo.projects.type.none"},
-		{BoardTypeBasicKanban, "repo.projects.type.basic_kanban"},
-		{BoardTypeBugTriage, "repo.projects.type.bug_triage"},
-	}
-}
-
-// GetCardConfig retrieves the types of configurations project board cards could have
+// GetCardConfig retrieves the types of configurations project column cards could have
 func GetCardConfig() []CardConfig {
 	return []CardConfig{
 		{CardTypeTextOnly, "repo.projects.card_type.text_only"},
@@ -192,25 +204,22 @@ func IsTypeValid(p Type) bool {
 
 // SearchOptions are options for GetProjects
 type SearchOptions struct {
+	db.ListOptions
 	OwnerID  int64
 	RepoID   int64
-	Page     int
-	IsClosed util.OptionalBool
+	IsClosed optional.Option[bool]
 	OrderBy  db.SearchOrderBy
 	Type     Type
 	Title    string
 }
 
-func (opts *SearchOptions) toConds() builder.Cond {
+func (opts SearchOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
-	switch opts.IsClosed {
-	case util.OptionalBoolTrue:
-		cond = cond.And(builder.Eq{"is_closed": true})
-	case util.OptionalBoolFalse:
-		cond = cond.And(builder.Eq{"is_closed": false})
+	if opts.IsClosed.Has() {
+		cond = cond.And(builder.Eq{"is_closed": opts.IsClosed.Value()})
 	}
 
 	if opts.Type > 0 {
@@ -226,9 +235,8 @@ func (opts *SearchOptions) toConds() builder.Cond {
 	return cond
 }
 
-// CountProjects counts projects
-func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Project))
+func (opts SearchOptions) ToOrders() string {
+	return opts.OrderBy.String()
 }
 
 func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
@@ -239,31 +247,20 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 		return db.SearchOrderByRecentUpdated
 	case "leastupdate":
 		return db.SearchOrderByLeastUpdated
+	case "alphabetically":
+		return "title ASC"
+	case "reversealphabetically":
+		return "title DESC"
 	default:
 		return db.SearchOrderByNewest
 	}
 }
 
-// FindProjects returns a list of all projects that have been created in the repository
-func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds())
-	if opts.OrderBy.String() != "" {
-		e = e.OrderBy(opts.OrderBy.String())
-	}
-	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
-
-	if opts.Page > 0 {
-		e = e.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
-	}
-
-	count, err := e.FindAndCount(&projects)
-	return projects, count, err
-}
-
 // NewProject creates a new Project
-func NewProject(p *Project) error {
-	if !IsBoardTypeValid(p.BoardType) {
-		p.BoardType = BoardTypeNone
+// The title will be cut off at 255 characters if it's longer than 255 characters.
+func NewProject(ctx context.Context, p *Project) error {
+	if !IsTemplateTypeValid(p.TemplateType) {
+		p.TemplateType = TemplateTypeNone
 	}
 
 	if !IsCardTypeValid(p.CardType) {
@@ -274,27 +271,21 @@ func NewProject(p *Project) error {
 		return util.NewInvalidArgumentErrorf("project type is not valid")
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	p.Title = util.EllipsisDisplayString(p.Title, 255)
 
-	if err := db.Insert(ctx, p); err != nil {
-		return err
-	}
-
-	if p.RepoID > 0 {
-		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := db.Insert(ctx, p); err != nil {
 			return err
 		}
-	}
 
-	if err := createBoardsForProjectsType(ctx, p); err != nil {
-		return err
-	}
+		if p.RepoID > 0 {
+			if _, err := db.Exec(ctx, "UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
+				return err
+			}
+		}
 
-	return committer.Commit()
+		return createDefaultColumnsForProject(ctx, p)
+	})
 }
 
 // GetProjectByID returns the projects in a repository
@@ -311,12 +302,31 @@ func GetProjectByID(ctx context.Context, id int64) (*Project, error) {
 	return p, nil
 }
 
+// GetProjectForRepoByID returns the projects in a repository
+func GetProjectForRepoByID(ctx context.Context, repoID, id int64) (*Project, error) {
+	p := new(Project)
+	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", id, repoID).Get(p)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrProjectNotExist{ID: id}
+	}
+	return p, nil
+}
+
+// GetAllProjectsIDsByOwnerID returns the all projects ids it owns
+func GetAllProjectsIDsByOwnerIDAndType(ctx context.Context, ownerID int64, projectType Type) ([]int64, error) {
+	projects := make([]int64, 0)
+	return projects, db.GetEngine(ctx).Table(&Project{}).Where("owner_id=? AND type=?", ownerID, projectType).Cols("id").Find(&projects)
+}
+
 // UpdateProject updates project properties
 func UpdateProject(ctx context.Context, p *Project) error {
 	if !IsCardTypeValid(p.CardType) {
 		p.CardType = CardTypeTextOnly
 	}
 
+	p.Title = util.EllipsisDisplayString(p.Title, 255)
 	_, err := db.GetEngine(ctx).ID(p.ID).Cols(
 		"title",
 		"description",
@@ -348,8 +358,8 @@ func updateRepositoryProjectCount(ctx context.Context, repoID int64) error {
 }
 
 // ChangeProjectStatusByRepoIDAndID toggles a project between opened and closed
-func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeProjectStatusByRepoIDAndID(ctx context.Context, repoID, projectID int64, isClosed bool) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -372,8 +382,8 @@ func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) er
 }
 
 // ChangeProjectStatus toggle a project between opened and closed
-func ChangeProjectStatus(p *Project, isClosed bool) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -416,7 +426,7 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 			return err
 		}
 
-		if err := deleteBoardByProjectID(ctx, id); err != nil {
+		if err := deleteColumnByProjectID(ctx, id); err != nil {
 			return err
 		}
 

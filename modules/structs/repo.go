@@ -63,6 +63,7 @@ type Repository struct {
 	Language      string      `json:"language"`
 	LanguagesURL  string      `json:"languages_url"`
 	HTMLURL       string      `json:"html_url"`
+	URL           string      `json:"url"`
 	Link          string      `json:"link"`
 	SSHURL        string      `json:"ssh_url"`
 	CloneURL      string      `json:"clone_url"`
@@ -89,6 +90,7 @@ type Repository struct {
 	ExternalWiki                  *ExternalWiki    `json:"external_wiki,omitempty"`
 	HasPullRequests               bool             `json:"has_pull_requests"`
 	HasProjects                   bool             `json:"has_projects"`
+	ProjectsMode                  string           `json:"projects_mode"`
 	HasReleases                   bool             `json:"has_releases"`
 	HasPackages                   bool             `json:"has_packages"`
 	HasActions                    bool             `json:"has_actions"`
@@ -97,16 +99,24 @@ type Repository struct {
 	AllowRebase                   bool             `json:"allow_rebase"`
 	AllowRebaseMerge              bool             `json:"allow_rebase_explicit"`
 	AllowSquash                   bool             `json:"allow_squash_merge"`
+	AllowFastForwardOnly          bool             `json:"allow_fast_forward_only_merge"`
 	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
+	AllowManualMerge              bool             `json:"allow_manual_merge"`
+	AutodetectManualMerge         bool             `json:"autodetect_manual_merge"`
 	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
 	DefaultMergeStyle             string           `json:"default_merge_style"`
 	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
 	MirrorInterval                string           `json:"mirror_interval"`
+	// ObjectFormatName of the underlying git repository
+	// enum: sha1,sha256
+	ObjectFormatName string `json:"object_format_name"`
 	// swagger:strfmt date-time
-	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
+	MirrorUpdated time.Time     `json:"mirror_updated"`
 	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
+	Topics        []string      `json:"topics"`
+	Licenses      []string      `json:"licenses"`
 }
 
 // CreateRepoOption options when creating repository
@@ -138,6 +148,9 @@ type CreateRepoOption struct {
 	// TrustModel of the repository
 	// enum: default,collaborator,committer,collaboratorcommitter
 	TrustModel string `json:"trust_model"`
+	// ObjectFormatName of the underlying git repository
+	// enum: sha1,sha256
+	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6)"`
 }
 
 // EditRepoOption options when editing a repository's properties
@@ -172,6 +185,8 @@ type EditRepoOption struct {
 	HasPullRequests *bool `json:"has_pull_requests,omitempty"`
 	// either `true` to enable project unit, or `false` to disable them.
 	HasProjects *bool `json:"has_projects,omitempty"`
+	// `repo` to only allow repo-level projects, `owner` to only allow owner projects, `all` to allow both.
+	ProjectsMode *string `json:"projects_mode,omitempty" binding:"In(repo,owner,all)"`
 	// either `true` to enable releases unit, or `false` to disable them.
 	HasReleases *bool `json:"has_releases,omitempty"`
 	// either `true` to enable packages unit, or `false` to disable them.
@@ -188,6 +203,8 @@ type EditRepoOption struct {
 	AllowRebaseMerge *bool `json:"allow_rebase_explicit,omitempty"`
 	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging.
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
+	// either `true` to allow fast-forward-only merging pull requests, or `false` to prevent fast-forward-only merging.
+	AllowFastForwardOnly *bool `json:"allow_fast_forward_only_merge,omitempty"`
 	// either `true` to allow mark pr as merged manually, or `false` to prevent it.
 	AllowManualMerge *bool `json:"allow_manual_merge,omitempty"`
 	// either `true` to enable AutodetectManualMerge, or `false` to prevent it. Note: In some special cases, misjudgments can occur.
@@ -196,7 +213,7 @@ type EditRepoOption struct {
 	AllowRebaseUpdate *bool `json:"allow_rebase_update,omitempty"`
 	// set to `true` to delete pr branch after merge by default
 	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
-	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", or "squash".
+	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", "squash", or "fast-forward-only".
 	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
 	// set to `true` to allow edits from maintainers by default
 	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
@@ -204,7 +221,7 @@ type EditRepoOption struct {
 	Archived *bool `json:"archived,omitempty"`
 	// set to a string like `8h30m0s` to set the mirror interval time
 	MirrorInterval *string `json:"mirror_interval,omitempty"`
-	// enable prune - remove obsolete remote-tracking references
+	// enable prune - remove obsolete remote-tracking references when mirroring
 	EnablePrune *bool `json:"enable_prune,omitempty"`
 }
 
@@ -263,6 +280,16 @@ type CreateBranchRepoOption struct {
 	OldRefName string `json:"old_ref_name" binding:"GitRefName;MaxSize(100)"`
 }
 
+// UpdateBranchRepoOption options when updating a branch in a repository
+// swagger:model
+type UpdateBranchRepoOption struct {
+	// New branch name
+	//
+	// required: true
+	// unique: true
+	Name string `json:"name" binding:"Required;GitRefName;MaxSize(100)"`
+}
+
 // TransferRepoOption options when transfer a repository's ownership
 // swagger:model
 type TransferRepoOption struct {
@@ -277,15 +304,16 @@ type GitServiceType int
 
 // enumerate all GitServiceType
 const (
-	NotMigrated      GitServiceType = iota // 0 not migrated from external sites
-	PlainGitService                        // 1 plain git service
-	GithubService                          // 2 github.com
-	GiteaService                           // 3 gitea service
-	GitlabService                          // 4 gitlab service
-	GogsService                            // 5 gogs service
-	OneDevService                          // 6 onedev service
-	GitBucketService                       // 7 gitbucket service
-	CodebaseService                        // 8 codebase service
+	NotMigrated       GitServiceType = iota // 0 not migrated from external sites
+	PlainGitService                         // 1 plain git service
+	GithubService                           // 2 github.com
+	GiteaService                            // 3 gitea service
+	GitlabService                           // 4 gitlab service
+	GogsService                             // 5 gogs service
+	OneDevService                           // 6 onedev service
+	GitBucketService                        // 7 gitbucket service
+	CodebaseService                         // 8 codebase service
+	CodeCommitService                       // 9 codecommit service
 )
 
 // Name represents the service type's name
@@ -311,6 +339,8 @@ func (gt GitServiceType) Title() string {
 		return "GitBucket"
 	case CodebaseService:
 		return "Codebase"
+	case CodeCommitService:
+		return "CodeCommit"
 	case PlainGitService:
 		return "Git"
 	}
@@ -329,7 +359,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
-	// enum: git,github,gitea,gitlab,gogs,onedev,gitbucket,codebase
+	// enum: git,github,gitea,gitlab,gogs,onedev,gitbucket,codebase,codecommit
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
@@ -347,6 +377,9 @@ type MigrateRepoOptions struct {
 	PullRequests   bool   `json:"pull_requests"`
 	Releases       bool   `json:"releases"`
 	MirrorInterval string `json:"mirror_interval"`
+
+	AWSAccessKeyID     string `json:"aws_access_key_id"`
+	AWSSecretAccessKey string `json:"aws_secret_access_key"`
 }
 
 // TokenAuth represents whether a service type supports token-based auth
@@ -368,6 +401,7 @@ var SupportedFullGitService = []GitServiceType{
 	OneDevService,
 	GitBucketService,
 	CodebaseService,
+	CodeCommitService,
 }
 
 // RepoTransfer represents a pending repo transfer

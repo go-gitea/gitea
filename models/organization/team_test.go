@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -27,14 +28,14 @@ func TestTeam_IsMember(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
-	assert.True(t, team.IsMember(2))
-	assert.False(t, team.IsMember(4))
-	assert.False(t, team.IsMember(unittest.NonexistentID))
+	assert.True(t, team.IsMember(db.DefaultContext, 2))
+	assert.False(t, team.IsMember(db.DefaultContext, 4))
+	assert.False(t, team.IsMember(db.DefaultContext, unittest.NonexistentID))
 
 	team = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	assert.True(t, team.IsMember(2))
-	assert.True(t, team.IsMember(4))
-	assert.False(t, team.IsMember(unittest.NonexistentID))
+	assert.True(t, team.IsMember(db.DefaultContext, 2))
+	assert.True(t, team.IsMember(db.DefaultContext, 4))
+	assert.False(t, team.IsMember(db.DefaultContext, unittest.NonexistentID))
 }
 
 func TestTeam_GetRepositories(t *testing.T) {
@@ -42,9 +43,12 @@ func TestTeam_GetRepositories(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, team.LoadRepositories(db.DefaultContext))
-		assert.Len(t, team.Repos, team.NumRepos)
-		for _, repo := range team.Repos {
+		repos, err := repo_model.GetTeamRepositories(db.DefaultContext, &repo_model.SearchTeamRepoOptions{
+			TeamID: team.ID,
+		})
+		assert.NoError(t, err)
+		assert.Len(t, repos, team.NumRepos)
+		for _, repo := range repos {
 			unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: teamID, RepoID: repo.ID})
 		}
 	}
@@ -73,7 +77,7 @@ func TestGetTeam(t *testing.T) {
 	testSuccess := func(orgID int64, name string) {
 		team, err := organization.GetTeam(db.DefaultContext, orgID, name)
 		assert.NoError(t, err)
-		assert.EqualValues(t, orgID, team.OrgID)
+		assert.Equal(t, orgID, team.OrgID)
 		assert.Equal(t, name, team.Name)
 	}
 	testSuccess(3, "Owners")
@@ -91,7 +95,7 @@ func TestGetTeamByID(t *testing.T) {
 	testSuccess := func(teamID int64) {
 		team, err := organization.GetTeamByID(db.DefaultContext, teamID)
 		assert.NoError(t, err)
-		assert.EqualValues(t, teamID, team.ID)
+		assert.Equal(t, teamID, team.ID)
 	}
 	testSuccess(1)
 	testSuccess(2)
@@ -142,7 +146,7 @@ func TestGetTeamMembers(t *testing.T) {
 func TestGetUserTeams(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(userID int64) {
-		teams, _, err := organization.SearchTeam(&organization.SearchTeamOptions{UserID: userID})
+		teams, _, err := organization.SearchTeam(db.DefaultContext, &organization.SearchTeamOptions{UserID: userID})
 		assert.NoError(t, err)
 		for _, team := range teams {
 			unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{TeamID: team.ID, UID: userID})
@@ -159,7 +163,7 @@ func TestGetUserOrgTeams(t *testing.T) {
 		teams, err := organization.GetUserOrgTeams(db.DefaultContext, orgID, userID)
 		assert.NoError(t, err)
 		for _, team := range teams {
-			assert.EqualValues(t, orgID, team.OrgID)
+			assert.Equal(t, orgID, team.OrgID)
 			unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{TeamID: team.ID, UID: userID})
 		}
 	}
@@ -188,7 +192,7 @@ func TestUsersInTeamsCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamIDs, userIDs []int64, expected int64) {
-		count, err := organization.UsersInTeamsCount(teamIDs, userIDs)
+		count, err := organization.UsersInTeamsCount(db.DefaultContext, teamIDs, userIDs)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, count)
 	}
@@ -196,4 +200,9 @@ func TestUsersInTeamsCount(t *testing.T) {
 	test([]int64{2}, []int64{1, 2, 3, 4}, 1)          // only userid 2
 	test([]int64{1, 2, 3, 4, 5}, []int64{2, 5}, 2)    // userid 2,4
 	test([]int64{1, 2, 3, 4, 5}, []int64{2, 3, 5}, 3) // userid 2,4,5
+}
+
+func TestIsUsableTeamName(t *testing.T) {
+	assert.NoError(t, organization.IsUsableTeamName("usable"))
+	assert.True(t, db.IsErrNameReserved(organization.IsUsableTeamName("new")))
 }

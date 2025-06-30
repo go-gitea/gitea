@@ -90,7 +90,7 @@ func (b *EventWriterBaseImpl) Run(ctx context.Context) {
 
 			if exprRegexp != nil {
 				fileLineCaller := fmt.Sprintf("%s:%d:%s", event.Origin.Filename, event.Origin.Line, event.Origin.Caller)
-				matched := exprRegexp.Match([]byte(fileLineCaller)) || exprRegexp.Match([]byte(event.Origin.MsgSimpleText))
+				matched := exprRegexp.MatchString(fileLineCaller) || exprRegexp.MatchString(event.Origin.MsgSimpleText)
 				if !matched {
 					continue
 				}
@@ -105,7 +105,7 @@ func (b *EventWriterBaseImpl) Run(ctx context.Context) {
 			case io.WriterTo:
 				_, err = msg.WriteTo(b.OutputWriteCloser)
 			default:
-				_, err = b.OutputWriteCloser.Write([]byte(fmt.Sprint(msg)))
+				_, err = fmt.Fprint(b.OutputWriteCloser, msg)
 			}
 			if err != nil {
 				FallbackErrorf("unable to write log message of %q (%v): %v", b.Name, err, event.Msg)

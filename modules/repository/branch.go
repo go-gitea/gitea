@@ -5,12 +5,14 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -24,9 +26,9 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 
 	log.Debug("SyncRepoBranches: in Repo[%d:%s]", repo.ID, repo.FullName())
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
-		log.Error("OpenRepository[%s]: %w", repo.RepoPath(), err)
+		log.Error("OpenRepository[%s]: %w", repo.FullName(), err)
 		return 0, err
 	}
 	defer gitRepo.Close()
@@ -35,6 +37,17 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 }
 
 func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) (int64, error) {
+	objFmt, err := gitRepo.GetObjectFormat()
+	if err != nil {
+		return 0, fmt.Errorf("GetObjectFormat: %w", err)
+	}
+	if objFmt.Name() != repo.ObjectFormatName {
+		repo.ObjectFormatName = objFmt.Name()
+		if err = repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "object_format_name"); err != nil {
+			return 0, fmt.Errorf("UpdateRepositoryColsWithAutoTime: %w", err)
+		}
+	}
+
 	allBranches := container.Set[string]{}
 	{
 		branches, _, err := gitRepo.GetBranchNames(0, 0)
@@ -49,11 +62,9 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 
 	dbBranches := make(map[string]*git_model.Branch)
 	{
-		branches, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
-			ListOptions: db.ListOptions{
-				ListAll: true,
-			},
-			RepoID: repo.ID,
+		branches, err := db.Find[git_model.Branch](ctx, git_model.FindBranchOptions{
+			ListOptions: db.ListOptionsAll,
+			RepoID:      repo.ID,
 		})
 		if err != nil {
 			return 0, err
@@ -106,15 +117,15 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 		return int64(len(allBranches)), nil
 	}
 
-	if err := db.WithTx(ctx, func(subCtx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if len(toAdd) > 0 {
-			if err := git_model.AddBranches(subCtx, toAdd); err != nil {
+			if err := git_model.AddBranches(ctx, toAdd); err != nil {
 				return err
 			}
 		}
 
 		for _, b := range toUpdate {
-			if _, err := db.GetEngine(subCtx).ID(b.ID).
+			if _, err := db.GetEngine(ctx).ID(b.ID).
 				Cols("commit_id, commit_message, pusher_id, commit_time, is_deleted").
 				Update(b); err != nil {
 				return err
@@ -122,7 +133,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 		}
 
 		if len(toRemove) > 0 {
-			if err := git_model.DeleteBranches(subCtx, repo.ID, doerID, toRemove); err != nil {
+			if err := git_model.DeleteBranches(ctx, repo.ID, doerID, toRemove); err != nil {
 				return err
 			}
 		}

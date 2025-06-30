@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -155,8 +156,8 @@ func (w *Webhook) AfterLoad() {
 }
 
 // History returns history of webhook by given conditions.
-func (w *Webhook) History(page int) ([]*HookTask, error) {
-	return HookTasks(w.ID, page)
+func (w *Webhook) History(ctx context.Context, page int) ([]*HookTask, error) {
+	return HookTasks(ctx, w.ID, page)
 }
 
 // UpdateEvent handles conversion from HookEvent to Events.
@@ -166,186 +167,39 @@ func (w *Webhook) UpdateEvent() error {
 	return err
 }
 
-// HasCreateEvent returns true if hook enabled create event.
-func (w *Webhook) HasCreateEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.Create)
-}
-
-// HasDeleteEvent returns true if hook enabled delete event.
-func (w *Webhook) HasDeleteEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.Delete)
-}
-
-// HasForkEvent returns true if hook enabled fork event.
-func (w *Webhook) HasForkEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.Fork)
-}
-
-// HasIssuesEvent returns true if hook enabled issues event.
-func (w *Webhook) HasIssuesEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.Issues)
-}
-
-// HasIssuesAssignEvent returns true if hook enabled issues assign event.
-func (w *Webhook) HasIssuesAssignEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.IssueAssign)
-}
-
-// HasIssuesLabelEvent returns true if hook enabled issues label event.
-func (w *Webhook) HasIssuesLabelEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.IssueLabel)
-}
-
-// HasIssuesMilestoneEvent returns true if hook enabled issues milestone event.
-func (w *Webhook) HasIssuesMilestoneEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.IssueMilestone)
-}
-
-// HasIssueCommentEvent returns true if hook enabled issue_comment event.
-func (w *Webhook) HasIssueCommentEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.IssueComment)
-}
-
-// HasPushEvent returns true if hook enabled push event.
-func (w *Webhook) HasPushEvent() bool {
-	return w.PushOnly || w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.Push)
-}
-
-// HasPullRequestEvent returns true if hook enabled pull request event.
-func (w *Webhook) HasPullRequestEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.PullRequest)
-}
-
-// HasPullRequestAssignEvent returns true if hook enabled pull request assign event.
-func (w *Webhook) HasPullRequestAssignEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.PullRequestAssign)
-}
-
-// HasPullRequestLabelEvent returns true if hook enabled pull request label event.
-func (w *Webhook) HasPullRequestLabelEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.PullRequestLabel)
-}
-
-// HasPullRequestMilestoneEvent returns true if hook enabled pull request milestone event.
-func (w *Webhook) HasPullRequestMilestoneEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.PullRequestMilestone)
-}
-
-// HasPullRequestCommentEvent returns true if hook enabled pull_request_comment event.
-func (w *Webhook) HasPullRequestCommentEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.PullRequestComment)
-}
-
-// HasPullRequestApprovedEvent returns true if hook enabled pull request review event.
-func (w *Webhook) HasPullRequestApprovedEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.PullRequestReview)
-}
-
-// HasPullRequestRejectedEvent returns true if hook enabled pull request review event.
-func (w *Webhook) HasPullRequestRejectedEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.PullRequestReview)
-}
-
-// HasPullRequestReviewCommentEvent returns true if hook enabled pull request review event.
-func (w *Webhook) HasPullRequestReviewCommentEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.PullRequestReview)
-}
-
-// HasPullRequestSyncEvent returns true if hook enabled pull request sync event.
-func (w *Webhook) HasPullRequestSyncEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.PullRequestSync)
-}
-
-// HasWikiEvent returns true if hook enabled wiki event.
-func (w *Webhook) HasWikiEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvent.Wiki)
-}
-
-// HasReleaseEvent returns if hook enabled release event.
-func (w *Webhook) HasReleaseEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.Release)
-}
-
-// HasRepositoryEvent returns if hook enabled repository event.
-func (w *Webhook) HasRepositoryEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.Repository)
-}
-
-// HasPackageEvent returns if hook enabled package event.
-func (w *Webhook) HasPackageEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.Package)
-}
-
-// HasPullRequestReviewRequestEvent returns true if hook enabled pull request review request event.
-func (w *Webhook) HasPullRequestReviewRequestEvent() bool {
-	return w.SendEverything ||
-		(w.ChooseEvents && w.HookEvents.PullRequestReviewRequest)
-}
-
-// EventCheckers returns event checkers
-func (w *Webhook) EventCheckers() []struct {
-	Has  func() bool
-	Type webhook_module.HookEventType
-} {
-	return []struct {
-		Has  func() bool
-		Type webhook_module.HookEventType
-	}{
-		{w.HasCreateEvent, webhook_module.HookEventCreate},
-		{w.HasDeleteEvent, webhook_module.HookEventDelete},
-		{w.HasForkEvent, webhook_module.HookEventFork},
-		{w.HasPushEvent, webhook_module.HookEventPush},
-		{w.HasIssuesEvent, webhook_module.HookEventIssues},
-		{w.HasIssuesAssignEvent, webhook_module.HookEventIssueAssign},
-		{w.HasIssuesLabelEvent, webhook_module.HookEventIssueLabel},
-		{w.HasIssuesMilestoneEvent, webhook_module.HookEventIssueMilestone},
-		{w.HasIssueCommentEvent, webhook_module.HookEventIssueComment},
-		{w.HasPullRequestEvent, webhook_module.HookEventPullRequest},
-		{w.HasPullRequestAssignEvent, webhook_module.HookEventPullRequestAssign},
-		{w.HasPullRequestLabelEvent, webhook_module.HookEventPullRequestLabel},
-		{w.HasPullRequestMilestoneEvent, webhook_module.HookEventPullRequestMilestone},
-		{w.HasPullRequestCommentEvent, webhook_module.HookEventPullRequestComment},
-		{w.HasPullRequestApprovedEvent, webhook_module.HookEventPullRequestReviewApproved},
-		{w.HasPullRequestRejectedEvent, webhook_module.HookEventPullRequestReviewRejected},
-		{w.HasPullRequestCommentEvent, webhook_module.HookEventPullRequestReviewComment},
-		{w.HasPullRequestSyncEvent, webhook_module.HookEventPullRequestSync},
-		{w.HasWikiEvent, webhook_module.HookEventWiki},
-		{w.HasRepositoryEvent, webhook_module.HookEventRepository},
-		{w.HasReleaseEvent, webhook_module.HookEventRelease},
-		{w.HasPackageEvent, webhook_module.HookEventPackage},
-		{w.HasPullRequestReviewRequestEvent, webhook_module.HookEventPullRequestReviewRequest},
+func (w *Webhook) HasEvent(evt webhook_module.HookEventType) bool {
+	if w.SendEverything {
+		return true
 	}
+	if w.PushOnly {
+		return evt == webhook_module.HookEventPush
+	}
+	checkEvt := evt
+	switch evt {
+	case webhook_module.HookEventPullRequestReviewApproved, webhook_module.HookEventPullRequestReviewRejected, webhook_module.HookEventPullRequestReviewComment:
+		checkEvt = webhook_module.HookEventPullRequestReview
+	}
+	return w.HookEvents[checkEvt]
 }
 
 // EventsArray returns an array of hook events
 func (w *Webhook) EventsArray() []string {
-	events := make([]string, 0, 7)
+	if w.SendEverything {
+		events := make([]string, 0, len(webhook_module.AllEvents()))
+		for _, evt := range webhook_module.AllEvents() {
+			events = append(events, string(evt))
+		}
+		return events
+	}
 
-	for _, c := range w.EventCheckers() {
-		if c.Has() {
-			events = append(events, string(c.Type))
+	if w.PushOnly {
+		return []string{string(webhook_module.HookEventPush)}
+	}
+
+	events := make([]string, 0, len(w.HookEvents))
+	for event, enabled := range w.HookEvents {
+		if enabled {
+			events = append(events, string(event))
 		}
 	}
 	return events
@@ -386,45 +240,46 @@ func CreateWebhooks(ctx context.Context, ws []*Webhook) error {
 	if len(ws) == 0 {
 		return nil
 	}
-	for i := 0; i < len(ws); i++ {
+	for i := range ws {
 		ws[i].Type = strings.TrimSpace(ws[i].Type)
 	}
 	return db.Insert(ctx, ws)
 }
 
-// getWebhook uses argument bean as query condition,
-// ID must be specified and do not assign unnecessary fields.
-func getWebhook(bean *Webhook) (*Webhook, error) {
-	has, err := db.GetEngine(db.DefaultContext).Get(bean)
+// GetWebhookByID returns webhook of repository by given ID.
+func GetWebhookByID(ctx context.Context, id int64) (*Webhook, error) {
+	bean := new(Webhook)
+	has, err := db.GetEngine(ctx).ID(id).Get(bean)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrWebhookNotExist{ID: bean.ID}
+		return nil, ErrWebhookNotExist{ID: id}
 	}
 	return bean, nil
 }
 
-// GetWebhookByID returns webhook of repository by given ID.
-func GetWebhookByID(id int64) (*Webhook, error) {
-	return getWebhook(&Webhook{
-		ID: id,
-	})
-}
-
 // GetWebhookByRepoID returns webhook of repository by given ID.
-func GetWebhookByRepoID(repoID, id int64) (*Webhook, error) {
-	return getWebhook(&Webhook{
-		ID:     id,
-		RepoID: repoID,
-	})
+func GetWebhookByRepoID(ctx context.Context, repoID, id int64) (*Webhook, error) {
+	webhook := new(Webhook)
+	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", id, repoID).Get(webhook)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrWebhookNotExist{ID: id}
+	}
+	return webhook, nil
 }
 
 // GetWebhookByOwnerID returns webhook of a user or organization by given ID.
-func GetWebhookByOwnerID(ownerID, id int64) (*Webhook, error) {
-	return getWebhook(&Webhook{
-		ID:      id,
-		OwnerID: ownerID,
-	})
+func GetWebhookByOwnerID(ctx context.Context, ownerID, id int64) (*Webhook, error) {
+	webhook := new(Webhook)
+	has, err := db.GetEngine(ctx).Where("id=? AND owner_id=?", id, ownerID).Get(webhook)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrWebhookNotExist{ID: id}
+	}
+	return webhook, nil
 }
 
 // ListWebhookOptions are options to filter webhooks on ListWebhooksByOpts
@@ -432,10 +287,10 @@ type ListWebhookOptions struct {
 	db.ListOptions
 	RepoID   int64
 	OwnerID  int64
-	IsActive util.OptionalBool
+	IsActive optional.Option[bool]
 }
 
-func (opts *ListWebhookOptions) toCond() builder.Cond {
+func (opts ListWebhookOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID != 0 {
 		cond = cond.And(builder.Eq{"webhook.repo_id": opts.RepoID})
@@ -443,59 +298,38 @@ func (opts *ListWebhookOptions) toCond() builder.Cond {
 	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"webhook.owner_id": opts.OwnerID})
 	}
-	if !opts.IsActive.IsNone() {
-		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.IsTrue()})
+	if opts.IsActive.Has() {
+		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.Value()})
 	}
 	return cond
 }
 
-// ListWebhooksByOpts return webhooks based on options
-func ListWebhooksByOpts(ctx context.Context, opts *ListWebhookOptions) ([]*Webhook, error) {
-	sess := db.GetEngine(ctx).Where(opts.toCond())
-
-	if opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-		webhooks := make([]*Webhook, 0, opts.PageSize)
-		err := sess.Find(&webhooks)
-		return webhooks, err
-	}
-
-	webhooks := make([]*Webhook, 0, 10)
-	err := sess.Find(&webhooks)
-	return webhooks, err
-}
-
-// CountWebhooksByOpts count webhooks based on options and ignore pagination
-func CountWebhooksByOpts(opts *ListWebhookOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&Webhook{})
-}
-
 // UpdateWebhook updates information of webhook.
-func UpdateWebhook(w *Webhook) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(w.ID).AllCols().Update(w)
+func UpdateWebhook(ctx context.Context, w *Webhook) error {
+	_, err := db.GetEngine(ctx).ID(w.ID).AllCols().Update(w)
 	return err
 }
 
 // UpdateWebhookLastStatus updates last status of webhook.
-func UpdateWebhookLastStatus(w *Webhook) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(w.ID).Cols("last_status").Update(w)
+func UpdateWebhookLastStatus(ctx context.Context, w *Webhook) error {
+	_, err := db.GetEngine(ctx).ID(w.ID).Cols("last_status").Update(w)
 	return err
 }
 
-// deleteWebhook uses argument bean as query condition,
+// DeleteWebhookByID uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
-func deleteWebhook(bean *Webhook) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteWebhookByID(ctx context.Context, id int64) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if count, err := db.DeleteByBean(ctx, bean); err != nil {
+	if count, err := db.DeleteByID[Webhook](ctx, id); err != nil {
 		return err
 	} else if count == 0 {
-		return ErrWebhookNotExist{ID: bean.ID}
-	} else if _, err = db.DeleteByBean(ctx, &HookTask{HookID: bean.ID}); err != nil {
+		return ErrWebhookNotExist{ID: id}
+	} else if _, err = db.DeleteByBean(ctx, &HookTask{HookID: id}); err != nil {
 		return err
 	}
 
@@ -503,17 +337,17 @@ func deleteWebhook(bean *Webhook) (err error) {
 }
 
 // DeleteWebhookByRepoID deletes webhook of repository by given ID.
-func DeleteWebhookByRepoID(repoID, id int64) error {
-	return deleteWebhook(&Webhook{
-		ID:     id,
-		RepoID: repoID,
-	})
+func DeleteWebhookByRepoID(ctx context.Context, repoID, id int64) error {
+	if _, err := GetWebhookByRepoID(ctx, repoID, id); err != nil {
+		return err
+	}
+	return DeleteWebhookByID(ctx, id)
 }
 
 // DeleteWebhookByOwnerID deletes webhook of a user or organization by given ID.
-func DeleteWebhookByOwnerID(ownerID, id int64) error {
-	return deleteWebhook(&Webhook{
-		ID:      id,
-		OwnerID: ownerID,
-	})
+func DeleteWebhookByOwnerID(ctx context.Context, ownerID, id int64) error {
+	if _, err := GetWebhookByOwnerID(ctx, ownerID, id); err != nil {
+		return err
+	}
+	return DeleteWebhookByID(ctx, id)
 }

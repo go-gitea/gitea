@@ -11,11 +11,12 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ___________
@@ -76,9 +77,8 @@ type Team struct {
 	LowerName               string
 	Name                    string
 	Description             string
-	AccessMode              perm.AccessMode          `xorm:"'authorize'"`
-	Repos                   []*repo_model.Repository `xorm:"-"`
-	Members                 []*user_model.User       `xorm:"-"`
+	AccessMode              perm.AccessMode    `xorm:"'authorize'"`
+	Members                 []*user_model.User `xorm:"-"`
 	NumRepos                int
 	NumMembers              int
 	Units                   []*TeamUnit `xorm:"-"`
@@ -113,7 +113,7 @@ func (t *Team) LoadUnits(ctx context.Context) (err error) {
 
 // GetUnitNames returns the team units names
 func (t *Team) GetUnitNames() (res []string) {
-	if t.AccessMode >= perm.AccessModeAdmin {
+	if t.HasAdminAccess() {
 		return unit.AllUnitKeyNames()
 	}
 
@@ -126,13 +126,13 @@ func (t *Team) GetUnitNames() (res []string) {
 // GetUnitsMap returns the team units permissions
 func (t *Team) GetUnitsMap() map[string]string {
 	m := make(map[string]string)
-	if t.AccessMode >= perm.AccessModeAdmin {
+	if t.HasAdminAccess() {
 		for _, u := range unit.Units {
-			m[u.NameKey] = t.AccessMode.String()
+			m[u.NameKey] = t.AccessMode.ToString()
 		}
 	} else {
 		for _, u := range t.Units {
-			m[u.Unit().NameKey] = u.AccessMode.String()
+			m[u.Unit().NameKey] = u.AccessMode.ToString()
 		}
 	}
 	return m
@@ -144,8 +144,8 @@ func (t *Team) IsOwnerTeam() bool {
 }
 
 // IsMember returns true if given user is a member of team.
-func (t *Team) IsMember(userID int64) bool {
-	isMember, err := IsTeamMember(db.DefaultContext, t.OrgID, t.ID, userID)
+func (t *Team) IsMember(ctx context.Context, userID int64) bool {
+	isMember, err := IsTeamMember(ctx, t.OrgID, t.ID, userID)
 	if err != nil {
 		log.Error("IsMember: %v", err)
 		return false
@@ -153,15 +153,8 @@ func (t *Team) IsMember(userID int64) bool {
 	return isMember
 }
 
-// LoadRepositories returns paginated repositories in team of organization.
-func (t *Team) LoadRepositories(ctx context.Context) (err error) {
-	if t.Repos != nil {
-		return nil
-	}
-	t.Repos, err = GetTeamRepositories(ctx, &SearchTeamRepoOptions{
-		TeamID: t.ID,
-	})
-	return err
+func (t *Team) HasAdminAccess() bool {
+	return t.AccessMode >= perm.AccessModeAdmin
 }
 
 // LoadMembers returns paginated members in team of organization.
@@ -172,23 +165,27 @@ func (t *Team) LoadMembers(ctx context.Context) (err error) {
 	return err
 }
 
-// UnitEnabled returns if the team has the given unit type enabled
+// UnitEnabled returns true if the team has the given unit type enabled
 func (t *Team) UnitEnabled(ctx context.Context, tp unit.Type) bool {
 	return t.UnitAccessMode(ctx, tp) > perm.AccessModeNone
 }
 
-// UnitAccessMode returns if the team has the given unit type enabled
+// UnitAccessMode returns the access mode for the given unit type, "none" for non-existent units
 func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode {
+	accessMode, _ := t.UnitAccessModeEx(ctx, tp)
+	return accessMode
+}
+
+func (t *Team) UnitAccessModeEx(ctx context.Context, tp unit.Type) (accessMode perm.AccessMode, exist bool) {
 	if err := t.LoadUnits(ctx); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
-
-	for _, unit := range t.Units {
-		if unit.Type == tp {
-			return unit.AccessMode
+	for _, u := range t.Units {
+		if u.Type == tp {
+			return u.AccessMode, true
 		}
 	}
-	return perm.AccessModeNone
+	return perm.AccessModeNone, false
 }
 
 // IsUsableTeamName tests if a name could be as team name
@@ -203,30 +200,25 @@ func IsUsableTeamName(name string) error {
 
 // GetTeam returns team by given team name and organization.
 func GetTeam(ctx context.Context, orgID int64, name string) (*Team, error) {
-	t := &Team{
-		OrgID:     orgID,
-		LowerName: strings.ToLower(name),
-	}
-	has, err := db.GetByBean(ctx, t)
+	t, exist, err := db.Get[Team](ctx, builder.Eq{"org_id": orgID, "lower_name": strings.ToLower(name)})
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrTeamNotExist{orgID, 0, name}
 	}
 	return t, nil
 }
 
 // GetTeamIDsByNames returns a slice of team ids corresponds to names.
-func GetTeamIDsByNames(orgID int64, names []string, ignoreNonExistent bool) ([]int64, error) {
+func GetTeamIDsByNames(ctx context.Context, orgID int64, names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
 	for _, name := range names {
-		u, err := GetTeam(db.DefaultContext, orgID, name)
+		u, err := GetTeam(ctx, orgID, name)
 		if err != nil {
 			if ignoreNonExistent {
 				continue
-			} else {
-				return nil, err
 			}
+			return nil, err
 		}
 		ids = append(ids, u.ID)
 	}
@@ -248,22 +240,6 @@ func GetTeamByID(ctx context.Context, teamID int64) (*Team, error) {
 		return nil, ErrTeamNotExist{0, teamID, ""}
 	}
 	return t, nil
-}
-
-// GetTeamNamesByID returns team's lower name from a list of team ids.
-func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
-	if len(teamIDs) == 0 {
-		return []string{}, nil
-	}
-
-	var teamNames []string
-	err := db.GetEngine(db.DefaultContext).Table("team").
-		Select("lower_name").
-		In("id", teamIDs).
-		Asc("name").
-		Find(&teamNames)
-
-	return teamNames, err
 }
 
 // IncrTeamRepoNum increases the number of repos for the given team by 1

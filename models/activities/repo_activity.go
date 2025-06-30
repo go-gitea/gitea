@@ -14,7 +14,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -33,6 +35,7 @@ type ActivityStats struct {
 	OpenedPRAuthorCount         int64
 	MergedPRs                   issues_model.PullRequestList
 	MergedPRAuthorCount         int64
+	ActiveIssues                issues_model.IssueList
 	OpenedIssues                issues_model.IssueList
 	OpenedIssueAuthorCount      int64
 	ClosedIssues                issues_model.IssueList
@@ -65,7 +68,7 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 		return nil, fmt.Errorf("FillUnresolvedIssues: %w", err)
 	}
 	if code {
-		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 		if err != nil {
 			return nil, fmt.Errorf("OpenRepository: %w", err)
 		}
@@ -82,7 +85,7 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 
 // GetActivityStatsTopAuthors returns top author stats for git commits for all branches
 func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %w", err)
 	}
@@ -136,10 +139,7 @@ func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository
 		return v[i].Commits > v[j].Commits
 	})
 
-	cnt := count
-	if cnt > len(v) {
-		cnt = len(v)
-	}
+	cnt := min(count, len(v))
 
 	return v[:cnt], nil
 }
@@ -171,7 +171,7 @@ func (stats *ActivityStats) MergedPRPerc() int {
 
 // ActiveIssueCount returns total active issue count
 func (stats *ActivityStats) ActiveIssueCount() int {
-	return stats.OpenedIssueCount() + stats.ClosedIssueCount()
+	return len(stats.ActiveIssues)
 }
 
 // OpenedIssueCount returns open issue count
@@ -284,10 +284,18 @@ func (stats *ActivityStats) FillIssues(ctx context.Context, repoID int64, fromTi
 	stats.ClosedIssueAuthorCount = count
 
 	// New issues
-	sess = issuesForActivityStatement(ctx, repoID, fromTime, false, false)
+	sess = newlyCreatedIssues(ctx, repoID, fromTime)
 	sess.OrderBy("issue.created_unix ASC")
 	stats.OpenedIssues = make(issues_model.IssueList, 0)
 	if err = sess.Find(&stats.OpenedIssues); err != nil {
+		return err
+	}
+
+	// Active issues
+	sess = activeIssues(ctx, repoID, fromTime)
+	sess.OrderBy("issue.created_unix ASC")
+	stats.ActiveIssues = make(issues_model.IssueList, 0)
+	if err = sess.Find(&stats.ActiveIssues); err != nil {
 		return err
 	}
 
@@ -316,6 +324,25 @@ func (stats *ActivityStats) FillUnresolvedIssues(ctx context.Context, repoID int
 	return sess.Find(&stats.UnresolvedIssues)
 }
 
+func newlyCreatedIssues(ctx context.Context, repoID int64, fromTime time.Time) *xorm.Session {
+	sess := db.GetEngine(ctx).Where("issue.repo_id = ?", repoID).
+		And("issue.is_pull = ?", false).                // Retain the is_pull check to exclude pull requests
+		And("issue.created_unix >= ?", fromTime.Unix()) // Include all issues created after fromTime
+
+	return sess
+}
+
+func activeIssues(ctx context.Context, repoID int64, fromTime time.Time) *xorm.Session {
+	sess := db.GetEngine(ctx).Where("issue.repo_id = ?", repoID).
+		And("issue.is_pull = ?", false).
+		And(builder.Or(
+			builder.Gte{"issue.created_unix": fromTime.Unix()},
+			builder.Gte{"issue.closed_unix": fromTime.Unix()},
+		))
+
+	return sess
+}
+
 func issuesForActivityStatement(ctx context.Context, repoID int64, fromTime time.Time, closed, unresolved bool) *xorm.Session {
 	sess := db.GetEngine(ctx).Where("issue.repo_id = ?", repoID).
 		And("issue.is_closed = ?", closed)
@@ -342,7 +369,7 @@ func (stats *ActivityStats) FillReleases(ctx context.Context, repoID int64, from
 
 	// Published releases list
 	sess := releasesForActivityStatement(ctx, repoID, fromTime)
-	sess.OrderBy("release.created_unix DESC")
+	sess.OrderBy("`release`.created_unix DESC")
 	stats.PublishedReleases = make([]*repo_model.Release, 0)
 	if err = sess.Find(&stats.PublishedReleases); err != nil {
 		return err
@@ -350,7 +377,7 @@ func (stats *ActivityStats) FillReleases(ctx context.Context, repoID int64, from
 
 	// Published releases authors
 	sess = releasesForActivityStatement(ctx, repoID, fromTime)
-	if _, err = sess.Select("count(distinct release.publisher_id) as `count`").Table("release").Get(&count); err != nil {
+	if _, err = sess.Select("count(distinct `release`.publisher_id) as `count`").Table("release").Get(&count); err != nil {
 		return err
 	}
 	stats.PublishedReleaseAuthorCount = count
@@ -359,7 +386,7 @@ func (stats *ActivityStats) FillReleases(ctx context.Context, repoID int64, from
 }
 
 func releasesForActivityStatement(ctx context.Context, repoID int64, fromTime time.Time) *xorm.Session {
-	return db.GetEngine(ctx).Where("release.repo_id = ?", repoID).
-		And("release.is_draft = ?", false).
-		And("release.created_unix >= ?", fromTime.Unix())
+	return db.GetEngine(ctx).Where("`release`.repo_id = ?", repoID).
+		And("`release`.is_draft = ?", false).
+		And("`release`.created_unix >= ?", fromTime.Unix())
 }

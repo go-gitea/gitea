@@ -1,9 +1,9 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin authentication")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.auths.auth_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
+			{{ctx.Locale.Tr "admin.auths.auth_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/auths/new">{{.locale.Tr "admin.auths.new"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/-/admin/auths/new">{{ctx.Locale.Tr "admin.auths.new"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached table segment">
@@ -11,25 +11,27 @@
 				<thead>
 					<tr>
 						<th>ID</th>
-						<th>{{.locale.Tr "admin.auths.name"}}</th>
-						<th>{{.locale.Tr "admin.auths.type"}}</th>
-						<th>{{.locale.Tr "admin.auths.enabled"}}</th>
-						<th>{{.locale.Tr "admin.auths.updated"}}</th>
-						<th>{{.locale.Tr "admin.users.created"}}</th>
-						<th>{{.locale.Tr "admin.users.edit"}}</th>
+						<th>{{ctx.Locale.Tr "admin.auths.name"}}</th>
+						<th>{{ctx.Locale.Tr "admin.auths.type"}}</th>
+						<th>{{ctx.Locale.Tr "admin.auths.enabled"}}</th>
+						<th>{{ctx.Locale.Tr "admin.auths.updated"}}</th>
+						<th>{{ctx.Locale.Tr "admin.users.created"}}</th>
+						<th>{{ctx.Locale.Tr "admin.users.edit"}}</th>
 					</tr>
 				</thead>
 				<tbody>
 					{{range .Sources}}
 						<tr>
 							<td>{{.ID}}</td>
-							<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}">{{.Name}}</a></td>
+							<td><a href="{{AppSubUrl}}/-/admin/auths/{{.ID}}">{{.Name}}</a></td>
 							<td>{{.TypeName}}</td>
-							<td>{{if .IsActive}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td>{{DateTime "short" .UpdatedUnix}}</td>
-							<td>{{DateTime "short" .CreatedUnix}}</td>
-							<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
+							<td>{{svg (Iif .IsActive "octicon-check" "octicon-x")}}</td>
+							<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
+							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
+							<td><a href="{{AppSubUrl}}/-/admin/auths/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
+					{{else}}
+						<tr><td class="tw-text-center" colspan="7">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 					{{end}}
 				</tbody>
 			</table>

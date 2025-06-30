@@ -4,18 +4,22 @@
 package chef
 
 import (
+	"context"
 	"crypto"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"hash"
 	"math/big"
 	"net/http"
 	"path"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -24,8 +28,6 @@ import (
 	chef_module "code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth"
-
-	"github.com/minio/sha256-simd"
 )
 
 const (
@@ -36,6 +38,8 @@ var (
 	algorithmPattern     = regexp.MustCompile(`algorithm=(\w+)`)
 	versionPattern       = regexp.MustCompile(`version=(\d+\.\d+)`)
 	authorizationPattern = regexp.MustCompile(`\AX-Ops-Authorization-(\d+)`)
+
+	_ auth.Method = &Auth{}
 )
 
 // Documentation:
@@ -60,7 +64,7 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		return nil, nil
 	}
 
-	pub, err := getUserPublicKey(u)
+	pub, err := getUserPublicKey(req.Context(), u)
 	if err != nil {
 		return nil, err
 	}
@@ -90,8 +94,8 @@ func getUserFromRequest(req *http.Request) (*user_model.User, error) {
 	return user_model.GetUserByName(req.Context(), username)
 }
 
-func getUserPublicKey(u *user_model.User) (crypto.PublicKey, error) {
-	pubKey, err := user_model.GetSetting(u.ID, chef_module.SettingPublicPem)
+func getUserPublicKey(ctx context.Context, u *user_model.User) (crypto.PublicKey, error) {
+	pubKey, err := user_model.GetSetting(ctx, u.ID, chef_module.SettingPublicPem)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +122,7 @@ func verifyTimestamp(req *http.Request) error {
 	}
 
 	if diff > maxTimeDifference {
-		return fmt.Errorf("time difference")
+		return errors.New("time difference")
 	}
 
 	return nil
@@ -187,7 +191,7 @@ func getAuthorizationData(req *http.Request) ([]byte, error) {
 	tmp := make([]string, len(valueList))
 	for k, v := range valueList {
 		if k > len(tmp) {
-			return nil, fmt.Errorf("invalid X-Ops-Authorization headers")
+			return nil, errors.New("invalid X-Ops-Authorization headers")
 		}
 		tmp[k-1] = v
 	}
@@ -263,8 +267,8 @@ func verifyDataOld(signature, data []byte, pub *rsa.PublicKey) error {
 		}
 	}
 
-	if !util.SliceEqual(out[skip:], data) {
-		return fmt.Errorf("could not verify signature")
+	if !slices.Equal(out[skip:], data) {
+		return errors.New("could not verify signature")
 	}
 
 	return nil

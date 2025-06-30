@@ -4,13 +4,15 @@
 package queue
 
 import (
-	"context"
+	"slices"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -55,15 +57,15 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 			testRecorder.Record("push:%v", i)
 			assert.NoError(t, q.Push(i))
 		}
-		assert.NoError(t, q.FlushWithContext(context.Background(), 0))
+		assert.NoError(t, q.FlushWithContext(t.Context(), 0))
 		stop()
 
 		ok := true
 		for i := 0; i < queueSetting.Length; i++ {
 			if i%2 == 0 {
-				ok = ok && assert.EqualValues(t, 2, m[i], "test %s: item %d", t.Name(), i)
+				ok = ok && assert.Equal(t, 2, m[i], "test %s: item %d", t.Name(), i)
 			} else {
-				ok = ok && assert.EqualValues(t, 1, m[i], "test %s: item %d", t.Name(), i)
+				ok = ok && assert.Equal(t, 1, m[i], "test %s: item %d", t.Name(), i)
 			}
 		}
 		if !ok {
@@ -75,17 +77,17 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 
 	runCount := 2 // we can run these tests even hundreds times to see its stability
 	t.Run("1/1", func(t *testing.T) {
-		for i := 0; i < runCount; i++ {
+		for range runCount {
 			test(t, setting.QueueSettings{BatchLength: 1, MaxWorkers: 1})
 		}
 	})
 	t.Run("3/1", func(t *testing.T) {
-		for i := 0; i < runCount; i++ {
+		for range runCount {
 			test(t, setting.QueueSettings{BatchLength: 3, MaxWorkers: 1})
 		}
 	})
 	t.Run("4/5", func(t *testing.T) {
-		for i := 0; i < runCount; i++ {
+		for range runCount {
 			test(t, setting.QueueSettings{BatchLength: 4, MaxWorkers: 5})
 		}
 	})
@@ -94,17 +96,17 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 func TestWorkerPoolQueuePersistence(t *testing.T) {
 	runCount := 2 // we can run these tests even hundreds times to see its stability
 	t.Run("1/1", func(t *testing.T) {
-		for i := 0; i < runCount; i++ {
+		for range runCount {
 			testWorkerPoolQueuePersistence(t, setting.QueueSettings{BatchLength: 1, MaxWorkers: 1, Length: 100})
 		}
 	})
 	t.Run("3/1", func(t *testing.T) {
-		for i := 0; i < runCount; i++ {
+		for range runCount {
 			testWorkerPoolQueuePersistence(t, setting.QueueSettings{BatchLength: 3, MaxWorkers: 1, Length: 100})
 		}
 	})
 	t.Run("4/5", func(t *testing.T) {
-		for i := 0; i < runCount; i++ {
+		for range runCount {
 			testWorkerPoolQueuePersistence(t, setting.QueueSettings{BatchLength: 4, MaxWorkers: 5, Length: 100})
 		}
 	})
@@ -139,7 +141,7 @@ func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSett
 
 		q, _ := newWorkerPoolQueueForTest("pr_patch_checker_test", queueSetting, testHandler, true)
 		stop := runWorkerPoolQueue(q)
-		for i := 0; i < testCount; i++ {
+		for i := range testCount {
 			_ = q.Push("task-" + strconv.Itoa(i))
 		}
 		close(startWhenAllReady)
@@ -163,23 +165,19 @@ func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSett
 
 		q, _ := newWorkerPoolQueueForTest("pr_patch_checker_test", queueSetting, testHandler, true)
 		stop := runWorkerPoolQueue(q)
-		assert.NoError(t, q.FlushWithContext(context.Background(), 0))
+		assert.NoError(t, q.FlushWithContext(t.Context(), 0))
 		stop()
 	}
 
 	q2() // restart the queue to continue to execute the tasks in it
 
-	assert.NotZero(t, len(tasksQ1))
-	assert.NotZero(t, len(tasksQ2))
-	assert.EqualValues(t, testCount, len(tasksQ1)+len(tasksQ2))
+	assert.NotEmpty(t, tasksQ1)
+	assert.NotEmpty(t, tasksQ2)
+	assert.Equal(t, testCount, len(tasksQ1)+len(tasksQ2))
 }
 
 func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
-	oldWorkerIdleDuration := workerIdleDuration
-	workerIdleDuration = 300 * time.Millisecond
-	defer func() {
-		workerIdleDuration = oldWorkerIdleDuration
-	}()
+	defer test.MockVariableValue(&workerIdleDuration, 300*time.Millisecond)()
 
 	handler := func(items ...int) (unhandled []int) {
 		time.Sleep(100 * time.Millisecond)
@@ -188,34 +186,34 @@ func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
 
 	q, _ := newWorkerPoolQueueForTest("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 1, Length: 100}, handler, false)
 	stop := runWorkerPoolQueue(q)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		assert.NoError(t, q.Push(i))
 	}
 
 	time.Sleep(50 * time.Millisecond)
-	assert.EqualValues(t, 1, q.GetWorkerNumber())
-	assert.EqualValues(t, 1, q.GetWorkerActiveNumber())
+	assert.Equal(t, 1, q.GetWorkerNumber())
+	assert.Equal(t, 1, q.GetWorkerActiveNumber())
 	time.Sleep(500 * time.Millisecond)
-	assert.EqualValues(t, 1, q.GetWorkerNumber())
-	assert.EqualValues(t, 0, q.GetWorkerActiveNumber())
+	assert.Equal(t, 1, q.GetWorkerNumber())
+	assert.Equal(t, 0, q.GetWorkerActiveNumber())
 	time.Sleep(workerIdleDuration)
-	assert.EqualValues(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
+	assert.Equal(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
 	stop()
 
 	q, _ = newWorkerPoolQueueForTest("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 3, Length: 100}, handler, false)
 	stop = runWorkerPoolQueue(q)
-	for i := 0; i < 15; i++ {
+	for i := range 15 {
 		assert.NoError(t, q.Push(i))
 	}
 
 	time.Sleep(50 * time.Millisecond)
-	assert.EqualValues(t, 3, q.GetWorkerNumber())
-	assert.EqualValues(t, 3, q.GetWorkerActiveNumber())
+	assert.Equal(t, 3, q.GetWorkerNumber())
+	assert.Equal(t, 3, q.GetWorkerActiveNumber())
 	time.Sleep(500 * time.Millisecond)
-	assert.EqualValues(t, 3, q.GetWorkerNumber())
-	assert.EqualValues(t, 0, q.GetWorkerActiveNumber())
+	assert.Equal(t, 3, q.GetWorkerNumber())
+	assert.Equal(t, 0, q.GetWorkerActiveNumber())
 	time.Sleep(workerIdleDuration)
-	assert.EqualValues(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
+	assert.Equal(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
 	stop()
 }
 
@@ -242,11 +240,45 @@ func TestWorkerPoolQueueShutdown(t *testing.T) {
 	}
 	<-handlerCalled
 	time.Sleep(200 * time.Millisecond) // wait for a while to make sure all workers are active
-	assert.EqualValues(t, 4, q.GetWorkerActiveNumber())
+	assert.Equal(t, 4, q.GetWorkerActiveNumber())
 	stop() // stop triggers shutdown
-	assert.EqualValues(t, 0, q.GetWorkerActiveNumber())
+	assert.Equal(t, 0, q.GetWorkerActiveNumber())
 
 	// no item was ever handled, so we still get all of them again
 	q, _ = newWorkerPoolQueueForTest("test-workpoolqueue", qs, handler, false)
-	assert.EqualValues(t, 20, q.GetQueueItemNumber())
+	assert.Equal(t, 20, q.GetQueueItemNumber())
+}
+
+func TestWorkerPoolQueueWorkerIdleReset(t *testing.T) {
+	defer test.MockVariableValue(&workerIdleDuration, 10*time.Millisecond)()
+	defer mockBackoffDuration(5 * time.Millisecond)()
+
+	var q *WorkerPoolQueue[int]
+	var handledCount atomic.Int32
+	var hasOnlyOneWorkerRunning atomic.Bool
+	handler := func(items ...int) (unhandled []int) {
+		handledCount.Add(int32(len(items)))
+		// make each work have different duration, and check the active worker number periodically
+		var activeNums []int
+		for i := 0; i < 5-items[0]%2; i++ {
+			time.Sleep(workerIdleDuration * 2)
+			activeNums = append(activeNums, q.GetWorkerActiveNumber())
+		}
+		// When the queue never becomes empty, the existing workers should keep working
+		// It is not 100% true at the moment because the data-race in workergroup.go is not resolved, see that TODO */
+		// If the "active worker numbers" is like [2 2 ... 1 1], it means that an existing worker exited and the no new worker is started.
+		if slices.Equal([]int{1, 1}, activeNums[len(activeNums)-2:]) {
+			hasOnlyOneWorkerRunning.Store(true)
+		}
+		return nil
+	}
+	q, _ = newWorkerPoolQueueForTest("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 2, Length: 100}, handler, false)
+	stop := runWorkerPoolQueue(q)
+	for i := range 100 {
+		assert.NoError(t, q.Push(i))
+	}
+	time.Sleep(500 * time.Millisecond)
+	assert.Greater(t, int(handledCount.Load()), 4) // make sure there are enough items handled during the test
+	assert.False(t, hasOnlyOneWorkerRunning.Load(), "a slow handler should not block other workers from starting")
+	stop()
 }

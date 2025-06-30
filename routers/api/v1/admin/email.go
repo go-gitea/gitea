@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -37,12 +37,12 @@ func GetAllEmails(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	emails, maxResults, err := user_model.SearchEmails(&user_model.SearchEmailOptions{
-		Keyword:     ctx.Params(":email"),
+	emails, maxResults, err := user_model.SearchEmails(ctx, &user_model.SearchEmailOptions{
+		Keyword:     ctx.PathParam("email"),
 		ListOptions: listOptions,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetAllEmails", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -82,6 +82,6 @@ func SearchEmail(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	ctx.SetParams(":email", ctx.FormTrim("q"))
+	ctx.SetPathParam("email", ctx.FormTrim("q"))
 	GetAllEmails(ctx)
 }

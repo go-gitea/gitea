@@ -5,16 +5,16 @@ package templates
 
 import (
 	"context"
-	"fmt"
 	"html"
 	"html/template"
+	"strconv"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	gitea_html "code.gitea.io/gitea/modules/html"
+	gitea_html "code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -28,13 +28,14 @@ func NewAvatarUtils(ctx context.Context) *AvatarUtils {
 
 // AvatarHTML creates the HTML for an avatar
 func AvatarHTML(src string, size int, class, name string) template.HTML {
-	sizeStr := fmt.Sprintf(`%d`, size)
+	sizeStr := strconv.Itoa(size)
 
 	if name == "" {
 		name = "avatar"
 	}
 
-	return template.HTML(`<img class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
+	// use empty alt, otherwise if the image fails to load, the width will follow the "alt" text's width
+	return template.HTML(`<img loading="lazy" alt class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
 }
 
 // Avatar renders user avatars. args: user, size (int), class (string)
@@ -59,7 +60,7 @@ func (au *AvatarUtils) Avatar(item any, others ...any) template.HTML {
 		}
 	}
 
-	return ""
+	return AvatarHTML(avatars.DefaultAvatarLink(), size, class, "")
 }
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)

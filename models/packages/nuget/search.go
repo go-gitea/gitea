@@ -33,7 +33,7 @@ func SearchVersions(ctx context.Context, opts *packages_model.PackageSearchOptio
 		Where(cond).
 		OrderBy("package.name ASC")
 	if opts.Paginator != nil {
-		skip, take := opts.GetSkipTake()
+		skip, take := opts.Paginator.GetSkipTake()
 		inner = inner.Limit(take, skip)
 	}
 
@@ -55,7 +55,7 @@ func CountPackages(ctx context.Context, opts *packages_model.PackageSearchOption
 
 func toConds(opts *packages_model.PackageSearchOptions) builder.Cond {
 	var cond builder.Cond = builder.Eq{
-		"package.is_internal": opts.IsInternal.IsTrue(),
+		"package.is_internal": opts.IsInternal.Value(),
 		"package.owner_id":    opts.OwnerID,
 		"package.type":        packages_model.TypeNuGet,
 	}

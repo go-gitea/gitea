@@ -11,3 +11,9 @@
 {{if eq .State "failure"}}
 	{{svg "octicon-x" 18 "commit-status icon text red"}}
 {{end}}
+{{if eq .State "warning"}}
+	{{svg "gitea-exclamation" 18 "commit-status icon text yellow"}}
+{{end}}
+{{if eq .State "skipped"}}
+	{{svg "octicon-skip" 18 "commit-status icon text grey"}}
+{{end}}

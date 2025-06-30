@@ -5,9 +5,12 @@ package meilisearch
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/indexer"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_meilisearch "code.gitea.io/gitea/modules/indexer/internal/meilisearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
@@ -16,11 +19,14 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 2
+	issueIndexerLatestVersion = 4
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
 )
+
+// ErrMalformedResponse is never expected as we initialize the indexer ourself and so define the types.
+var ErrMalformedResponse = errors.New("meilisearch returned unexpected malformed content")
 
 var _ internal.Indexer = &Indexer{}
 
@@ -28,6 +34,10 @@ var _ internal.Indexer = &Indexer{}
 type Indexer struct {
 	inner                    *inner_meilisearch.Indexer
 	indexer_internal.Indexer // do not composite inner_meilisearch.Indexer directly to avoid exposing too much
+}
+
+func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
+	return indexer.SearchModesExactWords()
 }
 
 // NewIndexer creates a new meilisearch indexer
@@ -47,12 +57,16 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 		},
 		DisplayedAttributes: []string{
 			"id",
+			"title",
+			"content",
+			"comments",
 		},
 		FilterableAttributes: []string{
 			"repo_id",
 			"is_public",
 			"is_pull",
 			"is_closed",
+			"is_archived",
 			"label_ids",
 			"no_label",
 			"milestone_id",
@@ -131,11 +145,14 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(q)
 	}
 
-	if !options.IsPull.IsNone() {
-		query.And(inner_meilisearch.NewFilterEq("is_pull", options.IsPull.IsTrue()))
+	if options.IsPull.Has() {
+		query.And(inner_meilisearch.NewFilterEq("is_pull", options.IsPull.Value()))
 	}
-	if !options.IsClosed.IsNone() {
-		query.And(inner_meilisearch.NewFilterEq("is_closed", options.IsClosed.IsTrue()))
+	if options.IsClosed.Has() {
+		query.And(inner_meilisearch.NewFilterEq("is_closed", options.IsClosed.Value()))
+	}
+	if options.IsArchived.Has() {
+		query.And(inner_meilisearch.NewFilterEq("is_archived", options.IsArchived.Value()))
 	}
 
 	if options.NoLabelOnly {
@@ -163,41 +180,49 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(inner_meilisearch.NewFilterIn("milestone_id", options.MilestoneIDs...))
 	}
 
-	if options.ProjectID != nil {
-		query.And(inner_meilisearch.NewFilterEq("project_id", *options.ProjectID))
+	if options.ProjectID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("project_id", options.ProjectID.Value()))
 	}
-	if options.ProjectBoardID != nil {
-		query.And(inner_meilisearch.NewFilterEq("project_board_id", *options.ProjectBoardID))
-	}
-
-	if options.PosterID != nil {
-		query.And(inner_meilisearch.NewFilterEq("poster_id", *options.PosterID))
+	if options.ProjectColumnID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("project_board_id", options.ProjectColumnID.Value()))
 	}
 
-	if options.AssigneeID != nil {
-		query.And(inner_meilisearch.NewFilterEq("assignee_id", *options.AssigneeID))
+	if options.PosterID != "" {
+		// "(none)" becomes 0, it means no poster
+		posterIDInt64, _ := strconv.ParseInt(options.PosterID, 10, 64)
+		query.And(inner_meilisearch.NewFilterEq("poster_id", posterIDInt64))
 	}
 
-	if options.MentionID != nil {
-		query.And(inner_meilisearch.NewFilterEq("mention_ids", *options.MentionID))
+	if options.AssigneeID != "" {
+		if options.AssigneeID == "(any)" {
+			query.And(inner_meilisearch.NewFilterGte("assignee_id", 1))
+		} else {
+			// "(none)" becomes 0, it means no assignee
+			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
+			query.And(inner_meilisearch.NewFilterEq("assignee_id", assigneeIDInt64))
+		}
 	}
 
-	if options.ReviewedID != nil {
-		query.And(inner_meilisearch.NewFilterEq("reviewed_ids", *options.ReviewedID))
-	}
-	if options.ReviewRequestedID != nil {
-		query.And(inner_meilisearch.NewFilterEq("review_requested_ids", *options.ReviewRequestedID))
+	if options.MentionID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("mention_ids", options.MentionID.Value()))
 	}
 
-	if options.SubscriberID != nil {
-		query.And(inner_meilisearch.NewFilterEq("subscriber_ids", *options.SubscriberID))
+	if options.ReviewedID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("reviewed_ids", options.ReviewedID.Value()))
+	}
+	if options.ReviewRequestedID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("review_requested_ids", options.ReviewRequestedID.Value()))
 	}
 
-	if options.UpdatedAfterUnix != nil {
-		query.And(inner_meilisearch.NewFilterGte("updated_unix", *options.UpdatedAfterUnix))
+	if options.SubscriberID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("subscriber_ids", options.SubscriberID.Value()))
 	}
-	if options.UpdatedBeforeUnix != nil {
-		query.And(inner_meilisearch.NewFilterLte("updated_unix", *options.UpdatedBeforeUnix))
+
+	if options.UpdatedAfterUnix.Has() {
+		query.And(inner_meilisearch.NewFilterGte("updated_unix", options.UpdatedAfterUnix.Value()))
+	}
+	if options.UpdatedBeforeUnix.Has() {
+		query.And(inner_meilisearch.NewFilterLte("updated_unix", options.UpdatedBeforeUnix.Value()))
 	}
 
 	if options.SortBy == "" {
@@ -210,21 +235,38 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	skip, limit := indexer_internal.ParsePaginator(options.Paginator, maxTotalHits)
 
-	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(options.Keyword, &meilisearch.SearchRequest{
-		Filter: query.Statement(),
-		Limit:  int64(limit),
-		Offset: int64(skip),
-		Sort:   sortBy,
+	counting := limit == 0
+	if counting {
+		// If set limit to 0, it will be 20 by default, and -1 is not allowed.
+		// See https://www.meilisearch.com/docs/reference/api/search#limit
+		// So set limit to 1 to make the cost as low as possible, then clear the result before returning.
+		limit = 1
+	}
+
+	keyword := options.Keyword // default to match "words"
+	if options.SearchMode == indexer.SearchModeExact {
+		// https://www.meilisearch.com/docs/reference/api/search#phrase-search
+		keyword = doubleQuoteKeyword(keyword)
+	}
+
+	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(keyword, &meilisearch.SearchRequest{
+		Filter:           query.Statement(),
+		Limit:            int64(limit),
+		Offset:           int64(skip),
+		Sort:             sortBy,
+		MatchingStrategy: "all",
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	hits := make([]internal.Match, 0, len(searchRes.Hits))
-	for _, hit := range searchRes.Hits {
-		hits = append(hits, internal.Match{
-			ID: int64(hit.(map[string]any)["id"].(float64)),
-		})
+	if counting {
+		searchRes.Hits = nil
+	}
+
+	hits, err := convertHits(searchRes)
+	if err != nil {
+		return nil, err
 	}
 
 	return &internal.SearchResult{
@@ -239,4 +281,37 @@ func parseSortBy(sortBy internal.SortBy) string {
 		return field + ":desc"
 	}
 	return field + ":asc"
+}
+
+func doubleQuoteKeyword(k string) string {
+	kp := strings.Split(k, " ")
+	parts := 0
+	for i := range kp {
+		part := strings.Trim(kp[i], "\"")
+		if part != "" {
+			kp[parts] = fmt.Sprintf(`"%s"`, part)
+			parts++
+		}
+	}
+	return strings.Join(kp[:parts], " ")
+}
+
+func convertHits(searchRes *meilisearch.SearchResponse) ([]internal.Match, error) {
+	hits := make([]internal.Match, 0, len(searchRes.Hits))
+	for _, hit := range searchRes.Hits {
+		hit, ok := hit.(map[string]any)
+		if !ok {
+			return nil, ErrMalformedResponse
+		}
+
+		issueID, ok := hit["id"].(float64)
+		if !ok {
+			return nil, ErrMalformedResponse
+		}
+
+		hits = append(hits, internal.Match{
+			ID: int64(issueID),
+		})
+	}
+	return hits, nil
 }

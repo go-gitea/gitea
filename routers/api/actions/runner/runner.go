@@ -9,14 +9,17 @@ import (
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	gouuid "github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -32,9 +35,7 @@ func NewRunnerServiceHandler() (string, http.Handler) {
 
 var _ runnerv1connect.RunnerServiceClient = (*Service)(nil)
 
-type Service struct {
-	runnerv1connect.UnimplementedRunnerServiceHandler
-}
+type Service struct{}
 
 // Register for new runner.
 func (s *Service) Register(
@@ -47,23 +48,29 @@ func (s *Service) Register(
 
 	runnerToken, err := actions_model.GetRunnerToken(ctx, req.Msg.Token)
 	if err != nil {
-		return nil, errors.New("runner token not found")
+		return nil, errors.New("runner registration token not found")
 	}
 
-	if runnerToken.IsActive {
-		return nil, errors.New("runner token has already been activated")
+	if !runnerToken.IsActive {
+		return nil, errors.New("runner registration token has been invalidated, please use the latest one")
+	}
+
+	if runnerToken.OwnerID > 0 {
+		if _, err := user_model.GetUserByID(ctx, runnerToken.OwnerID); err != nil {
+			return nil, errors.New("owner of the token not found")
+		}
+	}
+
+	if runnerToken.RepoID > 0 {
+		if _, err := repo_model.GetRepositoryByID(ctx, runnerToken.RepoID); err != nil {
+			return nil, errors.New("repository of the token not found")
+		}
 	}
 
 	labels := req.Msg.Labels
-	// TODO: agent_labels should be removed from pb after Gitea 1.20 released.
-	// Old version runner's agent_labels slice is not empty and labels slice is empty.
-	// And due to compatibility with older versions, it is temporarily marked as Deprecated in pb, so use `//nolint` here.
-	if len(req.Msg.AgentLabels) > 0 && len(req.Msg.Labels) == 0 { //nolint:staticcheck
-		labels = req.Msg.AgentLabels //nolint:staticcheck
-	}
 
 	// create new runner
-	name, _ := util.SplitStringAtByteN(req.Msg.Name, 255)
+	name := util.EllipsisDisplayString(req.Msg.Name, 255)
 	runner := &actions_model.ActionRunner{
 		UUID:        gouuid.New().String(),
 		Name:        name,
@@ -71,6 +78,7 @@ func (s *Service) Register(
 		RepoID:      runnerToken.RepoID,
 		Version:     req.Msg.Version,
 		AgentLabels: labels,
+		Ephemeral:   req.Msg.Ephemeral,
 	}
 	if err := runner.GenerateToken(); err != nil {
 		return nil, errors.New("can't generate token")
@@ -89,12 +97,13 @@ func (s *Service) Register(
 
 	res := connect.NewResponse(&runnerv1.RegisterResponse{
 		Runner: &runnerv1.Runner{
-			Id:      runner.ID,
-			Uuid:    runner.UUID,
-			Token:   runner.Token,
-			Name:    runner.Name,
-			Version: runner.Version,
-			Labels:  runner.AgentLabels,
+			Id:        runner.ID,
+			Uuid:      runner.UUID,
+			Token:     runner.Token,
+			Name:      runner.Name,
+			Version:   runner.Version,
+			Labels:    runner.AgentLabels,
+			Ephemeral: runner.Ephemeral,
 		},
 	})
 
@@ -150,7 +159,7 @@ func (s *Service) FetchTask(
 		// if the task version in request is not equal to the version in db,
 		// it means there may still be some tasks not be assgined.
 		// try to pick a task for the runner that send the request.
-		if t, ok, err := pickTask(ctx, runner); err != nil {
+		if t, ok, err := actions_service.PickTask(ctx, runner); err != nil {
 			log.Error("pick task failed: %v", err)
 			return nil, status.Errorf(codes.Internal, "pick task: %v", err)
 		} else if ok {
@@ -169,7 +178,9 @@ func (s *Service) UpdateTask(
 	ctx context.Context,
 	req *connect.Request[runnerv1.UpdateTaskRequest],
 ) (*connect.Response[runnerv1.UpdateTaskResponse], error) {
-	task, err := actions_model.UpdateTaskByState(ctx, req.Msg.State)
+	runner := GetRunner(ctx)
+
+	task, err := actions_model.UpdateTaskByState(ctx, runner.ID, req.Msg.State)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}
@@ -202,8 +213,18 @@ func (s *Service) UpdateTask(
 	if err := task.LoadJob(ctx); err != nil {
 		return nil, status.Errorf(codes.Internal, "load job: %v", err)
 	}
+	if err := task.Job.LoadAttributes(ctx); err != nil {
+		return nil, status.Errorf(codes.Internal, "load run: %v", err)
+	}
 
-	actions_service.CreateCommitStatus(ctx, task.Job)
+	// don't create commit status for cron job
+	if task.Job.Run.ScheduleID == 0 {
+		actions_service.CreateCommitStatus(ctx, task.Job)
+	}
+
+	if task.Status.IsDone() {
+		notify_service.WorkflowJobStatusUpdate(ctx, task.Job.Run.Repo, task.Job.Run.TriggerUser, task.Job, task)
+	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		if err := actions_service.EmitJobsIfReady(task.Job.RunID); err != nil {
@@ -225,11 +246,15 @@ func (s *Service) UpdateLog(
 	ctx context.Context,
 	req *connect.Request[runnerv1.UpdateLogRequest],
 ) (*connect.Response[runnerv1.UpdateLogResponse], error) {
+	runner := GetRunner(ctx)
+
 	res := connect.NewResponse(&runnerv1.UpdateLogResponse{})
 
 	task, err := actions_model.GetTaskByID(ctx, req.Msg.TaskId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get task: %v", err)
+	} else if runner.ID != task.RunnerID {
+		return nil, status.Errorf(codes.Internal, "invalid runner for task")
 	}
 	ack := task.LogLength
 

@@ -1,0 +1,65 @@
+<div class="flex-list">
+	<div class="flex-item">
+		<div class="flex-item-leading">
+			{{ctx.AvatarUtils.Avatar .User 48}}
+		</div>
+		<div class="flex-item-main">
+			<div class="flex-item-title">
+				{{template "shared/user/name" .User}}
+				{{if .User.IsAdmin}}
+					<span class="ui basic label">{{ctx.Locale.Tr "admin.users.admin"}}</span>
+				{{end}}
+				{{if .User.IsTypeBot}}
+					<span class="ui basic label">{{ctx.Locale.Tr "admin.users.bot"}}</span>
+				{{end}}
+			</div>
+			<div class="flex-item-body">
+				<b>{{ctx.Locale.Tr "admin.users.auth_source"}}:</b>
+				{{Iif (eq .LoginSource.ID 0) (ctx.Locale.Tr "admin.users.local") .LoginSource.Name}}
+			</div>
+			<div class="flex-item-body">
+				<b>{{ctx.Locale.Tr "admin.users.activated"}}:</b>
+				{{svg (Iif .User.IsActive "octicon-check" "octicon-x")}}
+			</div>
+			<div class="flex-item-body">
+				<b>{{ctx.Locale.Tr "admin.users.prohibit_login"}}:</b>
+				{{svg (Iif .User.ProhibitLogin "octicon-check" "octicon-x")}}
+			</div>
+			<div class="flex-item-body">
+				<b>{{ctx.Locale.Tr "admin.users.restricted"}}:</b>
+				{{svg (Iif .User.IsRestricted "octicon-check" "octicon-x")}}
+			</div>
+			<div class="flex-item-body">
+				<b>{{ctx.Locale.Tr "settings.visibility"}}:</b>
+				{{if .User.Visibility.IsPublic}}{{ctx.Locale.Tr "settings.visibility.public"}}{{end}}
+				{{if .User.Visibility.IsLimited}}{{ctx.Locale.Tr "settings.visibility.limited"}}{{end}}
+				{{if .User.Visibility.IsPrivate}}{{ctx.Locale.Tr "settings.visibility.private"}}{{end}}
+			</div>
+			<div class="flex-item-body">
+				<b>{{ctx.Locale.Tr "admin.users.2fa"}}:</b>
+				{{svg (Iif .TwoFactorEnabled "octicon-check" "octicon-x")}}
+			</div>
+			{{if .User.Language}}
+				<div class="flex-item-body">
+					<span class="flex-text-inline">
+						<b>{{ctx.Locale.Tr "settings.language"}}:</b>
+						{{range .AllLangs}}{{if eq $.User.Language .Lang}}{{.Name}}{{end}}{{end}}
+					</span>
+				</div>
+			{{end}}
+			{{if .User.Location}}
+				<div class="flex-item-body">
+					<span class="flex-text-inline">{{svg "octicon-location"}}{{.User.Location}}</span>
+				</div>
+			{{end}}
+			{{if .User.Website}}
+				<div class="flex-item-body">
+					<span class="flex-text-inline">
+						{{svg "octicon-link"}}
+						<a target="_blank" href="{{.User.Website}}">{{.User.Website}}</a>
+					</span>
+				</div>
+			{{end}}
+		</div>
+	</div>
+</div>

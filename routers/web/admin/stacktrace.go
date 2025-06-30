@@ -7,15 +7,22 @@ import (
 	"net/http"
 	"runtime"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 )
+
+func monitorTraceCommon(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.monitor")
+	ctx.Data["PageIsAdminMonitorTrace"] = true
+	// Hide the performance trace tab in production, because it shows a lot of SQLs and is not that useful for end users.
+	// To avoid confusing end users, do not let them know this tab. End users should "download diagnosis report" instead.
+	ctx.Data["ShowAdminPerformanceTraceTab"] = !setting.IsProd
+}
 
 // Stacktrace show admin monitor goroutines page
 func Stacktrace(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.monitor")
-	ctx.Data["PageIsAdminMonitorStacktrace"] = true
+	monitorTraceCommon(ctx)
 
 	ctx.Data["GoroutineCount"] = runtime.NumGoroutine()
 
@@ -40,7 +47,7 @@ func Stacktrace(ctx *context.Context) {
 
 // StacktraceCancel cancels a process
 func StacktraceCancel(ctx *context.Context) {
-	pid := ctx.Params("pid")
+	pid := ctx.PathParam("pid")
 	process.GetManager().Cancel(process.IDType(pid))
-	ctx.JSONRedirect(setting.AppSubURL + "/admin/monitor/stacktrace")
+	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/monitor/stacktrace")
 }

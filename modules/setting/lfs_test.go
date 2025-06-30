@@ -19,7 +19,7 @@ func Test_getStorageInheritNameSectionTypeForLFS(t *testing.T) {
 	assert.NoError(t, loadLFSFrom(cfg))
 
 	assert.EqualValues(t, "minio", LFS.Storage.Type)
-	assert.EqualValues(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
 
 	iniStr = `
 [server]
@@ -54,7 +54,7 @@ STORAGE_TYPE = minio
 	assert.NoError(t, loadLFSFrom(cfg))
 
 	assert.EqualValues(t, "minio", LFS.Storage.Type)
-	assert.EqualValues(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
 
 	iniStr = `
 [lfs]
@@ -68,7 +68,7 @@ STORAGE_TYPE = minio
 	assert.NoError(t, loadLFSFrom(cfg))
 
 	assert.EqualValues(t, "minio", LFS.Storage.Type)
-	assert.EqualValues(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
 
 	iniStr = `
 [lfs]
@@ -83,7 +83,7 @@ STORAGE_TYPE = minio
 	assert.NoError(t, loadLFSFrom(cfg))
 
 	assert.EqualValues(t, "minio", LFS.Storage.Type)
-	assert.EqualValues(t, "my_lfs/", LFS.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "my_lfs/", LFS.Storage.MinioConfig.BasePath)
 }
 
 func Test_LFSStorage1(t *testing.T) {
@@ -96,6 +96,35 @@ STORAGE_TYPE = minio
 
 	assert.NoError(t, loadLFSFrom(cfg))
 	assert.EqualValues(t, "minio", LFS.Storage.Type)
-	assert.EqualValues(t, "gitea", LFS.Storage.MinioConfig.Bucket)
-	assert.EqualValues(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "gitea", LFS.Storage.MinioConfig.Bucket)
+	assert.Equal(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
+}
+
+func Test_LFSClientServerConfigs(t *testing.T) {
+	iniStr := `
+[server]
+LFS_MAX_BATCH_SIZE = 100
+[lfs_client]
+# will default to 20
+BATCH_SIZE = 0
+`
+	cfg, err := NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.Equal(t, 100, LFS.MaxBatchSize)
+	assert.Equal(t, 20, LFSClient.BatchSize)
+	assert.Equal(t, 8, LFSClient.BatchOperationConcurrency)
+
+	iniStr = `
+[lfs_client]
+BATCH_SIZE = 50
+BATCH_OPERATION_CONCURRENCY = 10
+`
+	cfg, err = NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.Equal(t, 50, LFSClient.BatchSize)
+	assert.Equal(t, 10, LFSClient.BatchOperationConcurrency)
 }

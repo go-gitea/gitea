@@ -4,26 +4,25 @@
 package i18n
 
 import (
+	"html/template"
 	"io"
 )
 
 var DefaultLocales = NewLocaleStore()
 
 type Locale interface {
-	// Tr translates a given key and arguments for a language
-	Tr(trKey string, trArgs ...any) string
-	// Has reports if a locale has a translation for a given key
-	Has(trKey string) bool
+	// TrString translates a given key and arguments for a language
+	TrString(trKey string, trArgs ...any) string
+	// TrHTML translates a given key and arguments for a language, string arguments are escaped to HTML
+	TrHTML(trKey string, trArgs ...any) template.HTML
+	// HasKey reports if a locale has a translation for a given key
+	HasKey(trKey string) bool
 }
 
 // LocaleStore provides the functions common to all locale stores
 type LocaleStore interface {
 	io.Closer
 
-	// Tr translates a given key and arguments for a language
-	Tr(lang, trKey string, trArgs ...any) string
-	// Has reports if a locale has a translation for a given key
-	Has(lang, trKey string) bool
 	// SetDefaultLang sets the default language to fall back to
 	SetDefaultLang(lang string)
 	// ListLangNameDesc provides paired slices of language names to descriptors
@@ -45,7 +44,7 @@ func ResetDefaultLocales() {
 	DefaultLocales = NewLocaleStore()
 }
 
-// GetLocales returns the locale from the default locales
+// GetLocale returns the locale from the default locales
 func GetLocale(lang string) (Locale, bool) {
 	return DefaultLocales.Locale(lang)
 }

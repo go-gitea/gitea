@@ -9,6 +9,7 @@
 
 .issue-list-toolbar-left {
   display: flex;
+  align-items: center;
 }
 
 .issue-list-toolbar-right .filter.menu {
@@ -38,8 +39,8 @@
 }
 
 #issue-list .flex-item-body .branches .branch {
-  background-color: var(--color-secondary-alpha-40);
-  border-radius: 3px;
+  background-color: var(--color-secondary-alpha-50);
+  border-radius: var(--border-radius);
   padding: 0 4px;
 }
 
@@ -47,7 +48,9 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 10em;
+  max-width: 200px;
+  display: inline-block;
+  vertical-align: top;
 }
 
 #issue-list .flex-item-body .checklist progress {
@@ -55,7 +58,6 @@
   width: 80px;
   height: 6px;
   display: inline-block;
-  border-radius: 3px;
 }
 
 #issue-list .flex-item-body .checklist progress::-webkit-progress-value {
@@ -64,4 +66,28 @@
 
 #issue-list .flex-item-body .checklist progress::-moz-progress-bar {
   background-color: var(--color-secondary-dark-4);
+}
+
+.label-filter-archived-toggle {
+  margin: 8px 10px;
+  font-size: 12px;
+  min-width: fit-content;
+}
+
+.label-filter-exclude-info {
+  display: inline-block;
+  padding: 0.5rem 0;
+  font-size: 12px;
+  width: 100%;
+  white-space: nowrap;
+  margin-left: 10px;
+  margin-right: 8px;
+  text-align: left;
+}
+
+.label-filter-exclude-info code {
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  padding: 1px 2px;
+  font-size: 11px;
 }

@@ -9,14 +9,16 @@ import (
 	"fmt"
 	"io"
 	"regexp"
-	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -28,19 +30,14 @@ var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
 	addRemoteAndConfig := func(addr, path string) error {
-		cmd := git.NewCommand(ctx, "remote", "add", "--mirror=push").AddDynamicArguments(m.RemoteName, addr)
-		if strings.Contains(addr, "://") && strings.Contains(addr, "@") {
-			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, util.SanitizeCredentialURLs(addr), path))
-		} else {
-			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, addr, path))
-		}
-		if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: path}); err != nil {
+		cmd := git.NewCommand("remote", "add", "--mirror=push").AddDynamicArguments(m.RemoteName, addr)
+		if _, _, err := cmd.RunStdString(ctx, &git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
-		if _, _, err := git.NewCommand(ctx, "config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
+		if _, _, err := git.NewCommand("config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunStdString(ctx, &git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
-		if _, _, err := git.NewCommand(ctx, "config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
+		if _, _, err := git.NewCommand("config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunStdString(ctx, &git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
 		return nil
@@ -64,15 +61,15 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 
 // RemovePushMirrorRemote removes the push mirror remote.
 func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
-	cmd := git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(m.RemoteName)
-	_ = m.GetRepository()
+	cmd := git.NewCommand("remote", "rm").AddDynamicArguments(m.RemoteName)
+	_ = m.GetRepository(ctx)
 
-	if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.RepoPath()}); err != nil {
+	if _, _, err := cmd.RunStdString(ctx, &git.RunOpts{Dir: m.Repo.RepoPath()}); err != nil {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
-		if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.WikiPath()}); err != nil {
+		if _, _, err := cmd.RunStdString(ctx, &git.RunOpts{Dir: m.Repo.WikiPath()}); err != nil {
 			// The wiki remote may not exist
 			log.Warn("Wiki Remote[%d] could not be removed: %v", m.ID, err)
 		}
@@ -93,13 +90,14 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		log.Error("PANIC whilst syncPushMirror[%d] Panic: %v\nStacktrace: %s", mirrorID, err, log.Stack(2))
 	}()
 
-	m, err := repo_model.GetPushMirror(ctx, repo_model.PushMirrorOptions{ID: mirrorID})
-	if err != nil {
+	// TODO: Handle "!exist" better
+	m, exist, err := db.GetByID[repo_model.PushMirror](ctx, mirrorID)
+	if err != nil || !exist {
 		log.Error("GetPushMirrorByID [%d]: %v", mirrorID, err)
 		return false
 	}
 
-	_ = m.GetRepository()
+	_ = m.GetRepository(ctx)
 
 	m.LastError = ""
 
@@ -129,7 +127,11 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
-	performPush := func(path string) error {
+	performPush := func(repo *repo_model.Repository, isWiki bool) error {
+		path := repo.RepoPath()
+		if isWiki {
+			path = repo.WikiPath()
+		}
 		remoteURL, err := git.GetRemoteURL(ctx, path, m.RemoteName)
 		if err != nil {
 			log.Error("GetRemoteAddress(%s) Error %v", path, err)
@@ -139,7 +141,12 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		if setting.LFS.StartServer {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
-			gitRepo, err := git.OpenRepository(ctx, path)
+			var gitRepo *git.Repository
+			if isWiki {
+				gitRepo, err = gitrepo.OpenRepository(ctx, repo.WikiStorageRepo())
+			} else {
+				gitRepo, err = gitrepo.OpenRepository(ctx, repo)
+			}
 			if err != nil {
 				log.Error("OpenRepository: %v", err)
 				return errors.New("Unexpected error")
@@ -155,11 +162,13 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 		log.Trace("Pushing %s mirror[%d] remote %s", path, m.ID, m.RemoteName)
 
+		envs := proxy.EnvWithProxy(remoteURL.URL)
 		if err := git.Push(ctx, path, git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
 			Mirror:  true,
 			Timeout: timeout,
+			Env:     envs,
 		}); err != nil {
 			log.Error("Error pushing %s mirror[%d] remote %s: %v", path, m.ID, m.RemoteName, err)
 
@@ -169,16 +178,15 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return nil
 	}
 
-	err := performPush(m.Repo.RepoPath())
+	err := performPush(m.Repo, false)
 	if err != nil {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
-		wikiPath := m.Repo.WikiPath()
-		_, err := git.GetRemoteAddress(ctx, wikiPath, m.RemoteName)
+		_, err := git.GetRemoteAddress(ctx, m.Repo.WikiPath(), m.RemoteName)
 		if err == nil {
-			err := performPush(wikiPath)
+			err := performPush(m.Repo, true)
 			if err != nil {
 				return err
 			}
@@ -252,4 +260,16 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient l
 	}
 
 	return nil
+}
+
+func syncPushMirrorWithSyncOnCommit(ctx context.Context, repoID int64) {
+	pushMirrors, err := repo_model.GetPushMirrorsSyncedOnCommit(ctx, repoID)
+	if err != nil {
+		log.Error("repo_model.GetPushMirrorsSyncedOnCommit failed: %v", err)
+		return
+	}
+
+	for _, mirror := range pushMirrors {
+		AddPushMirrorToQueue(mirror.ID)
+	}
 }

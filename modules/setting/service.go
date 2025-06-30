@@ -5,6 +5,7 @@ package setting
 
 import (
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -41,11 +42,15 @@ var Service = struct {
 	AllowOnlyInternalRegistration           bool
 	AllowOnlyExternalRegistration           bool
 	ShowRegistrationButton                  bool
+	EnablePasswordSignInForm                bool
 	ShowMilestonesDashboardPage             bool
-	RequireSignInView                       bool
+	RequireSignInViewStrict                 bool
+	BlockAnonymousAccessExpensive           bool
 	EnableNotifyMail                        bool
 	EnableBasicAuth                         bool
+	EnablePasskeyAuth                       bool
 	EnableReverseProxyAuth                  bool
+	EnableReverseProxyAuthAPI               bool
 	EnableReverseProxyAutoRegister          bool
 	EnableReverseProxyEmail                 bool
 	EnableReverseProxyFullName              bool
@@ -89,9 +94,18 @@ var Service = struct {
 
 	// Explore page settings
 	Explore struct {
-		RequireSigninView bool `ini:"REQUIRE_SIGNIN_VIEW"`
-		DisableUsersPage  bool `ini:"DISABLE_USERS_PAGE"`
+		RequireSigninView        bool `ini:"REQUIRE_SIGNIN_VIEW"`
+		DisableUsersPage         bool `ini:"DISABLE_USERS_PAGE"`
+		DisableOrganizationsPage bool `ini:"DISABLE_ORGANIZATIONS_PAGE"`
+		DisableCodePage          bool `ini:"DISABLE_CODE_PAGE"`
 	} `ini:"service.explore"`
+
+	QoS struct {
+		Enabled             bool
+		MaxInFlightRequests int
+		MaxWaitingRequests  int
+		TargetWaitTime      time.Duration
+	}
 }{
 	AllowedUserVisibilityModesSlice: []bool{true, true, true},
 }
@@ -154,9 +168,23 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.EmailDomainBlockList = CompileEmailGlobList(sec, "EMAIL_DOMAIN_BLOCKLIST")
 	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!(Service.DisableRegistration || Service.AllowOnlyExternalRegistration))
 	Service.ShowMilestonesDashboardPage = sec.Key("SHOW_MILESTONES_DASHBOARD_PAGE").MustBool(true)
-	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
+
+	// boolean values are considered as "strict"
+	var err error
+	Service.RequireSignInViewStrict, err = sec.Key("REQUIRE_SIGNIN_VIEW").Bool()
+	if s := sec.Key("REQUIRE_SIGNIN_VIEW").String(); err != nil && s != "" {
+		// non-boolean value only supports "expensive" at the moment
+		Service.BlockAnonymousAccessExpensive = s == "expensive"
+		if !Service.BlockAnonymousAccessExpensive {
+			log.Fatal("Invalid config option: REQUIRE_SIGNIN_VIEW = %s", s)
+		}
+	}
+
 	Service.EnableBasicAuth = sec.Key("ENABLE_BASIC_AUTHENTICATION").MustBool(true)
+	Service.EnablePasswordSignInForm = sec.Key("ENABLE_PASSWORD_SIGNIN_FORM").MustBool(true)
+	Service.EnablePasskeyAuth = sec.Key("ENABLE_PASSKEY_AUTHENTICATION").MustBool(true)
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
+	Service.EnableReverseProxyAuthAPI = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION_API").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
 	Service.EnableReverseProxyEmail = sec.Key("ENABLE_REVERSE_PROXY_EMAIL").MustBool()
 	Service.EnableReverseProxyFullName = sec.Key("ENABLE_REVERSE_PROXY_FULL_NAME").MustBool()
@@ -223,7 +251,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
 	sec.Key("VALID_SITE_URL_SCHEMES").MustString("http,https")
 	Service.ValidSiteURLSchemes = sec.Key("VALID_SITE_URL_SCHEMES").Strings(",")
-	schemes := make([]string, len(Service.ValidSiteURLSchemes))
+	schemes := make([]string, 0, len(Service.ValidSiteURLSchemes))
 	for _, scheme := range Service.ValidSiteURLSchemes {
 		scheme = strings.ToLower(strings.TrimSpace(scheme))
 		if scheme != "" {
@@ -235,6 +263,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "service.explore", &Service.Explore)
 
 	loadOpenIDSetting(rootCfg)
+	loadQosSetting(rootCfg)
 }
 
 func loadOpenIDSetting(rootCfg ConfigProvider) {
@@ -255,4 +284,12 @@ func loadOpenIDSetting(rootCfg ConfigProvider) {
 			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
 		}
 	}
+}
+
+func loadQosSetting(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("qos")
+	Service.QoS.Enabled = sec.Key("ENABLED").MustBool(false)
+	Service.QoS.MaxInFlightRequests = sec.Key("MAX_INFLIGHT").MustInt(4 * runtime.NumCPU())
+	Service.QoS.MaxWaitingRequests = sec.Key("MAX_WAITING").MustInt(100)
+	Service.QoS.TargetWaitTime = sec.Key("TARGET_WAIT_TIME").MustDuration(250 * time.Millisecond)
 }

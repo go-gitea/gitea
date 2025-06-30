@@ -1,0 +1,48 @@
+{{/* Template Attributes:
+* "labels" from query string (needed by JS)
+* QueryLink
+* Labels
+* SupportArchivedLabel, if true, then it needs "archived_labels" from query string
+*/}}
+{{$queryLink := .QueryLink}}
+<div class="item ui dropdown jump {{if not .Labels}}disabled{{end}} label-filter">
+	<span class="text">{{ctx.Locale.Tr "repo.issues.filter_label"}}</span>
+	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+	<div class="menu flex-items-menu">
+		<div class="ui icon search input">
+			<i class="icon">{{svg "octicon-search" 16}}</i>
+			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_label"}}">
+		</div>
+		{{if .SupportArchivedLabel}}{{/* this checkbox has a hard dependency with the "labels" and "archived_label" query parameter */}}
+		<label class="label-filter-archived-toggle flex-text-block">
+			<input type="checkbox"> {{ctx.Locale.Tr "repo.issues.label_archived_filter"}}
+			<span data-tooltip-content={{ctx.Locale.Tr "repo.issues.label_archive_tooltip"}}>{{svg "octicon-info"}}</span>
+		</label>
+		{{end}}
+		<span class="label-filter-exclude-info">{{ctx.Locale.Tr "repo.issues.filter_label_exclude"}}</span>
+		<div class="divider"></div>
+		<a class="item label-filter-query-default" href="{{QueryBuild $queryLink "labels" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_label_no_select"}}</a>
+		<a class="item label-filter-query-not-set" href="{{QueryBuild $queryLink "labels" 0}}">{{ctx.Locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
+		{{/* The logic here is not the same as the label selector in the issue sidebar.
+		The one in the issue sidebar renders "repo labels | divider | org labels".
+		Maybe the logic should be updated to be consistent.*/}}
+		{{$previousExclusiveScope := "_no_scope"}}
+		{{range .Labels}}
+			{{$exclusiveScope := .ExclusiveScope}}
+			{{if and (ne $previousExclusiveScope $exclusiveScope)}}
+				<div class="divider" data-scope="{{.ExclusiveScope}}"></div>
+			{{end}}
+			{{$previousExclusiveScope = $exclusiveScope}}
+			<a class="item label-filter-query-item" data-label-id="{{.ID}}" data-scope="{{.ExclusiveScope}}" {{if .IsArchived}}data-is-archived{{end}}
+				href="{{QueryBuild $queryLink "labels" .QueryString}}">
+				{{if .IsExcluded}}
+					{{svg "octicon-circle-slash"}}
+				{{else if .IsSelected}}
+					{{Iif $exclusiveScope (svg "octicon-dot-fill") (svg "octicon-check")}}
+				{{end}}
+				{{ctx.RenderUtils.RenderLabel .}}
+				<p class="tw-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
+			</a>
+		{{end}}
+	</div>
+</div>

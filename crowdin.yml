@@ -1,0 +1,12 @@
+project_id_env: CROWDIN_PROJECT_ID
+api_token_env: CROWDIN_KEY
+base_path: "."
+base_url: "https://api.crowdin.com"
+preserve_hierarchy: true
+files:
+  - source: "/options/locale/locale_en-US.ini"
+    translation: "/options/locale/locale_%locale%.ini"
+    type: "ini"
+    skip_untranslated_strings: true
+    export_only_approved: true
+    update_option: "update_as_unapproved"

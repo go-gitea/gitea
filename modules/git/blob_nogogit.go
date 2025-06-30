@@ -9,14 +9,13 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"math"
 
 	"code.gitea.io/gitea/modules/log"
 )
 
 // Blob represents a Git object.
 type Blob struct {
-	ID SHA1
+	ID ObjectID
 
 	gotSize bool
 	size    int64
@@ -27,9 +26,12 @@ type Blob struct {
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
 func (b *Blob) DataAsync() (io.ReadCloser, error) {
-	wr, rd, cancel := b.repo.CatFileBatch(b.repo.Ctx)
+	wr, rd, cancel, err := b.repo.CatFileBatch(b.repo.Ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	_, err := wr.Write([]byte(b.ID.String() + "\n"))
+	_, err = wr.Write([]byte(b.ID.String() + "\n"))
 	if err != nil {
 		cancel()
 		return nil, err
@@ -65,9 +67,13 @@ func (b *Blob) Size() int64 {
 		return b.size
 	}
 
-	wr, rd, cancel := b.repo.CatFileBatchCheck(b.repo.Ctx)
+	wr, rd, cancel, err := b.repo.CatFileBatchCheck(b.repo.Ctx)
+	if err != nil {
+		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
+		return 0
+	}
 	defer cancel()
-	_, err := wr.Write([]byte(b.ID.String() + "\n"))
+	_, err = wr.Write([]byte(b.ID.String() + "\n"))
 	if err != nil {
 		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0
@@ -103,26 +109,17 @@ func (b *blobReader) Read(p []byte) (n int, err error) {
 
 // Close implements io.Closer
 func (b *blobReader) Close() error {
-	defer b.cancel()
-	if b.n > 0 {
-		for b.n > math.MaxInt32 {
-			n, err := b.rd.Discard(math.MaxInt32)
-			b.n -= int64(n)
-			if err != nil {
-				return err
-			}
-			b.n -= math.MaxInt32
-		}
-		n, err := b.rd.Discard(int(b.n))
-		b.n -= int64(n)
-		if err != nil {
-			return err
-		}
+	if b.rd == nil {
+		return nil
 	}
-	if b.n == 0 {
-		_, err := b.rd.Discard(1)
-		b.n--
+
+	defer b.cancel()
+
+	if err := DiscardFull(b.rd, b.n+1); err != nil {
 		return err
 	}
+
+	b.rd = nil
+
 	return nil
 }

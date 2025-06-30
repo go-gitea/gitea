@@ -9,25 +9,25 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 )
 
 var (
-	tplTwofa        base.TplName = "user/auth/twofa"
-	tplTwofaScratch base.TplName = "user/auth/twofa_scratch"
+	tplTwofa        templates.TplName = "user/auth/twofa"
+	tplTwofaScratch templates.TplName = "user/auth/twofa_scratch"
 )
 
 // TwoFactor shows the user a two-factor authentication page.
 func TwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
-	// Check auto-login.
-	if checkAutoLogin(ctx) {
+	if CheckAutoLogin(ctx) {
 		return
 	}
 
@@ -53,7 +53,7 @@ func TwoFactorPost(ctx *context.Context) {
 	}
 
 	id := idSess.(int64)
-	twofa, err := auth.GetTwoFactorByUID(id)
+	twofa, err := auth.GetTwoFactorByUID(ctx, id)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -75,7 +75,7 @@ func TwoFactorPost(ctx *context.Context) {
 		}
 
 		if ctx.Session.Get("linkAccount") != nil {
-			err = externalaccount.LinkAccountFromStore(ctx.Session, u)
+			err = externalaccount.LinkAccountFromStore(ctx, ctx.Session, u)
 			if err != nil {
 				ctx.ServerError("UserSignIn", err)
 				return
@@ -83,11 +83,12 @@ func TwoFactorPost(ctx *context.Context) {
 		}
 
 		twofa.LastUsedPasscode = form.Passcode
-		if err = auth.UpdateTwoFactor(twofa); err != nil {
+		if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
 
+		_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)
 		handleSignIn(ctx, u, remember)
 		return
 	}
@@ -99,8 +100,7 @@ func TwoFactorPost(ctx *context.Context) {
 func TwoFactorScratch(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa_scratch")
 
-	// Check auto-login.
-	if checkAutoLogin(ctx) {
+	if CheckAutoLogin(ctx) {
 		return
 	}
 
@@ -126,7 +126,7 @@ func TwoFactorScratchPost(ctx *context.Context) {
 	}
 
 	id := idSess.(int64)
-	twofa, err := auth.GetTwoFactorByUID(id)
+	twofa, err := auth.GetTwoFactorByUID(ctx, id)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -140,7 +140,7 @@ func TwoFactorScratchPost(ctx *context.Context) {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
-		if err = auth.UpdateTwoFactor(twofa); err != nil {
+		if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}

@@ -5,11 +5,14 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"path"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -24,7 +27,7 @@ type Attachment struct {
 	IssueID           int64  `xorm:"INDEX"`           // maybe zero when creating
 	ReleaseID         int64  `xorm:"INDEX"`           // maybe zero when creating
 	UploaderID        int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
-	CommentID         int64
+	CommentID         int64  `xorm:"INDEX"`
 	Name              string
 	DownloadCount     int64              `xorm:"DEFAULT 0"`
 	Size              int64              `xorm:"DEFAULT 0"`
@@ -37,9 +40,9 @@ func init() {
 }
 
 // IncreaseDownloadCount is update download count + 1
-func (a *Attachment) IncreaseDownloadCount() error {
+func (a *Attachment) IncreaseDownloadCount(ctx context.Context) error {
 	// Update download count.
-	if _, err := db.GetEngine(db.DefaultContext).Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
+	if _, err := db.GetEngine(ctx).Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
 		return fmt.Errorf("increase attachment count: %w", err)
 	}
 
@@ -164,8 +167,8 @@ func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, file
 }
 
 // DeleteAttachment deletes the given attachment and optionally the associated file.
-func DeleteAttachment(a *Attachment, remove bool) error {
-	_, err := DeleteAttachments(db.DefaultContext, []*Attachment{a}, remove)
+func DeleteAttachment(ctx context.Context, a *Attachment, remove bool) error {
+	_, err := DeleteAttachments(ctx, []*Attachment{a}, remove)
 	return err
 }
 
@@ -188,7 +191,10 @@ func DeleteAttachments(ctx context.Context, attachments []*Attachment, remove bo
 	if remove {
 		for i, a := range attachments {
 			if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
-				return i, err
+				if !errors.Is(err, os.ErrNotExist) {
+					return i, err
+				}
+				log.Warn("Attachment file not found when deleting: %s", a.RelativePath())
 			}
 		}
 	}
@@ -196,29 +202,29 @@ func DeleteAttachments(ctx context.Context, attachments []*Attachment, remove bo
 }
 
 // DeleteAttachmentsByIssue deletes all attachments associated with the given issue.
-func DeleteAttachmentsByIssue(issueID int64, remove bool) (int, error) {
-	attachments, err := GetAttachmentsByIssueID(db.DefaultContext, issueID)
+func DeleteAttachmentsByIssue(ctx context.Context, issueID int64, remove bool) (int, error) {
+	attachments, err := GetAttachmentsByIssueID(ctx, issueID)
 	if err != nil {
 		return 0, err
 	}
 
-	return DeleteAttachments(db.DefaultContext, attachments, remove)
+	return DeleteAttachments(ctx, attachments, remove)
 }
 
 // DeleteAttachmentsByComment deletes all attachments associated with the given comment.
-func DeleteAttachmentsByComment(commentID int64, remove bool) (int, error) {
-	attachments, err := GetAttachmentsByCommentID(db.DefaultContext, commentID)
+func DeleteAttachmentsByComment(ctx context.Context, commentID int64, remove bool) (int, error) {
+	attachments, err := GetAttachmentsByCommentID(ctx, commentID)
 	if err != nil {
 		return 0, err
 	}
 
-	return DeleteAttachments(db.DefaultContext, attachments, remove)
+	return DeleteAttachments(ctx, attachments, remove)
 }
 
 // UpdateAttachmentByUUID Updates attachment via uuid
 func UpdateAttachmentByUUID(ctx context.Context, attach *Attachment, cols ...string) error {
 	if attach.UUID == "" {
-		return fmt.Errorf("attachment uuid should be not blank")
+		return errors.New("attachment uuid should be not blank")
 	}
 	_, err := db.GetEngine(ctx).Where("uuid=?", attach.UUID).Cols(cols...).Update(attach)
 	return err

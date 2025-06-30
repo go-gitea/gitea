@@ -1,10 +1,11 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_11 //nolint
+package v1_11
 
 import (
 	"fmt"
+	"slices"
 
 	"xorm.io/xorm"
 )
@@ -262,7 +263,6 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 		for _, u := range units {
 			var found bool
 			for _, team := range teams {
-
 				var teamU []*TeamUnit
 				var unitEnabled bool
 				err = sess.Where("team_id = ?", team.ID).Find(&teamU)
@@ -331,12 +331,11 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 		}
 
 		if !protectedBranch.EnableApprovalsWhitelist {
-
 			perm, err := getUserRepoPermission(sess, baseRepo, reviewer)
 			if err != nil {
 				return false, err
 			}
-			if perm.UnitsMode == nil {
+			if len(perm.UnitsMode) == 0 {
 				for _, u := range perm.Units {
 					if u.Type == UnitTypeCode {
 						return AccessModeWrite <= perm.AccessMode, nil
@@ -346,10 +345,8 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 			}
 			return AccessModeWrite <= perm.UnitsMode[UnitTypeCode], nil
 		}
-		for _, id := range protectedBranch.ApprovalsWhitelistUserIDs {
-			if id == reviewer.ID {
-				return true, nil
-			}
+		if slices.Contains(protectedBranch.ApprovalsWhitelistUserIDs, reviewer.ID) {
+			return true, nil
 		}
 
 		// isUserInTeams

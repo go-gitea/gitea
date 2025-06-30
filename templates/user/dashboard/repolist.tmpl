@@ -5,39 +5,43 @@ const data = {
 	isMirrorsEnabled: {{.MirrorsEnabled}},
 	isStarsEnabled: {{not .IsDisableStars}},
 
-	textRepository: {{.locale.Tr "repository"}},
-	textOrganization: {{.locale.Tr "organization"}},
-	textMyRepos: {{.locale.Tr "home.my_repos"}},
-	textNewRepo: {{.locale.Tr "new_repo"}},
-	textSearchRepos: {{.locale.Tr "home.search_repos"}},
-	textFilter: {{.locale.Tr "home.filter"}},
-	textShowArchived: {{.locale.Tr "home.show_archived"}},
-	textShowPrivate: {{.locale.Tr "home.show_private"}},
+	canCreateMigrations: {{not .DisableMigrations}},
 
-	textShowBothArchivedUnarchived: {{.locale.Tr "home.show_both_archived_unarchived"}},
-	textShowOnlyUnarchived: {{.locale.Tr "home.show_only_unarchived"}},
-	textShowOnlyArchived: {{.locale.Tr "home.show_only_archived"}},
+	textNoOrg: {{ctx.Locale.Tr "home.empty_org"}},
+	textNoRepo: {{ctx.Locale.Tr "home.empty_repo"}},
+	textRepository: {{ctx.Locale.Tr "repository"}},
+	textOrganization: {{ctx.Locale.Tr "organization"}},
+	textMyRepos: {{ctx.Locale.Tr "home.my_repos"}},
+	textNewRepo: {{ctx.Locale.Tr "new_repo"}},
+	textSearchRepos: {{ctx.Locale.Tr "search.repo_kind"}},
+	textFilter: {{ctx.Locale.Tr "home.filter"}},
+	textShowArchived: {{ctx.Locale.Tr "home.show_archived"}},
+	textShowPrivate: {{ctx.Locale.Tr "home.show_private"}},
 
-	textShowBothPrivatePublic: {{.locale.Tr "home.show_both_private_public"}},
-	textShowOnlyPublic: {{.locale.Tr "home.show_only_public"}},
-	textShowOnlyPrivate: {{.locale.Tr "home.show_only_private"}},
+	textShowBothArchivedUnarchived: {{ctx.Locale.Tr "home.show_both_archived_unarchived"}},
+	textShowOnlyUnarchived: {{ctx.Locale.Tr "home.show_only_unarchived"}},
+	textShowOnlyArchived: {{ctx.Locale.Tr "home.show_only_archived"}},
 
-	textAll: {{.locale.Tr "all"}},
-	textSources: {{.locale.Tr "sources"}},
-	textForks: {{.locale.Tr "forks"}},
-	textMirrors: {{.locale.Tr "mirrors"}},
-	textCollaborative: {{.locale.Tr "collaborative"}},
+	textShowBothPrivatePublic: {{ctx.Locale.Tr "home.show_both_private_public"}},
+	textShowOnlyPublic: {{ctx.Locale.Tr "home.show_only_public"}},
+	textShowOnlyPrivate: {{ctx.Locale.Tr "home.show_only_private"}},
 
-	textFirstPage: {{.locale.Tr "admin.first_page"}},
-	textPreviousPage: {{.locale.Tr "repo.issues.previous"}},
-	textNextPage: {{.locale.Tr "repo.issues.next"}},
-	textLastPage: {{.locale.Tr "admin.last_page"}},
+	textAll: {{ctx.Locale.Tr "all"}},
+	textSources: {{ctx.Locale.Tr "sources"}},
+	textForks: {{ctx.Locale.Tr "forks"}},
+	textMirrors: {{ctx.Locale.Tr "mirrors"}},
+	textCollaborative: {{ctx.Locale.Tr "collaborative"}},
 
-	textMyOrgs: {{.locale.Tr "home.my_orgs"}},
-	textNewOrg: {{.locale.Tr "new_org"}},
+	textFirstPage: {{ctx.Locale.Tr "admin.first_page"}},
+	textPreviousPage: {{ctx.Locale.Tr "repo.issues.previous"}},
+	textNextPage: {{ctx.Locale.Tr "repo.issues.next"}},
+	textLastPage: {{ctx.Locale.Tr "admin.last_page"}},
 
-	textOrgVisibilityLimited: {{.locale.Tr "org.settings.visibility.limited_shortname"}},
-	textOrgVisibilityPrivate: {{.locale.Tr "org.settings.visibility.private_shortname"}},
+	textMyOrgs: {{ctx.Locale.Tr "home.my_orgs"}},
+	textNewOrg: {{ctx.Locale.Tr "new_org"}},
+
+	textOrgVisibilityLimited: {{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}},
+	textOrgVisibilityPrivate: {{ctx.Locale.Tr "org.settings.visibility.private_shortname"}},
 };
 
 {{if .Team}}
@@ -45,7 +49,7 @@ data.teamId = {{.Team.ID}};
 {{end}}
 
 {{if not .ContextUser.IsOrganization}}
-data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'num_repos': {{.NumRepos}}, 'org_visibility': {{.Visibility}}},{{end}}];
+data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'full_name': {{.FullName}}, 'num_repos': {{.NumRepos}}, 'org_visibility': {{.Visibility}}},{{end}}];
 data.isOrganization = false;
 data.organizationsTotalCount = {{.UserOrgsCount}};
 data.canCreateOrganization = {{.SignedUser.CanCreateOrganization}};
@@ -56,4 +60,4 @@ data.organizationId = {{.ContextUser.ID}};
 window.config.pageData.dashboardRepoList = data;
 </script>
 
-<div id="dashboard-repo-list" class="six wide column"></div>
+<div id="dashboard-repo-list" class="flex-container-sidebar"></div>

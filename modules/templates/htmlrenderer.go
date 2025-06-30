@@ -29,6 +29,8 @@ import (
 
 type TemplateExecutor scopedtmpl.TemplateExecutor
 
+type TplName string
+
 type HTMLRender struct {
 	templates atomic.Pointer[scopedtmpl.ScopedTemplate]
 }
@@ -40,7 +42,8 @@ var (
 
 var ErrTemplateNotInitialized = errors.New("template system is not initialized, check your log for errors")
 
-func (h *HTMLRender) HTML(w io.Writer, status int, name string, data any, ctx context.Context) error { //nolint:revive
+func (h *HTMLRender) HTML(w io.Writer, status int, tplName TplName, data any, ctx context.Context) error { //nolint:revive // we don't use ctx, only pass it to the template executor
+	name := string(tplName)
 	if respWriter, ok := w.(http.ResponseWriter); ok {
 		if respWriter.Header().Get("Content-Type") == "" {
 			respWriter.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -54,7 +57,7 @@ func (h *HTMLRender) HTML(w io.Writer, status int, name string, data any, ctx co
 	return t.Execute(w, data)
 }
 
-func (h *HTMLRender) TemplateLookup(name string, ctx context.Context) (TemplateExecutor, error) { //nolint:revive
+func (h *HTMLRender) TemplateLookup(name string, ctx context.Context) (TemplateExecutor, error) { //nolint:revive // we don't use ctx, only pass it to the template executor
 	tmpls := h.templates.Load()
 	if tmpls == nil {
 		return nil, ErrTemplateNotInitialized
@@ -138,10 +141,9 @@ func wrapTmplErrMsg(msg string) {
 	if setting.IsProd {
 		// in prod mode, Gitea must have correct templates to run
 		log.Fatal("Gitea can't run with template errors: %s", msg)
-	} else {
-		// in dev mode, do not need to really exit, because the template errors could be fixed by developer soon and the templates get reloaded
-		log.Error("There are template errors but Gitea continues to run in dev mode: %s", msg)
 	}
+	// in dev mode, do not need to really exit, because the template errors could be fixed by developer soon and the templates get reloaded
+	log.Error("There are template errors but Gitea continues to run in dev mode: %s", msg)
 }
 
 type templateErrorPrettier struct {
@@ -210,9 +212,8 @@ func (p *templateErrorPrettier) handleTemplateRenderingError(err error) string {
 	} else if execErr, ok := err.(texttemplate.ExecError); ok {
 		layerName := p.assets.GetFileLayerName(execErr.Name + ".tmpl")
 		return fmt.Sprintf("asset from: %s, %s", layerName, err.Error())
-	} else {
-		return err.Error()
 	}
+	return err.Error()
 }
 
 func HandleTemplateRenderingError(err error) string {
@@ -250,7 +251,7 @@ func extractErrorLine(code []byte, lineNum, posNum int, target string) string {
 	b := bufio.NewReader(bytes.NewReader(code))
 	var line []byte
 	var err error
-	for i := 0; i < lineNum; i++ {
+	for i := range lineNum {
 		if line, err = b.ReadBytes('\n'); err != nil {
 			if i == lineNum-1 && errors.Is(err, io.EOF) {
 				err = nil

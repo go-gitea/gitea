@@ -5,44 +5,39 @@ package explore
 
 import (
 	"net/http"
+	"slices"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
 	// tplExploreCode explore code page template
-	tplExploreCode base.TplName = "explore/code"
+	tplExploreCode templates.TplName = "explore/code"
 )
 
 // Code render explore code page
 func Code(ctx *context.Context) {
-	if !setting.Indexer.RepoIndexerEnabled {
+	if !setting.Indexer.RepoIndexerEnabled || setting.Service.Explore.DisableCodePage {
 		ctx.Redirect(setting.AppSubURL + "/explore")
 		return
 	}
 
-	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
+	ctx.Data["UsersPageIsDisabled"] = setting.Service.Explore.DisableUsersPage
+	ctx.Data["OrganizationsPageIsDisabled"] = setting.Service.Explore.DisableOrganizationsPage
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreCode"] = true
-
-	language := ctx.FormTrim("l")
-	keyword := ctx.FormTrim("q")
-
-	queryType := ctx.FormTrim("t")
-	isMatch := queryType == "match"
-
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["Language"] = language
-	ctx.Data["queryType"] = queryType
 	ctx.Data["PageIsViewCode"] = true
 
-	if keyword == "" {
+	prepareSearch := common.PrepareCodeSearch(ctx)
+	if prepareSearch.Keyword == "" {
 		ctx.HTML(http.StatusOK, tplExploreCode)
 		return
 	}
@@ -77,7 +72,16 @@ func Code(ctx *context.Context) {
 	)
 
 	if (len(repoIDs) > 0) || isAdmin {
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
+		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
+			RepoIDs:    repoIDs,
+			Keyword:    prepareSearch.Keyword,
+			SearchMode: prepareSearch.SearchMode,
+			Language:   prepareSearch.Language,
+			Paginator: &db.ListOptions{
+				Page:     page,
+				PageSize: setting.UI.RepoSearchPagingNum,
+			},
+		})
 		if err != nil {
 			if code_indexer.IsAvailable(ctx) {
 				ctx.ServerError("SearchResults", err)
@@ -90,19 +94,12 @@ func Code(ctx *context.Context) {
 
 		loadRepoIDs := make([]int64, 0, len(searchResults))
 		for _, result := range searchResults {
-			var find bool
-			for _, id := range loadRepoIDs {
-				if id == result.RepoID {
-					find = true
-					break
-				}
-			}
-			if !find {
+			if !slices.Contains(loadRepoIDs, result.RepoID) {
 				loadRepoIDs = append(loadRepoIDs, result.RepoID)
 			}
 		}
 
-		repoMaps, err := repo_model.GetRepositoriesMapByIDs(loadRepoIDs)
+		repoMaps, err := repo_model.GetRepositoriesMapByIDs(ctx, loadRepoIDs)
 		if err != nil {
 			ctx.ServerError("GetRepositoriesMapByIDs", err)
 			return
@@ -127,8 +124,7 @@ func Code(ctx *context.Context) {
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "l", "Language")
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplExploreCode)

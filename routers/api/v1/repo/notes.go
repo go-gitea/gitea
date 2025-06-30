@@ -4,12 +4,12 @@
 package repo
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -36,6 +36,14 @@ func GetNote(ctx *context.APIContext) {
 	//   description: a git ref or commit sha
 	//   type: string
 	//   required: true
+	// - name: verification
+	//   in: query
+	//   description: include verification for every commit (disable for speedup, default 'true')
+	//   type: boolean
+	// - name: files
+	//   in: query
+	//   description: include a list of affected files for every commit (disable for speedup, default 'true')
+	//   type: boolean
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Note"
@@ -44,9 +52,9 @@ func GetNote(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	sha := ctx.Params(":sha")
+	sha := ctx.PathParam("sha")
 	if !git.IsValidRefPattern(sha) {
-		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
+		ctx.APIError(http.StatusUnprocessableEntity, "no valid ref or sha: "+sha)
 		return
 	}
 	getNote(ctx, sha)
@@ -54,33 +62,41 @@ func GetNote(ctx *context.APIContext) {
 
 func getNote(ctx *context.APIContext, identifier string) {
 	if ctx.Repo.GitRepo == nil {
-		ctx.InternalServerError(fmt.Errorf("no open git repo"))
+		ctx.APIErrorInternal(errors.New("no open git repo"))
 		return
 	}
 
-	commitSHA, err := ctx.Repo.GitRepo.ConvertToSHA1(identifier)
+	commitID, err := ctx.Repo.GitRepo.ConvertToGitID(identifier)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound(err)
+			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "ConvertToSHA1", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	var note git.Note
-	if err := git.GetNote(ctx, ctx.Repo.GitRepo, commitSHA.String(), &note); err != nil {
+	if err := git.GetNote(ctx, ctx.Repo.GitRepo, commitID.String(), &note); err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound(identifier)
+			ctx.APIErrorNotFound("commit doesn't exist: " + identifier)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "GetNote", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
-	cmt, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, note.Commit, nil, convert.ToCommitOptions{Stat: true})
+	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
+	files := ctx.FormString("files") == "" || ctx.FormBool("files")
+
+	cmt, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, note.Commit, nil,
+		convert.ToCommitOptions{
+			Stat:         true,
+			Verification: verification,
+			Files:        files,
+		})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ToCommit", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	apiNote := api.Note{Message: string(note.Message), Commit: cmt}

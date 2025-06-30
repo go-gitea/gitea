@@ -7,7 +7,7 @@ import (
 	"bytes"
 	stdcsv "encoding/csv"
 	"io"
-	"path/filepath"
+	"path"
 	"regexp"
 	"strings"
 
@@ -53,7 +53,7 @@ func CreateReaderAndDetermineDelimiter(ctx *markup.RenderContext, rd io.Reader) 
 func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 	extension := ".csv"
 	if ctx != nil {
-		extension = strings.ToLower(filepath.Ext(ctx.RelativePath))
+		extension = strings.ToLower(path.Ext(ctx.RenderOptions.RelativePath))
 	}
 
 	var delimiter rune
@@ -123,9 +123,9 @@ func guessDelimiter(data []byte) rune {
 func FormatError(err error, locale translation.Locale) (string, error) {
 	if perr, ok := err.(*stdcsv.ParseError); ok {
 		if perr.Err == stdcsv.ErrFieldCount {
-			return locale.Tr("repo.error.csv.invalid_field_count", perr.Line), nil
+			return locale.TrString("repo.error.csv.invalid_field_count", perr.Line), nil
 		}
-		return locale.Tr("repo.error.csv.unexpected", perr.Line, perr.Column), nil
+		return locale.TrString("repo.error.csv.unexpected", perr.Line, perr.Column), nil
 	}
 
 	return "", err

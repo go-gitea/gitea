@@ -16,14 +16,15 @@ type Package struct {
 	Type       string      `json:"type"`
 	Name       string      `json:"name"`
 	Version    string      `json:"version"`
+	HTMLURL    string      `json:"html_url"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 }
 
 // PackageFile represents a package file
 type PackageFile struct {
-	ID         int64 `json:"id"`
-	Size       int64
+	ID         int64  `json:"id"`
+	Size       int64  `json:"size"`
 	Name       string `json:"name"`
 	HashMD5    string `json:"md5"`
 	HashSHA1   string `json:"sha1"`

@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -62,7 +63,7 @@ func TestReviewType_Icon(t *testing.T) {
 func TestFindReviews(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	reviews, err := issues_model.FindReviews(db.DefaultContext, issues_model.FindReviewOptions{
-		Type:       issues_model.ReviewTypeApprove,
+		Types:      []issues_model.ReviewType{issues_model.ReviewTypeApprove},
 		IssueID:    2,
 		ReviewerID: 1,
 	})
@@ -74,13 +75,13 @@ func TestFindReviews(t *testing.T) {
 func TestFindLatestReviews(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	reviews, err := issues_model.FindLatestReviews(db.DefaultContext, issues_model.FindReviewOptions{
-		Type:    issues_model.ReviewTypeApprove,
+		Types:   []issues_model.ReviewType{issues_model.ReviewTypeApprove},
 		IssueID: 11,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, reviews, 2)
 	assert.Equal(t, "duplicate review from user5 (latest)", reviews[0].Content)
-	assert.Equal(t, "singular review from user6 and final review for this pr", reviews[1].Content)
+	assert.Equal(t, "singular review from org6 and final review for this pr", reviews[1].Content)
 }
 
 func TestGetCurrentReview(t *testing.T) {
@@ -123,44 +124,51 @@ func TestGetReviewersByIssueID(t *testing.T) {
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
 	expectedReviews := []*issues_model.Review{}
 	expectedReviews = append(expectedReviews,
 		&issues_model.Review{
-			Reviewer:    user3,
+			ID:          7,
+			Reviewer:    org3,
 			Type:        issues_model.ReviewTypeReject,
 			UpdatedUnix: 946684812,
 		},
 		&issues_model.Review{
+			ID:          8,
 			Reviewer:    user4,
 			Type:        issues_model.ReviewTypeApprove,
 			UpdatedUnix: 946684813,
 		},
 		&issues_model.Review{
+			ID:          9,
 			Reviewer:    user2,
 			Type:        issues_model.ReviewTypeReject,
 			UpdatedUnix: 946684814,
-		})
+		},
+		&issues_model.Review{
+			ID:          10,
+			Reviewer:    user_model.NewGhostUser(),
+			Type:        issues_model.ReviewTypeReject,
+			UpdatedUnix: 946684815,
+		},
+		&issues_model.Review{
+			ID:          22,
+			Reviewer:    user5,
+			Type:        issues_model.ReviewTypeRequest,
+			UpdatedUnix: 946684817,
+		},
+	)
 
-	allReviews, err := issues_model.GetReviewsByIssueID(issue.ID)
+	allReviews, migratedReviews, err := issues_model.GetReviewsByIssueID(db.DefaultContext, issue.ID)
 	assert.NoError(t, err)
+	assert.Empty(t, migratedReviews)
 	for _, review := range allReviews {
 		assert.NoError(t, review.LoadReviewer(db.DefaultContext))
 	}
-	if assert.Len(t, allReviews, 3) {
-		for i, review := range allReviews {
-			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
-			assert.Equal(t, expectedReviews[i].Type, review.Type)
-			assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
-		}
-	}
-
-	allReviews, err = issues_model.GetReviewsByIssueID(issue.ID)
-	assert.NoError(t, err)
-	assert.NoError(t, allReviews.LoadReviewers(db.DefaultContext))
-	if assert.Len(t, allReviews, 3) {
+	if assert.Len(t, allReviews, 5) {
 		for i, review := range allReviews {
 			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
 			assert.Equal(t, expectedReviews[i].Type, review.Type)
@@ -248,7 +256,7 @@ func TestDeleteReview(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	assert.NoError(t, issues_model.DeleteReview(review2))
+	assert.NoError(t, issues_model.DeleteReview(db.DefaultContext, review2))
 
 	_, err = issues_model.GetReviewByID(db.DefaultContext, review2.ID)
 	assert.Error(t, err)
@@ -257,4 +265,63 @@ func TestDeleteReview(t *testing.T) {
 	review1, err = issues_model.GetReviewByID(db.DefaultContext, review1.ID)
 	assert.NoError(t, err)
 	assert.True(t, review1.Official)
+}
+
+func TestDeleteDismissedReview(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	review, err := issues_model.CreateReview(db.DefaultContext, issues_model.CreateReviewOptions{
+		Content:  "reject",
+		Type:     issues_model.ReviewTypeReject,
+		Official: false,
+		Issue:    issue,
+		Reviewer: user,
+	})
+	assert.NoError(t, err)
+	assert.NoError(t, issues_model.DismissReview(db.DefaultContext, review, true))
+	comment, err := issues_model.CreateComment(db.DefaultContext, &issues_model.CreateCommentOptions{
+		Type:     issues_model.CommentTypeDismissReview,
+		Doer:     user,
+		Repo:     repo,
+		Issue:    issue,
+		ReviewID: review.ID,
+		Content:  "dismiss",
+	})
+	assert.NoError(t, err)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID})
+	assert.NoError(t, issues_model.DeleteReview(db.DefaultContext, review))
+	unittest.AssertNotExistsBean(t, &issues_model.Comment{ID: comment.ID})
+}
+
+func TestAddReviewRequest(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	assert.NoError(t, pull.LoadIssue(db.DefaultContext))
+	issue := pull.Issue
+	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	_, err := issues_model.CreateReview(db.DefaultContext, issues_model.CreateReviewOptions{
+		Issue:    issue,
+		Reviewer: reviewer,
+		Type:     issues_model.ReviewTypeReject,
+	})
+
+	assert.NoError(t, err)
+	pull.HasMerged = false
+	assert.NoError(t, pull.UpdateCols(db.DefaultContext, "has_merged"))
+	issue.IsClosed = true
+	_, err = issues_model.AddReviewRequest(db.DefaultContext, issue, reviewer, &user_model.User{})
+	assert.Error(t, err)
+	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
+
+	pull.HasMerged = true
+	assert.NoError(t, pull.UpdateCols(db.DefaultContext, "has_merged"))
+	issue.IsClosed = false
+	_, err = issues_model.AddReviewRequest(db.DefaultContext, issue, reviewer, &user_model.User{})
+	assert.Error(t, err)
+	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
 }

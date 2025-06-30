@@ -42,13 +42,13 @@ GARGS = "--no-print-directory"
 
 # The GNU convention is to use the lowercased `prefix` variable/macro to
 # specify the installation directory. Humor them.
-GPREFIX = ""
+GPREFIX =
 .if defined(PREFIX) && ! defined(prefix)
     GPREFIX = 'prefix = "$(PREFIX)"'
 .endif
 
 .BEGIN: .SILENT
-	which $(GMAKE) || printf "Error: GNU Make is required!\n\n" 1>&2 && false
+	which $(GMAKE) || (printf "Error: GNU Make is required!\n\n" 1>&2 && false)
 
 .PHONY: FRC
 $(.TARGETS): FRC

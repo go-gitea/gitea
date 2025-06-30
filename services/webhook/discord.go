@@ -4,11 +4,14 @@
 package webhook
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
@@ -98,19 +101,20 @@ var (
 	redColor         = color("ff3232")
 )
 
-// JSONPayload Marshals the DiscordPayload to json
-func (d *DiscordPayload) JSONPayload() ([]byte, error) {
-	data, err := json.MarshalIndent(d, "", "  ")
-	if err != nil {
-		return []byte{}, err
-	}
-	return data, nil
+// https://discord.com/developers/docs/resources/message#embed-object-embed-limits
+// Discord has some limits in place for the embeds.
+// According to some tests, there is no consistent limit for different character sets.
+// For example: 4096 ASCII letters are allowed, but only 2490 emoji characters are allowed.
+// To keep it simple, we currently truncate at 2000.
+const discordDescriptionCharactersLimit = 2000
+
+type discordConvertor struct {
+	Username  string
+	AvatarURL string
 }
 
-var _ PayloadConvertor = &DiscordPayload{}
-
 // Create implements PayloadConvertor Create method
-func (d *DiscordPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
+func (d discordConvertor) Create(p *api.CreatePayload) (DiscordPayload, error) {
 	// created tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
@@ -119,7 +123,7 @@ func (d *DiscordPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 }
 
 // Delete implements PayloadConvertor Delete method
-func (d *DiscordPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
+func (d discordConvertor) Delete(p *api.DeletePayload) (DiscordPayload, error) {
 	// deleted tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
@@ -128,14 +132,14 @@ func (d *DiscordPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 }
 
 // Fork implements PayloadConvertor Fork method
-func (d *DiscordPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
+func (d discordConvertor) Fork(p *api.ForkPayload) (DiscordPayload, error) {
 	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
 
 	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL, greenColor), nil
 }
 
 // Push implements PayloadConvertor Push method
-func (d *DiscordPayload) Push(p *api.PushPayload) (api.Payloader, error) {
+func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 	var (
 		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
@@ -158,8 +162,14 @@ func (d *DiscordPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var text string
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
-		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n"), commit.Author.Name)
+		// limit the commit message display to just the summary, otherwise it would be hard to read
+		message := strings.TrimRight(strings.SplitN(commit.Message, "\n", 2)[0], "\r")
+
+		// a limit of 50 is set because GitHub does the same
+		if utf8.RuneCountInString(message) > 50 {
+			message = fmt.Sprintf("%.47s...", message)
+		}
+		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL, message, commit.Author.Name)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
 			text += "\n"
@@ -170,35 +180,35 @@ func (d *DiscordPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 }
 
 // Issue implements PayloadConvertor Issue method
-func (d *DiscordPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
-	title, _, text, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
+func (d discordConvertor) Issue(p *api.IssuePayload) (DiscordPayload, error) {
+	title, _, extraMarkdown, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
 
-	return d.createPayload(p.Sender, title, text, p.Issue.HTMLURL, color), nil
+	return d.createPayload(p.Sender, title, extraMarkdown, p.Issue.HTMLURL, color), nil
 }
 
 // IssueComment implements PayloadConvertor IssueComment method
-func (d *DiscordPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
+func (d discordConvertor) IssueComment(p *api.IssueCommentPayload) (DiscordPayload, error) {
 	title, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, false)
 
 	return d.createPayload(p.Sender, title, p.Comment.Body, p.Comment.HTMLURL, color), nil
 }
 
 // PullRequest implements PayloadConvertor PullRequest method
-func (d *DiscordPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
-	title, _, text, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
+func (d discordConvertor) PullRequest(p *api.PullRequestPayload) (DiscordPayload, error) {
+	title, _, extraMarkdown, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
-	return d.createPayload(p.Sender, title, text, p.PullRequest.HTMLURL, color), nil
+	return d.createPayload(p.Sender, title, extraMarkdown, p.PullRequest.HTMLURL, color), nil
 }
 
 // Review implements PayloadConvertor Review method
-func (d *DiscordPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
+func (d discordConvertor) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (DiscordPayload, error) {
 	var text, title string
 	var color int
 	switch p.Action {
 	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {
-			return nil, err
+			return DiscordPayload{}, err
 		}
 
 		title = fmt.Sprintf("[%s] Pull request review %s: #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
@@ -220,7 +230,7 @@ func (d *DiscordPayload) Review(p *api.PullRequestPayload, event webhook_module.
 }
 
 // Repository implements PayloadConvertor Repository method
-func (d *DiscordPayload) Repository(p *api.RepositoryPayload) (api.Payloader, error) {
+func (d discordConvertor) Repository(p *api.RepositoryPayload) (DiscordPayload, error) {
 	var title, url string
 	var color int
 	switch p.Action {
@@ -237,7 +247,7 @@ func (d *DiscordPayload) Repository(p *api.RepositoryPayload) (api.Payloader, er
 }
 
 // Wiki implements PayloadConvertor Wiki method
-func (d *DiscordPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+func (d discordConvertor) Wiki(p *api.WikiPayload) (DiscordPayload, error) {
 	text, color, _ := getWikiPayloadInfo(p, noneLinkFormatter, false)
 	htmlLink := p.Repository.HTMLURL + "/wiki/" + url.PathEscape(p.Page)
 
@@ -250,49 +260,73 @@ func (d *DiscordPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
 }
 
 // Release implements PayloadConvertor Release method
-func (d *DiscordPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
+func (d discordConvertor) Release(p *api.ReleasePayload) (DiscordPayload, error) {
 	text, color := getReleasePayloadInfo(p, noneLinkFormatter, false)
 
-	return d.createPayload(p.Sender, text, p.Release.Note, p.Release.URL, color), nil
+	return d.createPayload(p.Sender, text, p.Release.Note, p.Release.HTMLURL, color), nil
 }
 
-// GetDiscordPayload converts a discord webhook into a DiscordPayload
-func GetDiscordPayload(p api.Payloader, event webhook_module.HookEventType, meta string) (api.Payloader, error) {
-	s := new(DiscordPayload)
+func (d discordConvertor) Package(p *api.PackagePayload) (DiscordPayload, error) {
+	text, color := getPackagePayloadInfo(p, noneLinkFormatter, false)
 
-	discord := &DiscordMeta{}
-	if err := json.Unmarshal([]byte(meta), &discord); err != nil {
-		return s, errors.New("GetDiscordPayload meta json:" + err.Error())
+	return d.createPayload(p.Sender, text, "", p.Package.HTMLURL, color), nil
+}
+
+func (d discordConvertor) Status(p *api.CommitStatusPayload) (DiscordPayload, error) {
+	text, color := getStatusPayloadInfo(p, noneLinkFormatter, false)
+
+	return d.createPayload(p.Sender, text, "", p.TargetURL, color), nil
+}
+
+func (d discordConvertor) WorkflowRun(p *api.WorkflowRunPayload) (DiscordPayload, error) {
+	text, color := getWorkflowRunPayloadInfo(p, noneLinkFormatter, false)
+
+	return d.createPayload(p.Sender, text, "", p.WorkflowRun.HTMLURL, color), nil
+}
+
+func (d discordConvertor) WorkflowJob(p *api.WorkflowJobPayload) (DiscordPayload, error) {
+	text, color := getWorkflowJobPayloadInfo(p, noneLinkFormatter, false)
+
+	return d.createPayload(p.Sender, text, "", p.WorkflowJob.HTMLURL, color), nil
+}
+
+func newDiscordRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+	meta := &DiscordMeta{}
+	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
+		return nil, nil, fmt.Errorf("newDiscordRequest meta json: %w", err)
 	}
-	s.Username = discord.Username
-	s.AvatarURL = discord.IconURL
+	var pc payloadConvertor[DiscordPayload] = discordConvertor{
+		Username:  meta.Username,
+		AvatarURL: meta.IconURL,
+	}
+	return newJSONRequest(pc, w, t, true)
+}
 
-	return convertPayloader(s, p, event)
+func init() {
+	RegisterWebhookRequester(webhook_module.DISCORD, newDiscordRequest)
 }
 
 func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, error) {
 	switch event {
-
 	case webhook_module.HookEventPullRequestReviewApproved:
 		return "approved", nil
 	case webhook_module.HookEventPullRequestReviewRejected:
-		return "rejected", nil
+		return "requested changes", nil
 	case webhook_module.HookEventPullRequestReviewComment:
 		return "comment", nil
-
 	default:
 		return "", errors.New("unknown event type")
 	}
 }
 
-func (d *DiscordPayload) createPayload(s *api.User, title, text, url string, color int) *DiscordPayload {
-	return &DiscordPayload{
+func (d discordConvertor) createPayload(s *api.User, title, text, url string, color int) DiscordPayload {
+	return DiscordPayload{
 		Username:  d.Username,
 		AvatarURL: d.AvatarURL,
 		Embeds: []DiscordEmbed{
 			{
 				Title:       title,
-				Description: text,
+				Description: util.TruncateRunes(text, discordDescriptionCharactersLimit),
 				URL:         url,
 				Color:       color,
 				Author: DiscordEmbedAuthor{

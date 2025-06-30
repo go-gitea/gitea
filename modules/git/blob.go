@@ -7,7 +7,9 @@ package git
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"io"
+	"strings"
 
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -34,8 +36,9 @@ func (b *Blob) GetBlobContent(limit int64) (string, error) {
 	return string(buf), err
 }
 
-// GetBlobLineCount gets line count of the blob
-func (b *Blob) GetBlobLineCount() (int, error) {
+// GetBlobLineCount gets line count of the blob.
+// It will also try to write the content to w if it's not nil, then we could pre-fetch the content without reading it again.
+func (b *Blob) GetBlobLineCount(w io.Writer) (int, error) {
 	reader, err := b.DataAsync()
 	if err != nil {
 		return 0, err
@@ -44,50 +47,54 @@ func (b *Blob) GetBlobLineCount() (int, error) {
 	buf := make([]byte, 32*1024)
 	count := 1
 	lineSep := []byte{'\n'}
-
-	c, err := reader.Read(buf)
-	if c == 0 && err == io.EOF {
-		return 0, nil
-	}
 	for {
+		c, err := reader.Read(buf)
+		if w != nil {
+			if _, err := w.Write(buf[:c]); err != nil {
+				return count, err
+			}
+		}
 		count += bytes.Count(buf[:c], lineSep)
 		switch {
-		case err == io.EOF:
+		case errors.Is(err, io.EOF):
 			return count, nil
 		case err != nil:
 			return count, err
 		}
-		c, err = reader.Read(buf)
 	}
 }
 
-// GetBlobContentBase64 Reads the content of the blob with a base64 encode and returns the encoded string
-func (b *Blob) GetBlobContentBase64() (string, error) {
+// GetBlobContentBase64 Reads the content of the blob with a base64 encoding and returns the encoded string
+func (b *Blob) GetBlobContentBase64(originContent *strings.Builder) (string, error) {
 	dataRc, err := b.DataAsync()
 	if err != nil {
 		return "", err
 	}
 	defer dataRc.Close()
 
-	pr, pw := io.Pipe()
-	encoder := base64.NewEncoder(base64.StdEncoding, pw)
-
-	go func() {
-		_, err := io.Copy(encoder, dataRc)
-		_ = encoder.Close()
-
-		if err != nil {
-			_ = pw.CloseWithError(err)
-		} else {
-			_ = pw.Close()
+	base64buf := &strings.Builder{}
+	encoder := base64.NewEncoder(base64.StdEncoding, base64buf)
+	buf := make([]byte, 32*1024)
+loop:
+	for {
+		n, err := dataRc.Read(buf)
+		if n > 0 {
+			if originContent != nil {
+				_, _ = originContent.Write(buf[:n])
+			}
+			if _, err := encoder.Write(buf[:n]); err != nil {
+				return "", err
+			}
 		}
-	}()
-
-	out, err := io.ReadAll(pr)
-	if err != nil {
-		return "", err
+		switch {
+		case errors.Is(err, io.EOF):
+			break loop
+		case err != nil:
+			return "", err
+		}
 	}
-	return string(out), nil
+	_ = encoder.Close()
+	return base64buf.String(), nil
 }
 
 // GuessContentType guesses the content type of the blob.

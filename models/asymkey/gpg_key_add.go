@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/keybase/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp"
 )
 
 //   __________________  ________   ____  __.
@@ -66,13 +66,13 @@ func addGPGSubKey(ctx context.Context, key *GPGKey) (err error) {
 }
 
 // AddGPGKey adds new public key to database.
-func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, error) {
-	ekeys, err := checkArmoredGPGKeyString(content)
+func AddGPGKey(ctx context.Context, ownerID int64, content, token, signature string) ([]*GPGKey, error) {
+	ekeys, err := CheckArmoredGPGKeyString(content)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -83,15 +83,15 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 	verified := false
 	// Handle provided signature
 	if signature != "" {
-		signer, err := openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token), strings.NewReader(signature))
+		signer, err := openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token), strings.NewReader(signature), nil)
 		if err != nil {
-			signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\n"), strings.NewReader(signature))
+			signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\n"), strings.NewReader(signature), nil)
 		}
 		if err != nil {
-			signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\r\n"), strings.NewReader(signature))
+			signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\r\n"), strings.NewReader(signature), nil)
 		}
 		if err != nil {
-			log.Error("Unable to validate token signature. Error: %v", err)
+			log.Debug("AddGPGKey CheckArmoredDetachedSignature failed: %v", err)
 			return nil, ErrGPGInvalidTokenSignature{
 				ID:      ekeys[0].PrimaryKey.KeyIdString(),
 				Wrapped: err,
@@ -153,7 +153,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 
 		// Get DB session
 
-		key, err := parseGPGKey(ownerID, ekey, verified)
+		key, err := parseGPGKey(ctx, ownerID, ekey, verified)
 		if err != nil {
 			return nil, err
 		}

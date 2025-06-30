@@ -11,7 +11,6 @@ import (
 	"io"
 	"path"
 	"strconv"
-	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -19,9 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -78,7 +78,7 @@ func RebuildIndex(ctx context.Context, doer, owner *user_model.User) error {
 		"Rebuild Cargo Index",
 		func(t *files_service.TemporaryUploadRepository) error {
 			// Remove all existing content but the Cargo config
-			files, err := t.LsFiles()
+			files, err := t.LsFiles(ctx)
 			if err != nil {
 				return err
 			}
@@ -89,7 +89,7 @@ func RebuildIndex(ctx context.Context, doer, owner *user_model.User) error {
 					break
 				}
 			}
-			if err := t.RemoveFilesFromIndex(files...); err != nil {
+			if err := t.RemoveFilesFromIndex(ctx, files...); err != nil {
 				return err
 			}
 
@@ -105,10 +105,16 @@ func RebuildIndex(ctx context.Context, doer, owner *user_model.User) error {
 	)
 }
 
-func AddOrUpdatePackageIndex(ctx context.Context, doer, owner *user_model.User, packageID int64) error {
-	repo, err := getOrCreateIndexRepository(ctx, doer, owner)
+func UpdatePackageIndexIfExists(ctx context.Context, doer, owner *user_model.User, packageID int64) error {
+	// We do not want to force the creation of the repo here
+	// cargo http index does not rely on the repo itself,
+	// so if the repo does not exist, we just do nothing.
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName)
 	if err != nil {
-		return err
+		if errors.Is(err, util.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("GetRepositoryByOwnerAndName: %w", err)
 	}
 
 	p, err := packages_model.GetPackageByID(ctx, packageID)
@@ -198,16 +204,16 @@ func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUplo
 		return nil
 	}
 
-	return writeObjectToIndex(t, BuildPackagePath(p.LowerName), b)
+	return writeObjectToIndex(ctx, t, BuildPackagePath(p.LowerName), b)
 }
 
 func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.User) (*repo_model.Repository, error) {
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			repo, err = repo_module.CreateRepository(doer, owner, repo_module.CreateRepoOptions{
+			repo, err = repo_service.CreateRepositoryDirectly(ctx, doer, owner, repo_service.CreateRepoOptions{
 				Name: IndexRepositoryName,
-			})
+			}, true)
 			if err != nil {
 				return nil, fmt.Errorf("CreateRepository: %w", err)
 			}
@@ -220,14 +226,16 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 }
 
 type Config struct {
-	DownloadURL string `json:"dl"`
-	APIURL      string `json:"api"`
+	DownloadURL  string `json:"dl"`
+	APIURL       string `json:"api"`
+	AuthRequired bool   `json:"auth-required"`
 }
 
-func BuildConfig(owner *user_model.User) *Config {
+func BuildConfig(owner *user_model.User, isPrivate bool) *Config {
 	return &Config{
-		DownloadURL: setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
-		APIURL:      setting.AppURL + "api/packages/" + owner.Name + "/cargo",
+		DownloadURL:  setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
+		APIURL:       setting.AppURL + "api/packages/" + owner.Name + "/cargo",
+		AuthRequired: isPrivate,
 	}
 }
 
@@ -239,34 +247,34 @@ func createOrUpdateConfigFile(ctx context.Context, repo *repo_model.Repository, 
 		"Initialize Cargo Config",
 		func(t *files_service.TemporaryUploadRepository) error {
 			var b bytes.Buffer
-			err := json.NewEncoder(&b).Encode(BuildConfig(owner))
+			err := json.NewEncoder(&b).Encode(BuildConfig(owner, setting.Service.RequireSignInViewStrict || owner.Visibility != structs.VisibleTypePublic || repo.IsPrivate))
 			if err != nil {
 				return err
 			}
 
-			return writeObjectToIndex(t, ConfigFileName, &b)
+			return writeObjectToIndex(ctx, t, ConfigFileName, &b)
 		},
 	)
 }
 
 // This is a shorter version of CreateOrUpdateRepoFile which allows to perform multiple actions on a git repository
 func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commitMessage string, fn func(*files_service.TemporaryUploadRepository) error) error {
-	t, err := files_service.NewTemporaryUploadRepository(ctx, repo)
+	t, err := files_service.NewTemporaryUploadRepository(repo)
 	if err != nil {
 		return err
 	}
 	defer t.Close()
 
 	var lastCommitID string
-	if err := t.Clone(repo.DefaultBranch); err != nil {
+	if err := t.Clone(ctx, repo.DefaultBranch, true); err != nil {
 		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
 			return err
 		}
-		if err := t.Init(); err != nil {
+		if err := t.Init(ctx, repo.ObjectFormatName); err != nil {
 			return err
 		}
 	} else {
-		if err := t.SetDefaultIndex(); err != nil {
+		if err := t.SetDefaultIndex(ctx); err != nil {
 			return err
 		}
 
@@ -282,25 +290,30 @@ func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *re
 		return err
 	}
 
-	treeHash, err := t.WriteTree()
+	treeHash, err := t.WriteTree(ctx)
 	if err != nil {
 		return err
 	}
 
-	now := time.Now()
-	commitHash, err := t.CommitTreeWithDate(lastCommitID, doer, doer, treeHash, commitMessage, false, now, now)
+	commitOpts := &files_service.CommitTreeUserOptions{
+		ParentCommitID: lastCommitID,
+		TreeHash:       treeHash,
+		CommitMessage:  commitMessage,
+		DoerUser:       doer,
+	}
+	commitHash, err := t.CommitTree(ctx, commitOpts)
 	if err != nil {
 		return err
 	}
 
-	return t.Push(doer, commitHash, repo.DefaultBranch)
+	return t.Push(ctx, doer, commitHash, repo.DefaultBranch)
 }
 
-func writeObjectToIndex(t *files_service.TemporaryUploadRepository, path string, r io.Reader) error {
-	hash, err := t.HashObject(r)
+func writeObjectToIndex(ctx context.Context, t *files_service.TemporaryUploadRepository, path string, r io.Reader) error {
+	hash, err := t.HashObjectAndWrite(ctx, r)
 	if err != nil {
 		return err
 	}
 
-	return t.AddObjectToIndex("100644", hash, path)
+	return t.AddObjectToIndex(ctx, "100644", hash, path)
 }

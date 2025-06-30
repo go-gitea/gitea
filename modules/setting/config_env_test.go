@@ -28,8 +28,8 @@ func TestDecodeEnvSectionKey(t *testing.T) {
 
 	ok, section, key = decodeEnvSectionKey("SEC")
 	assert.False(t, ok)
-	assert.Equal(t, "", section)
-	assert.Equal(t, "", key)
+	assert.Empty(t, section)
+	assert.Empty(t, key)
 }
 
 func TestDecodeEnvironmentKey(t *testing.T) {
@@ -38,19 +38,19 @@ func TestDecodeEnvironmentKey(t *testing.T) {
 
 	ok, section, key, file := decodeEnvironmentKey(prefix, suffix, "SEC__KEY")
 	assert.False(t, ok)
-	assert.Equal(t, "", section)
-	assert.Equal(t, "", key)
+	assert.Empty(t, section)
+	assert.Empty(t, key)
 	assert.False(t, file)
 
 	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA__SEC")
 	assert.False(t, ok)
-	assert.Equal(t, "", section)
-	assert.Equal(t, "", key)
+	assert.Empty(t, section)
+	assert.Empty(t, key)
 	assert.False(t, file)
 
 	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA____KEY")
 	assert.True(t, ok)
-	assert.Equal(t, "", section)
+	assert.Empty(t, section)
 	assert.Equal(t, "KEY", key)
 	assert.False(t, file)
 
@@ -64,8 +64,8 @@ func TestDecodeEnvironmentKey(t *testing.T) {
 	// but it could be fixed in the future by adding a new suffix like "__VALUE" (no such key VALUE is used in Gitea either)
 	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA__SEC__FILE")
 	assert.False(t, ok)
-	assert.Equal(t, "", section)
-	assert.Equal(t, "", key)
+	assert.Empty(t, section)
+	assert.Empty(t, key)
 	assert.True(t, file)
 
 	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA__SEC__KEY__FILE")
@@ -73,6 +73,9 @@ func TestDecodeEnvironmentKey(t *testing.T) {
 	assert.Equal(t, "sec", section)
 	assert.Equal(t, "KEY", key)
 	assert.True(t, file)
+
+	ok, _, _, _ = decodeEnvironmentKey("PREFIX__", "", "PREFIX__SEC__KEY")
+	assert.True(t, ok)
 }
 
 func TestEnvironmentToConfig(t *testing.T) {
@@ -114,4 +117,30 @@ key = old
 	_ = os.WriteFile(tmpFile, []byte("value-from-file\n\n"), 0o644)
 	EnvironmentToConfig(cfg, []string{"GITEA__sec__key__FILE=" + tmpFile})
 	assert.Equal(t, "value-from-file\n", cfg.Section("sec").Key("key").String())
+}
+
+func TestEnvironmentToConfigSubSecKey(t *testing.T) {
+	// the INI package has a quirk: by default, the keys are inherited.
+	// when maintaining the keys, the newly added sub key should not be affected by the parent key.
+	cfg, err := NewConfigProviderFromData(`
+[sec]
+key = some
+`)
+	assert.NoError(t, err)
+
+	changed := EnvironmentToConfig(cfg, []string{"GITEA__sec_0X2E_sub__key=some"})
+	assert.True(t, changed)
+
+	tmpFile := t.TempDir() + "/test-sub-sec-key.ini"
+	defer os.Remove(tmpFile)
+	err = cfg.SaveTo(tmpFile)
+	assert.NoError(t, err)
+	bs, err := os.ReadFile(tmpFile)
+	assert.NoError(t, err)
+	assert.Equal(t, `[sec]
+key = some
+
+[sec.sub]
+key = some
+`, string(bs))
 }

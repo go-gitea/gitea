@@ -24,7 +24,7 @@ import (
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
-func SortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML {
+func sortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML {
 	// if needed
 	if len(normSort) == 0 || len(urlSort) == 0 {
 		return ""
@@ -38,10 +38,11 @@ func SortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML 
 	} else {
 		// if sort arg is in url test if it correlates with column header sort arguments
 		// the direction of the arrow should indicate the "current sort order", up means ASC(normal), down means DESC(rev)
-		if urlSort == normSort {
+		switch urlSort {
+		case normSort:
 			// the table is sorted with this header normal
 			return svg.RenderHTML("octicon-triangle-up", 16)
-		} else if urlSort == revSort {
+		case revSort:
 			// the table is sorted with this header reverse
 			return svg.RenderHTML("octicon-triangle-down", 16)
 		}
@@ -50,51 +51,55 @@ func SortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML 
 	return ""
 }
 
-// IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
-func IsMultilineCommitMessage(msg string) bool {
+// isMultilineCommitMessage checks to see if a commit message contains multiple lines.
+func isMultilineCommitMessage(msg string) bool {
 	return strings.Count(strings.TrimSpace(msg), "\n") >= 1
 }
 
 // Actioner describes an action
 type Actioner interface {
 	GetOpType() activities_model.ActionType
-	GetActUserName() string
-	GetRepoUserName() string
-	GetRepoName() string
-	GetRepoPath() string
-	GetRepoLink() string
+	GetActUserName(ctx context.Context) string
+	GetRepoUserName(ctx context.Context) string
+	GetRepoName(ctx context.Context) string
+	GetRepoPath(ctx context.Context) string
+	GetRepoLink(ctx context.Context) string
 	GetBranch() string
 	GetContent() string
 	GetCreate() time.Time
 	GetIssueInfos() []string
 }
 
-// ActionIcon accepts an action operation type and returns an icon class name.
-func ActionIcon(opType activities_model.ActionType) string {
+// actionIcon accepts an action operation type and returns an icon class name.
+func actionIcon(opType activities_model.ActionType) string {
 	switch opType {
 	case activities_model.ActionCreateRepo, activities_model.ActionTransferRepo, activities_model.ActionRenameRepo:
 		return "repo"
-	case activities_model.ActionCommitRepo, activities_model.ActionPushTag, activities_model.ActionDeleteTag, activities_model.ActionDeleteBranch:
+	case activities_model.ActionCommitRepo:
 		return "git-commit"
-	case activities_model.ActionCreateIssue:
-		return "issue-opened"
-	case activities_model.ActionCreatePullRequest:
-		return "git-pull-request"
-	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
-		return "comment-discussion"
+	case activities_model.ActionDeleteBranch:
+		return "git-branch"
 	case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 		return "git-merge"
-	case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
+	case activities_model.ActionCreatePullRequest:
+		return "git-pull-request"
+	case activities_model.ActionClosePullRequest:
+		return "git-pull-request-closed"
+	case activities_model.ActionCreateIssue:
+		return "issue-opened"
+	case activities_model.ActionCloseIssue:
 		return "issue-closed"
 	case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 		return "issue-reopened"
+	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
+		return "comment-discussion"
 	case activities_model.ActionMirrorSyncPush, activities_model.ActionMirrorSyncCreate, activities_model.ActionMirrorSyncDelete:
 		return "mirror"
 	case activities_model.ActionApprovePullRequest:
 		return "check"
 	case activities_model.ActionRejectPullRequest:
-		return "diff"
-	case activities_model.ActionPublishRelease:
+		return "file-diff"
+	case activities_model.ActionPublishRelease, activities_model.ActionPushTag, activities_model.ActionDeleteTag:
 		return "tag"
 	case activities_model.ActionPullReviewDismissed:
 		return "x"
@@ -122,8 +127,8 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	return push
 }
 
-// MigrationIcon returns a SVG name matching the service an issue/comment was migrated from
-func MigrationIcon(hostname string) string {
+// migrationIcon returns a SVG name matching the service an issue/comment was migrated from
+func migrationIcon(hostname string) string {
 	switch hostname {
 	case "github.com":
 		return "octicon-mark-github"
@@ -138,43 +143,47 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string, ignoreOriginalURL bool) remoteAddress {
-	a := remoteAddress{}
-
-	remoteURL := m.OriginalURL
-	if ignoreOriginalURL || remoteURL == "" {
-		var err error
-		remoteURL, err = git.GetRemoteAddress(ctx, m.RepoPath(), remoteName)
-		if err != nil {
-			log.Error("GetRemoteURL %v", err)
-			return a
-		}
+func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
+	ret := remoteAddress{}
+	remoteURL, err := git.GetRemoteAddress(ctx, m.RepoPath(), remoteName)
+	if err != nil {
+		log.Error("GetRemoteURL %v", err)
+		return ret
 	}
 
-	u, err := giturl.Parse(remoteURL)
+	u, err := giturl.ParseGitURL(remoteURL)
 	if err != nil {
 		log.Error("giturl.Parse %v", err)
-		return a
+		return ret
 	}
 
 	if u.Scheme != "ssh" && u.Scheme != "file" {
 		if u.User != nil {
-			a.Username = u.User.Username()
-			a.Password, _ = u.User.Password()
+			ret.Username = u.User.Username()
+			ret.Password, _ = u.User.Password()
 		}
-		u.User = nil
 	}
-	a.Address = u.String()
 
-	return a
+	// The URL stored in the git repo could contain authentication,
+	// erase it, or it will be shown in the UI.
+	u.User = nil
+	ret.Address = u.String()
+	// Why not use m.OriginalURL to set ret.Address?
+	// It should be OK to use it, since m.OriginalURL should be the same as the authentication-erased URL from the Git repository.
+	// However, the old code has already stored authentication in m.OriginalURL when updating mirror settings.
+	// That means we need to use "giturl.Parse" for m.OriginalURL again to ensure authentication is erased.
+	// Instead of doing this, why not directly use the authentication-erased URL from the Git repository?
+	// It should be the same as long as there are no bugs.
+
+	return ret
 }
 
-func FilenameIsImage(filename string) bool {
+func filenameIsImage(filename string) bool {
 	mimeType := mime.TypeByExtension(filepath.Ext(filename))
 	return strings.HasPrefix(mimeType, "image/")
 }
 
-func TabSizeClass(ec *editorconfig.Editorconfig, filename string) string {
+func tabSizeClass(ec *editorconfig.Editorconfig, filename string) string {
 	if ec != nil {
 		def, err := ec.GetDefinitionForFilename(filename)
 		if err == nil && def.TabWidth >= 1 && def.TabWidth <= 16 {

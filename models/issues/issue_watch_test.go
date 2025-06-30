@@ -16,11 +16,11 @@ import (
 func TestCreateOrUpdateIssueWatch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	assert.NoError(t, issues_model.CreateOrUpdateIssueWatch(3, 1, true))
+	assert.NoError(t, issues_model.CreateOrUpdateIssueWatch(db.DefaultContext, 3, 1, true))
 	iw := unittest.AssertExistsAndLoadBean(t, &issues_model.IssueWatch{UserID: 3, IssueID: 1})
 	assert.True(t, iw.IsWatching)
 
-	assert.NoError(t, issues_model.CreateOrUpdateIssueWatch(1, 1, false))
+	assert.NoError(t, issues_model.CreateOrUpdateIssueWatch(db.DefaultContext, 1, 1, false))
 	iw = unittest.AssertExistsAndLoadBean(t, &issues_model.IssueWatch{UserID: 1, IssueID: 1})
 	assert.False(t, iw.IsWatching)
 }
@@ -48,17 +48,17 @@ func TestGetIssueWatchers(t *testing.T) {
 	iws, err := issues_model.GetIssueWatchers(db.DefaultContext, 1, db.ListOptions{})
 	assert.NoError(t, err)
 	// Watcher is inactive, thus 0
-	assert.Len(t, iws, 0)
+	assert.Empty(t, iws)
 
 	iws, err = issues_model.GetIssueWatchers(db.DefaultContext, 2, db.ListOptions{})
 	assert.NoError(t, err)
 	// Watcher is explicit not watching
-	assert.Len(t, iws, 0)
+	assert.Empty(t, iws)
 
 	iws, err = issues_model.GetIssueWatchers(db.DefaultContext, 5, db.ListOptions{})
 	assert.NoError(t, err)
 	// Issue has no Watchers
-	assert.Len(t, iws, 0)
+	assert.Empty(t, iws)
 
 	iws, err = issues_model.GetIssueWatchers(db.DefaultContext, 7, db.ListOptions{})
 	assert.NoError(t, err)

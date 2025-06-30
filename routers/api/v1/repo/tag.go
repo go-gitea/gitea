@@ -7,15 +7,18 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
-	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
-	releaseservice "code.gitea.io/gitea/services/release"
+	release_service "code.gitea.io/gitea/services/release"
 )
 
 // ListTags list all the tags of a repository
@@ -47,12 +50,14 @@ func ListTags(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TagList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listOpts := utils.GetListOptions(ctx)
 
 	tags, total, err := ctx.Repo.GitRepo.GetTagInfos(listOpts.Page, listOpts.PageSize)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTags", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -93,19 +98,21 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/AnnotatedTag"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	sha := ctx.Params("sha")
+	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
-		ctx.Error(http.StatusBadRequest, "", "SHA not provided")
+		ctx.APIError(http.StatusBadRequest, "SHA not provided")
 		return
 	}
 
 	if tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(sha); err != nil {
-		ctx.Error(http.StatusBadRequest, "GetAnnotatedTag", err)
+		ctx.APIError(http.StatusBadRequest, err)
 	} else {
-		commit, err := tag.Commit(ctx.Repo.GitRepo)
+		commit, err := ctx.Repo.GitRepo.GetTagCommit(tag.Name)
 		if err != nil {
-			ctx.Error(http.StatusBadRequest, "GetAnnotatedTag", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		}
 		ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx, ctx.Repo.Repository, tag, commit))
 	}
@@ -139,11 +146,11 @@ func GetTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Tag"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	tagName := ctx.Params("*")
+	tagName := ctx.PathParam("*")
 
 	tag, err := ctx.Repo.GitRepo.GetTag(tagName)
 	if err != nil {
-		ctx.NotFound(tagName)
+		ctx.APIErrorNotFound("tag doesn't exist: " + tagName)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToTag(ctx.Repo.Repository, tag))
@@ -180,6 +187,10 @@ func CreateTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "409":
 	//     "$ref": "#/responses/conflict"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.CreateTagOption)
 
 	// If target is not provided use default branch
@@ -189,27 +200,27 @@ func CreateTag(ctx *context.APIContext) {
 
 	commit, err := ctx.Repo.GitRepo.GetCommit(form.Target)
 	if err != nil {
-		ctx.Error(http.StatusNotFound, "target not found", fmt.Errorf("target not found: %w", err))
+		ctx.APIError(http.StatusNotFound, fmt.Errorf("target not found: %w", err))
 		return
 	}
 
-	if err := releaseservice.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, commit.ID.String(), form.TagName, form.Message); err != nil {
-		if models.IsErrTagAlreadyExists(err) {
-			ctx.Error(http.StatusConflict, "tag exist", err)
+	if err := release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, commit.ID.String(), form.TagName, form.Message); err != nil {
+		if release_service.IsErrTagAlreadyExists(err) {
+			ctx.APIError(http.StatusConflict, err)
 			return
 		}
-		if models.IsErrProtectedTagName(err) {
-			ctx.Error(http.StatusMethodNotAllowed, "CreateNewTag", "user not allowed to create protected tag")
+		if release_service.IsErrProtectedTagName(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, "user not allowed to create protected tag")
 			return
 		}
 
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	tag, err := ctx.Repo.GitRepo.GetTag(form.TagName)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToTag(ctx.Repo.Repository, tag))
@@ -247,29 +258,379 @@ func DeleteTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "409":
 	//     "$ref": "#/responses/conflict"
-	tagName := ctx.Params("*")
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+	tagName := ctx.PathParam("*")
 
-	tag, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
+	tag, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "GetRelease", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if !tag.IsTag {
-		ctx.Error(http.StatusConflict, "IsTag", errors.New("a tag attached to a release cannot be deleted directly"))
+		ctx.APIError(http.StatusConflict, errors.New("a tag attached to a release cannot be deleted directly"))
 		return
 	}
 
-	if err = releaseservice.DeleteReleaseByID(ctx, tag.ID, ctx.Doer, true); err != nil {
-		if models.IsErrProtectedTagName(err) {
-			ctx.Error(http.StatusMethodNotAllowed, "delTag", "user not allowed to delete protected tag")
+	if err = release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, tag, ctx.Doer, true); err != nil {
+		if release_service.IsErrProtectedTagName(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, "user not allowed to delete protected tag")
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// ListTagProtection lists tag protections for a repo
+func ListTagProtection(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/tag_protections repository repoListTagProtection
+	// ---
+	// summary: List tag protections for a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TagProtectionList"
+
+	repo := ctx.Repo.Repository
+	pts, err := git_model.GetProtectedTags(ctx, repo.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	apiPts := make([]*api.TagProtection, len(pts))
+	for i := range pts {
+		apiPts[i] = convert.ToTagProtection(ctx, pts[i], repo)
+	}
+
+	ctx.JSON(http.StatusOK, apiPts)
+}
+
+// GetTagProtection gets a tag protection
+func GetTagProtection(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/tag_protections/{id} repository repoGetTagProtection
+	// ---
+	// summary: Get a specific tag protection for the repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the tag protect to get
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TagProtection"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repo := ctx.Repo.Repository
+	id := ctx.PathParamInt64("id")
+	pt, err := git_model.GetProtectedTagByID(ctx, id)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if pt == nil || repo.ID != pt.RepoID {
+		ctx.APIErrorNotFound()
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToTagProtection(ctx, pt, repo))
+}
+
+// CreateTagProtection creates a tag protection for a repo
+func CreateTagProtection(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/tag_protections repository repoCreateTagProtection
+	// ---
+	// summary: Create a tag protections for a repository
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateTagProtectionOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/TagProtection"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
+	form := web.GetForm(ctx).(*api.CreateTagProtectionOption)
+	repo := ctx.Repo.Repository
+
+	namePattern := strings.TrimSpace(form.NamePattern)
+	if namePattern == "" {
+		ctx.APIError(http.StatusBadRequest, "name_pattern are empty")
+		return
+	}
+
+	if len(form.WhitelistUsernames) == 0 && len(form.WhitelistTeams) == 0 {
+		ctx.APIError(http.StatusBadRequest, "both whitelist_usernames and whitelist_teams are empty")
+		return
+	}
+
+	pt, err := git_model.GetProtectedTagByNamePattern(ctx, repo.ID, namePattern)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	} else if pt != nil {
+		ctx.APIError(http.StatusForbidden, "Tag protection already exist")
+		return
+	}
+
+	var whitelistUsers, whitelistTeams []int64
+	whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.WhitelistUsernames, false)
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, err)
+			return
+		}
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if repo.Owner.IsOrganization() {
+		whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.WhitelistTeams, false)
+		if err != nil {
+			if organization.IsErrTeamNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
+	protectTag := &git_model.ProtectedTag{
+		RepoID:           repo.ID,
+		NamePattern:      strings.TrimSpace(namePattern),
+		AllowlistUserIDs: whitelistUsers,
+		AllowlistTeamIDs: whitelistTeams,
+	}
+	if err := git_model.InsertProtectedTag(ctx, protectTag); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	pt, err = git_model.GetProtectedTagByID(ctx, protectTag.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if pt == nil || pt.RepoID != repo.ID {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, convert.ToTagProtection(ctx, pt, repo))
+}
+
+// EditTagProtection edits a tag protection for a repo
+func EditTagProtection(ctx *context.APIContext) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/tag_protections/{id} repository repoEditTagProtection
+	// ---
+	// summary: Edit a tag protections for a repository. Only fields that are set will be changed
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of protected tag
+	//   type: integer
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditTagProtectionOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TagProtection"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
+	repo := ctx.Repo.Repository
+	form := web.GetForm(ctx).(*api.EditTagProtectionOption)
+
+	id := ctx.PathParamInt64("id")
+	pt, err := git_model.GetProtectedTagByID(ctx, id)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if pt == nil || pt.RepoID != repo.ID {
+		ctx.APIErrorNotFound()
+		return
+	}
+
+	if form.NamePattern != nil {
+		pt.NamePattern = *form.NamePattern
+	}
+
+	var whitelistUsers, whitelistTeams []int64
+	if form.WhitelistTeams != nil {
+		if repo.Owner.IsOrganization() {
+			whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.WhitelistTeams, false)
+			if err != nil {
+				if organization.IsErrTeamNotExist(err) {
+					ctx.APIError(http.StatusUnprocessableEntity, err)
+					return
+				}
+				ctx.APIErrorInternal(err)
+				return
+			}
+		}
+		pt.AllowlistTeamIDs = whitelistTeams
+	}
+
+	if form.WhitelistUsernames != nil {
+		whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.WhitelistUsernames, false)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+		pt.AllowlistUserIDs = whitelistUsers
+	}
+
+	err = git_model.UpdateProtectedTag(ctx, pt)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	pt, err = git_model.GetProtectedTagByID(ctx, id)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if pt == nil || pt.RepoID != repo.ID {
+		ctx.APIErrorInternal(errors.New("new tag protection not found"))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToTagProtection(ctx, pt, repo))
+}
+
+// DeleteTagProtection
+func DeleteTagProtection(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/tag_protections/{id} repository repoDeleteTagProtection
+	// ---
+	// summary: Delete a specific tag protection for the repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of protected tag
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repo := ctx.Repo.Repository
+	id := ctx.PathParamInt64("id")
+	pt, err := git_model.GetProtectedTagByID(ctx, id)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if pt == nil || pt.RepoID != repo.ID {
+		ctx.APIErrorNotFound()
+		return
+	}
+
+	err = git_model.DeleteProtectedTag(ctx, pt)
+	if err != nil {
+		ctx.APIErrorInternal(err)
 		return
 	}
 

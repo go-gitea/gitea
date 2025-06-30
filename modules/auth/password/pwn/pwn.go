@@ -73,7 +73,7 @@ func newRequest(ctx context.Context, method, url string, body io.ReadCloser) (*h
 // because artificial responses will be added to the response
 // For more information, see https://www.troyhunt.com/enhancing-pwned-passwords-privacy-with-padding/
 func (c *Client) CheckPassword(pw string, padding bool) (int, error) {
-	if strings.TrimSpace(pw) == "" {
+	if pw == "" {
 		return -1, ErrEmptyPassword
 	}
 
@@ -101,7 +101,7 @@ func (c *Client) CheckPassword(pw string, padding bool) (int, error) {
 	}
 	defer resp.Body.Close()
 
-	for _, pair := range strings.Split(string(body), "\n") {
+	for pair := range strings.SplitSeq(string(body), "\n") {
 		parts := strings.Split(pair, ":")
 		if len(parts) != 2 {
 			continue

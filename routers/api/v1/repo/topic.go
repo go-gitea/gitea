@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -45,15 +46,17 @@ func ListTopics(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TopicNames"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	opts := &repo_model.FindTopicOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 	}
 
-	topics, total, err := repo_model.FindTopics(opts)
+	topics, total, err := db.FindAndCount[repo_model.Topic](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -93,6 +96,8 @@ func UpdateTopics(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
 
@@ -116,10 +121,10 @@ func UpdateTopics(ctx *context.APIContext) {
 		return
 	}
 
-	err := repo_model.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
+	err := repo_model.SaveTopics(ctx, ctx.Repo.Repository.ID, validTopics...)
 	if err != nil {
 		log.Error("SaveTopics failed: %v", err)
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -152,10 +157,12 @@ func AddTopic(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
 
-	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
+	topicName := strings.TrimSpace(strings.ToLower(ctx.PathParam("topic")))
 
 	if !repo_model.ValidateTopic(topicName) {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
@@ -166,12 +173,12 @@ func AddTopic(ctx *context.APIContext) {
 	}
 
 	// Prevent adding more topics than allowed to repo
-	count, err := repo_model.CountTopics(&repo_model.FindTopicOptions{
+	count, err := db.Count[repo_model.Topic](ctx, &repo_model.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
 		log.Error("CountTopics failed: %v", err)
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if count >= 25 {
@@ -181,10 +188,10 @@ func AddTopic(ctx *context.APIContext) {
 		return
 	}
 
-	_, err = repo_model.AddTopic(ctx.Repo.Repository.ID, topicName)
+	_, err = repo_model.AddTopic(ctx, ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("AddTopic failed: %v", err)
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -217,10 +224,12 @@ func DeleteTopic(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
 
-	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
+	topicName := strings.TrimSpace(strings.ToLower(ctx.PathParam("topic")))
 
 	if !repo_model.ValidateTopic(topicName) {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
@@ -230,15 +239,15 @@ func DeleteTopic(ctx *context.APIContext) {
 		return
 	}
 
-	topic, err := repo_model.DeleteTopic(ctx.Repo.Repository.ID, topicName)
+	topic, err := repo_model.DeleteTopic(ctx, ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("DeleteTopic failed: %v", err)
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if topic == nil {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -271,15 +280,17 @@ func TopicSearch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/TopicListResponse"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	opts := &repo_model.FindTopicOptions{
 		Keyword:     ctx.FormString("q"),
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
-	topics, total, err := repo_model.FindTopics(opts)
+	topics, total, err := db.FindAndCount[repo_model.Topic](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

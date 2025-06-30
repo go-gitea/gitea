@@ -11,27 +11,30 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
 const (
 	// tplCreateOrg template path for create organization
-	tplCreateOrg base.TplName = "org/create"
+	tplCreateOrg templates.TplName = "org/create"
 )
 
 // Create render the page for create organization
 func Create(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
-	ctx.Data["DefaultOrgVisibilityMode"] = setting.Service.DefaultOrgVisibilityMode
 	if !ctx.Doer.CanCreateOrganization() {
-		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
+		ctx.ServerError("Not allowed", errors.New(ctx.Locale.TrString("org.form.create_org_not_allowed")))
 		return
 	}
+
+	ctx.Data["visibility"] = setting.Service.DefaultOrgVisibilityMode
+	ctx.Data["repo_admin_change_team_access"] = true
+
 	ctx.HTML(http.StatusOK, tplCreateOrg)
 }
 
@@ -41,7 +44,7 @@ func CreatePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
 
 	if !ctx.Doer.CanCreateOrganization() {
-		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
+		ctx.ServerError("Not allowed", errors.New(ctx.Locale.TrString("org.form.create_org_not_allowed")))
 		return
 	}
 
@@ -58,7 +61,7 @@ func CreatePost(ctx *context.Context) {
 		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
 
-	if err := organization.CreateOrganization(org, ctx.Doer); err != nil {
+	if err := organization.CreateOrganization(ctx, org, ctx.Doer); err != nil {
 		ctx.Data["Err_OrgName"] = true
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):

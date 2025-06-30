@@ -10,8 +10,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -19,9 +19,9 @@ import (
 func TestRepoEdit(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := test.MockAPIContext(t, "user2/repo1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadUser(t, ctx, 2)
+	ctx, _ := contexttest.MockAPIContext(t, "user2/repo1")
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadUser(t, ctx, 2)
 	ctx.Repo.Owner = ctx.Doer
 	description := "new description"
 	website := "http://wwww.newwebsite.com"
@@ -35,6 +35,7 @@ func TestRepoEdit(t *testing.T) {
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquashMerge := false
+	allowFastForwardOnlyMerge := false
 	archived := true
 	opts := api.EditRepoOption{
 		Name:                      &ctx.Repo.Repository.Name,
@@ -50,13 +51,14 @@ func TestRepoEdit(t *testing.T) {
 		AllowRebase:               &allowRebase,
 		AllowRebaseMerge:          &allowRebaseMerge,
 		AllowSquash:               &allowSquashMerge,
+		AllowFastForwardOnly:      &allowFastForwardOnlyMerge,
 		Archived:                  &archived,
 	}
 
 	web.SetForm(ctx, &opts)
 	Edit(ctx)
 
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 		ID: 1,
 	}, unittest.Cond("name = ? AND is_archived = 1", *opts.Name))
@@ -65,9 +67,9 @@ func TestRepoEdit(t *testing.T) {
 func TestRepoEditNameChange(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := test.MockAPIContext(t, "user2/repo1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadUser(t, ctx, 2)
+	ctx, _ := contexttest.MockAPIContext(t, "user2/repo1")
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadUser(t, ctx, 2)
 	ctx.Repo.Owner = ctx.Doer
 	name := "newname"
 	opts := api.EditRepoOption{
@@ -76,7 +78,7 @@ func TestRepoEditNameChange(t *testing.T) {
 
 	web.SetForm(ctx, &opts)
 	Edit(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 		ID: 1,

@@ -30,6 +30,16 @@ key = 123
 		secSub := cfg.Section("foo.bar.xxx")
 		assert.Equal(t, "123", secSub.Key("key").String())
 	})
+	t.Run("TrailingSlash", func(t *testing.T) {
+		cfg, _ := NewConfigProviderFromData(`
+[foo]
+key = E:\
+xxx = yyy
+`)
+		sec := cfg.Section("foo")
+		assert.Equal(t, "E:\\", sec.Key("key").String())
+		assert.Equal(t, "yyy", sec.Key("xxx").String())
+	})
 }
 
 func TestConfigProviderHelper(t *testing.T) {
@@ -52,17 +62,17 @@ key = 123
 
 	// test default behavior
 	assert.Equal(t, "123", ConfigSectionKeyString(sec, "key"))
-	assert.Equal(t, "", ConfigSectionKeyString(secSub, "key"))
+	assert.Empty(t, ConfigSectionKeyString(secSub, "key"))
 	assert.Equal(t, "def", ConfigSectionKeyString(secSub, "key", "def"))
 
 	assert.Equal(t, "123", ConfigInheritedKeyString(secSub, "key"))
 
 	// Workaround for ini package's BuggyKeyOverwritten behavior
-	assert.Equal(t, "", ConfigSectionKeyString(sec, "empty"))
-	assert.Equal(t, "", ConfigSectionKeyString(secSub, "empty"))
+	assert.Empty(t, ConfigSectionKeyString(sec, "empty"))
+	assert.Empty(t, ConfigSectionKeyString(secSub, "empty"))
 	assert.Equal(t, "def", ConfigInheritedKey(secSub, "empty").MustString("def"))
 	assert.Equal(t, "def", ConfigInheritedKey(secSub, "empty").MustString("xyz"))
-	assert.Equal(t, "", ConfigSectionKeyString(sec, "empty"))
+	assert.Empty(t, ConfigSectionKeyString(sec, "empty"))
 	assert.Equal(t, "def", ConfigSectionKeyString(secSub, "empty"))
 }
 

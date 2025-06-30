@@ -6,6 +6,7 @@ package pull
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
@@ -39,7 +40,7 @@ type ReviewState struct {
 	ID           int64                  `xorm:"pk autoincr"`
 	UserID       int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
 	PullID       int64                  `xorm:"NOT NULL INDEX UNIQUE(pull_commit_user) DEFAULT 0"` // Which PR was the review on?
-	CommitSHA    string                 `xorm:"NOT NULL VARCHAR(40) UNIQUE(pull_commit_user)"`     // Which commit was the head commit for the review?
+	CommitSHA    string                 `xorm:"NOT NULL VARCHAR(64) UNIQUE(pull_commit_user)"`     // Which commit was the head commit for the review?
 	UpdatedFiles map[string]ViewedState `xorm:"NOT NULL LONGTEXT JSON"`                            // Stores for each of the changed files of a PR whether they have been viewed, changed since last viewed, or not viewed
 	UpdatedUnix  timeutil.TimeStamp     `xorm:"updated"`                                           // Is an accurate indicator of the order of commits as we do not expect it to be possible to make reviews on previous commits
 }
@@ -100,9 +101,7 @@ func mergeFiles(oldFiles, newFiles map[string]ViewedState) map[string]ViewedStat
 		return oldFiles
 	}
 
-	for file, viewed := range newFiles {
-		oldFiles[file] = viewed
-	}
+	maps.Copy(oldFiles, newFiles)
 	return oldFiles
 }
 

@@ -4,12 +4,15 @@
 package webhook
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
@@ -56,19 +59,10 @@ type (
 	}
 )
 
-// JSONPayload Marshals the MSTeamsPayload to json
-func (m *MSTeamsPayload) JSONPayload() ([]byte, error) {
-	data, err := json.MarshalIndent(m, "", "  ")
-	if err != nil {
-		return []byte{}, err
-	}
-	return data, nil
-}
-
-var _ PayloadConvertor = &MSTeamsPayload{}
+type msteamsConvertor struct{}
 
 // Create implements PayloadConvertor Create method
-func (m *MSTeamsPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
+func (m msteamsConvertor) Create(p *api.CreatePayload) (MSTeamsPayload, error) {
 	// created tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
@@ -80,12 +74,12 @@ func (m *MSTeamsPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 		"",
 		p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName),
 		greenColor,
-		&MSTeamsFact{fmt.Sprintf("%s:", p.RefType), refName},
+		&MSTeamsFact{p.RefType + ":", refName},
 	), nil
 }
 
 // Delete implements PayloadConvertor Delete method
-func (m *MSTeamsPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
+func (m msteamsConvertor) Delete(p *api.DeletePayload) (MSTeamsPayload, error) {
 	// deleted tag/branch
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
@@ -97,12 +91,12 @@ func (m *MSTeamsPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 		"",
 		p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName),
 		yellowColor,
-		&MSTeamsFact{fmt.Sprintf("%s:", p.RefType), refName},
+		&MSTeamsFact{p.RefType + ":", refName},
 	), nil
 }
 
 // Fork implements PayloadConvertor Fork method
-func (m *MSTeamsPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
+func (m msteamsConvertor) Fork(p *api.ForkPayload) (MSTeamsPayload, error) {
 	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
 
 	return createMSTeamsPayload(
@@ -117,7 +111,7 @@ func (m *MSTeamsPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 }
 
 // Push implements PayloadConvertor Push method
-func (m *MSTeamsPayload) Push(p *api.PushPayload) (api.Payloader, error) {
+func (m msteamsConvertor) Push(p *api.PushPayload) (MSTeamsPayload, error) {
 	var (
 		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
@@ -155,27 +149,27 @@ func (m *MSTeamsPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		text,
 		titleLink,
 		greenColor,
-		&MSTeamsFact{"Commit count:", fmt.Sprintf("%d", p.TotalCommits)},
+		&MSTeamsFact{"Commit count:", strconv.Itoa(p.TotalCommits)},
 	), nil
 }
 
 // Issue implements PayloadConvertor Issue method
-func (m *MSTeamsPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
-	title, _, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
+func (m msteamsConvertor) Issue(p *api.IssuePayload) (MSTeamsPayload, error) {
+	title, _, extraMarkdown, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
 		p.Repository,
 		p.Sender,
 		title,
-		attachmentText,
+		extraMarkdown,
 		p.Issue.HTMLURL,
 		color,
-		&MSTeamsFact{"Issue #:", fmt.Sprintf("%d", p.Issue.ID)},
+		&MSTeamsFact{"Issue #:", strconv.FormatInt(p.Issue.ID, 10)},
 	), nil
 }
 
 // IssueComment implements PayloadConvertor IssueComment method
-func (m *MSTeamsPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
+func (m msteamsConvertor) IssueComment(p *api.IssueCommentPayload) (MSTeamsPayload, error) {
 	title, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
@@ -185,34 +179,34 @@ func (m *MSTeamsPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader
 		p.Comment.Body,
 		p.Comment.HTMLURL,
 		color,
-		&MSTeamsFact{"Issue #:", fmt.Sprintf("%d", p.Issue.ID)},
+		&MSTeamsFact{"Issue #:", strconv.FormatInt(p.Issue.ID, 10)},
 	), nil
 }
 
 // PullRequest implements PayloadConvertor PullRequest method
-func (m *MSTeamsPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
-	title, _, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
+func (m msteamsConvertor) PullRequest(p *api.PullRequestPayload) (MSTeamsPayload, error) {
+	title, _, extraMarkdown, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
 		p.Repository,
 		p.Sender,
 		title,
-		attachmentText,
+		extraMarkdown,
 		p.PullRequest.HTMLURL,
 		color,
-		&MSTeamsFact{"Pull request #:", fmt.Sprintf("%d", p.PullRequest.ID)},
+		&MSTeamsFact{"Pull request #:", strconv.FormatInt(p.PullRequest.ID, 10)},
 	), nil
 }
 
 // Review implements PayloadConvertor Review method
-func (m *MSTeamsPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
+func (m msteamsConvertor) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (MSTeamsPayload, error) {
 	var text, title string
 	var color int
 	switch p.Action {
 	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {
-			return nil, err
+			return MSTeamsPayload{}, err
 		}
 
 		title = fmt.Sprintf("[%s] Pull request review %s: #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
@@ -237,12 +231,12 @@ func (m *MSTeamsPayload) Review(p *api.PullRequestPayload, event webhook_module.
 		text,
 		p.PullRequest.HTMLURL,
 		color,
-		&MSTeamsFact{"Pull request #:", fmt.Sprintf("%d", p.PullRequest.ID)},
+		&MSTeamsFact{"Pull request #:", strconv.FormatInt(p.PullRequest.ID, 10)},
 	), nil
 }
 
 // Repository implements PayloadConvertor Repository method
-func (m *MSTeamsPayload) Repository(p *api.RepositoryPayload) (api.Payloader, error) {
+func (m msteamsConvertor) Repository(p *api.RepositoryPayload) (MSTeamsPayload, error) {
 	var title, url string
 	var color int
 	switch p.Action {
@@ -267,7 +261,7 @@ func (m *MSTeamsPayload) Repository(p *api.RepositoryPayload) (api.Payloader, er
 }
 
 // Wiki implements PayloadConvertor Wiki method
-func (m *MSTeamsPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+func (m msteamsConvertor) Wiki(p *api.WikiPayload) (MSTeamsPayload, error) {
 	title, color, _ := getWikiPayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
@@ -282,7 +276,7 @@ func (m *MSTeamsPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
 }
 
 // Release implements PayloadConvertor Release method
-func (m *MSTeamsPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
+func (m msteamsConvertor) Release(p *api.ReleasePayload) (MSTeamsPayload, error) {
 	title, color := getReleasePayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
@@ -290,29 +284,81 @@ func (m *MSTeamsPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 		p.Sender,
 		title,
 		"",
-		p.Release.URL,
+		p.Release.HTMLURL,
 		color,
 		&MSTeamsFact{"Tag:", p.Release.TagName},
 	), nil
 }
 
-// GetMSTeamsPayload converts a MSTeams webhook into a MSTeamsPayload
-func GetMSTeamsPayload(p api.Payloader, event webhook_module.HookEventType, _ string) (api.Payloader, error) {
-	return convertPayloader(new(MSTeamsPayload), p, event)
+func (m msteamsConvertor) Package(p *api.PackagePayload) (MSTeamsPayload, error) {
+	title, color := getPackagePayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repository,
+		p.Sender,
+		title,
+		"",
+		p.Package.HTMLURL,
+		color,
+		&MSTeamsFact{"Package:", p.Package.Name},
+	), nil
 }
 
-func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTarget string, color int, fact *MSTeamsFact) *MSTeamsPayload {
-	facts := []MSTeamsFact{
-		{
+func (m msteamsConvertor) Status(p *api.CommitStatusPayload) (MSTeamsPayload, error) {
+	title, color := getStatusPayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repo,
+		p.Sender,
+		title,
+		"",
+		p.TargetURL,
+		color,
+		&MSTeamsFact{"CommitStatus:", p.Context},
+	), nil
+}
+
+func (msteamsConvertor) WorkflowRun(p *api.WorkflowRunPayload) (MSTeamsPayload, error) {
+	title, color := getWorkflowRunPayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repo,
+		p.Sender,
+		title,
+		"",
+		p.WorkflowRun.HTMLURL,
+		color,
+		&MSTeamsFact{"WorkflowRun:", p.WorkflowRun.DisplayTitle},
+	), nil
+}
+
+func (msteamsConvertor) WorkflowJob(p *api.WorkflowJobPayload) (MSTeamsPayload, error) {
+	title, color := getWorkflowJobPayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repo,
+		p.Sender,
+		title,
+		"",
+		p.WorkflowJob.HTMLURL,
+		color,
+		&MSTeamsFact{"WorkflowJob:", p.WorkflowJob.Name},
+	), nil
+}
+
+func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTarget string, color int, fact *MSTeamsFact) MSTeamsPayload {
+	facts := make([]MSTeamsFact, 0, 2)
+	if r != nil {
+		facts = append(facts, MSTeamsFact{
 			Name:  "Repository:",
 			Value: r.FullName,
-		},
+		})
 	}
 	if fact != nil {
 		facts = append(facts, *fact)
 	}
 
-	return &MSTeamsPayload{
+	return MSTeamsPayload{
 		Type:       "MessageCard",
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", color),
@@ -340,4 +386,13 @@ func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTar
 			},
 		},
 	}
+}
+
+func newMSTeamsRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+	var pc payloadConvertor[MSTeamsPayload] = msteamsConvertor{}
+	return newJSONRequest(pc, w, t, true)
+}
+
+func init() {
+	RegisterWebhookRequester(webhook_module.MSTEAMS, newMSTeamsRequest)
 }

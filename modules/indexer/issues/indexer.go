@@ -14,16 +14,17 @@ import (
 	db_model "code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/issues/bleve"
 	"code.gitea.io/gitea/modules/indexer/issues/db"
 	"code.gitea.io/gitea/modules/indexer/issues/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/indexer/issues/meilisearch"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // IndexerMetadata is used to send data to the queue, so it contains only the ids.
@@ -102,7 +103,7 @@ func InitIssueIndexer(syncReindex bool) {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
 			}
 		case "db":
-			issueIndexer = db.NewIndexer()
+			issueIndexer = db.GetIndexer()
 		case "meilisearch":
 			issueIndexer = meilisearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
 			existed, err = issueIndexer.Init(ctx)
@@ -203,23 +204,24 @@ func getIssueIndexerQueueHandler(ctx context.Context) func(items ...*IndexerMeta
 func populateIssueIndexer(ctx context.Context) {
 	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: PopulateIssueIndexer", process.SystemProcessType, true)
 	defer finished()
-	if err := PopulateIssueIndexer(ctx, true); err != nil {
+	ctx = contextWithKeepRetry(ctx) // keep retrying since it's a background task
+	if err := PopulateIssueIndexer(ctx); err != nil {
 		log.Error("Issue indexer population failed: %v", err)
 	}
 }
 
-func PopulateIssueIndexer(ctx context.Context, keepRetrying bool) error {
+func PopulateIssueIndexer(ctx context.Context) error {
 	for page := 1; ; page++ {
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("shutdown before completion: %w", ctx.Err())
 		default:
 		}
-		repos, _, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
+		repos, _, err := repo_model.SearchRepositoryByName(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db_model.ListOptions{Page: page, PageSize: repo_model.RepositoryListDefaultPageSize},
 			OrderBy:     db_model.SearchOrderByID,
 			Private:     true,
-			Collaborate: util.OptionalBoolFalse,
+			Collaborate: optional.Some(false),
 		})
 		if err != nil {
 			log.Error("SearchRepositoryByName: %v", err)
@@ -231,20 +233,8 @@ func PopulateIssueIndexer(ctx context.Context, keepRetrying bool) error {
 		}
 
 		for _, repo := range repos {
-			for {
-				select {
-				case <-ctx.Done():
-					return fmt.Errorf("shutdown before completion: %w", ctx.Err())
-				default:
-				}
-				if err := updateRepoIndexer(ctx, repo.ID); err != nil {
-					if keepRetrying && ctx.Err() == nil {
-						log.Warn("Retry to populate issue indexer for repo %d: %v", repo.ID, err)
-						continue
-					}
-					return fmt.Errorf("populate issue indexer for repo %d: %v", repo.ID, err)
-				}
-				break
+			if err := updateRepoIndexer(ctx, repo.ID); err != nil {
+				return fmt.Errorf("populate issue indexer for repo %d: %v", repo.ID, err)
 			}
 		}
 	}
@@ -258,8 +248,8 @@ func UpdateRepoIndexer(ctx context.Context, repoID int64) {
 }
 
 // UpdateIssueIndexer add/update an issue to the issue indexer
-func UpdateIssueIndexer(issueID int64) {
-	if err := updateIssueIndexer(issueID); err != nil {
+func UpdateIssueIndexer(ctx context.Context, issueID int64) {
+	if err := updateIssueIndexer(ctx, issueID); err != nil {
 		log.Error("Unable to push issue %d to issue indexer: %v", issueID, err)
 	}
 }
@@ -277,7 +267,7 @@ func IsAvailable(ctx context.Context) bool {
 }
 
 // SearchOptions indicates the options for searching issues
-type SearchOptions internal.SearchOptions
+type SearchOptions = internal.SearchOptions
 
 const (
 	SortByCreatedDesc  = internal.SortByCreatedDesc
@@ -291,29 +281,46 @@ const (
 )
 
 // SearchIssues search issues by options.
-// It returns issue ids and a bool value indicates if the result is imprecise.
 func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, error) {
-	indexer := *globalIndexer.Load()
+	ix := *globalIndexer.Load()
 
-	if opts.Keyword == "" {
+	if opts.Keyword == "" || opts.IsKeywordNumeric() {
 		// This is a conservative shortcut.
-		// If the keyword is empty, db has better (at least not worse) performance to filter issues.
+		// If the keyword is empty or an integer, db has better (at least not worse) performance to filter issues.
 		// When the keyword is empty, it tends to listing rather than searching issues.
 		// So if the user creates an issue and list issues immediately, the issue may not be listed because the indexer needs time to index the issue.
 		// Even worse, the external indexer like elastic search may not be available for a while,
 		// and the user may not be able to list issues completely until it is available again.
-		indexer = db.NewIndexer()
+		ix = db.GetIndexer()
 	}
 
-	result, err := indexer.Search(ctx, (*internal.SearchOptions)(opts))
+	result, err := ix.Search(ctx, opts)
 	if err != nil {
 		return nil, 0, err
 	}
+	return SearchResultToIDSlice(result), result.Total, nil
+}
 
+func SearchResultToIDSlice(result *internal.SearchResult) []int64 {
 	ret := make([]int64, 0, len(result.Hits))
 	for _, hit := range result.Hits {
 		ret = append(ret, hit.ID)
 	}
+	return ret
+}
 
-	return ret, result.Total, nil
+// CountIssues counts issues by options. It is a shortcut of SearchIssues(ctx, opts) but only returns the total count.
+func CountIssues(ctx context.Context, opts *SearchOptions) (int64, error) {
+	opts = opts.Copy(func(options *SearchOptions) { options.Paginator = &db_model.ListOptions{PageSize: 0} })
+
+	_, total, err := SearchIssues(ctx, opts)
+	return total, err
+}
+
+func SupportedSearchModes() []indexer.SearchMode {
+	gi := globalIndexer.Load()
+	if gi == nil {
+		return nil
+	}
+	return (*gi).SupportedSearchModes()
 }

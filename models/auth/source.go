@@ -5,14 +5,17 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
 )
@@ -55,6 +58,15 @@ var Names = map[Type]string{
 // Config represents login config as far as the db is concerned
 type Config interface {
 	convert.Conversion
+	SetAuthSource(*Source)
+}
+
+type ConfigBase struct {
+	AuthSource *Source
+}
+
+func (p *ConfigBase) SetAuthSource(s *Source) {
+	p.AuthSource = s
 }
 
 // SkipVerifiable configurations provide a IsSkipVerify to check if SkipVerify is set
@@ -101,19 +113,15 @@ func RegisterTypeConfig(typ Type, exemplar Config) {
 	}
 }
 
-// SourceSettable configurations can have their authSource set on them
-type SourceSettable interface {
-	SetAuthSource(*Source)
-}
-
 // Source represents an external way for authorizing users.
 type Source struct {
-	ID            int64 `xorm:"pk autoincr"`
-	Type          Type
-	Name          string             `xorm:"UNIQUE"`
-	IsActive      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	IsSyncEnabled bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	Cfg           convert.Conversion `xorm:"TEXT"`
+	ID              int64 `xorm:"pk autoincr"`
+	Type            Type
+	Name            string `xorm:"UNIQUE"`
+	IsActive        bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsSyncEnabled   bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+	TwoFactorPolicy string `xorm:"two_factor_policy NOT NULL DEFAULT ''"`
+	Cfg             Config `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -137,9 +145,7 @@ func (source *Source) BeforeSet(colName string, val xorm.Cell) {
 			return
 		}
 		source.Cfg = constructor()
-		if settable, ok := source.Cfg.(SourceSettable); ok {
-			settable.SetAuthSource(source)
-		}
+		source.Cfg.SetAuthSource(source)
 	}
 }
 
@@ -197,21 +203,25 @@ func (source *Source) SkipVerify() bool {
 	return ok && skipVerifiable.IsSkipVerify()
 }
 
+func (source *Source) TwoFactorShouldSkip() bool {
+	return source.TwoFactorPolicy == "skip"
+}
+
 // CreateSource inserts a AuthSource in the DB if not already
 // existing with the given name.
-func CreateSource(source *Source) error {
-	has, err := db.GetEngine(db.DefaultContext).Where("name=?", source.Name).Exist(new(Source))
+func CreateSource(ctx context.Context, source *Source) error {
+	has, err := db.GetEngine(ctx).Where("name=?", source.Name).Exist(new(Source))
 	if err != nil {
 		return err
 	} else if has {
 		return ErrSourceAlreadyExist{source.Name}
 	}
 	// Synchronization is only available with LDAP for now
-	if !source.IsLDAP() {
+	if !source.IsLDAP() && !source.IsOAuth2() {
 		source.IsSyncEnabled = false
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).Insert(source)
+	_, err = db.GetEngine(ctx).Insert(source)
 	if err != nil {
 		return err
 	}
@@ -220,9 +230,7 @@ func CreateSource(source *Source) error {
 		return nil
 	}
 
-	if settable, ok := source.Cfg.(SourceSettable); ok {
-		settable.SetAuthSource(source)
-	}
+	source.Cfg.SetAuthSource(source)
 
 	registerableSource, ok := source.Cfg.(RegisterableSource)
 	if !ok {
@@ -232,62 +240,46 @@ func CreateSource(source *Source) error {
 	err = registerableSource.RegisterSource()
 	if err != nil {
 		// remove the AuthSource in case of errors while registering configuration
-		if _, err := db.GetEngine(db.DefaultContext).Delete(source); err != nil {
+		if _, err := db.GetEngine(ctx).ID(source.ID).Delete(new(Source)); err != nil {
 			log.Error("CreateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
 	return err
 }
 
-// Sources returns a slice of all login sources found in DB.
-func Sources() ([]*Source, error) {
-	auths := make([]*Source, 0, 6)
-	return auths, db.GetEngine(db.DefaultContext).Find(&auths)
+type FindSourcesOptions struct {
+	db.ListOptions
+	IsActive  optional.Option[bool]
+	LoginType Type
 }
 
-// SourcesByType returns all sources of the specified type
-func SourcesByType(loginType Type) ([]*Source, error) {
-	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(db.DefaultContext).Where("type = ?", loginType).Find(&sources); err != nil {
-		return nil, err
+func (opts FindSourcesOptions) ToConds() builder.Cond {
+	conds := builder.NewCond()
+	if opts.IsActive.Has() {
+		conds = conds.And(builder.Eq{"is_active": opts.IsActive.Value()})
 	}
-	return sources, nil
-}
-
-// AllActiveSources returns all active sources
-func AllActiveSources() ([]*Source, error) {
-	sources := make([]*Source, 0, 5)
-	if err := db.GetEngine(db.DefaultContext).Where("is_active = ?", true).Find(&sources); err != nil {
-		return nil, err
+	if opts.LoginType != NoType {
+		conds = conds.And(builder.Eq{"`type`": opts.LoginType})
 	}
-	return sources, nil
-}
-
-// ActiveSources returns all active sources of the specified type
-func ActiveSources(tp Type) ([]*Source, error) {
-	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(db.DefaultContext).Where("is_active = ? and type = ?", true, tp).Find(&sources); err != nil {
-		return nil, err
-	}
-	return sources, nil
+	return conds
 }
 
 // IsSSPIEnabled returns true if there is at least one activated login
 // source of type LoginSSPI
-func IsSSPIEnabled() bool {
-	if !db.HasEngine {
-		return false
-	}
-	sources, err := ActiveSources(SSPI)
+func IsSSPIEnabled(ctx context.Context) bool {
+	exist, err := db.Exist[Source](ctx, FindSourcesOptions{
+		IsActive:  optional.Some(true),
+		LoginType: SSPI,
+	}.ToConds())
 	if err != nil {
-		log.Error("ActiveSources: %v", err)
+		log.Error("IsSSPIEnabled: failed to query active SSPI sources: %v", err)
 		return false
 	}
-	return len(sources) > 0
+	return exist
 }
 
 // GetSourceByID returns login source by given ID.
-func GetSourceByID(id int64) (*Source, error) {
+func GetSourceByID(ctx context.Context, id int64) (*Source, error) {
 	source := new(Source)
 	if id == 0 {
 		source.Cfg = registeredConfigs[NoType]()
@@ -297,7 +289,7 @@ func GetSourceByID(id int64) (*Source, error) {
 		return source, nil
 	}
 
-	has, err := db.GetEngine(db.DefaultContext).ID(id).Get(source)
+	has, err := db.GetEngine(ctx).ID(id).Get(source)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -307,24 +299,24 @@ func GetSourceByID(id int64) (*Source, error) {
 }
 
 // UpdateSource updates a Source record in DB.
-func UpdateSource(source *Source) error {
+func UpdateSource(ctx context.Context, source *Source) error {
 	var originalSource *Source
 	if source.IsOAuth2() {
 		// keep track of the original values so we can restore in case of errors while registering OAuth2 providers
 		var err error
-		if originalSource, err = GetSourceByID(source.ID); err != nil {
+		if originalSource, err = GetSourceByID(ctx, source.ID); err != nil {
 			return err
 		}
 	}
 
-	has, err := db.GetEngine(db.DefaultContext).Where("name=? AND id!=?", source.Name, source.ID).Exist(new(Source))
+	has, err := db.GetEngine(ctx).Where("name=? AND id!=?", source.Name, source.ID).Exist(new(Source))
 	if err != nil {
 		return err
 	} else if has {
 		return ErrSourceAlreadyExist{source.Name}
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).ID(source.ID).AllCols().Update(source)
+	_, err = db.GetEngine(ctx).ID(source.ID).AllCols().Update(source)
 	if err != nil {
 		return err
 	}
@@ -333,9 +325,7 @@ func UpdateSource(source *Source) error {
 		return nil
 	}
 
-	if settable, ok := source.Cfg.(SourceSettable); ok {
-		settable.SetAuthSource(source)
-	}
+	source.Cfg.SetAuthSource(source)
 
 	registerableSource, ok := source.Cfg.(RegisterableSource)
 	if !ok {
@@ -345,17 +335,11 @@ func UpdateSource(source *Source) error {
 	err = registerableSource.RegisterSource()
 	if err != nil {
 		// restore original values since we cannot update the provider it self
-		if _, err := db.GetEngine(db.DefaultContext).ID(source.ID).AllCols().Update(originalSource); err != nil {
+		if _, err := db.GetEngine(ctx).ID(source.ID).AllCols().Update(originalSource); err != nil {
 			log.Error("UpdateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
 	return err
-}
-
-// CountSources returns number of login sources.
-func CountSources() int64 {
-	count, _ := db.GetEngine(db.DefaultContext).Count(new(Source))
-	return count
 }
 
 // ErrSourceNotExist represents a "SourceNotExist" kind of error.

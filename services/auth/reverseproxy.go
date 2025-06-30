@@ -10,9 +10,8 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
 
 	gouuid "github.com/google/uuid"
 )
@@ -20,7 +19,6 @@ import (
 // Ensure the struct implements the interface.
 var (
 	_ Method = &ReverseProxy{}
-	_ Named  = &ReverseProxy{}
 )
 
 // ReverseProxyMethodName is the constant name of the ReverseProxy authentication method
@@ -118,7 +116,8 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 	}
 
 	// Make sure requests to API paths, attachment downloads, git and LFS do not create a new session
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
+	detector := newAuthPathDetector(req)
+	if !detector.isAPIPath() && !detector.isAttachmentDownload() && !detector.isGitRawOrAttachOrLFSPath() {
 		if sess != nil && (sess.Get("uid") == nil || sess.Get("uid").(int64) != user.ID) {
 			handleSignIn(w, req, sess, user)
 		}
@@ -162,10 +161,10 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 	}
 
 	overwriteDefault := user_model.CreateUserOverwriteOptions{
-		IsActive: util.OptionalBoolTrue,
+		IsActive: optional.Some(true),
 	}
 
-	if err := user_model.CreateUser(user, &overwriteDefault); err != nil {
+	if err := user_model.CreateUser(req.Context(), user, &user_model.Meta{}, &overwriteDefault); err != nil {
 		// FIXME: should I create a system notice?
 		log.Error("CreateUser: %v", err)
 		return nil

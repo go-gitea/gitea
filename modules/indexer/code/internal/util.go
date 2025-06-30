@@ -10,6 +10,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+const filenameMatchNumberOfLines = 7 // Copied from GitHub search
+
 func FilenameIndexerID(repoID int64, filename string) string {
 	return internal.Base36(repoID) + "_" + filename
 }
@@ -29,4 +31,18 @@ func FilenameOfIndexerID(indexerID string) string {
 		log.Error("Unexpected ID in repo indexer: %s", indexerID)
 	}
 	return indexerID[index+1:]
+}
+
+// FilenameMatchIndexPos returns the boundaries of its first seven lines.
+func FilenameMatchIndexPos(content string) (int, int) {
+	count := 1
+	for i, c := range content {
+		if c == '\n' {
+			count++
+			if count == filenameMatchNumberOfLines {
+				return 0, i
+			}
+		}
+	}
+	return 0, len(content)
 }

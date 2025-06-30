@@ -1,9 +1,9 @@
 {{template "base/head" .ctxData}}
 <div role="main" aria-label="{{.ctxData.Title}}" class="page-content {{.pageClass}}">
 	{{template "org/header" .ctxData}}
-	<div class="ui container stackable grid">
+	<div class="ui container flex-container">
 		{{template "org/settings/navbar" .ctxData}}
-		<div class="twelve wide column">
+		<div class="flex-container-main">
 			{{template "base/alert" .ctxData}}
 			{{/* block: org-setting-content */}}
 

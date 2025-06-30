@@ -5,124 +5,220 @@ package actions
 
 import (
 	"errors"
-	"regexp"
-	"strings"
+	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	actions_service "code.gitea.io/gitea/services/actions"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
-func SetVariablesContext(ctx *context.Context, ownerID, repoID int64) {
-	variables, err := actions_model.FindVariables(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ownerID,
-		RepoID:  repoID,
+const (
+	tplRepoVariables  templates.TplName = "repo/settings/actions"
+	tplOrgVariables   templates.TplName = "org/settings/actions"
+	tplUserVariables  templates.TplName = "user/settings/actions"
+	tplAdminVariables templates.TplName = "admin/actions"
+)
+
+type variablesCtx struct {
+	OwnerID           int64
+	RepoID            int64
+	IsRepo            bool
+	IsOrg             bool
+	IsUser            bool
+	IsGlobal          bool
+	VariablesTemplate templates.TplName
+	RedirectLink      string
+}
+
+func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
+	if ctx.Data["PageIsRepoSettings"] == true {
+		return &variablesCtx{
+			OwnerID:           0,
+			RepoID:            ctx.Repo.Repository.ID,
+			IsRepo:            true,
+			VariablesTemplate: tplRepoVariables,
+			RedirectLink:      ctx.Repo.RepoLink + "/settings/actions/variables",
+		}, nil
+	}
+
+	if ctx.Data["PageIsOrgSettings"] == true {
+		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+			ctx.ServerError("RenderUserOrgHeader", err)
+			return nil, nil
+		}
+		return &variablesCtx{
+			OwnerID:           ctx.ContextUser.ID,
+			RepoID:            0,
+			IsOrg:             true,
+			VariablesTemplate: tplOrgVariables,
+			RedirectLink:      ctx.Org.OrgLink + "/settings/actions/variables",
+		}, nil
+	}
+
+	if ctx.Data["PageIsUserSettings"] == true {
+		return &variablesCtx{
+			OwnerID:           ctx.Doer.ID,
+			RepoID:            0,
+			IsUser:            true,
+			VariablesTemplate: tplUserVariables,
+			RedirectLink:      setting.AppSubURL + "/user/settings/actions/variables",
+		}, nil
+	}
+
+	if ctx.Data["PageIsAdmin"] == true {
+		return &variablesCtx{
+			OwnerID:           0,
+			RepoID:            0,
+			IsGlobal:          true,
+			VariablesTemplate: tplAdminVariables,
+			RedirectLink:      setting.AppSubURL + "/-/admin/actions/variables",
+		}, nil
+	}
+
+	return nil, errors.New("unable to set Variables context")
+}
+
+func Variables(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("actions.variables")
+	ctx.Data["PageType"] = "variables"
+	ctx.Data["PageIsSharedSettingsVariables"] = true
+
+	vCtx, err := getVariablesCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getVariablesCtx", err)
+		return
+	}
+
+	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
+		OwnerID: vCtx.OwnerID,
+		RepoID:  vCtx.RepoID,
 	})
 	if err != nil {
 		ctx.ServerError("FindVariables", err)
 		return
 	}
 	ctx.Data["Variables"] = variables
+	ctx.Data["DataMaxLength"] = actions_model.VariableDataMaxLength
+	ctx.Data["DescriptionMaxLength"] = actions_model.VariableDescriptionMaxLength
+	ctx.HTML(http.StatusOK, vCtx.VariablesTemplate)
 }
 
-// some regular expression of `variables` and `secrets`
-// reference to:
-// https://docs.github.com/en/actions/learn-github-actions/variables#naming-conventions-for-configuration-variables
-// https://docs.github.com/en/actions/security-guides/encrypted-secrets#naming-your-secrets
-var (
-	nameRx            = regexp.MustCompile("(?i)^[A-Z_][A-Z0-9_]*$")
-	forbiddenPrefixRx = regexp.MustCompile("(?i)^GIT(EA|HUB)_")
-
-	forbiddenEnvNameCIRx = regexp.MustCompile("(?i)^CI")
-)
-
-func NameRegexMatch(name string) error {
-	if !nameRx.MatchString(name) || forbiddenPrefixRx.MatchString(name) {
-		log.Error("Name %s, regex match error", name)
-		return errors.New("name has invalid character")
+func VariableCreate(ctx *context.Context) {
+	vCtx, err := getVariablesCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getVariablesCtx", err)
+		return
 	}
-	return nil
-}
 
-func envNameCIRegexMatch(name string) error {
-	if forbiddenEnvNameCIRx.MatchString(name) {
-		log.Error("Env Name cannot be ci")
-		return errors.New("env name cannot be ci")
+	if ctx.HasError() { // form binding validation error
+		ctx.JSONError(ctx.GetErrMsg())
+		return
 	}
-	return nil
-}
 
-func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
-	if err := NameRegexMatch(form.Name); err != nil {
-		ctx.JSONError(err.Error())
-		return
-	}
-
-	if err := envNameCIRegexMatch(form.Name); err != nil {
-		ctx.JSONError(err.Error())
-		return
-	}
-
-	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, form.Name, ReserveLineBreakForTextarea(form.Data))
+	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data, form.Description)
 	if err != nil {
-		log.Error("InsertVariable error: %v", err)
+		log.Error("CreateVariable: %v", err)
 		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
 		return
 	}
+
 	ctx.Flash.Success(ctx.Tr("actions.variables.creation.success", v.Name))
-	ctx.JSONRedirect(redirectURL)
+	ctx.JSONRedirect(vCtx.RedirectLink)
 }
 
-func UpdateVariable(ctx *context.Context, redirectURL string) {
-	id := ctx.ParamsInt64(":variable_id")
+func VariableUpdate(ctx *context.Context) {
+	vCtx, err := getVariablesCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getVariablesCtx", err)
+		return
+	}
+
+	if ctx.HasError() { // form binding validation error
+		ctx.JSONError(ctx.GetErrMsg())
+		return
+	}
+
+	id := ctx.PathParamInt64("variable_id")
+
+	variable := findActionsVariable(ctx, id, vCtx)
+	if ctx.Written() {
+		return
+	}
+
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
+	variable.Name = form.Name
+	variable.Data = form.Data
+	variable.Description = form.Description
 
-	if err := NameRegexMatch(form.Name); err != nil {
-		ctx.JSONError(err.Error())
-		return
-	}
-
-	if err := envNameCIRegexMatch(form.Name); err != nil {
-		ctx.JSONError(err.Error())
-		return
-	}
-
-	ok, err := actions_model.UpdateVariable(ctx, &actions_model.ActionVariable{
-		ID:   id,
-		Name: strings.ToUpper(form.Name),
-		Data: ReserveLineBreakForTextarea(form.Data),
-	})
-	if err != nil || !ok {
-		log.Error("UpdateVariable error: %v", err)
+	if ok, err := actions_service.UpdateVariableNameData(ctx, variable); err != nil || !ok {
+		log.Error("UpdateVariable: %v", err)
 		ctx.JSONError(ctx.Tr("actions.variables.update.failed"))
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.variables.update.success"))
-	ctx.JSONRedirect(redirectURL)
+	ctx.JSONRedirect(vCtx.RedirectLink)
 }
 
-func DeleteVariable(ctx *context.Context, redirectURL string) {
-	id := ctx.ParamsInt64(":variable_id")
+func findActionsVariable(ctx *context.Context, id int64, vCtx *variablesCtx) *actions_model.ActionVariable {
+	opts := actions_model.FindVariablesOpts{
+		IDs: []int64{id},
+	}
+	switch {
+	case vCtx.IsRepo:
+		opts.RepoID = vCtx.RepoID
+		if opts.RepoID == 0 {
+			panic("RepoID is 0")
+		}
+	case vCtx.IsOrg, vCtx.IsUser:
+		opts.OwnerID = vCtx.OwnerID
+		if opts.OwnerID == 0 {
+			panic("OwnerID is 0")
+		}
+	case vCtx.IsGlobal:
+		// do nothing
+	default:
+		panic("invalid actions variable")
+	}
 
-	if _, err := db.DeleteByBean(ctx, &actions_model.ActionVariable{ID: id}); err != nil {
+	got, err := actions_model.FindVariables(ctx, opts)
+	if err != nil {
+		ctx.ServerError("FindVariables", err)
+		return nil
+	} else if len(got) == 0 {
+		ctx.NotFound(nil)
+		return nil
+	}
+	return got[0]
+}
+
+func VariableDelete(ctx *context.Context) {
+	vCtx, err := getVariablesCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getVariablesCtx", err)
+		return
+	}
+
+	id := ctx.PathParamInt64("variable_id")
+
+	variable := findActionsVariable(ctx, id, vCtx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := actions_service.DeleteVariableByID(ctx, variable.ID); err != nil {
 		log.Error("Delete variable [%d] failed: %v", id, err)
 		ctx.JSONError(ctx.Tr("actions.variables.deletion.failed"))
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.variables.deletion.success"))
-	ctx.JSONRedirect(redirectURL)
-}
-
-func ReserveLineBreakForTextarea(input string) string {
-	// Since the content is from a form which is a textarea, the line endings are \r\n.
-	// It's a standard behavior of HTML.
-	// But we want to store them as \n like what GitHub does.
-	// And users are unlikely to really need to keep the \r.
-	// Other than this, we should respect the original content, even leading or trailing spaces.
-	return strings.ReplaceAll(input, "\r\n", "\n")
+	ctx.JSONRedirect(vCtx.RedirectLink)
 }

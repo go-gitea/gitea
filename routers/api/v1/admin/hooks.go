@@ -8,12 +8,13 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -33,20 +34,40 @@ func ListHooks(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
+	// - type: string
+	//   enum:
+	//     - system
+	//     - default
+	//     - all
+	//   description: system, default or both kinds of webhooks
+	//   name: type
+	//   default: system
+	//   in: query
+	//
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	sysHooks, err := webhook.GetSystemWebhooks(ctx, util.OptionalBoolNone)
+	// for compatibility the default value is true
+	isSystemWebhook := optional.Some(true)
+	typeValue := ctx.FormString("type")
+	switch typeValue {
+	case "default":
+		isSystemWebhook = optional.Some(false)
+	case "all":
+		isSystemWebhook = optional.None[bool]()
+	}
+
+	sysHooks, err := webhook.GetSystemOrDefaultWebhooks(ctx, isSystemWebhook)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetSystemWebhooks", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	hooks := make([]*api.Hook, len(sysHooks))
 	for i, hook := range sysHooks {
-		h, err := webhook_service.ToHook(setting.AppURL+"/admin", hook)
+		h, err := webhook_service.ToHook(setting.AppURL+"/-/admin", hook)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		hooks[i] = h
@@ -72,19 +93,19 @@ func GetHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64("id")
 	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
-	h, err := webhook_service.ToHook("/admin/", hook)
+	h, err := webhook_service.ToHook("/-/admin/", hook)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, h)
@@ -141,7 +162,7 @@ func EditHook(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.EditHookOption)
 
 	// TODO in body params
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64("id")
 	utils.EditSystemHook(ctx, form, hookID)
 }
 
@@ -163,12 +184,12 @@ func DeleteHook(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	hookID := ctx.ParamsInt64(":id")
+	hookID := ctx.PathParamInt64("id")
 	if err := webhook.DeleteDefaultSystemWebhook(ctx, hookID); err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteDefaultSystemWebhook", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

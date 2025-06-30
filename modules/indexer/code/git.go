@@ -16,7 +16,7 @@ import (
 )
 
 func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository) (string, error) {
-	stdout, _, err := git.NewCommand(ctx, "show-ref", "-s").AddDynamicArguments(git.BranchPrefix + repo.DefaultBranch).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+	stdout, _, err := git.NewCommand("show-ref", "-s").AddDynamicArguments(git.BranchPrefix+repo.DefaultBranch).RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 	if err != nil {
 		return "", err
 	}
@@ -30,7 +30,14 @@ func getRepoChanges(ctx context.Context, repo *repo_model.Repository, revision s
 		return nil, err
 	}
 
-	if len(status.CommitSha) == 0 {
+	needGenesis := len(status.CommitSha) == 0
+	if !needGenesis {
+		hasAncestorCmd := git.NewCommand("merge-base").AddDynamicArguments(status.CommitSha, revision)
+		stdout, _, _ := hasAncestorCmd.RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
+		needGenesis = len(stdout) == 0
+	}
+
+	if needGenesis {
 		return genesisChanges(ctx, repo, revision)
 	}
 	return nonGenesisChanges(ctx, repo, revision)
@@ -79,7 +86,7 @@ func parseGitLsTreeOutput(stdout []byte) ([]internal.FileUpdate, error) {
 // genesisChanges get changes to add repo to the indexer for the first time
 func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*internal.RepoChanges, error) {
 	var changes internal.RepoChanges
-	stdout, _, runErr := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l", "-r").AddDynamicArguments(revision).RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
+	stdout, _, runErr := git.NewCommand("ls-tree", "--full-tree", "-l", "-r").AddDynamicArguments(revision).RunStdBytes(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -91,8 +98,8 @@ func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision s
 
 // nonGenesisChanges get changes since the previous indexer update
 func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*internal.RepoChanges, error) {
-	diffCmd := git.NewCommand(ctx, "diff", "--name-status").AddDynamicArguments(repo.CodeIndexerStatus.CommitSha, revision)
-	stdout, _, runErr := diffCmd.RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+	diffCmd := git.NewCommand("diff", "--name-status").AddDynamicArguments(repo.CodeIndexerStatus.CommitSha, revision)
+	stdout, _, runErr := diffCmd.RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 	if runErr != nil {
 		// previous commit sha may have been removed by a force push, so
 		// try rebuilding from scratch
@@ -106,7 +113,24 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 	var changes internal.RepoChanges
 	var err error
 	updatedFilenames := make([]string, 0, 10)
-	for _, line := range strings.Split(stdout, "\n") {
+
+	updateChanges := func() error {
+		cmd := git.NewCommand("ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
+			AddDashesAndList(updatedFilenames...)
+		lsTreeStdout, _, err := cmd.RunStdBytes(ctx, &git.RunOpts{Dir: repo.RepoPath()})
+		if err != nil {
+			return err
+		}
+
+		updates, err1 := parseGitLsTreeOutput(lsTreeStdout)
+		if err1 != nil {
+			return err1
+		}
+		changes.Updates = append(changes.Updates, updates...)
+		return nil
+	}
+	lines := strings.SplitSeq(stdout, "\n")
+	for line := range lines {
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
 			continue
@@ -154,14 +178,22 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 		default:
 			log.Warn("Unrecognized status: %c (line=%s)", status, line)
 		}
+
+		// According to https://learn.microsoft.com/en-us/troubleshoot/windows-client/shell-experience/command-line-string-limitation#more-information
+		// the command line length should less than 8191 characters, assume filepath is 256, then 8191/256 = 31, so we use 30
+		if len(updatedFilenames) >= 30 {
+			if err := updateChanges(); err != nil {
+				return nil, err
+			}
+			updatedFilenames = updatedFilenames[0:0]
+		}
 	}
 
-	cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
-		AddDashesAndList(updatedFilenames...)
-	lsTreeStdout, _, err := cmd.RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
-	if err != nil {
-		return nil, err
+	if len(updatedFilenames) > 0 {
+		if err := updateChanges(); err != nil {
+			return nil, err
+		}
 	}
-	changes.Updates, err = parseGitLsTreeOutput(lsTreeStdout)
+
 	return &changes, err
 }

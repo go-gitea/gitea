@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -16,17 +17,38 @@ import (
 type ActionJobList []*ActionRunJob
 
 func (jobs ActionJobList) GetRunIDs() []int64 {
-	ids := make(container.Set[int64], len(jobs))
-	for _, j := range jobs {
-		if j.RunID == 0 {
-			continue
-		}
-		ids.Add(j.RunID)
+	return container.FilterSlice(jobs, func(j *ActionRunJob) (int64, bool) {
+		return j.RunID, j.RunID != 0
+	})
+}
+
+func (jobs ActionJobList) LoadRepos(ctx context.Context) error {
+	repoIDs := container.FilterSlice(jobs, func(j *ActionRunJob) (int64, bool) {
+		return j.RepoID, j.RepoID != 0 && j.Repo == nil
+	})
+	if len(repoIDs) == 0 {
+		return nil
 	}
-	return ids.Values()
+
+	repos := make(map[int64]*repo_model.Repository, len(repoIDs))
+	if err := db.GetEngine(ctx).In("id", repoIDs).Find(&repos); err != nil {
+		return err
+	}
+	for _, j := range jobs {
+		if j.RepoID > 0 && j.Repo == nil {
+			j.Repo = repos[j.RepoID]
+		}
+	}
+	return nil
 }
 
 func (jobs ActionJobList) LoadRuns(ctx context.Context, withRepo bool) error {
+	if withRepo {
+		if err := jobs.LoadRepos(ctx); err != nil {
+			return err
+		}
+	}
+
 	runIDs := jobs.GetRunIDs()
 	runs := make(map[int64]*ActionRun, len(runIDs))
 	if err := db.GetEngine(ctx).In("id", runIDs).Find(&runs); err != nil {
@@ -35,14 +57,8 @@ func (jobs ActionJobList) LoadRuns(ctx context.Context, withRepo bool) error {
 	for _, j := range jobs {
 		if j.RunID > 0 && j.Run == nil {
 			j.Run = runs[j.RunID]
+			j.Run.Repo = j.Repo
 		}
-	}
-	if withRepo {
-		var runsList RunList = make([]*ActionRun, 0, len(runs))
-		for _, r := range runs {
-			runsList = append(runsList, r)
-		}
-		return runsList.LoadRepos()
 	}
 	return nil
 }
@@ -61,39 +77,34 @@ type FindRunJobOptions struct {
 	UpdatedBefore timeutil.TimeStamp
 }
 
-func (opts FindRunJobOptions) toConds() builder.Cond {
+func (opts FindRunJobOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RunID > 0 {
-		cond = cond.And(builder.Eq{"run_id": opts.RunID})
+		cond = cond.And(builder.Eq{"`action_run_job`.run_id": opts.RunID})
 	}
 	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	}
-	if opts.OwnerID > 0 {
-		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+		cond = cond.And(builder.Eq{"`action_run_job`.repo_id": opts.RepoID})
 	}
 	if opts.CommitSHA != "" {
-		cond = cond.And(builder.Eq{"commit_sha": opts.CommitSHA})
+		cond = cond.And(builder.Eq{"`action_run_job`.commit_sha": opts.CommitSHA})
 	}
 	if len(opts.Statuses) > 0 {
-		cond = cond.And(builder.In("status", opts.Statuses))
+		cond = cond.And(builder.In("`action_run_job`.status", opts.Statuses))
 	}
 	if opts.UpdatedBefore > 0 {
-		cond = cond.And(builder.Lt{"updated": opts.UpdatedBefore})
+		cond = cond.And(builder.Lt{"`action_run_job`.updated": opts.UpdatedBefore})
 	}
 	return cond
 }
 
-func FindRunJobs(ctx context.Context, opts FindRunJobOptions) (ActionJobList, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds())
-	if opts.PageSize > 0 && opts.Page >= 1 {
-		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+func (opts FindRunJobOptions) ToJoins() []db.JoinFunc {
+	if opts.OwnerID > 0 {
+		return []db.JoinFunc{
+			func(sess db.Engine) error {
+				sess.Join("INNER", "repository", "repository.id = repo_id AND repository.owner_id = ?", opts.OwnerID)
+				return nil
+			},
+		}
 	}
-	var tasks ActionJobList
-	total, err := e.FindAndCount(&tasks)
-	return tasks, total, err
-}
-
-func CountRunJobs(ctx context.Context, opts FindRunJobOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(ActionRunJob))
+	return nil
 }
