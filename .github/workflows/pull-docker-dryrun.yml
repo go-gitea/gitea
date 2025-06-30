@@ -21,6 +21,8 @@ jobs:
         with:
           push: false
           tags: gitea/gitea:linux-amd64
+          cache-from: type=registry,ref=gitea/gitea:buildcache-pr-amd64
+          cache-to: type=registry,ref=gitea/gitea:buildcache-pr-amd64,mode=max
 
   rootless:
     if: needs.files-changed.outputs.docker == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -33,3 +35,5 @@ jobs:
           push: false
           file: Dockerfile.rootless
           tags: gitea/gitea:linux-amd64
+          cache-from: type=registry,ref=gitea/gitea:buildcache-pr-amd64-rootless
+          cache-to: type=registry,ref=gitea/gitea:buildcache-pr-amd64-rootless,mode=max
