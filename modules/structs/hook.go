@@ -71,7 +71,8 @@ type PayloadUser struct {
 	// Full name of the commit author
 	Name string `json:"name"`
 	// swagger:strfmt email
-	Email    string `json:"email"`
+	Email string `json:"email"`
+	// username of the user
 	UserName string `json:"username"`
 }
 

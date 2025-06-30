@@ -110,7 +110,7 @@ func GetInfo(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user to get
+	//   description: username of the user whose data is to be listed
 	//   type: string
 	//   required: true
 	// responses:
@@ -151,7 +151,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user to get
+	//   description: username of the user whose heatmap is to be obtained
 	//   type: string
 	//   required: true
 	// responses:
@@ -177,7 +177,7 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose activity feeds are to be listed
 	//   type: string
 	//   required: true
 	// - name: only-performed-by
