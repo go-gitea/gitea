@@ -161,24 +161,23 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	}
 	defer dataRc.Close()
 
-	ctx.Data["FileIsText"] = fInfo.isTextFile
+	ctx.Data["FileIsText"] = fInfo.st.IsText()
 	ctx.Data["FileTreePath"] = path.Join(ctx.Repo.TreePath, subfolder, readmeFile.Name())
 	ctx.Data["FileSize"] = fInfo.fileSize
-	ctx.Data["IsLFSFile"] = fInfo.isLFSFile
+	ctx.Data["IsLFSFile"] = fInfo.isLFSFile()
 
-	if fInfo.isLFSFile {
+	if fInfo.isLFSFile() {
 		filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.Name()))
 		ctx.Data["RawFileLink"] = fmt.Sprintf("%s.git/info/lfs/objects/%s/%s", ctx.Repo.Repository.Link(), url.PathEscape(fInfo.lfsMeta.Oid), url.PathEscape(filenameBase64))
 	}
 
-	if !fInfo.isTextFile {
+	if !fInfo.st.IsText() {
 		return
 	}
 
 	if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
 		// Pretend that this is a normal text file to display 'This file is too large to be shown'
 		ctx.Data["IsFileTooLarge"] = true
-		ctx.Data["IsTextFile"] = true
 		return
 	}
 
@@ -212,7 +211,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(template.HTML(contentEscaped), ctx.Locale)
 	}
 
-	if !fInfo.isLFSFile && ctx.Repo.Repository.CanEnableEditor() {
+	if !fInfo.isLFSFile() && ctx.Repo.Repository.CanEnableEditor() {
 		ctx.Data["CanEditReadmeFile"] = true
 	}
 }

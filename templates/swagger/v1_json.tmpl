@@ -766,7 +766,7 @@
           },
           {
             "type": "string",
-            "description": "user's login name to search for",
+            "description": "identifier of the user, provided by the external authenticator",
             "name": "login_name",
             "in": "query"
           },
@@ -842,7 +842,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to delete",
+            "description": "username of the user to delete",
             "name": "username",
             "in": "path",
             "required": true
@@ -884,7 +884,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to edit",
+            "description": "username of the user whose data is to be edited",
             "name": "username",
             "in": "path",
             "required": true
@@ -926,7 +926,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose badges are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -956,7 +956,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user to whom a badge is to be added",
             "name": "username",
             "in": "path",
             "required": true
@@ -990,7 +990,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose badge is to be deleted",
             "name": "username",
             "in": "path",
             "required": true
@@ -1032,7 +1032,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user who is to receive a public key",
             "name": "username",
             "in": "path",
             "required": true
@@ -1071,7 +1071,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose public key is to be deleted",
             "name": "username",
             "in": "path",
             "required": true
@@ -1114,7 +1114,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of the user that will own the created organization",
+            "description": "username of the user who will own the created organization",
             "name": "username",
             "in": "path",
             "required": true
@@ -1154,7 +1154,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "existing username of user",
+            "description": "current username of the user",
             "name": "username",
             "in": "path",
             "required": true
@@ -1197,7 +1197,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of the user. This user will own the created repository",
+            "description": "username of the user who will own the created repository",
             "name": "username",
             "in": "path",
             "required": true
@@ -2716,7 +2716,7 @@
           },
           {
             "type": "string",
-            "description": "user to check",
+            "description": "username of the user to check",
             "name": "username",
             "in": "path",
             "required": true
@@ -2747,7 +2747,7 @@
           },
           {
             "type": "string",
-            "description": "user to block",
+            "description": "username of the user to block",
             "name": "username",
             "in": "path",
             "required": true
@@ -2787,7 +2787,7 @@
           },
           {
             "type": "string",
-            "description": "user to unblock",
+            "description": "username of the user to unblock",
             "name": "username",
             "in": "path",
             "required": true
@@ -3258,7 +3258,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user to check for an organization membership",
             "name": "username",
             "in": "path",
             "required": true
@@ -3295,7 +3295,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user to remove from the organization",
             "name": "username",
             "in": "path",
             "required": true
@@ -3369,7 +3369,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user to check for a public organization membership",
             "name": "username",
             "in": "path",
             "required": true
@@ -3403,7 +3403,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user whose membership is to be publicized",
             "name": "username",
             "in": "path",
             "required": true
@@ -3440,7 +3440,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user whose membership is to be concealed",
             "name": "username",
             "in": "path",
             "required": true
@@ -7046,7 +7046,7 @@
           },
           {
             "type": "string",
-            "description": "username of the collaborator",
+            "description": "username of the user to check for being a collaborator",
             "name": "collaborator",
             "in": "path",
             "required": true
@@ -7090,7 +7090,7 @@
           },
           {
             "type": "string",
-            "description": "username of the collaborator to add",
+            "description": "username of the user to add or update as a collaborator",
             "name": "collaborator",
             "in": "path",
             "required": true
@@ -7190,7 +7190,7 @@
           },
           {
             "type": "string",
-            "description": "username of the collaborator",
+            "description": "username of the collaborator whose permissions are to be obtained",
             "name": "collaborator",
             "in": "path",
             "required": true
@@ -12067,7 +12067,7 @@
           },
           {
             "type": "string",
-            "description": "user to subscribe",
+            "description": "username of the user to subscribe the issue to",
             "name": "user",
             "in": "path",
             "required": true
@@ -12125,7 +12125,7 @@
           },
           {
             "type": "string",
-            "description": "user witch unsubscribe",
+            "description": "username of the user to unsubscribe from an issue",
             "name": "user",
             "in": "path",
             "required": true
@@ -16937,7 +16937,7 @@
           },
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose tracked times are to be listed",
             "name": "user",
             "in": "path",
             "required": true
@@ -17960,7 +17960,7 @@
           },
           {
             "type": "string",
-            "description": "username of the member to list",
+            "description": "username of the user whose data is to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -17995,7 +17995,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user to add",
+            "description": "username of the user to add to a team",
             "name": "username",
             "in": "path",
             "required": true
@@ -18033,7 +18033,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user to remove",
+            "description": "username of the user to remove from a team",
             "name": "username",
             "in": "path",
             "required": true
@@ -19012,7 +19012,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "user to check",
+            "description": "username of the user to check",
             "name": "username",
             "in": "path",
             "required": true
@@ -19036,7 +19036,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "user to block",
+            "description": "username of the user to block",
             "name": "username",
             "in": "path",
             "required": true
@@ -19069,7 +19069,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "user to unblock",
+            "description": "username of the user to unblock",
             "name": "username",
             "in": "path",
             "required": true
@@ -19231,7 +19231,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of followed user",
+            "description": "username of the user to check for authenticated followers",
             "name": "username",
             "in": "path",
             "required": true
@@ -19255,7 +19255,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to follow",
+            "description": "username of the user to follow",
             "name": "username",
             "in": "path",
             "required": true
@@ -19282,7 +19282,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to unfollow",
+            "description": "username of the user to unfollow",
             "name": "username",
             "in": "path",
             "required": true
@@ -20236,7 +20236,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to get",
+            "description": "username of the user whose data is to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20265,7 +20265,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose activity feeds are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20319,7 +20319,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose followers are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20360,7 +20360,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose followed users are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20398,14 +20398,14 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of following user",
+            "description": "username of the following user",
             "name": "username",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
-            "description": "username of followed user",
+            "description": "username of the followed user",
             "name": "target",
             "in": "path",
             "required": true
@@ -20434,7 +20434,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose GPG key list is to be obtained",
             "name": "username",
             "in": "path",
             "required": true
@@ -20475,7 +20475,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to get",
+            "description": "username of the user whose heatmap is to be obtained",
             "name": "username",
             "in": "path",
             "required": true
@@ -20504,7 +20504,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose public keys are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20551,7 +20551,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose organizations are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20592,7 +20592,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose permissions are to be obtained",
             "name": "username",
             "in": "path",
             "required": true
@@ -20631,7 +20631,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose owned repos are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20672,7 +20672,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose starred repos are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20716,7 +20716,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user whose watched repos are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20757,7 +20757,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of to user whose access tokens are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20799,7 +20799,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose token is to be created",
             "name": "username",
             "in": "path",
             "required": true
@@ -20838,7 +20838,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose token is to be deleted",
             "name": "username",
             "in": "path",
             "required": true
@@ -21639,7 +21639,7 @@
           "x-go-name": "Time"
         },
         "user_name": {
-          "description": "User who spent the time (optional)",
+          "description": "username of the user who spent the time working on the issue (optional)",
           "type": "string",
           "x-go-name": "User"
         }
@@ -23174,6 +23174,7 @@
           "x-go-name": "RepoAdminChangeTeamAccess"
         },
         "username": {
+          "description": "username of the organization",
           "type": "string",
           "x-go-name": "UserName"
         },
@@ -23624,7 +23625,9 @@
           "x-go-name": "FullName"
         },
         "login_name": {
+          "description": "identifier of the user, provided by the external authenticator (if configured)",
           "type": "string",
+          "default": "empty",
           "x-go-name": "LoginName"
         },
         "must_change_password": {
@@ -23649,6 +23652,7 @@
           "x-go-name": "SourceID"
         },
         "username": {
+          "description": "username of the user",
           "type": "string",
           "x-go-name": "Username"
         },
@@ -24634,7 +24638,9 @@
           "x-go-name": "Location"
         },
         "login_name": {
+          "description": "identifier of the user, provided by the external authenticator (if configured)",
           "type": "string",
+          "default": "empty",
           "x-go-name": "LoginName"
         },
         "max_repo_creation": {
@@ -24693,6 +24699,7 @@
           "x-go-name": "UserID"
         },
         "username": {
+          "description": "username of the user",
           "type": "string",
           "x-go-name": "UserName"
         },
@@ -26417,7 +26424,7 @@
           "x-go-name": "RepoAdminChangeTeamAccess"
         },
         "username": {
-          "description": "deprecated",
+          "description": "username of the organization\ndeprecated",
           "type": "string",
           "x-go-name": "UserName"
         },
@@ -26661,6 +26668,7 @@
           "x-go-name": "Name"
         },
         "username": {
+          "description": "username of the user",
           "type": "string",
           "x-go-name": "UserName"
         }
@@ -28124,6 +28132,7 @@
           "x-go-name": "UserID"
         },
         "user_name": {
+          "description": "username of the user",
           "type": "string",
           "x-go-name": "UserName"
         }
@@ -28365,12 +28374,12 @@
           "x-go-name": "Location"
         },
         "login": {
-          "description": "the user's username",
+          "description": "login of the user, same as `username`",
           "type": "string",
           "x-go-name": "UserName"
         },
         "login_name": {
-          "description": "the user's authentication sign-in name.",
+          "description": "identifier of the user, provided by the external authenticator (if configured)",
           "type": "string",
           "default": "empty",
           "x-go-name": "LoginName"
