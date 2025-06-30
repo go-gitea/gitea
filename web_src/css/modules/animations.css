@@ -52,8 +52,7 @@ form.single-button-form.is-loading .button {
 }
 
 .markup pre.is-loading,
-.editor-loading.is-loading,
-.pdf-content.is-loading {
+.editor-loading.is-loading {
   height: var(--height-loading);
 }
 

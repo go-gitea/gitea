@@ -1,7 +1,7 @@
 import {request} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
-import {addDelegatedEventListener, submitEventSubmitter} from '../utils/dom.ts';
-import {confirmModal} from './comp/ConfirmModal.ts';
+import {addDelegatedEventListener, createElementFromHTML, submitEventSubmitter} from '../utils/dom.ts';
+import {confirmModal, createConfirmModal} from './comp/ConfirmModal.ts';
 import type {RequestOpts} from '../types.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 
@@ -111,28 +111,44 @@ export async function submitFormFetchAction(formEl: HTMLFormElement, formSubmitt
 async function onLinkActionClick(el: HTMLElement, e: Event) {
   // A "link-action" can post AJAX request to its "data-url"
   // Then the browser is redirected to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
-  // If the "link-action" has "data-modal-confirm" attribute, a confirm modal dialog will be shown before taking action.
+  // If the "link-action" has "data-modal-confirm" attribute, a "confirm modal dialog" will be shown before taking action.
+  // Attribute "data-modal-confirm" can be a modal element by "#the-modal-id", or a string content for the modal dialog.
   e.preventDefault();
   const url = el.getAttribute('data-url');
   const doRequest = async () => {
-    if ('disabled' in el) el.disabled = true; // el could be A or BUTTON, but A doesn't have disabled attribute
+    if ('disabled' in el) el.disabled = true; // el could be A or BUTTON, but "A" doesn't have the "disabled" attribute
     await fetchActionDoRequest(el, url, {method: el.getAttribute('data-link-action-method') || 'POST'});
     if ('disabled' in el) el.disabled = false;
   };
 
-  const modalConfirmContent = el.getAttribute('data-modal-confirm') ||
-    el.getAttribute('data-modal-confirm-content') || '';
-  if (!modalConfirmContent) {
+  let elModal: HTMLElement | null = null;
+  const dataModalConfirm = el.getAttribute('data-modal-confirm') || '';
+  if (dataModalConfirm.startsWith('#')) {
+    // eslint-disable-next-line unicorn/prefer-query-selector
+    elModal = document.getElementById(dataModalConfirm.substring(1));
+    if (elModal) {
+      elModal = createElementFromHTML(elModal.outerHTML);
+      elModal.removeAttribute('id');
+    }
+  }
+  if (!elModal) {
+    const modalConfirmContent = dataModalConfirm || el.getAttribute('data-modal-confirm-content') || '';
+    if (modalConfirmContent) {
+      const isRisky = el.classList.contains('red') || el.classList.contains('negative');
+      elModal = createConfirmModal({
+        header: el.getAttribute('data-modal-confirm-header') || '',
+        content: modalConfirmContent,
+        confirmButtonColor: isRisky ? 'red' : 'primary',
+      });
+    }
+  }
+
+  if (!elModal) {
     await doRequest();
     return;
   }
 
-  const isRisky = el.classList.contains('red') || el.classList.contains('negative');
-  if (await confirmModal({
-    header: el.getAttribute('data-modal-confirm-header') || '',
-    content: modalConfirmContent,
-    confirmButtonColor: isRisky ? 'red' : 'primary',
-  })) {
+  if (await confirmModal(elModal)) {
     await doRequest();
   }
 }
