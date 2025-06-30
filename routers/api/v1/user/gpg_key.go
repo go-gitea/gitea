@@ -53,7 +53,7 @@ func ListGPGKeys(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose GPG key list is to be obtained
 	//   type: string
 	//   required: true
 	// - name: page
