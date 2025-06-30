@@ -203,9 +203,6 @@ func ViewPackageVersion(ctx *context.Context) {
 	}
 	ctx.Data["PackageRegistryHost"] = registryHostURL.Host
 
-	var pvs []*packages_model.PackageVersion
-	pvsTotal := int64(0)
-
 	switch pd.Package.Type {
 	case packages_model.TypeAlpine:
 		branches := make(container.Set[string])
@@ -296,24 +293,26 @@ func ViewPackageVersion(ctx *context.Context) {
 			}
 		}
 		ctx.Data["ContainerImageMetadata"] = imageMetadata
+	}
+	var pvs []*packages_model.PackageVersion
+	var pvsTotal int64
+	if pd.Package.Type == packages_model.TypeContainer {
 		pvs, pvsTotal, err = container_model.SearchImageTags(ctx, &container_model.ImageTagsSearchOptions{
 			Paginator: db.NewAbsoluteListOptions(0, 5),
 			PackageID: pd.Package.ID,
 			IsTagged:  true,
 		})
-	}
-	if pd.Package.Type != packages_model.TypeContainer {
+	} else {
 		pvs, pvsTotal, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 			Paginator:  db.NewAbsoluteListOptions(0, 5),
 			PackageID:  pd.Package.ID,
 			IsInternal: optional.Some(false),
 		})
-		if err != nil {
-			ctx.ServerError("", err)
-			return
-		}
 	}
-
+	if err != nil {
+		ctx.ServerError("", err)
+		return
+	}
 	ctx.Data["LatestVersions"] = pvs
 	ctx.Data["TotalVersionCount"] = pvsTotal
 
