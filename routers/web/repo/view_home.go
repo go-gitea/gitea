@@ -339,7 +339,7 @@ func prepareToRenderDirOrFile(entry *git.TreeEntry) func(ctx *context.Context) {
 		if entry.IsDir() {
 			prepareToRenderDirectory(ctx)
 		} else {
-			prepareToRenderFile(ctx, entry)
+			prepareFileView(ctx, entry)
 		}
 	}
 }

@@ -183,42 +183,6 @@ td .commit-summary {
   cursor: default;
 }
 
-.view-raw {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.view-raw > * {
-  max-width: 100%;
-}
-
-.view-raw audio,
-.view-raw video,
-.view-raw img {
-  margin: 1rem 0;
-  border-radius: 0;
-  object-fit: contain;
-}
-
-.view-raw img[src$=".svg" i] {
-  max-height: 600px !important;
-  max-width: 600px !important;
-}
-
-.pdf-content {
-  width: 100%;
-  height: 600px;
-  border: none !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pdf-content .pdf-fallback-button {
-  margin: 50px auto;
-}
-
 .repository.file.list .non-diff-file-content .plain-text {
   padding: 1em 2em;
 }
@@ -239,10 +203,6 @@ td .commit-summary {
 
 .repository.file.list .non-diff-file-content .asciicast {
   padding: 0 !important;
-}
-
-.non-diff-file-content .pdfobject {
-  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .repo-editor-header {
