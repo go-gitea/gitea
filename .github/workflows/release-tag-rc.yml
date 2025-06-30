@@ -99,6 +99,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get cleaned branch name
+        id: clean_name
+        run: |
+          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\/v//' -e 's/release\/v//')
+          echo "Cleaned name is ${REF_NAME}"
+          echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
       - name: build rootful docker image
         uses: docker/build-push-action@v5
         with:
@@ -143,6 +149,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get cleaned branch name
+        id: clean_name
+        run: |
+          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\/v//' -e 's/release\/v//')
+          echo "Cleaned name is ${REF_NAME}"
+          echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
       - name: build rootless docker image
         uses: docker/build-push-action@v5
         with:
