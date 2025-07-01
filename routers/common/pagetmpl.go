@@ -6,12 +6,12 @@ package common
 import (
 	goctx "context"
 	"errors"
+	"sync"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -69,28 +69,15 @@ type pageHeadNavbarDataType struct {
 	IsSigned    bool
 	IsSiteAdmin bool
 
-	GetNotificationUnreadCount    func() int64
-	cachedNotificationUnreadCount *int64
-
-	GetActiveStopwatch    func() *StopwatchTmplInfo
-	cachedActiveStopwatch **StopwatchTmplInfo
+	GetNotificationUnreadCount func() int64
+	GetActiveStopwatch         func() *StopwatchTmplInfo
 }
 
 func PageHeadNavbarData(ctx *context.Context) {
 	var data pageHeadNavbarDataType
 	data.IsSigned = ctx.Doer != nil
 	data.IsSiteAdmin = ctx.Doer != nil && ctx.Doer.IsAdmin
-	data.GetNotificationUnreadCount = func() int64 {
-		if data.cachedNotificationUnreadCount == nil {
-			data.cachedNotificationUnreadCount = util.ToPointer(notificationUnreadCount(ctx))
-		}
-		return *data.cachedNotificationUnreadCount
-	}
-	data.GetActiveStopwatch = func() *StopwatchTmplInfo {
-		if data.cachedActiveStopwatch == nil {
-			data.cachedActiveStopwatch = util.ToPointer(getActiveStopwatch(ctx))
-		}
-		return *data.cachedActiveStopwatch
-	}
+	data.GetNotificationUnreadCount = sync.OnceValue(func() int64 { return notificationUnreadCount(ctx) })
+	data.GetActiveStopwatch = sync.OnceValue(func() *StopwatchTmplInfo { return getActiveStopwatch(ctx) })
 	ctx.Data["HeadNavbarData"] = data
 }
