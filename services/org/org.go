@@ -141,7 +141,7 @@ func updateOrgRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Rep
 	}
 	for i := range forkRepos {
 		if err := updateOrgRepoForVisibilityChanged(ctx, forkRepos[i], makePrivate); err != nil {
-			return fmt.Errorf("updateRepoForVisibilityChanged[%d]: %w", forkRepos[i], err)
+			return fmt.Errorf("updateRepoForVisibilityChanged[%s]: %w", forkRepos[i].FullName(), err)
 		}
 	}
 	return nil
