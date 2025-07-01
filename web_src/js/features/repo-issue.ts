@@ -427,7 +427,7 @@ export function initRepoIssueWipToggle() {
     params.append('title', title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`);
     const response = await POST(updateUrl, {data: params});
     if (!response.ok) {
-      showErrorToast('Failed to toggle WIP status');
+      showErrorToast(`Failed to toggle 'work in progress' status`);
       return;
     }
     window.location.reload();
