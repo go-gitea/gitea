@@ -159,6 +159,7 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 	log.Debug("Registering task: %s", name)
 
 	i18nKey := "admin.dashboard." + name
+	// i18n-check: admin.dashboard.*
 	if value := translation.NewLocale("en-US").TrString(i18nKey); value == i18nKey {
 		return fmt.Errorf("translation is missing for task %q, please add translation for %q", name, i18nKey)
 	}

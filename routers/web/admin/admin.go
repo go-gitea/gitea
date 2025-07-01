@@ -180,6 +180,7 @@ func DashboardPost(ctx *context.Context) {
 			task := cron.GetTask(form.Op)
 			if task != nil {
 				go task.RunWithUser(ctx.Doer, nil)
+				// i18n-check: admin.dashboard.*
 				ctx.Flash.Success(ctx.Tr("admin.dashboard.task.started", ctx.Tr("admin.dashboard."+form.Op)))
 			} else {
 				ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))

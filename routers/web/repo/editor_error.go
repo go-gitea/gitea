@@ -39,6 +39,7 @@ func editorHandleFileOperationErrorRender(ctx *context_service.Context, message,
 
 func editorHandleFileOperationError(ctx *context_service.Context, targetBranchName string, err error) {
 	if errAs := util.ErrorAsLocale(err); errAs != nil {
+		// i18n-check: ignore
 		ctx.JSONError(ctx.Tr(errAs.TrKey, errAs.TrArgs...))
 	} else if errAs, ok := errorAs[git.ErrNotExist](err); ok {
 		ctx.JSONError(ctx.Tr("repo.editor.file_modifying_no_longer_exists", errAs.RelPath))

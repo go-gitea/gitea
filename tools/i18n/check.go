@@ -6,6 +6,7 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -87,6 +88,55 @@ func searchUnusedKeyInFile(dir, path string, keys []string, res *[]bool) error {
 	return nil
 }
 
+func searchUntranslatedKeyInCall(path string, fset *token.FileSet, astf *ast.File, call *ast.CallExpr, arg ast.Expr, keys []string) string {
+	if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		key := strings.Trim(lit.Value, `"`)
+		if !slices.Contains(keys, key) {
+			return key
+		}
+		return ""
+	}
+
+	var lastCg *ast.CommentGroup
+	for _, cg := range astf.Comments {
+		if cg.End() < call.Pos() {
+			if lastCg == nil || cg.End() > lastCg.End() {
+				lastCg = cg
+			}
+		}
+	}
+	if lastCg == nil {
+		fmt.Printf("no comment found for a dynamic translation key: %s:%d\n", path, fset.Position(call.Pos()).Line)
+		os.Exit(1)
+		return ""
+	}
+
+	transKeyMatch, ok := strings.CutPrefix(lastCg.Text(), "i18n-check:")
+	if !ok {
+		fmt.Printf("no comment found for a dynamic translation key: %s:%d\n", path, fset.Position(call.Pos()).Line)
+		os.Exit(1)
+		return ""
+	}
+	transKeyMatch = strings.TrimSpace(transKeyMatch)
+	switch transKeyMatch {
+	case "ignore": // i18n-check: ignore
+		return ""
+	default: // i18n-check: <transKeyMatch>
+		g := glob.MustCompile(transKeyMatch)
+		found := false
+		for _, key := range keys {
+			if g.Match(key) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return transKeyMatch
+		}
+	}
+	return ""
+}
+
 func searchUntranslatedKeyInGoFile(dir, path string, keys []string) ([]string, error) {
 	if filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") {
 		return nil, nil
@@ -94,7 +144,7 @@ func searchUntranslatedKeyInGoFile(dir, path string, keys []string) ([]string, e
 
 	var untranslated []string
 	fs := token.NewFileSet()
-	node, err := parser.ParseFile(fs, path, nil, 0)
+	node, err := parser.ParseFile(fs, path, nil, parser.ParseComments)
 	if err != nil {
 		return nil, err
 	}
@@ -108,26 +158,17 @@ func searchUntranslatedKeyInGoFile(dir, path string, keys []string) ([]string, e
 			switch funIdent.Sel.Name {
 			case "Tr", "TrString":
 				if len(call.Args) >= 1 {
-					if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-						key := strings.Trim(lit.Value, `"`)
-						if !slices.Contains(keys, key) {
-							untranslated = append(untranslated, key)
-						}
+					if key := searchUntranslatedKeyInCall(path, fs, node, call, call.Args[0], keys); key != "" {
+						untranslated = append(untranslated, key)
 					}
 				}
 			case "TrN":
 				if len(call.Args) >= 3 {
-					if lit, ok := call.Args[1].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-						key := strings.Trim(lit.Value, `"`)
-						if !slices.Contains(keys, key) {
-							untranslated = append(untranslated, key)
-						}
+					if key := searchUntranslatedKeyInCall(path, fs, node, call, call.Args[1], keys); key != "" {
+						untranslated = append(untranslated, key)
 					}
-					if lit, ok := call.Args[2].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-						key := strings.Trim(lit.Value, `"`)
-						if !slices.Contains(keys, key) {
-							untranslated = append(untranslated, key)
-						}
+					if key := searchUntranslatedKeyInCall(path, fs, node, call, call.Args[2], keys); key != "" {
+						untranslated = append(untranslated, key)
 					}
 				}
 			}
@@ -205,29 +246,6 @@ func searchUnTranslatedKeyInFile(dir, path string, keys []string) ([]string, err
 	return append(untranslatedKeys, untranslatedKeysInTmpl...), nil
 }
 
-var whitelist = []string{
-	"repo.signing.wont_sign.*",
-	"repo.issues.role.*",
-	"repo.commitstatus.*",
-	"admin.dashboard.*",
-	"admin.dashboard.cron.*",
-	"admin.dashboard.task.*",
-	"repo.migrate.*.description",
-	"actions.runners.status.*",
-	"projects.*.display_name",
-	"admin.notices.*",
-	"form.NewBranchName", // FIXME: used in integration tests only
-}
-
-func isWhitelisted(key string) bool {
-	for _, w := range whitelist {
-		if glob.MustCompile(w).Match(key) {
-			return true
-		}
-	}
-	return false
-}
-
 func main() {
 	if len(os.Args) != 1 {
 		println("usage: clean-locales")
@@ -247,9 +265,6 @@ func main() {
 				trKey = key.Name()
 			} else {
 				trKey = section.Name() + "." + key.Name()
-			}
-			if isWhitelisted(trKey) {
-				continue
 			}
 			keys = append(keys, trKey)
 		}

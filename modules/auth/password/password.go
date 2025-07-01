@@ -128,6 +128,7 @@ func BuildComplexityError(locale translation.Locale) template.HTML {
 	buffer.WriteString("<ul>")
 	for _, c := range requiredList {
 		buffer.WriteString("<li>")
+		// i18n-check: form.password_*
 		buffer.WriteString(locale.TrString(c.TrNameOne))
 		buffer.WriteString("</li>")
 	}

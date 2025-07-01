@@ -225,11 +225,13 @@ const (
 
 // LocaleString returns the locale string name of the role
 func (r RoleInRepo) LocaleString(lang translation.Locale) string {
+	// i18n-check: repo.issues.role.*
 	return lang.TrString("repo.issues.role." + string(r))
 }
 
 // LocaleHelper returns the locale tooltip of the role
 func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
+	// i18n-check: repo.issues.role.*_helper
 	return lang.TrString("repo.issues.role." + string(r) + "_helper")
 }
 
