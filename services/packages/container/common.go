@@ -48,7 +48,7 @@ func ParseManifestMetadata(ctx context.Context, rd io.Reader, ownerID int64, ima
 	configDescriptor, err := container_service.GetContainerBlob(ctx, &container_service.BlobSearchOptions{
 		OwnerID: ownerID,
 		Image:   imageName,
-		Digest:  string(manifest.Config.Digest),
+		Digest:  manifest.Config.Digest.String(),
 	})
 	if err != nil {
 		return nil, nil, nil, err

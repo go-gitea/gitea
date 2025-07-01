@@ -18,7 +18,7 @@ type TreeEntry struct {
 	sized     bool
 }
 
-// Name returns the name of the entry
+// Name returns the name of the entry (base name)
 func (te *TreeEntry) Name() string {
 	return te.name
 }
@@ -57,7 +57,7 @@ func (te *TreeEntry) Size() int64 {
 	return te.size
 }
 
-// IsSubModule if the entry is a sub module
+// IsSubModule if the entry is a submodule
 func (te *TreeEntry) IsSubModule() bool {
 	return te.entryMode.IsSubModule()
 }

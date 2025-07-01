@@ -33,14 +33,6 @@
   color: var(--color-primary) !important;
 }
 
-.flex-item .flex-item-icon {
-  align-self: baseline; /* mainly used by the issue list, to align the leading icon with the title */
-}
-
-.flex-item .flex-item-icon + .flex-item-main {
-  align-self: baseline;
-}
-
 .flex-item .flex-item-trailing {
   display: flex;
   gap: 0.5rem;
@@ -54,7 +46,9 @@
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: .25rem;
+  /* labels are under effect of this gap here because they are display:contents. Ideally we should make wrapping
+     of labels work without display: contents and set this to a static value again. */
+  gap: var(--gap-inline);
   max-width: 100%;
   color: var(--color-text);
   font-size: 16px;

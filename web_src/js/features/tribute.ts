@@ -1,5 +1,5 @@
 import {emojiKeys, emojiHTML, emojiString} from './emoji.ts';
-import {htmlEscape} from 'escape-goat';
+import {html, htmlRaw} from '../utils/html.ts';
 
 type TributeItem = Record<string, any>;
 
@@ -26,17 +26,18 @@ export async function attachTribute(element: HTMLElement) {
         return emojiString(item.original);
       },
       menuItemTemplate: (item: TributeItem) => {
-        return `<div class="tribute-item">${emojiHTML(item.original)}<span>${htmlEscape(item.original)}</span></div>`;
+        return html`<div class="tribute-item">${htmlRaw(emojiHTML(item.original))}<span>${item.original}</span></div>`;
       },
     }, { // mentions
       values: window.config.mentionValues ?? [],
       requireLeadingSpace: true,
       menuItemTemplate: (item: TributeItem) => {
-        return `
+        const fullNameHtml = item.original.fullname && item.original.fullname !== '' ? html`<span class="fullname">${item.original.fullname}</span>` : '';
+        return html`
           <div class="tribute-item">
-            <img alt src="${htmlEscape(item.original.avatar)}" width="21" height="21"/>
-            <span class="name">${htmlEscape(item.original.name)}</span>
-            ${item.original.fullname && item.original.fullname !== '' ? `<span class="fullname">${htmlEscape(item.original.fullname)}</span>` : ''}
+            <img alt src="${item.original.avatar}" width="21" height="21"/>
+            <span class="name">${item.original.name}</span>
+            ${htmlRaw(fullNameHtml)}
           </div>
         `;
       },

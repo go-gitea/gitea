@@ -62,6 +62,15 @@ func TestMergeRequiredContextsCommitStatus(t *testing.T) {
 			commitStatuses: []*git_model.CommitStatus{
 				{Context: "Build 1", State: commitstatus.CommitStatusSuccess},
 				{Context: "Build 2", State: commitstatus.CommitStatusSuccess},
+				{Context: "Build 2t", State: commitstatus.CommitStatusFailure},
+			},
+			requiredContexts: []string{"Build*"},
+			expected:         commitstatus.CommitStatusFailure,
+		},
+		{
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build 1", State: commitstatus.CommitStatusSuccess},
+				{Context: "Build 2", State: commitstatus.CommitStatusSuccess},
 				{Context: "Build 2t", State: commitstatus.CommitStatusSuccess},
 			},
 			requiredContexts: []string{"Build*", "Build 2t*", "Build 3*"},
