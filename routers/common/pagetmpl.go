@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -22,8 +23,7 @@ type StopwatchTmplInfo struct {
 	Seconds    int64
 }
 
-func getActiveStopwatch(goCtx goctx.Context) *StopwatchTmplInfo {
-	ctx := context.GetWebContext(goCtx)
+func getActiveStopwatch(ctx *context.Context) *StopwatchTmplInfo {
 	if ctx.Doer == nil {
 		return nil
 	}
@@ -48,8 +48,7 @@ func getActiveStopwatch(goCtx goctx.Context) *StopwatchTmplInfo {
 	}
 }
 
-func notificationUnreadCount(goCtx goctx.Context) int64 {
-	ctx := context.GetWebContext(goCtx)
+func notificationUnreadCount(ctx *context.Context) int64 {
 	if ctx.Doer == nil {
 		return 0
 	}
@@ -66,10 +65,32 @@ func notificationUnreadCount(goCtx goctx.Context) int64 {
 	return count
 }
 
-func PageTmplFunctions(ctx *context.Context) {
-	if ctx.IsSigned {
-		// defer the function call to the last moment when the tmpl renders
-		ctx.Data["NotificationUnreadCount"] = notificationUnreadCount
-		ctx.Data["GetActiveStopwatch"] = getActiveStopwatch
+type pageHeadNavbarDataType struct {
+	IsSigned    bool
+	IsSiteAdmin bool
+
+	GetNotificationUnreadCount    func() int64
+	cachedNotificationUnreadCount *int64
+
+	GetActiveStopwatch    func() *StopwatchTmplInfo
+	cachedActiveStopwatch **StopwatchTmplInfo
+}
+
+func PageHeadNavbarData(ctx *context.Context) {
+	var data pageHeadNavbarDataType
+	data.IsSigned = ctx.Doer != nil
+	data.IsSiteAdmin = ctx.Doer != nil && ctx.Doer.IsAdmin
+	data.GetNotificationUnreadCount = func() int64 {
+		if data.cachedNotificationUnreadCount == nil {
+			data.cachedNotificationUnreadCount = util.ToPointer(notificationUnreadCount(ctx))
+		}
+		return *data.cachedNotificationUnreadCount
 	}
+	data.GetActiveStopwatch = func() *StopwatchTmplInfo {
+		if data.cachedActiveStopwatch == nil {
+			data.cachedActiveStopwatch = util.ToPointer(getActiveStopwatch(ctx))
+		}
+		return *data.cachedActiveStopwatch
+	}
+	ctx.Data["HeadNavbarData"] = data
 }
