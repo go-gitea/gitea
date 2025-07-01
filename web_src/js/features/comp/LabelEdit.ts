@@ -72,6 +72,7 @@ export function initCompLabelEdit(pageSelector: string) {
           return false;
         }
         submitFormFetchAction(form);
+        return false;
       },
     }).modal('show');
   };
