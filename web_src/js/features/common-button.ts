@@ -43,13 +43,16 @@ export function initGlobalDeleteButton(): void {
 
       fomanticQuery(modal).modal({
         closable: false,
-        onApprove: async () => {
+        onApprove: () => {
           // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
           if (btn.getAttribute('data-type') === 'form') {
             const formSelector = btn.getAttribute('data-form');
             const form = document.querySelector<HTMLFormElement>(formSelector);
             if (!form) throw new Error(`no form named ${formSelector} found`);
+            modal.classList.add('is-loading'); // the form is not in the modal, so also add loading indicator to the modal
+            form.classList.add('is-loading');
             form.submit();
+            return false; // prevent modal from closing automatically
           }
 
           // prepare an AJAX form by data attributes
@@ -62,12 +65,15 @@ export function initGlobalDeleteButton(): void {
               postData.append('id', value);
             }
           }
-
-          const response = await POST(btn.getAttribute('data-url'), {data: postData});
-          if (response.ok) {
-            const data = await response.json();
-            window.location.href = data.redirect;
-          }
+          (async () => {
+            const response = await POST(btn.getAttribute('data-url'), {data: postData});
+            if (response.ok) {
+              const data = await response.json();
+              window.location.href = data.redirect;
+            }
+          })();
+          modal.classList.add('is-loading'); // the request is in progress, so also add loading indicator to the modal
+          return false; // prevent modal from closing automatically
         },
       }).modal('show');
     });
@@ -158,13 +164,7 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
     }
   }
 
-  fomanticQuery(elModal).modal('setting', {
-    onApprove: () => {
-      // "form-fetch-action" can handle network errors gracefully,
-      // so keep the modal dialog to make users can re-submit the form if anything wrong happens.
-      if (elModal.querySelector('.form-fetch-action')) return false;
-    },
-  }).modal('show');
+  fomanticQuery(elModal).modal('show');
 }
 
 export function initGlobalButtons(): void {
