@@ -6,6 +6,7 @@ package repo
 import (
 	"html/template"
 	"net/http"
+	"path"
 	"strings"
 
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -111,7 +112,7 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 		item := &WebDiffFileItem{FullName: file.HeadPath, DiffStatus: file.Status}
 		item.IsViewed = filesViewedState[item.FullName] == pull_model.Viewed
 		item.NameHash = git.HashFilePathForWebUI(item.FullName)
-		item.FileIcon = fileicon.RenderEntryIconHTML(renderedIconPool, &fileicon.EntryInfo{FullName: file.HeadPath, EntryMode: file.HeadMode})
+		item.FileIcon = fileicon.RenderEntryIconHTML(renderedIconPool, &fileicon.EntryInfo{BaseName: path.Base(file.HeadPath), EntryMode: file.HeadMode})
 
 		switch file.HeadMode {
 		case git.EntryModeTree:
