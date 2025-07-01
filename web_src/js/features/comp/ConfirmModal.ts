@@ -1,5 +1,5 @@
 import {svg} from '../../svg.ts';
-import {htmlEscape} from 'escape-goat';
+import {html, htmlRaw} from '../../utils/html.ts';
 import {createElementFromHTML} from '../../utils/dom.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
 
@@ -12,17 +12,17 @@ type ConfirmModalOptions = {
 }
 
 export function createConfirmModal({header = '', content = '', confirmButtonColor = 'primary'}:ConfirmModalOptions = {}): HTMLElement {
-  const headerHtml = header ? `<div class="header">${htmlEscape(header)}</div>` : '';
-  return createElementFromHTML(`
-<div class="ui g-modal-confirm modal">
-  ${headerHtml}
-  <div class="content">${htmlEscape(content)}</div>
-  <div class="actions">
-    <button class="ui cancel button">${svg('octicon-x')} ${htmlEscape(i18n.modal_cancel)}</button>
-    <button class="ui ${confirmButtonColor} ok button">${svg('octicon-check')} ${htmlEscape(i18n.modal_confirm)}</button>
-  </div>
-</div>
-`);
+  const headerHtml = header ? html`<div class="header">${header}</div>` : '';
+  return createElementFromHTML(html`
+    <div class="ui g-modal-confirm modal">
+      ${htmlRaw(headerHtml)}
+      <div class="content">${content}</div>
+      <div class="actions">
+        <button class="ui cancel button">${htmlRaw(svg('octicon-x'))} ${i18n.modal_cancel}</button>
+        <button class="ui ${confirmButtonColor} ok button">${htmlRaw(svg('octicon-check'))} ${i18n.modal_confirm}</button>
+      </div>
+    </div>
+  `.trim());
 }
 
 export function confirmModal(modal: HTMLElement | ConfirmModalOptions): Promise<boolean> {

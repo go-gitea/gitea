@@ -2,6 +2,7 @@
 // to make sure the error handler always works, we should never import `window.config`, because
 // some user's custom template breaks it.
 import type {Intent} from './types.ts';
+import {html} from './utils/html.ts';
 
 // This sets up the URL prefix used in webpack's chunk loading.
 // This file must be imported before any lazy-loading is being attempted.
@@ -23,7 +24,7 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error') {
   let msgDiv = msgContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
   if (!msgDiv) {
     const el = document.createElement('div');
-    el.innerHTML = `<div class="ui container js-global-error tw-my-[--page-spacing]"><div class="ui ${msgType} message tw-text-center tw-whitespace-pre-line"></div></div>`;
+    el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><div class="ui ${msgType} message tw-text-center tw-whitespace-pre-line"></div></div>`;
     msgDiv = el.childNodes[0] as HTMLDivElement;
   }
   // merge duplicated messages into "the message (count)" format
