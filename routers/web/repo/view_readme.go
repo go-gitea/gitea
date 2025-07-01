@@ -32,15 +32,7 @@ import (
 //	entries == ctx.Repo.Commit.SubTree(ctx.Repo.TreePath).ListEntries()
 //
 // FIXME: There has to be a more efficient way of doing this
-func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, tryWellKnownDirs bool) (string, *git.TreeEntry, error) {
-	// Create a list of extensions in priority order
-	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
-	// 2. Txt files - e.g. README.txt
-	// 3. No extension - e.g. README
-	exts := append(localizedExtensions(".md", ctx.Locale.Language()), ".txt", "") // sorted by priority
-	extCount := len(exts)
-	readmeFiles := make([]*git.TreeEntry, extCount+1)
-
+func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*git.TreeEntry, tryWellKnownDirs bool) (string, *git.TreeEntry, error) {
 	docsEntries := make([]*git.TreeEntry, 3) // (one of docs/, .gitea/ or .github/)
 	for _, entry := range entries {
 		if tryWellKnownDirs && entry.IsDir() {
@@ -62,16 +54,23 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, try
 					docsEntries[2] = entry
 				}
 			}
-			continue
 		}
+	}
+
+	// Create a list of extensions in priority order
+	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
+	// 2. Txt files - e.g. README.txt
+	// 3. No extension - e.g. README
+	exts := append(localizedExtensions(".md", ctx.Locale.Language()), ".txt", "") // sorted by priority
+	extCount := len(exts)
+	readmeFiles := make([]*git.TreeEntry, extCount+1)
+	for _, entry := range entries {
 		if i, ok := util.IsReadmeFileExtension(entry.Name(), exts...); ok {
-			log.Debug("Potential readme file: %s", entry.Name())
+			fullPath := path.Join(parentDir, entry.Name())
 			if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].Name(), entry.Blob().Name()) {
 				if entry.IsLink() {
-					target, err := entry.FollowLinks()
-					if err != nil && !git.IsErrSymlinkUnresolved(err) {
-						return "", nil, err
-					} else if target != nil && (target.IsExecutable() || target.IsRegular()) {
+					res, err := git.EntryFollowLinks(ctx.Repo.Commit, fullPath, entry)
+					if err == nil && (res.TargetEntry.IsExecutable() || res.TargetEntry.IsRegular()) {
 						readmeFiles[i] = entry
 					}
 				} else {
@@ -80,6 +79,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, try
 			}
 		}
 	}
+
 	var readmeFile *git.TreeEntry
 	for _, f := range readmeFiles {
 		if f != nil {
@@ -103,7 +103,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, try
 				return "", nil, err
 			}
 
-			subfolder, readmeFile, err := findReadmeFileInEntries(ctx, childEntries, false)
+			subfolder, readmeFile, err := findReadmeFileInEntries(ctx, parentDir, childEntries, false)
 			if err != nil && !git.IsErrNotExist(err) {
 				return "", nil, err
 			}
@@ -139,14 +139,21 @@ func localizedExtensions(ext, languageCode string) (localizedExts []string) {
 }
 
 func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.TreeEntry) {
-	target := readmeFile
-	if readmeFile != nil && readmeFile.IsLink() {
-		target, _ = readmeFile.FollowLinks()
-	}
-	if target == nil {
-		// if findReadmeFile() failed and/or gave us a broken symlink (which it shouldn't)
-		// simply skip rendering the README
+	if readmeFile == nil {
 		return
+	}
+
+	readmeFullPath := path.Join(ctx.Repo.TreePath, subfolder, readmeFile.Name())
+	readmeTargetEntry := readmeFile
+	if readmeFile.IsLink() {
+		if res, err := git.EntryFollowLinks(ctx.Repo.Commit, readmeFullPath, readmeFile); err == nil {
+			readmeTargetEntry = res.TargetEntry
+		} else {
+			readmeTargetEntry = nil // if we cannot resolve the symlink, we cannot render the readme, ignore the error
+		}
+	}
+	if readmeTargetEntry == nil {
+		return // if no valid README entry found, skip rendering the README
 	}
 
 	ctx.Data["RawFileLink"] = ""
@@ -154,7 +161,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	ctx.Data["ReadmeExist"] = true
 	ctx.Data["FileIsSymlink"] = readmeFile.IsLink()
 
-	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, target.Blob())
+	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, readmeTargetEntry.Blob())
 	if err != nil {
 		ctx.ServerError("getFileReader", err)
 		return
@@ -162,7 +169,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	defer dataRc.Close()
 
 	ctx.Data["FileIsText"] = fInfo.st.IsText()
-	ctx.Data["FileTreePath"] = path.Join(ctx.Repo.TreePath, subfolder, readmeFile.Name())
+	ctx.Data["FileTreePath"] = readmeFullPath
 	ctx.Data["FileSize"] = fInfo.fileSize
 	ctx.Data["IsLFSFile"] = fInfo.isLFSFile()
 
@@ -189,10 +196,10 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 
 		rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
 			CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
-			CurrentTreePath: path.Join(ctx.Repo.TreePath, subfolder),
+			CurrentTreePath: path.Dir(readmeFullPath),
 		}).
 			WithMarkupType(markupType).
-			WithRelativePath(path.Join(ctx.Repo.TreePath, subfolder, readmeFile.Name())) // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
+			WithRelativePath(readmeFullPath)
 
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, rctx, rd)
 		if err != nil {
