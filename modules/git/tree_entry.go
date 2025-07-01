@@ -5,7 +5,7 @@
 package git
 
 import (
-	"io"
+	"path"
 	"sort"
 	"strings"
 
@@ -24,77 +24,57 @@ func (te *TreeEntry) Type() string {
 	}
 }
 
-// FollowLink returns the entry pointed to by a symlink
-func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
-	if !te.IsLink() {
-		return nil, ErrSymlinkUnresolved{te.Name(), "not a symlink"}
-	}
-
-	// read the link
-	r, err := te.Blob().DataAsync()
-	if err != nil {
-		return nil, err
-	}
-	closed := false
-	defer func() {
-		if !closed {
-			_ = r.Close()
-		}
-	}()
-	buf := make([]byte, te.Size())
-	_, err = io.ReadFull(r, buf)
-	if err != nil {
-		return nil, err
-	}
-	_ = r.Close()
-	closed = true
-
-	lnk := string(buf)
-	t := te.ptree
-
-	// traverse up directories
-	for ; t != nil && strings.HasPrefix(lnk, "../"); lnk = lnk[3:] {
-		t = t.ptree
-	}
-
-	if t == nil {
-		return nil, ErrSymlinkUnresolved{te.Name(), "points outside of repo"}
-	}
-
-	target, err := t.GetTreeEntryByPath(lnk)
-	if err != nil {
-		if IsErrNotExist(err) {
-			return nil, ErrSymlinkUnresolved{te.Name(), "broken link"}
-		}
-		return nil, err
-	}
-	return target, nil
+type EntryFollowResult struct {
+	SymlinkContent string
+	TargetFullPath string
+	TargetEntry    *TreeEntry
 }
 
-// FollowLinks returns the entry ultimately pointed to by a symlink
-func (te *TreeEntry) FollowLinks(optLimit ...int) (*TreeEntry, error) {
+func EntryFollowLink(commit *Commit, fullPath string, te *TreeEntry) (*EntryFollowResult, error) {
 	if !te.IsLink() {
-		return nil, ErrSymlinkUnresolved{te.Name(), "not a symlink"}
+		return nil, util.ErrorWrap(util.ErrUnprocessableContent, "%q is not a symlink", fullPath)
 	}
+
+	// git's filename max length is 4096, hopefully a link won't be longer than multiple of that
+	const maxSymlinkSize = 20 * 4096
+	if te.Blob().Size() > maxSymlinkSize {
+		return nil, util.ErrorWrap(util.ErrUnprocessableContent, "%q content exceeds symlink limit", fullPath)
+	}
+
+	link, err := te.Blob().GetBlobContent(maxSymlinkSize)
+	if err != nil {
+		return nil, err
+	}
+	if strings.HasPrefix(link, "/") {
+		// It's said that absolute path will be stored as is in Git
+		return &EntryFollowResult{SymlinkContent: link}, util.ErrorWrap(util.ErrUnprocessableContent, "%q is an absolute symlink", fullPath)
+	}
+
+	targetFullPath := path.Join(path.Dir(fullPath), link)
+	targetEntry, err := commit.GetTreeEntryByPath(targetFullPath)
+	if err != nil {
+		return &EntryFollowResult{SymlinkContent: link}, err
+	}
+	return &EntryFollowResult{SymlinkContent: link, TargetFullPath: targetFullPath, TargetEntry: targetEntry}, nil
+}
+
+func EntryFollowLinks(commit *Commit, firstFullPath string, firstTreeEntry *TreeEntry, optLimit ...int) (res *EntryFollowResult, err error) {
 	limit := util.OptionalArg(optLimit, 10)
-	entry := te
+	treeEntry, fullPath := firstTreeEntry, firstFullPath
 	for range limit {
-		if !entry.IsLink() {
+		res, err = EntryFollowLink(commit, fullPath, treeEntry)
+		if err != nil {
+			return res, err
+		}
+		treeEntry, fullPath = res.TargetEntry, res.TargetFullPath
+		if !treeEntry.IsLink() {
 			break
 		}
-		next, err := entry.FollowLink()
-		if err != nil {
-			return nil, err
-		}
-		if next.ID == entry.ID {
-			return nil, ErrSymlinkUnresolved{entry.Name(), "recursive link"}
-		}
-		entry = next
 	}
-	if entry.IsLink() {
-		return nil, ErrSymlinkUnresolved{te.Name(), "too many levels of symbolic links"}
+	if treeEntry.IsLink() {
+		return res, util.ErrorWrap(util.ErrUnprocessableContent, "%q has too many links", firstFullPath)
 	}
-	return entry, nil
+	return res, nil
 }
 
 // returns the Tree pointed to by this TreeEntry, or nil if this is not a tree

@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -260,7 +261,9 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 	renderedIconPool := fileicon.NewRenderedIconPool()
 	fileIcons := map[string]template.HTML{}
 	for _, f := range files {
-		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFromGitTreeEntry(f.Entry))
+		fullPath := path.Join(ctx.Repo.TreePath, f.Entry.Name())
+		entryInfo := fileicon.EntryInfoFromGitTreeEntry(ctx.Repo.Commit, fullPath, f.Entry)
+		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
 	}
 	fileIcons[".."] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
 	ctx.Data["FileIcons"] = fileIcons
