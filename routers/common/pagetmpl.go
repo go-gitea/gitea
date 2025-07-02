@@ -65,7 +65,7 @@ func notificationUnreadCount(ctx *context.Context) int64 {
 	return count
 }
 
-type pageHeadNavbarDataType struct {
+type pageGlobalDataType struct {
 	IsSigned    bool
 	IsSiteAdmin bool
 
@@ -73,11 +73,11 @@ type pageHeadNavbarDataType struct {
 	GetActiveStopwatch         func() *StopwatchTmplInfo
 }
 
-func PageHeadNavbarData(ctx *context.Context) {
-	var data pageHeadNavbarDataType
+func PageGlobalData(ctx *context.Context) {
+	var data pageGlobalDataType
 	data.IsSigned = ctx.Doer != nil
 	data.IsSiteAdmin = ctx.Doer != nil && ctx.Doer.IsAdmin
 	data.GetNotificationUnreadCount = sync.OnceValue(func() int64 { return notificationUnreadCount(ctx) })
 	data.GetActiveStopwatch = sync.OnceValue(func() *StopwatchTmplInfo { return getActiveStopwatch(ctx) })
-	ctx.Data["HeadNavbarData"] = data
+	ctx.Data["PageGlobalData"] = data
 }

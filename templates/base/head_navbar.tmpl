@@ -7,7 +7,7 @@
 
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
 		<div class="ui secondary menu navbar-mobile-right only-mobile">
-			{{template "base/head_navbar_icons" dict "HeadNavbarData" .HeadNavbarData}}
+			{{template "base/head_navbar_icons" dict "PageGlobalData" .PageGlobalData}}
 			<button class="item ui icon mini button tw-m-0" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
 		</div>
 
@@ -62,7 +62,7 @@
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		{{else if .IsSigned}}
-			{{template "base/head_navbar_icons" dict "ItemExtraClass" "not-mobile" "HeadNavbarData" .HeadNavbarData}}
+			{{template "base/head_navbar_icons" dict "ItemExtraClass" "not-mobile" "PageGlobalData" .PageGlobalData}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
 				<span class="text">
 					{{svg "octicon-plus"}}
@@ -120,14 +120,6 @@
 						{{svg "octicon-question"}}
 						{{ctx.Locale.Tr "help"}}
 					</a>
-					{{if .IsAdmin}}
-						<div class="divider"></div>
-						<a class="{{if .PageIsAdmin}}active {{end}}item" href="{{AppSubUrl}}/-/admin">
-							{{svg "octicon-server"}}
-							{{ctx.Locale.Tr "admin_panel"}}
-						</a>
-					{{end}}
-
 					<div class="divider"></div>
 					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}
@@ -149,7 +141,7 @@
 		{{end}}
 	</div><!-- end full right menu -->
 
-	{{$activeStopwatch := and .HeadNavbarData (call .HeadNavbarData.GetActiveStopwatch)}}
+	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
 	{{if $activeStopwatch}}
 		<div class="active-stopwatch-popup tippy-target">
 			<div class="tw-flex tw-items-center tw-gap-2 tw-p-3">

@@ -1,6 +1,6 @@
 {{- $itemExtraClass := .ItemExtraClass -}}
-{{- $data := .HeadNavbarData -}}
-{{if and $data $data.IsSigned}}{{/* data may not exist, for example: rendering 503 page before the HeadNavbarData middleware */}}
+{{- $data := .PageGlobalData -}}
+{{if and $data $data.IsSigned}}{{/* data may not exist, for example: rendering 503 page before the PageGlobalData middleware */}}
 	{{- $activeStopwatch := call $data.GetActiveStopwatch -}}
 	{{- $notificationUnreadCount := call $data.GetNotificationUnreadCount -}}
 	{{if $activeStopwatch}}

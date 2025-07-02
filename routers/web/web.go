@@ -281,7 +281,7 @@ func Routes() *web.Router {
 	}
 
 	mid = append(mid, goGet)
-	mid = append(mid, common.PageHeadNavbarData)
+	mid = append(mid, common.PageGlobalData)
 
 	webRoutes := web.NewRouter()
 	webRoutes.Use(mid...)
