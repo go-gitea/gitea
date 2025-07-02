@@ -50,6 +50,14 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
+	if err := comment.LoadReview(ctx); err != nil {
+		log.Error("LoadReview: %v", err)
+		return
+	} else if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending {
+		// Pending review comments updating should not triggered
+		return
+	}
+
 	for _, notifier := range notifiers {
 		notifier.CreateIssueComment(ctx, doer, repo, issue, comment, mentions)
 	}
@@ -156,6 +164,14 @@ func PullReviewDismiss(ctx context.Context, doer *user_model.User, review *issue
 
 // UpdateComment notifies update comment to notifiers
 func UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
+	if err := c.LoadReview(ctx); err != nil {
+		log.Error("LoadReview: %v", err)
+		return
+	} else if c.Review != nil && c.Review.Type == issues_model.ReviewTypePending {
+		// Pending review comments updating should not triggered
+		return
+	}
+
 	for _, notifier := range notifiers {
 		notifier.UpdateComment(ctx, doer, c, oldContent)
 	}
@@ -163,6 +179,14 @@ func UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.C
 
 // DeleteComment notifies delete comment to notifiers
 func DeleteComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment) {
+	if err := c.LoadReview(ctx); err != nil {
+		log.Error("LoadReview: %v", err)
+		return
+	} else if c.Review != nil && c.Review.Type == issues_model.ReviewTypePending {
+		// Pending review comments updating should not triggered
+		return
+	}
+
 	for _, notifier := range notifiers {
 		notifier.DeleteComment(ctx, doer, c)
 	}
