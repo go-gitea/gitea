@@ -814,7 +814,7 @@ func GetContentsExt(ctx *context.APIContext) {
 	//   in: path
 	//   description: path of the dir, file, symlink or submodule in the repo
 	//   type: string
-	//   required: true
+	//   required: false
 	// - name: ref
 	//   in: query
 	//   description: the name of the commit/branch/tag, default to the repository’s default branch.
@@ -823,7 +823,8 @@ func GetContentsExt(ctx *context.APIContext) {
 	// - name: includes
 	//   in: query
 	//   description: By default this API's response only contains file's metadata. Use comma-separated "includes" options to retrieve more fields.
-	//                Option "file_content" will try to retrieve the file content, option "lfs_metadata" will try to retrieve LFS metadata.
+	//                Option "file_content" will try to retrieve the file content, "lfs_metadata" will try to retrieve LFS metadata,
+	//                "commit_metadata" will try to retrieve commit metadata, and "commit_message" will try to retrieve commit message.
 	//   type: string
 	//   required: false
 	// responses:
@@ -842,6 +843,10 @@ func GetContentsExt(ctx *context.APIContext) {
 			opts.IncludeSingleFileContent = true
 		case "lfs_metadata":
 			opts.IncludeLfsMetadata = true
+		case "commit_metadata":
+			opts.IncludeCommitMetadata = true
+		case "commit_message":
+			opts.IncludeCommitMessage = true
 		default:
 			ctx.APIError(http.StatusBadRequest, fmt.Sprintf("unknown include option %q", includeOpt))
 			return
@@ -883,7 +888,11 @@ func GetContents(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ContentsResponse"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	ret := getRepoContents(ctx, files_service.GetContentsOrListOptions{TreePath: ctx.PathParam("*"), IncludeSingleFileContent: true})
+	ret := getRepoContents(ctx, files_service.GetContentsOrListOptions{
+		TreePath:                 ctx.PathParam("*"),
+		IncludeSingleFileContent: true,
+		IncludeCommitMetadata:    true,
+	})
 	if ctx.Written() {
 		return
 	}

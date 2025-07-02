@@ -155,10 +155,10 @@ func getExpectedFileResponseForRepoFilesCreate(commitID string, lastCommit *git.
 			Name:              path.Base(treePath),
 			Path:              treePath,
 			SHA:               "103ff9234cefeee5ec5361d22b49fbb04d385885",
-			LastCommitSHA:     lastCommit.ID.String(),
-			LastCommitterDate: lastCommit.Committer.When,
-			LastAuthorDate:    lastCommit.Author.When,
-			LastCommitMessage: "Creates new/file.txt\n",
+			LastCommitSHA:     util.ToPointer(lastCommit.ID.String()),
+			LastCommitterDate: util.ToPointer(lastCommit.Committer.When),
+			LastAuthorDate:    util.ToPointer(lastCommit.Author.When),
+			LastCommitMessage: util.ToPointer("Creates new/file.txt\n"),
 			Type:              "file",
 			Size:              18,
 			Encoding:          &encoding,
@@ -226,10 +226,10 @@ func getExpectedFileResponseForRepoFilesUpdate(commitID, filename, lastCommitSHA
 			Name:              filename,
 			Path:              filename,
 			SHA:               "dbf8d00e022e05b7e5cf7e535de857de57925647",
-			LastCommitSHA:     lastCommitSHA,
-			LastCommitterDate: lastCommitterWhen,
-			LastAuthorDate:    lastAuthorWhen,
-			LastCommitMessage: "Updates README.md\n",
+			LastCommitSHA:     util.ToPointer(lastCommitSHA),
+			LastCommitterDate: util.ToPointer(lastCommitterWhen),
+			LastAuthorDate:    util.ToPointer(lastAuthorWhen),
+			LastCommitMessage: util.ToPointer("Updates README.md\n"),
 			Type:              "file",
 			Size:              43,
 			Encoding:          &encoding,
@@ -333,8 +333,8 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 			Name:              detail.filename,
 			Path:              detail.filename,
 			SHA:               detail.sha,
-			LastCommitSHA:     lastCommitSHA,
-			LastCommitMessage: "Rename files\n",
+			LastCommitSHA:     util.ToPointer(lastCommitSHA),
+			LastCommitMessage: util.ToPointer("Rename files\n"),
 			Type:              "file",
 			Size:              detail.size,
 			Encoding:          util.ToPointer("base64"),
@@ -540,7 +540,7 @@ func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
 		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdateRename(commit.ID.String(), lastCommit.ID.String())
 		for _, file := range filesResponse.Files {
-			file.LastCommitterDate, file.LastAuthorDate = time.Time{}, time.Time{} // there might be different time in one operation, so we ignore them
+			file.LastCommitterDate, file.LastAuthorDate = nil, nil // there might be different time in one operation, so we ignore them
 		}
 		assert.Len(t, filesResponse.Files, 4)
 		assert.Equal(t, expectedFileResponse.Files, filesResponse.Files)

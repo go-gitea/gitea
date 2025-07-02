@@ -35,10 +35,9 @@ func getExpectedContentsResponseForContents(ref, refType, lastCommitSHA string) 
 		Name:              treePath,
 		Path:              treePath,
 		SHA:               "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-		LastCommitSHA:     lastCommitSHA,
-		LastCommitterDate: time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
-		LastAuthorDate:    time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
-		LastCommitMessage: "Initial commit",
+		LastCommitSHA:     util.ToPointer(lastCommitSHA),
+		LastCommitterDate: util.ToPointer(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
+		LastAuthorDate:    util.ToPointer(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
 		Type:              "file",
 		Size:              30,
 		Encoding:          util.ToPointer("base64"),
@@ -215,6 +214,8 @@ func testAPIGetContentsExt(t *testing.T) {
 		assert.Equal(t, "README.md", contentsResponse.DirContents[0].Name)
 		assert.Nil(t, contentsResponse.DirContents[0].Encoding)
 		assert.Nil(t, contentsResponse.DirContents[0].Content)
+		assert.Nil(t, contentsResponse.DirContents[0].LastCommitSHA)
+		assert.Nil(t, contentsResponse.DirContents[0].LastCommitMessage)
 
 		// "includes=file_content" shouldn't affect directory listing
 		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs?ref=sub-home-md-img-check&includes=file_content")
@@ -250,9 +251,11 @@ func testAPIGetContentsExt(t *testing.T) {
 		assert.Equal(t, "README.md", contentsResponse.FileContents.Name)
 		assert.Nil(t, contentsResponse.FileContents.Encoding)
 		assert.Nil(t, contentsResponse.FileContents.Content)
+		assert.Nil(t, contentsResponse.FileContents.LastCommitSHA)
+		assert.Nil(t, contentsResponse.FileContents.LastCommitMessage)
 
 		// file content is only returned when `includes=file_content`
-		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs/README.md?ref=sub-home-md-img-check&includes=file_content")
+		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs/README.md?ref=sub-home-md-img-check&includes=file_content,commit_metadata,commit_message")
 		resp = MakeRequest(t, req, http.StatusOK)
 		contentsResponse = api.ContentsExtResponse{}
 		DecodeJSON(t, resp, &contentsResponse)
@@ -260,6 +263,8 @@ func testAPIGetContentsExt(t *testing.T) {
 		assert.Equal(t, "README.md", contentsResponse.FileContents.Name)
 		assert.NotNil(t, contentsResponse.FileContents.Encoding)
 		assert.NotNil(t, contentsResponse.FileContents.Content)
+		assert.NotNil(t, contentsResponse.FileContents.LastCommitSHA)
+		assert.NotNil(t, contentsResponse.FileContents.LastCommitMessage)
 
 		req = NewRequestf(t, "GET", "/api/v1/repos/user2/lfs/contents-ext/jpeg.jpg?includes=file_content").AddTokenAuth(token2)
 		resp = session.MakeRequest(t, req, http.StatusOK)
@@ -271,6 +276,8 @@ func testAPIGetContentsExt(t *testing.T) {
 		assert.Equal(t, "jpeg.jpg", respFile.Name)
 		assert.NotNil(t, respFile.Encoding)
 		assert.NotNil(t, respFile.Content)
+		assert.Nil(t, contentsResponse.FileContents.LastCommitSHA)
+		assert.Nil(t, contentsResponse.FileContents.LastCommitMessage)
 		assert.Equal(t, util.ToPointer(int64(107)), respFile.LfsSize)
 		assert.Equal(t, util.ToPointer("0b8d8b5f15046343fd32f451df93acc2bdd9e6373be478b968e4cad6b6647351"), respFile.LfsOid)
 	})
