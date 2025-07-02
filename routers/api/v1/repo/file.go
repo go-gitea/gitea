@@ -812,9 +812,10 @@ func GetContentsExt(ctx *context.APIContext) {
 	//   required: true
 	// - name: filepath
 	//   in: path
-	//   description: path of the dir, file, symlink or submodule in the repo
+	//   description: path of the dir, file, symlink or submodule in the repo. Swagger requires path parameter to be "required",
+	//                you can leave it empty or pass a single dot (".") to get the root directory.
 	//   type: string
-	//   required: false
+	//   required: true
 	// - name: ref
 	//   in: query
 	//   description: the name of the commit/branch/tag, default to the repository’s default branch.
@@ -833,6 +834,11 @@ func GetContentsExt(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	treePath := ctx.PathParam("*")
+	if treePath == "." || treePath == "/" {
+		treePath = ""
+		ctx.SetPathParam("*", treePath)
+	}
 	opts := files_service.GetContentsOrListOptions{TreePath: ctx.PathParam("*")}
 	for includeOpt := range strings.SplitSeq(ctx.FormString("includes"), ",") {
 		if includeOpt == "" {

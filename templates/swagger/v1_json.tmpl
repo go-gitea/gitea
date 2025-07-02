@@ -7547,9 +7547,10 @@
           },
           {
             "type": "string",
-            "description": "path of the dir, file, symlink or submodule in the repo",
+            "description": "path of the dir, file, symlink or submodule in the repo. Swagger requires path parameter to be \"required\", you can leave it empty or pass a single dot (\".\") to get the root directory.",
             "name": "filepath",
-            "in": "path"
+            "in": "path",
+            "required": true
           },
           {
             "type": "string",

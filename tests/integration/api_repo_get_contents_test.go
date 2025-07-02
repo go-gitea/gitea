@@ -206,9 +206,23 @@ func testAPIGetContentsExt(t *testing.T) {
 	session := loginUser(t, "user2")
 	token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	t.Run("DirContents", func(t *testing.T) {
-		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs?ref=sub-home-md-img-check")
+		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext?ref=sub-home-md-img-check")
 		resp := MakeRequest(t, req, http.StatusOK)
 		var contentsResponse api.ContentsExtResponse
+		DecodeJSON(t, resp, &contentsResponse)
+		assert.Nil(t, contentsResponse.FileContents)
+		assert.NotNil(t, contentsResponse.DirContents)
+
+		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/.?ref=sub-home-md-img-check")
+		resp = MakeRequest(t, req, http.StatusOK)
+		contentsResponse = api.ContentsExtResponse{}
+		DecodeJSON(t, resp, &contentsResponse)
+		assert.Nil(t, contentsResponse.FileContents)
+		assert.NotNil(t, contentsResponse.DirContents)
+
+		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs?ref=sub-home-md-img-check")
+		resp = MakeRequest(t, req, http.StatusOK)
+		contentsResponse = api.ContentsExtResponse{}
 		DecodeJSON(t, resp, &contentsResponse)
 		assert.Nil(t, contentsResponse.FileContents)
 		assert.Equal(t, "README.md", contentsResponse.DirContents[0].Name)
