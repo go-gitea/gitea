@@ -834,10 +834,8 @@ func GetContentsExt(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	treePath := ctx.PathParam("*")
-	if treePath == "." || treePath == "/" {
-		treePath = ""
-		ctx.SetPathParam("*", treePath)
+	if treePath := ctx.PathParam("*"); treePath == "." || treePath == "/" {
+		ctx.SetPathParam("*", "") // workaround for swagger, it requires path parameter to be "required", but we need to list root directory
 	}
 	opts := files_service.GetContentsOrListOptions{TreePath: ctx.PathParam("*")}
 	for includeOpt := range strings.SplitSeq(ctx.FormString("includes"), ",") {
