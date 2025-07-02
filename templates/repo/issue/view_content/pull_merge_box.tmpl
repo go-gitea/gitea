@@ -95,7 +95,7 @@
 						{{ctx.Locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
 					</div>
 					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
-						<button class="ui compact button toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
+						<button class="ui compact button" data-global-init="initPullRequestWipToggle" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
 							{{ctx.Locale.Tr "repo.pulls.remove_prefix" .WorkInProgressPrefix}}
 						</button>
 					{{end}}
