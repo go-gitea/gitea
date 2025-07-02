@@ -1,4 +1,4 @@
-import {htmlEscape} from 'escape-goat';
+import {html, htmlEscape} from '../utils/html.ts';
 import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
 import {
   addDelegatedEventListener,
@@ -17,6 +17,7 @@ import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 const {appSubUrl} = window.config;
 
@@ -45,8 +46,7 @@ export function initRepoIssueSidebarDependency() {
           if (String(issue.id) === currIssueId) continue;
           filteredResponse.results.push({
             value: issue.id,
-            name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
-<div class="text small tw-break-anywhere">${htmlEscape(issue.repository.full_name)}</div>`,
+            name: html`<div class="gt-ellipsis">#${issue.number} ${issue.title}</div><div class="text small tw-break-anywhere">${issue.repository.full_name}</div>`,
           });
         }
         return filteredResponse;
@@ -416,25 +416,20 @@ export function initRepoIssueWipNewTitle() {
 
 export function initRepoIssueWipToggle() {
   // Toggle WIP for existing PR
-  queryElems(document, '.toggle-wip', (el) => el.addEventListener('click', async (e) => {
+  registerGlobalInitFunc('initPullRequestWipToggle', (toggleWip) => toggleWip.addEventListener('click', async (e) => {
     e.preventDefault();
-    const toggleWip = el;
     const title = toggleWip.getAttribute('data-title');
     const wipPrefix = toggleWip.getAttribute('data-wip-prefix');
     const updateUrl = toggleWip.getAttribute('data-update-url');
 
-    try {
-      const params = new URLSearchParams();
-      params.append('title', title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`);
-
-      const response = await POST(updateUrl, {data: params});
-      if (!response.ok) {
-        throw new Error('Failed to toggle WIP status');
-      }
-      window.location.reload();
-    } catch (error) {
-      console.error(error);
+    const params = new URLSearchParams();
+    params.append('title', title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`);
+    const response = await POST(updateUrl, {data: params});
+    if (!response.ok) {
+      showErrorToast(`Failed to toggle 'work in progress' status`);
+      return;
     }
+    window.location.reload();
   }));
 }
 
