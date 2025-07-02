@@ -97,11 +97,16 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	require.NoError(t, err)
 	/*** END SETUP ***/
 
+	// not found
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/no-such/file.md", user2.Name, repo1.Name)
+	resp := MakeRequest(t, req, http.StatusNotFound)
+	assert.Contains(t, resp.Body.String(), "object does not exist [id: , rel_path: no-such]")
+
 	// ref is default ref
 	ref := repo1.DefaultBranch
 	refType := "branch"
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
-	resp := MakeRequest(t, req, http.StatusOK)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
+	resp = MakeRequest(t, req, http.StatusOK)
 	var contentsResponse api.ContentsResponse
 	DecodeJSON(t, resp, &contentsResponse)
 	lastCommit, _ := gitRepo.GetCommitByPath("README.md")
@@ -116,7 +121,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	expectedContentsResponse = getExpectedContentsResponseForContents(repo1.DefaultBranch, refType, lastCommit.ID.String())
 	assert.Equal(t, *expectedContentsResponse, contentsResponse)
 
-	// ref is the branch we created above  in setup
+	// ref is the branch we created above in setup
 	ref = newBranch
 	refType = "branch"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
@@ -256,7 +261,7 @@ func testAPIGetContentsExt(t *testing.T) {
 		assert.Equal(t, util.ToPointer("0b8d8b5f15046343fd32f451df93acc2bdd9e6373be478b968e4cad6b6647351"), respFile.LfsOid)
 	})
 	t.Run("FileContents", func(t *testing.T) {
-		// by default, no file content is returned
+		// by default, no file content or commit info is returned
 		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs/README.md?ref=sub-home-md-img-check")
 		resp := MakeRequest(t, req, http.StatusOK)
 		var contentsResponse api.ContentsExtResponse
@@ -277,8 +282,8 @@ func testAPIGetContentsExt(t *testing.T) {
 		assert.Equal(t, "README.md", contentsResponse.FileContents.Name)
 		assert.NotNil(t, contentsResponse.FileContents.Encoding)
 		assert.NotNil(t, contentsResponse.FileContents.Content)
-		assert.NotNil(t, contentsResponse.FileContents.LastCommitSHA)
-		assert.NotNil(t, contentsResponse.FileContents.LastCommitMessage)
+		assert.Equal(t, "4649299398e4d39a5c09eb4f534df6f1e1eb87cc", *contentsResponse.FileContents.LastCommitSHA)
+		assert.Equal(t, "Test how READMEs render images when found in a subfolder\n", *contentsResponse.FileContents.LastCommitMessage)
 
 		req = NewRequestf(t, "GET", "/api/v1/repos/user2/lfs/contents-ext/jpeg.jpg?includes=file_content").AddTokenAuth(token2)
 		resp = session.MakeRequest(t, req, http.StatusOK)
