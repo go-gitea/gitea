@@ -7519,6 +7519,55 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/contents-ext": {
+      "get": {
+        "description": "It guarantees that only one of the response fields is set if the request succeeds. Users can pass \"includes=file_content\" or \"includes=lfs_metadata\" to retrieve more fields. \"includes=file_content\" only works for single file, if you need to retrieve file contents in batch, use \"file-contents\" API after listing the directory.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "The extended \"contents\" API, to get root directory metadata and/or content.",
+        "operationId": "repoGetContentsExtAtRoot",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the name of the commit/branch/tag, default to the repository's default branch.",
+            "name": "ref",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "By default this API's response only contains file's metadata. Use comma-separated \"includes\" options to retrieve more fields. Option \"file_content\" will try to retrieve the file content, option \"lfs_metadata\" will try to retrieve LFS metadata.",
+            "name": "includes",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ContentsExtResponse"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/contents-ext/{filepath}": {
       "get": {
         "description": "It guarantees that only one of the response fields is set if the request succeeds. Users can pass \"includes=file_content\" or \"includes=lfs_metadata\" to retrieve more fields. \"includes=file_content\" only works for single file, if you need to retrieve file contents in batch, use \"file-contents\" API after listing the directory.",
