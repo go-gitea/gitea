@@ -71,6 +71,7 @@ type Metadata struct {
 	ReleaseNotes             string `json:"release_notes,omitempty"`
 	RepositoryURL            string `json:"repository_url,omitempty"`
 	RequireLicenseAcceptance bool   `json:"require_license_acceptance"`
+	Summary                  string `json:"summary,omitempty"`
 	Tags                     string `json:"tags,omitempty"`
 	Title                    string `json:"title,omitempty"`
 
@@ -105,6 +106,7 @@ type nuspecPackage struct {
 		Readme                   string `xml:"readme"`
 		ReleaseNotes             string `xml:"releaseNotes"`
 		RequireLicenseAcceptance bool   `xml:"requireLicenseAcceptance"`
+		Summary                  string `xml:"summary"`
 		Tags                     string `xml:"tags"`
 		Title                    string `xml:"title"`
 
@@ -204,6 +206,7 @@ func ParseNuspecMetaData(archive *zip.Reader, r io.Reader) (*Package, error) {
 		ReleaseNotes:             p.Metadata.ReleaseNotes,
 		RepositoryURL:            p.Metadata.Repository.URL,
 		RequireLicenseAcceptance: p.Metadata.RequireLicenseAcceptance,
+		Summary:                  p.Metadata.Summary,
 		Tags:                     p.Metadata.Tags,
 		Title:                    p.Metadata.Title,
 

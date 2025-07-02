@@ -60,7 +60,8 @@ type CatalogEntry struct {
 	ReleaseNotes             string                    `json:"releaseNotes"`
 	Authors                  string                    `json:"authors"`
 	RequireLicenseAcceptance bool                      `json:"requireLicenseAcceptance"`
-	ProjectURL               string                    `json:"projectURL"`
+	ProjectURL               string                    `json:"projectUrl"`
+	IconURL                  string                    `json:"iconUrl"`
 	DependencyGroups         []*PackageDependencyGroup `json:"dependencyGroups"`
 }
 
@@ -109,15 +110,17 @@ func createRegistrationIndexPageItem(l *linkBuilder, pd *packages_model.PackageD
 		RegistrationLeafURL: l.GetRegistrationLeafURL(pd.Package.Name, pd.Version.Version),
 		PackageContentURL:   l.GetPackageDownloadURL(pd.Package.Name, pd.Version.Version),
 		CatalogEntry: &CatalogEntry{
-			CatalogLeafURL:    l.GetRegistrationLeafURL(pd.Package.Name, pd.Version.Version),
-			PackageContentURL: l.GetPackageDownloadURL(pd.Package.Name, pd.Version.Version),
-			ID:                pd.Package.Name,
-			Version:           pd.Version.Version,
-			Description:       metadata.Description,
-			ReleaseNotes:      metadata.ReleaseNotes,
-			Authors:           metadata.Authors,
-			ProjectURL:        metadata.ProjectURL,
-			DependencyGroups:  createDependencyGroups(pd),
+			CatalogLeafURL:           l.GetRegistrationLeafURL(pd.Package.Name, pd.Version.Version),
+			PackageContentURL:        l.GetPackageDownloadURL(pd.Package.Name, pd.Version.Version),
+			ID:                       pd.Package.Name,
+			Version:                  pd.Version.Version,
+			Description:              metadata.Description,
+			ReleaseNotes:             metadata.ReleaseNotes,
+			Authors:                  metadata.Authors,
+			RequireLicenseAcceptance: metadata.RequireLicenseAcceptance,
+			ProjectURL:               metadata.ProjectURL,
+			IconURL:                  metadata.IconURL,
+			DependencyGroups:         createDependencyGroups(pd),
 		},
 	}
 }
@@ -188,13 +191,22 @@ type SearchResultResponse struct {
 
 // https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-result
 type SearchResult struct {
-	ID                   string                 `json:"id"`
-	Version              string                 `json:"version"`
-	Versions             []*SearchResultVersion `json:"versions"`
-	Description          string                 `json:"description"`
-	Authors              string                 `json:"authors"`
-	ProjectURL           string                 `json:"projectURL"`
-	RegistrationIndexURL string                 `json:"registration"`
+	Authors                  string                 `json:"authors"`
+	Copyright                string                 `json:"copyright"`
+	Description              string                 `json:"description"`
+	IconURL                  string                 `json:"iconUrl"`
+	ID                       string                 `json:"id"`
+	IsPrerelease             bool                   `json:"isPrerelease"`
+	Language                 string                 `json:"language"`
+	LicenseURL               string                 `json:"licenseUrl"`
+	ProjectURL               string                 `json:"projectUrl"`
+	RequireLicenseAcceptance bool                   `json:"requireLicenseAcceptance"`
+	Summary                  string                 `json:"summary"`
+	Tags                     string                 `json:"tags"`
+	Title                    string                 `json:"title"`
+	Version                  string                 `json:"version"`
+	Versions                 []*SearchResultVersion `json:"versions"`
+	RegistrationIndexURL     string                 `json:"registration"`
 }
 
 // https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-result
@@ -244,12 +256,21 @@ func createSearchResult(l *linkBuilder, pds []*packages_model.PackageDescriptor)
 	metadata := latest.Metadata.(*nuget_module.Metadata)
 
 	return &SearchResult{
-		ID:                   latest.Package.Name,
-		Version:              latest.Version.Version,
-		Versions:             versions,
-		Description:          metadata.Description,
-		Authors:              metadata.Authors,
-		ProjectURL:           metadata.ProjectURL,
-		RegistrationIndexURL: l.GetRegistrationIndexURL(latest.Package.Name),
+		Authors:                  metadata.Authors,
+		Copyright:                metadata.Copyright,
+		Description:              metadata.Description,
+		IconURL:                  metadata.IconURL,
+		ID:                       latest.Package.Name,
+		IsPrerelease:             latest.Version.IsPrerelease(),
+		Language:                 metadata.Language,
+		LicenseURL:               metadata.LicenseURL,
+		ProjectURL:               metadata.ProjectURL,
+		RequireLicenseAcceptance: metadata.RequireLicenseAcceptance,
+		Summary:                  metadata.Summary,
+		Tags:                     metadata.Tags,
+		Title:                    metadata.Title,
+		Version:                  latest.Version.Version,
+		Versions:                 versions,
+		RegistrationIndexURL:     l.GetRegistrationIndexURL(latest.Package.Name),
 	}
 }
