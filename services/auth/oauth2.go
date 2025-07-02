@@ -13,6 +13,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/httpauth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -97,10 +98,7 @@ func parseToken(req *http.Request) (string, bool) {
 
 	// check header token
 	if auHead := req.Header.Get("Authorization"); auHead != "" {
-		auths := strings.Fields(auHead)
-		if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
-			return auths[1], true
-		}
+		return httpauth.ParseAuthorizationHeaderBearerToken(auHead)
 	}
 	return "", false
 }
