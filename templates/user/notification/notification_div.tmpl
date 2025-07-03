@@ -37,15 +37,7 @@
 					{{range $notification := .Notifications}}
 						<div class="notifications-item tw-flex tw-items-center tw-flex-wrap tw-gap-2 tw-p-2" id="notification_{{.ID}}" data-status="{{.Status}}">
 							<div class="notifications-icon tw-ml-2 tw-mr-1 tw-self-start tw-mt-1">
-								{{if .Issue}}
-									{{template "shared/issueicon" .Issue}}
-								{{else if .Release}}
-									{{svg "octicon-tag" 16 "text grey"}}
-								{{else if .Commit}}
-									{{svg "octicon-git-commit" 16 "text grey"}}
-								{{else}}
-									{{svg "octicon-repo" 16 "text grey"}}
-								{{end}}
+								{{.IconHTML ctx}}
 							</div>
 							<a class="notifications-link tw-flex tw-flex-1 tw-flex-col silenced" href="{{.Link ctx}}">
 								<div class="notifications-top-row tw-text-13 tw-break-anywhere">

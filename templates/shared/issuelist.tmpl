@@ -7,7 +7,7 @@
 				{{if $.CanWriteIssuesOrPulls}}
 				<input type="checkbox" autocomplete="off" class="issue-checkbox tw-mr-4" data-issue-id={{.ID}} aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
 				{{end}}
-				{{template "shared/issueicon" .}}
+				{{.IconHTML ctx}}
 			</div>
 
 			<div class="flex-item-main">

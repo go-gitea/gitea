@@ -1,6 +1,6 @@
 import type {Issue} from '../types.ts';
 
-// the getIssueIcon/getIssueColor logic should be kept the same as "templates/shared/issueicon.tmpl"
+// the getIssueIcon/getIssueColor logic should be kept the same as "models/activities/issue.IconHTML"
 
 export function getIssueIcon(issue: Issue) {
   if (issue.pull_request) {

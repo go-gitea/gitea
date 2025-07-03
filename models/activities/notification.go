@@ -6,6 +6,7 @@ package activities
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/url"
 	"strconv"
 
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -377,6 +379,22 @@ func (n *Notification) Link(ctx context.Context) string {
 		return n.Release.Link()
 	}
 	return ""
+}
+
+func (n *Notification) IconHTML(ctx context.Context) template.HTML {
+	switch n.Source {
+	case NotificationSourceIssue, NotificationSourcePullRequest:
+		// n.Issue should be loaded before calling this method
+		return n.Issue.IconHTML(ctx)
+	case NotificationSourceCommit:
+		return svg.RenderHTML("octicon-commit", 16, "text grey")
+	case NotificationSourceRepository:
+		return svg.RenderHTML("octicon-repo", 16, "text grey")
+	case NotificationSourceRelease:
+		return svg.RenderHTML("octicon-tag", 16, "text grey")
+	default:
+		return ""
+	}
 }
 
 // APIURL formats a URL-string to the notification

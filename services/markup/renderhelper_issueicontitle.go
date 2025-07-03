@@ -58,10 +58,6 @@ func renderRepoIssueIconTitle(ctx context.Context, opts markup.RenderIssueIconTi
 		}
 	}
 
-	htmlIcon, err := webCtx.RenderToHTML("shared/issueicon", issue)
-	if err != nil {
-		return "", err
-	}
-
-	return htmlutil.HTMLFormat(`<a href="%s">%s %s %s</a>`, opts.LinkHref, htmlIcon, issue.Title, textIssueIndex), nil
+	return htmlutil.HTMLFormat(`<a href="%s">%s %s %s</a>`, opts.LinkHref,
+		issue.IconHTML(ctx), issue.Title, textIssueIndex), nil
 }
