@@ -305,7 +305,7 @@ func Diff(ctx *context.Context) {
 	if ctx.IsSigned {
 		err = activities_model.SetCommitReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, commitID)
 		if err != nil {
-			ctx.ServerError("SetReleaseReadBy", err)
+			ctx.ServerError("SetCommitReadBy", err)
 			return
 		}
 	}
