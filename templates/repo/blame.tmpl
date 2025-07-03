@@ -82,6 +82,8 @@
 			</table>
 			{{end}}{{/* end if .IsFileTooLarge */}}
 			<div class="code-line-menu tippy-target">
+				{{/*FIXME: the "HasSourceRenderedToggle" is never set on blame page, it should mean "whether the file is renderable".
+				If the file is renderable, then it must has the "display=source" parameter to make sure the file view page shows the source code, then line number works. */}}
 				{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
 					<a class="item ref-in-new-issue" role="menuitem" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}" rel="nofollow noindex">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</a>
 				{{end}}

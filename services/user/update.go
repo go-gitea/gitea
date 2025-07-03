@@ -137,7 +137,7 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		} else if !user_model.IsLastAdminUser(ctx, u) /* not the last admin */ {
 			u.IsAdmin = opts.IsAdmin.Value().FieldValue // it's safe to change it from false to true (not the last admin)
 			cols = append(cols, "is_admin")
-		} else /* IsAdmin=false but this is the last admin user */ { //nolint
+		} else /* IsAdmin=false but this is the last admin user */ { //nolint:gocritic // make it easier to read
 			if !opts.IsAdmin.Value().FromSync {
 				return user_model.ErrDeleteLastAdminUser{UID: u.ID}
 			}

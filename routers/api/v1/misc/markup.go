@@ -42,7 +42,7 @@ func Markup(ctx *context.APIContext) {
 		return
 	}
 
-	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck
+	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
 	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, form.FilePath)
 }
 
@@ -73,7 +73,7 @@ func Markdown(ctx *context.APIContext) {
 		return
 	}
 
-	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck
+	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
 	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, "")
 }
 

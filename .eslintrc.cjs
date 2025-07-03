@@ -91,6 +91,7 @@ module.exports = {
       plugins: ['@vitest/eslint-plugin'],
       globals: vitestPlugin.environments.env.globals,
       rules: {
+        'github/unescaped-html-literal': [0],
         '@vitest/consistent-test-filename': [0],
         '@vitest/consistent-test-it': [0],
         '@vitest/expect-expect': [0],
@@ -423,7 +424,7 @@ module.exports = {
     'github/no-useless-passive': [2],
     'github/prefer-observers': [2],
     'github/require-passive-events': [2],
-    'github/unescaped-html-literal': [0],
+    'github/unescaped-html-literal': [2],
     'grouped-accessor-pairs': [2],
     'guard-for-in': [0],
     'id-blacklist': [0],

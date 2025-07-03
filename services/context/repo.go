@@ -71,11 +71,6 @@ func (r *Repository) CanWriteToBranch(ctx context.Context, user *user_model.User
 	return issues_model.CanMaintainerWriteToBranch(ctx, r.Permission, branch, user)
 }
 
-// CanEnableEditor returns true if repository is editable and user has proper access level.
-func (r *Repository) CanEnableEditor(ctx context.Context, user *user_model.User) bool {
-	return r.RefFullName.IsBranch() && r.CanWriteToBranch(ctx, user, r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
-}
-
 // CanCreateBranch returns true if repository is editable and user has proper access level.
 func (r *Repository) CanCreateBranch() bool {
 	return r.Permission.CanWrite(unit_model.TypeCode) && r.Repository.CanCreateBranch()
@@ -94,9 +89,13 @@ func RepoMustNotBeArchived() func(ctx *Context) {
 	}
 }
 
-type CommitFormBehaviors struct {
+type CommitFormOptions struct {
+	NeedFork bool
+
+	TargetRepo               *repo_model.Repository
+	TargetFormAction         string
+	WillSubmitToFork         bool
 	CanCommitToBranch        bool
-	EditorEnabled            bool
 	UserCanPush              bool
 	RequireSigned            bool
 	WillSign                 bool
@@ -106,51 +105,84 @@ type CommitFormBehaviors struct {
 	CanCreateBasePullRequest bool
 }
 
-func (r *Repository) PrepareCommitFormBehaviors(ctx *Context, doer *user_model.User) (*CommitFormBehaviors, error) {
-	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, r.Repository.ID, r.BranchName)
+func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *repo_model.Repository, doerRepoPerm access_model.Permission, refName git.RefName) (*CommitFormOptions, error) {
+	if !refName.IsBranch() {
+		// it shouldn't happen because middleware already checks
+		return nil, util.NewInvalidArgumentErrorf("ref %q is not a branch", refName)
+	}
+
+	originRepo := targetRepo
+	branchName := refName.ShortName()
+	// TODO: CanMaintainerWriteToBranch is a bad name, but it really does what "CanWriteToBranch" does
+	if !issues_model.CanMaintainerWriteToBranch(ctx, doerRepoPerm, branchName, doer) {
+		targetRepo = repo_model.GetForkedRepo(ctx, doer.ID, targetRepo.ID)
+		if targetRepo == nil {
+			return &CommitFormOptions{NeedFork: true}, nil
+		}
+		// now, we get our own forked repo; it must be writable by us.
+	}
+	submitToForkedRepo := targetRepo.ID != originRepo.ID
+	err := targetRepo.GetBaseRepo(ctx)
 	if err != nil {
 		return nil, err
 	}
-	userCanPush := true
-	requireSigned := false
-	if protectedBranch != nil {
-		protectedBranch.Repo = r.Repository
-		userCanPush = protectedBranch.CanUserPush(ctx, doer)
-		requireSigned = protectedBranch.RequireSignedCommits
-	}
 
-	sign, keyID, _, err := asymkey_service.SignCRUDAction(ctx, r.Repository.RepoPath(), doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
-
-	canEnableEditor := r.CanEnableEditor(ctx, doer)
-	canCommit := canEnableEditor && userCanPush
-	if requireSigned {
-		canCommit = canCommit && sign
-	}
-	wontSignReason := ""
+	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, targetRepo.ID, branchName)
 	if err != nil {
-		if asymkey_service.IsErrWontSign(err) {
-			wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
-			err = nil
-		} else {
-			wontSignReason = "error"
-		}
+		return nil, err
+	}
+	canPushWithProtection := true
+	protectionRequireSigned := false
+	if protectedBranch != nil {
+		protectedBranch.Repo = targetRepo
+		canPushWithProtection = protectedBranch.CanUserPush(ctx, doer)
+		protectionRequireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	canCreateBasePullRequest := ctx.Repo.Repository.BaseRepo != nil && ctx.Repo.Repository.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests)
-	canCreatePullRequest := ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypePullRequests) || canCreateBasePullRequest
+	willSign, signKeyID, _, err := asymkey_service.SignCRUDAction(ctx, targetRepo.RepoPath(), doer, targetRepo.RepoPath(), refName.String())
+	wontSignReason := ""
+	if asymkey_service.IsErrWontSign(err) {
+		wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
+	} else if err != nil {
+		return nil, err
+	}
 
-	return &CommitFormBehaviors{
-		CanCommitToBranch: canCommit,
-		EditorEnabled:     canEnableEditor,
-		UserCanPush:       userCanPush,
-		RequireSigned:     requireSigned,
-		WillSign:          sign,
-		SigningKey:        keyID,
+	canCommitToBranch := !submitToForkedRepo /* same repo */ && targetRepo.CanEnableEditor() && canPushWithProtection
+	if protectionRequireSigned {
+		canCommitToBranch = canCommitToBranch && willSign
+	}
+
+	canCreateBasePullRequest := targetRepo.BaseRepo != nil && targetRepo.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests)
+	canCreatePullRequest := targetRepo.UnitEnabled(ctx, unit_model.TypePullRequests) || canCreateBasePullRequest
+
+	opts := &CommitFormOptions{
+		TargetRepo:        targetRepo,
+		WillSubmitToFork:  submitToForkedRepo,
+		CanCommitToBranch: canCommitToBranch,
+		UserCanPush:       canPushWithProtection,
+		RequireSigned:     protectionRequireSigned,
+		WillSign:          willSign,
+		SigningKey:        signKeyID,
 		WontSignReason:    wontSignReason,
 
 		CanCreatePullRequest:     canCreatePullRequest,
 		CanCreateBasePullRequest: canCreateBasePullRequest,
-	}, err
+	}
+	editorAction := ctx.PathParam("editor_action")
+	editorPathParamRemaining := util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+	if submitToForkedRepo {
+		// there is only "default branch" in forked repo, we will use "from_base_branch" to get a new branch from base repo
+		editorPathParamRemaining = util.PathEscapeSegments(targetRepo.DefaultBranch) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath) + "?from_base_branch=" + url.QueryEscape(branchName)
+	}
+	if editorAction == "_cherrypick" {
+		opts.TargetFormAction = targetRepo.Link() + "/" + editorAction + "/" + ctx.PathParam("sha") + "/" + editorPathParamRemaining
+	} else {
+		opts.TargetFormAction = targetRepo.Link() + "/" + editorAction + "/" + editorPathParamRemaining
+	}
+	if ctx.Req.URL.RawQuery != "" {
+		opts.TargetFormAction += util.Iif(strings.Contains(opts.TargetFormAction, "?"), "&", "?") + ctx.Req.URL.RawQuery
+	}
+	return opts, nil
 }
 
 // CanUseTimetracker returns whether a user can use the timetracker.

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -65,145 +64,58 @@ func TestGetContents(t *testing.T) {
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
-
-	treePath := "README.md"
+	repo, gitRepo := ctx.Repo.Repository, ctx.Repo.GitRepo
 	refCommit, err := utils.ResolveRefCommit(ctx, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
 	require.NoError(t, err)
 
-	expectedContentsResponse := getExpectedReadmeContentsResponse()
-
-	t.Run("Get README.md contents with GetContents(ctx, )", func(t *testing.T) {
-		fileContentResponse, err := GetContents(ctx, ctx.Repo.Repository, refCommit, treePath, false)
-		assert.Equal(t, expectedContentsResponse, fileContentResponse)
+	t.Run("GetContentsOrList(README.md)-MetaOnly", func(t *testing.T) {
+		expectedContentsResponse := getExpectedReadmeContentsResponse()
+		expectedContentsResponse.Encoding = nil // because will be in a list, doesn't have encoding and content
+		expectedContentsResponse.Content = nil
+		extResp, err := GetContentsOrList(ctx, repo, gitRepo, refCommit, GetContentsOrListOptions{TreePath: "README.md", IncludeSingleFileContent: false})
+		assert.Equal(t, expectedContentsResponse, extResp.FileContents)
 		assert.NoError(t, err)
 	})
-}
 
-func TestGetContentsOrListForDir(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetPathParam("id", "1")
-	contexttest.LoadRepo(t, ctx, 1)
-	contexttest.LoadRepoCommit(t, ctx)
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadGitRepo(t, ctx)
-	defer ctx.Repo.GitRepo.Close()
-
-	treePath := "" // root dir
-	refCommit, err := utils.ResolveRefCommit(ctx, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
-	require.NoError(t, err)
-
-	readmeContentsResponse := getExpectedReadmeContentsResponse()
-	// because will be in a list, doesn't have encoding and content
-	readmeContentsResponse.Encoding = nil
-	readmeContentsResponse.Content = nil
-
-	expectedContentsListResponse := []*api.ContentsResponse{
-		readmeContentsResponse,
-	}
-
-	t.Run("Get root dir contents with GetContentsOrList(ctx, )", func(t *testing.T) {
-		fileContentResponse, err := GetContentsOrList(ctx, ctx.Repo.Repository, refCommit, treePath)
-		assert.EqualValues(t, expectedContentsListResponse, fileContentResponse)
+	t.Run("GetContentsOrList(README.md)", func(t *testing.T) {
+		expectedContentsResponse := getExpectedReadmeContentsResponse()
+		extResp, err := GetContentsOrList(ctx, repo, gitRepo, refCommit, GetContentsOrListOptions{TreePath: "README.md", IncludeSingleFileContent: true})
+		assert.Equal(t, expectedContentsResponse, extResp.FileContents)
 		assert.NoError(t, err)
 	})
-}
 
-func TestGetContentsOrListForFile(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetPathParam("id", "1")
-	contexttest.LoadRepo(t, ctx, 1)
-	contexttest.LoadRepoCommit(t, ctx)
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadGitRepo(t, ctx)
-	defer ctx.Repo.GitRepo.Close()
-
-	treePath := "README.md"
-	refCommit, err := utils.ResolveRefCommit(ctx, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
-	require.NoError(t, err)
-
-	expectedContentsResponse := getExpectedReadmeContentsResponse()
-
-	t.Run("Get README.md contents with GetContentsOrList(ctx, )", func(t *testing.T) {
-		fileContentResponse, err := GetContentsOrList(ctx, ctx.Repo.Repository, refCommit, treePath)
-		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
+	t.Run("GetContentsOrList(RootDir)", func(t *testing.T) {
+		readmeContentsResponse := getExpectedReadmeContentsResponse()
+		readmeContentsResponse.Encoding = nil // because will be in a list, doesn't have encoding and content
+		readmeContentsResponse.Content = nil
+		expectedContentsListResponse := []*api.ContentsResponse{readmeContentsResponse}
+		// even if IncludeFileContent is true, it has no effect for directory listing
+		extResp, err := GetContentsOrList(ctx, repo, gitRepo, refCommit, GetContentsOrListOptions{TreePath: "", IncludeSingleFileContent: true})
+		assert.Equal(t, expectedContentsListResponse, extResp.DirContents)
 		assert.NoError(t, err)
 	})
-}
 
-func TestGetContentsErrors(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetPathParam("id", "1")
-	contexttest.LoadRepo(t, ctx, 1)
-	contexttest.LoadRepoCommit(t, ctx)
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadGitRepo(t, ctx)
-	defer ctx.Repo.GitRepo.Close()
-
-	repo := ctx.Repo.Repository
-	refCommit, err := utils.ResolveRefCommit(ctx, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
-	require.NoError(t, err)
-
-	t.Run("bad treePath", func(t *testing.T) {
-		badTreePath := "bad/tree.md"
-		fileContentResponse, err := GetContents(ctx, repo, refCommit, badTreePath, false)
+	t.Run("GetContentsOrList(NoSuchTreePath)", func(t *testing.T) {
+		extResp, err := GetContentsOrList(ctx, repo, gitRepo, refCommit, GetContentsOrListOptions{TreePath: "no-such/file.md"})
 		assert.Error(t, err)
-		assert.EqualError(t, err, "object does not exist [id: , rel_path: bad]")
-		assert.Nil(t, fileContentResponse)
+		assert.EqualError(t, err, "object does not exist [id: , rel_path: no-such]")
+		assert.Nil(t, extResp.DirContents)
+		assert.Nil(t, extResp.FileContents)
 	})
-}
 
-func TestGetContentsOrListErrors(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetPathParam("id", "1")
-	contexttest.LoadRepo(t, ctx, 1)
-	contexttest.LoadRepoCommit(t, ctx)
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadGitRepo(t, ctx)
-	defer ctx.Repo.GitRepo.Close()
-
-	repo := ctx.Repo.Repository
-	refCommit, err := utils.ResolveRefCommit(ctx, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
-	require.NoError(t, err)
-
-	t.Run("bad treePath", func(t *testing.T) {
-		badTreePath := "bad/tree.md"
-		fileContentResponse, err := GetContentsOrList(ctx, repo, refCommit, badTreePath)
-		assert.Error(t, err)
-		assert.EqualError(t, err, "object does not exist [id: , rel_path: bad]")
-		assert.Nil(t, fileContentResponse)
+	t.Run("GetBlobBySHA", func(t *testing.T) {
+		sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+		ctx.SetPathParam("id", "1")
+		ctx.SetPathParam("sha", sha)
+		gbr, err := GetBlobBySHA(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("sha"))
+		expectedGBR := &api.GitBlobResponse{
+			Content:  util.ToPointer("dHJlZSAyYTJmMWQ0NjcwNzI4YTJlMTAwNDllMzQ1YmQ3YTI3NjQ2OGJlYWI2CmF1dGhvciB1c2VyMSA8YWRkcmVzczFAZXhhbXBsZS5jb20+IDE0ODk5NTY0NzkgLTA0MDAKY29tbWl0dGVyIEV0aGFuIEtvZW5pZyA8ZXRoYW50a29lbmlnQGdtYWlsLmNvbT4gMTQ4OTk1NjQ3OSAtMDQwMAoKSW5pdGlhbCBjb21taXQK"),
+			Encoding: util.ToPointer("base64"),
+			URL:      "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/65f1bf27bc3bf70f64657658635e66094edbcb4d",
+			SHA:      "65f1bf27bc3bf70f64657658635e66094edbcb4d",
+			Size:     180,
+		}
+		assert.NoError(t, err)
+		assert.Equal(t, expectedGBR, gbr)
 	})
-}
-
-func TestGetBlobBySHA(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	contexttest.LoadRepo(t, ctx, 1)
-	contexttest.LoadRepoCommit(t, ctx)
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadGitRepo(t, ctx)
-	defer ctx.Repo.GitRepo.Close()
-
-	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
-	ctx.SetPathParam("id", "1")
-	ctx.SetPathParam("sha", sha)
-
-	gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
-	if err != nil {
-		t.Fail()
-	}
-
-	gbr, err := GetBlobBySHA(ctx, ctx.Repo.Repository, gitRepo, ctx.PathParam("sha"))
-	expectedGBR := &api.GitBlobResponse{
-		Content:  util.ToPointer("dHJlZSAyYTJmMWQ0NjcwNzI4YTJlMTAwNDllMzQ1YmQ3YTI3NjQ2OGJlYWI2CmF1dGhvciB1c2VyMSA8YWRkcmVzczFAZXhhbXBsZS5jb20+IDE0ODk5NTY0NzkgLTA0MDAKY29tbWl0dGVyIEV0aGFuIEtvZW5pZyA8ZXRoYW50a29lbmlnQGdtYWlsLmNvbT4gMTQ4OTk1NjQ3OSAtMDQwMAoKSW5pdGlhbCBjb21taXQK"),
-		Encoding: util.ToPointer("base64"),
-		URL:      "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		SHA:      "65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		Size:     180,
-	}
-	assert.NoError(t, err)
-	assert.Equal(t, expectedGBR, gbr)
 }

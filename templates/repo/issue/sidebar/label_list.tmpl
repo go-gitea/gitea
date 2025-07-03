@@ -43,7 +43,7 @@
 		</div>
 	</div>
 
-	<div class="ui list labels-list tw-my-2 tw-flex tw-gap-2">
+	<div class="ui list labels-list">
 		<span class="item empty-list {{if $data.SelectedLabelIDs}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_label"}}</span>
 		{{range $data.AllLabels}}
 			{{if .IsChecked}}

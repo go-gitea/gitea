@@ -41,6 +41,9 @@
 						</a>
 					{{else}}
 						<a class="entry-name" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
+						{{if $entry.IsLink}}
+							<a class="entry-symbol-link flex-text-inline" data-tooltip-content title="{{ctx.Locale.Tr "repo.find_file.follow_symlink"}}" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}?follow_symlink=1">{{svg "octicon-link" 12}}</a>
+						{{end}}
 					{{end}}
 				{{end}}
 			</div>

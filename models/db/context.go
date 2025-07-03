@@ -178,6 +178,15 @@ func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error 
 	return txWithNoCheck(parentCtx, f)
 }
 
+// WithTx2 is similar to WithTx, but it has two return values: result and error.
+func WithTx2[T any](parentCtx context.Context, f func(ctx context.Context) (T, error)) (ret T, errRet error) {
+	errRet = WithTx(parentCtx, func(ctx context.Context) (errInner error) {
+		ret, errInner = f(ctx)
+		return errInner
+	})
+	return ret, errRet
+}
+
 func txWithNoCheck(parentCtx context.Context, f func(ctx context.Context) error) error {
 	sess := xormEngine.NewSession()
 	defer sess.Close()
