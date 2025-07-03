@@ -595,11 +595,11 @@ func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Rep
 	if authorization == "" {
 		return nil, errors.New("no token")
 	}
-	token, ok := httpauth.ParseAuthorizationHeaderBearerToken(authorization)
-	if !ok {
+	parsed, ok := httpauth.ParseAuthorizationHeader(authorization)
+	if !ok || parsed.BearerToken == nil {
 		return nil, errors.New("token not found")
 	}
-	return handleLFSToken(ctx, token, target, mode)
+	return handleLFSToken(ctx, parsed.BearerToken.Token, target, mode)
 }
 
 func requireAuth(ctx *context.Context) {

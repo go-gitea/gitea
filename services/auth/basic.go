@@ -57,7 +57,11 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	if authHeader == "" {
 		return nil, nil
 	}
-	uname, passwd, _ := httpauth.ParseAuthorizationHeaderBasic(authHeader)
+	parsed, ok := httpauth.ParseAuthorizationHeader(authHeader)
+	if !ok || parsed.BasicAuth == nil {
+		return nil, nil
+	}
+	uname, passwd := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 
 	// Check if username or password is a token
 	isUsernameToken := len(passwd) == 0 || passwd == "x-oauth-basic"

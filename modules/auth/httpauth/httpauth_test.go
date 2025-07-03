@@ -11,46 +11,33 @@ import (
 )
 
 func TestParseAuthorizationHeader(t *testing.T) {
-	t.Run("Basic", func(t *testing.T) {
-		cases := []struct {
-			headerValue string
-			user, pass  string
-			ok          bool
-		}{
-			{"", "", "", false},
-			{"?", "", "", false},
-			{"foo", "", "", false},
-			{"Basic ?", "", "", false},
-			{"Basic " + base64.StdEncoding.EncodeToString([]byte("foo")), "", "", false},
-			{"Basic " + base64.StdEncoding.EncodeToString([]byte("foo:bar")), "foo", "bar", true},
-			{"basic " + base64.StdEncoding.EncodeToString([]byte("foo:bar")), "foo", "bar", true},
-		}
-		for _, c := range cases {
-			user, pass, ok := ParseAuthorizationHeaderBasic(c.headerValue)
-			assert.Equal(t, c.ok, ok, "header %q", c.headerValue)
-			assert.Equal(t, c.user, user, "header %q", c.headerValue)
-			assert.Equal(t, c.pass, pass, "header %q", c.headerValue)
-		}
-	})
-	t.Run("BearerToken", func(t *testing.T) {
-		cases := []struct {
-			headerValue string
-			expected    string
-			ok          bool
-		}{
-			{"", "", false},
-			{"?", "", false},
-			{"any value", "", false},
-			{"token value", "value", true},
-			{"Token value", "value", true},
-			{"bearer value", "value", true},
-			{"Bearer value", "value", true},
-			{"Bearer wrong value", "", false},
-		}
-		for _, c := range cases {
-			token, ok := ParseAuthorizationHeaderBearerToken(c.headerValue)
-			assert.Equal(t, c.ok, ok, "header %q", c.headerValue)
-			assert.Equal(t, c.expected, token, "header %q", c.headerValue)
-		}
-	})
+	type parsed = ParsedAuthorizationHeader
+	type basic = BasicAuth
+	type bearer = BearerToken
+	cases := []struct {
+		headerValue string
+		expected    parsed
+		ok          bool
+	}{
+		{"", parsed{}, false},
+		{"?", parsed{}, false},
+		{"foo", parsed{}, false},
+		{"any value", parsed{}, false},
+
+		{"Basic ?", parsed{}, false},
+		{"Basic " + base64.StdEncoding.EncodeToString([]byte("foo")), parsed{}, false},
+		{"Basic " + base64.StdEncoding.EncodeToString([]byte("foo:bar")), parsed{BasicAuth: &basic{"foo", "bar"}}, true},
+		{"basic " + base64.StdEncoding.EncodeToString([]byte("foo:bar")), parsed{BasicAuth: &basic{"foo", "bar"}}, true},
+
+		{"token value", parsed{BearerToken: &bearer{"value"}}, true},
+		{"Token value", parsed{BearerToken: &bearer{"value"}}, true},
+		{"bearer value", parsed{BearerToken: &bearer{"value"}}, true},
+		{"Bearer value", parsed{BearerToken: &bearer{"value"}}, true},
+		{"Bearer wrong value", parsed{}, false},
+	}
+	for _, c := range cases {
+		ret, ok := ParseAuthorizationHeader(c.headerValue)
+		assert.Equal(t, c.ok, ok, "header %q", c.headerValue)
+		assert.Equal(t, c.expected, ret, "header %q", c.headerValue)
+	}
 }

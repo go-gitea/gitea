@@ -98,7 +98,10 @@ func parseToken(req *http.Request) (string, bool) {
 
 	// check header token
 	if auHead := req.Header.Get("Authorization"); auHead != "" {
-		return httpauth.ParseAuthorizationHeaderBearerToken(auHead)
+		parsed, ok := httpauth.ParseAuthorizationHeader(auHead)
+		if ok && parsed.BearerToken != nil {
+			return parsed.BearerToken.Token, true
+		}
 	}
 	return "", false
 }

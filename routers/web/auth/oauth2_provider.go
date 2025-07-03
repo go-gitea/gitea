@@ -106,8 +106,8 @@ func InfoOAuth(ctx *context.Context) {
 
 	var accessTokenScope auth.AccessTokenScope
 	if auHead := ctx.Req.Header.Get("Authorization"); auHead != "" {
-		if headerAuthToken, ok := httpauth.ParseAuthorizationHeaderBearerToken(auHead); ok {
-			accessTokenScope, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, headerAuthToken)
+		if parsed, ok := httpauth.ParseAuthorizationHeader(auHead); ok && parsed.BearerToken != nil {
+			accessTokenScope, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, parsed.BearerToken.Token)
 		}
 	}
 
@@ -128,7 +128,8 @@ func InfoOAuth(ctx *context.Context) {
 func IntrospectOAuth(ctx *context.Context) {
 	clientIDValid := false
 	authHeader := ctx.Req.Header.Get("Authorization")
-	if clientID, clientSecret, ok := httpauth.ParseAuthorizationHeaderBasic(authHeader); ok {
+	if parsed, ok := httpauth.ParseAuthorizationHeader(authHeader); ok && parsed.BasicAuth != nil {
+		clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 		app, err := auth.GetOAuth2ApplicationByClientID(ctx, clientID)
 		if err != nil && !auth.IsErrOauthClientIDInvalid(err) {
 			// this is likely a database error; log it and respond without details
@@ -456,14 +457,15 @@ func AccessTokenOAuth(ctx *context.Context) {
 	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
 	if form.ClientID == "" || form.ClientSecret == "" {
 		if authHeader := ctx.Req.Header.Get("Authorization"); authHeader != "" {
-			clientID, clientSecret, ok := httpauth.ParseAuthorizationHeaderBasic(authHeader)
-			if !ok {
+			parsed, ok := httpauth.ParseAuthorizationHeader(authHeader)
+			if !ok || parsed.BasicAuth == nil {
 				handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 					ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidRequest,
 					ErrorDescription: "cannot parse basic auth header",
 				})
 				return
 			}
+			clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 			// validate that any fields present in the form match the Basic auth header
 			if form.ClientID != "" && form.ClientID != clientID {
 				handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
