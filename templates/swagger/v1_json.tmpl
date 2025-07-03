@@ -7547,7 +7547,7 @@
           },
           {
             "type": "string",
-            "description": "path of the dir, file, symlink or submodule in the repo",
+            "description": "path of the dir, file, symlink or submodule in the repo. Swagger requires path parameter to be \"required\", you can leave it empty or pass a single dot (\".\") to get the root directory.",
             "name": "filepath",
             "in": "path",
             "required": true
@@ -7560,7 +7560,7 @@
           },
           {
             "type": "string",
-            "description": "By default this API's response only contains file's metadata. Use comma-separated \"includes\" options to retrieve more fields. Option \"file_content\" will try to retrieve the file content, option \"lfs_metadata\" will try to retrieve LFS metadata.",
+            "description": "By default this API's response only contains file's metadata. Use comma-separated \"includes\" options to retrieve more fields. Option \"file_content\" will try to retrieve the file content, \"lfs_metadata\" will try to retrieve LFS metadata, \"commit_metadata\" will try to retrieve commit metadata, and \"commit_message\" will try to retrieve commit message.",
             "name": "includes",
             "in": "query"
           }
@@ -22367,6 +22367,10 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "LastAuthorDate"
+        },
+        "last_commit_message": {
+          "type": "string",
+          "x-go-name": "LastCommitMessage"
         },
         "last_commit_sha": {
           "type": "string",
