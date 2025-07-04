@@ -13,11 +13,14 @@ jobs:
 
   test-pgsql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    strategy:
+      matrix:
+        postgres: ["14", "latest"]
     needs: files-changed
     runs-on: ubuntu-latest
     services:
       pgsql:
-        image: postgres:14
+        image: postgres:${{ matrix.postgres }}
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -150,12 +153,15 @@ jobs:
 
   test-mysql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    strategy:
+      matrix:
+        mysql: ["8.0", "latest"]
     needs: files-changed
     runs-on: ubuntu-latest
     services:
       mysql:
         # the bitnami mysql image has more options than the official one, it's easier to customize
-        image: bitnami/mysql:8.0
+        image: bitnami/mysql:${{ matrix.mysql }}
         env:
           ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
@@ -201,11 +207,14 @@ jobs:
 
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    strategy:
+      matrix:
+        mssql: ["2019-latest", "latest"]
     needs: files-changed
     runs-on: ubuntu-latest
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2019-latest
+        image: mcr.microsoft.com/mssql/server:${{ matrix.mssql }}
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
