@@ -139,10 +139,8 @@ func convertToInternal(s string) ([]actions_model.Status, error) {
 // ownerID != 0 and repoID == 0 means all runs for the given user/org
 // ownerID != 0 and repoID != 0 undefined behavior
 // Access rights are checked at the API route level
-func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
-	if ownerID != 0 && repoID != 0 {
-		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
-	}
+// buildRunOptions builds the FindRunOptions from context parameters
+func buildRunOptions(ctx *context.APIContext, ownerID, repoID int64) (actions_model.FindRunOptions, error) {
 	opts := actions_model.FindRunOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
@@ -159,16 +157,14 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
 		if err != nil {
-			ctx.APIError(http.StatusBadRequest, fmt.Errorf("Invalid status %s", status))
-			return
+			return opts, fmt.Errorf("Invalid status %s", status)
 		}
 		opts.Status = append(opts.Status, values...)
 	}
 	if actor := ctx.FormString("actor"); actor != "" {
 		user, err := user_model.GetUserByName(ctx, actor)
 		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
+			return opts, err
 		}
 		opts.TriggerUserID = user.ID
 	}
@@ -247,6 +243,20 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 				opts.CreatedBefore = exactDate.Add(24*time.Hour - time.Second)
 			}
 		}
+	}
+
+	return opts, nil
+}
+
+func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
+	if ownerID != 0 && repoID != 0 {
+		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
+	}
+
+	opts, err := buildRunOptions(ctx, ownerID, repoID)
+	if err != nil {
+		ctx.APIError(http.StatusBadRequest, err)
+		return
 	}
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)

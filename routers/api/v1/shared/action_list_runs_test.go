@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/services/contexttest"
 
@@ -30,12 +29,8 @@ func TestListRunsWorkflowFiltering(t *testing.T) {
 	// Test case 1: With workflow_id parameter (simulating /workflows/{workflow_id}/runs endpoint)
 	ctx.SetPathParam("workflow_id", "test-workflow-123")
 
-	// Simulate the FindRunOptions creation that happens in ListRuns
-	opts := actions_model.FindRunOptions{
-		OwnerID:    0,
-		RepoID:     ctx.Repo.Repository.ID,
-		WorkflowID: ctx.PathParam("workflow_id"), // This is the key change being tested
-	}
+	opts, err := buildRunOptions(ctx, 0, ctx.Repo.Repository.ID)
+	assert.NoError(t, err)
 
 	// Verify the WorkflowID is correctly extracted from path parameter
 	assert.Equal(t, "test-workflow-123", opts.WorkflowID)
@@ -48,10 +43,8 @@ func TestListRunsWorkflowFiltering(t *testing.T) {
 	contexttest.LoadUser(t, ctx2, 2)
 	// No SetPathParam call - simulates general runs endpoint
 
-	opts2 := actions_model.FindRunOptions{
-		RepoID:     ctx2.Repo.Repository.ID,
-		WorkflowID: ctx2.PathParam("workflow_id"),
-	}
+	opts2, err := buildRunOptions(ctx2, 0, ctx2.Repo.Repository.ID)
+	assert.NoError(t, err)
 
 	// Verify WorkflowID is empty when path parameter is not set
 	assert.Empty(t, opts2.WorkflowID)
@@ -70,14 +63,9 @@ func TestListRunsExcludePullRequestsParam(t *testing.T) {
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadUser(t, ctx, 2)
 
-	// Call the actual parsing logic from ListRuns
-	opts := actions_model.FindRunOptions{
-		RepoID: ctx.Repo.Repository.ID,
-	}
-
-	if ctx.FormBool("exclude_pull_requests") {
-		opts.ExcludePullRequests = true
-	}
+	// Call the actual production logic
+	opts, err := buildRunOptions(ctx, 0, ctx.Repo.Repository.ID)
+	assert.NoError(t, err)
 
 	// Verify the ExcludePullRequests is correctly set based on the form value
 	assert.True(t, opts.ExcludePullRequests)
@@ -87,13 +75,8 @@ func TestListRunsExcludePullRequestsParam(t *testing.T) {
 	contexttest.LoadRepo(t, ctx2, 1)
 	contexttest.LoadUser(t, ctx2, 2)
 
-	opts2 := actions_model.FindRunOptions{
-		RepoID: ctx2.Repo.Repository.ID,
-	}
-
-	if ctx2.FormBool("exclude_pull_requests") {
-		opts2.ExcludePullRequests = true
-	}
+	opts2, err := buildRunOptions(ctx2, 0, ctx2.Repo.Repository.ID)
+	assert.NoError(t, err)
 
 	// Verify the ExcludePullRequests is correctly set for "1" value
 	assert.True(t, opts2.ExcludePullRequests)
@@ -103,13 +86,8 @@ func TestListRunsExcludePullRequestsParam(t *testing.T) {
 	contexttest.LoadRepo(t, ctx3, 1)
 	contexttest.LoadUser(t, ctx3, 2)
 
-	opts3 := actions_model.FindRunOptions{
-		RepoID: ctx3.Repo.Repository.ID,
-	}
-
-	if ctx3.FormBool("exclude_pull_requests") {
-		opts3.ExcludePullRequests = true
-	}
+	opts3, err := buildRunOptions(ctx3, 0, ctx3.Repo.Repository.ID)
+	assert.NoError(t, err)
 
 	// Verify the ExcludePullRequests is NOT set for "false" value
 	assert.False(t, opts3.ExcludePullRequests)
@@ -125,21 +103,8 @@ func TestListRunsCreatedParam(t *testing.T) {
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadUser(t, ctx, 2)
 
-	opts := actions_model.FindRunOptions{
-		RepoID: ctx.Repo.Repository.ID,
-	}
-
-	// Simulate the date parsing logic from ListRuns
-	if created := ctx.FormString("created"); created != "" {
-		if created == "2023-01-01..2023-12-31" {
-			startDate, _ := time.Parse("2006-01-02", "2023-01-01")
-			endDate, _ := time.Parse("2006-01-02", "2023-12-31")
-			endDate = endDate.Add(24*time.Hour - time.Second)
-
-			opts.CreatedAfter = startDate
-			opts.CreatedBefore = endDate
-		}
-	}
+	opts, err := buildRunOptions(ctx, 0, ctx.Repo.Repository.ID)
+	assert.NoError(t, err)
 
 	// Verify the date range is correctly parsed
 	expectedStart, _ := time.Parse("2006-01-02", "2023-01-01")
@@ -154,18 +119,8 @@ func TestListRunsCreatedParam(t *testing.T) {
 	contexttest.LoadRepo(t, ctx2, 1)
 	contexttest.LoadUser(t, ctx2, 2)
 
-	opts2 := actions_model.FindRunOptions{
-		RepoID: ctx2.Repo.Repository.ID,
-	}
-
-	// Simulate the date parsing logic for >= format
-	if created := ctx2.FormString("created"); created != "" {
-		if created == ">=2023-01-01" {
-			dateStr := "2023-01-01"
-			startDate, _ := time.Parse("2006-01-02", dateStr)
-			opts2.CreatedAfter = startDate
-		}
-	}
+	opts2, err := buildRunOptions(ctx2, 0, ctx2.Repo.Repository.ID)
+	assert.NoError(t, err)
 
 	// Verify the date is correctly parsed
 	expectedStart2, _ := time.Parse("2006-01-02", "2023-01-01")
@@ -177,18 +132,8 @@ func TestListRunsCreatedParam(t *testing.T) {
 	contexttest.LoadRepo(t, ctx3, 1)
 	contexttest.LoadUser(t, ctx3, 2)
 
-	opts3 := actions_model.FindRunOptions{
-		RepoID: ctx3.Repo.Repository.ID,
-	}
-
-	// Simulate the date parsing logic for exact date
-	if created := ctx3.FormString("created"); created != "" {
-		if created == "2023-06-15" {
-			exactDate, _ := time.Parse("2006-01-02", created)
-			opts3.CreatedAfter = exactDate
-			opts3.CreatedBefore = exactDate.Add(24*time.Hour - time.Second)
-		}
-	}
+	opts3, err := buildRunOptions(ctx3, 0, ctx3.Repo.Repository.ID)
+	assert.NoError(t, err)
 
 	// Verify the exact date is correctly parsed to a date range
 	exactDate, _ := time.Parse("2006-01-02", "2023-06-15")
