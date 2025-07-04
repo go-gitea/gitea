@@ -50,6 +50,8 @@ linters:
       require-explanation: true
       require-specific: true
     gocritic:
+      enabled-checks:
+        - equalFold
       disabled-checks:
         - ifElseChain
         - singleCaseSwitch # Every time this occurred in the code, there was no other way.

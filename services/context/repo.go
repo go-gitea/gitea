@@ -429,7 +429,7 @@ func RepoAssignment(ctx *Context) {
 	}
 
 	// Check if the user is the same as the repository owner
-	if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
+	if ctx.IsSigned && strings.EqualFold(ctx.Doer.LowerName, userName) {
 		ctx.Repo.Owner = ctx.Doer
 	} else {
 		ctx.Repo.Owner, err = user_model.GetUserByName(ctx, userName)

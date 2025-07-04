@@ -145,7 +145,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		)
 
 		// Check if the user is the same as the repository owner.
-		if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
+		if ctx.IsSigned && strings.EqualFold(ctx.Doer.LowerName, userName) {
 			owner = ctx.Doer
 		} else {
 			owner, err = user_model.GetUserByName(ctx, userName)
