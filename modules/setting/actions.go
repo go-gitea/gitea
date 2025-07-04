@@ -66,7 +66,7 @@ func (c logCompression) IsNone() bool {
 }
 
 func (c logCompression) IsZstd() bool {
-	return c == "" || strings.EqualFold(string(c), "zstd")
+	return c == "" || string(c) == "zstd"
 }
 
 func loadActionsFrom(rootCfg ConfigProvider) error {
