@@ -17,7 +17,7 @@ export function initRepoGraphGit() {
 
     const params = new URLSearchParams(window.location.search);
     params.set('mode', mode);
-    window.history.replaceState({}, '', `?${params.toString()}`);
+    window.history.replaceState(null, '', `?${params.toString()}`);
     for (const link of document.querySelectorAll('#pagination .pagination a')) {
       const href = link.getAttribute('href');
       if (!href) continue;
