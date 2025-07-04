@@ -71,11 +71,13 @@
 
 #git-graph-container li .author {
   color: var(--color-text-light);
+  flex-shrink: 0;
 }
 
 #git-graph-container li .time {
   color: var(--color-text-light-3);
   font-size: 80%;
+  flex-shrink: 0;
 }
 
 #git-graph-container li a:not(.ui):hover {
@@ -107,6 +109,10 @@
 
 #git-graph-container #rev-list li.highlight.hover {
   background-color: var(--color-secondary-alpha-30);
+}
+
+#git-graph-container #rev-list .commit-refs {
+  flex-shrink: 0;
 }
 
 #git-graph-container #rev-list .commit-refs .button {
