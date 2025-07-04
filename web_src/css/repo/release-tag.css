@@ -91,10 +91,6 @@
   border-bottom: none;
 }
 
-#tags-table .tag-list-row {
-  padding: 8px 12px;
-}
-
 #tags-table .tag-list-row-title {
   font-size: 18px;
   font-weight: var(--font-weight-normal);

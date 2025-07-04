@@ -161,7 +161,7 @@ func newTreeViewNodeFromEntry(ctx context.Context, renderedIconPool *fileicon.Re
 		FullPath:  path.Join(parentDir, entry.Name()),
 	}
 
-	entryInfo := fileicon.EntryInfoFromGitTreeEntry(entry)
+	entryInfo := fileicon.EntryInfoFromGitTreeEntry(commit, node.FullPath, entry)
 	node.EntryIcon = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
 	if entryInfo.EntryMode.IsDir() {
 		entryInfo.IsOpen = true
