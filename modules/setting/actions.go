@@ -62,7 +62,7 @@ func (c logCompression) IsValid() bool {
 }
 
 func (c logCompression) IsNone() bool {
-	return strings.EqualFold(string(c), "none")
+	return string(c) == "none"
 }
 
 func (c logCompression) IsZstd() bool {
