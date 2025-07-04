@@ -181,7 +181,7 @@ func UpdateLanguageStats(ctx context.Context, repo *Repository, commitID string,
 			if err := db.Insert(ctx, &LanguageStat{
 				RepoID:    repo.ID,
 				CommitID:  commitID,
-				IsPrimary: strings.EqualFold(lang, topLang),
+				IsPrimary: lang == topLang,
 				Language:  lang,
 				Size:      size,
 			}); err != nil {
