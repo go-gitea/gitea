@@ -8,6 +8,10 @@
 			{{ctx.Locale.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch}}
 		{{end}}
 	</div>
+	<div class="commits-table-left tw-flex tw-items-center">
+		<input type="checkbox" name="history-enable-follow-renames" class="tw-mr-[5px]"/>
+		<label for="history-enable-follow-renames">{{ctx.Locale.Tr "repo.commits.history_follow_rename"}}</label>
+	</div>
 	{{if .IsDiffCompare}}
 		<div class="commits-table-right tw-whitespace-nowrap">
 			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID | PathEscape}}" class="ui green sha label tw-mx-0">{{if not .BaseIsCommit}}{{if .BaseIsBranch}}{{svg "octicon-git-branch"}}{{else if .BaseIsTag}}{{svg "octicon-tag"}}{{end}}{{.BaseBranch}}{{else}}{{ShortSha .BaseBranch}}{{end}}</a>

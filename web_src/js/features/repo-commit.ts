@@ -24,3 +24,20 @@ export function initCommitStatuses() {
     });
   });
 }
+
+export function initCommitFileHistoryFollowRename() {
+  const checkbox : HTMLInputElement | null = document.querySelector('input[name=history-enable-follow-renames]');
+
+  if (!checkbox) {
+    return;
+  }
+  const url = new URL(window.location.toString());
+  checkbox.checked = url.searchParams.has('history_follow_rename', 'true');
+
+  checkbox.addEventListener('change', () => {
+    const url = new URL(window.location);
+
+    url.searchParams.set('history_follow_rename', `${checkbox.checked}`);
+    window.location.replace(url);
+  });
+}
