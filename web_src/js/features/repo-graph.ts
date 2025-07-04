@@ -38,7 +38,7 @@ export function initRepoGraphGit() {
     const queryString = params.toString();
     const ajaxUrl = new URL(url);
     ajaxUrl.searchParams.set('div-only', 'true');
-    window.history.replaceState({}, '', queryString ? `?${queryString}` : window.location.pathname);
+    window.history.replaceState(null, '', queryString ? `?${queryString}` : window.location.pathname);
 
     elGraphBody.classList.add('is-loading');
     try {
