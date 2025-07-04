@@ -14,6 +14,7 @@ jobs:
   test-pgsql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     strategy:
+      fail-fast: false
       matrix:
         postgres: ["14", "latest"]
     needs: files-changed
@@ -154,6 +155,7 @@ jobs:
   test-mysql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     strategy:
+      fail-fast: false
       matrix:
         mysql: ["8.0", "latest"]
     needs: files-changed
@@ -208,6 +210,7 @@ jobs:
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     strategy:
+      fail-fast: false
       matrix:
         mssql: ["2019-latest", "latest"]
     needs: files-changed
