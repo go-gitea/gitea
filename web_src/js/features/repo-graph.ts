@@ -84,9 +84,9 @@ export function initRepoGraphGit() {
 
   const flowSelectRefsDropdown = document.querySelector('#flow-select-refs-dropdown');
   const $dropdown = fomanticQuery(flowSelectRefsDropdown);
+  $dropdown.dropdown({clearable: true});
+  $dropdown.dropdown('set selected', dropdownSelected);
   $dropdown.dropdown({
-    clearable: true,
-    fullTextSeach: 'exact',
     onRemove(toRemove: string) {
       if (toRemove === '...flow-hide-pr-refs') {
         params.delete('hide-pr-refs');
@@ -110,7 +110,6 @@ export function initRepoGraphGit() {
       updateGraph();
     },
   });
-  $dropdown.dropdown('set selected', dropdownSelected);
 
   graphContainer.addEventListener('mouseenter', (e: DOMEvent<MouseEvent>) => {
     if (e.target.matches('#rev-list li')) {
