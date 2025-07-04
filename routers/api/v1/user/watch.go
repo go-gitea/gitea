@@ -49,7 +49,7 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	// - name: username
 	//   type: string
 	//   in: path
-	//   description: username of the user
+	//   description: username of the user whose watched repos are to be listed
 	//   required: true
 	// - name: page
 	//   in: query

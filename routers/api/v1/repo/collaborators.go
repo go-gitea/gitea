@@ -93,7 +93,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	//   required: true
 	// - name: collaborator
 	//   in: path
-	//   description: username of the collaborator
+	//   description: username of the user to check for being a collaborator
 	//   type: string
 	//   required: true
 	// responses:
@@ -145,7 +145,7 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 	//   required: true
 	// - name: collaborator
 	//   in: path
-	//   description: username of the collaborator to add
+	//   description: username of the user to add or update as a collaborator
 	//   type: string
 	//   required: true
 	// - name: body
@@ -264,7 +264,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 	//   required: true
 	// - name: collaborator
 	//   in: path
-	//   description: username of the collaborator
+	//   description: username of the collaborator whose permissions are to be obtained
 	//   type: string
 	//   required: true
 	// responses:
