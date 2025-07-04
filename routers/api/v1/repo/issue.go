@@ -336,7 +336,7 @@ func ListIssues(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -593,7 +593,7 @@ func GetIssue(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -641,7 +641,7 @@ func CreateIssue(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -764,7 +764,7 @@ func EditIssue(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -948,7 +948,7 @@ func DeleteIssue(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -999,7 +999,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo

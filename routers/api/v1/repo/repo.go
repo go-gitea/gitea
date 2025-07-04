@@ -329,7 +329,7 @@ func Generate(ctx *context.APIContext) {
 	// parameters:
 	// - name: template_owner
 	//   in: path
-	//   description: name of the template repository owner
+	//   description: username of the user or organization to own the template repository
 	//   type: string
 	//   required: true
 	// - name: template_repo
@@ -533,7 +533,7 @@ func Get(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -606,7 +606,7 @@ func Edit(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo to edit
+	//   description: username of the user or organization owning the repository to edit
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1137,7 +1137,7 @@ func Delete(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo to delete
+	//   description: username of the user or organization owning the repository to delete
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1188,7 +1188,7 @@ func GetIssueTemplates(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1218,7 +1218,7 @@ func GetIssueConfig(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1245,7 +1245,7 @@ func ValidateIssueConfig(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1276,7 +1276,7 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
