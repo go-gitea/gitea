@@ -3,7 +3,7 @@ import {newRenderPlugin3DViewer} from '../render/plugins/3d-viewer.ts';
 import {newRenderPluginPdfViewer} from '../render/plugins/pdf-viewer.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {createElementFromHTML, showElem, toggleClass} from '../utils/dom.ts';
-import {htmlEscape} from 'escape-goat';
+import {html} from '../utils/html.ts';
 import {basename} from '../utils.ts';
 
 const plugins: FileRenderPlugin[] = [];
@@ -54,7 +54,7 @@ async function renderRawFileToContainer(container: HTMLElement, rawFileLink: str
   container.replaceChildren(elViewRawPrompt);
 
   if (errorMsg) {
-    const elErrorMessage = createElementFromHTML(htmlEscape`<div class="ui error message">${errorMsg}</div>`);
+    const elErrorMessage = createElementFromHTML(html`<div class="ui error message">${errorMsg}</div>`);
     elViewRawPrompt.insertAdjacentElement('afterbegin', elErrorMessage);
   }
 }
