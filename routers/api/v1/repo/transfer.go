@@ -32,7 +32,7 @@ func Transfer(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo to transfer
+	//   description: username of the user or organization owning the repository to transfer
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -143,7 +143,7 @@ func AcceptTransfer(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo to transfer
+	//   description: username of the user or organization owning the repository to transfer
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -187,7 +187,7 @@ func RejectTransfer(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo to transfer
+	//   description: username of the user or organization owning the repository to transfer
 	//   type: string
 	//   required: true
 	// - name: repo

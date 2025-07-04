@@ -28,7 +28,7 @@ func ListPackages(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the packages
+	//   description: username of the user or organization owning the packages
 	//   type: string
 	//   required: true
 	// - name: page
@@ -83,7 +83,7 @@ func GetPackage(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the package
+	//   description: username of the user or organization owning the package
 	//   type: string
 	//   required: true
 	// - name: type
@@ -124,7 +124,7 @@ func DeletePackage(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the package
+	//   description: username of the user or organization owning the package
 	//   type: string
 	//   required: true
 	// - name: type
@@ -166,7 +166,7 @@ func ListPackageFiles(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the package
+	//   description: username of the user or organization owning the package
 	//   type: string
 	//   required: true
 	// - name: type
@@ -208,7 +208,7 @@ func ListPackageVersions(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the package
+	//   description: username of the user or organization owning the package
 	//   type: string
 	//   required: true
 	// - name: type
@@ -264,7 +264,7 @@ func GetLatestPackageVersion(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the package
+	//   description: username of the user or organization owning the package
 	//   type: string
 	//   required: true
 	// - name: type
@@ -321,7 +321,7 @@ func LinkPackage(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the package
+	//   description: username of the user or organization owning the package
 	//   type: string
 	//   required: true
 	// - name: type
@@ -388,7 +388,7 @@ func UnlinkPackage(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the package
+	//   description: username of the user or organization owning the package
 	//   type: string
 	//   required: true
 	// - name: type
