@@ -1,7 +1,3 @@
-<div>
-	{{template "repo/graph/svgcontainer" .}}
-	{{template "repo/graph/commits" .}}
-	<div id="pagination">
-		{{template "base/paginate" .}}
-	</div>
-</div>
+{{template "repo/graph/svgcontainer" .}}
+{{template "repo/graph/commits" .}}
+{{template "base/paginate" .}}
