@@ -77,20 +77,12 @@ func appGlobalFlags() []cli.Flag {
 
 func prepareSubcommandWithGlobalFlags(command *cli.Command) {
 	command.Flags = append(append([]cli.Flag{}, appGlobalFlags()...), command.Flags...)
-	command.Action = prepareWorkPathAndCustomConf(command.Action)
-	command.HideHelp = true
-	if command.Name != "help" {
-		command.Commands = append(command.Commands, cmdHelp())
-	}
-	for i := range command.Commands {
-		prepareSubcommandWithGlobalFlags(command.Commands[i])
-	}
+	command.Before = prepareWorkPathAndCustomConf()
 }
 
 // prepareWorkPathAndCustomConf wraps the Action to prepare the work path and custom config
-// It can't use "Before", because each level's sub-command's Before will be called one by one, so the "init" would be done multiple times
-func prepareWorkPathAndCustomConf(action cli.ActionFunc) func(context.Context, *cli.Command) error {
-	return func(ctx context.Context, cmd *cli.Command) error {
+func prepareWorkPathAndCustomConf() cli.BeforeFunc {
+	return func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 		var args setting.ArgWorkPathAndCustomConf
 		// from children to parent, check the global flags
 		for _, curCtx := range cmd.Lineage() {
@@ -105,11 +97,7 @@ func prepareWorkPathAndCustomConf(action cli.ActionFunc) func(context.Context, *
 			}
 		}
 		setting.InitWorkPathAndCommonConfig(os.Getenv, args)
-		if cmd.Bool("help") || action == nil {
-			// the default behavior of "urfave/cli": "nil action" means "show help"
-			return cmdHelp().Action(ctx, cmd)
-		}
-		return action(ctx, cmd)
+		return ctx, nil
 	}
 }
 
@@ -158,7 +146,6 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 
 	app.Flags = append(app.Flags, cli.VersionFlag)
 	app.Flags = append(app.Flags, appGlobalFlags()...)
-	app.HideHelp = true // use our own help action to show helps (with more information like default config)
 	app.Before = PrepareConsoleLoggerLevel(log.INFO)
 	for i := range subCmdWithConfig {
 		prepareSubcommandWithGlobalFlags(subCmdWithConfig[i])
