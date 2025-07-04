@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -24,17 +25,13 @@ func cmdHelp() *cli.Command {
 		Usage:     "Shows a list of commands or help for one command",
 		ArgsUsage: "[command]",
 		Action: func(ctx context.Context, c *cli.Command) (err error) {
-			lineage := c.Lineage() // The order is from child to parent: help, doctor, Gitea
-			targetCmdIdx := 0
-			if c.Name == "help" {
-				targetCmdIdx = 1
-			}
-			if lineage[targetCmdIdx] != lineage[targetCmdIdx].Root() {
-				err = cli.ShowCommandHelp(ctx, lineage[targetCmdIdx+1] /* parent cmd */, lineage[targetCmdIdx].Name /* sub cmd */)
+			if !c.Args().Present() {
+				err = cli.ShowAppHelp(c.Root())
 			} else {
-				err = cli.ShowAppHelp(c)
+				err = cli.ShowCommandHelp(ctx, c.Root(), c.Args().First())
 			}
-			_, _ = fmt.Fprintf(c.Root().Writer, `
+			if err == nil {
+				_, _ = fmt.Fprintf(c.Root().Writer, `
 DEFAULT CONFIGURATION:
    AppPath:    %s
    WorkPath:   %s
@@ -42,6 +39,7 @@ DEFAULT CONFIGURATION:
    ConfigFile: %s
 
 `, setting.AppPath, setting.AppWorkPath, setting.CustomPath, setting.CustomConf)
+			}
 			return err
 		},
 	}
@@ -76,7 +74,7 @@ func appGlobalFlags() []cli.Flag {
 }
 
 func prepareSubcommandWithGlobalFlags(command *cli.Command) {
-	command.Flags = append(append([]cli.Flag{}, appGlobalFlags()...), command.Flags...)
+	command.Flags = slices.Concat(appGlobalFlags(), command.Flags)
 	command.Before = prepareWorkPathAndCustomConf()
 }
 
