@@ -54,9 +54,16 @@ function parseLineCommand(line: LogLine): LogLineCommand | null {
   return null;
 }
 
-function isLogElementInViewport(el: Element): boolean {
+function isUserFollowingLogs(el: Element): boolean {
   const rect = el.getBoundingClientRect();
-  return rect.top >= 0 && rect.bottom <= window.innerHeight; // only check height but not width
+  const windowHeight = window.innerHeight;
+
+  // Check if the user is "following" the logs by seeing if the element is near the bottom
+  // We're more lenient than the original strict check, but still reasonable:
+  // - Element's top should be at or before the viewport bottom (user hasn't scrolled far up)
+  // - Element's bottom should be within reasonable range of viewport (not too far below)
+  const threshold = windowHeight * 0.1; // Allow element to extend 10% of viewport height below
+  return rect.top <= windowHeight && rect.bottom <= windowHeight + threshold;
 }
 
 type LocaleStorageOptions = {
@@ -114,6 +121,7 @@ export default defineComponent({
       },
       optionAlwaysAutoScroll: autoScroll ?? false,
       optionAlwaysExpandRunning: expandRunning ?? false,
+      lastAutoScrollTime: 0,
 
       // provided by backend
       run: {
@@ -218,6 +226,38 @@ export default defineComponent({
       // @ts-expect-error - _stepLogsActiveContainer is a custom property
       return el._stepLogsActiveContainer ?? el;
     },
+
+    // get the actual last log line element in a step, accounting for nested groups
+    getLastLogLineElement(stepIndex: number): Element | null {
+      const container = this.getJobStepLogsContainer(stepIndex);
+      if (!container) return null;
+
+      // Find the actual last log line, which might be nested in groups
+      // We need to check if groups are expanded (open) to find the truly visible last line
+      const findLastLogLine = (element: Element): Element | null => {
+        let lastChild = element.lastElementChild;
+        while (lastChild) {
+          if (lastChild.classList.contains('job-log-line')) {
+            return lastChild;
+          }
+          if (lastChild.classList.contains('job-log-group')) {
+            // Only look inside groups that are open (expanded)
+            const detailsElement = lastChild as HTMLDetailsElement;
+            if (detailsElement.open) {
+              const nestedLast = findLastLogLine(lastChild);
+              if (nestedLast) return nestedLast;
+            }
+            // If group is closed, the summary line is the visible "last" element
+            const summary = lastChild.querySelector('.job-log-group-summary .job-log-line');
+            if (summary) return summary;
+          }
+          lastChild = lastChild.previousElementSibling;
+        }
+        return null;
+      };
+
+      return findLastLogLine(container);
+    },
     // begin a log group
     beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
       const el = (this.$refs.logs as any)[stepIndex];
@@ -290,10 +330,21 @@ export default defineComponent({
 
     shouldAutoScroll(stepIndex: number): boolean {
       if (!this.optionAlwaysAutoScroll) return false;
-      const el = this.getJobStepLogsContainer(stepIndex);
-      // if the logs container is empty, then auto-scroll if the step is expanded
-      if (!el.lastChild) return this.currentJobStepsStates[stepIndex].expanded;
-      return isLogElementInViewport(el.lastChild as Element);
+      if (!this.currentJobStepsStates[stepIndex]?.expanded) return false;
+
+      // Only auto-scroll for currently executing (active) groups, not finished ones
+      const step = this.currentJob?.steps?.[stepIndex];
+      if (!step || step.status !== 'running') return false;
+
+      // Get the step logs container to check scroll position
+      const container = this.getJobStepLogsContainer(stepIndex);
+      if (!container) return true; // If no container yet, auto-scroll when it appears
+
+      const lastLogLine = this.getLastLogLineElement(stepIndex);
+      if (!lastLogLine) return true; // If no logs yet, auto-scroll when logs appear
+
+      // Check if user is following the logs within this step
+      return isUserFollowingLogs(lastLogLine);
     },
 
     appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
@@ -360,11 +411,12 @@ export default defineComponent({
           }
         }
 
-        // find the step indexes that need to auto-scroll
-        const autoScrollStepIndexes = new Map<number, boolean>();
+        // Check which steps should auto-scroll BEFORE appending new logs
+        const shouldAutoScrollSteps = new Set<number>();
         for (const logs of job.logs.stepsLog ?? []) {
-          if (autoScrollStepIndexes.has(logs.step)) continue;
-          autoScrollStepIndexes.set(logs.step, this.shouldAutoScroll(logs.step));
+          if (this.shouldAutoScroll(logs.step)) {
+            shouldAutoScrollSteps.add(logs.step);
+          }
         }
 
         // append logs to the UI
@@ -374,13 +426,26 @@ export default defineComponent({
           this.appendLogs(logs.step, logs.started, logs.lines);
         }
 
-        // auto-scroll to the last log line of the last step
-        let autoScrollJobStepElement: HTMLElement;
-        for (let stepIndex = 0; stepIndex < this.currentJob.steps.length; stepIndex++) {
-          if (!autoScrollStepIndexes.get(stepIndex)) continue;
-          autoScrollJobStepElement = this.getJobStepLogsContainer(stepIndex);
+        // Auto-scroll to the last log line for steps that should auto-scroll
+        // Do this AFTER appending logs so the DOM is up to date
+        // Use requestAnimationFrame to ensure DOM is fully updated
+        if (shouldAutoScrollSteps.size > 0) {
+          const now = Date.now();
+          // Throttle auto-scroll to prevent rapid corrections (max once per 100ms)
+          if (now - this.lastAutoScrollTime > 100) {
+            this.lastAutoScrollTime = now;
+            requestAnimationFrame(() => {
+              for (const stepIndex of shouldAutoScrollSteps) {
+                const lastLogLine = this.getLastLogLineElement(stepIndex);
+                if (lastLogLine) {
+                  // Use instant scrolling to avoid conflicts with user scrolling
+                  // and scroll to the bottom of the element to ensure it's fully visible
+                  lastLogLine.scrollIntoView({behavior: 'instant', block: 'end'});
+                }
+              }
+            });
+          }
         }
-        autoScrollJobStepElement?.lastElementChild.scrollIntoView({behavior: 'smooth', block: 'nearest'});
 
         // clear the interval timer if the job is done
         if (this.run.done && this.intervalID) {
