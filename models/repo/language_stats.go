@@ -167,7 +167,7 @@ func UpdateLanguageStats(ctx context.Context, repo *Repository, commitID string,
 			// Update already existing language
 			if strings.EqualFold(s.Language, lang) {
 				s.CommitID = commitID
-				s.IsPrimary = strings.EqualFold(lang, topLang)
+				s.IsPrimary = lang == topLang
 				s.Size = size
 				if _, err := sess.ID(s.ID).Cols("`commit_id`", "`size`", "`is_primary`").Update(s); err != nil {
 					return err
