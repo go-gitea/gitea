@@ -1,4 +1,52 @@
-{{$isNew:=or .PageIsSettingsHooksNew .PageIsAdminDefaultHooksNew .PageIsAdminSystemHooksNew}}
+{{/* Template attributes:
+- BaseLink: Base URL for the repository settings
+- WebHook: Webhook object containing details about the webhook
+- UseAuthorizationHeader: optional or required
+- UseRequestSecret: optional or required
+*/}}
+{{$isNew := not .Webhook.ID}}
+
+<div class="inline field">
+	<div class="ui checkbox">
+		<input name="active" type="checkbox" {{if or $isNew .Webhook.IsActive}}checked{{end}}>
+		<label>{{ctx.Locale.Tr "repo.settings.active"}}</label>
+		<span class="help">{{ctx.Locale.Tr "repo.settings.active_helper"}}</span>
+	</div>
+</div>
+
+<!-- Authorization Header -->
+{{if .UseAuthorizationHeader}}
+	{{$attributeValid := or (eq .UseAuthorizationHeader "optional") (eq .UseAuthorizationHeader "required")}}
+	{{if not $attributeValid}}<div class="ui error message">Invalid UseAuthorizationHeader: {{.UseAuthorizationHeader}}}</div>{{end}}
+	{{$required := eq .UseAuthorizationHeader "required"}}
+	<div class="field {{if $required}}required{{end}}">
+		<label>{{ctx.Locale.Tr "repo.settings.authorization_header"}}</label>
+		<input name="authorization_header" type="text" value="{{.Webhook.HeaderAuthorization}}" {{if $required}}required placeholder="Bearer $access_token"{{end}}>
+		{{if not $required}}
+			<span class="help">{{ctx.Locale.Tr "repo.settings.authorization_header_desc" (HTMLFormat "<code>%s</code>, <code>%s</code>" "Bearer token123456" "Basic YWxhZGRpbjpvcGVuc2VzYW1l")}}</span>
+		{{end}}
+	</div>
+{{end}}
+
+<!-- Secret -->
+{{if .UseRequestSecret}}
+	{{$attributeValid := or (eq .UseRequestSecret "optional") (eq .UseRequestSecret "required")}}
+	{{if not $attributeValid}}<div class="ui error message">Invalid UseRequestSecret: {{.UseRequestSecret}}}</div>{{end}}
+	{{$required := eq .UseRequestSecret "required"}}
+	<div class="field {{if $required}}required{{end}}">
+		<label>{{ctx.Locale.Tr "repo.settings.secret"}}</label>
+		<input name="secret" type="password" value="{{.Webhook.Secret}}" autocomplete="off" {{if $required}}required{{end}}>
+		<span class="help">{{ctx.Locale.Tr "repo.settings.webhook_secret_desc"}}</span>
+	</div>
+{{end}}
+
+<!-- Branch filter -->
+<div class="field">
+	<label>{{ctx.Locale.Tr "repo.settings.branch_filter"}}</label>
+	<input name="branch_filter" type="text" value="{{or .Webhook.BranchFilter "*"}}">
+	<span class="help">{{ctx.Locale.Tr "repo.settings.branch_filter_desc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}</span>
+</div>
+
 <div class="field">
 	<h4>{{ctx.Locale.Tr "repo.settings.event_desc"}}</h4>
 	<div class="grouped event type fields">
@@ -286,38 +334,14 @@
 	</div>
 </div>
 
-<!-- Branch filter -->
-<div class="field">
-	<label for="branch_filter">{{ctx.Locale.Tr "repo.settings.branch_filter"}}</label>
-	<input id="branch_filter" name="branch_filter" type="text" value="{{or .Webhook.BranchFilter "*"}}">
-	<span class="help">{{ctx.Locale.Tr "repo.settings.branch_filter_desc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}</span>
-</div>
-
-<!-- Authorization Header -->
-<div class="field{{if eq .HookType "matrix"}} required{{end}}">
-	<label for="authorization_header">{{ctx.Locale.Tr "repo.settings.authorization_header"}}</label>
-	<input id="authorization_header" name="authorization_header" type="text" value="{{.Webhook.HeaderAuthorization}}"{{if eq .HookType "matrix"}} placeholder="Bearer $access_token" required{{end}}>
-	{{if ne .HookType "matrix"}}{{/* Matrix doesn't make the authorization optional but it is implied by the help string, should be changed.*/}}
-		<span class="help">{{ctx.Locale.Tr "repo.settings.authorization_header_desc" (HTMLFormat "<code>%s</code>, <code>%s</code>" "Bearer token123456" "Basic YWxhZGRpbjpvcGVuc2VzYW1l")}}</span>
-	{{end}}
-</div>
-
-<div class="divider"></div>
-
-<div class="inline field">
-	<div class="ui checkbox">
-		<input name="active" type="checkbox" {{if or $isNew .Webhook.IsActive}}checked{{end}}>
-		<label>{{ctx.Locale.Tr "repo.settings.active"}}</label>
-		<span class="help">{{ctx.Locale.Tr "repo.settings.active_helper"}}</span>
-	</div>
-</div>
 <div class="field">
 	{{if $isNew}}
 		<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_webhook"}}</button>
 	{{else}}
 		<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_webhook"}}</button>
-		<a class="ui red delete-button button" data-url="{{.BaseLink}}/delete" data-id="{{.Webhook.ID}}">{{ctx.Locale.Tr "repo.settings.delete_webhook"}}</a>
+		<a class="ui red button link-action"
+			data-url="{{.BaseLink}}/delete?id={{.Webhook.ID}}"
+			data-modal-confirm="{{ctx.Locale.Tr "repo.settings.webhook_deletion_desc"}}"
+		>{{ctx.Locale.Tr "repo.settings.delete_webhook"}}</a>
 	{{end}}
 </div>
-
-{{template "repo/settings/webhook/delete_modal" .}}

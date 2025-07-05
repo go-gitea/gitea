@@ -19,10 +19,11 @@
 				</div>
 			</div>
 		</div>
-		<div class="field {{if .Err_Secret}}error{{end}}">
-			<label for="secret">{{ctx.Locale.Tr "repo.settings.secret"}}</label>
-			<input id="secret" name="secret" type="password" value="{{.Webhook.Secret}}" autocomplete="off">
-		</div>
-		{{template "repo/settings/webhook/settings" .}}
+		{{template "repo/settings/webhook/settings" dict
+			"BaseLink" .BaseLink
+			"Webhook" .Webhook
+			"UseAuthorizationHeader" "optional"
+			"UseRequestSecret" "optional"
+		}}
 	</form>
 {{end}}
