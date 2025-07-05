@@ -211,16 +211,16 @@ export class ComboMarkdownEditor {
 
     // Fomantic Tab requires the "data-tab" to be globally unique.
     // So here it uses our defined "data-tab-for" and "data-tab-panel" to generate the "data-tab" attribute for Fomantic.
-    const uniqueIdSuffix = generateElemId();
+    const tabIdSuffix = generateElemId();
     this.tabEditor = Array.from(tabs).find((tab) => tab.getAttribute('data-tab-for') === 'markdown-writer');
     this.tabPreviewer = Array.from(tabs).find((tab) => tab.getAttribute('data-tab-for') === 'markdown-previewer');
-    this.tabEditor.setAttribute('data-tab', `markdown-writer-${uniqueIdSuffix}`);
-    this.tabPreviewer.setAttribute('data-tab', `markdown-previewer-${uniqueIdSuffix}`);
+    this.tabEditor.setAttribute('data-tab', `markdown-writer-${tabIdSuffix}`);
+    this.tabPreviewer.setAttribute('data-tab', `markdown-previewer-${tabIdSuffix}`);
 
     const panelEditor = this.container.querySelector('.ui.tab[data-tab-panel="markdown-writer"]');
     const panelPreviewer = this.container.querySelector('.ui.tab[data-tab-panel="markdown-previewer"]');
-    panelEditor.setAttribute('data-tab', `markdown-writer-${uniqueIdSuffix}`);
-    panelPreviewer.setAttribute('data-tab', `markdown-previewer-${uniqueIdSuffix}`);
+    panelEditor.setAttribute('data-tab', `markdown-writer-${tabIdSuffix}`);
+    panelPreviewer.setAttribute('data-tab', `markdown-previewer-${tabIdSuffix}`);
 
     this.tabEditor.addEventListener('click', () => {
       requestAnimationFrame(() => {
