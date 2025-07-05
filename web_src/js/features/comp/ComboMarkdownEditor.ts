@@ -1,7 +1,7 @@
 import '@github/markdown-toolbar-element';
 import '@github/text-expander-element';
 import {attachTribute} from '../tribute.ts';
-import {hideElem, showElem, autosize, isElemVisible, generateUniqueId} from '../../utils/dom.ts';
+import {hideElem, showElem, autosize, isElemVisible, generateElemId} from '../../utils/dom.ts';
 import {
   EventUploadStateChanged,
   initEasyMDEPaste,
@@ -123,7 +123,7 @@ export class ComboMarkdownEditor {
   setupTextarea() {
     this.textarea = this.container.querySelector('.markdown-text-editor');
     this.textarea._giteaComboMarkdownEditor = this;
-    this.textarea.id = generateUniqueId(`_combo_markdown_editor_`);
+    this.textarea.id = generateElemId(`_combo_markdown_editor_`);
     this.textarea.addEventListener('input', () => triggerEditorContentChanged(this.container));
     this.applyEditorHeights(this.textarea, this.options.editorHeights);
 
@@ -211,7 +211,7 @@ export class ComboMarkdownEditor {
 
     // Fomantic Tab requires the "data-tab" to be globally unique.
     // So here it uses our defined "data-tab-for" and "data-tab-panel" to generate the "data-tab" attribute for Fomantic.
-    const uniqueIdSuffix = generateUniqueId();
+    const uniqueIdSuffix = generateElemId();
     this.tabEditor = Array.from(tabs).find((tab) => tab.getAttribute('data-tab-for') === 'markdown-writer');
     this.tabPreviewer = Array.from(tabs).find((tab) => tab.getAttribute('data-tab-for') === 'markdown-previewer');
     this.tabEditor.setAttribute('data-tab', `markdown-writer-${uniqueIdSuffix}`);

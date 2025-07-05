@@ -373,7 +373,7 @@ export function isPlainClick(e: MouseEvent) {
   return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
 }
 
-let uniqueIdCounter = 0;
-export function generateUniqueId(prefix: string = ''): string {
-  return `${prefix}${uniqueIdCounter++}`;
+let elemIdCounter = 0;
+export function generateElemId(prefix: string = ''): string {
+  return `${prefix}${elemIdCounter++}`;
 }
