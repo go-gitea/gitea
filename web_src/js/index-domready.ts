@@ -1,3 +1,4 @@
+import './globals.ts';
 import '../fomantic/build/fomantic.js';
 import '../../node_modules/easymde/dist/easymde.min.css'; // TODO: lazy load in "switchToEasyMDE"
 

@@ -5,7 +5,7 @@ import {onDomReady} from './utils/dom.ts';
 
 // TODO: There is a bug in htmx, it incorrectly checks "readyState === 'complete'" when the DOM tree is ready and won't trigger DOMContentLoaded
 // Then importing the htmx in our onDomReady will make htmx skip its initialization.
-// If the bug would be fixed, then we can move this import to "onDomReady"
+// If the bug would be fixed (https://github.com/bigskysoftware/htmx/pull/3365), then we can only import htmx in "onDomReady"
 import 'htmx.org';
 
 onDomReady(async () => {
