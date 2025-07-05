@@ -10,6 +10,7 @@ import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
+import {initGlobalDropdown} from './common-page.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 
 const {i18n} = window.config;
@@ -92,6 +93,12 @@ function initRepoDiffConversationForm() {
     }
   });
 
+  addDelegatedEventListener(document, 'click', '.pull-request-diff-comments', async (el, e) => {
+    e.preventDefault();
+    initGlobalDropdown();
+    // Post initiation cleaning up the buttons and scripts
+    el.remove();
+  });
   addDelegatedEventListener(document, 'click', '.resolve-conversation', async (el, e) => {
     e.preventDefault();
     const comment_id = el.getAttribute('data-comment-id');
