@@ -25,22 +25,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
-      backend: ${{ steps.changes.outputs.backend }}
-      frontend: ${{ steps.changes.outputs.frontend }}
-      docs: ${{ steps.changes.outputs.docs }}
-      actions: ${{ steps.changes.outputs.actions }}
-      templates: ${{ steps.changes.outputs.templates }}
-      docker: ${{ steps.changes.outputs.docker }}
-      swagger: ${{ steps.changes.outputs.swagger }}
-      yaml: ${{ steps.changes.outputs.yaml }}
+      backend: ${{ vars.ACT_EXEC == 'true' && true || steps.changes.outputs.backend }}
+      frontend: ${{ vars.ACT_EXEC == 'true' && true || steps.changes.outputs.frontend }}
+      docs: ${{ vars.ACT_EXEC == 'true' && true || steps.changes.outputs.docs }}
+      actions: ${{ vars.ACT_EXEC == 'true' && true || steps.changes.outputs.actions }}
+      templates: ${{ vars.ACT_EXEC == 'true' && true || steps.changes.outputs.templates }}
+      docker: ${{ vars.ACT_EXEC == 'true' && true || steps.changes.outputs.docker }}
+      swagger: ${{ vars.ACT_EXEC == 'true' && true || steps.changes.outputs.swagger }}
+      yaml: ${{ vars.ACT_EXEC == 'true' && true || steps.changes.outputs.yaml }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
         id: changes
+        if: ${{ vars.ACT_EXEC != 'true'}}
         with:
-          # needed for `act_runner exec`
-          base: main
-          ref: ${{ env.ACT_EXEC == 'true' && 'HEAD' || env.GITHUB_REF }}
           filters: |
             backend:
               - "**/*.go"
