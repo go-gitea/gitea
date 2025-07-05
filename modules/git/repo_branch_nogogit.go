@@ -22,18 +22,18 @@ func (repo *Repository) IsObjectExist(name string) bool {
 		return false
 	}
 
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
 	}
 	defer cancel()
-	_, err = wr.Write([]byte(name + "\n"))
+	_, err = batch.WriteCheck([]byte(name + "\n"))
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
 	}
-	sha, _, _, err := ReadBatchLine(rd)
+	sha, _, _, err := ReadBatchLine(batch.CheckReader())
 	return err == nil && bytes.HasPrefix(sha, []byte(strings.TrimSpace(name)))
 }
 
@@ -43,18 +43,18 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 		return false
 	}
 
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
 	}
 	defer cancel()
-	_, err = wr.Write([]byte(name + "\n"))
+	_, err = batch.WriteCheck([]byte(name + "\n"))
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
 	}
-	_, _, _, err = ReadBatchLine(rd)
+	_, _, _, err = ReadBatchLine(batch.CheckReader())
 	return err == nil
 }
 

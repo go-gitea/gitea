@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/djherbis/buffer"
 	"github.com/djherbis/nio/v3"
@@ -87,7 +88,9 @@ func catFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 }
 
 // catFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func catFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
+// batchArg is the argument to pass to cat-file --batch, e.g. "--batch" or "--batch-command"
+// If batchOrBatchCommnd is false, it will use "--batch-command" instead of "--batch".
+func catFileBatch(ctx context.Context, repoPath string, batchOrBatchCommnd bool) (WriteCloserError, *bufio.Reader, func()) {
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
 	batchStdinReader, batchStdinWriter := io.Pipe()
@@ -107,9 +110,15 @@ func catFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 		cancel()
 	}()
 
+	const (
+		batchCmdArg     = "--batch"
+		batchCommandArg = "--batch-command"
+	)
+
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand("cat-file", "--batch").
+		err := NewCommand("cat-file").
+			AddArguments(toTrustCmdArg(util.Iif(batchOrBatchCommnd, batchCmdArg, batchCommandArg))).
 			Run(ctx, &RunOpts{
 				Dir:    repoPath,
 				Stdin:  batchStdinReader,
