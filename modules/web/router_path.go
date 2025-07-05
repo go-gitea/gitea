@@ -24,6 +24,9 @@ type RouterPathGroup struct {
 func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	chiCtx := chi.RouteContext(req.Context())
 	path := chiCtx.URLParam(g.pathParam)
+
+	// FIXME: update chi route info and the handler func info?
+
 	for _, m := range g.matchers {
 		if m.matchPath(chiCtx, path) {
 			handler := m.handlerFunc
