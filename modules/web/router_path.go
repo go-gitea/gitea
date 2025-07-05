@@ -24,11 +24,9 @@ type RouterPathGroup struct {
 func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	chiCtx := chi.RouteContext(req.Context())
 	path := chiCtx.URLParam(g.pathParam)
-
-	// FIXME: update chi route info and the handler func info?
-
 	for _, m := range g.matchers {
 		if m.matchPath(chiCtx, path) {
+			chiCtx.RoutePatterns = append(chiCtx.RoutePatterns, m.pattern)
 			handler := m.handlerFunc
 			for i := len(m.middlewares) - 1; i >= 0; i-- {
 				handler = m.middlewares[i](handler).ServeHTTP
@@ -41,6 +39,7 @@ func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request)
 }
 
 type RouterPathGroupPattern struct {
+	pattern     string
 	re          *regexp.Regexp
 	params      []routerPathParam
 	middlewares []any
@@ -65,6 +64,7 @@ type routerPathParam struct {
 
 type routerPathMatcher struct {
 	methods     container.Set[string]
+	pattern     string
 	re          *regexp.Regexp
 	params      []routerPathParam
 	middlewares []func(http.Handler) http.Handler
@@ -120,7 +120,7 @@ func newRouterPathMatcher(methods string, patternRegexp *RouterPathGroupPattern,
 		}
 		p.methods.Add(method)
 	}
-	p.re, p.params = patternRegexp.re, patternRegexp.params
+	p.pattern, p.re, p.params = patternRegexp.pattern, patternRegexp.re, patternRegexp.params
 	return p
 }
 
@@ -160,7 +160,7 @@ func patternRegexp(pattern string, h ...any) *RouterPathGroupPattern {
 		p.params = append(p.params, param)
 	}
 	re = append(re, '$')
-	p.re = regexp.MustCompile(string(re))
+	p.pattern, p.re = pattern, regexp.MustCompile(string(re))
 	return p
 }
 
