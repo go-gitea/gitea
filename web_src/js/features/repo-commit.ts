@@ -6,7 +6,7 @@ export function initRepoEllipsisButton() {
   registerGlobalEventFunc('click', 'onRepoEllipsisButtonClick', async (el: HTMLInputElement, e: Event) => {
     e.preventDefault();
     const expanded = el.getAttribute('aria-expanded') === 'true';
-    toggleElem(el.parentElement.querySelector('.commit-body'));
+    toggleElem(el.parentElement.parentElement.querySelector('.commit-body'));
     el.setAttribute('aria-expanded', String(!expanded));
   });
 }
