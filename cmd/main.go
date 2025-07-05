@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -46,35 +45,7 @@ DEFAULT CONFIGURATION:
 	return c
 }
 
-func appGlobalFlags() []cli.Flag {
-	return []cli.Flag{
-		// make the builtin flags at the top
-		cli.HelpFlag,
-
-		// shared configuration flags, they are for global and for each sub-command at the same time
-		// eg: such command is valid: "./gitea --config /tmp/app.ini web --config /tmp/app.ini", while it's discouraged indeed
-		// keep in mind that the short flags like "-C", "-c" and "-w" are globally polluted, they can't be used for sub-commands anymore.
-		&cli.StringFlag{
-			Name:    "custom-path",
-			Aliases: []string{"C"},
-			Usage:   "Set custom path (defaults to '{WorkPath}/custom')",
-		},
-		&cli.StringFlag{
-			Name:    "config",
-			Aliases: []string{"c"},
-			Value:   setting.CustomConf,
-			Usage:   "Set custom config file (defaults to '{WorkPath}/custom/conf/app.ini')",
-		},
-		&cli.StringFlag{
-			Name:    "work-path",
-			Aliases: []string{"w"},
-			Usage:   "Set Gitea's working path (defaults to the Gitea's binary directory)",
-		},
-	}
-}
-
 func prepareSubcommandWithGlobalFlags(command *cli.Command) {
-	command.Flags = slices.Concat(appGlobalFlags(), command.Flags)
 	command.Before = prepareWorkPathAndCustomConf()
 }
 
@@ -82,17 +53,14 @@ func prepareSubcommandWithGlobalFlags(command *cli.Command) {
 func prepareWorkPathAndCustomConf() cli.BeforeFunc {
 	return func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 		var args setting.ArgWorkPathAndCustomConf
-		// from children to parent, check the global flags
-		for _, curCtx := range cmd.Lineage() {
-			if curCtx.IsSet("work-path") && args.WorkPath == "" {
-				args.WorkPath = curCtx.String("work-path")
-			}
-			if curCtx.IsSet("custom-path") && args.CustomPath == "" {
-				args.CustomPath = curCtx.String("custom-path")
-			}
-			if curCtx.IsSet("config") && args.CustomConf == "" {
-				args.CustomConf = curCtx.String("config")
-			}
+		if cmd.IsSet("work-path") {
+			args.WorkPath = cmd.String("work-path")
+		}
+		if cmd.IsSet("custom-path") {
+			args.CustomPath = cmd.String("custom-path")
+		}
+		if cmd.IsSet("config") {
+			args.CustomConf = cmd.String("config")
 		}
 		setting.InitWorkPathAndCommonConfig(os.Getenv, args)
 		return ctx, nil
@@ -111,7 +79,24 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 	app.Description = `Gitea program contains "web" and other subcommands. If no subcommand is given, it starts the web server by default. Use "web" subcommand for more web server arguments, use other subcommands for other purposes.`
 	app.Version = appVer.Version + appVer.Extra
 	app.EnableShellCompletion = true
-
+	app.Flags = []cli.Flag{
+		&cli.StringFlag{
+			Name:    "custom-path",
+			Aliases: []string{"C"},
+			Usage:   "Set custom path (defaults to '{WorkPath}/custom')",
+		},
+		&cli.StringFlag{
+			Name:    "config",
+			Aliases: []string{"c"},
+			Value:   setting.CustomConf,
+			Usage:   "Set custom config file (defaults to '{WorkPath}/custom/conf/app.ini')",
+		},
+		&cli.StringFlag{
+			Name:    "work-path",
+			Aliases: []string{"w"},
+			Usage:   "Set Gitea's working path (defaults to the Gitea's binary directory)",
+		},
+	}
 	// these sub-commands need to use config file
 	subCmdWithConfig := []*cli.Command{
 		cmdHelp(), // the "help" sub-command was used to show the more information for "work path" and "custom config"
@@ -142,8 +127,6 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 	// but not sure whether it would break Windows users who used to double-click the EXE to run.
 	app.DefaultCommand = CmdWeb.Name
 
-	app.Flags = append(app.Flags, cli.VersionFlag)
-	app.Flags = append(app.Flags, appGlobalFlags()...)
 	app.Before = PrepareConsoleLoggerLevel(log.INFO)
 	for i := range subCmdWithConfig {
 		prepareSubcommandWithGlobalFlags(subCmdWithConfig[i])
