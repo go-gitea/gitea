@@ -898,6 +898,16 @@ update-translations:
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
 
+.PHONY: i18n-backport
+i18n-backport:
+	@echo "Backport translations ..."
+	$(GO) run tools/i18n/backport.go
+
+.PHONY: i18n-check
+i18n-check:
+	@echo "Checking unused translations..."
+	$(GO) run tools/i18n/check.go
+
 .PHONY: generate-gitignore
 generate-gitignore: ## update gitignore files
 	$(GO) run build/generate-gitignores.go

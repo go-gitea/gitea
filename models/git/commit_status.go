@@ -206,6 +206,7 @@ func (status *CommitStatus) APIURL(ctx context.Context) string {
 
 // LocaleString returns the locale string name of the Status
 func (status *CommitStatus) LocaleString(lang translation.Locale) string {
+	// i18n-check: repo.commitstatus.*
 	return lang.TrString("repo.commitstatus." + status.State.String())
 }
 

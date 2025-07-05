@@ -238,6 +238,7 @@ func (l *locale) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 	} else if t, ok := cnt.(int64); ok {
 		c = t
 	} else {
+		// i18n-check: ignore
 		return l.Tr(keyN, args...)
 	}
 

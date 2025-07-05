@@ -114,6 +114,7 @@ func (r *ActionRunner) StatusName() string {
 }
 
 func (r *ActionRunner) StatusLocaleName(lang translation.Locale) string {
+	// i18n-check: actions.runners.status.*
 	return lang.TrString("actions.runners.status." + r.StatusName())
 }
 
