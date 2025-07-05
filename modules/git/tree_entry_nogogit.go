@@ -57,7 +57,7 @@ func (te *TreeEntry) Size() int64 {
 	return te.size
 }
 
-// IsSubModule if the entry is a sub module
+// IsSubModule if the entry is a submodule
 func (te *TreeEntry) IsSubModule() bool {
 	return te.entryMode.IsSubModule()
 }

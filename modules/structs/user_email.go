@@ -11,6 +11,7 @@ type Email struct {
 	Verified bool   `json:"verified"`
 	Primary  bool   `json:"primary"`
 	UserID   int64  `json:"user_id"`
+	// username of the user
 	UserName string `json:"username"`
 }
 

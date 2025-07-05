@@ -1,5 +1,5 @@
 import {hideElem, querySingleVisibleElem, showElem, toggleElem} from '../utils/dom.ts';
-import {htmlEscape} from 'escape-goat';
+import {htmlEscape} from '../utils/html.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {sanitizeRepoName} from './repo-common.ts';
 
