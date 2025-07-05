@@ -26,6 +26,9 @@ type LogLineCommand = {
   prefix: string,
 }
 
+// explicitly define job data function type for clarity since we're injecting it from tests
+type FetchJobDataFn = (abortController: AbortController) => Promise<any>;
+
 type Job = {
   id: number;
   name: string;
@@ -318,7 +321,7 @@ export default defineComponent({
       await this.loadJobForce();
     },
 
-    async fetchJobData(abortController: AbortController) {
+    async fetchJobData(abortController: AbortController): ReturnType<FetchJobDataFn> {
       const logCursors = this.currentJobStepsStates.map((it, idx) => {
         // cursor is used to indicate the last position of the logs
         // it's only used by backend, frontend just reads it and passes it back, it and can be any type.
@@ -338,14 +341,14 @@ export default defineComponent({
       await this.loadJob();
     },
 
-    async loadJob() {
+    async loadJob(fetchJobDataFn?: FetchJobDataFn) {
       if (this.loadingAbortController) return;
       const abortController = new AbortController();
       this.loadingAbortController = abortController;
       try {
         const isFirstLoad = !this.run.status;
-        const job = await this.fetchJobData(abortController);
-        if (this.loadingAbortController !== abortController) return;
+        // use the injected fetchJobDataFn if available (for testing purposes)
+        const job = await (fetchJobDataFn || this.fetchJobData)(abortController);
 
         this.artifacts = job.artifacts || [];
         this.run = job.state.run;
@@ -353,13 +356,18 @@ export default defineComponent({
 
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
-          const expanded = isFirstLoad && this.optionAlwaysExpandRunning && this.currentJob.steps[i].status === 'running';
+          const step = this.currentJob.steps[i];
+          const isRunning = step.status === 'running';
+
           if (!this.currentJobStepsStates[i]) {
             // initial states for job steps
-            this.currentJobStepsStates[i] = {cursor: null, expanded};
+            const shouldExpand = (isFirstLoad && this.optionAlwaysExpandRunning && isRunning);
+            this.currentJobStepsStates[i] = {cursor: null, expanded: shouldExpand};
+          } else if (this.optionAlwaysExpandRunning && isRunning && !this.currentJobStepsStates[i].expanded) {
+            // auto-expand running steps on subsequent loads (handles step transitions)
+            this.currentJobStepsStates[i].expanded = true;
           }
         }
-
         // find the step indexes that need to auto-scroll
         const autoScrollStepIndexes = new Map<number, boolean>();
         for (const logs of job.logs.stepsLog ?? []) {
