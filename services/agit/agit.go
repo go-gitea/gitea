@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -199,9 +200,35 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			}
 		}
 
+		// Store old commit ID for review staleness checking
+		oldHeadCommitID := pr.HeadCommitID
+
 		pr.HeadCommitID = opts.NewCommitIDs[i]
 		if err = pull_service.UpdateRef(ctx, pr); err != nil {
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
+		}
+
+		// Mark existing reviews as stale when PR content changes (same as regular GitHub flow)
+		if oldHeadCommitID != opts.NewCommitIDs[i] {
+			if err := issues_model.MarkReviewsAsStale(ctx, pr.IssueID); err != nil {
+				log.Error("MarkReviewsAsStale: %v", err)
+			}
+
+			// Dismiss all approval reviews if protected branch rule item enabled
+			pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+			if err != nil {
+				log.Error("GetFirstMatchProtectedBranchRule: %v", err)
+			}
+			if pb != nil && pb.DismissStaleApprovals {
+				if err := pull_service.DismissApprovalReviews(ctx, pusher, pr); err != nil {
+					log.Error("DismissApprovalReviews: %v", err)
+				}
+			}
+
+			// Mark reviews for the new commit as not stale
+			if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitIDs[i]); err != nil {
+				log.Error("MarkReviewsAsNotStale: %v", err)
+			}
 		}
 
 		pull_service.StartPullRequestCheckImmediately(ctx, pr)
