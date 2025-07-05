@@ -100,6 +100,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get cleaned branch name
+        id: clean_name
+        run: |
+          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\/v//' -e 's/release\/v//')
+          echo "Cleaned name is ${REF_NAME}"
+          echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
       - name: build rootful docker image
         uses: docker/build-push-action@v5
         with:
@@ -108,6 +114,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=gitea/gitea:buildcache-${{ steps.clean_name.outputs.branch }}
   docker-rootless:
     runs-on: namespace-profile-gitea-release-docker
     permissions:
@@ -143,6 +150,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get cleaned branch name
+        id: clean_name
+        run: |
+          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\/v//' -e 's/release\/v//')
+          echo "Cleaned name is ${REF_NAME}"
+          echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
       - name: build rootless docker image
         uses: docker/build-push-action@v5
         with:
@@ -152,3 +165,4 @@ jobs:
           file: Dockerfile.rootless
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=gitea/gitea:buildcache-${{ steps.clean_name.outputs.branch }}-rootless
