@@ -2,7 +2,7 @@
 import {defineComponent} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
-import {generateAriaId} from '../modules/fomantic/base.ts';
+import {generateElemId} from '../utils/dom.ts';
 
 type Commit = {
   id: string,
@@ -35,8 +35,8 @@ export default defineComponent({
       commits: [] as Array<Commit>,
       hoverActivated: false,
       lastReviewCommitSha: '',
-      uniqueIdMenu: generateAriaId(),
-      uniqueIdShowAll: generateAriaId(),
+      uniqueIdMenu: generateElemId('diff-commit-selector-menu-'),
+      uniqueIdShowAll: generateElemId('diff-commit-selector-show-all-'),
     };
   },
   computed: {

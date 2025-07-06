@@ -17,7 +17,7 @@ export function html(tmpl: TemplateStringsArray, ...parts: Array<any>): string {
   let output = tmpl[0];
   for (let i = 0; i < parts.length; i++) {
     const value = parts[i];
-    const valueEscaped = (value instanceof rawObject) ? value.toString() : htmlEscape(String(parts[i]));
+    const valueEscaped = (value instanceof rawObject) ? value.toString() : htmlEscape(String(value));
     output = output + valueEscaped + tmpl[i + 1];
   }
   return output;
