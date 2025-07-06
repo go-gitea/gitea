@@ -155,7 +155,7 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 	org.Visibility = visibility
 	// FIXME: If it's a big forks network(forks and sub forks), the database transaction will be too long to fail.
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if err := user_model.UpdateUserColsNoAutotime(ctx, org.AsUser(), "visibility"); err != nil {
+		if err := user_model.UpdateUserColsNoAutoTime(ctx, org.AsUser(), "visibility"); err != nil {
 			return err
 		}
 

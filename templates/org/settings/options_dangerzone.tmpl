@@ -40,32 +40,27 @@
 		{{ctx.Locale.Tr "org.settings.change_visibility"}}
 	</div>
 	<div class="content">
-		<ul class="ui warning message">
-			<li>{{ctx.Locale.Tr "org.settings.change_visibility_notices_1"}}</li>
-			<li>{{ctx.Locale.Tr "org.settings.change_visibility_notices_2"}}</li>
-		</ul>
+		<div class="ui warning message">
+			<ul>
+				<li>{{ctx.Locale.Tr "org.settings.change_visibility_notices_1"}}</li>
+				<li>{{ctx.Locale.Tr "org.settings.change_visibility_notices_2"}}</li>
+			</ul>
+		</div>
 		<form class="ui form form-fetch-action" action="{{.Link}}/visibility" method="post">
 			{{.CsrfTokenHtml}}
-
-			<div class="field">
+			<div class="tw-flex tw-flex-col tw-gap-3">
 				<label>{{ctx.Locale.Tr "org.settings.visibility"}}</label>
-				<div class="field">
-					<div class="ui radio checkbox">
-						<input name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 0}}checked{{end}}>
-						<label>{{ctx.Locale.Tr "org.settings.visibility.public"}}</label>
-					</div>
+				<div class="ui radio checkbox">
+					<input name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 0}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "org.settings.visibility.public"}}</label>
 				</div>
-				<div class="field">
-					<div class="ui radio checkbox">
-						<input name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}>
-						<label>{{ctx.Locale.Tr "org.settings.visibility.limited"}}</label>
-					</div>
+				<div class="ui radio checkbox">
+					<input name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "org.settings.visibility.limited"}}</label>
 				</div>
-				<div class="field">
-					<div class="ui radio checkbox">
-						<input name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}>
-						<label>{{ctx.Locale.Tr "org.settings.visibility.private"}}</label>
-					</div>
+				<div class="ui radio checkbox">
+					<input name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "org.settings.visibility.private"}}</label>
 				</div>
 			</div>
 
@@ -82,10 +77,12 @@
 		{{ctx.Locale.Tr "org.settings.rename"}}
 	</div>
 	<div class="content">
-		<ul class="ui warning message">
-			<li>{{ctx.Locale.Tr "org.settings.rename_notices_1"}}</li>
-			<li>{{ctx.Locale.Tr "org.settings.rename_notices_2"}}</li>
-		</ul>
+		<div class="ui warning message">
+			<ul>
+				<li>{{ctx.Locale.Tr "org.settings.rename_notices_1"}}</li>
+				<li>{{ctx.Locale.Tr "org.settings.rename_notices_2"}}</li>
+			</ul>
+		</div>
 		<form class="ui form form-fetch-action" action="{{.Link}}/rename" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field">
@@ -117,12 +114,14 @@
 		{{ctx.Locale.Tr "org.settings.delete_account"}}
 	</div>
 	<div class="content">
-		<ul class="ui warning message">
-			<li>{{ctx.Locale.Tr "org.settings.delete_notices_1"}}</li>
-			<li>{{ctx.Locale.Tr "org.settings.delete_notices_2" .Org.Name}}</li>
-			<li>{{ctx.Locale.Tr "org.settings.delete_notices_3" .Org.Name}}</li>
-			<li>{{ctx.Locale.Tr "org.settings.delete_notices_4" .Org.Name}}</li>
-		</ul>
+		<div class="ui warning message">
+			<ul>
+				<li>{{ctx.Locale.Tr "org.settings.delete_notices_1"}}</li>
+				<li>{{ctx.Locale.Tr "org.settings.delete_notices_2" .Org.Name}}</li>
+				<li>{{ctx.Locale.Tr "org.settings.delete_notices_3" .Org.Name}}</li>
+				<li>{{ctx.Locale.Tr "org.settings.delete_notices_4" .Org.Name}}</li>
+			</ul>
+		</div>
 		<form class="ui form form-fetch-action" action="{{.Link}}/delete" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field">

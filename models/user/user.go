@@ -955,8 +955,8 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 	return err
 }
 
-// UpdateUserColsNoAutotime update user according special columns
-func UpdateUserColsNoAutotime(ctx context.Context, u *User, cols ...string) error {
+// UpdateUserColsNoAutoTime update user according special columns
+func UpdateUserColsNoAutoTime(ctx context.Context, u *User, cols ...string) error {
 	if err := ValidateUser(u, cols...); err != nil {
 		return err
 	}
