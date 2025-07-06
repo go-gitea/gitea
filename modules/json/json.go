@@ -3,11 +3,10 @@
 
 package json
 
-// Allow "encoding/json" import.
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/json" //nolint:depguard
+	"encoding/json" //nolint:depguard // this package wraps it
 	"io"
 
 	jsoniter "github.com/json-iterator/go"

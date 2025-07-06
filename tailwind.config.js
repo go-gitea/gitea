@@ -29,7 +29,7 @@ export default {
   important: true, // the frameworks are mixed together, so tailwind needs to override other framework's styles
   content: [
     isProduction && '!./templates/devtest/**/*',
-    isProduction && '!./web_src/js/standalone/devtest.js',
+    isProduction && '!./web_src/js/standalone/devtest.ts',
     '!./templates/swagger/v1_json.tmpl',
     '!./templates/user/auth/oidc_wellknown.tmpl',
     '!**/*_test.go',

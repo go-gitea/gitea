@@ -1,7 +1,6 @@
 import $ from 'jquery';
-import {generateAriaId} from './base.ts';
 import type {FomanticInitFunction} from '../../types.ts';
-import {queryElems} from '../../utils/dom.ts';
+import {generateElemId, queryElems} from '../../utils/dom.ts';
 
 const ariaPatchKey = '_giteaAriaPatchDropdown';
 const fomanticDropdownFn = $.fn.dropdown;
@@ -47,7 +46,7 @@ function ariaDropdownFn(this: any, ...args: Parameters<FomanticInitFunction>) {
 // make the item has role=option/menuitem, add an id if there wasn't one yet, make items as non-focusable
 // the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
 function updateMenuItem(dropdown: HTMLElement, item: HTMLElement) {
-  if (!item.id) item.id = generateAriaId();
+  if (!item.id) item.id = generateElemId('_aria_dropdown_item_');
   item.setAttribute('role', (dropdown as any)[ariaPatchKey].listItemRole);
   item.setAttribute('tabindex', '-1');
   for (const el of item.querySelectorAll('a, input, button')) el.setAttribute('tabindex', '-1');
@@ -59,7 +58,7 @@ function updateMenuItem(dropdown: HTMLElement, item: HTMLElement) {
 function updateSelectionLabel(label: HTMLElement) {
   // the "label" is like this: "<a|div class="ui label" data-value="1">the-label-name <i|svg class="delete icon"/></a>"
   if (!label.id) {
-    label.id = generateAriaId();
+    label.id = generateElemId('_aria_dropdown_label_');
   }
   label.tabIndex = -1;
 
@@ -127,7 +126,7 @@ function delegateDropdownModule($dropdown: any) {
 function attachStaticElements(dropdown: HTMLElement, focusable: HTMLElement, menu: HTMLElement) {
   // prepare static dropdown menu list popup
   if (!menu.id) {
-    menu.id = generateAriaId();
+    menu.id = generateElemId('_aria_dropdown_menu_');
   }
 
   $(menu).find('> .item').each((_, item) => updateMenuItem(dropdown, item));

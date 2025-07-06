@@ -24,7 +24,7 @@ export function initCompLabelEdit(pageSelector: string) {
   const elIsArchivedField = elModal.querySelector('.label-is-archived-input-field');
   const elIsArchivedInput = elModal.querySelector<HTMLInputElement>('.label-is-archived-input');
   const elDescInput = elModal.querySelector<HTMLInputElement>('.label-desc-input');
-  const elColorInput = elModal.querySelector<HTMLInputElement>('.js-color-picker-input input');
+  const elColorInput = elModal.querySelector<HTMLInputElement>('.color-picker-combo input');
 
   const syncModalUi = () => {
     const hasScope = nameHasScope(elNameInput.value);
@@ -72,6 +72,7 @@ export function initCompLabelEdit(pageSelector: string) {
           return false;
         }
         submitFormFetchAction(form);
+        return false;
       },
     }).modal('show');
   };

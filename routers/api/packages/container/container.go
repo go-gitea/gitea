@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -39,10 +40,14 @@ import (
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-manifests
 const maxManifestSize = 10 * 1024 * 1024
 
-var (
-	imageNamePattern = regexp.MustCompile(`\A[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*\z`)
-	referencePattern = regexp.MustCompile(`\A[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}\z`)
-)
+var globalVars = sync.OnceValue(func() (ret struct {
+	imageNamePattern, referencePattern *regexp.Regexp
+},
+) {
+	ret.imageNamePattern = regexp.MustCompile(`\A[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*\z`)
+	ret.referencePattern = regexp.MustCompile(`\A[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}\z`)
+	return ret
+})
 
 type containerHeaders struct {
 	Status        int
@@ -84,9 +89,7 @@ func jsonResponse(ctx *context.Context, status int, obj any) {
 		Status:      status,
 		ContentType: "application/json",
 	})
-	if err := json.NewEncoder(ctx.Resp).Encode(obj); err != nil {
-		log.Error("JSON encode: %v", err)
-	}
+	_ = json.NewEncoder(ctx.Resp).Encode(obj) // ignore network errors
 }
 
 func apiError(ctx *context.Context, status int, err error) {
@@ -134,7 +137,7 @@ func ReqContainerAccess(ctx *context.Context) {
 
 // VerifyImageName is a middleware which checks if the image name is allowed
 func VerifyImageName(ctx *context.Context) {
-	if !imageNamePattern.MatchString(ctx.PathParam("image")) {
+	if !globalVars().imageNamePattern.MatchString(ctx.PathParam("image")) {
 		apiErrorDefined(ctx, errNameInvalid)
 	}
 }
@@ -216,7 +219,7 @@ func GetRepositoryList(ctx *context.Context) {
 	if len(repositories) == n {
 		v := url.Values{}
 		if n > 0 {
-			v.Add("n", strconv.Itoa(n))
+			v.Add("n", strconv.Itoa(n)) // FIXME: "n" can't be zero here, the logic is inconsistent with GetTagsList
 		}
 		v.Add("last", repositories[len(repositories)-1])
 
@@ -565,7 +568,7 @@ func PutManifest(ctx *context.Context) {
 		IsTagged:  digest.Digest(reference).Validate() != nil,
 	}
 
-	if mci.IsTagged && !referencePattern.MatchString(reference) {
+	if mci.IsTagged && !globalVars().referencePattern.MatchString(reference) {
 		apiErrorDefined(ctx, errManifestInvalid.WithMessage("Tag is invalid"))
 		return
 	}
@@ -618,7 +621,7 @@ func getBlobSearchOptionsFromContext(ctx *context.Context) (*container_model.Blo
 	reference := ctx.PathParam("reference")
 	if d := digest.Digest(reference); d.Validate() == nil {
 		opts.Digest = string(d)
-	} else if referencePattern.MatchString(reference) {
+	} else if globalVars().referencePattern.MatchString(reference) {
 		opts.Tag = reference
 		opts.OnlyLead = true
 	} else {
@@ -782,7 +785,8 @@ func GetTagsList(ctx *context.Context) {
 	})
 }
 
-// FIXME: Workaround to be removed in v1.20
+// FIXME: Workaround to be removed in v1.20.
+// Update maybe we should never really remote it, as long as there is legacy data?
 // https://github.com/go-gitea/gitea/issues/19586
 func workaroundGetContainerBlob(ctx *context.Context, opts *container_model.BlobSearchOptions) (*packages_model.PackageFileDescriptor, error) {
 	blob, err := container_model.GetContainerBlob(ctx, opts)
