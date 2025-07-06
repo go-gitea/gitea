@@ -158,7 +158,7 @@ func GetProject(ctx *context.APIContext) {
 	//    "$ref": "#/responses/forbidden"
 	//  "404":
 	//    "$ref": "#/responses/notFound"
-	project, err := project_model.GetProjectByID(ctx, ctx.FormInt64("id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.FormInt64("project_id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err)
@@ -202,7 +202,7 @@ func UpdateProject(ctx *context.APIContext) {
 	//  "404":
 	//    "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.UpdateProjectOption)
-	project, err := project_model.GetProjectByID(ctx, ctx.FormInt64("id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.FormInt64("project_id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err)
@@ -249,7 +249,7 @@ func DeleteProject(ctx *context.APIContext) {
 	//  "404":
 	//    "$ref": "#/responses/notFound"
 
-	if err := project_model.DeleteProjectByID(ctx, ctx.FormInt64("id")); err != nil {
+	if err := project_model.DeleteProjectByID(ctx, ctx.FormInt64("project_id")); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
