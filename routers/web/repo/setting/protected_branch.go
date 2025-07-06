@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
@@ -89,7 +90,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["recent_status_checks"] = contexts
 
 	if c.Repo.Owner.IsOrganization() {
-		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c, c.Repo.Repository.ID, perm.AccessModeRead)
+		teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(c, c.Repo.Owner.ID, c.Repo.Repository.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 		if err != nil {
 			c.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return

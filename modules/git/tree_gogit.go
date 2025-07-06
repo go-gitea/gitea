@@ -69,7 +69,7 @@ func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
 	seen := map[plumbing.Hash]bool{}
 	walker := object.NewTreeWalker(t.gogitTree, true, seen)
 	for {
-		fullName, entry, err := walker.Next()
+		_, entry, err := walker.Next()
 		if err == io.EOF {
 			break
 		}
@@ -84,7 +84,6 @@ func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
 			ID:             ParseGogitHash(entry.Hash),
 			gogitTreeEntry: &entry,
 			ptree:          t,
-			fullName:       fullName,
 		}
 		entries = append(entries, convertedEntry)
 	}
