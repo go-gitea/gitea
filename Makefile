@@ -915,13 +915,6 @@ generate-manpage: ## generate manpage
 	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
 	@#TODO A small script that formats config-cheat-sheet.en-us.md nicely for use as a config man page
 
-.PHONY: generate-completions
-generate-completions: ## generate shell completions
-	@[ -f gitea ]  || make backend
-	@./gitea completion bash > contrib/autocompletion/bash_autocomplete
-	@./gitea completion zsh  > contrib/autocompletion/zsh_autocomplete
-	@./gitea completion fish > contrib/autocompletion/gitea.fish
-
 .PHONY: docker
 docker:
 	docker build --disable-content-trust=false -t $(DOCKER_REF) .
