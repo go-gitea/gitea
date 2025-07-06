@@ -26383,28 +26383,36 @@
     "NewProjectPayload": {
       "type": "object",
       "required": [
-        "title",
-        "board_type",
+        "name",
+        "template_type",
         "card_type"
       ],
       "properties": {
-        "board_type": {
-          "type": "integer",
-          "format": "uint8",
-          "x-go-name": "BoardType"
-        },
-        "card_type": {
-          "type": "integer",
-          "format": "uint8",
-          "x-go-name": "CardType"
-        },
-        "description": {
+        "body": {
+          "description": "Keep compatibility with Github API to use \"body\" instead of \"description\"",
           "type": "string",
           "x-go-name": "Description"
         },
-        "title": {
+        "card_type": {
+          "type": "string",
+          "enum": [
+            "TextOnly",
+            " ImagesAndText"
+          ],
+          "x-go-name": "CardType"
+        },
+        "name": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "template_type": {
+          "type": "string",
+          "enum": [
+            "",
+            " BasicKanban",
+            " BugTriage"
+          ],
+          "x-go-name": "TemplateType"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -26983,11 +26991,14 @@
     },
     "Project": {
       "type": "object",
+      "required": [
+        "template_type"
+      ],
       "properties": {
-        "board_type": {
-          "type": "integer",
-          "format": "uint8",
-          "x-go-name": "TemplateType"
+        "body": {
+          "description": "Keep compatibility with Github API to use \"body\" instead of \"description\"",
+          "type": "string",
+          "x-go-name": "Description"
         },
         "closed_at": {
           "type": "string",
@@ -27002,18 +27013,15 @@
         "creator": {
           "$ref": "#/definitions/User"
         },
-        "description": {
-          "type": "string",
-          "x-go-name": "Description"
-        },
         "id": {
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
-        "is_closed": {
-          "type": "boolean",
-          "x-go-name": "IsClosed"
+        "name": {
+          "description": "Keep compatibility with Github API to use \"name\" instead of \"title\"",
+          "type": "string",
+          "x-go-name": "Title"
         },
         "owner": {
           "$ref": "#/definitions/User"
@@ -27021,9 +27029,22 @@
         "repository": {
           "$ref": "#/definitions/RepositoryMeta"
         },
-        "title": {
+        "state": {
           "type": "string",
-          "x-go-name": "Title"
+          "enum": [
+            "open",
+            " closed"
+          ],
+          "x-go-name": "State"
+        },
+        "template_type": {
+          "type": "string",
+          "enum": [
+            "",
+            " BasicKanban",
+            " BugTriage"
+          ],
+          "x-go-name": "TemplateType"
         },
         "updated_at": {
           "type": "string",
@@ -28590,14 +28611,15 @@
     "UpdateProjectPayload": {
       "type": "object",
       "required": [
-        "title"
+        "name"
       ],
       "properties": {
-        "description": {
+        "body": {
+          "description": "Keep compatibility with Github API to use \"body\" instead of \"description\"",
           "type": "string",
           "x-go-name": "Description"
         },
-        "title": {
+        "name": {
           "type": "string",
           "x-go-name": "Title"
         }
@@ -30150,10 +30172,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/LockIssueOption"
-      },
-      "headers": {
-        "LockIssueOption": {}
+        "$ref": "#/definitions/UpdateProjectPayload"
       }
     },
     "redirect": {

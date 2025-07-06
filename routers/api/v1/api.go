@@ -1165,7 +1165,7 @@ func Routes() *web.Router {
 
 			m.Group("/projects", func() {
 				m.Get("", projects.ListUserProjects)
-				m.Post("", bind(api.NewProjectPayload{}), projects.CreateUserProject)
+				m.Post("", bind(api.NewProjectOption{}), projects.CreateUserProject)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
@@ -1475,7 +1475,7 @@ func Routes() *web.Router {
 				m.Methods("HEAD,GET", "/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), repo.DownloadArchive)
 
 				m.Group("/projects", func() {
-					m.Post("", bind(api.NewProjectPayload{}), projects.CreateRepoProject)
+					m.Post("", bind(api.NewProjectOption{}), projects.CreateRepoProject)
 				})
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
@@ -1699,7 +1699,7 @@ func Routes() *web.Router {
 			}, reqToken(), reqOrgOwnership())
 
 			m.Group("/projects", func() {
-				m.Post("", bind(api.NewProjectPayload{}), projects.CreateOrgProject)
+				m.Post("", bind(api.NewProjectOption{}), projects.CreateOrgProject)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {

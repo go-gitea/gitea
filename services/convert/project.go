@@ -8,17 +8,21 @@ import (
 
 	project_model "code.gitea.io/gitea/models/project"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func ToAPIProject(ctx context.Context, project *project_model.Project) (*api.Project, error) {
 	apiProject := &api.Project{
-		Title:        project.Title,
-		Description:  project.Description,
-		TemplateType: uint8(project.TemplateType),
-		IsClosed:     project.IsClosed,
+		Name:         project.Title,
+		Body:         project.Description,
+		TemplateType: project.TemplateType.ToString(),
+		State:        util.Iif(project.IsClosed, "closed", "open"),
 		Created:      project.CreatedUnix.AsTime(),
 		Updated:      project.UpdatedUnix.AsTime(),
-		Closed:       project.ClosedDateUnix.AsTime(),
+	}
+	if !project.ClosedDateUnix.IsZero() {
+		tm := project.ClosedDateUnix.AsTime()
+		apiProject.Closed = &tm
 	}
 
 	if err := project.LoadRepo(ctx); err != nil {

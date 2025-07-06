@@ -20,67 +20,70 @@ import (
 
 func TestAPICreateUserProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	const title, description, boardType = "project_name", "project_description", uint8(project_model.TemplateTypeBasicKanban)
+	const title, description = "project_name", "project_description"
+	templateType := project_model.TemplateTypeBasicKanban.ToString()
 
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteUser)
 
-	req := NewRequestWithJSON(t, "POST", "/api/v1/user/projects", &api.NewProjectPayload{
-		Title:       title,
-		Description: description,
-		BoardType:   boardType,
+	req := NewRequestWithJSON(t, "POST", "/api/v1/user/projects", &api.NewProjectOption{
+		Name:         title,
+		Body:         description,
+		TemplateType: templateType,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiProject api.Project
 	DecodeJSON(t, resp, &apiProject)
-	assert.Equal(t, title, apiProject.Title)
-	assert.Equal(t, description, apiProject.Description)
-	assert.Equal(t, boardType, apiProject.TemplateType)
+	assert.Equal(t, title, apiProject.Name)
+	assert.Equal(t, description, apiProject.Body)
+	assert.Equal(t, templateType, apiProject.TemplateType)
 	assert.Equal(t, "user2", apiProject.Creator.UserName)
 }
 
 func TestAPICreateOrgProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	const title, description, boardType = "project_name", "project_description", uint8(project_model.TemplateTypeBasicKanban)
+	const title, description = "project_name", "project_description"
+	templateType := project_model.TemplateTypeBasicKanban.ToString()
 
 	orgName := "org17"
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteOrganization)
 	urlStr := fmt.Sprintf("/api/v1/orgs/%s/projects", orgName)
 
-	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectPayload{
-		Title:       title,
-		Description: description,
-		BoardType:   boardType,
+	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectOption{
+		Name:         title,
+		Body:         description,
+		TemplateType: templateType,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiProject api.Project
 	DecodeJSON(t, resp, &apiProject)
-	assert.Equal(t, title, apiProject.Title)
-	assert.Equal(t, description, apiProject.Description)
-	assert.Equal(t, boardType, apiProject.TemplateType)
+	assert.Equal(t, title, apiProject.Name)
+	assert.Equal(t, description, apiProject.Body)
+	assert.Equal(t, templateType, apiProject.TemplateType)
 	assert.Equal(t, "user2", apiProject.Creator.UserName)
 	assert.Equal(t, "org17", apiProject.Owner.UserName)
 }
 
 func TestAPICreateRepoProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	const title, description, boardType = "project_name", "project_description", uint8(project_model.TemplateTypeBasicKanban)
+	const title, description = "project_name", "project_description"
+	templateType := project_model.TemplateTypeBasicKanban.ToString()
 
 	ownerName := "user2"
 	repoName := "repo1"
 	token := getUserToken(t, ownerName, auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteOrganization)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/projects", ownerName, repoName)
 
-	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectPayload{
-		Title:       title,
-		Description: description,
-		BoardType:   boardType,
+	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectOption{
+		Name:         title,
+		Body:         description,
+		TemplateType: templateType,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiProject api.Project
 	DecodeJSON(t, resp, &apiProject)
-	assert.Equal(t, title, apiProject.Title)
-	assert.Equal(t, description, apiProject.Description)
-	assert.Equal(t, boardType, apiProject.TemplateType)
+	assert.Equal(t, title, apiProject.Name)
+	assert.Equal(t, description, apiProject.Body)
+	assert.Equal(t, templateType, apiProject.TemplateType)
 	assert.Equal(t, "repo1", apiProject.Repo.Name)
 }
 
@@ -139,7 +142,7 @@ func TestAPIGetProject(t *testing.T) {
 
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiProject)
-	assert.Equal(t, "First project", apiProject.Title)
+	assert.Equal(t, "First project", apiProject.Name)
 	assert.Equal(t, "repo1", apiProject.Repo.Name)
 	assert.Equal(t, "user2", apiProject.Creator.UserName)
 }
@@ -149,13 +152,13 @@ func TestAPIUpdateProject(t *testing.T) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d", 1))
 
-	req := NewRequestWithJSON(t, "PATCH", link.String(), &api.UpdateProjectPayload{Title: "First project updated"}).AddTokenAuth(token)
+	req := NewRequestWithJSON(t, "PATCH", link.String(), &api.UpdateProjectOption{Name: "First project updated"}).AddTokenAuth(token)
 
 	var apiProject *api.Project
 
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiProject)
-	assert.Equal(t, "First project updated", apiProject.Title)
+	assert.Equal(t, "First project updated", apiProject.Name)
 }
 
 func TestAPIDeleteProject(t *testing.T) {

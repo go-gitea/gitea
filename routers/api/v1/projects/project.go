@@ -16,20 +16,20 @@ import (
 )
 
 func innerCreateProject(ctx *context.APIContext, projectType project_model.Type) {
-	form := web.GetForm(ctx).(*api.NewProjectPayload)
+	form := web.GetForm(ctx).(*api.NewProjectOption)
 	project := &project_model.Project{
-		RepoID:       0,
-		OwnerID:      ctx.Doer.ID,
-		Title:        form.Title,
-		Description:  form.Description,
+		Title:        form.Name,
+		Description:  form.Body,
 		CreatorID:    ctx.Doer.ID,
-		TemplateType: project_model.TemplateType(form.BoardType),
+		TemplateType: project_model.ToTemplateType(form.TemplateType),
 		Type:         projectType,
 	}
 
-	if ctx.ContextUser != nil {
-		project.OwnerID = ctx.ContextUser.ID
+	if ctx.ContextUser == nil {
+		ctx.APIError(http.StatusForbidden, "Not authenticated")
+		return
 	}
+	project.OwnerID = ctx.ContextUser.ID
 
 	if projectType == project_model.TypeRepository {
 		project.RepoID = ctx.Repo.Repository.ID
@@ -67,7 +67,7 @@ func CreateUserProject(ctx *context.APIContext) {
 	//   - name: project
 	//     in: body
 	//     required: true
-	//     schema: { "$ref": "#/definitions/NewProjectPayload" }
+	//     schema: { "$ref": "#/definitions/NewProjectOption" }
 	// responses:
 	//  "201":
 	//    "$ref": "#/responses/Project"
@@ -95,7 +95,7 @@ func CreateOrgProject(ctx *context.APIContext) {
 	//   - name: project
 	//     in: body
 	//     required: true
-	//     schema: { "$ref": "#/definitions/NewProjectPayload" }
+	//     schema: { "$ref": "#/definitions/NewProjectOption" }
 	// responses:
 	//  "201":
 	//    "$ref": "#/responses/Project"
@@ -128,7 +128,7 @@ func CreateRepoProject(ctx *context.APIContext) {
 	//   - name: project
 	//     in: body
 	//     required: true
-	//     schema: { "$ref": "#/definitions/NewProjectPayload" }
+	//     schema: { "$ref": "#/definitions/NewProjectOption" }
 	// responses:
 	//  "201":
 	//    "$ref": "#/responses/Project"
@@ -158,7 +158,7 @@ func GetProject(ctx *context.APIContext) {
 	//    "$ref": "#/responses/forbidden"
 	//  "404":
 	//    "$ref": "#/responses/notFound"
-	project, err := project_model.GetProjectByID(ctx, ctx.FormInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err)
@@ -193,7 +193,7 @@ func UpdateProject(ctx *context.APIContext) {
 	//   - name: project
 	//     in: body
 	//     required: true
-	//     schema: { "$ref": "#/definitions/UpdateProjectPayload" }
+	//     schema: { "$ref": "#/definitions/UpdateProjectOption" }
 	// responses:
 	//  "200":
 	//    "$ref": "#/responses/Project"
@@ -201,7 +201,7 @@ func UpdateProject(ctx *context.APIContext) {
 	//    "$ref": "#/responses/forbidden"
 	//  "404":
 	//    "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.UpdateProjectPayload)
+	form := web.GetForm(ctx).(*api.UpdateProjectOption)
 	project, err := project_model.GetProjectByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
@@ -211,11 +211,11 @@ func UpdateProject(ctx *context.APIContext) {
 		}
 		return
 	}
-	if project.Title != form.Title {
-		project.Title = form.Title
+	if project.Title != form.Name {
+		project.Title = form.Name
 	}
-	if project.Description != form.Description {
-		project.Description = form.Description
+	if project.Description != form.Body {
+		project.Description = form.Body
 	}
 
 	err = project_model.UpdateProject(ctx, project)
@@ -249,7 +249,7 @@ func DeleteProject(ctx *context.APIContext) {
 	//  "404":
 	//    "$ref": "#/responses/notFound"
 
-	if err := project_model.DeleteProjectByID(ctx, ctx.FormInt64(":id")); err != nil {
+	if err := project_model.DeleteProjectByID(ctx, ctx.FormInt64("id")); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
