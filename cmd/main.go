@@ -46,11 +46,16 @@ DEFAULT CONFIGURATION:
 }
 
 func prepareSubcommandWithGlobalFlags(command *cli.Command) {
-	command.Before = prepareWorkPathAndCustomConf()
+	command.Before = prepareWorkPathAndCustomConf(command.Before)
 }
 
 // prepareWorkPathAndCustomConf wraps the Action to prepare the work path and custom config
-func prepareWorkPathAndCustomConf() cli.BeforeFunc {
+func prepareWorkPathAndCustomConf(original cli.BeforeFunc) cli.BeforeFunc {
+	if original == nil {
+		original = func(ctx context.Context, c *cli.Command) (context.Context, error) {
+			return ctx, nil
+		}
+	}
 	return func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 		var args setting.ArgWorkPathAndCustomConf
 		if cmd.IsSet("work-path") {
@@ -63,7 +68,7 @@ func prepareWorkPathAndCustomConf() cli.BeforeFunc {
 			args.CustomConf = cmd.String("config")
 		}
 		setting.InitWorkPathAndCommonConfig(os.Getenv, args)
-		return ctx, nil
+		return original(ctx, cmd)
 	}
 }
 
