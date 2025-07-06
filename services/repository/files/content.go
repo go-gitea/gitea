@@ -39,6 +39,8 @@ type GetContentsOrListOptions struct {
 	TreePath                 string
 	IncludeSingleFileContent bool // include the file's content when the tree path is a file
 	IncludeLfsMetadata       bool
+	IncludeCommitMetadata    bool
+	IncludeCommitMessage     bool
 }
 
 // GetContentsOrList gets the metadata of a file's contents (*ContentsResponse) if treePath not a tree
@@ -132,39 +134,46 @@ func getFileContentsByEntryInternal(_ context.Context, repo *repo_model.Reposito
 	}
 	selfURLString := selfURL.String()
 
-	err = gitRepo.AddLastCommitCache(repo.GetCommitsCountCacheKey(refCommit.InputRef, refType != git.RefTypeCommit), repo.FullName(), refCommit.CommitID)
-	if err != nil {
-		return nil, err
-	}
-
-	lastCommit, err := refCommit.Commit.GetCommitByPath(opts.TreePath)
-	if err != nil {
-		return nil, err
-	}
-
 	// All content types have these fields in populated
 	contentsResponse := &api.ContentsResponse{
-		Name:          entry.Name(),
-		Path:          opts.TreePath,
-		SHA:           entry.ID.String(),
-		LastCommitSHA: lastCommit.ID.String(),
-		Size:          entry.Size(),
-		URL:           &selfURLString,
+		Name: entry.Name(),
+		Path: opts.TreePath,
+		SHA:  entry.ID.String(),
+		Size: entry.Size(),
+		URL:  &selfURLString,
 		Links: &api.FileLinksResponse{
 			Self: &selfURLString,
 		},
 	}
 
-	// GitHub doesn't have these fields in the response, but we could follow other similar APIs to name them
-	// https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#list-commits
-	if lastCommit.Committer != nil {
-		contentsResponse.LastCommitterDate = lastCommit.Committer.When
-	}
-	if lastCommit.Author != nil {
-		contentsResponse.LastAuthorDate = lastCommit.Author.When
+	if opts.IncludeCommitMetadata || opts.IncludeCommitMessage {
+		err = gitRepo.AddLastCommitCache(repo.GetCommitsCountCacheKey(refCommit.InputRef, refType != git.RefTypeCommit), repo.FullName(), refCommit.CommitID)
+		if err != nil {
+			return nil, err
+		}
+
+		lastCommit, err := refCommit.Commit.GetCommitByPath(opts.TreePath)
+		if err != nil {
+			return nil, err
+		}
+
+		if opts.IncludeCommitMetadata {
+			contentsResponse.LastCommitSHA = util.ToPointer(lastCommit.ID.String())
+			// GitHub doesn't have these fields in the response, but we could follow other similar APIs to name them
+			// https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#list-commits
+			if lastCommit.Committer != nil {
+				contentsResponse.LastCommitterDate = util.ToPointer(lastCommit.Committer.When)
+			}
+			if lastCommit.Author != nil {
+				contentsResponse.LastAuthorDate = util.ToPointer(lastCommit.Author.When)
+			}
+		}
+		if opts.IncludeCommitMessage {
+			contentsResponse.LastCommitMessage = util.ToPointer(lastCommit.Message())
+		}
 	}
 
-	// Now populate the rest of the ContentsResponse based on entry type
+	// Now populate the rest of the ContentsResponse based on the entry type
 	if entry.IsRegular() || entry.IsExecutable() {
 		contentsResponse.Type = string(ContentTypeRegular)
 		// if it is listing the repo root dir, don't waste system resources on reading content

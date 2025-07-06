@@ -135,3 +135,105 @@ func TestAgitPullPush(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestAgitReviewStaleness(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		u.Path = baseAPITestContext.GitPath()
+		u.User = url.UserPassword("user2", userPassword)
+
+		dstPath := t.TempDir()
+		doGitClone(dstPath, u)(t)
+
+		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+
+		doGitCreateBranch(dstPath, "test-agit-review")
+
+		// Create initial commit
+		_, err = generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "initial-")
+		assert.NoError(t, err)
+
+		// create PR via agit
+		err = git.NewCommand("push", "origin",
+			"-o", "title=Test agit Review Staleness", "-o", "description=Testing review staleness",
+			"HEAD:refs/for/master/test-agit-review",
+		).Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
+
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			BaseRepoID: 1,
+			Flow:       issues_model.PullRequestFlowAGit,
+			HeadBranch: "user2/test-agit-review",
+		})
+		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+
+		// Get initial commit ID for the review
+		initialCommitID := pr.HeadCommitID
+		t.Logf("Initial commit ID: %s", initialCommitID)
+
+		// Create a review on the PR (as user1 reviewing user2's PR)
+		reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		review, err := issues_model.CreateReview(db.DefaultContext, issues_model.CreateReviewOptions{
+			Type:     issues_model.ReviewTypeApprove,
+			Reviewer: reviewer,
+			Issue:    pr.Issue,
+			CommitID: initialCommitID,
+			Content:  "LGTM! Looks good to merge.",
+			Official: false,
+		})
+		assert.NoError(t, err)
+		assert.False(t, review.Stale, "New review should not be stale")
+
+		// Verify review exists and is not stale
+		reviews, err := issues_model.FindReviews(db.DefaultContext, issues_model.FindReviewOptions{
+			IssueID: pr.IssueID,
+		})
+		assert.NoError(t, err)
+		assert.Len(t, reviews, 1)
+		assert.Equal(t, initialCommitID, reviews[0].CommitID)
+		assert.False(t, reviews[0].Stale, "Review should not be stale initially")
+
+		// Create a new commit and update the agit PR
+		_, err = generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "updated-")
+		assert.NoError(t, err)
+
+		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-review").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
+
+		// Reload PR to get updated commit ID
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			BaseRepoID: 1,
+			Flow:       issues_model.PullRequestFlowAGit,
+			HeadBranch: "user2/test-agit-review",
+		})
+		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+
+		// For AGit PRs, HeadCommitID must be loaded from git references
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		baseGitRepo, err := gitrepo.OpenRepository(db.DefaultContext, baseRepo)
+		assert.NoError(t, err)
+		defer baseGitRepo.Close()
+
+		updatedCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+		assert.NoError(t, err)
+		t.Logf("Updated commit ID: %s", updatedCommitID)
+
+		// Verify the PR was updated with new commit
+		assert.NotEqual(t, initialCommitID, updatedCommitID, "PR should have new commit ID after update")
+
+		// Check that the review is now marked as stale
+		reviews, err = issues_model.FindReviews(db.DefaultContext, issues_model.FindReviewOptions{
+			IssueID: pr.IssueID,
+		})
+		assert.NoError(t, err)
+		assert.Len(t, reviews, 1)
+
+		assert.True(t, reviews[0].Stale, "Review should be marked as stale after AGit PR update")
+
+		// The review commit ID should remain the same (pointing to the original commit)
+		assert.Equal(t, initialCommitID, reviews[0].CommitID, "Review commit ID should remain unchanged and point to original commit")
+	})
+}
