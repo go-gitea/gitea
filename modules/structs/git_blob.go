@@ -10,4 +10,7 @@ type GitBlobResponse struct {
 	URL      string  `json:"url"`
 	SHA      string  `json:"sha"`
 	Size     int64   `json:"size"`
+
+	LfsOid  *string `json:"lfs_oid,omitempty"`
+	LfsSize *int64  `json:"lfs_size,omitempty"`
 }

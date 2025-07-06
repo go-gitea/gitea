@@ -1,9 +1,5 @@
 import $ from 'jquery';
-let ariaIdCounter = 0;
-
-export function generateAriaId() {
-  return `_aria_auto_id_${ariaIdCounter++}`;
-}
+import {generateElemId} from '../../utils/dom.ts';
 
 export function linkLabelAndInput(label: Element, input: Element) {
   const labelFor = label.getAttribute('for');
@@ -12,7 +8,7 @@ export function linkLabelAndInput(label: Element, input: Element) {
   if (inputId && !labelFor) { // missing "for"
     label.setAttribute('for', inputId);
   } else if (!inputId && !labelFor) { // missing both "id" and "for"
-    const id = generateAriaId();
+    const id = generateElemId('_aria_label_input_');
     input.setAttribute('id', id);
     label.setAttribute('for', id);
   }

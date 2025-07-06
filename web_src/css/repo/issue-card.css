@@ -29,13 +29,16 @@
   display: flex;
   width: 100%;
   justify-content: space-between;
-  gap: 0.25em;
+  gap: 1em;
 }
 
-.issue-card-assignees {
+.issue-card-bottom-part {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: 0.25em;
-  justify-content: end;
   flex-wrap: wrap;
+  overflow: hidden;
+  max-width: fit-content;
+  max-height: fit-content;
 }

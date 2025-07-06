@@ -155,9 +155,9 @@ func getExpectedFileResponseForRepoFilesCreate(commitID string, lastCommit *git.
 			Name:              path.Base(treePath),
 			Path:              treePath,
 			SHA:               "103ff9234cefeee5ec5361d22b49fbb04d385885",
-			LastCommitSHA:     lastCommit.ID.String(),
-			LastCommitterDate: lastCommit.Committer.When,
-			LastAuthorDate:    lastCommit.Author.When,
+			LastCommitSHA:     util.ToPointer(lastCommit.ID.String()),
+			LastCommitterDate: util.ToPointer(lastCommit.Committer.When),
+			LastAuthorDate:    util.ToPointer(lastCommit.Author.When),
 			Type:              "file",
 			Size:              18,
 			Encoding:          &encoding,
@@ -198,7 +198,7 @@ func getExpectedFileResponseForRepoFilesCreate(commitID string, lastCommit *git.
 					SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 				},
 			},
-			Message: "Updates README.md\n",
+			Message: "Creates new/file.txt\n",
 			Tree: &api.CommitMeta{
 				URL: setting.AppURL + "api/v1/repos/user2/repo1/git/trees/f93e3a1a1525fb5b91020da86e44810c87a2d7bc",
 				SHA: "f93e3a1a1525fb5b91020git dda86e44810c87a2d7bc",
@@ -225,9 +225,9 @@ func getExpectedFileResponseForRepoFilesUpdate(commitID, filename, lastCommitSHA
 			Name:              filename,
 			Path:              filename,
 			SHA:               "dbf8d00e022e05b7e5cf7e535de857de57925647",
-			LastCommitSHA:     lastCommitSHA,
-			LastCommitterDate: lastCommitterWhen,
-			LastAuthorDate:    lastAuthorWhen,
+			LastCommitSHA:     util.ToPointer(lastCommitSHA),
+			LastCommitterDate: util.ToPointer(lastCommitterWhen),
+			LastAuthorDate:    util.ToPointer(lastAuthorWhen),
 			Type:              "file",
 			Size:              43,
 			Encoding:          &encoding,
@@ -287,6 +287,8 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 	details := []struct {
 		filename, sha, content string
 		size                   int64
+		lfsOid                 *string
+		lfsSize                *int64
 	}{
 		{
 			filename: "README.txt",
@@ -299,6 +301,8 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 			sha:      "d4a41a0d4db4949e129bd22f871171ea988103ef",
 			size:     129,
 			content:  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6MmVjY2RiNDM4MjVkMmE0OWQ5OWQ1NDJkYWEyMDA3NWNmZjFkOTdkOWQyMzQ5YTg5NzdlZmU5YzAzNjYxNzM3YwpzaXplIDIwNDgK",
+			lfsOid:   util.ToPointer("2eccdb43825d2a49d99d542daa20075cff1d97d9d2349a8977efe9c03661737c"),
+			lfsSize:  util.ToPointer(int64(2048)),
 		},
 		{
 			filename: "jpeg.jpeg",
@@ -311,6 +315,8 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 			sha:      "2b6c6c4eaefa24b22f2092c3d54b263ff26feb58",
 			size:     127,
 			content:  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6N2I2YjJjODhkYmE5Zjc2MGExYTU4NDY5YjY3ZmVlMmI2OThlZjdlOTM5OWM0Y2E0ZjM0YTE0Y2NiZTM5ZjYyMwpzaXplIDI3Cg==",
+			lfsOid:   util.ToPointer("7b6b2c88dba9f760a1a58469b67fee2b698ef7e9399c4ca4f34a14ccbe39f623"),
+			lfsSize:  util.ToPointer(int64(27)),
 		},
 	}
 
@@ -325,7 +331,7 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 			Name:          detail.filename,
 			Path:          detail.filename,
 			SHA:           detail.sha,
-			LastCommitSHA: lastCommitSHA,
+			LastCommitSHA: util.ToPointer(lastCommitSHA),
 			Type:          "file",
 			Size:          detail.size,
 			Encoding:      util.ToPointer("base64"),
@@ -339,6 +345,8 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 				GitURL:  &gitURL,
 				HTMLURL: &htmlURL,
 			},
+			LfsOid:  detail.lfsOid,
+			LfsSize: detail.lfsSize,
 		})
 	}
 
@@ -529,7 +537,7 @@ func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
 		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdateRename(commit.ID.String(), lastCommit.ID.String())
 		for _, file := range filesResponse.Files {
-			file.LastCommitterDate, file.LastAuthorDate = time.Time{}, time.Time{} // there might be different time in one operation, so we ignore them
+			file.LastCommitterDate, file.LastAuthorDate = nil, nil // there might be different time in one operation, so we ignore them
 		}
 		assert.Len(t, filesResponse.Files, 4)
 		assert.Equal(t, expectedFileResponse.Files, filesResponse.Files)

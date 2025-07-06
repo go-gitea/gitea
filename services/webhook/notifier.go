@@ -294,6 +294,43 @@ func (m *webhookNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 	}
 }
 
+func (m *webhookNotifier) DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+	if issue.IsPull {
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			log.Error("LoadPullRequest: %v", err)
+			return
+		}
+		if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
+			Action:      api.HookIssueDeleted,
+			Index:       issue.Index,
+			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, doer),
+			Repository:  convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:      convert.ToUser(ctx, doer, nil),
+		}); err != nil {
+			log.Error("PrepareWebhooks: %v", err)
+		}
+	} else {
+		if err := issue.LoadRepo(ctx); err != nil {
+			log.Error("issue.LoadRepo: %v", err)
+			return
+		}
+		if err := issue.LoadPoster(ctx); err != nil {
+			log.Error("issue.LoadPoster: %v", err)
+			return
+		}
+		if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssues, &api.IssuePayload{
+			Action:     api.HookIssueDeleted,
+			Index:      issue.Index,
+			Issue:      convert.ToAPIIssue(ctx, issue.Poster, issue),
+			Repository: convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:     convert.ToUser(ctx, doer, nil),
+		}); err != nil {
+			log.Error("PrepareWebhooks: %v", err)
+		}
+	}
+}
+
 func (m *webhookNotifier) NewPullRequest(ctx context.Context, pull *issues_model.PullRequest, mentions []*user_model.User) {
 	if err := pull.LoadIssue(ctx); err != nil {
 		log.Error("pull.LoadIssue: %v", err)
