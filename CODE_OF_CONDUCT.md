@@ -30,7 +30,7 @@ These are the values to which people in the Gitea community should aspire.
 - **Be constructive.**
   - Avoid derailing: stay on topic; if you want to talk about something else, start a new conversation.
   - Avoid unconstructive criticism: don't merely decry the current state of affairs; offer—or at least solicit—suggestions as to how things may be improved.
-  - Avoid snarking (pithy, unproductive, sniping comments)
+  - Avoid snarking (pithy, unproductive, sniping comments).
   - Avoid discussing potentially offensive or sensitive issues; this all too often leads to unnecessary conflict.
   - Avoid microaggressions (brief and commonplace verbal, behavioral and environmental indignities that communicate hostile, derogatory or negative slights and insults to a person or group).
 - **Be responsible.**
@@ -42,7 +42,7 @@ People are complicated. You should expect to be misunderstood and to misundersta
 
 ### Our Pledge
 
-In the interest of fostering an open and welcoming environment, we as contributors and maintainers pledge to making participation in our project and our community a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
+In the interest of fostering an open and welcoming environment, we as contributors and maintainers pledge to make participation in our project and our community a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
 
 ### Our Standards
 

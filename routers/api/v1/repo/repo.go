@@ -669,7 +669,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		newRepoName = *opts.Name
 	}
 	// Check if repository name has been changed and not just a case change
-	if repo.LowerName != strings.ToLower(newRepoName) {
+	if !strings.EqualFold(repo.LowerName, newRepoName) {
 		if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer, repo, newRepoName); err != nil {
 			switch {
 			case repo_model.IsErrRepoAlreadyExist(err):
