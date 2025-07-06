@@ -29,9 +29,13 @@ const (
 	httpRequestMethod      = "http_request_method"
 	httpResponseStatusCode = "http_response_status_code"
 	httpRoute              = "http_route"
+	kb                     = 1000
+	mb                     = kb * kb
 )
 
+// reference: https://opentelemetry.io/docs/specs/semconv/http/http-metrics/#http-server
 var (
+	sizeBuckets = []float64{1 * kb, 2 * kb, 5 * kb, 10 * kb, 100 * kb, 500 * kb, 1 * mb, 2 * mb, 5 * mb, 10 * mb}
 	// reqInflightGauge tracks the amount of currently handled requests
 	reqInflightGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "http",
@@ -43,8 +47,9 @@ var (
 	reqDurationHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "http",
 		Subsystem: "server",
-		Name:      "request_duration",
+		Name:      "request_duration_seconds", // diverge from spec to store the unit in metric.
 		Help:      "Measures the latency of HTTP requests processed by the server",
+		Buckets:   []float64{0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 30, 60, 120, 300}, // based on dotnet buckets https://github.com/open-telemetry/semantic-conventions/issues/336
 	}, []string{httpRequestMethod, httpResponseStatusCode, httpRoute})
 	// reqSizeHistogram tracks the size of request
 	reqSizeHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
@@ -52,6 +57,7 @@ var (
 		Subsystem: "server_request",
 		Name:      "body_size",
 		Help:      "Size of HTTP server request bodies.",
+		Buckets:   sizeBuckets,
 	}, []string{httpRequestMethod, httpResponseStatusCode, httpRoute})
 	// respSizeHistogram tracks the size of the response
 	respSizeHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
@@ -59,6 +65,7 @@ var (
 		Subsystem: "server_response",
 		Name:      "body_size",
 		Help:      "Size of HTTP server response bodies.",
+		Buckets:   sizeBuckets,
 	}, []string{httpRequestMethod, httpResponseStatusCode, httpRoute})
 )
 
