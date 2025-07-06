@@ -297,13 +297,13 @@ func testComposeIssueCommentMessage(t *testing.T, ctx *mailComment, recipients [
 	return msgs[0]
 }
 
-func TestGenerateAdditionalHeaders(t *testing.T) {
+func TestGenerateAdditionalHeadersForIssue(t *testing.T) {
 	doer, _, issue, _ := prepareMailerTest(t)
 
 	comment := &mailComment{Issue: issue, Doer: doer}
 	recipient := &user_model.User{Name: "test", Email: "test@gitea.com"}
 
-	headers := generateAdditionalHeaders(comment, "dummy-reason", recipient)
+	headers := generateAdditionalHeadersForIssue(comment, "dummy-reason", recipient)
 
 	expected := map[string]string{
 		"List-ID":                   "user2/repo1 <repo1.user2.localhost>",
