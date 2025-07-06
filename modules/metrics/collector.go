@@ -11,14 +11,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/model"
 )
 
 const namespace = "gitea_"
-
-func init() {
-	model.NameValidationScheme = model.UTF8Validation
-}
 
 // Collector implements the prometheus.Collector interface and
 // exposes gitea metrics for prometheus
