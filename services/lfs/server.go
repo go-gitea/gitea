@@ -27,6 +27,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/httpauth"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -203,7 +204,7 @@ func BatchHandler(ctx *context.Context) {
 
 		exists, err := contentStore.Exists(p)
 		if err != nil {
-			log.Error("Unable to check if LFS OID[%s] exist. Error: %v", p.Oid, rc.User, rc.Repo, err)
+			log.Error("Unable to check if LFS object with ID '%s' exists for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
 		}
@@ -594,19 +595,11 @@ func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Rep
 	if authorization == "" {
 		return nil, errors.New("no token")
 	}
-
-	parts := strings.SplitN(authorization, " ", 2)
-	if len(parts) != 2 {
-		return nil, errors.New("no token")
+	parsed, ok := httpauth.ParseAuthorizationHeader(authorization)
+	if !ok || parsed.BearerToken == nil {
+		return nil, errors.New("token not found")
 	}
-	tokenSHA := parts[1]
-	switch strings.ToLower(parts[0]) {
-	case "bearer":
-		fallthrough
-	case "token":
-		return handleLFSToken(ctx, tokenSHA, target, mode)
-	}
-	return nil, errors.New("token not found")
+	return handleLFSToken(ctx, parsed.BearerToken.Token, target, mode)
 }
 
 func requireAuth(ctx *context.Context) {

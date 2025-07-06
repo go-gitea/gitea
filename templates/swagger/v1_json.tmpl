@@ -19,9 +19,9 @@
       "name": "MIT",
       "url": "http://opensource.org/licenses/MIT"
     },
-    "version": "{{AppVer | JSEscape}}"
+    "version": "{{.SwaggerAppVer}}"
   },
-  "basePath": "{{AppSubUrl | JSEscape}}/api/v1",
+  "basePath": "{{.SwaggerAppSubUrl}}/api/v1",
   "paths": {
     "/activitypub/user-id/{user-id}": {
       "get": {
@@ -766,7 +766,7 @@
           },
           {
             "type": "string",
-            "description": "user's login name to search for",
+            "description": "identifier of the user, provided by the external authenticator",
             "name": "login_name",
             "in": "query"
           },
@@ -842,7 +842,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to delete",
+            "description": "username of the user to delete",
             "name": "username",
             "in": "path",
             "required": true
@@ -884,7 +884,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to edit",
+            "description": "username of the user whose data is to be edited",
             "name": "username",
             "in": "path",
             "required": true
@@ -926,7 +926,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose badges are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -956,7 +956,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user to whom a badge is to be added",
             "name": "username",
             "in": "path",
             "required": true
@@ -990,7 +990,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose badge is to be deleted",
             "name": "username",
             "in": "path",
             "required": true
@@ -1032,7 +1032,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user who is to receive a public key",
             "name": "username",
             "in": "path",
             "required": true
@@ -1071,7 +1071,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose public key is to be deleted",
             "name": "username",
             "in": "path",
             "required": true
@@ -1114,7 +1114,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of the user that will own the created organization",
+            "description": "username of the user who will own the created organization",
             "name": "username",
             "in": "path",
             "required": true
@@ -1154,7 +1154,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "existing username of user",
+            "description": "current username of the user",
             "name": "username",
             "in": "path",
             "required": true
@@ -1197,7 +1197,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of the user. This user will own the created repository",
+            "description": "username of the user who will own the created repository",
             "name": "username",
             "in": "path",
             "required": true
@@ -2716,7 +2716,7 @@
           },
           {
             "type": "string",
-            "description": "user to check",
+            "description": "username of the user to check",
             "name": "username",
             "in": "path",
             "required": true
@@ -2747,7 +2747,7 @@
           },
           {
             "type": "string",
-            "description": "user to block",
+            "description": "username of the user to block",
             "name": "username",
             "in": "path",
             "required": true
@@ -2787,7 +2787,7 @@
           },
           {
             "type": "string",
-            "description": "user to unblock",
+            "description": "username of the user to unblock",
             "name": "username",
             "in": "path",
             "required": true
@@ -3258,7 +3258,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user to check for an organization membership",
             "name": "username",
             "in": "path",
             "required": true
@@ -3295,7 +3295,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user to remove from the organization",
             "name": "username",
             "in": "path",
             "required": true
@@ -3457,7 +3457,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user to check for a public organization membership",
             "name": "username",
             "in": "path",
             "required": true
@@ -3491,7 +3491,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user whose membership is to be publicized",
             "name": "username",
             "in": "path",
             "required": true
@@ -3528,7 +3528,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user whose membership is to be concealed",
             "name": "username",
             "in": "path",
             "required": true
@@ -7118,7 +7118,7 @@
           },
           {
             "type": "string",
-            "description": "username of the collaborator",
+            "description": "username of the user to check for being a collaborator",
             "name": "collaborator",
             "in": "path",
             "required": true
@@ -7162,7 +7162,7 @@
           },
           {
             "type": "string",
-            "description": "username of the collaborator to add",
+            "description": "username of the user to add or update as a collaborator",
             "name": "collaborator",
             "in": "path",
             "required": true
@@ -7262,7 +7262,7 @@
           },
           {
             "type": "string",
-            "description": "username of the collaborator",
+            "description": "username of the collaborator whose permissions are to be obtained",
             "name": "collaborator",
             "in": "path",
             "required": true
@@ -7612,13 +7612,14 @@
     },
     "/repos/{owner}/{repo}/contents": {
       "get": {
+        "description": "This API follows GitHub's design, and it is not easy to use. Recommend users to use our \"contents-ext\" API instead.",
         "produces": [
           "application/json"
         ],
         "tags": [
           "repository"
         ],
-        "summary": "Gets the metadata of all the entries of the root dir",
+        "summary": "Gets the metadata of all the entries of the root dir.",
         "operationId": "repoGetContentsList",
         "parameters": [
           {
@@ -7706,15 +7707,72 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/contents/{filepath}": {
+    "/repos/{owner}/{repo}/contents-ext/{filepath}": {
       "get": {
+        "description": "It guarantees that only one of the response fields is set if the request succeeds. Users can pass \"includes=file_content\" or \"includes=lfs_metadata\" to retrieve more fields. \"includes=file_content\" only works for single file, if you need to retrieve file contents in batch, use \"file-contents\" API after listing the directory.",
         "produces": [
           "application/json"
         ],
         "tags": [
           "repository"
         ],
-        "summary": "Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir",
+        "summary": "The extended \"contents\" API, to get file metadata and/or content, or list a directory.",
+        "operationId": "repoGetContentsExt",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "path of the dir, file, symlink or submodule in the repo. Swagger requires path parameter to be \"required\", you can leave it empty or pass a single dot (\".\") to get the root directory.",
+            "name": "filepath",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the name of the commit/branch/tag, default to the repository’s default branch.",
+            "name": "ref",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "By default this API's response only contains file's metadata. Use comma-separated \"includes\" options to retrieve more fields. Option \"file_content\" will try to retrieve the file content, \"lfs_metadata\" will try to retrieve LFS metadata, \"commit_metadata\" will try to retrieve commit metadata, and \"commit_message\" will try to retrieve commit message.",
+            "name": "includes",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ContentsExtResponse"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/contents/{filepath}": {
+      "get": {
+        "description": "This API follows GitHub's design, and it is not easy to use. Recommend users to use the \"contents-ext\" API instead.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir.",
         "operationId": "repoGetContents",
         "parameters": [
           {
@@ -7932,6 +7990,9 @@
           "404": {
             "$ref": "#/responses/error"
           },
+          "422": {
+            "$ref": "#/responses/error"
+          },
           "423": {
             "$ref": "#/responses/repoArchivedError"
           }
@@ -8039,7 +8100,7 @@
     },
     "/repos/{owner}/{repo}/file-contents": {
       "get": {
-        "description": "See the POST method. This GET method supports to use JSON encoded request body in query parameter.",
+        "description": "See the POST method. This GET method supports using JSON encoded request body in query parameter.",
         "produces": [
           "application/json"
         ],
@@ -11823,7 +11884,7 @@
             "$ref": "#/responses/notFound"
           },
           "409": {
-            "description": "Cannot cancel a non existent stopwatch"
+            "description": "Cannot cancel a non-existent stopwatch"
           }
         }
       }
@@ -11929,7 +11990,7 @@
             "$ref": "#/responses/notFound"
           },
           "409": {
-            "description": "Cannot stop a non existent stopwatch"
+            "description": "Cannot stop a non-existent stopwatch"
           }
         }
       }
@@ -12078,7 +12139,7 @@
           },
           {
             "type": "string",
-            "description": "user to subscribe",
+            "description": "username of the user to subscribe the issue to",
             "name": "user",
             "in": "path",
             "required": true
@@ -12136,7 +12197,7 @@
           },
           {
             "type": "string",
-            "description": "user witch unsubscribe",
+            "description": "username of the user to unsubscribe from an issue",
             "name": "user",
             "in": "path",
             "required": true
@@ -13006,7 +13067,7 @@
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch",
             "name": "ref",
             "in": "query"
           }
@@ -15255,7 +15316,7 @@
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch",
             "name": "ref",
             "in": "query"
           }
@@ -17053,7 +17114,7 @@
           },
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose tracked times are to be listed",
             "name": "user",
             "in": "path",
             "required": true
@@ -18076,7 +18137,7 @@
           },
           {
             "type": "string",
-            "description": "username of the member to list",
+            "description": "username of the user whose data is to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -18111,7 +18172,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user to add",
+            "description": "username of the user to add to a team",
             "name": "username",
             "in": "path",
             "required": true
@@ -18149,7 +18210,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user to remove",
+            "description": "username of the user to remove from a team",
             "name": "username",
             "in": "path",
             "required": true
@@ -19128,7 +19189,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "user to check",
+            "description": "username of the user to check",
             "name": "username",
             "in": "path",
             "required": true
@@ -19152,7 +19213,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "user to block",
+            "description": "username of the user to block",
             "name": "username",
             "in": "path",
             "required": true
@@ -19185,7 +19246,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "user to unblock",
+            "description": "username of the user to unblock",
             "name": "username",
             "in": "path",
             "required": true
@@ -19347,7 +19408,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of followed user",
+            "description": "username of the user to check for authenticated followers",
             "name": "username",
             "in": "path",
             "required": true
@@ -19371,7 +19432,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to follow",
+            "description": "username of the user to follow",
             "name": "username",
             "in": "path",
             "required": true
@@ -19398,7 +19459,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to unfollow",
+            "description": "username of the user to unfollow",
             "name": "username",
             "in": "path",
             "required": true
@@ -20429,7 +20490,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to get",
+            "description": "username of the user whose data is to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20458,7 +20519,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose activity feeds are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20512,7 +20573,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose followers are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20553,7 +20614,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose followed users are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20591,14 +20652,14 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of following user",
+            "description": "username of the following user",
             "name": "username",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
-            "description": "username of followed user",
+            "description": "username of the followed user",
             "name": "target",
             "in": "path",
             "required": true
@@ -20627,7 +20688,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose GPG key list is to be obtained",
             "name": "username",
             "in": "path",
             "required": true
@@ -20668,7 +20729,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to get",
+            "description": "username of the user whose heatmap is to be obtained",
             "name": "username",
             "in": "path",
             "required": true
@@ -20697,7 +20758,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose public keys are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20744,7 +20805,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose organizations are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20785,7 +20846,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose permissions are to be obtained",
             "name": "username",
             "in": "path",
             "required": true
@@ -20824,7 +20885,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose owned repos are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20865,7 +20926,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose starred repos are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20909,7 +20970,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user whose watched repos are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20950,7 +21011,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of to user whose access tokens are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20992,7 +21053,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose token is to be created",
             "name": "username",
             "in": "path",
             "required": true
@@ -21031,7 +21092,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose token is to be deleted",
             "name": "username",
             "in": "path",
             "required": true
@@ -21832,7 +21893,7 @@
           "x-go-name": "Time"
         },
         "user_name": {
-          "description": "User who spent the time (optional)",
+          "description": "username of the user who spent the time working on the issue (optional)",
           "type": "string",
           "x-go-name": "User"
         }
@@ -22179,7 +22240,7 @@
       ],
       "properties": {
         "content": {
-          "description": "new or updated file content, must be base64 encoded",
+          "description": "new or updated file content, it must be base64 encoded",
           "type": "string",
           "x-go-name": "ContentBase64"
         },
@@ -22189,11 +22250,13 @@
           "x-go-name": "FromPath"
         },
         "operation": {
-          "description": "indicates what to do with the file",
+          "description": "indicates what to do with the file: \"create\" for creating a new file, \"update\" for updating an existing file,\n\"upload\" for creating or updating a file, \"rename\" for renaming a file, and \"delete\" for deleting an existing file.",
           "type": "string",
           "enum": [
             "create",
             "update",
+            "upload",
+            "rename",
             "delete"
           ],
           "x-go-name": "Operation"
@@ -22204,7 +22267,7 @@
           "x-go-name": "Path"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists, required for update or delete",
+          "description": "the blob ID (SHA) for the file that already exists, required for changing existing files",
           "type": "string",
           "x-go-name": "SHA"
         }
@@ -22625,6 +22688,22 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ContentsExtResponse": {
+      "type": "object",
+      "properties": {
+        "dir_contents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContentsResponse"
+          },
+          "x-go-name": "DirContents"
+        },
+        "file_contents": {
+          "$ref": "#/definitions/ContentsResponse"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ContentsResponse": {
       "description": "ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content",
       "type": "object",
@@ -22659,6 +22738,10 @@
           "format": "date-time",
           "x-go-name": "LastAuthorDate"
         },
+        "last_commit_message": {
+          "type": "string",
+          "x-go-name": "LastCommitMessage"
+        },
         "last_commit_sha": {
           "type": "string",
           "x-go-name": "LastCommitSHA"
@@ -22667,6 +22750,15 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "LastCommitterDate"
+        },
+        "lfs_oid": {
+          "type": "string",
+          "x-go-name": "LfsOid"
+        },
+        "lfs_size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LfsSize"
         },
         "name": {
           "type": "string",
@@ -23340,6 +23432,7 @@
           "x-go-name": "RepoAdminChangeTeamAccess"
         },
         "username": {
+          "description": "username of the organization",
           "type": "string",
           "x-go-name": "UserName"
         },
@@ -23790,7 +23883,9 @@
           "x-go-name": "FullName"
         },
         "login_name": {
+          "description": "identifier of the user, provided by the external authenticator (if configured)",
           "type": "string",
+          "default": "empty",
           "x-go-name": "LoginName"
         },
         "must_change_password": {
@@ -23815,6 +23910,7 @@
           "x-go-name": "SourceID"
         },
         "username": {
+          "description": "username of the user",
           "type": "string",
           "x-go-name": "Username"
         },
@@ -23944,7 +24040,7 @@
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists",
+          "description": "the blob ID (SHA) for the file that already exists, it is required for changing existing files",
           "type": "string",
           "x-go-name": "SHA"
         },
@@ -24800,7 +24896,9 @@
           "x-go-name": "Location"
         },
         "login_name": {
+          "description": "identifier of the user, provided by the external authenticator (if configured)",
           "type": "string",
+          "default": "empty",
           "x-go-name": "LoginName"
         },
         "max_repo_creation": {
@@ -24859,6 +24957,7 @@
           "x-go-name": "UserID"
         },
         "username": {
+          "description": "username of the user",
           "type": "string",
           "x-go-name": "UserName"
         },
@@ -25316,6 +25415,15 @@
         "encoding": {
           "type": "string",
           "x-go-name": "Encoding"
+        },
+        "lfs_oid": {
+          "type": "string",
+          "x-go-name": "LfsOid"
+        },
+        "lfs_size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LfsSize"
         },
         "sha": {
           "type": "string",
@@ -26603,7 +26711,7 @@
           "x-go-name": "RepoAdminChangeTeamAccess"
         },
         "username": {
-          "description": "deprecated",
+          "description": "username of the organization\ndeprecated",
           "type": "string",
           "x-go-name": "UserName"
         },
@@ -26847,6 +26955,7 @@
           "x-go-name": "Name"
         },
         "username": {
+          "description": "username of the user",
           "type": "string",
           "x-go-name": "UserName"
         }
@@ -28362,6 +28471,7 @@
           "x-go-name": "UserID"
         },
         "user_name": {
+          "description": "username of the user",
           "type": "string",
           "x-go-name": "UserName"
         }
@@ -28465,7 +28575,7 @@
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists",
+          "description": "the blob ID (SHA) for the file that already exists, it is required for changing existing files",
           "type": "string",
           "x-go-name": "SHA"
         },
@@ -28620,12 +28730,12 @@
           "x-go-name": "Location"
         },
         "login": {
-          "description": "the user's username",
+          "description": "login of the user, same as `username`",
           "type": "string",
           "x-go-name": "UserName"
         },
         "login_name": {
-          "description": "the user's authentication sign-in name.",
+          "description": "identifier of the user, provided by the external authenticator (if configured)",
           "type": "string",
           "default": "empty",
           "x-go-name": "LoginName"
@@ -29159,6 +29269,12 @@
       "description": "",
       "schema": {
         "$ref": "#/definitions/Compare"
+      }
+    },
+    "ContentsExtResponse": {
+      "description": "",
+      "schema": {
+        "$ref": "#/definitions/ContentsExtResponse"
       }
     },
     "ContentsListResponse": {

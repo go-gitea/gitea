@@ -715,7 +715,8 @@ func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository
 	return nil
 }
 
-func (c *Comment) loadReview(ctx context.Context) (err error) {
+// LoadReview loads the associated review
+func (c *Comment) LoadReview(ctx context.Context) (err error) {
 	if c.ReviewID == 0 {
 		return nil
 	}
@@ -730,11 +731,6 @@ func (c *Comment) loadReview(ctx context.Context) (err error) {
 	}
 	c.Review.Issue = c.Issue
 	return nil
-}
-
-// LoadReview loads the associated review
-func (c *Comment) LoadReview(ctx context.Context) error {
-	return c.loadReview(ctx)
 }
 
 // DiffSide returns "previous" if Comment.Line is a LOC of the previous changes and "proposed" if it is a LOC of the proposed changes.
@@ -856,7 +852,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		if comment.ReviewID != 0 {
 			if comment.Review == nil {
-				if err := comment.loadReview(ctx); err != nil {
+				if err := comment.LoadReview(ctx); err != nil {
 					return err
 				}
 			}

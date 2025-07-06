@@ -15,7 +15,7 @@ type EntryMode int
 // one of these.
 const (
 	// EntryModeNoEntry is possible if the file was added or removed in a commit. In the case of
-	// added the base commit will not have the file in its tree so a mode of 0o000000 is used.
+	// when adding the base commit doesn't have the file in its tree, a mode of 0o000000 is used.
 	EntryModeNoEntry EntryMode = 0o000000
 
 	EntryModeBlob    EntryMode = 0o100644
@@ -30,7 +30,7 @@ func (e EntryMode) String() string {
 	return strconv.FormatInt(int64(e), 8)
 }
 
-// IsSubModule if the entry is a sub module
+// IsSubModule if the entry is a submodule
 func (e EntryMode) IsSubModule() bool {
 	return e == EntryModeCommit
 }
