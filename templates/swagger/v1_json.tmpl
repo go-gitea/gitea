@@ -26987,7 +26987,7 @@
         "board_type": {
           "type": "integer",
           "format": "uint8",
-          "x-go-name": "BoardType"
+          "x-go-name": "TemplateType"
         },
         "closed_at": {
           "type": "string",
@@ -30151,6 +30151,9 @@
       "description": "parameterBodies",
       "schema": {
         "$ref": "#/definitions/LockIssueOption"
+      },
+      "headers": {
+        "LockIssueOption": {}
       }
     },
     "redirect": {
@@ -30249,3 +30252,4 @@
       "TOTPHeader": []
     }
   ]
+}
