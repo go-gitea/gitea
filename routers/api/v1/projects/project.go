@@ -140,7 +140,7 @@ func CreateRepoProject(ctx *context.APIContext) {
 }
 
 func GetProject(ctx *context.APIContext) {
-	// swagger:operation GET /projects/{id} project projectGetProject
+	// swagger:operation GET /projects/{project_id} project projectGetProject
 	// ---
 	// summary: Get project
 	// produces:
@@ -177,7 +177,7 @@ func GetProject(ctx *context.APIContext) {
 }
 
 func UpdateProject(ctx *context.APIContext) {
-	// swagger:operation PATCH /projects/{id} project projectUpdateProject
+	// swagger:operation PATCH /projects/{project_id} project projectUpdateProject
 	// ---
 	// summary: Update project
 	// produces:
@@ -232,7 +232,7 @@ func UpdateProject(ctx *context.APIContext) {
 }
 
 func DeleteProject(ctx *context.APIContext) {
-	// swagger:operation DELETE /projects/{id} project projectDeleteProject
+	// swagger:operation DELETE /projects/{project_id} project projectDeleteProject
 	// ---
 	// summary: Delete project
 	// parameters:
@@ -258,7 +258,7 @@ func DeleteProject(ctx *context.APIContext) {
 }
 
 func ListUserProjects(ctx *context.APIContext) {
-	// swagger:operation GET /user/projects project projectListUserProjects
+	// swagger:operation GET /users/{user}/projects project projectListUserProjects
 	// ---
 	// summary: List user projects
 	// produces:
