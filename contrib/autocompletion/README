@@ -9,7 +9,7 @@ source contrib/autocompletion/bash_autocomplete
 
 for zsh run:
 
-```zsh
+```bash
 source contrib/autocompletion/zsh_autocomplete
 ```
 
