@@ -9,9 +9,9 @@ function __fish_gitea_no_subcommand --description 'Test if there has been any su
     return 0
 end
 
-complete -c gitea -n '__fish_gitea_no_subcommand' -f -l custom-path -s C -r -d 'Set custom path (defaults to \'{WorkPath}/custom\')'
-complete -c gitea -n '__fish_gitea_no_subcommand' -f -l config -s c -r -d 'Set custom config file (defaults to \'{WorkPath}/custom/conf/app.ini\')'
-complete -c gitea -n '__fish_gitea_no_subcommand' -f -l work-path -s w -r -d 'Set Gitea\'s working path (defaults to the Gitea\'s binary directory)'
+complete -c gitea -n '__fish_gitea_no_subcommand' -l custom-path -s C -r -d 'Set custom path (defaults to \'{WorkPath}/custom\')'
+complete -c gitea -n '__fish_gitea_no_subcommand' -l config -s c -r -d 'Set custom config file (defaults to \'{WorkPath}/custom/conf/app.ini\')'
+complete -c gitea -n '__fish_gitea_no_subcommand' -l work-path -s w -r -d 'Set Gitea\'s working path (defaults to the Gitea\'s binary directory)'
 complete -c gitea -n '__fish_gitea_no_subcommand' -f -l help -s h -d 'show help'
 complete -c gitea -n '__fish_gitea_no_subcommand' -f -l version -s v -d 'print the version'
 complete -x -c gitea -n '__fish_gitea_no_subcommand' -a 'help' -d 'Shows a list of commands or help for one command'

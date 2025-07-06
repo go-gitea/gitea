@@ -81,20 +81,23 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 	app.EnableShellCompletion = true
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
-			Name:    "custom-path",
-			Aliases: []string{"C"},
-			Usage:   "Set custom path (defaults to '{WorkPath}/custom')",
+			Name:      "custom-path",
+			Aliases:   []string{"C"},
+			TakesFile: true,
+			Usage:     "Set custom path (defaults to '{WorkPath}/custom')",
 		},
 		&cli.StringFlag{
-			Name:    "config",
-			Aliases: []string{"c"},
-			Value:   setting.CustomConf,
-			Usage:   "Set custom config file (defaults to '{WorkPath}/custom/conf/app.ini')",
+			Name:      "config",
+			Aliases:   []string{"c"},
+			TakesFile: true,
+			Value:     setting.CustomConf,
+			Usage:     "Set custom config file (defaults to '{WorkPath}/custom/conf/app.ini')",
 		},
 		&cli.StringFlag{
-			Name:    "work-path",
-			Aliases: []string{"w"},
-			Usage:   "Set Gitea's working path (defaults to the Gitea's binary directory)",
+			Name:      "work-path",
+			Aliases:   []string{"w"},
+			TakesFile: true,
+			Usage:     "Set Gitea's working path (defaults to the Gitea's binary directory)",
 		},
 	}
 	// these sub-commands need to use config file
