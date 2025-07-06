@@ -9,11 +9,11 @@ source contrib/autocompletion/bash_autocomplete
 
 for zsh run:
 
-```bash
+```zsh
 source contrib/autocompletion/zsh_autocomplete
 ```
 
-and for fish:
+or for fish:
 
 ```fish
 source contrib/autocompletion/gitea.fish
