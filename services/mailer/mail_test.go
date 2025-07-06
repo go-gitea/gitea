@@ -16,6 +16,8 @@ import (
 	"testing"
 	texttmpl "text/template"
 
+	actions_model "code.gitea.io/gitea/models/actions"
+
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -438,6 +440,16 @@ func TestGenerateMessageIDForRelease(t *testing.T) {
 		Repo: &repo_model.Repository{OwnerName: "owner", Name: "repo"},
 	})
 	assert.Equal(t, "<owner/repo/releases/1@localhost>", msgID)
+}
+
+func TestGenerateMessageIDForActionsWorkflowRunStatusEmail(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 795, RepoID: repo.ID})
+	assert.NoError(t, run.LoadAttributes(db.DefaultContext))
+	msgID := generateMessageIDForActionsWorkflowRunStatusEmail(repo, run)
+	assert.Equal(t, "<user2/repo2/actions/runs/191@localhost>", msgID)
 }
 
 func TestFromDisplayName(t *testing.T) {
