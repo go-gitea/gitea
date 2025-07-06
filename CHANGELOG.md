@@ -4,6 +4,27 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/1.24.3) - 2025-07-06
+
+* BUGFIXES
+  * Fix project images scroll (#34971) (#34972)
+  * Mark old reviews as stale on agit pr updates (#34933) (#34965)
+  * Fix git graph page (#34948) (#34949)
+  * Don't send trigger for a pending review's comment create/update/delete (#34928) (#34939)
+  * Fix some log and UI problems (#34863) (#34868)
+  * Fix archive API (#34853) (#34857)
+  * Ignore force pushes for changed files in a PR review (#34837) (#34843)
+  * Fix SSH LFS timeout (#34838) (#34842)
+  * Fix team permissions (#34827) (#34836)
+  * Fix job status aggregation logic (#34823) (#34835)
+  * Fix issue filter (#34914) (#34915)
+  * Fix typo in pull request merge warning message text (#34899) (#34903)
+  * Support the open-icon of folder (#34168) (#34896)
+  * Optimize flex layout of release attachment area (#34885) (#34886)
+  * Fix the issue of abnormal interface when there is no issue-item on the project page (#34791) (#34880)
+  * Skip updating timestamp when sync branch (#34875)
+  * Fix required contexts and commit status matching bug (#34815) (#34829)
+
 ## [1.24.2](https://github.com/go-gitea/gitea/releases/tag/1.24.2) - 2025-06-20
 
 * BUGFIXES
