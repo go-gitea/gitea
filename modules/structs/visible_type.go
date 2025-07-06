@@ -60,10 +60,3 @@ func ExtractKeysFromMapString(in map[string]VisibleType) (keys []string) {
 	}
 	return keys
 }
-
-func ConvertStringToVisibleType(s string) VisibleType {
-	if vt, ok := VisibilityModes[s]; ok {
-		return vt
-	}
-	return VisibleType(-1) // Invalid type
-}
