@@ -86,7 +86,7 @@ func (m *workflowNotifier) IssueChangeStatus(ctx context.Context, doer *user_mod
 	fireIssueWorkflow(ctx, workflow, issue)
 }
 
-func fireIssueWorkflow(ctx context.Context, workflow *project_model.ProjectWorkflow, issue *issues_model.Issue) {
+func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue) {
 	for _, filter := range workflow.WorkflowFilters {
 		switch filter.Type {
 		case project_model.WorkflowFilterTypeScope:

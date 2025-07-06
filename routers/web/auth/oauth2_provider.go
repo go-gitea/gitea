@@ -4,18 +4,16 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"html"
 	"html/template"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/auth/httpauth"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -108,9 +106,8 @@ func InfoOAuth(ctx *context.Context) {
 
 	var accessTokenScope auth.AccessTokenScope
 	if auHead := ctx.Req.Header.Get("Authorization"); auHead != "" {
-		auths := strings.Fields(auHead)
-		if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
-			accessTokenScope, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, auths[1])
+		if parsed, ok := httpauth.ParseAuthorizationHeader(auHead); ok && parsed.BearerToken != nil {
+			accessTokenScope, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, parsed.BearerToken.Token)
 		}
 	}
 
@@ -127,18 +124,12 @@ func InfoOAuth(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-func parseBasicAuth(ctx *context.Context) (username, password string, err error) {
-	authHeader := ctx.Req.Header.Get("Authorization")
-	if authType, authData, ok := strings.Cut(authHeader, " "); ok && strings.EqualFold(authType, "Basic") {
-		return base.BasicAuthDecode(authData)
-	}
-	return "", "", errors.New("invalid basic authentication")
-}
-
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
 	clientIDValid := false
-	if clientID, clientSecret, err := parseBasicAuth(ctx); err == nil {
+	authHeader := ctx.Req.Header.Get("Authorization")
+	if parsed, ok := httpauth.ParseAuthorizationHeader(authHeader); ok && parsed.BasicAuth != nil {
+		clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 		app, err := auth.GetOAuth2ApplicationByClientID(ctx, clientID)
 		if err != nil && !auth.IsErrOauthClientIDInvalid(err) {
 			// this is likely a database error; log it and respond without details
@@ -465,16 +456,16 @@ func AccessTokenOAuth(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AccessTokenForm)
 	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
 	if form.ClientID == "" || form.ClientSecret == "" {
-		authHeader := ctx.Req.Header.Get("Authorization")
-		if authType, authData, ok := strings.Cut(authHeader, " "); ok && strings.EqualFold(authType, "Basic") {
-			clientID, clientSecret, err := base.BasicAuthDecode(authData)
-			if err != nil {
+		if authHeader := ctx.Req.Header.Get("Authorization"); authHeader != "" {
+			parsed, ok := httpauth.ParseAuthorizationHeader(authHeader)
+			if !ok || parsed.BasicAuth == nil {
 				handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 					ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidRequest,
 					ErrorDescription: "cannot parse basic auth header",
 				})
 				return
 			}
+			clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 			// validate that any fields present in the form match the Basic auth header
 			if form.ClientID != "" && form.ClientID != clientID {
 				handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{

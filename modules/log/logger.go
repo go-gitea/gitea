@@ -45,6 +45,6 @@ type Logger interface {
 	LevelLogger
 }
 
-type LogStringer interface { //nolint:revive
+type LogStringer interface { //nolint:revive // export stutter
 	LogString() string
 }

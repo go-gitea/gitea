@@ -23,7 +23,7 @@ func TestCompressOldFile(t *testing.T) {
 	ng, err := os.OpenFile(nonGzip, os.O_CREATE|os.O_WRONLY, 0o660)
 	assert.NoError(t, err)
 
-	for i := 0; i < 999; i++ {
+	for range 999 {
 		f.WriteString("This is a test file\n")
 		ng.WriteString("This is a test file\n")
 	}

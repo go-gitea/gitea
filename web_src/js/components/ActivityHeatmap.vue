@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 // TODO: Switch to upstream after https://github.com/razorness/vue3-calendar-heatmap/pull/34 is merged
 import {CalendarHeatmap} from '@silverwind/vue3-calendar-heatmap';
-import {onMounted, ref} from 'vue';
+import {onMounted, shallowRef} from 'vue';
 import type {Value as HeatmapValue, Locale as HeatmapLocale} from '@silverwind/vue3-calendar-heatmap';
 
 defineProps<{
@@ -24,7 +24,7 @@ const colorRange = [
   'var(--color-primary-dark-4)',
 ];
 
-const endDate = ref(new Date());
+const endDate = shallowRef(new Date());
 
 onMounted(() => {
   // work around issue with first legend color being rendered twice and legend cut off

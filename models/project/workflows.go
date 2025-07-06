@@ -117,7 +117,7 @@ type WorkflowAction struct {
 	ActionValue string
 }
 
-type ProjectWorkflow struct {
+type Workflow struct {
 	ID              int64
 	ProjectID       int64              `xorm:"unique(s)"`
 	Project         *Project           `xorm:"-"`
@@ -128,7 +128,12 @@ type ProjectWorkflow struct {
 	UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
 }
 
-func (p *ProjectWorkflow) LoadProject(ctx context.Context) error {
+// TableName overrides the table name used by ProjectWorkflow to `project_workflow`
+func (Workflow) TableName() string {
+	return "project_workflow"
+}
+
+func (p *Workflow) LoadProject(ctx context.Context) error {
 	if p.Project != nil || p.ProjectID <= 0 {
 		return nil
 	}
@@ -140,7 +145,7 @@ func (p *ProjectWorkflow) LoadProject(ctx context.Context) error {
 	return nil
 }
 
-func (p *ProjectWorkflow) Link(ctx context.Context) string {
+func (p *Workflow) Link(ctx context.Context) string {
 	if err := p.LoadProject(ctx); err != nil {
 		log.Error("ProjectWorkflow Link: %v", err)
 		return ""
@@ -149,23 +154,23 @@ func (p *ProjectWorkflow) Link(ctx context.Context) string {
 }
 
 func init() {
-	db.RegisterModel(new(ProjectWorkflow))
+	db.RegisterModel(new(Workflow))
 }
 
-func FindWorkflowEvents(ctx context.Context, projectID int64) (map[WorkflowEvent]*ProjectWorkflow, error) {
-	events := make(map[WorkflowEvent]*ProjectWorkflow)
+func FindWorkflowEvents(ctx context.Context, projectID int64) (map[WorkflowEvent]*Workflow, error) {
+	events := make(map[WorkflowEvent]*Workflow)
 	if err := db.GetEngine(ctx).Where("project_id=?", projectID).Find(&events); err != nil {
 		return nil, err
 	}
-	res := make(map[WorkflowEvent]*ProjectWorkflow, len(events))
+	res := make(map[WorkflowEvent]*Workflow, len(events))
 	for _, event := range events {
 		res[event.WorkflowEvent] = event
 	}
 	return res, nil
 }
 
-func GetWorkflowByID(ctx context.Context, id int64) (*ProjectWorkflow, error) {
-	p, exist, err := db.GetByID[ProjectWorkflow](ctx, id)
+func GetWorkflowByID(ctx context.Context, id int64) (*Workflow, error) {
+	p, exist, err := db.GetByID[Workflow](ctx, id)
 	if err != nil {
 		return nil, err
 	}

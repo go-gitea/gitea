@@ -28,7 +28,6 @@ func init() {
 	})
 }
 
-// Deadline is part of the interface for context.Context and we pass this to the request context
 func (ctx *PrivateContext) Deadline() (deadline time.Time, ok bool) {
 	if ctx.Override != nil {
 		return ctx.Override.Deadline()
@@ -36,7 +35,6 @@ func (ctx *PrivateContext) Deadline() (deadline time.Time, ok bool) {
 	return ctx.Base.Deadline()
 }
 
-// Done is part of the interface for context.Context and we pass this to the request context
 func (ctx *PrivateContext) Done() <-chan struct{} {
 	if ctx.Override != nil {
 		return ctx.Override.Done()
@@ -44,7 +42,6 @@ func (ctx *PrivateContext) Done() <-chan struct{} {
 	return ctx.Base.Done()
 }
 
-// Err is part of the interface for context.Context and we pass this to the request context
 func (ctx *PrivateContext) Err() error {
 	if ctx.Override != nil {
 		return ctx.Override.Err()
@@ -52,14 +49,14 @@ func (ctx *PrivateContext) Err() error {
 	return ctx.Base.Err()
 }
 
-var privateContextKey any = "default_private_context"
+type privateContextKeyType struct{}
 
-// GetPrivateContext returns a context for Private routes
+var privateContextKey privateContextKeyType
+
 func GetPrivateContext(req *http.Request) *PrivateContext {
 	return req.Context().Value(privateContextKey).(*PrivateContext)
 }
 
-// PrivateContexter returns apicontext as middleware
 func PrivateContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

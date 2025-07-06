@@ -107,8 +107,14 @@
 							{{end}}
 							</td>
 							<td class="two wide ui">
-								{{if and (not .DBBranch.IsDeleted) $.DefaultBranchBranch}}
-								<div class="commit-divergence">
+							{{if and (not .DBBranch.IsDeleted) $.DefaultBranchBranch}}
+								{{$tooltipDivergence := ""}}
+								{{if or .CommitsBehind .CommitsAhead}}
+									{{$tooltipDivergence = ctx.Locale.Tr "repo.branch.commits_divergence_from" .CommitsBehind .CommitsAhead $.DefaultBranchBranch.DBBranch.Name}}
+								{{else}}
+									{{$tooltipDivergence = ctx.Locale.Tr "repo.branch.commits_no_divergence" $.DefaultBranchBranch.DBBranch.Name}}
+								{{end}}
+								<div class="commit-divergence" data-tooltip-content="{{$tooltipDivergence}}">
 									<div class="bar-group">
 										<div class="count count-behind">{{.CommitsBehind}}</div>
 										{{/* old code bears 0/0.0 = NaN output, so it might output invalid "width: NaNpx", it just works and doesn't caues any problem. */}}
@@ -119,7 +125,7 @@
 										<div class="bar bar-ahead" style="width: {{Eval 100 "*" .CommitsAhead "/" "(" .CommitsBehind "+" .CommitsAhead "+" 0.0 ")"}}%"></div>
 									</div>
 								</div>
-								{{end}}
+							{{end}}
 							</td>
 							<td class="two wide tw-text-right">
 								{{if not .LatestPullRequest}}

@@ -282,7 +282,7 @@ func Routes() *web.Router {
 	}
 
 	mid = append(mid, goGet)
-	mid = append(mid, common.PageTmplFunctions)
+	mid = append(mid, common.PageGlobalData)
 
 	webRoutes := web.NewRouter()
 	webRoutes.Use(mid...)
@@ -965,7 +965,8 @@ func registerWebRoutes(m *web.Router) {
 					addSettingsVariablesRoutes()
 				}, actions.MustEnableActions)
 
-				m.Methods("GET,POST", "/delete", org.SettingsDelete)
+				m.Post("/rename", web.Bind(forms.RenameOrgForm{}), org.SettingsRenamePost)
+				m.Post("/delete", org.SettingsDeleteOrgPost)
 
 				m.Group("/packages", func() {
 					m.Get("", org.Packages)
@@ -1013,6 +1014,7 @@ func registerWebRoutes(m *web.Router) {
 					m.Get("/versions", user.ListPackageVersions)
 					m.Group("/{version}", func() {
 						m.Get("", user.ViewPackageVersion)
+						m.Get("/{version_sub}", user.ViewPackageVersion)
 						m.Get("/files/{fileid}", user.DownloadPackageFile)
 						m.Group("/settings", func() {
 							m.Get("", user.PackageSettings)
@@ -1034,7 +1036,7 @@ func registerWebRoutes(m *web.Router) {
 				m.Get("", projects.Workflows)
 				m.Get("/{workflow_id}", projects.Workflows)
 			})
-			m.Group("", func() { //nolint:dupl
+			m.Group("", func() { //nolint:dupl // duplicates lines 1421-1441
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
@@ -1256,7 +1258,8 @@ func registerWebRoutes(m *web.Router) {
 					m.Post("/add", web.Bind(forms.AddTimeManuallyForm{}), repo.AddTimeManually)
 					m.Post("/{timeid}/delete", repo.DeleteTime)
 					m.Group("/stopwatch", func() {
-						m.Post("/toggle", repo.IssueStopwatch)
+						m.Post("/start", repo.IssueStartStopwatch)
+						m.Post("/stop", repo.IssueStopStopwatch)
 						m.Post("/cancel", repo.CancelStopwatch)
 					})
 				})
@@ -1316,26 +1319,38 @@ func registerWebRoutes(m *web.Router) {
 	}, reqSignIn, context.RepoAssignment, context.RepoMustNotBeArchived())
 	// end "/{username}/{reponame}": create or edit issues, pulls, labels, milestones
 
-	m.Group("/{username}/{reponame}", func() { // repo code
+	m.Group("/{username}/{reponame}", func() { // repo code (at least "code reader")
 		m.Group("", func() {
 			m.Group("", func() {
-				m.Post("/_preview/*", web.Bind(forms.EditPreviewDiffForm{}), repo.DiffPreviewPost)
-				m.Combo("/_edit/*").Get(repo.EditFile).
-					Post(web.Bind(forms.EditRepoFileForm{}), repo.EditFilePost)
-				m.Combo("/_new/*").Get(repo.NewFile).
-					Post(web.Bind(forms.EditRepoFileForm{}), repo.NewFilePost)
-				m.Combo("/_delete/*").Get(repo.DeleteFile).
-					Post(web.Bind(forms.DeleteRepoFileForm{}), repo.DeleteFilePost)
-				m.Combo("/_upload/*", repo.MustBeAbleToUpload).Get(repo.UploadFile).
-					Post(web.Bind(forms.UploadRepoFileForm{}), repo.UploadFilePost)
-				m.Combo("/_diffpatch/*").Get(repo.NewDiffPatch).
-					Post(web.Bind(forms.EditRepoFileForm{}), repo.NewDiffPatchPost)
-				m.Combo("/_cherrypick/{sha:([a-f0-9]{7,64})}/*").Get(repo.CherryPick).
-					Post(web.Bind(forms.CherryPickForm{}), repo.CherryPickPost)
-			}, context.RepoRefByType(git.RefTypeBranch), context.CanWriteToBranch(), repo.WebGitOperationCommonData)
+				// "GET" requests only need "code reader" permission, "POST" requests need "code writer" permission.
+				// Because reader can "fork and edit"
+				canWriteToBranch := context.CanWriteToBranch()
+				m.Post("/_preview/*", repo.DiffPreviewPost) // read-only, fine with "code reader"
+				m.Post("/_fork/*", repo.ForkToEditPost)     // read-only, fork to own repo, fine with "code reader"
+
+				// the path params are used in PrepareCommitFormOptions to construct the correct form action URL
+				m.Combo("/{editor_action:_edit}/*").
+					Get(repo.EditFile).
+					Post(web.Bind(forms.EditRepoFileForm{}), canWriteToBranch, repo.EditFilePost)
+				m.Combo("/{editor_action:_new}/*").
+					Get(repo.EditFile).
+					Post(web.Bind(forms.EditRepoFileForm{}), canWriteToBranch, repo.EditFilePost)
+				m.Combo("/{editor_action:_delete}/*").
+					Get(repo.DeleteFile).
+					Post(web.Bind(forms.DeleteRepoFileForm{}), canWriteToBranch, repo.DeleteFilePost)
+				m.Combo("/{editor_action:_upload}/*", repo.MustBeAbleToUpload).
+					Get(repo.UploadFile).
+					Post(web.Bind(forms.UploadRepoFileForm{}), canWriteToBranch, repo.UploadFilePost)
+				m.Combo("/{editor_action:_diffpatch}/*").
+					Get(repo.NewDiffPatch).
+					Post(web.Bind(forms.EditRepoFileForm{}), canWriteToBranch, repo.NewDiffPatchPost)
+				m.Combo("/{editor_action:_cherrypick}/{sha:([a-f0-9]{7,64})}/*").
+					Get(repo.CherryPick).
+					Post(web.Bind(forms.CherryPickForm{}), canWriteToBranch, repo.CherryPickPost)
+			}, context.RepoRefByType(git.RefTypeBranch), repo.WebGitOperationCommonData)
 			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
-				m.Post("/upload-remove", web.Bind(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
+				m.Post("/upload-remove", repo.RemoveUploadFileFromServer)
 			}, repo.MustBeAbleToUpload, reqRepoCodeWriter)
 		}, repo.MustBeEditable, context.RepoMustNotBeArchived())
 
@@ -1412,7 +1427,7 @@ func registerWebRoutes(m *web.Router) {
 			m.Get("", projects.Workflows)
 			m.Get("/{workflow_id}", projects.Workflows)
 		})
-		m.Group("", func() { //nolint:dupl
+		m.Group("", func() { //nolint:dupl // duplicates lines 1034-1054
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 			m.Group("/{id}", func() {

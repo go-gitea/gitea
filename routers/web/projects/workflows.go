@@ -56,7 +56,7 @@ func Workflows(ctx *context.Context) {
 
 	workflowIDStr := ctx.PathParam("workflow_id")
 	ctx.Data["workflowIDStr"] = workflowIDStr
-	var curWorkflow *project_model.ProjectWorkflow
+	var curWorkflow *project_model.Workflow
 	if workflowIDStr == "" { // get first value workflow or the first workflow
 		for _, wf := range workflows {
 			if wf.ID > 0 {
