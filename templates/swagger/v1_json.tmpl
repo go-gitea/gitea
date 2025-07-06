@@ -3385,7 +3385,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/NewProjectPayload"
+              "$ref": "#/definitions/NewProjectOption"
             }
           }
         ],
@@ -4308,7 +4308,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/UpdateProjectPayload"
+              "$ref": "#/definitions/UpdateProjectOption"
             }
           }
         ],
@@ -13687,7 +13687,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/NewProjectPayload"
+              "$ref": "#/definitions/NewProjectOption"
             }
           }
         ],
@@ -20014,7 +20014,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/NewProjectPayload"
+              "$ref": "#/definitions/NewProjectOption"
             }
           }
         ],
@@ -26380,7 +26380,8 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "NewProjectPayload": {
+    "NewProjectOption": {
+      "description": "NewProjectOption options when creating a new project",
       "type": "object",
       "required": [
         "name",
@@ -26391,7 +26392,7 @@
         "body": {
           "description": "Keep compatibility with Github API to use \"body\" instead of \"description\"",
           "type": "string",
-          "x-go-name": "Description"
+          "x-go-name": "Body"
         },
         "card_type": {
           "type": "string",
@@ -26403,7 +26404,7 @@
         },
         "name": {
           "type": "string",
-          "x-go-name": "Title"
+          "x-go-name": "Name"
         },
         "template_type": {
           "type": "string",
@@ -26990,6 +26991,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "Project": {
+      "description": "Project represents a project",
       "type": "object",
       "required": [
         "template_type"
@@ -26998,7 +27000,7 @@
         "body": {
           "description": "Keep compatibility with Github API to use \"body\" instead of \"description\"",
           "type": "string",
-          "x-go-name": "Description"
+          "x-go-name": "Body"
         },
         "closed_at": {
           "type": "string",
@@ -27021,7 +27023,7 @@
         "name": {
           "description": "Keep compatibility with Github API to use \"name\" instead of \"title\"",
           "type": "string",
-          "x-go-name": "Title"
+          "x-go-name": "Name"
         },
         "owner": {
           "$ref": "#/definitions/User"
@@ -28608,7 +28610,8 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "UpdateProjectPayload": {
+    "UpdateProjectOption": {
+      "description": "UpdateProjectOption options when updating a project",
       "type": "object",
       "required": [
         "name"
@@ -28617,11 +28620,11 @@
         "body": {
           "description": "Keep compatibility with Github API to use \"body\" instead of \"description\"",
           "type": "string",
-          "x-go-name": "Description"
+          "x-go-name": "Body"
         },
         "name": {
           "type": "string",
-          "x-go-name": "Title"
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -30172,7 +30175,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/UpdateProjectPayload"
+        "$ref": "#/definitions/UpdateProjectOption"
       }
     },
     "redirect": {

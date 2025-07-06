@@ -8,9 +8,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
@@ -283,18 +283,20 @@ func ListUserProjects(ctx *context.APIContext) {
 	//    "$ref": "#/responses/forbidden"
 	//  "404":
 	//    "$ref": "#/responses/notFound"
+
+	listOptions := utils.GetListOptions(ctx)
 	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		Type:        project_model.TypeIndividual,
 		IsClosed:    ctx.FormOptionalBool("closed"),
 		OwnerID:     ctx.Doer.ID,
-		ListOptions: db.ListOptions{Page: ctx.FormInt("page")},
+		ListOptions: listOptions,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	ctx.SetLinkHeader(int(count), setting.UI.IssuePagingNum)
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 
 	apiProjects, err := convert.ToAPIProjectList(ctx, projects)
@@ -337,9 +339,11 @@ func ListOrgProjects(ctx *context.APIContext) {
 	//    "$ref": "#/responses/forbidden"
 	//  "404":
 	//    "$ref": "#/responses/notFound"
+
+	listOptions := utils.GetListOptions(ctx)
 	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		OwnerID:     ctx.Org.Organization.AsUser().ID,
-		ListOptions: db.ListOptions{Page: ctx.FormInt("page")},
+		ListOptions: listOptions,
 		IsClosed:    ctx.FormOptionalBool("closed"),
 		Type:        project_model.TypeOrganization,
 	})
@@ -348,7 +352,7 @@ func ListOrgProjects(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetLinkHeader(int(count), setting.UI.IssuePagingNum)
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 
 	apiProjects, err := convert.ToAPIProjectList(ctx, projects)
@@ -397,19 +401,19 @@ func ListRepoProjects(ctx *context.APIContext) {
 	//  "404":
 	//    "$ref": "#/responses/notFound"
 
-	page := ctx.FormInt("page")
+	listOptions := utils.GetListOptions(ctx)
 	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		RepoID:      ctx.Repo.Repository.ID,
 		IsClosed:    ctx.FormOptionalBool("closed"),
 		Type:        project_model.TypeRepository,
-		ListOptions: db.ListOptions{Page: page},
+		ListOptions: listOptions,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	ctx.SetLinkHeader(int(count), page)
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 
 	apiProjects, err := convert.ToAPIProjectList(ctx, projects)
