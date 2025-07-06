@@ -7,10 +7,16 @@ From within the gitea root run:
 source contrib/autocompletion/bash_autocomplete
 ```
 
-or for zsh run:
+for zsh run:
 
-```bash
+```zsh
 source contrib/autocompletion/zsh_autocomplete
+```
+
+and for fish:
+
+```fish
+source contrib/autocompletion/gitea.fish
 ```
 
 These scripts will check if gitea is on the path and if so add autocompletion for `gitea`. Or if not autocompletion will work for `./gitea`.
