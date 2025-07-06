@@ -1694,6 +1694,7 @@ func Routes() *web.Router {
 
 			m.Group("/projects", func() {
 				m.Post("", bind(api.NewProjectPayload{}), projects.CreateOrgProject)
+				m.Get("", projects.ListOrgProjects)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {
