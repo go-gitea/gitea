@@ -11,7 +11,7 @@
 	{{range $index, $job := .Jobs}}
 		<li>
 			<a href="{{$.Run.Link}}/jobs/{{$index}}">
-			{{$job.Status}}: {{$job.Name}}{{if $job.Attempt gt 1}}, Attempt #{{$job.Attempt}}{{end}}
+			{{$job.Status}}: {{$job.Name}}{{if gt $job.Attempt 1}}, Attempt #{{$job.Attempt}}{{end}}
 			</a>
 		</li>
 	{{end}}
