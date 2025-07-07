@@ -199,6 +199,9 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		AdminGroup:                    form.Oauth2AdminGroup,
 		GroupTeamMap:                  form.Oauth2GroupTeamMap,
 		GroupTeamMapRemoval:           form.Oauth2GroupTeamMapRemoval,
+
+		AttributeSSHPublicKey: form.Oauth2AttributeSSHPublicKey,
+		AttributeFullName:     form.Oauth2AttributeFullName,
 	}
 }
 

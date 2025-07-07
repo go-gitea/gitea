@@ -12,8 +12,13 @@ import (
 
 // BaseProvider represents a common base for Provider
 type BaseProvider struct {
-	name        string
-	displayName string
+	name                string
+	displayName         string
+	supportSSHPublicKey bool
+}
+
+func (b *BaseProvider) SupportSSHPublicKey() bool {
+	return b.supportSSHPublicKey
 }
 
 // Name provides the technical name for this provider

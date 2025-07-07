@@ -27,6 +27,9 @@ type Source struct {
 	GroupTeamMap        string
 	GroupTeamMapRemoval bool
 	RestrictedGroup     string
+
+	AttributeSSHPublicKey string
+	AttributeFullName     string
 }
 
 // FromDB fills up an OAuth2Config from serialized format.
