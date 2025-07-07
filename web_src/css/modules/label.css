@@ -4,6 +4,7 @@
 .ui.label {
   display: inline-flex;
   align-items: center;
+  vertical-align: middle;
   gap: var(--gap-inline);
   min-width: 0;
   max-width: 100%;
@@ -86,10 +87,6 @@ a.ui.label:hover {
   background: var(--color-label-hover-bg);
   border-color: var(--color-label-hover-bg);
   color: var(--color-label-text);
-}
-
-.ui.label.visible:not(.dropdown) {
-  display: inline-block !important;
 }
 
 .ui.basic.label {
