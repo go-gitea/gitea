@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 	"time"
@@ -308,12 +309,8 @@ func generateAdditionalHeadersForIssue(ctx *mailComment, reason string, recipien
 	issueID := strconv.FormatInt(ctx.Issue.Index, 10)
 	headers := generateMetadataHeaders(repo)
 
-	for k, v := range generateSenderRecipientHeaders(ctx.Doer, recipient) {
-		headers[k] = v
-	}
-	for k, v := range generateReasonHeaders(reason) {
-		headers[k] = v
-	}
+	maps.Copy(headers, generateSenderRecipientHeaders(ctx.Doer, recipient))
+	maps.Copy(headers, generateReasonHeaders(reason))
 
 	headers["X-Gitea-Recipient-Address"] = recipient.Email
 	headers["X-Gitea-Issue-ID"] = issueID
