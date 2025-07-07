@@ -88,6 +88,14 @@ func oauthCLIFlags() []cli.Flag {
 			Usage: "Scopes to request when to authenticate against this OAuth2 source",
 		},
 		&cli.StringFlag{
+			Name:  "attribute-ssh-public-key",
+			Usage: "Claim name that provides SSH public keys",
+		},
+		&cli.StringFlag{
+			Name:  "attribute-full-name",
+			Usage: "Claim name that provides user's full name",
+		},
+		&cli.StringFlag{
 			Name:  "required-claim-name",
 			Value: "",
 			Usage: "Claim name that has to be set to allow users to login with this source",
@@ -177,6 +185,8 @@ func parseOAuth2Config(c *cli.Command) *oauth2.Source {
 		RestrictedGroup:               c.String("restricted-group"),
 		GroupTeamMap:                  c.String("group-team-map"),
 		GroupTeamMapRemoval:           c.Bool("group-team-map-removal"),
+		AttributeSSHPublicKey:         c.String("attribute-ssh-public-key"),
+		AttributeFullName:             c.String("attribute-full-name"),
 	}
 }
 
@@ -267,6 +277,12 @@ func (a *authService) runUpdateOauth(ctx context.Context, c *cli.Command) error 
 	}
 	if c.IsSet("group-team-map-removal") {
 		oAuth2Config.GroupTeamMapRemoval = c.Bool("group-team-map-removal")
+	}
+	if c.IsSet("attribute-ssh-public-key") {
+		oAuth2Config.AttributeSSHPublicKey = c.String("attribute-ssh-public-key")
+	}
+	if c.IsSet("attribute-full-name") {
+		oAuth2Config.AttributeFullName = c.String("attribute-full-name")
 	}
 
 	// update custom URL mapping
