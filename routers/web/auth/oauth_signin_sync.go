@@ -39,7 +39,7 @@ func oauth2SignInSync(ctx *context.Context, authSource *auth.Source, u *user_mod
 	// only update if the full name is different
 	shouldUpdateFullName = shouldUpdateFullName && u.FullName != fullName
 	if shouldUpdateFullName {
-		u.FullName = gothUser.Name
+		u.FullName = fullName
 		if err := user_model.UpdateUserCols(ctx, u, "full_name"); err != nil {
 			log.Error("Unable to sync OAuth2 user full name %s: %v", gothUser.Provider, err)
 		}

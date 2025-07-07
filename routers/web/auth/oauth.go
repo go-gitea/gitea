@@ -72,8 +72,6 @@ func SignInOAuth(ctx *context.Context) {
 
 // SignInOAuthCallback handles the callback from the given provider
 func SignInOAuthCallback(ctx *context.Context) {
-	provider := ctx.PathParam("provider")
-
 	if ctx.Req.FormValue("error") != "" {
 		var errorKeyValues []string
 		for k, vv := range ctx.Req.Form {
@@ -86,7 +84,8 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	// first look if the provider is still active
-	authSource, err := auth.GetActiveOAuth2SourceByAuthName(ctx, provider)
+	authName := ctx.PathParam("provider")
+	authSource, err := auth.GetActiveOAuth2SourceByAuthName(ctx, authName)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return

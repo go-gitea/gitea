@@ -12,8 +12,10 @@ import (
 
 // BaseProvider represents a common base for Provider
 type BaseProvider struct {
-	name                string
-	displayName         string
+	name        string
+	displayName string
+
+	// TODO: maybe some providers also support SSH public keys, then they can set this to true
 	supportSSHPublicKey bool
 }
 
