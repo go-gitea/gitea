@@ -10,12 +10,14 @@
 </head>
 <body>
 	<h4>
-	{{.Repo.FullName}} {{.Run.WorkflowID}}: {{if .Run.Status.IsSuccess}}{{.locale.Tr "actions.status.success"}}{{else if .Run.Status.IsFailure}}{{.locale.Tr "actions.status.failure"}}{{else if .Run.Status.IsCancelled}}{{.locale.Tr "actions.status.cancelled"}}{{else}}{{.locale.Tr "actions.status.skipped"}}{{end}}
+	{{.Repo.FullName}} {{.Run.WorkflowID}}: {{.RunStatusText}}
 	</h4>
 	<ul>
 	{{range $job := .Jobs}}
 		<li>
-			{{if $job.Status.IsSuccess}}{{.locale.Tr "actions.status.success"}}{{else if $job.Status.IsFailure}}{{.locale.Tr "actions.status.failure"}}{{else if $job.Status.IsCancelled}}{{.locale.Tr "actions.status.cancelled"}}{{else}}{{.locale.Tr "actions.status.skipped"}}{{end}}: {{$job.Name}}{{if gt $job.Attempt 1}}, Attempt #{{$job.Attempt}}{{end}}
+			<a href="{{$job.HTMLURL}}">
+				{{$job.Status}}: {{$job.Name}}{{if gt $job.RunAttempt 1}}, Attempt #{{$job.RunAttempt}}{{end}}
+			</a>
 		</li>
 	{{end}}
 	</ul>

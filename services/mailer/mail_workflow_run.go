@@ -5,6 +5,8 @@ package mailer
 
 import (
 	"bytes"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/convert"
 	"context"
 	"fmt"
 	"sort"
@@ -45,13 +47,13 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 	}
 	subject = fmt.Sprintf("%s: %s (%s)", subject, run.WorkflowID, base.ShortSha(run.CommitSHA))
 
-	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+	jobs0, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
 	if err != nil {
 		log.Error("GetRunJobsByRunID: %v", err)
 	} else {
-		sort.SliceStable(jobs, func(i, j int) bool {
-			si := jobs[i].Status
-			sj := jobs[j].Status
+		sort.SliceStable(jobs0, func(i, j int) bool {
+			si := jobs0[i].Status
+			sj := jobs0[j].Status
 			if si.IsSuccess() {
 				si = 99
 			}
@@ -60,6 +62,15 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 			}
 			return si < sj
 		})
+	}
+	convertedJobs0 := make([]*api.ActionWorkflowJob, 0, len(jobs0))
+	for _, job := range jobs0 {
+		c, err := convert.ToActionWorkflowJob(ctx, repo, nil, job)
+		if err != nil {
+			log.Error("convert.ToActionWorkflowJob: %v", err)
+			continue
+		}
+		convertedJobs0 = append(convertedJobs0, c)
 	}
 
 	displayName := fromDisplayName(sender)
@@ -70,14 +81,24 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 	}
 	for lang, tos := range langMap {
 		locale := translation.NewLocale(lang)
+		var runStatusText string
+		switch run.Status {
+		case actions_model.StatusSuccess:
+			runStatusText = locale.TrString("actions.status.success")
+		case actions_model.StatusFailure:
+			runStatusText = locale.TrString("actions.status.failure")
+		case actions_model.StatusCancelled:
+			runStatusText = locale.TrString("actions.status.cancelled")
+		}
 		var mailBody bytes.Buffer
 		if err := bodyTemplates.ExecuteTemplate(&mailBody, tplWorkflowRun, map[string]any{
-			"Subject":  subject,
-			"Repo":     repo,
-			"Run":      run,
-			"Jobs":     jobs,
-			"locale":   locale,
-			"Language": locale.Language(),
+			"Subject":       subject,
+			"Repo":          repo,
+			"Run":           run,
+			"RunStatusText": runStatusText,
+			"Jobs":          convertedJobs0,
+			"locale":        locale,
+			"Language":      locale.Language(),
 		}); err != nil {
 			log.Error("ExecuteTemplate [%s]: %v", tplWorkflowRun, err)
 		}
