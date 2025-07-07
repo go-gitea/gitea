@@ -22,23 +22,21 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/services/automergequeue"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-// prAutoMergeQueue represents a queue to handle update pull request tests
-var prAutoMergeQueue *queue.WorkerPoolQueue[string]
-
 // Init runs the task queue to that handles auto merges
 func Init() error {
 	notify_service.RegisterNotifier(NewNotifier())
 
-	prAutoMergeQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_auto_merge", handler)
-	if prAutoMergeQueue == nil {
+	automergequeue.AutoMergeQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_auto_merge", handler)
+	if automergequeue.AutoMergeQueue == nil {
 		return errors.New("unable to create pr_auto_merge queue")
 	}
-	go graceful.GetManager().RunWithCancel(prAutoMergeQueue)
+	go graceful.GetManager().RunWithCancel(automergequeue.AutoMergeQueue)
 	return nil
 }
 
@@ -54,13 +52,6 @@ func handler(items ...string) []string {
 		handlePullRequestAutoMerge(id, sha)
 	}
 	return nil
-}
-
-func addToQueue(pr *issues_model.PullRequest, sha string) {
-	log.Trace("Adding pullID: %d to the pull requests patch checking queue with sha %s", pr.ID, sha)
-	if err := prAutoMergeQueue.Push(fmt.Sprintf("%d_%s", pr.ID, sha)); err != nil {
-		log.Error("Error adding pullID: %d to the pull requests patch checking queue %v", pr.ID, err)
-	}
 }
 
 // ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
@@ -99,36 +90,10 @@ func StartPRCheckAndAutoMergeBySHA(ctx context.Context, sha string, repo *repo_m
 	}
 
 	for _, pr := range pulls {
-		addToQueue(pr, sha)
+		automergequeue.AddToQueue(pr, sha)
 	}
 
 	return nil
-}
-
-// StartPRCheckAndAutoMerge start an automerge check and auto merge task for a pull request
-func StartPRCheckAndAutoMerge(ctx context.Context, pull *issues_model.PullRequest) {
-	if pull == nil || pull.HasMerged || !pull.CanAutoMerge() {
-		return
-	}
-
-	if err := pull.LoadBaseRepo(ctx); err != nil {
-		log.Error("LoadBaseRepo: %v", err)
-		return
-	}
-
-	gitRepo, err := gitrepo.OpenRepository(ctx, pull.BaseRepo)
-	if err != nil {
-		log.Error("OpenRepository: %v", err)
-		return
-	}
-	defer gitRepo.Close()
-	commitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
-	if err != nil {
-		log.Error("GetRefCommitID: %v", err)
-		return
-	}
-
-	addToQueue(pull, commitID)
 }
 
 func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.Repository, filter func(*issues_model.PullRequest) bool) (map[int64]*issues_model.PullRequest, error) {
