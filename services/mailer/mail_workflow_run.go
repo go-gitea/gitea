@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"sort"
 
+	"code.gitea.io/gitea/modules/translation"
+
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -26,8 +28,6 @@ func generateMessageIDForActionsWorkflowRunStatusEmail(repo *repo_model.Reposito
 }
 
 func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, sender *user_model.User, recipients []*user_model.User) {
-	msgs := make([]*sender_service.Message, 0, len(recipients))
-
 	messageID := generateMessageIDForActionsWorkflowRunStatusEmail(repo, run)
 	headers := generateMetadataHeaders(repo)
 
@@ -62,35 +62,46 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 		})
 	}
 
-	var mailBody bytes.Buffer
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, tplWorkflowRun, map[string]any{
-		"Subject": subject,
-		"Repo":    repo,
-		"Run":     run,
-		"Jobs":    jobs,
-	}); err != nil {
-		log.Error("ExecuteTemplate [%s]: %v", tplWorkflowRun, err)
-	}
+	displayName := fromDisplayName(sender)
 
-	for _, recipient := range recipients {
-		msg := sender_service.NewMessageFrom(
-			recipient.Email,
-			fromDisplayName(sender),
-			setting.MailService.FromEmail,
-			subject,
-			mailBody.String(),
-		)
-		msg.Info = subject
-		for k, v := range generateSenderRecipientHeaders(sender, recipient) {
-			msg.SetHeader(k, v)
-		}
-		for k, v := range headers {
-			msg.SetHeader(k, v)
-		}
-		msg.SetHeader("Message-ID", messageID)
-		msgs = append(msgs, msg)
+	langMap := make(map[string][]*user_model.User)
+	for _, user := range recipients {
+		langMap[user.Language] = append(langMap[user.Language], user)
 	}
-	SendAsync(msgs...)
+	for lang, tos := range langMap {
+		locale := translation.NewLocale(lang)
+		var mailBody bytes.Buffer
+		if err := bodyTemplates.ExecuteTemplate(&mailBody, tplWorkflowRun, map[string]any{
+			"Subject":  subject,
+			"Repo":     repo,
+			"Run":      run,
+			"Jobs":     jobs,
+			"locale":   locale,
+			"Language": locale.Language(),
+		}); err != nil {
+			log.Error("ExecuteTemplate [%s]: %v", tplWorkflowRun, err)
+		}
+		msgs := make([]*sender_service.Message, 0, len(tos))
+		for _, rec := range tos {
+			msg := sender_service.NewMessageFrom(
+				rec.Email,
+				displayName,
+				setting.MailService.FromEmail,
+				subject,
+				mailBody.String(),
+			)
+			msg.Info = subject
+			for k, v := range generateSenderRecipientHeaders(sender, rec) {
+				msg.SetHeader(k, v)
+			}
+			for k, v := range headers {
+				msg.SetHeader(k, v)
+			}
+			msg.SetHeader("Message-ID", messageID)
+			msgs = append(msgs, msg)
+		}
+		SendAsync(msgs...)
+	}
 }
 
 func SendActionsWorkflowRunStatusEmail(ctx context.Context, sender *user_model.User, repo *repo_model.Repository, run *actions_model.ActionRun) {

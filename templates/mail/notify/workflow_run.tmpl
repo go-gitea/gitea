@@ -4,22 +4,27 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
 	<title>{{.Subject}}</title>
+	<style>
+		.footer { font-size: small; color: #666; }
+	</style>
 </head>
 <body>
-	<h1>{{.Repo.FullName}} {{.Run.WorkflowID}}: {{.Run.Status}}</h1>
+	<h4>
+	{{.Repo.FullName}} {{.Run.WorkflowID}}: {{if .Run.Status.IsSuccess}}{{.locale.Tr "actions.status.success"}}{{else if .Run.Status.IsFailure}}{{.locale.Tr "actions.status.failure"}}{{else if .Run.Status.IsCancelled}}{{.locale.Tr "actions.status.cancelled"}}{{else}}{{.locale.Tr "actions.status.skipped"}}{{end}}
+	</h4>
 	<ul>
-	{{range $index, $job := .Jobs}}
+	{{range $job := .Jobs}}
 		<li>
-			<a href="{{$.Run.Link}}/jobs/{{$index}}">
-			{{$job.Status}}: {{$job.Name}}{{if gt $job.Attempt 1}}, Attempt #{{$job.Attempt}}{{end}}
-			</a>
+			{{if $job.Status.IsSuccess}}{{.locale.Tr "actions.status.success"}}{{else if $job.Status.IsFailure}}{{.locale.Tr "actions.status.failure"}}{{else if $job.Status.IsCancelled}}{{.locale.Tr "actions.status.cancelled"}}{{else}}{{.locale.Tr "actions.status.skipped"}}{{end}}: {{$job.Name}}{{if gt $job.Attempt 1}}, Attempt #{{$job.Attempt}}{{end}}
 		</li>
 	{{end}}
 	</ul>
+	<div class="footer">
 	<p>
 		---
 		<br>
-		<a href="{{.Run.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
+		<a href="{{.Run.HTMLURL}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
 	</p>
+	</div>
 </body>
 </html>
