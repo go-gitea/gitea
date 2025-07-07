@@ -4,9 +4,6 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
 	<title>{{.Subject}}</title>
-	<style>
-		.footer { font-size: small; color: #666; }
-	</style>
 </head>
 <body>
 	<h4>
@@ -16,17 +13,14 @@
 	{{range $job := .Jobs}}
 		<li>
 			<a href="{{$job.HTMLURL}}">
-				{{$job.Status}}: {{$job.Name}}{{if gt $job.RunAttempt 1}}, Attempt #{{$job.RunAttempt}}{{end}}
+				{{$job.Status}}: {{$job.Name}}{{if gt $job.Attempt 1}}, Attempt #{{$job.Attempt}}{{end}}
 			</a>
 		</li>
 	{{end}}
 	</ul>
-	<div class="footer">
 	<p>
-		---
 		<br>
 		<a href="{{.Run.HTMLURL}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
 	</p>
-	</div>
 </body>
 </html>

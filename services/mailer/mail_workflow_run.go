@@ -5,11 +5,11 @@ package mailer
 
 import (
 	"bytes"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/convert"
 	"context"
 	"fmt"
 	"sort"
+
+	"code.gitea.io/gitea/services/convert"
 
 	"code.gitea.io/gitea/modules/translation"
 
@@ -25,6 +25,13 @@ import (
 
 const tplWorkflowRun = "notify/workflow_run"
 
+type convertedWorkflowJob struct {
+	HTMLURL string
+	Status  actions_model.Status
+	Name    string
+	Attempt int64
+}
+
 func generateMessageIDForActionsWorkflowRunStatusEmail(repo *repo_model.Repository, run *actions_model.ActionRun) string {
 	return fmt.Sprintf("<%s/actions/runs/%d@%s>", repo.FullName(), run.Index, setting.Domain)
 }
@@ -34,16 +41,13 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 	headers := generateMetadataHeaders(repo)
 
 	subject := "Run"
-	if run.IsForkPullRequest {
-		subject = "PR run"
-	}
 	switch run.Status {
 	case actions_model.StatusFailure:
-		subject = subject + " failed"
+		subject += " failed"
 	case actions_model.StatusCancelled:
-		subject = subject + " cancelled"
+		subject += " cancelled"
 	case actions_model.StatusSuccess:
-		subject = subject + " is successful"
+		subject += " is successful"
 	}
 	subject = fmt.Sprintf("%s: %s (%s)", subject, run.WorkflowID, base.ShortSha(run.CommitSHA))
 
@@ -63,14 +67,19 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 			return si < sj
 		})
 	}
-	convertedJobs0 := make([]*api.ActionWorkflowJob, 0, len(jobs0))
+	convertedJobs := make([]convertedWorkflowJob, 0, len(jobs0))
 	for _, job := range jobs0 {
 		c, err := convert.ToActionWorkflowJob(ctx, repo, nil, job)
 		if err != nil {
 			log.Error("convert.ToActionWorkflowJob: %v", err)
 			continue
 		}
-		convertedJobs0 = append(convertedJobs0, c)
+		convertedJobs = append(convertedJobs, convertedWorkflowJob{
+			HTMLURL: c.HTMLURL,
+			Name:    c.Name,
+			Status:  job.Status,
+			Attempt: c.RunAttempt,
+		})
 	}
 
 	displayName := fromDisplayName(sender)
@@ -96,7 +105,7 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 			"Repo":          repo,
 			"Run":           run,
 			"RunStatusText": runStatusText,
-			"Jobs":          convertedJobs0,
+			"Jobs":          convertedJobs,
 			"locale":        locale,
 			"Language":      locale.Language(),
 		}); err != nil {
