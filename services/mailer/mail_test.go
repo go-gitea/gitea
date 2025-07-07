@@ -17,7 +17,6 @@ import (
 	texttmpl "text/template"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"

@@ -9,10 +9,6 @@ import (
 	"fmt"
 	"sort"
 
-	"code.gitea.io/gitea/services/convert"
-
-	"code.gitea.io/gitea/modules/translation"
-
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -20,6 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/services/convert"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
 

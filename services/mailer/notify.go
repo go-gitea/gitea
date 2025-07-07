@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-
 	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
