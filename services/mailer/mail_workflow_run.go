@@ -35,9 +35,6 @@ func generateMessageIDForActionsWorkflowRunStatusEmail(repo *repo_model.Reposito
 }
 
 func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, sender *user_model.User, recipients []*user_model.User) {
-	messageID := generateMessageIDForActionsWorkflowRunStatusEmail(repo, run)
-	headers := generateMetadataHeaders(repo)
-
 	subject := "Run"
 	switch run.Status {
 	case actions_model.StatusFailure:
@@ -45,17 +42,20 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 	case actions_model.StatusCancelled:
 		subject += " cancelled"
 	case actions_model.StatusSuccess:
-		subject += " is successful"
+		subject += " succeeded"
 	}
 	subject = fmt.Sprintf("%s: %s (%s)", subject, run.WorkflowID, base.ShortSha(run.CommitSHA))
+	displayName := fromDisplayName(sender)
+	messageID := generateMessageIDForActionsWorkflowRunStatusEmail(repo, run)
+	metadataHeaders := generateMetadataHeaders(repo)
 
-	jobs0, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
 	if err != nil {
 		log.Error("GetRunJobsByRunID: %v", err)
 	} else {
-		sort.SliceStable(jobs0, func(i, j int) bool {
-			si := jobs0[i].Status
-			sj := jobs0[j].Status
+		sort.SliceStable(jobs, func(i, j int) bool {
+			si := jobs[i].Status
+			sj := jobs[j].Status
 			if si.IsSuccess() {
 				si = 99
 			}
@@ -65,22 +65,20 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 			return si < sj
 		})
 	}
-	convertedJobs := make([]convertedWorkflowJob, 0, len(jobs0))
-	for _, job := range jobs0 {
-		c, err := convert.ToActionWorkflowJob(ctx, repo, nil, job)
+	convertedJobs := make([]convertedWorkflowJob, 0, len(jobs))
+	for _, job := range jobs {
+		converted0, err := convert.ToActionWorkflowJob(ctx, repo, nil, job)
 		if err != nil {
 			log.Error("convert.ToActionWorkflowJob: %v", err)
 			continue
 		}
 		convertedJobs = append(convertedJobs, convertedWorkflowJob{
-			HTMLURL: c.HTMLURL,
-			Name:    c.Name,
+			HTMLURL: converted0.HTMLURL,
+			Name:    converted0.Name,
 			Status:  job.Status,
-			Attempt: c.RunAttempt,
+			Attempt: converted0.RunAttempt,
 		})
 	}
-
-	displayName := fromDisplayName(sender)
 
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range recipients {
@@ -91,11 +89,17 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 		var runStatusText string
 		switch run.Status {
 		case actions_model.StatusSuccess:
-			runStatusText = locale.TrString("actions.status.success")
+			runStatusText = "All jobs have succeeded"
 		case actions_model.StatusFailure:
-			runStatusText = locale.TrString("actions.status.failure")
+			runStatusText = "All jobs have failed"
+			for _, job := range jobs {
+				if !job.Status.IsFailure() {
+					runStatusText = "Some jobs were not successful"
+					break
+				}
+			}
 		case actions_model.StatusCancelled:
-			runStatusText = locale.TrString("actions.status.cancelled")
+			runStatusText = "All jobs have been cancelled"
 		}
 		var mailBody bytes.Buffer
 		if err := bodyTemplates.ExecuteTemplate(&mailBody, tplWorkflowRun, map[string]any{
@@ -122,7 +126,7 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 			for k, v := range generateSenderRecipientHeaders(sender, rec) {
 				msg.SetHeader(k, v)
 			}
-			for k, v := range headers {
+			for k, v := range metadataHeaders {
 				msg.SetHeader(k, v)
 			}
 			msg.SetHeader("Message-ID", messageID)
