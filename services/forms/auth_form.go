@@ -85,8 +85,8 @@ type AuthenticationForm struct {
 	Oauth2RestrictedGroup         string
 	Oauth2GroupTeamMap            string `binding:"ValidGroupTeamMap"`
 	Oauth2GroupTeamMapRemoval     bool
-	Oauth2AttributeSSHPublicKey   string
-	Oauth2AttributeFullName       string
+	Oauth2SSHPublicKeyClaimName   string
+	Oauth2FullNameClaimName       string
 
 	// SSPI
 	SSPIAutoCreateUsers      bool

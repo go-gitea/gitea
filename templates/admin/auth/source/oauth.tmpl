@@ -81,12 +81,12 @@
 	</div>
 
 	<div class="field">
-		<label>{{ctx.Locale.Tr "admin.auths.attribute_full_name"}}</label>
-		<input name="oauth2_attribute_full_name" value="{{.attribute_fullname}}" placeholder="name">
+		<label>{{ctx.Locale.Tr "admin.auths.oauth2_full_name_claim_name"}}</label>
+		<input name="oauth2_full_name_claim_name" value="{{.oauth2_full_name_claim_name}}" placeholder="name">
 	</div>
-	<div class="field oauth2_attribute_ssh_public_key">
-		<label>{{ctx.Locale.Tr "admin.auths.attribute_ssh_public_key"}}</label>
-		<input name="oauth2_attribute_ssh_public_key" value="{{.attribute_ssh_public_key}}" placeholder="sshpubkey">
+	<div class="field oauth2_ssh_public_key_claim_name">
+		<label>{{ctx.Locale.Tr "admin.auths.oauth2_ssh_public_key_claim_name"}}</label>
+		<input name="oauth2_ssh_public_key_claim_name" value="{{.oauth2_ssh_public_key_claim_name}}" placeholder="sshpubkey">
 	</div>
 	<div class="field">
 		<label for="oauth2_required_claim_name">{{ctx.Locale.Tr "admin.auths.oauth2_required_claim_name"}}</label>

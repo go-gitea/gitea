@@ -28,14 +28,14 @@ func oauth2SignInSync(ctx *context.Context, authSource *auth.Source, u *user_mod
 	}
 
 	// sync full name
-	fullNameKey := util.IfZero(oauth2Source.AttributeFullName, "name")
+	fullNameKey := util.IfZero(oauth2Source.FullNameClaimName, "name")
 	fullName, _ := gothUser.RawData[fullNameKey].(string)
 	fullName = util.IfZero(fullName, gothUser.Name)
 
 	// need to update if the user has no full name set
 	shouldUpdateFullName := u.FullName == ""
 	// force to update if the attribute is set
-	shouldUpdateFullName = shouldUpdateFullName || oauth2Source.AttributeFullName != ""
+	shouldUpdateFullName = shouldUpdateFullName || oauth2Source.FullNameClaimName != ""
 	// only update if the full name is different
 	shouldUpdateFullName = shouldUpdateFullName && u.FullName != fullName
 	if shouldUpdateFullName {
@@ -52,7 +52,7 @@ func oauth2SignInSync(ctx *context.Context, authSource *auth.Source, u *user_mod
 }
 
 func oauth2SyncGetSSHKeys(source *oauth2.Source, gothUser *goth.User) ([]string, error) {
-	value, exists := gothUser.RawData[source.AttributeSSHPublicKey]
+	value, exists := gothUser.RawData[source.SSHPublicKeyClaimName]
 	if !exists {
 		return []string{}, nil
 	}
@@ -74,7 +74,7 @@ func oauth2SyncGetSSHKeys(source *oauth2.Source, gothUser *goth.User) ([]string,
 
 func oauth2UpdateSSHPubIfNeed(ctx *context.Context, authSource *auth.Source, gothUser *goth.User, user *user_model.User) error {
 	oauth2Source, _ := authSource.Cfg.(*oauth2.Source)
-	if oauth2Source == nil || oauth2Source.AttributeSSHPublicKey == "" {
+	if oauth2Source == nil || oauth2Source.SSHPublicKeyClaimName == "" {
 		return nil
 	}
 	sshKeys, err := oauth2SyncGetSSHKeys(oauth2Source, gothUser)

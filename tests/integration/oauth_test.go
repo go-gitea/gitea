@@ -972,8 +972,8 @@ func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 	oauth2Source := oauth2.Source{
 		Provider:                      "openidConnect",
 		ClientID:                      "test-client-id",
-		AttributeSSHPublicKey:         "sshpubkey",
-		AttributeFullName:             "name",
+		SSHPublicKeyClaimName:         "sshpubkey",
+		FullNameClaimName:             "name",
 		OpenIDConnectAutoDiscoveryURL: mockServer.URL + "/.well-known/openid-configuration",
 	}
 	addOAuth2Source(t, "test-oidc-source", oauth2Source)

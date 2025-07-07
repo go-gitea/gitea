@@ -318,12 +318,12 @@
 						<input id="oauth2_scopes" name="oauth2_scopes" value="{{if $cfg.Scopes}}{{StringUtils.Join $cfg.Scopes ","}}{{end}}">
 					</div>
 					<div class="field">
-						<label>{{ctx.Locale.Tr "admin.auths.attribute_full_name"}}</label>
-						<input name="oauth2_attribute_full_name" value="{{$cfg.AttributeFullName}}" placeholder="name">
+						<label>{{ctx.Locale.Tr "admin.auths.oauth2_full_name_claim_name"}}</label>
+						<input name="oauth2_full_name_claim_name" value="{{$cfg.FullNameClaimName}}" placeholder="name">
 					</div>
-					<div class="field oauth2_attribute_ssh_public_key">
-						<label>{{ctx.Locale.Tr "admin.auths.attribute_ssh_public_key"}}</label>
-						<input name="oauth2_attribute_ssh_public_key" value="{{$cfg.AttributeSSHPublicKey}}" placeholder="sshpubkey">
+					<div class="field oauth2_ssh_public_key_claim_name">
+						<label>{{ctx.Locale.Tr "admin.auths.oauth2_ssh_public_key_claim_name"}}</label>
+						<input name="oauth2_ssh_public_key_claim_name" value="{{$cfg.SSHPublicKeyClaimName}}" placeholder="sshpubkey">
 					</div>
 					<div class="field">
 						<label for="oauth2_required_claim_name">{{ctx.Locale.Tr "admin.auths.oauth2_required_claim_name"}}</label>
