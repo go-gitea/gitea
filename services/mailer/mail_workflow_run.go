@@ -57,11 +57,8 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 		sort.SliceStable(jobs, func(i, j int) bool {
 			si := jobs[i].Status
 			sj := jobs[j].Status
-			if si.IsSuccess() {
-				si = 99
-			}
-			if sj.IsSuccess() {
-				sj = 99
+			if si == sj || si.IsSuccess() {
+				return false
 			}
 			return si < sj
 		})
