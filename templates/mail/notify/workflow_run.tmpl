@@ -4,87 +4,30 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
 	<title>{{.Subject}}</title>
-	<style>
-		body {
-			background-color: #f5f7fa;
-			margin: 20px;
-		}
-
-		h2, h3 {
-			color: #2c3e50;
-			margin-bottom: 20px;
-		}
-
-		ul {
-			list-style: none;
-			padding: 0;
-			margin: 0 0 30px 0;
-		}
-
-		li {
-			background-color: #ffffff;
-			border: 1px solid #ddd;
-			border-radius: 6px;
-			padding: 12px 16px;
-			margin-bottom: 10px;
-			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-			transition: box-shadow 0.2s ease;
-		}
-
-		li:hover {
-			box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-		}
-
-		a {
-			color: #0073e6;
-			text-decoration: none;
-			font-weight: bold;
-		}
-
-		a:hover {
-			text-decoration: underline;
-		}
-
-		.button-container {
-			text-align: center;
-			margin-top: 30px;
-		}
-
-		.button-link {
-			display: inline-block;
-			background-color: #28a745;
-			color: #ffffff !important;
-			text-decoration: none;
-			padding: 10px 20px;
-			border-radius: 5px;
-			font-weight: bold;
-			box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-			transition: background-color 0.3s ease;
-		}
-
-		.button-link:hover {
-			background-color: #218838;
-		}
-	</style>
 </head>
-<body>
-	<h2>
-	{{.Repo.FullName}} {{.Run.WorkflowID}}: {{.RunStatusText}}
+<body style="background-color: #f5f7fa; margin: 20px;">
+
+	<h2 style="color: #2c3e50; margin-bottom: 20px;">
+		{{.Repo.FullName}} {{.Run.WorkflowID}}: {{.RunStatusText}}
 	</h2>
-	<ul>
+
+	<ul style="list-style: none; padding: 0; margin: 0 0 30px 0;">
 	{{range $job := .Jobs}}
-		<li>
-			<a href="{{$job.HTMLURL}}">
+		<li style="background-color: #ffffff; border: 1px solid #ddd; border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); transition: box-shadow 0.2s ease;">
+			<a href="{{$job.HTMLURL}}" style="color: #0073e6; text-decoration: none; font-weight: bold;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
 				{{$job.Status}}: {{$job.Name}}{{if gt $job.Attempt 1}}, Attempt #{{$job.Attempt}}{{end}}
 			</a>
 		</li>
 	{{end}}
 	</ul>
+
 	<br/>
-	<div class="button-container">
-		<a class="button-link" href="{{.Run.HTMLURL}}">
+
+	<div style="text-align: center; margin-top: 30px;">
+		<a href="{{.Run.HTMLURL}}" style="display: inline-block; background-color: #28a745; color: #ffffff !important; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background-color 0.3s ease;" onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
 			{{.locale.Tr "mail.view_it_on" AppName}}
 		</a>
 	</div>
+
 </body>
 </html>
