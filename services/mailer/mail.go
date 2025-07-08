@@ -193,10 +193,12 @@ func generateMetadataHeaders(repo *repo_model.Repository) map[string]string {
 
 func generateSenderRecipientHeaders(doer, recipient *user_model.User) map[string]string {
 	return map[string]string{
-		"X-Gitea-Sender":     doer.Name,
-		"X-Gitea-Recipient":  recipient.Name,
-		"X-GitHub-Sender":    doer.Name,
-		"X-GitHub-Recipient": recipient.Name,
+		"X-Gitea-Sender":             doer.Name,
+		"X-Gitea-Recipient":          recipient.Name,
+		"X-Gitea-Recipient-Address":  recipient.Email,
+		"X-GitHub-Sender":            doer.Name,
+		"X-GitHub-Recipient":         recipient.Name,
+		"X-GitHub-Recipient-Address": recipient.Email,
 	}
 }
 
