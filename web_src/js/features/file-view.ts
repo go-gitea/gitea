@@ -2,7 +2,7 @@ import type {FileRenderPlugin} from '../render/plugin.ts';
 import {newRenderPlugin3DViewer} from '../render/plugins/3d-viewer.ts';
 import {newRenderPluginPdfViewer} from '../render/plugins/pdf-viewer.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
-import {createElementFromHTML, showElem, toggleClass} from '../utils/dom.ts';
+import {createElementFromHTML, toggleClass} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 import {basename} from '../utils.ts';
 
@@ -19,11 +19,10 @@ function findFileRenderPlugin(filename: string, mimeType: string): FileRenderPlu
 
 function showRenderRawFileButton(elFileView: HTMLElement, renderContainer: HTMLElement | null): void {
   const toggleButtons = elFileView.querySelector('.file-view-toggle-buttons');
-  showElem(toggleButtons);
+  if (!toggleButtons) return;
   const displayingRendered = Boolean(renderContainer);
   toggleClass(toggleButtons.querySelectorAll('.file-view-toggle-source'), 'active', !displayingRendered); // it may not exist
   toggleClass(toggleButtons.querySelector('.file-view-toggle-rendered'), 'active', displayingRendered);
-  // TODO: if there is only one button, hide it?
 }
 
 async function renderRawFileToContainer(container: HTMLElement, rawFileLink: string, mimeType: string) {
