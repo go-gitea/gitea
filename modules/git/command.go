@@ -32,7 +32,7 @@ import (
 // In most cases, it shouldn't be used. Use AddXxx function instead
 type TrustedCmdArgs []internal.CmdArg
 
-const gitOperation = "command"
+// const gitOperation = "command"
 
 var (
 	// globalCommandArgs global command args for external package setting

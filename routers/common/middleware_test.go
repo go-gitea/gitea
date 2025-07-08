@@ -23,7 +23,7 @@ func TestMetricsMiddlewere(t *testing.T) {
 	testServer := httptest.NewServer(r)
 	// Check all defined metrics
 	verify := func(i int) {
-		assert.Equal(t, testutil.CollectAndCount(reqDurationHistogram, "http_server_request_duration"), i)
+		assert.Equal(t, testutil.CollectAndCount(reqDurationHistogram, "http_server_request_duration_seconds"), i)
 		assert.Equal(t, testutil.CollectAndCount(reqSizeHistogram, "http_server_request_body_size"), i)
 		assert.Equal(t, testutil.CollectAndCount(respSizeHistogram, "http_server_response_body_size"), i)
 		assert.Equal(t, testutil.CollectAndCount(reqInflightGauge, "http_server_active_requests"), i)
