@@ -27,7 +27,7 @@ var _ contexts.Hook = (*EngineHook)(nil)
 var durationHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
 	Namespace: "db",
 	Subsystem: "client",
-	Name:      "operation.duration",
+	Name:      "operation_duration_seconds",
 	Help:      "Duration of database client operations.",
 	// ConstLabels: prometheus.Labels{"db.system.name": BuilderDialect()}, //TODO: add type of database per spec.
 })
