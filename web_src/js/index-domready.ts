@@ -175,3 +175,5 @@ const initDur = performance.now() - initStartTime;
 if (initDur > 500) {
   console.error(`slow init functions took ${initDur.toFixed(3)}ms`);
 }
+
+document.dispatchEvent(new CustomEvent('gitea:index-ready'));
