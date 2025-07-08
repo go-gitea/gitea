@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
@@ -45,6 +46,148 @@ var codeOwnerFiles = []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNER
 
 func IsCodeOwnerFile(f string) bool {
 	return slices.Contains(codeOwnerFiles, f)
+}
+
+func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.ProtectedBranch, pr *issues_model.PullRequest) bool {
+	if !pb.BlockOnCodeownerReviews {
+		return true
+	}
+
+	if err := pr.LoadHeadRepo(ctx); err != nil {
+		return false
+	}
+
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return false
+	}
+
+	pr.Issue.Repo = pr.BaseRepo
+
+	if pr.BaseRepo.IsFork {
+		return true
+	}
+
+	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	if err != nil {
+		return false
+	}
+
+	defer repo.Close()
+
+	commit, err := repo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
+	if err != nil {
+		return false
+	}
+
+	var data string
+
+	for _, file := range codeOwnerFiles {
+		if blob, err := commit.GetBlobByPath(file); err == nil {
+			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
+			if err == nil {
+				break
+			}
+		}
+	}
+
+	// no code owner file = no one to approve
+	if data == "" {
+		return true
+	}
+
+	rules, _ := issues_model.GetCodeOwnersFromContent(ctx, data)
+	if len(rules) == 0 {
+		return true
+	}
+
+	// get the mergebase
+	mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
+	if err != nil {
+		return false
+	}
+
+	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
+	// between the merge base and the head commit but not the base branch and the head commit
+	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitRefName())
+	if err != nil {
+		return false
+	}
+
+	reviews, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
+		Types:        []issues_model.ReviewType{issues_model.ReviewTypeApprove},
+		IssueID:      pr.IssueID,
+		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
+	})
+	if err != nil {
+		return false
+	}
+
+	hasApprovals := true
+
+	for _, rule := range rules {
+		for _, f := range changedFiles {
+			if (rule.Rule.MatchString(f) && !rule.Negative) || (!rule.Rule.MatchString(f) && rule.Negative) {
+				hasPotentialReviewers := false
+				hasRuleApproval := false
+
+				for _, u := range rule.Users {
+					if u.ID == pr.Issue.OriginalAuthorID {
+						continue
+					}
+
+					hasPotentialReviewers = true
+
+					for _, review := range reviews {
+						if review.ReviewerID == u.ID {
+							hasRuleApproval = true
+							break
+						}
+					}
+
+					if hasRuleApproval {
+						break
+					}
+				}
+
+				if hasRuleApproval {
+					continue
+				}
+
+				for _, t := range rule.Teams {
+					if !hasPotentialReviewers {
+						if err := t.LoadMembers(ctx); err != nil {
+							return false
+						}
+
+						for _, m := range t.Members {
+							if m.ID != pr.Issue.OriginalAuthorID {
+								hasPotentialReviewers = true
+								break
+							}
+						}
+					}
+
+					for _, review := range reviews {
+						if review.ReviewerTeamID == t.ID {
+							hasRuleApproval = true
+							break
+						}
+					}
+
+					if hasRuleApproval {
+						break
+					}
+				}
+
+				if !hasRuleApproval && hasPotentialReviewers {
+					hasApprovals = false
+					break
+				}
+			}
+		}
+	}
+
+	return hasApprovals
 }
 
 func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
