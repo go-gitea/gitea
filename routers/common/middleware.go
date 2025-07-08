@@ -173,10 +173,8 @@ func RouteMetrics() func(h http.Handler) http.Handler {
 			code := strconv.Itoa(m.WrittenStatus())
 			reqDurationHistogram.WithLabelValues(req.Method, code, route).Observe(time.Since(start).Seconds())
 			respSizeHistogram.WithLabelValues(req.Method, code, route).Observe(float64(m.WrittenSize()))
-			size := req.ContentLength
-			if size < 0 {
-				size = 0
-			}
+
+			size := max(req.ContentLength, 0)
 			reqSizeHistogram.WithLabelValues(req.Method, code, route).Observe(float64(size))
 		})
 	}
