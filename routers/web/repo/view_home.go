@@ -15,7 +15,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -28,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -194,56 +194,6 @@ func prepareUpstreamDivergingInfo(ctx *context.Context) {
 		return
 	}
 	ctx.Data["UpstreamDivergingInfo"] = upstreamDivergingInfo
-}
-
-func prepareRecentlyPushedNewBranches(ctx *context.Context) {
-	if ctx.Doer != nil {
-		if err := ctx.Repo.Repository.GetBaseRepo(ctx); err != nil {
-			ctx.ServerError("GetBaseRepo", err)
-			return
-		}
-
-		opts := &git_model.FindRecentlyPushedNewBranchesOptions{
-			Repo:     ctx.Repo.Repository,
-			BaseRepo: ctx.Repo.Repository,
-		}
-		if ctx.Repo.Repository.IsFork {
-			opts.BaseRepo = ctx.Repo.Repository.BaseRepo
-		}
-
-		baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, opts.BaseRepo, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
-			return
-		}
-
-		if !opts.Repo.IsMirror && !opts.BaseRepo.IsMirror &&
-			opts.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests) &&
-			baseRepoPerm.CanRead(unit_model.TypePullRequests) {
-			var finalBranches []*git_model.RecentlyPushedNewBranch
-			branches, err := git_model.FindRecentlyPushedNewBranches(ctx, ctx.Doer, opts)
-			if err != nil {
-				log.Error("FindRecentlyPushedNewBranches failed: %v", err)
-			}
-
-			for _, branch := range branches {
-				divergingInfo, err := repo_service.GetBranchDivergingInfo(ctx,
-					branch.BranchRepo, branch.BranchName, // "base" repo for diverging info
-					opts.BaseRepo, opts.BaseRepo.DefaultBranch, // "head" repo for diverging info
-				)
-				if err != nil {
-					log.Error("GetBranchDivergingInfo failed: %v", err)
-					continue
-				}
-				branchRepoHasNewCommits := divergingInfo.BaseHasNewCommits
-				baseRepoCommitsBehind := divergingInfo.HeadCommitsBehind
-				if branchRepoHasNewCommits || baseRepoCommitsBehind > 0 {
-					finalBranches = append(finalBranches, branch)
-				}
-			}
-			ctx.Data["RecentlyPushedNewBranches"] = finalBranches
-		}
-	}
 }
 
 func updateContextRepoEmptyAndStatus(ctx *context.Context, empty bool, status repo_model.RepositoryStatus) {
@@ -471,7 +421,7 @@ func Home(ctx *context.Context) {
 		prepareHomeSidebarRepoTopics,
 		checkOutdatedBranch,
 		prepareToRenderDirOrFile(entry),
-		prepareRecentlyPushedNewBranches,
+		utils.PrepareRecentlyPushedNewBranches,
 	}
 
 	if isTreePathRoot {
