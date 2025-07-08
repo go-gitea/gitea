@@ -104,8 +104,10 @@ func Validate(errs binding.Errors, data map[string]any, f Form, l translation.Lo
 
 			trName := field.Tag.Get("locale")
 			if len(trName) == 0 {
+				// i18n-check: form.*
 				trName = l.TrString("form." + field.Name)
 			} else {
+				// i18n-check: ignore
 				trName = l.TrString(trName)
 			}
 

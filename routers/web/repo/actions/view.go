@@ -847,6 +847,7 @@ func Run(ctx *context_module.Context) {
 	})
 	if err != nil {
 		if errLocale := util.ErrorAsLocale(err); errLocale != nil {
+			// i18n-check: ignore
 			ctx.Flash.Error(ctx.Tr(errLocale.TrKey, errLocale.TrArgs...))
 			ctx.Redirect(redirectURL)
 		} else {
