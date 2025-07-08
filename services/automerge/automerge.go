@@ -60,11 +60,17 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message, deleteBranchAfterMerge); err != nil {
 			return err
 		}
-		scheduled = true
-
 		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer)
 		return err
 	})
+	// Old code made "scheduled" to be true after "ScheduleAutoMerge", but it's not right:
+	// If the transaction rolls back, then the pull request is not scheduled to auto merge.
+	// So we should only set "scheduled" to true if there is no error.
+	scheduled = err == nil
+	if scheduled {
+		log.Trace("Pull request [%d] scheduled for auto merge with style [%s] and message [%s]", pull.ID, style, message)
+		automergequeue.StartPRCheckAndAutoMerge(ctx, pull)
+	}
 	return scheduled, err
 }
 
