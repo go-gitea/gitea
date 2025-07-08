@@ -10,9 +10,9 @@ import (
 	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 	"xorm.io/xorm/contexts"
 )
 
