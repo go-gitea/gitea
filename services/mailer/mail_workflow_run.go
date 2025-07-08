@@ -52,6 +52,7 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
 	if err != nil {
 		log.Error("GetRunJobsByRunID: %v", err)
+		return
 	} else {
 		sort.SliceStable(jobs, func(i, j int) bool {
 			si := jobs[i].Status
