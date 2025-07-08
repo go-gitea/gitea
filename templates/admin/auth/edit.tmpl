@@ -408,7 +408,10 @@
 
 				<div class="field">
 					<button class="ui primary button">{{ctx.Locale.Tr "admin.auths.update"}}</button>
-					<button class="ui red button delete-button" data-url="{{$.Link}}/delete" data-id="{{.Source.ID}}">{{ctx.Locale.Tr "admin.auths.delete"}}</button>
+					<button class="ui red button link-action" data-url="{{$.Link}}/delete?id={{.Source.ID}}"
+						data-modal-confirm-header="{{ctx.Locale.Tr "admin.auths.delete_auth_title"}}"
+						data-modal-confirm-content="{{ctx.Locale.Tr "admin.auths.delete_auth_desc"}}"
+					>{{ctx.Locale.Tr "admin.auths.delete"}}</button>
 				</div>
 			</form>
 		</div>
@@ -424,16 +427,4 @@
 			<p class="oauth2">{{ctx.Locale.Tr "admin.auths.tips.oauth2.general.tip"}} <b id="oauth2-callback-url"></b></p>
 		</div>
 	</div>
-
-<div class="ui g-modal-confirm delete modal">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{ctx.Locale.Tr "admin.auths.delete_auth_title"}}
-	</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "admin.auths.delete_auth_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
-</div>
-
 {{template "admin/layout_footer" .}}

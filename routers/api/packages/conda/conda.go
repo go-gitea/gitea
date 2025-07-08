@@ -51,7 +51,7 @@ func ListOrGetPackages(ctx *context.Context) {
 		DownloadPackageFile(ctx)
 		return
 	}
-	ctx.NotFound(nil)
+	http.NotFound(ctx.Resp, ctx.Req)
 }
 
 func EnumeratePackages(ctx *context.Context) {

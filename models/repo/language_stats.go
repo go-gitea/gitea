@@ -157,18 +157,17 @@ func UpdateLanguageStats(ctx context.Context, repo *Repository, commitID string,
 	for lang, size := range stats {
 		if size > s {
 			s = size
-			topLang = strings.ToLower(lang)
+			topLang = lang
 		}
 	}
 
 	for lang, size := range stats {
 		upd := false
-		llang := strings.ToLower(lang)
 		for _, s := range oldstats {
 			// Update already existing language
-			if strings.ToLower(s.Language) == llang {
+			if strings.EqualFold(s.Language, lang) {
 				s.CommitID = commitID
-				s.IsPrimary = llang == topLang
+				s.IsPrimary = lang == topLang
 				s.Size = size
 				if _, err := sess.ID(s.ID).Cols("`commit_id`", "`size`", "`is_primary`").Update(s); err != nil {
 					return err
@@ -182,7 +181,7 @@ func UpdateLanguageStats(ctx context.Context, repo *Repository, commitID string,
 			if err := db.Insert(ctx, &LanguageStat{
 				RepoID:    repo.ID,
 				CommitID:  commitID,
-				IsPrimary: llang == topLang,
+				IsPrimary: lang == topLang,
 				Language:  lang,
 				Size:      size,
 			}); err != nil {

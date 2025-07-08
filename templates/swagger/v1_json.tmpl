@@ -19,9 +19,9 @@
       "name": "MIT",
       "url": "http://opensource.org/licenses/MIT"
     },
-    "version": "{{AppVer | JSEscape}}"
+    "version": "{{.SwaggerAppVer}}"
   },
-  "basePath": "{{AppSubUrl | JSEscape}}/api/v1",
+  "basePath": "{{.SwaggerAppSubUrl}}/api/v1",
   "paths": {
     "/activitypub/user-id/{user-id}": {
       "get": {

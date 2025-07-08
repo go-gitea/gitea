@@ -290,14 +290,12 @@ export function isElemVisible(el: HTMLElement): boolean {
 export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: string) {
   const before = textarea.value.slice(0, textarea.selectionStart ?? undefined);
   const after = textarea.value.slice(textarea.selectionEnd ?? undefined);
-  let success = true;
+  let success = false;
 
   textarea.contentEditable = 'true';
   try {
     success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated
-  } catch {
-    success = false;
-  }
+  } catch {} // ignore the error if execCommand is not supported or failed
   textarea.contentEditable = 'false';
 
   if (success && !textarea.value.slice(0, textarea.selectionStart ?? undefined).endsWith(text)) {
@@ -310,11 +308,10 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
   }
 }
 
-// Warning: Do not enter any unsanitized variables here
 export function createElementFromHTML<T extends HTMLElement>(htmlString: string): T {
   htmlString = htmlString.trim();
-  // some tags like "tr" are special, it must use a correct parent container to create
-  // eslint-disable-next-line github/unescaped-html-literal -- FIXME: maybe we need to use other approaches to create elements from HTML, e.g. using DOMParser
+  // There is no way to create some elements without a proper parent, jQuery's approach: https://github.com/jquery/jquery/blob/main/src/manipulation/wrapMap.js
+  // eslint-disable-next-line github/unescaped-html-literal
   if (htmlString.startsWith('<tr')) {
     const container = document.createElement('table');
     container.innerHTML = htmlString;
@@ -364,14 +361,19 @@ export function addDelegatedEventListener<T extends HTMLElement, E extends Event
     const elem = (e.target as HTMLElement).closest(selector);
     // It strictly checks "parent contains the target elem" to avoid side effects of selector running on outside the parent.
     // Keep in mind that the elem could have been removed from parent by other event handlers before this event handler is called.
-    // For example: tippy popup item, the tippy popup could be hidden and removed from DOM before this.
-    // It is caller's responsibility make sure the elem is still in parent's DOM when this event handler is called.
+    // For example, tippy popup item, the tippy popup could be hidden and removed from DOM before this.
+    // It is the caller's responsibility to make sure the elem is still in parent's DOM when this event handler is called.
     if (!elem || (parent !== document && !parent.contains(elem))) return;
     listener(elem as T, e as E);
   }, options);
 }
 
-/** Returns whether a click event is a left-click without any modifiers held */
+// Returns whether a click event is a left-click without any modifiers held
 export function isPlainClick(e: MouseEvent) {
   return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
+}
+
+let elemIdCounter = 0;
+export function generateElemId(prefix: string = ''): string {
+  return `${prefix}${elemIdCounter++}`;
 }
