@@ -113,6 +113,7 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 			"Language":      locale.Language(),
 		}); err != nil {
 			log.Error("ExecuteTemplate [%s]: %v", tplWorkflowRun, err)
+			return
 		}
 		msgs := make([]*sender_service.Message, 0, len(tos))
 		for _, rec := range tos {
