@@ -47,7 +47,7 @@ func TestWorkflowConcurrency(t *testing.T) {
 				Value: "abc123",
 			}).
 			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNoContent)
+		MakeRequest(t, req, http.StatusCreated)
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
@@ -303,7 +303,7 @@ func TestJobConcurrency(t *testing.T) {
 				Value: "v1.23.0",
 			}).
 			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNoContent)
+		MakeRequest(t, req, http.StatusCreated)
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
