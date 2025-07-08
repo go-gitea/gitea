@@ -53,16 +53,13 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 	if err != nil {
 		log.Error("GetRunJobsByRunID: %v", err)
 		return
-	} else {
-		sort.SliceStable(jobs, func(i, j int) bool {
-			si := jobs[i].Status
-			sj := jobs[j].Status
-			if si == sj || si.IsSuccess() {
-				return false
-			}
-			return si < sj
-		})
 	}
+	sort.SliceStable(jobs, func(i, j int) bool {
+		si := jobs[i].Status
+		sj := jobs[j].Status
+		return !(si == sj || si.IsSuccess()) && si < sj
+	})
+
 	convertedJobs := make([]convertedWorkflowJob, 0, len(jobs))
 	for _, job := range jobs {
 		converted0, err := convert.ToActionWorkflowJob(ctx, repo, nil, job)
