@@ -559,6 +559,74 @@ func (issues IssueList) LoadDiscussComments(ctx context.Context) error {
 	return issues.loadComments(ctx, builder.Eq{"comment.type": CommentTypeComment})
 }
 
+// GetBlockedByCounts returns a map of issue ID to number of open issues that are blocking it
+func (issues IssueList) GetBlockedByCount(ctx context.Context) (map[int64]int64, error) {
+	type BlockedByCount struct {
+		IssueID int64
+		Count   int64
+	}
+
+	bCounts := make([]*BlockedByCount, len(issues))
+	ids := make([]int64, len(issues))
+	for i, issue := range issues {
+		ids[i] = issue.ID
+	}
+
+	sess := db.GetEngine(ctx).In("issue_id", ids)
+	err := sess.Select("issue_id, count(issue_dependency.id) as `count`").
+		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
+		Where("is_closed = ?", false).
+		GroupBy("issue_id").
+		OrderBy("issue_id").
+		Table("issue_dependency").
+		Find(&bCounts)
+	if err != nil {
+		return nil, err
+	}
+
+	blockedByCountMap := make(map[int64]int64, len(issues))
+	for _, c := range bCounts {
+		if c != nil {
+			blockedByCountMap[c.IssueID] = c.Count
+		}
+	}
+
+	return blockedByCountMap, nil
+}
+
+// GetBlockingCounts returns a map of issue ID to number of issues that are blocked by it
+func (issues IssueList) GetBlockingCount(ctx context.Context) (map[int64]int64, error) {
+	type BlockingCount struct {
+		IssueID int64
+		Count   int64
+	}
+
+	bCounts := make([]*BlockingCount, 0, len(issues))
+	ids := make([]int64, len(issues))
+	for i, issue := range issues {
+		ids[i] = issue.ID
+	}
+
+	sess := db.GetEngine(ctx).In("dependency_id", ids)
+	err := sess.Select("dependency_id as `issue_id`, count(id) as `count`").
+		GroupBy("dependency_id").
+		OrderBy("dependency_id").
+		Table("issue_dependency").
+		Find(&bCounts)
+	if err != nil {
+		return nil, err
+	}
+
+	blockingCountMap := make(map[int64]int64, len(issues))
+	for _, c := range bCounts {
+		if c != nil {
+			blockingCountMap[c.IssueID] = c.Count
+		}
+	}
+
+	return blockingCountMap, nil
+}
+
 // GetApprovalCounts returns a map of issue ID to slice of approval counts
 // FIXME: only returns official counts due to double counting of non-official approvals
 func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*ReviewCount, error) {
