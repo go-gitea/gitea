@@ -48,25 +48,26 @@
 		</div>
 		<form class="ui form form-fetch-action" action="{{.Link}}/visibility" method="post">
 			{{.CsrfTokenHtml}}
+			<input type="hidden" name="current_visibility" value="{{.CurrentVisibility}}">
 			<div class="tw-flex tw-flex-col tw-gap-3">
 				<label>{{ctx.Locale.Tr "org.settings.visibility"}}</label>
 				<div class="ui radio checkbox">
-					<input name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 0}}checked{{end}}>
+					<input name="visibility" type="radio" value="public" {{if .CurrentVisibility.IsPublic}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "org.settings.visibility.public"}}</label>
 				</div>
 				<div class="ui radio checkbox">
-					<input name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}>
+					<input name="visibility" type="radio" value="limited" {{if .CurrentVisibility.IsLimited}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "org.settings.visibility.limited"}}</label>
 				</div>
 				<div class="ui radio checkbox">
-					<input name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}>
+					<input name="visibility" type="radio" value="private" {{if .CurrentVisibility.IsPrivate}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "org.settings.visibility.private"}}</label>
 				</div>
 			</div>
 
 			<div class="actions">
 				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-				<button class="ui red button">{{ctx.Locale.Tr "org.settings.change_visibility"}}</button>
+				<button id="change-visibility-submit" class="ui red button" disabled>{{ctx.Locale.Tr "org.settings.change_visibility"}}</button>
 			</div>
 		</form>
 	</div>

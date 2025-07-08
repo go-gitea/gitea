@@ -233,7 +233,7 @@ func SettingsRenamePost(ctx *context.Context) {
 
 // SettingsChangeVisibilityPost response for change organization visibility
 func SettingsChangeVisibilityPost(ctx *context.Context) {
-	visibility := structs.VisibleType(ctx.FormInt("visibility"))
+	visibility := structs.VisibilityModes[ctx.FormString("visibility")]
 	if !visibility.IsValid() {
 		ctx.JSONError(ctx.Tr("org.settings.invalid_visibility"))
 		return
