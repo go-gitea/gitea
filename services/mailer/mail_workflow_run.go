@@ -10,7 +10,6 @@ import (
 	"sort"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -155,18 +154,6 @@ func SendActionsWorkflowRunStatusEmail(ctx context.Context, sender *user_model.U
 		}
 	}
 
-	watchers, err := repo_model.GetRepoWatchers(ctx, repo.ID, db.ListOptionsAll)
-	if err != nil {
-		log.Error("GetWatchers: %v", err)
-	}
-	for _, watcher := range watchers {
-		if watcher.ID == sender.ID {
-			continue
-		}
-		if watcher.IsMailable() && watcher.EmailNotificationsPreference != user_model.EmailNotificationsOnMention &&
-			watcher.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
-			recipients = append(recipients, watcher)
-		}
-	}
+	// TODO: Any other recipient?
 	sendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
 }
