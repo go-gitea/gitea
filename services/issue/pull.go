@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
@@ -45,6 +46,125 @@ var codeOwnerFiles = []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNER
 
 func IsCodeOwnerFile(f string) bool {
 	return slices.Contains(codeOwnerFiles, f)
+}
+
+func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.ProtectedBranch, pr *issues_model.PullRequest) bool {
+	if !pb.BlockOnCodeownerReviews {
+		return true
+	}
+
+	if err := pr.LoadHeadRepo(ctx); err != nil {
+		return false
+	}
+
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return false
+	}
+
+	pr.Issue.Repo = pr.BaseRepo
+
+	if pr.BaseRepo.IsFork {
+		return true
+	}
+
+	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	if err != nil {
+		return false
+	}
+
+	defer repo.Close()
+
+	commit, err := repo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
+	if err != nil {
+		return false
+	}
+
+	var data string
+
+	for _, file := range codeOwnerFiles {
+		if blob, err := commit.GetBlobByPath(file); err == nil {
+			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
+			if err == nil {
+				break
+			}
+		}
+	}
+
+	// no code owner file = no one to approve
+	if data == "" {
+		return true
+	}
+
+	rules, _ := issues_model.GetCodeOwnersFromContent(ctx, data)
+	if len(rules) == 0 {
+		return true
+	}
+
+	// get the mergebase
+	mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
+	if err != nil {
+		return false
+	}
+
+	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
+	// between the merge base and the head commit but not the base branch and the head commit
+	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitRefName())
+	if err != nil {
+		return false
+	}
+
+	approvingReviews, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
+		Types:   []issues_model.ReviewType{issues_model.ReviewTypeApprove},
+		IssueID: pr.IssueID,
+	})
+	if err != nil {
+		return false
+	}
+
+	hasApprovals := true
+
+	matchingRules := make([]*issues_model.CodeOwnerRule, 0)
+
+	for _, rule := range rules {
+		for _, f := range changedFiles {
+			if (rule.Rule.MatchString(f) && !rule.Negative) || (!rule.Rule.MatchString(f) && rule.Negative) {
+				matchingRules = append(matchingRules, rule)
+				break
+			}
+		}
+	}
+
+	for _, rule := range matchingRules {
+		ruleReviewers := slices.Clone(rule.Users)
+		for _, t := range rule.Teams {
+			if err := t.LoadMembers(ctx); err != nil {
+				return false
+			}
+
+			ruleReviewers = slices.AppendSeq(ruleReviewers, slices.Values(t.Members))
+		}
+
+		// we need at least 1 code owner that isn't the PR author
+		hasPotentialReviewers := slices.ContainsFunc(ruleReviewers, func(elem *user_model.User) bool { return elem.ID != pr.Issue.OriginalAuthorID })
+
+		if !hasPotentialReviewers {
+			break
+		}
+
+		// then we need at least 1 approving review from any valid code owner for this rule
+		hasRuleApproval := slices.ContainsFunc(ruleReviewers, func(elem *user_model.User) bool {
+			return slices.ContainsFunc(approvingReviews, func(review *issues_model.Review) bool {
+				return review.ReviewerID == elem.ID
+			})
+		})
+
+		if !hasRuleApproval {
+			hasApprovals = false
+			break
+		}
+	}
+
+	return hasApprovals
 }
 
 func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
