@@ -58,6 +58,7 @@ type BranchProtection struct {
 	ApprovalsWhitelistTeams       []string `json:"approvals_whitelist_teams"`
 	BlockOnRejectedReviews        bool     `json:"block_on_rejected_reviews"`
 	BlockOnOfficialReviewRequests bool     `json:"block_on_official_review_requests"`
+	BlockOnCodeownerReviews       bool     `json:"block_on_codeowner_reviews"`
 	BlockOnOutdatedBranch         bool     `json:"block_on_outdated_branch"`
 	DismissStaleApprovals         bool     `json:"dismiss_stale_approvals"`
 	IgnoreStaleApprovals          bool     `json:"ignore_stale_approvals"`
@@ -98,6 +99,7 @@ type CreateBranchProtectionOption struct {
 	ApprovalsWhitelistTeams       []string `json:"approvals_whitelist_teams"`
 	BlockOnRejectedReviews        bool     `json:"block_on_rejected_reviews"`
 	BlockOnOfficialReviewRequests bool     `json:"block_on_official_review_requests"`
+	BlockOnCodeownerReviews       bool     `json:"block_on_codeowner_reviews"`
 	BlockOnOutdatedBranch         bool     `json:"block_on_outdated_branch"`
 	DismissStaleApprovals         bool     `json:"dismiss_stale_approvals"`
 	IgnoreStaleApprovals          bool     `json:"ignore_stale_approvals"`
@@ -131,6 +133,7 @@ type EditBranchProtectionOption struct {
 	ApprovalsWhitelistTeams       []string `json:"approvals_whitelist_teams"`
 	BlockOnRejectedReviews        *bool    `json:"block_on_rejected_reviews"`
 	BlockOnOfficialReviewRequests *bool    `json:"block_on_official_review_requests"`
+	BlockOnCodeownerReviews       *bool    `json:"block_on_codeowner_reviews"`
 	BlockOnOutdatedBranch         *bool    `json:"block_on_outdated_branch"`
 	DismissStaleApprovals         *bool    `json:"dismiss_stale_approvals"`
 	IgnoreStaleApprovals          *bool    `json:"ignore_stale_approvals"`
