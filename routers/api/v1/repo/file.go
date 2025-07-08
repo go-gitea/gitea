@@ -812,7 +812,8 @@ func GetContentsExt(ctx *context.APIContext) {
 	//   required: true
 	// - name: filepath
 	//   in: path
-	//   description: path of the dir, file, symlink or submodule in the repo
+	//   description: path of the dir, file, symlink or submodule in the repo. Swagger requires path parameter to be "required",
+	//                you can leave it empty or pass a single dot (".") to get the root directory.
 	//   type: string
 	//   required: true
 	// - name: ref
@@ -823,7 +824,8 @@ func GetContentsExt(ctx *context.APIContext) {
 	// - name: includes
 	//   in: query
 	//   description: By default this API's response only contains file's metadata. Use comma-separated "includes" options to retrieve more fields.
-	//                Option "file_content" will try to retrieve the file content, option "lfs_metadata" will try to retrieve LFS metadata.
+	//                Option "file_content" will try to retrieve the file content, "lfs_metadata" will try to retrieve LFS metadata,
+	//                "commit_metadata" will try to retrieve commit metadata, and "commit_message" will try to retrieve commit message.
 	//   type: string
 	//   required: false
 	// responses:
@@ -832,6 +834,9 @@ func GetContentsExt(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	if treePath := ctx.PathParam("*"); treePath == "." || treePath == "/" {
+		ctx.SetPathParam("*", "") // workaround for swagger, it requires path parameter to be "required", but we need to list root directory
+	}
 	opts := files_service.GetContentsOrListOptions{TreePath: ctx.PathParam("*")}
 	for includeOpt := range strings.SplitSeq(ctx.FormString("includes"), ",") {
 		if includeOpt == "" {
@@ -842,6 +847,10 @@ func GetContentsExt(ctx *context.APIContext) {
 			opts.IncludeSingleFileContent = true
 		case "lfs_metadata":
 			opts.IncludeLfsMetadata = true
+		case "commit_metadata":
+			opts.IncludeCommitMetadata = true
+		case "commit_message":
+			opts.IncludeCommitMessage = true
 		default:
 			ctx.APIError(http.StatusBadRequest, fmt.Sprintf("unknown include option %q", includeOpt))
 			return
@@ -883,7 +892,11 @@ func GetContents(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ContentsResponse"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	ret := getRepoContents(ctx, files_service.GetContentsOrListOptions{TreePath: ctx.PathParam("*"), IncludeSingleFileContent: true})
+	ret := getRepoContents(ctx, files_service.GetContentsOrListOptions{
+		TreePath:                 ctx.PathParam("*"),
+		IncludeSingleFileContent: true,
+		IncludeCommitMetadata:    true,
+	})
 	if ctx.Written() {
 		return
 	}

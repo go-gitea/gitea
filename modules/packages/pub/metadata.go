@@ -88,7 +88,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 			if err != nil {
 				return nil, err
 			}
-		} else if strings.ToLower(hd.Name) == "readme.md" {
+		} else if strings.EqualFold(hd.Name, "readme.md") {
 			data, err := io.ReadAll(tr)
 			if err != nil {
 				return nil, err

@@ -116,14 +116,17 @@ type ContentsExtResponse struct {
 
 // ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content
 type ContentsResponse struct {
-	Name          string `json:"name"`
-	Path          string `json:"path"`
-	SHA           string `json:"sha"`
-	LastCommitSHA string `json:"last_commit_sha"`
+	Name string `json:"name"`
+	Path string `json:"path"`
+	SHA  string `json:"sha"`
+
+	LastCommitSHA *string `json:"last_commit_sha,omitempty"`
 	// swagger:strfmt date-time
-	LastCommitterDate time.Time `json:"last_committer_date"`
+	LastCommitterDate *time.Time `json:"last_committer_date,omitempty"`
 	// swagger:strfmt date-time
-	LastAuthorDate time.Time `json:"last_author_date"`
+	LastAuthorDate    *time.Time `json:"last_author_date,omitempty"`
+	LastCommitMessage *string    `json:"last_commit_message,omitempty"`
+
 	// `type` will be `file`, `dir`, `symlink`, or `submodule`
 	Type string `json:"type"`
 	Size int64  `json:"size"`
@@ -141,8 +144,8 @@ type ContentsResponse struct {
 	SubmoduleGitURL *string            `json:"submodule_git_url"`
 	Links           *FileLinksResponse `json:"_links"`
 
-	LfsOid  *string `json:"lfs_oid"`
-	LfsSize *int64  `json:"lfs_size"`
+	LfsOid  *string `json:"lfs_oid,omitempty"`
+	LfsSize *int64  `json:"lfs_size,omitempty"`
 }
 
 // FileCommitResponse contains information generated from a Git commit for a repo's file.

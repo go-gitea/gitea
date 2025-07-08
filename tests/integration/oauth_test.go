@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/oauth2_provider"
 	"code.gitea.io/gitea/tests"
 
@@ -26,24 +27,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAuthorizeNoClientID(t *testing.T) {
+func TestOAuth2Provider(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	t.Run("AuthorizeNoClientID", testAuthorizeNoClientID)
+	t.Run("AuthorizeUnregisteredRedirect", testAuthorizeUnregisteredRedirect)
+	t.Run("AuthorizeUnsupportedResponseType", testAuthorizeUnsupportedResponseType)
+	t.Run("AuthorizeUnsupportedCodeChallengeMethod", testAuthorizeUnsupportedCodeChallengeMethod)
+	t.Run("AuthorizeLoginRedirect", testAuthorizeLoginRedirect)
+
+	t.Run("OAuth2WellKnown", testOAuth2WellKnown)
+}
+
+func testAuthorizeNoClientID(t *testing.T) {
 	req := NewRequest(t, "GET", "/login/oauth/authorize")
 	ctx := loginUser(t, "user2")
 	resp := ctx.MakeRequest(t, req, http.StatusBadRequest)
 	assert.Contains(t, resp.Body.String(), "Client ID not registered")
 }
 
-func TestAuthorizeUnregisteredRedirect(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testAuthorizeUnregisteredRedirect(t *testing.T) {
 	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=UNREGISTERED&response_type=code&state=thestate")
 	ctx := loginUser(t, "user1")
 	resp := ctx.MakeRequest(t, req, http.StatusBadRequest)
 	assert.Contains(t, resp.Body.String(), "Unregistered Redirect URI")
 }
 
-func TestAuthorizeUnsupportedResponseType(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testAuthorizeUnsupportedResponseType(t *testing.T) {
 	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=a&response_type=UNEXPECTED&state=thestate")
 	ctx := loginUser(t, "user1")
 	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
@@ -53,8 +63,7 @@ func TestAuthorizeUnsupportedResponseType(t *testing.T) {
 	assert.Equal(t, "Only code response type is supported.", u.Query().Get("error_description"))
 }
 
-func TestAuthorizeUnsupportedCodeChallengeMethod(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testAuthorizeUnsupportedCodeChallengeMethod(t *testing.T) {
 	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=a&response_type=code&state=thestate&code_challenge_method=UNEXPECTED")
 	ctx := loginUser(t, "user1")
 	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
@@ -64,8 +73,7 @@ func TestAuthorizeUnsupportedCodeChallengeMethod(t *testing.T) {
 	assert.Equal(t, "unsupported code challenge method", u.Query().Get("error_description"))
 }
 
-func TestAuthorizeLoginRedirect(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testAuthorizeLoginRedirect(t *testing.T) {
 	req := NewRequest(t, "GET", "/login/oauth/authorize")
 	assert.Contains(t, MakeRequest(t, req, http.StatusSeeOther).Body.String(), "/user/login")
 }
@@ -902,4 +910,24 @@ func TestOAuth_GrantScopesClaimAllGroups(t *testing.T) {
 		assert.Contains(t, claims.Groups, group)
 		assert.Contains(t, userinfoParsed.Groups, group)
 	}
+}
+
+func testOAuth2WellKnown(t *testing.T) {
+	urlOpenidConfiguration := "/.well-known/openid-configuration"
+
+	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/")()
+	req := NewRequest(t, "GET", urlOpenidConfiguration)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var respMap map[string]any
+	DecodeJSON(t, resp, &respMap)
+	assert.Equal(t, "https://try.gitea.io", respMap["issuer"])
+	assert.Equal(t, "https://try.gitea.io/login/oauth/authorize", respMap["authorization_endpoint"])
+	assert.Equal(t, "https://try.gitea.io/login/oauth/access_token", respMap["token_endpoint"])
+	assert.Equal(t, "https://try.gitea.io/login/oauth/keys", respMap["jwks_uri"])
+	assert.Equal(t, "https://try.gitea.io/login/oauth/userinfo", respMap["userinfo_endpoint"])
+	assert.Equal(t, "https://try.gitea.io/login/oauth/introspect", respMap["introspection_endpoint"])
+	assert.Equal(t, []any{"RS256"}, respMap["id_token_signing_alg_values_supported"])
+
+	defer test.MockVariableValue(&setting.OAuth2.Enabled, false)()
+	MakeRequest(t, NewRequest(t, "GET", urlOpenidConfiguration), http.StatusNotFound)
 }

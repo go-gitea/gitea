@@ -84,7 +84,12 @@
 							<td>{{FileSize .LFSSize}}</td>
 							<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
 							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
-							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
+							<td>
+								<a class="text red show-modal" href data-modal="#admin-repo-delete-modal"
+									data-modal-form.action="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.ID}}"
+									data-modal-repo-name="{{.Name}}"
+								>{{svg "octicon-trash"}}</a>
+							</td>
 						</tr>
 					{{else}}
 						<tr><td class="tw-text-center" colspan="12">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
@@ -96,17 +101,15 @@
 		{{template "base/paginate" .}}
 	</div>
 
-<div class="ui g-modal-confirm delete modal">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{ctx.Locale.Tr "repo.settings.delete"}}
-	</div>
+<form class="ui small modal form-fetch-action" id="admin-repo-delete-modal" method="post">
+	{{.CsrfTokenHtml}}
+	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.settings.delete"}}</div>
 	<div class="content">
 		<p>{{ctx.Locale.Tr "repo.settings.delete_desc"}}</p>
-		{{ctx.Locale.Tr "repo.settings.delete_notices_2" (HTMLFormat `<span class="%s"></span>` "name")}}<br>
+		{{ctx.Locale.Tr "repo.settings.delete_notices_2" (HTMLFormat `<span class="%s"></span>` "repo-name")}}<br>
 		{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}<br>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
+</form>
 
 {{template "admin/layout_footer" .}}
