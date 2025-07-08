@@ -28,7 +28,6 @@ func Notifications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("notifications")
 	ctx.Data["PageIsSettingsNotifications"] = true
 	ctx.Data["EmailNotificationsPreference"] = ctx.Doer.EmailNotificationsPreference
-	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
 
 	ctx.HTML(http.StatusOK, tplSettingsNotifications)
 }
