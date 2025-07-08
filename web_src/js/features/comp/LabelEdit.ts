@@ -1,5 +1,6 @@
 import {toggleElem} from '../../utils/dom.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {submitFormFetchAction} from '../common-fetch-action.ts';
 
 function nameHasScope(name: string): boolean {
   return /.*[^/]\/[^/].*/.test(name);
@@ -23,7 +24,7 @@ export function initCompLabelEdit(pageSelector: string) {
   const elIsArchivedField = elModal.querySelector('.label-is-archived-input-field');
   const elIsArchivedInput = elModal.querySelector<HTMLInputElement>('.label-is-archived-input');
   const elDescInput = elModal.querySelector<HTMLInputElement>('.label-desc-input');
-  const elColorInput = elModal.querySelector<HTMLInputElement>('.js-color-picker-input input');
+  const elColorInput = elModal.querySelector<HTMLInputElement>('.color-picker-combo input');
 
   const syncModalUi = () => {
     const hasScope = nameHasScope(elNameInput.value);
@@ -70,7 +71,8 @@ export function initCompLabelEdit(pageSelector: string) {
           form.reportValidity();
           return false;
         }
-        form.submit();
+        submitFormFetchAction(form);
+        return false;
       },
     }).modal('show');
   };

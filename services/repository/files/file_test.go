@@ -10,17 +10,18 @@ import (
 )
 
 func TestCleanUploadFileName(t *testing.T) {
-	t.Run("Clean regular file", func(t *testing.T) {
-		name := "this/is/test"
-		cleanName := CleanUploadFileName(name)
-		expectedCleanName := name
-		assert.Equal(t, expectedCleanName, cleanName)
-	})
-
-	t.Run("Clean a .git path", func(t *testing.T) {
-		name := "this/is/test/.git"
-		cleanName := CleanUploadFileName(name)
-		expectedCleanName := ""
-		assert.Equal(t, expectedCleanName, cleanName)
-	})
+	cases := []struct {
+		input, expected string
+	}{
+		{"", ""},
+		{".", ""},
+		{"a/./b", "a/b"},
+		{"a.git", "a.git"},
+		{".git/b", ""},
+		{"a/.git", ""},
+		{"/a/../../b", "b"},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.expected, CleanGitTreePath(c.input), "input: %q", c.input)
+	}
 }

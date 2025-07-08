@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/doctor"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 	"xorm.io/xorm"
 )
 
@@ -30,7 +30,7 @@ var CmdDoctor = &cli.Command{
 	Usage:       "Diagnose and optionally fix problems, convert or re-create database tables",
 	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
 
-	Subcommands: []*cli.Command{
+	Commands: []*cli.Command{
 		cmdDoctorCheck,
 		cmdRecreateTable,
 		cmdDoctorConvert,
@@ -93,16 +93,13 @@ You should back-up your database before doing this and ensure that your database
 	Action: runRecreateTable,
 }
 
-func runRecreateTable(ctx *cli.Context) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
+func runRecreateTable(ctx context.Context, cmd *cli.Command) error {
 	// Redirect the default golog to here
 	golog.SetFlags(0)
 	golog.SetPrefix("")
 	golog.SetOutput(log.LoggerToWriter(log.GetLogger(log.DEFAULT).Info))
 
-	debug := ctx.Bool("debug")
+	debug := cmd.Bool("debug")
 	setting.MustInstalled()
 	setting.LoadDBSetting()
 
@@ -113,15 +110,15 @@ func runRecreateTable(ctx *cli.Context) error {
 	}
 
 	setting.Database.LogSQL = debug
-	if err := db.InitEngine(stdCtx); err != nil {
+	if err := db.InitEngine(ctx); err != nil {
 		fmt.Println(err)
 		fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
 		return nil
 	}
 
-	args := ctx.Args()
-	names := make([]string, 0, ctx.NArg())
-	for i := 0; i < ctx.NArg(); i++ {
+	args := cmd.Args()
+	names := make([]string, 0, cmd.NArg())
+	for i := 0; i < cmd.NArg(); i++ {
 		names = append(names, args.Get(i))
 	}
 
@@ -131,7 +128,7 @@ func runRecreateTable(ctx *cli.Context) error {
 	}
 	recreateTables := migrate_base.RecreateTables(beans...)
 
-	return db.InitEngineWithMigration(stdCtx, func(ctx context.Context, x *xorm.Engine) error {
+	return db.InitEngineWithMigration(ctx, func(ctx context.Context, x *xorm.Engine) error {
 		if err := migrations.EnsureUpToDate(ctx, x); err != nil {
 			return err
 		}
@@ -139,11 +136,11 @@ func runRecreateTable(ctx *cli.Context) error {
 	})
 }
 
-func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
+func setupDoctorDefaultLogger(cmd *cli.Command, colorize bool) {
 	// Silence the default loggers
 	setupConsoleLogger(log.FATAL, log.CanColorStderr, os.Stderr)
 
-	logFile := ctx.String("log-file")
+	logFile := cmd.String("log-file")
 	switch logFile {
 	case "":
 		return // if no doctor log-file is set, do not show any log from default logger
@@ -161,23 +158,20 @@ func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
 	}
 }
 
-func runDoctorCheck(ctx *cli.Context) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
+func runDoctorCheck(ctx context.Context, cmd *cli.Command) error {
 	colorize := log.CanColorStdout
-	if ctx.IsSet("color") {
-		colorize = ctx.Bool("color")
+	if cmd.IsSet("color") {
+		colorize = cmd.Bool("color")
 	}
 
-	setupDoctorDefaultLogger(ctx, colorize)
+	setupDoctorDefaultLogger(cmd, colorize)
 
 	// Finally redirect the default golang's log to here
 	golog.SetFlags(0)
 	golog.SetPrefix("")
 	golog.SetOutput(log.LoggerToWriter(log.GetLogger(log.DEFAULT).Info))
 
-	if ctx.IsSet("list") {
+	if cmd.IsSet("list") {
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 		_, _ = w.Write([]byte("Default\tName\tTitle\n"))
 		doctor.SortChecks(doctor.Checks)
@@ -195,12 +189,12 @@ func runDoctorCheck(ctx *cli.Context) error {
 	}
 
 	var checks []*doctor.Check
-	if ctx.Bool("all") {
+	if cmd.Bool("all") {
 		checks = make([]*doctor.Check, len(doctor.Checks))
 		copy(checks, doctor.Checks)
-	} else if ctx.IsSet("run") {
-		addDefault := ctx.Bool("default")
-		runNamesSet := container.SetOf(ctx.StringSlice("run")...)
+	} else if cmd.IsSet("run") {
+		addDefault := cmd.Bool("default")
+		runNamesSet := container.SetOf(cmd.StringSlice("run")...)
 		for _, check := range doctor.Checks {
 			if (addDefault && check.IsDefault) || runNamesSet.Contains(check.Name) {
 				checks = append(checks, check)
@@ -217,5 +211,5 @@ func runDoctorCheck(ctx *cli.Context) error {
 			}
 		}
 	}
-	return doctor.RunChecks(stdCtx, colorize, ctx.Bool("fix"), checks)
+	return doctor.RunChecks(ctx, colorize, cmd.Bool("fix"), checks)
 }

@@ -33,6 +33,7 @@ type Release struct {
 type CreateReleaseOption struct {
 	// required: true
 	TagName      string `json:"tag_name" binding:"Required"`
+	TagMessage   string `json:"tag_message"`
 	Target       string `json:"target_commitish"`
 	Title        string `json:"name"`
 	Note         string `json:"body"`

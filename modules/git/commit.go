@@ -20,7 +20,8 @@ import (
 
 // Commit represents a git commit.
 type Commit struct {
-	Tree
+	Tree // FIXME: bad design, this field can be nil if the commit is from "last commit cache"
+
 	ID            ObjectID // The ID of this commit object
 	Author        *Signature
 	Committer     *Signature
@@ -34,7 +35,7 @@ type Commit struct {
 // CommitSignature represents a git commit signature part.
 type CommitSignature struct {
 	Signature string
-	Payload   string // TODO check if can be reconstruct from the rest of commit information to not have duplicate data
+	Payload   string
 }
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
@@ -277,8 +278,8 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 	var keywords, authors, committers []string
 	var after, before string
 
-	fields := strings.Fields(searchString)
-	for _, k := range fields {
+	fields := strings.FieldsSeq(searchString)
+	for k := range fields {
 		switch {
 		case strings.HasPrefix(k, "author:"):
 			authors = append(authors, strings.TrimPrefix(k, "author:"))

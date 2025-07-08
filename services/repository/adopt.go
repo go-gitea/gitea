@@ -196,8 +196,13 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	}
-	if err = updateRepository(ctx, repo, false); err != nil {
-		return fmt.Errorf("updateRepository: %w", err)
+
+	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_empty", "default_branch"); err != nil {
+		return fmt.Errorf("UpdateRepositoryCols: %w", err)
+	}
+
+	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
+		log.Error("Failed to update size for repository: %v", err)
 	}
 
 	return nil
@@ -260,7 +265,7 @@ func checkUnadoptedRepositories(ctx context.Context, userName string, repoNamesT
 		}
 		return err
 	}
-	repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
+	repos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
 		Actor:   ctxUser,
 		Private: true,
 		ListOptions: db.ListOptions{

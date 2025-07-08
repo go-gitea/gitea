@@ -71,7 +71,8 @@ type PayloadUser struct {
 	// Full name of the commit author
 	Name string `json:"name"`
 	// swagger:strfmt email
-	Email    string `json:"email"`
+	Email string `json:"email"`
+	// username of the user
 	UserName string `json:"username"`
 }
 
@@ -286,6 +287,8 @@ const (
 	HookIssueReOpened HookIssueAction = "reopened"
 	// HookIssueEdited edited
 	HookIssueEdited HookIssueAction = "edited"
+	// HookIssueDeleted is an issue action for deleting an issue
+	HookIssueDeleted HookIssueAction = "deleted"
 	// HookIssueAssigned assigned
 	HookIssueAssigned HookIssueAction = "assigned"
 	// HookIssueUnassigned unassigned
@@ -467,6 +470,22 @@ type CommitStatusPayload struct {
 
 // JSONPayload implements Payload
 func (p *CommitStatusPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
+// WorkflowRunPayload represents a payload information of workflow run event.
+type WorkflowRunPayload struct {
+	Action       string             `json:"action"`
+	Workflow     *ActionWorkflow    `json:"workflow"`
+	WorkflowRun  *ActionWorkflowRun `json:"workflow_run"`
+	PullRequest  *PullRequest       `json:"pull_request,omitempty"`
+	Organization *Organization      `json:"organization,omitempty"`
+	Repo         *Repository        `json:"repository"`
+	Sender       *User              `json:"sender"`
+}
+
+// JSONPayload implements Payload
+func (p *WorkflowRunPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
 
