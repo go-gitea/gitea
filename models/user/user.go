@@ -1189,12 +1189,14 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 
 	needCheckEmails := make(container.Set[string])
 	needCheckUserNames := make(container.Set[string])
+	noReplyAddressSuffix := "@" + strings.ToLower(setting.Service.NoReplyAddress)
 	for _, email := range emails {
-		if strings.HasSuffix(email, "@"+setting.Service.NoReplyAddress) {
-			username := strings.TrimSuffix(email, "@"+setting.Service.NoReplyAddress)
-			needCheckUserNames.Add(strings.ToLower(username))
+		emailLower := strings.ToLower(email)
+		if noReplyUserNameLower, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
+			needCheckUserNames.Add(noReplyUserNameLower)
+			needCheckEmails.Add(emailLower)
 		} else {
-			needCheckEmails.Add(strings.ToLower(email))
+			needCheckEmails.Add(emailLower)
 		}
 	}
 

@@ -22,7 +22,7 @@ import (
 type Commit struct {
 	Tree // FIXME: bad design, this field can be nil if the commit is from "last commit cache"
 
-	ID            ObjectID   // The ID of this commit object
+	ID            ObjectID
 	Author        *Signature // never nil
 	Committer     *Signature // never nil
 	CommitMessage string

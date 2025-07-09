@@ -36,7 +36,8 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *asymkey_model
 }
 
 // ParseCommitWithSignatureCommitter parses a commit's GPG or SSH signature.
-// If the commit is singed by an instance key, then committer is nil.
+// If the commit is singed by an instance key, then committer can be nil.
+// If the signature exists, even if committer is nil, the returned CommittingUser will be a non-nil fake user.
 func ParseCommitWithSignatureCommitter(ctx context.Context, c *git.Commit, committer *user_model.User) *asymkey_model.CommitVerification {
 	// If no signature, just report the committer
 	if c.Signature == nil {
@@ -91,7 +92,7 @@ func parseCommitWithGPGSignature(ctx context.Context, c *git.Commit, committer *
 	}
 
 	// Now try to associate the signature with the committer, if present
-	if committer != nil && committer.ID != 0 {
+	if committer.ID != 0 {
 		keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
 			OwnerID: committer.ID,
 		})
@@ -373,7 +374,7 @@ func verifySSHCommitVerificationByInstanceKey(c *git.Commit, committerUser, sign
 // parseCommitWithSSHSignature check if signature is good against keystore.
 func parseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committerUser *user_model.User) *asymkey_model.CommitVerification {
 	// Now try to associate the signature with the committer, if present
-	if committerUser != nil && committerUser.ID != 0 {
+	if committerUser.ID != 0 {
 		keys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
 			OwnerID:    committerUser.ID,
 			NotKeytype: asymkey_model.KeyTypePrincipal,
