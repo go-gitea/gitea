@@ -185,10 +185,6 @@ details summary {
   cursor: pointer;
 }
 
-details summary > * {
-  display: inline;
-}
-
 progress {
   background: var(--color-secondary-dark-1);
   border-radius: var(--border-radius);
@@ -472,15 +468,6 @@ a.label,
 
 .ui.comments .comment .metadata {
   color: var(--color-text-light-2);
-}
-
-.ui.comments .comment .actions a {
-  color: var(--color-text-light);
-}
-
-.ui.comments .comment .actions a.active,
-.ui.comments .comment .actions a:hover {
-  color: var(--color-primary);
 }
 
 img.ui.avatar,
