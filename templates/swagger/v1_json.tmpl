@@ -21248,6 +21248,25 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ActionWorkflowResponse": {
+      "description": "ActionWorkflowResponse returns a ActionWorkflow",
+      "type": "object",
+      "properties": {
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        },
+        "workflows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActionWorkflow"
+          },
+          "x-go-name": "Workflows"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ActionWorkflowRun": {
       "description": "ActionWorkflowRun represents a WorkflowRun",
       "type": "object",
@@ -28592,10 +28611,7 @@
     "ActionWorkflowList": {
       "description": "ActionWorkflowList",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/ActionWorkflow"
-        }
+        "$ref": "#/definitions/ActionWorkflowResponse"
       }
     },
     "ActivityFeedsList": {
