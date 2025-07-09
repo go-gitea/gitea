@@ -35,7 +35,7 @@ func Notifications(ctx *context.Context) {
 // SetGlobalEmailNotificationPreference set user's email notification preference
 func SetGlobalEmailNotificationPreference(ctx *context.Context) {
 	if !setting.Service.EnableNotifyMail {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.NotFound(errors.New("NotifyMail not enabled"))
 		return
 	}
 
