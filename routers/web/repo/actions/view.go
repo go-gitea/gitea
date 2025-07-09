@@ -420,26 +420,45 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	// reset run's start and stop time when it is done
-	if run.Status.IsDone() {
-		run.PreviousDuration = run.Duration()
-		run.Started = 0
-		run.Stopped = 0
-		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration"); err != nil {
-			ctx.ServerError("UpdateRun", err)
-			return
-		}
-	}
+	// TODO evaluate concurrency expression again, vars may change after the run is done
+	// check run (workflow-level) concurrency
 
 	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
 		return
 	}
 
+	var blockRunByConcurrency bool
+
+	// reset run's start and stop time when it is done
+	if run.Status.IsDone() {
+		run.PreviousDuration = run.Duration()
+		run.Started = 0
+		run.Stopped = 0
+
+		blockRunByConcurrency, err = actions_model.ShouldBlockRunByConcurrency(ctx, run)
+		if err != nil {
+			ctx.ServerError("ShouldBlockRunByConcurrency", err)
+			return
+		}
+		if blockRunByConcurrency {
+			run.Status = actions_model.StatusBlocked
+		} else if err := actions_service.CancelJobsByRunConcurrency(ctx, run); err != nil {
+			ctx.ServerError("cancel jobs", err)
+			return
+		} else {
+			run.Status = actions_model.StatusRunning
+		}
+		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration", "status"); err != nil {
+			ctx.ServerError("UpdateRun", err)
+			return
+		}
+	}
+
 	if jobIndexStr == "" { // rerun all jobs
 		for _, j := range jobs {
 			// if the job has needs, it should be set to "blocked" status to wait for other jobs
-			shouldBlock := len(j.Needs) > 0
+			shouldBlock := len(j.Needs) > 0 || blockRunByConcurrency
 			if err := rerunJob(ctx, j, shouldBlock); err != nil {
 				ctx.ServerError("RerunJob", err)
 				return
@@ -453,6 +472,7 @@ func Rerun(ctx *context_module.Context) {
 
 	for _, j := range rerunJobs {
 		// jobs other than the specified one should be set to "blocked" status
+		// TODO respect blockRunByConcurrency here?
 		shouldBlock := j.JobID != job.JobID
 		if err := rerunJob(ctx, j, shouldBlock); err != nil {
 			ctx.ServerError("RerunJob", err)
