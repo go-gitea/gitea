@@ -58,7 +58,7 @@
 					<div class="comment code-comment" id="{{.HashTag}}">
 						<div class="content comment-container">
 							<div class="comment-header">
-								<div class="comment-header-left tw-flex tw-items-center">
+								<div class="comment-header-left">
 									{{if not .OriginalAuthor}}
 										<a class="avatar">
 											{{ctx.AvatarUtils.Avatar .Poster 20}}
@@ -79,7 +79,7 @@
 										{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdSubStr}}
 									</span>
 								</div>
-								<div class="comment-header-right actions tw-flex tw-items-center">
+								<div class="comment-header-right">
 									{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 									{{if not $.Repository.IsArchived}}
 										{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
