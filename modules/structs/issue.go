@@ -35,8 +35,9 @@ type PullRequestMeta struct {
 
 // RepositoryMeta basic repository information
 type RepositoryMeta struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	// username of the user or organization owning the repository
 	Owner    string `json:"owner"`
 	FullName string `json:"full_name"`
 }
@@ -264,7 +265,8 @@ func (it IssueTemplate) Type() IssueTemplateType {
 type IssueMeta struct {
 	Index int64  `json:"index"`
 	Owner string `json:"owner"`
-	Name  string `json:"repo"`
+	// name of the repo
+	Name string `json:"repo"`
 }
 
 // LockIssueOption options to lock an issue
