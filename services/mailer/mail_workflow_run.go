@@ -54,9 +54,11 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 		return
 	}
 	sort.SliceStable(jobs, func(i, j int) bool {
-		si := jobs[i].Status
-		sj := jobs[j].Status
-		return !(si == sj || si.IsSuccess()) && si < sj
+		si, sj := jobs[i].Status, jobs[j].Status
+		if si != sj || sj.IsSuccess() /* if not equal, then success is the max */ {
+			return true
+		}
+		return si < sj
 	})
 
 	convertedJobs := make([]convertedWorkflowJob, 0, len(jobs))
@@ -96,7 +98,7 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 			runStatusText = "All jobs have been cancelled"
 		}
 		var mailBody bytes.Buffer
-		if err := bodyTemplates.ExecuteTemplate(&mailBody, tplWorkflowRun, map[string]any{
+		if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, tplWorkflowRun, map[string]any{
 			"Subject":       subject,
 			"Repo":          repo,
 			"Run":           run,
