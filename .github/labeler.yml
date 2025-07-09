@@ -81,3 +81,13 @@ docs-update-needed:
   - changed-files:
       - any-glob-to-any-file:
           - "custom/conf/app.example.ini"
+
+topic/code-linting:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".eslintrc.cjs"
+          - ".golangci.yml"
+          - ".markdownlint.yaml"
+          - ".spectral.yaml"
+          - ".yamllint.yaml"
+          - "stylelint.config.js"
