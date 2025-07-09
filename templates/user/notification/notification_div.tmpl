@@ -69,51 +69,34 @@
 							</div>
 							<div class="notifications-buttons tw-items-center tw-justify-end tw-gap-1 tw-px-1">
 								{{if ne .Status 3}}
-									<form action="{{AppSubUrl}}/notifications/status" method="post">
-										{{$.CsrfTokenHtml}}
-										<input type="hidden" name="notification_id" value="{{.ID}}">
-										<input type="hidden" name="status" value="pinned">
-										<button type="button" class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.pin"}}"
-											hx-post="{{AppSubUrl}}/notifications/status"
-											hx-target="#notification_div"
-											hx-swap="outerHTML"
-											hx-vals='{"notification_id": "{{.ID}}", "status": "pinned", "page": "{{$.Page.Paginater.Current}}", "_csrf": "{{$.CsrfToken}}"}'
-											{{if eq .Status 3}}disabled{{end}}
-											>
-											{{svg "octicon-pin"}}
-										</button>
-									</form>
+									<button type="button" class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.pin"}}"
+										hx-post="{{AppSubUrl}}/notifications/status"
+										hx-target="#notification_div"
+										hx-swap="outerHTML"
+										hx-vals='{"notification_id": "{{.ID}}", "status": "pinned", "page": "{{$.Page.Paginater.Current}}", "_csrf": "{{$.CsrfToken}}", "noredirect": "true" }'
+										{{if eq .Status 3}}disabled{{end}}
+										>
+										{{svg "octicon-pin"}}
+									</button>
 								{{end}}
 								{{if or (eq .Status 1) (eq .Status 3)}}
-									<form action="{{AppSubUrl}}/notifications/status" method="post">
-										{{$.CsrfTokenHtml}}
-										<input type="hidden" name="notification_id" value="{{.ID}}">
-										<input type="hidden" name="status" value="read">
-										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-										<button type="button" class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_read"}}"
-											hx-post="{{AppSubUrl}}/notifications/status"
-											hx-target="#notification_div"
-											hx-swap="outerHTML"
-											hx-vals='{"notification_id": "{{.ID}}", "status": "read", "page": "{{$.Page.Paginater.Current}}", "_csrf": "{{$.CsrfToken}}"}'
-											>
-											{{svg "octicon-check"}}
-										</button>
-									</form>
+									<button type="button" class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_read"}}"
+										hx-post="{{AppSubUrl}}/notifications/status"
+										hx-target="#notification_div"
+										hx-swap="outerHTML"
+										hx-vals='{"notification_id": "{{.ID}}", "status": "read", "page": "{{$.Page.Paginater.Current}}", "_csrf": "{{$.CsrfToken}}", "noredirect": "true"}'
+										>
+										{{svg "octicon-check"}} 123
+									</button>
 								{{else if eq .Status 2}}
-									<form action="{{AppSubUrl}}/notifications/status" method="post">
-										{{$.CsrfTokenHtml}}
-										<input type="hidden" name="notification_id" value="{{.ID}}">
-										<input type="hidden" name="status" value="unread">
-										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-										<button type="button" class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_unread"}}"
-											hx-post="{{AppSubUrl}}/notifications/status"
-											hx-target="#notification_div"
-											hx-swap="outerHTML"
-											hx-vals='{"notification_id": "{{.ID}}", "status": "unread", "page": "{{$.Page.Paginater.Current}}", "_csrf": "{{$.CsrfToken}}"}'
-											>
-											{{svg "octicon-bell"}}
-										</button>
-									</form>
+									<button type="button" class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_unread"}}"
+										hx-post="{{AppSubUrl}}/notifications/status"
+										hx-target="#notification_div"
+										hx-swap="outerHTML"
+										hx-vals='{"notification_id": "{{.ID}}", "status": "unread", "page": "{{$.Page.Paginater.Current}}", "_csrf": "{{$.CsrfToken}}", "noredirect": "true"}'
+										>
+										{{svg "octicon-bell"}}
+									</button>
 								{{end}}
 							</div>
 						</div>
