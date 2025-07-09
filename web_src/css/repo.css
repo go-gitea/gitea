@@ -354,6 +354,7 @@ td .commit-summary {
 }
 
 .repository.view.issue .issue-title-buttons {
+  align-self: start;
   display: flex;
   gap: 0.5em;
 }
