@@ -6,7 +6,6 @@ package user
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -61,11 +60,11 @@ func prepareUserNotificationsData(ctx *context.Context) {
 		return
 	}
 
-	// redirect to the last page if request page is more than total pages
 	pager := context.NewPagination(int(total), perPage, page, 5)
 	if pager.Paginater.Current() < page {
-		ctx.Redirect(fmt.Sprintf("%s/notifications?type=%s&page=%d", setting.AppSubURL, url.QueryEscape(pageType), pager.Paginater.Current()))
-		return
+		// use the last page if the requested page is more than total pages
+		page = pager.Paginater.Current()
+		pager = context.NewPagination(int(total), perPage, page, 5)
 	}
 
 	statuses := []activities_model.NotificationStatus{queryStatus, activities_model.NotificationStatusPinned}
