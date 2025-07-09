@@ -86,7 +86,7 @@
 										hx-swap="outerHTML"
 										hx-vals='{"notification_id": "{{.ID}}", "status": "read", "page": "{{$.Page.Paginater.Current}}", "_csrf": "{{$.CsrfToken}}", "noredirect": "true"}'
 										>
-										{{svg "octicon-check"}} 123
+										{{svg "octicon-check"}}
 									</button>
 								{{else if eq .Status 2}}
 									<button type="button" class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_unread"}}"

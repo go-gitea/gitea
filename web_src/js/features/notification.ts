@@ -144,7 +144,6 @@ async function updateNotificationCountWithCallback(callback: (timeout: number, n
 }
 
 async function updateNotificationTable() {
-  return;
   const notificationDiv = document.querySelector('#notification_div');
   if (notificationDiv) {
     try {
