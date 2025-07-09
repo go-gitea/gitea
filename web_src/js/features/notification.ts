@@ -5,9 +5,9 @@ import {logoutFromWorker} from '../modules/worker.ts';
 const {appSubUrl, notificationSettings, assetVersionEncoded} = window.config;
 let notificationSequenceNumber = 0;
 
-async function receiveUpdateCount(event: MessageEvent) {
+async function receiveUpdateCount(event: MessageEvent<{type: string, data: string}>) {
   try {
-    const data = event.data;
+    const data = JSON.parse(event.data.data);
     for (const count of document.querySelectorAll('.notification_count')) {
       count.classList.toggle('tw-hidden', data.Count === 0);
       count.textContent = `${data.Count}`;
@@ -44,7 +44,7 @@ export function initNotificationCount() {
       type: 'start',
       url: `${window.location.origin}${appSubUrl}/user/events`,
     });
-    worker.port.addEventListener('message', (event: MessageEvent) => {
+    worker.port.addEventListener('message', (event: MessageEvent<{type: string, data: string}>) => {
       if (!event.data || !event.data.type) {
         console.error('unknown worker message event', event);
         return;
