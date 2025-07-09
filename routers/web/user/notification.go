@@ -180,12 +180,6 @@ func NotificationStatusPost(ctx *context.Context) {
 		ctx.Redirect(url, http.StatusSeeOther)
 	}
 
-	// convert the action to the displayed list
-	if statusStr == "unread" {
-		ctx.SetFormString("q", "read")
-	} else {
-		ctx.SetFormString("q", "unread")
-	}
 	getNotifications(ctx)
 	if ctx.Written() {
 		return

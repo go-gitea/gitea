@@ -70,7 +70,7 @@
 							<div class="notifications-buttons tw-items-center tw-justify-end tw-gap-1 tw-px-1">
 								{{if ne .Status 3}}
 									<button type="button" class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.pin"}}"
-										hx-post="{{AppSubUrl}}/notifications/status"
+										hx-post="{{AppSubUrl}}/notifications/status?q={{ $.Keyword }}"
 										hx-target="#notification_div"
 										hx-swap="outerHTML"
 										hx-vals='{"notification_id": "{{.ID}}", "status": "pinned", "page": "{{$.Page.Paginater.Current}}", "_csrf": "{{$.CsrfToken}}", "noredirect": "true" }'
@@ -81,7 +81,7 @@
 								{{end}}
 								{{if or (eq .Status 1) (eq .Status 3)}}
 									<button type="button" class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_read"}}"
-										hx-post="{{AppSubUrl}}/notifications/status"
+										hx-post="{{AppSubUrl}}/notifications/status?q={{ $.Keyword }}"
 										hx-target="#notification_div"
 										hx-swap="outerHTML"
 										hx-vals='{"notification_id": "{{.ID}}", "status": "read", "page": "{{$.Page.Paginater.Current}}", "_csrf": "{{$.CsrfToken}}", "noredirect": "true"}'
@@ -90,7 +90,7 @@
 									</button>
 								{{else if eq .Status 2}}
 									<button type="button" class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_unread"}}"
-										hx-post="{{AppSubUrl}}/notifications/status"
+										hx-post="{{AppSubUrl}}/notifications/status?q={{ $.Keyword }}"
 										hx-target="#notification_div"
 										hx-swap="outerHTML"
 										hx-vals='{"notification_id": "{{.ID}}", "status": "unread", "page": "{{$.Page.Paginater.Current}}", "_csrf": "{{$.CsrfToken}}", "noredirect": "true"}'
