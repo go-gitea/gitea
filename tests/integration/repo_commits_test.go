@@ -57,6 +57,70 @@ func Test_ReposGitCommitListNotMaster(t *testing.T) {
 		userHrefs = append(userHrefs, userHref)
 	})
 	assert.Equal(t, []string{"/user2", "/user21", "/user2"}, userHrefs)
+
+	// check last commit author wrapper
+	req = NewRequest(t, "GET", "/user2/repo16")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	doc = NewHTMLParser(t, resp.Body)
+	commits = []string{}
+	doc.doc.Find(".latest-commit .commit-id-short").Each(func(i int, s *goquery.Selection) {
+		commitURL, _ := s.Attr("href")
+		commits = append(commits, path.Base(commitURL))
+	})
+	assert.Equal(t, []string{"69554a64c1e6030f051e5c3f94bfbd773cd6a324"}, commits)
+
+	userHrefs = []string{}
+	doc.doc.Find(".latest-commit .author-wrapper").Each(func(i int, s *goquery.Selection) {
+		userHref, _ := s.Attr("href")
+		userHrefs = append(userHrefs, userHref)
+	})
+	assert.Equal(t, []string{"/user2"}, userHrefs)
+}
+
+func Test_ReposGitCommitListNoGiteaUser(t *testing.T) {
+	// Commits list with Gitea User has been tested in Test_ReposGitCommitListNotMaster
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+
+	// check commits list for a repository with no gitea user
+	req := NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	doc := NewHTMLParser(t, resp.Body)
+	var commits []string
+	doc.doc.Find("#commits-table .commit-id-short").Each(func(i int, s *goquery.Selection) {
+		commitURL, _ := s.Attr("href")
+		commits = append(commits, path.Base(commitURL))
+	})
+	assert.Equal(t, []string{"65f1bf27bc3bf70f64657658635e66094edbcb4d"}, commits)
+
+	var gitUsers []string
+	doc.doc.Find("#commits-table .author-wrapper").Each(func(i int, s *goquery.Selection) {
+		assert.Equal(t, "span", goquery.NodeName(s))
+		gitUser := s.Text()
+		gitUsers = append(gitUsers, gitUser)
+	})
+	assert.Equal(t, []string{"user1"}, gitUsers)
+
+	// check last commit author wrapper
+	req = NewRequest(t, "GET", "/user2/repo1")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	doc = NewHTMLParser(t, resp.Body)
+	commits = []string{}
+	doc.doc.Find(".latest-commit .commit-id-short").Each(func(i int, s *goquery.Selection) {
+		commitURL, _ := s.Attr("href")
+		commits = append(commits, path.Base(commitURL))
+	})
+	assert.Equal(t, []string{"65f1bf27bc3bf70f64657658635e66094edbcb4d"}, commits)
+
+	gitUsers = []string{}
+	doc.doc.Find(".latest-commit .author-wrapper").Each(func(i int, s *goquery.Selection) {
+		assert.Equal(t, "span", goquery.NodeName(s))
+		gitUsers = append(gitUsers, s.Text())
+	})
+	assert.Equal(t, []string{"user1"}, gitUsers)
 }
 
 func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
