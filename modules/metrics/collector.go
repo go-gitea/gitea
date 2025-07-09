@@ -8,6 +8,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -41,6 +42,7 @@ type Collector struct {
 	Releases           *prometheus.Desc
 	Repositories       *prometheus.Desc
 	Stars              *prometheus.Desc
+	SystemNotices      *prometheus.Desc
 	Teams              *prometheus.Desc
 	UpdateTasks        *prometheus.Desc
 	Users              *prometheus.Desc
@@ -171,6 +173,10 @@ func NewCollector() Collector {
 			"Number of Stars",
 			nil, nil,
 		),
+		SystemNotices: prometheus.NewDesc(
+			namespace+"system_notices",
+			"Number of system notices",
+			nil, nil),
 		Teams: prometheus.NewDesc(
 			namespace+"teams",
 			"Number of Teams",
@@ -234,6 +240,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 // Collect returns the metrics with values
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	stats := activities_model.GetStatistic(db.DefaultContext)
+	noticeCount := system.CountNotices(db.DefaultContext)
 
 	ch <- prometheus.MustNewConstMetric(
 		c.Accesses,
@@ -365,6 +372,11 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 		c.Stars,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Star),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.SystemNotices,
+		prometheus.GaugeValue,
+		float64(noticeCount),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.Teams,
