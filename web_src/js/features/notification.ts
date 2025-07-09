@@ -33,8 +33,7 @@ export function initNotificationsTable() {
 
 async function receiveUpdateCount(event: MessageEvent) {
   try {
-    const data = JSON.parse(event.data);
-
+    const data = event.data;
     for (const count of document.querySelectorAll('.notification_count')) {
       count.classList.toggle('tw-hidden', data.Count === 0);
       count.textContent = `${data.Count}`;
