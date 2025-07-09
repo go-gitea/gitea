@@ -94,7 +94,6 @@ a.ui.label:hover {
   background: var(--color-button);
   border: 1px solid var(--color-light-border);
   color: var(--color-text-light);
-  padding: calc(0.5833em - 1px) calc(0.833em - 1px);
 }
 a.ui.basic.label:hover {
   text-decoration: none;

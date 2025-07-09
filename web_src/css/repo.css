@@ -1482,9 +1482,6 @@ td .commit-summary {
   justify-content: end;
 }
 
-.comment-header-right .ui.label {
-  padding: 0.125em 0.5em;
-}
 .comment-body {
   background: var(--color-box-body);
   border: none !important;
