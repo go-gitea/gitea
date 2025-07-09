@@ -48,8 +48,8 @@ func Notifications(ctx *context.Context) {
 
 func prepareUserNotificationsData(ctx *context.Context) {
 	pageType := ctx.FormString("type", ctx.FormString("q")) // "q" is the legacy query parameter for "page type"
-	page := min(1, ctx.FormInt("page"))
-	perPage := util.IfZero(ctx.FormInt("perPage"), 20)
+	page := max(1, ctx.FormInt("page"))
+	perPage := util.IfZero(ctx.FormInt("perPage"), 20) // this value is never used or exposed ....
 	queryStatus := util.Iif(pageType == "read", activities_model.NotificationStatusRead, activities_model.NotificationStatusUnread)
 
 	total, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
@@ -64,7 +64,7 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	// redirect to the last page if request page is more than total pages
 	pager := context.NewPagination(int(total), perPage, page, 5)
 	if pager.Paginater.Current() < page {
-		ctx.Redirect(fmt.Sprintf("%s/notifications?q=%s&page=%d", setting.AppSubURL, url.QueryEscape(ctx.FormString("q")), pager.Paginater.Current()))
+		ctx.Redirect(fmt.Sprintf("%s/notifications?type=%s&page=%d", setting.AppSubURL, url.QueryEscape(pageType), pager.Paginater.Current()))
 		return
 	}
 
@@ -136,18 +136,18 @@ func prepareUserNotificationsData(ctx *context.Context) {
 // NotificationStatusPost is a route for changing the status of a notification
 func NotificationStatusPost(ctx *context.Context) {
 	notificationID := ctx.FormInt64("notification_id")
-	var status activities_model.NotificationStatus
+	var newStatus activities_model.NotificationStatus
 	switch ctx.FormString("notification_action") {
 	case "mark_as_read":
-		status = activities_model.NotificationStatusRead
+		newStatus = activities_model.NotificationStatusRead
 	case "mark_as_unread":
-		status = activities_model.NotificationStatusUnread
+		newStatus = activities_model.NotificationStatusUnread
 	case "pin":
-		status = activities_model.NotificationStatusPinned
+		newStatus = activities_model.NotificationStatusPinned
 	default:
 		return // ignore user's invalid input
 	}
-	if _, err := activities_model.SetNotificationStatus(ctx, notificationID, ctx.Doer, status); err != nil {
+	if _, err := activities_model.SetNotificationStatus(ctx, notificationID, ctx.Doer, newStatus); err != nil {
 		ctx.ServerError("SetNotificationStatus", err)
 		return
 	}

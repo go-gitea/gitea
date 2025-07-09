@@ -54,12 +54,11 @@
 							{{DateUtils.TimeSince $one.UpdatedUnix}}
 						{{end}}
 					</div>
-					<form class="notifications-buttons" action="{{AppSubUrl}}/notifications/status?type={{$.PageType}}" method="post"
+					<form class="notifications-buttons" action="{{AppSubUrl}}/notifications/status?type={{$.PageType}}&page={{$.Page.Paginater.Current}}&perPage={{$.Page.Paginater.PagingNum}}" method="post"
 								hx-boost="true" hx-target="#notification_div" hx-swap="outerHTML"
 					>
 						{{$.CsrfTokenHtml}}
 						<input type="hidden" name="notification_id" value="{{$one.ID}}">
-						<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
 						{{if ne $one.Status $statusPinned}}
 							<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "notification.pin"}}"
 											name="notification_action" value="pin"
