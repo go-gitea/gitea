@@ -283,7 +283,7 @@ export function isElemVisible(el: HTMLElement): boolean {
   // This function DOESN'T account for all possible visibility scenarios, its behavior is covered by the tests of "querySingleVisibleElem"
   if (!el) return false;
   // checking el.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
-  return !el.classList.contains('tw-hidden') && Boolean((el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none');
+  return !el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none';
 }
 
 // replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this
