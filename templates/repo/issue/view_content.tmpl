@@ -14,7 +14,7 @@
 				{{end}}
 				<div class="content comment-container">
 					<div class="comment-header" role="heading" aria-level="3">
-						<div class="comment-header-left tw-flex tw-items-center">
+						<div class="comment-header-left">
 							{{if .Issue.OriginalAuthor}}
 								<span class="text black tw-font-semibold">
 									{{svg (MigrationIcon .Repository.GetOriginalURLHostname)}}
@@ -36,7 +36,7 @@
 								</span>
 							{{end}}
 						</div>
-						<div class="comment-header-right actions tw-flex tw-items-center">
+						<div class="comment-header-right">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "IgnorePoster" true}}
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
