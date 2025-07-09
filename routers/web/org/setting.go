@@ -246,9 +246,7 @@ func SettingsChangeVisibilityPost(ctx *context.Context) {
 
 	if err := org_service.ChangeOrganizationVisibility(ctx, ctx.Org.Organization, visibility); err != nil {
 		log.Error("ChangeOrganizationVisibility: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]any{
-			"err": http.StatusText(http.StatusInternalServerError),
-		})
+		ctx.JSONError(ctx.Tr("error.occurred"))
 		return
 	}
 
