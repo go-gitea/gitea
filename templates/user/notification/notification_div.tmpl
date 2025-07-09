@@ -73,12 +73,13 @@
 										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="pinned">
-										<button class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.pin"}}"
-											data-url="{{AppSubUrl}}/notifications/status"
-											data-status="pinned"
-											data-page="{{$.Page.Paginater.Current}}"
-											data-notification-id="{{.ID}}"
-											data-q="{{$.Keyword}}">
+										<button type="button" class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.pin"}}"
+											hx-post="{{AppSubUrl}}/notifications/status"
+											hx-target="#notification_div"
+											hx-swap="outerHTML"
+											hx-vals='{"notification_id": "{{.ID}}", "status": "pinned", "page": "{{$.Page.Paginater.Current}}", "_csrf": "{{$.CsrfToken}}"}'
+											{{if eq .Status 3}}disabled{{end}}
+											>
 											{{svg "octicon-pin"}}
 										</button>
 									</form>
@@ -89,12 +90,12 @@
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="read">
 										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-										<button class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_read"}}"
-											data-url="{{AppSubUrl}}/notifications/status"
-											data-status="read"
-											data-page="{{$.Page.Paginater.Current}}"
-											data-notification-id="{{.ID}}"
-											data-q="{{$.Keyword}}">
+										<button type="button" class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_read"}}"
+											hx-post="{{AppSubUrl}}/notifications/status"
+											hx-target="#notification_div"
+											hx-swap="outerHTML"
+											hx-vals='{"notification_id": "{{.ID}}", "status": "read", "page": "{{$.Page.Paginater.Current}}", "_csrf": "{{$.CsrfToken}}"}'
+											>
 											{{svg "octicon-check"}}
 										</button>
 									</form>
@@ -104,12 +105,12 @@
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="unread">
 										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-										<button class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_unread"}}"
-											data-url="{{AppSubUrl}}/notifications/status"
-											data-status="unread"
-											data-page="{{$.Page.Paginater.Current}}"
-											data-notification-id="{{.ID}}"
-											data-q="{{$.Keyword}}">
+										<button type="button" class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_unread"}}"
+											hx-post="{{AppSubUrl}}/notifications/status"
+											hx-target="#notification_div"
+											hx-swap="outerHTML"
+											hx-vals='{"notification_id": "{{.ID}}", "status": "unread", "page": "{{$.Page.Paginater.Current}}", "_csrf": "{{$.CsrfToken}}"}'
+											>
 											{{svg "octicon-bell"}}
 										</button>
 									</form>
