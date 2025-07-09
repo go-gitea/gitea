@@ -55,8 +55,13 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 	}
 	sort.SliceStable(jobs, func(i, j int) bool {
 		si, sj := jobs[i].Status, jobs[j].Status
-		if si != sj || sj.IsSuccess() /* if not equal, then success is the max */ {
-			return true
+		/*
+			If both i and j are/are not success, leave it to si < sj.
+			If i is success and j is not, since the desired is j goes "smaller" and i goes "bigger", this func should return false.
+			If j is success and i is not, since the desired is i goes "smaller" and j goes "bigger", this func should return true.
+		*/
+		if si.IsSuccess() != sj.IsSuccess() {
+			return !si.IsSuccess()
 		}
 		return si < sj
 	})
