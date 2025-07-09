@@ -84,10 +84,10 @@
 			{{else}}
 				<div class="empty-placeholder">
 					{{svg "octicon-inbox" 56 "tw-mb-4"}}
-					{{if eq .Status 1}}
-						{{ctx.Locale.Tr "notification.no_unread"}}
-					{{else}}
+					{{if $pageTypeIsRead}}
 						{{ctx.Locale.Tr "notification.no_read"}}
+					{{else}}
+						{{ctx.Locale.Tr "notification.no_unread"}}
 					{{end}}
 				</div>
 			{{end}}
