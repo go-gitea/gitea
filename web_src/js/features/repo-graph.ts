@@ -1,4 +1,4 @@
-import {toggleClass} from '../utils/dom.ts';
+import {toggleElemClass} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 
@@ -9,11 +9,11 @@ export function initRepoGraphGit() {
   const elColorMonochrome = document.querySelector<HTMLElement>('#flow-color-monochrome');
   const elColorColored = document.querySelector<HTMLElement>('#flow-color-colored');
   const toggleColorMode = (mode: 'monochrome' | 'colored') => {
-    toggleClass(graphContainer, 'monochrome', mode === 'monochrome');
-    toggleClass(graphContainer, 'colored', mode === 'colored');
+    toggleElemClass(graphContainer, 'monochrome', mode === 'monochrome');
+    toggleElemClass(graphContainer, 'colored', mode === 'colored');
 
-    toggleClass(elColorMonochrome, 'active', mode === 'monochrome');
-    toggleClass(elColorColored, 'active', mode === 'colored');
+    toggleElemClass(elColorMonochrome, 'active', mode === 'monochrome');
+    toggleElemClass(elColorColored, 'active', mode === 'colored');
 
     const params = new URLSearchParams(window.location.search);
     params.set('mode', mode);
