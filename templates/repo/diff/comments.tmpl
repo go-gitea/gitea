@@ -9,7 +9,7 @@
 	{{end}}
 	<div class="content comment-container">
 		<div class="comment-header">
-			<div class="comment-header-left tw-flex tw-items-center">
+			<div class="comment-header-left">
 				{{if .OriginalAuthor}}
 					<span class="text black tw-font-semibold tw-mr-1">
 						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
@@ -30,7 +30,7 @@
 					</span>
 				{{end}}
 			</div>
-			<div class="comment-header-right actions tw-flex tw-items-center">
+			<div class="comment-header-right">
 				{{if .Invalidated}}
 					{{$referenceUrl := printf "%s#%s" $.root.Issue.Link .HashTag}}
 					<a href="{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
