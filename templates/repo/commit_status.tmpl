@@ -17,3 +17,6 @@
 {{if eq .State "skipped"}}
 	{{svg "octicon-skip" 18 "commit-status icon text grey"}}
 {{end}}
+{{if eq .State "running_with_failure"}}
+	{{svg "gitea-running-with-failure" 18 "commit-status icon text red"}}
+{{end}}
