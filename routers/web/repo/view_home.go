@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -421,7 +420,7 @@ func Home(ctx *context.Context) {
 		prepareHomeSidebarRepoTopics,
 		checkOutdatedBranch,
 		prepareToRenderDirOrFile(entry),
-		utils.PrepareRecentlyPushedNewBranches,
+		prepareRecentlyPushedNewBranches,
 	}
 
 	if isTreePathRoot {

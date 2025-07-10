@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/routers/web/shared/issue"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
@@ -768,7 +767,7 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.pulls")
 		ctx.Data["PageIsPullList"] = true
-		utils.PrepareRecentlyPushedNewBranches(ctx)
+		prepareRecentlyPushedNewBranches(ctx)
 	} else {
 		MustEnableIssues(ctx)
 		if ctx.Written() {
