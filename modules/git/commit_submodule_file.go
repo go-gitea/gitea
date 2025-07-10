@@ -36,6 +36,11 @@ func (sf *CommitSubmoduleFile) SubmoduleWebLink(ctx context.Context, optCommitID
 	if !sf.parsed {
 		sf.parsed = true
 		if strings.HasPrefix(sf.refURL, "../") {
+			// FIXME: when handling relative path, this logic is not right. It needs to:
+			// 1. Remember the submodule's full path
+			// 2. Resolve the relative path based on submodule's full path, and still keep the unresolved relative path
+			// 3. Resolve the unresolved relative path based on the current repository's URL
+			// Not an easy task and need to refactor related code a lot.
 			sf.repoLink = sf.refURL
 		} else {
 			parsedURL, err := giturl.ParseRepositoryURL(ctx, sf.refURL)
