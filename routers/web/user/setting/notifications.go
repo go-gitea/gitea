@@ -21,7 +21,7 @@ const tplSettingsNotifications templates.TplName = "user/settings/notifications"
 // Notifications render user's notifications settings
 func Notifications(ctx *context.Context) {
 	if !setting.Service.EnableNotifyMail {
-		ctx.NotFound(errors.New("NotifyMail not enabled"))
+		ctx.NotFound(nil)
 		return
 	}
 
