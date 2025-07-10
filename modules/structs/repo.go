@@ -57,7 +57,7 @@ type Repository struct {
 	Private       bool        `json:"private"`
 	Fork          bool        `json:"fork"`
 	Template      bool        `json:"template"`
-	Parent        *Repository `json:"parent"`
+	Parent        *Repository `json:"parent,omitempty"`
 	Mirror        bool        `json:"mirror"`
 	Size          int         `json:"size"`
 	Language      string      `json:"language"`
