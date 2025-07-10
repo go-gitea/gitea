@@ -1420,13 +1420,15 @@ td .commit-summary {
 .comment-header {
   background: var(--color-box-header);
   border-bottom: 1px solid var(--color-secondary);
-  padding: 0 1rem;
+  padding: 0.5em 1rem;
   position: relative;
   color: var(--color-text);
   min-height: 41px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25em;
 }
 
 .comment-header::before,
@@ -1468,17 +1470,16 @@ td .commit-summary {
   left: 7px;
 }
 
-.comment-header .actions a:not(.label) {
-  padding: 0.5rem !important;
-}
-
-.comment-header .actions .label {
-  margin: 0 !important;
-}
-
 .comment-header-left,
 .comment-header-right {
-  gap: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.comment-header-right {
+  flex: 1;
+  justify-content: end;
 }
 
 .comment-body {
@@ -2013,15 +2014,6 @@ tbody.commit-list {
   .commit-table td.sha,
   .commit-table th.sha {
     display: none !important;
-  }
-  .comment-header {
-    flex-wrap: wrap;
-  }
-  .comment-header .comment-header-left {
-    flex-wrap: wrap;
-  }
-  .comment-header .comment-header-right {
-    margin-left: auto;
   }
 }
 

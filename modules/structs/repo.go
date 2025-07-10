@@ -57,7 +57,7 @@ type Repository struct {
 	Private       bool        `json:"private"`
 	Fork          bool        `json:"fork"`
 	Template      bool        `json:"template"`
-	Parent        *Repository `json:"parent"`
+	Parent        *Repository `json:"parent,omitempty"`
 	Mirror        bool        `json:"mirror"`
 	Size          int         `json:"size"`
 	Language      string      `json:"language"`
@@ -114,7 +114,7 @@ type Repository struct {
 	ObjectFormatName string `json:"object_format_name"`
 	// swagger:strfmt date-time
 	MirrorUpdated time.Time     `json:"mirror_updated"`
-	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
+	RepoTransfer  *RepoTransfer `json:"repo_transfer,omitempty"`
 	Topics        []string      `json:"topics"`
 	Licenses      []string      `json:"licenses"`
 }
