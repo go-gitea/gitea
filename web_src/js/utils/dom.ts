@@ -25,7 +25,7 @@ function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: a
   throw new Error('invalid argument to be shown/hidden');
 }
 
-export function toggleClass(el: ElementArg, className: string, force?: boolean): ArrayLikeIterable<Element> {
+export function toggleElemClass(el: ElementArg, className: string, force?: boolean): ArrayLikeIterable<Element> {
   return elementsCall(el, (e: Element) => {
     if (force === true) {
       e.classList.add(className);
@@ -44,7 +44,7 @@ export function toggleClass(el: ElementArg, className: string, force?: boolean):
  * @param force force=true to show or force=false to hide, undefined to toggle
  */
 export function toggleElem(el: ElementArg, force?: boolean): ArrayLikeIterable<Element> {
-  return toggleClass(el, 'tw-hidden', force === undefined ? force : !force);
+  return toggleElemClass(el, 'tw-hidden', force === undefined ? force : !force);
 }
 
 export function showElem(el: ElementArg): ArrayLikeIterable<Element> {
@@ -283,7 +283,7 @@ export function isElemVisible(el: HTMLElement): boolean {
   // This function DOESN'T account for all possible visibility scenarios, its behavior is covered by the tests of "querySingleVisibleElem"
   if (!el) return false;
   // checking el.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
-  return !el.classList.contains('tw-hidden') && Boolean((el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none');
+  return !el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none';
 }
 
 // replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this

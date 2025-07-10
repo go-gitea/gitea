@@ -32,6 +32,7 @@ var (
 	CmdHook = &cli.Command{
 		Name:        "hook",
 		Usage:       "(internal) Should only be called by Git",
+		Hidden:      true, // internal commands shouldn't be visible
 		Description: "Delegate commands to corresponding Git hooks",
 		Before:      PrepareConsoleLoggerLevel(log.FATAL),
 		Commands: []*cli.Command{
