@@ -1,0 +1,27 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	<div class="flex-text-block tw-flex-wrap">
+		{{range $templateName := .MailTemplateNames}}
+			<a class="ui button" href="?tmpl={{$templateName}}">{{$templateName}}</a>
+		{{else}}
+			<p>Mailer service is not enabled or no template is found</p>
+		{{end}}
+	</div>
+
+	{{if .RenderMailTemplateName}}
+	<div class="tw-my-2">
+		<div>Preview of: {{.RenderMailTemplateName}}</div>
+		<div>Subject: {{.RenderMailSubject}}</div>
+		<iframe src="{{AppSubUrl}}/devtest/mail-preview/{{.RenderMailTemplateName}}" class="mail-preview-body"></iframe>
+		<style>
+			.mail-preview-body {
+				border: 1px solid #ccc;
+				width: 100%;
+				height: 400px;
+				overflow: auto;
+			}
+		</style>
+	</div>
+	{{end}}
+</div>
+{{template "devtest/devtest-footer"}}
