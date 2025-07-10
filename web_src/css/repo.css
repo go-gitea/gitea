@@ -354,7 +354,6 @@ td .commit-summary {
 }
 
 .repository.view.issue .issue-title-buttons {
-  align-self: start;
   display: flex;
   gap: 0.5em;
 }
@@ -366,7 +365,6 @@ td .commit-summary {
 
 .repository.view.issue .issue-title {
   display: flex;
-  align-items: center;
   gap: 0.5em;
   margin-bottom: 8px;
   min-height: 40px; /* avoid layout shift on edit */
