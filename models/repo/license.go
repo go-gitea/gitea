@@ -27,7 +27,7 @@ type RepoLicense struct { //revive:disable-line:exported
 type RepoLicenseList []*RepoLicense //revive:disable-line:exported
 
 func (rll RepoLicenseList) StringList() []string {
-	var licenses []string
+	var licenses []string = make([]string, 0, len(rll))
 	for _, rl := range rll {
 		licenses = append(licenses, rl.License)
 	}
