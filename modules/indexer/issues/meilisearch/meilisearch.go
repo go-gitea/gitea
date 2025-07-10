@@ -180,8 +180,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(inner_meilisearch.NewFilterIn("milestone_id", options.MilestoneIDs...))
 	}
 
-	if options.ProjectID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("project_id", options.ProjectID.Value()))
+	if len(options.ProjectIDs) > 0 {
+		query.And(inner_meilisearch.NewFilterIn("project_id", options.ProjectIDs...))
 	}
 	if options.ProjectColumnID.Has() {
 		query.And(inner_meilisearch.NewFilterEq("project_board_id", options.ProjectColumnID.Value()))
