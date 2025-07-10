@@ -57,9 +57,10 @@ func TestOption(t *testing.T) {
 	assert.True(t, opt3.Has())
 	assert.Equal(t, int(1), opt3.Value())
 
-	opt4 := optional.FromNonDefaultFunc(1, func(t int) bool {
-		return t == 1
-	})
+	opt4 := optional.FromMapLookup(map[string]int{"a": 1}, "a")
+	assert.True(t, opt4.Has())
+	assert.Equal(t, 1, opt4.Value())
+	opt4 = optional.FromMapLookup(map[string]int{"a": 1}, "b")
 	assert.False(t, opt4.Has())
 }
 

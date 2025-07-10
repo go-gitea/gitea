@@ -387,13 +387,11 @@ func Edit(ctx *context.APIContext) {
 	}
 
 	opts := &user_service.UpdateOptions{
-		FullName:    optional.Some(form.FullName),
-		Description: optional.Some(form.Description),
-		Website:     optional.Some(form.Website),
-		Location:    optional.Some(form.Location),
-		Visibility: optional.FromNonDefaultFunc(api.VisibilityModes[form.Visibility], func(v api.VisibleType) bool {
-			return v < api.VisibleTypePublic || v > api.VisibleTypePrivate
-		}),
+		FullName:                  optional.Some(form.FullName),
+		Description:               optional.Some(form.Description),
+		Website:                   optional.Some(form.Website),
+		Location:                  optional.Some(form.Location),
+		Visibility:                optional.FromMapLookup(api.VisibilityModes, form.Visibility),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {

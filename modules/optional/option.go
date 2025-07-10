@@ -28,18 +28,19 @@ func FromPtr[T any](v *T) Option[T] {
 	return Some(*v)
 }
 
-func FromNonDefaultFunc[T comparable](f T, isZero func(T) bool) Option[T] {
-	if isZero(f) {
-		return None[T]()
+func FromMapLookup[K comparable, V any](m map[K]V, k K) Option[V] {
+	if v, ok := m[k]; ok {
+		return Some(v)
 	}
-	return Some(f)
+	return None[V]()
 }
 
 func FromNonDefault[T comparable](v T) Option[T] {
-	return FromNonDefaultFunc(v, func(v T) bool {
-		var zero T
-		return v == zero
-	})
+	var zero T
+	if v == zero {
+		return None[T]()
+	}
+	return Some(v)
 }
 
 func (o Option[T]) Has() bool {

@@ -234,15 +234,13 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	opts := &user_service.UpdateOptions{
-		FullName:    optional.FromPtr(form.FullName),
-		Website:     optional.FromPtr(form.Website),
-		Location:    optional.FromPtr(form.Location),
-		Description: optional.FromPtr(form.Description),
-		IsActive:    optional.FromPtr(form.Active),
-		IsAdmin:     user_service.UpdateOptionFieldFromPtr(form.Admin),
-		Visibility: optional.FromNonDefaultFunc(api.VisibilityModes[form.Visibility], func(v api.VisibleType) bool {
-			return v < api.VisibleTypePublic || v > api.VisibleTypePrivate
-		}),
+		FullName:                optional.FromPtr(form.FullName),
+		Website:                 optional.FromPtr(form.Website),
+		Location:                optional.FromPtr(form.Location),
+		Description:             optional.FromPtr(form.Description),
+		IsActive:                optional.FromPtr(form.Active),
+		IsAdmin:                 user_service.UpdateOptionFieldFromPtr(form.Admin),
+		Visibility:              optional.FromMapLookup(api.VisibilityModes, form.Visibility),
 		AllowGitHook:            optional.FromPtr(form.AllowGitHook),
 		AllowImportLocal:        optional.FromPtr(form.AllowImportLocal),
 		MaxRepoCreation:         optional.FromPtr(form.MaxRepoCreation),
