@@ -1,124 +1,96 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
+		{{$statusUnread := 1}}{{$statusRead := 2}}{{$statusPinned := 3}}
 		{{$notificationUnreadCount := call .PageGlobalData.GetNotificationUnreadCount}}
-		<div class="tw-flex tw-items-center tw-justify-between tw-mb-[--page-spacing]">
+		{{$pageTypeIsRead := eq $.PageType "read"}}
+		<div class="flex-text-block tw-justify-between tw-mb-[--page-spacing]">
 			<div class="small-menu-items ui compact tiny menu">
-				<a class="{{if eq .Status 1}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=unread">
+				<a class="{{if not $pageTypeIsRead}}active{{end}} item" href="{{AppSubUrl}}/notifications?type=unread">
 					{{ctx.Locale.Tr "notification.unread"}}
 					<div class="notifications-unread-count ui label {{if not $notificationUnreadCount}}tw-hidden{{end}}">{{$notificationUnreadCount}}</div>
 				</a>
-				<a class="{{if eq .Status 2}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=read">
+				<a class="{{if $pageTypeIsRead}}active{{end}} item" href="{{AppSubUrl}}/notifications?type=read">
 					{{ctx.Locale.Tr "notification.read"}}
 				</a>
 			</div>
-			{{if and (eq .Status 1)}}
+			{{if and (not $pageTypeIsRead) $notificationUnreadCount}}
 				<form action="{{AppSubUrl}}/notifications/purge" method="post">
 					{{$.CsrfTokenHtml}}
-					<div class="{{if not $notificationUnreadCount}}tw-hidden{{end}}">
-						<button class="ui mini button primary tw-mr-0" title="{{ctx.Locale.Tr "notification.mark_all_as_read"}}">
-							{{svg "octicon-checklist"}}
-						</button>
-					</div>
+					<button class="ui mini button primary tw-mr-0" title="{{ctx.Locale.Tr "notification.mark_all_as_read"}}">
+						{{svg "octicon-checklist"}}
+					</button>
 				</form>
 			{{end}}
 		</div>
-		<div class="tw-p-0">
-			<div id="notification_table">
-				{{if not .Notifications}}
-					<div class="tw-flex tw-items-center tw-flex-col tw-p-4">
-						{{svg "octicon-inbox" 56 "tw-mb-4"}}
-						{{if eq .Status 1}}
-							{{ctx.Locale.Tr "notification.no_unread"}}
+		<div id="notification_table">
+			{{range $one := .Notifications}}
+				<div class="notifications-item" id="notification_{{$one.ID}}" data-status="{{$one.Status}}">
+					<div class="tw-self-start tw-mt-[2px]">
+						{{if $one.Issue}}
+							{{template "shared/issueicon" $one.Issue}}
 						{{else}}
-							{{ctx.Locale.Tr "notification.no_read"}}
+							{{svg "octicon-repo" 16 "text grey"}}
 						{{end}}
 					</div>
-				{{else}}
-					{{range $notification := .Notifications}}
-						<div class="notifications-item tw-flex tw-items-center tw-flex-wrap tw-gap-2 tw-p-2" id="notification_{{.ID}}" data-status="{{.Status}}">
-							<div class="notifications-icon tw-ml-2 tw-mr-1 tw-self-start tw-mt-1">
-								{{if .Issue}}
-									{{template "shared/issueicon" .Issue}}
-								{{else}}
-									{{svg "octicon-repo" 16 "text grey"}}
-								{{end}}
-							</div>
-							<a class="notifications-link tw-flex tw-flex-1 tw-flex-col silenced" href="{{.Link ctx}}">
-								<div class="notifications-top-row tw-text-13 tw-break-anywhere">
-									{{.Repository.FullName}} {{if .Issue}}<span class="text light-3">#{{.Issue.Index}}</span>{{end}}
-									{{if eq .Status 3}}
-										{{svg "octicon-pin" 13 "text blue tw-mt-0.5 tw-ml-1"}}
-									{{end}}
-								</div>
-								<div class="notifications-bottom-row tw-text-16 tw-py-0.5">
-									<span class="issue-title tw-break-anywhere">
-										{{if .Issue}}
-											{{.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}
-										{{else}}
-											{{.Repository.FullName}}
-										{{end}}
-									</span>
-								</div>
-							</a>
-							<div class="notifications-updated tw-items-center tw-mr-2">
-								{{if .Issue}}
-									{{DateUtils.TimeSince .Issue.UpdatedUnix}}
-								{{else}}
-									{{DateUtils.TimeSince .UpdatedUnix}}
-								{{end}}
-							</div>
-							<div class="notifications-buttons tw-items-center tw-justify-end tw-gap-1 tw-px-1">
-								{{if ne .Status 3}}
-									<form action="{{AppSubUrl}}/notifications/status" method="post">
-										{{$.CsrfTokenHtml}}
-										<input type="hidden" name="notification_id" value="{{.ID}}">
-										<input type="hidden" name="status" value="pinned">
-										<button class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.pin"}}"
-											data-url="{{AppSubUrl}}/notifications/status"
-											data-status="pinned"
-											data-page="{{$.Page.Paginater.Current}}"
-											data-notification-id="{{.ID}}"
-											data-q="{{$.Keyword}}">
-											{{svg "octicon-pin"}}
-										</button>
-									</form>
-								{{end}}
-								{{if or (eq .Status 1) (eq .Status 3)}}
-									<form action="{{AppSubUrl}}/notifications/status" method="post">
-										{{$.CsrfTokenHtml}}
-										<input type="hidden" name="notification_id" value="{{.ID}}">
-										<input type="hidden" name="status" value="read">
-										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-										<button class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_read"}}"
-											data-url="{{AppSubUrl}}/notifications/status"
-											data-status="read"
-											data-page="{{$.Page.Paginater.Current}}"
-											data-notification-id="{{.ID}}"
-											data-q="{{$.Keyword}}">
-											{{svg "octicon-check"}}
-										</button>
-									</form>
-								{{else if eq .Status 2}}
-									<form action="{{AppSubUrl}}/notifications/status" method="post">
-										{{$.CsrfTokenHtml}}
-										<input type="hidden" name="notification_id" value="{{.ID}}">
-										<input type="hidden" name="status" value="unread">
-										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-										<button class="btn interact-bg tw-p-2" title="{{ctx.Locale.Tr "notification.mark_as_unread"}}"
-											data-url="{{AppSubUrl}}/notifications/status"
-											data-status="unread"
-											data-page="{{$.Page.Paginater.Current}}"
-											data-notification-id="{{.ID}}"
-											data-q="{{$.Keyword}}">
-											{{svg "octicon-bell"}}
-										</button>
-									</form>
-								{{end}}
-							</div>
+					<a class="notifications-link silenced tw-flex-1" href="{{$one.Link ctx}}">
+						<div class="flex-text-block tw-text-[0.95em]">
+							{{$one.Repository.FullName}} {{if $one.Issue}}<span class="text light-3">#{{$one.Issue.Index}}</span>{{end}}
+							{{if eq $one.Status $statusPinned}}
+								{{svg "octicon-pin" 13 "text blue"}}
+							{{end}}
 						</div>
+						<div class="tw-text-16 tw-py-0.5">
+							{{if $one.Issue}}
+								{{$one.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}
+							{{else}}
+								{{$one.Repository.FullName}}
+							{{end}}
+						</div>
+					</a>
+					<div class="notifications-updated flex-text-inline">
+						{{if $one.Issue}}
+							{{DateUtils.TimeSince $one.Issue.UpdatedUnix}}
+						{{else}}
+							{{DateUtils.TimeSince $one.UpdatedUnix}}
+						{{end}}
+					</div>
+					<form class="notifications-buttons" action="{{AppSubUrl}}/notifications/status?type={{$.PageType}}&page={{$.Page.Paginater.Current}}&perPage={{$.Page.Paginater.PagingNum}}" method="post"
+								hx-boost="true" hx-target="#notification_div" hx-swap="outerHTML"
+					>
+						{{$.CsrfTokenHtml}}
+						<input type="hidden" name="notification_id" value="{{$one.ID}}">
+						{{if ne $one.Status $statusPinned}}
+							<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "notification.pin"}}"
+											name="notification_action" value="pin"
+							>
+								{{svg "octicon-pin"}}
+							</button>
+						{{end}}
+						{{if or (eq $one.Status $statusUnread) (eq $one.Status $statusPinned)}}
+							<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "notification.mark_as_read"}}"
+											name="notification_action" value="mark_as_read"
+							>
+								{{svg "octicon-check"}}
+							</button>
+						{{else if eq $one.Status $statusRead}}
+							<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "notification.mark_as_unread"}}"
+											name="notification_action" value="mark_as_unread"
+							>
+								{{svg "octicon-bell"}}
+							</button>
+						{{end}}
+					</form>
+				</div>
+			{{else}}
+				<div class="empty-placeholder">
+					{{svg "octicon-inbox" 56 "tw-mb-4"}}
+					{{if $pageTypeIsRead}}
+						{{ctx.Locale.Tr "notification.no_read"}}
+					{{else}}
+						{{ctx.Locale.Tr "notification.no_unread"}}
 					{{end}}
-				{{end}}
-			</div>
+				</div>
+			{{end}}
 		</div>
 		{{template "base/paginate" .}}
 	</div>
