@@ -56,6 +56,11 @@ func TestOption(t *testing.T) {
 	opt3 := optional.FromNonDefault(1)
 	assert.True(t, opt3.Has())
 	assert.Equal(t, int(1), opt3.Value())
+
+	opt4 := optional.FromNonDefaultFunc(1, func(t int) bool {
+		return t == 1
+	})
+	assert.False(t, opt4.Has())
 }
 
 func Test_ParseBool(t *testing.T) {
