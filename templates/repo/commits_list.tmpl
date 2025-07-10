@@ -16,7 +16,7 @@
 					<td class="author">
 						<div class="tw-flex">
 							{{$userName := .Author.Name}}
-							{{if .User}}
+							{{if and .User (gt .User.ID 0)}}
 								{{if and .User.FullName DefaultShowFullName}}
 									{{$userName = .User.FullName}}
 								{{end}}

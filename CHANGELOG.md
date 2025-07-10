@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/1.24.3) - 2025-07-10
 
 * BUGFIXES
+  * Fix bug when displaying git user avatar in commits list (#35006)
   * Fix API response for swagger spec (#35029)
   * Start automerge check again after the conflict check and the schedule (#34988) (#35002)
   * Fix the response format for actions/workflows (#35009) (#35016)
