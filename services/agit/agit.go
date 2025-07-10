@@ -5,6 +5,7 @@ package agit
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
@@ -18,17 +19,30 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
+
+func parseAgitPushOptionValue(s string) string {
+	if base64Value, ok := strings.CutPrefix(s, "{base64}"); ok {
+		decoded, err := base64.StdEncoding.DecodeString(base64Value)
+		return util.Iif(err == nil, string(decoded), s)
+	}
+	return s
+}
 
 // ProcReceive handle proc receive work
 func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *private.HookOptions) ([]private.HookProcReceiveRefResult, error) {
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
 	forcePush := opts.GitPushOptions.Bool(private.GitPushOptionForcePush)
 	topicBranch := opts.GitPushOptions["topic"]
-	title := strings.TrimSpace(opts.GitPushOptions["title"])
-	description := strings.TrimSpace(opts.GitPushOptions["description"])
+
+	// some options are base64-encoded with "{base64}" prefix if they contain new lines
+	// other agit push options like "issue", "reviewer" and "cc" are not supported
+	title := parseAgitPushOptionValue(opts.GitPushOptions["title"])
+	description := parseAgitPushOptionValue(opts.GitPushOptions["description"])
+
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 	userName := strings.ToLower(opts.UserName)
 
