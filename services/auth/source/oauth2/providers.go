@@ -27,6 +27,7 @@ type Provider interface {
 	DisplayName() string
 	IconHTML(size int) template.HTML
 	CustomURLSettings() *CustomURLSettings
+	SupportSSHPublicKey() bool
 }
 
 // GothProviderCreator provides a function to create a goth.Provider
