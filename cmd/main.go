@@ -6,6 +6,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -15,22 +16,28 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// cmdHelp is our own help subcommand with more information
-// Keep in mind that the "./gitea help"(subcommand) is different from "./gitea --help"(flag), the flag doesn't parse the config or output "DEFAULT CONFIGURATION:" information
-func cmdHelp() *cli.Command {
-	c := &cli.Command{
-		Name:      "help",
-		Aliases:   []string{"h"},
-		Usage:     "Shows a list of commands or help for one command",
-		ArgsUsage: "[command]",
-		Action: func(ctx context.Context, c *cli.Command) (err error) {
-			if !c.Args().Present() {
-				err = cli.ShowAppHelp(c.Root())
-			} else {
-				err = cli.ShowCommandHelp(ctx, c.Root(), c.Args().First())
-			}
-			if err == nil {
-				_, _ = fmt.Fprintf(c.Root().Writer, `
+var cliHelpPrinterOld = cli.HelpPrinter
+
+func init() {
+	cli.HelpPrinter = cliHelpPrinterNew
+}
+
+// cliHelpPrinterNew helps to print "DEFAULT CONFIGURATION" for the following cases ( "-c" can apper in any position):
+// * ./gitea -c /dev/null -h
+// * ./gitea -c help /dev/null help
+// * ./gitea help -c /dev/null
+// * ./gitea help -c /dev/null web
+// * ./gitea help web -c /dev/null
+// * ./gitea web help -c /dev/null
+// * ./gitea web -h -c /dev/null
+func cliHelpPrinterNew(out io.Writer, templ string, data interface{}) {
+	cmd, _ := data.(*cli.Command)
+	if cmd != nil {
+		prepareWorkPathAndCustomConf(cmd)
+	}
+	cliHelpPrinterOld(out, templ, data)
+	if setting.CustomConf != "" {
+		_, _ = fmt.Fprintf(out, `
 DEFAULT CONFIGURATION:
    AppPath:    %s
    WorkPath:   %s
@@ -38,38 +45,34 @@ DEFAULT CONFIGURATION:
    ConfigFile: %s
 
 `, setting.AppPath, setting.AppWorkPath, setting.CustomPath, setting.CustomConf)
-			}
-			return err
-		},
 	}
-	return c
 }
 
-func prepareSubcommandWithGlobalFlags(command *cli.Command) {
-	command.Before = prepareWorkPathAndCustomConf(command.Before)
+func prepareSubcommandWithGlobalFlags(originCmd *cli.Command) {
+	originBefore := originCmd.Before
+	originCmd.Before = func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+		prepareWorkPathAndCustomConf(cmd)
+		if originBefore != nil {
+			return originBefore(ctx, cmd)
+		}
+		return ctx, nil
+	}
 }
 
-// prepareWorkPathAndCustomConf wraps the Action to prepare the work path and custom config
-func prepareWorkPathAndCustomConf(original cli.BeforeFunc) cli.BeforeFunc {
-	if original == nil {
-		original = func(ctx context.Context, c *cli.Command) (context.Context, error) {
-			return ctx, nil
-		}
+// prepareWorkPathAndCustomConf tries to prepare the work path, custom path and custom config from various inputs:
+// command line flags, environment variables, config file
+func prepareWorkPathAndCustomConf(cmd *cli.Command) {
+	var args setting.ArgWorkPathAndCustomConf
+	if cmd.IsSet("work-path") {
+		args.WorkPath = cmd.String("work-path")
 	}
-	return func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
-		var args setting.ArgWorkPathAndCustomConf
-		if cmd.IsSet("work-path") {
-			args.WorkPath = cmd.String("work-path")
-		}
-		if cmd.IsSet("custom-path") {
-			args.CustomPath = cmd.String("custom-path")
-		}
-		if cmd.IsSet("config") {
-			args.CustomConf = cmd.String("config")
-		}
-		setting.InitWorkPathAndCommonConfig(os.Getenv, args)
-		return original(ctx, cmd)
+	if cmd.IsSet("custom-path") {
+		args.CustomPath = cmd.String("custom-path")
 	}
+	if cmd.IsSet("config") {
+		args.CustomConf = cmd.String("config")
+	}
+	setting.InitWorkPathAndCommonConfig(os.Getenv, args)
 }
 
 type AppVersion struct {
@@ -105,9 +108,8 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 			Usage:     "Set custom path (defaults to '{WorkPath}/custom')",
 		},
 	}
-	// these sub-commands need to use config file
+	// these sub-commands need to use a config file
 	subCmdWithConfig := []*cli.Command{
-		cmdHelp(), // the "help" sub-command was used to show the more information for "work path" and "custom config"
 		CmdWeb,
 		CmdServ,
 		CmdHook,
