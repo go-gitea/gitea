@@ -30,7 +30,7 @@ func init() {
 // * ./gitea help web -c /dev/null
 // * ./gitea web help -c /dev/null
 // * ./gitea web -h -c /dev/null
-func cliHelpPrinterNew(out io.Writer, templ string, data interface{}) {
+func cliHelpPrinterNew(out io.Writer, templ string, data any) {
 	cmd, _ := data.(*cli.Command)
 	if cmd != nil {
 		prepareWorkPathAndCustomConf(cmd)
