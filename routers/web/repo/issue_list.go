@@ -768,6 +768,9 @@ func Issues(ctx *context.Context) {
 		ctx.Data["Title"] = ctx.Tr("repo.pulls")
 		ctx.Data["PageIsPullList"] = true
 		prepareRecentlyPushedNewBranches(ctx)
+		if ctx.Written() {
+			return
+		}
 	} else {
 		MustEnableIssues(ctx)
 		if ctx.Written() {
