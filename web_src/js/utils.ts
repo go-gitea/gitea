@@ -1,6 +1,6 @@
 import {decode, encode} from 'uint8-to-base64';
 import type {IssuePageInfo, IssuePathInfo, RepoOwnerPathInfo} from './types.ts';
-import {toggleClass, toggleElem} from './utils/dom.ts';
+import {toggleElemClass, toggleElem} from './utils/dom.ts';
 
 // transform /path/to/file.ext to /path/to
 export function dirname(path: string): string {
@@ -194,7 +194,7 @@ export function toggleFullScreen(fullscreenElementsSelector: string, isFullScree
 
   const fullScreenEl = document.querySelector(fullscreenElementsSelector);
   const outerEl = document.querySelector('.full.height');
-  toggleClass(fullscreenElementsSelector, 'fullscreen', isFullScreen);
+  toggleElemClass(fullscreenElementsSelector, 'fullscreen', isFullScreen);
   if (isFullScreen) {
     outerEl.append(fullScreenEl);
   } else {

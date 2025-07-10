@@ -79,7 +79,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, re
 
 	var mailBody bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplNewReleaseMail)+"/body", err)
 		return
 	}

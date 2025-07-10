@@ -1659,6 +1659,8 @@ func registerWebRoutes(m *web.Router) {
 		m.Group("/devtest", func() {
 			m.Any("", devtest.List)
 			m.Any("/fetch-action-test", devtest.FetchActionTest)
+			m.Any("/mail-preview", devtest.MailPreview)
+			m.Any("/mail-preview/*", devtest.MailPreviewRender)
 			m.Any("/{sub}", devtest.TmplCommon)
 			m.Get("/repo-action-view/{run}/{job}", devtest.MockActionsView)
 			m.Post("/actions-mock/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
