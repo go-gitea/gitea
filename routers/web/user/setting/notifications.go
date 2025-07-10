@@ -32,8 +32,8 @@ func Notifications(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplSettingsNotifications)
 }
 
-// SetGlobalEmailNotificationPreference set user's email notification preference
-func SetGlobalEmailNotificationPreference(ctx *context.Context) {
+// NotificationsEmailPost set user's email notification preference
+func NotificationsEmailPost(ctx *context.Context) {
 	if !setting.Service.EnableNotifyMail {
 		ctx.NotFound(nil)
 		return
