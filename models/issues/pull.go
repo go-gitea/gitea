@@ -20,6 +20,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -380,6 +381,7 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 		Types:        []ReviewType{ReviewTypeApprove},
 		IssueID:      pr.IssueID,
 		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
+		Dismissed:    optional.Some(true),
 	})
 	if err != nil {
 		log.Error("Unable to FindReviews for PR ID %d: %v", pr.ID, err)
