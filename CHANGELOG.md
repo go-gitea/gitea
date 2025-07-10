@@ -4,9 +4,10 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/1.24.3) - 2025-07-06
+## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/1.24.3) - 2025-07-10
 
 * BUGFIXES
+  * Fix API response for swagger spec (#35029)
   * Start automerge check again after the conflict check and the schedule (#34988) (#35002)
   * Fix the response format for actions/workflows (#35009) (#35016)
   * Fix repo settings and protocol log problems (#35012) (#35013)
