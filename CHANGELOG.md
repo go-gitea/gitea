@@ -7,6 +7,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/1.24.3) - 2025-07-06
 
 * BUGFIXES
+  * Start automerge check again after the conflict check and the schedule (#34988) (#35002)
+  * Fix the response format for actions/workflows (#35009) (#35016)
+  * Fix repo settings and protocol log problems (#35012) (#35013)
   * Fix project images scroll (#34971) (#34972)
   * Mark old reviews as stale on agit pr updates (#34933) (#34965)
   * Fix git graph page (#34948) (#34949)
