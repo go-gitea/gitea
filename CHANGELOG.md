@@ -4,7 +4,7 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/1.24.3) - 2025-07-10
+## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/1.24.3) - 2025-07-11
 
 * BUGFIXES
   * Support base64-encoded agit push options (#35037) (#35041)
