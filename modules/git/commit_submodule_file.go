@@ -13,10 +13,11 @@ import (
 
 // CommitSubmoduleFile represents a file with submodule type.
 type CommitSubmoduleFile struct {
-	refURL   string
-	parsed   bool
-	refID    string
-	repoLink string
+	refURL string
+	refID  string
+
+	parsed         bool
+	targetRepoLink string
 }
 
 // NewCommitSubmoduleFile create a new submodule file
@@ -37,26 +38,25 @@ func (sf *CommitSubmoduleFile) SubmoduleWebLink(ctx context.Context, optCommitID
 		sf.parsed = true
 		if strings.HasPrefix(sf.refURL, "../") {
 			// FIXME: when handling relative path, this logic is not right. It needs to:
-			// 1. Remember the submodule's full path
-			// 2. Resolve the relative path based on submodule's full path, and still keep the unresolved relative path
-			// 3. Resolve the unresolved relative path based on the current repository's URL
+			// 1. Remember the submodule's full path and its commit's repo home link
+			// 2. Resolve the relative path: targetRepoLink = path.Join(repoHomeLink, path.Dir(submoduleFullPath), refURL)
 			// Not an easy task and need to refactor related code a lot.
-			sf.repoLink = sf.refURL
+			sf.targetRepoLink = sf.refURL
 		} else {
 			parsedURL, err := giturl.ParseRepositoryURL(ctx, sf.refURL)
 			if err != nil {
 				return nil
 			}
-			sf.repoLink = giturl.MakeRepositoryWebLink(parsedURL)
+			sf.targetRepoLink = giturl.MakeRepositoryWebLink(parsedURL)
 		}
 	}
 	var commitLink string
 	if len(optCommitID) == 2 {
-		commitLink = sf.repoLink + "/compare/" + optCommitID[0] + "..." + optCommitID[1]
+		commitLink = sf.targetRepoLink + "/compare/" + optCommitID[0] + "..." + optCommitID[1]
 	} else if len(optCommitID) == 1 {
-		commitLink = sf.repoLink + "/tree/" + optCommitID[0]
+		commitLink = sf.targetRepoLink + "/tree/" + optCommitID[0]
 	} else {
-		commitLink = sf.repoLink + "/tree/" + sf.refID
+		commitLink = sf.targetRepoLink + "/tree/" + sf.refID
 	}
-	return &SubmoduleWebLink{RepoWebLink: sf.repoLink, CommitWebLink: commitLink}
+	return &SubmoduleWebLink{RepoWebLink: sf.targetRepoLink, CommitWebLink: commitLink}
 }
