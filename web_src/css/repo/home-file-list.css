@@ -71,7 +71,7 @@
 
 #repo-files-table .repo-file-cell.name .entry-name {
   flex-shrink: 1;
-  min-width: 3em;
+  min-width: 4px; /* leave about one letter space when shrinking */
 }
 
 @media (max-width: 767.98px) {

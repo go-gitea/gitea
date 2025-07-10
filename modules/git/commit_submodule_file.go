@@ -6,17 +6,17 @@ package git
 
 import (
 	"context"
+	"strings"
 
 	giturl "code.gitea.io/gitea/modules/git/url"
 )
 
 // CommitSubmoduleFile represents a file with submodule type.
 type CommitSubmoduleFile struct {
-	refURL    string
-	parsedURL *giturl.RepositoryURL
-	parsed    bool
-	refID     string
-	repoLink  string
+	refURL   string
+	parsed   bool
+	refID    string
+	repoLink string
 }
 
 // NewCommitSubmoduleFile create a new submodule file
@@ -35,12 +35,15 @@ func (sf *CommitSubmoduleFile) SubmoduleWebLink(ctx context.Context, optCommitID
 	}
 	if !sf.parsed {
 		sf.parsed = true
-		parsedURL, err := giturl.ParseRepositoryURL(ctx, sf.refURL)
-		if err != nil {
-			return nil
+		if strings.HasPrefix(sf.refURL, "../") {
+			sf.repoLink = sf.refURL
+		} else {
+			parsedURL, err := giturl.ParseRepositoryURL(ctx, sf.refURL)
+			if err != nil {
+				return nil
+			}
+			sf.repoLink = giturl.MakeRepositoryWebLink(parsedURL)
 		}
-		sf.parsedURL = parsedURL
-		sf.repoLink = giturl.MakeRepositoryWebLink(sf.parsedURL)
 	}
 	var commitLink string
 	if len(optCommitID) == 2 {
