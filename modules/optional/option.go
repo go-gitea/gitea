@@ -28,12 +28,18 @@ func FromPtr[T any](v *T) Option[T] {
 	return Some(*v)
 }
 
-func FromNonDefault[T comparable](v T) Option[T] {
-	var zero T
-	if v == zero {
+func FromNonDefaultFunc[T comparable](f T, isZero func(T) bool) Option[T] {
+	if isZero(f) {
 		return None[T]()
 	}
-	return Some(v)
+	return Some(f)
+}
+
+func FromNonDefault[T comparable](v T) Option[T] {
+	return FromNonDefaultFunc(v, func(v T) bool {
+		var zero T
+		return v == zero
+	})
 }
 
 func (o Option[T]) Has() bool {
