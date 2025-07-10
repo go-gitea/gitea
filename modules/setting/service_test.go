@@ -126,6 +126,87 @@ ALLOWED_USER_VISIBILITY_MODES = public, limit, privated
 	}
 }
 
+func TestLoadServiceOrgVisibilityModes(t *testing.T) {
+	defer test.MockVariableValue(&Service)()
+
+	kases := map[string]func(){
+		`
+[service]
+DEFAULT_ORG_VISIBILITY = public
+ALLOWED_ORG_VISIBILITY_MODES = public,limited,private
+`: func() {
+			assert.Equal(t, "public", Service.DefaultOrgVisibility)
+			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultOrgVisibilityMode)
+			assert.Equal(t, []string{"public", "limited", "private"}, Service.AllowedOrgVisibilityModes)
+		},
+		`
+		[service]
+		DEFAULT_ORG_VISIBILITY = public
+		`: func() {
+			assert.Equal(t, "public", Service.DefaultOrgVisibility)
+			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultOrgVisibilityMode)
+			assert.Equal(t, []string{"public", "limited", "private"}, Service.AllowedOrgVisibilityModes)
+		},
+		`
+		[service]
+		DEFAULT_ORG_VISIBILITY = limited
+		`: func() {
+			assert.Equal(t, "limited", Service.DefaultOrgVisibility)
+			assert.Equal(t, structs.VisibleTypeLimited, Service.DefaultOrgVisibilityMode)
+			assert.Equal(t, []string{"public", "limited", "private"}, Service.AllowedOrgVisibilityModes)
+		},
+		`
+[service]
+ALLOWED_ORG_VISIBILITY_MODES = public,limited,private
+`: func() {
+			assert.Equal(t, "public", Service.DefaultOrgVisibility)
+			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultOrgVisibilityMode)
+			assert.Equal(t, []string{"public", "limited", "private"}, Service.AllowedOrgVisibilityModes)
+		},
+		`
+[service]
+DEFAULT_ORG_VISIBILITY = public
+ALLOWED_ORG_VISIBILITY_MODES = limited,private
+`: func() {
+			assert.Equal(t, "limited", Service.DefaultOrgVisibility)
+			assert.Equal(t, structs.VisibleTypeLimited, Service.DefaultOrgVisibilityMode)
+			assert.Equal(t, []string{"limited", "private"}, Service.AllowedOrgVisibilityModes)
+		},
+		`
+[service]
+DEFAULT_ORG_VISIBILITY = my_type
+ALLOWED_ORG_VISIBILITY_MODES = limited,private
+`: func() {
+			assert.Equal(t, "limited", Service.DefaultOrgVisibility)
+			assert.Equal(t, structs.VisibleTypeLimited, Service.DefaultOrgVisibilityMode)
+			assert.Equal(t, []string{"limited", "private"}, Service.AllowedOrgVisibilityModes)
+		},
+		`
+[service]
+DEFAULT_ORG_VISIBILITY = public
+ALLOWED_ORG_VISIBILITY_MODES = public, limit, privated
+`: func() {
+			assert.Equal(t, "public", Service.DefaultOrgVisibility)
+			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultOrgVisibilityMode)
+			assert.Equal(t, []string{"public"}, Service.AllowedOrgVisibilityModes)
+		},
+	}
+
+	for kase, fun := range kases {
+		t.Run(kase, func(t *testing.T) {
+			cfg, err := NewConfigProviderFromData(kase)
+			assert.NoError(t, err)
+			loadServiceFrom(cfg)
+			fun()
+			// reset
+			Service.AllowedOrgVisibilityModesSlice = []bool{true, true, true}
+			Service.AllowedOrgVisibilityModes = []string{}
+			Service.DefaultOrgVisibility = ""
+			Service.DefaultOrgVisibilityMode = structs.VisibleTypePublic
+		})
+	}
+}
+
 func TestLoadServiceRequireSignInView(t *testing.T) {
 	defer test.MockVariableValue(&Service)()
 
