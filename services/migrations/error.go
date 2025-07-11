@@ -7,7 +7,7 @@ package migrations
 import (
 	"errors"
 
-	"github.com/google/go-github/v61/github"
+	"github.com/google/go-github/v71/github"
 )
 
 // ErrRepoNotCreated returns the error that repository not created

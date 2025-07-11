@@ -27,7 +27,7 @@
 			{{end}}
 				<div class="content comment-container">
 					<div class="comment-header" role="heading" aria-level="3">
-						<div class="comment-header-left tw-flex tw-items-center">
+						<div class="comment-header-left">
 							{{if .OriginalAuthor}}
 								<span class="text black tw-font-semibold tw-mr-1">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
@@ -51,7 +51,7 @@
 								</span>
 							{{end}}
 						</div>
-						<div class="comment-header-right actions tw-flex tw-items-center">
+						<div class="comment-header-right">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
@@ -163,12 +163,13 @@
 				</span>
 				<div class="detail flex-text-block">
 					{{svg "octicon-git-commit"}}
+					{{/* the content is a link like <a href="{RepoLink}/commit/{CommitID}">message title</a> (from CreateRefComment) */}}
 					<span class="text grey muted-links">{{.Content | SanitizeHTML}}</span>
 				</div>
 			</div>
 		{{else if eq .Type 7}}
 			{{if or .AddedLabels .RemovedLabels}}
-				<div class="timeline-item event" id="{{.HashTag}}">
+				<div class="timeline-item event with-labels-list-inline" id="{{.HashTag}}">
 					<span class="badge">{{svg "octicon-tag"}}</span>
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 					<span class="text grey muted-links">
@@ -394,7 +395,7 @@
 				<div class="timeline-item comment">
 					<div class="content comment-container">
 						<div class="comment-header">
-							<div class="comment-header-left tw-flex tw-items-center">
+							<div class="comment-header-left">
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
 										{{ctx.AvatarUtils.Avatar .Poster 24}}
@@ -415,7 +416,7 @@
 									{{ctx.Locale.Tr "repo.issues.review.left_comment"}}
 								</span>
 							</div>
-							<div class="comment-header-right actions tw-flex tw-items-center">
+							<div class="comment-header-right">
 								{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 								{{if not $.Repository.IsArchived}}
 									{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
@@ -615,7 +616,7 @@
 			<div class="timeline-item-group">
 				<div class="timeline-item event" id="{{.HashTag}}">
 					<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-						<img src="{{.Poster.AvatarLink ctx}}" width="40" height="40">
+						<img loading="lazy" alt src="{{.Poster.AvatarLink ctx}}" width="40" height="40">
 					</a>
 					<span class="badge grey">{{svg "octicon-x" 16}}</span>
 					<span class="text grey muted-links">

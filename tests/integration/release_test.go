@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -68,9 +67,6 @@ func TestViewReleases(t *testing.T) {
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
 	session.MakeRequest(t, req, http.StatusOK)
-
-	// if CI is to slow this test fail, so lets wait a bit
-	time.Sleep(time.Millisecond * 100)
 }
 
 func TestViewReleasesNoLogin(t *testing.T) {
@@ -118,7 +114,7 @@ func TestCreateReleasePaging(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	// Create enough releases to have paging
-	for i := 0; i < 12; i++ {
+	for i := range 12 {
 		version := fmt.Sprintf("v0.0.%d", i)
 		createNewRelease(t, session, "/user2/repo1", version, version, false, false)
 	}

@@ -3,15 +3,14 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<form class="ui edit form" method="post" action="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}"
+		<form class="ui edit form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}"
 					data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}"
 					data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}"
 		>
 			{{.CsrfTokenHtml}}
-			<input type="hidden" name="last_commit" value="{{.last_commit}}">
-			<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
+			{{template "repo/editor/common_top" .}}
 			<div class="repo-editor-header">
-				<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
+				<div class="breadcrumb">
 					{{ctx.Locale.Tr "repo.editor.patching"}}
 					<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
 					<div class="breadcrumb-divider">:</div>

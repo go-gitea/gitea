@@ -71,7 +71,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	// erase authentication before storing in database
 	u.User = nil
 	m.Repo.OriginalURL = u.String()
-	return repo_model.UpdateRepositoryCols(ctx, m.Repo, "original_url")
+	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url")
 }
 
 // mirrorSyncResult contains information of a updated reference.
@@ -653,7 +653,7 @@ func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, re
 		}
 		m.Repo.IsEmpty = false
 		// Update the is empty and default_branch columns
-		if err := repo_model.UpdateRepositoryCols(ctx, m.Repo, "default_branch", "is_empty"); err != nil {
+		if err := repo_model.UpdateRepositoryColsWithAutoTime(ctx, m.Repo, "default_branch", "is_empty"); err != nil {
 			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
 			desc := fmt.Sprintf("Failed to update default branch of repository '%s': %v", m.Repo.RepoPath(), err)
 			if err = system_model.CreateRepositoryNotice(desc); err != nil {

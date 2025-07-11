@@ -1,6 +1,6 @@
 import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.ts';
-import {onInputDebounce, queryElems, toggleClass, toggleElem} from '../utils/dom.ts';
+import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
@@ -124,14 +124,18 @@ function initRepoSettingsOptions() {
   const pageContent = document.querySelector('.page-content.repository.settings.options');
   if (!pageContent) return;
 
-  // Enable or select internal/external wiki system and issue tracker.
+  // toggle related panels for the checkbox/radio inputs, the "selector" may not exist
+  const toggleTargetContextPanel = (selector: string, enabled: boolean) => {
+    if (!selector) return;
+    queryElems(document, selector, (el) => el.classList.toggle('disabled', !enabled));
+  };
   queryElems<HTMLInputElement>(pageContent, '.enable-system', (el) => el.addEventListener('change', () => {
-    toggleClass(el.getAttribute('data-target'), 'disabled', !el.checked);
-    toggleClass(el.getAttribute('data-context'), 'disabled', el.checked);
+    toggleTargetContextPanel(el.getAttribute('data-target'), el.checked);
+    toggleTargetContextPanel(el.getAttribute('data-context'), !el.checked);
   }));
   queryElems<HTMLInputElement>(pageContent, '.enable-system-radio', (el) => el.addEventListener('change', () => {
-    toggleClass(el.getAttribute('data-target'), 'disabled', el.value === 'false');
-    toggleClass(el.getAttribute('data-context'), 'disabled', el.value === 'true');
+    toggleTargetContextPanel(el.getAttribute('data-target'), el.value === 'true');
+    toggleTargetContextPanel(el.getAttribute('data-context'), el.value === 'false');
   }));
 
   queryElems<HTMLInputElement>(pageContent, '.js-tracker-issue-style', (el) => el.addEventListener('change', () => {

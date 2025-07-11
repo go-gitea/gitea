@@ -664,7 +664,7 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 	}
 
 	if review != nil {
-		// skip it when reviewer hase been request to review
+		// skip it when reviewer has been request to review
 		if review.Type == ReviewTypeRequest {
 			return nil, committer.Commit() // still commit the transaction, or committer.Close() will rollback it, even if it's a reused transaction.
 		}

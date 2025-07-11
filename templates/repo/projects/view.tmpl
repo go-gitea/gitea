@@ -8,9 +8,7 @@
 			<a class="ui small primary button" href="{{.RepoLink}}/issues/new/choose?project={{.Project.ID}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 		</div>
 	</div>
-	<div class="ui container fluid padded">
-		{{template "projects/view" .}}
-	</div>
+	{{template "projects/view" .}}
 </div>
 
 {{template "base/footer" .}}

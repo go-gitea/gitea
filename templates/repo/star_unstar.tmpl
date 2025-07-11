@@ -4,7 +4,7 @@
 		{{if $.IsStaringRepo}}{{$buttonText = ctx.Locale.Tr "repo.unstar"}}{{end}}
 		<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}} aria-label="{{$buttonText}}">
 			{{svg (Iif $.IsStaringRepo "octicon-star-fill" "octicon-star")}}
-			<span aria-hidden="true">{{$buttonText}}</span>
+			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
 		</button>
 		<a hx-boost="false" class="ui basic label" href="{{$.RepoLink}}/stars">
 			{{CountFmt .Repository.NumStars}}

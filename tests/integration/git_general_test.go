@@ -11,9 +11,12 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,12 +27,14 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/kballard/go-shellquote"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -105,7 +110,12 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 
 		// Setup key the user ssh key
 		withKeyFile(t, keyname, func(keyFile string) {
-			t.Run("CreateUserKey", doAPICreateUserKey(sshContext, "test-key", keyFile))
+			var keyID int64
+			t.Run("CreateUserKey", doAPICreateUserKey(sshContext, "test-key", keyFile, func(t *testing.T, key api.PublicKey) {
+				keyID = key.ID
+			}))
+			assert.NotZero(t, keyID)
+			t.Run("LFSAccessTest", doSSHLFSAccessTest(sshContext, keyID))
 
 			// Setup remote link
 			// TODO: get url from api
@@ -134,6 +144,36 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 			t.Run("PushCreate", doPushCreate(sshContext, sshURL))
 		})
 	})
+}
+
+func doSSHLFSAccessTest(_ APITestContext, keyID int64) func(*testing.T) {
+	return func(t *testing.T) {
+		sshCommand := os.Getenv("GIT_SSH_COMMAND")       // it is set in withKeyFile
+		sshCmdParts, err := shellquote.Split(sshCommand) // and parse the ssh command to construct some mocked arguments
+		require.NoError(t, err)
+
+		t.Run("User2AccessOwned", func(t *testing.T) {
+			sshCmdUser2Self := append(slices.Clone(sshCmdParts),
+				"-p", strconv.Itoa(setting.SSH.ListenPort), "git@"+setting.SSH.ListenHost,
+				"git-lfs-authenticate", "user2/repo1.git", "upload", // accessible to own repo
+			)
+			cmd := exec.CommandContext(t.Context(), sshCmdUser2Self[0], sshCmdUser2Self[1:]...)
+			_, err := cmd.Output()
+			assert.NoError(t, err) // accessible, no error
+		})
+
+		t.Run("User2AccessOther", func(t *testing.T) {
+			sshCmdUser2Other := append(slices.Clone(sshCmdParts),
+				"-p", strconv.Itoa(setting.SSH.ListenPort), "git@"+setting.SSH.ListenHost,
+				"git-lfs-authenticate", "user5/repo4.git", "upload", // inaccessible to other's (user5/repo4)
+			)
+			cmd := exec.CommandContext(t.Context(), sshCmdUser2Other[0], sshCmdUser2Other[1:]...)
+			_, err := cmd.Output()
+			var errExit *exec.ExitError
+			require.ErrorAs(t, err, &errExit) // inaccessible, error
+			assert.Contains(t, string(errExit.Stderr), fmt.Sprintf("User: 2:user2 with Key: %d:test-key is not authorized to write to user5/repo4.", keyID))
+		})
+	}
 }
 
 func ensureAnonymousClone(t *testing.T, u *url.URL) {
@@ -450,40 +490,60 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 }
 
 func doProtectBranch(ctx APITestContext, branch, userToWhitelistPush, userToWhitelistForcePush, unprotectedFilePatterns, protectedFilePatterns string) func(t *testing.T) {
+	return doProtectBranchExt(ctx, branch, doProtectBranchOptions{
+		UserToWhitelistPush:      userToWhitelistPush,
+		UserToWhitelistForcePush: userToWhitelistForcePush,
+		UnprotectedFilePatterns:  unprotectedFilePatterns,
+		ProtectedFilePatterns:    protectedFilePatterns,
+	})
+}
+
+type doProtectBranchOptions struct {
+	UserToWhitelistPush, UserToWhitelistForcePush, UnprotectedFilePatterns, ProtectedFilePatterns string
+
+	StatusCheckPatterns []string
+}
+
+func doProtectBranchExt(ctx APITestContext, ruleName string, opts doProtectBranchOptions) func(t *testing.T) {
 	// We are going to just use the owner to set the protection.
 	return func(t *testing.T) {
 		csrf := GetUserCSRFToken(t, ctx.Session)
 
 		formData := map[string]string{
 			"_csrf":                     csrf,
-			"rule_name":                 branch,
-			"unprotected_file_patterns": unprotectedFilePatterns,
-			"protected_file_patterns":   protectedFilePatterns,
+			"rule_name":                 ruleName,
+			"unprotected_file_patterns": opts.UnprotectedFilePatterns,
+			"protected_file_patterns":   opts.ProtectedFilePatterns,
 		}
 
-		if userToWhitelistPush != "" {
-			user, err := user_model.GetUserByName(db.DefaultContext, userToWhitelistPush)
+		if opts.UserToWhitelistPush != "" {
+			user, err := user_model.GetUserByName(db.DefaultContext, opts.UserToWhitelistPush)
 			assert.NoError(t, err)
 			formData["whitelist_users"] = strconv.FormatInt(user.ID, 10)
 			formData["enable_push"] = "whitelist"
 			formData["enable_whitelist"] = "on"
 		}
 
-		if userToWhitelistForcePush != "" {
-			user, err := user_model.GetUserByName(db.DefaultContext, userToWhitelistForcePush)
+		if opts.UserToWhitelistForcePush != "" {
+			user, err := user_model.GetUserByName(db.DefaultContext, opts.UserToWhitelistForcePush)
 			assert.NoError(t, err)
 			formData["force_push_allowlist_users"] = strconv.FormatInt(user.ID, 10)
 			formData["enable_force_push"] = "whitelist"
 			formData["enable_force_push_allowlist"] = "on"
 		}
 
+		if len(opts.StatusCheckPatterns) > 0 {
+			formData["enable_status_check"] = "on"
+			formData["status_check_contexts"] = strings.Join(opts.StatusCheckPatterns, "\n")
+		}
+
 		// Send the request to update branch protection settings
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), formData)
 		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
 
-		// Check if master branch has been locked successfully
+		// Check if the "master" branch has been locked successfully
 		flashMsg := ctx.Session.GetCookieFlashMessage()
-		assert.Equal(t, `Branch protection for rule "`+branch+`" has been updated.`, flashMsg.SuccessMsg)
+		assert.Equal(t, `Branch protection for rule "`+ruleName+`" has been updated.`, flashMsg.SuccessMsg)
 	}
 }
 
@@ -649,6 +709,10 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 
 		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, auth_model.AccessTokenScopeWriteRepository)
 
+		// automerge will merge immediately if the PR is mergeable and there is no "status check" because no status check also means "all checks passed"
+		// so we must set up a status check to test the auto merge feature
+		doProtectBranchExt(ctx, "protected", doProtectBranchOptions{StatusCheckPatterns: []string{"*"}})(t)
+
 		t.Run("CheckoutProtected", doGitCheckoutBranch(dstPath, "protected"))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
 		t.Run("GenerateCommit", func(t *testing.T) {
@@ -675,7 +739,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 
 		commitID := path.Base(commitURL)
 
-		addCommitStatus := func(status api.CommitStatusState) func(*testing.T) {
+		addCommitStatus := func(status commitstatus.CommitStatusState) func(*testing.T) {
 			return doAPICreateCommitStatus(ctx, commitID, api.CreateStatusOption{
 				State:       status,
 				TargetURL:   "http://test.ci/",
@@ -685,17 +749,17 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		}
 
 		// Call API to add Pending status for commit
-		t.Run("CreateStatus", addCommitStatus(api.CommitStatusPending))
+		t.Run("CreateStatus", addCommitStatus(commitstatus.CommitStatusPending))
 
 		// Cancel not existing auto merge
 		ctx.ExpectedCode = http.StatusNotFound
-		t.Run("CancelAutoMergePR", doAPICancelAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		t.Run("CancelAutoMergePRNotExist", doAPICancelAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
 		// Add auto merge request
 		ctx.ExpectedCode = http.StatusCreated
 		t.Run("AutoMergePR", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
-		// Can not create schedule twice
+		// Cannot create schedule twice
 		ctx.ExpectedCode = http.StatusConflict
 		t.Run("AutoMergePRTwice", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
@@ -714,7 +778,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		assert.False(t, pr.HasMerged)
 
 		// Call API to add Failure status for commit
-		t.Run("CreateStatus", addCommitStatus(api.CommitStatusFailure))
+		t.Run("CreateStatus", addCommitStatus(commitstatus.CommitStatusFailure))
 
 		// Check pr status
 		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
@@ -722,7 +786,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		assert.False(t, pr.HasMerged)
 
 		// Call API to add Success status for commit
-		t.Run("CreateStatus", addCommitStatus(api.CommitStatusSuccess))
+		t.Run("CreateStatus", addCommitStatus(commitstatus.CommitStatusSuccess))
 
 		// wait to let gitea merge stuff
 		time.Sleep(time.Second)

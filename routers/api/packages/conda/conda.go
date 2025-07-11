@@ -36,6 +36,24 @@ func apiError(ctx *context.Context, status int, obj any) {
 	})
 }
 
+func isCondaPackageFileName(filename string) bool {
+	return strings.HasSuffix(filename, ".tar.bz2") || strings.HasSuffix(filename, ".conda")
+}
+
+func ListOrGetPackages(ctx *context.Context) {
+	filename := ctx.PathParam("filename")
+	switch filename {
+	case "repodata.json", "repodata.json.bz2", "current_repodata.json", "current_repodata.json.bz2":
+		EnumeratePackages(ctx)
+		return
+	}
+	if isCondaPackageFileName(filename) {
+		DownloadPackageFile(ctx)
+		return
+	}
+	http.NotFound(ctx.Resp, ctx.Req)
+}
+
 func EnumeratePackages(ctx *context.Context) {
 	type Info struct {
 		Subdir string `json:"subdir"`
@@ -174,6 +192,12 @@ func EnumeratePackages(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
+	filename := ctx.PathParam("filename")
+	if !isCondaPackageFileName(filename) {
+		apiError(ctx, http.StatusBadRequest, nil)
+		return
+	}
+
 	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -191,7 +215,7 @@ func UploadPackageFile(ctx *context.Context) {
 	defer buf.Close()
 
 	var pck *conda_module.Package
-	if strings.HasSuffix(strings.ToLower(ctx.PathParam("filename")), ".tar.bz2") {
+	if strings.HasSuffix(filename, ".tar.bz2") {
 		pck, err = conda_module.ParsePackageBZ2(buf)
 	} else {
 		pck, err = conda_module.ParsePackageConda(buf, buf.Size())
@@ -293,7 +317,7 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pf := pfs[0]
 
-	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

@@ -124,7 +124,7 @@ func DeleteUploads(ctx context.Context, uploads ...*Upload) (err error) {
 	defer committer.Close()
 
 	ids := make([]int64, len(uploads))
-	for i := 0; i < len(uploads); i++ {
+	for i := range uploads {
 		ids[i] = uploads[i].ID
 	}
 	if err = db.DeleteByIDs[Upload](ctx, ids...); err != nil {
