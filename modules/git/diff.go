@@ -279,6 +279,7 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 	// "git diff" outputs "@@ -1 +1,3 @@" for "OLD" => "A\nB\nC"
 	// FIXME: GIT-DIFF-CUT-BUG But there is a bug in CutDiffAroundLine, then the "Patch" stored in the comment model becomes "@@ -1,1 +0,4 @@"
 	// It may generate incorrect results for difference cases, for example: delete 2 line add 1 line, delete 2 line add 2 line etc, need to double check.
+	// For example: "L1\nL2" => "A\nB", then the patch shows "L2" as line 1 on the left (deleted part)
 
 	// construct the new hunk header
 	newHunk[headerLines] = fmt.Sprintf("@@ -%d,%d +%d,%d @@",
