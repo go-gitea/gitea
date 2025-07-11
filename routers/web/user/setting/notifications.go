@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -70,7 +71,7 @@ func NotificationsEmailPost(ctx *context.Context) {
 
 // NotificationsActionsEmailPost set user's email notification preference on Gitea Actions
 func NotificationsActionsEmailPost(ctx *context.Context) {
-	if !ctx.GetContextValue("EnableActions").(bool) {
+	if !setting.Actions.Enabled || unit.TypeActions.UnitGlobalDisabled() {
 		ctx.NotFound(nil)
 		return
 	}
@@ -86,7 +87,7 @@ func NotificationsActionsEmailPost(ctx *context.Context) {
 	opts := &user.UpdateNotificationSettingsOptions{
 		Actions: optional.Some(preference),
 	}
-	if err := user.UpdateNotificationSettings(ctx, new(user_model.NotificationSettings), opts); err != nil {
+	if err := user.UpdateNotificationSettings(ctx, ctx.Doer.ID, opts); err != nil {
 		log.Error("Cannot set actions email notifications preference: %v", err)
 		ctx.ServerError("UpdateNotificationSettings", err)
 		return

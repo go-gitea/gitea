@@ -160,11 +160,10 @@ func SendActionsWorkflowRunStatusEmail(ctx context.Context, sender *user_model.U
 			}
 			sendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
 			return
-		} else if notifyPref.Actions != user_model.EmailNotificationsDisabled {
+		} else if notifyPref.Actions != user_model.NotificationGiteaActionsDisabled {
 			recipients = append(recipients, sender)
 		}
 	}
 
-	// TODO: Any other recipient?
 	sendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
 }

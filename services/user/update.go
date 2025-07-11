@@ -249,7 +249,10 @@ type UpdateNotificationSettingsOptions struct {
 	Actions optional.Option[string]
 }
 
-func UpdateNotificationSettings(ctx context.Context, settings *user_model.NotificationSettings, opts *UpdateNotificationSettingsOptions) error {
+func UpdateNotificationSettings(ctx context.Context, userID int64, opts *UpdateNotificationSettingsOptions) error {
+	settings := &user_model.NotificationSettings{
+		UserID: userID,
+	}
 	if opts.Actions.Has() {
 		settings.Actions = opts.Actions.Value()
 	}

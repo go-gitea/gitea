@@ -46,8 +46,8 @@
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="text"></div>
 								<div class="menu">
-									<div data-value="enabled" class="{{if eq .ActionsEmailNotificationsPreference "all"}}active selected {{end}}item">{{ctx.Locale.Tr "all"}}</div>
-									<div data-value="andyourown" class="{{if eq .ActionsEmailNotificationsPreference "failureonly"}}active selected {{end}}item">Failure only</div>
+									<div data-value="all" class="{{if eq .ActionsEmailNotificationsPreference "all"}}active selected {{end}}item">{{ctx.Locale.Tr "all"}}</div>
+									<div data-value="failureonly" class="{{if eq .ActionsEmailNotificationsPreference "failureonly"}}active selected {{end}}item">Failure only</div>
 									<div data-value="disabled" class="{{if eq .ActionsEmailNotificationsPreference "disabled"}}active selected {{end}}item">{{ctx.Locale.Tr "disabled"}}</div>
 								</div>
 							</div>

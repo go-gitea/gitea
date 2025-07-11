@@ -799,7 +799,8 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 	}
 
 	if err := db.Insert(ctx, &NotificationSettings{
-		UserID: u.ID,
+		UserID:  u.ID,
+		Actions: NotificationGiteaActionsFailureOnly,
 	}); err != nil {
 		return err
 	}
