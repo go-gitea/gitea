@@ -9,3 +9,23 @@
   created_unix: 1559593109
   updated_unix: 1565224552
   login_source_id: 0
+  verified: false
+
+- id: 2
+  owner_id: 2
+  name: user2@example.com
+  fingerprint: "SHA256:70+Mc6lGvBwTlXkxDqJwXZYqV6XzU7jDE06+lC+gocY"
+  content: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILpPrMXSg9qTx04jPNPWRcHsutyxWjThIpzcaO68yWVn user2@example.com"
+  #-----BEGIN OPENSSH PRIVATE KEY-----
+#b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+#QyNTUxOQAAACC6T6zF0oPak8dOIzzT1kXB7LrcsVo04SKc3GjuvMllZwAAAJgy08upMtPL
+#qQAAAAtzc2gtZWQyNTUxOQAAACC6T6zF0oPak8dOIzzT1kXB7LrcsVo04SKc3GjuvMllZw
+#AAAEDWqPHTH51xb4hy1y1f1VeWL/2A9Q0b6atOyv5fx8x5prpPrMXSg9qTx04jPNPWRcHs
+#utyxWjThIpzcaO68yWVnAAAAEXVzZXIyQGV4YW1wbGUuY29tAQIDBA==
+#-----END OPENSSH PRIVATE KEY-----
+  mode: 2
+  type: 1
+  created_unix: 1559593109
+  updated_unix: 1565224552
+  login_source_id: 0
+  verified: true

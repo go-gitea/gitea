@@ -393,6 +393,13 @@ func parseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committerUs
 			log.Error("GetEmailAddresses: %v", err)
 		}
 
+		// committer's noreply email address should be considered as activated
+		// so that user signed with that email address can be verified
+		committerEmailAddresses = append(committerEmailAddresses, &user_model.EmailAddress{
+			IsActivated: true,
+			Email:       committerUser.GetPlaceholderEmail(),
+		})
+
 		activated := false
 		for _, e := range committerEmailAddresses {
 			if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
