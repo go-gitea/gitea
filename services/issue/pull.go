@@ -61,6 +61,10 @@ func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.Protected
 		return false
 	}
 
+	if err := pr.LoadIssue(ctx); err != nil {
+		return false
+	}
+
 	pr.Issue.Repo = pr.BaseRepo
 
 	if pr.BaseRepo.IsFork {
