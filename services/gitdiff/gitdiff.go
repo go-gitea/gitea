@@ -864,9 +864,9 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			}
 			curSection.Lines = append(curSection.Lines, diffLine)
 			curSection.FileName = curFile.Name
-			// update line number.
-			leftLine = lineSectionInfo.LeftIdx
-			rightLine = lineSectionInfo.RightIdx
+			// update line number. leftLine and rightLine are 1-based indexes, 0 means 1
+			leftLine = max(lineSectionInfo.LeftIdx, 1)
+			rightLine = max(lineSectionInfo.RightIdx, 1)
 			continue
 		case '\\':
 			if maxLines > -1 && curFileLinesCount >= maxLines {
