@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/1.24.3) - 2025-07-11
 
 * BUGFIXES
+  * Fix updating user visibility (#35036) (#35044)
   * Support base64-encoded agit push options (#35037) (#35041)
   * Make submodule link work with relative path (#35034) (#35038)
   * Fix bug when displaying git user avatar in commits list (#35006)
