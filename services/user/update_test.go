@@ -133,14 +133,14 @@ func TestUpdateNotificationSettings(t *testing.T) {
 	settingsCopy := *settings
 
 	assert.NoError(t, UpdateNotificationSettings(db.DefaultContext, settings, &UpdateNotificationSettingsOptions{
-		Actions: optional.Some(user_model.NotificationActionsAll),
+		Actions: optional.Some(user_model.NotificationGiteaActionsAll),
 	}))
-	assert.Equal(t, user_model.NotificationActionsAll, settings.Actions)
+	assert.Equal(t, user_model.NotificationGiteaActionsAll, settings.Actions)
 	assert.NotEqual(t, settingsCopy.Actions, settings.Actions)
 
 	assert.NoError(t, UpdateNotificationSettings(db.DefaultContext, settings, &UpdateNotificationSettingsOptions{
-		Actions: optional.Some(user_model.NotificationActionsDisabled),
+		Actions: optional.Some(user_model.NotificationGiteaActionsDisabled),
 	}))
-	assert.Equal(t, user_model.NotificationActionsDisabled, settings.Actions)
+	assert.Equal(t, user_model.NotificationGiteaActionsDisabled, settings.Actions)
 	assert.NotEqual(t, settingsCopy.Actions, settings.Actions)
 }

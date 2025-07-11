@@ -29,6 +29,37 @@
 				</div>
 			</div>
 		</div>
+
+		{{if .EnableActions}}
+		<h4 class="ui top attached header">
+			Actions
+		</h4>
+		<div class="ui attached segment">
+			<div class="ui list flex-items-block">
+				<div class="item">
+					<form class="ui form tw-w-full" action="{{AppSubUrl}}/user/settings/notifications/actions" method="post">
+						{{$.CsrfTokenHtml}}
+						<div class="field">
+							<label>Set email preference on Gitea Actions</label>
+							<div class="ui selection dropdown">
+								<input name="preference" type="hidden" value="{{.ActionsEmailNotificationsPreference}}">
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="text"></div>
+								<div class="menu">
+									<div data-value="enabled" class="{{if eq .ActionsEmailNotificationsPreference "all"}}active selected {{end}}item">{{ctx.Locale.Tr "all"}}</div>
+									<div data-value="andyourown" class="{{if eq .ActionsEmailNotificationsPreference "failureonly"}}active selected {{end}}item">Failure only</div>
+									<div data-value="disabled" class="{{if eq .ActionsEmailNotificationsPreference "disabled"}}active selected {{end}}item">{{ctx.Locale.Tr "disabled"}}</div>
+								</div>
+							</div>
+						</div>
+						<div class="field">
+							<button class="ui primary button">{{ctx.Locale.Tr "settings.email_notifications.submit"}}</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+		{{end}}
 	</div>
 
 {{template "user/settings/layout_footer" .}}

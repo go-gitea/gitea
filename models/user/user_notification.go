@@ -9,10 +9,11 @@ import (
 	"code.gitea.io/gitea/models/db"
 )
 
+// Actions email preference
 const (
-	NotificationActionsAll         = "all"
-	NotificationActionsFailureOnly = "failureonly"
-	NotificationActionsDisabled    = "disabled"
+	NotificationGiteaActionsAll         = "all"
+	NotificationGiteaActionsFailureOnly = "failureonly"
+	NotificationGiteaActionsDisabled    = "disabled"
 )
 
 type NotificationSettings struct {

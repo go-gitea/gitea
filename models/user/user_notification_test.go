@@ -17,21 +17,21 @@ func TestUserNotificationSettings(t *testing.T) {
 
 	settings, err := GetUserNotificationSettings(db.DefaultContext, 1)
 	assert.NoError(t, err)
-	assert.Equal(t, NotificationActionsFailureOnly, settings.Actions)
+	assert.Equal(t, NotificationGiteaActionsFailureOnly, settings.Actions)
 
 	assert.NoError(t, UpdateUserNotificationSettings(db.DefaultContext, &NotificationSettings{
 		UserID:  1,
-		Actions: NotificationActionsAll,
+		Actions: NotificationGiteaActionsAll,
 	}))
 	settings, err = GetUserNotificationSettings(db.DefaultContext, 1)
 	assert.NoError(t, err)
-	assert.Equal(t, NotificationActionsAll, settings.Actions)
+	assert.Equal(t, NotificationGiteaActionsAll, settings.Actions)
 
 	assert.NoError(t, UpdateUserNotificationSettings(db.DefaultContext, &NotificationSettings{
 		UserID:  1,
-		Actions: NotificationActionsDisabled,
+		Actions: NotificationGiteaActionsDisabled,
 	}))
 	settings, err = GetUserNotificationSettings(db.DefaultContext, 1)
 	assert.NoError(t, err)
-	assert.Equal(t, NotificationActionsDisabled, settings.Actions)
+	assert.Equal(t, NotificationGiteaActionsDisabled, settings.Actions)
 }

@@ -35,7 +35,7 @@ func AddFineGrainedActionsNotificationSettings(x *xorm.Engine) error {
 	if err := db.Iterate(context.Background(), nil, func(ctx context.Context, user *User) error {
 		settings = append(settings, NotificationSettings{
 			UserID:  user.ID,
-			Actions: user_model.NotificationActionsFailureOnly,
+			Actions: user_model.NotificationGiteaActionsFailureOnly,
 		})
 		if len(settings) >= 100 {
 			_, err := x.Insert(&settings)
