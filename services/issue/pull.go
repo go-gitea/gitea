@@ -61,6 +61,10 @@ func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.Protected
 		return false
 	}
 
+	if err := pr.LoadIssue(ctx); err != nil {
+		return false
+	}
+
 	pr.Issue.Repo = pr.BaseRepo
 
 	if pr.BaseRepo.IsFork {
@@ -114,9 +118,8 @@ func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.Protected
 	}
 
 	reviews, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
-		Types:        []issues_model.ReviewType{issues_model.ReviewTypeApprove},
-		IssueID:      pr.IssueID,
-		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
+		Types:   []issues_model.ReviewType{issues_model.ReviewTypeApprove},
+		IssueID: pr.IssueID,
 	})
 	if err != nil {
 		return false
