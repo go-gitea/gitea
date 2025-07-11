@@ -244,3 +244,15 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	}
 	return nil
 }
+
+type UpdateNotificationSettingsOptions struct {
+	Actions optional.Option[string]
+}
+
+func UpdateNotificationSettings(ctx context.Context, settings *user_model.NotificationSettings, opts *UpdateNotificationSettingsOptions) error {
+	if opts.Actions.Has() {
+		settings.Actions = opts.Actions.Value()
+	}
+
+	return user_model.UpdateUserNotificationSettings(ctx, settings)
+}

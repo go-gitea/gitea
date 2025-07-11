@@ -798,6 +798,12 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 		return err
 	}
 
+	if err := db.Insert(ctx, &NotificationSettings{
+		UserID: u.ID,
+	}); err != nil {
+		return err
+	}
+
 	return committer.Commit()
 }
 

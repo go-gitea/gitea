@@ -122,3 +122,25 @@ func TestUpdateAuth(t *testing.T) {
 		Password: optional.Some("aaaa"),
 	}), password_module.ErrMinLength)
 }
+
+func TestUpdateNotificationSettings(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	settings := &user_model.NotificationSettings{UserID: 2}
+	exists, err := db.GetEngine(db.DefaultContext).Get(settings)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+	settingsCopy := *settings
+
+	assert.NoError(t, UpdateNotificationSettings(db.DefaultContext, settings, &UpdateNotificationSettingsOptions{
+		Actions: optional.Some(user_model.NotificationActionsAll),
+	}))
+	assert.Equal(t, user_model.NotificationActionsAll, settings.Actions)
+	assert.NotEqual(t, settingsCopy.Actions, settings.Actions)
+
+	assert.NoError(t, UpdateNotificationSettings(db.DefaultContext, settings, &UpdateNotificationSettingsOptions{
+		Actions: optional.Some(user_model.NotificationActionsDisabled),
+	}))
+	assert.Equal(t, user_model.NotificationActionsDisabled, settings.Actions)
+	assert.NotEqual(t, settingsCopy.Actions, settings.Actions)
+}
