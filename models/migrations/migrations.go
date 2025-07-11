@@ -382,7 +382,6 @@ func prepareMigrationTasks() []*migration {
 		newMigration(318, "Add anonymous_access_mode for repo_unit", v1_24.AddRepoUnitAnonymousAccessMode),
 		newMigration(319, "Add ExclusiveOrder to Label table", v1_24.AddExclusiveOrderColumnToLabelTable),
 		newMigration(320, "Migrate two_factor_policy to login_source table", v1_24.MigrateSkipTwoFactor),
-		newMigration(321, "Add new table for fine-grained notification settings", v1_24.AddFineGrainedActionsNotificationSettings),
 	}
 	return preparedMigrations
 }

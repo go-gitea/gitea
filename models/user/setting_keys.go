@@ -21,4 +21,6 @@ const (
 	SignupUserAgent = "signup.user_agent"
 
 	SettingsKeyCodeViewShowFileTree = "code_view.show_file_tree"
+
+	SettingsEmailNotificationGiteaActions = "email_notifications.actions"
 )

@@ -149,18 +149,19 @@ func SendActionsWorkflowRunStatusEmail(ctx context.Context, sender *user_model.U
 	recipients := make([]*user_model.User, 0)
 
 	if !sender.IsGiteaActions() && !sender.IsGhost() && sender.IsMailable() {
-		notifyPref, err := user_model.GetUserNotificationSettings(ctx, sender.ID)
+		notifyPref, err := user_model.GetUserSetting(ctx, sender.ID,
+			user_model.SettingsEmailNotificationGiteaActions, user_model.EmailNotificationGiteaActionsFailureOnly)
 		if err != nil {
-			log.Error("GetUserNotificationSettings: %v", err)
+			log.Error("GetUserSetting: %v", err)
 			return
 		}
 		if run.Status.IsSuccess() {
-			if notifyPref.Actions == user_model.NotificationGiteaActionsAll {
+			if notifyPref == user_model.EmailNotificationGiteaActionsAll {
 				recipients = append(recipients, sender)
 			}
 			sendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
 			return
-		} else if notifyPref.Actions != user_model.NotificationGiteaActionsDisabled {
+		} else if notifyPref != user_model.EmailNotificationGiteaActionsDisabled {
 			recipients = append(recipients, sender)
 		}
 	}

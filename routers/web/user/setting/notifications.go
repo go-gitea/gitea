@@ -30,12 +30,18 @@ func Notifications(ctx *context.Context) {
 	ctx.Data["PageIsSettingsNotifications"] = true
 	ctx.Data["EmailNotificationsPreference"] = ctx.Doer.EmailNotificationsPreference
 
-	fineGrainedPreference, err := user_model.GetUserNotificationSettings(ctx, ctx.Doer.ID)
+	fineGrainedPreference, err := user_model.GetSettings(ctx, ctx.Doer.ID, []string{
+		user_model.SettingsEmailNotificationGiteaActions,
+	})
 	if err != nil {
 		ctx.ServerError("GetUserNotificationSettings", err)
 		return
 	}
-	ctx.Data["ActionsEmailNotificationsPreference"] = fineGrainedPreference.Actions
+	actionsNotify := fineGrainedPreference[user_model.SettingsEmailNotificationGiteaActions].SettingValue
+	if actionsNotify == "" {
+		actionsNotify = user_model.EmailNotificationGiteaActionsFailureOnly
+	}
+	ctx.Data["ActionsEmailNotificationsPreference"] = actionsNotify
 
 	ctx.HTML(http.StatusOK, tplSettingsNotifications)
 }
@@ -77,19 +83,16 @@ func NotificationsActionsEmailPost(ctx *context.Context) {
 	}
 
 	preference := ctx.FormString("preference")
-	if !(preference == user_model.NotificationGiteaActionsAll ||
-		preference == user_model.NotificationGiteaActionsDisabled ||
-		preference == user_model.NotificationGiteaActionsFailureOnly) {
+	if !(preference == user_model.EmailNotificationGiteaActionsAll ||
+		preference == user_model.EmailNotificationGiteaActionsDisabled ||
+		preference == user_model.EmailNotificationGiteaActionsFailureOnly) {
 		log.Error("Actions Email notifications preference change returned unrecognized option %s: %s", preference, ctx.Doer.Name)
 		ctx.ServerError("NotificationsActionsEmailPost", errors.New("option unrecognized"))
 		return
 	}
-	opts := &user.UpdateNotificationSettingsOptions{
-		Actions: optional.Some(preference),
-	}
-	if err := user.UpdateNotificationSettings(ctx, ctx.Doer.ID, opts); err != nil {
+	if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsEmailNotificationGiteaActions, preference); err != nil {
 		log.Error("Cannot set actions email notifications preference: %v", err)
-		ctx.ServerError("UpdateNotificationSettings", err)
+		ctx.ServerError("SetUserSetting", err)
 		return
 	}
 	log.Trace("Actions email notifications preference made %s: %s", preference, ctx.Doer.Name)

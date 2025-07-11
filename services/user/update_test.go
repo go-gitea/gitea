@@ -122,30 +122,3 @@ func TestUpdateAuth(t *testing.T) {
 		Password: optional.Some("aaaa"),
 	}), password_module.ErrMinLength)
 }
-
-func TestUpdateNotificationSettings(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	settings := &user_model.NotificationSettings{UserID: 2}
-	exists, err := db.GetEngine(db.DefaultContext).Get(settings)
-	assert.NoError(t, err)
-	assert.True(t, exists)
-
-	assert.NoError(t, UpdateNotificationSettings(db.DefaultContext, settings.UserID, &UpdateNotificationSettingsOptions{
-		Actions: optional.Some(user_model.NotificationGiteaActionsAll),
-	}))
-	settings, err = user_model.GetUserNotificationSettings(db.DefaultContext, settings.UserID)
-	assert.NoError(t, err)
-	assert.NotNil(t, settings)
-	assert.Equal(t, user_model.NotificationGiteaActionsAll, settings.Actions)
-	assert.NotEqual(t, user_model.NotificationGiteaActionsFailureOnly, settings.Actions)
-
-	assert.NoError(t, UpdateNotificationSettings(db.DefaultContext, settings.UserID, &UpdateNotificationSettingsOptions{
-		Actions: optional.Some(user_model.NotificationGiteaActionsDisabled),
-	}))
-	settings, err = user_model.GetUserNotificationSettings(db.DefaultContext, settings.UserID)
-	assert.NoError(t, err)
-	assert.NotNil(t, settings)
-	assert.Equal(t, user_model.NotificationGiteaActionsDisabled, settings.Actions)
-	assert.NotEqual(t, user_model.NotificationGiteaActionsFailureOnly, settings.Actions)
-}
