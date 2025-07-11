@@ -322,7 +322,10 @@ func (g *GithubDownloaderV3) convertGithubRelease(ctx context.Context, rel *gith
 	httpClient := NewMigrationHTTPClient()
 
 	for _, asset := range rel.Assets {
-		assetID := *asset.ID // Don't optimize this, for closure we need a local variable
+		assetID := asset.GetID() // Don't optimize this, for closure we need a local variable TODO: no need to do so in new Golang
+		if assetID == 0 {
+			continue
+		}
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            asset.GetID(),
 			Name:          asset.GetName(),
