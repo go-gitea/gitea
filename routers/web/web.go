@@ -595,6 +595,10 @@ func registerWebRoutes(m *web.Router) {
 			m.Post("/hidden_comments", user_setting.UpdateUserHiddenComments)
 			m.Post("/theme", web.Bind(forms.UpdateThemeForm{}), user_setting.UpdateUIThemePost)
 		})
+		m.Group("/notifications", func() {
+			m.Get("", user_setting.Notifications)
+			m.Post("/email", user_setting.NotificationsEmailPost)
+		})
 		m.Group("/security", func() {
 			m.Get("", security.Security)
 			m.Group("/two_factor", func() {
@@ -682,7 +686,7 @@ func registerWebRoutes(m *web.Router) {
 			m.Get("", user_setting.BlockedUsers)
 			m.Post("", web.Bind(forms.BlockUserForm{}), user_setting.BlockedUsersPost)
 		})
-	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "EnablePackages", setting.Packages.Enabled))
+	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "EnablePackages", setting.Packages.Enabled, "EnableNotifyMail", setting.Service.EnableNotifyMail))
 
 	m.Group("/user", func() {
 		m.Get("/activate", auth.Activate)

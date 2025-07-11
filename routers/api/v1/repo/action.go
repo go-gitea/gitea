@@ -747,7 +747,7 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/ArtifactsList"
+	//     "$ref": "#/responses/WorkflowRunsList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":

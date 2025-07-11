@@ -355,13 +355,13 @@ func AddPublicKeysBySource(ctx context.Context, usr *user_model.User, s *auth.So
 	return sshKeysNeedUpdate
 }
 
-// SynchronizePublicKeys updates a users public keys. Returns true if there are changes.
+// SynchronizePublicKeys updates a user's public keys. Returns true if there are changes.
 func SynchronizePublicKeys(ctx context.Context, usr *user_model.User, s *auth.Source, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 
 	log.Trace("synchronizePublicKeys[%s]: Handling Public SSH Key synchronization for user %s", s.Name, usr.Name)
 
-	// Get Public Keys from DB with current LDAP source
+	// Get Public Keys from DB with the current auth source
 	var giteaKeys []string
 	keys, err := db.Find[PublicKey](ctx, FindPublicKeyOptions{
 		OwnerID:       usr.ID,

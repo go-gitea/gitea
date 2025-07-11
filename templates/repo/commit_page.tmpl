@@ -147,7 +147,7 @@
 			<div class="flex-text-inline">
 				{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
 					<span class="text grey">{{ctx.Locale.Tr "repo.diff.committed_by"}}</span>
-					{{if ne .Verification.CommittingUser.ID 0}}
+					{{if and .Verification.CommittingUser .Verification.CommittingUser.ID}}
 						{{ctx.AvatarUtils.Avatar .Verification.CommittingUser 20}}
 						<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
 					{{else}}

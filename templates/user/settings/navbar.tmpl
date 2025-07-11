@@ -4,9 +4,14 @@
 		<a class="{{if .PageIsSettingsProfile}}active {{end}}item" href="{{AppSubUrl}}/user/settings">
 			{{ctx.Locale.Tr "settings.profile"}}
 		</a>
-		{{if not (and ($.UserDisabledFeatures.Contains "manage_credentials" "deletion") (not $.EnableNotifyMail))}}
+		{{if not ($.UserDisabledFeatures.Contains "manage_credentials" "deletion")}}
 		<a class="{{if .PageIsSettingsAccount}}active {{end}}item" href="{{AppSubUrl}}/user/settings/account">
 			{{ctx.Locale.Tr "settings.account"}}
+		</a>
+		{{end}}
+		{{if $.EnableNotifyMail}}
+		<a class="{{if .PageIsSettingsNotifications}}active {{end}}item" href="{{AppSubUrl}}/user/settings/notifications">
+			{{ctx.Locale.Tr "notifications"}}
 		</a>
 		{{end}}
 		<a class="{{if .PageIsSettingsAppearance}}active {{end}}item" href="{{AppSubUrl}}/user/settings/appearance">

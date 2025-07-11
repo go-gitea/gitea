@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
@@ -20,9 +22,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/oauth2_provider"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -930,4 +936,108 @@ func testOAuth2WellKnown(t *testing.T) {
 
 	defer test.MockVariableValue(&setting.OAuth2.Enabled, false)()
 	MakeRequest(t, NewRequest(t, "GET", urlOpenidConfiguration), http.StatusNotFound)
+}
+
+func addOAuth2Source(t *testing.T, authName string, cfg oauth2.Source) {
+	cfg.Provider = util.IfZero(cfg.Provider, "gitea")
+	err := auth_model.CreateSource(db.DefaultContext, &auth_model.Source{
+		Type:     auth_model.OAuth2,
+		Name:     authName,
+		IsActive: true,
+		Cfg:      &cfg,
+	})
+	require.NoError(t, err)
+}
+
+func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	var mockServer *httptest.Server
+	mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/.well-known/openid-configuration":
+			_, _ = w.Write([]byte(`{
+				"issuer": "` + mockServer.URL + `",
+				"authorization_endpoint": "` + mockServer.URL + `/authorize",
+				"token_endpoint": "` + mockServer.URL + `/token",
+				"userinfo_endpoint": "` + mockServer.URL + `/userinfo"
+			}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer mockServer.Close()
+
+	ctx := t.Context()
+	oauth2Source := oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		SSHPublicKeyClaimName:         "sshpubkey",
+		FullNameClaimName:             "name",
+		OpenIDConnectAutoDiscoveryURL: mockServer.URL + "/.well-known/openid-configuration",
+	}
+	addOAuth2Source(t, "test-oidc-source", oauth2Source)
+	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(ctx, "test-oidc-source")
+	require.NoError(t, err)
+
+	sshKey1 := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf"
+	sshKey2 := "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIE7kM1R02+4ertDKGKEDcKG0s+2vyDDcIvceJ0Gqv5f1AAAABHNzaDo="
+	sshKey3 := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEHjnNEfE88W1pvBLdV3otv28x760gdmPao3lVD5uAt9"
+	cases := []struct {
+		testName           string
+		mockFullName       string
+		mockRawData        map[string]any
+		expectedSSHPubKeys []string
+	}{
+		{
+			testName:           "Login1",
+			mockFullName:       "FullName1",
+			mockRawData:        map[string]any{"sshpubkey": []any{sshKey1 + " any-comment"}},
+			expectedSSHPubKeys: []string{sshKey1},
+		},
+		{
+			testName:           "Login2",
+			mockFullName:       "FullName2",
+			mockRawData:        map[string]any{"sshpubkey": []any{sshKey2 + " any-comment", sshKey3}},
+			expectedSSHPubKeys: []string{sshKey2, sshKey3},
+		},
+		{
+			testName:           "Login3",
+			mockFullName:       "FullName3",
+			mockRawData:        map[string]any{},
+			expectedSSHPubKeys: []string{},
+		},
+	}
+
+	session := emptyTestSession(t)
+	for _, c := range cases {
+		t.Run(c.testName, func(t *testing.T) {
+			defer test.MockVariableValue(&setting.OAuth2Client.Username, "")()
+			defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+			defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
+				return goth.User{
+					Provider: authSource.Cfg.(*oauth2.Source).Provider,
+					UserID:   "oidc-userid",
+					Email:    "oidc-email@example.com",
+					RawData:  c.mockRawData,
+					Name:     c.mockFullName,
+				}, nil
+			})()
+			req := NewRequest(t, "GET", "/user/oauth2/test-oidc-source/callback?code=XYZ&state=XYZ")
+			session.MakeRequest(t, req, http.StatusSeeOther)
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "oidc-userid"})
+			keys, _, err := db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+				ListOptions:   db.ListOptionsAll,
+				OwnerID:       user.ID,
+				LoginSourceID: authSource.ID,
+			})
+			require.NoError(t, err)
+			var sshPubKeys []string
+			for _, key := range keys {
+				sshPubKeys = append(sshPubKeys, key.Content)
+			}
+			assert.ElementsMatch(t, c.expectedSSHPubKeys, sshPubKeys)
+			assert.Equal(t, c.mockFullName, user.FullName)
+		})
+	}
 }

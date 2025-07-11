@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/routers/web/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
 
@@ -103,8 +105,9 @@ func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	mockLinkAccount := func(ctx *context.Context) {
+		authSource := auth_model.Source{ID: 1}
 		gothUser := goth.User{Email: "invalid-email", Name: "."}
-		_ = ctx.Session.Set("linkAccountGothUser", gothUser)
+		_ = ctx.Session.Set("linkAccountData", auth.LinkAccountData{AuthSource: authSource, GothUser: gothUser})
 	}
 
 	t.Run("EnablePasswordSignInForm=false", func(t *testing.T) {

@@ -41,7 +41,7 @@ Initial commit with signed file
 			Name:  "User Two",
 			Email: "user2@example.com",
 		}
-		ret := ParseCommitWithSSHSignature(t.Context(), commit, committingUser)
+		ret := parseCommitWithSSHSignature(t.Context(), commit, committingUser)
 		require.NotNil(t, ret)
 		assert.True(t, ret.Verified)
 		assert.False(t, ret.Warning)
