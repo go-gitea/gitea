@@ -688,6 +688,32 @@ func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 		Notify(ctx)
 }
 
+func (n *actionsNotifier) PullRequestChangeFlowType(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+	ctx = withMethod(ctx, "PullRequestChangeFlowType")
+
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
+		log.Error("pr.Issue.LoadRepo: %v", err)
+		return
+	}
+
+	permission, _ := access_model.GetUserRepoPermission(ctx, pr.Issue.Repo, pr.Issue.Poster)
+	newNotifyInput(pr.Issue.Repo, doer, webhook_module.HookEventPullRequest).
+		WithPayload(&api.PullRequestPayload{
+			Action: api.HookIssueEdited,
+			Index:  pr.Issue.Index,
+			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, permission),
+			Sender:      convert.ToUser(ctx, doer, nil),
+		}).
+		WithPullRequest(pr).
+		Notify(ctx)
+}
+
 func (n *actionsNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
 	ctx = withMethod(ctx, "PullRequestChangeTargetBranch")
 

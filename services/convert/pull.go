@@ -97,6 +97,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		Created:        pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:        pr.Issue.UpdatedUnix.AsTimePtr(),
 		PinOrder:       util.Iif(apiIssue.PinOrder == -1, 0, apiIssue.PinOrder),
+		Flow:           issues_model.PullRequestFlowTypeToString(pr.Flow),
 
 		// output "[]" rather than null to align to github outputs
 		RequestedReviewers:      []*api.User{},

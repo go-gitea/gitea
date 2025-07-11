@@ -731,6 +731,26 @@ func (m *webhookNotifier) PullRequestChangeTargetBranch(ctx context.Context, doe
 	}
 }
 
+func (m *webhookNotifier) PullRequestChangeFlowType(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+
+	issue := pr.Issue
+
+	mode, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
+		Action: api.HookIssueEdited,
+		Index:  issue.Index,
+		PullRequest: convert.ToAPIPullRequest(ctx, pr, doer),
+		Repository:  convert.ToRepo(ctx, issue.Repo, mode),
+		Sender:      convert.ToUser(ctx, doer, nil),
+	}); err != nil {
+		log.Error("PrepareWebhooks [pr: %d]: %v", pr.ID, err)
+	}
+}
+
 func (m *webhookNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	var reviewHookType webhook_module.HookEventType
 

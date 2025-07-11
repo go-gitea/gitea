@@ -247,6 +247,58 @@ func (err ErrPullRequestHasMerged) Error() string {
 		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
 }
 
+// ChangePullRequestFlowToAgit changes the source branch of this pull request, as the given user
+func ChangePullRequestFlowToAgit(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) (err error) {
+	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
+
+	// Current target branch is already the same
+	if pr.Flow == issues_model.PullRequestFlowAGit {
+		return nil
+	}
+
+	if pr.Issue.IsClosed {
+		return issues_model.ErrIssueIsClosed{
+			ID:     pr.Issue.ID,
+			RepoID: pr.Issue.RepoID,
+			Index:  pr.Issue.Index,
+			IsPull: true,
+		}
+	}
+
+	if pr.HasMerged {
+		return ErrPullRequestHasMerged{
+			ID:         pr.ID,
+			IssueID:    pr.Index,
+			HeadRepoID: pr.HeadRepoID,
+			BaseRepoID: pr.BaseRepoID,
+			HeadBranch: pr.HeadBranch,
+			BaseBranch: pr.BaseBranch,
+		}
+	}
+
+	if err = pr.ConvertToAgitPullRequest(ctx, doer); err != nil {
+		return fmt.Errorf("Failed to convert PR to AGit: %w", err)
+	}
+
+	// Create comment
+	options := &issues_model.CreateCommentOptions{
+		Type:   issues_model.CommentTypeChangePRFlowType,
+		Doer:   doer,
+		Repo:   pr.Issue.Repo,
+		Issue:  pr.Issue,
+	}
+	if _, err = issues_model.CreateComment(ctx, options); err != nil {
+		return fmt.Errorf("CreateChangeSourceBranchComment: %w", err)
+	}
+
+	return nil
+}
+
 // ChangeTargetBranch changes the target branch of this pull request, as the given user.
 func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, targetBranch string) (err error) {
 	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
@@ -1001,6 +1053,10 @@ func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues
 	statuses, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
 	lastStatus = git_model.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
+}
+
+func IsBranchEqual(ctx context.Context, gitRepo *git.Repository, branch1, branch2 string) (bool, error) {
+	return false, nil
 }
 
 // IsHeadEqualWithBranch returns if the commits of branchName are available in pull request head

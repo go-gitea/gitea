@@ -113,6 +113,30 @@ const (
 	PullRequestFlowAGit
 )
 
+var PullRequestFlowMap map[PullRequestFlow]string = map[PullRequestFlow]string{
+	PullRequestFlowGithub: "github",
+	PullRequestFlowAGit:   "agit",
+}
+var PullRequestFlowTypeUnknown error = errors.New("Unknown pull request type")
+
+func PullRequestFlowFromString(strtype string) (PullRequestFlow, error) {
+	for k, v := range PullRequestFlowMap {
+		if v == strtype {
+			return k, nil
+		}
+	}
+
+	return 0, PullRequestFlowTypeUnknown
+}
+
+func PullRequestFlowTypeToString(flow PullRequestFlow) string {
+	v, ok := PullRequestFlowMap[flow]
+	if ok {
+		return v
+	}
+	return ""
+}
+
 // PullRequest represents relation between pull request and repositories.
 type PullRequest struct {
 	ID              int64 `xorm:"pk autoincr"`
@@ -460,6 +484,18 @@ func (pr *PullRequest) IsAncestor() bool {
 // IsFromFork return true if this PR is from a fork.
 func (pr *PullRequest) IsFromFork() bool {
 	return pr.HeadRepoID != pr.BaseRepoID
+}
+
+func (pr *PullRequest) ConvertToAgitPullRequest(ctx context.Context, doer *user_model.User) (err error) {
+	if pr.IsAgitFlow() {
+		return nil
+	}
+
+	pr.Flow = PullRequestFlowAGit
+	pr.HeadRepoID = pr.BaseRepoID
+	pr.HeadBranch = doer.LowerName + "/" + pr.HeadBranch
+
+	return pr.UpdateColsIfNotMerged(ctx, "flow", "head_repo_id", "head_branch")
 }
 
 // NewPullRequest creates new pull request with labels for repository.
