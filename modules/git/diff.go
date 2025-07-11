@@ -99,9 +99,9 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	return nil
 }
 
-// ParseDiffHunkString parse the diffhunk content and return
-func ParseDiffHunkString(diffhunk string) (leftLine, leftHunk, rightLine, righHunk int) {
-	ss := strings.Split(diffhunk, "@@")
+// ParseDiffHunkString parse the diff hunk content and return
+func ParseDiffHunkString(diffHunk string) (leftLine, leftHunk, rightLine, rightHunk int) {
+	ss := strings.Split(diffHunk, "@@")
 	ranges := strings.Split(ss[1][1:], " ")
 	leftRange := strings.Split(ranges[0], ",")
 	leftLine, _ = strconv.Atoi(leftRange[0][1:])
@@ -112,14 +112,21 @@ func ParseDiffHunkString(diffhunk string) (leftLine, leftHunk, rightLine, righHu
 		rightRange := strings.Split(ranges[1], ",")
 		rightLine, _ = strconv.Atoi(rightRange[0])
 		if len(rightRange) > 1 {
-			righHunk, _ = strconv.Atoi(rightRange[1])
+			rightHunk, _ = strconv.Atoi(rightRange[1])
 		}
 	} else {
-		log.Debug("Parse line number failed: %v", diffhunk)
+		log.Debug("Parse line number failed: %v", diffHunk)
 		rightLine = leftLine
-		righHunk = leftHunk
+		rightHunk = leftHunk
 	}
-	return leftLine, leftHunk, rightLine, righHunk
+	if rightLine == 0 {
+		// "git diff" outputs 2 different formats for the same change "OLD" => "A\nB\nC"
+		// * "@@ -1 +1,3 @@": the expected result
+		// * "@@ -1,1 +0,4 @@": the "0" means "insert before the first line"
+		rightLine++
+		rightHunk--
+	}
+	return leftLine, leftHunk, rightLine, rightHunk
 }
 
 // Example: @@ -1,8 +1,9 @@ => [..., 1, 8, 1, 9]
