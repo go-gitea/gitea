@@ -6,6 +6,8 @@
 package git
 
 import (
+	"bufio"
+	"context"
 	"io"
 	"strings"
 )
@@ -121,4 +123,51 @@ func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees, with size
 func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
 	return t.listEntriesRecursive(TrustedCmdArgs{"--long"})
+}
+
+// IterateEntriesRecursive returns iterate entries of current tree recursively including all subtrees
+// extraArgs could be "-l" to get the size, which is slower
+func (t *Tree) IterateEntriesRecursive(ctx context.Context, f func(ctx context.Context, entry *TreeEntry) error, extraArgs TrustedCmdArgs) error {
+	reader, writer := io.Pipe()
+	done := make(chan error)
+
+	go func(t *Tree, done chan error, writer *io.PipeWriter) {
+		runErr := NewCommand("ls-tree", "-t", "-r").
+			AddArguments(extraArgs...).
+			AddDynamicArguments(t.ID.String()).
+			Run(ctx, &RunOpts{
+				Dir:    t.repo.Path,
+				Stdout: writer,
+			})
+
+		_ = writer.Close()
+
+		done <- runErr
+	}(t, done, writer)
+
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return err
+		}
+
+		data := scanner.Bytes()
+		if err := iterateTreeEntries(data, t, func(entry *TreeEntry) error {
+			if err := f(ctx, entry); err != nil {
+				return err
+			}
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case runErr := <-done:
+				return runErr
+			default:
+				return nil
+			}
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
