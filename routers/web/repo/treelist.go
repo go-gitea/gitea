@@ -144,7 +144,7 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 
 func TreeViewNodes(ctx *context.Context) {
 	renderedIconPool := fileicon.NewRenderedIconPool()
-	results, err := files_service.GetTreeViewNodes(ctx, renderedIconPool, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
+	results, err := files_service.GetTreeViewNodes(ctx, ctx.Repo.RepoLink, renderedIconPool, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
 	if err != nil {
 		ctx.ServerError("GetTreeViewNodes", err)
 		return

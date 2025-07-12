@@ -750,7 +750,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		diffOptions.BeforeCommitID = startCommitID
 	}
 
-	diff, err := gitdiff.GetDiffForRender(ctx, gitRepo, diffOptions, files...)
+	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, diffOptions, files...)
 	if err != nil {
 		ctx.ServerError("GetDiff", err)
 		return

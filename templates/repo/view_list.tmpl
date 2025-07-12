@@ -18,7 +18,7 @@
 			<div class="repo-file-cell name muted-links {{if not $commit}}notready{{end}}">
 				{{index $.FileIcons $entry.Name}}
 				{{if $entry.IsSubModule}}
-					{{$submoduleLink := $submoduleFile.SubmoduleWebLink ctx}}
+					{{$submoduleLink := $submoduleFile.SubmoduleWebLinkTree ctx}}
 					{{if $submoduleLink}}
 						<a class="entry-name" href="{{$submoduleLink.RepoWebLink}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
 						@ <a class="text primary" href="{{$submoduleLink.CommitWebLink}}">{{ShortSha $submoduleFile.RefID}}</a>
