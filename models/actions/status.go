@@ -15,25 +15,27 @@ import (
 type Status int
 
 const (
-	StatusUnknown   Status = iota // 0, consistent with runnerv1.Result_RESULT_UNSPECIFIED
-	StatusSuccess                 // 1, consistent with runnerv1.Result_RESULT_SUCCESS
-	StatusFailure                 // 2, consistent with runnerv1.Result_RESULT_FAILURE
-	StatusCancelled               // 3, consistent with runnerv1.Result_RESULT_CANCELLED
-	StatusSkipped                 // 4, consistent with runnerv1.Result_RESULT_SKIPPED
-	StatusWaiting                 // 5, isn't a runnerv1.Result
-	StatusRunning                 // 6, isn't a runnerv1.Result
-	StatusBlocked                 // 7, isn't a runnerv1.Result
+	StatusUnknown            Status = iota // 0, consistent with runnerv1.Result_RESULT_UNSPECIFIED
+	StatusSuccess                          // 1, consistent with runnerv1.Result_RESULT_SUCCESS
+	StatusFailure                          // 2, consistent with runnerv1.Result_RESULT_FAILURE
+	StatusCancelled                        // 3, consistent with runnerv1.Result_RESULT_CANCELLED
+	StatusSkipped                          // 4, consistent with runnerv1.Result_RESULT_SKIPPED
+	StatusWaiting                          // 5, isn't a runnerv1.Result
+	StatusRunning                          // 6, isn't a runnerv1.Result
+	StatusBlocked                          // 7, isn't a runnerv1.Result
+	StatusRunningWithFailure               // 8, isn't a runnerv1.Result, used for aggregated status
 )
 
 var statusNames = map[Status]string{
-	StatusUnknown:   "unknown",
-	StatusWaiting:   "waiting",
-	StatusRunning:   "running",
-	StatusSuccess:   "success",
-	StatusFailure:   "failure",
-	StatusCancelled: "cancelled",
-	StatusSkipped:   "skipped",
-	StatusBlocked:   "blocked",
+	StatusUnknown:            "unknown",
+	StatusWaiting:            "waiting",
+	StatusRunning:            "running",
+	StatusSuccess:            "success",
+	StatusFailure:            "failure",
+	StatusCancelled:          "cancelled",
+	StatusSkipped:            "skipped",
+	StatusBlocked:            "blocked",
+	StatusRunningWithFailure: "running_with_failure",
 }
 
 // String returns the string name of the Status
@@ -86,6 +88,10 @@ func (s Status) IsRunning() bool {
 
 func (s Status) IsBlocked() bool {
 	return s == StatusBlocked
+}
+
+func (s Status) IsRunningWithFailure() bool {
+	return s == StatusRunningWithFailure
 }
 
 // In returns whether s is one of the given statuses

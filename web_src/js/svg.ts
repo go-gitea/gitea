@@ -78,12 +78,14 @@ import octiconTrash from '../../public/assets/img/svg/octicon-trash.svg';
 import octiconTriangleDown from '../../public/assets/img/svg/octicon-triangle-down.svg';
 import octiconX from '../../public/assets/img/svg/octicon-x.svg';
 import octiconXCircleFill from '../../public/assets/img/svg/octicon-x-circle-fill.svg';
+import giteaRunningWithFailure from '../../public/assets/img/svg/gitea-running-with-failure.svg';
 
 const svgs = {
   'gitea-double-chevron-left': giteaDoubleChevronLeft,
   'gitea-double-chevron-right': giteaDoubleChevronRight,
   'gitea-empty-checkbox': giteaEmptyCheckbox,
   'gitea-exclamation': giteaExclamation,
+  'gitea-running-with-failure': giteaRunningWithFailure,
   'octicon-archive': octiconArchive,
   'octicon-arrow-switch': octiconArrowSwitch,
   'octicon-blocked': octiconBlocked,

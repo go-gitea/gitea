@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- Orange dot -->
+  <circle cx="7" cy="8" r="5" fill="#f1c40f"/>
+
+  <!-- Red X (two crossing rectangles) -->
+  <g transform="translate(6, 5)" fill="#e74c3c">
+    <rect x="0" y="2" width="8" height="2" transform="rotate(45 4 3)"/>
+    <rect x="0" y="2" width="8" height="2" transform="rotate(-45 4 3)"/>
+  </g>
+</svg>

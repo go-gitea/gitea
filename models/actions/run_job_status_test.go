@@ -65,7 +65,7 @@ func TestAggregateJobStatus(t *testing.T) {
 		{[]Status{StatusFailure, StatusSkipped}, StatusFailure},
 		{[]Status{StatusFailure, StatusCancelled}, StatusCancelled},
 		{[]Status{StatusFailure, StatusWaiting}, StatusFailure},
-		{[]Status{StatusFailure, StatusRunning}, StatusRunning},
+		{[]Status{StatusFailure, StatusRunning}, StatusRunningWithFailure},
 		{[]Status{StatusFailure, StatusBlocked}, StatusFailure},
 
 		// skipped with other status

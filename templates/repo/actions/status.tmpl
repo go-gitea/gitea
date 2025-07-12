@@ -17,6 +17,8 @@
 	{{svg "octicon-blocked" $size (printf "text yellow %s" $className)}}
 {{else if eq .status "running"}}
 	{{svg "octicon-meter" $size (printf "text yellow circular-spin %s" $className)}}
+{{else if eq .status "running_with_failure"}}
+	{{svg "gitea-running-with-failure" $size (printf "text yellow circular-spin %s" $className)}}
 {{else}}{{/*failure, unknown*/}}
 	{{svg "octicon-x-circle-fill" $size (printf "text red %s" $className)}}
 {{end}}

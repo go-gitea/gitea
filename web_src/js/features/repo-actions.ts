@@ -39,6 +39,7 @@ export function initRepositoryActionView() {
         cancelled: el.getAttribute('data-locale-status-cancelled'),
         skipped: el.getAttribute('data-locale-status-skipped'),
         blocked: el.getAttribute('data-locale-status-blocked'),
+        running_with_failure: el.getAttribute('data-locale-status-running-with-failure'),
       },
       logsAlwaysAutoScroll: el.getAttribute('data-locale-logs-always-auto-scroll'),
       logsAlwaysExpandRunning: el.getAttribute('data-locale-logs-always-expand-running'),
