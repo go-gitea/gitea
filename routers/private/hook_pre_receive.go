@@ -253,7 +253,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 	// 5. Check if the doer is allowed to push (and force-push if the incoming push is a force-push)
 	var canPush bool
-	if ctx.opts.DeployKeyID != 0 {
+	if ctx.opts.DeployKeyID != 0 || ctx.user.ID == user_model.ActionsUserID {
 		// This flag is only ever true if protectBranch.CanForcePush is true
 		if isForcePush {
 			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableForcePushAllowlist || protectBranch.ForcePushAllowlistDeployKeys)
