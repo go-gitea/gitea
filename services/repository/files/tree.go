@@ -173,7 +173,7 @@ func newTreeViewNodeFromEntry(ctx context.Context, repoLink string, renderedIcon
 			log.Error("GetSubModule: %v", err)
 		} else if subModule != nil {
 			submoduleFile := git.NewCommitSubmoduleFile(repoLink, node.FullPath, subModule.URL, entry.ID.String())
-			webLink := submoduleFile.SubmoduleWebLinkTree(ctx, submoduleFile.RefID())
+			webLink := submoduleFile.SubmoduleWebLinkTree(ctx)
 			node.SubmoduleURL = webLink.CommitWebLink
 		}
 	}

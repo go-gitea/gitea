@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	giturl "code.gitea.io/gitea/modules/git/url"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // CommitSubmoduleFile represents a file with submodule type.
@@ -26,6 +27,10 @@ type CommitSubmoduleFile struct {
 // NewCommitSubmoduleFile create a new submodule file
 func NewCommitSubmoduleFile(repoLink, fullPath, refURL, refID string) *CommitSubmoduleFile {
 	return &CommitSubmoduleFile{repoLink: repoLink, fullPath: fullPath, refURL: refURL, refID: refID}
+}
+
+func (sf *CommitSubmoduleFile) RefID() string {
+	return sf.refID
 }
 
 func (sf *CommitSubmoduleFile) getWebLinkInTargetRepo(ctx context.Context, moreLinkPath string) *SubmoduleWebLink {
@@ -47,17 +52,12 @@ func (sf *CommitSubmoduleFile) getWebLinkInTargetRepo(ctx context.Context, moreL
 	return &SubmoduleWebLink{RepoWebLink: sf.parsedTargetLink, CommitWebLink: sf.parsedTargetLink + moreLinkPath}
 }
 
-// RefID returns the commit ref id of the submodule file, it also works on "nil" receiver
-func (sf *CommitSubmoduleFile) RefID() string {
-	if sf == nil {
-		return ""
-	}
-	return sf.refID
-}
-
 // SubmoduleWebLinkTree tries to make the submodule's tree link in its own repo, it also works on "nil" receiver
-func (sf *CommitSubmoduleFile) SubmoduleWebLinkTree(ctx context.Context, refCommitID string) *SubmoduleWebLink {
-	return sf.getWebLinkInTargetRepo(ctx, "/tree/"+refCommitID)
+func (sf *CommitSubmoduleFile) SubmoduleWebLinkTree(ctx context.Context, optCommitID ...string) *SubmoduleWebLink {
+	if sf == nil {
+		return nil
+	}
+	return sf.getWebLinkInTargetRepo(ctx, "/tree/"+util.OptionalArg(optCommitID, sf.refID))
 }
 
 // SubmoduleWebLinkCompare tries to make the submodule's compare link in its own repo, it also works on "nil" receiver

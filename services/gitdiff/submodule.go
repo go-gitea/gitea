@@ -58,7 +58,7 @@ func (si *SubmoduleDiffInfo) CompareRefIDLinkHTML(ctx context.Context) template.
 }
 
 func (si *SubmoduleDiffInfo) SubmoduleRepoLinkHTML(ctx context.Context) template.HTML {
-	webLink := si.SubmoduleFile.SubmoduleWebLinkTree(ctx, si.SubmoduleFile.RefID())
+	webLink := si.SubmoduleFile.SubmoduleWebLinkTree(ctx)
 	if webLink == nil {
 		return htmlutil.HTMLFormat("%s", si.SubmoduleName)
 	}
