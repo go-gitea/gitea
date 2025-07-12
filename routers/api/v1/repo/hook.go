@@ -32,7 +32,7 @@ func ListHooks(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -88,7 +88,7 @@ func GetHook(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -132,7 +132,7 @@ func TestHook(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -208,7 +208,7 @@ func CreateHook(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -239,7 +239,7 @@ func EditHook(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -277,7 +277,7 @@ func DeleteHook(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo

@@ -30,7 +30,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -101,7 +101,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -315,7 +315,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -362,7 +362,7 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo

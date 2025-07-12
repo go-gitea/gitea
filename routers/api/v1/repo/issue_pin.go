@@ -20,7 +20,7 @@ func PinIssue(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -77,7 +77,7 @@ func UnpinIssue(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -132,7 +132,7 @@ func MoveIssuePin(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -188,7 +188,7 @@ func ListPinnedIssues(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -220,7 +220,7 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -277,7 +277,7 @@ func AreNewIssuePinsAllowed(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo

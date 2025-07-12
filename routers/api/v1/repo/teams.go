@@ -23,7 +23,7 @@ func ListTeams(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -67,7 +67,7 @@ func IsTeam(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -121,7 +121,7 @@ func AddTeam(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -157,7 +157,7 @@ func DeleteTeam(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
