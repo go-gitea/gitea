@@ -1,0 +1,18 @@
+RunStatusText: run status text ....
+
+Repo:
+  FullName: RepoName
+
+Run:
+  WorkflowID: WorkflowID
+  HTMLURL: http://localhost/run/1
+
+Jobs:
+  - Name: Job-Name-1
+    Status: success
+    Attempt: 1
+    HTMLURL: http://localhost/job/1
+  - Name: Job-Name-2
+    Status: failed
+    Attempt: 2
+    HTMLURL: http://localhost/job/2

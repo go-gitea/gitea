@@ -16,7 +16,7 @@ import (
 
 func MailPreviewRender(ctx *context.Context) {
 	tmplName := ctx.PathParam("*")
-	mockDataContent, err := templates.AssetFS().ReadFile("mail/" + tmplName + ".mock.yml")
+	mockDataContent, err := templates.AssetFS().ReadFile("mail/" + tmplName + ".devtest.yml")
 	mockData := map[string]any{}
 	if err == nil {
 		err = yaml.Unmarshal(mockDataContent, &mockData)

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 	"time"
@@ -29,7 +30,7 @@ import (
 // Many e-mail service providers have limitations on the size of the email body, it's usually from 10MB to 25MB
 const maxEmailBodySize = 9_000_000
 
-func fallbackMailSubject(issue *issues_model.Issue) string {
+func fallbackIssueMailSubject(issue *issues_model.Issue) string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.FullName(), issue.Title, issue.Index)
 }
 
@@ -86,7 +87,7 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 	if actName != "new" {
 		prefix = "Re: "
 	}
-	fallback = prefix + fallbackMailSubject(comment.Issue)
+	fallback = prefix + fallbackIssueMailSubject(comment.Issue)
 
 	if comment.Comment != nil && comment.Comment.Review != nil {
 		reviewComments = make([]*issues_model.Comment, 0, 10)
@@ -202,7 +203,7 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 		msg.SetHeader("References", references...)
 		msg.SetHeader("List-Unsubscribe", listUnsubscribe...)
 
-		for key, value := range generateAdditionalHeaders(comment, actType, recipient) {
+		for key, value := range generateAdditionalHeadersForIssue(comment, actType, recipient) {
 			msg.SetHeader(key, value)
 		}
 
@@ -302,35 +303,18 @@ func generateMessageIDForIssue(issue *issues_model.Issue, comment *issues_model.
 	return fmt.Sprintf("<%s/%s/%d%s@%s>", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
 }
 
-func generateAdditionalHeaders(ctx *mailComment, reason string, recipient *user_model.User) map[string]string {
+func generateAdditionalHeadersForIssue(ctx *mailComment, reason string, recipient *user_model.User) map[string]string {
 	repo := ctx.Issue.Repo
 
-	return map[string]string{
-		// https://datatracker.ietf.org/doc/html/rfc2919
-		"List-ID": fmt.Sprintf("%s <%s.%s.%s>", repo.FullName(), repo.Name, repo.OwnerName, setting.Domain),
+	issueID := strconv.FormatInt(ctx.Issue.Index, 10)
+	headers := generateMetadataHeaders(repo)
 
-		// https://datatracker.ietf.org/doc/html/rfc2369
-		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),
+	maps.Copy(headers, generateSenderRecipientHeaders(ctx.Doer, recipient))
+	maps.Copy(headers, generateReasonHeaders(reason))
 
-		"X-Mailer":                  "Gitea",
-		"X-Gitea-Reason":            reason,
-		"X-Gitea-Sender":            ctx.Doer.Name,
-		"X-Gitea-Recipient":         recipient.Name,
-		"X-Gitea-Recipient-Address": recipient.Email,
-		"X-Gitea-Repository":        repo.Name,
-		"X-Gitea-Repository-Path":   repo.FullName(),
-		"X-Gitea-Repository-Link":   repo.HTMLURL(),
-		"X-Gitea-Issue-ID":          strconv.FormatInt(ctx.Issue.Index, 10),
-		"X-Gitea-Issue-Link":        ctx.Issue.HTMLURL(),
+	headers["X-Gitea-Issue-ID"] = issueID
+	headers["X-Gitea-Issue-Link"] = ctx.Issue.HTMLURL()
+	headers["X-GitLab-Issue-IID"] = issueID
 
-		"X-GitHub-Reason":            reason,
-		"X-GitHub-Sender":            ctx.Doer.Name,
-		"X-GitHub-Recipient":         recipient.Name,
-		"X-GitHub-Recipient-Address": recipient.Email,
-
-		"X-GitLab-NotificationReason": reason,
-		"X-GitLab-Project":            repo.Name,
-		"X-GitLab-Project-Path":       repo.FullName(),
-		"X-GitLab-Issue-IID":          strconv.FormatInt(ctx.Issue.Index, 10),
-	}
+	return headers
 }

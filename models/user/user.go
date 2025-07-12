@@ -798,6 +798,10 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 		return err
 	}
 
+	if err := SetUserSetting(ctx, u.ID, SettingsEmailNotificationGiteaActions, EmailNotificationGiteaActionsFailureOnly); err != nil {
+		return err
+	}
+
 	return committer.Commit()
 }
 
