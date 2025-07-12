@@ -62,22 +62,12 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 			log.Debug("missing commit for %s", entry.Name())
 		}
 
-		// If the entry is a submodule add a submodule file for this
+		// If the entry is a submodule, add a submodule file for this
 		if entry.IsSubModule() {
-			subModuleURL := ""
-			var fullPath string
-			if len(treePath) > 0 {
-				fullPath = treePath + "/" + entry.Name()
-			} else {
-				fullPath = entry.Name()
-			}
-			if subModule, err := commit.GetSubModule(fullPath); err != nil {
+			commitsInfo[i].SubmoduleFile, err = getCommitInfoSubmoduleFile(repoLink, entry, commit, treePath)
+			if err != nil {
 				return nil, nil, err
-			} else if subModule != nil {
-				subModuleURL = subModule.URL
 			}
-			subModuleFile := NewCommitSubmoduleFile(repoLink, fullPath, subModuleURL, entry.ID.String())
-			commitsInfo[i].SubmoduleFile = subModuleFile
 		}
 	}
 
