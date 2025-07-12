@@ -4,9 +4,10 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/1.24.3) - 2025-07-11
+## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/1.24.3) - 2025-07-12
 
 * BUGFIXES
+  * Fix incorrect comment diff hunk parsing, fix github asset ID nil panic (#35046) (#35055)
   * Fix updating user visibility (#35036) (#35044)
   * Support base64-encoded agit push options (#35037) (#35041)
   * Make submodule link work with relative path (#35034) (#35038)
