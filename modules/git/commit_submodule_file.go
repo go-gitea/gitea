@@ -14,6 +14,7 @@ import (
 
 // CommitSubmoduleFile represents a file with submodule type.
 type CommitSubmoduleFile struct {
+	repoLink string
 	fullPath string
 	refURL   string
 	refID    string
@@ -23,20 +24,16 @@ type CommitSubmoduleFile struct {
 }
 
 // NewCommitSubmoduleFile create a new submodule file
-func NewCommitSubmoduleFile(fullPath, refURL, refID string) *CommitSubmoduleFile {
-	return &CommitSubmoduleFile{fullPath: fullPath, refURL: refURL, refID: refID}
+func NewCommitSubmoduleFile(repoLink, fullPath, refURL, refID string) *CommitSubmoduleFile {
+	return &CommitSubmoduleFile{repoLink: repoLink, fullPath: fullPath, refURL: refURL, refID: refID}
 }
 
-func (sf *CommitSubmoduleFile) RefID() string {
-	return sf.refID
-}
-
-func (sf *CommitSubmoduleFile) getWebLinkInTargetRepo(ctx context.Context, currentRepoHomeLink, moreLinkPath string) *SubmoduleWebLink {
+func (sf *CommitSubmoduleFile) getWebLinkInTargetRepo(ctx context.Context, moreLinkPath string) *SubmoduleWebLink {
 	if sf == nil {
 		return nil
 	}
 	if strings.HasPrefix(sf.refURL, "../") {
-		targetLink := path.Join(currentRepoHomeLink, path.Dir(sf.fullPath), sf.refURL)
+		targetLink := path.Join(sf.repoLink, path.Dir(sf.fullPath), sf.refURL)
 		return &SubmoduleWebLink{RepoWebLink: targetLink, CommitWebLink: targetLink + moreLinkPath}
 	}
 	if !sf.parsed {
@@ -50,12 +47,20 @@ func (sf *CommitSubmoduleFile) getWebLinkInTargetRepo(ctx context.Context, curre
 	return &SubmoduleWebLink{RepoWebLink: sf.parsedTargetLink, CommitWebLink: sf.parsedTargetLink + moreLinkPath}
 }
 
+// RefID returns the commit ref id of the submodule file, it also works on "nil" receiver
+func (sf *CommitSubmoduleFile) RefID() string {
+	if sf == nil {
+		return ""
+	}
+	return sf.refID
+}
+
 // SubmoduleWebLinkTree tries to make the submodule's tree link in its own repo, it also works on "nil" receiver
-func (sf *CommitSubmoduleFile) SubmoduleWebLinkTree(ctx context.Context, currentRepoHomeLink, refCommitID string) *SubmoduleWebLink {
-	return sf.getWebLinkInTargetRepo(ctx, currentRepoHomeLink, "/tree/"+refCommitID)
+func (sf *CommitSubmoduleFile) SubmoduleWebLinkTree(ctx context.Context, refCommitID string) *SubmoduleWebLink {
+	return sf.getWebLinkInTargetRepo(ctx, "/tree/"+refCommitID)
 }
 
 // SubmoduleWebLinkCompare tries to make the submodule's compare link in its own repo, it also works on "nil" receiver
-func (sf *CommitSubmoduleFile) SubmoduleWebLinkCompare(ctx context.Context, currentRepoHomeLink, commitID1, commitID2 string) *SubmoduleWebLink {
-	return sf.getWebLinkInTargetRepo(ctx, currentRepoHomeLink, "/compare/"+commitID1+"..."+commitID2)
+func (sf *CommitSubmoduleFile) SubmoduleWebLinkCompare(ctx context.Context, commitID1, commitID2 string) *SubmoduleWebLink {
+	return sf.getWebLinkInTargetRepo(ctx, "/compare/"+commitID1+"..."+commitID2)
 }

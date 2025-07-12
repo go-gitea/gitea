@@ -64,7 +64,7 @@ func TestGetTreeViewNodes(t *testing.T) {
 	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 
-	curRepoLink := "/any/repo-home-link"
+	curRepoLink := "/any/repo-link"
 	renderedIconPool := fileicon.NewRenderedIconPool()
 	mockIconForFile := func(id string) template.HTML {
 		return template.HTML(`<svg class="svg git-entry-icon octicon-file" width="16" height="16" aria-hidden="true"><use xlink:href="#` + id + `"></use></svg>`)

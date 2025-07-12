@@ -15,7 +15,7 @@ import (
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
+func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
@@ -76,7 +76,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 			} else if subModule != nil {
 				subModuleURL = subModule.URL
 			}
-			subModuleFile := NewCommitSubmoduleFile(fullPath, subModuleURL, entry.ID.String())
+			subModuleFile := NewCommitSubmoduleFile(repoLink, fullPath, subModuleURL, entry.ID.String())
 			commitsInfo[i].SubmoduleFile = subModuleFile
 		}
 	}
