@@ -166,5 +166,7 @@ func SendActionsWorkflowRunStatusEmail(ctx context.Context, sender *user_model.U
 		}
 	}
 
-	sendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
+	if len(recipients) > 0 {
+		sendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
+	}
 }
