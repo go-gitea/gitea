@@ -238,8 +238,8 @@ td .commit-summary {
   border-radius: var(--border-radius);
 }
 
-.repository.file.editor .commit-form-wrapper .commit-form::before,
-.repository.file.editor .commit-form-wrapper .commit-form::after {
+.avatar-content-left-arrow::before,
+.avatar-content-left-arrow::after {
   right: 100%;
   top: 20px;
   border: solid transparent;
@@ -250,18 +250,24 @@ td .commit-summary {
   pointer-events: none;
 }
 
-.repository.file.editor .commit-form-wrapper .commit-form::before {
+.avatar-content-left-arrow::before {
   border-right-color: var(--color-secondary);
   border-width: 9px;
   margin-top: -9px;
 }
 
-.repository.file.editor .commit-form-wrapper .commit-form::after {
+.avatar-content-left-arrow::after {
   border-right-color: var(--color-box-body);
   border-width: 8px;
   margin-top: -8px;
 }
 
+@media (max-width: 767.98px) {
+  .avatar-content-left-arrow::before,
+  .avatar-content-left-arrow::after {
+    display: none;
+  }
+}
 .repository.file.editor .commit-form-wrapper .commit-form .quick-pull-choice .branch-name {
   display: inline-block;
   padding: 2px 4px;
@@ -294,51 +300,12 @@ td .commit-summary {
   min-width: 100px;
 }
 
-.repository.new.issue .comment.form .content::before,
-.repository.new.issue .comment.form .content::after {
-  right: 100%;
-  top: 20px;
-  border: solid transparent;
-  content: " ";
-  height: 0;
-  width: 0;
-  position: absolute;
-  pointer-events: none;
-}
-
-.repository.new.issue .comment.form .content::before {
-  border-right-color: var(--color-secondary);
-  border-width: 9px;
-  margin-top: -9px;
-}
-
-.repository.new.issue .comment.form .content::after {
-  border-right-color: var(--color-box-body);
-  border-width: 8px;
-  margin-top: -8px;
-}
-
 .repository.new.issue .comment.form .content .markup {
   font-size: 14px;
 }
 
 .repository.view.issue .instruct-toggle {
   display: inline-block;
-}
-
-@media (max-width: 767.98px) {
-  .comment.form .issue-content-left .avatar {
-    display: none;
-  }
-  .comment.form .issue-content-left .content {
-    margin-left: 0 !important;
-  }
-  .comment.form .issue-content-left .content::before,
-  .comment.form .issue-content-left .content::after,
-  .comment.form .content .form::before,
-  .comment.form .content .form::after {
-    display: none;
-  }
 }
 
 /* issue title & meta & edit */
@@ -365,7 +332,6 @@ td .commit-summary {
 
 .repository.view.issue .issue-title {
   display: flex;
-  align-items: center;
   gap: 0.5em;
   margin-bottom: 8px;
   min-height: 40px; /* avoid layout shift on edit */
@@ -379,6 +345,15 @@ td .commit-summary {
   line-height: 40px;
   margin: 0;
   padding-right: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.repository.view.issue .issue-title#issue-title-display .issue-title-buttons {
+  margin-top: 4px; /* the title's height is 40px, fine tune to align the buttons */
+}
+
+.repository.view.issue .issue-title#issue-title-editor {
+  padding-top: 4px;
 }
 
 @media (max-width: 767.98px) {
@@ -535,6 +510,7 @@ td .commit-summary {
   background-color: var(--color-timeline);
   border-radius: var(--border-radius-full);
   display: flex;
+  flex-shrink: 0;
   float: left;
   margin-left: -33px;
   margin-right: 8px;
@@ -562,9 +538,18 @@ td .commit-summary {
   margin-left: -16px;
 }
 
-.repository.view.issue .comment-list .timeline-item.event > .text {
+.repository.view.issue .comment-list .timeline-item .comment-text-line {
   line-height: 32px;
   vertical-align: middle;
+  color: var(--color-text-light);
+}
+
+.repository.view.issue .comment-list .timeline-item .comment-text-line a {
+  color: inherit;
+}
+
+.repository.view.issue .comment-list .timeline-item .avatar-with-link + .comment-text-line {
+  margin-left: 0.25em;
 }
 
 .repository.view.issue .comment-list .timeline-item.commits-list {
@@ -578,15 +563,11 @@ td .commit-summary {
   margin-top: 4px;
 }
 
-.repository.view.issue .comment-list .timeline-item .comparebox {
-  line-height: 32px;
+.repository.view.issue .comment-list .timeline-item .comment-text-label {
   vertical-align: middle;
-}
-
-.repository.view.issue .comment-list .timeline-item .comparebox .compare.label {
-  font-size: 1rem;
-  margin: 0;
   border: 1px solid var(--color-light-border);
+  height: 26px;
+  margin: 4px 0; /* because this label is beside the comment line, which has "line-height: 34px" */
 }
 
 @media (max-width: 767.98px) {
@@ -650,30 +631,6 @@ td .commit-summary {
   width: calc(100% + 2rem);
 }
 
-.repository.view.issue .comment-list .comment .merge-section.no-header::before,
-.repository.view.issue .comment-list .comment .merge-section.no-header::after {
-  right: 100%;
-  top: 20px;
-  border: solid transparent;
-  content: " ";
-  height: 0;
-  width: 0;
-  position: absolute;
-  pointer-events: none;
-}
-
-.repository.view.issue .comment-list .comment .merge-section.no-header::before {
-  border-right-color: var(--color-secondary);
-  border-width: 9px;
-  margin-top: -9px;
-}
-
-.repository.view.issue .comment-list .comment .merge-section.no-header::after {
-  border-right-color: var(--color-box-body);
-  border-width: 8px;
-  margin-top: -8px;
-}
-
 .merge-section-info code {
   border: 1px solid var(--color-light-border);
   border-radius: var(--border-radius);
@@ -717,17 +674,8 @@ td .commit-summary {
   padding: 0 !important;
 }
 
-.repository.view.issue .comment-list .code-comment .comment-header::after,
-.repository.view.issue .comment-list .code-comment .comment-header::before {
-  display: none;
-}
-
 .repository.view.issue .comment-list .code-comment .comment-content {
   margin-left: 24px;
-}
-
-.repository.view.issue .comment-list .comment > .avatar {
-  margin-top: 6px;
 }
 
 .repository.view.issue .comment-list .comment-code-cloud button.comment-form-reply {
@@ -761,30 +709,6 @@ td .commit-summary {
   clear: none;
 }
 
-.repository .comment.form .content .segment::before,
-.repository .comment.form .content .segment::after {
-  right: 100%;
-  top: 20px;
-  border: solid transparent;
-  content: " ";
-  height: 0;
-  width: 0;
-  position: absolute;
-  pointer-events: none;
-}
-
-.repository .comment.form .content .segment::before {
-  border-right-color: var(--color-secondary);
-  border-width: 9px;
-  margin-top: -9px;
-}
-
-.repository .comment.form .content .segment::after {
-  border-right-color: var(--color-box-body);
-  border-width: 8px;
-  margin-top: -8px;
-}
-
 .repository.new.milestone textarea {
   height: 200px;
 }
@@ -805,30 +729,6 @@ td .commit-summary {
   width: 100%;
   margin-top: -1rem;
   text-align: center;
-}
-
-.repository.compare.pull .comment.form .content::before,
-.repository.compare.pull .comment.form .content::after {
-  right: 100%;
-  top: 20px;
-  border: solid transparent;
-  content: " ";
-  height: 0;
-  width: 0;
-  position: absolute;
-  pointer-events: none;
-}
-
-.repository.compare.pull .comment.form .content::before {
-  border-right-color: var(--color-secondary);
-  border-width: 9px;
-  margin-top: -9px;
-}
-
-.repository.compare.pull .comment.form .content::after {
-  border-right-color: var(--color-box-body);
-  border-width: 8px;
-  margin-top: -8px;
 }
 
 .repository.compare.pull .markup {
@@ -1431,30 +1331,6 @@ td .commit-summary {
   gap: 0.25em;
 }
 
-.comment-header::before,
-.comment-header::after {
-  right: 100%;
-  top: 20px;
-  border: solid transparent;
-  content: " ";
-  height: 0;
-  width: 0;
-  position: absolute;
-  pointer-events: none;
-}
-
-.comment-header::before {
-  border-right-color: var(--color-secondary);
-  border-width: 9px;
-  margin-top: -9px;
-}
-
-.comment-header::after {
-  border-right-color: var(--color-box-header);
-  border-width: 8px;
-  margin-top: -8px;
-}
-
 .comment-header.arrow-top::before,
 .comment-header.arrow-top::after {
   transform: rotate(90deg);
@@ -1629,7 +1505,7 @@ tbody.commit-list {
   overflow-wrap: anywhere;
 }
 
-.content-history-detail-dialog .header .avatar {
+.content-history-detail-dialog .header .ui.avatar {
   position: relative;
   top: -2px;
 }
@@ -1977,10 +1853,6 @@ tbody.commit-list {
   }
   .repository.view.issue .comment-list .timeline .comment-header {
     padding-left: 4px;
-  }
-  .repository.view.issue .comment-list .timeline .comment-header::before,
-  .repository.view.issue .comment-list .timeline .comment-header::after {
-    content: unset;
   }
   /* Don't show the general avatar, we show the inline avatar on mobile.
    * And don't show the role labels, there's no place for that. */
