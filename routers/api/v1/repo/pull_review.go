@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -329,14 +328,7 @@ func CreatePullReview(ctx *context.APIContext) {
 
 	// if CommitID is empty, set it as lastCommitID
 	if opts.CommitID == "" {
-		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.Issue.Repo)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		defer closer.Close()
-
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -357,11 +349,12 @@ func CreatePullReview(ctx *context.APIContext) {
 			ctx.Repo.GitRepo,
 			pr.Issue,
 			line,
+			pr.MergeBase,
+			opts.CommitID,
 			c.Body,
 			c.Path,
 			true, // pending review
 			0,    // no reply
-			opts.CommitID,
 			nil,
 		); err != nil {
 			ctx.APIErrorInternal(err)

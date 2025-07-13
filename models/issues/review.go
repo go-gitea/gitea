@@ -159,7 +159,7 @@ func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if err = r.LoadIssue(ctx); err != nil {
 		return err
 	}
-	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r, false)
+	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue.Repo, r.Issue.ID, nil, r, false)
 	return err
 }
 

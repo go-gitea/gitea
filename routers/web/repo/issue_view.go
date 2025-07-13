@@ -730,28 +730,23 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				}
 				comment.Review.Reviewer = user_model.NewGhostUser()
 			}
-			if err = comment.Review.LoadCodeComments(ctx); err != nil {
-				ctx.ServerError("Review.LoadCodeComments", err)
-				return
-			}
-			for _, codeComments := range comment.Review.CodeComments {
-				for _, lineComments := range codeComments {
-					for _, c := range lineComments {
-						// Check tag.
-						role, ok = marked[c.PosterID]
-						if ok {
-							c.ShowRole = role
-							continue
-						}
 
-						c.ShowRole, err = roleDescriptor(ctx, issue.Repo, c.Poster, permCache, issue, c.HasOriginalAuthor())
-						if err != nil {
-							ctx.ServerError("roleDescriptor", err)
-							return
-						}
-						marked[c.PosterID] = c.ShowRole
-						participants = addParticipant(c.Poster, participants)
+			for _, codeComments := range comment.Review.CodeComments {
+				for _, c := range codeComments {
+					// Check tag.
+					role, ok = marked[c.PosterID]
+					if ok {
+						c.ShowRole = role
+						continue
 					}
+
+					c.ShowRole, err = roleDescriptor(ctx, issue.Repo, c.Poster, permCache, issue, c.HasOriginalAuthor())
+					if err != nil {
+						ctx.ServerError("roleDescriptor", err)
+						return
+					}
+					marked[c.PosterID] = c.ShowRole
+					participants = addParticipant(c.Poster, participants)
 				}
 			}
 			if err = comment.LoadResolveDoer(ctx); err != nil {

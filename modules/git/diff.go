@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // RawDiffType type of a raw diff.
@@ -107,12 +108,16 @@ func ParseDiffHunkString(diffHunk string) (leftLine, leftHunk, rightLine, rightH
 	leftLine, _ = strconv.Atoi(leftRange[0][1:])
 	if len(leftRange) > 1 {
 		leftHunk, _ = strconv.Atoi(leftRange[1])
+	} else {
+		leftHunk = util.Iif(leftLine > 0, leftLine, -leftLine)
 	}
 	if len(ranges) > 1 {
 		rightRange := strings.Split(ranges[1], ",")
 		rightLine, _ = strconv.Atoi(rightRange[0])
 		if len(rightRange) > 1 {
 			rightHunk, _ = strconv.Atoi(rightRange[1])
+		} else {
+			rightHunk = rightLine
 		}
 	} else {
 		log.Debug("Parse line number failed: %v", diffHunk)
@@ -341,4 +346,56 @@ func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID str
 	}
 
 	return affectedFiles, err
+}
+
+type HunkInfo struct {
+	LeftLine  int64 // Line number in the old file
+	LeftHunk  int64 // Number of lines in the old file
+	RightLine int64 // Line number in the new file
+	RightHunk int64 // Number of lines in the new file
+}
+
+// GetAffectedHunksForTwoCommitsSpecialFile returns the affected hunks between two commits for a special file
+// git diff --unified=0 abc123 def456 -- src/main.go
+func GetAffectedHunksForTwoCommitsSpecialFile(ctx context.Context, repoPath, oldCommitID, newCommitID, filePath string) ([]*HunkInfo, error) {
+	reader, writer := io.Pipe()
+	defer func() {
+		_ = reader.Close()
+		_ = writer.Close()
+	}()
+	go func() {
+		if err := NewCommand("diff", "--unified=0", "--no-color").
+			AddDynamicArguments(oldCommitID, newCommitID).
+			AddDashesAndList(filePath).
+			Run(ctx, &RunOpts{
+				Dir:    repoPath,
+				Stdout: writer,
+			}); err != nil {
+			_ = writer.CloseWithError(fmt.Errorf("GetAffectedHunksForTwoCommitsSpecialFile[%s, %s, %s, %s]: %w", repoPath, oldCommitID, newCommitID, filePath, err))
+			return
+		}
+		_ = writer.Close()
+	}()
+
+	scanner := bufio.NewScanner(reader)
+	hunks := make([]*HunkInfo, 0, 32)
+	for scanner.Scan() {
+		lof := scanner.Text()
+		if !strings.HasPrefix(lof, "@@") {
+			continue
+		}
+		// Parse the hunk header
+		leftLine, leftHunk, rightLine, rightHunk := ParseDiffHunkString(lof)
+		hunks = append([]*HunkInfo{}, &HunkInfo{
+			LeftLine:  int64(leftLine),
+			LeftHunk:  int64(leftHunk),
+			RightLine: int64(rightLine),
+			RightHunk: int64(rightHunk),
+		})
+	}
+	if scanner.Err() != nil {
+		return nil, fmt.Errorf("GetAffectedHunksForTwoCommitsSpecialFile[%s, %s, %s, %s]: %w", repoPath, oldCommitID, newCommitID, filePath, scanner.Err())
+	}
+
+	return hunks, nil
 }
