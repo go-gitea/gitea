@@ -155,13 +155,7 @@ func SendActionsWorkflowRunStatusEmail(ctx context.Context, sender *user_model.U
 			log.Error("GetUserSetting: %v", err)
 			return
 		}
-		if run.Status.IsSuccess() {
-			if notifyPref == user_model.EmailNotificationGiteaActionsAll {
-				recipients = append(recipients, sender)
-			}
-			sendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
-			return
-		} else if notifyPref != user_model.EmailNotificationGiteaActionsDisabled {
+		if notifyPref == user_model.EmailNotificationGiteaActionsAll || !run.Status.IsSuccess() && notifyPref != user_model.EmailNotificationGiteaActionsDisabled {
 			recipients = append(recipients, sender)
 		}
 	}
