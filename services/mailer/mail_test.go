@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/attachment"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
@@ -95,6 +96,13 @@ func prepareMailerBase64Test(t *testing.T) (doer *user_model.User, repo *repo_mo
 	return user, repo, issue, att1, att2
 }
 
+func prepareMailTemplates(name, subjectTmpl, bodyTmpl string) {
+	loadedTemplates.Store(&templates.MailTemplates{
+		SubjectTemplates: texttmpl.Must(texttmpl.New(name).Parse(subjectTmpl)),
+		BodyTemplates:    template.Must(template.New(name).Parse(bodyTmpl)),
+	})
+}
+
 func TestComposeIssueComment(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
 
@@ -107,8 +115,7 @@ func TestComposeIssueComment(t *testing.T) {
 	setting.IncomingEmail.Enabled = true
 	defer func() { setting.IncomingEmail.Enabled = false }()
 
-	subjectTemplates = texttmpl.Must(texttmpl.New("issue/comment").Parse(subjectTpl))
-	bodyTemplates = template.Must(template.New("issue/comment").Parse(bodyTpl))
+	prepareMailTemplates("issue/comment", subjectTpl, bodyTpl)
 
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
 	msgs, err := composeIssueCommentMessages(t.Context(), &mailComment{
@@ -153,8 +160,7 @@ func TestComposeIssueComment(t *testing.T) {
 func TestMailMentionsComment(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
 	comment.Poster = doer
-	subjectTemplates = texttmpl.Must(texttmpl.New("issue/comment").Parse(subjectTpl))
-	bodyTemplates = template.Must(template.New("issue/comment").Parse(bodyTpl))
+	prepareMailTemplates("issue/comment", subjectTpl, bodyTpl)
 	mails := 0
 
 	defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) {
@@ -169,9 +175,7 @@ func TestMailMentionsComment(t *testing.T) {
 func TestComposeIssueMessage(t *testing.T) {
 	doer, _, issue, _ := prepareMailerTest(t)
 
-	subjectTemplates = texttmpl.Must(texttmpl.New("issue/new").Parse(subjectTpl))
-	bodyTemplates = template.Must(template.New("issue/new").Parse(bodyTpl))
-
+	prepareMailTemplates("issue/new", subjectTpl, bodyTpl)
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
 	msgs, err := composeIssueCommentMessages(t.Context(), &mailComment{
 		Issue: issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
@@ -200,15 +204,14 @@ func TestTemplateSelection(t *testing.T) {
 	doer, repo, issue, comment := prepareMailerTest(t)
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
 
-	subjectTemplates = texttmpl.Must(texttmpl.New("issue/default").Parse("issue/default/subject"))
-	texttmpl.Must(subjectTemplates.New("issue/new").Parse("issue/new/subject"))
-	texttmpl.Must(subjectTemplates.New("pull/comment").Parse("pull/comment/subject"))
-	texttmpl.Must(subjectTemplates.New("issue/close").Parse("")) // Must default to fallback subject
+	prepareMailTemplates("issue/default", "issue/default/subject", "issue/default/body")
 
-	bodyTemplates = template.Must(template.New("issue/default").Parse("issue/default/body"))
-	template.Must(bodyTemplates.New("issue/new").Parse("issue/new/body"))
-	template.Must(bodyTemplates.New("pull/comment").Parse("pull/comment/body"))
-	template.Must(bodyTemplates.New("issue/close").Parse("issue/close/body"))
+	texttmpl.Must(LoadedTemplates().SubjectTemplates.New("issue/new").Parse("issue/new/subject"))
+	texttmpl.Must(LoadedTemplates().SubjectTemplates.New("pull/comment").Parse("pull/comment/subject"))
+	texttmpl.Must(LoadedTemplates().SubjectTemplates.New("issue/close").Parse("")) // Must default to a fallback subject
+	template.Must(LoadedTemplates().BodyTemplates.New("issue/new").Parse("issue/new/body"))
+	template.Must(LoadedTemplates().BodyTemplates.New("pull/comment").Parse("pull/comment/body"))
+	template.Must(LoadedTemplates().BodyTemplates.New("issue/close").Parse("issue/close/body"))
 
 	expect := func(t *testing.T, msg *sender_service.Message, expSubject, expBody string) {
 		subject := msg.ToMessage().GetGenHeader("Subject")
@@ -253,9 +256,7 @@ func TestTemplateServices(t *testing.T) {
 	expect := func(t *testing.T, issue *issues_model.Issue, comment *issues_model.Comment, doer *user_model.User,
 		actionType activities_model.ActionType, fromMention bool, tplSubject, tplBody, expSubject, expBody string,
 	) {
-		subjectTemplates = texttmpl.Must(texttmpl.New("issue/default").Parse(tplSubject))
-		bodyTemplates = template.Must(template.New("issue/default").Parse(tplBody))
-
+		prepareMailTemplates("issue/default", tplSubject, tplBody)
 		recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
 		msg := testComposeIssueCommentMessage(t, &mailComment{
 			Issue: issue, Doer: doer, ActionType: actionType,
@@ -512,8 +513,7 @@ func TestEmbedBase64Images(t *testing.T) {
 	att2ImgBase64 := fmt.Sprintf(`<img src="%s"/>`, att2Base64)
 
 	t.Run("ComposeMessage", func(t *testing.T) {
-		subjectTemplates = texttmpl.Must(texttmpl.New("issue/new").Parse(subjectTpl))
-		bodyTemplates = template.Must(template.New("issue/new").Parse(bodyTpl))
+		prepareMailTemplates("issue/new", subjectTpl, bodyTpl)
 
 		issue.Content = fmt.Sprintf(`MSG-BEFORE <image src="attachments/%s"> MSG-AFTER`, att1.UUID)
 		require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "content"))

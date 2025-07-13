@@ -38,7 +38,7 @@
 		</div>
 		{{end}}
 		{{$showGeneralMergeForm := false}}
-		<div class="ui attached segment merge-section {{if not $.LatestCommitStatus}}no-header{{end}} flex-items-block">
+		<div class="ui attached segment merge-section {{if not $.LatestCommitStatus}}avatar-content-left-arrow{{end}} flex-items-block">
 			{{if .Issue.PullRequest.HasMerged}}
 				{{if .IsPullBranchDeletable}}
 					<div class="item item-section text tw-flex-1">
