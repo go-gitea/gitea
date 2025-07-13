@@ -38,7 +38,7 @@
   --font-size-label: 12px; /* font size of individual labels */
 
   --gap-inline: 0.25rem; /* gap for inline texts and elements, for example: the spaces for sentence with labels, button text, etc */
-  --gap-block: 0.25rem; /* gap for element blocks, for example: spaces between buttons, menu image & title, header icon & title etc */
+  --gap-block: 0.5rem; /* gap for element blocks, for example: spaces between buttons, menu image & title, header icon & title etc */
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {
@@ -1069,7 +1069,9 @@ table th[data-sortt-desc] .svg {
 .btn,
 .ui.ui.button,
 .ui.ui.dropdown,
-.flex-text-inline {
+.flex-text-inline,
+.flex-text-inline > a,
+.flex-text-inline > span {
   display: inline-flex;
   align-items: center;
   gap: var(--gap-inline);

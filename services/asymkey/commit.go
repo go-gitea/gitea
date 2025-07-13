@@ -36,8 +36,9 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *asymkey_model
 }
 
 // ParseCommitWithSignatureCommitter parses a commit's GPG or SSH signature.
+// The caller guarantees that the committer user is related to the commit by checking its activated email addresses or no-reply address.
 // If the commit is singed by an instance key, then committer can be nil.
-// If the signature exists, even if committer is nil, the returned CommittingUser will be a non-nil fake user.
+// If the signature exists, even if committer is nil, the returned CommittingUser will be a non-nil fake user (e.g.: instance key)
 func ParseCommitWithSignatureCommitter(ctx context.Context, c *git.Commit, committer *user_model.User) *asymkey_model.CommitVerification {
 	// If no signature, just report the committer
 	if c.Signature == nil {
@@ -114,20 +115,11 @@ func parseCommitWithGPGSignature(ctx context.Context, c *git.Commit, committer *
 			}
 		}
 
-		committerEmailAddresses, _ := cache.GetWithContextCache(ctx, cachegroup.UserEmailAddresses, committer.ID, user_model.GetEmailAddresses)
-		activated := false
-		for _, e := range committerEmailAddresses {
-			if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
-				activated = true
-				break
-			}
-		}
-
 		for _, k := range keys {
 			// Pre-check (& optimization) that emails attached to key can be attached to the committer email and can validate
 			canValidate := false
 			email := ""
-			if k.Verified && activated {
+			if k.Verified {
 				canValidate = true
 				email = c.Committer.Email
 			}
@@ -217,8 +209,8 @@ func checkKeyEmails(ctx context.Context, email string, keys ...*asymkey_model.GP
 					return true, e.Email
 				}
 			}
-			if user.KeepEmailPrivate && strings.EqualFold(email, user.GetEmail()) {
-				return true, user.GetEmail()
+			if user != nil && strings.EqualFold(email, user.GetPlaceholderEmail()) {
+				return true, user.GetPlaceholderEmail()
 			}
 		}
 	}
@@ -388,21 +380,8 @@ func parseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committerUs
 			}
 		}
 
-		committerEmailAddresses, err := cache.GetWithContextCache(ctx, cachegroup.UserEmailAddresses, committerUser.ID, user_model.GetEmailAddresses)
-		if err != nil {
-			log.Error("GetEmailAddresses: %v", err)
-		}
-
-		activated := false
-		for _, e := range committerEmailAddresses {
-			if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
-				activated = true
-				break
-			}
-		}
-
 		for _, k := range keys {
-			if k.Verified && activated {
+			if k.Verified {
 				commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, k, committerUser, committerUser, c.Committer.Email)
 				if commitVerification != nil {
 					return commitVerification
