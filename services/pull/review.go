@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -111,14 +112,23 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		defer closer.Close()
 	}
 
-	if beforeCommitID == "" {
+	prCommitIDs, err := git.CommitIDsBetween(ctx, gitRepo.Path, beforeCommitID, afterCommitID)
+	if err != nil {
+		return nil, fmt.Errorf("CommitIDsBetween[%s, %s]: %w", beforeCommitID, afterCommitID, err)
+	}
+
+	if beforeCommitID == "" || beforeCommitID == issue.PullRequest.MergeBase {
 		beforeCommitID = issue.PullRequest.MergeBase
 	} else {
-		beforeCommit, err := gitRepo.GetCommit(beforeCommitID) // Ensure beforeCommitID is valid
+		// beforeCommitID must be one of the pull request commits
+		if !slices.Contains(prCommitIDs, beforeCommitID) {
+			return nil, fmt.Errorf("beforeCommitID[%s] is not a valid pull request commit", beforeCommitID)
+		}
+
+		beforeCommit, err := gitRepo.GetCommit(beforeCommitID)
 		if err != nil {
 			return nil, fmt.Errorf("GetCommit[%s]: %w", beforeCommitID, err)
 		}
-		// TODO: beforeCommitID must be one of the pull request commits
 
 		beforeCommit, err = beforeCommit.Parent(0)
 		if err != nil {
@@ -131,8 +141,11 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		if err != nil {
 			return nil, fmt.Errorf("GetRefCommitID[%s]: %w", issue.PullRequest.GetGitHeadRefName(), err)
 		}
-	} else { //nolint
-		// TODO: afterCommitID must be one of the pull request commits
+	} else {
+		// afterCommitID must be one of the pull request commits
+		if !slices.Contains(prCommitIDs, afterCommitID) {
+			return nil, fmt.Errorf("afterCommitID[%s] is not a valid pull request commit", afterCommitID)
+		}
 	}
 
 	// CreateCodeComment() is used for:

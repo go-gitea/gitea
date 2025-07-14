@@ -134,6 +134,8 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		return issues_model.DeleteComment(ctx, comment)
+		// TODO: delete review if the comment is the last comment of the review
+		// TODO: delete comment attachments
 	})
 	if err != nil {
 		return err

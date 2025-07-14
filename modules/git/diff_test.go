@@ -185,6 +185,12 @@ func TestParseDiffHunkString(t *testing.T) {
 	leftLine, leftHunk, rightLine, rightHunk = ParseDiffHunkString("@@ -1 +0,0 @@")
 	assert.Equal(t, 1, leftLine)
 	assert.Equal(t, 1, leftHunk)
-	assert.Equal(t, 0, rightLine)
+	assert.Equal(t, 1, rightLine)
 	assert.Equal(t, 0, rightHunk)
+
+	leftLine, leftHunk, rightLine, rightHunk = ParseDiffHunkString("@@ -2 +2 @@")
+	assert.Equal(t, 2, leftLine)
+	assert.Equal(t, 1, leftHunk)
+	assert.Equal(t, 2, rightLine)
+	assert.Equal(t, 1, rightHunk)
 }

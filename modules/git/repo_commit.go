@@ -6,6 +6,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"os"
 	"strconv"
@@ -304,23 +305,47 @@ func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (in
 
 // CommitsBetween returns a list that contains commits between [before, last).
 // If before is detached (removed by reset + push) it is not included.
-func (repo *Repository) CommitsBetween(last, before *Commit) ([]*Commit, error) {
+func (repo *Repository) CommitsBetween(lastCommitID, beforeCommitID string) ([]*Commit, error) {
+	commitIDs, err := CommitIDsBetween(repo.Ctx, repo.Path, beforeCommitID, lastCommitID)
+	if err != nil {
+		return nil, err
+	}
+
+	commits := make([]*Commit, 0, len(commitIDs))
+	for _, commitID := range commitIDs {
+		commit, err := repo.GetCommit(commitID)
+		if err != nil {
+			return nil, err
+		}
+		commits = append(commits, commit)
+	}
+	return commits, nil
+}
+
+func CommitIDsBetween(ctx context.Context, repoPath, beforeCommitID, afterCommitID string) ([]string, error) {
 	var stdout []byte
 	var err error
-	if before == nil {
-		stdout, _, err = NewCommand("rev-list").AddDynamicArguments(last.ID.String()).RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+	if beforeCommitID == "" {
+		stdout, _, err = NewCommand("rev-list").AddDynamicArguments(afterCommitID).RunStdBytes(ctx, &RunOpts{Dir: repoPath})
 	} else {
-		stdout, _, err = NewCommand("rev-list").AddDynamicArguments(before.ID.String()+".."+last.ID.String()).RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+		stdout, _, err = NewCommand("rev-list").AddDynamicArguments(beforeCommitID+".."+afterCommitID).RunStdBytes(ctx, &RunOpts{Dir: repoPath})
 		if err != nil && strings.Contains(err.Error(), "no merge base") {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 			// previously it would return the results of git rev-list before last so let's try that...
-			stdout, _, err = NewCommand("rev-list").AddDynamicArguments(before.ID.String(), last.ID.String()).RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+			stdout, _, err = NewCommand("rev-list").AddDynamicArguments(beforeCommitID, afterCommitID).RunStdBytes(ctx, &RunOpts{Dir: repoPath})
 		}
 	}
 	if err != nil {
 		return nil, err
 	}
-	return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
+
+	commitIDs := make([]string, 0, 10)
+	for commitID := range bytes.SplitSeq(stdout, []byte{'\n'}) {
+		if len(commitID) > 0 {
+			commitIDs = append(commitIDs, string(commitID))
+		}
+	}
+	return commitIDs, nil
 }
 
 // CommitsBetweenLimit returns a list that contains at most limit commits skipping the first skip commits between [before, last)
@@ -375,18 +400,17 @@ func (repo *Repository) CommitsBetweenNotBase(last, before *Commit, baseBranch s
 
 // CommitsBetweenIDs return commits between twoe commits
 func (repo *Repository) CommitsBetweenIDs(last, before string) ([]*Commit, error) {
-	lastCommit, err := repo.GetCommit(last)
+	_, err := repo.GetCommit(last)
 	if err != nil {
 		return nil, err
 	}
-	if before == "" {
-		return repo.CommitsBetween(lastCommit, nil)
+	if before != "" {
+		_, err := repo.GetCommit(before)
+		if err != nil {
+			return nil, err
+		}
 	}
-	beforeCommit, err := repo.GetCommit(before)
-	if err != nil {
-		return nil, err
-	}
-	return repo.CommitsBetween(lastCommit, beforeCommit)
+	return repo.CommitsBetween(last, before)
 }
 
 // CommitsCountBetween return numbers of commits between two commits

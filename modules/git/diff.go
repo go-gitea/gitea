@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // RawDiffType type of a raw diff.
@@ -109,7 +108,7 @@ func ParseDiffHunkString(diffHunk string) (leftLine, leftHunk, rightLine, rightH
 	if len(leftRange) > 1 {
 		leftHunk, _ = strconv.Atoi(leftRange[1])
 	} else {
-		leftHunk = util.Iif(leftLine > 0, leftLine, -leftLine)
+		leftHunk = 1
 	}
 	if len(ranges) > 1 {
 		rightRange := strings.Split(ranges[1], ",")
@@ -117,7 +116,7 @@ func ParseDiffHunkString(diffHunk string) (leftLine, leftHunk, rightLine, rightH
 		if len(rightRange) > 1 {
 			rightHunk, _ = strconv.Atoi(rightRange[1])
 		} else {
-			rightHunk = rightLine
+			rightHunk = 1
 		}
 	} else {
 		log.Debug("Parse line number failed: %v", diffHunk)
