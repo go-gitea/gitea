@@ -211,5 +211,5 @@ func (m *mailNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_m
 	if !run.Status.IsDone() {
 		return
 	}
-	SendActionsWorkflowRunStatusEmail(ctx, sender, repo, run)
+	MailActionsTrigger(ctx, sender, repo, run)
 }

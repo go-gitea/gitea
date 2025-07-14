@@ -33,7 +33,7 @@ func generateMessageIDForActionsWorkflowRunStatusEmail(repo *repo_model.Reposito
 	return fmt.Sprintf("<%s/actions/runs/%d@%s>", repo.FullName(), run.Index, setting.Domain)
 }
 
-func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, sender *user_model.User, recipients []*user_model.User) {
+func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, sender *user_model.User, recipients []*user_model.User) {
 	subject := "Run"
 	switch run.Status {
 	case actions_model.StatusFailure:
@@ -138,7 +138,7 @@ func sendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Rep
 	}
 }
 
-func SendActionsWorkflowRunStatusEmail(ctx context.Context, sender *user_model.User, repo *repo_model.Repository, run *actions_model.ActionRun) {
+func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo_model.Repository, run *actions_model.ActionRun) {
 	if setting.MailService == nil {
 		return
 	}
@@ -161,6 +161,6 @@ func SendActionsWorkflowRunStatusEmail(ctx context.Context, sender *user_model.U
 	}
 
 	if len(recipients) > 0 {
-		sendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
+		composeAndSendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
 	}
 }
