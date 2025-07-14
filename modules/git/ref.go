@@ -4,6 +4,7 @@
 package git
 
 import (
+	"context"
 	"regexp"
 	"strings"
 
@@ -219,4 +220,15 @@ func (ref RefName) RefWebLinkPath() string {
 		return ""
 	}
 	return string(refType) + "/" + util.PathEscapeSegments(ref.ShortName())
+}
+
+func UpdateRef(ctx context.Context, repoPath, refName, newCommitID string) error {
+	_, _, err := NewCommand("update-ref").AddDynamicArguments(refName, newCommitID).RunStdString(ctx, &RunOpts{Dir: repoPath})
+	return err
+}
+
+func RemoveRef(ctx context.Context, repoPath, refName string) error {
+	_, _, err := NewCommand("update-ref", "--no-deref", "-d").
+		AddDynamicArguments(refName).RunStdString(ctx, &RunOpts{Dir: repoPath})
+	return err
 }

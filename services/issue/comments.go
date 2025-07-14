@@ -13,8 +13,11 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -133,9 +136,47 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 // DeleteComment deletes the comment
 func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
 	err := db.WithTx(ctx, func(ctx context.Context) error {
-		return issues_model.DeleteComment(ctx, comment)
-		// TODO: delete review if the comment is the last comment of the review
-		// TODO: delete comment attachments
+		if err := comment.LoadAttachments(ctx); err != nil {
+			return err
+		}
+
+		if err := issues_model.DeleteComment(ctx, comment); err != nil {
+			return err
+		}
+
+		// delete comment attachments
+		if _, err := repo_model.DeleteAttachments(ctx, comment.Attachments, true); err != nil {
+			return fmt.Errorf("delete attachments: %w", err)
+		}
+
+		if comment.ReviewID > 0 {
+			if err := comment.LoadIssue(ctx); err != nil {
+				return err
+			}
+			if err := comment.Issue.LoadRepo(ctx); err != nil {
+				return err
+			}
+			if err := comment.Issue.LoadPullRequest(ctx); err != nil {
+				return err
+			}
+			if err := git.RemoveRef(ctx, comment.Issue.Repo.RepoPath(), issues_model.GetCodeCommentRef(comment.Issue.PullRequest.Index, comment.ID)); err != nil {
+				log.Error("Unable to remove ref in base repository for PR[%d] Error: %v", comment.Issue.PullRequest.ID, err)
+				// We should not return error here, because the comment has been removed from database.
+				// users have to delete this ref manually or we should have a synchronize between
+				// database comment table and git refs.
+			}
+		}
+
+		for _, attachment := range comment.Attachments {
+			if err := storage.Attachments.Delete(repo_model.AttachmentRelativePath(attachment.UUID)); err != nil {
+				// Even delete files failed, but the attachments has been removed from database, so we
+				// should not return error but only record the error on logs.
+				// users have to delete this attachments manually or we should have a
+				// synchronize between database attachment table and attachment storage
+				log.Error("delete attachment[uuid: %s] failed: %v", attachment.UUID, err)
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		return err

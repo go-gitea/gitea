@@ -200,7 +200,7 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 
 	// delete pull request related git data
 	if issue.IsPull && gitRepo != nil {
-		if err := gitRepo.RemoveReference(issue.PullRequest.GetGitHeadRefName()); err != nil {
+		if err := git.RemoveRef(ctx, gitRepo.Path, issue.PullRequest.GetGitHeadRefName()); err != nil {
 			return err
 		}
 	}
@@ -300,6 +300,8 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 	for i := range issue.Attachments {
 		attachmentPaths = append(attachmentPaths, issue.Attachments[i].RelativePath())
 	}
+
+	// TODO: deference all review comments
 
 	// delete all database data still assigned to this issue
 	if err := db.DeleteBeans(ctx,

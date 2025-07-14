@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -141,11 +142,8 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		if err != nil {
 			return nil, fmt.Errorf("GetRefCommitID[%s]: %w", issue.PullRequest.GetGitHeadRefName(), err)
 		}
-	} else {
-		// afterCommitID must be one of the pull request commits
-		if !slices.Contains(prCommitIDs, afterCommitID) {
-			return nil, fmt.Errorf("afterCommitID[%s] is not a valid pull request commit", afterCommitID)
-		}
+	} else if !slices.Contains(prCommitIDs, afterCommitID) { // afterCommitID must be one of the pull request commits
+		return nil, fmt.Errorf("afterCommitID[%s] is not a valid pull request commit", afterCommitID)
 	}
 
 	// CreateCodeComment() is used for:
@@ -279,22 +277,33 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	}
 
 	lineCommitID := util.Iif(line < 0, beforeCommitID, afterCommitID)
-	// TODO: the commit ID Must be referenced in the git repository, because the branch maybe rebased or force-pushed.
+	return db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
+		comment, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+			Type:        issues_model.CommentTypeCode,
+			Doer:        doer,
+			Repo:        repo,
+			Issue:       issue,
+			Content:     content,
+			LineNum:     line,
+			TreePath:    treePath,
+			CommitSHA:   lineCommitID,
+			ReviewID:    reviewID,
+			Patch:       patch,
+			Invalidated: false,
+			Attachments: attachments,
+		})
+		if err != nil {
+			return nil, err
+		}
 
-	// If the commit ID is not referenced, it cannot be calculated the position dynamically.
-	return issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
-		Type:        issues_model.CommentTypeCode,
-		Doer:        doer,
-		Repo:        repo,
-		Issue:       issue,
-		Content:     content,
-		LineNum:     line,
-		TreePath:    treePath,
-		CommitSHA:   lineCommitID,
-		ReviewID:    reviewID,
-		Patch:       patch,
-		Invalidated: false,
-		Attachments: attachments,
+		// The line commit ID Must be referenced in the git repository, because the branch maybe rebased or force-pushed.
+		// If the review commit is GC, the position will not be calculated dynamically.
+		if err := git.UpdateRef(ctx, pr.BaseRepo.RepoPath(), issues_model.GetCodeCommentRef(pr.Index, comment.ID), lineCommitID); err != nil {
+			log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
+			return nil, err
+		}
+
+		return comment, nil
 	})
 }
 

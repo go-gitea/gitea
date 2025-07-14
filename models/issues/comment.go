@@ -764,6 +764,10 @@ func (c *Comment) CodeCommentLink(ctx context.Context) string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
 }
 
+func GetCodeCommentRef(prIndex, commentID int64) string {
+	return fmt.Sprintf("refs/pull/%d/code-comment-%d", prIndex, commentID)
+}
+
 // CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
 	ctx, committer, err := db.TxContext(ctx)
@@ -1149,6 +1153,15 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 			"is_deleted": true,
 		}); err != nil {
 		return err
+	}
+
+	// delete review if the comment is the last comment of the review
+	if comment.ReviewID > 0 {
+		if _, err := db.GetEngine(ctx).ID(comment.ReviewID).
+			Where("(SELECT count(id) FROM comment WHERE review_id = ?) == 0", comment.ReviewID).
+			Delete(new(Review)); err != nil {
+			return err
+		}
 	}
 
 	if err := comment.neuterCrossReferences(ctx); err != nil {

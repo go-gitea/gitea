@@ -190,7 +190,7 @@ func GetPullDiffStats(ctx *context.Context) {
 	}
 	pull := issue.PullRequest
 
-	mergeBaseCommitID := GetMergedBaseCommitID(ctx, issue)
+	mergeBaseCommitID := GetMergedBaseCommitID(ctx, pull)
 	if mergeBaseCommitID == "" {
 		return // no merge base, do nothing, do not stop the route handler, see below
 	}
@@ -210,48 +210,46 @@ func GetPullDiffStats(ctx *context.Context) {
 	ctx.Data["DiffShortStat"] = diffShortStat
 }
 
-func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) string {
-	pull := issue.PullRequest
+func calcMergeBase(ctx *context.Context, pull *issues_model.PullRequest) string {
+	var commitSHA, parentCommit string
+	// If there is a head or a patch file, and it is readable, grab info
+	commitSHA, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+	if err != nil {
+		// Head File does not exist, try the patch
+		// FIXME: it seems this patch file is not used in the code, but it is still read
+		commitSHA, err = ctx.Repo.GitRepo.ReadPatchCommit(pull.Index)
+		if err == nil {
+			// Recreate pull head in files for next time
+			if err := git.UpdateRef(ctx, ctx.Repo.GitRepo.Path, pull.GetGitHeadRefName(), commitSHA); err != nil {
+				log.Error("Could not write head file", err)
+			}
+		} else {
+			// There is no history available
+			log.Trace("No history file available for PR %d", pull.Index)
+		}
+	}
+	if commitSHA != "" {
+		// Get immediate parent of the first commit in the patch, grab history back
+		parentCommit, _, err = git.NewCommand("rev-list", "-1", "--skip=1").AddDynamicArguments(commitSHA).RunStdString(ctx, &git.RunOpts{Dir: ctx.Repo.GitRepo.Path})
+		if err == nil {
+			parentCommit = strings.TrimSpace(parentCommit)
+		}
+		// Special case on Git < 2.25 that doesn't fail on immediate empty history
+		if err != nil || parentCommit == "" {
+			log.Info("No known parent commit for PR %d, error: %v", pull.Index, err)
+			// bring at least partial history if it can work
+			parentCommit = commitSHA
+		}
+	}
+	return parentCommit
+}
 
-	var baseCommit string
-	// Some migrated PR won't have any Base SHA and lose history, try to get one
-	if pull.MergeBase == "" {
-		var commitSHA, parentCommit string
-		// If there is a head or a patch file, and it is readable, grab info
-		commitSHA, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
-		if err != nil {
-			// Head File does not exist, try the patch
-			commitSHA, err = ctx.Repo.GitRepo.ReadPatchCommit(pull.Index)
-			if err == nil {
-				// Recreate pull head in files for next time
-				if err := ctx.Repo.GitRepo.SetReference(pull.GetGitHeadRefName(), commitSHA); err != nil {
-					log.Error("Could not write head file", err)
-				}
-			} else {
-				// There is no history available
-				log.Trace("No history file available for PR %d", pull.Index)
-			}
-		}
-		if commitSHA != "" {
-			// Get immediate parent of the first commit in the patch, grab history back
-			parentCommit, _, err = git.NewCommand("rev-list", "-1", "--skip=1").AddDynamicArguments(commitSHA).RunStdString(ctx, &git.RunOpts{Dir: ctx.Repo.GitRepo.Path})
-			if err == nil {
-				parentCommit = strings.TrimSpace(parentCommit)
-			}
-			// Special case on Git < 2.25 that doesn't fail on immediate empty history
-			if err != nil || parentCommit == "" {
-				log.Info("No known parent commit for PR %d, error: %v", pull.Index, err)
-				// bring at least partial history if it can work
-				parentCommit = commitSHA
-			}
-		}
-		baseCommit = parentCommit
-	} else {
-		// Keep an empty history or original commit
-		baseCommit = pull.MergeBase
+func GetMergedBaseCommitID(ctx *context.Context, pull *issues_model.PullRequest) string {
+	if pull.MergeBase != "" {
+		return pull.MergeBase
 	}
 
-	return baseCommit
+	return calcMergeBase(ctx, pull)
 }
 
 func preparePullViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
@@ -271,7 +269,13 @@ func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 	setMergeTarget(ctx, pull)
 	ctx.Data["HasMerged"] = true
 
-	baseCommit := GetMergedBaseCommitID(ctx, issue)
+	baseCommit := GetMergedBaseCommitID(ctx, pull)
+	if baseCommit == "" {
+		ctx.Data["BaseTarget"] = pull.BaseBranch
+		ctx.Data["NumCommits"] = 0
+		ctx.Data["NumFiles"] = 0
+		return nil // no merge base, do nothing
+	}
 
 	compareInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
 		baseCommit, pull.GetGitHeadRefName(), false, false)
