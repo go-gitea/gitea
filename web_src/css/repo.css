@@ -334,7 +334,7 @@ td .commit-summary {
   display: flex;
   gap: 0.5em;
   margin-bottom: 8px;
-  min-height: 40px; /* avoid layout shift on edit */
+  min-height: 36px; /* avoid layout shift on edit */
 }
 
 .repository.view.issue .issue-title h1 {
@@ -346,10 +346,6 @@ td .commit-summary {
   margin: 0;
   padding-right: 0.25rem;
   overflow-wrap: anywhere;
-}
-
-.repository.view.issue .issue-title#issue-title-editor {
-  padding-top: 4px;
 }
 
 @media (max-width: 767.98px) {
