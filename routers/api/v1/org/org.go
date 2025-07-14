@@ -391,7 +391,7 @@ func Edit(ctx *context.APIContext) {
 		Description:               optional.Some(form.Description),
 		Website:                   optional.Some(form.Website),
 		Location:                  optional.Some(form.Location),
-		Visibility:                optional.FromNonDefault(api.VisibilityModes[form.Visibility]),
+		Visibility:                optional.FromMapLookup(api.VisibilityModes, form.Visibility),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {

@@ -9,5 +9,15 @@ import {onDomReady} from './utils/dom.ts';
 import 'htmx.org';
 
 onDomReady(async () => {
-  await import(/* webpackChunkName: "index-domready" */'./index-domready.ts');
+  // when navigate before the import complete, there will be an error from webpack chunk loader:
+  // JavaScript promise rejection: Loading chunk index-domready failed.
+  try {
+    await import(/* webpackChunkName: "index-domready" */'./index-domready.ts');
+  } catch (e) {
+    if (e.name === 'ChunkLoadError') {
+      console.error('Error loading index-domready:', e);
+    } else {
+      throw e;
+    }
+  }
 });

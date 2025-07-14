@@ -35,6 +35,7 @@ import (
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/services/automerge"
+	"code.gitea.io/gitea/services/automergequeue"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
@@ -727,7 +728,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 
 		// add protected branch for commit status
 		csrf := GetUserCSRFToken(t, session)
-		// Change master branch to protected
+		// Change the "master" branch to "protected"
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
 			"_csrf":                 csrf,
 			"rule_name":             "master",
@@ -737,10 +738,22 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
+		oldAutoMergeAddToQueue := automergequeue.AddToQueue
+		addToQueueShaChan := make(chan string, 1)
+		automergequeue.AddToQueue = func(pr *issues_model.PullRequest, sha string) {
+			addToQueueShaChan <- sha
+		}
 		// first time insert automerge record, return true
 		scheduled, err := automerge.ScheduleAutoMerge(db.DefaultContext, user1, pr, repo_model.MergeStyleMerge, "auto merge test", false)
 		assert.NoError(t, err)
 		assert.True(t, scheduled)
+		// and the pr should be added to automergequeue, in case it is already "mergeable"
+		select {
+		case <-addToQueueShaChan:
+		case <-time.After(time.Second):
+			assert.FailNow(t, "Timeout: nothing was added to automergequeue")
+		}
+		automergequeue.AddToQueue = oldAutoMergeAddToQueue
 
 		// second time insert automerge record, return false because it does exist
 		scheduled, err = automerge.ScheduleAutoMerge(db.DefaultContext, user1, pr, repo_model.MergeStyleMerge, "auto merge test", false)
@@ -775,13 +788,11 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		time.Sleep(2 * time.Second)
-
-		// realod pr again
-		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
-		assert.True(t, pr.HasMerged)
+		assert.Eventually(t, func() bool {
+			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+			return pr.HasMerged
+		}, 2*time.Second, 100*time.Millisecond)
 		assert.NotEmpty(t, pr.MergedCommitID)
-
 		unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 	})
 }

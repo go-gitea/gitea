@@ -37,6 +37,14 @@ type PackageVersion struct {
 	DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 }
 
+// IsPrerelease checks if the version is a prerelease version according to semantic versioning
+func (pv *PackageVersion) IsPrerelease() bool {
+	if pv == nil || pv.Version == "" {
+		return false
+	}
+	return strings.Contains(pv.Version, "-")
+}
+
 // GetOrInsertVersion inserts a version. If the same version exist already ErrDuplicatePackageVersion is returned
 func GetOrInsertVersion(ctx context.Context, pv *PackageVersion) (*PackageVersion, error) {
 	e := db.GetEngine(ctx)

@@ -56,10 +56,6 @@
   min-width: 0;
 }
 
-.ui.comments .comment > .avatar ~ .content {
-  margin-left: 12px;
-}
-
 .ui.comments .comment .author {
   font-size: 1em;
   font-weight: var(--font-weight-medium);

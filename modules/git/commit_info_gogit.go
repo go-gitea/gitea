@@ -16,7 +16,7 @@ import (
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
+func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
@@ -71,22 +71,12 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 			commitsInfo[i].Commit = entryCommit
 		}
 
-		// If the entry is a submodule add a submodule file for this
+		// If the entry is a submodule, add a submodule file for this
 		if entry.IsSubModule() {
-			subModuleURL := ""
-			var fullPath string
-			if len(treePath) > 0 {
-				fullPath = treePath + "/" + entry.Name()
-			} else {
-				fullPath = entry.Name()
-			}
-			if subModule, err := commit.GetSubModule(fullPath); err != nil {
+			commitsInfo[i].SubmoduleFile, err = getCommitInfoSubmoduleFile(repoLink, entry, commit, treePath)
+			if err != nil {
 				return nil, nil, err
-			} else if subModule != nil {
-				subModuleURL = subModule.URL
 			}
-			subModuleFile := NewCommitSubmoduleFile(subModuleURL, entry.ID.String())
-			commitsInfo[i].SubmoduleFile = subModuleFile
 		}
 	}
 
