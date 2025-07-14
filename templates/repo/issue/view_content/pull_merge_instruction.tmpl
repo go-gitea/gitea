@@ -7,7 +7,7 @@
 		{{if ne .PullRequest.HeadRepo.ID .PullRequest.BaseRepo.ID}}
 			{{$localBranch = print .PullRequest.HeadRepo.OwnerName "-" .PullRequest.HeadBranch}}
 		{{end}}
-		<div class="ui secondary segment">
+		<div class="ui secondary segment tw-font-mono">
 			{{if eq .PullRequest.Flow 0}}
 			<div>git fetch -u {{if ne .PullRequest.HeadRepo.ID .PullRequest.BaseRepo.ID}}<origin-url data-url="{{.PullRequest.HeadRepo.Link}}"></origin-url>{{else}}origin{{end}} {{.PullRequest.HeadBranch}}:{{$localBranch}}</div>
 			{{else}}
@@ -23,7 +23,7 @@
 				<div>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_warning"}}</div>
 			{{end}}
 		</div>
-		<div class="ui secondary segment">
+		<div class="ui secondary segment tw-font-mono">
 			<div data-pull-merge-style="merge">
 				<div>git checkout {{.PullRequest.BaseBranch}}</div>
 				<div>git merge --no-ff {{$localBranch}}</div>
