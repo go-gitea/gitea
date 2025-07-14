@@ -13,7 +13,7 @@
 				</a>
 				{{end}}
 				<div class="content comment-container">
-					<div class="comment-header" role="heading" aria-level="3">
+					<div class="comment-header avatar-content-left-arrow" role="heading" aria-level="3">
 						<div class="comment-header-left">
 							{{if .Issue.OriginalAuthor}}
 								<span class="text black tw-font-semibold">
@@ -78,7 +78,7 @@
 						{{ctx.AvatarUtils.Avatar .SignedUser 40}}
 					</a>
 					<div class="content">
-						<div class="ui segment">
+						<div class="ui segment avatar-content-left-arrow">
 							<form class="ui form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
 								{{template "repo/issue/comment_tab" .}}
 								{{.CsrfTokenHtml}}
