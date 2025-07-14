@@ -43,6 +43,10 @@
   white-space: nowrap;
 }
 
+.admin .table>tbody>tr:hover {
+  background-color: var(--color-hover)!important;
+}
+
 .admin-responsive-columns {
   display: flex;
   flex-wrap: wrap;
