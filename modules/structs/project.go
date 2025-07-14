@@ -5,37 +5,53 @@ package structs
 
 import "time"
 
+// NewProjectOption options when creating a new project
 // swagger:model
-type NewProjectPayload struct {
+type NewProjectOption struct {
 	// required:true
-	Title string `json:"title"       binding:"Required"`
+	// Keep compatibility with Github API to use "name" instead of "title"
+	Name string `json:"name" binding:"Required"`
 	// required:true
-	BoardType uint8 `json:"board_type"`
+	// enum: , BasicKanban, BugTriage
+	// Note: this is the same as TemplateType in models/project/template.go
+	TemplateType string `json:"template_type"`
 	// required:true
-	CardType    uint8  `json:"card_type"`
-	Description string `json:"description"`
+	// enum: TextOnly, ImagesAndText
+	CardType string `json:"card_type"`
+	// Keep compatibility with Github API to use "body" instead of "description"
+	Body string `json:"body"`
 }
 
+// UpdateProjectOption options when updating a project
 // swagger:model
-type UpdateProjectPayload struct {
+type UpdateProjectOption struct {
 	// required:true
-	Title       string `json:"title"       binding:"Required"`
-	Description string `json:"description"`
+	// Keep compatibility with Github API to use "name" instead of "title"
+	Name string `json:"name" binding:"Required"`
+	// Keep compatibility with Github API to use "body" instead of "description"
+	Body string `json:"body"`
 }
 
+// Project represents a project
 // swagger:model
 type Project struct {
-	ID           int64  `json:"id"`
-	Title        string `json:"title"`
-	Description  string `json:"description"`
-	TemplateType uint8  `json:"board_type"`
-	IsClosed     bool   `json:"is_closed"`
+	ID int64 `json:"id"`
+	// Keep compatibility with Github API to use "name" instead of "title"
+	Name string `json:"name"`
+	// Keep compatibility with Github API to use "body" instead of "description"
+	Body string `json:"body"`
+	// required:true
+	// enum: , BasicKanban, BugTriage
+	// Note: this is the same as TemplateType in models/project/template.go
+	TemplateType string `json:"template_type"`
+	// enum: open, closed
+	State string `json:"state"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
 	Updated time.Time `json:"updated_at"`
 	// swagger:strfmt date-time
-	Closed time.Time `json:"closed_at"`
+	Closed *time.Time `json:"closed_at"`
 
 	Repo    *RepositoryMeta `json:"repository"`
 	Creator *User           `json:"creator"`
