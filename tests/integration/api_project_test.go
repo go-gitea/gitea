@@ -105,7 +105,7 @@ func TestAPIListOrgProjects(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	orgName := "org17"
-	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadIssue)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopeReadProject)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/orgs/%s/projects", orgName))
 
 	req := NewRequest(t, "GET", link.String()).AddTokenAuth(token)
