@@ -342,7 +342,7 @@ td .commit-summary {
   width: 100%;
   font-weight: var(--font-weight-normal);
   font-size: 32px;
-  line-height: 36px; /* vertically center text with .issue-title-buttons */
+  line-height: 36px; /* vertically center single-line text with .issue-title-buttons */
   margin: 0;
   padding-right: 0.25rem;
   overflow-wrap: anywhere;
