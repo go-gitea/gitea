@@ -342,14 +342,10 @@ td .commit-summary {
   width: 100%;
   font-weight: var(--font-weight-normal);
   font-size: 32px;
-  line-height: 40px;
+  line-height: 36px; /* vertically center text with the .issue-title-buttons. */
   margin: 0;
   padding-right: 0.25rem;
   overflow-wrap: anywhere;
-}
-
-.repository.view.issue .issue-title#issue-title-display .issue-title-buttons {
-  margin-top: 4px; /* the title's height is 40px, fine tune to align the buttons */
 }
 
 .repository.view.issue .issue-title#issue-title-editor {
