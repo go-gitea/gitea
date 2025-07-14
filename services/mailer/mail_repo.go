@@ -78,7 +78,7 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		"Destination": destination,
 	}
 
-	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
 		return err
 	}
 

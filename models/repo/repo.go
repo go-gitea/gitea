@@ -652,7 +652,13 @@ func (repo *Repository) AllowsPulls(ctx context.Context) bool {
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
+// FIXME: most CanEnableEditor calls should be replaced with CanContentChange
+// And all other like CanCreateBranch / CanEnablePulls should also be updated
 func (repo *Repository) CanEnableEditor() bool {
+	return repo.CanContentChange()
+}
+
+func (repo *Repository) CanContentChange() bool {
 	return !repo.IsMirror && !repo.IsArchived
 }
 

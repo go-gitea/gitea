@@ -329,6 +329,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		"twofaUid",
 		"twofaRemember",
 		"linkAccount",
+		"linkAccountData",
 	}, map[string]any{
 		session.KeyUID:                  u.ID,
 		session.KeyUname:                u.Name,
@@ -519,7 +520,7 @@ func SignUpPost(ctx *context.Context) {
 		Passwd: form.Password,
 	}
 
-	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, nil, false) {
+	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, nil) {
 		// error already handled
 		return
 	}
@@ -530,22 +531,22 @@ func SignUpPost(ctx *context.Context) {
 
 // createAndHandleCreatedUser calls createUserInContext and
 // then handleUserCreated.
-func createAndHandleCreatedUser(ctx *context.Context, tpl templates.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) bool {
-	if !createUserInContext(ctx, tpl, form, u, overwrites, gothUser, allowLink) {
+func createAndHandleCreatedUser(ctx *context.Context, tpl templates.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, possibleLinkAccountData *LinkAccountData) bool {
+	if !createUserInContext(ctx, tpl, form, u, overwrites, possibleLinkAccountData) {
 		return false
 	}
-	return handleUserCreated(ctx, u, gothUser)
+	return handleUserCreated(ctx, u, possibleLinkAccountData)
 }
 
 // createUserInContext creates a user and handles errors within a given context.
-// Optionally a template can be specified.
-func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) (ok bool) {
+// Optionally, a template can be specified.
+func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, possibleLinkAccountData *LinkAccountData) (ok bool) {
 	meta := &user_model.Meta{
 		InitialIP:        ctx.RemoteAddr(),
 		InitialUserAgent: ctx.Req.UserAgent(),
 	}
 	if err := user_model.CreateUser(ctx, u, meta, overwrites); err != nil {
-		if allowLink && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
+		if possibleLinkAccountData != nil && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			switch setting.OAuth2Client.AccountLinking {
 			case setting.OAuth2AccountLinkingAuto:
 				var user *user_model.User
@@ -561,15 +562,15 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 				}
 
 				// TODO: probably we should respect 'remember' user's choice...
-				linkAccount(ctx, user, *gothUser, true)
+				oauth2LinkAccount(ctx, user, possibleLinkAccountData, true)
 				return false // user is already created here, all redirects are handled
 			case setting.OAuth2AccountLinkingLogin:
-				showLinkingLogin(ctx, *gothUser)
+				showLinkingLogin(ctx, &possibleLinkAccountData.AuthSource, possibleLinkAccountData.GothUser)
 				return false // user will be created only after linking login
 			}
 		}
 
-		// handle error without template
+		// handle error without a template
 		if len(tpl) == 0 {
 			ctx.ServerError("CreateUser", err)
 			return false
@@ -610,7 +611,7 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 // handleUserCreated does additional steps after a new user is created.
 // It auto-sets admin for the only user, updates the optional external user and
 // sends a confirmation email if required.
-func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.User) (ok bool) {
+func handleUserCreated(ctx *context.Context, u *user_model.User, possibleLinkAccountData *LinkAccountData) (ok bool) {
 	// Auto-set admin for the only user.
 	hasUsers, err := user_model.HasUsers(ctx)
 	if err != nil {
@@ -631,8 +632,8 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 	}
 
 	// update external user information
-	if gothUser != nil {
-		if err := externalaccount.EnsureLinkExternalToUser(ctx, u, *gothUser); err != nil {
+	if possibleLinkAccountData != nil {
+		if err := externalaccount.EnsureLinkExternalToUser(ctx, possibleLinkAccountData.AuthSource.ID, u, possibleLinkAccountData.GothUser); err != nil {
 			log.Error("EnsureLinkExternalToUser failed: %v", err)
 		}
 	}
