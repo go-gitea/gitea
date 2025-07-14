@@ -30,18 +30,12 @@ func Notifications(ctx *context.Context) {
 	ctx.Data["PageIsSettingsNotifications"] = true
 	ctx.Data["EmailNotificationsPreference"] = ctx.Doer.EmailNotificationsPreference
 
-	fineGrainedPreference, err := user_model.GetSettings(ctx, ctx.Doer.ID, []string{
-		user_model.SettingsEmailNotificationGiteaActions,
-	})
+	actionsEmailPref, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsEmailNotificationGiteaActions, user_model.EmailNotificationGiteaActionsFailureOnly)
 	if err != nil {
-		ctx.ServerError("GetUserNotificationSettings", err)
+		ctx.ServerError("GetUserSetting", err)
 		return
 	}
-	actionsNotify := fineGrainedPreference[user_model.SettingsEmailNotificationGiteaActions].SettingValue
-	if actionsNotify == "" {
-		actionsNotify = user_model.EmailNotificationGiteaActionsFailureOnly
-	}
-	ctx.Data["ActionsEmailNotificationsPreference"] = actionsNotify
+	ctx.Data["ActionsEmailNotificationsPreference"] = actionsEmailPref
 
 	ctx.HTML(http.StatusOK, tplSettingsNotifications)
 }
