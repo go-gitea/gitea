@@ -301,12 +301,14 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 		attachmentPaths = append(attachmentPaths, issue.Attachments[i].RelativePath())
 	}
 
-	// TODO: deference all review comments
+	// deference all review comments
+	if err := issue.LoadComments(ctx); err != nil {
+		return nil, err
+	}
 
 	// delete all database data still assigned to this issue
 	if err := db.DeleteBeans(ctx,
 		&issues_model.ContentHistory{IssueID: issue.ID},
-		&issues_model.Comment{IssueID: issue.ID},
 		&issues_model.IssueLabel{IssueID: issue.ID},
 		&issues_model.IssueDependency{IssueID: issue.ID},
 		&issues_model.IssueAssignees{IssueID: issue.ID},
@@ -325,6 +327,41 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 		&issues_model.IssuePin{IssueID: issue.ID},
 	); err != nil {
 		return nil, err
+	}
+
+	for _, comment := range issue.Comments {
+		if err := issues_model.DeleteComment(ctx, comment); err != nil {
+			return nil, err
+		}
+
+		if comment.ReviewID > 0 {
+			if err := comment.LoadIssue(ctx); err != nil {
+				return nil, err
+			}
+			if err := comment.Issue.LoadRepo(ctx); err != nil {
+				return nil, err
+			}
+			if err := comment.Issue.LoadPullRequest(ctx); err != nil {
+				return nil, err
+			}
+			if err := git.RemoveRef(ctx, comment.Issue.Repo.RepoPath(), issues_model.GetCodeCommentRef(comment.Issue.PullRequest.Index, comment.ID)); err != nil {
+				log.Error("Unable to remove ref in base repository for PR[%d] Error: %v", comment.Issue.PullRequest.ID, err)
+				// We should not return error here, because the comment has been removed from database.
+				// users have to delete this ref manually or we should have a synchronize between
+				// database comment table and git refs.
+			}
+		}
+
+		// delete all attachments related to this comment
+		for _, attachment := range comment.Attachments {
+			if err := storage.Attachments.Delete(repo_model.AttachmentRelativePath(attachment.UUID)); err != nil {
+				// Even delete files failed, but the attachments has been removed from database, so we
+				// should not return error but only record the error on logs.
+				// users have to delete this attachments manually or we should have a
+				// synchronize between database attachment table and attachment storage
+				log.Error("delete attachment[uuid: %s] failed: %v", attachment.UUID, err)
+			}
+		}
 	}
 
 	if err := committer.Commit(); err != nil {
