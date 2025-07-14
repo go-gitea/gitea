@@ -1,0 +1,34 @@
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings")}}
+	<div class="user-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "notifications"}}
+		</h4>
+		<div class="ui attached segment">
+			<div class="ui list flex-items-block">
+				<div class="item">
+					<form class="ui form tw-w-full" action="{{AppSubUrl}}/user/settings/notifications/email" method="post">
+						{{$.CsrfTokenHtml}}
+						<div class="field">
+							<label>{{ctx.Locale.Tr "settings.email_desc"}}</label>
+							<div class="ui selection dropdown">
+								<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="text"></div>
+								<div class="menu">
+									<div data-value="enabled" class="{{if eq .EmailNotificationsPreference "enabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.enable"}}</div>
+									<div data-value="andyourown" class="{{if eq .EmailNotificationsPreference "andyourown"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.andyourown"}}</div>
+									<div data-value="onmention" class="{{if eq .EmailNotificationsPreference "onmention"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.onmention"}}</div>
+									<div data-value="disabled" class="{{if eq .EmailNotificationsPreference "disabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.disable"}}</div>
+								</div>
+							</div>
+						</div>
+						<div class="field">
+							<button class="ui primary button">{{ctx.Locale.Tr "settings.email_notifications.submit"}}</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+
+{{template "user/settings/layout_footer" .}}
