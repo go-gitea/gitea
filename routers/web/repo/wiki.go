@@ -6,7 +6,6 @@ package repo
 
 import (
 	"bytes"
-	gocontext "context"
 	"io"
 	"net/http"
 	"net/url"
@@ -666,7 +665,7 @@ func WikiPages(ctx *context.Context) {
 	}
 	allEntries.CustomSort(base.NaturalSortLess)
 
-	entries, _, err := allEntries.GetCommitsInfo(gocontext.Context(ctx), commit, treePath)
+	entries, _, err := allEntries.GetCommitsInfo(ctx, ctx.Repo.RepoLink, commit, treePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return
