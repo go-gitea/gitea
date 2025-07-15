@@ -80,8 +80,6 @@ func RegenerateMirrorSSHKey(ctx *context.APIContext) {
 	//           type: string
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	//   "500":
-	//     "$ref": "#/responses/internalServerError"
 
 	keypair, err := mirror_service.RegenerateSSHKeypairForOrg(ctx, ctx.Org.Organization.ID)
 	if err != nil {

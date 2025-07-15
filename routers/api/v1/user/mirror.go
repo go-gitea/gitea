@@ -64,8 +64,6 @@ func RegenerateMirrorSSHKey(ctx *context.APIContext) {
 	//           type: string
 	//         fingerprint:
 	//           type: string
-	//   "500":
-	//     "$ref": "#/responses/internalServerError"
 
 	keypair, err := mirror_service.RegenerateSSHKeypairForUser(ctx, ctx.Doer.ID)
 	if err != nil {
