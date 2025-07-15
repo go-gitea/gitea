@@ -4,7 +4,7 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/1.24.3) - 2025-07-12
+## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/1.24.3) - 2025-07-15
 
 * BUGFIXES
   * Fix form property assignment edge case (#35073) (#35078)
