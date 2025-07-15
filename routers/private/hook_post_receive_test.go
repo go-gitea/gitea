@@ -37,13 +37,14 @@ func TestHandlePullRequestMerging(t *testing.T) {
 		PullRequestID: pr.ID,
 		UserID:        2,
 	}, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, []*repo_module.PushUpdateOptions{
-		{NewCommitID: "01234567"},
+		// assume the first commit is merged from this pull request but it's not a real world scenario
+		{NewCommitID: "65f1bf27bc3bf70f64657658635e66094edbcb4d"},
 	})
 	assert.Empty(t, resp.Body.String())
 	pr, err = issues_model.GetPullRequestByID(db.DefaultContext, pr.ID)
 	assert.NoError(t, err)
 	assert.True(t, pr.HasMerged)
-	assert.Equal(t, "01234567", pr.MergedCommitID)
+	assert.Equal(t, "65f1bf27bc3bf70f64657658635e66094edbcb4d", pr.MergedCommitID)
 
 	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{ID: autoMerge.ID})
 }

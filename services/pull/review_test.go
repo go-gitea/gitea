@@ -82,12 +82,12 @@ func TestDiff_LoadCommentsNoOutdated(t *testing.T) {
 	gitRepo, err := gitrepo.OpenRepository(t.Context(), issue.Repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
-	startCommit, err := gitRepo.GetCommit(issue.PullRequest.MergeBase)
+	beforeCommit, err := gitRepo.GetCommit(issue.PullRequest.MergeBase)
 	assert.NoError(t, err)
-	endCommit, err := gitRepo.GetCommit(issue.PullRequest.GetGitHeadRefName())
+	afterCommit, err := gitRepo.GetCommit(issue.PullRequest.GetGitHeadRefName())
 	assert.NoError(t, err)
 
-	assert.NoError(t, pull_service.LoadCodeComments(db.DefaultContext, gitRepo, issue.Repo, diff, issue.ID, user, startCommit, endCommit, false))
+	assert.NoError(t, pull_service.LoadCodeComments(db.DefaultContext, gitRepo, issue.Repo, diff, issue.ID, user, beforeCommit, afterCommit, false))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
 }
 

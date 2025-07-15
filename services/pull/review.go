@@ -593,8 +593,11 @@ func FetchCodeCommentsByLine(ctx context.Context, gitRepo *git.Repository, repo 
 
 // LoadCodeComments loads comments into each line, so that the comments can be displayed in the diff view.
 // the comments' line number is recalculated based on the hunks of the diff.
-func LoadCodeComments(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, diff *gitdiff.Diff, issueID int64, currentUser *user_model.User, startCommit, endCommit *git.Commit, showOutdatedComments bool) error {
-	if startCommit == nil || endCommit == nil {
+func LoadCodeComments(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository,
+	diff *gitdiff.Diff, issueID int64, currentUser *user_model.User,
+	beforeCommit, afterCommit *git.Commit, showOutdatedComments bool,
+) error {
+	if beforeCommit == nil || afterCommit == nil {
 		return errors.New("startCommit and endCommit cannot be nil")
 	}
 
@@ -609,9 +612,20 @@ func LoadCodeComments(ctx context.Context, gitRepo *git.Repository, repo *repo_m
 			hunksCache := make(map[string][]*git.HunkInfo)
 			// filecomments should be sorted by created time, so that the latest comments are at the end
 			for _, comment := range fileComments {
-				dstCommitID := startCommit.ID.String()
+				if comment.CommitSHA == "" {
+					if comment.Line > 0 {
+						comment.CommitSHA = afterCommit.ID.String()
+					} else if comment.Line < 0 {
+						comment.CommitSHA = beforeCommit.ID.String()
+					} else {
+						// If the comment has no line number, we cannot display it in the diff view
+						continue
+					}
+				}
+
+				dstCommitID := beforeCommit.ID.String()
 				if comment.Line > 0 {
-					dstCommitID = endCommit.ID.String()
+					dstCommitID = afterCommit.ID.String()
 				}
 
 				if comment.CommitSHA == dstCommitID {
