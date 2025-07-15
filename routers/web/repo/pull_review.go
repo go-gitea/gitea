@@ -7,11 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	pull_model "code.gitea.io/gitea/models/pull"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -170,20 +172,50 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.ServerError("comment.Issue.LoadPullRequest", err)
 		return
 	}
-	if beforeCommitID == "" {
-		beforeCommitID = comment.Issue.PullRequest.MergeBase
+
+	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(comment.Issue.PullRequest.GetGitHeadRefName())
+	if err != nil {
+		ctx.ServerError("GetRefCommitID", err)
+		return
 	}
-	if afterCommitID == "" {
-		var err error
-		afterCommitID, err = ctx.Repo.GitRepo.GetRefCommitID(comment.Issue.PullRequest.GetGitHeadRefName())
-		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
+
+	prCommitIDs, err := git.CommitIDsBetween(ctx, ctx.Repo.GitRepo.Path, comment.Issue.PullRequest.MergeBase, headCommitID)
+	if err != nil {
+		ctx.ServerError("CommitIDsBetween", err)
+		return
+	}
+
+	if beforeCommitID == "" || beforeCommitID == comment.Issue.PullRequest.MergeBase {
+		beforeCommitID = comment.Issue.PullRequest.MergeBase
+	} else {
+		// beforeCommitID must be one of the pull request commits
+		if !slices.Contains(prCommitIDs, beforeCommitID) {
+			ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("beforeCommitID[%s] is not a valid pull request commit", beforeCommitID))
 			return
 		}
+
+		beforeCommit, err := ctx.Repo.GitRepo.GetCommit(beforeCommitID)
+		if err != nil {
+			ctx.ServerError("GetCommit", err)
+			return
+		}
+
+		beforeCommit, err = beforeCommit.Parent(0)
+		if err != nil {
+			ctx.ServerError("GetParent", err)
+			return
+		}
+		beforeCommitID = beforeCommit.ID.String()
+	}
+	if afterCommitID == "" {
+		afterCommitID = headCommitID
+	} else if !slices.Contains(prCommitIDs, afterCommitID) { // afterCommitID must be one of the pull request commits
+		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("afterCommitID[%s] is not a valid pull request commit", afterCommitID))
+		return
 	}
 
 	showOutdatedComments := origin == "timeline" || ctx.Data["ShowOutdatedComments"].(bool)
-	comments, err := pull_service.FetchCodeCommentsByLine(ctx, ctx.Repo.Repository, comment.IssueID,
+	comments, err := pull_service.FetchCodeCommentsByLine(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, comment.IssueID,
 		ctx.Doer, beforeCommitID, afterCommitID, comment.TreePath, comment.Line, showOutdatedComments)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)

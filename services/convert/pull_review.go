@@ -21,6 +21,10 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 		r.Reviewer = user_model.NewGhostUser()
 	}
 
+	if err := r.Issue.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+
 	result := &api.PullReview{
 		ID:                r.ID,
 		Reviewer:          ToUser(ctx, r.Reviewer, doer),

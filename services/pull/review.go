@@ -113,7 +113,12 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		defer closer.Close()
 	}
 
-	prCommitIDs, err := git.CommitIDsBetween(ctx, gitRepo.Path, beforeCommitID, afterCommitID)
+	headCommitID, err := gitRepo.GetRefCommitID(issue.PullRequest.GetGitHeadRefName())
+	if err != nil {
+		return nil, fmt.Errorf("GetRefCommitID[%s]: %w", issue.PullRequest.GetGitHeadRefName(), err)
+	}
+
+	prCommitIDs, err := git.CommitIDsBetween(ctx, gitRepo.Path, issue.PullRequest.MergeBase, headCommitID)
 	if err != nil {
 		return nil, fmt.Errorf("CommitIDsBetween[%s, %s]: %w", beforeCommitID, afterCommitID, err)
 	}
@@ -138,10 +143,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		beforeCommitID = beforeCommit.ID.String()
 	}
 	if afterCommitID == "" {
-		afterCommitID, err = gitRepo.GetRefCommitID(issue.PullRequest.GetGitHeadRefName())
-		if err != nil {
-			return nil, fmt.Errorf("GetRefCommitID[%s]: %w", issue.PullRequest.GetGitHeadRefName(), err)
-		}
+		afterCommitID = headCommitID
 	} else if !slices.Contains(prCommitIDs, afterCommitID) { // afterCommitID must be one of the pull request commits
 		return nil, fmt.Errorf("afterCommitID[%s] is not a valid pull request commit", afterCommitID)
 	}
@@ -520,7 +522,7 @@ func ReCalculateLineNumber(hunks []*git.HunkInfo, leftLine int64) int64 {
 }
 
 // FetchCodeCommentsByLine fetches the code comments for a given commit, treePath and line number of a pull request.
-func FetchCodeCommentsByLine(ctx context.Context, repo *repo_model.Repository, issueID int64, currentUser *user_model.User, startCommitID, endCommitID, treePath string, line int64, showOutdatedComments bool) (issues_model.CommentList, error) {
+func FetchCodeCommentsByLine(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, issueID int64, currentUser *user_model.User, startCommitID, endCommitID, treePath string, line int64, showOutdatedComments bool) (issues_model.CommentList, error) {
 	opts := issues_model.FindCommentsOptions{
 		Type:     issues_model.CommentTypeCode,
 		IssueID:  issueID,
@@ -538,7 +540,24 @@ func FetchCodeCommentsByLine(ctx context.Context, repo *repo_model.Repository, i
 	n := 0
 	hunksCache := make(map[string][]*git.HunkInfo)
 	for _, comment := range comments {
-		if comment.CommitSHA == endCommitID {
+		// Code comment should always have a commit SHA, if not, we need to set it based on the line number
+		if comment.CommitSHA == "" {
+			if comment.Line > 0 {
+				comment.CommitSHA = endCommitID
+			} else if comment.Line < 0 {
+				comment.CommitSHA = startCommitID
+			} else {
+				// If the comment has no line number, we cannot display it in the diff view
+				continue
+			}
+		}
+
+		dstCommitID := startCommitID
+		if comment.Line > 0 {
+			dstCommitID = endCommitID
+		}
+
+		if comment.CommitSHA == dstCommitID {
 			if comment.Line == line {
 				comments[n] = comment
 				n++
@@ -547,18 +566,27 @@ func FetchCodeCommentsByLine(ctx context.Context, repo *repo_model.Repository, i
 		}
 
 		// If the comment is not for the current commit, we need to recalculate the line number
-		hunks, ok := hunksCache[comment.CommitSHA]
+		hunks, ok := hunksCache[comment.CommitSHA+".."+dstCommitID]
 		if !ok {
-			hunks, err = git.GetAffectedHunksForTwoCommitsSpecialFile(ctx, repo.RepoPath(), comment.CommitSHA, endCommitID, treePath)
+			hunks, err = git.GetAffectedHunksForTwoCommitsSpecialFile(ctx, repo.RepoPath(), comment.CommitSHA, dstCommitID, treePath)
 			if err != nil {
-				return nil, fmt.Errorf("GetAffectedHunksForTwoCommitsSpecialFile[%s, %s, %s]: %w", repo.FullName(), comment.CommitSHA, endCommitID, err)
+				return nil, fmt.Errorf("GetAffectedHunksForTwoCommitsSpecialFile[%s, %s, %s]: %w", repo.FullName(), comment.CommitSHA, dstCommitID, err)
 			}
-			hunksCache[comment.CommitSHA] = hunks
+			hunksCache[comment.CommitSHA+".."+dstCommitID] = hunks
 		}
 
 		comment.Line = ReCalculateLineNumber(hunks, comment.Line)
-		comments[n] = comment
-		n++
+		if comment.Line != 0 {
+			dstCommit, err := gitRepo.GetCommit(dstCommitID)
+			if err != nil {
+				return nil, fmt.Errorf("GetCommit[%s]: %w", dstCommitID, err)
+			}
+			// If the comment is not the first one or the comment created before the current commit
+			if n > 0 || comment.CreatedUnix.AsTime().Before(dstCommit.Committer.When) {
+				comments[n] = comment
+				n++
+			}
+		}
 	}
 	return comments[:n], nil
 }

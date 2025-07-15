@@ -726,6 +726,12 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 		return false, issues_model.ErrIssueAlreadyChanged
 	}
 
+	// update merge ref, this is necessary to ensure pr.MergedCommitID can be used to do diff operations even
+	// if the repository rebased/force-pushed and the pull request's merge commit is no longer in the history
+	if err := git.UpdateRef(ctx, pr.BaseRepo.RepoPath(), pr.GetGitMergeRefName(), pr.MergedCommitID); err != nil {
+		return false, fmt.Errorf("UpdateRef: %w", err)
+	}
+
 	if err := committer.Commit(); err != nil {
 		return false, err
 	}

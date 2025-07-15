@@ -204,6 +204,11 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 		if err := git.RemoveRef(ctx, gitRepo.Path, issue.PullRequest.GetGitHeadRefName()); err != nil {
 			return err
 		}
+		if issue.PullRequest.HasMerged {
+			if err := git.RemoveRef(ctx, gitRepo.Path, issue.PullRequest.GetGitMergeRefName()); err != nil {
+				return err
+			}
+		}
 	}
 
 	notify_service.DeleteIssue(ctx, doer, issue)
