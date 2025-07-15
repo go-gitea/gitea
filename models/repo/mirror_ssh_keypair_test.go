@@ -4,7 +4,6 @@
 package repo_test
 
 import (
-	"context"
 	"crypto/ed25519"
 	"testing"
 
@@ -29,8 +28,8 @@ func TestMirrorSSHKeypair(t *testing.T) {
 		assert.NotEmpty(t, keypair.PublicKey)
 		assert.NotEmpty(t, keypair.PrivateKeyEncrypted)
 		assert.NotEmpty(t, keypair.Fingerprint)
-		assert.True(t, keypair.CreatedUnix > 0)
-		assert.True(t, keypair.UpdatedUnix > 0)
+		assert.Positive(t, keypair.CreatedUnix)
+		assert.Positive(t, keypair.UpdatedUnix)
 
 		// Verify the public key is in SSH format
 		assert.Contains(t, keypair.PublicKey, "ssh-ed25519")
@@ -77,11 +76,11 @@ func TestMirrorSSHKeypair(t *testing.T) {
 		privateKey, err := keypair.GetDecryptedPrivateKey()
 		require.NoError(t, err)
 		assert.IsType(t, ed25519.PrivateKey{}, privateKey)
-		assert.Equal(t, ed25519.PrivateKeySize, len(privateKey))
+		assert.Len(t, privateKey, ed25519.PrivateKeySize)
 
 		// Verify the private key corresponds to the public key
 		publicKey := privateKey.Public().(ed25519.PublicKey)
-		assert.Equal(t, ed25519.PublicKeySize, len(publicKey))
+		assert.Len(t, publicKey, ed25519.PublicKeySize)
 	})
 
 	t.Run("DeleteMirrorSSHKeypair", func(t *testing.T) {
@@ -128,7 +127,7 @@ func TestMirrorSSHKeypairConcurrency(t *testing.T) {
 
 	// Test concurrent creation of keypairs to ensure no race conditions
 	t.Run("ConcurrentCreation", func(t *testing.T) {
-		ctx := context.Background()
+		ctx := t.Context()
 		results := make(chan error, 10)
 
 		// Start multiple goroutines creating keypairs for different owners

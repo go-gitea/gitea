@@ -20,8 +20,8 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
-// SSHAgent represents a temporary SSH agent for repo mirroring
-type SSHAgent struct {
+// Agent represents a temporary SSH agent for repo mirroring
+type Agent struct {
 	socketPath string
 	listener   net.Listener
 	agent      agent.Agent
@@ -32,7 +32,7 @@ type SSHAgent struct {
 }
 
 // NewSSHAgent creates a new SSH agent with the given private key
-func NewSSHAgent(privateKey ed25519.PrivateKey) (*SSHAgent, error) {
+func NewSSHAgent(privateKey ed25519.PrivateKey) (*Agent, error) {
 	var listener net.Listener
 	var socketPath string
 	var tempDir string
@@ -108,7 +108,7 @@ func NewSSHAgent(privateKey ed25519.PrivateKey) (*SSHAgent, error) {
 	}
 
 	// Create our SSH agent wrapper
-	sa := &SSHAgent{
+	sa := &Agent{
 		socketPath: socketPath,
 		listener:   listener,
 		agent:      sshAgent,
@@ -126,7 +126,7 @@ func NewSSHAgent(privateKey ed25519.PrivateKey) (*SSHAgent, error) {
 }
 
 // serve handles incoming connections to the SSH agent
-func (sa *SSHAgent) serve() {
+func (sa *Agent) serve() {
 	defer sa.wg.Done()
 	defer sa.cleanup()
 
@@ -139,7 +139,9 @@ func (sa *SSHAgent) serve() {
 			if runtime.GOOS != "windows" {
 				// On Windows, named pipes don't support SetDeadline in the same way
 				if listener, ok := sa.listener.(*net.UnixListener); ok {
-					listener.SetDeadline(time.Now().Add(100 * time.Millisecond))
+					if err := listener.SetDeadline(time.Now().Add(100 * time.Millisecond)); err != nil {
+						log.Debug("Failed to set listener deadline: %v", err)
+					}
 				}
 			}
 
@@ -172,7 +174,7 @@ func (sa *SSHAgent) serve() {
 }
 
 // cleanup removes the socket file and temporary directory
-func (sa *SSHAgent) cleanup() {
+func (sa *Agent) cleanup() {
 	if sa.socketPath != "" {
 		if runtime.GOOS != "windows" {
 			// On Windows, named pipes are automatically cleaned up when closed
@@ -184,12 +186,12 @@ func (sa *SSHAgent) cleanup() {
 }
 
 // GetSocketPath returns the path to the SSH agent socket
-func (sa *SSHAgent) GetSocketPath() string {
+func (sa *Agent) GetSocketPath() string {
 	return sa.socketPath
 }
 
 // Close stops the SSH agent and cleans up resources
-func (sa *SSHAgent) Close() error {
+func (sa *Agent) Close() error {
 	sa.mu.Lock()
 	defer sa.mu.Unlock()
 
@@ -209,14 +211,14 @@ func (sa *SSHAgent) Close() error {
 	return nil
 }
 
-// SSHAgentManager manages temporary SSH agents for git operations
-type SSHAgentManager struct {
+// AgentManager manages temporary SSH agents for git operations
+type AgentManager struct {
 	mu     sync.Mutex
-	agents map[string]*SSHAgent
+	agents map[string]*Agent
 }
 
-var globalAgentManager = &SSHAgentManager{
-	agents: make(map[string]*SSHAgent),
+var globalAgentManager = &AgentManager{
+	agents: make(map[string]*Agent),
 }
 
 // CreateTemporaryAgent creates a temporary SSH agent with the given private key

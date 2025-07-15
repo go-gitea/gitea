@@ -5,6 +5,7 @@ package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -91,33 +92,33 @@ func IsRemoteNotExistError(err error) bool {
 // normalizeSSHURL converts SSH-SCP format URLs to standard ssh:// format for security
 func normalizeSSHURL(remoteAddr string) (string, error) {
 	if strings.Contains(remoteAddr, "://") {
-		return remoteAddr, fmt.Errorf("remoteAddr has a scheme")
+		return remoteAddr, errors.New("remoteAddr has a scheme")
 	}
 	if strings.Contains(remoteAddr, "\\") {
-		return remoteAddr, fmt.Errorf("remoteAddr has Windows path slashes")
+		return remoteAddr, errors.New("remoteAddr has Windows path slashes")
 	}
 	if strings.Contains(remoteAddr, ":/") {
-		return remoteAddr, fmt.Errorf("remoteAddr could be Windows drive with forward slash")
+		return remoteAddr, errors.New("remoteAddr could be Windows drive with forward slash")
 	}
 	if remoteAddr != "" && (remoteAddr[0] == '/' || remoteAddr[0] == '\\') {
-		return remoteAddr, fmt.Errorf("remoteAddr is a local file path")
+		return remoteAddr, errors.New("remoteAddr is a local file path")
 	}
 
 	// Parse SSH-SCP format: [user@]host:path
 	colonIndex := strings.Index(remoteAddr, ":")
 	if colonIndex == -1 {
-		return remoteAddr, fmt.Errorf("remoteAddr has no colon")
+		return remoteAddr, errors.New("remoteAddr has no colon")
 	}
 
 	if colonIndex == 1 && len(remoteAddr) > 2 {
-		return remoteAddr, fmt.Errorf("remoteAddr could be Windows drive letter check (C:, D:, etc.)")
+		return remoteAddr, errors.New("remoteAddr could be Windows drive letter check (C:, D:, etc.)")
 	}
 
 	hostPart := remoteAddr[:colonIndex]
 	pathPart := remoteAddr[colonIndex+1:]
 
 	if hostPart == "" || pathPart == "" {
-		return remoteAddr, fmt.Errorf("remoteAddr has empty host or path")
+		return remoteAddr, errors.New("remoteAddr has empty host or path")
 	}
 
 	var user, host string
@@ -130,7 +131,7 @@ func normalizeSSHURL(remoteAddr string) (string, error) {
 	}
 
 	if host == "" {
-		return remoteAddr, fmt.Errorf("Must have SSH host")
+		return remoteAddr, errors.New("Must have SSH host")
 	}
 
 	return fmt.Sprintf("ssh://%s%s/%s", user, host, pathPart), nil
