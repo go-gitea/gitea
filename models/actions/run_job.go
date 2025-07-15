@@ -267,16 +267,6 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 		}
 	}
 
-	if err := job.LoadRun(ctx); err != nil {
-		return cancelledJobs, fmt.Errorf("load run: %w", err)
-	}
-
-	cancelledJobsByRun, err := CancelPreviousJobsByRunConcurrency(ctx, job.Run)
-	if err != nil {
-		return cancelledJobs, fmt.Errorf("cancel runs: %w", err)
-	}
-	cancelledJobs = append(cancelledJobs, cancelledJobsByRun...)
-
 	return cancelledJobs, nil
 }
 
