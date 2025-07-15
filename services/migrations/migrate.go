@@ -71,7 +71,7 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 		return &git.ErrInvalidCloneAddr{Host: u.Host, IsURLError: true}
 	}
 
-	if u.Opaque != "" || u.Scheme != "" && u.Scheme != "http" && u.Scheme != "https" && u.Scheme != "git" {
+	if u.Opaque != "" || u.Scheme != "" && u.Scheme != "http" && u.Scheme != "https" && u.Scheme != "git" && u.Scheme != "ssh" {
 		return &git.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
 	}
 

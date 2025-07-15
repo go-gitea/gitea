@@ -117,6 +117,7 @@ type CloneRepoOptions struct {
 	Depth         int
 	Filter        string
 	SkipTLSVerify bool
+	SSHAuthSock   string
 }
 
 // Clone clones original repository to target path.
@@ -173,10 +174,11 @@ func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, op
 
 	stderr := new(bytes.Buffer)
 	if err = cmd.Run(ctx, &RunOpts{
-		Timeout: opts.Timeout,
-		Env:     envs,
-		Stdout:  io.Discard,
-		Stderr:  stderr,
+		Timeout:     opts.Timeout,
+		Env:         envs,
+		Stdout:      io.Discard,
+		Stderr:      stderr,
+		SSHAuthSock: opts.SSHAuthSock,
 	}); err != nil {
 		return ConcatenateError(err, stderr.String())
 	}
@@ -185,12 +187,13 @@ func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, op
 
 // PushOptions options when push to remote
 type PushOptions struct {
-	Remote  string
-	Branch  string
-	Force   bool
-	Mirror  bool
-	Env     []string
-	Timeout time.Duration
+	Remote      string
+	Branch      string
+	Force       bool
+	Mirror      bool
+	Env         []string
+	Timeout     time.Duration
+	SSHAuthSock string
 }
 
 // Push pushs local commits to given remote branch.
@@ -208,7 +211,12 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 	cmd.AddDashesAndList(remoteBranchArgs...)
 
-	stdout, stderr, err := cmd.RunStdString(ctx, &RunOpts{Env: opts.Env, Timeout: opts.Timeout, Dir: repoPath})
+	stdout, stderr, err := cmd.RunStdString(ctx, &RunOpts{
+		Env:         opts.Env,
+		Timeout:     opts.Timeout,
+		Dir:         repoPath,
+		SSHAuthSock: opts.SSHAuthSock,
+	})
 	if err != nil {
 		if strings.Contains(stderr, "non-fast-forward") {
 			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}

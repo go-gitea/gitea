@@ -10,6 +10,7 @@ import (
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -17,6 +18,7 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 )
 
 const (
@@ -342,4 +344,36 @@ func loadKeysData(ctx *context.Context) {
 	ctx.Data["VerifyingID"] = ctx.FormString("verify_gpg")
 	ctx.Data["VerifyingFingerprint"] = ctx.FormString("verify_ssh")
 	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
+
+	// Load SSH mirror keypair if it exists
+	mirrorKeypair, err := mirror_service.GetOrCreateSSHKeypairForUser(ctx, ctx.Doer.ID)
+	if err == nil {
+		ctx.Data["HasMirrorSSHKey"] = true
+
+		// Create a struct with the public key including comment
+		publicKeyWithComment, _ := mirrorKeypair.GetPublicKeyWithComment(ctx)
+		mirrorKeyData := struct {
+			*repo_model.MirrorSSHKeypair
+			PublicKeyWithComment string
+		}{
+			MirrorSSHKeypair:     mirrorKeypair,
+			PublicKeyWithComment: publicKeyWithComment,
+		}
+
+		ctx.Data["MirrorSSHKey"] = mirrorKeyData
+	} else {
+		ctx.Data["HasMirrorSSHKey"] = false
+	}
+}
+
+// RegenerateMirrorSSHKeyPair regenerates the SSH keypair for repository mirroring
+func RegenerateMirrorSSHKeyPair(ctx *context.Context) {
+	_, err := mirror_service.RegenerateSSHKeypairForUser(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("RegenerateSSHKeypairForUser", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.mirror_ssh_key_regenerated"))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 }
