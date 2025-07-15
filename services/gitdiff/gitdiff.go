@@ -1185,7 +1185,7 @@ func GetDiffForAPI(ctx context.Context, gitRepo *git.Repository, opts *DiffOptio
 	return diff, err
 }
 
-func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
+func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
 	diff, beforeCommit, afterCommit, err := getDiffBasic(ctx, gitRepo, opts, files...)
 	if err != nil {
 		return nil, err
@@ -1211,7 +1211,7 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 
 		// Populate Submodule URLs
 		if diffFile.SubmoduleDiffInfo != nil {
-			diffFile.SubmoduleDiffInfo.PopulateURL(diffFile, beforeCommit, afterCommit)
+			diffFile.SubmoduleDiffInfo.PopulateURL(repoLink, diffFile, beforeCommit, afterCommit)
 		}
 
 		if !isVendored.Has() {
