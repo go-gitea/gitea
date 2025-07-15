@@ -22,5 +22,8 @@ const (
 
 	SettingsKeyCodeViewShowFileTree = "code_view.show_file_tree"
 
-	SettingsEmailNotificationGiteaActions = "email_notifications.actions"
+	SettingsKeyEmailNotificationGiteaActions        = "email_notification.gitea_actions"
+	SettingEmailNotificationGiteaActionsAll         = "all"
+	SettingEmailNotificationGiteaActionsFailureOnly = "failure-only" // Default for actions email preference
+	SettingEmailNotificationGiteaActionsDisabled    = "disabled"
 )

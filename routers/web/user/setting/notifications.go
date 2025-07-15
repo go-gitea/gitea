@@ -30,7 +30,7 @@ func Notifications(ctx *context.Context) {
 	ctx.Data["PageIsSettingsNotifications"] = true
 	ctx.Data["EmailNotificationsPreference"] = ctx.Doer.EmailNotificationsPreference
 
-	actionsEmailPref, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsEmailNotificationGiteaActions, user_model.EmailNotificationGiteaActionsFailureOnly)
+	actionsEmailPref, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyEmailNotificationGiteaActions, user_model.SettingEmailNotificationGiteaActionsFailureOnly)
 	if err != nil {
 		ctx.ServerError("GetUserSetting", err)
 		return
@@ -77,14 +77,14 @@ func NotificationsActionsEmailPost(ctx *context.Context) {
 	}
 
 	preference := ctx.FormString("preference")
-	if !(preference == user_model.EmailNotificationGiteaActionsAll ||
-		preference == user_model.EmailNotificationGiteaActionsDisabled ||
-		preference == user_model.EmailNotificationGiteaActionsFailureOnly) {
+	if !(preference == user_model.SettingEmailNotificationGiteaActionsAll ||
+		preference == user_model.SettingEmailNotificationGiteaActionsDisabled ||
+		preference == user_model.SettingEmailNotificationGiteaActionsFailureOnly) {
 		log.Error("Actions Email notifications preference change returned unrecognized option %s: %s", preference, ctx.Doer.Name)
 		ctx.ServerError("NotificationsActionsEmailPost", errors.New("option unrecognized"))
 		return
 	}
-	if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsEmailNotificationGiteaActions, preference); err != nil {
+	if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyEmailNotificationGiteaActions, preference); err != nil {
 		log.Error("Cannot set actions email notifications preference: %v", err)
 		ctx.ServerError("SetUserSetting", err)
 		return

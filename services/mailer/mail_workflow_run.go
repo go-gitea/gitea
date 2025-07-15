@@ -150,12 +150,12 @@ func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo
 
 	if !sender.IsGiteaActions() && !sender.IsGhost() && sender.IsMailable() {
 		notifyPref, err := user_model.GetUserSetting(ctx, sender.ID,
-			user_model.SettingsEmailNotificationGiteaActions, user_model.EmailNotificationGiteaActionsFailureOnly)
+			user_model.SettingsKeyEmailNotificationGiteaActions, user_model.SettingEmailNotificationGiteaActionsFailureOnly)
 		if err != nil {
 			log.Error("GetUserSetting: %v", err)
 			return
 		}
-		if notifyPref == user_model.EmailNotificationGiteaActionsAll || !run.Status.IsSuccess() && notifyPref != user_model.EmailNotificationGiteaActionsDisabled {
+		if notifyPref == user_model.SettingEmailNotificationGiteaActionsAll || !run.Status.IsSuccess() && notifyPref != user_model.SettingEmailNotificationGiteaActionsDisabled {
 			recipients = append(recipients, sender)
 		}
 	}
