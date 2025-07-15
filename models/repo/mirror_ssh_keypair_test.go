@@ -131,7 +131,7 @@ func TestMirrorSSHKeypairConcurrency(t *testing.T) {
 		results := make(chan error, 10)
 
 		// Start multiple goroutines creating keypairs for different owners
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			go func(ownerID int64) {
 				_, err := repo_model.CreateMirrorSSHKeypair(ctx, ownerID+100)
 				results <- err
@@ -139,7 +139,7 @@ func TestMirrorSSHKeypairConcurrency(t *testing.T) {
 		}
 
 		// Check all creations succeeded
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			err := <-results
 			assert.NoError(t, err)
 		}
