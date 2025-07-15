@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -59,7 +60,7 @@ func TestMirrorSSHKeypair(t *testing.T) {
 
 		// Test retrieving non-existent keypair
 		_, err = repo_model.GetMirrorSSHKeypairByOwner(db.DefaultContext, 999)
-		assert.True(t, db.IsErrNotExist(err))
+		assert.ErrorIs(t, err, util.ErrNotExist)
 	})
 
 	t.Run("GetDecryptedPrivateKey", func(t *testing.T) {
@@ -98,7 +99,7 @@ func TestMirrorSSHKeypair(t *testing.T) {
 
 		// Verify it's gone
 		_, err = repo_model.GetMirrorSSHKeypairByOwner(db.DefaultContext, 5)
-		assert.True(t, db.IsErrNotExist(err))
+		assert.ErrorIs(t, err, util.ErrNotExist)
 	})
 
 	t.Run("RegenerateMirrorSSHKeypair", func(t *testing.T) {
