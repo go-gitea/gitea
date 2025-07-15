@@ -94,11 +94,7 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	if len(entries) > perPage {
 		tree.Truncated = true
 	}
-	if rangeStart+perPage < len(entries) {
-		rangeEnd = rangeStart + perPage
-	} else {
-		rangeEnd = len(entries)
-	}
+	rangeEnd = min(rangeStart+perPage, len(entries))
 	tree.Entries = make([]api.GitEntry, rangeEnd-rangeStart)
 	for e := rangeStart; e < rangeEnd; e++ {
 		i := e - rangeStart
@@ -158,14 +154,14 @@ func (node *TreeViewNode) sortLevel() int {
 	return util.Iif(node.EntryMode == "tree" || node.EntryMode == "commit", 0, 1)
 }
 
-func newTreeViewNodeFromEntry(ctx context.Context, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, parentDir string, entry *git.TreeEntry) *TreeViewNode {
+func newTreeViewNodeFromEntry(ctx context.Context, repoLink string, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, parentDir string, entry *git.TreeEntry) *TreeViewNode {
 	node := &TreeViewNode{
 		EntryName: entry.Name(),
 		EntryMode: entryModeString(entry.Mode()),
 		FullPath:  path.Join(parentDir, entry.Name()),
 	}
 
-	entryInfo := fileicon.EntryInfoFromGitTreeEntry(entry)
+	entryInfo := fileicon.EntryInfoFromGitTreeEntry(commit, node.FullPath, entry)
 	node.EntryIcon = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
 	if entryInfo.EntryMode.IsDir() {
 		entryInfo.IsOpen = true
@@ -176,8 +172,8 @@ func newTreeViewNodeFromEntry(ctx context.Context, renderedIconPool *fileicon.Re
 		if subModule, err := commit.GetSubModule(node.FullPath); err != nil {
 			log.Error("GetSubModule: %v", err)
 		} else if subModule != nil {
-			submoduleFile := git.NewCommitSubmoduleFile(subModule.URL, entry.ID.String())
-			webLink := submoduleFile.SubmoduleWebLink(ctx)
+			submoduleFile := git.NewCommitSubmoduleFile(repoLink, node.FullPath, subModule.URL, entry.ID.String())
+			webLink := submoduleFile.SubmoduleWebLinkTree(ctx)
 			node.SubmoduleURL = webLink.CommitWebLink
 		}
 	}
@@ -196,7 +192,7 @@ func sortTreeViewNodes(nodes []*TreeViewNode) {
 	})
 }
 
-func listTreeNodes(ctx context.Context, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
+func listTreeNodes(ctx context.Context, repoLink string, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
 	entries, err := tree.ListEntries()
 	if err != nil {
 		return nil, err
@@ -205,14 +201,14 @@ func listTreeNodes(ctx context.Context, renderedIconPool *fileicon.RenderedIconP
 	subPathDirName, subPathRemaining, _ := strings.Cut(subPath, "/")
 	nodes := make([]*TreeViewNode, 0, len(entries))
 	for _, entry := range entries {
-		node := newTreeViewNodeFromEntry(ctx, renderedIconPool, commit, treePath, entry)
+		node := newTreeViewNodeFromEntry(ctx, repoLink, renderedIconPool, commit, treePath, entry)
 		nodes = append(nodes, node)
 		if entry.IsDir() && subPathDirName == entry.Name() {
 			subTreePath := treePath + "/" + node.EntryName
 			if subTreePath[0] == '/' {
 				subTreePath = subTreePath[1:]
 			}
-			subNodes, err := listTreeNodes(ctx, renderedIconPool, commit, entry.Tree(), subTreePath, subPathRemaining)
+			subNodes, err := listTreeNodes(ctx, repoLink, renderedIconPool, commit, entry.Tree(), subTreePath, subPathRemaining)
 			if err != nil {
 				log.Error("listTreeNodes: %v", err)
 			} else {
@@ -224,10 +220,10 @@ func listTreeNodes(ctx context.Context, renderedIconPool *fileicon.RenderedIconP
 	return nodes, nil
 }
 
-func GetTreeViewNodes(ctx context.Context, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, treePath, subPath string) ([]*TreeViewNode, error) {
+func GetTreeViewNodes(ctx context.Context, repoLink string, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, treePath, subPath string) ([]*TreeViewNode, error) {
 	entry, err := commit.GetTreeEntryByPath(treePath)
 	if err != nil {
 		return nil, err
 	}
-	return listTreeNodes(ctx, renderedIconPool, commit, entry.Tree(), treePath, subPath)
+	return listTreeNodes(ctx, repoLink, renderedIconPool, commit, entry.Tree(), treePath, subPath)
 }

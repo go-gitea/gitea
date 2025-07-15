@@ -25,7 +25,7 @@ function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: a
   throw new Error('invalid argument to be shown/hidden');
 }
 
-export function toggleClass(el: ElementArg, className: string, force?: boolean): ArrayLikeIterable<Element> {
+export function toggleElemClass(el: ElementArg, className: string, force?: boolean): ArrayLikeIterable<Element> {
   return elementsCall(el, (e: Element) => {
     if (force === true) {
       e.classList.add(className);
@@ -44,7 +44,7 @@ export function toggleClass(el: ElementArg, className: string, force?: boolean):
  * @param force force=true to show or force=false to hide, undefined to toggle
  */
 export function toggleElem(el: ElementArg, force?: boolean): ArrayLikeIterable<Element> {
-  return toggleClass(el, 'tw-hidden', force === undefined ? force : !force);
+  return toggleElemClass(el, 'tw-hidden', force === undefined ? force : !force);
 }
 
 export function showElem(el: ElementArg): ArrayLikeIterable<Element> {
@@ -283,21 +283,19 @@ export function isElemVisible(el: HTMLElement): boolean {
   // This function DOESN'T account for all possible visibility scenarios, its behavior is covered by the tests of "querySingleVisibleElem"
   if (!el) return false;
   // checking el.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
-  return !el.classList.contains('tw-hidden') && Boolean((el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none');
+  return !el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none';
 }
 
 // replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this
 export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: string) {
   const before = textarea.value.slice(0, textarea.selectionStart ?? undefined);
   const after = textarea.value.slice(textarea.selectionEnd ?? undefined);
-  let success = true;
+  let success = false;
 
   textarea.contentEditable = 'true';
   try {
     success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated
-  } catch {
-    success = false;
-  }
+  } catch {} // ignore the error if execCommand is not supported or failed
   textarea.contentEditable = 'false';
 
   if (success && !textarea.value.slice(0, textarea.selectionStart ?? undefined).endsWith(text)) {
@@ -310,10 +308,10 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
   }
 }
 
-// Warning: Do not enter any unsanitized variables here
 export function createElementFromHTML<T extends HTMLElement>(htmlString: string): T {
   htmlString = htmlString.trim();
-  // some tags like "tr" are special, it must use a correct parent container to create
+  // There is no way to create some elements without a proper parent, jQuery's approach: https://github.com/jquery/jquery/blob/main/src/manipulation/wrapMap.js
+  // eslint-disable-next-line github/unescaped-html-literal
   if (htmlString.startsWith('<tr')) {
     const container = document.createElement('table');
     container.innerHTML = htmlString;
@@ -363,9 +361,19 @@ export function addDelegatedEventListener<T extends HTMLElement, E extends Event
     const elem = (e.target as HTMLElement).closest(selector);
     // It strictly checks "parent contains the target elem" to avoid side effects of selector running on outside the parent.
     // Keep in mind that the elem could have been removed from parent by other event handlers before this event handler is called.
-    // For example: tippy popup item, the tippy popup could be hidden and removed from DOM before this.
-    // It is caller's responsibility make sure the elem is still in parent's DOM when this event handler is called.
+    // For example, tippy popup item, the tippy popup could be hidden and removed from DOM before this.
+    // It is the caller's responsibility to make sure the elem is still in parent's DOM when this event handler is called.
     if (!elem || (parent !== document && !parent.contains(elem))) return;
     listener(elem as T, e as E);
   }, options);
+}
+
+// Returns whether a click event is a left-click without any modifiers held
+export function isPlainClick(e: MouseEvent) {
+  return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
+}
+
+let elemIdCounter = 0;
+export function generateElemId(prefix: string = ''): string {
+  return `${prefix}${elemIdCounter++}`;
 }

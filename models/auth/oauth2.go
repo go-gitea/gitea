@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -511,12 +512,7 @@ func (grant *OAuth2Grant) IncreaseCounter(ctx context.Context) error {
 
 // ScopeContains returns true if the grant scope contains the specified scope
 func (grant *OAuth2Grant) ScopeContains(scope string) bool {
-	for _, currentScope := range strings.Split(grant.Scope, " ") {
-		if scope == currentScope {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(strings.Split(grant.Scope, " "), scope)
 }
 
 // SetNonce updates the current nonce value of a grant
@@ -616,8 +612,8 @@ func (err ErrOAuthApplicationNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// GetActiveOAuth2SourceByName returns a OAuth2 AuthSource based on the given name
-func GetActiveOAuth2SourceByName(ctx context.Context, name string) (*Source, error) {
+// GetActiveOAuth2SourceByAuthName returns a OAuth2 AuthSource based on the given name
+func GetActiveOAuth2SourceByAuthName(ctx context.Context, name string) (*Source, error) {
 	authSource := new(Source)
 	has, err := db.GetEngine(ctx).Where("name = ? and type = ? and is_active = ?", name, OAuth2, true).Get(authSource)
 	if err != nil {

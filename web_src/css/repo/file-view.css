@@ -1,7 +1,10 @@
-.file-view tr.active {
+.file-view tr.active .lines-num,
+.file-view tr.active .lines-escape,
+.file-view tr.active .lines-code {
   background: var(--color-highlight-bg);
 }
 
+/* set correct border radius on the last active lines, to avoid border overflow */
 .file-view tr.active:last-of-type .lines-code {
   border-bottom-right-radius: var(--border-radius);
 }
@@ -10,6 +13,7 @@
   position: relative;
 }
 
+/* add a darker "handler" at the beginning of the active line */
 .file-view tr.active .lines-num::before {
   content: "";
   position: absolute;
@@ -55,4 +59,34 @@
 
 .file-view.code-view .ui.button.code-line-button:hover {
   background: var(--color-secondary);
+}
+
+.view-raw {
+  display: flex;
+  justify-content: center;
+}
+
+.view-raw > * {
+  max-width: 100%;
+}
+
+.view-raw audio,
+.view-raw video,
+.view-raw img {
+  margin: 1rem;
+  border-radius: 0;
+  object-fit: contain;
+}
+
+.view-raw img[src$=".svg" i] {
+  max-height: 600px !important;
+  max-width: 600px !important;
+}
+
+.file-view-render-container {
+  width: 100%;
+}
+
+.file-view-render-container :last-child {
+  border-radius: 0 0 var(--border-radius) var(--border-radius); /* to match the "ui segment" bottom radius */
 }

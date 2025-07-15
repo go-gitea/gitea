@@ -46,7 +46,7 @@ func (r *stripRenderer) Render(w io.Writer, source []byte, doc ast.Node) error {
 				coalesce := prevSibIsText
 				r.processString(
 					w,
-					v.Text(source), //nolint:staticcheck
+					v.Text(source), //nolint:staticcheck // Text is deprecated
 					coalesce)
 				if v.SoftLineBreak() {
 					r.doubleSpace(w)
@@ -91,8 +91,7 @@ func (r *stripRenderer) processAutoLink(w io.Writer, link []byte) {
 	}
 
 	// Note: we're not attempting to match the URL scheme (http/https)
-	host := strings.ToLower(u.Host)
-	if host != "" && host != strings.ToLower(r.localhost.Host) {
+	if u.Host != "" && !strings.EqualFold(u.Host, r.localhost.Host) {
 		// Process out of band
 		r.links = append(r.links, linkStr)
 		return

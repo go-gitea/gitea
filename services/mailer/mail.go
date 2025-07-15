@@ -15,7 +15,7 @@ import (
 	"mime"
 	"regexp"
 	"strings"
-	texttmpl "text/template"
+	"sync/atomic"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/typesniffer"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 
@@ -31,11 +32,13 @@ import (
 
 const mailMaxSubjectRunes = 256 // There's no actual limit for subject in RFC 5322
 
-var (
-	bodyTemplates       *template.Template
-	subjectTemplates    *texttmpl.Template
-	subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
-)
+var loadedTemplates atomic.Pointer[templates.MailTemplates]
+
+var subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
+
+func LoadedTemplates() *templates.MailTemplates {
+	return loadedTemplates.Load()
+}
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {

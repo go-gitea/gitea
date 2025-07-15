@@ -155,10 +155,7 @@ func (c *CodeCommitDownloader) GetPullRequests(ctx context.Context, page, perPag
 	}
 
 	startIndex := (page - 1) * perPage
-	endIndex := page * perPage
-	if endIndex > len(allPullRequestIDs) {
-		endIndex = len(allPullRequestIDs)
-	}
+	endIndex := min(page*perPage, len(allPullRequestIDs))
 	batch := allPullRequestIDs[startIndex:endIndex]
 
 	prs := make([]*base.PullRequest, 0, len(batch))
@@ -209,6 +206,10 @@ func (c *CodeCommitDownloader) GetPullRequests(ctx context.Context, page, perPag
 		if orig.PullRequestStatus == types.PullRequestStatusEnumClosed {
 			pr.State = "closed"
 			pr.Closed = orig.LastActivityDate
+		}
+		if pr.Merged {
+			pr.MergeCommitSHA = *target.MergeMetadata.MergeCommitId
+			pr.MergedTime = orig.LastActivityDate
 		}
 
 		_ = CheckAndEnsureSafePR(pr, c.baseURL, c)

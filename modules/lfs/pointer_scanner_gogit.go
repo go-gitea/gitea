@@ -31,7 +31,7 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 			default:
 			}
 
-			if blob.Size > blobSizeCutoff {
+			if blob.Size > MetaFileMaxSize {
 				return nil
 			}
 
