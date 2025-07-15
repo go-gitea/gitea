@@ -15,25 +15,6 @@ import (
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
-//   __________________  ________   ____  __.
-//  /  _____/\______   \/  _____/  |    |/ _|____ ___.__.
-// /   \  ___ |     ___/   \  ___  |      <_/ __ <   |  |
-// \    \_\  \|    |   \    \_\  \ |    |  \  ___/\___  |
-//  \______  /|____|    \______  / |____|__ \___  > ____|
-//         \/                  \/          \/   \/\/
-// _________                        .__  __
-// \_   ___ \  ____   _____   _____ |__|/  |_
-// /    \  \/ /  _ \ /     \ /     \|  \   __\
-// \     \___(  <_> )  Y Y  \  Y Y  \  ||  |
-//  \______  /\____/|__|_|  /__|_|  /__||__|
-//         \/             \/      \/
-// ____   ____           .__  _____.__               __  .__
-// \   \ /   /___________|__|/ ____\__| ____ _____ _/  |_|__| ____   ____
-//  \   Y   // __ \_  __ \  \   __\|  |/ ___\\__  \\   __\  |/  _ \ /    \
-//   \     /\  ___/|  | \/  ||  |  |  \  \___ / __ \|  | |  (  <_> )   |  \
-//    \___/  \___  >__|  |__||__|  |__|\___  >____  /__| |__|\____/|___|  /
-//               \/                        \/     \/                    \/
-
 // This file provides functions relating commit verification
 
 // CommitVerification represents a commit validation of signature
@@ -41,8 +22,8 @@ type CommitVerification struct {
 	Verified       bool
 	Warning        bool
 	Reason         string
-	SigningUser    *user_model.User
-	CommittingUser *user_model.User
+	SigningUser    *user_model.User // if Verified, then SigningUser is non-nil
+	CommittingUser *user_model.User // if Verified, then CommittingUser is non-nil
 	SigningEmail   string
 	SigningKey     *GPGKey
 	SigningSSHKey  *PublicKey

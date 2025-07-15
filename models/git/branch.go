@@ -472,7 +472,7 @@ type RecentlyPushedNewBranch struct {
 // if opts.CommitAfterUnix is 0, we will find the branches that were committed to in the last 2 hours
 // if opts.ListOptions is not set, we will only display top 2 latest branches.
 // Protected branches will be skipped since they are unlikely to be used to create new PRs.
-func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, opts *FindRecentlyPushedNewBranchesOptions) ([]*RecentlyPushedNewBranch, error) {
+func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, opts FindRecentlyPushedNewBranchesOptions) ([]*RecentlyPushedNewBranch, error) {
 	if doer == nil {
 		return []*RecentlyPushedNewBranch{}, nil
 	}

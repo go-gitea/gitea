@@ -1,6 +1,6 @@
 <div class="commit-form-wrapper">
 	{{ctx.AvatarUtils.Avatar .SignedUser 40 "commit-avatar"}}
-	<div class="commit-form">
+	<div class="commit-form avatar-content-left-arrow">
 		<h3>{{- if .CommitFormOptions.WillSign}}
 			<span title="{{ctx.Locale.Tr "repo.signing.will_sign" .CommitFormOptions.SigningKey}}">{{svg "octicon-lock" 24}}</span>
 			{{ctx.Locale.Tr "repo.editor.commit_signed_changes"}}

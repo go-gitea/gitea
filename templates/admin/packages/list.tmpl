@@ -72,7 +72,12 @@
 							</td>
 							<td>{{FileSize .CalculateBlobSize}}</td>
 							<td>{{DateUtils.AbsoluteShort .Version.CreatedUnix}}</td>
-							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.Version.ID}}" data-name="{{.Package.Name}}" data-data-version="{{.Version.Version}}">{{svg "octicon-trash"}}</a></td>
+							<td>
+								<a class="text red show-modal" href data-modal="#admin-package-delete-modal"
+									data-modal-form.action="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.Version.ID}}"
+									data-modal-package-name="{{.Package.Name}}" data-modal-package-version="{{.Version.Version}}"
+								>{{svg "octicon-trash"}}</a>
+							</td>
 						</tr>
 					{{else}}
 						<tr><td class="tw-text-center" colspan="10">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
@@ -84,15 +89,13 @@
 		{{template "base/paginate" .}}
 	</div>
 
-<div class="ui g-modal-confirm delete modal">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{ctx.Locale.Tr "packages.settings.delete"}}
-	</div>
+<form class="ui small modal form-fetch-action" method="post" id="admin-package-delete-modal">
+	{{.CsrfTokenHtml}}
+	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "packages.settings.delete"}}</div>
 	<div class="content">
-		{{ctx.Locale.Tr "packages.settings.delete.notice" (HTMLFormat `<span class="%s"></span>` "name") (HTMLFormat `<span class="%s"></span>` "dataVersion")}}
+		{{ctx.Locale.Tr "packages.settings.delete.notice" (HTMLFormat `<span class="%s"></span>` "package-name") (HTMLFormat `<span class="%s"></span>` "package-version")}}
 	</div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
+</form>
 
 {{template "admin/layout_footer" .}}

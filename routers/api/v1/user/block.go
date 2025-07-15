@@ -37,7 +37,7 @@ func CheckUserBlock(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: user to check
+	//   description: username of the user to check
 	//   type: string
 	//   required: true
 	// responses:
@@ -56,7 +56,7 @@ func BlockUser(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: user to block
+	//   description: username of the user to block
 	//   type: string
 	//   required: true
 	// - name: note
@@ -81,7 +81,7 @@ func UnblockUser(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: user to unblock
+	//   description: username of the user to unblock
 	//   type: string
 	//   required: true
 	// responses:

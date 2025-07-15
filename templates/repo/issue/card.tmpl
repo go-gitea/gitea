@@ -63,16 +63,21 @@
 
 	{{if or .Labels .Assignees}}
 	<div class="issue-card-bottom">
-		<div class="labels-list">
-			{{range .Labels}}
-				<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{ctx.RenderUtils.RenderLabel .}}</a>
+		{{/* the labels container must always be present, to help the assignees list right-aligned */}}
+		<div class="issue-card-bottom-part labels-list">
+			{{range $label := .Labels}}
+				{{$link := print $.Issue.Repo.Link "/issues"}}
+				{{$link = QueryBuild $link "labels" $label.ID}}
+				{{ctx.RenderUtils.RenderLabelWithLink $label $link}}
 			{{end}}
 		</div>
-		<div class="issue-card-assignees">
+		{{if .Assignees}}
+		<div class="issue-card-bottom-part tw-justify-end">
 			{{range .Assignees}}
-				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28}}</a>
+				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 24}}</a>
 			{{end}}
 		</div>
+		{{end}}
 	</div>
 	{{end}}
 {{end}}

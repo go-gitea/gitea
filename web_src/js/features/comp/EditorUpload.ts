@@ -114,7 +114,7 @@ async function handleUploadFiles(editor: CodeMirrorEditor | TextareaEditor, drop
 
 export function removeAttachmentLinksFromMarkdown(text: string, fileUuid: string) {
   text = text.replace(new RegExp(`!?\\[([^\\]]+)\\]\\(/?attachments/${fileUuid}\\)`, 'g'), '');
-  text = text.replace(new RegExp(`<img[^>]+src="/?attachments/${fileUuid}"[^>]*>`, 'g'), '');
+  text = text.replace(new RegExp(`[<]img[^>]+src="/?attachments/${fileUuid}"[^>]*>`, 'g'), '');
   return text;
 }
 

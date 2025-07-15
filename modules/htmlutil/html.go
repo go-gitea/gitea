@@ -42,6 +42,8 @@ func HTMLFormat(s template.HTML, rawArgs ...any) template.HTML {
 			// for most basic types (including template.HTML which is safe), just do nothing and use it
 		case string:
 			args[i] = template.HTMLEscapeString(v)
+		case template.URL:
+			args[i] = template.HTMLEscapeString(string(v))
 		case fmt.Stringer:
 			args[i] = template.HTMLEscapeString(v.String())
 		default:
