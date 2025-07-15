@@ -91,6 +91,10 @@ func ToPullReviewCommentList(ctx context.Context, review *issues_model.Review, d
 		review.Reviewer = user_model.NewGhostUser()
 	}
 
+	if err := review.Issue.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+
 	apiComments := make([]*api.PullReviewComment, 0, len(review.CodeComments))
 
 	for _, comments := range review.CodeComments {

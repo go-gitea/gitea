@@ -113,6 +113,10 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		defer closer.Close()
 	}
 
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		return nil, fmt.Errorf("LoadPullRequest: %w", err)
+	}
+
 	headCommitID, err := gitRepo.GetRefCommitID(issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
 		return nil, fmt.Errorf("GetRefCommitID[%s]: %w", issue.PullRequest.GetGitHeadRefName(), err)

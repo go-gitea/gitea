@@ -432,6 +432,10 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
+	if err := issue.LoadRepo(ctx); err != nil {
+		return nil, nil, fmt.Errorf("LoadRepo: %w", err)
+	}
+
 	official := false
 
 	review, err := GetCurrentReview(ctx, doer, issue)
