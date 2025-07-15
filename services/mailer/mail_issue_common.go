@@ -119,7 +119,7 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 	}
 
 	var mailSubject bytes.Buffer
-	if err := subjectTemplates.ExecuteTemplate(&mailSubject, tplName, mailMeta); err == nil {
+	if err := LoadedTemplates().SubjectTemplates.ExecuteTemplate(&mailSubject, tplName, mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
 		if subject == "" {
 			subject = fallback
@@ -134,7 +134,7 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 
 	var mailBody bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, tplName, mailMeta); err != nil {
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, tplName, mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", tplName+"/body", err)
 	}
 
@@ -260,14 +260,14 @@ func actionToTemplate(issue *issues_model.Issue, actionType activities_model.Act
 	}
 
 	template = typeName + "/" + name
-	ok := bodyTemplates.Lookup(template) != nil
+	ok := LoadedTemplates().BodyTemplates.Lookup(template) != nil
 	if !ok && typeName != "issue" {
 		template = "issue/" + name
-		ok = bodyTemplates.Lookup(template) != nil
+		ok = LoadedTemplates().BodyTemplates.Lookup(template) != nil
 	}
 	if !ok {
 		template = typeName + "/default"
-		ok = bodyTemplates.Lookup(template) != nil
+		ok = LoadedTemplates().BodyTemplates.Lookup(template) != nil
 	}
 	if !ok {
 		template = "issue/default"

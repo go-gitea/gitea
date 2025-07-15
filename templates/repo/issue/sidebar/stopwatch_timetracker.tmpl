@@ -2,35 +2,28 @@
 	{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
 		<div class="divider"></div>
 		<div>
-			<div class="ui dropdown full-width jump">
-				<a class="fixed-text muted">
-					<div>
-						<strong>{{ctx.Locale.Tr "repo.issues.tracker"}}</strong>
-						{{if $.IsStopwatchRunning}}{{svg "octicon-stopwatch"}}{{end}}
-					</div>
-					{{svg "octicon-gear"}}
-				</a>
-				<div class="menu">
-					<a class="item issue-set-time-estimate show-modal" data-modal="#issue-time-set-estimate-modal">
-						{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.issues.time_estimate_set"}}
-					</a>
-					<div class="divider"></div>
-					{{if $.IsStopwatchRunning}}
-					<a class="item issue-stop-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/stop">
-						{{svg "octicon-stopwatch"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_stop"}}
-					</a>
-					<a class="item issue-cancel-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/cancel">
-						{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_discard"}}
-					</a>
-					{{else}}
-					<a class="item issue-start-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/start">
-						{{svg "octicon-stopwatch"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_start"}}
-					</a>
-					<a class="item issue-add-time show-modal" data-modal="#issue-time-manually-add-modal">
-						{{svg "octicon-plus"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_manually_add"}}
-					</a>
-					{{end}}
-				</div>
+			<div class="flex-text-block">
+				<strong class="tw-flex-1">{{ctx.Locale.Tr "repo.issues.tracker"}}</strong>
+				<button class="btn interact-fg show-modal" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.time_estimate_set"}}" data-modal="#issue-time-set-estimate-modal">
+					{{svg "octicon-pencil"}}
+				</button>
+			</div>
+			<div class="ui buttons tw-mt-2 tw-w-full">
+			{{if $.IsStopwatchRunning}}
+				<button class="ui button tw-flex-1 issue-stop-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/stop">
+					{{svg "octicon-stopwatch"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_stop"}}
+				</button>
+				<button class="ui icon button issue-cancel-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/cancel" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.timetracker_timer_discard"}}">
+					{{svg "octicon-trash"}}
+				</button>
+			{{else}}
+				<button class="ui button tw-flex-1 issue-start-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/start">
+					{{svg "octicon-stopwatch"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_start"}}
+				</button>
+				<button class="ui icon button issue-add-time show-modal" data-modal="#issue-time-manually-add-modal" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.timetracker_timer_manually_add"}}">
+					{{svg "octicon-plus"}}
+				</button>
+			{{end}}
 			</div>
 
 			{{if and (not $.IsStopwatchRunning) .HasUserStopwatch}}
@@ -74,23 +67,19 @@
 		</div>
 	{{end}}
 	{{if .WorkingUsers}}
-		<div class="ui comments tw-mt-2">
+		<div class="tw-mt-2">
 			{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Hour)}}
-			<div>
-				{{range $user, $trackedtime := .WorkingUsers}}
-					<div class="comment tw-mt-2">
-						<a class="avatar">
-							{{ctx.AvatarUtils.Avatar $user}}
-						</a>
-						<div class="content">
-							{{template "shared/user/authorlink" $user}}
-							<div class="text">
-								{{$trackedtime|Sec2Hour}}
-							</div>
-						</div>
+		</div>
+		<div class="ui list flex-items-block">
+			{{range $user, $trackedtime := .WorkingUsers}}
+				<div class="item tw-gap-3">
+					{{template "shared/user/avatarlink" dict "user" $user}}
+					<div>
+						{{template "shared/user/authorlink" $user}}
+						<div class="text">{{$trackedtime|Sec2Hour}}</div>
 					</div>
-				{{end}}
-			</div>
+				</div>
+			{{end}}
 		</div>
 	{{end}}
 {{end}}

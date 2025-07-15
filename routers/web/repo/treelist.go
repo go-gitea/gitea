@@ -6,6 +6,7 @@ package repo
 import (
 	"html/template"
 	"net/http"
+	"path"
 	"strings"
 
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -111,7 +112,7 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 		item := &WebDiffFileItem{FullName: file.HeadPath, DiffStatus: file.Status}
 		item.IsViewed = filesViewedState[item.FullName] == pull_model.Viewed
 		item.NameHash = git.HashFilePathForWebUI(item.FullName)
-		item.FileIcon = fileicon.RenderEntryIconHTML(renderedIconPool, &fileicon.EntryInfo{FullName: file.HeadPath, EntryMode: file.HeadMode})
+		item.FileIcon = fileicon.RenderEntryIconHTML(renderedIconPool, &fileicon.EntryInfo{BaseName: path.Base(file.HeadPath), EntryMode: file.HeadMode})
 
 		switch file.HeadMode {
 		case git.EntryModeTree:
@@ -143,7 +144,7 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 
 func TreeViewNodes(ctx *context.Context) {
 	renderedIconPool := fileicon.NewRenderedIconPool()
-	results, err := files_service.GetTreeViewNodes(ctx, renderedIconPool, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
+	results, err := files_service.GetTreeViewNodes(ctx, ctx.Repo.RepoLink, renderedIconPool, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
 	if err != nil {
 		ctx.ServerError("GetTreeViewNodes", err)
 		return

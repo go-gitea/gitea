@@ -15,7 +15,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -143,7 +142,7 @@ func prepareToRenderDirectory(ctx *context.Context) {
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefFullName.ShortName())
 	}
 
-	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, entries, true)
+	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, ctx.Repo.TreePath, entries, true)
 	if err != nil {
 		ctx.ServerError("findReadmeFileInEntries", err)
 		return
@@ -194,56 +193,6 @@ func prepareUpstreamDivergingInfo(ctx *context.Context) {
 		return
 	}
 	ctx.Data["UpstreamDivergingInfo"] = upstreamDivergingInfo
-}
-
-func prepareRecentlyPushedNewBranches(ctx *context.Context) {
-	if ctx.Doer != nil {
-		if err := ctx.Repo.Repository.GetBaseRepo(ctx); err != nil {
-			ctx.ServerError("GetBaseRepo", err)
-			return
-		}
-
-		opts := &git_model.FindRecentlyPushedNewBranchesOptions{
-			Repo:     ctx.Repo.Repository,
-			BaseRepo: ctx.Repo.Repository,
-		}
-		if ctx.Repo.Repository.IsFork {
-			opts.BaseRepo = ctx.Repo.Repository.BaseRepo
-		}
-
-		baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, opts.BaseRepo, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
-			return
-		}
-
-		if !opts.Repo.IsMirror && !opts.BaseRepo.IsMirror &&
-			opts.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests) &&
-			baseRepoPerm.CanRead(unit_model.TypePullRequests) {
-			var finalBranches []*git_model.RecentlyPushedNewBranch
-			branches, err := git_model.FindRecentlyPushedNewBranches(ctx, ctx.Doer, opts)
-			if err != nil {
-				log.Error("FindRecentlyPushedNewBranches failed: %v", err)
-			}
-
-			for _, branch := range branches {
-				divergingInfo, err := repo_service.GetBranchDivergingInfo(ctx,
-					branch.BranchRepo, branch.BranchName, // "base" repo for diverging info
-					opts.BaseRepo, opts.BaseRepo.DefaultBranch, // "head" repo for diverging info
-				)
-				if err != nil {
-					log.Error("GetBranchDivergingInfo failed: %v", err)
-					continue
-				}
-				branchRepoHasNewCommits := divergingInfo.BaseHasNewCommits
-				baseRepoCommitsBehind := divergingInfo.HeadCommitsBehind
-				if branchRepoHasNewCommits || baseRepoCommitsBehind > 0 {
-					finalBranches = append(finalBranches, branch)
-				}
-			}
-			ctx.Data["RecentlyPushedNewBranches"] = finalBranches
-		}
-	}
 }
 
 func updateContextRepoEmptyAndStatus(ctx *context.Context, empty bool, status repo_model.RepositoryStatus) {
@@ -339,7 +288,7 @@ func prepareToRenderDirOrFile(entry *git.TreeEntry) func(ctx *context.Context) {
 		if entry.IsDir() {
 			prepareToRenderDirectory(ctx)
 		} else {
-			prepareToRenderFile(ctx, entry)
+			prepareFileView(ctx, entry)
 		}
 	}
 }
@@ -377,11 +326,25 @@ func prepareHomeTreeSideBarSwitch(ctx *context.Context) {
 
 func redirectSrcToRaw(ctx *context.Context) bool {
 	// GitHub redirects a tree path with "?raw=1" to the raw path
-	// It is useful to embed some raw contents into markdown files,
-	// then viewing the markdown in "src" path could embed the raw content correctly.
+	// It is useful to embed some raw contents into Markdown files,
+	// then viewing the Markdown in "src" path could embed the raw content correctly.
 	if ctx.Repo.TreePath != "" && ctx.FormBool("raw") {
 		ctx.Redirect(ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath))
 		return true
+	}
+	return false
+}
+
+func redirectFollowSymlink(ctx *context.Context, treePathEntry *git.TreeEntry) bool {
+	if ctx.Repo.TreePath == "" || !ctx.FormBool("follow_symlink") {
+		return false
+	}
+	if treePathEntry.IsLink() {
+		if res, err := git.EntryFollowLinks(ctx.Repo.Commit, ctx.Repo.TreePath, treePathEntry); err == nil {
+			redirect := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(res.TargetFullPath) + "?" + ctx.Req.URL.RawQuery
+			ctx.Redirect(redirect)
+			return true
+		} // else: don't handle the links we cannot resolve, so ignore the error
 	}
 	return false
 }
@@ -394,6 +357,7 @@ func Home(ctx *context.Context) {
 	if redirectSrcToRaw(ctx) {
 		return
 	}
+
 	// Check whether the repo is viewable: not in migration, and the code unit should be enabled
 	// Ideally the "feed" logic should be after this, but old code did so, so keep it as-is.
 	checkHomeCodeViewable(ctx)
@@ -421,6 +385,10 @@ func Home(ctx *context.Context) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
+		return
+	}
+
+	if redirectFollowSymlink(ctx, entry) {
 		return
 	}
 

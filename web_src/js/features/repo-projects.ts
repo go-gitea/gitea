@@ -114,7 +114,6 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
         window.location.reload(); // newly added column, need to reload the page
         return;
       }
-      fomanticQuery(elModal).modal('hide');
 
       // update the newly saved column title and color in the project board (to avoid reload)
       const elEditButton = writableProjectBoard.querySelector<HTMLButtonElement>(`.show-project-column-modal-edit[${attrDataColumnId}="${columnId}"]`);
@@ -134,6 +133,8 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
         elBoardColumn.style.removeProperty('color');
         queryElemChildren<HTMLElement>(elBoardColumn, '.divider', (divider) => divider.style.removeProperty('color'));
       }
+
+      fomanticQuery(elModal).modal('hide');
     } finally {
       elForm.classList.remove('is-loading');
     }

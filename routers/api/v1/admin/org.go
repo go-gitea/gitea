@@ -29,7 +29,7 @@ func CreateOrg(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of the user that will own the created organization
+	//   description: username of the user who will own the created organization
 	//   type: string
 	//   required: true
 	// - name: organization

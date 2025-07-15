@@ -56,7 +56,7 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 
-		events := htmlDoc.doc.Find(".event > span.text")
+		events := htmlDoc.doc.Find(".event > .comment-text-line")
 		assert.Contains(t, events.Last().Text(), "started working")
 
 		AssertHTMLElement(t, htmlDoc, ".issue-stop-time", true)
@@ -74,7 +74,7 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 
-		events = htmlDoc.doc.Find(".event > span.text")
+		events = htmlDoc.doc.Find(".event > .comment-text-line")
 		assert.Contains(t, events.Last().Text(), "worked for ")
 	} else {
 		session.MakeRequest(t, reqStart, http.StatusNotFound)
