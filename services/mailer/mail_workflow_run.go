@@ -110,7 +110,6 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 			"RunStatusText": runStatusText,
 			"Jobs":          convertedJobs,
 			"locale":        locale,
-			"Language":      locale.Language(),
 		}); err != nil {
 			log.Error("ExecuteTemplate [%s]: %v", tplWorkflowRun, err)
 			return
