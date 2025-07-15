@@ -3311,6 +3311,92 @@
         }
       }
     },
+    "/orgs/{org}/mirror-ssh-key": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get SSH public key for organization mirroring",
+        "operationId": "orgGetMirrorSSHKey",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSH public key",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "fingerprint": {
+                  "type": "string"
+                },
+                "public_key": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/mirror-ssh-key/regenerate": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Regenerate SSH keypair for organization mirroring",
+        "operationId": "orgRegenerateMirrorSSHKey",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "New SSH public key",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "fingerprint": {
+                  "type": "string"
+                },
+                "public_key": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/responses/internalServerError"
+          }
+        }
+      }
+    },
     "/orgs/{org}/public_members": {
       "get": {
         "produces": [
@@ -19623,6 +19709,68 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/user/mirror-ssh-key": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get SSH public key for user mirroring",
+        "operationId": "userGetMirrorSSHKey",
+        "responses": {
+          "200": {
+            "description": "SSH public key",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "fingerprint": {
+                  "type": "string"
+                },
+                "public_key": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/user/mirror-ssh-key/regenerate": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Regenerate SSH keypair for user mirroring",
+        "operationId": "userRegenerateMirrorSSHKey",
+        "responses": {
+          "200": {
+            "description": "New SSH public key",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "fingerprint": {
+                  "type": "string"
+                },
+                "public_key": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/responses/internalServerError"
           }
         }
       }
