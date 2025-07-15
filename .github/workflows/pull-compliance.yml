@@ -40,7 +40,7 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: package-lock.json
-      - run: pip install poetry
+      - run: pip install uv
       - run: make deps-py
       - run: make deps-frontend
       - run: make lint-templates
@@ -54,7 +54,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install poetry
+      - run: pip install uv
       - run: make deps-py
       - run: make lint-yaml
 
