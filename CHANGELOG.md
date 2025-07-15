@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/1.24.3) - 2025-07-12
 
 * BUGFIXES
+  * Fix form property assignment edge case (#35073) (#35078)
   * Improve submodule relative path handling (#35056) (#35075)
   * Fix incorrect comment diff hunk parsing, fix github asset ID nil panic (#35046) (#35055)
   * Fix updating user visibility (#35036) (#35044)
