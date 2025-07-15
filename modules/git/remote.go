@@ -91,6 +91,9 @@ func IsRemoteNotExistError(err error) bool {
 
 // normalizeSSHURL converts SSH-SCP format URLs to standard ssh:// format for security
 func normalizeSSHURL(remoteAddr string) (string, error) {
+ if strings.HasPrefix(remoteAddr, "ssh://") {
+  return remoteAddr, nil
+ }
 	if strings.Contains(remoteAddr, "://") {
 		return remoteAddr, errors.New("remoteAddr has a scheme")
 	}
