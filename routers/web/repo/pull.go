@@ -653,46 +653,51 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		return
 	}
 
-	ctx.Data["IsShowingOnlySingleCommit"] = beforeCommitID != "" && beforeCommitID == afterCommitID
+	isSingleCommit := beforeCommitID == "" && afterCommitID != ""
+	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
 	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prInfo.MergeBase) && (afterCommitID == "" || afterCommitID == headCommitID)
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
 
-	if beforeCommitID == "" {
-		beforeCommitID = prInfo.MergeBase
-	}
-	if afterCommitID == "" {
-		afterCommitID = headCommitID
+	var beforeCommit, afterCommit *git.Commit
+	if !isSingleCommit {
+		if beforeCommitID == "" || beforeCommitID == prInfo.MergeBase {
+			beforeCommitID = prInfo.MergeBase
+			// mergebase commit is not in the list of the pull request commits
+			beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
+			if err != nil {
+				ctx.ServerError("GetCommit", err)
+				return
+			}
+		} else {
+			beforeCommit = indexCommit(prInfo.Commits, beforeCommitID)
+			if beforeCommit == nil {
+				ctx.HTTPError(http.StatusBadRequest, "before commit not found in PR commits")
+				return
+			}
+		}
 	}
 
-	var beforeCommit, afterCommit *git.Commit
-	if beforeCommitID != prInfo.MergeBase {
-		beforeCommit = indexCommit(prInfo.Commits, beforeCommitID)
-		if beforeCommit == nil {
-			ctx.NotFound(errors.New("before commit not found in PR commits"))
-			return
-		}
-		beforeCommit, err = beforeCommit.Parent(0)
+	if afterCommitID == "" || afterCommitID == headCommitID {
+		afterCommitID = headCommitID
+	}
+	afterCommit = indexCommit(prInfo.Commits, afterCommitID)
+	if afterCommit == nil {
+		ctx.HTTPError(http.StatusBadRequest, "after commit not found in PR commits")
+		return
+	}
+
+	if isSingleCommit {
+		beforeCommit, err = afterCommit.Parent(0)
 		if err != nil {
 			ctx.ServerError("GetParentCommit", err)
 			return
 		}
 		beforeCommitID = beforeCommit.ID.String()
-	} else { // mergebase commit is not in the list of the pull request commits
-		beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
-		if err != nil {
-			ctx.ServerError("GetCommit", err)
-			return
-		}
-	}
-
-	afterCommit = indexCommit(prInfo.Commits, afterCommitID)
-	if afterCommit == nil {
-		ctx.NotFound(errors.New("after commit not found in PR commits"))
-		return
 	}
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
+	ctx.Data["MergeBase"] = prInfo.MergeBase
 	ctx.Data["AfterCommitID"] = afterCommitID
 	ctx.Data["BeforeCommitID"] = beforeCommitID
 
@@ -883,7 +888,9 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 }
 
 func ViewPullFilesForSingleCommit(ctx *context.Context) {
-	viewPullFiles(ctx, ctx.PathParam("sha"), ctx.PathParam("sha"))
+	// it doesn't support showing files from mergebase to the special commit
+	// otherwise it will be ambiguous
+	viewPullFiles(ctx, "", ctx.PathParam("sha"))
 }
 
 func ViewPullFilesForRange(ctx *context.Context) {

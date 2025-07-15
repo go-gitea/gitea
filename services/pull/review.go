@@ -121,7 +121,6 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 	if err != nil {
 		return nil, fmt.Errorf("GetRefCommitID[%s]: %w", issue.PullRequest.GetGitHeadRefName(), err)
 	}
-
 	prCommitIDs, err := git.CommitIDsBetween(ctx, gitRepo.Path, issue.PullRequest.MergeBase, headCommitID)
 	if err != nil {
 		return nil, fmt.Errorf("CommitIDsBetween[%s, %s]: %w", beforeCommitID, afterCommitID, err)
@@ -129,24 +128,11 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 
 	if beforeCommitID == "" || beforeCommitID == issue.PullRequest.MergeBase {
 		beforeCommitID = issue.PullRequest.MergeBase
-	} else {
-		// beforeCommitID must be one of the pull request commits
-		if !slices.Contains(prCommitIDs, beforeCommitID) {
-			return nil, fmt.Errorf("beforeCommitID[%s] is not a valid pull request commit", beforeCommitID)
-		}
-
-		beforeCommit, err := gitRepo.GetCommit(beforeCommitID)
-		if err != nil {
-			return nil, fmt.Errorf("GetCommit[%s]: %w", beforeCommitID, err)
-		}
-
-		beforeCommit, err = beforeCommit.Parent(0)
-		if err != nil {
-			return nil, fmt.Errorf("GetParent[%s]: %w", beforeCommitID, err)
-		}
-		beforeCommitID = beforeCommit.ID.String()
+	} else if !slices.Contains(prCommitIDs, beforeCommitID) { // beforeCommitID must be one of the pull request commits
+		return nil, fmt.Errorf("beforeCommitID[%s] is not a valid pull request commit", beforeCommitID)
 	}
-	if afterCommitID == "" {
+
+	if afterCommitID == "" || afterCommitID == headCommitID {
 		afterCommitID = headCommitID
 	} else if !slices.Contains(prCommitIDs, afterCommitID) { // afterCommitID must be one of the pull request commits
 		return nil, fmt.Errorf("afterCommitID[%s] is not a valid pull request commit", afterCommitID)
@@ -648,14 +634,7 @@ func LoadCodeComments(ctx context.Context, gitRepo *git.Repository, repo *repo_m
 				}
 				comment.Line = ReCalculateLineNumber(hunks, comment.Line)
 				if comment.Line != 0 {
-					dstCommit, err := gitRepo.GetCommit(dstCommitID)
-					if err != nil {
-						return fmt.Errorf("GetCommit[%s]: %w", dstCommitID, err)
-					}
-					// If the comment is not the first one or the comment created before the current commit
-					if len(lineComments[comment.Line]) > 0 || comment.CreatedUnix.AsTime().Before(dstCommit.Committer.When) {
-						lineComments[comment.Line] = append(lineComments[comment.Line], comment)
-					}
+					lineComments[comment.Line] = append(lineComments[comment.Line], comment)
 				}
 			}
 

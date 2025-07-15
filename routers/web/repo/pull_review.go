@@ -178,7 +178,6 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.ServerError("GetRefCommitID", err)
 		return
 	}
-
 	prCommitIDs, err := git.CommitIDsBetween(ctx, ctx.Repo.GitRepo.Path, comment.Issue.PullRequest.MergeBase, headCommitID)
 	if err != nil {
 		ctx.ServerError("CommitIDsBetween", err)
@@ -187,27 +186,12 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 
 	if beforeCommitID == "" || beforeCommitID == comment.Issue.PullRequest.MergeBase {
 		beforeCommitID = comment.Issue.PullRequest.MergeBase
-	} else {
-		// beforeCommitID must be one of the pull request commits
-		if !slices.Contains(prCommitIDs, beforeCommitID) {
-			ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("beforeCommitID[%s] is not a valid pull request commit", beforeCommitID))
-			return
-		}
-
-		beforeCommit, err := ctx.Repo.GitRepo.GetCommit(beforeCommitID)
-		if err != nil {
-			ctx.ServerError("GetCommit", err)
-			return
-		}
-
-		beforeCommit, err = beforeCommit.Parent(0)
-		if err != nil {
-			ctx.ServerError("GetParent", err)
-			return
-		}
-		beforeCommitID = beforeCommit.ID.String()
+	} else if !slices.Contains(prCommitIDs, beforeCommitID) { // beforeCommitID must be one of the pull request commits
+		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("beforeCommitID[%s] is not a valid pull request commit", beforeCommitID))
+		return
 	}
-	if afterCommitID == "" {
+
+	if afterCommitID == "" || afterCommitID == headCommitID {
 		afterCommitID = headCommitID
 	} else if !slices.Contains(prCommitIDs, afterCommitID) { // afterCommitID must be one of the pull request commits
 		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("afterCommitID[%s] is not a valid pull request commit", afterCommitID))
