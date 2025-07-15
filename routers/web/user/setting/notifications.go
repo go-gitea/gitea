@@ -4,12 +4,10 @@
 package setting
 
 import (
-	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -52,19 +50,17 @@ func NotificationsEmailPost(ctx *context.Context) {
 		preference == user_model.EmailNotificationsOnMention ||
 		preference == user_model.EmailNotificationsDisabled ||
 		preference == user_model.EmailNotificationsAndYourOwn) {
-		log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.Doer.Name)
-		ctx.ServerError("NotificationsEmailPost", errors.New("option unrecognized"))
+		ctx.Flash.Error(ctx.Tr("invalid_data", preference))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/notifications")
 		return
 	}
 	opts := &user.UpdateOptions{
 		EmailNotificationsPreference: optional.Some(preference),
 	}
 	if err := user.UpdateUser(ctx, ctx.Doer, opts); err != nil {
-		log.Error("Set Email Notifications failed: %v", err)
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
-	log.Trace("Email notifications preference made %s: %s", preference, ctx.Doer.Name)
 	ctx.Flash.Success(ctx.Tr("settings.email_preference_set_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/notifications")
 }
@@ -80,16 +76,14 @@ func NotificationsActionsEmailPost(ctx *context.Context) {
 	if !(preference == user_model.SettingEmailNotificationGiteaActionsAll ||
 		preference == user_model.SettingEmailNotificationGiteaActionsDisabled ||
 		preference == user_model.SettingEmailNotificationGiteaActionsFailureOnly) {
-		log.Error("Actions Email notifications preference change returned unrecognized option %s: %s", preference, ctx.Doer.Name)
-		ctx.ServerError("NotificationsActionsEmailPost", errors.New("option unrecognized"))
+		ctx.Flash.Error(ctx.Tr("invalid_data", preference))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/notifications")
 		return
 	}
 	if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyEmailNotificationGiteaActions, preference); err != nil {
-		log.Error("Cannot set actions email notifications preference: %v", err)
 		ctx.ServerError("SetUserSetting", err)
 		return
 	}
-	log.Trace("Actions email notifications preference made %s: %s", preference, ctx.Doer.Name)
 	ctx.Flash.Success(ctx.Tr("settings.email_preference_set_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/notifications")
 }
