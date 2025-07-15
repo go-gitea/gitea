@@ -12,6 +12,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
@@ -267,10 +268,6 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 	}
 	defer committer.Close()
 
-	if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
-		return nil, err
-	}
-
 	// update the total issue numbers
 	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
 		return nil, err
@@ -302,6 +299,13 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 	}
 
 	// deference all review comments
+	if err := issue.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		return nil, err
+	}
+
 	if err := issue.LoadComments(ctx); err != nil {
 		return nil, err
 	}
@@ -335,17 +339,8 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 		}
 
 		if comment.ReviewID > 0 {
-			if err := comment.LoadIssue(ctx); err != nil {
-				return nil, err
-			}
-			if err := comment.Issue.LoadRepo(ctx); err != nil {
-				return nil, err
-			}
-			if err := comment.Issue.LoadPullRequest(ctx); err != nil {
-				return nil, err
-			}
-			if err := git.RemoveRef(ctx, comment.Issue.Repo.RepoPath(), issues_model.GetCodeCommentRef(comment.Issue.PullRequest.Index, comment.ID)); err != nil {
-				log.Error("Unable to remove ref in base repository for PR[%d] Error: %v", comment.Issue.PullRequest.ID, err)
+			if err := git.RemoveRef(ctx, issue.Repo.RepoPath(), issues_model.GetCodeCommentRef(issue.PullRequest.Index, comment.ID)); err != nil {
+				log.Error("Unable to remove ref in base repository for PR[%d] Error: %v", issue.PullRequest.ID, err)
 				// We should not return error here, because the comment has been removed from database.
 				// users have to delete this ref manually or we should have a synchronize between
 				// database comment table and git refs.
@@ -362,6 +357,29 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 				log.Error("delete attachment[uuid: %s] failed: %v", attachment.UUID, err)
 			}
 		}
+	}
+
+	// delete all pull request records
+	if issue.IsPull {
+		// Delete scheduled auto merges
+		if _, err := db.GetEngine(ctx).Where("pull_id=?", issue.PullRequest.ID).
+			Delete(&pull_model.AutoMerge{}); err != nil {
+			return nil, err
+		}
+
+		// Delete review states
+		if _, err := db.GetEngine(ctx).Where("pull_id=?", issue.PullRequest.ID).
+			Delete(&pull_model.ReviewState{}); err != nil {
+			return nil, err
+		}
+
+		if _, err := db.GetEngine(ctx).ID(issue.PullRequest.ID).Delete(&issues_model.PullRequest{}); err != nil {
+			return nil, err
+		}
+	}
+
+	if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
+		return nil, err
 	}
 
 	if err := committer.Commit(); err != nil {

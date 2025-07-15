@@ -97,10 +97,6 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	}
 	needRewriteKeysFile := deleted > 0
 
-	if err := deleteDBRepository(ctx, repoID); err != nil {
-		return err
-	}
-
 	if org != nil && org.IsOrganization() {
 		teams, err := organization.FindOrgTeams(ctx, org.ID)
 		if err != nil {
@@ -184,11 +180,6 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 
 	// Delete Labels and related objects
 	if err := issues_model.DeleteLabelsByRepoID(ctx, repoID); err != nil {
-		return err
-	}
-
-	// Delete Pulls and related objects
-	if err := issues_model.DeletePullsByBaseRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
@@ -288,6 +279,11 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 
 	// unlink packages linked to this repository
 	if err = packages_model.UnlinkRepositoryFromAllPackages(ctx, repoID); err != nil {
+		return err
+	}
+
+	// delete all related database records first before deleting the repository record
+	if err := deleteDBRepository(ctx, repoID); err != nil {
 		return err
 	}
 
