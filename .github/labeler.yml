@@ -61,7 +61,7 @@ modifies/dependencies:
           - "package.json"
           - "package-lock.json"
           - "pyproject.toml"
-          - "poetry.lock"
+          - "uv.lock"
           - "go.mod"
           - "go.sum"
 
