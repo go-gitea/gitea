@@ -239,7 +239,7 @@ func GetPackageOrRepositoryFile(ctx *context.Context) {
 		return
 	}
 
-	s, u, pf, err := packages_service.OpenFileForDownload(ctx, pfs[0])
+	s, u, pf, err := packages_service.OpenFileForDownload(ctx, pfs[0], ctx.Req.Method)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)

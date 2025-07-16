@@ -106,7 +106,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	s, u, _, err := packages_service.OpenFileForDownload(ctx, pfs[0])
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pfs[0], ctx.Req.Method)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)

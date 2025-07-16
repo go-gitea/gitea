@@ -339,7 +339,7 @@ func CommonRoutes() *web.Router {
 			r.Group("/{packagename}/{packageversion}", func() {
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
 				r.Group("/{filename}", func() {
-					r.Get("", generic.DownloadPackageFile)
+					r.Methods("HEAD,GET", "", generic.DownloadPackageFile)
 					r.Group("", func() {
 						r.Put("", generic.UploadPackage)
 						r.Delete("", generic.DeletePackageFile)
