@@ -43,13 +43,12 @@ func apiError(ctx *context.Context, status int, obj any) {
 		Error Error `json:"error"`
 	}
 
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		jsonResponse(ctx, status, ErrorWrapper{
-			Error: Error{
-				Code:    http.StatusText(status),
-				Message: message,
-			},
-		})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	jsonResponse(ctx, status, ErrorWrapper{
+		Error: Error{
+			Code:    http.StatusText(status),
+			Message: message,
+		},
 	})
 }
 

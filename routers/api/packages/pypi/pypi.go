@@ -40,9 +40,8 @@ var versionMatcher = regexp.MustCompile(`\Av?` +
 	`\z`)
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, message)
-	})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.PlainText(status, message)
 }
 
 // PackageMetadata returns the metadata for a single package
