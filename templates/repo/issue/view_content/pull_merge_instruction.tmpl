@@ -11,7 +11,7 @@
 			{{if eq .PullRequest.Flow 0}}
 			<div>git fetch -u {{if ne .PullRequest.HeadRepo.ID .PullRequest.BaseRepo.ID}}<origin-url data-url="{{.PullRequest.HeadRepo.Link}}"></origin-url>{{else}}origin{{end}} {{.PullRequest.HeadBranch}}:{{$localBranch}}</div>
 			{{else}}
-			<div>git fetch -u origin {{.PullRequest.GetGitRefName}}:{{$localBranch}}</div>
+			<div>git fetch -u origin {{.PullRequest.GetGitHeadRefName}}:{{$localBranch}}</div>
 			{{end}}
 			<div>git checkout {{$localBranch}}</div>
 		</div>
