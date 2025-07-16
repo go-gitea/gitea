@@ -104,7 +104,7 @@ func (input *notifyInput) WithPayload(payload api.Payloader) *notifyInput {
 func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyInput {
 	input.PullRequest = pr
 	if input.Ref == "" {
-		input.Ref = git.RefName(pr.GetGitRefName())
+		input.Ref = git.RefName(pr.GetGitHeadRefName())
 	}
 	return input
 }
