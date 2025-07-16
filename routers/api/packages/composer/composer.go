@@ -28,18 +28,17 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		type Error struct {
-			Status  int    `json:"status"`
-			Message string `json:"message"`
-		}
-		ctx.JSON(status, struct {
-			Errors []Error `json:"errors"`
-		}{
-			Errors: []Error{
-				{Status: status, Message: message},
-			},
-		})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	type Error struct {
+		Status  int    `json:"status"`
+		Message string `json:"message"`
+	}
+	ctx.JSON(status, struct {
+		Errors []Error `json:"errors"`
+	}{
+		Errors: []Error{
+			{Status: status, Message: message},
+		},
 	})
 }
 
