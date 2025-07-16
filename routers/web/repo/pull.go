@@ -897,10 +897,6 @@ func ViewPullFilesForRange(ctx *context.Context) {
 	viewPullFiles(ctx, ctx.PathParam("shaFrom"), ctx.PathParam("shaTo"))
 }
 
-func ViewPullFilesStartingFromCommit(ctx *context.Context) {
-	viewPullFiles(ctx, ctx.PathParam("sha"), "")
-}
-
 func ViewPullFilesForAllCommitsOfPr(ctx *context.Context) {
 	viewPullFiles(ctx, "", "")
 }
