@@ -159,7 +159,7 @@ func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_m
 			if err := comment.Issue.LoadPullRequest(ctx); err != nil {
 				return err
 			}
-			if err := git.RemoveRef(ctx, comment.Issue.Repo.RepoPath(), issues_model.GetCodeCommentRef(comment.Issue.PullRequest.Index, comment.ID)); err != nil {
+			if err := git.RemoveRef(ctx, comment.Issue.Repo.RepoPath(), issues_model.GetCodeCommentRefName(comment.Issue.PullRequest.Index, comment.ID)); err != nil {
 				log.Error("Unable to remove ref in base repository for PR[%d] Error: %v", comment.Issue.PullRequest.ID, err)
 				// We should not return error here, because the comment has been removed from database.
 				// users have to delete this ref manually or we should have a synchronize between

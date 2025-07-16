@@ -764,7 +764,7 @@ func (c *Comment) CodeCommentLink(ctx context.Context) string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
 }
 
-func GetCodeCommentRef(prIndex, commentID int64) string {
+func GetCodeCommentRefName(prIndex, commentID int64) string {
 	return fmt.Sprintf("refs/pull/%d/code-comment-%d", prIndex, commentID)
 }
 
