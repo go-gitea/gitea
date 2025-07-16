@@ -28,13 +28,12 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		type Error struct {
-			Error string `json:"error"`
-		}
-		ctx.JSON(status, Error{
-			Error: message,
-		})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	type Error struct {
+		Error string `json:"error"`
+	}
+	ctx.JSON(status, Error{
+		Error: message,
 	})
 }
 
@@ -128,6 +127,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageFileInfo{
 			Filename: filename,
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageFileNotExist) {

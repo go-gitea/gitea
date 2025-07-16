@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
+	<title>{{.Subject}}</title>
+</head>
+<body style="background-color: #f5f7fa; margin: 20px;">
+
+	<h2 style="color: #2c3e50; margin-bottom: 20px;">
+		{{.Repo.FullName}} {{.Run.WorkflowID}}: {{.RunStatusText}}
+	</h2>
+
+	<ul style="list-style: none; padding: 0; margin: 0 0 30px 0;">
+	{{range $job := .Jobs}}
+		<li style="background-color: #ffffff; border: 1px solid #ddd; border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); transition: box-shadow 0.2s ease;">
+			<a href="{{$job.HTMLURL}}" style="color: #0073e6; text-decoration: none; font-weight: bold;">
+				{{$job.Status}}: {{$job.Name}}{{if gt $job.Attempt 1}}, Attempt #{{$job.Attempt}}{{end}}
+			</a>
+		</li>
+	{{end}}
+	</ul>
+
+	<br/>
+
+	<div style="text-align: center; margin-top: 30px;">
+		<a href="{{.Run.HTMLURL}}" style="display: inline-block; background-color: #28a745; color: #ffffff !important; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">
+			{{.locale.Tr "mail.view_it_on" AppName}}
+		</a>
+	</div>
+
+</body>
+</html>

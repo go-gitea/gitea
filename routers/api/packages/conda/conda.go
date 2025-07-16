@@ -25,14 +25,13 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.JSON(status, struct {
-			Reason  string `json:"reason"`
-			Message string `json:"message"`
-		}{
-			Reason:  http.StatusText(status),
-			Message: message,
-		})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.JSON(status, struct {
+		Reason  string `json:"reason"`
+		Message string `json:"message"`
+	}{
+		Reason:  http.StatusText(status),
+		Message: message,
 	})
 }
 
@@ -317,7 +316,7 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pf := pfs[0]
 
-	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf, ctx.Req.Method)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

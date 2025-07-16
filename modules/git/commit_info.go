@@ -15,7 +15,7 @@ type CommitInfo struct {
 func getCommitInfoSubmoduleFile(repoLink string, entry *TreeEntry, commit *Commit, treePathDir string) (*CommitSubmoduleFile, error) {
 	fullPath := path.Join(treePathDir, entry.Name())
 	submodule, err := commit.GetSubModule(fullPath)
-	if err != nil {
+	if submodule == nil || err != nil {
 		return nil, err
 	}
 	return NewCommitSubmoduleFile(repoLink, fullPath, submodule.URL, entry.ID.String()), nil

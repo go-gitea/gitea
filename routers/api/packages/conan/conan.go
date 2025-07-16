@@ -61,10 +61,9 @@ func jsonResponse(ctx *context.Context, status int, obj any) {
 }
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		jsonResponse(ctx, status, map[string]string{
-			"message": message,
-		})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	jsonResponse(ctx, status, map[string]string{
+		"message": message,
 	})
 }
 
@@ -492,6 +491,7 @@ func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKe
 			Filename:     filename,
 			CompositeKey: fileKey,
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {

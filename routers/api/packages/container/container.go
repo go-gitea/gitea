@@ -93,10 +93,9 @@ func jsonResponse(ctx *context.Context, status int, obj any) {
 }
 
 func apiError(ctx *context.Context, status int, err error) {
-	helper.LogAndProcessError(ctx, status, err, func(message string) {
-		setResponseHeaders(ctx.Resp, &containerHeaders{
-			Status: status,
-		})
+	_ = helper.ProcessErrorForUser(ctx, status, err)
+	setResponseHeaders(ctx.Resp, &containerHeaders{
+		Status: status,
 	})
 }
 
@@ -710,7 +709,7 @@ func DeleteManifest(ctx *context.Context) {
 func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) {
 	serveDirectReqParams := make(url.Values)
 	serveDirectReqParams.Set("response-content-type", pfd.Properties.GetByName(container_module.PropertyMediaType))
-	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, serveDirectReqParams)
+	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, ctx.Req.Method, serveDirectReqParams)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

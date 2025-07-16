@@ -513,7 +513,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf, ctx.Req.Method)
 	if err != nil {
 		ctx.ServerError("OpenFileForDownload", err)
 		return
