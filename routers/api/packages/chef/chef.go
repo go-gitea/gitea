@@ -343,7 +343,7 @@ func DownloadPackage(ctx *context.Context) {
 
 	pf := pd.Files[0].File
 
-	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf, ctx.Req.Method)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

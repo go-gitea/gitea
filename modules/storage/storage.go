@@ -63,7 +63,7 @@ type ObjectStorage interface {
 	Save(path string, r io.Reader, size int64) (int64, error)
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
-	URL(path, name string, reqParams url.Values) (*url.URL, error)
+	URL(path, name, method string, reqParams url.Values) (*url.URL, error)
 	IterateObjects(path string, iterator func(path string, obj Object) error) error
 }
 
