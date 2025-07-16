@@ -393,11 +393,11 @@ lint-actions: ## lint action workflow files
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
 	@node tools/lint-templates-svg.js
-	@uv run djlint $(shell find templates -type f -iname '*.tmpl')
+	@uv run --frozen djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: lint-yaml
 lint-yaml: .venv ## lint yaml files
-	@uv run yamllint -s .
+	@uv run --frozen yamllint -s .
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
