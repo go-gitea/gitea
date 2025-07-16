@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -136,17 +135,8 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 // DeleteComment deletes the comment
 func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
 	err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := comment.LoadAttachments(ctx); err != nil {
-			return err
-		}
-
 		if err := issues_model.DeleteComment(ctx, comment); err != nil {
 			return err
-		}
-
-		// delete comment attachments
-		if _, err := repo_model.DeleteAttachments(ctx, comment.Attachments, true); err != nil {
-			return fmt.Errorf("delete attachments: %w", err)
 		}
 
 		if comment.ReviewID > 0 {
@@ -167,15 +157,6 @@ func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_m
 			}
 		}
 
-		for _, attachment := range comment.Attachments {
-			if err := storage.Attachments.Delete(repo_model.AttachmentRelativePath(attachment.UUID)); err != nil {
-				// Even delete files failed, but the attachments has been removed from database, so we
-				// should not return error but only record the error on logs.
-				// users have to delete this attachments manually or we should have a
-				// synchronize between database attachment table and attachment storage
-				log.Error("delete attachment[uuid: %s] failed: %v", attachment.UUID, err)
-			}
-		}
 		return nil
 	})
 	if err != nil {
