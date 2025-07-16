@@ -141,37 +141,25 @@ func TestPackageGeneric(t *testing.T) {
 		t.Run("ServeDirect", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			if setting.Packages.Storage.Type != setting.MinioStorageType && setting.Packages.Storage.Type != setting.AzureBlobStorageType {
+			if setting.Packages.Storage.Type != setting.MinioStorageType {
+				defer test.MockVariableValue(&setting.Packages.Storage.MinioConfig.ServeDirect, true)()
+			} else if setting.Packages.Storage.Type != setting.AzureBlobStorageType {
+				defer test.MockVariableValue(&setting.Packages.Storage.AzureBlobConfig.ServeDirect, true)()
+			} else {
 				t.Skip("Test skipped for non-Minio-storage and non-AzureBlob-storage.")
-				return
 			}
 
-			if setting.Packages.Storage.Type == setting.MinioStorageType {
-				if !setting.Packages.Storage.MinioConfig.ServeDirect {
-					old := setting.Packages.Storage.MinioConfig.ServeDirect
-					defer func() {
-						setting.Packages.Storage.MinioConfig.ServeDirect = old
-					}()
+			req = NewRequest(t, "HEAD", url+"/"+filename)
+			resp = MakeRequest(t, req, http.StatusSeeOther)
+			location := resp.Header().Get("Location")
+			assert.NotEmpty(t, location)
+			checkDownloadCount(2)
 
-					setting.Packages.Storage.MinioConfig.ServeDirect = true
-				}
-			} else if setting.Packages.Storage.Type == setting.AzureBlobStorageType {
-				if !setting.Packages.Storage.AzureBlobConfig.ServeDirect {
-					old := setting.Packages.Storage.AzureBlobConfig.ServeDirect
-					defer func() {
-						setting.Packages.Storage.AzureBlobConfig.ServeDirect = old
-					}()
-
-					setting.Packages.Storage.AzureBlobConfig.ServeDirect = true
-				}
-			}
-
-			req := NewRequest(t, "GET", url+"/"+filename)
-			resp := MakeRequest(t, req, http.StatusSeeOther)
-
+			req = NewRequest(t, "GET", url+"/"+filename)
+			resp = MakeRequest(t, req, http.StatusSeeOther)
 			checkDownloadCount(3)
 
-			location := resp.Header().Get("Location")
+			location = resp.Header().Get("Location")
 			assert.NotEmpty(t, location)
 
 			resp2, err := (&http.Client{}).Get(location)

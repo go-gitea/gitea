@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -626,14 +627,12 @@ func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb
 		s, err = cs.OpenBlob(key)
 	}
 
-	if err == nil {
-		if pf.IsLead {
-			if err := packages_model.IncrementDownloadCounter(ctx, pf.VersionID); err != nil {
-				log.Error("Error incrementing download counter: %v", err)
-			}
+	if err == nil && pf.IsLead && method == http.MethodGet {
+		if err := packages_model.IncrementDownloadCounter(ctx, pf.VersionID); err != nil {
+			log.Error("Error incrementing download counter: %v", err)
 		}
 	}
-	return s, u, pf, err
+	return s, u, pf, nil
 }
 
 // RemoveAllPackages for User
