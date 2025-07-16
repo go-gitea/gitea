@@ -30,10 +30,9 @@ func apiError(ctx *context.Context, status int, obj any) {
 		ErrorMessages []string `json:"error_messages"`
 	}
 
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.JSON(status, Error{
-			ErrorMessages: []string{message},
-		})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.JSON(status, Error{
+		ErrorMessages: []string{message},
 	})
 }
 
