@@ -200,7 +200,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	defer closer.Close()
 
 	invalidated := false
-	head := pr.GetGitRefName()
+	head := pr.GetGitHeadRefName()
 	if line > 0 {
 		if reviewID != 0 {
 			first, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{
@@ -237,16 +237,16 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			if err == nil {
 				commitID = commit.ID.String()
 			} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
-				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %w", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
+				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %w", pr.GetGitHeadRefName(), gitRepo.Path, treePath, line, err)
 			}
 		}
 	}
 
 	// Only fetch diff if comment is review comment
 	if len(patch) == 0 && reviewID != 0 {
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
-			return nil, fmt.Errorf("GetRefCommitID[%s]: %w", pr.GetGitRefName(), err)
+			return nil, fmt.Errorf("GetRefCommitID[%s]: %w", pr.GetGitHeadRefName(), err)
 		}
 		if len(commitID) == 0 {
 			commitID = headCommitID
@@ -301,7 +301,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 			return nil, nil, ErrSubmitReviewOnClosedPR
 		}
 
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, nil, err
 		}

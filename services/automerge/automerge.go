@@ -187,7 +187,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 	}
 	defer baseGitRepo.Close()
 
-	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	if err != nil {
 		log.Error("GetRefCommitID: %v", err)
 		return
@@ -225,7 +225,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 			return
 		}
 	case issues_model.PullRequestFlowAGit:
-		headBranchExist := gitrepo.IsReferenceExist(ctx, pr.BaseRepo, pr.GetGitRefName())
+		headBranchExist := gitrepo.IsReferenceExist(ctx, pr.BaseRepo, pr.GetGitHeadRefName())
 		if !headBranchExist {
 			log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch(Agit): %s]", pr, pr.HeadRepoID, pr.HeadBranch)
 			return
