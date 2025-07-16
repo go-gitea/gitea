@@ -620,14 +620,17 @@ func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb
 	if cs.ShouldServeDirect() {
 		u, err = cs.GetServeDirectURL(key, pf.Name, method, serveDirectReqParams)
 		if err != nil && !errors.Is(err, storage.ErrURLNotSupported) {
-			log.Error("Error getting serve direct url: %v", err)
+			log.Error("Error getting serve direct url (fallback to local reader): %v", err)
 		}
 	}
 	if u == nil {
 		s, err = cs.OpenBlob(key)
 	}
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
-	if err == nil && pf.IsLead && method == http.MethodGet {
+	if pf.IsLead && method == http.MethodGet {
 		if err := packages_model.IncrementDownloadCounter(ctx, pf.VersionID); err != nil {
 			log.Error("Error incrementing download counter: %v", err)
 		}
