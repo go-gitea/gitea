@@ -1158,7 +1158,7 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 	// delete review if the comment is the last comment of the review
 	if comment.ReviewID > 0 {
 		if _, err := db.GetEngine(ctx).ID(comment.ReviewID).
-			Where("(SELECT count(id) FROM comment WHERE review_id = ?) == 0", comment.ReviewID).
+			Where("NOT EXISTS (SELECT 1 FROM comment WHERE review_id = ?)", comment.ReviewID).
 			Delete(new(Review)); err != nil {
 			return err
 		}
