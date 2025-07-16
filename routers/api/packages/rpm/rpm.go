@@ -103,6 +103,7 @@ func GetRepositoryFile(ctx *context.Context) {
 			Filename:     ctx.PathParam("filename"),
 			CompositeKey: ctx.PathParam("group"),
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -232,6 +233,7 @@ func DownloadPackageFile(ctx *context.Context) {
 			Filename:     fmt.Sprintf("%s-%s.%s.rpm", name, version, ctx.PathParam("architecture")),
 			CompositeKey: ctx.PathParam("group"),
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
