@@ -165,7 +165,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 
 			results = append(results, private.HookProcReceiveRefResult{
-				Ref:               pr.GetGitRefName(),
+				Ref:               pr.GetGitHeadRefName(),
 				OriginalRef:       opts.RefFullNames[i],
 				OldOID:            objectFormat.EmptyObjectID().String(),
 				NewOID:            opts.NewCommitIDs[i],
@@ -182,7 +182,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			return nil, fmt.Errorf("unable to load base repository for PR[%d] Error: %w", pr.ID, err)
 		}
 
-		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, fmt.Errorf("unable to get ref commit id in base repository for PR[%d] Error: %w", pr.ID, err)
 		}
@@ -260,7 +260,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		results = append(results, private.HookProcReceiveRefResult{
 			OldOID:            oldCommitID,
 			NewOID:            opts.NewCommitIDs[i],
-			Ref:               pr.GetGitRefName(),
+			Ref:               pr.GetGitHeadRefName(),
 			OriginalRef:       opts.RefFullNames[i],
 			IsForcePush:       isForcePush,
 			IsCreatePR:        false,
