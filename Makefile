@@ -393,11 +393,11 @@ lint-actions: ## lint action workflow files
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
 	@node tools/lint-templates-svg.js
-	@poetry run djlint $(shell find templates -type f -iname '*.tmpl')
+	@uv run djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: lint-yaml
 lint-yaml: .venv ## lint yaml files
-	@poetry run yamllint -s .
+	@uv run yamllint -s .
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
@@ -829,8 +829,8 @@ node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
 
-.venv: poetry.lock
-	poetry install
+.venv: uv.lock
+	uv sync
 	@touch .venv
 
 .PHONY: update
@@ -848,8 +848,8 @@ update-js: node-check | node_modules ## update js dependencies
 .PHONY: update-py
 update-py: node-check | node_modules ## update py dependencies
 	npx updates -u -f pyproject.toml
-	rm -rf .venv poetry.lock
-	poetry install
+	rm -rf .venv uv.lock
+	uv sync
 	@touch .venv
 
 .PHONY: webpack
