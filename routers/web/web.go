@@ -598,6 +598,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Group("/notifications", func() {
 			m.Get("", user_setting.Notifications)
 			m.Post("/email", user_setting.NotificationsEmailPost)
+			m.Post("/actions", user_setting.NotificationsActionsEmailPost)
 		})
 		m.Group("/security", func() {
 			m.Get("", security.Security)

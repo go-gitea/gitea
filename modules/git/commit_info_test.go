@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -120,6 +121,16 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	defer clonedRepo1.Close()
 
 	testGetCommitsInfo(t, clonedRepo1)
+
+	t.Run("NonExistingSubmoduleAsNil", func(t *testing.T) {
+		commit, err := bareRepo1.GetCommit("HEAD")
+		require.NoError(t, err)
+		tree, err := commit.GetTreeEntryByPath("file1.txt")
+		require.NoError(t, err)
+		cisf, err := getCommitInfoSubmoduleFile("/any/repo-link", tree, commit, "")
+		require.NoError(t, err)
+		assert.Nil(t, cisf)
+	})
 }
 
 func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
