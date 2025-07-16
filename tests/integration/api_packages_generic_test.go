@@ -141,9 +141,9 @@ func TestPackageGeneric(t *testing.T) {
 		t.Run("ServeDirect", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			if setting.Packages.Storage.Type != setting.MinioStorageType {
+			if setting.Packages.Storage.Type == setting.MinioStorageType {
 				defer test.MockVariableValue(&setting.Packages.Storage.MinioConfig.ServeDirect, true)()
-			} else if setting.Packages.Storage.Type != setting.AzureBlobStorageType {
+			} else if setting.Packages.Storage.Type == setting.AzureBlobStorageType {
 				defer test.MockVariableValue(&setting.Packages.Storage.AzureBlobConfig.ServeDirect, true)()
 			} else {
 				t.Skip("Test skipped for non-Minio-storage and non-AzureBlob-storage.")
