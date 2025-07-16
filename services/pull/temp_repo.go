@@ -174,7 +174,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	} else if len(pr.HeadCommitID) == objectFormat.FullLength() { // for not created pull request
 		headBranch = pr.HeadCommitID
 	} else {
-		headBranch = pr.GetGitRefName()
+		headBranch = pr.GetGitHeadRefName()
 	}
 	if err := git.NewCommand("fetch").AddArguments(fetchArgs...).AddDynamicArguments(remoteRepoName, headBranch+":"+trackingBranch).
 		Run(ctx, prCtx.RunOpts()); err != nil {
