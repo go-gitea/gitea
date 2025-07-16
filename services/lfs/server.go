@@ -43,6 +43,7 @@ type requestContext struct {
 	User          string
 	Repo          string
 	Authorization string
+	Method        string
 }
 
 // Claims is a JWT Token Claims
@@ -397,6 +398,7 @@ func getRequestContext(ctx *context.Context) *requestContext {
 		User:          ctx.PathParam("username"),
 		Repo:          strings.TrimSuffix(ctx.PathParam("reponame"), ".git"),
 		Authorization: ctx.Req.Header.Get("Authorization"),
+		Method:        ctx.Req.Method,
 	}
 }
 
@@ -465,7 +467,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			var link *lfs_module.Link
 			if setting.LFS.Storage.ServeDirect() {
 				// If we have a signed url (S3, object storage), redirect to this directly.
-				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid, nil)
+				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid, rc.Method, nil)
 				if u != nil && err == nil {
 					// Presigned url does not need the Authorization header
 					// https://github.com/go-gitea/gitea/issues/21525

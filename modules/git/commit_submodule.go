@@ -35,7 +35,8 @@ func (c *Commit) GetSubModules() (*ObjectCache[*SubModule], error) {
 	return c.submoduleCache, nil
 }
 
-// GetSubModule get the submodule according entry name
+// GetSubModule gets the submodule by the entry name.
+// It returns "nil, nil" if the submodule does not exist, caller should always remember to check the "nil"
 func (c *Commit) GetSubModule(entryName string) (*SubModule, error) {
 	modules, err := c.GetSubModules()
 	if err != nil {
