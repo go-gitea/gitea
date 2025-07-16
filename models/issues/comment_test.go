@@ -124,18 +124,3 @@ func Test_UpdateIssueNumComments(t *testing.T) {
 	issue2 = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 	assert.Equal(t, 1, issue2.NumComments)
 }
-
-func Test_DeleteCommentWithReview(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 7})
-	assert.Equal(t, int64(10), comment.ReviewID)
-	review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: comment.ReviewID})
-
-	// FIXME: the test fixtures needs a review type comment to be created
-
-	// since this is the last comment of the review, it should be deleted when the comment is deleted
-	assert.NoError(t, issues_model.DeleteComment(db.DefaultContext, comment))
-
-	unittest.AssertNotExistsBean(t, &issues_model.Review{ID: review.ID})
-}

@@ -22,7 +22,9 @@ import (
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 
 	"xorm.io/builder"
 )
@@ -105,7 +107,7 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 
 	if purge || (setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
 		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now())) {
-		// Delete Comments
+		// Delete Comments with attachments
 		const batchSize = 50
 		for {
 			comments := make([]*issues_model.Comment, 0, batchSize)
@@ -117,8 +119,28 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 			}
 
 			for _, comment := range comments {
+				// Delete attachments of the comments
+				if err := comment.LoadAttachments(ctx); err != nil {
+					return err
+				}
+
 				if _, err = issues_model.DeleteComment(ctx, comment); err != nil {
 					return err
+				}
+
+				// delete comment attachments
+				if _, err := repo_model.DeleteAttachments(ctx, comment.Attachments, true); err != nil {
+					return fmt.Errorf("delete attachments: %w", err)
+				}
+
+				for _, attachment := range comment.Attachments {
+					if err := storage.Attachments.Delete(repo_model.AttachmentRelativePath(attachment.UUID)); err != nil {
+						// Even delete files failed, but the attachments has been removed from database, so we
+						// should not return error but only record the error on logs.
+						// users have to delete this attachments manually or we should have a
+						// synchronize between database attachment table and attachment storage
+						log.Error("delete attachment[uuid: %s] failed: %v", attachment.UUID, err)
+					}
 				}
 			}
 		}

@@ -153,3 +153,16 @@
   download_count: 0
   size: 0
   created_unix: 946684800
+
+-
+  id: 13
+  uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23
+  repo_id: 1
+  issue_id: 3
+  release_id: 0
+  uploader_id: 0
+  comment_id: 7
+  name: code_comment_uploaded_attachment.png
+  download_count: 0
+  size: 0
+  created_unix: 946684812
