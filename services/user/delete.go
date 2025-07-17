@@ -131,13 +131,7 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (cleanup ut
 					return nil, err
 				}
 
-				ids := make([]int64, 0, len(comment.Attachments))
-				for _, a := range comment.Attachments {
-					ids = append(ids, a.ID)
-				}
-
-				_, err := db.GetEngine(ctx).In("id", ids).NoAutoCondition().Delete(&repo_model.Attachment{})
-				if err != nil {
+				if _, err := repo_model.DeleteAttachments(ctx, comment.Attachments); err != nil {
 					return nil, err
 				}
 

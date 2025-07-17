@@ -152,8 +152,7 @@ func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAtt
 
 		if removeAttachments {
 			// delete comment attachments
-			_, err := db.GetEngine(ctx).Where("comment_id = ?", comment.ID).NoAutoCondition().Delete(&repo_model.Attachment{})
-			if err != nil {
+			if _, err := repo_model.DeleteAttachments(ctx, comment.Attachments); err != nil {
 				return nil, err
 			}
 

@@ -185,6 +185,19 @@ func UpdateAttachment(ctx context.Context, atta *Attachment) error {
 	return err
 }
 
+func DeleteAttachments(ctx context.Context, attachments []*Attachment) (int64, error) {
+	if len(attachments) == 0 {
+		return 0, nil
+	}
+
+	ids := make([]int64, 0, len(attachments))
+	for _, a := range attachments {
+		ids = append(ids, a.ID)
+	}
+
+	return db.GetEngine(ctx).In("id", ids).NoAutoCondition().Delete(attachments[0])
+}
+
 // DeleteAttachmentsByRelease deletes all attachments associated with the given release.
 func DeleteAttachmentsByRelease(ctx context.Context, releaseID int64) error {
 	_, err := db.GetEngine(ctx).Where("release_id = ?", releaseID).Delete(&Attachment{})

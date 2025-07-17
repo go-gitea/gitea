@@ -71,16 +71,7 @@ func DeleteAttachment(ctx context.Context, a *repo_model.Attachment) error {
 
 // DeleteAttachments deletes the given attachments and optionally the associated files.
 func DeleteAttachments(ctx context.Context, attachments []*repo_model.Attachment) (int, error) {
-	if len(attachments) == 0 {
-		return 0, nil
-	}
-
-	ids := make([]int64, 0, len(attachments))
-	for _, a := range attachments {
-		ids = append(ids, a.ID)
-	}
-
-	cnt, err := db.GetEngine(ctx).In("id", ids).NoAutoCondition().Delete(attachments[0])
+	cnt, err := repo_model.DeleteAttachments(ctx, attachments)
 	if err != nil {
 		return 0, err
 	}
