@@ -14,7 +14,6 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	helm_module "code.gitea.io/gitea/modules/packages/helm"
@@ -86,16 +85,14 @@ func Index(ctx *context.Context) {
 	}
 
 	ctx.Resp.WriteHeader(http.StatusOK)
-	if err := yaml.NewEncoder(ctx.Resp).Encode(&Index{
+	_ = yaml.NewEncoder(ctx.Resp).Encode(&Index{
 		APIVersion: "v1",
 		Entries:    entries,
 		Generated:  time.Now(),
 		ServerInfo: &ServerInfo{
 			ContextPath: setting.AppSubURL + "/api/packages/" + url.PathEscape(ctx.Package.Owner.Name) + "/helm",
 		},
-	}); err != nil {
-		log.Error("YAML encode failed: %v", err)
-	}
+	})
 }
 
 // DownloadPackageFile serves the content of a package
