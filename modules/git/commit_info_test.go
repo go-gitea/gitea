@@ -129,7 +129,14 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 		require.NoError(t, err)
 		cisf, err := getCommitInfoSubmoduleFile("/any/repo-link", tree, commit, "")
 		require.NoError(t, err)
-		assert.Nil(t, cisf)
+		assert.Equal(t, &CommitSubmoduleFile{
+			repoLink: "/any/repo-link",
+			fullPath: "file1.txt",
+			refURL:   "",
+			refID:    "e2129701f1a4d54dc44f03c93bca0a2aec7c5449",
+		}, cisf)
+		// since there is no refURL, it means that the submodule info doesn't exist, so it won't have a web link
+		assert.Nil(t, cisf.SubmoduleWebLinkTree(t.Context()))
 	})
 }
 
