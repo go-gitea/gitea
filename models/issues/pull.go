@@ -413,7 +413,7 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 	return committer.Commit()
 }
 
-// GetGitRefName returns git ref for hidden pull request branch
+// GetGitHeadRefName returns git ref for hidden pull request branch
 func (pr *PullRequest) GetGitHeadRefName() string {
 	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
 }
