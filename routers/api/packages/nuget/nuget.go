@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	nuget_model "code.gitea.io/gitea/models/packages/nuget"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
@@ -38,12 +37,8 @@ func apiError(ctx *context.Context, status int, obj any) {
 func xmlResponse(ctx *context.Context, status int, obj any) { //nolint:unparam // status is always StatusOK
 	ctx.Resp.Header().Set("Content-Type", "application/atom+xml; charset=utf-8")
 	ctx.Resp.WriteHeader(status)
-	if _, err := ctx.Resp.Write([]byte(xml.Header)); err != nil {
-		log.Error("Write failed: %v", err)
-	}
-	if err := xml.NewEncoder(ctx.Resp).Encode(obj); err != nil {
-		log.Error("XML encode failed: %v", err)
-	}
+	_, _ = ctx.Resp.Write([]byte(xml.Header))
+	_ = xml.NewEncoder(ctx.Resp).Encode(obj)
 }
 
 // https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
