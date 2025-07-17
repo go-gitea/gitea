@@ -13,7 +13,6 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	conda_model "code.gitea.io/gitea/models/packages/conda"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	conda_module "code.gitea.io/gitea/modules/packages/conda"
 	"code.gitea.io/gitea/modules/util"
@@ -184,10 +183,7 @@ func EnumeratePackages(ctx *context.Context) {
 	}
 
 	resp.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(repoData); err != nil {
-		log.Error("JSON encode: %v", err)
-	}
+	_ = json.NewEncoder(w).Encode(repoData)
 }
 
 func UploadPackageFile(ctx *context.Context) {

@@ -15,7 +15,6 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	pub_module "code.gitea.io/gitea/modules/packages/pub"
 	"code.gitea.io/gitea/modules/setting"
@@ -29,9 +28,7 @@ func jsonResponse(ctx *context.Context, status int, obj any) {
 	resp := ctx.Resp
 	resp.Header().Set("Content-Type", "application/vnd.pub.v2+json")
 	resp.WriteHeader(status)
-	if err := json.NewEncoder(resp).Encode(obj); err != nil {
-		log.Error("JSON encode: %v", err)
-	}
+	_ = json.NewEncoder(resp).Encode(obj)
 }
 
 func apiError(ctx *context.Context, status int, obj any) {
