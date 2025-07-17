@@ -448,9 +448,9 @@ func PutBlobsUpload(ctx *context.Context) {
 		return
 	}
 
-	// There was a strange bug: the "Close" fails with error "close .../tmp/package-upload/....: file already closed"
-	// AFAIK there should be no other "Close" call to the uploader between NewBlobUploader and this line.
-	// At least it's safe to call Close twice, so ignore the error.
+	// Some SDK (e.g.: minio) will close the Reader if it is also a Closer after "uploading".
+	// And we don't need to wrap the reader to anything else because the SDK will benefit from other interfaces like Seeker.
+	// It's safe to call Close twice, so ignore the error.
 	_ = uploader.Close()
 
 	if err := container_service.RemoveBlobUploadByID(ctx, uploader.ID); err != nil {
@@ -733,9 +733,7 @@ func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) 
 	defer s.Close()
 
 	setResponseHeaders(ctx.Resp, headers)
-	if _, err := io.Copy(ctx.Resp, s); err != nil {
-		log.Error("Error whilst copying content to response: %v", err)
-	}
+	_, _ = io.Copy(ctx.Resp, s)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#content-discovery
