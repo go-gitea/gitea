@@ -325,7 +325,7 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachmen
 
 		if deleteAttachments {
 			// delete issue attachments
-			_, err := db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issue.ID).NoAutoCondition().Delete(&issues_model.Issue{})
+			_, err := db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issue.ID).NoAutoCondition().Delete(&repo_model.Attachment{})
 			if err != nil {
 				return err
 			}

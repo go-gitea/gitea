@@ -47,8 +47,9 @@ func TestUploadAttachment(t *testing.T) {
 
 func TestDeleteAttachments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	attachment8 := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 8})
 
-	err := DeleteAttachment(db.DefaultContext, &repo_model.Attachment{ID: 8})
+	err := DeleteAttachment(db.DefaultContext, attachment8)
 	assert.NoError(t, err)
 
 	attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18")

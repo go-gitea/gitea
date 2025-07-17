@@ -182,7 +182,7 @@ func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAtt
 }
 
 func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) (*issues_model.Comment, error) {
-	deletedReviewComment, cleanup, err := deleteComment(ctx, comment, false)
+	deletedReviewComment, cleanup, err := deleteComment(ctx, comment, true)
 	if err != nil {
 		return nil, err
 	}
