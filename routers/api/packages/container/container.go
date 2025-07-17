@@ -93,10 +93,9 @@ func jsonResponse(ctx *context.Context, status int, obj any) {
 }
 
 func apiError(ctx *context.Context, status int, err error) {
-	helper.LogAndProcessError(ctx, status, err, func(message string) {
-		setResponseHeaders(ctx.Resp, &containerHeaders{
-			Status: status,
-		})
+	_ = helper.ProcessErrorForUser(ctx, status, err)
+	setResponseHeaders(ctx.Resp, &containerHeaders{
+		Status: status,
 	})
 }
 

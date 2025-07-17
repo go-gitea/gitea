@@ -77,17 +77,14 @@ func apiError(ctx *context.Context, status int, obj any) {
 		Detail string `json:"detail"`
 	}
 
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		setResponseHeaders(ctx.Resp, &headers{
-			Status:      status,
-			ContentType: "application/problem+json",
-		})
-		if err := json.NewEncoder(ctx.Resp).Encode(Problem{
-			Status: status,
-			Detail: message,
-		}); err != nil {
-			log.Error("JSON encode: %v", err)
-		}
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	setResponseHeaders(ctx.Resp, &headers{
+		Status:      status,
+		ContentType: "application/problem+json",
+	})
+	_ = json.NewEncoder(ctx.Resp).Encode(Problem{
+		Status: status,
+		Detail: message,
 	})
 }
 
