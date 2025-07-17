@@ -11,7 +11,6 @@ import (
 	"unicode"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	"code.gitea.io/gitea/services/context"
@@ -101,7 +100,6 @@ func UploadPackage(ctx *context.Context) {
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		log.Error("Error creating hashed buffer: %v", err)
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
