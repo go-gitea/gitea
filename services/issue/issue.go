@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -190,9 +191,11 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 	}
 
 	// delete entries in database
-	if err := deleteIssue(ctx, issue, true); err != nil {
+	cleanup, err := deleteIssue(ctx, issue, true)
+	if err != nil {
 		return err
 	}
+	cleanup()
 
 	// delete pull request related git data
 	if issue.IsPull && gitRepo != nil {
@@ -256,8 +259,9 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 }
 
 // deleteIssue deletes the issue
-func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachments bool) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachments bool) (util.CleanUpFunc, error) {
+	cleanup := util.NewCleanUpFunc()
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
 			return err
 		}
@@ -302,7 +306,6 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachmen
 			&issues_model.Stopwatch{IssueID: issue.ID},
 			&issues_model.TrackedTime{IssueID: issue.ID},
 			&project_model.ProjectIssue{IssueID: issue.ID},
-			&repo_model.Attachment{IssueID: issue.ID},
 			&issues_model.PullRequest{IssueID: issue.ID},
 			&issues_model.Comment{RefIssueID: issue.ID},
 			&issues_model.IssueDependency{DependencyID: issue.ID},
@@ -313,19 +316,32 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachmen
 		}
 
 		for _, comment := range issue.Comments {
-			if _, err := deleteComment(ctx, comment, deleteAttachments); err != nil {
+			_, cleanupDeleteComment, err := deleteComment(ctx, comment, deleteAttachments)
+			if err != nil {
 				return fmt.Errorf("deleteComment [comment_id: %d]: %w", comment.ID, err)
 			}
+			cleanup = cleanup.Append(cleanupDeleteComment)
 		}
 
 		if deleteAttachments {
-			// Remove issue attachment files.
-			for i := range issue.Attachments {
-				system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", issue.Attachments[i].RelativePath())
+			// delete issue attachments
+			_, err := db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issue.ID).NoAutoCondition().Delete(&issues_model.Issue{})
+			if err != nil {
+				return err
 			}
+			// the storage cleanup function to remove attachments could be called after all transactions are committed
+			cleanup = cleanup.Append(func() {
+				// Remove issue attachment files.
+				for i := range issue.Attachments {
+					system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", issue.Attachments[i].RelativePath())
+				}
+			})
 		}
 		return nil
-	})
+	}); err != nil {
+		return nil, err
+	}
+	return cleanup, nil
 }
 
 // DeleteOrphanedIssues delete issues without a repo
@@ -361,9 +377,11 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64, deleteAttachments b
 		}
 
 		for _, issue := range issues {
-			if err := deleteIssue(ctx, issue, deleteAttachments); err != nil {
+			cleanup, err := deleteIssue(ctx, issue, deleteAttachments)
+			if err != nil {
 				return fmt.Errorf("deleteIssue [issue_id: %d]: %w", issue.ID, err)
 			}
+			cleanup()
 		}
 	}
 

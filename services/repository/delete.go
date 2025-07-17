@@ -115,15 +115,22 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		}
 	}
 
-	attachments := make([]*repo_model.Attachment, 0, 20)
-	if err = sess.Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
+	// some attachments have release_id but repo_id = 0
+	releaseAttachments := make([]*repo_model.Attachment, 0, 20)
+	if err = db.GetEngine(ctx).Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
 		Where("`release`.repo_id = ?", repoID).
-		Find(&attachments); err != nil {
+		Find(&releaseAttachments); err != nil {
 		return err
 	}
-	releaseAttachments := make([]string, 0, len(attachments))
-	for i := 0; i < len(attachments); i++ {
-		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
+	// Delete attachments with release_id but repo_id = 0
+	if len(releaseAttachments) > 0 {
+		ids := make([]int64, 0, len(releaseAttachments))
+		for _, attach := range releaseAttachments {
+			ids = append(ids, attach.ID)
+		}
+		if _, err := db.GetEngine(ctx).In("id", ids).Delete(&repo_model.Attachment{}); err != nil {
+			return fmt.Errorf("delete release attachments failed: %w", err)
+		}
 	}
 
 	if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
@@ -267,19 +274,12 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		}
 	}
 
-	// Get all attachments with both issue_id and release_id are zero
-	var newAttachments []*repo_model.Attachment
+	// Get all attachments with repo_id = repo.ID. some release attachments have repo_id = 0 should be deleted before
+	var repoAttachments []*repo_model.Attachment
 	if err := sess.Where(builder.Eq{
-		"repo_id":    repo.ID,
-		"issue_id":   0,
-		"release_id": 0,
-	}).Find(&newAttachments); err != nil {
+		"repo_id": repo.ID,
+	}).Find(&repoAttachments); err != nil {
 		return err
-	}
-
-	newAttachmentPaths := make([]string, 0, len(newAttachments))
-	for _, attach := range newAttachments {
-		newAttachmentPaths = append(newAttachmentPaths, attach.RelativePath())
 	}
 
 	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(repo_model.Attachment)); err != nil {
@@ -330,14 +330,13 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		system_model.RemoveStorageWithNotice(ctx, storage.LFS, "Delete orphaned LFS file", lfsObj)
 	}
 
-	// Remove release attachment files.
-	for _, releaseAttachment := range releaseAttachments {
-		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete release attachment", releaseAttachment)
+	// Remove release attachments
+	for _, attachment := range releaseAttachments {
+		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete release attachment", attachment.RelativePath())
 	}
-
-	// Remove attachment with no issue_id and release_id.
-	for _, newAttachment := range newAttachmentPaths {
-		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", newAttachment)
+	// Remove attachment with repo_id = repo.ID.
+	for _, attachment := range repoAttachments {
+		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete repo attachment", attachment.RelativePath())
 	}
 
 	if len(repo.Avatar) > 0 {

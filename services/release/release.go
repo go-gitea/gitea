@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	attachment_service "code.gitea.io/gitea/services/attachment"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -302,8 +301,9 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 			deletedUUIDs.Add(attach.UUID)
 		}
 
-		if _, err := attachment_service.DeleteAttachments(ctx, attachments); err != nil {
-			return fmt.Errorf("DeleteAttachments [uuids: %v]: %w", delAttachmentUUIDs, err)
+		_, err = db.GetEngine(ctx).In("uuid", deletedUUIDs.Values()).NoAutoCondition().Delete(&repo_model.Attachment{})
+		if err != nil {
+			return err
 		}
 	}
 
@@ -339,7 +339,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 
-	for _, uuid := range delAttachmentUUIDs {
+	for _, uuid := range deletedUUIDs.Values() {
 		if err := storage.Attachments.Delete(repo_model.AttachmentRelativePath(uuid)); err != nil {
 			// Even delete files failed, but the attachments has been removed from database, so we
 			// should not return error but only record the error on logs.

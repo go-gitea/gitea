@@ -243,7 +243,8 @@ func DeleteUser(ctx context.Context, doer, u *user_model.User, purge bool) error
 		return packages_model.ErrUserOwnPackages{UID: u.ID}
 	}
 
-	if err := deleteUser(ctx, u, purge); err != nil {
+	cleanup, err := deleteUser(ctx, u, purge)
+	if err != nil {
 		return fmt.Errorf("DeleteUser: %w", err)
 	}
 
@@ -251,6 +252,8 @@ func DeleteUser(ctx context.Context, doer, u *user_model.User, purge bool) error
 		return err
 	}
 	_ = committer.Close()
+
+	cleanup()
 
 	if err = asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 		return err
