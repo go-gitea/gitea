@@ -346,22 +346,30 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachmen
 
 // DeleteOrphanedIssues delete issues without a repo
 func DeleteOrphanedIssues(ctx context.Context) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	cleanup := util.NewCleanUpFunc()
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		repoIDs, err := issues_model.GetOrphanedIssueRepoIDs(ctx)
 		if err != nil {
 			return err
 		}
 		for i := range repoIDs {
-			if err := DeleteIssuesByRepoID(ctx, repoIDs[i], true); err != nil {
+			deleteIssuesCleanup, err := DeleteIssuesByRepoID(ctx, repoIDs[i], true)
+			if err != nil {
 				return err
 			}
+			cleanup = cleanup.Append(deleteIssuesCleanup)
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+	cleanup()
+	return nil
 }
 
 // DeleteIssuesByRepoID deletes issues by repositories id
-func DeleteIssuesByRepoID(ctx context.Context, repoID int64, deleteAttachments bool) error {
+func DeleteIssuesByRepoID(ctx context.Context, repoID int64, deleteAttachments bool) (util.CleanUpFunc, error) {
+	cleanup := util.NewCleanUpFunc()
 	for {
 		issues := make([]*issues_model.Issue, 0, db.DefaultMaxInSize)
 		if err := db.GetEngine(ctx).
@@ -369,7 +377,7 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64, deleteAttachments b
 			OrderBy("id").
 			Limit(db.DefaultMaxInSize).
 			Find(&issues); err != nil {
-			return err
+			return nil, err
 		}
 
 		if len(issues) == 0 {
@@ -377,13 +385,13 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64, deleteAttachments b
 		}
 
 		for _, issue := range issues {
-			cleanup, err := deleteIssue(ctx, issue, deleteAttachments)
+			deleteIssueCleanUp, err := deleteIssue(ctx, issue, deleteAttachments)
 			if err != nil {
-				return fmt.Errorf("deleteIssue [issue_id: %d]: %w", issue.ID, err)
+				return nil, fmt.Errorf("deleteIssue [issue_id: %d]: %w", issue.ID, err)
 			}
-			cleanup()
+			cleanup = cleanup.Append(deleteIssueCleanUp)
 		}
 	}
 
-	return nil
+	return cleanup, nil
 }

@@ -201,7 +201,8 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 
 	// Delete Issues and related objects
 	// attachments will be deleted later with repo_id
-	if err = issue_service.DeleteIssuesByRepoID(ctx, repoID, false); err != nil {
+	cleanup, err := issue_service.DeleteIssuesByRepoID(ctx, repoID, false)
+	if err != nil {
 		return err
 	}
 
@@ -296,6 +297,8 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 
 	committer.Close()
+
+	cleanup()
 
 	if needRewriteKeysFile {
 		if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
