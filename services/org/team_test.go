@@ -280,8 +280,10 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		testTeamRepositories(team.ID, teamRepos[i])
 	}
 
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
 	// Remove repo and check teams repositories.
-	assert.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, repoIDs[0]), "DeleteRepository")
+	assert.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, user1, repoIDs[0]), "DeleteRepository")
 	teamRepos[0] = repoIDs[1:]
 	teamRepos[1] = repoIDs[1:]
 	teamRepos[3] = repoIDs[1:3]
@@ -293,8 +295,8 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Wipe created items.
 	for i, rid := range repoIDs {
 		if i > 0 { // first repo already deleted.
-			assert.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, rid), "DeleteRepository %d", i)
+			assert.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, user1, rid), "DeleteRepository %d", i)
 		}
 	}
-	assert.NoError(t, DeleteOrganization(db.DefaultContext, org, false), "DeleteOrganization")
+	assert.NoError(t, DeleteOrganization(db.DefaultContext, user1, org, false), "DeleteOrganization")
 }

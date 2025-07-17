@@ -80,5 +80,10 @@ func runDeleteUser(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("the user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
-	return user_service.DeleteUser(ctx, user, c.Bool("purge"))
+	adminUser, err := user_model.GetAdminUser(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get admin user: %w", err)
+	}
+
+	return user_service.DeleteUser(ctx, adminUser, user, c.Bool("purge"))
 }

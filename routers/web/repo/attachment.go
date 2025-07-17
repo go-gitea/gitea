@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/services/attachment"
+	attachment_service "code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -45,7 +45,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	}
 	defer file.Close()
 
-	attach, err := attachment.UploadAttachment(ctx, file, allowedTypes, header.Size, &repo_model.Attachment{
+	attach, err := attachment_service.UploadAttachment(ctx, file, allowedTypes, header.Size, &repo_model.Attachment{
 		Name:       header.Filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     repoID,
@@ -77,7 +77,7 @@ func DeleteAttachment(ctx *context.Context) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
-	err = repo_model.DeleteAttachment(ctx, attach, true)
+	err = attachment_service.DeleteAttachment(ctx, attach)
 	if err != nil {
 		ctx.HTTPError(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %v", err))
 		return

@@ -149,7 +149,7 @@ func SettingsDeleteOrgPost(ctx *context.Context) {
 		return
 	}
 
-	if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization, false /* no purge */); err != nil {
+	if err := org_service.DeleteOrganization(ctx, ctx.Doer, ctx.Org.Organization, false /* no purge */); err != nil {
 		if repo_model.IsErrUserOwnRepos(err) {
 			ctx.JSONError(ctx.Tr("form.org_still_own_repo"))
 		} else if packages_model.IsErrUserOwnPackages(err) {

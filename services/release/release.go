@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	attachment_service "code.gitea.io/gitea/services/attachment"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -301,7 +302,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 			deletedUUIDs.Add(attach.UUID)
 		}
 
-		if _, err := repo_model.DeleteAttachments(ctx, attachments, true); err != nil {
+		if _, err := attachment_service.DeleteAttachments(ctx, attachments); err != nil {
 			return fmt.Errorf("DeleteAttachments [uuids: %v]: %w", delAttachmentUUIDs, err)
 		}
 	}

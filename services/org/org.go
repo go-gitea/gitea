@@ -47,7 +47,7 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 }
 
 // DeleteOrganization completely and permanently deletes everything of organization.
-func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge bool) error {
+func DeleteOrganization(ctx context.Context, doer *user_model.User, org *org_model.Organization, purge bool) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -55,7 +55,7 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 	defer committer.Close()
 
 	if purge {
-		err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser())
+		err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, doer, org.AsUser())
 		if err != nil {
 			return err
 		}

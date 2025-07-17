@@ -325,7 +325,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	deletedReviewComment, err := issue_service.DeleteComment(ctx, ctx.Doer, comment)
+	deletedReviewComment, err := issue_service.DeleteComment(ctx, ctx.Doer, comment, true)
 	if err != nil {
 		ctx.ServerError("DeleteComment", err)
 		return

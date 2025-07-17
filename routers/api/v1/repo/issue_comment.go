@@ -726,7 +726,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if _, err = issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
+	if _, err = issue_service.DeleteComment(ctx, ctx.Doer, comment, true); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

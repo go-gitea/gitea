@@ -15,9 +15,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
+	attachment_service "code.gitea.io/gitea/services/attachment"
 	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -132,11 +131,13 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 	return nil
 }
 
-// DeleteComment deletes the comment
-func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) (*issues_model.Comment, error) {
-	deletedReviewComment, err := db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
-		if err := comment.LoadAttachments(ctx); err != nil {
-			return nil, err
+// deleteComment deletes the comment
+func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAttachments bool) (*issues_model.Comment, error) {
+	return db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
+		if removeAttachments {
+			if err := comment.LoadAttachments(ctx); err != nil {
+				return nil, err
+			}
 		}
 
 		deletedReviewComment, err := issues_model.DeleteComment(ctx, comment)
@@ -144,22 +145,19 @@ func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_m
 			return nil, err
 		}
 
-		// delete comment attachments
-		if _, err := repo_model.DeleteAttachments(ctx, comment.Attachments, true); err != nil {
-			return nil, fmt.Errorf("delete attachments: %w", err)
-		}
-
-		for _, attachment := range comment.Attachments {
-			if err := storage.Attachments.Delete(repo_model.AttachmentRelativePath(attachment.UUID)); err != nil {
-				// Even delete files failed, but the attachments has been removed from database, so we
-				// should not return error but only record the error on logs.
-				// users have to delete this attachments manually or we should have a
-				// synchronize between database attachment table and attachment storage
-				log.Error("delete attachment[uuid: %s] failed: %v", attachment.UUID, err)
+		if removeAttachments {
+			// delete comment attachments
+			if _, err := attachment_service.DeleteAttachments(ctx, comment.Attachments); err != nil {
+				return nil, err
 			}
 		}
+
 		return deletedReviewComment, nil
 	})
+}
+
+func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment, removeAttachments bool) (*issues_model.Comment, error) {
+	deletedReviewComment, err := deleteComment(ctx, comment, removeAttachments)
 	if err != nil {
 		return nil, err
 	}

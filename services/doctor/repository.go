@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -36,8 +37,11 @@ func deleteOrphanedRepos(ctx context.Context) (int64, error) {
 	}
 
 	batchSize := db.MaxBatchInsertSize("repository")
-	e := db.GetEngine(ctx)
 	var deleted int64
+	adminUser, err := user_model.GetAdminUser(ctx)
+	if err != nil {
+		return deleted, err
+	}
 
 	for {
 		select {
@@ -45,7 +49,7 @@ func deleteOrphanedRepos(ctx context.Context) (int64, error) {
 			return deleted, ctx.Err()
 		default:
 			var ids []int64
-			if err := e.Table("`repository`").
+			if err := db.GetEngine(ctx).Table("`repository`").
 				Join("LEFT", "`user`", "repository.owner_id=`user`.id").
 				Where(builder.IsNull{"`user`.id"}).
 				Select("`repository`.id").Limit(batchSize).Find(&ids); err != nil {
@@ -58,7 +62,7 @@ func deleteOrphanedRepos(ctx context.Context) (int64, error) {
 			}
 
 			for _, id := range ids {
-				if err := repo_service.DeleteRepositoryDirectly(ctx, id, true); err != nil {
+				if err := repo_service.DeleteRepositoryDirectly(ctx, adminUser, id, true); err != nil {
 					return deleted, err
 				}
 				deleted++

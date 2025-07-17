@@ -421,7 +421,7 @@ func Delete(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := org.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
+	if err := org.DeleteOrganization(ctx, ctx.Doer, ctx.Org.Organization, false); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

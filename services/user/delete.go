@@ -22,9 +22,8 @@ import (
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
+	attachment_service "code.gitea.io/gitea/services/attachment"
 
 	"xorm.io/builder"
 )
@@ -129,18 +128,8 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 				}
 
 				// delete comment attachments
-				if _, err := repo_model.DeleteAttachments(ctx, comment.Attachments, true); err != nil {
+				if _, err := attachment_service.DeleteAttachments(ctx, comment.Attachments); err != nil {
 					return fmt.Errorf("delete attachments: %w", err)
-				}
-
-				for _, attachment := range comment.Attachments {
-					if err := storage.Attachments.Delete(repo_model.AttachmentRelativePath(attachment.UUID)); err != nil {
-						// Even delete files failed, but the attachments has been removed from database, so we
-						// should not return error but only record the error on logs.
-						// users have to delete this attachments manually or we should have a
-						// synchronize between database attachment table and attachment storage
-						log.Error("delete attachment[uuid: %s] failed: %v", attachment.UUID, err)
-					}
 				}
 			}
 		}

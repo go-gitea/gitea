@@ -390,18 +390,6 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 	return err
 }
 
-// AfterDelete is invoked from XORM after the object is deleted.
-func (c *Comment) AfterDelete(ctx context.Context) {
-	if c.ID <= 0 {
-		return
-	}
-
-	_, err := repo_model.DeleteAttachmentsByComment(ctx, c.ID, true)
-	if err != nil {
-		log.Info("Could not delete files for comment %d on issue #%d: %s", c.ID, c.IssueID, err)
-	}
-}
-
 // HTMLURL formats a URL-string to the issue-comment
 func (c *Comment) HTMLURL(ctx context.Context) string {
 	err := c.LoadIssue(ctx)

@@ -49,7 +49,7 @@ func deleteDBRepository(ctx context.Context, repoID int64) error {
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
-func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams ...bool) error {
+func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID int64, ignoreOrgTeams ...bool) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -193,8 +193,8 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	}
 
 	// Delete Issues and related objects
-	var attachmentPaths []string
-	if attachmentPaths, err = issue_service.DeleteIssuesByRepoID(ctx, repoID); err != nil {
+	// attachments will be deleted later with repo_id
+	if err = issue_service.DeleteIssuesByRepoID(ctx, repoID, false); err != nil {
 		return err
 	}
 
@@ -330,11 +330,6 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		system_model.RemoveStorageWithNotice(ctx, storage.LFS, "Delete orphaned LFS file", lfsObj)
 	}
 
-	// Remove issue attachment files.
-	for _, attachment := range attachmentPaths {
-		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", attachment)
-	}
-
 	// Remove release attachment files.
 	for _, releaseAttachment := range releaseAttachments {
 		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete release attachment", releaseAttachment)
@@ -373,7 +368,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 }
 
 // DeleteOwnerRepositoriesDirectly calls DeleteRepositoryDirectly for all repos of the given owner
-func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User) error {
+func DeleteOwnerRepositoriesDirectly(ctx context.Context, doer, owner *user_model.User) error {
 	for {
 		repos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
@@ -391,7 +386,7 @@ func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User
 			break
 		}
 		for _, repo := range repos {
-			if err := DeleteRepositoryDirectly(ctx, repo.ID); err != nil {
+			if err := DeleteRepositoryDirectly(ctx, doer, repo.ID); err != nil {
 				return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, owner.Name, owner.ID, err)
 			}
 		}

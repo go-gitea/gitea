@@ -51,5 +51,5 @@ func TestDeleteOwnerRepositoriesDirectly(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	assert.NoError(t, repo_service.DeleteOwnerRepositoriesDirectly(db.DefaultContext, user))
+	assert.NoError(t, repo_service.DeleteOwnerRepositoriesDirectly(db.DefaultContext, user, user))
 }

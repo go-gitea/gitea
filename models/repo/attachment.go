@@ -8,13 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"os"
 	"path"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -164,61 +161,6 @@ func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, file
 		return nil, err
 	}
 	return attach, nil
-}
-
-// DeleteAttachment deletes the given attachment and optionally the associated file.
-func DeleteAttachment(ctx context.Context, a *Attachment, remove bool) error {
-	_, err := DeleteAttachments(ctx, []*Attachment{a}, remove)
-	return err
-}
-
-// DeleteAttachments deletes the given attachments and optionally the associated files.
-func DeleteAttachments(ctx context.Context, attachments []*Attachment, remove bool) (int, error) {
-	if len(attachments) == 0 {
-		return 0, nil
-	}
-
-	ids := make([]int64, 0, len(attachments))
-	for _, a := range attachments {
-		ids = append(ids, a.ID)
-	}
-
-	cnt, err := db.GetEngine(ctx).In("id", ids).NoAutoCondition().Delete(attachments[0])
-	if err != nil {
-		return 0, err
-	}
-
-	if remove {
-		for i, a := range attachments {
-			if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
-				if !errors.Is(err, os.ErrNotExist) {
-					return i, err
-				}
-				log.Warn("Attachment file not found when deleting: %s", a.RelativePath())
-			}
-		}
-	}
-	return int(cnt), nil
-}
-
-// DeleteAttachmentsByIssue deletes all attachments associated with the given issue.
-func DeleteAttachmentsByIssue(ctx context.Context, issueID int64, remove bool) (int, error) {
-	attachments, err := GetAttachmentsByIssueID(ctx, issueID)
-	if err != nil {
-		return 0, err
-	}
-
-	return DeleteAttachments(ctx, attachments, remove)
-}
-
-// DeleteAttachmentsByComment deletes all attachments associated with the given comment.
-func DeleteAttachmentsByComment(ctx context.Context, commentID int64, remove bool) (int, error) {
-	attachments, err := GetAttachmentsByCommentID(ctx, commentID)
-	if err != nil {
-		return 0, err
-	}
-
-	return DeleteAttachments(ctx, attachments, remove)
 }
 
 // UpdateAttachmentByUUID Updates attachment via uuid

@@ -30,7 +30,11 @@ func registerDeleteInactiveUsers() {
 		OlderThan: time.Minute * time.Duration(setting.Service.ActiveCodeLives),
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return user_service.DeleteInactiveUsers(ctx, olderThanConfig.OlderThan)
+		adminUser, err := user_model.GetAdminUser(ctx)
+		if err != nil {
+			return err
+		}
+		return user_service.DeleteInactiveUsers(ctx, adminUser, olderThanConfig.OlderThan)
 	})
 }
 

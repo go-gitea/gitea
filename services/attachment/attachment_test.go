@@ -44,3 +44,15 @@ func TestUploadAttachment(t *testing.T) {
 	assert.Equal(t, user.ID, attachment.UploaderID)
 	assert.Equal(t, int64(0), attachment.DownloadCount)
 }
+
+func TestDeleteAttachments(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	err := DeleteAttachment(db.DefaultContext, &repo_model.Attachment{ID: 8})
+	assert.NoError(t, err)
+
+	attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18")
+	assert.Error(t, err)
+	assert.True(t, repo_model.IsErrAttachmentNotExist(err))
+	assert.Nil(t, attachment)
+}

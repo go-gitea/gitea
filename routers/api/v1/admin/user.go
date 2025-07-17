@@ -300,7 +300,7 @@ func DeleteUser(ctx *context.APIContext) {
 		return
 	}
 
-	if err := user_service.DeleteUser(ctx, ctx.ContextUser, ctx.FormBool("purge")); err != nil {
+	if err := user_service.DeleteUser(ctx, ctx.Doer, ctx.ContextUser, ctx.FormBool("purge")); err != nil {
 		if repo_model.IsErrUserOwnRepos(err) ||
 			org_model.IsErrUserHasOrgs(err) ||
 			packages_model.IsErrUserOwnPackages(err) ||

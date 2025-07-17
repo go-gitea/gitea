@@ -6,11 +6,14 @@ package attachment
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context/upload"
@@ -58,4 +61,42 @@ func UpdateAttachment(ctx context.Context, allowedTypes string, attach *repo_mod
 	}
 
 	return repo_model.UpdateAttachment(ctx, attach)
+}
+
+// DeleteAttachment deletes the given attachment and optionally the associated file.
+func DeleteAttachment(ctx context.Context, a *repo_model.Attachment) error {
+	_, err := DeleteAttachments(ctx, []*repo_model.Attachment{a})
+	return err
+}
+
+// DeleteAttachments deletes the given attachments and optionally the associated files.
+func DeleteAttachments(ctx context.Context, attachments []*repo_model.Attachment) (int, error) {
+	if len(attachments) == 0 {
+		return 0, nil
+	}
+
+	ids := make([]int64, 0, len(attachments))
+	for _, a := range attachments {
+		ids = append(ids, a.ID)
+	}
+
+	cnt, err := db.GetEngine(ctx).In("id", ids).NoAutoCondition().Delete(attachments[0])
+	if err != nil {
+		return 0, err
+	}
+
+	for _, a := range attachments {
+		if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				// Even delete files failed, but the attachments has been removed from database, so we
+				// should not return error but only record the error on logs.
+				// users have to delete this attachments manually or we should have a
+				// synchronize between database attachment table and attachment storage
+				log.Error("delete attachment[uuid: %s] failed: %v", a.UUID, err)
+			} else {
+				log.Warn("Attachment file not found when deleting: %s", a.RelativePath())
+			}
+		}
+	}
+	return int(cnt), nil
 }
