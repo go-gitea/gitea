@@ -42,7 +42,7 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 
 			if !pr.HasMerged {
 				var err error
-				pr.MergeBase, _, err = git.NewCommand("merge-base").AddDashesAndList(pr.BaseBranch, pr.GetGitRefName()).RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+				pr.MergeBase, _, err = git.NewCommand("merge-base").AddDashesAndList(pr.BaseBranch, pr.GetGitHeadRefName()).RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 				if err != nil {
 					var err2 error
 					pr.MergeBase, _, err2 = git.NewCommand("rev-parse").AddDynamicArguments(git.BranchPrefix+pr.BaseBranch).RunStdString(ctx, &git.RunOpts{Dir: repoPath})
@@ -63,7 +63,7 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 				}
 
 				refs := append([]string{}, parents[1:]...)
-				refs = append(refs, pr.GetGitRefName())
+				refs = append(refs, pr.GetGitHeadRefName())
 				cmd := git.NewCommand("merge-base").AddDashesAndList(refs...)
 				pr.MergeBase, _, err = cmd.RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 				if err != nil {

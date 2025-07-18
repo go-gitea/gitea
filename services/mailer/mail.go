@@ -174,3 +174,41 @@ func fromDisplayName(u *user_model.User) string {
 	}
 	return u.GetCompleteName()
 }
+
+func generateMetadataHeaders(repo *repo_model.Repository) map[string]string {
+	return map[string]string{
+		// https://datatracker.ietf.org/doc/html/rfc2919
+		"List-ID": fmt.Sprintf("%s <%s.%s.%s>", repo.FullName(), repo.Name, repo.OwnerName, setting.Domain),
+
+		// https://datatracker.ietf.org/doc/html/rfc2369
+		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),
+
+		"X-Mailer": "Gitea",
+
+		"X-Gitea-Repository":      repo.Name,
+		"X-Gitea-Repository-Path": repo.FullName(),
+		"X-Gitea-Repository-Link": repo.HTMLURL(),
+
+		"X-GitLab-Project":      repo.Name,
+		"X-GitLab-Project-Path": repo.FullName(),
+	}
+}
+
+func generateSenderRecipientHeaders(doer, recipient *user_model.User) map[string]string {
+	return map[string]string{
+		"X-Gitea-Sender":             doer.Name,
+		"X-Gitea-Recipient":          recipient.Name,
+		"X-Gitea-Recipient-Address":  recipient.Email,
+		"X-GitHub-Sender":            doer.Name,
+		"X-GitHub-Recipient":         recipient.Name,
+		"X-GitHub-Recipient-Address": recipient.Email,
+	}
+}
+
+func generateReasonHeaders(reason string) map[string]string {
+	return map[string]string{
+		"X-Gitea-Reason":              reason,
+		"X-GitHub-Reason":             reason,
+		"X-GitLab-NotificationReason": reason,
+	}
+}
