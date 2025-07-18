@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -145,7 +144,7 @@ func gatherMissingRepoRecords(ctx context.Context) (repo_model.RepositoryList, e
 }
 
 // DeleteMissingRepositories deletes all repository records that lost Git files.
-func DeleteMissingRepositories(ctx context.Context, doer *user_model.User) error {
+func DeleteMissingRepositories(ctx context.Context) error {
 	repos, err := gatherMissingRepoRecords(ctx)
 	if err != nil {
 		return err
@@ -162,7 +161,7 @@ func DeleteMissingRepositories(ctx context.Context, doer *user_model.User) error
 		default:
 		}
 		log.Trace("Deleting %d/%d...", repo.OwnerID, repo.ID)
-		if err := DeleteRepositoryDirectly(ctx, doer, repo.ID); err != nil {
+		if err := DeleteRepositoryDirectly(ctx, repo.ID); err != nil {
 			log.Error("Failed to DeleteRepository %-v: Error: %v", repo, err)
 			if err2 := system_model.CreateRepositoryNotice("Failed to DeleteRepository %s [%d]: Error: %v", repo.FullName(), repo.ID, err); err2 != nil {
 				log.Error("CreateRepositoryNotice: %v", err)

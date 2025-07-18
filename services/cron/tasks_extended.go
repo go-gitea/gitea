@@ -30,11 +30,7 @@ func registerDeleteInactiveUsers() {
 		OlderThan: time.Minute * time.Duration(setting.Service.ActiveCodeLives),
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		adminUser, err := user_model.GetAdminUser(ctx)
-		if err != nil {
-			return err
-		}
-		return user_service.DeleteInactiveUsers(ctx, adminUser, olderThanConfig.OlderThan)
+		return user_service.DeleteInactiveUsers(ctx, olderThanConfig.OlderThan)
 	})
 }
 
@@ -115,7 +111,7 @@ func registerDeleteMissingRepositories() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(ctx context.Context, user *user_model.User, _ Config) error {
-		return repo_service.DeleteMissingRepositories(ctx, user)
+		return repo_service.DeleteMissingRepositories(ctx)
 	})
 }
 

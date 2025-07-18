@@ -121,7 +121,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 // DeleteUser completely and permanently deletes everything of a user,
 // but issues/comments/pulls will be kept and shown as someone has been deleted,
 // unless the user is younger than USER_DELETE_WITH_COMMENTS_MAX_DAYS.
-func DeleteUser(ctx context.Context, doer, u *user_model.User, purge bool) error {
+func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	if u.IsOrganization() {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
 	}
@@ -160,7 +160,7 @@ func DeleteUser(ctx context.Context, doer, u *user_model.User, purge bool) error
 		//
 		// An alternative option here would be write a DeleteAllRepositoriesForUserID function which would delete all of the repos
 		// but such a function would likely get out of date
-		err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, doer, u)
+		err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, u)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,7 @@ func DeleteUser(ctx context.Context, doer, u *user_model.User, purge bool) error
 			for _, org := range orgs {
 				if err := org_service.RemoveOrgUser(ctx, org, u); err != nil {
 					if organization.IsErrLastOrgOwner(err) {
-						err = org_service.DeleteOrganization(ctx, doer, org, true)
+						err = org_service.DeleteOrganization(ctx, org, true)
 						if err != nil {
 							return fmt.Errorf("unable to delete organization %d: %w", org.ID, err)
 						}
@@ -281,7 +281,7 @@ func DeleteUser(ctx context.Context, doer, u *user_model.User, purge bool) error
 }
 
 // DeleteInactiveUsers deletes all inactive users and their email addresses.
-func DeleteInactiveUsers(ctx context.Context, doer *user_model.User, olderThan time.Duration) error {
+func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 	inactiveUsers, err := user_model.GetInactiveUsers(ctx, olderThan)
 	if err != nil {
 		return err
@@ -289,7 +289,7 @@ func DeleteInactiveUsers(ctx context.Context, doer *user_model.User, olderThan t
 
 	// FIXME: should only update authorized_keys file once after all deletions.
 	for _, u := range inactiveUsers {
-		if err = DeleteUser(ctx, doer, u, false); err != nil {
+		if err = DeleteUser(ctx, u, false); err != nil {
 			// Ignore inactive users that were ever active but then were set inactive by admin
 			if repo_model.IsErrUserOwnRepos(err) || organization.IsErrUserHasOrgs(err) || packages_model.IsErrUserOwnPackages(err) {
 				log.Warn("Inactive user %q has repositories, organizations or packages, skipping deletion: %v", u.Name, err)

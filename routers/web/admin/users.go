@@ -496,7 +496,7 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
-	if err = user_service.DeleteUser(ctx, ctx.Doer, u, ctx.FormBool("purge")); err != nil {
+	if err = user_service.DeleteUser(ctx, u, ctx.FormBool("purge")); err != nil {
 		switch {
 		case repo_model.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))

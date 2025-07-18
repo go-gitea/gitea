@@ -191,8 +191,7 @@ func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gi
 		assert.Equal(t, commitID, branch.CommitID)
 	}
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	require.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, user1, repo.ID))
+	require.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, repo.ID))
 }
 
 func TestPushPullRefs(t *testing.T) {

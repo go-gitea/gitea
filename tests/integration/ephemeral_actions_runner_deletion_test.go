@@ -50,9 +50,7 @@ func testEphemeralActionsRunnerDeletionByRepository(t *testing.T) {
 	task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 52})
 	assert.Equal(t, actions_model.StatusRunning, task.Status)
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-
-	err = repo_service.DeleteRepositoryDirectly(t.Context(), user1, task.RepoID, true)
+	err = repo_service.DeleteRepositoryDirectly(t.Context(), task.RepoID, true)
 	assert.NoError(t, err)
 
 	_, err = actions_model.GetRunnerByID(t.Context(), 34350)
@@ -70,9 +68,8 @@ func testEphemeralActionsRunnerDeletionByUser(t *testing.T) {
 	assert.Equal(t, actions_model.StatusRunning, task.Status)
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	err = user_service.DeleteUser(t.Context(), user1, user, true)
+	err = user_service.DeleteUser(t.Context(), user, true)
 	assert.NoError(t, err)
 
 	_, err = actions_model.GetRunnerByID(t.Context(), 34350)
