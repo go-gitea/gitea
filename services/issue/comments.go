@@ -135,8 +135,8 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 }
 
 // deleteComment deletes the comment
-func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAttachments bool) (*issues_model.Comment, func(), error) {
-	storageCleanup := util.NewPostTxAction()
+func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAttachments bool) (*issues_model.Comment, util.PostTxAction, error) {
+	postTxActions := util.NewPostTxAction()
 	deletedReviewComment, err := db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
 		if removeAttachments {
 			// load attachments before deleting the comment
@@ -157,7 +157,7 @@ func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAtt
 			}
 
 			// the storage cleanup function to remove attachments could be called after all transactions are committed
-			storageCleanup = storageCleanup.Append(func() {
+			postTxActions = postTxActions.Append(func() {
 				for _, a := range comment.Attachments {
 					if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
 						if !errors.Is(err, os.ErrNotExist) {
@@ -178,15 +178,15 @@ func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAtt
 	if err != nil {
 		return nil, nil, err
 	}
-	return deletedReviewComment, storageCleanup, nil
+	return deletedReviewComment, postTxActions, nil
 }
 
 func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) (*issues_model.Comment, error) {
-	deletedReviewComment, cleanup, err := deleteComment(ctx, comment, true)
+	deletedReviewComment, postTxActions, err := deleteComment(ctx, comment, true)
 	if err != nil {
 		return nil, err
 	}
-	cleanup()
+	postTxActions()
 
 	notify_service.DeleteComment(ctx, doer, comment)
 
