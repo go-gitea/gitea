@@ -141,7 +141,7 @@ td .commit-summary {
   align-items: center;
   overflow: hidden;
   text-overflow: ellipsis;
-  gap: 0.25em;
+  gap: 0.5em;
 }
 
 @media (max-width: 767.98px) {
