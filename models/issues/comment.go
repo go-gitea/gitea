@@ -115,6 +115,7 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+	CommentTypeChangePRFlowType // 39 Change pull request's flow type
 )
 
 var commentStrings = []string{
@@ -157,6 +158,7 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"change_flow_type",
 }
 
 func (t CommentType) String() string {
