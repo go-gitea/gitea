@@ -60,7 +60,6 @@ func BlockUser(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// - name: note
-	//   in: query
 	//   description: optional note for the block
 	//   type: string
 	// responses:
