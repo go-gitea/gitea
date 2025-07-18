@@ -191,16 +191,16 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 	}
 
 	// delete entries in database
-	cleanup, err := deleteIssue(ctx, issue, true)
+	postTxActions, err := deleteIssue(ctx, issue, true)
 	if err != nil {
 		return err
 	}
-	cleanup()
+	postTxActions()
 
 	// delete pull request related git data
 	if issue.IsPull && gitRepo != nil {
 		if err := gitRepo.RemoveReference(issue.PullRequest.GetGitHeadRefName()); err != nil {
-			return err
+			log.Error("DeleteIssue: RemoveReference %s: %v", issue.PullRequest.GetGitHeadRefName(), err)
 		}
 	}
 
@@ -259,8 +259,8 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 }
 
 // deleteIssue deletes the issue
-func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachments bool) (util.CleanUpFunc, error) {
-	cleanup := util.NewCleanUpFunc()
+func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachments bool) (util.PostTxAction, error) {
+	postTxActions := util.NewPostTxAction()
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
 			return err
@@ -316,11 +316,11 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachmen
 		}
 
 		for _, comment := range issue.Comments {
-			_, cleanupDeleteComment, err := deleteComment(ctx, comment, deleteAttachments)
+			_, postTxActionsDeleteComment, err := deleteComment(ctx, comment, deleteAttachments)
 			if err != nil {
 				return fmt.Errorf("deleteComment [comment_id: %d]: %w", comment.ID, err)
 			}
-			cleanup = cleanup.Append(cleanupDeleteComment)
+			postTxActions = postTxActions.Append(postTxActionsDeleteComment)
 		}
 
 		if deleteAttachments {
@@ -330,7 +330,7 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachmen
 				return err
 			}
 			// the storage cleanup function to remove attachments could be called after all transactions are committed
-			cleanup = cleanup.Append(func() {
+			postTxActions = postTxActions.Append(func() {
 				// Remove issue attachment files.
 				for i := range issue.Attachments {
 					system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", issue.Attachments[i].RelativePath())
@@ -341,35 +341,35 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachmen
 	}); err != nil {
 		return nil, err
 	}
-	return cleanup, nil
+	return postTxActions, nil
 }
 
 // DeleteOrphanedIssues delete issues without a repo
 func DeleteOrphanedIssues(ctx context.Context) error {
-	cleanup := util.NewCleanUpFunc()
+	postTxActions := util.NewPostTxAction()
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		repoIDs, err := issues_model.GetOrphanedIssueRepoIDs(ctx)
 		if err != nil {
 			return err
 		}
 		for i := range repoIDs {
-			deleteIssuesCleanup, err := DeleteIssuesByRepoID(ctx, repoIDs[i], true)
+			postTxActionsDeleteIssues, err := DeleteIssuesByRepoID(ctx, repoIDs[i], true)
 			if err != nil {
 				return err
 			}
-			cleanup = cleanup.Append(deleteIssuesCleanup)
+			postTxActions = postTxActions.Append(postTxActionsDeleteIssues)
 		}
 		return nil
 	}); err != nil {
 		return err
 	}
-	cleanup()
+	postTxActions()
 	return nil
 }
 
 // DeleteIssuesByRepoID deletes issues by repositories id
-func DeleteIssuesByRepoID(ctx context.Context, repoID int64, deleteAttachments bool) (util.CleanUpFunc, error) {
-	cleanup := util.NewCleanUpFunc()
+func DeleteIssuesByRepoID(ctx context.Context, repoID int64, deleteAttachments bool) (util.PostTxAction, error) {
+	postTxActions := util.NewPostTxAction()
 	for {
 		issues := make([]*issues_model.Issue, 0, db.DefaultMaxInSize)
 		if err := db.GetEngine(ctx).
@@ -385,13 +385,13 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64, deleteAttachments b
 		}
 
 		for _, issue := range issues {
-			deleteIssueCleanUp, err := deleteIssue(ctx, issue, deleteAttachments)
+			postTxActionsDeleteIssue, err := deleteIssue(ctx, issue, deleteAttachments)
 			if err != nil {
 				return nil, fmt.Errorf("deleteIssue [issue_id: %d]: %w", issue.ID, err)
 			}
-			cleanup = cleanup.Append(deleteIssueCleanUp)
+			postTxActions = postTxActions.Append(postTxActionsDeleteIssue)
 		}
 	}
 
-	return cleanup, nil
+	return postTxActions, nil
 }

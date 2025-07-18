@@ -33,8 +33,8 @@ import (
 )
 
 // deleteUser deletes models associated to an user.
-func deleteUser(ctx context.Context, u *user_model.User, purge bool) (cleanup util.CleanUpFunc, err error) {
-	cleanup = util.NewCleanUpFunc()
+func deleteUser(ctx context.Context, u *user_model.User, purge bool) (postTxActions util.PostTxAction, err error) {
+	postTxActions = util.NewPostTxAction()
 
 	// ***** START: Watch *****
 	watchedRepoIDs, err := db.FindIDs(ctx, "watch", "watch.repo_id",
@@ -135,7 +135,7 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (cleanup ut
 					return nil, err
 				}
 
-				cleanup = cleanup.Append(func() {
+				postTxActions = postTxActions.Append(func() {
 					for _, a := range comment.Attachments {
 						if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
 							if !errors.Is(err, os.ErrNotExist) {
@@ -227,5 +227,5 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (cleanup ut
 		return nil, fmt.Errorf("delete: %w", err)
 	}
 
-	return cleanup, nil
+	return postTxActions, nil
 }

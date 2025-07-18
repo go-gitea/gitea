@@ -44,9 +44,9 @@ func TestIssue_DeleteIssue(t *testing.T) {
 		ID:     issueIDs[2],
 	}
 
-	cleanup, err := deleteIssue(db.DefaultContext, issue, true)
+	postTxActions, err := deleteIssue(db.DefaultContext, issue, true)
 	assert.NoError(t, err)
-	cleanup()
+	postTxActions()
 	issueIDs, err = issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Len(t, issueIDs, 4)
@@ -56,9 +56,9 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	issue, err = issues_model.GetIssueByID(db.DefaultContext, 4)
 	assert.NoError(t, err)
-	cleanup, err = deleteIssue(db.DefaultContext, issue, true)
+	postTxActions, err = deleteIssue(db.DefaultContext, issue, true)
 	assert.NoError(t, err)
-	cleanup()
+	postTxActions()
 	assert.Len(t, attachments, 2)
 	for i := range attachments {
 		attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, attachments[i].UUID)
@@ -80,9 +80,9 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, left)
 
-	cleanup, err = deleteIssue(db.DefaultContext, issue2, true)
+	postTxActions, err = deleteIssue(db.DefaultContext, issue2, true)
 	assert.NoError(t, err)
-	cleanup()
+	postTxActions()
 	left, err = issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.True(t, left)

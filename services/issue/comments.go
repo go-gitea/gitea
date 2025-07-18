@@ -136,7 +136,7 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 
 // deleteComment deletes the comment
 func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAttachments bool) (*issues_model.Comment, func(), error) {
-	storageCleanup := util.NewCleanUpFunc()
+	storageCleanup := util.NewPostTxAction()
 	deletedReviewComment, err := db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
 		if removeAttachments {
 			// load attachments before deleting the comment
