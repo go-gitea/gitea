@@ -1191,7 +1191,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		return nil, err
 	}
 
-	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage})
+	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage, attribute.Diff})
 	if err != nil {
 		return nil, err
 	}
@@ -1200,6 +1200,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 	for _, diffFile := range diff.Files {
 		isVendored := optional.None[bool]()
 		isGenerated := optional.None[bool]()
+		attrDiff := optional.None[string]()
 		attrs, err := checker.CheckPath(diffFile.Name)
 		if err == nil {
 			isVendored, isGenerated = attrs.GetVendored(), attrs.GetGenerated()
@@ -1207,6 +1208,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 			if language.Has() {
 				diffFile.Language = language.Value()
 			}
+			attrDiff = attrs.Get(attribute.Diff).ToString()
 		}
 
 		// Populate Submodule URLs
@@ -1228,7 +1230,8 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
 
-		if !setting.Git.DisableDiffHighlight {
+		shouldFullFileHighlight := !setting.Git.DisableDiffHighlight && attrDiff.Value() == ""
+		if shouldFullFileHighlight {
 			if limitedContent.LeftContent != nil && limitedContent.LeftContent.buf.Len() < MaxDiffHighlightEntireFileSize {
 				diffFile.highlightedLeftLines = highlightCodeLines(diffFile, true /* left */, limitedContent.LeftContent.buf.String())
 			}
