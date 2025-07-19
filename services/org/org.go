@@ -48,12 +48,11 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge bool) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
+	// The repositories deletion of the organization cannot be under a transaction,
+	// because it cannot be rolled back because the content in disk will be deleted
+	// in the DeleteOwnerRepositoriesDirectly function.
+	// Even not all repositories deleted successfully, we still delete the organization again.
+	// TODO: We should mark all the repositories as deleted and delete them in a background job.
 	if purge {
 		err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser())
 		if err != nil {
@@ -61,26 +60,28 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 		}
 	}
 
-	// Check ownership of repository.
-	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: org.ID})
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		// Check ownership of repository.
+		count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: org.ID})
+		if err != nil {
+			return fmt.Errorf("GetRepositoryCount: %w", err)
+		} else if count > 0 {
+			return repo_model.ErrUserOwnRepos{UID: org.ID}
+		}
+
+		// Check ownership of packages.
+		if ownsPackages, err := packages_model.HasOwnerPackages(ctx, org.ID); err != nil {
+			return fmt.Errorf("HasOwnerPackages: %w", err)
+		} else if ownsPackages {
+			return packages_model.ErrUserOwnPackages{UID: org.ID}
+		}
+
+		if err := deleteOrganization(ctx, org); err != nil {
+			return fmt.Errorf("DeleteOrganization: %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("GetRepositoryCount: %w", err)
-	} else if count > 0 {
-		return repo_model.ErrUserOwnRepos{UID: org.ID}
-	}
-
-	// Check ownership of packages.
-	if ownsPackages, err := packages_model.HasOwnerPackages(ctx, org.ID); err != nil {
-		return fmt.Errorf("HasOwnerPackages: %w", err)
-	} else if ownsPackages {
-		return packages_model.ErrUserOwnPackages{UID: org.ID}
-	}
-
-	if err := deleteOrganization(ctx, org); err != nil {
-		return fmt.Errorf("DeleteOrganization: %w", err)
-	}
-
-	if err := committer.Commit(); err != nil {
 		return err
 	}
 
