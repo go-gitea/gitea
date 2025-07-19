@@ -141,101 +141,90 @@ func GetTopLanguageStats(ctx context.Context, repo *Repository, limit int) (Lang
 
 // UpdateLanguageStats updates the language statistics for repository
 func UpdateLanguageStats(ctx context.Context, repo *Repository, commitID string, stats map[string]int64) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
 
-	oldstats, err := GetLanguageStats(ctx, repo)
-	if err != nil {
-		return err
-	}
-	var topLang string
-	var s int64
-	for lang, size := range stats {
-		if size > s {
-			s = size
-			topLang = lang
+		oldstats, err := GetLanguageStats(ctx, repo)
+		if err != nil {
+			return err
 		}
-	}
-
-	for lang, size := range stats {
-		upd := false
-		for _, s := range oldstats {
-			// Update already existing language
-			if strings.EqualFold(s.Language, lang) {
-				s.CommitID = commitID
-				s.IsPrimary = lang == topLang
-				s.Size = size
-				if _, err := sess.ID(s.ID).Cols("`commit_id`", "`size`", "`is_primary`").Update(s); err != nil {
-					return err
-				}
-				upd = true
-				break
+		var topLang string
+		var s int64
+		for lang, size := range stats {
+			if size > s {
+				s = size
+				topLang = lang
 			}
 		}
-		// Insert new language
-		if !upd {
-			if err := db.Insert(ctx, &LanguageStat{
-				RepoID:    repo.ID,
-				CommitID:  commitID,
-				IsPrimary: lang == topLang,
-				Language:  lang,
-				Size:      size,
-			}); err != nil {
+
+		for lang, size := range stats {
+			upd := false
+			for _, s := range oldstats {
+				// Update already existing language
+				if strings.EqualFold(s.Language, lang) {
+					s.CommitID = commitID
+					s.IsPrimary = lang == topLang
+					s.Size = size
+					if _, err := sess.ID(s.ID).Cols("`commit_id`", "`size`", "`is_primary`").Update(s); err != nil {
+						return err
+					}
+					upd = true
+					break
+				}
+			}
+			// Insert new language
+			if !upd {
+				if err := db.Insert(ctx, &LanguageStat{
+					RepoID:    repo.ID,
+					CommitID:  commitID,
+					IsPrimary: lang == topLang,
+					Language:  lang,
+					Size:      size,
+				}); err != nil {
+					return err
+				}
+			}
+		}
+		// Delete old languages
+		statsToDelete := make([]int64, 0, len(oldstats))
+		for _, s := range oldstats {
+			if s.CommitID != commitID {
+				statsToDelete = append(statsToDelete, s.ID)
+			}
+		}
+		if len(statsToDelete) > 0 {
+			if _, err := sess.In("`id`", statsToDelete).Delete(&LanguageStat{}); err != nil {
 				return err
 			}
 		}
-	}
-	// Delete old languages
-	statsToDelete := make([]int64, 0, len(oldstats))
-	for _, s := range oldstats {
-		if s.CommitID != commitID {
-			statsToDelete = append(statsToDelete, s.ID)
-		}
-	}
-	if len(statsToDelete) > 0 {
-		if _, err := sess.In("`id`", statsToDelete).Delete(&LanguageStat{}); err != nil {
-			return err
-		}
-	}
 
-	// Update indexer status
-	if err = UpdateIndexerStatus(ctx, repo, RepoIndexerTypeStats, commitID); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+		// Update indexer status
+		return UpdateIndexerStatus(ctx, repo, RepoIndexerTypeStats, commitID)
+	})
 }
 
 // CopyLanguageStat Copy originalRepo language stat information to destRepo (use for forked repo)
 func CopyLanguageStat(ctx context.Context, originalRepo, destRepo *Repository) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	RepoLang := make(LanguageStatList, 0, 6)
-	if err := db.GetEngine(ctx).Where("`repo_id` = ?", originalRepo.ID).Desc("`size`").Find(&RepoLang); err != nil {
-		return err
-	}
-	if len(RepoLang) > 0 {
-		for i := range RepoLang {
-			RepoLang[i].ID = 0
-			RepoLang[i].RepoID = destRepo.ID
-			RepoLang[i].CreatedUnix = timeutil.TimeStampNow()
-		}
-		// update destRepo's indexer status
-		tmpCommitID := RepoLang[0].CommitID
-		if err := UpdateIndexerStatus(ctx, destRepo, RepoIndexerTypeStats, tmpCommitID); err != nil {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		RepoLang := make(LanguageStatList, 0, 6)
+		if err := db.GetEngine(ctx).Where("`repo_id` = ?", originalRepo.ID).Desc("`size`").Find(&RepoLang); err != nil {
 			return err
 		}
-		if err := db.Insert(ctx, &RepoLang); err != nil {
-			return err
+		if len(RepoLang) > 0 {
+			for i := range RepoLang {
+				RepoLang[i].ID = 0
+				RepoLang[i].RepoID = destRepo.ID
+				RepoLang[i].CreatedUnix = timeutil.TimeStampNow()
+			}
+			// update destRepo's indexer status
+			tmpCommitID := RepoLang[0].CommitID
+			if err := UpdateIndexerStatus(ctx, destRepo, RepoIndexerTypeStats, tmpCommitID); err != nil {
+				return err
+			}
+			if err := db.Insert(ctx, &RepoLang); err != nil {
+				return err
+			}
 		}
-	}
-	return committer.Commit()
+		return nil
+	})
 }
