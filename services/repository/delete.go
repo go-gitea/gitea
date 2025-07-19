@@ -291,9 +291,6 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 
 	committer.Close()
 
-	attachment_service.AddAttachmentsToCleanQueue(ctx, releaseAttachments)
-	attachment_service.AddAttachmentsToCleanQueue(ctx, repoAttachments)
-
 	if needRewriteKeysFile {
 		if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 			log.Error("RewriteAllPublicKeys failed: %v", err)
@@ -327,14 +324,8 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		system_model.RemoveStorageWithNotice(ctx, storage.LFS, "Delete orphaned LFS file", lfsObj)
 	}
 
-	// Remove release attachments
-	for _, attachment := range releaseAttachments {
-		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete release attachment", attachment.RelativePath())
-	}
-	// Remove attachment with repo_id = repo.ID.
-	for _, attachment := range repoAttachments {
-		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete repo attachment", attachment.RelativePath())
-	}
+	attachment_service.AddAttachmentsToCleanQueue(ctx, releaseAttachments)
+	attachment_service.AddAttachmentsToCleanQueue(ctx, repoAttachments)
 
 	if len(repo.Avatar) > 0 {
 		if err := storage.RepoAvatars.Delete(repo.CustomAvatarRelativePath()); err != nil {
