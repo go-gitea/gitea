@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"html"
@@ -171,7 +172,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 					gothUser.RawData = make(map[string]any)
 				}
 				gothUser.RawData["__giteaAutoRegMissingFields"] = missingFields
-				showLinkingLogin(ctx, authSource, gothUser)
+				showLinkingLogin(ctx, authSource.ID, gothUser)
 				return
 			}
 			u = &user_model.User{
@@ -192,7 +193,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			u.IsAdmin = isAdmin.ValueOrDefault(user_service.UpdateOptionField[bool]{FieldValue: false}).FieldValue
 			u.IsRestricted = isRestricted.ValueOrDefault(setting.Service.DefaultUserIsRestricted)
 
-			linkAccountData := &LinkAccountData{*authSource, gothUser}
+			linkAccountData := &LinkAccountData{authSource.ID, gothUser}
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingDisabled {
 				linkAccountData = nil
 			}
@@ -207,7 +208,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 		} else {
 			// no existing user is found, request attach or new account
-			showLinkingLogin(ctx, authSource, gothUser)
+			showLinkingLogin(ctx, authSource.ID, gothUser)
 			return
 		}
 	}
@@ -272,11 +273,12 @@ func getUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, gothUser *g
 }
 
 type LinkAccountData struct {
-	AuthSource auth.Source
-	GothUser   goth.User
+	AuthSourceID int64
+	GothUser     goth.User
 }
 
 func oauth2GetLinkAccountData(ctx *context.Context) *LinkAccountData {
+	gob.Register(LinkAccountData{})
 	v, ok := ctx.Session.Get("linkAccountData").(LinkAccountData)
 	if !ok {
 		return nil
@@ -284,11 +286,16 @@ func oauth2GetLinkAccountData(ctx *context.Context) *LinkAccountData {
 	return &v
 }
 
-func showLinkingLogin(ctx *context.Context, authSource *auth.Source, gothUser goth.User) {
-	if err := updateSession(ctx, nil, map[string]any{
-		"linkAccountData": LinkAccountData{*authSource, gothUser},
-	}); err != nil {
-		ctx.ServerError("updateSession", err)
+func Oauth2SetLinkAccountData(ctx *context.Context, linkAccountData LinkAccountData) error {
+	gob.Register(LinkAccountData{})
+	return updateSession(ctx, nil, map[string]any{
+		"linkAccountData": linkAccountData,
+	})
+}
+
+func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.User) {
+	if err := Oauth2SetLinkAccountData(ctx, LinkAccountData{authSourceID, gothUser}); err != nil {
+		ctx.ServerError("Oauth2SetLinkAccountData", err)
 		return
 	}
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
@@ -313,7 +320,7 @@ func oauth2UpdateAvatarIfNeed(ctx *context.Context, url string, u *user_model.Us
 }
 
 func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_model.User, gothUser goth.User) {
-	oauth2SignInSync(ctx, authSource, u, gothUser)
+	oauth2SignInSync(ctx, authSource.ID, u, gothUser)
 	if ctx.Written() {
 		return
 	}
