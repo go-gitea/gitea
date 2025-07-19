@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 
 	_ "code.gitea.io/gitea/models/actions"
 
@@ -19,7 +20,12 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m)
+	unittest.MainTest(m, &unittest.TestOptions{
+		SetUp: func() error {
+			setting.LoadQueueSettings()
+			return Init()
+		},
+	})
 }
 
 func TestUploadAttachment(t *testing.T) {
