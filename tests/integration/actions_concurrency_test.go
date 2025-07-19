@@ -1148,6 +1148,85 @@ jobs:
 	})
 }
 
+func TestCancelConcurrentRun(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		user2Session := loginUser(t, user2.Name)
+		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		apiRepo := createActionsTestRepo(t, user2Token, "actions-concurrency", false)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+		user2APICtx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		defer doAPIDeleteRepository(user2APICtx)(t)
+
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+		// init the workflow
+		wfTreePath := ".gitea/workflows/run.yml"
+		wfFileContent := `name: Cancel Run
+on: push
+concurrency:
+  group: cancel-run-group
+  cancel-in-progress: false
+jobs:
+  wf1-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'test'
+`
+		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wfTreePath, wfFileContent)
+		createWorkflowFile(t, user2Token, repo.OwnerName, repo.Name, wfTreePath, opts1)
+
+		// fetch and check the first task
+		task1 := runner.fetchTask(t)
+		_, _, run1 := getTaskAndJobAndRunByTaskID(t, task1.Id)
+		assert.Equal(t, "cancel-run-group", run1.ConcurrencyGroup)
+		assert.False(t, run1.ConcurrencyCancel)
+		assert.Equal(t, actions_model.StatusRunning, run1.Status)
+
+		// push another file to trigger the workflow again
+		doAPICreateFile(user2APICtx, "file1.txt", &api.CreateFileOptions{
+			FileOptions: api.FileOptions{
+				Message: "create file1.txt",
+				Author: api.Identity{
+					Name:  user2.Name,
+					Email: user2.Email,
+				},
+				Committer: api.Identity{
+					Name:  user2.Name,
+					Email: user2.Email,
+				},
+				Dates: api.CommitDateOptions{
+					Author:    time.Now(),
+					Committer: time.Now(),
+				},
+			},
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("file1")),
+		})(t)
+
+		// cannot fetch the second task because the first task is not completed
+		runner.fetchNoTask(t)
+
+		// cancel the first run
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/cancel", user2.Name, repo.Name, run1.Index), map[string]string{
+			"_csrf": GetUserCSRFToken(t, user2Session),
+		})
+		user2Session.MakeRequest(t, req, http.StatusOK)
+
+		// the first run has been cancelled
+		run1 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run1.ID})
+		assert.Equal(t, actions_model.StatusCancelled, run1.Status)
+
+		// fetch and check the second task
+		task2 := runner.fetchTask(t)
+		_, _, run2 := getTaskAndJobAndRunByTaskID(t, task2.Id)
+		assert.Equal(t, "cancel-run-group", run2.ConcurrencyGroup)
+		assert.False(t, run2.ConcurrencyCancel)
+		assert.Equal(t, actions_model.StatusRunning, run2.Status)
+	})
+}
+
 func getTaskAndJobAndRunByTaskID(t *testing.T, taskID int64) (*actions_model.ActionTask, *actions_model.ActionRunJob, *actions_model.ActionRun) {
 	actionTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: taskID})
 	actionRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: actionTask.JobID})
