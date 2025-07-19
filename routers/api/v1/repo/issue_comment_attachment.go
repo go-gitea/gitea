@@ -7,7 +7,6 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -390,10 +389,6 @@ func getIssueCommentAttachmentSafeRead(ctx *context.APIContext, comment *issues_
 		return nil
 	}
 	if !attachmentBelongsToRepoOrComment(ctx, attachment, comment) {
-		return nil
-	}
-	if attachment.Status != db.FileStatusNormal {
-		ctx.APIErrorNotFound()
 		return nil
 	}
 	return attachment
