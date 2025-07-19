@@ -420,26 +420,45 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	// reset run's start and stop time when it is done
-	if run.Status.IsDone() {
-		run.PreviousDuration = run.Duration()
-		run.Started = 0
-		run.Stopped = 0
-		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration"); err != nil {
-			ctx.ServerError("UpdateRun", err)
-			return
-		}
-	}
+	// TODO evaluate concurrency expression again, vars may change after the run is done
+	// check run (workflow-level) concurrency
 
 	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
 		return
 	}
 
+	var blockRunByConcurrency bool
+
+	// reset run's start and stop time when it is done
+	if run.Status.IsDone() {
+		run.PreviousDuration = run.Duration()
+		run.Started = 0
+		run.Stopped = 0
+
+		blockRunByConcurrency, err = actions_model.ShouldBlockRunByConcurrency(ctx, run)
+		if err != nil {
+			ctx.ServerError("ShouldBlockRunByConcurrency", err)
+			return
+		}
+		if blockRunByConcurrency {
+			run.Status = actions_model.StatusBlocked
+		} else if err := actions_service.CancelJobsByRunConcurrency(ctx, run); err != nil {
+			ctx.ServerError("cancel jobs", err)
+			return
+		} else {
+			run.Status = actions_model.StatusRunning
+		}
+		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration", "status"); err != nil {
+			ctx.ServerError("UpdateRun", err)
+			return
+		}
+	}
+
 	if jobIndexStr == "" { // rerun all jobs
 		for _, j := range jobs {
 			// if the job has needs, it should be set to "blocked" status to wait for other jobs
-			shouldBlock := len(j.Needs) > 0
+			shouldBlock := len(j.Needs) > 0 || blockRunByConcurrency
 			if err := rerunJob(ctx, j, shouldBlock); err != nil {
 				ctx.ServerError("RerunJob", err)
 				return
@@ -453,7 +472,8 @@ func Rerun(ctx *context_module.Context) {
 
 	for _, j := range rerunJobs {
 		// jobs other than the specified one should be set to "blocked" status
-		shouldBlock := j.JobID != job.JobID
+		// TODO respect blockRunByConcurrency here?
+		shouldBlock := j.JobID != job.JobID || blockRunByConcurrency
 		if err := rerunJob(ctx, j, shouldBlock); err != nil {
 			ctx.ServerError("RerunJob", err)
 			return
@@ -477,8 +497,37 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	job.Started = 0
 	job.Stopped = 0
 
+	job.ConcurrencyGroup = ""
+	job.ConcurrencyCancel = false
+	job.IsConcurrencyEvaluated = false
+	if err := job.LoadRun(ctx); err != nil {
+		return err
+	}
+	vars, err := actions_model.GetVariablesOfRun(ctx, job.Run)
+	if err != nil {
+		return fmt.Errorf("get run %d variables: %w", job.Run.ID, err)
+	}
+	if job.RawConcurrencyGroup != "" && job.Status != actions_model.StatusBlocked {
+		var err error
+		job.ConcurrencyGroup, job.ConcurrencyCancel, err = actions_service.EvaluateJobConcurrency(ctx, job.Run, job, vars, nil)
+		if err != nil {
+			return fmt.Errorf("evaluate job concurrency: %w", err)
+		}
+		job.IsConcurrencyEvaluated = true
+		blockByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, job)
+		if err != nil {
+			return err
+		}
+		if blockByConcurrency {
+			job.Status = actions_model.StatusBlocked
+		} else if err := actions_service.CancelJobsByJobConcurrency(ctx, job); err != nil {
+			return fmt.Errorf("cancel jobs: %w", err)
+		}
+	}
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
+		updateCols := []string{"task_id", "status", "started", "stopped", "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"}
+		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, updateCols...)
 		return err
 	}); err != nil {
 		return err
@@ -553,6 +602,14 @@ func Cancel(ctx *context_module.Context) {
 
 	actions_service.CreateCommitStatus(ctx, jobs...)
 
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
+		ctx.ServerError("GetRunByIndex", err)
+	}
+	if err := actions_service.EmitJobsIfReady(run.ID); err != nil {
+		log.Error("Emit ready jobs of run %d: %v", run.ID, err)
+	}
+
 	for _, job := range updatedjobs {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
@@ -584,7 +641,17 @@ func Approve(ctx *context_module.Context) {
 			return err
 		}
 		for _, job := range jobs {
-			if len(job.Needs) == 0 && job.Status.IsBlocked() {
+			blockJobByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, job)
+			if err != nil {
+				if actions_model.IsErrUnevaluatedConcurrency(err) {
+					continue
+				}
+				return err
+			}
+			if len(job.Needs) == 0 && job.Status.IsBlocked() && !blockJobByConcurrency {
+				if err := actions_service.CancelJobsByJobConcurrency(ctx, job); err != nil {
+					return fmt.Errorf("cancel jobs: %w", err)
+				}
 				job.Status = actions_model.StatusWaiting
 				n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
 				if err != nil {
