@@ -18,18 +18,22 @@ import (
 
 // Attachment represent a attachment of issue/comment/release.
 type Attachment struct {
-	ID                int64  `xorm:"pk autoincr"`
-	UUID              string `xorm:"uuid UNIQUE"`
-	RepoID            int64  `xorm:"INDEX"`           // this should not be zero
-	IssueID           int64  `xorm:"INDEX"`           // maybe zero when creating
-	ReleaseID         int64  `xorm:"INDEX"`           // maybe zero when creating
-	UploaderID        int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
-	CommentID         int64  `xorm:"INDEX"`
-	Name              string
-	DownloadCount     int64              `xorm:"DEFAULT 0"`
-	Size              int64              `xorm:"DEFAULT 0"`
-	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
-	CustomDownloadURL string             `xorm:"-"`
+	ID                     int64  `xorm:"pk autoincr"`
+	UUID                   string `xorm:"uuid UNIQUE"`
+	RepoID                 int64  `xorm:"INDEX"`           // this should not be zero
+	IssueID                int64  `xorm:"INDEX"`           // maybe zero when creating
+	ReleaseID              int64  `xorm:"INDEX"`           // maybe zero when creating
+	UploaderID             int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
+	CommentID              int64  `xorm:"INDEX"`
+	Name                   string
+	DownloadCount          int64              `xorm:"DEFAULT 0"`
+	Status                 db.FileStatus      `xorm:"INDEX DEFAULT 0"`
+	DeleteFailedCount      int                `xorm:"DEFAULT 0"` // Number of times the deletion failed, used to prevent infinite loop
+	LastDeleteFailedReason string             `xorm:"TEXT"`      // Last reason the deletion failed, used to prevent infinite loop
+	LastDeleteFailedTime   timeutil.TimeStamp // Last time the deletion failed, used to prevent infinite loop
+	Size                   int64              `xorm:"DEFAULT 0"`
+	CreatedUnix            timeutil.TimeStamp `xorm:"created"`
+	CustomDownloadURL      string             `xorm:"-"`
 }
 
 func init() {
@@ -88,7 +92,9 @@ func (err ErrAttachmentNotExist) Unwrap() error {
 // GetAttachmentByID returns attachment by given id
 func GetAttachmentByID(ctx context.Context, id int64) (*Attachment, error) {
 	attach := &Attachment{}
-	if has, err := db.GetEngine(ctx).ID(id).Get(attach); err != nil {
+	if has, err := db.GetEngine(ctx).ID(id).
+		And("status = ?", db.FileStatusNormal).
+		Get(attach); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrAttachmentNotExist{ID: id, UUID: ""}
@@ -99,7 +105,9 @@ func GetAttachmentByID(ctx context.Context, id int64) (*Attachment, error) {
 // GetAttachmentByUUID returns attachment by given UUID.
 func GetAttachmentByUUID(ctx context.Context, uuid string) (*Attachment, error) {
 	attach := &Attachment{}
-	has, err := db.GetEngine(ctx).Where("uuid=?", uuid).Get(attach)
+	has, err := db.GetEngine(ctx).Where("uuid=?", uuid).
+		And("status = ?", db.FileStatusNormal).
+		Get(attach)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -116,18 +124,24 @@ func GetAttachmentsByUUIDs(ctx context.Context, uuids []string) ([]*Attachment, 
 
 	// Silently drop invalid uuids.
 	attachments := make([]*Attachment, 0, len(uuids))
-	return attachments, db.GetEngine(ctx).In("uuid", uuids).Find(&attachments)
+	return attachments, db.GetEngine(ctx).In("uuid", uuids).
+		And("status = ?", db.FileStatusNormal).
+		Find(&attachments)
 }
 
 // ExistAttachmentsByUUID returns true if attachment exists with the given UUID
 func ExistAttachmentsByUUID(ctx context.Context, uuid string) (bool, error) {
-	return db.GetEngine(ctx).Where("`uuid`=?", uuid).Exist(new(Attachment))
+	return db.GetEngine(ctx).Where("`uuid`=?", uuid).
+		And("status = ?", db.FileStatusNormal).
+		Exist(new(Attachment))
 }
 
 // GetAttachmentsByIssueID returns all attachments of an issue.
 func GetAttachmentsByIssueID(ctx context.Context, issueID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
-	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
+	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).
+		And("status = ?", db.FileStatusNormal).
+		Find(&attachments)
 }
 
 // GetAttachmentsByIssueIDImagesLatest returns the latest image attachments of an issue.
@@ -142,19 +156,23 @@ func GetAttachmentsByIssueIDImagesLatest(ctx context.Context, issueID int64) ([]
 		OR name like '%.jxl'
 		OR name like '%.png'
 		OR name like '%.svg'
-		OR name like '%.webp')`, issueID).Desc("comment_id").Limit(5).Find(&attachments)
+		OR name like '%.webp')`, issueID).
+		And("status = ?", db.FileStatusNormal).
+		Desc("comment_id").Limit(5).Find(&attachments)
 }
 
 // GetAttachmentsByCommentID returns all attachments if comment by given ID.
 func GetAttachmentsByCommentID(ctx context.Context, commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
-	return attachments, db.GetEngine(ctx).Where("comment_id=?", commentID).Find(&attachments)
+	return attachments, db.GetEngine(ctx).Where("comment_id=?", commentID).
+		And("status = ?", db.FileStatusNormal).
+		Find(&attachments)
 }
 
 // GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
 func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, fileName string) (*Attachment, error) {
 	attach := &Attachment{ReleaseID: releaseID, Name: fileName}
-	has, err := db.GetEngine(ctx).Get(attach)
+	has, err := db.GetEngine(ctx).Where("status = ?", db.FileStatusNormal).Get(attach)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -185,7 +203,8 @@ func UpdateAttachment(ctx context.Context, atta *Attachment) error {
 	return err
 }
 
-func DeleteAttachments(ctx context.Context, attachments []*Attachment) (int64, error) {
+// MarkAttachmentsDeleted marks the given attachments as deleted
+func MarkAttachmentsDeleted(ctx context.Context, attachments []*Attachment) (int64, error) {
 	if len(attachments) == 0 {
 		return 0, nil
 	}
@@ -195,13 +214,39 @@ func DeleteAttachments(ctx context.Context, attachments []*Attachment) (int64, e
 		ids = append(ids, a.ID)
 	}
 
-	return db.GetEngine(ctx).In("id", ids).NoAutoCondition().Delete(attachments[0])
+	return db.GetEngine(ctx).Table("attachment").In("id", ids).Update(map[string]any{
+		"status": db.FileStatusToBeDeleted,
+	})
 }
 
-// DeleteAttachmentsByRelease deletes all attachments associated with the given release.
-func DeleteAttachmentsByRelease(ctx context.Context, releaseID int64) error {
-	_, err := db.GetEngine(ctx).Where("release_id = ?", releaseID).Delete(&Attachment{})
+// MarkAttachmentsDeletedByRelease marks all attachments associated with the given release as deleted.
+func MarkAttachmentsDeletedByRelease(ctx context.Context, releaseID int64) error {
+	_, err := db.GetEngine(ctx).Table("attachment").Where("release_id = ?", releaseID).Update(map[string]any{
+		"status": db.FileStatusToBeDeleted,
+	})
 	return err
+}
+
+// DeleteAttachmentByID deletes the attachment which has been marked as deleted by given id
+func DeleteAttachmentByID(ctx context.Context, id int64) error {
+	cnt, err := db.GetEngine(ctx).ID(id).Where("status = ?", db.FileStatusToBeDeleted).Delete(new(Attachment))
+	if err != nil {
+		return fmt.Errorf("delete attachment by id: %w", err)
+	}
+	if cnt != 1 {
+		return fmt.Errorf("the attachment with id %d was not found or is not marked for deletion", id)
+	}
+	return nil
+}
+
+func UpdateAttachmentFailure(ctx context.Context, attachment *Attachment, err error) error {
+	attachment.DeleteFailedCount++
+	_, updateErr := db.GetEngine(ctx).Table("attachment").ID(attachment.ID).Update(map[string]any{
+		"delete_failed_count":       attachment.DeleteFailedCount,
+		"last_delete_failed_reason": err.Error(),
+		"last_delete_failed_time":   timeutil.TimeStampNow(),
+	})
+	return updateErr
 }
 
 // CountOrphanedAttachments returns the number of bad attachments

@@ -70,7 +70,11 @@ func DeleteAttachment(ctx *context.Context) {
 	file := ctx.FormString("file")
 	attach, err := repo_model.GetAttachmentByUUID(ctx, file)
 	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, err.Error())
+		if repo_model.IsErrAttachmentNotExist(err) {
+			ctx.HTTPError(http.StatusNotFound)
+		} else {
+			ctx.ServerError("GetAttachmentByUUID", err)
+		}
 		return
 	}
 	if !ctx.IsSigned || (ctx.Doer.ID != attach.UploaderID) {

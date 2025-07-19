@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	attachment_service "code.gitea.io/gitea/services/attachment"
 	issue_service "code.gitea.io/gitea/services/issue"
 
 	"xorm.io/builder"
@@ -122,15 +123,9 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		Find(&releaseAttachments); err != nil {
 		return err
 	}
-	// Delete attachments with release_id but repo_id = 0
-	if len(releaseAttachments) > 0 {
-		ids := make([]int64, 0, len(releaseAttachments))
-		for _, attach := range releaseAttachments {
-			ids = append(ids, attach.ID)
-		}
-		if _, err := db.GetEngine(ctx).In("id", ids).Delete(&repo_model.Attachment{}); err != nil {
-			return fmt.Errorf("delete release attachments failed: %w", err)
-		}
+
+	if _, err := repo_model.MarkAttachmentsDeleted(ctx, releaseAttachments); err != nil {
+		return fmt.Errorf("delete release attachments: %w", err)
 	}
 
 	if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
@@ -200,9 +195,8 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	}
 
 	// Delete Issues and related objects
-	// attachments will be deleted later with repo_id
-	postTxActions, err := issue_service.DeleteIssuesByRepoID(ctx, repoID, false)
-	if err != nil {
+	// attachments will be deleted later with repo_id, so we don't need to delete them here
+	if _, err := issue_service.DeleteIssuesByRepoID(ctx, repoID, false); err != nil {
 		return err
 	}
 
@@ -282,8 +276,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	}).Find(&repoAttachments); err != nil {
 		return err
 	}
-
-	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(repo_model.Attachment)); err != nil {
+	if _, err := repo_model.MarkAttachmentsDeleted(ctx, repoAttachments); err != nil {
 		return err
 	}
 
@@ -298,7 +291,8 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 
 	committer.Close()
 
-	postTxActions()
+	attachment_service.CleanAttachments(ctx, releaseAttachments)
+	attachment_service.CleanAttachments(ctx, repoAttachments)
 
 	if needRewriteKeysFile {
 		if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {

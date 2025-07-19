@@ -393,7 +393,6 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
-
 	if err := attachment_service.DeleteAttachment(ctx, attach); err != nil {
 		ctx.APIErrorInternal(err)
 		return

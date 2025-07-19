@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/agit"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	attachment_service "code.gitea.io/gitea/services/attachment"
 	org_service "code.gitea.io/gitea/services/org"
 	"code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
@@ -243,7 +244,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		return packages_model.ErrUserOwnPackages{UID: u.ID}
 	}
 
-	postTxActions, err := deleteUser(ctx, u, purge)
+	toBeCleanedAttachments, err := deleteUser(ctx, u, purge)
 	if err != nil {
 		return fmt.Errorf("DeleteUser: %w", err)
 	}
@@ -253,7 +254,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	}
 	_ = committer.Close()
 
-	postTxActions()
+	attachment_service.CleanAttachments(ctx, toBeCleanedAttachments)
 
 	if err = asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 		return err

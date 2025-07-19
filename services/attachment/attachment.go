@@ -13,7 +13,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context/upload"
@@ -71,23 +73,96 @@ func DeleteAttachment(ctx context.Context, a *repo_model.Attachment) error {
 
 // DeleteAttachments deletes the given attachments and optionally the associated files.
 func DeleteAttachments(ctx context.Context, attachments []*repo_model.Attachment) (int, error) {
-	cnt, err := repo_model.DeleteAttachments(ctx, attachments)
+	cnt, err := repo_model.MarkAttachmentsDeleted(ctx, attachments)
 	if err != nil {
 		return 0, err
 	}
 
+	CleanAttachments(ctx, attachments)
+
+	return int(cnt), nil
+}
+
+var cleanQueue *queue.WorkerPoolQueue[int64]
+
+func Init() error {
+	cleanQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "attachments-clean", handler)
+	if cleanQueue == nil {
+		return errors.New("Unable to create attachments-clean queue")
+	}
+	return nil
+}
+
+// CleanAttachments adds the attachments to the clean queue for deletion.
+func CleanAttachments(ctx context.Context, attachments []*repo_model.Attachment) {
 	for _, a := range attachments {
-		if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
-			if !errors.Is(err, os.ErrNotExist) {
-				// Even delete files failed, but the attachments has been removed from database, so we
-				// should not return error but only record the error on logs.
-				// users have to delete this attachments manually or we should have a
-				// synchronize between database attachment table and attachment storage
-				log.Error("delete attachment[uuid: %s] failed: %v", a.UUID, err)
-			} else {
-				log.Warn("Attachment file not found when deleting: %s", a.RelativePath())
-			}
+		if err := cleanQueue.Push(a.ID); err != nil {
+			log.Error("Failed to push attachment ID %d to clean queue: %v", a.ID, err)
+			continue
 		}
 	}
-	return int(cnt), nil
+}
+
+func handler(attachmentIDs ...int64) []int64 {
+	return cleanAttachments(graceful.GetManager().ShutdownContext(), attachmentIDs)
+}
+
+func cleanAttachments(ctx context.Context, attachmentIDs []int64) []int64 {
+	var failed []int64
+	for _, attachmentID := range attachmentIDs {
+		attachment, exist, err := db.GetByID[repo_model.Attachment](ctx, attachmentID)
+		if err != nil {
+			log.Error("Failed to get attachment by ID %d: %v", attachmentID, err)
+			continue
+		}
+		if !exist {
+			continue
+		}
+		if attachment.Status != db.FileStatusToBeDeleted {
+			log.Trace("Attachment %s is not marked for deletion, skipping", attachment.RelativePath())
+			continue
+		}
+
+		if err := storage.Attachments.Delete(attachment.RelativePath()); err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				log.Error("delete attachment[uuid: %s] failed: %v", attachment.UUID, err)
+				failed = append(failed, attachment.ID)
+				if err := repo_model.UpdateAttachmentFailure(ctx, attachment, err); err != nil {
+					log.Error("Failed to update attachment failure for ID %d: %v", attachment.ID, err)
+				}
+				continue
+			}
+		}
+		if err := repo_model.DeleteAttachmentByID(ctx, attachment.ID); err != nil {
+			log.Error("Failed to delete attachment by ID %d(will be tried later): %v", attachment.ID, err)
+			failed = append(failed, attachment.ID)
+		} else {
+			log.Trace("Attachment %s deleted from database", attachment.RelativePath())
+		}
+	}
+	return failed
+}
+
+// ScanTobeDeletedAttachments scans for attachments that are marked as to be deleted and send to
+// clean queue
+func ScanTobeDeletedAttachments(ctx context.Context) error {
+	attachments := make([]*repo_model.Attachment, 0, 10)
+	lastID := int64(0)
+	for {
+		if err := db.GetEngine(ctx).
+			Where("id > ? AND status = ?", lastID, db.FileStatusToBeDeleted).
+			Limit(100).
+			Find(&attachments); err != nil {
+			return fmt.Errorf("scan to-be-deleted attachments: %w", err)
+		}
+
+		if len(attachments) == 0 {
+			log.Trace("No more attachments to be deleted")
+			break
+		}
+		CleanAttachments(ctx, attachments)
+		lastID = attachments[len(attachments)-1].ID
+	}
+
+	return nil
 }

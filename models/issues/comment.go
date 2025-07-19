@@ -599,6 +599,9 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
 		for i := range attachments {
+			if attachments[i].IssueID != 0 || attachments[i].CommentID != 0 {
+				return util.NewPermissionDeniedErrorf("update comment attachments permission denied")
+			}
 			attachments[i].IssueID = c.IssueID
 			attachments[i].CommentID = c.ID
 			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {

@@ -5,9 +5,7 @@ package user
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	_ "image/jpeg" // Needed for jpeg support
@@ -24,17 +22,14 @@ import (
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
 
 // deleteUser deletes models associated to an user.
-func deleteUser(ctx context.Context, u *user_model.User, purge bool) (postTxActions util.PostTxAction, err error) {
-	postTxActions = util.NewPostTxAction()
+func deleteUser(ctx context.Context, u *user_model.User, purge bool) (toBeCleanedAttachments []*repo_model.Attachment, err error) {
+	toBeCleanedAttachments = make([]*repo_model.Attachment, 0)
 
 	// ***** START: Watch *****
 	watchedRepoIDs, err := db.FindIDs(ctx, "watch", "watch.repo_id",
@@ -131,25 +126,10 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (postTxActi
 					return nil, err
 				}
 
-				if _, err := repo_model.DeleteAttachments(ctx, comment.Attachments); err != nil {
+				if _, err := repo_model.MarkAttachmentsDeleted(ctx, comment.Attachments); err != nil {
 					return nil, err
 				}
-
-				postTxActions = postTxActions.Append(func() {
-					for _, a := range comment.Attachments {
-						if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
-							if !errors.Is(err, os.ErrNotExist) {
-								// Even delete files failed, but the attachments has been removed from database, so we
-								// should not return error but only record the error on logs.
-								// users have to delete this attachments manually or we should have a
-								// synchronize between database attachment table and attachment storage
-								log.Error("delete attachment[uuid: %s] failed: %v", a.UUID, err)
-							} else {
-								log.Warn("Attachment file not found when deleting: %s", a.RelativePath())
-							}
-						}
-					}
-				})
+				toBeCleanedAttachments = append(toBeCleanedAttachments, comment.Attachments...)
 			}
 		}
 
@@ -227,5 +207,5 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (postTxActi
 		return nil, fmt.Errorf("delete: %w", err)
 	}
 
-	return postTxActions, nil
+	return toBeCleanedAttachments, nil
 }
