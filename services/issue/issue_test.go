@@ -41,7 +41,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issueIDs[2]})
 
-	_, err = deleteIssue(db.DefaultContext, issue)
+	_, _, err = deleteIssue(db.DefaultContext, issue)
 	assert.NoError(t, err)
 	issueIDs, err = issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
@@ -52,7 +52,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	issue, err = issues_model.GetIssueByID(db.DefaultContext, 4)
 	assert.NoError(t, err)
-	_, err = deleteIssue(db.DefaultContext, issue)
+	_, _, err = deleteIssue(db.DefaultContext, issue)
 	assert.NoError(t, err)
 	assert.Len(t, attachments, 2)
 	for i := range attachments {
@@ -75,7 +75,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, left)
 
-	_, err = deleteIssue(db.DefaultContext, issue2)
+	_, _, err = deleteIssue(db.DefaultContext, issue2)
 	assert.NoError(t, err)
 	left, err = issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)

@@ -191,7 +191,7 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 	}
 
 	// delete entries in database
-	attachmentPaths, err := deleteIssue(ctx, issue)
+	attachmentPaths, comments, err := deleteIssue(ctx, issue)
 	if err != nil {
 		return err
 	}
@@ -207,6 +207,17 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 		if issue.PullRequest.HasMerged {
 			if err := git.RemoveRef(ctx, gitRepo.Path, issue.PullRequest.GetGitMergeRefName()); err != nil {
 				return err
+			}
+		}
+	}
+
+	for _, comment := range comments {
+		if comment.ReviewID > 0 {
+			if err := git.RemoveRef(ctx, issue.Repo.RepoPath(), issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID)); err != nil {
+				log.Error("Unable to remove ref in base repository for PR[%d] Error: %v", issue.PullRequest.ID, err)
+				// We should not return error here, because the comment has been removed from database.
+				// users have to delete this ref manually or we should have a synchronize between
+				// database comment table and git refs.
 			}
 		}
 	}
@@ -266,131 +277,107 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 }
 
 // deleteIssue deletes the issue
-func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-
-	// update the total issue numbers
-	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
-		return nil, err
-	}
-	// if the issue is closed, update the closed issue numbers
-	if issue.IsClosed {
-		if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
-		return nil, fmt.Errorf("error updating counters for milestone id %d: %w",
-			issue.MilestoneID, err)
-	}
-
-	if err := activities_model.DeleteIssueActions(ctx, issue.RepoID, issue.ID, issue.Index); err != nil {
-		return nil, err
-	}
-
-	// find attachments related to this issue and remove them
-	if err := issue.LoadAttachments(ctx); err != nil {
-		return nil, err
-	}
-
+func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, []*issues_model.Comment, error) {
 	var attachmentPaths []string
-	for i := range issue.Attachments {
-		attachmentPaths = append(attachmentPaths, issue.Attachments[i].RelativePath())
-	}
-
-	// deference all review comments
-	if err := issue.LoadRepo(ctx); err != nil {
-		return nil, err
-	}
-	if err := issue.LoadPullRequest(ctx); err != nil {
-		return nil, err
-	}
-
-	if err := issue.LoadComments(ctx); err != nil {
-		return nil, err
-	}
-
-	// delete all database data still assigned to this issue
-	if err := db.DeleteBeans(ctx,
-		&issues_model.ContentHistory{IssueID: issue.ID},
-		&issues_model.IssueLabel{IssueID: issue.ID},
-		&issues_model.IssueDependency{IssueID: issue.ID},
-		&issues_model.IssueAssignees{IssueID: issue.ID},
-		&issues_model.IssueUser{IssueID: issue.ID},
-		&activities_model.Notification{IssueID: issue.ID},
-		&issues_model.Reaction{IssueID: issue.ID},
-		&issues_model.IssueWatch{IssueID: issue.ID},
-		&issues_model.Stopwatch{IssueID: issue.ID},
-		&issues_model.TrackedTime{IssueID: issue.ID},
-		&project_model.ProjectIssue{IssueID: issue.ID},
-		&repo_model.Attachment{IssueID: issue.ID},
-		&issues_model.PullRequest{IssueID: issue.ID},
-		&issues_model.Comment{RefIssueID: issue.ID},
-		&issues_model.IssueDependency{DependencyID: issue.ID},
-		&issues_model.Comment{DependentIssueID: issue.ID},
-		&issues_model.IssuePin{IssueID: issue.ID},
-	); err != nil {
-		return nil, err
-	}
-
-	for _, comment := range issue.Comments {
-		if err := issues_model.DeleteComment(ctx, comment); err != nil {
-			return nil, err
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		// update the total issue numbers
+		if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
+			return err
 		}
-
-		if comment.ReviewID > 0 {
-			if err := git.RemoveRef(ctx, issue.Repo.RepoPath(), issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID)); err != nil {
-				log.Error("Unable to remove ref in base repository for PR[%d] Error: %v", issue.PullRequest.ID, err)
-				// We should not return error here, because the comment has been removed from database.
-				// users have to delete this ref manually or we should have a synchronize between
-				// database comment table and git refs.
+		// if the issue is closed, update the closed issue numbers
+		if issue.IsClosed {
+			if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
+				return err
 			}
 		}
 
-		// delete all attachments related to this comment
-		for _, attachment := range comment.Attachments {
-			if err := storage.Attachments.Delete(repo_model.AttachmentRelativePath(attachment.UUID)); err != nil {
-				// Even delete files failed, but the attachments has been removed from database, so we
-				// should not return error but only record the error on logs.
-				// users have to delete this attachments manually or we should have a
-				// synchronize between database attachment table and attachment storage
-				log.Error("delete attachment[uuid: %s] failed: %v", attachment.UUID, err)
+		if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
+			return fmt.Errorf("error updating counters for milestone id %d: %w",
+				issue.MilestoneID, err)
+		}
+
+		if err := activities_model.DeleteIssueActions(ctx, issue.RepoID, issue.ID, issue.Index); err != nil {
+			return err
+		}
+
+		// find attachments related to this issue and remove them
+		if err := issue.LoadAttachments(ctx); err != nil {
+			return err
+		}
+
+		for i := range issue.Attachments {
+			attachmentPaths = append(attachmentPaths, issue.Attachments[i].RelativePath())
+		}
+
+		// deference all review comments
+		if err := issue.LoadRepo(ctx); err != nil {
+			return err
+		}
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			return err
+		}
+
+		if err := issue.LoadComments(ctx); err != nil {
+			return err
+		}
+
+		// delete all database data still assigned to this issue
+		if err := db.DeleteBeans(ctx,
+			&issues_model.ContentHistory{IssueID: issue.ID},
+			&issues_model.IssueLabel{IssueID: issue.ID},
+			&issues_model.IssueDependency{IssueID: issue.ID},
+			&issues_model.IssueAssignees{IssueID: issue.ID},
+			&issues_model.IssueUser{IssueID: issue.ID},
+			&activities_model.Notification{IssueID: issue.ID},
+			&issues_model.Reaction{IssueID: issue.ID},
+			&issues_model.IssueWatch{IssueID: issue.ID},
+			&issues_model.Stopwatch{IssueID: issue.ID},
+			&issues_model.TrackedTime{IssueID: issue.ID},
+			&project_model.ProjectIssue{IssueID: issue.ID},
+			&repo_model.Attachment{IssueID: issue.ID},
+			&issues_model.PullRequest{IssueID: issue.ID},
+			&issues_model.Comment{RefIssueID: issue.ID},
+			&issues_model.IssueDependency{DependencyID: issue.ID},
+			&issues_model.Comment{DependentIssueID: issue.ID},
+			&issues_model.IssuePin{IssueID: issue.ID},
+		); err != nil {
+			return err
+		}
+
+		for _, comment := range issue.Comments {
+			if err := issues_model.DeleteComment(ctx, comment); err != nil {
+				return err
 			}
 		}
-	}
 
-	// delete all pull request records
-	if issue.IsPull {
-		// Delete scheduled auto merges
-		if _, err := db.GetEngine(ctx).Where("pull_id=?", issue.PullRequest.ID).
-			Delete(&pull_model.AutoMerge{}); err != nil {
-			return nil, err
+		// delete all pull request records
+		if issue.IsPull {
+			// Delete scheduled auto merges
+			if _, err := db.GetEngine(ctx).Where("pull_id=?", issue.PullRequest.ID).
+				Delete(&pull_model.AutoMerge{}); err != nil {
+				return err
+			}
+
+			// Delete review states
+			if _, err := db.GetEngine(ctx).Where("pull_id=?", issue.PullRequest.ID).
+				Delete(&pull_model.ReviewState{}); err != nil {
+				return err
+			}
+
+			if _, err := db.GetEngine(ctx).ID(issue.PullRequest.ID).Delete(&issues_model.PullRequest{}); err != nil {
+				return err
+			}
 		}
 
-		// Delete review states
-		if _, err := db.GetEngine(ctx).Where("pull_id=?", issue.PullRequest.ID).
-			Delete(&pull_model.ReviewState{}); err != nil {
-			return nil, err
+		if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
+			return err
 		}
-
-		if _, err := db.GetEngine(ctx).ID(issue.PullRequest.ID).Delete(&issues_model.PullRequest{}); err != nil {
-			return nil, err
-		}
+		return nil
+	}); err != nil {
+		return nil, nil, err
 	}
 
-	if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
-		return nil, err
-	}
-
-	if err := committer.Commit(); err != nil {
-		return nil, err
-	}
-	return attachmentPaths, nil
+	return attachmentPaths, issue.Comments, nil
 }
 
 // DeleteOrphanedIssues delete issues without a repo
@@ -438,9 +425,20 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 		}
 
 		for _, issue := range issues {
-			issueAttachPaths, err := deleteIssue(ctx, issue)
+			issueAttachPaths, comments, err := deleteIssue(ctx, issue)
 			if err != nil {
 				return nil, fmt.Errorf("deleteIssue [issue_id: %d]: %w", issue.ID, err)
+			}
+
+			for _, comment := range comments {
+				if comment.ReviewID > 0 {
+					if err := git.RemoveRef(ctx, issue.Repo.RepoPath(), issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID)); err != nil {
+						log.Error("Unable to remove ref in base repository for PR[%d] Error: %v", issue.PullRequest.ID, err)
+						// We should not return error here, because the comment has been removed from database.
+						// users have to delete this ref manually or we should have a synchronize between
+						// database comment table and git refs.
+					}
+				}
 			}
 
 			attachmentPaths = append(attachmentPaths, issueAttachPaths...)

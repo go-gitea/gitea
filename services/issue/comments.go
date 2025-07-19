@@ -134,33 +134,31 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 
 // DeleteComment deletes the comment
 func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := issues_model.DeleteComment(ctx, comment); err != nil {
+	if comment.ReviewID > 0 {
+		if err := comment.LoadIssue(ctx); err != nil {
 			return err
 		}
-
-		if comment.ReviewID > 0 {
-			if err := comment.LoadIssue(ctx); err != nil {
-				return err
-			}
-			if err := comment.Issue.LoadRepo(ctx); err != nil {
-				return err
-			}
-			if err := comment.Issue.LoadPullRequest(ctx); err != nil {
-				return err
-			}
-			if err := git.RemoveRef(ctx, comment.Issue.Repo.RepoPath(), issues_model.GetCodeCommentRefName(comment.Issue.PullRequest.Index, comment.ID)); err != nil {
-				log.Error("Unable to remove ref in base repository for PR[%d] Error: %v", comment.Issue.PullRequest.ID, err)
-				// We should not return error here, because the comment has been removed from database.
-				// users have to delete this ref manually or we should have a synchronize between
-				// database comment table and git refs.
-			}
+		if err := comment.Issue.LoadRepo(ctx); err != nil {
+			return err
 		}
+		if err := comment.Issue.LoadPullRequest(ctx); err != nil {
+			return err
+		}
+	}
 
-		return nil
-	})
-	if err != nil {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		return issues_model.DeleteComment(ctx, comment)
+	}); err != nil {
 		return err
+	}
+
+	if comment.ReviewID > 0 {
+		if err := git.RemoveRef(ctx, comment.Issue.Repo.RepoPath(), issues_model.GetCodeCommentRefName(comment.Issue.PullRequest.Index, comment.ID)); err != nil {
+			log.Error("Unable to remove ref in base repository for PR[%d] Error: %v", comment.Issue.PullRequest.ID, err)
+			// We should not return error here, because the comment has been removed from database.
+			// users have to delete this ref manually or we should have a synchronize between
+			// database comment table and git refs.
+		}
 	}
 
 	notify_service.DeleteComment(ctx, doer, comment)
