@@ -6,6 +6,7 @@ package cache
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
@@ -63,10 +64,15 @@ func (sc *stringCache) Ping() error {
 }
 
 func (sc *stringCache) Get(key string) (string, bool) {
+	start := time.Now()
 	v := sc.chiCache.Get(key)
+	elapsed := time.Since(start).Seconds()
+	latencyHistogram.Observe(elapsed)
 	if v == nil {
+		missCounter.Add(1)
 		return "", false
 	}
+	hitCounter.Add(1)
 	s, ok := v.(string)
 	return s, ok
 }
