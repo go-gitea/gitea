@@ -7,32 +7,14 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
-
-func getMergeBase(repo *git.Repository, pr *issues_model.PullRequest, baseBranch, headBranch string) (string, error) {
-	// Add a temporary remote
-	tmpRemote := fmt.Sprintf("mergebase-%d-%d", pr.ID, time.Now().UnixNano())
-	if err := repo.AddRemote(tmpRemote, repo.Path, false); err != nil {
-		return "", fmt.Errorf("AddRemote: %w", err)
-	}
-	defer func() {
-		if err := repo.RemoveRemote(tmpRemote); err != nil {
-			log.Error("getMergeBase: RemoveRemote: %v", err)
-		}
-	}()
-
-	mergeBase, _, err := repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
-	return mergeBase, err
-}
 
 type ReviewRequestNotifier struct {
 	Comment    *issues_model.Comment
@@ -96,15 +78,9 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		return nil, nil
 	}
 
-	// get the mergebase
-	mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
-	if err != nil {
-		return nil, err
-	}
-
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitHeadRefName())
+	changedFiles, err := repo.GetFilesChangedBetween(pr.MergeBase, pr.GetGitHeadRefName())
 	if err != nil {
 		return nil, err
 	}

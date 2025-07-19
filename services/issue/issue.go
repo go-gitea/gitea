@@ -12,6 +12,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
@@ -200,8 +201,13 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 
 	// delete pull request related git data
 	if issue.IsPull && gitRepo != nil {
-		if err := gitRepo.RemoveReference(issue.PullRequest.GetGitHeadRefName()); err != nil {
+		if err := git.RemoveRef(ctx, gitRepo.Path, issue.PullRequest.GetGitHeadRefName()); err != nil {
 			return err
+		}
+		if issue.PullRequest.HasMerged {
+			if err := git.RemoveRef(ctx, gitRepo.Path, issue.PullRequest.GetGitMergeRefName()); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -267,10 +273,6 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 	}
 	defer committer.Close()
 
-	if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
-		return nil, err
-	}
-
 	// update the total issue numbers
 	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
 		return nil, err
@@ -301,10 +303,21 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 		attachmentPaths = append(attachmentPaths, issue.Attachments[i].RelativePath())
 	}
 
+	// deference all review comments
+	if err := issue.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		return nil, err
+	}
+
+	if err := issue.LoadComments(ctx); err != nil {
+		return nil, err
+	}
+
 	// delete all database data still assigned to this issue
 	if err := db.DeleteBeans(ctx,
 		&issues_model.ContentHistory{IssueID: issue.ID},
-		&issues_model.Comment{IssueID: issue.ID},
 		&issues_model.IssueLabel{IssueID: issue.ID},
 		&issues_model.IssueDependency{IssueID: issue.ID},
 		&issues_model.IssueAssignees{IssueID: issue.ID},
@@ -322,6 +335,55 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 		&issues_model.Comment{DependentIssueID: issue.ID},
 		&issues_model.IssuePin{IssueID: issue.ID},
 	); err != nil {
+		return nil, err
+	}
+
+	for _, comment := range issue.Comments {
+		if err := issues_model.DeleteComment(ctx, comment); err != nil {
+			return nil, err
+		}
+
+		if comment.ReviewID > 0 {
+			if err := git.RemoveRef(ctx, issue.Repo.RepoPath(), issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID)); err != nil {
+				log.Error("Unable to remove ref in base repository for PR[%d] Error: %v", issue.PullRequest.ID, err)
+				// We should not return error here, because the comment has been removed from database.
+				// users have to delete this ref manually or we should have a synchronize between
+				// database comment table and git refs.
+			}
+		}
+
+		// delete all attachments related to this comment
+		for _, attachment := range comment.Attachments {
+			if err := storage.Attachments.Delete(repo_model.AttachmentRelativePath(attachment.UUID)); err != nil {
+				// Even delete files failed, but the attachments has been removed from database, so we
+				// should not return error but only record the error on logs.
+				// users have to delete this attachments manually or we should have a
+				// synchronize between database attachment table and attachment storage
+				log.Error("delete attachment[uuid: %s] failed: %v", attachment.UUID, err)
+			}
+		}
+	}
+
+	// delete all pull request records
+	if issue.IsPull {
+		// Delete scheduled auto merges
+		if _, err := db.GetEngine(ctx).Where("pull_id=?", issue.PullRequest.ID).
+			Delete(&pull_model.AutoMerge{}); err != nil {
+			return nil, err
+		}
+
+		// Delete review states
+		if _, err := db.GetEngine(ctx).Where("pull_id=?", issue.PullRequest.ID).
+			Delete(&pull_model.ReviewState{}); err != nil {
+			return nil, err
+		}
+
+		if _, err := db.GetEngine(ctx).ID(issue.PullRequest.ID).Delete(&issues_model.PullRequest{}); err != nil {
+			return nil, err
+		}
+	}
+
+	if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
 		return nil, err
 	}
 

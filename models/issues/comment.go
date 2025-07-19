@@ -764,6 +764,10 @@ func (c *Comment) CodeCommentLink(ctx context.Context) string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
 }
 
+func GetCodeCommentRefName(prIndex, commentID int64) string {
+	return fmt.Sprintf("refs/pull/%d/code-comment-%d", prIndex, commentID)
+}
+
 // CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
 	ctx, committer, err := db.TxContext(ctx)
@@ -1007,6 +1011,7 @@ type FindCommentsOptions struct {
 	RepoID      int64
 	IssueID     int64
 	ReviewID    int64
+	CommitSHA   string
 	Since       int64
 	Before      int64
 	Line        int64
@@ -1051,6 +1056,9 @@ func (opts FindCommentsOptions) ToConds() builder.Cond {
 	}
 	if opts.IsPull.Has() {
 		cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.Value()})
+	}
+	if opts.CommitSHA != "" {
+		cond = cond.And(builder.Eq{"comment.commit_sha": opts.CommitSHA})
 	}
 	return cond
 }
