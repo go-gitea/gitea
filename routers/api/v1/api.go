@@ -89,6 +89,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/packages"
+	"code.gitea.io/gitea/routers/api/v1/projects"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -1041,6 +1042,13 @@ func Routes() *web.Router {
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
 			}, context.UserAssignmentAPI(), checkTokenPublicOnly())
+
+			m.Group("/{username}", func() {
+				m.Group("/projects", func() {
+					m.Get("", projects.ListUserProjects)
+					m.Post("", bind(api.NewProjectOption{}), projects.CreateUserProject)
+				}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryProject))
+			}, context.UserAssignmentAPI())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Users (requires user scope)
@@ -1467,6 +1475,10 @@ func Routes() *web.Router {
 				}, reqAdmin(), reqToken())
 
 				m.Methods("HEAD,GET", "/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), repo.DownloadArchive)
+
+				m.Group("/projects", func() {
+					m.Post("", bind(api.NewProjectOption{}), projects.CreateRepoProject)
+				}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryProject))
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
@@ -1687,6 +1699,11 @@ func Routes() *web.Router {
 					m.Delete("", org.UnblockUser)
 				})
 			}, reqToken(), reqOrgOwnership())
+
+			m.Group("/projects", func() {
+				m.Post("", bind(api.NewProjectOption{}), projects.CreateOrgProject)
+				m.Get("", projects.ListOrgProjects)
+			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryProject))
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(reqToken(), org.GetTeam).
@@ -1708,6 +1725,13 @@ func Routes() *web.Router {
 			})
 			m.Get("/activities/feeds", org.ListTeamActivityFeeds)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), reqTeamMembership(), checkTokenPublicOnly())
+
+		// Projects
+		m.Group("/projects", func() {
+			m.Get("{project_id}", projects.GetProject)
+			m.Patch("{project_id}", bind(api.UpdateProjectOption{}), projects.UpdateProject)
+			m.Delete("{project_id}", projects.DeleteProject)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryProject), reqToken())
 
 		m.Group("/admin", func() {
 			m.Group("/cron", func() {

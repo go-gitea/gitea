@@ -24,6 +24,7 @@ const (
 	AccessTokenScopeCategoryIssue
 	AccessTokenScopeCategoryRepository
 	AccessTokenScopeCategoryUser
+	AccessTokenScopeCategoryProject
 )
 
 // AllAccessTokenScopeCategories contains all access token scope categories
@@ -37,6 +38,7 @@ var AllAccessTokenScopeCategories = []AccessTokenScopeCategory{
 	AccessTokenScopeCategoryIssue,
 	AccessTokenScopeCategoryRepository,
 	AccessTokenScopeCategoryUser,
+	AccessTokenScopeCategoryProject,
 }
 
 // AccessTokenScopeLevel represents the access levels without a given scope category
@@ -82,6 +84,9 @@ const (
 
 	AccessTokenScopeReadUser  AccessTokenScope = "read:user"
 	AccessTokenScopeWriteUser AccessTokenScope = "write:user"
+
+	AccessTokenScopeReadProject  AccessTokenScope = "read:project"
+	AccessTokenScopeWriteProject AccessTokenScope = "write:project"
 )
 
 // accessTokenScopeBitmap represents a bitmap of access token scopes.
@@ -124,6 +129,9 @@ const (
 	accessTokenScopeReadUserBits  accessTokenScopeBitmap = 1 << iota
 	accessTokenScopeWriteUserBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadUserBits
 
+	accessTokenScopeReadProjectBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteProjectBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadProjectBits
+
 	// The current implementation only supports up to 64 token scopes.
 	// If we need to support > 64 scopes,
 	// refactoring the whole implementation in this file (and only this file) is needed.
@@ -142,6 +150,7 @@ var allAccessTokenScopes = []AccessTokenScope{
 	AccessTokenScopeWriteIssue, AccessTokenScopeReadIssue,
 	AccessTokenScopeWriteRepository, AccessTokenScopeReadRepository,
 	AccessTokenScopeWriteUser, AccessTokenScopeReadUser,
+	AccessTokenScopeWriteProject, AccessTokenScopeReadProject,
 }
 
 // allAccessTokenScopeBits contains all access token scopes.
@@ -166,6 +175,8 @@ var allAccessTokenScopeBits = map[AccessTokenScope]accessTokenScopeBitmap{
 	AccessTokenScopeWriteRepository:   accessTokenScopeWriteRepositoryBits,
 	AccessTokenScopeReadUser:          accessTokenScopeReadUserBits,
 	AccessTokenScopeWriteUser:         accessTokenScopeWriteUserBits,
+	AccessTokenScopeReadProject:       accessTokenScopeReadProjectBits,
+	AccessTokenScopeWriteProject:      accessTokenScopeWriteProjectBits,
 }
 
 // readAccessTokenScopes maps a scope category to the read permission scope
@@ -180,6 +191,7 @@ var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]A
 		AccessTokenScopeCategoryIssue:        AccessTokenScopeReadIssue,
 		AccessTokenScopeCategoryRepository:   AccessTokenScopeReadRepository,
 		AccessTokenScopeCategoryUser:         AccessTokenScopeReadUser,
+		AccessTokenScopeCategoryProject:      AccessTokenScopeReadProject,
 	},
 	Write: {
 		AccessTokenScopeCategoryActivityPub:  AccessTokenScopeWriteActivityPub,
@@ -191,6 +203,7 @@ var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]A
 		AccessTokenScopeCategoryIssue:        AccessTokenScopeWriteIssue,
 		AccessTokenScopeCategoryRepository:   AccessTokenScopeWriteRepository,
 		AccessTokenScopeCategoryUser:         AccessTokenScopeWriteUser,
+		AccessTokenScopeCategoryProject:      AccessTokenScopeWriteProject,
 	},
 }
 
