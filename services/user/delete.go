@@ -120,7 +120,6 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 				if err = issues_model.DeleteComment(ctx, comment); err != nil {
 					return err
 				}
-				// TODO: delete attachments
 			}
 		}
 
