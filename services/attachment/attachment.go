@@ -79,7 +79,7 @@ func DeleteAttachments(ctx context.Context, attachments []*repo_model.Attachment
 		return 0, err
 	}
 
-	CleanAttachments(ctx, attachments)
+	AddAttachmentsToCleanQueue(ctx, attachments)
 
 	return int(cnt), nil
 }
@@ -94,8 +94,8 @@ func Init() error {
 	return nil
 }
 
-// CleanAttachments adds the attachments to the clean queue for deletion.
-func CleanAttachments(ctx context.Context, attachments []*repo_model.Attachment) {
+// AddAttachmentsToCleanQueue adds the attachments to the clean queue for deletion.
+func AddAttachmentsToCleanQueue(ctx context.Context, attachments []*repo_model.Attachment) {
 	for _, a := range attachments {
 		if err := cleanQueue.Push(a.ID); err != nil {
 			log.Error("Failed to push attachment ID %d to clean queue: %v", a.ID, err)
@@ -164,7 +164,7 @@ func ScanTobeDeletedAttachments(ctx context.Context) error {
 			log.Trace("No more attachments to be deleted")
 			break
 		}
-		CleanAttachments(ctx, attachments)
+		AddAttachmentsToCleanQueue(ctx, attachments)
 		lastID = attachments[len(attachments)-1].ID
 	}
 

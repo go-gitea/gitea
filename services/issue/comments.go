@@ -133,7 +133,7 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 
 // deleteComment deletes the comment
 func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAttachments bool) (*issues_model.Comment, error) {
-	deletedReviewComment, err := db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
+	return db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
 		if removeAttachments {
 			// load attachments before deleting the comment
 			if err := comment.LoadAttachments(ctx); err != nil {
@@ -154,10 +154,6 @@ func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAtt
 		}
 		return deletedReviewComment, nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	return deletedReviewComment, nil
 }
 
 func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) (*issues_model.Comment, error) {
@@ -166,7 +162,7 @@ func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_m
 		return nil, err
 	}
 
-	attachment.CleanAttachments(ctx, comment.Attachments)
+	attachment.AddAttachmentsToCleanQueue(ctx, comment.Attachments)
 
 	notify_service.DeleteComment(ctx, doer, comment)
 

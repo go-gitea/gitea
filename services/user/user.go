@@ -254,7 +254,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	}
 	_ = committer.Close()
 
-	attachment_service.CleanAttachments(ctx, toBeCleanedAttachments)
+	attachment_service.AddAttachmentsToCleanQueue(ctx, toBeCleanedAttachments)
 
 	if err = asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 		return err

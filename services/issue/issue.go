@@ -194,7 +194,7 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 		return err
 	}
 
-	attachment_service.CleanAttachments(ctx, toBeCleanedAttachments)
+	attachment_service.AddAttachmentsToCleanQueue(ctx, toBeCleanedAttachments)
 
 	// delete pull request related git data
 	if issue.IsPull && gitRepo != nil {
@@ -259,36 +259,36 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 
 // deleteIssue deletes the issue
 func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachments bool) ([]*repo_model.Attachment, error) {
-	toBeCleanedAttachments := make([]*repo_model.Attachment, 0)
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
+	return db.WithTx2(ctx, func(ctx context.Context) ([]*repo_model.Attachment, error) {
+		toBeCleanedAttachments := make([]*repo_model.Attachment, 0)
 		if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
-			return err
+			return nil, err
 		}
 
 		// update the total issue numbers
 		if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
-			return err
+			return nil, err
 		}
 		// if the issue is closed, update the closed issue numbers
 		if issue.IsClosed {
 			if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
-			return fmt.Errorf("error updating counters for milestone id %d: %w",
+			return nil, fmt.Errorf("error updating counters for milestone id %d: %w",
 				issue.MilestoneID, err)
 		}
 
 		if err := activities_model.DeleteIssueActions(ctx, issue.RepoID, issue.ID, issue.Index); err != nil {
-			return err
+			return nil, err
 		}
 
 		if deleteAttachments {
 			// find attachments related to this issue and remove them
 			if err := issue.LoadAttachments(ctx); err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -311,13 +311,13 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachmen
 			&issues_model.Comment{DependentIssueID: issue.ID},
 			&issues_model.IssuePin{IssueID: issue.ID},
 		); err != nil {
-			return err
+			return nil, err
 		}
 
 		for _, comment := range issue.Comments {
 			_, err := deleteComment(ctx, comment, deleteAttachments)
 			if err != nil {
-				return fmt.Errorf("deleteComment [comment_id: %d]: %w", comment.ID, err)
+				return nil, fmt.Errorf("deleteComment [comment_id: %d]: %w", comment.ID, err)
 			}
 			toBeCleanedAttachments = append(toBeCleanedAttachments, comment.Attachments...)
 		}
@@ -325,18 +325,15 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachmen
 		if deleteAttachments {
 			// delete issue attachments
 			if err := issue.LoadAttachments(ctx); err != nil {
-				return err
+				return nil, err
 			}
 			if _, err := repo_model.MarkAttachmentsDeleted(ctx, issue.Attachments); err != nil {
-				return err
+				return nil, err
 			}
 			toBeCleanedAttachments = append(toBeCleanedAttachments, issue.Attachments...)
 		}
-		return nil
-	}); err != nil {
-		return nil, err
-	}
-	return toBeCleanedAttachments, nil
+		return toBeCleanedAttachments, nil
+	})
 }
 
 // DeleteOrphanedIssues delete issues without a repo
@@ -358,7 +355,7 @@ func DeleteOrphanedIssues(ctx context.Context) error {
 	}); err != nil {
 		return err
 	}
-	attachment_service.CleanAttachments(ctx, toBeCleanedAttachments)
+	attachment_service.AddAttachmentsToCleanQueue(ctx, toBeCleanedAttachments)
 	return nil
 }
 

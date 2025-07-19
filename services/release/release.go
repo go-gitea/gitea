@@ -341,7 +341,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 
-	attachment_service.CleanAttachments(ctx, deletedAttachments)
+	attachment_service.AddAttachmentsToCleanQueue(ctx, deletedAttachments)
 
 	if !rel.IsDraft {
 		if !isTagCreated && !isConvertedFromTag {
@@ -412,7 +412,7 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		return err
 	}
 
-	attachment_service.CleanAttachments(ctx, rel.Attachments)
+	attachment_service.AddAttachmentsToCleanQueue(ctx, rel.Attachments)
 
 	if !rel.IsDraft {
 		notify_service.DeleteRelease(ctx, doer, rel)

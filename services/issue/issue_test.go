@@ -47,7 +47,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 
 	toBeCleanedAttachments, err := deleteIssue(db.DefaultContext, issue, true)
 	assert.NoError(t, err)
-	attachment_service.CleanAttachments(db.DefaultContext, toBeCleanedAttachments)
+	attachment_service.AddAttachmentsToCleanQueue(db.DefaultContext, toBeCleanedAttachments)
 	issueIDs, err = issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Len(t, issueIDs, 4)
@@ -59,7 +59,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	toBeCleanedAttachments, err = deleteIssue(db.DefaultContext, issue, true)
 	assert.NoError(t, err)
-	attachment_service.CleanAttachments(db.DefaultContext, toBeCleanedAttachments)
+	attachment_service.AddAttachmentsToCleanQueue(db.DefaultContext, toBeCleanedAttachments)
 	assert.Len(t, attachments, 2)
 	for i := range attachments {
 		attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, attachments[i].UUID)
@@ -83,7 +83,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 
 	toBeCleanedAttachments, err = deleteIssue(db.DefaultContext, issue2, true)
 	assert.NoError(t, err)
-	attachment_service.CleanAttachments(db.DefaultContext, toBeCleanedAttachments)
+	attachment_service.AddAttachmentsToCleanQueue(db.DefaultContext, toBeCleanedAttachments)
 	left, err = issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.True(t, left)

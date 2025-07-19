@@ -291,8 +291,8 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 
 	committer.Close()
 
-	attachment_service.CleanAttachments(ctx, releaseAttachments)
-	attachment_service.CleanAttachments(ctx, repoAttachments)
+	attachment_service.AddAttachmentsToCleanQueue(ctx, releaseAttachments)
+	attachment_service.AddAttachmentsToCleanQueue(ctx, repoAttachments)
 
 	if needRewriteKeysFile {
 		if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
