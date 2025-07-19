@@ -7,6 +7,7 @@ import (
 	"context"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -15,10 +16,12 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -640,6 +643,57 @@ func (m *webhookNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 	}
 }
 
+// applyWebhookPayloadOptimizations applies payload size optimizations based on webhook configurations
+func (m *webhookNotifier) applyWebhookPayloadOptimizations(ctx context.Context, repo *repo_model.Repository, apiCommits []*api.PayloadCommit, apiHeadCommit *api.PayloadCommit) ([]*api.PayloadCommit, *api.PayloadCommit) {
+	// Get webhooks for this repository to check their configuration
+	webhooks, err := db.Find[webhook_model.Webhook](ctx, webhook_model.ListWebhookOptions{
+		RepoID:   repo.ID,
+		IsActive: optional.Some(true),
+	})
+	if err != nil {
+		log.Error("Failed to get webhooks for repository %d: %v", repo.ID, err)
+		// Continue with default behavior if we can't get webhooks
+		return apiCommits, apiHeadCommit
+	}
+
+	// Check if any webhook has payload optimization options enabled
+	hasExcludeFiles := false
+	hasExcludeCommits := false
+	for _, webhook := range webhooks {
+		if webhook.HasEvent(webhook_module.HookEventPush) {
+			if webhook.ExcludeFiles {
+				hasExcludeFiles = true
+			}
+			if webhook.ExcludeCommits {
+				hasExcludeCommits = true
+			}
+		}
+	}
+
+	// Apply payload optimizations based on webhook configurations
+	if hasExcludeFiles {
+		// Remove file information from commits
+		for _, commit := range apiCommits {
+			commit.Added = nil
+			commit.Removed = nil
+			commit.Modified = nil
+		}
+		if apiHeadCommit != nil {
+			apiHeadCommit.Added = nil
+			apiHeadCommit.Removed = nil
+			apiHeadCommit.Modified = nil
+		}
+	}
+
+	if hasExcludeCommits {
+		// Exclude commits and head_commit from payload
+		apiCommits = nil
+		apiHeadCommit = nil
+	}
+
+	return apiCommits, apiHeadCommit
+}
+
 func (m *webhookNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(ctx, repo)
@@ -647,6 +701,9 @@ func (m *webhookNotifier) PushCommits(ctx context.Context, pusher *user_model.Us
 		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
 		return
 	}
+
+	// Apply payload optimizations
+	apiCommits, apiHeadCommit = m.applyWebhookPayloadOptimizations(ctx, repo, apiCommits, apiHeadCommit)
 
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{
 		Ref:          opts.RefFullName.String(),
@@ -886,6 +943,9 @@ func (m *webhookNotifier) SyncPushCommits(ctx context.Context, pusher *user_mode
 		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
 		return
 	}
+
+	// Apply payload optimizations
+	apiCommits, apiHeadCommit = m.applyWebhookPayloadOptimizations(ctx, repo, apiCommits, apiHeadCommit)
 
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{
 		Ref:          opts.RefFullName.String(),

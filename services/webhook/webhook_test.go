@@ -91,3 +91,82 @@ func TestWebhookUserMail(t *testing.T) {
 	assert.Equal(t, user.GetPlaceholderEmail(), convert.ToUser(db.DefaultContext, user, nil).Email)
 	assert.Equal(t, user.Email, convert.ToUser(db.DefaultContext, user, user).Email)
 }
+
+func TestWebhookPayloadOptimization(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// Create a test repository
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	// Create a webhook with payload optimization enabled
+	webhook := &webhook_model.Webhook{
+		RepoID:         repo.ID,
+		URL:            "http://example.com/webhook",
+		HTTPMethod:     "POST",
+		ContentType:    webhook_model.ContentTypeJSON,
+		Secret:         "secret",
+		IsActive:       true,
+		Type:           webhook_module.GITEA,
+		ExcludeFiles:   true,
+		ExcludeCommits: false,
+		HookEvent: &webhook_module.HookEvent{
+			PushOnly: true,
+		},
+	}
+
+	err := webhook_model.CreateWebhook(db.DefaultContext, webhook)
+	assert.NoError(t, err)
+
+	// Create test commits with file information
+	apiCommits := []*api.PayloadCommit{
+		{
+			ID:       "abc123",
+			Message:  "Test commit",
+			Added:    []string{"file1.txt", "file2.txt"},
+			Removed:  []string{"oldfile.txt"},
+			Modified: []string{"modified.txt"},
+		},
+		{
+			ID:       "def456",
+			Message:  "Another commit",
+			Added:    []string{"file3.txt"},
+			Removed:  []string{},
+			Modified: []string{"file1.txt"},
+		},
+	}
+
+	apiHeadCommit := &api.PayloadCommit{
+		ID:       "def456",
+		Message:  "Another commit",
+		Added:    []string{"file3.txt"},
+		Removed:  []string{},
+		Modified: []string{"file1.txt"},
+	}
+
+	// Test payload optimization
+	notifier := &webhookNotifier{}
+	optimizedCommits, optimizedHeadCommit := notifier.applyWebhookPayloadOptimizations(db.DefaultContext, repo, apiCommits, apiHeadCommit)
+
+	// Verify that file information was removed when ExcludeFiles is true
+	assert.Nil(t, optimizedCommits[0].Added)
+	assert.Nil(t, optimizedCommits[0].Removed)
+	assert.Nil(t, optimizedCommits[0].Modified)
+	assert.Nil(t, optimizedCommits[1].Added)
+	assert.Nil(t, optimizedCommits[1].Removed)
+	assert.Nil(t, optimizedCommits[1].Modified)
+	assert.Nil(t, optimizedHeadCommit.Added)
+	assert.Nil(t, optimizedHeadCommit.Removed)
+	assert.Nil(t, optimizedHeadCommit.Modified)
+
+	// Test with ExcludeCommits enabled
+	webhook.ExcludeFiles = false
+	webhook.ExcludeCommits = true
+	err = webhook_model.UpdateWebhook(db.DefaultContext, webhook)
+	assert.NoError(t, err)
+
+	optimizedCommits, optimizedHeadCommit = notifier.applyWebhookPayloadOptimizations(db.DefaultContext, repo, apiCommits, apiHeadCommit)
+
+	// Verify that commits and head_commit were excluded
+	assert.Nil(t, optimizedCommits)
+	assert.Nil(t, optimizedHeadCommit)
+}
