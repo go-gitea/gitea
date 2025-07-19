@@ -415,7 +415,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s-1/_edit/%s/%s?from_base_branch=%s", user, repo, branch, filePath, branch), editRequestForm)
 		resp = session.MakeRequest(t, req, http.StatusBadRequest)
 		respJSON := test.ParseJSONError(resp.Body.Bytes())
-		assert.Equal(t, `Branch "master" already exists in your fork, please choose a new branch name.`, respJSON.ErrorMessage)
+		assert.Equal(t, `Branch "master" already exists in your fork. Please choose a new branch name.`, respJSON.ErrorMessage)
 
 		// change a file in the forked repo (should succeed)
 		newBranchName := htmlDoc.GetInputValueByName("new_branch_name")
