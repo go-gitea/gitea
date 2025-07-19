@@ -243,6 +243,8 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		Meta:            string(meta),
 		OwnerID:         orCtx.OwnerID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
+		ExcludeFiles:    params.WebhookForm.ExcludeFiles,
+		ExcludeCommits:  params.WebhookForm.ExcludeCommits,
 	}
 	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
 	if err != nil {
@@ -294,6 +296,8 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	w.IsActive = params.WebhookForm.Active
 	w.HTTPMethod = params.HTTPMethod
 	w.Meta = string(meta)
+	w.ExcludeFiles = params.WebhookForm.ExcludeFiles
+	w.ExcludeCommits = params.WebhookForm.ExcludeCommits
 
 	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
 	if err != nil {

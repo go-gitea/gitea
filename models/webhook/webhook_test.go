@@ -330,3 +330,45 @@ func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *test
 	assert.NoError(t, CleanupHookTaskTable(t.Context(), OlderThan, 168*time.Hour, 0))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }
+
+func TestWebhookPayloadOptimization(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	webhook := &Webhook{
+		RepoID:         1,
+		URL:            "http://example.com/webhook",
+		HTTPMethod:     "POST",
+		ContentType:    ContentTypeJSON,
+		Secret:         "secret",
+		IsActive:       true,
+		Type:           webhook_module.GITEA,
+		ExcludeFiles:   true,
+		ExcludeCommits: false,
+		HookEvent: &webhook_module.HookEvent{
+			PushOnly: true,
+		},
+	}
+
+	// Test creating webhook with payload optimization options
+	err := CreateWebhook(db.DefaultContext, webhook)
+	assert.NoError(t, err)
+	assert.NotZero(t, webhook.ID)
+
+	// Test retrieving webhook and checking payload optimization options
+	retrievedWebhook, err := GetWebhookByID(db.DefaultContext, webhook.ID)
+	assert.NoError(t, err)
+	assert.True(t, retrievedWebhook.ExcludeFiles)
+	assert.False(t, retrievedWebhook.ExcludeCommits)
+
+	// Test updating webhook with different payload optimization options
+	retrievedWebhook.ExcludeFiles = false
+	retrievedWebhook.ExcludeCommits = true
+	err = UpdateWebhook(db.DefaultContext, retrievedWebhook)
+	assert.NoError(t, err)
+
+	// Verify the update
+	updatedWebhook, err := GetWebhookByID(db.DefaultContext, webhook.ID)
+	assert.NoError(t, err)
+	assert.False(t, updatedWebhook.ExcludeFiles)
+	assert.True(t, updatedWebhook.ExcludeCommits)
+}

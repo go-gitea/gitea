@@ -239,6 +239,9 @@ type WebhookForm struct {
 	BranchFilter             string `binding:"GlobPattern"`
 	AuthorizationHeader      string
 	Secret                   string
+	// Payload size optimization options
+	ExcludeFiles   bool // Exclude file changes from commit payloads
+	ExcludeCommits bool // Exclude commits and head_commit from push payloads
 }
 
 // PushOnly if the hook will be triggered when push
