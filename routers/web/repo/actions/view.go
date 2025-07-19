@@ -602,6 +602,14 @@ func Cancel(ctx *context_module.Context) {
 
 	actions_service.CreateCommitStatus(ctx, jobs...)
 
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
+		ctx.ServerError("GetRunByIndex", err)
+	}
+	if err := actions_service.EmitJobsIfReady(run.ID); err != nil {
+		log.Error("Emit ready jobs of run %d: %v", run.ID, err)
+	}
+
 	for _, job := range updatedjobs {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
