@@ -34,5 +34,7 @@ func Test_DeleteCommentWithReview(t *testing.T) {
 	// the review should be deleted as well
 	unittest.AssertNotExistsBean(t, &issues_model.Review{ID: review.ID})
 	// the attachment should be deleted as well
-	unittest.AssertNotExistsBean(t, &repo_model.Attachment{ID: comment.Attachments[0].ID})
+	newAttachment, err := repo_model.GetAttachmentByID(t.Context(), comment.Attachments[0].ID)
+	assert.Error(t, err)
+	assert.Nil(t, newAttachment)
 }
