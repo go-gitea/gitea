@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
@@ -127,13 +128,16 @@ func cleanAttachments(ctx context.Context, attachmentIDs []int64) []int64 {
 			if !errors.Is(err, os.ErrNotExist) {
 				log.Error("delete attachment[uuid: %s] failed: %v", attachment.UUID, err)
 				failed = append(failed, attachment.ID)
-				if err := repo_model.UpdateAttachmentFailure(ctx, attachment, err); err != nil {
+				if attachment.DeleteFailedCount%3 == 0 {
+					_ = system.CreateNotice(ctx, system.NoticeRepository, fmt.Sprintf("Failed to delete attachment %s (%d times): %v", attachment.RelativePath(), attachment.DeleteFailedCount+1, err))
+				}
+				if err := repo_model.UpdateMarkedAttachmentFailure(ctx, attachment, err); err != nil {
 					log.Error("Failed to update attachment failure for ID %d: %v", attachment.ID, err)
 				}
 				continue
 			}
 		}
-		if err := repo_model.DeleteAttachmentByID(ctx, attachment.ID); err != nil {
+		if err := repo_model.DeleteMarkedAttachmentByID(ctx, attachment.ID); err != nil {
 			log.Error("Failed to delete attachment by ID %d(will be tried later): %v", attachment.ID, err)
 			failed = append(failed, attachment.ID)
 		} else {

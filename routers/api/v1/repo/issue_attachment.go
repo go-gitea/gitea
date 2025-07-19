@@ -6,7 +6,6 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
@@ -359,10 +358,6 @@ func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *issues_model.Iss
 		return nil
 	}
 	if !attachmentBelongsToRepoOrIssue(ctx, attachment, issue) {
-		return nil
-	}
-	if attachment.Status != db.FileStatusNormal {
-		ctx.APIErrorNotFound()
 		return nil
 	}
 	return attachment

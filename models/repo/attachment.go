@@ -227,8 +227,8 @@ func MarkAttachmentsDeletedByRelease(ctx context.Context, releaseID int64) error
 	return err
 }
 
-// DeleteAttachmentByID deletes the attachment which has been marked as deleted by given id
-func DeleteAttachmentByID(ctx context.Context, id int64) error {
+// DeleteMarkedAttachmentByID deletes the attachment which has been marked as deleted by given id
+func DeleteMarkedAttachmentByID(ctx context.Context, id int64) error {
 	cnt, err := db.GetEngine(ctx).ID(id).Where("status = ?", db.FileStatusToBeDeleted).Delete(new(Attachment))
 	if err != nil {
 		return fmt.Errorf("delete attachment by id: %w", err)
@@ -239,7 +239,7 @@ func DeleteAttachmentByID(ctx context.Context, id int64) error {
 	return nil
 }
 
-func UpdateAttachmentFailure(ctx context.Context, attachment *Attachment, err error) error {
+func UpdateMarkedAttachmentFailure(ctx context.Context, attachment *Attachment, err error) error {
 	attachment.DeleteFailedCount++
 	_, updateErr := db.GetEngine(ctx).Table("attachment").ID(attachment.ID).Update(map[string]any{
 		"delete_failed_count":       attachment.DeleteFailedCount,

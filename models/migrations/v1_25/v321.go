@@ -1,7 +1,7 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_24
+package v1_25
 
 import (
 	"code.gitea.io/gitea/models/db"
