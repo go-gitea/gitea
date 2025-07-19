@@ -64,6 +64,7 @@ func TestUserLogin(t *testing.T) {
 func TestSignUpOAuth2Login(t *testing.T) {
 	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
 
+	_ = oauth2.Init(t.Context())
 	addOAuth2Source(t, "dummy-auth-source", oauth2.Source{})
 
 	t.Run("OAuth2MissingField", func(t *testing.T) {
