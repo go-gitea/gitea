@@ -48,11 +48,14 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge bool) error {
-	// The repositories deletion of the organization cannot be under a transaction,
-	// because it cannot be rolled back because the content in disk will be deleted
-	// in the DeleteOwnerRepositoriesDirectly function.
-	// Even not all repositories deleted successfully, we still delete the organization again.
-	// TODO: We should mark all the repositories as deleted and delete them in a background job.
+	// Deleting repositories under the organization cannot be wrapped in a transaction at the moment,
+	// because the associated disk content is permanently deleted by the DeleteOwnerRepositoriesDirectly function,
+	// which cannot be rolled back.
+	//
+	// Even if some repositories fail to delete, the organization will still be deleted.
+	//
+	// TODO: Consider marking repositories as "deleted" first,
+	// and handling the actual deletion in a background job for better reliability and rollback support.
 	if purge {
 		err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser())
 		if err != nil {
