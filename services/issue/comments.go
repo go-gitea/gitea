@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/attachment"
 	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -130,18 +131,42 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 	return nil
 }
 
-// DeleteComment deletes the comment
-func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		return issues_model.DeleteComment(ctx, comment)
+// deleteComment deletes the comment
+func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAttachments bool) (*issues_model.Comment, error) {
+	return db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
+		if removeAttachments {
+			// load attachments before deleting the comment
+			if err := comment.LoadAttachments(ctx); err != nil {
+				return nil, err
+			}
+		}
+
+		deletedReviewComment, err := issues_model.DeleteComment(ctx, comment)
+		if err != nil {
+			return nil, err
+		}
+
+		if removeAttachments {
+			// mark comment attachments as deleted
+			if _, err := repo_model.MarkAttachmentsDeleted(ctx, comment.Attachments); err != nil {
+				return nil, err
+			}
+		}
+		return deletedReviewComment, nil
 	})
+}
+
+func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) (*issues_model.Comment, error) {
+	deletedReviewComment, err := deleteComment(ctx, comment, true)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	attachment.AddAttachmentsToCleanQueue(ctx, comment.Attachments)
 
 	notify_service.DeleteComment(ctx, doer, comment)
 
-	return nil
+	return deletedReviewComment, nil
 }
 
 // LoadCommentPushCommits Load push commits

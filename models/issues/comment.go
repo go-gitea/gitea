@@ -390,18 +390,6 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 	return err
 }
 
-// AfterDelete is invoked from XORM after the object is deleted.
-func (c *Comment) AfterDelete(ctx context.Context) {
-	if c.ID <= 0 {
-		return
-	}
-
-	_, err := repo_model.DeleteAttachmentsByComment(ctx, c.ID, true)
-	if err != nil {
-		log.Info("Could not delete files for comment %d on issue #%d: %s", c.ID, c.IssueID, err)
-	}
-}
-
 // HTMLURL formats a URL-string to the issue-comment
 func (c *Comment) HTMLURL(ctx context.Context) string {
 	err := c.LoadIssue(ctx)
@@ -611,6 +599,9 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
 		for i := range attachments {
+			if attachments[i].IssueID != 0 || attachments[i].CommentID != 0 {
+				return util.NewPermissionDeniedErrorf("update comment attachments permission denied")
+			}
 			attachments[i].IssueID = c.IssueID
 			attachments[i].CommentID = c.ID
 			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
@@ -1122,36 +1113,65 @@ func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *us
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(ctx context.Context, comment *Comment) error {
-	e := db.GetEngine(ctx)
-	if _, err := e.ID(comment.ID).NoAutoCondition().Delete(comment); err != nil {
-		return err
+func DeleteComment(ctx context.Context, comment *Comment) (*Comment, error) {
+	if _, err := db.GetEngine(ctx).ID(comment.ID).NoAutoCondition().Delete(comment); err != nil {
+		return nil, err
 	}
 
 	if _, err := db.DeleteByBean(ctx, &ContentHistory{
 		CommentID: comment.ID,
 	}); err != nil {
-		return err
+		return nil, err
 	}
 
 	if comment.Type.CountedAsConversation() {
 		if err := UpdateIssueNumComments(ctx, comment.IssueID); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	if _, err := e.Table("action").
+	if _, err := db.GetEngine(ctx).Table("action").
 		Where("comment_id = ?", comment.ID).
 		Update(map[string]any{
 			"is_deleted": true,
 		}); err != nil {
-		return err
+		return nil, err
+	}
+
+	var deletedReviewComment *Comment
+
+	// delete review & review comment if the code comment is the last comment of the review
+	if comment.Type == CommentTypeCode && comment.ReviewID > 0 {
+		res, err := db.GetEngine(ctx).ID(comment.ReviewID).
+			Where("NOT EXISTS (SELECT 1 FROM comment WHERE review_id = ? AND `type` = ?)", comment.ReviewID, CommentTypeCode).
+			Delete(new(Review))
+		if err != nil {
+			return nil, err
+		}
+		if res > 0 {
+			var reviewComment Comment
+			has, err := db.GetEngine(ctx).Where("review_id = ?", comment.ReviewID).
+				And("type = ?", CommentTypeReview).Get(&reviewComment)
+			if err != nil {
+				return nil, err
+			}
+			if has && reviewComment.Content == "" {
+				if _, err := db.GetEngine(ctx).ID(reviewComment.ID).Delete(new(Comment)); err != nil {
+					return nil, err
+				}
+				deletedReviewComment = &reviewComment
+			}
+			comment.ReviewID = 0 // reset review ID to 0 for the notification
+		}
 	}
 
 	if err := comment.neuterCrossReferences(ctx); err != nil {
-		return err
+		return nil, err
 	}
 
-	return DeleteReaction(ctx, &ReactionOptions{CommentID: comment.ID})
+	if err := DeleteReaction(ctx, &ReactionOptions{CommentID: comment.ID}); err != nil {
+		return nil, err
+	}
+	return deletedReviewComment, nil
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id

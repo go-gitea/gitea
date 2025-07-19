@@ -14,6 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/attachment"
 
 	_ "code.gitea.io/gitea/models/actions"
@@ -22,7 +23,12 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m)
+	unittest.MainTest(m, &unittest.TestOptions{
+		SetUp: func() error {
+			setting.LoadQueueSettings()
+			return attachment.Init()
+		},
+	})
 }
 
 func TestRelease_Create(t *testing.T) {

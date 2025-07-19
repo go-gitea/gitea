@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 
 	_ "code.gitea.io/gitea/models/actions"
 
@@ -19,7 +20,12 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m)
+	unittest.MainTest(m, &unittest.TestOptions{
+		SetUp: func() error {
+			setting.LoadQueueSettings()
+			return Init()
+		},
+	})
 }
 
 func TestUploadAttachment(t *testing.T) {
@@ -43,4 +49,17 @@ func TestUploadAttachment(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, user.ID, attachment.UploaderID)
 	assert.Equal(t, int64(0), attachment.DownloadCount)
+}
+
+func TestDeleteAttachments(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	attachment8 := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 8})
+
+	err := DeleteAttachment(db.DefaultContext, attachment8)
+	assert.NoError(t, err)
+
+	attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18")
+	assert.Error(t, err)
+	assert.True(t, repo_model.IsErrAttachmentNotExist(err))
+	assert.Nil(t, attachment)
 }

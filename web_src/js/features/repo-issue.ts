@@ -150,6 +150,12 @@ export function initRepoIssueCommentDelete() {
           counter.textContent = String(num);
         }
 
+        const json: Record<string, any> = await response.json();
+        if (json.errorMessage) throw new Error(json.errorMessage);
+
+        if (json.deletedReviewCommentHashTag) {
+          document.querySelector(`#${json.deletedReviewCommentHashTag}`)?.remove();
+        }
         document.querySelector(`#${deleteButton.getAttribute('data-comment-id')}`)?.remove();
 
         if (conversationHolder && !conversationHolder.querySelector('.comment')) {
