@@ -119,7 +119,7 @@ func IsStarring(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: username of the user or organization owning the repository
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -150,7 +150,7 @@ func Star(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo to star
+	//   description: username of the user or organization owning the repository to star
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -186,7 +186,7 @@ func Unstar(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo to unstar
+	//   description: username of the user or organization owning the repository to unstar
 	//   type: string
 	//   required: true
 	// - name: repo
