@@ -13,16 +13,16 @@ import (
 
 type Attachment321 struct {
 	ID                   int64  `xorm:"pk autoincr"`
-	UUID                 string `xorm:"uuid UNIQUE"`
-	RepoID               int64  `xorm:"INDEX"`           // this should not be zero
-	IssueID              int64  `xorm:"INDEX"`           // maybe zero when creating
-	ReleaseID            int64  `xorm:"INDEX"`           // maybe zero when creating
-	UploaderID           int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
-	CommentID            int64  `xorm:"INDEX"`
+	UUID                 string `xorm:"uuid"`
+	RepoID               int64  // this should not be zero
+	IssueID              int64  // maybe zero when creating
+	ReleaseID            int64  // maybe zero when creating
+	UploaderID           int64  `xorm:"DEFAULT 0"` // Notice: will be zero before this column added
+	CommentID            int64
 	Name                 string
 	DownloadCount        int64              `xorm:"DEFAULT 0"`
-	Status               db.FileStatus      `xorm:"INDEX DEFAULT 1 NOT NULL"` // 1 = normal, 2 = to be deleted
-	DeleteFailedCount    int                `xorm:"DEFAULT 0"`                // Number of times the deletion failed, used to prevent infinite loop
+	Status               db.FileStatus      `xorm:"DEFAULT 1 NOT NULL"` // 1 = normal, 2 = to be deleted
+	DeleteFailedCount    int                `xorm:"DEFAULT 0"`          // Number of times the deletion failed, used to prevent infinite loop
 	LastDeleteFailedTime timeutil.TimeStamp // Last time the deletion failed, used to prevent infinite loop
 	Size                 int64              `xorm:"DEFAULT 0"`
 	CreatedUnix          timeutil.TimeStamp `xorm:"created"`
@@ -56,7 +56,7 @@ func (a *Attachment321) TableIndices() []*schemas.Index {
 	statusIndex.AddColumn("status")
 
 	statusIDIndex := schemas.NewIndex("attachment_status_id", schemas.IndexType)
-	statusIDIndex.AddColumn("status_id", "id") // For status = ? AND id > ? query
+	statusIDIndex.AddColumn("status", "id") // For status = ? AND id > ? query
 
 	return []*schemas.Index{
 		uuidIndex,

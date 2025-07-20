@@ -8,6 +8,7 @@
   comment_id: 0
   name: attach1
   download_count: 0
+  status: 1
   size: 0
   created_unix: 946684800
 
@@ -21,6 +22,7 @@
   comment_id: 0
   name: attach2
   download_count: 1
+  status: 1
   size: 0
   created_unix: 946684800
 
@@ -34,6 +36,7 @@
   comment_id: 1
   name: attach1
   download_count: 0
+  status: 1
   size: 0
   created_unix: 946684800
 
@@ -47,6 +50,7 @@
   comment_id: 1
   name: attach2
   download_count: 1
+  status: 1
   size: 0
   created_unix: 946684800
 
@@ -60,6 +64,7 @@
   comment_id: 0
   name: attach1
   download_count: 0
+  status: 1
   size: 0
   created_unix: 946684800
 
@@ -73,6 +78,7 @@
   comment_id: 2
   name: attach1
   download_count: 0
+  status: 1
   size: 0
   created_unix: 946684800
 
@@ -86,6 +92,7 @@
   comment_id: 2
   name: attach1
   download_count: 0
+  status: 1
   size: 0
   created_unix: 946684800
 
@@ -99,6 +106,7 @@
   comment_id: 0
   name: attach1
   download_count: 0
+  status: 1
   size: 0
   created_unix: 946684800
 
@@ -112,6 +120,7 @@
   comment_id: 0
   name: attach1
   download_count: 0
+  status: 1
   size: 0
   created_unix: 946684800
 
@@ -125,6 +134,7 @@
   comment_id: 0
   name: attach1
   download_count: 0
+  status: 1
   size: 0
   created_unix: 946684800
 
@@ -138,6 +148,7 @@
   comment_id: 0
   name: attach1
   download_count: 0
+  status: 1
   size: 0
   created_unix: 946684800
 
@@ -151,6 +162,7 @@
   comment_id: 0
   name: README.md
   download_count: 0
+  status: 1
   size: 0
   created_unix: 946684800
 
@@ -164,5 +176,6 @@
   comment_id: 7
   name: code_comment_uploaded_attachment.png
   download_count: 0
+  status: 1
   size: 0
   created_unix: 946684812
