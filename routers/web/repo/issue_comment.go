@@ -325,18 +325,12 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	deletedReviewComment, err := issue_service.DeleteComment(ctx, ctx.Doer, comment)
-	if err != nil {
+	if err := issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
 		ctx.ServerError("DeleteComment", err)
 		return
 	}
 
-	res := map[string]any{}
-	if deletedReviewComment != nil {
-		res["deletedReviewCommentHashTag"] = deletedReviewComment.HashTag()
-	}
-
-	ctx.JSON(http.StatusOK, res)
+	ctx.Status(http.StatusOK)
 }
 
 // ChangeCommentReaction create a reaction for comment

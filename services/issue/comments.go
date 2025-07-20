@@ -132,42 +132,40 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 }
 
 // deleteComment deletes the comment
-func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAttachments bool) (*issues_model.Comment, error) {
-	return db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
+func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAttachments bool) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		if removeAttachments {
 			// load attachments before deleting the comment
 			if err := comment.LoadAttachments(ctx); err != nil {
-				return nil, err
+				return err
 			}
 		}
 
 		// deletedReviewComment should be a review comment with no content and no attachments
-		deletedReviewComment, err := issues_model.DeleteComment(ctx, comment)
-		if err != nil {
-			return nil, err
+		if err := issues_model.DeleteComment(ctx, comment); err != nil {
+			return err
 		}
 
 		if removeAttachments {
 			// mark comment attachments as deleted
 			if _, err := repo_model.MarkAttachmentsDeleted(ctx, comment.Attachments); err != nil {
-				return nil, err
+				return err
 			}
 		}
-		return deletedReviewComment, nil
+		return nil
 	})
 }
 
-func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) (*issues_model.Comment, error) {
-	deletedReviewComment, err := deleteComment(ctx, comment, true)
-	if err != nil {
-		return nil, err
+func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
+	if err := deleteComment(ctx, comment, true); err != nil {
+		return err
 	}
 
 	attachment.AddAttachmentsToCleanQueue(ctx, comment.Attachments)
 
 	notify_service.DeleteComment(ctx, doer, comment)
 
-	return deletedReviewComment, nil
+	return nil
 }
 
 // LoadCommentPushCommits Load push commits

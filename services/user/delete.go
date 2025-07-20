@@ -122,7 +122,7 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (toBeCleane
 					return nil, err
 				}
 
-				if _, err = issues_model.DeleteComment(ctx, comment); err != nil {
+				if err = issues_model.DeleteComment(ctx, comment); err != nil {
 					return nil, err
 				}
 
