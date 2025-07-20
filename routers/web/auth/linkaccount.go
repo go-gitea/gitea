@@ -170,7 +170,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 }
 
 func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData *LinkAccountData, remember bool) {
-	oauth2SignInSync(ctx, &linkAccountData.AuthSource, u, linkAccountData.GothUser)
+	oauth2SignInSync(ctx, linkAccountData.AuthSourceID, u, linkAccountData.GothUser)
 	if ctx.Written() {
 		return
 	}
@@ -185,7 +185,7 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 			return
 		}
 
-		err = externalaccount.LinkAccountToUser(ctx, linkAccountData.AuthSource.ID, u, linkAccountData.GothUser)
+		err = externalaccount.LinkAccountToUser(ctx, linkAccountData.AuthSourceID, u, linkAccountData.GothUser)
 		if err != nil {
 			ctx.ServerError("UserLinkAccount", err)
 			return
@@ -295,7 +295,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		Email:       form.Email,
 		Passwd:      form.Password,
 		LoginType:   auth.OAuth2,
-		LoginSource: linkAccountData.AuthSource.ID,
+		LoginSource: linkAccountData.AuthSourceID,
 		LoginName:   linkAccountData.GothUser.UserID,
 	}
 
@@ -304,7 +304,12 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 
-	source := linkAccountData.AuthSource.Cfg.(*oauth2.Source)
+	authSource, err := auth.GetSourceByID(ctx, linkAccountData.AuthSourceID)
+	if err != nil {
+		ctx.ServerError("GetSourceByID", err)
+		return
+	}
+	source := authSource.Cfg.(*oauth2.Source)
 	if err := syncGroupsToTeams(ctx, source, &linkAccountData.GothUser, u); err != nil {
 		ctx.ServerError("SyncGroupsToTeams", err)
 		return
@@ -318,5 +323,5 @@ func linkAccountFromContext(ctx *context.Context, user *user_model.User) error {
 	if linkAccountData == nil {
 		return errors.New("not in LinkAccount session")
 	}
-	return externalaccount.LinkAccountToUser(ctx, linkAccountData.AuthSource.ID, user, linkAccountData.GothUser)
+	return externalaccount.LinkAccountToUser(ctx, linkAccountData.AuthSourceID, user, linkAccountData.GothUser)
 }
