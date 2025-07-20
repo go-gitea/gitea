@@ -18,6 +18,8 @@ type mockMemRawStore struct {
 var _ session.RawStore = (*mockMemRawStore)(nil)
 
 func (m *mockMemRawStore) Set(k, v any) error {
+	// We need to use gob to encode the value, to make it have the same behavior as other stores and catch abuses.
+	// Because gob needs to "Register" the type before it can encode it, and it's unable to decode a struct to "any" so use a map to help to decode the value.
 	var buf bytes.Buffer
 	if err := gob.NewEncoder(&buf).Encode(map[string]any{"v": v}); err != nil {
 		return err
