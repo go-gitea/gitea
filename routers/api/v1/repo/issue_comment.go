@@ -721,7 +721,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Status(http.StatusForbidden)
 		return
-	} else if comment.Type != issues_model.CommentTypeComment {
+	} else if comment.Type != issues_model.CommentTypeComment && comment.Type != issues_model.CommentTypeCode {
 		ctx.Status(http.StatusNoContent)
 		return
 	}
