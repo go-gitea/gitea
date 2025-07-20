@@ -1122,21 +1122,21 @@ func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *us
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(ctx context.Context, comment *Comment) error {
+func DeleteComment(ctx context.Context, comment *Comment) (*Comment, error) {
 	e := db.GetEngine(ctx)
 	if _, err := e.ID(comment.ID).NoAutoCondition().Delete(comment); err != nil {
-		return err
+		return nil, err
 	}
 
 	if _, err := db.DeleteByBean(ctx, &ContentHistory{
 		CommentID: comment.ID,
 	}); err != nil {
-		return err
+		return nil, err
 	}
 
 	if comment.Type.CountedAsConversation() {
 		if err := UpdateIssueNumComments(ctx, comment.IssueID); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if _, err := e.Table("action").
@@ -1144,14 +1144,53 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 		Update(map[string]any{
 			"is_deleted": true,
 		}); err != nil {
-		return err
+		return nil, err
+	}
+
+	var deletedReviewComment *Comment
+	// delete review & review comment if the code comment is the last comment of the review
+	if comment.Type == CommentTypeCode && comment.ReviewID > 0 {
+		if err := comment.LoadReview(ctx); err != nil {
+			return nil, err
+		}
+		if comment.Review != nil && comment.Review.Type == ReviewTypeComment {
+			res, err := db.GetEngine(ctx).ID(comment.ReviewID).
+				Where("NOT EXISTS (SELECT 1 FROM comment WHERE review_id = ? AND `type` = ?)", comment.ReviewID, CommentTypeCode).
+				Delete(new(Review))
+			if err != nil {
+				return nil, err
+			}
+			if res > 0 {
+				var reviewComment Comment
+				has, err := db.GetEngine(ctx).Where("review_id = ?", comment.ReviewID).
+					And("`type` = ?", CommentTypeReview).Get(&reviewComment)
+				if err != nil {
+					return nil, err
+				}
+				if has && reviewComment.Content == "" {
+					if err := reviewComment.LoadAttachments(ctx); err != nil {
+						return nil, err
+					}
+					if len(reviewComment.Attachments) == 0 {
+						if _, err := db.GetEngine(ctx).ID(reviewComment.ID).Delete(new(Comment)); err != nil {
+							return nil, err
+						}
+						deletedReviewComment = &reviewComment
+					}
+				}
+				comment.ReviewID = 0 // reset review ID to 0 for the notification
+			}
+		}
 	}
 
 	if err := comment.neuterCrossReferences(ctx); err != nil {
-		return err
+		return nil, err
 	}
 
-	return DeleteReaction(ctx, &ReactionOptions{CommentID: comment.ID})
+	if err := DeleteReaction(ctx, &ReactionOptions{CommentID: comment.ID}); err != nil {
+		return nil, err
+	}
+	return deletedReviewComment, nil
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
