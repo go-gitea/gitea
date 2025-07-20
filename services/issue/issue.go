@@ -318,7 +318,9 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachmen
 			if err := deleteComment(ctx, comment, deleteAttachments); err != nil {
 				return nil, fmt.Errorf("deleteComment [comment_id: %d]: %w", comment.ID, err)
 			}
-			toBeCleanedAttachments = append(toBeCleanedAttachments, comment.Attachments...)
+			if deleteAttachments {
+				toBeCleanedAttachments = append(toBeCleanedAttachments, comment.Attachments...)
+			}
 		}
 
 		if deleteAttachments {

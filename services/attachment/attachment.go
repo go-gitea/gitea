@@ -151,24 +151,31 @@ func cleanAttachments(ctx context.Context, attachmentIDs []int64) []int64 {
 // ScanToBeDeletedAttachments scans for attachments that are marked as to be deleted and send to
 // clean queue
 func ScanToBeDeletedAttachments(ctx context.Context) error {
-	attachments := make([]*repo_model.Attachment, 0, 10)
+	attachmentIDs := make([]int64, 0, 100)
 	lastID := int64(0)
 	for {
 		if err := db.GetEngine(ctx).
+			Select("id").
 			// use the status and id index to speed up the query
 			Where("status = ? AND id > ?", db.FileStatusToBeDeleted, lastID).
 			Asc("id").
 			Limit(100).
-			Find(&attachments); err != nil {
+			Find(&attachmentIDs); err != nil {
 			return fmt.Errorf("scan to-be-deleted attachments: %w", err)
 		}
 
-		if len(attachments) == 0 {
+		if len(attachmentIDs) == 0 {
 			log.Trace("No more attachments to be deleted")
 			break
 		}
-		AddAttachmentsToCleanQueue(ctx, attachments)
-		lastID = attachments[len(attachments)-1].ID
+		for _, id := range attachmentIDs {
+			if err := cleanQueue.Push(id); err != nil {
+				log.Error("Failed to push attachment ID %d to clean queue: %v", id, err)
+			}
+		}
+
+		lastID = attachmentIDs[len(attachmentIDs)-1]
+		attachmentIDs = attachmentIDs[0:0]
 	}
 
 	return nil
