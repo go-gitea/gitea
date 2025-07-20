@@ -325,7 +325,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err := issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
+	if err = issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
 		ctx.ServerError("DeleteComment", err)
 		return
 	}
