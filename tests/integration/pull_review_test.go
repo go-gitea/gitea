@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/test"
 	issue_service "code.gitea.io/gitea/services/issue"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -275,4 +277,254 @@ func testIssueClose(t *testing.T, session *TestSession, owner, repo, issueNumber
 
 	req = NewRequestWithValues(t, "POST", closeURL, options)
 	return session.MakeRequest(t, req, http.StatusOK)
+}
+
+func Test_ReviewCodeComment(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		// Create the repo.
+		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
+			Name:             "test_codecomment",
+			Readme:           "Default",
+			AutoInit:         true,
+			ObjectFormatName: git.Sha1ObjectFormat.Name(),
+			DefaultBranch:    "master",
+		}, true)
+		assert.NoError(t, err)
+
+		// add README.md to default branch
+		_, err = files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			OldBranch: repo.DefaultBranch,
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "update",
+					TreePath:      "README.md",
+					ContentReader: strings.NewReader("# 111\n# 222\n"),
+				},
+			},
+		})
+		assert.NoError(t, err)
+
+		var pr *issues_model.PullRequest
+		t.Run("Create Pull Request", func(t *testing.T) {
+			// create a new branch to prepare for pull request
+			_, err = files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+				NewBranch: "branch_codecomment1",
+				Files: []*files_service.ChangeRepoFile{
+					{
+						Operation: "update",
+						TreePath:  "README.md",
+						// add 5 lines to the file
+						ContentReader: strings.NewReader("# 111\n# 222\n# 333\n# 444\n# 555\n# 666\n# 777\n"),
+					},
+				},
+			})
+			assert.NoError(t, err)
+
+			// Create a pull request.
+			session := loginUser(t, "user2")
+			testPullCreate(t, session, "user2", "test_codecomment", false, repo.DefaultBranch, "branch_codecomment1", "Test Pull Request1")
+
+			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "branch_codecomment1"})
+		})
+
+		t.Run("Create Code Comment", func(t *testing.T) {
+			session := loginUser(t, "user2")
+
+			// Grab the CSRF token.
+			req := NewRequest(t, "GET", path.Join("user2", "test_codecomment", "pulls", "1"))
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+
+			// Create a code comment on the pull request.
+			commentURL := fmt.Sprintf("/user2/test_codecomment/pulls/%d/files/reviews/comments", pr.Index)
+			options := map[string]string{
+				"_csrf":            htmlDoc.GetCSRF(),
+				"origin":           "diff",
+				"content":          "code comment on right line 4",
+				"side":             "proposed",
+				"line":             "4",
+				"path":             "README.md",
+				"single_review":    "true",
+				"reply":            "0",
+				"before_commit_id": "",
+				"after_commit_id":  "",
+			}
+			req = NewRequestWithValues(t, "POST", commentURL, options)
+			session.MakeRequest(t, req, http.StatusOK)
+
+			// Check if the comment was created.
+			comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{
+				Type:    issues_model.CommentTypeCode,
+				IssueID: pr.IssueID,
+			})
+			assert.Equal(t, "code comment on right line 4", comment.Content)
+			assert.Equal(t, "README.md", comment.TreePath)
+			assert.Equal(t, int64(4), comment.Line)
+			gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+			assert.NoError(t, err)
+			defer gitRepo.Close()
+			commitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+			assert.NoError(t, err)
+			assert.Equal(t, commitID, comment.CommitSHA)
+
+			// load the files page and confirm the comment is there
+			filesPageURL := fmt.Sprintf("/user2/test_codecomment/pulls/%d/files", pr.Index)
+			req = NewRequest(t, "GET", filesPageURL)
+			resp = session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc = NewHTMLParser(t, resp.Body)
+			commentHTML := htmlDoc.Find(fmt.Sprintf("#issuecomment-%d", comment.ID))
+			assert.NotNil(t, commentHTML)
+			assert.Equal(t, "code comment on right line 4", strings.TrimSpace(commentHTML.Find(".comment-body .render-content").Text()))
+
+			// the last line of this comment line number is 4
+			parentTr := commentHTML.ParentsFiltered("tr").First()
+			assert.NotNil(t, parentTr)
+			previousTr := parentTr.PrevAllFiltered("tr").First()
+			val, _ := previousTr.Attr("data-line-type")
+			assert.Equal(t, "add", val)
+			td := previousTr.Find("td.lines-num-new")
+			val, _ = td.Attr("data-line-num")
+			assert.Equal(t, "4", val)
+		})
+
+		t.Run("Pushing new commit to the pull request to add lines", func(t *testing.T) {
+			// create a new branch to prepare for pull request
+			_, err = files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+				OldBranch: "branch_codecomment1",
+				Files: []*files_service.ChangeRepoFile{
+					{
+						Operation: "update",
+						TreePath:  "README.md",
+						// add 1 line before the code comment line 4
+						ContentReader: strings.NewReader("# 111\n# 222\n# 333\n# 334\n# 444\n# 555\n# 666\n# 777\n"),
+					},
+				},
+			})
+			assert.NoError(t, err)
+
+			session := loginUser(t, "user2")
+			comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{
+				Type:    issues_model.CommentTypeCode,
+				IssueID: pr.IssueID,
+			})
+
+			// load the files page and confirm the comment's line number is dynamically adjusted
+			filesPageURL := fmt.Sprintf("/user2/test_codecomment/pulls/%d/files", pr.Index)
+			req := NewRequest(t, "GET", filesPageURL)
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			commentHTML := htmlDoc.Find(fmt.Sprintf("#issuecomment-%d", comment.ID))
+			assert.NotNil(t, commentHTML)
+			assert.Equal(t, "code comment on right line 4", strings.TrimSpace(commentHTML.Find(".comment-body .render-content").Text()))
+
+			// the last line of this comment line number is 4
+			parentTr := commentHTML.ParentsFiltered("tr").First()
+			assert.NotNil(t, parentTr)
+			previousTr := parentTr.PrevAllFiltered("tr").First()
+			val, _ := previousTr.Attr("data-line-type")
+			assert.Equal(t, "add", val)
+			td := previousTr.Find("td.lines-num-new")
+			val, _ = td.Attr("data-line-num")
+			assert.Equal(t, "5", val) // one line have inserted in this commit, so the line number should be 5 now
+		})
+
+		t.Run("Pushing new commit to the pull request to delete lines", func(t *testing.T) {
+			// create a new branch to prepare for pull request
+			_, err := files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+				OldBranch: "branch_codecomment1",
+				Files: []*files_service.ChangeRepoFile{
+					{
+						Operation: "update",
+						TreePath:  "README.md",
+						// delete the second line before the code comment line 4
+						ContentReader: strings.NewReader("# 111\n# 333\n# 334\n# 444\n# 555\n# 666\n# 777\n"),
+					},
+				},
+			})
+			assert.NoError(t, err)
+
+			diffContent, _, err := git.NewCommand("diff").AddDynamicArguments(pr.MergeBase, pr.GetGitHeadRefName()).RunStdString(
+				t.Context(), &git.RunOpts{
+					Dir: repo.RepoPath(),
+				},
+			)
+			assert.NoError(t, err)
+			fmt.Println("=======")
+			fmt.Println(diffContent)
+			fmt.Println("=======")
+
+			session := loginUser(t, "user2")
+			comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{
+				Type:    issues_model.CommentTypeCode,
+				IssueID: pr.IssueID,
+			})
+
+			// load the files page and confirm the comment's line number is dynamically adjusted
+			filesPageURL := fmt.Sprintf("/user2/test_codecomment/pulls/%d/files", pr.Index)
+			req := NewRequest(t, "GET", filesPageURL)
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			commentHTML := htmlDoc.Find(fmt.Sprintf("#issuecomment-%d", comment.ID))
+			assert.NotNil(t, commentHTML)
+			assert.Equal(t, "code comment on right line 4", strings.TrimSpace(commentHTML.Find(".comment-body .render-content").Text()))
+
+			// the last line of this comment line number is 4
+			parentTr := commentHTML.ParentsFiltered("tr").First()
+			assert.NotNil(t, parentTr)
+			previousTr := parentTr.PrevAllFiltered("tr").First()
+			val, _ := previousTr.Attr("data-line-type")
+			assert.Equal(t, "add", val)
+			td := previousTr.Find("td.lines-num-new")
+			val, _ = td.Attr("data-line-num")
+			assert.Equal(t, "4", val) // one line have inserted and one line deleted before this line in this commit, so the line number should be 4 now
+
+			// add a new comment on the deleted line
+			commentURL := fmt.Sprintf("/user2/test_codecomment/pulls/%d/files/reviews/comments", pr.Index)
+			options := map[string]string{
+				"_csrf":            htmlDoc.GetCSRF(),
+				"origin":           "diff",
+				"content":          "code comment on left line 2",
+				"side":             "previous",
+				"line":             "2",
+				"path":             "README.md",
+				"single_review":    "true",
+				"reply":            "0",
+				"before_commit_id": "",
+				"after_commit_id":  "",
+			}
+			req = NewRequestWithValues(t, "POST", commentURL, options)
+			session.MakeRequest(t, req, http.StatusOK)
+			// Check if the comment was created.
+			commentLast := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{
+				Type:    issues_model.CommentTypeCode,
+				IssueID: pr.IssueID,
+				Content: "code comment on left line 2",
+			})
+			assert.Equal(t, "code comment on left line 2", commentLast.Content)
+			assert.Equal(t, "README.md", commentLast.TreePath)
+			assert.Equal(t, int64(-2), commentLast.Line)
+			assert.Equal(t, pr.MergeBase, commentLast.CommitSHA)
+
+			// load the files page and confirm the comment's line number is dynamically adjusted
+			filesPageURL = fmt.Sprintf("/user2/test_codecomment/pulls/%d/files", pr.Index)
+			req = NewRequest(t, "GET", filesPageURL)
+			resp = session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc = NewHTMLParser(t, resp.Body)
+			commentHTML = htmlDoc.Find(fmt.Sprintf("#issuecomment-%d", commentLast.ID))
+			assert.NotNil(t, commentHTML)
+			assert.Equal(t, "code comment on left line 2", strings.TrimSpace(commentHTML.Find(".comment-body .render-content").Text()))
+
+			// the last line of this comment line number is 4
+			parentTr = commentHTML.ParentsFiltered("tr").First()
+			assert.NotNil(t, parentTr)
+			previousTr = parentTr.PrevAllFiltered("tr").First()
+			val, _ = previousTr.Attr("data-line-type")
+			assert.Equal(t, "del", val)
+			td = previousTr.Find("td.lines-num-old")
+			val, _ = td.Attr("data-line-num")
+			assert.Equal(t, "2", val)
+		})
+	})
 }
