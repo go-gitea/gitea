@@ -9,7 +9,8 @@ import (
 
 // Package represents a package
 type Package struct {
-	ID         int64       `json:"id"`
+	ID int64 `json:"id"`
+	// owner of the package
 	Owner      *User       `json:"owner"`
 	Repository *Repository `json:"repository"`
 	Creator    *User       `json:"creator"`

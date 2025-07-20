@@ -52,7 +52,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: Owner of the repo
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo

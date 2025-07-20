@@ -48,15 +48,17 @@ type ExternalWiki struct {
 
 // Repository represents a repository
 type Repository struct {
-	ID            int64       `json:"id"`
-	Owner         *User       `json:"owner"`
-	Name          string      `json:"name"`
-	FullName      string      `json:"full_name"`
-	Description   string      `json:"description"`
-	Empty         bool        `json:"empty"`
-	Private       bool        `json:"private"`
-	Fork          bool        `json:"fork"`
-	Template      bool        `json:"template"`
+	ID int64 `json:"id"`
+	// owner of the repo
+	Owner       *User  `json:"owner"`
+	Name        string `json:"name"`
+	FullName    string `json:"full_name"`
+	Description string `json:"description"`
+	Empty       bool   `json:"empty"`
+	Private     bool   `json:"private"`
+	Fork        bool   `json:"fork"`
+	Template    bool   `json:"template"`
+	// the original repository if the repository in the parameter is a fork; else empty
 	Parent        *Repository `json:"parent,omitempty"`
 	Mirror        bool        `json:"mirror"`
 	Size          int         `json:"size"`
@@ -228,12 +230,10 @@ type EditRepoOption struct {
 // GenerateRepoOption options when creating repository using a template
 // swagger:model
 type GenerateRepoOption struct {
-	// The organization or person who will own the new repository
+	// owner of the repo
 	//
 	// required: true
 	Owner string `json:"owner"`
-	// Name of the repository to create
-	//
 	// required: true
 	// unique: true
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
@@ -293,6 +293,7 @@ type UpdateBranchRepoOption struct {
 // TransferRepoOption options when transfer a repository's ownership
 // swagger:model
 type TransferRepoOption struct {
+	// new owner of the repo
 	// required: true
 	NewOwner string `json:"new_owner"`
 	// ID of the team or teams to add to the repository. Teams can only be added to organization-owned repositories.
@@ -354,7 +355,7 @@ type MigrateRepoOptions struct {
 	CloneAddr string `json:"clone_addr" binding:"Required"`
 	// deprecated (only for backwards compatibility)
 	RepoOwnerID int64 `json:"uid"`
-	// Name of User or Organisation who will own Repo after migration
+	// owner of the repo after migration
 	RepoOwner string `json:"repo_owner"`
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
