@@ -230,7 +230,7 @@ func registerCleanAttachments() {
 		RunAtStart: false,
 		Schedule:   "@every 24h",
 	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return attachment_service.ScanTobeDeletedAttachments(ctx)
+		return attachment_service.ScanToBeDeletedAttachments(ctx)
 	})
 }
 

@@ -141,6 +141,7 @@ func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAtt
 			}
 		}
 
+		// deletedReviewComment should be a review comment with no content and no attachments
 		deletedReviewComment, err := issues_model.DeleteComment(ctx, comment)
 		if err != nil {
 			return nil, err

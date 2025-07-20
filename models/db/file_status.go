@@ -7,6 +7,6 @@ package db
 type FileStatus int
 
 const (
-	FileStatusNormal      FileStatus = iota // FileStatusNormal indicates the file is normal and exists on disk.
-	FileStatusToBeDeleted                   // FileStatusToBeDeleted indicates the file is marked for deletion but still exists on disk.
+	FileStatusNormal      FileStatus = iota + 1 // FileStatusNormal indicates the file is normal and exists on disk.
+	FileStatusToBeDeleted                       // FileStatusToBeDeleted indicates the file is marked for deletion but still exists on disk.
 )

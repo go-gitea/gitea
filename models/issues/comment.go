@@ -1141,26 +1141,36 @@ func DeleteComment(ctx context.Context, comment *Comment) (*Comment, error) {
 
 	// delete review & review comment if the code comment is the last comment of the review
 	if comment.Type == CommentTypeCode && comment.ReviewID > 0 {
-		res, err := db.GetEngine(ctx).ID(comment.ReviewID).
-			Where("NOT EXISTS (SELECT 1 FROM comment WHERE review_id = ? AND `type` = ?)", comment.ReviewID, CommentTypeCode).
-			Delete(new(Review))
-		if err != nil {
+		if err := comment.LoadReview(ctx); err != nil {
 			return nil, err
 		}
-		if res > 0 {
-			var reviewComment Comment
-			has, err := db.GetEngine(ctx).Where("review_id = ?", comment.ReviewID).
-				And("type = ?", CommentTypeReview).Get(&reviewComment)
+		if comment.Review != nil && comment.Review.Type == ReviewTypeComment {
+			res, err := db.GetEngine(ctx).ID(comment.ReviewID).
+				Where("NOT EXISTS (SELECT 1 FROM comment WHERE review_id = ? AND `type` = ?)", comment.ReviewID, CommentTypeCode).
+				Delete(new(Review))
 			if err != nil {
 				return nil, err
 			}
-			if has && reviewComment.Content == "" {
-				if _, err := db.GetEngine(ctx).ID(reviewComment.ID).Delete(new(Comment)); err != nil {
+			if res > 0 {
+				var reviewComment Comment
+				has, err := db.GetEngine(ctx).Where("review_id = ?", comment.ReviewID).
+					And("`type` = ?", CommentTypeReview).Get(&reviewComment)
+				if err != nil {
 					return nil, err
 				}
-				deletedReviewComment = &reviewComment
+				if has && reviewComment.Content == "" {
+					if err := reviewComment.LoadAttachments(ctx); err != nil {
+						return nil, err
+					}
+					if len(reviewComment.Attachments) == 0 {
+						if _, err := db.GetEngine(ctx).ID(reviewComment.ID).Delete(new(Comment)); err != nil {
+							return nil, err
+						}
+						deletedReviewComment = &reviewComment
+					}
+				}
+				comment.ReviewID = 0 // reset review ID to 0 for the notification
 			}
-			comment.ReviewID = 0 // reset review ID to 0 for the notification
 		}
 	}
 

@@ -37,6 +37,7 @@ func NewAttachment(ctx context.Context, attach *repo_model.Attachment, file io.R
 			return fmt.Errorf("Create: %w", err)
 		}
 		attach.Size = size
+		attach.Status = db.FileStatusNormal
 
 		return db.Insert(ctx, attach)
 	})
@@ -147,14 +148,16 @@ func cleanAttachments(ctx context.Context, attachmentIDs []int64) []int64 {
 	return failed
 }
 
-// ScanTobeDeletedAttachments scans for attachments that are marked as to be deleted and send to
+// ScanToBeDeletedAttachments scans for attachments that are marked as to be deleted and send to
 // clean queue
-func ScanTobeDeletedAttachments(ctx context.Context) error {
+func ScanToBeDeletedAttachments(ctx context.Context) error {
 	attachments := make([]*repo_model.Attachment, 0, 10)
 	lastID := int64(0)
 	for {
 		if err := db.GetEngine(ctx).
-			Where("id > ? AND status = ?", lastID, db.FileStatusToBeDeleted).
+			// use the status and id index to speed up the query
+			Where("status = ? AND id > ?", db.FileStatusToBeDeleted, lastID).
+			Asc("id").
 			Limit(100).
 			Find(&attachments); err != nil {
 			return fmt.Errorf("scan to-be-deleted attachments: %w", err)

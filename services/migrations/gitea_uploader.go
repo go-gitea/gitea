@@ -323,6 +323,7 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 				DownloadCount: int64(*asset.DownloadCount),
 				Size:          int64(*asset.Size),
 				CreatedUnix:   timeutil.TimeStamp(asset.Created.Unix()),
+				Status:        db.FileStatusNormal,
 			}
 
 			// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here

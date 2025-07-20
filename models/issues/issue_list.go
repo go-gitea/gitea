@@ -339,6 +339,7 @@ func (issues IssueList) LoadAttachments(ctx context.Context) (err error) {
 		limit := min(left, db.DefaultMaxInSize)
 		rows, err := db.GetEngine(ctx).
 			In("issue_id", issuesIDs[:limit]).
+			And("status = ?", db.FileStatusNormal).
 			Rows(new(repo_model.Attachment))
 		if err != nil {
 			return err
