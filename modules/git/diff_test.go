@@ -194,3 +194,15 @@ func TestParseDiffHunkString(t *testing.T) {
 	assert.Equal(t, 2, rightLine)
 	assert.Equal(t, 1, rightHunk)
 }
+
+func Test_GetAffectedHunksForTwoCommitsSpecialFile(t *testing.T) {
+	repoPath := "./tests/repos/repo4_commitsbetween"
+	hunks, err := GetAffectedHunksForTwoCommitsSpecialFile(t.Context(), repoPath, "fdc1b615bdcff0f0658b216df0c9209e5ecb7c78", "a78e5638b66ccfe7e1b4689d3d5684e42c97d7ca", "test.txt")
+	assert.NoError(t, err)
+	assert.Len(t, hunks, 1)
+	// @@ -1 +1 @@
+	assert.Equal(t, int64(1), hunks[0].LeftLine)
+	assert.Equal(t, int64(1), hunks[0].LeftHunk)
+	assert.Equal(t, int64(1), hunks[0].RightLine)
+	assert.Equal(t, int64(1), hunks[0].RightHunk)
+}

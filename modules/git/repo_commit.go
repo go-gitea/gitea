@@ -322,6 +322,9 @@ func (repo *Repository) CommitsBetween(lastCommitID, beforeCommitID string) ([]*
 	return commits, nil
 }
 
+// CommitIDsBetween returns a list that contains commit IDs between (beforeCommitID, afterCommitID].
+// If beforeCommitID is empty, it will return all commits before afterCommitID.
+// If beforeCommitID is given, it will not be included in the result.
 func CommitIDsBetween(ctx context.Context, repoPath, beforeCommitID, afterCommitID string) ([]string, error) {
 	var stdout []byte
 	var err error
