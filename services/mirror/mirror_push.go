@@ -47,7 +47,11 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 		return err
 	}
 
-	if m.Repo.HasWiki() {
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, m.Repo.WikiStorageRepo())
+	if err != nil {
+		return err
+	}
+	if hasWiki {
 		wikiRemoteURL := repository.WikiRemoteURL(ctx, addr)
 		if len(wikiRemoteURL) > 0 {
 			if err := addRemoteAndConfig(wikiRemoteURL, m.Repo.WikiPath()); err != nil {
@@ -68,7 +72,11 @@ func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error
 		return err
 	}
 
-	if m.Repo.HasWiki() {
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, m.Repo.WikiStorageRepo())
+	if err != nil {
+		return err
+	}
+	if hasWiki {
 		if _, _, err := cmd.RunStdString(ctx, &git.RunOpts{Dir: m.Repo.WikiPath()}); err != nil {
 			// The wiki remote may not exist
 			log.Warn("Wiki Remote[%d] could not be removed: %v", m.ID, err)
@@ -183,7 +191,11 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return err
 	}
 
-	if m.Repo.HasWiki() {
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, m.Repo.WikiStorageRepo())
+	if err != nil {
+		return err
+	}
+	if hasWiki {
 		_, err := git.GetRemoteAddress(ctx, m.Repo.WikiPath(), m.RemoteName)
 		if err == nil {
 			err := performPush(m.Repo, true)
