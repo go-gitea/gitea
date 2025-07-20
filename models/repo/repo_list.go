@@ -474,6 +474,8 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 	}
 	if opts.GroupID > 0 {
 		cond = cond.And(builder.Eq{"`repository`.group_id": opts.GroupID})
+	} else if opts.GroupID == -1 {
+		cond = cond.And(builder.Lt{"`repository`.group_id": 1})
 	}
 
 	if opts.Keyword != "" {
