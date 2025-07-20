@@ -11,8 +11,8 @@ import (
 func GetTeamsWithAccessToGroup(ctx context.Context, orgID, groupID int64, mode perm.AccessMode) ([]*Team, error) {
 	teams := make([]*Team, 0)
 	inCond := group_model.ParentGroupCond("group_team.group_id", groupID)
-	return teams, db.GetEngine(ctx).Where("group_team.access_mode >= ?", mode).
-		Join("INNER", "group_team", "group_team.team_id = team.id").
+	return teams, db.GetEngine(ctx).Distinct("team.*").Where("group_team.access_mode >= ?", mode).
+		Join("INNER", "group_team", "group_team.team_id = team.id and group_team.org_id = ?", orgID).
 		And("group_team.org_id = ?", orgID).
 		And(inCond).
 		OrderBy("name").
