@@ -824,10 +824,13 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Config: config,
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
-		} else if !*opts.HasIssues && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
-		} else if !*opts.HasIssues && !unit_model.TypeIssues.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
+		} else if !*opts.HasIssues {
+			if !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
+			}
+			if !unit_model.TypeIssues.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
+			}
 		}
 	}
 
