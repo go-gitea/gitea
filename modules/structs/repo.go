@@ -48,8 +48,7 @@ type ExternalWiki struct {
 
 // Repository represents a repository
 type Repository struct {
-	ID int64 `json:"id"`
-	// owner of the repo
+	ID          int64  `json:"id"`
 	Owner       *User  `json:"owner"`
 	Name        string `json:"name"`
 	FullName    string `json:"full_name"`
@@ -58,7 +57,7 @@ type Repository struct {
 	Private     bool   `json:"private"`
 	Fork        bool   `json:"fork"`
 	Template    bool   `json:"template"`
-	// the original repository if the repository in the parameter is a fork; else empty
+	// the original repository if this repository is a fork, otherwise null
 	Parent        *Repository `json:"parent,omitempty"`
 	Mirror        bool        `json:"mirror"`
 	Size          int         `json:"size"`
@@ -230,7 +229,7 @@ type EditRepoOption struct {
 // GenerateRepoOption options when creating repository using a template
 // swagger:model
 type GenerateRepoOption struct {
-	// owner of the repo
+	// The organization's name or individual user's name who will own the new repository
 	//
 	// required: true
 	Owner string `json:"owner"`
@@ -293,7 +292,6 @@ type UpdateBranchRepoOption struct {
 // TransferRepoOption options when transfer a repository's ownership
 // swagger:model
 type TransferRepoOption struct {
-	// new owner of the repo
 	// required: true
 	NewOwner string `json:"new_owner"`
 	// ID of the team or teams to add to the repository. Teams can only be added to organization-owned repositories.
@@ -354,9 +352,8 @@ type MigrateRepoOptions struct {
 	// required: true
 	CloneAddr string `json:"clone_addr" binding:"Required"`
 	// deprecated (only for backwards compatibility)
-	RepoOwnerID int64 `json:"uid"`
-	// owner of the repo after migration
-	RepoOwner string `json:"repo_owner"`
+	RepoOwnerID int64  `json:"uid"`
+	RepoOwner   string `json:"repo_owner"`
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 

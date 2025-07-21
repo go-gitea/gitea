@@ -35,9 +35,8 @@ type PullRequestMeta struct {
 
 // RepositoryMeta basic repository information
 type RepositoryMeta struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-	// owner of the repo
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
 	Owner    string `json:"owner"`
 	FullName string `json:"full_name"`
 }
@@ -264,7 +263,7 @@ func (it IssueTemplate) Type() IssueTemplateType {
 // swagger:model
 type IssueMeta struct {
 	Index int64 `json:"index"`
-	// owner of the issue
+	// owner of the issue's repo
 	Owner string `json:"owner"`
 	Name  string `json:"repo"`
 }
