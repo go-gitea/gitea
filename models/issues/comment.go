@@ -1116,7 +1116,8 @@ func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *us
 
 // DeleteComment deletes the comment
 func DeleteComment(ctx context.Context, comment *Comment) error {
-	if _, err := db.GetEngine(ctx).ID(comment.ID).NoAutoCondition().Delete(comment); err != nil {
+	e := db.GetEngine(ctx)
+	if _, err := e.ID(comment.ID).NoAutoCondition().Delete(comment); err != nil {
 		return err
 	}
 
@@ -1131,7 +1132,7 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 			return err
 		}
 	}
-	if _, err := db.GetEngine(ctx).Table("action").
+	if _, err := e.Table("action").
 		Where("comment_id = ?", comment.ID).
 		Update(map[string]any{
 			"is_deleted": true,

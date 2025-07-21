@@ -385,7 +385,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(320, "Migrate two_factor_policy to login_source table", v1_24.MigrateSkipTwoFactor),
 
 		// Gitea 1.24.0-rc0 ends at migration ID number 320 (database version 321)
-		newMigration(321, "Add file status columns to attachment table", v1_25.AddFileStatusToAttachment),
+		newMigration(321, "Add storage_path_deletion table", v1_25.AddStoragePathDeletion),
 	}
 	return preparedMigrations
 }

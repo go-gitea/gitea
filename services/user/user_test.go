@@ -17,8 +17,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/services/attachment"
 	org_service "code.gitea.io/gitea/services/org"
+	"code.gitea.io/gitea/services/storagecleanup"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		SetUp: func() error {
 			setting.LoadQueueSettings()
-			return attachment.Init()
+			return storagecleanup.Init()
 		},
 	})
 }

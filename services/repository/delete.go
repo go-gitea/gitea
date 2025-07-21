@@ -29,8 +29,8 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	attachment_service "code.gitea.io/gitea/services/attachment"
 	issue_service "code.gitea.io/gitea/services/issue"
+	"code.gitea.io/gitea/services/storagecleanup"
 
 	"xorm.io/builder"
 )
@@ -76,10 +76,9 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	}
 
 	var needRewriteKeysFile bool
-	releaseAttachments := make([]*repo_model.Attachment, 0, 20)
-	var repoAttachments []*repo_model.Attachment
 	var archivePaths []string
 	var lfsPaths []string
+	toBeCleanedDeletions := make([]int64, 0, 20)
 
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		// In case owner is a organization, we have to change repo specific teams
@@ -116,6 +115,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 			}
 		}
 
+		releaseAttachments := make([]*repo_model.Attachment, 0, 20)
 		// some attachments have release_id but repo_id = 0
 		if err = db.GetEngine(ctx).Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
 			Where("`release`.repo_id = ?", repoID).
@@ -123,9 +123,11 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 			return err
 		}
 
-		if _, err := repo_model.MarkAttachmentsDeleted(ctx, releaseAttachments); err != nil {
+		deletions, err := repo_model.DeleteAttachments(ctx, releaseAttachments)
+		if err != nil {
 			return fmt.Errorf("delete release attachments: %w", err)
 		}
+		toBeCleanedDeletions = append(toBeCleanedDeletions, deletions...)
 
 		if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
 			return err
@@ -268,15 +270,18 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 			}
 		}
 
+		var repoAttachments []*repo_model.Attachment
 		// Get all attachments with repo_id = repo.ID. some release attachments have repo_id = 0 should be deleted before
 		if err := db.GetEngine(ctx).Where(builder.Eq{
 			"repo_id": repo.ID,
 		}).Find(&repoAttachments); err != nil {
 			return err
 		}
-		if _, err := repo_model.MarkAttachmentsDeleted(ctx, repoAttachments); err != nil {
+		deletions, err = repo_model.DeleteAttachments(ctx, repoAttachments)
+		if err != nil {
 			return err
 		}
+		toBeCleanedDeletions = append(toBeCleanedDeletions, deletions...)
 
 		// unlink packages linked to this repository
 		return packages_model.UnlinkRepositoryFromAllPackages(ctx, repoID)
@@ -318,8 +323,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		system_model.RemoveStorageWithNotice(ctx, storage.LFS, "Delete orphaned LFS file", lfsObj)
 	}
 
-	attachment_service.AddAttachmentsToCleanQueue(ctx, releaseAttachments)
-	attachment_service.AddAttachmentsToCleanQueue(ctx, repoAttachments)
+	storagecleanup.AddDeletionsToCleanQueue(ctx, toBeCleanedDeletions)
 
 	if len(repo.Avatar) > 0 {
 		if err := storage.RepoAvatars.Delete(repo.CustomAvatarRelativePath()); err != nil {

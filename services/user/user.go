@@ -24,11 +24,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/agit"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	attachment_service "code.gitea.io/gitea/services/attachment"
 	org_service "code.gitea.io/gitea/services/org"
 	"code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
 	repo_service "code.gitea.io/gitea/services/repository"
+	"code.gitea.io/gitea/services/storagecleanup"
 )
 
 // RenameUser renames a user
@@ -211,7 +211,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
-	toBeCleanedAttachments, err := db.WithTx2(ctx, func(ctx context.Context) ([]*repo_model.Attachment, error) {
+	toBeCleanedDeletions, err := db.WithTx2(ctx, func(ctx context.Context) ([]int64, error) {
 		// Note: A user owns any repository or belongs to any organization
 		//	cannot perform delete operation. This causes a race with the purge above
 		//  however consistency requires that we ensure that this is the case
@@ -239,17 +239,17 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 			return nil, packages_model.ErrUserOwnPackages{UID: u.ID}
 		}
 
-		toBeCleanedAttachments, err := deleteUser(ctx, u, purge)
+		toBeCleanedDeletions, err := deleteUser(ctx, u, purge)
 		if err != nil {
 			return nil, fmt.Errorf("DeleteUser: %w", err)
 		}
-		return toBeCleanedAttachments, nil
+		return toBeCleanedDeletions, nil
 	})
 	if err != nil {
 		return err
 	}
 
-	attachment_service.AddAttachmentsToCleanQueue(ctx, toBeCleanedAttachments)
+	storagecleanup.AddDeletionsToCleanQueue(ctx, toBeCleanedDeletions)
 
 	if err = asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 		return err

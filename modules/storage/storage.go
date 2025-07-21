@@ -166,6 +166,40 @@ func NewStorage(typStr Type, cfg *setting.Storage) (ObjectStorage, error) {
 	return fn(context.Background(), cfg)
 }
 
+const (
+	AttachmentStorageName       = "attachment"
+	AvatarStorageName           = "avatar"
+	RepoAvatarStorageName       = "repo_avatar"
+	LFSStorageName              = "lfs"
+	RepoArchiveStorageName      = "repo_archive"
+	PackagesStorageName         = "packages"
+	ActionsLogStorageName       = "actions_logs"
+	ActionsArtifactsStorageName = "actions_artifacts"
+)
+
+func GetStorageByName(name string) (ObjectStorage, error) {
+	switch name {
+	case AttachmentStorageName:
+		return Attachments, nil
+	case AvatarStorageName:
+		return Avatars, nil
+	case RepoAvatarStorageName:
+		return RepoAvatars, nil
+	case LFSStorageName:
+		return LFS, nil
+	case RepoArchiveStorageName:
+		return RepoArchives, nil
+	case PackagesStorageName:
+		return Packages, nil
+	case ActionsLogStorageName:
+		return Actions, nil
+	case ActionsArtifactsStorageName:
+		return ActionsArtifacts, nil
+	default:
+		return nil, fmt.Errorf("Unknown storage name: %s", name)
+	}
+}
+
 func initAvatars() (err error) {
 	log.Info("Initialising Avatar storage with type: %s", setting.Avatar.Storage.Type)
 	Avatars, err = NewStorage(setting.Avatar.Storage.Type, setting.Avatar.Storage)

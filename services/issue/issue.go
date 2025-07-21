@@ -17,8 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	attachment_service "code.gitea.io/gitea/services/attachment"
 	notify_service "code.gitea.io/gitea/services/notify"
+	"code.gitea.io/gitea/services/storagecleanup"
 )
 
 // NewIssue creates new issue with labels for repository.
@@ -189,12 +189,12 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 	}
 
 	// delete entries in database
-	toBeCleanedAttachments, err := deleteIssue(ctx, issue, true)
+	toBeCleanedDeletions, err := deleteIssue(ctx, issue, true)
 	if err != nil {
 		return err
 	}
 
-	attachment_service.AddAttachmentsToCleanQueue(ctx, toBeCleanedAttachments)
+	storagecleanup.AddDeletionsToCleanQueue(ctx, toBeCleanedDeletions)
 
 	// delete pull request related git data
 	if issue.IsPull && gitRepo != nil {
@@ -258,9 +258,9 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 }
 
 // deleteIssue deletes the issue
-func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachments bool) ([]*repo_model.Attachment, error) {
-	return db.WithTx2(ctx, func(ctx context.Context) ([]*repo_model.Attachment, error) {
-		toBeCleanedAttachments := make([]*repo_model.Attachment, 0)
+func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachments bool) ([]int64, error) {
+	return db.WithTx2(ctx, func(ctx context.Context) ([]int64, error) {
+		toBeCleanedDeletions := make([]int64, 0)
 		if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
 			return nil, err
 		}
@@ -315,11 +315,12 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachmen
 		}
 
 		for _, comment := range issue.Comments {
-			if err := deleteComment(ctx, comment, deleteAttachments); err != nil {
+			deletions, err := deleteComment(ctx, comment, deleteAttachments)
+			if err != nil {
 				return nil, fmt.Errorf("deleteComment [comment_id: %d]: %w", comment.ID, err)
 			}
 			if deleteAttachments {
-				toBeCleanedAttachments = append(toBeCleanedAttachments, comment.Attachments...)
+				toBeCleanedDeletions = append(toBeCleanedDeletions, deletions...)
 			}
 		}
 
@@ -328,41 +329,42 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue, deleteAttachmen
 			if err := issue.LoadAttachments(ctx); err != nil {
 				return nil, err
 			}
-			if _, err := repo_model.MarkAttachmentsDeleted(ctx, issue.Attachments); err != nil {
+			deletions, err := repo_model.DeleteAttachments(ctx, issue.Attachments)
+			if err != nil {
 				return nil, err
 			}
-			toBeCleanedAttachments = append(toBeCleanedAttachments, issue.Attachments...)
+			toBeCleanedDeletions = append(toBeCleanedDeletions, deletions...)
 		}
-		return toBeCleanedAttachments, nil
+		return toBeCleanedDeletions, nil
 	})
 }
 
 // DeleteOrphanedIssues delete issues without a repo
 func DeleteOrphanedIssues(ctx context.Context) error {
-	toBeCleanedAttachments := make([]*repo_model.Attachment, 0)
+	toBeCleanedDeletions := make([]int64, 0)
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		repoIDs, err := issues_model.GetOrphanedIssueRepoIDs(ctx)
 		if err != nil {
 			return err
 		}
 		for i := range repoIDs {
-			toBeCleanedIssueAttachments, err := DeleteIssuesByRepoID(ctx, repoIDs[i], true)
+			deletions, err := DeleteIssuesByRepoID(ctx, repoIDs[i], true)
 			if err != nil {
 				return err
 			}
-			toBeCleanedAttachments = append(toBeCleanedAttachments, toBeCleanedIssueAttachments...)
+			toBeCleanedDeletions = append(toBeCleanedDeletions, deletions...)
 		}
 		return nil
 	}); err != nil {
 		return err
 	}
-	attachment_service.AddAttachmentsToCleanQueue(ctx, toBeCleanedAttachments)
+	storagecleanup.AddDeletionsToCleanQueue(ctx, toBeCleanedDeletions)
 	return nil
 }
 
 // DeleteIssuesByRepoID deletes issues by repositories id
-func DeleteIssuesByRepoID(ctx context.Context, repoID int64, deleteAttachments bool) ([]*repo_model.Attachment, error) {
-	toBeCleanedAttachments := make([]*repo_model.Attachment, 0)
+func DeleteIssuesByRepoID(ctx context.Context, repoID int64, deleteAttachments bool) ([]int64, error) {
+	toBeCleanedDeletions := make([]int64, 0)
 	for {
 		issues := make([]*issues_model.Issue, 0, db.DefaultMaxInSize)
 		if err := db.GetEngine(ctx).
@@ -378,13 +380,13 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64, deleteAttachments b
 		}
 
 		for _, issue := range issues {
-			toBeCleanedIssueAttachments, err := deleteIssue(ctx, issue, deleteAttachments)
+			deletions, err := deleteIssue(ctx, issue, deleteAttachments)
 			if err != nil {
 				return nil, fmt.Errorf("deleteIssue [issue_id: %d]: %w", issue.ID, err)
 			}
-			toBeCleanedAttachments = append(toBeCleanedAttachments, toBeCleanedIssueAttachments...)
+			toBeCleanedDeletions = append(toBeCleanedDeletions, deletions...)
 		}
 	}
 
-	return toBeCleanedAttachments, nil
+	return toBeCleanedDeletions, nil
 }

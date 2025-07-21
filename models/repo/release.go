@@ -378,7 +378,6 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	err = db.GetEngine(ctx).
 		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
-		And("status = ?", db.FileStatusNormal).
 		Find(&attachments)
 	if err != nil {
 		return err

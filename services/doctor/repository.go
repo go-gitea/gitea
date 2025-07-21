@@ -36,6 +36,7 @@ func deleteOrphanedRepos(ctx context.Context) (int64, error) {
 	}
 
 	batchSize := db.MaxBatchInsertSize("repository")
+	e := db.GetEngine(ctx)
 	var deleted int64
 
 	for {
@@ -44,7 +45,7 @@ func deleteOrphanedRepos(ctx context.Context) (int64, error) {
 			return deleted, ctx.Err()
 		default:
 			var ids []int64
-			if err := db.GetEngine(ctx).Table("`repository`").
+			if err := e.Table("`repository`").
 				Join("LEFT", "`user`", "repository.owner_id=`user`.id").
 				Where(builder.IsNull{"`user`.id"}).
 				Select("`repository`.id").Limit(batchSize).Find(&ids); err != nil {

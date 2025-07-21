@@ -50,9 +50,7 @@ func Test_UpdateCommentAttachment(t *testing.T) {
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 1})
 	attachment := repo_model.Attachment{
-		Name:   "test.txt",
-		Status: db.FileStatusNormal,
-		UUID:   "test-uuid",
+		Name: "test.txt",
 	}
 	assert.NoError(t, db.Insert(db.DefaultContext, &attachment))
 

@@ -15,9 +15,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	attachment_service "code.gitea.io/gitea/services/attachment"
 	repo_service "code.gitea.io/gitea/services/repository"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
+	"code.gitea.io/gitea/services/storagecleanup"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -224,13 +224,13 @@ func registerRebuildIssueIndexer() {
 	})
 }
 
-func registerCleanAttachments() {
-	RegisterTaskFatal("clean_attachments", &BaseConfig{
+func registerCleanStorage() {
+	RegisterTaskFatal("cleanup_storage", &BaseConfig{
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 24h",
 	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return attachment_service.ScanToBeDeletedAttachments(ctx)
+		return storagecleanup.ScanToBeDeletedFilesOrDir(ctx)
 	})
 }
 
@@ -249,5 +249,5 @@ func initExtendedTasks() {
 	registerDeleteOldSystemNotices()
 	registerGCLFS()
 	registerRebuildIssueIndexer()
-	registerCleanAttachments()
+	registerCleanStorage()
 }

@@ -28,8 +28,8 @@ import (
 )
 
 // deleteUser deletes models associated to an user.
-func deleteUser(ctx context.Context, u *user_model.User, purge bool) (toBeCleanedAttachments []*repo_model.Attachment, err error) {
-	toBeCleanedAttachments = make([]*repo_model.Attachment, 0)
+func deleteUser(ctx context.Context, u *user_model.User, purge bool) (toBeCleanedDeletions []int64, err error) {
+	toBeCleanedDeletions = make([]int64, 0)
 
 	// ***** START: Watch *****
 	watchedRepoIDs, err := db.FindIDs(ctx, "watch", "watch.repo_id",
@@ -126,10 +126,11 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (toBeCleane
 					return nil, err
 				}
 
-				if _, err := repo_model.MarkAttachmentsDeleted(ctx, comment.Attachments); err != nil {
+				pendingDeletions, err := repo_model.DeleteAttachments(ctx, comment.Attachments)
+				if err != nil {
 					return nil, err
 				}
-				toBeCleanedAttachments = append(toBeCleanedAttachments, comment.Attachments...)
+				toBeCleanedDeletions = append(toBeCleanedDeletions, pendingDeletions...)
 			}
 		}
 
@@ -207,5 +208,5 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (toBeCleane
 		return nil, fmt.Errorf("delete: %w", err)
 	}
 
-	return toBeCleanedAttachments, nil
+	return toBeCleanedDeletions, nil
 }

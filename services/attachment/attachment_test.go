@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/storagecleanup"
 
 	_ "code.gitea.io/gitea/models/actions"
 
@@ -23,7 +24,7 @@ func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		SetUp: func() error {
 			setting.LoadQueueSettings()
-			return Init()
+			return storagecleanup.Init()
 		},
 	})
 }

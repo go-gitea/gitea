@@ -11,69 +11,27 @@ import (
 	"path"
 
 	"code.gitea.io/gitea/models/db"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/xorm/schemas"
 )
 
 // Attachment represent a attachment of issue/comment/release.
 type Attachment struct {
-	ID                     int64  `xorm:"pk autoincr"`
-	UUID                   string `xorm:"uuid"`
-	RepoID                 int64  // this should not be zero
-	IssueID                int64  // maybe zero when creating
-	ReleaseID              int64  // maybe zero when creating
-	UploaderID             int64  `xorm:"DEFAULT 0"` // Notice: will be zero before this column added
-	CommentID              int64
-	Name                   string
-	DownloadCount          int64              `xorm:"DEFAULT 0"`
-	Status                 db.FileStatus      `xorm:"DEFAULT 1 NOT NULL"` // 1 = normal, 2 = to be deleted
-	DeleteFailedCount      int                `xorm:"DEFAULT 0 NOT NULL"` // Number of times the deletion failed, used to prevent infinite loop
-	LastDeleteFailedReason string             `xorm:"TEXT"`               // Last reason the deletion failed, used to prevent infinite loop
-	LastDeleteFailedTime   timeutil.TimeStamp // Last time the deletion failed, used to prevent infinite loop
-	Size                   int64              `xorm:"DEFAULT 0"`
-	CreatedUnix            timeutil.TimeStamp `xorm:"created"`
-	CustomDownloadURL      string             `xorm:"-"`
-}
-
-// TableIndices implements xorm's TableIndices interface
-func (a *Attachment) TableIndices() []*schemas.Index {
-	uuidIndex := schemas.NewIndex("uuid", schemas.UniqueType)
-	uuidIndex.AddColumn("uuid")
-
-	repoIndex := schemas.NewIndex("repo_id", schemas.IndexType)
-	repoIndex.AddColumn("repo_id")
-
-	issueIndex := schemas.NewIndex("issue_id", schemas.IndexType)
-	issueIndex.AddColumn("issue_id")
-
-	releaseIndex := schemas.NewIndex("release_id", schemas.IndexType)
-	releaseIndex.AddColumn("release_id")
-
-	uploaderIndex := schemas.NewIndex("uploader_id", schemas.IndexType)
-	uploaderIndex.AddColumn("uploader_id")
-
-	commentIndex := schemas.NewIndex("comment_id", schemas.IndexType)
-	commentIndex.AddColumn("comment_id")
-
-	statusIndex := schemas.NewIndex("status", schemas.IndexType)
-	statusIndex.AddColumn("status")
-
-	statusIDIndex := schemas.NewIndex("status_id", schemas.IndexType)
-	statusIDIndex.AddColumn("status", "id") // For status = ? AND id > ? query
-
-	return []*schemas.Index{
-		uuidIndex,
-		repoIndex,
-		issueIndex,
-		releaseIndex,
-		uploaderIndex,
-		commentIndex,
-		statusIndex,
-		statusIDIndex,
-	}
+	ID                int64  `xorm:"pk autoincr"`
+	UUID              string `xorm:"uuid UNIQUE"`
+	RepoID            int64  `xorm:"INDEX"`           // this should not be zero
+	IssueID           int64  `xorm:"INDEX"`           // maybe zero when creating
+	ReleaseID         int64  `xorm:"INDEX"`           // maybe zero when creating
+	UploaderID        int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
+	CommentID         int64  `xorm:"INDEX"`
+	Name              string
+	DownloadCount     int64              `xorm:"DEFAULT 0"`
+	Size              int64              `xorm:"DEFAULT 0"`
+	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
+	CustomDownloadURL string             `xorm:"-"`
 }
 
 func init() {
@@ -132,9 +90,7 @@ func (err ErrAttachmentNotExist) Unwrap() error {
 // GetAttachmentByID returns attachment by given id
 func GetAttachmentByID(ctx context.Context, id int64) (*Attachment, error) {
 	attach := &Attachment{}
-	if has, err := db.GetEngine(ctx).ID(id).
-		And("status = ?", db.FileStatusNormal).
-		Get(attach); err != nil {
+	if has, err := db.GetEngine(ctx).ID(id).Get(attach); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrAttachmentNotExist{ID: id, UUID: ""}
@@ -145,9 +101,7 @@ func GetAttachmentByID(ctx context.Context, id int64) (*Attachment, error) {
 // GetAttachmentByUUID returns attachment by given UUID.
 func GetAttachmentByUUID(ctx context.Context, uuid string) (*Attachment, error) {
 	attach := &Attachment{}
-	has, err := db.GetEngine(ctx).Where("uuid=?", uuid).
-		And("status = ?", db.FileStatusNormal).
-		Get(attach)
+	has, err := db.GetEngine(ctx).Where("uuid=?", uuid).Get(attach)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -164,24 +118,18 @@ func GetAttachmentsByUUIDs(ctx context.Context, uuids []string) ([]*Attachment, 
 
 	// Silently drop invalid uuids.
 	attachments := make([]*Attachment, 0, len(uuids))
-	return attachments, db.GetEngine(ctx).In("uuid", uuids).
-		And("status = ?", db.FileStatusNormal).
-		Find(&attachments)
+	return attachments, db.GetEngine(ctx).In("uuid", uuids).Find(&attachments)
 }
 
 // ExistAttachmentsByUUID returns true if attachment exists with the given UUID
 func ExistAttachmentsByUUID(ctx context.Context, uuid string) (bool, error) {
-	return db.GetEngine(ctx).Where("`uuid`=?", uuid).
-		And("status = ?", db.FileStatusNormal).
-		Exist(new(Attachment))
+	return db.GetEngine(ctx).Where("`uuid`=?", uuid).Exist(new(Attachment))
 }
 
 // GetAttachmentsByIssueID returns all attachments of an issue.
 func GetAttachmentsByIssueID(ctx context.Context, issueID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
-	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).
-		And("status = ?", db.FileStatusNormal).
-		Find(&attachments)
+	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
 }
 
 // GetAttachmentsByIssueIDImagesLatest returns the latest image attachments of an issue.
@@ -196,29 +144,60 @@ func GetAttachmentsByIssueIDImagesLatest(ctx context.Context, issueID int64) ([]
 		OR name like '%.jxl'
 		OR name like '%.png'
 		OR name like '%.svg'
-		OR name like '%.webp')`, issueID).
-		And("status = ?", db.FileStatusNormal).
-		Desc("comment_id").Limit(5).Find(&attachments)
+		OR name like '%.webp')`, issueID).Desc("comment_id").Limit(5).Find(&attachments)
 }
 
 // GetAttachmentsByCommentID returns all attachments if comment by given ID.
 func GetAttachmentsByCommentID(ctx context.Context, commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
-	return attachments, db.GetEngine(ctx).Where("comment_id=?", commentID).
-		And("status = ?", db.FileStatusNormal).
-		Find(&attachments)
+	return attachments, db.GetEngine(ctx).Where("comment_id=?", commentID).Find(&attachments)
 }
 
 // GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
 func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, fileName string) (*Attachment, error) {
 	attach := &Attachment{ReleaseID: releaseID, Name: fileName}
-	has, err := db.GetEngine(ctx).Where("status = ?", db.FileStatusNormal).Get(attach)
+	has, err := db.GetEngine(ctx).Get(attach)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, err
 	}
 	return attach, nil
+}
+
+// DeleteAttachments delete the given attachments and add disk files to pending deletion
+func DeleteAttachments(ctx context.Context, attachments []*Attachment) ([]int64, error) {
+	if len(attachments) == 0 {
+		return nil, nil
+	}
+
+	ids := make([]int64, 0, len(attachments))
+	for _, a := range attachments {
+		ids = append(ids, a.ID)
+	}
+
+	return db.WithTx2(ctx, func(ctx context.Context) ([]int64, error) {
+		// delete attachments from database
+		if _, err := db.GetEngine(ctx).Table("attachment").In("id", ids).Delete(); err != nil {
+			return nil, err
+		}
+
+		// add disk files to pending deletion table as well
+		var deletionIDs []int64
+		for _, a := range attachments {
+			pendingDeletion := &system_model.StoragePathDeletion{
+				StorageName:  storage.AttachmentStorageName,
+				PathType:     system_model.PathFile,
+				RelativePath: a.RelativePath(),
+			}
+			if err := db.Insert(ctx, pendingDeletion); err != nil {
+				return nil, fmt.Errorf("insert pending deletion: %w", err)
+			}
+
+			deletionIDs = append(deletionIDs, pendingDeletion.ID) // Collect pending deletions
+		}
+		return deletionIDs, nil
+	})
 }
 
 // UpdateAttachmentByUUID Updates attachment via uuid
@@ -241,52 +220,6 @@ func UpdateAttachment(ctx context.Context, atta *Attachment) error {
 	}
 	_, err := sess.Update(atta)
 	return err
-}
-
-// MarkAttachmentsDeleted marks the given attachments as deleted
-func MarkAttachmentsDeleted(ctx context.Context, attachments []*Attachment) (int64, error) {
-	if len(attachments) == 0 {
-		return 0, nil
-	}
-
-	ids := make([]int64, 0, len(attachments))
-	for _, a := range attachments {
-		ids = append(ids, a.ID)
-	}
-
-	return db.GetEngine(ctx).Table("attachment").In("id", ids).Update(map[string]any{
-		"status": db.FileStatusToBeDeleted,
-	})
-}
-
-// MarkAttachmentsDeletedByRelease marks all attachments associated with the given release as deleted.
-func MarkAttachmentsDeletedByRelease(ctx context.Context, releaseID int64) error {
-	_, err := db.GetEngine(ctx).Table("attachment").Where("release_id = ?", releaseID).Update(map[string]any{
-		"status": db.FileStatusToBeDeleted,
-	})
-	return err
-}
-
-// DeleteMarkedAttachmentByID deletes the attachment which has been marked as deleted by given id
-func DeleteMarkedAttachmentByID(ctx context.Context, id int64) error {
-	cnt, err := db.GetEngine(ctx).ID(id).Where("status = ?", db.FileStatusToBeDeleted).Delete(new(Attachment))
-	if err != nil {
-		return fmt.Errorf("delete attachment by id: %w", err)
-	}
-	if cnt != 1 {
-		return fmt.Errorf("the attachment with id %d was not found or is not marked for deletion", id)
-	}
-	return nil
-}
-
-func UpdateMarkedAttachmentFailure(ctx context.Context, attachment *Attachment, err error) error {
-	attachment.DeleteFailedCount++
-	_, updateErr := db.GetEngine(ctx).Table("attachment").ID(attachment.ID).Update(map[string]any{
-		"delete_failed_count":       attachment.DeleteFailedCount,
-		"last_delete_failed_reason": err.Error(),
-		"last_delete_failed_time":   timeutil.TimeStampNow(),
-	})
-	return updateErr
 }
 
 // CountOrphanedAttachments returns the number of bad attachments

@@ -349,10 +349,7 @@ func (comments CommentList) LoadAttachmentsByIssue(ctx context.Context) error {
 	}
 
 	attachments := make([]*repo_model.Attachment, 0, len(comments)/2)
-	if err := db.GetEngine(ctx).
-		Where("issue_id=? AND comment_id>0", comments[0].IssueID).
-		And("status = ?", db.FileStatusNormal).
-		Find(&attachments); err != nil {
+	if err := db.GetEngine(ctx).Where("issue_id=? AND comment_id>0", comments[0].IssueID).Find(&attachments); err != nil {
 		return err
 	}
 
@@ -380,7 +377,6 @@ func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 		limit := min(left, db.DefaultMaxInSize)
 		rows, err := db.GetEngine(ctx).
 			In("comment_id", commentsIDs[:limit]).
-			And("status = ?", db.FileStatusNormal).
 			Rows(new(repo_model.Attachment))
 		if err != nil {
 			return err
