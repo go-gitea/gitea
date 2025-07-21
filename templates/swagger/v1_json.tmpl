@@ -24968,7 +24968,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "GenerateRepoOption": {
-      "description": "GenerateRepoOption options when creating repository using a template",
+      "description": "GenerateRepoOption options when creating a repository using a template",
       "type": "object",
       "required": [
         "owner",
@@ -25011,7 +25011,7 @@
           "x-go-name": "Name"
         },
         "owner": {
-          "description": "The organization's name or individual user's name who will own the new repository",
+          "description": "the organization's name or individual user's name who will own the new repository",
           "type": "string",
           "x-go-name": "Owner"
         },
@@ -25929,6 +25929,7 @@
           "x-go-name": "RepoName"
         },
         "repo_owner": {
+          "description": "the organization's name or individual user's name who will own the migrated repository",
           "type": "string",
           "x-go-name": "RepoOwner"
         },
@@ -25948,7 +25949,7 @@
           "x-go-name": "Service"
         },
         "uid": {
-          "description": "deprecated (only for backwards compatibility)",
+          "description": "deprecated (only for backwards compatibility, use repo_owner instead)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RepoOwnerID"

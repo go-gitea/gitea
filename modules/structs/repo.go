@@ -226,10 +226,10 @@ type EditRepoOption struct {
 	EnablePrune *bool `json:"enable_prune,omitempty"`
 }
 
-// GenerateRepoOption options when creating repository using a template
+// GenerateRepoOption options when creating a repository using a template
 // swagger:model
 type GenerateRepoOption struct {
-	// The organization's name or individual user's name who will own the new repository
+	// the organization's name or individual user's name who will own the new repository
 	//
 	// required: true
 	Owner string `json:"owner"`
@@ -351,9 +351,10 @@ func (gt GitServiceType) Title() string {
 type MigrateRepoOptions struct {
 	// required: true
 	CloneAddr string `json:"clone_addr" binding:"Required"`
-	// deprecated (only for backwards compatibility)
-	RepoOwnerID int64  `json:"uid"`
-	RepoOwner   string `json:"repo_owner"`
+	// deprecated (only for backwards compatibility, use repo_owner instead)
+	RepoOwnerID int64 `json:"uid"`
+	// the organization's name or individual user's name who will own the migrated repository
+	RepoOwner string `json:"repo_owner"`
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
