@@ -29,7 +29,7 @@ import (
 type ActionRun struct {
 	ID                int64
 	Title             string
-	RepoID            int64                  `xorm:"index unique(repo_index)"`
+	RepoID            int64                  `xorm:"index unique(repo_index) index(repo_concurrency)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
 	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
@@ -48,7 +48,7 @@ type ActionRun struct {
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
-	ConcurrencyGroup  string                       `xorm:"index"`
+	ConcurrencyGroup  string                       `xorm:"index(repo_concurrency)"`
 	ConcurrencyCancel bool
 	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
 	Started timeutil.TimeStamp

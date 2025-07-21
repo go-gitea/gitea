@@ -22,7 +22,7 @@ type ActionRunJob struct {
 	ID                int64
 	RunID             int64                  `xorm:"index"`
 	Run               *ActionRun             `xorm:"-"`
-	RepoID            int64                  `xorm:"index"`
+	RepoID            int64                  `xorm:"index index(repo_concurrency)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
 	CommitSHA         string                 `xorm:"index"`
@@ -39,7 +39,7 @@ type ActionRunJob struct {
 	RawConcurrencyGroup    string // raw concurrency.group
 	RawConcurrencyCancel   string // raw concurrency.cancel-in-progress
 	IsConcurrencyEvaluated bool   // whether RawConcurrencyGroup have been evaluated, only valid when RawConcurrencyGroup is not empty
-	ConcurrencyGroup       string `xorm:"index"` // evaluated concurrency.group
+	ConcurrencyGroup       string `xorm:"index(repo_concurrency)"` // evaluated concurrency.group
 	ConcurrencyCancel      bool   // evaluated concurrency.cancel-in-progress
 
 	Started timeutil.TimeStamp

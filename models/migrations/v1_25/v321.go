@@ -9,7 +9,8 @@ import (
 
 func AddActionsConcurrency(x *xorm.Engine) error {
 	type ActionRun struct {
-		ConcurrencyGroup  string `xorm:"index"`
+		RepoID            int64  `xorm:"index index(repo_concurrency)"`
+		ConcurrencyGroup  string `xorm:"index(repo_concurrency)"`
 		ConcurrencyCancel bool
 	}
 
@@ -18,10 +19,11 @@ func AddActionsConcurrency(x *xorm.Engine) error {
 	}
 
 	type ActionRunJob struct {
+		RepoID                 int64 `xorm:"index index(repo_concurrency)"`
 		RawConcurrencyGroup    string
 		RawConcurrencyCancel   string
 		IsConcurrencyEvaluated bool
-		ConcurrencyGroup       string `xorm:"index"`
+		ConcurrencyGroup       string `xorm:"index(repo_concurrency)"`
 		ConcurrencyCancel      bool
 	}
 
