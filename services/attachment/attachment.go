@@ -92,6 +92,7 @@ func Init() error {
 	if cleanQueue == nil {
 		return errors.New("Unable to create attachments-clean queue")
 	}
+	go graceful.GetManager().RunWithCancel(cleanQueue)
 	return nil
 }
 

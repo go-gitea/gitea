@@ -305,7 +305,9 @@ func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) 
 		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 	}
 	for i := range attachments {
-		if attachments[i].IssueID != 0 {
+		if attachments[i].IssueID == issueID {
+			continue
+		} else if attachments[i].IssueID != 0 {
 			return util.NewPermissionDeniedErrorf("update issue attachments permission denied")
 		}
 		attachments[i].IssueID = issueID

@@ -22,7 +22,7 @@ type Attachment321 struct {
 	Name                 string
 	DownloadCount        int64              `xorm:"DEFAULT 0"`
 	Status               db.FileStatus      `xorm:"DEFAULT 1 NOT NULL"` // 1 = normal, 2 = to be deleted
-	DeleteFailedCount    int                `xorm:"DEFAULT 0"`          // Number of times the deletion failed, used to prevent infinite loop
+	DeleteFailedCount    int                `xorm:"DEFAULT 0 NOT NULL"` // Number of times the deletion failed, used to prevent infinite loop
 	LastDeleteFailedTime timeutil.TimeStamp // Last time the deletion failed, used to prevent infinite loop
 	Size                 int64              `xorm:"DEFAULT 0"`
 	CreatedUnix          timeutil.TimeStamp `xorm:"created"`
@@ -34,28 +34,28 @@ func (a *Attachment321) TableName() string {
 
 // TableIndices implements xorm's TableIndices interface
 func (a *Attachment321) TableIndices() []*schemas.Index {
-	uuidIndex := schemas.NewIndex("attachment_uuid", schemas.UniqueType)
+	uuidIndex := schemas.NewIndex("uuid", schemas.UniqueType)
 	uuidIndex.AddColumn("uuid")
 
-	repoIndex := schemas.NewIndex("attachment_repo_id", schemas.IndexType)
+	repoIndex := schemas.NewIndex("repo_id", schemas.IndexType)
 	repoIndex.AddColumn("repo_id")
 
-	issueIndex := schemas.NewIndex("attachment_issue_id", schemas.IndexType)
+	issueIndex := schemas.NewIndex("issue_id", schemas.IndexType)
 	issueIndex.AddColumn("issue_id")
 
-	releaseIndex := schemas.NewIndex("attachment_release_id", schemas.IndexType)
+	releaseIndex := schemas.NewIndex("release_id", schemas.IndexType)
 	releaseIndex.AddColumn("release_id")
 
-	uploaderIndex := schemas.NewIndex("attachment_uploader_id", schemas.IndexType)
+	uploaderIndex := schemas.NewIndex("uploader_id", schemas.IndexType)
 	uploaderIndex.AddColumn("uploader_id")
 
-	commentIndex := schemas.NewIndex("attachment_comment_id", schemas.IndexType)
+	commentIndex := schemas.NewIndex("comment_id", schemas.IndexType)
 	commentIndex.AddColumn("comment_id")
 
-	statusIndex := schemas.NewIndex("attachment_status", schemas.IndexType)
+	statusIndex := schemas.NewIndex("status", schemas.IndexType)
 	statusIndex.AddColumn("status")
 
-	statusIDIndex := schemas.NewIndex("attachment_status_id", schemas.IndexType)
+	statusIDIndex := schemas.NewIndex("status_id", schemas.IndexType)
 	statusIDIndex.AddColumn("status", "id") // For status = ? AND id > ? query
 
 	return []*schemas.Index{
