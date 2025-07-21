@@ -146,7 +146,6 @@ func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAtt
 		}
 
 		if removeAttachments {
-			// mark comment attachments as deleted
 			return repo_model.DeleteAttachments(ctx, comment.Attachments)
 		}
 		return nil, nil
