@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/schemas"
 )
 
 // Badge represents a user badge
@@ -27,6 +28,15 @@ type UserBadge struct { //nolint:revive // export stutter
 	ID      int64 `xorm:"pk autoincr"`
 	BadgeID int64
 	UserID  int64 `xorm:"INDEX"`
+}
+
+// TableIndices implements xorm's TableIndices interface
+func (n *UserBadge) TableIndices() []*schemas.Index {
+	indices := make([]*schemas.Index, 0, 1)
+	ubUnique := schemas.NewIndex("unique_user_badge", schemas.UniqueType)
+	ubUnique.AddColumn("user_id", "badge_id")
+	indices = append(indices, ubUnique)
+	return indices
 }
 
 // ErrBadgeAlreadyExist represents a "badge already exists" error.
@@ -189,20 +199,22 @@ func RemoveUserBadge(ctx context.Context, u *User, badge *Badge) error {
 // RemoveUserBadges removes specific badges from a user.
 func RemoveUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		slugs := make([]string, len(badges))
-		for i, badge := range badges {
-			slugs[i] = badge.Slug
+		badgeSlugs := make([]string, 0, len(badges))
+		for _, badge := range badges {
+			badgeSlugs = append(badgeSlugs, badge.Slug)
 		}
-
-		var badgeIDs []int64
-		if err := db.GetEngine(ctx).Table("badge").In("slug", slugs).Cols("id").Find(&badgeIDs); err != nil {
+		var userBadges []UserBadge
+		if err := db.GetEngine(ctx).Table("user_badge").
+			Join("INNER", "badge", "badge.id = `user_badge`.badge_id").
+			Where("`user_badge`.user_id = ?", u.ID).In("`badge`.slug", badgeSlugs).
+			Find(&userBadges); err != nil {
 			return err
 		}
-
-		if _, err := db.GetEngine(ctx).
-			Where("user_id = ?", u.ID).
-			In("badge_id", badgeIDs).
-			Delete(&UserBadge{}); err != nil {
+		userBadgeIDs := make([]int64, 0, len(userBadges))
+		for _, ub := range userBadges {
+			userBadgeIDs = append(userBadgeIDs, ub.ID)
+		}
+		if _, err := db.GetEngine(ctx).Table("user_badge").In("id", userBadgeIDs).Delete(); err != nil {
 			return err
 		}
 		return nil
