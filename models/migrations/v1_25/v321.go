@@ -1,7 +1,7 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_25 //nolint
+package v1_25
 
 import (
 	"fmt"

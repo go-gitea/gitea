@@ -17,9 +17,9 @@
 							</div>
 						</div>
 						<div class="flex-item-trailing">
-							<button class="ui red tiny button inline delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+							<a class="ui red tiny button inline link-action" data-url="{{$.Link}}/delete?id={{.ID}}" data-modal-confirm="{{ctx.Locale.Tr "admin.badges.delete_user_desc"}}">
 								{{ctx.Locale.Tr "admin.badges.remove_user"}}
-							</button>
+							</a>
 						</div>
 					</div>
 				{{end}}
@@ -37,19 +37,5 @@
 			</form>
 		</div>
 	</div>
-
-<div class="ui g-modal-confirm delete modal">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{ctx.Locale.Tr "admin.badges.remove_user"}}
-	</div>
-<form class="ui form" method="post" id="remove-badge-user-form" action="{{.Link}}">
-<div class="content">
-		{{$.CsrfTokenHtml}}
-		<p>{{ctx.Locale.Tr "admin.badges.delete_user_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
-	</form>
-</div>
 
 {{template "admin/layout_footer" .}}
