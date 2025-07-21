@@ -59,8 +59,7 @@ func TestGetFullCommitIDError(t *testing.T) {
 }
 
 func TestCommitFromReader(t *testing.T) {
-	commitString := `feaf4ba6bc635fec442f46ddd4512416ec43c2c2 commit 1074
-tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
+	commitString := `tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
 parent 37991dec2c8e592043f47155ce4808d4580f9123
 author silverwind <me@silverwind.io> 1563741793 +0200
 committer silverwind <me@silverwind.io> 1563741793 +0200
@@ -108,8 +107,7 @@ sD53z/f0J+We4VZjY+pidvA9BGZPFVdR3wd3xGs8/oH6UWaLJAMGkLG6dDb3qDLm
 mfeFhT57UbE4qukTDIQ0Y0WM40UYRTakRaDY7ubhXgLgx09Cnp9XTVMsHgT6j9/i
 1pxsB104XLWjQHTjr1JtiaBQEwFh9r2OKTcpvaLcbNtYpo7CzOs=
 =FRsO
------END PGP SIGNATURE-----
-`, commitFromReader.Signature.Signature)
+-----END PGP SIGNATURE-----`, commitFromReader.Signature.Signature)
 	assert.Equal(t, `tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
 parent 37991dec2c8e592043f47155ce4808d4580f9123
 author silverwind <me@silverwind.io> 1563741793 +0200
@@ -126,8 +124,7 @@ empty commit`, commitFromReader.Signature.Payload)
 }
 
 func TestCommitWithEncodingFromReader(t *testing.T) {
-	commitString := `feaf4ba6bc635fec442f46ddd4512416ec43c2c2 commit 1074
-tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
+	commitString := `tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
 parent 47b24e7ab977ed31c5a39989d570847d6d0052af
 author KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 committer KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
@@ -172,8 +169,7 @@ SONRzusmu5n3DgV956REL7x62h7JuqmBz/12HZkr0z0zgXkcZ04q08pSJATX5N1F
 yN+tWxTsWg+zhDk96d5Esdo9JMjcFvPv0eioo30GAERaz1hoD7zCMT4jgUFTQwgz
 jw4YcO5u
 =r3UU
------END PGP SIGNATURE-----
-`, commitFromReader.Signature.Signature)
+-----END PGP SIGNATURE-----`, commitFromReader.Signature.Signature)
 	assert.Equal(t, `tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
 parent 47b24e7ab977ed31c5a39989d570847d6d0052af
 author KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100

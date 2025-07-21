@@ -17,7 +17,7 @@
 			</div>
 			<div>
 				{{if or $invalid $resolved}}
-					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}tw-hidden {{end}}ui compact labeled button show-outdated tw-flex tw-items-center">
+					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}tw-hidden{{end}} btn tiny show-outdated">
 						{{svg "octicon-unfold" 16 "tw-mr-2"}}
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
@@ -25,7 +25,7 @@
 							{{ctx.Locale.Tr "repo.issues.review.show_outdated"}}
 						{{end}}
 					</button>
-					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if $resolved}}tw-hidden {{end}}ui compact labeled button hide-outdated tw-flex tw-items-center">
+					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if $resolved}}tw-hidden {{end}} btn tiny hide-outdated">
 						{{svg "octicon-fold" 16 "tw-mr-2"}}
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
@@ -58,7 +58,7 @@
 					<div class="comment code-comment" id="{{.HashTag}}">
 						<div class="content comment-container">
 							<div class="comment-header">
-								<div class="comment-header-left tw-flex tw-items-center">
+								<div class="comment-header-left">
 									{{if not .OriginalAuthor}}
 										<a class="avatar">
 											{{ctx.AvatarUtils.Avatar .Poster 20}}
@@ -79,7 +79,7 @@
 										{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdSubStr}}
 									</span>
 								</div>
-								<div class="comment-header-right actions tw-flex tw-items-center">
+								<div class="comment-header-right">
 									{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 									{{if not $.Repository.IsArchived}}
 										{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}

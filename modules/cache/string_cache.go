@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	chi_cache "gitea.com/go-chi/cache" //nolint:depguard
+	chi_cache "gitea.com/go-chi/cache" //nolint:depguard // we wrap this package here
 )
 
 type GetJSONError struct {

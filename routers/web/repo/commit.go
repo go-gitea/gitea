@@ -21,6 +21,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -66,10 +67,7 @@ func Commits(ctx *context.Context) {
 
 	commitsCount := ctx.Repo.CommitsCount
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	pageSize := ctx.FormInt("limit")
 	if pageSize <= 0 {
@@ -77,7 +75,7 @@ func Commits(ctx *context.Context) {
 	}
 
 	// Both `git log branchName` and `git log commitId` work.
-	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize, "")
+	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize, "", "", "")
 	if err != nil {
 		ctx.ServerError("CommitsByRange", err)
 		return
@@ -168,10 +166,13 @@ func Graph(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 
+	divOnly := ctx.FormBool("div-only")
+	queryParams := ctx.Req.URL.Query()
+	queryParams.Del("div-only")
 	paginator := context.NewPagination(int(graphCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
-	paginator.AddParamFromRequest(ctx.Req)
+	paginator.AddParamFromQuery(queryParams)
 	ctx.Data["Page"] = paginator
-	if ctx.FormBool("div-only") {
+	if divOnly {
 		ctx.HTML(http.StatusOK, tplGraphDiv)
 		return
 	}
@@ -229,10 +230,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
@@ -313,7 +311,7 @@ func Diff(ctx *context.Context) {
 		maxLines, maxFiles = -1, -1
 	}
 
-	diff, err := gitdiff.GetDiffForRender(ctx, gitRepo, &gitdiff.DiffOptions{
+	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, &gitdiff.DiffOptions{
 		AfterCommitID:      commitID,
 		SkipTo:             ctx.FormString("skip-to"),
 		MaxLines:           maxLines,
@@ -369,10 +367,14 @@ func Diff(ctx *context.Context) {
 			return
 		}
 
-		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(diffTree, nil)
+		renderedIconPool := fileicon.NewRenderedIconPool()
+		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, nil)
+		ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
+		ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
+		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 	}
 
-	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)
+	statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
@@ -452,6 +454,9 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 	}
 	if !ctx.Repo.CanRead(unit_model.TypeActions) {
 		for _, commit := range commits {
+			if commit.Status == nil {
+				continue
+			}
 			commit.Status.HideActionsURL(ctx)
 			git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
 		}

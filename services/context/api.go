@@ -9,12 +9,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
@@ -244,8 +246,8 @@ func APIContexter() func(http.Handler) http.Handler {
 // APIErrorNotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) APIErrorNotFound(objs ...any) {
-	message := ctx.Locale.TrString("error.not_found")
-	var errors []string
+	var message string
+	var errs []string
 	for _, obj := range objs {
 		// Ignore nil
 		if obj == nil {
@@ -253,16 +255,15 @@ func (ctx *APIContext) APIErrorNotFound(objs ...any) {
 		}
 
 		if err, ok := obj.(error); ok {
-			errors = append(errors, err.Error())
+			errs = append(errs, err.Error())
 		} else {
 			message = obj.(string)
 		}
 	}
-
 	ctx.JSON(http.StatusNotFound, map[string]any{
-		"message": message,
+		"message": util.IfZero(message, "not found"), // do not use locale in API
 		"url":     setting.API.SwaggerURL,
-		"errors":  errors,
+		"errors":  errs,
 	})
 }
 
@@ -298,39 +299,27 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 		}
 
 		if ctx.Repo.GitRepo == nil {
-			ctx.APIErrorInternal(errors.New("no open git repo"))
-			return
+			panic("no GitRepo, forgot to call the middleware?") // it is a programming error
 		}
 
-		refName, _, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.PathParam("*"), ctx.FormTrim("ref"))
+		refName, refType, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.PathParam("*"), ctx.FormTrim("ref"))
 		var err error
-
-		if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refName) {
+		switch refType {
+		case git.RefTypeBranch:
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if gitrepo.IsTagExist(ctx, ctx.Repo.Repository, refName) {
+		case git.RefTypeTag:
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if len(refName) == ctx.Repo.GetObjectFormat().FullLength() {
-			ctx.Repo.CommitID = refName
+		case git.RefTypeCommit:
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
-			if err != nil {
-				ctx.APIErrorNotFound("GetCommit", err)
-				return
-			}
-		} else {
-			ctx.APIErrorNotFound(fmt.Errorf("not exist: '%s'", ctx.PathParam("*")))
+		}
+		if ctx.Repo.Commit == nil || errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound("unable to find a git ref")
+			return
+		} else if err != nil {
+			ctx.APIErrorInternal(err)
 			return
 		}
-
+		ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 		next.ServeHTTP(w, req)
 	})
 }
@@ -376,11 +365,5 @@ func (ctx *APIContext) IsUserRepoAdmin() bool {
 
 // IsUserRepoWriter returns true if current user has "write" privilege in current repo
 func (ctx *APIContext) IsUserRepoWriter(unitTypes []unit.Type) bool {
-	for _, unitType := range unitTypes {
-		if ctx.Repo.CanWrite(unitType) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(unitTypes, ctx.Repo.CanWrite)
 }

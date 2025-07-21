@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"context"
 	"os"
 	"path"
 	"path/filepath"
@@ -20,7 +21,7 @@ import (
 
 	"gitea.com/go-chi/session"
 	"github.com/mholt/archiver/v3"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // CmdDump represents the available dump sub-command.
@@ -101,17 +102,17 @@ func fatal(format string, args ...any) {
 	log.Fatal(format, args...)
 }
 
-func runDump(ctx *cli.Context) error {
+func runDump(ctx context.Context, cmd *cli.Command) error {
 	setting.MustInstalled()
 
-	quite := ctx.Bool("quiet")
-	verbose := ctx.Bool("verbose")
+	quite := cmd.Bool("quiet")
+	verbose := cmd.Bool("verbose")
 	if verbose && quite {
 		fatal("Option --quiet and --verbose cannot both be set")
 	}
 
 	// outFileName is either "-" or a file name (will be made absolute)
-	outFileName, outType := dump.PrepareFileNameAndType(ctx.String("file"), ctx.String("type"))
+	outFileName, outType := dump.PrepareFileNameAndType(cmd.String("file"), cmd.String("type"))
 	if outType == "" {
 		fatal("Invalid output type")
 	}
@@ -136,10 +137,7 @@ func runDump(ctx *cli.Context) error {
 	setting.DisableLoggerInit()
 	setting.LoadSettings() // cannot access session settings otherwise
 
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
-	err := db.InitEngine(stdCtx)
+	err := db.InitEngine(ctx)
 	if err != nil {
 		return err
 	}
@@ -165,7 +163,7 @@ func runDump(ctx *cli.Context) error {
 	}
 	dumper.GlobalExcludeAbsPath(outFileName)
 
-	if ctx.IsSet("skip-repository") && ctx.Bool("skip-repository") {
+	if cmd.IsSet("skip-repository") && cmd.Bool("skip-repository") {
 		log.Info("Skip dumping local repositories")
 	} else {
 		log.Info("Dumping local repositories... %s", setting.RepoRootPath)
@@ -173,7 +171,7 @@ func runDump(ctx *cli.Context) error {
 			fatal("Failed to include repositories: %v", err)
 		}
 
-		if ctx.IsSet("skip-lfs-data") && ctx.Bool("skip-lfs-data") {
+		if cmd.IsSet("skip-lfs-data") && cmd.Bool("skip-lfs-data") {
 			log.Info("Skip dumping LFS data")
 		} else if !setting.LFS.StartServer {
 			log.Info("LFS isn't enabled. Skip dumping LFS data")
@@ -188,12 +186,12 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	if ctx.Bool("skip-db") {
+	if cmd.Bool("skip-db") {
 		// Ensure that we don't dump the database file that may reside in setting.AppDataPath or elsewhere.
 		dumper.GlobalExcludeAbsPath(setting.Database.Path)
 		log.Info("Skipping database")
 	} else {
-		tmpDir := ctx.String("tempdir")
+		tmpDir := cmd.String("tempdir")
 		if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
 			fatal("Path does not exist: %s", tmpDir)
 		}
@@ -209,7 +207,7 @@ func runDump(ctx *cli.Context) error {
 			}
 		}()
 
-		targetDBType := ctx.String("database")
+		targetDBType := cmd.String("database")
 		if len(targetDBType) > 0 && targetDBType != setting.Database.Type.String() {
 			log.Info("Dumping database %s => %s...", setting.Database.Type, targetDBType)
 		} else {
@@ -230,7 +228,7 @@ func runDump(ctx *cli.Context) error {
 		fatal("Failed to include specified app.ini: %v", err)
 	}
 
-	if ctx.IsSet("skip-custom-dir") && ctx.Bool("skip-custom-dir") {
+	if cmd.IsSet("skip-custom-dir") && cmd.Bool("skip-custom-dir") {
 		log.Info("Skipping custom directory")
 	} else {
 		customDir, err := os.Stat(setting.CustomPath)
@@ -263,7 +261,7 @@ func runDump(ctx *cli.Context) error {
 			excludes = append(excludes, opts.ProviderConfig)
 		}
 
-		if ctx.IsSet("skip-index") && ctx.Bool("skip-index") {
+		if cmd.IsSet("skip-index") && cmd.Bool("skip-index") {
 			excludes = append(excludes, setting.Indexer.RepoPath)
 			excludes = append(excludes, setting.Indexer.IssuePath)
 		}
@@ -278,7 +276,7 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	if ctx.IsSet("skip-attachment-data") && ctx.Bool("skip-attachment-data") {
+	if cmd.IsSet("skip-attachment-data") && cmd.Bool("skip-attachment-data") {
 		log.Info("Skip dumping attachment data")
 	} else if err := storage.Attachments.IterateObjects("", func(objPath string, object storage.Object) error {
 		info, err := object.Stat()
@@ -290,7 +288,7 @@ func runDump(ctx *cli.Context) error {
 		fatal("Failed to dump attachments: %v", err)
 	}
 
-	if ctx.IsSet("skip-package-data") && ctx.Bool("skip-package-data") {
+	if cmd.IsSet("skip-package-data") && cmd.Bool("skip-package-data") {
 		log.Info("Skip dumping package data")
 	} else if !setting.Packages.Enabled {
 		log.Info("Packages isn't enabled. Skip dumping package data")
@@ -307,7 +305,7 @@ func runDump(ctx *cli.Context) error {
 	// Doesn't check if LogRootPath exists before processing --skip-log intentionally,
 	// ensuring that it's clear the dump is skipped whether the directory's initialized
 	// yet or not.
-	if ctx.IsSet("skip-log") && ctx.Bool("skip-log") {
+	if cmd.IsSet("skip-log") && cmd.Bool("skip-log") {
 		log.Info("Skip dumping log files")
 	} else {
 		isExist, err := util.IsExist(setting.Log.RootPath)

@@ -352,14 +352,22 @@ a.btn:hover {
   color: inherit;
 }
 
+.btn.tiny {
+  font-size: 12px;
+}
+
+.btn.small {
+  font-size: 13px;
+}
+
 /* By default, Fomantic UI doesn't support "bordered" buttons group, but Gitea would like to use it.
 And the default buttons always have borders now (not the same as Fomantic UI's default buttons, see above).
 It needs some tricks to tweak the left/right borders with active state */
 
 .ui.buttons .button {
   border-right: none;
-  flex: 1 0 auto;
   border-radius: 0;
+  flex-shrink: 0;
   margin: 0;
 }
 .ui.buttons .button:first-child {

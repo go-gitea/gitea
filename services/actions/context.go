@@ -15,11 +15,16 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+
+	"github.com/nektos/act/pkg/model"
 )
+
+type GiteaContext map[string]any
 
 // GenerateGiteaContext generate the gitea context without token and gitea_runtime_token
 // job can be nil when generating a context for parsing workflow-level expressions
-func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.ActionRunJob) map[string]any {
+func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.ActionRunJob) GiteaContext {
 	event := map[string]any{}
 	_ = json.Unmarshal([]byte(run.EventPayload), &event)
 
@@ -42,7 +47,7 @@ func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.Actio
 
 	refName := git.RefName(ref)
 
-	gitContext := map[string]any{
+	gitContext := GiteaContext{
 		// standard contexts, see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 		"action":            "",                                       // string, The name of the action currently running, or the id of a step. GitHub removes special characters, and uses the name __run when the current step runs a script without an id. If you use the same action more than once in the same job, the name will include a suffix with the sequence number with underscore before it. For example, the first script you run will have the name __run, and the second script will be named __run_2. Similarly, the second invocation of actions/checkout will be actionscheckout2.
 		"action_path":       "",                                       // string, The path where an action is located. This property is only supported in composite actions. You can use this path to access files located in the same repository as the action.
@@ -159,4 +164,38 @@ func mergeTwoOutputs(o1, o2 map[string]string) map[string]string {
 		}
 	}
 	return ret
+}
+
+func (g *GiteaContext) ToGitHubContext() *model.GithubContext {
+	return &model.GithubContext{
+		Event:            util.GetMapValueOrDefault(*g, "event", map[string]any(nil)),
+		EventPath:        util.GetMapValueOrDefault(*g, "event_path", ""),
+		Workflow:         util.GetMapValueOrDefault(*g, "workflow", ""),
+		RunID:            util.GetMapValueOrDefault(*g, "run_id", ""),
+		RunNumber:        util.GetMapValueOrDefault(*g, "run_number", ""),
+		Actor:            util.GetMapValueOrDefault(*g, "actor", ""),
+		Repository:       util.GetMapValueOrDefault(*g, "repository", ""),
+		EventName:        util.GetMapValueOrDefault(*g, "event_name", ""),
+		Sha:              util.GetMapValueOrDefault(*g, "sha", ""),
+		Ref:              util.GetMapValueOrDefault(*g, "ref", ""),
+		RefName:          util.GetMapValueOrDefault(*g, "ref_name", ""),
+		RefType:          util.GetMapValueOrDefault(*g, "ref_type", ""),
+		HeadRef:          util.GetMapValueOrDefault(*g, "head_ref", ""),
+		BaseRef:          util.GetMapValueOrDefault(*g, "base_ref", ""),
+		Token:            "", // deliberately omitted for security
+		Workspace:        util.GetMapValueOrDefault(*g, "workspace", ""),
+		Action:           util.GetMapValueOrDefault(*g, "action", ""),
+		ActionPath:       util.GetMapValueOrDefault(*g, "action_path", ""),
+		ActionRef:        util.GetMapValueOrDefault(*g, "action_ref", ""),
+		ActionRepository: util.GetMapValueOrDefault(*g, "action_repository", ""),
+		Job:              util.GetMapValueOrDefault(*g, "job", ""),
+		JobName:          "", // not present in GiteaContext
+		RepositoryOwner:  util.GetMapValueOrDefault(*g, "repository_owner", ""),
+		RetentionDays:    util.GetMapValueOrDefault(*g, "retention_days", ""),
+		RunnerPerflog:    "", // not present in GiteaContext
+		RunnerTrackingID: "", // not present in GiteaContext
+		ServerURL:        util.GetMapValueOrDefault(*g, "server_url", ""),
+		APIURL:           util.GetMapValueOrDefault(*g, "api_url", ""),
+		GraphQLURL:       util.GetMapValueOrDefault(*g, "graphql_url", ""),
+	}
 }

@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"path"
@@ -26,6 +27,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/httpauth"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -41,6 +43,7 @@ type requestContext struct {
 	User          string
 	Repo          string
 	Authorization string
+	Method        string
 }
 
 // Claims is a JWT Token Claims
@@ -202,7 +205,7 @@ func BatchHandler(ctx *context.Context) {
 
 		exists, err := contentStore.Exists(p)
 		if err != nil {
-			log.Error("Unable to check if LFS OID[%s] exist. Error: %v", p.Oid, rc.User, rc.Repo, err)
+			log.Error("Unable to check if LFS object with ID '%s' exists for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
 		}
@@ -395,6 +398,7 @@ func getRequestContext(ctx *context.Context) *requestContext {
 		User:          ctx.PathParam("username"),
 		Repo:          strings.TrimSuffix(ctx.PathParam("reponame"), ".git"),
 		Authorization: ctx.Req.Header.Get("Authorization"),
+		Method:        ctx.Req.Method,
 	}
 }
 
@@ -463,7 +467,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			var link *lfs_module.Link
 			if setting.LFS.Storage.ServeDirect() {
 				// If we have a signed url (S3, object storage), redirect to this directly.
-				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid, nil)
+				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid, rc.Method, nil)
 				if u != nil && err == nil {
 					// Presigned url does not need the Authorization header
 					// https://github.com/go-gitea/gitea/issues/21525
@@ -480,9 +484,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			rep.Actions["upload"] = &lfs_module.Link{Href: rc.UploadLink(pointer), Header: header}
 
 			verifyHeader := make(map[string]string)
-			for key, value := range header {
-				verifyHeader[key] = value
-			}
+			maps.Copy(verifyHeader, header)
 
 			// This is only needed to workaround https://github.com/git-lfs/git-lfs/issues/3662
 			verifyHeader["Accept"] = lfs_module.AcceptHeader
@@ -595,19 +597,11 @@ func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Rep
 	if authorization == "" {
 		return nil, errors.New("no token")
 	}
-
-	parts := strings.SplitN(authorization, " ", 2)
-	if len(parts) != 2 {
-		return nil, errors.New("no token")
+	parsed, ok := httpauth.ParseAuthorizationHeader(authorization)
+	if !ok || parsed.BearerToken == nil {
+		return nil, errors.New("token not found")
 	}
-	tokenSHA := parts[1]
-	switch strings.ToLower(parts[0]) {
-	case "bearer":
-		fallthrough
-	case "token":
-		return handleLFSToken(ctx, tokenSHA, target, mode)
-	}
-	return nil, errors.New("token not found")
+	return handleLFSToken(ctx, parsed.BearerToken.Token, target, mode)
 }
 
 func requireAuth(ctx *context.Context) {

@@ -7,8 +7,7 @@ package git
 
 import (
 	"context"
-	"fmt"
-	"io"
+	"maps"
 	"path"
 	"sort"
 
@@ -16,7 +15,7 @@ import (
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
+func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
@@ -40,9 +39,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 				return nil, nil, err
 			}
 
-			for pth, found := range commits {
-				revs[pth] = found
-			}
+			maps.Copy(revs, commits)
 		}
 	} else {
 		sort.Strings(entryPaths)
@@ -65,22 +62,12 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 			log.Debug("missing commit for %s", entry.Name())
 		}
 
-		// If the entry is a submodule add a submodule file for this
+		// If the entry is a submodule, add a submodule file for this
 		if entry.IsSubModule() {
-			subModuleURL := ""
-			var fullPath string
-			if len(treePath) > 0 {
-				fullPath = treePath + "/" + entry.Name()
-			} else {
-				fullPath = entry.Name()
-			}
-			if subModule, err := commit.GetSubModule(fullPath); err != nil {
+			commitsInfo[i].SubmoduleFile, err = getCommitInfoSubmoduleFile(repoLink, entry, commit, treePath)
+			if err != nil {
 				return nil, nil, err
-			} else if subModule != nil {
-				subModuleURL = subModule.URL
 			}
-			subModuleFile := NewCommitSubmoduleFile(subModuleURL, entry.ID.String())
-			commitsInfo[i].SubmoduleFile = subModuleFile
 		}
 	}
 
@@ -124,46 +111,23 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 		return nil, err
 	}
 
-	batchStdinWriter, batchReader, cancel, err := commit.repo.CatFileBatch(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer cancel()
-
 	commitsMap := map[string]*Commit{}
 	commitsMap[commit.ID.String()] = commit
 
 	commitCommits := map[string]*Commit{}
 	for path, commitID := range revs {
+		if len(commitID) == 0 {
+			continue
+		}
+
 		c, ok := commitsMap[commitID]
 		if ok {
 			commitCommits[path] = c
 			continue
 		}
 
-		if len(commitID) == 0 {
-			continue
-		}
-
-		_, err := batchStdinWriter.Write([]byte(commitID + "\n"))
+		c, err := commit.repo.GetCommit(commitID) // Ensure the commit exists in the repository
 		if err != nil {
-			return nil, err
-		}
-		_, typ, size, err := ReadBatchLine(batchReader)
-		if err != nil {
-			return nil, err
-		}
-		if typ != "commit" {
-			if err := DiscardFull(batchReader, size+1); err != nil {
-				return nil, err
-			}
-			return nil, fmt.Errorf("unexpected type: %s for commit id: %s", typ, commitID)
-		}
-		c, err = CommitFromReader(commit.repo, MustIDFromString(commitID), io.LimitReader(batchReader, size))
-		if err != nil {
-			return nil, err
-		}
-		if _, err := batchReader.Discard(1); err != nil {
 			return nil, err
 		}
 		commitCommits[path] = c

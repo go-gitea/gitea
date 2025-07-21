@@ -22,7 +22,11 @@ func TestUpdateUser(t *testing.T) {
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	assert.Error(t, UpdateUser(db.DefaultContext, admin, &UpdateOptions{
-		IsAdmin: optional.Some(false),
+		IsAdmin: UpdateOptionFieldFromValue(false),
+	}))
+
+	assert.NoError(t, UpdateUser(db.DefaultContext, admin, &UpdateOptions{
+		IsAdmin: UpdateOptionFieldFromSync(false),
 	}))
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
@@ -38,7 +42,7 @@ func TestUpdateUser(t *testing.T) {
 		MaxRepoCreation:              optional.Some(10),
 		IsRestricted:                 optional.Some(true),
 		IsActive:                     optional.Some(false),
-		IsAdmin:                      optional.Some(true),
+		IsAdmin:                      UpdateOptionFieldFromValue(true),
 		Visibility:                   optional.Some(structs.VisibleTypePrivate),
 		KeepActivityPrivate:          optional.Some(true),
 		Language:                     optional.Some("lang"),
@@ -60,7 +64,7 @@ func TestUpdateUser(t *testing.T) {
 	assert.Equal(t, opts.MaxRepoCreation.Value(), user.MaxRepoCreation)
 	assert.Equal(t, opts.IsRestricted.Value(), user.IsRestricted)
 	assert.Equal(t, opts.IsActive.Value(), user.IsActive)
-	assert.Equal(t, opts.IsAdmin.Value(), user.IsAdmin)
+	assert.Equal(t, opts.IsAdmin.Value().FieldValue, user.IsAdmin)
 	assert.Equal(t, opts.Visibility.Value(), user.Visibility)
 	assert.Equal(t, opts.KeepActivityPrivate.Value(), user.KeepActivityPrivate)
 	assert.Equal(t, opts.Language.Value(), user.Language)
@@ -80,7 +84,7 @@ func TestUpdateUser(t *testing.T) {
 	assert.Equal(t, opts.MaxRepoCreation.Value(), user.MaxRepoCreation)
 	assert.Equal(t, opts.IsRestricted.Value(), user.IsRestricted)
 	assert.Equal(t, opts.IsActive.Value(), user.IsActive)
-	assert.Equal(t, opts.IsAdmin.Value(), user.IsAdmin)
+	assert.Equal(t, opts.IsAdmin.Value().FieldValue, user.IsAdmin)
 	assert.Equal(t, opts.Visibility.Value(), user.Visibility)
 	assert.Equal(t, opts.KeepActivityPrivate.Value(), user.KeepActivityPrivate)
 	assert.Equal(t, opts.Language.Value(), user.Language)

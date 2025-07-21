@@ -1,6 +1,6 @@
 {
   "info": {
-    "version": "{{AppVer | JSEscape}}"
+    "version": "{{.SwaggerAppVer}}"
   },
-  "basePath": "{{AppSubUrl | JSEscape}}/api/v1"
+  "basePath": "{{.SwaggerAppSubUrl}}/api/v1"
 }

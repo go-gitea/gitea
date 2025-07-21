@@ -6,7 +6,7 @@ package feed
 import (
 	"context"
 	"fmt"
-	"strconv"
+	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
@@ -14,14 +14,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
-
-func userFeedCacheKey(userID int64) string {
-	return fmt.Sprintf("user_feed_%d", userID)
-}
 
 func GetFeedsForDashboard(ctx context.Context, opts activities_model.GetFeedsOptions) (activities_model.ActionList, int, error) {
 	opts.DontCount = opts.RequestedTeam == nil && opts.Date == ""
@@ -40,7 +35,18 @@ func GetFeeds(ctx context.Context, opts activities_model.GetFeedsOptions) (activ
 // * Organization action: UserID=100 (the repo's org), ActUserID=1
 // * Watcher action: UserID=20 (a user who is watching a repo), ActUserID=1
 func notifyWatchers(ctx context.Context, act *activities_model.Action, watchers []*repo_model.Watch, permCode, permIssue, permPR []bool) error {
-	// Add feed for actioner.
+	// MySQL has TEXT length limit 65535.
+	// Sometimes the content is "field1|field2|field3", sometimes the content is JSON (ActionMirrorSyncPush, ActionCommitRepo, ActionPushTag, etc...)
+	if left, right := util.EllipsisDisplayStringX(act.Content, 65535); right != "" {
+		if strings.HasPrefix(act.Content, `{"`) && strings.HasSuffix(act.Content, `}`) {
+			// FIXME: at the moment we can do nothing if the content is JSON and it is too long
+			act.Content = "{}"
+		} else {
+			act.Content = left
+		}
+	}
+
+	// Add feed for actor.
 	act.UserID = act.ActUserID
 	if err := db.Insert(ctx, act); err != nil {
 		return fmt.Errorf("insert new actioner: %w", err)
@@ -76,24 +82,18 @@ func notifyWatchers(ctx context.Context, act *activities_model.Action, watchers 
 			if !permPR[i] {
 				continue
 			}
+		default:
 		}
 
 		if err := db.Insert(ctx, act); err != nil {
 			return fmt.Errorf("insert new action: %w", err)
 		}
-
-		total, err := activities_model.CountUserFeeds(ctx, act.UserID)
-		if err != nil {
-			return fmt.Errorf("count user feeds: %w", err)
-		}
-
-		_ = cache.GetCache().Put(userFeedCacheKey(act.UserID), strconv.FormatInt(total, 10), setting.CacheService.TTLSeconds())
 	}
 
 	return nil
 }
 
-// NotifyWatchersActions creates batch of actions for every watcher.
+// NotifyWatchers creates batch of actions for every watcher.
 func NotifyWatchers(ctx context.Context, acts ...*activities_model.Action) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if len(acts) == 0 {

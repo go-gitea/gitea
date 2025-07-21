@@ -4,7 +4,9 @@
 package repo
 
 import (
+	"html/template"
 	"net/http"
+	"path"
 	"strings"
 
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -67,7 +69,7 @@ type WebDiffFileItem struct {
 	EntryMode   string
 	IsViewed    bool
 	Children    []*WebDiffFileItem
-	// TODO: add icon support in the future
+	FileIcon    template.HTML
 }
 
 // WebDiffFileTree is used by frontend, check the field names in frontend before changing
@@ -77,7 +79,7 @@ type WebDiffFileTree struct {
 
 // transformDiffTreeForWeb transforms a gitdiff.DiffTree into a WebDiffFileTree for Web UI rendering
 // it also takes a map of file names to their viewed state, which is used to mark files as viewed
-func transformDiffTreeForWeb(diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) (dft WebDiffFileTree) {
+func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) (dft WebDiffFileTree) {
 	dirNodes := map[string]*WebDiffFileItem{"": &dft.TreeRoot}
 	addItem := func(item *WebDiffFileItem) {
 		var parentPath string
@@ -110,6 +112,7 @@ func transformDiffTreeForWeb(diffTree *gitdiff.DiffTree, filesViewedState map[st
 		item := &WebDiffFileItem{FullName: file.HeadPath, DiffStatus: file.Status}
 		item.IsViewed = filesViewedState[item.FullName] == pull_model.Viewed
 		item.NameHash = git.HashFilePathForWebUI(item.FullName)
+		item.FileIcon = fileicon.RenderEntryIconHTML(renderedIconPool, &fileicon.EntryInfo{BaseName: path.Base(file.HeadPath), EntryMode: file.HeadMode})
 
 		switch file.HeadMode {
 		case git.EntryModeTree:
@@ -141,7 +144,7 @@ func transformDiffTreeForWeb(diffTree *gitdiff.DiffTree, filesViewedState map[st
 
 func TreeViewNodes(ctx *context.Context) {
 	renderedIconPool := fileicon.NewRenderedIconPool()
-	results, err := files_service.GetTreeViewNodes(ctx, renderedIconPool, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
+	results, err := files_service.GetTreeViewNodes(ctx, ctx.Repo.RepoLink, renderedIconPool, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
 	if err != nil {
 		ctx.ServerError("GetTreeViewNodes", err)
 		return

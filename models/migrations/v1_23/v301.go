@@ -1,7 +1,7 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_23 //nolint
+package v1_23
 
 import "xorm.io/xorm"
 
@@ -10,5 +10,9 @@ func AddSkipSecondaryAuthColumnToOAuth2ApplicationTable(x *xorm.Engine) error {
 	type oauth2Application struct {
 		SkipSecondaryAuthorization bool `xorm:"NOT NULL DEFAULT FALSE"`
 	}
-	return x.Sync(new(oauth2Application))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(oauth2Application))
+	return err
 }

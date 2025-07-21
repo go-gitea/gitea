@@ -1,11 +1,3 @@
-.show-outdated,
-.hide-outdated {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  margin-right: 0 !important;
-}
-
 .ui.button.add-code-comment {
   padding: 2px;
   position: absolute;
@@ -57,11 +49,6 @@
 
 .add-comment-left.add-comment-right .ui.attached.header:not(.top) {
   margin-bottom: 0.5em;
-}
-
-.show-outdated:hover,
-.hide-outdated:hover {
-  text-decoration: underline;
 }
 
 .comment-code-cloud {
