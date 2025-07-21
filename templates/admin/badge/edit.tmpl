@@ -1,11 +1,10 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin edit user")}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin edit badge")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.badges.edit_badge"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="./edit" method="post">
-				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 
 				<div class="non-local field {{if .Err_Slug}}error{{end}}" disabled=disabled>

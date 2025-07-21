@@ -52,7 +52,7 @@ func GetBadgeUsers(ctx context.Context, badge *user_model.Badge, page, pageSize 
 			Page:     page,
 			PageSize: pageSize,
 		},
-		Badge: badge,
+		BadgeSlug: badge.Slug,
 	}
 	return user_model.GetBadgeUsers(ctx, opts)
 }

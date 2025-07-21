@@ -93,7 +93,7 @@ func GetUserBadges(ctx context.Context, u *User) ([]*Badge, int64, error) {
 // GetBadgeUsersOptions contains options for getting users with a specific badge
 type GetBadgeUsersOptions struct {
 	db.ListOptions
-	Badge *Badge
+	BadgeSlug string
 }
 
 // GetBadgeUsers returns the users that have a specific badge with pagination support.
@@ -102,7 +102,7 @@ func GetBadgeUsers(ctx context.Context, opts *GetBadgeUsersOptions) ([]*User, in
 		Select("`user`.*").
 		Join("INNER", "user_badge", "`user_badge`.user_id=user.id").
 		Join("INNER", "badge", "`user_badge`.badge_id=badge.id").
-		Where("badge.slug=?", opts.Badge.Slug)
+		Where("badge.slug=?", opts.BadgeSlug)
 
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, opts)
