@@ -100,12 +100,12 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (toBeCleane
 	}
 
 	if err := auth_model.DeleteOAuth2RelictsByUserID(ctx, u.ID); err != nil {
-		return nil, fmt.Errorf("deleteOAuth2RelictsByUserID: %w", err)
+		return nil, err
 	}
 
 	if purge || (setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
 		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now())) {
-		// Delete Comments with attachments
+		// Delete Comments
 		const batchSize = 50
 		for {
 			comments := make([]*issues_model.Comment, 0, batchSize)

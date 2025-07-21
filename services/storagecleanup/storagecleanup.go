@@ -48,6 +48,7 @@ func cleanupDeletions(ctx context.Context, deletionIDs []int64) []int64 {
 		deletion, exist, err := db.GetByID[system.StoragePathDeletion](ctx, deletionID)
 		if err != nil {
 			log.Error("Failed to get deletion by ID %d: %v", deletionID, err)
+			failed = append(failed, deletionID)
 			continue
 		}
 		if !exist {
@@ -57,6 +58,7 @@ func cleanupDeletions(ctx context.Context, deletionIDs []int64) []int64 {
 		theStorage, err := storage.GetStorageByName(deletion.StorageName)
 		if err != nil {
 			log.Error("Failed to get storage by name %s: %v", deletion.StorageName, err)
+			failed = append(failed, deletionID)
 			continue
 		}
 		if err := theStorage.Delete(deletion.RelativePath); err != nil {
@@ -90,7 +92,6 @@ func ScanToBeDeletedFilesOrDir(ctx context.Context) error {
 	for {
 		if err := db.GetEngine(ctx).
 			Select("id").
-			// use the status and id index to speed up the query
 			Where("id > ?", lastID).
 			Asc("id").
 			Limit(100).
