@@ -17,6 +17,7 @@
 .flex-item .flex-item-main {
   display: flex;
   flex-direction: column;
+  gap: 0.25em;
   flex-grow: 1;
   flex-basis: 60%; /* avoid wrapping the "flex-item-trailing" too aggressively */
   min-width: 0; /* make the "text truncate" work, otherwise the flex axis is not limited and the text just overflows */

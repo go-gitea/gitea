@@ -238,6 +238,7 @@ type WebhookForm struct {
 	Active                   bool
 	BranchFilter             string `binding:"GlobPattern"`
 	AuthorizationHeader      string
+	Secret                   string
 }
 
 // PushOnly if the hook will be triggered when push
@@ -260,7 +261,6 @@ type NewWebhookForm struct {
 	PayloadURL  string `binding:"Required;ValidUrl"`
 	HTTPMethod  string `binding:"Required;In(POST,GET)"`
 	ContentType int    `binding:"Required"`
-	Secret      string
 	WebhookForm
 }
 
@@ -274,7 +274,6 @@ func (f *NewWebhookForm) Validate(req *http.Request, errs binding.Errors) bindin
 type NewGogshookForm struct {
 	PayloadURL  string `binding:"Required;ValidUrl"`
 	ContentType int    `binding:"Required"`
-	Secret      string
 	WebhookForm
 }
 

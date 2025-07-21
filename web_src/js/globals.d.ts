@@ -50,17 +50,12 @@ interface Element {
   _tippy: import('tippy.js').Instance;
 }
 
-type Writable<T> = { -readonly [K in keyof T]: T[K] };
-
 interface Window {
   __webpack_public_path__: string;
   config: import('./web_src/js/types.ts').Config;
   $: typeof import('@types/jquery'),
   jQuery: typeof import('@types/jquery'),
-  htmx: Omit<typeof import('htmx.org/dist/htmx.esm.js').default, 'config'> & {
-    config?: Writable<typeof import('htmx.org').default.config>,
-    process?: (elt: Element | string) => void,
-  },
+  htmx: typeof import('htmx.org').default,
   _globalHandlerErrors: Array<ErrorEvent & PromiseRejectionEvent> & {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,

@@ -106,6 +106,20 @@ func GrantAdditionalScopes(grantScopes string) auth.AccessTokenScope {
 	return auth.AccessTokenScopeAll
 }
 
+func NewJwtRegisteredClaimsFromUser(clientID string, grantUserID int64, exp *jwt.NumericDate) jwt.RegisteredClaims {
+	// https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
+	// The issuer value returned MUST be identical to the Issuer URL that was used as the prefix to /.well-known/openid-configuration
+	// to retrieve the configuration information. This MUST also be identical to the "iss" Claim value in ID Tokens issued from this Issuer.
+	// * https://accounts.google.com/.well-known/openid-configuration
+	// * https://github.com/login/oauth/.well-known/openid-configuration
+	return jwt.RegisteredClaims{
+		Issuer:    strings.TrimSuffix(setting.AppURL, "/"),
+		Audience:  []string{clientID},
+		Subject:   strconv.FormatInt(grantUserID, 10),
+		ExpiresAt: exp,
+	}
+}
+
 func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, serverKey, clientKey JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
 	if setting.OAuth2.InvalidateRefreshTokens {
 		if err := grant.IncreaseCounter(ctx); err != nil {
@@ -176,13 +190,8 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 		}
 
 		idToken := &OIDCToken{
-			RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
-				Issuer:    setting.AppURL,
-				Audience:  []string{app.ClientID},
-				Subject:   strconv.FormatInt(grant.UserID, 10),
-			},
-			Nonce: grant.Nonce,
+			RegisteredClaims: NewJwtRegisteredClaimsFromUser(app.ClientID, grant.UserID, jwt.NewNumericDate(expirationDate.AsTime())),
+			Nonce:            grant.Nonce,
 		}
 		if grant.ScopeContains("profile") {
 			idToken.Name = user.DisplayName()

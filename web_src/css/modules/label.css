@@ -4,6 +4,7 @@
 .ui.label {
   display: inline-flex;
   align-items: center;
+  vertical-align: middle;
   gap: var(--gap-inline);
   min-width: 0;
   max-width: 100%;
@@ -88,15 +89,10 @@ a.ui.label:hover {
   color: var(--color-label-text);
 }
 
-.ui.label.visible:not(.dropdown) {
-  display: inline-block !important;
-}
-
 .ui.basic.label {
   background: var(--color-button);
   border: 1px solid var(--color-light-border);
   color: var(--color-text-light);
-  padding: calc(0.5833em - 1px) calc(0.833em - 1px);
 }
 a.ui.basic.label:hover {
   text-decoration: none;
@@ -257,6 +253,7 @@ a.ui.ui.ui.basic.grey.label:hover {
   color: var(--color-label-hover-bg);
 }
 
+/* "horizontal label" is actually "fat label" which has enough padding spaces to be used standalone in headers */
 .ui.horizontal.label {
   margin: 0 0.5em 0 0;
   padding: 0.4em 0.833em;

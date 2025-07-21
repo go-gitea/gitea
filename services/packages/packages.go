@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -564,7 +565,7 @@ func DeletePackageFile(ctx context.Context, pf *packages_model.PackageFile) erro
 }
 
 // OpenFileForDownloadByPackageNameAndVersion returns the content of the specific package file and increases the download counter.
-func OpenFileForDownloadByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo, pfi *PackageFileInfo) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+func OpenFileForDownloadByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo, pfi *PackageFileInfo, method string) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %s, %s, %s, %s", pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pfi.Filename, pfi.CompositeKey)
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
@@ -576,27 +577,27 @@ func OpenFileForDownloadByPackageNameAndVersion(ctx context.Context, pvi *Packag
 		return nil, nil, nil, err
 	}
 
-	return OpenFileForDownloadByPackageVersion(ctx, pv, pfi)
+	return OpenFileForDownloadByPackageVersion(ctx, pv, pfi, method)
 }
 
 // OpenFileForDownloadByPackageVersion returns the content of the specific package file and increases the download counter.
-func OpenFileForDownloadByPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+func OpenFileForDownloadByPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo, method string) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, pfi.Filename, pfi.CompositeKey)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	return OpenFileForDownload(ctx, pf)
+	return OpenFileForDownload(ctx, pf, method)
 }
 
 // OpenFileForDownload returns the content of the specific package file and increases the download counter.
-func OpenFileForDownload(ctx context.Context, pf *packages_model.PackageFile) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+func OpenFileForDownload(ctx context.Context, pf *packages_model.PackageFile, method string) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	return OpenBlobForDownload(ctx, pf, pb, nil)
+	return OpenBlobForDownload(ctx, pf, pb, method, nil)
 }
 
 func OpenBlobStream(pb *packages_model.PackageBlob) (io.ReadSeekCloser, error) {
@@ -607,7 +608,7 @@ func OpenBlobStream(pb *packages_model.PackageBlob) (io.ReadSeekCloser, error) {
 
 // OpenBlobForDownload returns the content of the specific package blob and increases the download counter.
 // If the storage supports direct serving and it's enabled, only the direct serving url is returned.
-func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, serveDirectReqParams url.Values) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, method string, serveDirectReqParams url.Values) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	key := packages_module.BlobHash256Key(pb.HashSHA256)
 
 	cs := packages_module.NewContentStore()
@@ -617,23 +618,24 @@ func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb
 	var err error
 
 	if cs.ShouldServeDirect() {
-		u, err = cs.GetServeDirectURL(key, pf.Name, serveDirectReqParams)
+		u, err = cs.GetServeDirectURL(key, pf.Name, method, serveDirectReqParams)
 		if err != nil && !errors.Is(err, storage.ErrURLNotSupported) {
-			log.Error("Error getting serve direct url: %v", err)
+			log.Error("Error getting serve direct url (fallback to local reader): %v", err)
 		}
 	}
 	if u == nil {
 		s, err = cs.OpenBlob(key)
 	}
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
-	if err == nil {
-		if pf.IsLead {
-			if err := packages_model.IncrementDownloadCounter(ctx, pf.VersionID); err != nil {
-				log.Error("Error incrementing download counter: %v", err)
-			}
+	if pf.IsLead && method == http.MethodGet {
+		if err := packages_model.IncrementDownloadCounter(ctx, pf.VersionID); err != nil {
+			log.Error("Error incrementing download counter: %v", err)
 		}
 	}
-	return s, u, pf, err
+	return s, u, pf, nil
 }
 
 // RemoveAllPackages for User

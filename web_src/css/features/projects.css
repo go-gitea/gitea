@@ -71,7 +71,7 @@
 .card-attachment-images {
   display: inline-block;
   white-space: nowrap;
-  overflow: scroll;
+  overflow: auto;
   cursor: default;
   scroll-snap-type: x mandatory;
   text-align: center;
@@ -85,6 +85,7 @@
   scroll-snap-align: center;
   margin-right: 2px;
   aspect-ratio: 1;
+  object-fit: contain;
 }
 
 .card-attachment-images img:only-child {

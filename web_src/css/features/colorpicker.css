@@ -1,15 +1,13 @@
-.js-color-picker-input {
+.color-picker-combo {
   display: flex;
-  position: relative;
+  position: relative; /* to position the preview square */
 }
 
-.js-color-picker-input input {
-  padding-top: 8px !important;
-  padding-bottom: 8px !important;
+.color-picker-combo input {
   padding-left: 32px !important;
 }
 
-.js-color-picker-input .preview-square {
+.color-picker-combo .preview-square {
   position: absolute;
   aspect-ratio: 1;
   height: 16px;
@@ -22,13 +20,33 @@
   background-size: 8px 8px;
 }
 
-.js-color-picker-input .preview-square::after {
+.color-picker-combo .preview-square::after {
   content: "";
   position: absolute;
   width: 100%;
   height: 100%;
   border-radius: inherit;
   background-color: currentcolor;
+}
+
+.color-picker-combo .precolors {
+  display: flex;
+  margin-left: 1em;
+  align-items: center;
+  gap: 0.125em;
+}
+
+.color-picker-combo .precolors .generate-random-color {
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+}
+
+.color-picker-combo .precolors .color {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
 }
 
 hex-color-picker {

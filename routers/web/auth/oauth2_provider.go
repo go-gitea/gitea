@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
@@ -161,9 +162,7 @@ func IntrospectOAuth(ctx *context.Context) {
 			if err == nil && app != nil {
 				response.Active = true
 				response.Scope = grant.Scope
-				response.Issuer = setting.AppURL
-				response.Audience = []string{app.ClientID}
-				response.Subject = strconv.FormatInt(grant.UserID, 10)
+				response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(app.ClientID, grant.UserID, nil /*exp*/)
 			}
 			if user, err := user_model.GetUserByID(ctx, grant.UserID); err == nil {
 				response.Username = user.Name
@@ -423,7 +422,14 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
 func OIDCWellKnown(ctx *context.Context) {
-	ctx.Data["SigningKey"] = oauth2_provider.DefaultSigningKey
+	if !setting.OAuth2.Enabled {
+		http.NotFound(ctx.Resp, ctx.Req)
+		return
+	}
+	jwtRegisteredClaims := oauth2_provider.NewJwtRegisteredClaimsFromUser("well-known", 0, nil)
+	ctx.Data["OidcIssuer"] = jwtRegisteredClaims.Issuer // use the consistent issuer from the JWT registered claims
+	ctx.Data["OidcBaseUrl"] = strings.TrimSuffix(setting.AppURL, "/")
+	ctx.Data["SigningKeyMethodAlg"] = oauth2_provider.DefaultSigningKey.SigningMethod().Alg()
 	ctx.JSONTemplate("user/auth/oidc_wellknown")
 }
 

@@ -25,6 +25,7 @@ async function processAssetsSvgFile(file, {prefix, fullName} = {}) {
     plugins: [
       {name: 'preset-default'},
       {name: 'removeDimensions'},
+      {name: 'removeTitle'},
       {name: 'prefixIds', params: {prefix: () => name}},
       {name: 'addClassesToSVGElement', params: {classNames: ['svg', name]}},
       {

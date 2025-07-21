@@ -85,6 +85,11 @@ func TestUserEmails(t *testing.T) {
 				testGetUserByEmail(t, c.Email, c.UID)
 			})
 		}
+
+		t.Run("NoReplyConflict", func(t *testing.T) {
+			setting.Service.NoReplyAddress = "example.com"
+			testGetUserByEmail(t, "user1-2@example.COM", 1)
+		})
 	})
 }
 
