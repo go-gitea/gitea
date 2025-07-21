@@ -681,7 +681,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 			pr.Head.SHA = headSha
 		}
 
-		_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.repo.RepoPath()})
+		_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.repo.RepoPath()})
 		if err != nil {
 			return "", err
 		}
@@ -701,10 +701,10 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		_, _, err = git.NewCommand("rev-list", "--quiet", "-1").AddDynamicArguments(pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.repo.RepoPath()})
 		if err != nil {
 			// Git update-ref remove bad references with a relative path
-			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitRefName())
+			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitHeadRefName())
 		} else {
 			// set head information
-			_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.repo.RepoPath()})
+			_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.repo.RepoPath()})
 			if err != nil {
 				log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 			}
@@ -880,9 +880,9 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			continue
 		}
 
-		headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitRefName())
+		headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
-			log.Warn("PR #%d GetRefCommitID[%s] in %s/%s: %v, all review comments will be ignored", pr.Index, pr.GetGitRefName(), g.repoOwner, g.repoName, err)
+			log.Warn("PR #%d GetRefCommitID[%s] in %s/%s: %v, all review comments will be ignored", pr.Index, pr.GetGitHeadRefName(), g.repoOwner, g.repoName, err)
 			continue
 		}
 

@@ -22,7 +22,7 @@
 			<button class="ui button ellipsis-button show-panel toggle" data-panel="[data-singular-commit-body-for='{{$tag}}']">...</button>
 		{{end}}
 
-		<span class="tw-flex tw-items-center tw-gap-2">
+		<span class="flex-text-block">
 			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 			{{template "repo/commit_sign_badge" dict "Commit" . "CommitBaseLink" $commitBaseLink "CommitSignVerification" .Verification}}
 		</span>

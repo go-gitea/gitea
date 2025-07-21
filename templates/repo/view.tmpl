@@ -14,7 +14,7 @@
 			</div>
 		{{end}}
 
-		{{template "repo/code/recently_pushed_new_branches" .}}
+		{{template "repo/code/recently_pushed_new_branches" dict "RecentBranchesPromptData" .RecentBranchesPromptData}}
 
 		<div class="repo-view-container">
 			<div class="tw-flex tw-flex-col repo-view-file-tree-container not-mobile {{if not .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}" {{if .IsSigned}}data-user-is-signed-in{{end}}>

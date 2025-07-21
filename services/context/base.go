@@ -83,6 +83,7 @@ func (b *Base) RespHeader() http.Header {
 }
 
 // HTTPError returned an error to web browser
+// FIXME: many calls to this HTTPError are not right: it shouldn't expose err.Error() directly, it doesn't accept more than one content
 func (b *Base) HTTPError(status int, contents ...string) {
 	v := http.StatusText(status)
 	if len(contents) > 0 {

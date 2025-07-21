@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -82,7 +83,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		}
 
 		// FIXME: Context.TODO() - if graceful has started we should use its Shutdown context otherwise use install signals in TestMain.
-		commitsInfo, treeCommit, err := entries.GetCommitsInfo(t.Context(), commit, testCase.Path)
+		commitsInfo, treeCommit, err := entries.GetCommitsInfo(t.Context(), "/any/repo-link", commit, testCase.Path)
 		assert.NoError(t, err, "Unable to get commit information for entries of subtree: %s in commit: %s from testcase due to error: %v", testCase.Path, testCase.CommitID, err)
 		if err != nil {
 			t.FailNow()
@@ -120,6 +121,23 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	defer clonedRepo1.Close()
 
 	testGetCommitsInfo(t, clonedRepo1)
+
+	t.Run("NonExistingSubmoduleAsNil", func(t *testing.T) {
+		commit, err := bareRepo1.GetCommit("HEAD")
+		require.NoError(t, err)
+		tree, err := commit.GetTreeEntryByPath("file1.txt")
+		require.NoError(t, err)
+		cisf, err := getCommitInfoSubmoduleFile("/any/repo-link", tree, commit, "")
+		require.NoError(t, err)
+		assert.Equal(t, &CommitSubmoduleFile{
+			repoLink: "/any/repo-link",
+			fullPath: "file1.txt",
+			refURL:   "",
+			refID:    "e2129701f1a4d54dc44f03c93bca0a2aec7c5449",
+		}, cisf)
+		// since there is no refURL, it means that the submodule info doesn't exist, so it won't have a web link
+		assert.Nil(t, cisf.SubmoduleWebLinkTree(t.Context()))
+	})
 }
 
 func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
@@ -159,7 +177,7 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 		b.ResetTimer()
 		b.Run(benchmark.name, func(b *testing.B) {
 			for b.Loop() {
-				_, _, err := entries.GetCommitsInfo(b.Context(), commit, "")
+				_, _, err := entries.GetCommitsInfo(b.Context(), "/any/repo-link", commit, "")
 				if err != nil {
 					b.Fatal(err)
 				}
