@@ -70,17 +70,9 @@ func (opts FindNotificationOptions) ToOrders() string {
 // for each watcher, or updates it if already exists
 // receiverID > 0 just send to receiver, else send to all watcher
 func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := createOrUpdateIssueNotifications(ctx, issueID, commentID, notificationAuthorID, receiverID); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		return createOrUpdateIssueNotifications(ctx, issueID, commentID, notificationAuthorID, receiverID)
+	})
 }
 
 func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
