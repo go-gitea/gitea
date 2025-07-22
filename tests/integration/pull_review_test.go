@@ -445,16 +445,6 @@ func Test_ReviewCodeComment(t *testing.T) {
 			})
 			assert.NoError(t, err)
 
-			diffContent, _, err := git.NewCommand("diff").AddDynamicArguments(pr.MergeBase, pr.GetGitHeadRefName()).RunStdString(
-				t.Context(), &git.RunOpts{
-					Dir: repo.RepoPath(),
-				},
-			)
-			assert.NoError(t, err)
-			fmt.Println("=======")
-			fmt.Println(diffContent)
-			fmt.Println("=======")
-
 			session := loginUser(t, "user2")
 			comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{
 				Type:    issues_model.CommentTypeCode,

@@ -385,7 +385,7 @@ func GetAffectedHunksForTwoCommitsSpecialFile(ctx context.Context, repoPath, old
 		}
 		// Parse the hunk header
 		leftLine, leftHunk, rightLine, rightHunk := ParseDiffHunkString(lof)
-		hunks = append([]*HunkInfo{}, &HunkInfo{
+		hunks = append(hunks, &HunkInfo{
 			LeftLine:  int64(leftLine),
 			LeftHunk:  int64(leftHunk),
 			RightLine: int64(rightLine),
