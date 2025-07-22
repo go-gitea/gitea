@@ -18,5 +18,9 @@ func getCommitInfoSubmoduleFile(repoLink string, entry *TreeEntry, commit *Commi
 	if err != nil {
 		return nil, err
 	}
+	if submodule == nil {
+		// unable to find submodule from ".gitmodules" file
+		return NewCommitSubmoduleFile(repoLink, fullPath, "", entry.ID.String()), nil
+	}
 	return NewCommitSubmoduleFile(repoLink, fullPath, submodule.URL, entry.ID.String()), nil
 }

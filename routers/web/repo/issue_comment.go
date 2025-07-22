@@ -103,7 +103,7 @@ func NewComment(ctx *context.Context) {
 				// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo
 				// get head commit of PR
 				if pull.Flow == issues_model.PullRequestFlowGithub {
-					prHeadRef := pull.GetGitRefName()
+					prHeadRef := pull.GetGitHeadRefName()
 					if err := pull.LoadBaseRepo(ctx); err != nil {
 						ctx.ServerError("Unable to load base repo", err)
 						return

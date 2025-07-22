@@ -1461,9 +1461,9 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	defer closer.Close()
 
 	if pr.HasMerged {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName(), false, false)
+		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitHeadRefName(), false, false)
 	} else {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName(), false, false)
+		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitHeadRefName(), false, false)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1584,16 +1584,16 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	var prInfo *git.CompareInfo
 	if pr.HasMerged {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName(), true, false)
+		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitHeadRefName(), true, false)
 	} else {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName(), true, false)
+		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitHeadRefName(), true, false)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

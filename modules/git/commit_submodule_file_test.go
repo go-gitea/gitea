@@ -12,6 +12,8 @@ import (
 func TestCommitSubmoduleLink(t *testing.T) {
 	assert.Nil(t, (*CommitSubmoduleFile)(nil).SubmoduleWebLinkTree(t.Context()))
 	assert.Nil(t, (*CommitSubmoduleFile)(nil).SubmoduleWebLinkCompare(t.Context(), "", ""))
+	assert.Nil(t, (&CommitSubmoduleFile{}).SubmoduleWebLinkTree(t.Context()))
+	assert.Nil(t, (&CommitSubmoduleFile{}).SubmoduleWebLinkCompare(t.Context(), "", ""))
 
 	t.Run("GitHubRepo", func(t *testing.T) {
 		sf := NewCommitSubmoduleFile("/any/repo-link", "full-path", "git@github.com:user/repo.git", "aaaa")
