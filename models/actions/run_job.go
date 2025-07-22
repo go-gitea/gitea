@@ -222,7 +222,7 @@ func ShouldBlockJobByConcurrency(ctx context.Context, job *ActionRunJob) (bool, 
 	concurrentJobsNum, err := db.Count[ActionRunJob](ctx, FindRunJobOptions{
 		RepoID:           job.RepoID,
 		ConcurrencyGroup: job.ConcurrencyGroup,
-		Statuses:         []Status{StatusRunning, StatusWaiting},
+		Statuses:         []Status{StatusRunning},
 	})
 	if err != nil {
 		return false, fmt.Errorf("count running and waiting jobs: %w", err)

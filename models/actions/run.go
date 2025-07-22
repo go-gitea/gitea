@@ -404,7 +404,7 @@ func ShouldBlockRunByConcurrency(ctx context.Context, actionRun *ActionRun) (boo
 	concurrentRuns, err := db.Find[ActionRun](ctx, &FindRunOptions{
 		RepoID:           actionRun.RepoID,
 		ConcurrencyGroup: actionRun.ConcurrencyGroup,
-		Status:           []Status{StatusWaiting, StatusRunning},
+		Status:           []Status{StatusRunning},
 	})
 	if err != nil {
 		return false, fmt.Errorf("find running and waiting runs: %w", err)

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"slices"
 	"testing"
 	"time"
 
@@ -91,14 +90,10 @@ jobs:
     steps:
       - run: echo 'job from workflow3'
 `
+		// push workflow1
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
 		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
-		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
-		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf3TreePath, wf3FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
-
-		// fetch and exec workflow1, workflow2 and workflow3 are blocked
+		// fetch and exec workflow1
 		task := runner.fetchTask(t)
 		_, _, run := getTaskAndJobAndRunByTaskID(t, task.Id)
 		assert.Equal(t, "workflow-main-abc123-user2", run.ConcurrencyGroup)
@@ -108,23 +103,30 @@ jobs:
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
 
-		// fetch workflow2 or workflow3
-		workflowNames := []string{"concurrent-workflow-2.yml", "concurrent-workflow-3.yml"}
+		// push workflow2
+		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
+		// fetch workflow2
 		task = runner.fetchTask(t)
 		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
-		assert.Contains(t, workflowNames, run.WorkflowID)
-		workflowNames = slices.DeleteFunc(workflowNames, func(wfn string) bool { return wfn == run.WorkflowID })
 		assert.Equal(t, "workflow-main-abc123-user2", run.ConcurrencyGroup)
+		assert.Equal(t, "concurrent-workflow-2.yml", run.WorkflowID)
+
+		// push workflow3
+		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf3TreePath, wf3FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
 		runner.fetchNoTask(t)
+
+		// exec workflow2
 		runner.execTask(t, task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
 
-		// fetch the last workflow (workflow2 or workflow3)
+		// fetch and exec workflow3
 		task = runner.fetchTask(t)
 		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
 		assert.Equal(t, "workflow-main-abc123-user2", run.ConcurrencyGroup)
-		assert.Equal(t, workflowNames[0], run.WorkflowID)
+		assert.Equal(t, "concurrent-workflow-3.yml", run.WorkflowID)
 		runner.fetchNoTask(t)
 		runner.execTask(t, task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
@@ -425,7 +427,7 @@ on:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
 jobs:
-  job1:
+  wf1-job:
     runs-on: ${{ matrix.os }}-runner
     strategy:
       matrix:
@@ -433,8 +435,17 @@ jobs:
     concurrency:
       group: job-os-${{ matrix.os }}
     steps:
-      - run: echo 'job1'
-  job2:
+      - run: echo 'wf1'
+`
+
+		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
+		wf2FileContent := `name: concurrent-workflow-2
+on: 
+  push:
+    paths:
+      - '.gitea/workflows/concurrent-workflow-2.yml'
+jobs:
+  wf2-job:
     runs-on: ${{ matrix.os }}-runner
     strategy:
       matrix:
@@ -442,26 +453,30 @@ jobs:
     concurrency:
       group: job-os-${{ matrix.os }}
     steps:
-      - run: echo 'job2'
+      - run: echo 'wf2'
 `
 
-		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
+		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
 		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
 
 		job1WinTask := windowsRunner.fetchTask(t)
 		job1LinuxTask := linuxRunner.fetchTask(t)
 		windowsRunner.fetchNoTask(t)
 		linuxRunner.fetchNoTask(t)
-		job2DarwinTask := darwinRunner.fetchTask(t)
 		_, job1WinJob, _ := getTaskAndJobAndRunByTaskID(t, job1WinTask.Id)
-		assert.Equal(t, "job1 (windows)", job1WinJob.Name)
+		assert.Equal(t, "wf1-job (windows)", job1WinJob.Name)
 		assert.Equal(t, "job-os-windows", job1WinJob.ConcurrencyGroup)
 		_, job1LinuxJob, _ := getTaskAndJobAndRunByTaskID(t, job1LinuxTask.Id)
-		assert.Equal(t, "job1 (linux)", job1LinuxJob.Name)
+		assert.Equal(t, "wf1-job (linux)", job1LinuxJob.Name)
 		assert.Equal(t, "job-os-linux", job1LinuxJob.ConcurrencyGroup)
+
+		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
+		job2DarwinTask := darwinRunner.fetchTask(t)
 		_, job2DarwinJob, _ := getTaskAndJobAndRunByTaskID(t, job2DarwinTask.Id)
-		assert.Equal(t, "job2 (darwin)", job2DarwinJob.Name)
+		assert.Equal(t, "wf2-job (darwin)", job2DarwinJob.Name)
 		assert.Equal(t, "job-os-darwin", job2DarwinJob.ConcurrencyGroup)
+
 		windowsRunner.execTask(t, job1WinTask, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
@@ -472,10 +487,10 @@ jobs:
 		job2WinTask := windowsRunner.fetchTask(t)
 		job2LinuxTask := linuxRunner.fetchTask(t)
 		_, job2WinJob, _ := getTaskAndJobAndRunByTaskID(t, job2WinTask.Id)
-		assert.Equal(t, "job2 (windows)", job2WinJob.Name)
+		assert.Equal(t, "wf2-job (windows)", job2WinJob.Name)
 		assert.Equal(t, "job-os-windows", job2WinJob.ConcurrencyGroup)
 		_, job2LinuxJob, _ := getTaskAndJobAndRunByTaskID(t, job2LinuxTask.Id)
-		assert.Equal(t, "job2 (linux)", job2LinuxJob.Name)
+		assert.Equal(t, "wf2-job (linux)", job2LinuxJob.Name)
 		assert.Equal(t, "job-os-linux", job2LinuxJob.ConcurrencyGroup)
 	})
 }
@@ -701,27 +716,20 @@ jobs:
 		})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
+		run2_2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
+		assert.Equal(t, actions_model.StatusWaiting, run2_2.Status)
+
 		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.Index+1), map[string]string{
 			"_csrf": GetUserCSRFToken(t, session),
 		})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		task6 := runner.fetchTask(t)
-		_, _, run2_2 := getTaskAndJobAndRunByTaskID(t, task6.Id)
-		assert.Equal(t, "workflow-dispatch-v1.22", run2_2.ConcurrencyGroup)
-
-		runner.fetchNoTask(t) // cannot fetch task because task2 is not completed
-
-		runner.execTask(t, task6, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-
-		task7 := runner.fetchTask(t)
-		_, _, run3 := getTaskAndJobAndRunByTaskID(t, task7.Id)
+		_, _, run3 := getTaskAndJobAndRunByTaskID(t, task6.Id)
 		assert.Equal(t, "workflow-dispatch-v1.22", run3.ConcurrencyGroup)
-		runner.execTask(t, task7, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
+
+		run2_2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2_2.ID})
+		assert.Equal(t, actions_model.StatusCancelled, run2_2.Status) // cancelled by run3
 	})
 }
 
@@ -852,27 +860,20 @@ jobs:
 		})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
+		run2_2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
+		assert.Equal(t, actions_model.StatusWaiting, run2_2.Status)
+
 		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index+1, 1), map[string]string{
 			"_csrf": GetUserCSRFToken(t, session),
 		})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		task6 := runner.fetchTask(t)
-		_, _, run2_2 := getTaskAndJobAndRunByTaskID(t, task6.Id)
-		assert.Equal(t, "workflow-dispatch-v1.22", run2_2.ConcurrencyGroup)
-
-		runner.fetchNoTask(t) // cannot fetch task because task2 is not completed
-
-		runner.execTask(t, task6, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-
-		task7 := runner.fetchTask(t)
-		_, _, run3 := getTaskAndJobAndRunByTaskID(t, task7.Id)
+		_, _, run3 := getTaskAndJobAndRunByTaskID(t, task6.Id)
 		assert.Equal(t, "workflow-dispatch-v1.22", run3.ConcurrencyGroup)
-		runner.execTask(t, task7, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
+
+		run2_2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2_2.ID})
+		assert.Equal(t, actions_model.StatusCancelled, run2_2.Status) // cancelled by run3
 	})
 }
 
