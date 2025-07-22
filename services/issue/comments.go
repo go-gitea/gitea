@@ -131,17 +131,17 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
-	err := db.WithTx(ctx, func(ctx context.Context) error {
+func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) (*issues_model.Comment, error) {
+	deletedReviewComment, err := db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
 		return issues_model.DeleteComment(ctx, comment)
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	notify_service.DeleteComment(ctx, doer, comment)
 
-	return nil
+	return deletedReviewComment, nil
 }
 
 // LoadCommentPushCommits Load push commits
