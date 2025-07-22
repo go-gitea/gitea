@@ -15,30 +15,24 @@ import (
 
 // CloseIssue close an issue.
 func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string) error {
-	dbCtx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	comment, err := issues_model.CloseIssue(dbCtx, issue, doer)
-	if err != nil {
-		if issues_model.IsErrDependenciesLeft(err) {
-			if _, err := issues_model.FinishIssueStopwatch(dbCtx, doer, issue); err != nil {
-				log.Error("Unable to stop stopwatch for issue[%d]#%d: %v", issue.ID, issue.Index, err)
+	var comment *issues_model.Comment
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		var err error
+		comment, err = issues_model.CloseIssue(ctx, issue, doer)
+		if err != nil {
+			if issues_model.IsErrDependenciesLeft(err) {
+				if _, err := issues_model.FinishIssueStopwatch(ctx, doer, issue); err != nil {
+					log.Error("Unable to stop stopwatch for issue[%d]#%d: %v", issue.ID, issue.Index, err)
+				}
 			}
+			return err
 		}
-		return err
-	}
 
-	if _, err := issues_model.FinishIssueStopwatch(dbCtx, doer, issue); err != nil {
+		_, err = issues_model.FinishIssueStopwatch(ctx, doer, issue)
+		return err
+	}); err != nil {
 		return err
 	}
-
-	if err := committer.Commit(); err != nil {
-		return err
-	}
-	committer.Close()
 
 	notify_service.IssueChangeStatus(ctx, doer, commitID, issue, comment, true)
 

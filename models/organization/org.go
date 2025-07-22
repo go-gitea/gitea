@@ -310,74 +310,69 @@ func CreateOrganization(ctx context.Context, org *Organization, owner *user_mode
 	org.NumMembers = 1
 	org.Type = user_model.UserTypeOrganization
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = user_model.DeleteUserRedirect(ctx, org.Name); err != nil {
-		return err
-	}
-
-	if err = db.Insert(ctx, org); err != nil {
-		return fmt.Errorf("insert organization: %w", err)
-	}
-	if err = user_model.GenerateRandomAvatar(ctx, org.AsUser()); err != nil {
-		return fmt.Errorf("generate random avatar: %w", err)
-	}
-
-	// Add initial creator to organization and owner team.
-	if err = db.Insert(ctx, &OrgUser{
-		UID:      owner.ID,
-		OrgID:    org.ID,
-		IsPublic: setting.Service.DefaultOrgMemberVisible,
-	}); err != nil {
-		return fmt.Errorf("insert org-user relation: %w", err)
-	}
-
-	// Create default owner team.
-	t := &Team{
-		OrgID:                   org.ID,
-		LowerName:               strings.ToLower(OwnerTeamName),
-		Name:                    OwnerTeamName,
-		AccessMode:              perm.AccessModeOwner,
-		NumMembers:              1,
-		IncludesAllRepositories: true,
-		CanCreateOrgRepo:        true,
-	}
-	if err = db.Insert(ctx, t); err != nil {
-		return fmt.Errorf("insert owner team: %w", err)
-	}
-
-	// insert units for team
-	units := make([]TeamUnit, 0, len(unit.AllRepoUnitTypes))
-	for _, tp := range unit.AllRepoUnitTypes {
-		up := perm.AccessModeOwner
-		if tp == unit.TypeExternalTracker || tp == unit.TypeExternalWiki {
-			up = perm.AccessModeRead
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err = user_model.DeleteUserRedirect(ctx, org.Name); err != nil {
+			return err
 		}
-		units = append(units, TeamUnit{
-			OrgID:      org.ID,
-			TeamID:     t.ID,
-			Type:       tp,
-			AccessMode: up,
-		})
-	}
 
-	if err = db.Insert(ctx, &units); err != nil {
-		return err
-	}
+		if err = db.Insert(ctx, org); err != nil {
+			return fmt.Errorf("insert organization: %w", err)
+		}
+		if err = user_model.GenerateRandomAvatar(ctx, org.AsUser()); err != nil {
+			return fmt.Errorf("generate random avatar: %w", err)
+		}
 
-	if err = db.Insert(ctx, &TeamUser{
-		UID:    owner.ID,
-		OrgID:  org.ID,
-		TeamID: t.ID,
-	}); err != nil {
-		return fmt.Errorf("insert team-user relation: %w", err)
-	}
+		// Add initial creator to organization and owner team.
+		if err = db.Insert(ctx, &OrgUser{
+			UID:      owner.ID,
+			OrgID:    org.ID,
+			IsPublic: setting.Service.DefaultOrgMemberVisible,
+		}); err != nil {
+			return fmt.Errorf("insert org-user relation: %w", err)
+		}
 
-	return committer.Commit()
+		// Create default owner team.
+		t := &Team{
+			OrgID:                   org.ID,
+			LowerName:               strings.ToLower(OwnerTeamName),
+			Name:                    OwnerTeamName,
+			AccessMode:              perm.AccessModeOwner,
+			NumMembers:              1,
+			IncludesAllRepositories: true,
+			CanCreateOrgRepo:        true,
+		}
+		if err = db.Insert(ctx, t); err != nil {
+			return fmt.Errorf("insert owner team: %w", err)
+		}
+
+		// insert units for team
+		units := make([]TeamUnit, 0, len(unit.AllRepoUnitTypes))
+		for _, tp := range unit.AllRepoUnitTypes {
+			up := perm.AccessModeOwner
+			if tp == unit.TypeExternalTracker || tp == unit.TypeExternalWiki {
+				up = perm.AccessModeRead
+			}
+			units = append(units, TeamUnit{
+				OrgID:      org.ID,
+				TeamID:     t.ID,
+				Type:       tp,
+				AccessMode: up,
+			})
+		}
+
+		if err = db.Insert(ctx, &units); err != nil {
+			return err
+		}
+
+		if err = db.Insert(ctx, &TeamUser{
+			UID:    owner.ID,
+			OrgID:  org.ID,
+			TeamID: t.ID,
+		}); err != nil {
+			return fmt.Errorf("insert team-user relation: %w", err)
+		}
+		return nil
+	})
 }
 
 // GetOrgByName returns organization by given name.
@@ -499,31 +494,26 @@ func AddOrgUser(ctx context.Context, orgID, uid int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// check in transaction
+		isAlreadyMember, err = IsOrganizationMember(ctx, orgID, uid)
+		if err != nil || isAlreadyMember {
+			return err
+		}
 
-	// check in transaction
-	isAlreadyMember, err = IsOrganizationMember(ctx, orgID, uid)
-	if err != nil || isAlreadyMember {
-		return err
-	}
+		ou := &OrgUser{
+			UID:      uid,
+			OrgID:    orgID,
+			IsPublic: setting.Service.DefaultOrgMemberVisible,
+		}
 
-	ou := &OrgUser{
-		UID:      uid,
-		OrgID:    orgID,
-		IsPublic: setting.Service.DefaultOrgMemberVisible,
-	}
-
-	if err := db.Insert(ctx, ou); err != nil {
-		return err
-	} else if _, err = db.Exec(ctx, "UPDATE `user` SET num_members = num_members + 1 WHERE id = ?", orgID); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+		if err := db.Insert(ctx, ou); err != nil {
+			return err
+		} else if _, err = db.Exec(ctx, "UPDATE `user` SET num_members = num_members + 1 WHERE id = ?", orgID); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // GetOrgByID returns the user object by given ID if exists.
