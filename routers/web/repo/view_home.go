@@ -259,9 +259,10 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 }
 
 func handleRepoViewSubmodule(ctx *context.Context, submodule *git.SubModule) {
+	// TODO: it needs to use git.NewCommitSubmoduleFile and SubmoduleWebLinkTree to correctly handle relative paths
 	submoduleRepoURL, err := giturl.ParseRepositoryURL(ctx, submodule.URL)
 	if err != nil {
-		HandleGitError(ctx, "prepareToRenderDirOrFile: ParseRepositoryURL", err)
+		HandleGitError(ctx, "handleRepoViewSubmodule: ParseRepositoryURL", err)
 		return
 	}
 	submoduleURL := giturl.MakeRepositoryWebLink(submoduleRepoURL)

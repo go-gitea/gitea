@@ -55,16 +55,13 @@ func jsonResponse(ctx *context.Context, status int, obj any) {
 	// https://github.com/conan-io/conan/issues/6613
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	ctx.Status(status)
-	if err := json.NewEncoder(ctx.Resp).Encode(obj); err != nil {
-		log.Error("JSON encode: %v", err)
-	}
+	_ = json.NewEncoder(ctx.Resp).Encode(obj)
 }
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		jsonResponse(ctx, status, map[string]string{
-			"message": message,
-		})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	jsonResponse(ctx, status, map[string]string{
+		"message": message,
 	})
 }
 
@@ -393,7 +390,6 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		if isConanfileFile {
 			metadata, err := conan_module.ParseConanfile(buf)
 			if err != nil {
-				log.Error("Error parsing package metadata: %v", err)
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
@@ -419,7 +415,6 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		} else {
 			info, err := conan_module.ParseConaninfo(buf)
 			if err != nil {
-				log.Error("Error parsing conan info: %v", err)
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
@@ -492,6 +487,7 @@ func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKe
 			Filename:     filename,
 			CompositeKey: fileKey,
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {

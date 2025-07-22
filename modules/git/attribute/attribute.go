@@ -20,6 +20,7 @@ const (
 	GitlabLanguage        = "gitlab-language"
 	Lockable              = "lockable"
 	Filter                = "filter"
+	Diff                  = "diff"
 )
 
 var LinguistAttributes = []string{
