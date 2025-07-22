@@ -1030,7 +1030,7 @@ jobs:
     concurrency:
       group: job-group-1
     steps:
-      - run: echo 'wf2-job2'
+      - run: echo 'wf2-job1'
   wf2-job2:
     runs-on: runner2
     concurrency:
@@ -1073,70 +1073,89 @@ jobs:
       - run: echo 'wf4-job1'
 `
 
-		// push workflow 1, 2 and 3
+		// push workflow 1
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
 		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
-		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
-		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf3TreePath, wf3FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
+
 		// fetch wf1-job1 and wf1-job2
 		w1j1Task := runner1.fetchTask(t)
 		w1j2Task := runner2.fetchTask(t)
-		// cannot fetch wf2-job1 and wf2-job2 because workflow-2 is blocked by workflow-1's concurrency group "workflow-group-1"
-		// cannot fetch wf3-job1 because it is blocked by wf1-job1's concurrency group "job-group-1"
-		runner1.fetchNoTask(t)
-		runner2.fetchNoTask(t)
 		_, w1j1Job, w1Run := getTaskAndJobAndRunByTaskID(t, w1j1Task.Id)
 		assert.Equal(t, "job-group-1", w1j1Job.ConcurrencyGroup)
 		assert.Equal(t, "workflow-group-1", w1Run.ConcurrencyGroup)
 		assert.Equal(t, "concurrent-workflow-1.yml", w1Run.WorkflowID)
+		assert.Equal(t, actions_model.StatusRunning, w1j1Job.Status)
 		_, w1j2Job, _ := getTaskAndJobAndRunByTaskID(t, w1j2Task.Id)
 		assert.Equal(t, "job-group-2", w1j2Job.ConcurrencyGroup)
+		assert.Equal(t, actions_model.StatusRunning, w1j2Job.Status)
+
+		// push workflow 2
+		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf2TreePath, wf2FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
+		// cannot fetch wf2-job1 and wf2-job2 because workflow-2 is blocked by workflow-1's concurrency group "workflow-group-1"
+		runner1.fetchNoTask(t)
+		runner2.fetchNoTask(t)
+		// query wf2-job1 from db and check its status
+		w2Run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "concurrent-workflow-2.yml"})
+		w2j1Job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: w2Run.ID, JobID: "wf2-job1"})
+		assert.Equal(t, actions_model.StatusBlocked, w2j1Job.Status)
+
+		// push workflow 3
+		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf3TreePath, wf3FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
+		// cannot fetch wf3-job1 because it is blocked by wf1-job1's concurrency group "job-group-1"
+		runner1.fetchNoTask(t)
+		// query wf3-job1 from db and check its status
+		w3Run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "concurrent-workflow-3.yml"})
+		w3j1Job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: w3Run.ID, JobID: "wf3-job1"})
+		assert.Equal(t, actions_model.StatusBlocked, w3j1Job.Status)
+		// wf2-job1 is cancelled by wf3-job1
+		w2j1Job = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: w2j1Job.ID})
+		assert.Equal(t, actions_model.StatusCancelled, w2j1Job.Status)
+
 		// exec wf1-job1
 		runner1.execTask(t, w1j1Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
+
 		// fetch wf3-job1
+		assert.Equal(t, actions_model.StatusBlocked, w3j1Job.Status)
 		w3j1Task := runner1.fetchTask(t)
-		// cannot fetch wf2-job1 and wf2-job2 because workflow-2 is blocked by workflow-1's concurrency group "workflow-group-1"
-		runner1.fetchNoTask(t)
-		runner2.fetchNoTask(t)
-		_, w3j1Job, w3Run := getTaskAndJobAndRunByTaskID(t, w3j1Task.Id)
+		_, w3j1Job, w3Run = getTaskAndJobAndRunByTaskID(t, w3j1Task.Id)
 		assert.Equal(t, "job-group-1", w3j1Job.ConcurrencyGroup)
 		assert.Equal(t, "workflow-group-2", w3Run.ConcurrencyGroup)
 		assert.Equal(t, "concurrent-workflow-3.yml", w3Run.WorkflowID)
-		// push workflow-4
-		opts4 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf4TreePath, wf4FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf4TreePath, opts4)
+
 		// exec wf1-job2
 		runner2.execTask(t, w1j2Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
-		// wf2-job2
+
+		// fetch wf2-job2
 		w2j2Task := runner2.fetchTask(t)
-		// cannot fetch wf2-job1 because it is blocked by wf3-job1's concurrency group "job-group-1"
-		// cannot fetch wf4-job1 because it is blocked by workflow-3's concurrency group "workflow-group-2"
-		runner1.fetchNoTask(t)
-		runner2.fetchNoTask(t)
 		_, w2j2Job, w2Run := getTaskAndJobAndRunByTaskID(t, w2j2Task.Id)
 		assert.Equal(t, "job-group-2", w2j2Job.ConcurrencyGroup)
 		assert.Equal(t, "workflow-group-1", w2Run.ConcurrencyGroup)
 		assert.Equal(t, "concurrent-workflow-2.yml", w2Run.WorkflowID)
+		assert.Equal(t, actions_model.StatusRunning, w2j2Job.Status)
+
+		// push workflow-4
+		opts4 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf4TreePath, wf4FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf4TreePath, opts4)
+		// cannot fetch wf4-job1 because it is blocked by workflow-3's concurrency group "workflow-group-2"
+		runner2.fetchNoTask(t)
+
 		// exec wf3-job1
 		runner1.execTask(t, w3j1Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
-		// fetch wf2-job1
-		w2j1Task := runner1.fetchTask(t)
+
 		// fetch wf4-job1
 		w4j1Task := runner2.fetchTask(t)
 		// all tasks have been fetched
 		runner1.fetchNoTask(t)
 		runner2.fetchNoTask(t)
-		_, w2j1Job, _ := getTaskAndJobAndRunByTaskID(t, w2j1Task.Id)
-		assert.Equal(t, "job-group-1", w2j1Job.ConcurrencyGroup)
-		assert.Equal(t, actions_model.StatusRunning, w2j2Job.Status)
+
 		_, w2j2Job, w2Run = getTaskAndJobAndRunByTaskID(t, w2j2Task.Id)
 		// wf2-job2 is cancelled because wf4-job1's cancel-in-progress is true
 		assert.Equal(t, actions_model.StatusCancelled, w2j2Job.Status)

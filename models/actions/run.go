@@ -415,34 +415,40 @@ func ShouldBlockRunByConcurrency(ctx context.Context, actionRun *ActionRun) (boo
 }
 
 func CancelPreviousJobsByRunConcurrency(ctx context.Context, actionRun *ActionRun) ([]*ActionRunJob, error) {
+	if actionRun.ConcurrencyGroup == "" {
+		return nil, nil
+	}
+
 	var cancelledJobs []*ActionRunJob
 
-	if actionRun.ConcurrencyGroup != "" && actionRun.ConcurrencyCancel {
-		// cancel previous runs in the same concurrency group
-		runs, err := db.Find[ActionRun](ctx, &FindRunOptions{
-			RepoID:           actionRun.RepoID,
-			ConcurrencyGroup: actionRun.ConcurrencyGroup,
-			Status:           []Status{StatusRunning, StatusWaiting, StatusBlocked},
+	statusFindOption := []Status{StatusWaiting, StatusBlocked}
+	if actionRun.ConcurrencyCancel {
+		statusFindOption = append(statusFindOption, StatusRunning)
+	}
+	// cancel previous runs in the same concurrency group
+	runs, err := db.Find[ActionRun](ctx, &FindRunOptions{
+		RepoID:           actionRun.RepoID,
+		ConcurrencyGroup: actionRun.ConcurrencyGroup,
+		Status:           statusFindOption,
+	})
+	if err != nil {
+		return cancelledJobs, fmt.Errorf("find runs: %w", err)
+	}
+	for _, run := range runs {
+		if run.ID == actionRun.ID {
+			continue
+		}
+		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
+			RunID: run.ID,
 		})
 		if err != nil {
-			return cancelledJobs, fmt.Errorf("find runs: %w", err)
+			return cancelledJobs, fmt.Errorf("find run %d jobs: %w", run.ID, err)
 		}
-		for _, run := range runs {
-			if run.ID == actionRun.ID {
-				continue
-			}
-			jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
-				RunID: run.ID,
-			})
-			if err != nil {
-				return cancelledJobs, fmt.Errorf("find run %d jobs: %w", run.ID, err)
-			}
-			cjs, err := CancelJobs(ctx, jobs)
-			if err != nil {
-				return cancelledJobs, fmt.Errorf("cancel run %d jobs: %w", run.ID, err)
-			}
-			cancelledJobs = append(cancelledJobs, cjs...)
+		cjs, err := CancelJobs(ctx, jobs)
+		if err != nil {
+			return cancelledJobs, fmt.Errorf("cancel run %d jobs: %w", run.ID, err)
 		}
+		cancelledJobs = append(cancelledJobs, cjs...)
 	}
 
 	return cancelledJobs, nil

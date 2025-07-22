@@ -38,7 +38,8 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 	}
 	if blockRunByConcurrency {
 		run.Status = actions_model.StatusBlocked
-	} else if err := CancelJobsByRunConcurrency(ctx, run); err != nil {
+	}
+	if err := CancelJobsByRunConcurrency(ctx, run); err != nil {
 		return fmt.Errorf("cancel jobs: %w", err)
 	}
 
@@ -98,14 +99,17 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		if job.RawConcurrency != nil && job.RawConcurrency.Group != "" {
 			runJob.RawConcurrencyGroup = job.RawConcurrency.Group
 			runJob.RawConcurrencyCancel = job.RawConcurrency.CancelInProgress
-			// we do not need to evaluate job concurrency if the job is blocked because it will be checked by job emitter
-			if runJob.Status != actions_model.StatusBlocked {
+			// do not evaluate job concurrency when it requires `needs`
+			if len(needs) == 0 {
 				var err error
 				runJob.ConcurrencyGroup, runJob.ConcurrencyCancel, err = EvaluateJobConcurrency(ctx, run, runJob, vars, nil)
 				if err != nil {
 					return fmt.Errorf("evaluate job concurrency: %w", err)
 				}
 				runJob.IsConcurrencyEvaluated = true
+			}
+			// do not need to check job concurrency if the job is blocked because it will be checked by job emitter
+			if runJob.Status != actions_model.StatusBlocked {
 				// check if the job should be blocked by job concurrency
 				blockByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, runJob)
 				if err != nil {
@@ -113,7 +117,8 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				}
 				if blockByConcurrency {
 					runJob.Status = actions_model.StatusBlocked
-				} else if err := CancelJobsByJobConcurrency(ctx, runJob); err != nil {
+				}
+				if err := CancelJobsByJobConcurrency(ctx, runJob); err != nil {
 					return fmt.Errorf("cancel jobs: %w", err)
 				}
 			}

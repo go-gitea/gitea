@@ -443,11 +443,12 @@ func Rerun(ctx *context_module.Context) {
 		}
 		if blockRunByConcurrency {
 			run.Status = actions_model.StatusBlocked
-		} else if err := actions_service.CancelJobsByRunConcurrency(ctx, run); err != nil {
-			ctx.ServerError("cancel jobs", err)
-			return
 		} else {
 			run.Status = actions_model.StatusRunning
+		}
+		if err := actions_service.CancelJobsByRunConcurrency(ctx, run); err != nil {
+			ctx.ServerError("cancel jobs", err)
+			return
 		}
 		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration", "status"); err != nil {
 			ctx.ServerError("UpdateRun", err)
@@ -520,7 +521,8 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 		}
 		if blockByConcurrency {
 			job.Status = actions_model.StatusBlocked
-		} else if err := actions_service.CancelJobsByJobConcurrency(ctx, job); err != nil {
+		}
+		if err := actions_service.CancelJobsByJobConcurrency(ctx, job); err != nil {
 			return fmt.Errorf("cancel jobs: %w", err)
 		}
 	}

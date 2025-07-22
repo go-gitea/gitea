@@ -239,32 +239,38 @@ func ShouldBlockJobByConcurrency(ctx context.Context, job *ActionRunJob) (bool, 
 }
 
 func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) ([]*ActionRunJob, error) {
+	if job.RawConcurrencyGroup == "" {
+		return nil, nil
+	}
+
 	var cancelledJobs []*ActionRunJob
 
-	if job.RawConcurrencyGroup != "" {
-		if !job.IsConcurrencyEvaluated {
-			return cancelledJobs, ErrUnevaluatedConcurrency{
-				Group:            job.RawConcurrencyGroup,
-				CancelInProgress: job.RawConcurrencyCancel,
-			}
+	if !job.IsConcurrencyEvaluated {
+		return cancelledJobs, ErrUnevaluatedConcurrency{
+			Group:            job.RawConcurrencyGroup,
+			CancelInProgress: job.RawConcurrencyCancel,
 		}
-		if job.ConcurrencyGroup != "" && job.ConcurrencyCancel {
-			// cancel previous jobs in the same concurrency group
-			previousJobs, err := db.Find[ActionRunJob](ctx, &FindRunJobOptions{
-				RepoID:           job.RepoID,
-				ConcurrencyGroup: job.ConcurrencyGroup,
-				Statuses:         []Status{StatusRunning, StatusWaiting, StatusBlocked},
-			})
-			if err != nil {
-				return cancelledJobs, fmt.Errorf("find previous jobs: %w", err)
-			}
-			previousJobs = slices.DeleteFunc(previousJobs, func(j *ActionRunJob) bool { return j.ID == job.ID })
-			cjs, err := CancelJobs(ctx, previousJobs)
-			if err != nil {
-				return cancelledJobs, fmt.Errorf("cancel previous jobs: %w", err)
-			}
-			cancelledJobs = append(cancelledJobs, cjs...)
+	}
+	if job.ConcurrencyGroup != "" {
+		statusFindOption := []Status{StatusWaiting, StatusBlocked}
+		if job.ConcurrencyCancel {
+			statusFindOption = append(statusFindOption, StatusRunning)
 		}
+		// cancel previous jobs in the same concurrency group
+		previousJobs, err := db.Find[ActionRunJob](ctx, &FindRunJobOptions{
+			RepoID:           job.RepoID,
+			ConcurrencyGroup: job.ConcurrencyGroup,
+			Statuses:         statusFindOption,
+		})
+		if err != nil {
+			return cancelledJobs, fmt.Errorf("find previous jobs: %w", err)
+		}
+		previousJobs = slices.DeleteFunc(previousJobs, func(j *ActionRunJob) bool { return j.ID == job.ID })
+		cjs, err := CancelJobs(ctx, previousJobs)
+		if err != nil {
+			return cancelledJobs, fmt.Errorf("cancel previous jobs: %w", err)
+		}
+		cancelledJobs = append(cancelledJobs, cjs...)
 	}
 
 	return cancelledJobs, nil
