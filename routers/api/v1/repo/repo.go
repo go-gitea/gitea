@@ -329,7 +329,7 @@ func Generate(ctx *context.APIContext) {
 	// parameters:
 	// - name: template_owner
 	//   in: path
-	//   description: name of the template repository owner
+	//   description: owner of the template repository
 	//   type: string
 	//   required: true
 	// - name: template_repo
