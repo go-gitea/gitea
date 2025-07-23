@@ -606,15 +606,11 @@ func LoadCodeComments(ctx context.Context, gitRepo *git.Repository, repo *repo_m
 			hunksCache := make(map[string][]*git.HunkInfo)
 			// filecomments should be sorted by created time, so that the latest comments are at the end
 			for _, comment := range fileComments {
+				if comment.BeforeCommitID == "" {
+					comment.BeforeCommitID = beforeCommit.ID.String()
+				}
 				if comment.CommitSHA == "" {
-					if comment.Line > 0 {
-						comment.CommitSHA = afterCommit.ID.String()
-					} else if comment.Line < 0 {
-						comment.CommitSHA = beforeCommit.ID.String()
-					} else {
-						// If the comment has no line number, we cannot display it in the diff view
-						continue
-					}
+					comment.CommitSHA = afterCommit.ID.String()
 				}
 
 				dstCommitID := beforeCommit.ID.String()
