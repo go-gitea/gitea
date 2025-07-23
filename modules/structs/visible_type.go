@@ -39,10 +39,6 @@ func (vt VisibleType) IsPrivate() bool {
 	return vt == VisibleTypePrivate
 }
 
-func (vt VisibleType) IsValid() bool {
-	return vt.String() != ""
-}
-
 // VisibilityString provides the mode string of the visibility type (public, limited, private)
 func (vt VisibleType) String() string {
 	for k, v := range VisibilityModes {
