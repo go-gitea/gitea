@@ -1007,7 +1007,6 @@ type FindCommentsOptions struct {
 	RepoID      int64
 	IssueID     int64
 	ReviewID    int64
-	CommitSHA   string
 	Since       int64
 	Before      int64
 	Line        int64
@@ -1052,9 +1051,6 @@ func (opts FindCommentsOptions) ToConds() builder.Cond {
 	}
 	if opts.IsPull.Has() {
 		cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.Value()})
-	}
-	if opts.CommitSHA != "" {
-		cond = cond.And(builder.Eq{"comment.commit_sha": opts.CommitSHA})
 	}
 	return cond
 }
