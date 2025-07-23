@@ -238,6 +238,7 @@ type CommentMetaData struct {
 	ProjectColumnID    int64  `json:"project_column_id,omitempty"`
 	ProjectColumnTitle string `json:"project_column_title,omitempty"`
 	ProjectTitle       string `json:"project_title,omitempty"`
+	BeforeCommitID     string `json:"before_commit_id,omitempty"` // commit id before this comment
 }
 
 // Comment represents a comment in commit and issue page.
@@ -293,7 +294,8 @@ type Comment struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
-	CommitSHA string `xorm:"VARCHAR(64)"`
+	BeforeCommitID string `xorm:"VARCHAR(64)"`
+	CommitSHA      string `xorm:"VARCHAR(64)"`
 
 	Attachments []*repo_model.Attachment `xorm:"-"`
 	Reactions   ReactionList             `xorm:"-"`
@@ -764,7 +766,7 @@ func (c *Comment) CodeCommentLink(ctx context.Context) string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
 }
 
-func GetCodeCommentRefName(prIndex, commentID int64) string {
+func GetCodeCommentRefName(prIndex, commentID int64, suffix string) string {
 	return fmt.Sprintf("refs/pull/%d/code-comment-%d", prIndex, commentID)
 }
 
@@ -806,6 +808,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		AssigneeID:       opts.AssigneeID,
 		AssigneeTeamID:   opts.AssigneeTeamID,
 		CommitID:         opts.CommitID,
+		BeforeCommitID:   opts.BeforeCommitID,
 		CommitSHA:        opts.CommitSHA,
 		Line:             opts.LineNum,
 		Content:          opts.Content,
@@ -977,7 +980,8 @@ type CreateCommentOptions struct {
 	OldRef             string
 	NewRef             string
 	CommitID           int64
-	CommitSHA          string
+	BeforeCommitID     string // before commit id when creating this code comment
+	CommitSHA          string // after commit id when creating this code comment, ref commit id for other comment
 	Patch              string
 	LineNum            int64
 	TreePath           string

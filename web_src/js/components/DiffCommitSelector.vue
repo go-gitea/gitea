@@ -195,10 +195,10 @@ export default defineComponent({
           start = this.commits[firstSelected - 1].id;
         }
         const end = this.commits.findLast((x) => x.selected).id;
-        if (start === end) {
+        if (firstSelected === end) {
           // if the start and end are the same, we show this single commit
           window.location.assign(`${this.issueLink}/commits/${start}${this.queryParams}`);
-        } else if (firstSelected === 0 && end === this.commits.at(-1).id) {
+        } else if (start === this.merge_base && end === this.commits.at(-1).id) {
           // if the first commit is selected and the last commit is selected, we show all commits
           window.location.assign(`${this.issueLink}/files${this.queryParams}`);
         } else {

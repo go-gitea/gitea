@@ -39,11 +39,11 @@ func StartPRCheckAndAutoMerge(ctx context.Context, pull *issues_model.PullReques
 		return
 	}
 	defer gitRepo.Close()
-	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+	commitID, err := gitRepo.GetRefCommitID(pull.GetGitHeadRefName())
 	if err != nil {
 		log.Error("GetRefCommitID: %v", err)
 		return
 	}
 
-	AddToQueue(pull, headCommitID)
+	AddToQueue(pull, commitID)
 }

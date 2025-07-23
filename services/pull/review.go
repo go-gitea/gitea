@@ -268,21 +268,21 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		return nil, fmt.Errorf("GetPatch failed: %w", err)
 	}
 
-	lineCommitID := util.Iif(line < 0, beforeCommitID, afterCommitID)
 	return db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
 		comment, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
-			Type:        issues_model.CommentTypeCode,
-			Doer:        doer,
-			Repo:        repo,
-			Issue:       issue,
-			Content:     content,
-			LineNum:     line,
-			TreePath:    treePath,
-			CommitSHA:   lineCommitID,
-			ReviewID:    reviewID,
-			Patch:       patch,
-			Invalidated: false,
-			Attachments: attachments,
+			Type:           issues_model.CommentTypeCode,
+			Doer:           doer,
+			Repo:           repo,
+			Issue:          issue,
+			Content:        content,
+			LineNum:        line,
+			TreePath:       treePath,
+			BeforeCommitID: beforeCommitID,
+			CommitSHA:      afterCommitID,
+			ReviewID:       reviewID,
+			Patch:          patch,
+			Invalidated:    false,
+			Attachments:    attachments,
 		})
 		if err != nil {
 			return nil, err
@@ -290,8 +290,12 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 		// The line commit ID Must be referenced in the git repository, because the branch maybe rebased or force-pushed.
 		// If the review commit is GC, the position can not be calculated dynamically.
-		if err := git.UpdateRef(ctx, pr.BaseRepo.RepoPath(), issues_model.GetCodeCommentRefName(pr.Index, comment.ID), lineCommitID); err != nil {
-			log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
+		if err := git.UpdateRef(ctx, pr.BaseRepo.RepoPath(), issues_model.GetCodeCommentRefName(pr.Index, comment.ID, "before"), beforeCommitID); err != nil {
+			log.Error("Unable to update ref before_commitid in base repository for PR[%d] Error: %v", pr.ID, err)
+			return nil, err
+		}
+		if err := git.UpdateRef(ctx, pr.BaseRepo.RepoPath(), issues_model.GetCodeCommentRefName(pr.Index, comment.ID, "after"), afterCommitID); err != nil {
+			log.Error("Unable to update ref after_commitid in base repository for PR[%d] Error: %v", pr.ID, err)
 			return nil, err
 		}
 
@@ -484,6 +488,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 }
 
 // ReCalculateLineNumber recalculates the line number based on the hunks of the diff.
+// left side is the commit the comment was created on, right side is the commit the comment is displayed on.
 // If the returned line number is zero, it should not be displayed.
 func ReCalculateLineNumber(hunks []*git.HunkInfo, leftLine int64) int64 {
 	if len(hunks) == 0 || leftLine == 0 {
@@ -498,15 +503,16 @@ func ReCalculateLineNumber(hunks []*git.HunkInfo, leftLine int64) int64 {
 	newLine := absLine
 
 	for _, hunk := range hunks {
-		if hunk.LeftLine+hunk.LeftHunk <= absLine {
-			newLine += hunk.RightHunk - hunk.LeftHunk
-		} else if hunk.LeftLine <= absLine && absLine < hunk.LeftLine+hunk.LeftHunk {
-			// The line has been removed, so it should not be displayed
-			return 0
-		} else if absLine < hunk.LeftLine {
+		if absLine < hunk.LeftLine {
 			// The line is before the hunk, so we can ignore it
 			continue
+		} else if hunk.LeftLine <= absLine && absLine < hunk.LeftLine+hunk.LeftHunk {
+			// The line is within the hunk, that means the line is deleted from the current commit
+			// So that we don't need to display this line
+			return 0
 		}
+		// The line is after the hunk, so we can add the right hunk size
+		newLine += hunk.RightHunk - hunk.LeftHunk
 	}
 	return util.Iif(isLeft, -newLine, newLine)
 }
@@ -614,27 +620,35 @@ func LoadCodeComments(ctx context.Context, gitRepo *git.Repository, repo *repo_m
 				}
 
 				dstCommitID := beforeCommit.ID.String()
+				commentCommitID := comment.BeforeCommitID
 				if comment.Line > 0 {
 					dstCommitID = afterCommit.ID.String()
+					commentCommitID = comment.CommitSHA
 				}
 
-				if comment.CommitSHA == dstCommitID {
-					lineComments[comment.Line] = append(lineComments[comment.Line], comment)
-					continue
-				}
-
-				// If the comment is not for the current commit, we need to recalculate the line number
-				hunks, ok := hunksCache[comment.CommitSHA+".."+dstCommitID]
-				if !ok {
-					hunks, err = git.GetAffectedHunksForTwoCommitsSpecialFile(ctx, repo.RepoPath(), comment.CommitSHA, dstCommitID, file.Name)
-					if err != nil {
-						return fmt.Errorf("GetAffectedHunksForTwoCommitsSpecialFile[%s, %s, %s]: %w", repo.FullName(), dstCommitID, comment.CommitSHA, err)
+				if commentCommitID != dstCommitID {
+					// If the comment is not for the current commit, we need to recalculate the line number
+					hunks, ok := hunksCache[commentCommitID+".."+dstCommitID]
+					if !ok {
+						hunks, err = git.GetAffectedHunksForTwoCommitsSpecialFile(ctx, repo.RepoPath(), commentCommitID, dstCommitID, file.Name)
+						if err != nil {
+							return fmt.Errorf("GetAffectedHunksForTwoCommitsSpecialFile[%s, %s, %s]: %w", repo.FullName(), commentCommitID, dstCommitID, err)
+						}
+						hunksCache[commentCommitID+".."+dstCommitID] = hunks
 					}
-					hunksCache[comment.CommitSHA+".."+dstCommitID] = hunks
+					comment.Line = ReCalculateLineNumber(hunks, comment.Line)
 				}
-				comment.Line = ReCalculateLineNumber(hunks, comment.Line)
+
 				if comment.Line != 0 {
-					lineComments[comment.Line] = append(lineComments[comment.Line], comment)
+					commentAfterCommit, err := gitRepo.GetCommit(comment.CommitSHA)
+					if err != nil {
+						return fmt.Errorf("GetCommit[%s]: %w", comment.CommitSHA, err)
+					}
+					// If the comment is not the first one or the comment created before the current commit
+					if lineComments[comment.Line] != nil || comment.CommitSHA == afterCommit.ID.String() ||
+						commentAfterCommit.Committer.When.Before(afterCommit.Committer.When) {
+						lineComments[comment.Line] = append(lineComments[comment.Line], comment)
+					}
 				}
 			}
 
