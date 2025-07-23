@@ -14,7 +14,10 @@
         devShells.default =
           with pkgs;
           let
+            # only bump toolchain versions here
             go = go_1_24;
+            nodejs = nodejs_24;
+            python3 = python312;
           in
           pkgs.mkShell {
             buildInputs = [
@@ -27,10 +30,10 @@
               gzip
 
               # frontend
-              nodejs_22
+              nodejs
 
               # linting
-              python312
+              python3
               uv
 
               # backend
