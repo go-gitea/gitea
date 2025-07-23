@@ -15,12 +15,13 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/services/convert"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
 
-const tplWorkflowRun = "notify/workflow_run"
+const tplWorkflowRun templates.TplName = "repo/actions/workflow_run"
 
 type convertedWorkflowJob struct {
 	HTMLURL string
@@ -103,7 +104,7 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 			runStatusText = "All jobs have been cancelled"
 		}
 		var mailBody bytes.Buffer
-		if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, tplWorkflowRun, map[string]any{
+		if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplWorkflowRun), map[string]any{
 			"Subject":       subject,
 			"Repo":          repo,
 			"Run":           run,
