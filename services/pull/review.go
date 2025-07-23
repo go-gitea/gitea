@@ -541,15 +541,11 @@ func FetchCodeCommentsByLine(ctx context.Context, gitRepo *git.Repository, repo 
 	hunksCache := make(map[string][]*git.HunkInfo)
 	for _, comment := range comments {
 		// Code comment should always have a commit SHA, if not, we need to set it based on the line number
+		if comment.BeforeCommitID == "" {
+			comment.BeforeCommitID = beforeCommitID
+		}
 		if comment.CommitSHA == "" {
-			if comment.Line > 0 {
-				comment.CommitSHA = afterCommitID
-			} else if comment.Line < 0 {
-				comment.CommitSHA = beforeCommitID
-			} else {
-				// If the comment has no line number, we cannot display it in the diff view
-				continue
-			}
+			comment.CommitSHA = afterCommitID
 		}
 
 		dstCommitID := beforeCommitID
