@@ -126,12 +126,12 @@ func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (job
 			return nil, nil, fmt.Errorf("find blocked run by concurrency: %w", err)
 		}
 		if found && !concurrentRun.NeedApproval {
-			if js, ujs, err := checkJobsOfRun(ctx, concurrentRun); err != nil {
+			js, ujs, err := checkJobsOfRun(ctx, concurrentRun)
+			if err != nil {
 				return nil, nil, err
-			} else {
-				jobs = append(jobs, js...)
-				updatedJobs = append(updatedJobs, ujs...)
 			}
+			jobs = append(jobs, js...)
+			updatedJobs = append(updatedJobs, ujs...)
 		}
 		checkedConcurrencyGroup.Add(run.ConcurrencyGroup)
 	}
@@ -153,16 +153,16 @@ func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (job
 			return nil, nil, fmt.Errorf("find blocked run by concurrency: %w", err)
 		}
 		if found && !concurrentRun.NeedApproval {
-			if js, ujs, err := checkJobsOfRun(ctx, concurrentRun); err != nil {
+			js, ujs, err := checkJobsOfRun(ctx, concurrentRun)
+			if err != nil {
 				return nil, nil, err
-			} else {
-				jobs = append(jobs, js...)
-				updatedJobs = append(updatedJobs, ujs...)
 			}
+			jobs = append(jobs, js...)
+			updatedJobs = append(updatedJobs, ujs...)
 		}
 		checkedConcurrencyGroup.Add(job.ConcurrencyGroup)
 	}
-	return
+	return jobs, updatedJobs, nil
 }
 
 func checkJobsOfRun(ctx context.Context, run *actions_model.ActionRun) (jobs, updatedJobs []*actions_model.ActionRunJob, err error) {
