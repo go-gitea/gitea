@@ -238,7 +238,6 @@ type CommentMetaData struct {
 	ProjectColumnID    int64  `json:"project_column_id,omitempty"`
 	ProjectColumnTitle string `json:"project_column_title,omitempty"`
 	ProjectTitle       string `json:"project_title,omitempty"`
-	BeforeCommitID     string `json:"before_commit_id,omitempty"` // commit id before this comment
 }
 
 // Comment represents a comment in commit and issue page.
