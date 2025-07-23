@@ -401,17 +401,34 @@ func ShouldBlockRunByConcurrency(ctx context.Context, actionRun *ActionRun) (boo
 		return false, nil
 	}
 
-	concurrentRuns, err := db.Find[ActionRun](ctx, &FindRunOptions{
-		RepoID:           actionRun.RepoID,
-		ConcurrencyGroup: actionRun.ConcurrencyGroup,
-		Status:           []Status{StatusRunning},
+	runs, jobs, err := GetConcurrentRunsAndJobs(ctx, actionRun.RepoID, actionRun.ConcurrencyGroup, []Status{StatusRunning})
+	if err != nil {
+		return false, fmt.Errorf("find concurrent runs and jobs: %w", err)
+	}
+
+	return len(runs) > 0 || len(jobs) > 0, nil
+}
+
+func GetConcurrentRunsAndJobs(ctx context.Context, repoID int64, concurrencyGroup string, status []Status) ([]*ActionRun, []*ActionRunJob, error) {
+	runs, err := db.Find[ActionRun](ctx, &FindRunOptions{
+		RepoID:           repoID,
+		ConcurrencyGroup: concurrencyGroup,
+		Status:           status,
 	})
 	if err != nil {
-		return false, fmt.Errorf("find running and waiting runs: %w", err)
+		return nil, nil, fmt.Errorf("find runs: %w", err)
 	}
-	previousRuns := slices.DeleteFunc(concurrentRuns, func(r *ActionRun) bool { return r.ID == actionRun.ID })
 
-	return len(previousRuns) > 0, nil
+	jobs, err := db.Find[ActionRunJob](ctx, &FindRunJobOptions{
+		RepoID:           repoID,
+		ConcurrencyGroup: concurrencyGroup,
+		Statuses:         status,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("find jobs: %w", err)
+	}
+
+	return runs, jobs, nil
 }
 
 func CancelPreviousJobsByRunConcurrency(ctx context.Context, actionRun *ActionRun) ([]*ActionRunJob, error) {
@@ -419,21 +436,19 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, actionRun *ActionRu
 		return nil, nil
 	}
 
-	var cancelledJobs []*ActionRunJob
+	var jobsToCancel []*ActionRunJob
 
 	statusFindOption := []Status{StatusWaiting, StatusBlocked}
 	if actionRun.ConcurrencyCancel {
 		statusFindOption = append(statusFindOption, StatusRunning)
 	}
-	// cancel previous runs in the same concurrency group
-	runs, err := db.Find[ActionRun](ctx, &FindRunOptions{
-		RepoID:           actionRun.RepoID,
-		ConcurrencyGroup: actionRun.ConcurrencyGroup,
-		Status:           statusFindOption,
-	})
+	runs, jobs, err := GetConcurrentRunsAndJobs(ctx, actionRun.RepoID, actionRun.ConcurrencyGroup, statusFindOption)
 	if err != nil {
-		return cancelledJobs, fmt.Errorf("find runs: %w", err)
+		return nil, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
+	jobsToCancel = append(jobsToCancel, jobs...)
+
+	// cancel runs in the same concurrency group
 	for _, run := range runs {
 		if run.ID == actionRun.ID {
 			continue
@@ -442,14 +457,10 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, actionRun *ActionRu
 			RunID: run.ID,
 		})
 		if err != nil {
-			return cancelledJobs, fmt.Errorf("find run %d jobs: %w", run.ID, err)
+			return nil, fmt.Errorf("find run %d jobs: %w", run.ID, err)
 		}
-		cjs, err := CancelJobs(ctx, jobs)
-		if err != nil {
-			return cancelledJobs, fmt.Errorf("cancel run %d jobs: %w", run.ID, err)
-		}
-		cancelledJobs = append(cancelledJobs, cjs...)
+		jobsToCancel = append(jobsToCancel, jobs...)
 	}
 
-	return cancelledJobs, nil
+	return CancelJobs(ctx, jobsToCancel)
 }

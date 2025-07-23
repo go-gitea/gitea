@@ -1247,6 +1247,106 @@ jobs:
 	})
 }
 
+func TestRunAndJobWithSameConcurrencyGroup(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		defer doAPIDeleteRepository(httpContext)(t)
+
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
+		wf1FileContent := `name: concurrent-workflow-1
+on: 
+  push:
+    paths:
+      - '.gitea/workflows/concurrent-workflow-1.yml'
+jobs:
+  wf1-job:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: test-group
+    steps:
+      - run: echo 'wf1-job'
+`
+		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
+		wf2FileContent := `name: concurrent-workflow-2
+on: 
+  push:
+    paths:
+      - '.gitea/workflows/concurrent-workflow-2.yml'
+concurrency:
+  group: test-group
+jobs:
+  wf2-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'wf2-job'
+`
+		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
+		wf3FileContent := `name: concurrent-workflow-3
+on: 
+  push:
+    paths:
+      - '.gitea/workflows/concurrent-workflow-3.yml'
+jobs:
+  wf3-job:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: test-group
+      cancel-in-progress: true
+    steps:
+      - run: echo 'wf3-job'
+`
+		// push workflow1
+		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
+		// fetch run1
+		task := runner.fetchTask(t)
+		_, job1, run1 := getTaskAndJobAndRunByTaskID(t, task.Id)
+		assert.Equal(t, "test-group", job1.ConcurrencyGroup)
+		assert.Equal(t, actions_model.StatusRunning, run1.Status)
+
+		// push workflow2
+		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
+		// cannot fetch run2 because run1 is still running
+		runner.fetchNoTask(t)
+		run2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "concurrent-workflow-2.yml"})
+		assert.Equal(t, "test-group", run2.ConcurrencyGroup)
+		assert.Equal(t, actions_model.StatusBlocked, run2.Status)
+
+		// exec run1
+		runner.execTask(t, task, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+		})
+
+		// fetch run2
+		task2 := runner.fetchTask(t)
+		_, _, run2 = getTaskAndJobAndRunByTaskID(t, task2.Id)
+		assert.Equal(t, actions_model.StatusRunning, run2.Status)
+
+		// push workflow3
+		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf3TreePath, wf3FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
+		// fetch run3
+		task3 := runner.fetchTask(t)
+		_, job3, run3 := getTaskAndJobAndRunByTaskID(t, task3.Id)
+		assert.Equal(t, "test-group", job3.ConcurrencyGroup)
+		assert.Equal(t, actions_model.StatusRunning, run3.Status)
+
+		// run2 should be cancelled by run3
+		run2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
+		assert.Equal(t, actions_model.StatusCancelled, run2.Status)
+	})
+}
+
 func getTaskAndJobAndRunByTaskID(t *testing.T, taskID int64) (*actions_model.ActionTask, *actions_model.ActionRunJob, *actions_model.ActionRun) {
 	actionTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: taskID})
 	actionRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: actionTask.JobID})
