@@ -4585,7 +4585,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -4630,7 +4630,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -4674,7 +4674,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -4720,7 +4720,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -4766,7 +4766,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -4823,7 +4823,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -4869,7 +4869,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5108,7 +5108,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5189,7 +5189,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5233,7 +5233,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5279,7 +5279,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5331,7 +5331,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5395,7 +5395,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "owner of the repository",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5609,7 +5609,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5660,7 +5660,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5704,7 +5704,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5758,7 +5758,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5812,7 +5812,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -13424,7 +13424,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "Owner of the repo",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -17463,7 +17463,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the template repository owner",
+            "description": "owner of the template repository",
             "name": "template_owner",
             "in": "path",
             "required": true
@@ -24968,7 +24968,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "GenerateRepoOption": {
-      "description": "GenerateRepoOption options when creating repository using a template",
+      "description": "GenerateRepoOption options when creating a repository using a template",
       "type": "object",
       "required": [
         "owner",
@@ -25006,13 +25006,12 @@
           "x-go-name": "Labels"
         },
         "name": {
-          "description": "Name of the repository to create",
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "Name"
         },
         "owner": {
-          "description": "The organization or person who will own the new repository",
+          "description": "the organization's name or individual user's name who will own the new repository",
           "type": "string",
           "x-go-name": "Owner"
         },
@@ -25545,6 +25544,7 @@
           "x-go-name": "Index"
         },
         "owner": {
+          "description": "owner of the issue's repo",
           "type": "string",
           "x-go-name": "Owner"
         },
@@ -25929,7 +25929,7 @@
           "x-go-name": "RepoName"
         },
         "repo_owner": {
-          "description": "Name of User or Organisation who will own Repo after migration",
+          "description": "the organization's name or individual user's name who will own the migrated repository",
           "type": "string",
           "x-go-name": "RepoOwner"
         },
@@ -25949,7 +25949,7 @@
           "x-go-name": "Service"
         },
         "uid": {
-          "description": "deprecated (only for backwards compatibility)",
+          "description": "deprecated (only for backwards compatibility, use repo_owner instead)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RepoOwnerID"

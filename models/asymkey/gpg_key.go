@@ -228,17 +228,10 @@ func DeleteGPGKey(ctx context.Context, doer *user_model.User, id int64) (err err
 		return fmt.Errorf("GetPublicKeyByID: %w", err)
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		_, err = deleteGPGKey(ctx, key.KeyID)
 		return err
-	}
-	defer committer.Close()
-
-	if _, err = deleteGPGKey(ctx, key.KeyID); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	})
 }
 
 func FindGPGKeyWithSubKeys(ctx context.Context, keyID string) ([]*GPGKey, error) {

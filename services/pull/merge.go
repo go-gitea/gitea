@@ -687,48 +687,40 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 		return false, fmt.Errorf("unable to merge PullRequest[%d], some required fields are empty", pr.Index)
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return false, err
-	}
-	defer committer.Close()
+	return db.WithTx2(ctx, func(ctx context.Context) (bool, error) {
+		pr.Issue = nil
+		if err := pr.LoadIssue(ctx); err != nil {
+			return false, err
+		}
 
-	pr.Issue = nil
-	if err := pr.LoadIssue(ctx); err != nil {
-		return false, err
-	}
+		if err := pr.Issue.LoadRepo(ctx); err != nil {
+			return false, err
+		}
 
-	if err := pr.Issue.LoadRepo(ctx); err != nil {
-		return false, err
-	}
+		if err := pr.Issue.Repo.LoadOwner(ctx); err != nil {
+			return false, err
+		}
 
-	if err := pr.Issue.Repo.LoadOwner(ctx); err != nil {
-		return false, err
-	}
+		// Removing an auto merge pull and ignore if not exist
+		if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
+			return false, fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", pr.ID, err)
+		}
 
-	// Removing an auto merge pull and ignore if not exist
-	if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
-		return false, fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", pr.ID, err)
-	}
+		// Set issue as closed
+		if _, err := issues_model.SetIssueAsClosed(ctx, pr.Issue, pr.Merger, true); err != nil {
+			return false, fmt.Errorf("ChangeIssueStatus: %w", err)
+		}
 
-	// Set issue as closed
-	if _, err := issues_model.SetIssueAsClosed(ctx, pr.Issue, pr.Merger, true); err != nil {
-		return false, fmt.Errorf("ChangeIssueStatus: %w", err)
-	}
+		// We need to save all of the data used to compute this merge as it may have already been changed by testPullRequestBranchMergeable. FIXME: need to set some state to prevent testPullRequestBranchMergeable from running whilst we are merging.
+		if cnt, err := db.GetEngine(ctx).Where("id = ?", pr.ID).
+			And("has_merged = ?", false).
+			Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix, conflicted_files").
+			Update(pr); err != nil {
+			return false, fmt.Errorf("failed to update pr[%d]: %w", pr.ID, err)
+		} else if cnt != 1 {
+			return false, issues_model.ErrIssueAlreadyChanged
+		}
 
-	// We need to save all of the data used to compute this merge as it may have already been changed by testPullRequestBranchMergeable. FIXME: need to set some state to prevent testPullRequestBranchMergeable from running whilst we are merging.
-	if cnt, err := db.GetEngine(ctx).Where("id = ?", pr.ID).
-		And("has_merged = ?", false).
-		Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix, conflicted_files").
-		Update(pr); err != nil {
-		return false, fmt.Errorf("failed to update pr[%d]: %w", pr.ID, err)
-	} else if cnt != 1 {
-		return false, issues_model.ErrIssueAlreadyChanged
-	}
-
-	if err := committer.Commit(); err != nil {
-		return false, err
-	}
-
-	return true, nil
+		return true, nil
+	})
 }

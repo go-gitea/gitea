@@ -565,7 +565,7 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 				oauth2LinkAccount(ctx, user, possibleLinkAccountData, true)
 				return false // user is already created here, all redirects are handled
 			case setting.OAuth2AccountLinkingLogin:
-				showLinkingLogin(ctx, &possibleLinkAccountData.AuthSource, possibleLinkAccountData.GothUser)
+				showLinkingLogin(ctx, possibleLinkAccountData.AuthSourceID, possibleLinkAccountData.GothUser)
 				return false // user will be created only after linking login
 			}
 		}
@@ -633,7 +633,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, possibleLinkAcc
 
 	// update external user information
 	if possibleLinkAccountData != nil {
-		if err := externalaccount.EnsureLinkExternalToUser(ctx, possibleLinkAccountData.AuthSource.ID, u, possibleLinkAccountData.GothUser); err != nil {
+		if err := externalaccount.EnsureLinkExternalToUser(ctx, possibleLinkAccountData.AuthSourceID, u, possibleLinkAccountData.GothUser); err != nil {
 			log.Error("EnsureLinkExternalToUser failed: %v", err)
 		}
 	}
