@@ -195,7 +195,7 @@ export default defineComponent({
           start = this.commits[firstSelected - 1].id;
         }
         const end = this.commits.findLast((x) => x.selected).id;
-        if (firstSelected === end) {
+        if (start === end) {
           // if the start and end are the same, we show this single commit
           window.location.assign(`${this.issueLink}/commits/${start}${this.queryParams}`);
         } else if (start === this.merge_base && end === this.commits.at(-1).id) {
