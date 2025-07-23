@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_AddCombinedIndexToIssueUser(t *testing.T) {
+func Test_AddBeforeCommitIDForComment(t *testing.T) {
 	type Comment struct { // old struct
 		ID               int64 `xorm:"pk autoincr"`
 		Type             int   `xorm:"INDEX"`
@@ -67,8 +67,36 @@ func Test_AddCombinedIndexToIssueUser(t *testing.T) {
 		CommentMetaData string `xorm:"JSON TEXT"` // put all non-index metadata in a single field
 	}
 
+	type PullRequest struct {
+		ID              int64 `xorm:"pk autoincr"`
+		Type            int
+		Status          int
+		ConflictedFiles []string `xorm:"TEXT JSON"`
+		CommitsAhead    int
+		CommitsBehind   int
+
+		ChangedProtectedFiles []string `xorm:"TEXT JSON"`
+
+		IssueID int64 `xorm:"INDEX"`
+		Index   int64
+
+		HeadRepoID          int64 `xorm:"INDEX"`
+		BaseRepoID          int64 `xorm:"INDEX"`
+		HeadBranch          string
+		BaseBranch          string
+		MergeBase           string `xorm:"VARCHAR(64)"`
+		AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT false"`
+
+		HasMerged      bool               `xorm:"INDEX"`
+		MergedCommitID string             `xorm:"VARCHAR(64)"`
+		MergerID       int64              `xorm:"INDEX"`
+		MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
+
+		Flow int `xorm:"NOT NULL DEFAULT 0"`
+	}
+
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(Comment))
+	x, deferable := base.PrepareTestEnv(t, 0, new(Comment), new(PullRequest))
 	defer deferable()
 
 	assert.NoError(t, AddBeforeCommitIDForComment(x))
