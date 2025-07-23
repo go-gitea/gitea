@@ -352,78 +352,70 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 		stepStates[v.Id] = v
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
+	return db.WithTx2(ctx, func(ctx context.Context) (*ActionTask, error) {
+		e := db.GetEngine(ctx)
 
-	e := db.GetEngine(ctx)
+		task := &ActionTask{}
+		if has, err := e.ID(state.Id).Get(task); err != nil {
+			return nil, err
+		} else if !has {
+			return nil, util.ErrNotExist
+		} else if runnerID != task.RunnerID {
+			return nil, errors.New("invalid runner for task")
+		}
 
-	task := &ActionTask{}
-	if has, err := e.ID(state.Id).Get(task); err != nil {
-		return nil, err
-	} else if !has {
-		return nil, util.ErrNotExist
-	} else if runnerID != task.RunnerID {
-		return nil, errors.New("invalid runner for task")
-	}
+		if task.Status.IsDone() {
+			// the state is final, do nothing
+			return task, nil
+		}
 
-	if task.Status.IsDone() {
-		// the state is final, do nothing
+		// state.Result is not unspecified means the task is finished
+		if state.Result != runnerv1.Result_RESULT_UNSPECIFIED {
+			task.Status = Status(state.Result)
+			task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
+			if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {
+				return nil, err
+			}
+			if _, err := UpdateRunJob(ctx, &ActionRunJob{
+				ID:      task.JobID,
+				Status:  task.Status,
+				Stopped: task.Stopped,
+			}, nil); err != nil {
+				return nil, err
+			}
+		} else {
+			// Force update ActionTask.Updated to avoid the task being judged as a zombie task
+			task.Updated = timeutil.TimeStampNow()
+			if err := UpdateTask(ctx, task, "updated"); err != nil {
+				return nil, err
+			}
+		}
+
+		if err := task.LoadAttributes(ctx); err != nil {
+			return nil, err
+		}
+
+		for _, step := range task.Steps {
+			var result runnerv1.Result
+			if v, ok := stepStates[step.Index]; ok {
+				result = v.Result
+				step.LogIndex = v.LogIndex
+				step.LogLength = v.LogLength
+				step.Started = convertTimestamp(v.StartedAt)
+				step.Stopped = convertTimestamp(v.StoppedAt)
+			}
+			if result != runnerv1.Result_RESULT_UNSPECIFIED {
+				step.Status = Status(result)
+			} else if step.Started != 0 {
+				step.Status = StatusRunning
+			}
+			if _, err := e.ID(step.ID).Update(step); err != nil {
+				return nil, err
+			}
+		}
+
 		return task, nil
-	}
-
-	// state.Result is not unspecified means the task is finished
-	if state.Result != runnerv1.Result_RESULT_UNSPECIFIED {
-		task.Status = Status(state.Result)
-		task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
-		if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {
-			return nil, err
-		}
-		if _, err := UpdateRunJob(ctx, &ActionRunJob{
-			ID:      task.JobID,
-			Status:  task.Status,
-			Stopped: task.Stopped,
-		}, nil); err != nil {
-			return nil, err
-		}
-	} else {
-		// Force update ActionTask.Updated to avoid the task being judged as a zombie task
-		task.Updated = timeutil.TimeStampNow()
-		if err := UpdateTask(ctx, task, "updated"); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := task.LoadAttributes(ctx); err != nil {
-		return nil, err
-	}
-
-	for _, step := range task.Steps {
-		var result runnerv1.Result
-		if v, ok := stepStates[step.Index]; ok {
-			result = v.Result
-			step.LogIndex = v.LogIndex
-			step.LogLength = v.LogLength
-			step.Started = convertTimestamp(v.StartedAt)
-			step.Stopped = convertTimestamp(v.StoppedAt)
-		}
-		if result != runnerv1.Result_RESULT_UNSPECIFIED {
-			step.Status = Status(result)
-		} else if step.Started != 0 {
-			step.Status = StatusRunning
-		}
-		if _, err := e.ID(step.ID).Update(step); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := committer.Commit(); err != nil {
-		return nil, err
-	}
-
-	return task, nil
+	})
 }
 
 func StopTask(ctx context.Context, taskID int64, status Status) error {
