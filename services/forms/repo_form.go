@@ -240,8 +240,8 @@ type WebhookForm struct {
 	AuthorizationHeader      string
 	Secret                   string
 	// Payload size optimization options
-	ExcludeFiles   bool // Exclude file changes from commit payloads
-	ExcludeCommits bool // Exclude commits and head_commit from push payloads
+	ExcludeFilesLimit   int // Limit number of file changes in commit payloads, 0 means unlimited
+	ExcludeCommitsLimit int // Limit number of commits in push payloads, 0 means unlimited
 }
 
 // PushOnly if the hook will be triggered when push
@@ -625,7 +625,7 @@ type UpdateAllowEditsForm struct {
 //  |       _// __ \|  | _/ __ \\__  \  /  ___// __ \
 //  |    |   \  ___/|  |_\  ___/ / __ \_\___ \\  ___/
 //  |____|_  /\___  >____/\___  >____  /____  >\___  >
-//         \/     \/          \/     \/     \/     \/
+//         \/     \/            \/     \/     \/     \/
 
 // NewReleaseForm form for creating release
 type NewReleaseForm struct {

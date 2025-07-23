@@ -657,38 +657,47 @@ func (m *webhookNotifier) applyWebhookPayloadOptimizations(ctx context.Context, 
 	}
 
 	// Check if any webhook has payload optimization options enabled
-	hasExcludeFiles := false
-	hasExcludeCommits := false
+	hasFilesLimit := 0
+	hasCommitsLimit := 0
 	for _, webhook := range webhooks {
 		if webhook.HasEvent(webhook_module.HookEventPush) {
-			if webhook.ExcludeFiles {
-				hasExcludeFiles = true
+			if webhook.ExcludeFilesLimit > 0 && (hasFilesLimit == 0 || webhook.ExcludeFilesLimit < hasFilesLimit) {
+				hasFilesLimit = webhook.ExcludeFilesLimit
 			}
-			if webhook.ExcludeCommits {
-				hasExcludeCommits = true
+			if webhook.ExcludeCommitsLimit > 0 && (hasCommitsLimit == 0 || webhook.ExcludeCommitsLimit < hasCommitsLimit) {
+				hasCommitsLimit = webhook.ExcludeCommitsLimit
 			}
 		}
 	}
 
 	// Apply payload optimizations based on webhook configurations
-	if hasExcludeFiles {
-		// Remove file information from commits
+	if hasFilesLimit > 0 {
 		for _, commit := range apiCommits {
-			commit.Added = nil
-			commit.Removed = nil
-			commit.Modified = nil
+			if commit.Added != nil && len(commit.Added) > hasFilesLimit {
+				commit.Added = commit.Added[:hasFilesLimit]
+			}
+			if commit.Removed != nil && len(commit.Removed) > hasFilesLimit {
+				commit.Removed = commit.Removed[:hasFilesLimit]
+			}
+			if commit.Modified != nil && len(commit.Modified) > hasFilesLimit {
+				commit.Modified = commit.Modified[:hasFilesLimit]
+			}
 		}
 		if apiHeadCommit != nil {
-			apiHeadCommit.Added = nil
-			apiHeadCommit.Removed = nil
-			apiHeadCommit.Modified = nil
+			if apiHeadCommit.Added != nil && len(apiHeadCommit.Added) > hasFilesLimit {
+				apiHeadCommit.Added = apiHeadCommit.Added[:hasFilesLimit]
+			}
+			if apiHeadCommit.Removed != nil && len(apiHeadCommit.Removed) > hasFilesLimit {
+				apiHeadCommit.Removed = apiHeadCommit.Removed[:hasFilesLimit]
+			}
+			if apiHeadCommit.Modified != nil && len(apiHeadCommit.Modified) > hasFilesLimit {
+				apiHeadCommit.Modified = apiHeadCommit.Modified[:hasFilesLimit]
+			}
 		}
 	}
 
-	if hasExcludeCommits {
-		// Exclude commits and head_commit from payload
-		apiCommits = nil
-		apiHeadCommit = nil
+	if hasCommitsLimit > 0 && len(apiCommits) > hasCommitsLimit {
+		apiCommits = apiCommits[:hasCommitsLimit]
 	}
 
 	return apiCommits, apiHeadCommit

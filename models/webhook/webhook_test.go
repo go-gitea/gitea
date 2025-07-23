@@ -335,15 +335,15 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	webhook := &Webhook{
-		RepoID:         1,
-		URL:            "http://example.com/webhook",
-		HTTPMethod:     "POST",
-		ContentType:    ContentTypeJSON,
-		Secret:         "secret",
-		IsActive:       true,
-		Type:           webhook_module.GITEA,
-		ExcludeFiles:   true,
-		ExcludeCommits: false,
+		RepoID:              1,
+		URL:                 "http://example.com/webhook",
+		HTTPMethod:          "POST",
+		ContentType:         ContentTypeJSON,
+		Secret:              "secret",
+		IsActive:            true,
+		Type:                webhook_module.GITEA,
+		ExcludeFilesLimit:   1,
+		ExcludeCommitsLimit: 0,
 		HookEvent: &webhook_module.HookEvent{
 			PushOnly: true,
 		},
@@ -357,18 +357,18 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 	// Test retrieving webhook and checking payload optimization options
 	retrievedWebhook, err := GetWebhookByID(db.DefaultContext, webhook.ID)
 	assert.NoError(t, err)
-	assert.True(t, retrievedWebhook.ExcludeFiles)
-	assert.False(t, retrievedWebhook.ExcludeCommits)
+	assert.Equal(t, 1, retrievedWebhook.ExcludeFilesLimit)
+	assert.Equal(t, 0, retrievedWebhook.ExcludeCommitsLimit)
 
 	// Test updating webhook with different payload optimization options
-	retrievedWebhook.ExcludeFiles = false
-	retrievedWebhook.ExcludeCommits = true
+	retrievedWebhook.ExcludeFilesLimit = 0
+	retrievedWebhook.ExcludeCommitsLimit = 2
 	err = UpdateWebhook(db.DefaultContext, retrievedWebhook)
 	assert.NoError(t, err)
 
 	// Verify the update
 	updatedWebhook, err := GetWebhookByID(db.DefaultContext, webhook.ID)
 	assert.NoError(t, err)
-	assert.False(t, updatedWebhook.ExcludeFiles)
-	assert.True(t, updatedWebhook.ExcludeCommits)
+	assert.Equal(t, 0, updatedWebhook.ExcludeFilesLimit)
+	assert.Equal(t, 2, updatedWebhook.ExcludeCommitsLimit)
 }

@@ -140,8 +140,8 @@ type Webhook struct {
 	HeaderAuthorizationEncrypted string `xorm:"TEXT"`
 
 	// Payload size optimization options
-	ExcludeFiles   bool `xorm:"exclude_files"`   // Exclude file changes from commit payloads
-	ExcludeCommits bool `xorm:"exclude_commits"` // Exclude commits and head_commit from push payloads
+	ExcludeFilesLimit   int `xorm:"exclude_files_limit"`   // Limit number of file changes in commit payloads, 0 means unlimited
+	ExcludeCommitsLimit int `xorm:"exclude_commits_limit"` // Limit number of commits in push payloads, 0 means unlimited
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`

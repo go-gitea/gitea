@@ -9,8 +9,8 @@ import (
 
 func AddWebhookPayloadOptimizationColumns(x *xorm.Engine) error {
 	type Webhook struct {
-		ExcludeFiles   bool `xorm:"exclude_files NOT NULL DEFAULT false"`
-		ExcludeCommits bool `xorm:"exclude_commits NOT NULL DEFAULT false"`
+		ExcludeFilesLimit   int `xorm:"exclude_files_limit NOT NULL DEFAULT 0"`
+		ExcludeCommitsLimit int `xorm:"exclude_commits_limit NOT NULL DEFAULT 0"`
 	}
 	_, err := x.SyncWithOptions(
 		xorm.SyncOptions{
