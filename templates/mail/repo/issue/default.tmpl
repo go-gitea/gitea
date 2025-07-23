@@ -6,10 +6,6 @@
 
 	<style>
 		blockquote { padding-left: 1em; margin: 1em 0; border-left: 1px solid grey; color: #777}
-		{{if .ReviewComments}}
-			.review { padding-left: 1em; margin: 1em 0; }
-			.review > pre { padding: 1em; border-left: 1px solid grey; }
-		{{end}}
 	</style>
 
 </head>
@@ -62,8 +58,8 @@
 		{{- range .ReviewComments}}
 			<hr>
 			{{$.locale.Tr "mail.issue.in_tree_path" .TreePath}}
-			<div class="review">
-				<pre>{{.Patch}}</pre>
+			<div style="padding-left: 1em; margin: 1em 0;">
+				<pre style="padding: 1em; border-left: 1px solid grey;">{{.Patch}}</pre>
 				<div>{{.RenderedContent}}</div>
 			</div>
 		{{end -}}
