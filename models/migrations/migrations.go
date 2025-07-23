@@ -385,7 +385,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(320, "Migrate two_factor_policy to login_source table", v1_24.MigrateSkipTwoFactor),
 
 		// Gitea 1.24.0 ends at database version 321
-		newMigration(321, "Fix review_state.updated_files column", v1_25.FixReviewStateUpdatedFilesColumn),
+		newMigration(321, "Use LONGTEXT for some columns and fix review_state.updated_files column", v1_25.UseLongTextInSomeColumnsAndFixBugs),
 	}
 	return preparedMigrations
 }

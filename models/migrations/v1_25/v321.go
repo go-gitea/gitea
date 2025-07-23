@@ -11,13 +11,37 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-func FixReviewStateUpdatedFilesColumn(x *xorm.Engine) error {
-	if setting.Database.Type == "sqlite3" {
-		return nil // SQLite does not support modify column type and the text type is already sufficient
+func UseLongTextInSomeColumnsAndFixBugs(x *xorm.Engine) error {
+	if !setting.Database.Type.IsMySQL() {
+		return nil // Only mysql need to change from text to long text, for other databases, they are the same
 	}
 
-	return base.ModifyColumn(x, "review_state", &schemas.Column{
+	if err := base.ModifyColumn(x, "review_state", &schemas.Column{
 		Name: "updated_files",
+		SQLType: schemas.SQLType{
+			Name: "LONGTEXT",
+		},
+		Length:         0,
+		Nullable:       false,
+		DefaultIsEmpty: true,
+	}); err != nil {
+		return err
+	}
+
+	if err := base.ModifyColumn(x, "package_property", &schemas.Column{
+		Name: "value",
+		SQLType: schemas.SQLType{
+			Name: "LONGTEXT",
+		},
+		Length:         0,
+		Nullable:       false,
+		DefaultIsEmpty: true,
+	}); err != nil {
+		return err
+	}
+
+	return base.ModifyColumn(x, "notice", &schemas.Column{
+		Name: "description",
 		SQLType: schemas.SQLType{
 			Name: "LONGTEXT",
 		},

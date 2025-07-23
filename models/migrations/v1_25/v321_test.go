@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_FixReviewStateUpdatedFilesColumn(t *testing.T) {
-	if setting.Database.Type == "sqlite3" {
-		t.Skip("SQLite does not support modify column type")
+func Test_UseLongTextInSomeColumnsAndFixBugs(t *testing.T) {
+	if !setting.Database.Type.IsMySQL() {
+		t.Skip("Only MySQL needs to change from TEXT to LONGTEXT")
 	}
 
 	type ReviewState struct {
@@ -27,16 +27,45 @@ func Test_FixReviewStateUpdatedFilesColumn(t *testing.T) {
 		UpdatedUnix  timeutil.TimeStamp `xorm:"updated"`                                           // Is an accurate indicator of the order of commits as we do not expect it to be possible to make reviews on previous commits
 	}
 
+	type PackageProperty struct {
+		ID      int64  `xorm:"pk autoincr"`
+		RefType int    `xorm:"INDEX NOT NULL"`
+		RefID   int64  `xorm:"INDEX NOT NULL"`
+		Name    string `xorm:"INDEX NOT NULL"`
+		Value   string `xorm:"TEXT NOT NULL"`
+	}
+
+	type Notice struct {
+		ID          int64 `xorm:"pk autoincr"`
+		Type        int
+		Description string             `xorm:"LONGTEXT"`
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	}
+
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(ReviewState))
+	x, deferable := base.PrepareTestEnv(t, 0, new(ReviewState), new(PackageProperty), new(Notice))
 	defer deferable()
 
-	assert.NoError(t, FixReviewStateUpdatedFilesColumn(x))
+	assert.NoError(t, UseLongTextInSomeColumnsAndFixBugs(x))
 
 	tableInfo, err := x.TableInfo(&ReviewState{})
 	assert.NoError(t, err)
 	assert.NotNil(t, tableInfo)
 	column := tableInfo.GetColumn("updated_files")
+	assert.NotNil(t, column)
+	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
+
+	tableInfo, err = x.TableInfo(&PackageProperty{})
+	assert.NoError(t, err)
+	assert.NotNil(t, tableInfo)
+	column = tableInfo.GetColumn("value")
+	assert.NotNil(t, column)
+	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
+
+	tableInfo, err = x.TableInfo(&Notice{})
+	assert.NoError(t, err)
+	assert.NotNil(t, tableInfo)
+	column = tableInfo.GetColumn("description")
 	assert.NotNil(t, column)
 	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
 }
