@@ -23,6 +23,6 @@ func AddBeforeCommitIDForComment(x *xorm.Engine) error {
 	}, new(comment)); err != nil {
 		return err
 	}
-	_, err := x.Exec("UPDATE comment SET before_commit_id = (SELECT merge_base FROM pull_request WHERE pull_request.issue_id = comment.issue_id) WHERE before_commit_id IS NULL")
+	_, err := x.Exec("UPDATE comment SET before_commit_id = (SELECT merge_base FROM pull_request WHERE pull_request.issue_id = comment.issue_id) WHERE `type`=21 AND before_commit_id IS NULL")
 	return err
 }

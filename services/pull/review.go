@@ -518,7 +518,7 @@ func ReCalculateLineNumber(hunks []*git.HunkInfo, leftLine int64) int64 {
 }
 
 // FetchCodeCommentsByLine fetches the code comments for a given commit, treePath and line number of a pull request.
-func FetchCodeCommentsByLine(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, issueID int64, currentUser *user_model.User, startCommitID, endCommitID, treePath string, line int64, showOutdatedComments bool) (issues_model.CommentList, error) {
+func FetchCodeCommentsByLine(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, issueID int64, currentUser *user_model.User, beforeCommitID, afterCommitID, treePath string, line int64, showOutdatedComments bool) (issues_model.CommentList, error) {
 	opts := issues_model.FindCommentsOptions{
 		Type:     issues_model.CommentTypeCode,
 		IssueID:  issueID,
@@ -533,52 +533,54 @@ func FetchCodeCommentsByLine(ctx context.Context, gitRepo *git.Repository, repo 
 	if len(comments) == 0 {
 		return nil, nil
 	}
+	afterCommit, err := gitRepo.GetCommit(afterCommitID)
+	if err != nil {
+		return nil, fmt.Errorf("GetCommit[%s]: %w", afterCommitID, err)
+	}
 	n := 0
 	hunksCache := make(map[string][]*git.HunkInfo)
 	for _, comment := range comments {
 		// Code comment should always have a commit SHA, if not, we need to set it based on the line number
 		if comment.CommitSHA == "" {
 			if comment.Line > 0 {
-				comment.CommitSHA = endCommitID
+				comment.CommitSHA = afterCommitID
 			} else if comment.Line < 0 {
-				comment.CommitSHA = startCommitID
+				comment.CommitSHA = beforeCommitID
 			} else {
 				// If the comment has no line number, we cannot display it in the diff view
 				continue
 			}
 		}
 
-		dstCommitID := startCommitID
+		dstCommitID := beforeCommitID
+		commentCommitID := comment.BeforeCommitID
 		if comment.Line > 0 {
-			dstCommitID = endCommitID
+			dstCommitID = afterCommitID
+			commentCommitID = comment.CommitSHA
 		}
 
-		if comment.CommitSHA == dstCommitID {
-			if comment.Line == line {
-				comments[n] = comment
-				n++
+		if commentCommitID != dstCommitID {
+			// If the comment is not for the current commit, we need to recalculate the line number
+			hunks, ok := hunksCache[commentCommitID+".."+dstCommitID]
+			if !ok {
+				hunks, err = git.GetAffectedHunksForTwoCommitsSpecialFile(ctx, repo.RepoPath(), commentCommitID, dstCommitID, treePath)
+				if err != nil {
+					return nil, fmt.Errorf("GetAffectedHunksForTwoCommitsSpecialFile[%s, %s, %s]: %w", repo.FullName(), commentCommitID, dstCommitID, err)
+				}
+				hunksCache[commentCommitID+".."+dstCommitID] = hunks
 			}
-			continue
+			comment.Line = ReCalculateLineNumber(hunks, comment.Line)
 		}
 
-		// If the comment is not for the current commit, we need to recalculate the line number
-		hunks, ok := hunksCache[comment.CommitSHA+".."+dstCommitID]
-		if !ok {
-			hunks, err = git.GetAffectedHunksForTwoCommitsSpecialFile(ctx, repo.RepoPath(), comment.CommitSHA, dstCommitID, treePath)
+		if comment.Line == line {
+			commentAfterCommit, err := gitRepo.GetCommit(comment.CommitSHA)
 			if err != nil {
-				return nil, fmt.Errorf("GetAffectedHunksForTwoCommitsSpecialFile[%s, %s, %s]: %w", repo.FullName(), comment.CommitSHA, dstCommitID, err)
+				return nil, fmt.Errorf("GetCommit[%s]: %w", comment.CommitSHA, err)
 			}
-			hunksCache[comment.CommitSHA+".."+dstCommitID] = hunks
-		}
 
-		comment.Line = ReCalculateLineNumber(hunks, comment.Line)
-		if comment.Line != 0 {
-			dstCommit, err := gitRepo.GetCommit(dstCommitID)
-			if err != nil {
-				return nil, fmt.Errorf("GetCommit[%s]: %w", dstCommitID, err)
-			}
 			// If the comment is not the first one or the comment created before the current commit
-			if n > 0 || comment.CreatedUnix.AsTime().Before(dstCommit.Committer.When) {
+			if n > 0 || comment.CommitSHA == afterCommitID ||
+				commentAfterCommit.Committer.When.Before(afterCommit.Committer.When) {
 				comments[n] = comment
 				n++
 			}
