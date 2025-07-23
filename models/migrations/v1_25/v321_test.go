@@ -48,24 +48,23 @@ func Test_UseLongTextInSomeColumnsAndFixBugs(t *testing.T) {
 
 	assert.NoError(t, UseLongTextInSomeColumnsAndFixBugs(x))
 
-	tableInfo, err := x.TableInfo(&ReviewState{})
+	tables, err := x.DBMetas()
 	assert.NoError(t, err)
-	assert.NotNil(t, tableInfo)
-	column := tableInfo.GetColumn("updated_files")
-	assert.NotNil(t, column)
-	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
 
-	tableInfo, err = x.TableInfo(&PackageProperty{})
-	assert.NoError(t, err)
-	assert.NotNil(t, tableInfo)
-	column = tableInfo.GetColumn("value")
-	assert.NotNil(t, column)
-	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
-
-	tableInfo, err = x.TableInfo(&Notice{})
-	assert.NoError(t, err)
-	assert.NotNil(t, tableInfo)
-	column = tableInfo.GetColumn("description")
-	assert.NotNil(t, column)
-	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
+	for _, table := range tables {
+		switch table.Name {
+		case "review_state":
+			column := table.GetColumn("updated_files")
+			assert.NotNil(t, column)
+			assert.Equal(t, "LONGTEXT", column.SQLType.Name)
+		case "package_property":
+			column := table.GetColumn("value")
+			assert.NotNil(t, column)
+			assert.Equal(t, "LONGTEXT", column.SQLType.Name)
+		case "notice":
+			column := table.GetColumn("description")
+			assert.NotNil(t, column)
+			assert.Equal(t, "LONGTEXT", column.SQLType.Name)
+		}
+	}
 }
