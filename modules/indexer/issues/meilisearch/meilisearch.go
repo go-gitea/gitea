@@ -70,7 +70,7 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"label_ids",
 			"no_label",
 			"milestone_id",
-			"project_id",
+			"project_ids",
 			"project_board_id",
 			"poster_id",
 			"assignee_id",
