@@ -12,7 +12,9 @@ Jobs:
     Status: success
     Attempt: 1
     HTMLURL: http://localhost/job/1
+    Duration: 1h2m3s
   - Name: Job-Name-2
     Status: failure
     Attempt: 2
     HTMLURL: http://localhost/job/2
+    Duration: 1h2m3s
