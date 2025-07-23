@@ -99,40 +99,36 @@ func AddPublicKey(ctx context.Context, ownerID int64, name, content string, auth
 		return nil, err
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
+	return db.WithTx2(ctx, func(ctx context.Context) (*PublicKey, error) {
+		if err := checkKeyFingerprint(ctx, fingerprint); err != nil {
+			return nil, err
+		}
 
-	if err := checkKeyFingerprint(ctx, fingerprint); err != nil {
-		return nil, err
-	}
+		// Key name of same user cannot be duplicated.
+		has, err := db.GetEngine(ctx).
+			Where("owner_id = ? AND name = ?", ownerID, name).
+			Get(new(PublicKey))
+		if err != nil {
+			return nil, err
+		} else if has {
+			return nil, ErrKeyNameAlreadyUsed{ownerID, name}
+		}
 
-	// Key name of same user cannot be duplicated.
-	has, err := db.GetEngine(ctx).
-		Where("owner_id = ? AND name = ?", ownerID, name).
-		Get(new(PublicKey))
-	if err != nil {
-		return nil, err
-	} else if has {
-		return nil, ErrKeyNameAlreadyUsed{ownerID, name}
-	}
+		key := &PublicKey{
+			OwnerID:       ownerID,
+			Name:          name,
+			Fingerprint:   fingerprint,
+			Content:       content,
+			Mode:          perm.AccessModeWrite,
+			Type:          KeyTypeUser,
+			LoginSourceID: authSourceID,
+		}
+		if err = addKey(ctx, key); err != nil {
+			return nil, fmt.Errorf("addKey: %w", err)
+		}
 
-	key := &PublicKey{
-		OwnerID:       ownerID,
-		Name:          name,
-		Fingerprint:   fingerprint,
-		Content:       content,
-		Mode:          perm.AccessModeWrite,
-		Type:          KeyTypeUser,
-		LoginSourceID: authSourceID,
-	}
-	if err = addKey(ctx, key); err != nil {
-		return nil, fmt.Errorf("addKey: %w", err)
-	}
-
-	return key, committer.Commit()
+		return key, nil
+	})
 }
 
 // GetPublicKeyByID returns public key by given ID.
@@ -288,33 +284,24 @@ func PublicKeyIsExternallyManaged(ctx context.Context, id int64) (bool, error) {
 
 // deleteKeysMarkedForDeletion returns true if ssh keys needs update
 func deleteKeysMarkedForDeletion(ctx context.Context, keys []string) (bool, error) {
-	// Start session
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return false, err
-	}
-	defer committer.Close()
-
-	// Delete keys marked for deletion
-	var sshKeysNeedUpdate bool
-	for _, KeyToDelete := range keys {
-		key, err := SearchPublicKeyByContent(ctx, KeyToDelete)
-		if err != nil {
-			log.Error("SearchPublicKeyByContent: %v", err)
-			continue
+	return db.WithTx2(ctx, func(ctx context.Context) (bool, error) {
+		// Delete keys marked for deletion
+		var sshKeysNeedUpdate bool
+		for _, KeyToDelete := range keys {
+			key, err := SearchPublicKeyByContent(ctx, KeyToDelete)
+			if err != nil {
+				log.Error("SearchPublicKeyByContent: %v", err)
+				continue
+			}
+			if _, err = db.DeleteByID[PublicKey](ctx, key.ID); err != nil {
+				log.Error("DeleteByID[PublicKey]: %v", err)
+				continue
+			}
+			sshKeysNeedUpdate = true
 		}
-		if _, err = db.DeleteByID[PublicKey](ctx, key.ID); err != nil {
-			log.Error("DeleteByID[PublicKey]: %v", err)
-			continue
-		}
-		sshKeysNeedUpdate = true
-	}
 
-	if err := committer.Commit(); err != nil {
-		return false, err
-	}
-
-	return sshKeysNeedUpdate, nil
+		return sshKeysNeedUpdate, nil
+	})
 }
 
 // AddPublicKeysBySource add a users public keys. Returns true if there are changes.
