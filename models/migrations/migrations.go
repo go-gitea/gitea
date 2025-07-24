@@ -384,8 +384,9 @@ func prepareMigrationTasks() []*migration {
 		newMigration(319, "Add ExclusiveOrder to Label table", v1_24.AddExclusiveOrderColumnToLabelTable),
 		newMigration(320, "Migrate two_factor_policy to login_source table", v1_24.MigrateSkipTwoFactor),
 
-		// Gitea 1.24.0-rc0 ends at migration ID number 320 (database version 321)
-		newMigration(321, "Add BeforeCommitID to Comment table", v1_25.AddBeforeCommitIDForComment),
+		// Gitea 1.24.0 ends at database version 321
+		newMigration(321, "Use LONGTEXT for some columns and fix review_state.updated_files column", v1_25.UseLongTextInSomeColumnsAndFixBugs),
+		newMigration(322, "Add BeforeCommitID to Comment table", v1_25.AddBeforeCommitIDForComment),
 	}
 	return preparedMigrations
 }

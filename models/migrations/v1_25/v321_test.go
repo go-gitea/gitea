@@ -7,97 +7,64 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_AddBeforeCommitIDForComment(t *testing.T) {
-	type Comment struct { // old struct
-		ID               int64 `xorm:"pk autoincr"`
-		Type             int   `xorm:"INDEX"`
-		PosterID         int64 `xorm:"INDEX"`
-		OriginalAuthor   string
-		OriginalAuthorID int64
-		IssueID          int64 `xorm:"INDEX"`
-		LabelID          int64
-		OldProjectID     int64
-		ProjectID        int64
-		OldMilestoneID   int64
-		MilestoneID      int64
-		TimeID           int64
-		AssigneeID       int64
-		RemovedAssignee  bool
-		AssigneeTeamID   int64 `xorm:"NOT NULL DEFAULT 0"`
-		ResolveDoerID    int64
-		OldTitle         string
-		NewTitle         string
-		OldRef           string
-		NewRef           string
-		DependentIssueID int64 `xorm:"index"` // This is used by issue_service.deleteIssue
-
-		CommitID       int64
-		Line           int64 // - previous line / + proposed line
-		TreePath       string
-		Content        string `xorm:"LONGTEXT"`
-		ContentVersion int    `xorm:"NOT NULL DEFAULT 0"`
-
-		// Path represents the 4 lines of code cemented by this comment
-		Patch       string `xorm:"-"`
-		PatchQuoted string `xorm:"LONGTEXT patch"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-
-		// Reference issue in commit message
-		CommitSHA string `xorm:"VARCHAR(64)"`
-
-		ReviewID    int64 `xorm:"index"`
-		Invalidated bool
-
-		// Reference an issue or pull from another comment, issue or PR
-		// All information is about the origin of the reference
-		RefRepoID    int64                 `xorm:"index"` // Repo where the referencing
-		RefIssueID   int64                 `xorm:"index"`
-		RefCommentID int64                 `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
-		RefAction    references.XRefAction `xorm:"SMALLINT"` // What happens if RefIssueID resolves
-		RefIsPull    bool
-
-		CommentMetaData string `xorm:"JSON TEXT"` // put all non-index metadata in a single field
+func Test_UseLongTextInSomeColumnsAndFixBugs(t *testing.T) {
+	if !setting.Database.Type.IsMySQL() {
+		t.Skip("Only MySQL needs to change from TEXT to LONGTEXT")
 	}
 
-	type PullRequest struct {
-		ID              int64 `xorm:"pk autoincr"`
-		Type            int
-		Status          int
-		ConflictedFiles []string `xorm:"TEXT JSON"`
-		CommitsAhead    int
-		CommitsBehind   int
+	type ReviewState struct {
+		ID           int64              `xorm:"pk autoincr"`
+		UserID       int64              `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
+		PullID       int64              `xorm:"NOT NULL INDEX UNIQUE(pull_commit_user) DEFAULT 0"` // Which PR was the review on?
+		CommitSHA    string             `xorm:"NOT NULL VARCHAR(64) UNIQUE(pull_commit_user)"`     // Which commit was the head commit for the review?
+		UpdatedFiles map[string]int     `xorm:"NOT NULL TEXT JSON"`                                // Stores for each of the changed files of a PR whether they have been viewed, changed since last viewed, or not viewed
+		UpdatedUnix  timeutil.TimeStamp `xorm:"updated"`                                           // Is an accurate indicator of the order of commits as we do not expect it to be possible to make reviews on previous commits
+	}
 
-		ChangedProtectedFiles []string `xorm:"TEXT JSON"`
+	type PackageProperty struct {
+		ID      int64  `xorm:"pk autoincr"`
+		RefType int    `xorm:"INDEX NOT NULL"`
+		RefID   int64  `xorm:"INDEX NOT NULL"`
+		Name    string `xorm:"INDEX NOT NULL"`
+		Value   string `xorm:"TEXT NOT NULL"`
+	}
 
-		IssueID int64 `xorm:"INDEX"`
-		Index   int64
-
-		HeadRepoID          int64 `xorm:"INDEX"`
-		BaseRepoID          int64 `xorm:"INDEX"`
-		HeadBranch          string
-		BaseBranch          string
-		MergeBase           string `xorm:"VARCHAR(64)"`
-		AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT false"`
-
-		HasMerged      bool               `xorm:"INDEX"`
-		MergedCommitID string             `xorm:"VARCHAR(64)"`
-		MergerID       int64              `xorm:"INDEX"`
-		MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
-
-		Flow int `xorm:"NOT NULL DEFAULT 0"`
+	type Notice struct {
+		ID          int64 `xorm:"pk autoincr"`
+		Type        int
+		Description string             `xorm:"LONGTEXT"`
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(Comment), new(PullRequest))
+	x, deferable := base.PrepareTestEnv(t, 0, new(ReviewState), new(PackageProperty), new(Notice))
 	defer deferable()
 
-	assert.NoError(t, AddBeforeCommitIDForComment(x))
+	assert.NoError(t, UseLongTextInSomeColumnsAndFixBugs(x))
+
+	tables, err := x.DBMetas()
+	assert.NoError(t, err)
+
+	for _, table := range tables {
+		switch table.Name {
+		case "review_state":
+			column := table.GetColumn("updated_files")
+			assert.NotNil(t, column)
+			assert.Equal(t, "LONGTEXT", column.SQLType.Name)
+		case "package_property":
+			column := table.GetColumn("value")
+			assert.NotNil(t, column)
+			assert.Equal(t, "LONGTEXT", column.SQLType.Name)
+		case "notice":
+			column := table.GetColumn("description")
+			assert.NotNil(t, column)
+			assert.Equal(t, "LONGTEXT", column.SQLType.Name)
+		}
+	}
 }

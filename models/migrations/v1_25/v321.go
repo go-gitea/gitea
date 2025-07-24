@@ -4,25 +4,49 @@
 package v1_25
 
 import (
+	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/modules/setting"
+
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-type comment struct {
-	BeforeCommitID string `xorm:"VARCHAR(64)"`
-}
+func UseLongTextInSomeColumnsAndFixBugs(x *xorm.Engine) error {
+	if !setting.Database.Type.IsMySQL() {
+		return nil // Only mysql need to change from text to long text, for other databases, they are the same
+	}
 
-// TableName return database table name for xorm
-func (comment) TableName() string {
-	return "comment"
-}
-
-func AddBeforeCommitIDForComment(x *xorm.Engine) error {
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains: true,
-		IgnoreIndices:    true,
-	}, new(comment)); err != nil {
+	if err := base.ModifyColumn(x, "review_state", &schemas.Column{
+		Name: "updated_files",
+		SQLType: schemas.SQLType{
+			Name: "LONGTEXT",
+		},
+		Length:         0,
+		Nullable:       false,
+		DefaultIsEmpty: true,
+	}); err != nil {
 		return err
 	}
-	_, err := x.Exec("UPDATE comment SET before_commit_id = (SELECT merge_base FROM pull_request WHERE pull_request.issue_id = comment.issue_id) WHERE `type`=21 AND before_commit_id IS NULL")
-	return err
+
+	if err := base.ModifyColumn(x, "package_property", &schemas.Column{
+		Name: "value",
+		SQLType: schemas.SQLType{
+			Name: "LONGTEXT",
+		},
+		Length:         0,
+		Nullable:       false,
+		DefaultIsEmpty: true,
+	}); err != nil {
+		return err
+	}
+
+	return base.ModifyColumn(x, "notice", &schemas.Column{
+		Name: "description",
+		SQLType: schemas.SQLType{
+			Name: "LONGTEXT",
+		},
+		Length:         0,
+		Nullable:       false,
+		DefaultIsEmpty: true,
+	})
 }
