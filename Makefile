@@ -49,7 +49,7 @@ ifeq ($(HAS_GO), yes)
 endif
 
 CGO_ENABLED ?= 0
-ifneq (,$(findstring sqlite,$(TAGS)))
+ifneq (,$(findstring sqlite,$(TAGS))$(findstring pam,$(TAGS)))
 	CGO_ENABLED = 1
 endif
 
