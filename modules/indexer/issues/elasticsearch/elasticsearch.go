@@ -68,7 +68,7 @@ const (
 			"label_ids": { "type": "integer", "index": true },
 			"no_label": { "type": "boolean", "index": true },
 			"milestone_id": { "type": "integer", "index": true },
-			"project_ids": { "type": "integer", "index": true },
+			"project_id": { "type": "integer", "index": true },
 			"project_board_id": { "type": "integer", "index": true },
 			"poster_id": { "type": "integer", "index": true },
 			"assignee_id": { "type": "integer", "index": true },
@@ -205,7 +205,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if len(options.ProjectIDs) > 0 {
-		query.Must(elastic.NewTermsQuery("project_ids", toAnySlice(options.ProjectIDs)...))
+		query.Must(elastic.NewTermsQuery("project_id", toAnySlice(options.ProjectIDs)...))
 	}
 	if options.ProjectColumnID.Has() {
 		query.Must(elastic.NewTermQuery("project_board_id", options.ProjectColumnID.Value()))
