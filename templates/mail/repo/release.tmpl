@@ -49,12 +49,6 @@
 			{{end}}
 		</ul>
 	</p>
-	<div style="font-size:small; color:#666;">
-		<p>
-			---
-			<br>
-			<a href="{{.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
-		</p>
-	</div>
+	{{template "footer_view_on_gitea" .}}
 </body>
 </html>
