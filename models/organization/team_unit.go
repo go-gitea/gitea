@@ -31,21 +31,16 @@ func getUnitsByTeamID(ctx context.Context, teamID int64) (units []*TeamUnit, err
 
 // UpdateTeamUnits updates a teams's units
 func UpdateTeamUnits(ctx context.Context, team *Team, units []TeamUnit) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if _, err = db.GetEngine(ctx).Where("team_id = ?", team.ID).Delete(new(TeamUnit)); err != nil {
-		return err
-	}
-
-	if len(units) > 0 {
-		if err = db.Insert(ctx, units); err != nil {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if _, err = db.GetEngine(ctx).Where("team_id = ?", team.ID).Delete(new(TeamUnit)); err != nil {
 			return err
 		}
-	}
 
-	return committer.Commit()
+		if len(units) > 0 {
+			if err = db.Insert(ctx, units); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
