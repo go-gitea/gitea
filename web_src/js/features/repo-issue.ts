@@ -542,7 +542,11 @@ function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
       // deactivate all markdown editors
       showElem(commentForm.querySelectorAll('.combo-editor-dropzone .form-field-real'));
       hideElem(commentForm.querySelectorAll('.combo-editor-dropzone .combo-markdown-editor'));
-      hideElem(commentForm.querySelectorAll('.combo-editor-dropzone .form-field-dropzone'));
+      queryElems(commentForm, '.combo-editor-dropzone .form-field-dropzone', (dropzoneContainer) => {
+        const dropzone = dropzoneContainer.closest('.combo-editor-dropzone')?.querySelector('.dropzone');
+        const hasUploadedFiles = dropzone?.querySelector('.dz-preview') !== null;
+        if (!hasUploadedFiles) hideElem(dropzoneContainer);
+      });
 
       // activate this markdown editor
       hideElem(fieldTextarea);
