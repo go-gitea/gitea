@@ -52,12 +52,12 @@
 	<h4>{{ctx.Locale.Tr "repo.settings.payload_optimization"}}</h4>
 	<div class="field">
 		<label>{{ctx.Locale.Tr "repo.settings.exclude_files_limit"}}</label>
-		<input name="exclude_files_limit" type="number" min="0" value="{{.Webhook.ExcludeFilesLimit}}" placeholder="0">
+		<input name="exclude_files_limit" type="number" min="-1" value="{{.Webhook.ExcludeFilesLimit}}" placeholder="-1">
 		<span class="help">{{ctx.Locale.Tr "repo.settings.exclude_files_limit_desc"}}</span>
 	</div>
 	<div class="field">
 		<label>{{ctx.Locale.Tr "repo.settings.exclude_commits_limit"}}</label>
-		<input name="exclude_commits_limit" type="number" min="0" value="{{.Webhook.ExcludeCommitsLimit}}" placeholder="0">
+		<input name="exclude_commits_limit" type="number" min="-1" value="{{.Webhook.ExcludeCommitsLimit}}" placeholder="-1">
 		<span class="help">{{ctx.Locale.Tr "repo.settings.exclude_commits_limit_desc"}}</span>
 	</div>
 </div>

@@ -240,8 +240,8 @@ type WebhookForm struct {
 	AuthorizationHeader      string
 	Secret                   string
 	// Payload size optimization options
-	ExcludeFilesLimit   int // Limit number of file changes in commit payloads, 0 means unlimited
-	ExcludeCommitsLimit int // Limit number of commits in push payloads, 0 means unlimited
+	ExcludeFilesLimit   int // -1: do not trim, 0: trim all (none kept), >0: keep N file changes in commit payloads
+	ExcludeCommitsLimit int // -1: do not trim, 0: trim all (none kept), >0: keep N commits in push payloads
 }
 
 // PushOnly if the hook will be triggered when push

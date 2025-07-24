@@ -98,10 +98,17 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 	var optimizedCommits []*api.PayloadCommit
 	var optimizedHeadCommit *api.PayloadCommit
 
-	// Create a test repository
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	// Create a webhook with file limit = 1
+	// Clean up all webhooks for this repo to avoid interference
+	webhooks, err := db.Find[webhook_model.Webhook](db.DefaultContext, webhook_model.ListWebhookOptions{RepoID: repo.ID})
+	assert.NoError(t, err)
+	for _, wh := range webhooks {
+		err = webhook_model.DeleteWebhookByID(db.DefaultContext, wh.ID)
+		assert.NoError(t, err)
+	}
+
+	// Case: -1 (no trimming)
 	webhook := &webhook_model.Webhook{
 		RepoID:              repo.ID,
 		URL:                 "http://example.com/webhook",
@@ -110,21 +117,19 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 		Secret:              "secret",
 		IsActive:            true,
 		Type:                webhook_module.GITEA,
-		ExcludeFilesLimit:   1,
-		ExcludeCommitsLimit: 0,
+		ExcludeFilesLimit:   -1,
+		ExcludeCommitsLimit: -1,
 		HookEvent: &webhook_module.HookEvent{
 			PushOnly: true,
 		},
 	}
 
-	err := webhook.UpdateEvent()
+	err = webhook.UpdateEvent()
 	assert.NoError(t, err)
 	err = webhook_model.CreateWebhook(db.DefaultContext, webhook)
 	assert.NoError(t, err)
 	assert.NotZero(t, webhook.ID)
 
-	// Test payload optimization: should truncate to 1 file per field
-	notifier := &webhookNotifier{}
 	apiCommits := []*api.PayloadCommit{
 		{
 			ID:       "abc123",
@@ -148,52 +153,22 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 		Removed:  []string{},
 		Modified: []string{"file1.txt"},
 	}
-	optimizedCommits, _ = notifier.applyWebhookPayloadOptimizations(db.DefaultContext, repo, apiCommits, apiHeadCommit)
-	assert.Equal(t, []string{"file1.txt"}, optimizedCommits[0].Added)
-	assert.Equal(t, []string{"oldfile.txt"}, optimizedCommits[0].Removed)
-	assert.Equal(t, []string{"modified.txt"}, optimizedCommits[0].Modified)
-	assert.Equal(t, []string{"file3.txt"}, optimizedCommits[1].Added)
-	assert.Equal(t, []string{}, optimizedCommits[1].Removed)
-	assert.Equal(t, []string{"file1.txt"}, optimizedCommits[1].Modified)
-
-	_, optimizedHeadCommit = notifier.applyWebhookPayloadOptimizations(db.DefaultContext, repo, apiCommits, apiHeadCommit)
-	assert.Equal(t, []string{"file3.txt"}, optimizedHeadCommit.Added)
-	assert.Equal(t, []string{}, optimizedHeadCommit.Removed)
-	assert.Equal(t, []string{"file1.txt"}, optimizedHeadCommit.Modified)
-
-	// Test with commit limit = 1
-	webhook.ExcludeFilesLimit = 0
-	webhook.ExcludeCommitsLimit = 1
-	err = webhook_model.UpdateWebhook(db.DefaultContext, webhook)
-	assert.NoError(t, err)
-	apiCommits = []*api.PayloadCommit{
-		{
-			ID:       "abc123",
-			Message:  "Test commit",
-			Added:    []string{"file1.txt", "file2.txt"},
-			Removed:  []string{"oldfile.txt"},
-			Modified: []string{"modified.txt"},
-		},
-		{
-			ID:       "def456",
-			Message:  "Another commit",
-			Added:    []string{"file3.txt"},
-			Removed:  []string{},
-			Modified: []string{"file1.txt"},
-		},
+	optimizedCommits, optimizedHeadCommit = (&webhookNotifier{}).applyWebhookPayloadOptimizations(db.DefaultContext, repo, apiCommits, apiHeadCommit)
+	if assert.NotNil(t, optimizedCommits) && len(optimizedCommits) == 2 {
+		assert.Equal(t, []string{"file1.txt", "file2.txt"}, optimizedCommits[0].Added)
+		assert.Equal(t, []string{"oldfile.txt"}, optimizedCommits[0].Removed)
+		assert.Equal(t, []string{"modified.txt"}, optimizedCommits[0].Modified)
+		assert.Equal(t, []string{"file3.txt"}, optimizedCommits[1].Added)
+		assert.Equal(t, []string{}, optimizedCommits[1].Removed)
+		assert.Equal(t, []string{"file1.txt"}, optimizedCommits[1].Modified)
 	}
-	apiHeadCommit = &api.PayloadCommit{
-		ID:       "def456",
-		Message:  "Another commit",
-		Added:    []string{"file3.txt"},
-		Removed:  []string{},
-		Modified: []string{"file1.txt"},
+	if assert.NotNil(t, optimizedHeadCommit) {
+		assert.Equal(t, []string{"file3.txt"}, optimizedHeadCommit.Added)
+		assert.Equal(t, []string{}, optimizedHeadCommit.Removed)
+		assert.Equal(t, []string{"file1.txt"}, optimizedHeadCommit.Modified)
 	}
-	optimizedCommits, _ = notifier.applyWebhookPayloadOptimizations(db.DefaultContext, repo, apiCommits, apiHeadCommit)
-	assert.Len(t, optimizedCommits, 1)
-	assert.Equal(t, "abc123", optimizedCommits[0].ID)
 
-	// Test with no limits (0 means unlimited)
+	// Case: 0 (keep nothing)
 	webhook.ExcludeFilesLimit = 0
 	webhook.ExcludeCommitsLimit = 0
 	err = webhook_model.UpdateWebhook(db.DefaultContext, webhook)
@@ -221,14 +196,52 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 		Removed:  []string{},
 		Modified: []string{"file1.txt"},
 	}
-	optimizedCommits, optimizedHeadCommit = notifier.applyWebhookPayloadOptimizations(db.DefaultContext, repo, apiCommits, apiHeadCommit)
-	assert.Equal(t, []string{"file1.txt", "file2.txt"}, optimizedCommits[0].Added)
-	assert.Equal(t, []string{"oldfile.txt"}, optimizedCommits[0].Removed)
-	assert.Equal(t, []string{"modified.txt"}, optimizedCommits[0].Modified)
-	assert.Equal(t, []string{"file3.txt"}, optimizedCommits[1].Added)
-	assert.Equal(t, []string{}, optimizedCommits[1].Removed)
-	assert.Equal(t, []string{"file1.txt"}, optimizedCommits[1].Modified)
-	assert.Equal(t, []string{"file3.txt"}, optimizedHeadCommit.Added)
-	assert.Equal(t, []string{}, optimizedHeadCommit.Removed)
-	assert.Equal(t, []string{"file1.txt"}, optimizedHeadCommit.Modified)
+	optimizedCommits, optimizedHeadCommit = (&webhookNotifier{}).applyWebhookPayloadOptimizations(db.DefaultContext, repo, apiCommits, apiHeadCommit)
+	assert.Nil(t, optimizedCommits)
+	if assert.NotNil(t, optimizedHeadCommit) {
+		assert.Nil(t, optimizedHeadCommit.Added)
+		assert.Nil(t, optimizedHeadCommit.Removed)
+		assert.Nil(t, optimizedHeadCommit.Modified)
+	}
+
+	// Case: 1 (keep only 1)
+	webhook.ExcludeFilesLimit = 1
+	webhook.ExcludeCommitsLimit = 1
+	err = webhook_model.UpdateWebhook(db.DefaultContext, webhook)
+	assert.NoError(t, err)
+	apiCommits = []*api.PayloadCommit{
+		{
+			ID:       "abc123",
+			Message:  "Test commit",
+			Added:    []string{"file1.txt", "file2.txt"},
+			Removed:  []string{"oldfile.txt"},
+			Modified: []string{"modified.txt"},
+		},
+		{
+			ID:       "def456",
+			Message:  "Another commit",
+			Added:    []string{"file3.txt"},
+			Removed:  []string{},
+			Modified: []string{"file1.txt"},
+		},
+	}
+	apiHeadCommit = &api.PayloadCommit{
+		ID:       "def456",
+		Message:  "Another commit",
+		Added:    []string{"file3.txt"},
+		Removed:  []string{},
+		Modified: []string{"file1.txt"},
+	}
+	optimizedCommits, optimizedHeadCommit = (&webhookNotifier{}).applyWebhookPayloadOptimizations(db.DefaultContext, repo, apiCommits, apiHeadCommit)
+	if assert.NotNil(t, optimizedCommits) && len(optimizedCommits) == 1 {
+		assert.Equal(t, "abc123", optimizedCommits[0].ID)
+		assert.Equal(t, []string{"file1.txt"}, optimizedCommits[0].Added)
+		assert.Equal(t, []string{"oldfile.txt"}, optimizedCommits[0].Removed)
+		assert.Equal(t, []string{"modified.txt"}, optimizedCommits[0].Modified)
+	}
+	if assert.NotNil(t, optimizedHeadCommit) {
+		assert.Equal(t, []string{"file3.txt"}, optimizedHeadCommit.Added)
+		assert.Equal(t, []string{}, optimizedHeadCommit.Removed)
+		assert.Equal(t, []string{"file1.txt"}, optimizedHeadCommit.Modified)
+	}
 }
