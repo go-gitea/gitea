@@ -48,6 +48,7 @@
             GOROOT = "${go}/share/go";
 
             TAGS = "sqlite sqlite_unlock_notify";
+            STATIC = "true";
           };
       }
     );
