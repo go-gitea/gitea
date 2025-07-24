@@ -139,6 +139,10 @@ type Webhook struct {
 	// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
 	HeaderAuthorizationEncrypted string `xorm:"TEXT"`
 
+	// Payload size optimization options
+	ExcludeFilesLimit   int `xorm:"exclude_files_limit"`   // -1: do not trim, 0: trim all (none kept), >0: keep N file changes in commit payloads
+	ExcludeCommitsLimit int `xorm:"exclude_commits_limit"` // -1: do not trim, 0: trim all (none kept), >0: keep N commits in push payloads
+
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
