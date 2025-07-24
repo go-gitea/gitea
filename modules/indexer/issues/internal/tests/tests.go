@@ -331,7 +331,7 @@ var cases = []*testIndexerCase{
 			ProjectIDs: []int64{0},
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Len(t, result.Hits, 0)
+			assert.Empty(t, result.Hits)
 			for _, v := range result.Hits {
 				if len(data[v.ID].ProjectIDs) > 0 {
 					assert.Equal(t, int64(1), data[v.ID].ProjectIDs[0])
