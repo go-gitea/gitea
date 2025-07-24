@@ -1201,7 +1201,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	compareInfo, err := pull_service.GetCompareInfo(ctx, baseRepo, headGitRepo, baseRef.ShortName(), headRef.ShortName(), false, false)
+	compareInfo, err := pull_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef.ShortName(), headRef.ShortName(), false, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
@@ -1461,9 +1461,9 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	defer closer.Close()
 
 	if pr.HasMerged {
-		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, baseGitRepo, pr.MergeBase, pr.GetGitHeadRefName(), false, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.MergeBase, pr.GetGitHeadRefName(), false, false)
 	} else {
-		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, baseGitRepo, pr.BaseBranch, pr.GetGitHeadRefName(), false, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.BaseBranch, pr.GetGitHeadRefName(), false, false)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1584,9 +1584,9 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	var prInfo *pull_service.CompareInfo
 	if pr.HasMerged {
-		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, baseGitRepo, pr.MergeBase, pr.GetGitHeadRefName(), true, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.MergeBase, pr.GetGitHeadRefName(), true, false)
 	} else {
-		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, baseGitRepo, pr.BaseBranch, pr.GetGitHeadRefName(), true, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.BaseBranch, pr.GetGitHeadRefName(), true, false)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)

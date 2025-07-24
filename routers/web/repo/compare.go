@@ -551,7 +551,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		headBranchRef = git.TagPrefix + ci.HeadBranch
 	}
 
-	ci.CompareInfo, err = pull_service.GetCompareInfo(ctx, baseRepo, ci.HeadGitRepo, baseBranchRef, headBranchRef, ci.DirectComparison, fileOnly)
+	ci.CompareInfo, err = pull_service.GetCompareInfo(ctx, baseRepo, ci.HeadRepo, ci.HeadGitRepo, baseBranchRef, headBranchRef, ci.DirectComparison, fileOnly)
 	if err != nil {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil

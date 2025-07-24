@@ -25,21 +25,21 @@ type CompareInfo struct {
 }
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
-func GetCompareInfo(ctx context.Context, baseRepo *repo_model.Repository, headGitRepo *git.Repository, baseBranch, headBranch string, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
+func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Repository, headGitRepo *git.Repository, baseBranch, headBranch string, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
 	var (
 		remoteBranch string
 		tmpRemote    string
 	)
 
 	// We don't need a temporary remote for same repository.
-	if baseRepo.RepoPath() != headGitRepo.Path {
+	if headGitRepo.Path != baseRepo.RepoPath() {
 		// Add a temporary remote
 		tmpRemote = strconv.FormatInt(time.Now().UnixNano(), 10)
-		if err = gitrepo.AddGitRemote(ctx, baseRepo, tmpRemote, headGitRepo.Path); err != nil {
+		if err = gitrepo.AddGitRemote(ctx, headRepo, tmpRemote, baseRepo.RepoPath()); err != nil {
 			return nil, fmt.Errorf("AddRemote: %w", err)
 		}
 		defer func() {
-			if err := gitrepo.RemoveGitRemote(ctx, baseRepo, tmpRemote); err != nil {
+			if err := gitrepo.RemoveGitRemote(ctx, headRepo, tmpRemote); err != nil {
 				logger.Error("GetPullRequestInfo: RemoveGitRemote: %v", err)
 			}
 		}()

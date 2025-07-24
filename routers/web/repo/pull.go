@@ -273,7 +273,7 @@ func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 
 	baseCommit := GetMergedBaseCommitID(ctx, issue)
 
-	compareInfo, err := pull_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo,
+	compareInfo, err := pull_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo,
 		baseCommit, pull.GetGitHeadRefName(), false, false)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "unknown revision or path not in the working tree") {
@@ -373,7 +373,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 			ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
 		}
 
-		compareInfo, err := pull_service.GetCompareInfo(ctx, pull.BaseRepo, baseGitRepo,
+		compareInfo, err := pull_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
 			pull.MergeBase, pull.GetGitHeadRefName(), false, false)
 		if err != nil {
 			if strings.Contains(err.Error(), "fatal: Not a valid object name") {
@@ -521,7 +521,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 		}
 	}
 
-	compareInfo, err := pull_service.GetCompareInfo(ctx, pull.BaseRepo, baseGitRepo,
+	compareInfo, err := pull_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
 		git.BranchPrefix+pull.BaseBranch, pull.GetGitHeadRefName(), false, false)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {

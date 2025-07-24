@@ -142,7 +142,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			return err
 		}
 
-		compareInfo, err := GetCompareInfo(ctx, pr.BaseRepo, baseGitRepo,
+		compareInfo, err := GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo,
 			git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false, false)
 		if err != nil {
 			return err
@@ -1077,7 +1077,7 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 	if pull.HasMerged {
 		baseBranch = pull.MergeBase
 	}
-	prInfo, err := GetCompareInfo(ctx, pull.BaseRepo, baseGitRepo, baseBranch, pull.GetGitHeadRefName(), true, false)
+	prInfo, err := GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, baseBranch, pull.GetGitHeadRefName(), true, false)
 	if err != nil {
 		return nil, "", err
 	}
