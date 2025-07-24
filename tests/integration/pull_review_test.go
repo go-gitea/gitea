@@ -495,7 +495,7 @@ func Test_ReviewCodeComment(t *testing.T) {
 			assert.Equal(t, "code comment on left line 2", commentLast.Content)
 			assert.Equal(t, "README.md", commentLast.TreePath)
 			assert.Equal(t, int64(-2), commentLast.Line)
-			assert.Equal(t, pr.MergeBase, commentLast.CommitSHA)
+			assert.Equal(t, pr.MergeBase, commentLast.BeforeCommitID)
 
 			// load the files page and confirm the comment's line number is dynamically adjusted
 			filesPageURL = fmt.Sprintf("/user2/test_codecomment/pulls/%d/files", pr.Index)
