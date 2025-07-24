@@ -772,13 +772,8 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	var units []repo_model.RepoUnit
 	var deleteUnitTypes []unit_model.Type
 
-	currHasIssues := repo.UnitEnabled(ctx, unit_model.TypeIssues)
-	newHasIssues := currHasIssues
 	if opts.HasIssues != nil {
-		newHasIssues = *opts.HasIssues
-	}
-	if currHasIssues || newHasIssues {
-		if newHasIssues && opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
+		if *opts.HasIssues && opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
 				err := errors.New("External tracker URL not valid")
@@ -802,7 +797,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				},
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
-		} else if newHasIssues && opts.ExternalTracker == nil && !unit_model.TypeIssues.UnitGlobalDisabled() {
+		} else if *opts.HasIssues && opts.ExternalTracker == nil && !unit_model.TypeIssues.UnitGlobalDisabled() {
 			// Default to built-in tracker
 			var config *repo_model.IssuesConfig
 
@@ -829,7 +824,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Config: config,
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
-		} else if !newHasIssues {
+		} else if !*opts.HasIssues {
 			if !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 			}
@@ -839,13 +834,8 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	currHasWiki := repo.UnitEnabled(ctx, unit_model.TypeWiki)
-	newHasWiki := currHasWiki
 	if opts.HasWiki != nil {
-		newHasWiki = *opts.HasWiki
-	}
-	if currHasWiki || newHasWiki {
-		if newHasWiki && opts.ExternalWiki != nil && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
+		if *opts.HasWiki && opts.ExternalWiki != nil && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
 				err := errors.New("External wiki URL not valid")
@@ -861,7 +851,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				},
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeWiki)
-		} else if newHasWiki && opts.ExternalWiki == nil && !unit_model.TypeWiki.UnitGlobalDisabled() {
+		} else if *opts.HasWiki && opts.ExternalWiki == nil && !unit_model.TypeWiki.UnitGlobalDisabled() {
 			config := &repo_model.UnitConfig{}
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
@@ -869,7 +859,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Config: config,
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalWiki)
-		} else if !newHasWiki {
+		} else if !*opts.HasWiki {
 			if !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalWiki)
 			}
@@ -879,13 +869,8 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	currHasPullRequests := repo.UnitEnabled(ctx, unit_model.TypePullRequests)
-	newHasPullRequests := currHasPullRequests
-	if opts.HasPullRequests != nil {
-		newHasPullRequests = *opts.HasPullRequests
-	}
-	if currHasPullRequests || newHasPullRequests {
-		if newHasPullRequests && !unit_model.TypePullRequests.UnitGlobalDisabled() {
+	if opts.HasPullRequests != nil && !unit_model.TypePullRequests.UnitGlobalDisabled() {
+		if *opts.HasPullRequests {
 			// We do allow setting individual PR settings through the API, so
 			// we get the config settings and then set them
 			// if those settings were provided in the opts.
@@ -953,18 +938,13 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Type:   unit_model.TypePullRequests,
 				Config: config,
 			})
-		} else if !newHasPullRequests && !unit_model.TypePullRequests.UnitGlobalDisabled() {
+		} else {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 		}
 	}
 
-	currHasProjects := repo.UnitEnabled(ctx, unit_model.TypeProjects)
-	newHasProjects := currHasProjects
-	if opts.HasProjects != nil {
-		newHasProjects = *opts.HasProjects
-	}
-	if currHasProjects || newHasProjects {
-		if newHasProjects && !unit_model.TypeProjects.UnitGlobalDisabled() {
+	if opts.HasProjects != nil && !unit_model.TypeProjects.UnitGlobalDisabled() {
+		if *opts.HasProjects {
 			unit, err := repo.GetUnit(ctx, unit_model.TypeProjects)
 			var config *repo_model.ProjectsConfig
 			if err != nil {
@@ -984,7 +964,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Type:   unit_model.TypeProjects,
 				Config: config,
 			})
-		} else if !newHasProjects && !unit_model.TypeProjects.UnitGlobalDisabled() {
+		} else {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 		}
 	}
