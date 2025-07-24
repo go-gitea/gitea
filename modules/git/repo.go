@@ -31,11 +31,15 @@ type GPGSettings struct {
 	Format           string
 }
 
-const prettyLogFormat = `--pretty=format:%H`
+const PrettyLogFormat = `--pretty=format:%H`
 
 // GetAllCommitsCount returns count of all commits in repository
 func (repo *Repository) GetAllCommitsCount() (int64, error) {
 	return AllCommitsCount(repo.Ctx, repo.Path, false)
+}
+
+func (repo *Repository) ParsePrettyFormatLogToList(logs []byte) ([]*Commit, error) {
+	return repo.parsePrettyFormatLogToList(logs)
 }
 
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, error) {
