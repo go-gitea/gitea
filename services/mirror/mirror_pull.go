@@ -41,12 +41,12 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	remoteName := m.GetRemoteName()
 	repo := m.GetRepository(ctx)
 	// Remove old remote
-	err = gitrepo.RemoveGitRemote(ctx, repo, remoteName)
+	err = gitrepo.GitRemoteRemove(ctx, repo, remoteName)
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
 
-	err = gitrepo.AddGitRemote(ctx, repo, remoteName, addr, "--mirror=fetch")
+	err = gitrepo.GitRemoteAdd(ctx, repo, remoteName, addr, "--mirror=fetch")
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
@@ -54,12 +54,12 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	if m.Repo.HasWiki() {
 		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
 		// Remove old remote of wiki
-		err = gitrepo.RemoveGitRemote(ctx, repo.WikiStorageRepo(), remoteName)
+		err = gitrepo.GitRemoteRemove(ctx, repo.WikiStorageRepo(), remoteName)
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
 
-		err = gitrepo.AddGitRemote(ctx, repo.WikiStorageRepo(), remoteName, wikiRemotePath, "--mirror=fetch")
+		err = gitrepo.GitRemoteAdd(ctx, repo.WikiStorageRepo(), remoteName, wikiRemotePath, "--mirror=fetch")
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
@@ -208,7 +208,7 @@ func pruneBrokenReferences(ctx context.Context,
 	stderrBuilder.Reset()
 	stdoutBuilder.Reset()
 
-	pruneErr := gitrepo.PruneRemote(ctx, storageRepo, m.GetRemoteName(), timeout, stdoutBuilder, stderrBuilder)
+	pruneErr := gitrepo.GitRemotePrune(ctx, storageRepo, m.GetRemoteName(), timeout, stdoutBuilder, stderrBuilder)
 	if pruneErr != nil {
 		stdout := stdoutBuilder.String()
 		stderr := stderrBuilder.String()
@@ -261,7 +261,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 	cmd.AddArguments("--tags").AddDynamicArguments(m.GetRemoteName())
 
-	remoteURL, remoteErr := gitrepo.GetRemoteURL(ctx, m.Repo, m.GetRemoteName())
+	remoteURL, remoteErr := gitrepo.GitRemoteGetURL(ctx, m.Repo, m.GetRemoteName())
 	if remoteErr != nil {
 		log.Error("SyncMirrors [repo: %-v]: GetRemoteAddress Error %v", m.Repo, remoteErr)
 		return nil, false
@@ -365,7 +365,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
 
-		if err := gitrepo.UpdateRemotePrune(ctx, m.Repo.WikiStorageRepo(), m.GetRemoteName(),
+		if err := gitrepo.GitRemoteUpdatePrune(ctx, m.Repo.WikiStorageRepo(), m.GetRemoteName(),
 			timeout, &stdoutBuilder, &stderrBuilder); err != nil {
 			stdout := stdoutBuilder.String()
 			stderr := stderrBuilder.String()
@@ -386,7 +386,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 					stderrBuilder.Reset()
 					stdoutBuilder.Reset()
 
-					if err = gitrepo.UpdateRemotePrune(ctx, m.Repo.WikiStorageRepo(), m.GetRemoteName(),
+					if err = gitrepo.GitRemoteUpdatePrune(ctx, m.Repo.WikiStorageRepo(), m.GetRemoteName(),
 						timeout, &stdoutBuilder, &stderrBuilder); err != nil {
 						stdout := stdoutBuilder.String()
 						stderr := stderrBuilder.String()

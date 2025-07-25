@@ -259,7 +259,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		return
 	}
 
-	u, err := gitrepo.GetRemoteURL(ctx, ctx.Repo.Repository, pullMirror.GetRemoteName())
+	u, err := gitrepo.GitRemoteGetURL(ctx, ctx.Repo.Repository, pullMirror.GetRemoteName())
 	if err != nil {
 		ctx.Data["Err_MirrorAddress"] = true
 		handleSettingRemoteAddrError(ctx, err, form)

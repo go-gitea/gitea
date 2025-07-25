@@ -272,13 +272,13 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 		}
 	}
 
-	err := gitrepo.RemoveGitRemote(ctx, repo, "origin")
+	err := gitrepo.GitRemoteRemove(ctx, repo, "origin")
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}
 
 	if repo.HasWiki() {
-		err = gitrepo.RemoveGitRemote(ctx, repo.WikiStorageRepo(), "origin")
+		err = gitrepo.GitRemoteRemove(ctx, repo.WikiStorageRepo(), "origin")
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %w", err)
 		}
