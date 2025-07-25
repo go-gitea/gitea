@@ -130,7 +130,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		}
 		remoteURL, err := gitrepo.GetRemoteURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
-			log.Error("GetRemoteAddress(%s) Error %v", path, err)
+			log.Error("GetRemoteURL(%s) Error %v", path, err)
 			return errors.New("Unexpected error")
 		}
 
@@ -175,8 +175,8 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	}
 
 	if m.Repo.HasWiki() {
-		_, err := git.GetRemoteAddress(ctx, m.Repo.WikiPath(), m.RemoteName)
-		if err == nil {
+		u, err := gitrepo.GetRemoteURL(ctx, m.Repo.WikiStorageRepo(), m.RemoteName)
+		if err == nil && u != nil {
 			err := performPush(m.Repo, true)
 			if err != nil {
 				return err
