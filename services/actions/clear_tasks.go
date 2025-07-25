@@ -52,12 +52,14 @@ func notifyWorkflowJobStatusUpdate(ctx context.Context, jobs []*actions_model.Ac
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
 	jobs, err := actions_model.CancelPreviousJobs(ctx, repoID, ref, workflowID, event)
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	EmitJobsIfReadyByJobs(jobs)
 	return err
 }
 
 func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) error {
 	jobs, err := actions_model.CleanRepoScheduleTasks(ctx, repo)
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	EmitJobsIfReadyByJobs(jobs)
 	return err
 }
 
@@ -109,6 +111,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 	}
 
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	EmitJobsIfReadyByJobs(jobs)
 
 	return nil
 }
@@ -125,6 +128,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 	}
 
 	now := timeutil.TimeStampNow()
+	var updatedJobs []*actions_model.ActionRunJob
 	for _, job := range jobs {
 		job.Status = actions_model.StatusCancelled
 		job.Stopped = now
@@ -139,10 +143,13 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		}
 		CreateCommitStatus(ctx, job)
 		if updated {
+			updatedJobs = append(updatedJobs, job)
 			NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
 			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 		}
 	}
+
+	EmitJobsIfReadyByJobs(updatedJobs)
 
 	return nil
 }

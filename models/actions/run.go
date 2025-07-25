@@ -285,7 +285,11 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 		if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
 			return cancelledJobs, err
 		}
-		cancelledJobs = append(cancelledJobs, job)
+		updatedJob, err := GetRunJobByID(ctx, job.ID)
+		if err != nil {
+			return cancelledJobs, fmt.Errorf("get job: %w", err)
+		}
+		cancelledJobs = append(cancelledJobs, updatedJob)
 	}
 
 	// Return nil to indicate successful cancellation of all running and waiting jobs.

@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
@@ -572,30 +571,11 @@ func Cancel(ctx *context_module.Context) {
 	var updatedjobs []*actions_model.ActionRunJob
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		for _, job := range jobs {
-			status := job.Status
-			if status.IsDone() {
-				continue
-			}
-			if job.TaskID == 0 {
-				job.Status = actions_model.StatusCancelled
-				job.Stopped = timeutil.TimeStampNow()
-				n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
-				if err != nil {
-					return err
-				}
-				if n == 0 {
-					return errors.New("job has changed, try again")
-				}
-				if n > 0 {
-					updatedjobs = append(updatedjobs, job)
-				}
-				continue
-			}
-			if err := actions_model.StopTask(ctx, job.TaskID, actions_model.StatusCancelled); err != nil {
-				return err
-			}
+		cancelledJobs, err := actions_model.CancelJobs(ctx, jobs)
+		if err != nil {
+			return fmt.Errorf("cancel jobs: %w", err)
 		}
+		updatedjobs = append(updatedjobs, cancelledJobs...)
 		return nil
 	}); err != nil {
 		ctx.ServerError("StopTask", err)
@@ -603,14 +583,7 @@ func Cancel(ctx *context_module.Context) {
 	}
 
 	actions_service.CreateCommitStatus(ctx, jobs...)
-
-	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
-	if err != nil {
-		ctx.ServerError("GetRunByIndex", err)
-	}
-	if err := actions_service.EmitJobsIfReady(run.ID); err != nil {
-		log.Error("Emit ready jobs of run %d: %v", run.ID, err)
-	}
+	actions_service.EmitJobsIfReadyByJobs(updatedjobs)
 
 	for _, job := range updatedjobs {
 		_ = job.LoadAttributes(ctx)

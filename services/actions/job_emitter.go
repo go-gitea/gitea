@@ -26,7 +26,7 @@ type jobUpdate struct {
 	RunID int64
 }
 
-func EmitJobsIfReady(runID int64) error {
+func EmitJobsIfReadyByRun(runID int64) error {
 	err := jobEmitterQueue.Push(&jobUpdate{
 		RunID: runID,
 	})
@@ -34,6 +34,19 @@ func EmitJobsIfReady(runID int64) error {
 		return nil
 	}
 	return err
+}
+
+func EmitJobsIfReadyByJobs(jobs []*actions_model.ActionRunJob) {
+	checkedRuns := make(container.Set[int64])
+	for _, job := range jobs {
+		if !job.Status.IsDone() || checkedRuns.Contains(job.RunID) {
+			continue
+		}
+		if err := EmitJobsIfReadyByRun(job.RunID); err != nil {
+			log.Error("Check jobs of run %d: %v", job.RunID, err)
+		}
+		checkedRuns.Add(job.RunID)
+	}
 }
 
 func jobEmitterQueueHandler(items ...*jobUpdate) []*jobUpdate {
