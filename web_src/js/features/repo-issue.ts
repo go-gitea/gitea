@@ -543,7 +543,7 @@ function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
       showElem(commentForm.querySelectorAll('.combo-editor-dropzone .form-field-real'));
       hideElem(commentForm.querySelectorAll('.combo-editor-dropzone .combo-markdown-editor'));
       queryElems(commentForm, '.combo-editor-dropzone .form-field-dropzone', (dropzoneContainer) => {
-        const dropzoneEl = dropzoneContainer.closest<HTMLElement>('.combo-editor-dropzone')?.querySelector<HTMLElement>('.dropzone');
+        const dropzoneEl = dropzoneContainer.closest<HTMLElement>('.combo-editor-dropzone').querySelector<HTMLElement>('.dropzone');
         const dzInstance = dropzoneEl?.dropzone;
 
         if (dzInstance && dzInstance.files.length === 0) {
