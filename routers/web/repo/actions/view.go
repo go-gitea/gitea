@@ -472,7 +472,6 @@ func Rerun(ctx *context_module.Context) {
 
 	for _, j := range rerunJobs {
 		// jobs other than the specified one should be set to "blocked" status
-		// TODO respect blockRunByConcurrency here?
 		shouldBlock := j.JobID != job.JobID || blockRunByConcurrency
 		if err := rerunJob(ctx, j, shouldBlock); err != nil {
 			ctx.ServerError("RerunJob", err)
