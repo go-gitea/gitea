@@ -419,7 +419,6 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	// TODO evaluate concurrency expression again, vars may change after the run is done
 	// check run (workflow-level) concurrency
 
 	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
@@ -435,6 +434,25 @@ func Rerun(ctx *context_module.Context) {
 		run.Started = 0
 		run.Stopped = 0
 
+		vars, err := actions_model.GetVariablesOfRun(ctx, run)
+		if err != nil {
+			ctx.ServerError("GetVariablesOfRun", fmt.Errorf("get run %d variables: %w", run.ID, err))
+			return
+		}
+
+		wfConcurrencyGroup, wfConcurrencyCancel, err := actions_service.EvaluateWorkflowConcurrency(ctx, run, &model.RawConcurrency{
+			Group:            run.RawConcurrencyGroup,
+			CancelInProgress: run.RawConcurrencyCancel,
+		}, vars)
+		if err != nil {
+			ctx.ServerError("EvaluateWorkflowConcurrency", fmt.Errorf("evaluate workflow concurrency: %w", err))
+			return
+		}
+		if wfConcurrencyGroup != "" {
+			run.ConcurrencyGroup = wfConcurrencyGroup
+			run.ConcurrencyCancel = wfConcurrencyCancel
+		}
+
 		blockRunByConcurrency, err = actions_model.ShouldBlockRunByConcurrency(ctx, run)
 		if err != nil {
 			ctx.ServerError("ShouldBlockRunByConcurrency", err)
@@ -449,7 +467,7 @@ func Rerun(ctx *context_module.Context) {
 			ctx.ServerError("cancel jobs", err)
 			return
 		}
-		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration", "status"); err != nil {
+		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration", "status", "concurrency_group", "concurrency_cancel"); err != nil {
 			ctx.ServerError("UpdateRun", err)
 			return
 		}

@@ -27,29 +27,31 @@ import (
 
 // ActionRun represents a run of a workflow file
 type ActionRun struct {
-	ID                int64
-	Title             string
-	RepoID            int64                  `xorm:"index unique(repo_index) index(repo_concurrency)"`
-	Repo              *repo_model.Repository `xorm:"-"`
-	OwnerID           int64                  `xorm:"index"`
-	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
-	Index             int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
-	TriggerUserID     int64                  `xorm:"index"`
-	TriggerUser       *user_model.User       `xorm:"-"`
-	ScheduleID        int64
-	Ref               string `xorm:"index"` // the commit/tag/… that caused the run
-	IsRefDeleted      bool   `xorm:"-"`
-	CommitSHA         string
-	IsForkPullRequest bool                         // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
-	NeedApproval      bool                         // may need approval if it's a fork pull request
-	ApprovedBy        int64                        `xorm:"index"` // who approved
-	Event             webhook_module.HookEventType // the webhook event that causes the workflow to run
-	EventPayload      string                       `xorm:"LONGTEXT"`
-	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
-	Status            Status                       `xorm:"index"`
-	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
-	ConcurrencyGroup  string                       `xorm:"index(repo_concurrency)"`
-	ConcurrencyCancel bool
+	ID                   int64
+	Title                string
+	RepoID               int64                  `xorm:"index unique(repo_index) index(repo_concurrency)"`
+	Repo                 *repo_model.Repository `xorm:"-"`
+	OwnerID              int64                  `xorm:"index"`
+	WorkflowID           string                 `xorm:"index"`                    // the name of workflow file
+	Index                int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
+	TriggerUserID        int64                  `xorm:"index"`
+	TriggerUser          *user_model.User       `xorm:"-"`
+	ScheduleID           int64
+	Ref                  string `xorm:"index"` // the commit/tag/… that caused the run
+	IsRefDeleted         bool   `xorm:"-"`
+	CommitSHA            string
+	IsForkPullRequest    bool                         // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
+	NeedApproval         bool                         // may need approval if it's a fork pull request
+	ApprovedBy           int64                        `xorm:"index"` // who approved
+	Event                webhook_module.HookEventType // the webhook event that causes the workflow to run
+	EventPayload         string                       `xorm:"LONGTEXT"`
+	TriggerEvent         string                       // the trigger event defined in the `on` configuration of the triggered workflow
+	Status               Status                       `xorm:"index"`
+	Version              int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
+	RawConcurrencyGroup  string
+	RawConcurrencyCancel string
+	ConcurrencyGroup     string `xorm:"index(repo_concurrency)"`
+	ConcurrencyCancel    bool
 	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
