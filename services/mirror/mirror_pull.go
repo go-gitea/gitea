@@ -408,28 +408,6 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 					stderrBuilder.Reset()
 					stdoutBuilder.Reset()
 
-					// check whether the remote still exists before pruning to avoid prune creating a new remote
-					// this is needed because prune will not fail if the remote does not exist
-					u, err := gitrepo.GitRemoteGetURL(ctx, m.Repo.WikiStorageRepo(), m.GetRemoteName())
-					if err != nil {
-						log.Error("SyncMirrors [repo: %-v Wiki]: GetRemoteURL Error %v", m.Repo, err)
-						return nil, false
-					}
-					if u == nil {
-						log.Error("remote %s does not exist for repository %s", m.GetRemoteName(), m.Repo.WikiStorageRepo().RelativePath())
-						return nil, false
-					}
-
-					fetchConfig, err := gitrepo.GitConfigGet(ctx, m.Repo.WikiStorageRepo(), "remote.origin.fetch")
-					if err != nil {
-						log.Error("SyncMirrors [repo: %-v Wiki]: GetGitConfig Error %v", m.Repo, err)
-						return nil, false
-					}
-					if fetchConfig == "" {
-						log.Error("remote %s has no fetch config for repository %s", m.GetRemoteName(), m.Repo.WikiStorageRepo().RelativePath())
-						return nil, false
-					}
-
 					if err = gitrepo.GitRemoteUpdatePrune(ctx, m.Repo.WikiStorageRepo(), m.GetRemoteName(),
 						timeout, &stdoutBuilder, &stderrBuilder); err != nil {
 						stdout := stdoutBuilder.String()
