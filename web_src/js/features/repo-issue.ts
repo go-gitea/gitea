@@ -545,10 +545,8 @@ function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
       queryElems(commentForm, '.combo-editor-dropzone .form-field-dropzone', (dropzoneContainer) => {
         const dropzoneEl = dropzoneContainer.closest<HTMLElement>('.combo-editor-dropzone').querySelector<HTMLElement>('.dropzone');
         const dzInstance = dropzoneEl?.dropzone;
-
-        if (dzInstance && dzInstance.files.length === 0) {
-          hideElem(dropzoneContainer);
-        }
+        const hasUploadedFiles = Boolean(dzInstance?.files.length);
+        toggleElem(dropzoneContainer, hasUploadedFiles);
       });
 
       // activate this markdown editor
