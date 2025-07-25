@@ -59,7 +59,7 @@ func (repo *Repository) getCommitByPathWithID(id ObjectID, relpath string) (*Com
 		relpath = `\` + relpath
 	}
 
-	stdout, _, runErr := NewCommand("log", "-1", PrettyLogFormat).AddDynamicArguments(id.String()).AddDashesAndList(relpath).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	stdout, _, runErr := NewCommand("log", "-1", prettyLogFormat).AddDynamicArguments(id.String()).AddDashesAndList(relpath).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -74,7 +74,7 @@ func (repo *Repository) getCommitByPathWithID(id ObjectID, relpath string) (*Com
 
 // GetCommitByPath returns the last commit of relative path.
 func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
-	stdout, _, runErr := NewCommand("log", "-1", PrettyLogFormat).AddDashesAndList(relpath).RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+	stdout, _, runErr := NewCommand("log", "-1", prettyLogFormat).AddDashesAndList(relpath).RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -94,7 +94,7 @@ func (repo *Repository) commitsByRangeWithTime(id ObjectID, page, pageSize int, 
 	cmd := NewCommand("log").
 		AddOptionFormat("--skip=%d", (page-1)*pageSize).
 		AddOptionFormat("--max-count=%d", pageSize).
-		AddArguments(PrettyLogFormat).
+		AddArguments(prettyLogFormat).
 		AddDynamicArguments(id.String())
 
 	if not != "" {
@@ -141,7 +141,7 @@ func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([
 	}
 
 	// create new git log command with limit of 100 commits
-	cmd := NewCommand("log", "-100", PrettyLogFormat).AddDynamicArguments(id.String())
+	cmd := NewCommand("log", "-100", prettyLogFormat).AddDynamicArguments(id.String())
 
 	// pretend that all refs along with HEAD were listed on command line as <commis>
 	// https://git-scm.com/docs/git-log#Documentation/git-log.txt---all
@@ -175,7 +175,7 @@ func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([
 		// ignore anything not matching a valid sha pattern
 		if id.Type().IsValid(v) {
 			// create new git log command with 1 commit limit
-			hashCmd := NewCommand("log", "-1", PrettyLogFormat)
+			hashCmd := NewCommand("log", "-1", prettyLogFormat)
 			// add previous arguments except for --grep and --all
 			addCommonSearchArgs(hashCmd)
 			// add keyword as <commit>
@@ -410,7 +410,7 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 
 // commitsBefore the limit is depth, not total number of returned commits.
 func (repo *Repository) commitsBefore(id ObjectID, limit int) ([]*Commit, error) {
-	cmd := NewCommand("log", PrettyLogFormat)
+	cmd := NewCommand("log", prettyLogFormat)
 	if limit > 0 {
 		cmd.AddOptionFormat("-%d", limit)
 	}
@@ -536,7 +536,7 @@ func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error
 
 // GetCommitBranchStart returns the commit where the branch diverged
 func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID string) (string, error) {
-	cmd := NewCommand("log", PrettyLogFormat)
+	cmd := NewCommand("log", prettyLogFormat)
 	cmd.AddDynamicArguments(endCommitID)
 
 	stdout, _, runErr := cmd.RunStdBytes(repo.Ctx, &RunOpts{
