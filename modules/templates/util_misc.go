@@ -144,7 +144,7 @@ type remoteAddress struct {
 
 func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
 	ret := remoteAddress{}
-	u, err := gitrepo.GetRemoteURL(ctx, m, remoteName)
+	u, err := gitrepo.GitRemoteGetURL(ctx, m, remoteName)
 	if err != nil {
 		log.Error("GetRemoteURL %v", err)
 		return ret

@@ -35,12 +35,12 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	if headGitRepo.Path != baseRepo.RepoPath() {
 		// Add a temporary remote
 		tmpRemote = strconv.FormatInt(time.Now().UnixNano(), 10)
-		if err = gitrepo.AddGitRemote(ctx, headRepo, tmpRemote, baseRepo.RepoPath()); err != nil {
+		if err = gitrepo.GitRemoteAdd(ctx, headRepo, tmpRemote, baseRepo.RepoPath()); err != nil {
 			return nil, fmt.Errorf("AddRemote: %w", err)
 		}
 		defer func() {
-			if err := gitrepo.RemoveGitRemote(ctx, headRepo, tmpRemote); err != nil {
-				logger.Error("GetPullRequestInfo: RemoveGitRemote: %v", err)
+			if err := gitrepo.GitRemoteRemove(ctx, headRepo, tmpRemote); err != nil {
+				logger.Error("GetPullRequestInfo: GitRemoteRemove: %v", err)
 			}
 		}()
 	}
@@ -67,17 +67,9 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 
 		// We have a common base - therefore we know that ... should work
 		if !fileOnly {
-			// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
-			var logs []byte
-			logs, _, err = git.NewCommand("log").AddArguments(git.PrettyLogFormat).
-				AddDynamicArguments(baseCommitID+separator+headBranch).AddArguments("--").
-				RunStdBytes(ctx, &git.RunOpts{Dir: headGitRepo.Path})
+			compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, baseCommitID+separator+headBranch)
 			if err != nil {
-				return nil, err
-			}
-			compareInfo.Commits, err = headGitRepo.ParsePrettyFormatLogToList(logs)
-			if err != nil {
-				return nil, fmt.Errorf("parsePrettyFormatLogToList: %w", err)
+				return nil, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
 			}
 		} else {
 			compareInfo.Commits = []*git.Commit{}

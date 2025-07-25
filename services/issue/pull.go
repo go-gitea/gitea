@@ -22,12 +22,12 @@ import (
 func getMergeBase(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pr *issues_model.PullRequest, baseBranch, headBranch string) (string, error) {
 	// Add a temporary remote
 	tmpRemote := fmt.Sprintf("mergebase-%d-%d", pr.ID, time.Now().UnixNano())
-	if err := gitrepo.AddGitRemote(ctx, repo, tmpRemote, gitRepo.Path); err != nil {
-		return "", fmt.Errorf("AddGitRemote: %w", err)
+	if err := gitrepo.GitRemoteAdd(ctx, repo, tmpRemote, gitRepo.Path); err != nil {
+		return "", fmt.Errorf("GitRemoteAdd: %w", err)
 	}
 	defer func() {
-		if err := gitrepo.RemoveGitRemote(ctx, repo, tmpRemote); err != nil {
-			log.Error("getMergeBase: RemoveGitRemote: %v", err)
+		if err := gitrepo.GitRemoteRemove(ctx, repo, tmpRemote); err != nil {
+			log.Error("getMergeBase: GitRemoteRemove: %v", err)
 		}
 	}()
 

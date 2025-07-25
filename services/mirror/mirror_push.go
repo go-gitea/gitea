@@ -30,13 +30,13 @@ var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
 	addRemoteAndConfig := func(storageRepo gitrepo.Repository, addr string) error {
-		if err := gitrepo.AddGitRemote(ctx, storageRepo, m.RemoteName, addr, "--mirror=push"); err != nil {
+		if err := gitrepo.GitRemoteAdd(ctx, storageRepo, m.RemoteName, addr, "--mirror=push"); err != nil {
 			return err
 		}
-		if err := gitrepo.AddGitConfig(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*"); err != nil {
+		if err := gitrepo.GitConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*"); err != nil {
 			return err
 		}
-		return gitrepo.AddGitConfig(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*")
+		return gitrepo.GitConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*")
 	}
 
 	if err := addRemoteAndConfig(m.Repo, addr); err != nil {
@@ -58,12 +58,12 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 // RemovePushMirrorRemote removes the push mirror remote.
 func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
 	_ = m.GetRepository(ctx)
-	if err := gitrepo.RemoveGitRemote(ctx, m.Repo, m.RemoteName); err != nil {
+	if err := gitrepo.GitRemoteRemove(ctx, m.Repo, m.RemoteName); err != nil {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
-		if err := gitrepo.RemoveGitRemote(ctx, m.Repo.WikiStorageRepo(), m.RemoteName); err != nil {
+		if err := gitrepo.GitRemoteRemove(ctx, m.Repo.WikiStorageRepo(), m.RemoteName); err != nil {
 			// The wiki remote may not exist
 			log.Warn("Wiki Remote[%d] could not be removed: %v", m.ID, err)
 		}
@@ -128,7 +128,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			storageRepo = repo.WikiStorageRepo()
 			path = repo.WikiPath()
 		}
-		remoteURL, err := gitrepo.GetRemoteURL(ctx, storageRepo, m.RemoteName)
+		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
 			log.Error("GetRemoteURL(%s) Error %v", path, err)
 			return errors.New("Unexpected error")
@@ -175,7 +175,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	}
 
 	if m.Repo.HasWiki() {
-		u, err := gitrepo.GetRemoteURL(ctx, m.Repo.WikiStorageRepo(), m.RemoteName)
+		u, err := gitrepo.GitRemoteGetURL(ctx, m.Repo.WikiStorageRepo(), m.RemoteName)
 		if err == nil && u != nil {
 			err := performPush(m.Repo, true)
 			if err != nil {

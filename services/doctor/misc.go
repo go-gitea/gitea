@@ -93,11 +93,11 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 		numRepos++
 
 		if autofix {
-			_, err := gitrepo.UpdateGitConfig(ctx, repo, "receive.advertisePushOptions", "true")
+			err := gitrepo.GitConfigSet(ctx, repo, "receive.advertisePushOptions", "true")
 			return err
 		}
 
-		value, err := gitrepo.GetGitConfig(ctx, repo, "receive.advertisePushOptions")
+		value, err := gitrepo.GitConfigGet(ctx, repo, "receive.advertisePushOptions")
 		if err != nil {
 			return err
 		}

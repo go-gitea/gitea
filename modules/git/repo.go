@@ -31,14 +31,21 @@ type GPGSettings struct {
 	Format           string
 }
 
-const PrettyLogFormat = `--pretty=format:%H`
+const prettyLogFormat = `--pretty=format:%H`
 
 // GetAllCommitsCount returns count of all commits in repository
 func (repo *Repository) GetAllCommitsCount() (int64, error) {
 	return AllCommitsCount(repo.Ctx, repo.Path, false)
 }
 
-func (repo *Repository) ParsePrettyFormatLogToList(logs []byte) ([]*Commit, error) {
+func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
+	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
+	logs, _, err := NewCommand("log").AddArguments(prettyLogFormat).
+		AddDynamicArguments(revisionRange).AddArguments("--").
+		RunStdBytes(ctx, &RunOpts{Dir: repo.Path})
+	if err != nil {
+		return nil, err
+	}
 	return repo.parsePrettyFormatLogToList(logs)
 }
 

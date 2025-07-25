@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/globallock"
 )
 
-func GetGitConfig(ctx context.Context, repo Repository, key string) (string, error) {
+func GitConfigGet(ctx context.Context, repo Repository, key string) (string, error) {
 	result, _, err := git.NewCommand("config", "--get").
 		AddDynamicArguments(key).
 		RunStdString(ctx, &git.RunOpts{Dir: repoPath(repo)})
@@ -31,8 +31,8 @@ func getRepoConfigLockKey(repoStoragePath string) string {
 	return "repo-config:" + repoStoragePath
 }
 
-// AddGitConfig add a git configuration key to a specific value for the given repository.
-func AddGitConfig(ctx context.Context, repo Repository, key, value string) error {
+// GitConfigAdd add a git configuration key to a specific value for the given repository.
+func GitConfigAdd(ctx context.Context, repo Repository, key, value string) error {
 	releaser, err := globallock.Lock(ctx, getRepoConfigLockKey(repo.RelativePath()))
 	if err != nil {
 		return err
@@ -45,20 +45,20 @@ func AddGitConfig(ctx context.Context, repo Repository, key, value string) error
 	return err
 }
 
-// UpdateGitConfig updates a git configuration key to a specific value for the given repository.
+// GitConfigSet updates a git configuration key to a specific value for the given repository.
 // If the key does not exist, it will be created.
 // If the key exists, it will be updated to the new value.
-func UpdateGitConfig(ctx context.Context, repo Repository, key, value string) (string, error) {
+func GitConfigSet(ctx context.Context, repo Repository, key, value string) error {
 	releaser, err := globallock.Lock(ctx, getRepoConfigLockKey(repo.RelativePath()))
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer releaser()
 
-	value, _, err1 := git.NewCommand("config").
+	_, _, err = git.NewCommand("config").
 		AddDynamicArguments(key, value).
 		RunStdString(ctx, &git.RunOpts{Dir: repoPath(repo)})
-	return value, err1
+	return err
 }
 
 type RemoteOption string
@@ -68,7 +68,7 @@ const (
 	RemoteOptionMirrorFetch RemoteOption = "--mirror=fetch"
 )
 
-func AddGitRemote(ctx context.Context, repo Repository, remoteName, remoteURL string, options ...RemoteOption) error {
+func GitRemoteAdd(ctx context.Context, repo Repository, remoteName, remoteURL string, options ...RemoteOption) error {
 	releaser, err := globallock.Lock(ctx, getRepoConfigLockKey(repo.RelativePath()))
 	if err != nil {
 		return err
@@ -92,7 +92,7 @@ func AddGitRemote(ctx context.Context, repo Repository, remoteName, remoteURL st
 	return err
 }
 
-func RemoveGitRemote(ctx context.Context, repo Repository, remoteName string) error {
+func GitRemoteRemove(ctx context.Context, repo Repository, remoteName string) error {
 	releaser, err := globallock.Lock(ctx, getRepoConfigLockKey(repo.RelativePath()))
 	if err != nil {
 		return err
@@ -104,8 +104,8 @@ func RemoveGitRemote(ctx context.Context, repo Repository, remoteName string) er
 	return err
 }
 
-// GetRemoteURL returns the url of a specific remote of the repository.
-func GetRemoteURL(ctx context.Context, repo Repository, remoteName string) (*giturl.GitURL, error) {
+// GitRemoteGetURL returns the url of a specific remote of the repository.
+func GitRemoteGetURL(ctx context.Context, repo Repository, remoteName string) (*giturl.GitURL, error) {
 	addr, err := git.GetRemoteAddress(ctx, repoPath(repo), remoteName)
 	if err != nil {
 		return nil, err
@@ -128,10 +128,10 @@ func SetRemoteURL(ctx context.Context, repo Repository, remoteName, remoteURL st
 	return err
 }
 
-// PruneRemote prunes the remote branches that no longer exist in the remote repository.
+// GitRemotePrune prunes the remote branches that no longer exist in the remote repository.
 // No lock is needed because the remote remoteName will be checked before invoking this function.
 // Then it will not update the remote automatically if the remote does not exist.
-func PruneRemote(ctx context.Context, repo Repository, remoteName string, timeout time.Duration, stdout, stderr io.Writer) error {
+func GitRemotePrune(ctx context.Context, repo Repository, remoteName string, timeout time.Duration, stdout, stderr io.Writer) error {
 	return git.NewCommand("remote", "prune").AddDynamicArguments(remoteName).
 		Run(ctx, &git.RunOpts{
 			Timeout: timeout,
@@ -141,10 +141,10 @@ func PruneRemote(ctx context.Context, repo Repository, remoteName string, timeou
 		})
 }
 
-// UpdateRemotePrune updates the remote branches and prunes the ones that no longer exist in the remote repository.
+// GitRemoteUpdatePrune updates the remote branches and prunes the ones that no longer exist in the remote repository.
 // No lock is needed because the remote remoteName will be checked before invoking this function.
 // Then it will not update the remote automatically if the remote does not exist.
-func UpdateRemotePrune(ctx context.Context, repo Repository, remoteName string, timeout time.Duration, stdout, stderr io.Writer) error {
+func GitRemoteUpdatePrune(ctx context.Context, repo Repository, remoteName string, timeout time.Duration, stdout, stderr io.Writer) error {
 	return git.NewCommand("remote", "update", "--prune").AddDynamicArguments(remoteName).
 		Run(ctx, &git.RunOpts{
 			Timeout: timeout,
