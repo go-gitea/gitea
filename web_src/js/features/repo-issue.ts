@@ -543,9 +543,9 @@ function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
       showElem(commentForm.querySelectorAll('.combo-editor-dropzone .form-field-real'));
       hideElem(commentForm.querySelectorAll('.combo-editor-dropzone .combo-markdown-editor'));
       queryElems(commentForm, '.combo-editor-dropzone .form-field-dropzone', (dropzoneContainer) => {
-        const dropzoneEl = dropzoneContainer.closest<HTMLElement>('.combo-editor-dropzone').querySelector<HTMLElement>('.dropzone');
-        const dzInstance = dropzoneEl?.dropzone;
-        const hasUploadedFiles = Boolean(dzInstance?.files.length);
+        // if "form-field-dropzone" exists, then "dropzone" must also exist
+        const dropzone = dropzoneContainer.querySelector('.dropzone').dropzone;
+        const hasUploadedFiles = dropzone.files.length !== 0;
         toggleElem(dropzoneContainer, hasUploadedFiles);
       });
 
