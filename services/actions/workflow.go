@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	notify_service "code.gitea.io/gitea/services/notify"
+	"gopkg.in/yaml.v3"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
@@ -194,6 +195,11 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		if err != nil {
 			return err
 		}
+		rawConcurrency, err := yaml.Marshal(wfRawConcurrency)
+		if err != nil {
+			return fmt.Errorf("marshal raw concurrency: %w", err)
+		}
+		run.RawConcurrency = string(rawConcurrency)
 		wfConcurrencyGroup, wfConcurrencyCancel, err := EvaluateWorkflowConcurrency(ctx, run, wfRawConcurrency, vars)
 		if err != nil {
 			return err

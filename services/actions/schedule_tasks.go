@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	notify_service "code.gitea.io/gitea/services/notify"
+	"gopkg.in/yaml.v3"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -135,6 +136,11 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		return err
 	}
 	if wfRawConcurrency != nil {
+		rawConcurrency, err := yaml.Marshal(wfRawConcurrency)
+		if err != nil {
+			return fmt.Errorf("marshal raw concurrency: %w", err)
+		}
+		run.RawConcurrency = string(rawConcurrency)
 		wfConcurrencyGroup, wfConcurrencyCancel, err := EvaluateWorkflowConcurrency(ctx, run, wfRawConcurrency, vars)
 		if err != nil {
 			return err

@@ -326,7 +326,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 }
 
 func checkConcurrencyForJobWithNeeds(ctx context.Context, actionRunJob *actions_model.ActionRunJob, vars map[string]string) (bool, error) {
-	if actionRunJob.RawConcurrencyGroup == "" {
+	if actionRunJob.RawConcurrency == "" {
 		return false, nil
 	}
 	if err := actionRunJob.LoadAttributes(ctx); err != nil {

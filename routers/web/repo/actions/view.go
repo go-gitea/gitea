@@ -33,6 +33,7 @@ import (
 	actions_service "code.gitea.io/gitea/services/actions"
 	context_module "code.gitea.io/gitea/services/context"
 	notify_service "code.gitea.io/gitea/services/notify"
+	"gopkg.in/yaml.v3"
 
 	"github.com/nektos/act/pkg/model"
 	"xorm.io/builder"
@@ -440,32 +441,36 @@ func Rerun(ctx *context_module.Context) {
 			return
 		}
 
-		wfConcurrencyGroup, wfConcurrencyCancel, err := actions_service.EvaluateWorkflowConcurrency(ctx, run, &model.RawConcurrency{
-			Group:            run.RawConcurrencyGroup,
-			CancelInProgress: run.RawConcurrencyCancel,
-		}, vars)
-		if err != nil {
-			ctx.ServerError("EvaluateWorkflowConcurrency", fmt.Errorf("evaluate workflow concurrency: %w", err))
-			return
-		}
-		if wfConcurrencyGroup != "" {
-			run.ConcurrencyGroup = wfConcurrencyGroup
-			run.ConcurrencyCancel = wfConcurrencyCancel
-		}
+		if run.RawConcurrency != "" {
+			var rawConcurrency model.RawConcurrency
+			if err := yaml.Unmarshal([]byte(run.RawConcurrency), &rawConcurrency); err != nil {
+				ctx.ServerError("UnmarshalRawConcurrency", fmt.Errorf("unmarshal raw concurrency: %w", err))
+				return
+			}
+			wfConcurrencyGroup, wfConcurrencyCancel, err := actions_service.EvaluateWorkflowConcurrency(ctx, run, &rawConcurrency, vars)
+			if err != nil {
+				ctx.ServerError("EvaluateWorkflowConcurrency", fmt.Errorf("evaluate workflow concurrency: %w", err))
+				return
+			}
+			if wfConcurrencyGroup != "" {
+				run.ConcurrencyGroup = wfConcurrencyGroup
+				run.ConcurrencyCancel = wfConcurrencyCancel
+			}
 
-		blockRunByConcurrency, err = actions_model.ShouldBlockRunByConcurrency(ctx, run)
-		if err != nil {
-			ctx.ServerError("ShouldBlockRunByConcurrency", err)
-			return
-		}
-		if blockRunByConcurrency {
-			run.Status = actions_model.StatusBlocked
-		} else {
-			run.Status = actions_model.StatusRunning
-		}
-		if err := actions_service.CancelJobsByRunConcurrency(ctx, run); err != nil {
-			ctx.ServerError("cancel jobs", err)
-			return
+			blockRunByConcurrency, err = actions_model.ShouldBlockRunByConcurrency(ctx, run)
+			if err != nil {
+				ctx.ServerError("ShouldBlockRunByConcurrency", err)
+				return
+			}
+			if blockRunByConcurrency {
+				run.Status = actions_model.StatusBlocked
+			} else {
+				run.Status = actions_model.StatusRunning
+			}
+			if err := actions_service.CancelJobsByRunConcurrency(ctx, run); err != nil {
+				ctx.ServerError("cancel jobs", err)
+				return
+			}
 		}
 		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration", "status", "concurrency_group", "concurrency_cancel"); err != nil {
 			ctx.ServerError("UpdateRun", err)
@@ -524,7 +529,7 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	if err != nil {
 		return fmt.Errorf("get run %d variables: %w", job.Run.ID, err)
 	}
-	if job.RawConcurrencyGroup != "" && job.Status != actions_model.StatusBlocked {
+	if job.RawConcurrency != "" && job.Status != actions_model.StatusBlocked {
 		var err error
 		job.ConcurrencyGroup, job.ConcurrencyCancel, err = actions_service.EvaluateJobConcurrency(ctx, job.Run, job, vars, nil)
 		if err != nil {

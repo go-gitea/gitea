@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/util"
+	"gopkg.in/yaml.v3"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -90,9 +91,12 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				Status:            status,
 			}
 			// check job concurrency
-			if job.RawConcurrency != nil && job.RawConcurrency.Group != "" {
-				runJob.RawConcurrencyGroup = job.RawConcurrency.Group
-				runJob.RawConcurrencyCancel = job.RawConcurrency.CancelInProgress
+			if job.RawConcurrency != nil {
+				rawConcurrency, err := yaml.Marshal(job.RawConcurrency)
+				if err != nil {
+					return fmt.Errorf("marshal raw concurrency: %w", err)
+				}
+				runJob.RawConcurrency = string(rawConcurrency)
 				// do not evaluate job concurrency when it requires `needs`
 				if len(needs) == 0 {
 					var err error

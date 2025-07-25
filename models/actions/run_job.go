@@ -36,9 +36,8 @@ type ActionRunJob struct {
 	TaskID            int64    // the latest task of the job
 	Status            Status   `xorm:"index"`
 
-	RawConcurrencyGroup    string // raw concurrency.group
-	RawConcurrencyCancel   string // raw concurrency.cancel-in-progress
-	IsConcurrencyEvaluated bool   // whether RawConcurrencyGroup have been evaluated, only valid when RawConcurrencyGroup is not empty
+	RawConcurrency         string // raw concurrency
+	IsConcurrencyEvaluated bool   // whether RawConcurrency has been evaluated, only valid when RawConcurrency is not empty
 	ConcurrencyGroup       string `xorm:"index(repo_concurrency)"` // evaluated concurrency.group
 	ConcurrencyCancel      bool   // evaluated concurrency.cancel-in-progress
 
@@ -206,13 +205,12 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 }
 
 func ShouldBlockJobByConcurrency(ctx context.Context, job *ActionRunJob) (bool, error) {
-	if job.RawConcurrencyGroup == "" {
+	if job.RawConcurrency == "" {
 		return false, nil
 	}
 	if !job.IsConcurrencyEvaluated {
 		return false, ErrUnevaluatedConcurrency{
-			Group:            job.RawConcurrencyGroup,
-			CancelInProgress: job.RawConcurrencyCancel,
+			RawConcurrency: job.RawConcurrency,
 		}
 	}
 	if job.ConcurrencyGroup == "" || job.ConcurrencyCancel {
@@ -228,7 +226,7 @@ func ShouldBlockJobByConcurrency(ctx context.Context, job *ActionRunJob) (bool, 
 }
 
 func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) ([]*ActionRunJob, error) {
-	if job.RawConcurrencyGroup == "" {
+	if job.RawConcurrency == "" {
 		return nil, nil
 	}
 
@@ -236,8 +234,7 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 
 	if !job.IsConcurrencyEvaluated {
 		return nil, ErrUnevaluatedConcurrency{
-			Group:            job.RawConcurrencyGroup,
-			CancelInProgress: job.RawConcurrencyCancel,
+			RawConcurrency: job.RawConcurrency,
 		}
 	}
 	if job.ConcurrencyGroup == "" {
@@ -270,8 +267,7 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 }
 
 type ErrUnevaluatedConcurrency struct {
-	Group            string
-	CancelInProgress string
+	RawConcurrency string
 }
 
 func IsErrUnevaluatedConcurrency(err error) bool {
@@ -280,5 +276,5 @@ func IsErrUnevaluatedConcurrency(err error) bool {
 }
 
 func (err ErrUnevaluatedConcurrency) Error() string {
-	return fmt.Sprintf("the raw concurrency [group=%s, cancel-in-progress=%s] is not evaluated", err.Group, err.CancelInProgress)
+	return fmt.Sprintf("the raw concurrency [%s] is not evaluated", err.RawConcurrency)
 }

@@ -11,6 +11,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	"gopkg.in/yaml.v3"
 
 	"github.com/nektos/act/pkg/jobparser"
 	act_model "github.com/nektos/act/pkg/model"
@@ -41,9 +42,9 @@ func EvaluateJobConcurrency(ctx context.Context, run *actions_model.ActionRun, a
 		return "", false, fmt.Errorf("job LoadAttributes: %w", err)
 	}
 
-	rawConcurrency := &act_model.RawConcurrency{
-		Group:            actionRunJob.RawConcurrencyGroup,
-		CancelInProgress: actionRunJob.RawConcurrencyCancel,
+	var rawConcurrency act_model.RawConcurrency
+	if err := yaml.Unmarshal([]byte(actionRunJob.RawConcurrency), &rawConcurrency); err != nil {
+		return "", false, fmt.Errorf("unmarshal raw concurrency: %w", err)
 	}
 
 	gitCtx := GenerateGiteaContext(run, actionRunJob)
@@ -66,7 +67,7 @@ func EvaluateJobConcurrency(ctx context.Context, run *actions_model.ActionRun, a
 	}
 	_, singleWorkflowJob := singleWorkflows[0].Job()
 
-	concurrencyGroup, concurrencyCancel, err := jobparser.EvaluateConcurrency(rawConcurrency, actionRunJob.JobID, singleWorkflowJob, gitCtx, jobResults, vars, inputs)
+	concurrencyGroup, concurrencyCancel, err := jobparser.EvaluateConcurrency(&rawConcurrency, actionRunJob.JobID, singleWorkflowJob, gitCtx, jobResults, vars, inputs)
 	if err != nil {
 		return "", false, fmt.Errorf("evaluate concurrency: %w", err)
 	}
