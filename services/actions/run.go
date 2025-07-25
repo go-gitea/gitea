@@ -11,9 +11,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/util"
-	"gopkg.in/yaml.v3"
 
 	"github.com/nektos/act/pkg/jobparser"
+	"gopkg.in/yaml.v3"
 )
 
 // InsertRun inserts a run

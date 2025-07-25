@@ -23,10 +23,10 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	notify_service "code.gitea.io/gitea/services/notify"
-	"gopkg.in/yaml.v3"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
+	"gopkg.in/yaml.v3"
 )
 
 func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnable bool) error {

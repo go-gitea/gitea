@@ -16,9 +16,9 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	notify_service "code.gitea.io/gitea/services/notify"
-	"gopkg.in/yaml.v3"
 
 	"github.com/nektos/act/pkg/jobparser"
+	"gopkg.in/yaml.v3"
 )
 
 // StartScheduleTasks start the task

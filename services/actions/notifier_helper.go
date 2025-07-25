@@ -28,10 +28,10 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
 	notify_service "code.gitea.io/gitea/services/notify"
-	"gopkg.in/yaml.v3"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
+	"gopkg.in/yaml.v3"
 )
 
 type methodCtxKeyType struct{}

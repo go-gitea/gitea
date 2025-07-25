@@ -33,9 +33,9 @@ import (
 	actions_service "code.gitea.io/gitea/services/actions"
 	context_module "code.gitea.io/gitea/services/context"
 	notify_service "code.gitea.io/gitea/services/notify"
-	"gopkg.in/yaml.v3"
 
 	"github.com/nektos/act/pkg/model"
+	"gopkg.in/yaml.v3"
 	"xorm.io/builder"
 )
 
