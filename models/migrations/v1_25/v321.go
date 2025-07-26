@@ -4,23 +4,49 @@
 package v1_25
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-func AddStoragePathDeletion(x *xorm.Engine) error {
-	// StoragePathDeletion represents a file or directory that is pending deletion.
-	type StoragePathDeletion struct {
-		ID                     int64
-		StorageName            string             // storage name defines in storage module
-		PathType               int                // 1 for file, 2 for directory
-		RelativePath           string             `xorm:"TEXT"`
-		DeleteFailedCount      int                `xorm:"DEFAULT 0 NOT NULL"` // Number of times the deletion failed, used to prevent infinite loop
-		LastDeleteFailedReason string             `xorm:"TEXT"`               // Last reason the deletion failed, used to prevent infinite loop
-		LastDeleteFailedTime   timeutil.TimeStamp // Last time the deletion failed, used to prevent infinite loop
-		CreatedUnix            timeutil.TimeStamp `xorm:"INDEX created"`
+func UseLongTextInSomeColumnsAndFixBugs(x *xorm.Engine) error {
+	if !setting.Database.Type.IsMySQL() {
+		return nil // Only mysql need to change from text to long text, for other databases, they are the same
 	}
 
-	return x.Sync(new(StoragePathDeletion))
+	if err := base.ModifyColumn(x, "review_state", &schemas.Column{
+		Name: "updated_files",
+		SQLType: schemas.SQLType{
+			Name: "LONGTEXT",
+		},
+		Length:         0,
+		Nullable:       false,
+		DefaultIsEmpty: true,
+	}); err != nil {
+		return err
+	}
+
+	if err := base.ModifyColumn(x, "package_property", &schemas.Column{
+		Name: "value",
+		SQLType: schemas.SQLType{
+			Name: "LONGTEXT",
+		},
+		Length:         0,
+		Nullable:       false,
+		DefaultIsEmpty: true,
+	}); err != nil {
+		return err
+	}
+
+	return base.ModifyColumn(x, "notice", &schemas.Column{
+		Name: "description",
+		SQLType: schemas.SQLType{
+			Name: "LONGTEXT",
+		},
+		Length:         0,
+		Nullable:       false,
+		DefaultIsEmpty: true,
+	})
 }
