@@ -18,12 +18,18 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	org_service "code.gitea.io/gitea/services/org"
+	"code.gitea.io/gitea/services/storagecleanup"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m)
+	unittest.MainTest(m, &unittest.TestOptions{
+		SetUp: func() error {
+			setting.LoadQueueSettings()
+			return storagecleanup.Init()
+		},
+	})
 }
 
 func TestDeleteUser(t *testing.T) {

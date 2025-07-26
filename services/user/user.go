@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
 	repo_service "code.gitea.io/gitea/services/repository"
+	"code.gitea.io/gitea/services/storagecleanup"
 )
 
 // RenameUser renames a user
@@ -210,47 +211,45 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
+	toBeCleanedDeletions, err := db.WithTx2(ctx, func(ctx context.Context) ([]int64, error) {
+		// Note: A user owns any repository or belongs to any organization
+		//	cannot perform delete operation. This causes a race with the purge above
+		//  however consistency requires that we ensure that this is the case
+
+		// Check ownership of repository.
+		count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: u.ID})
+		if err != nil {
+			return nil, fmt.Errorf("GetRepositoryCount: %w", err)
+		} else if count > 0 {
+			return nil, repo_model.ErrUserOwnRepos{UID: u.ID}
+		}
+
+		// Check membership of organization.
+		count, err = organization.GetOrganizationCount(ctx, u)
+		if err != nil {
+			return nil, fmt.Errorf("GetOrganizationCount: %w", err)
+		} else if count > 0 {
+			return nil, organization.ErrUserHasOrgs{UID: u.ID}
+		}
+
+		// Check ownership of packages.
+		if ownsPackages, err := packages_model.HasOwnerPackages(ctx, u.ID); err != nil {
+			return nil, fmt.Errorf("HasOwnerPackages: %w", err)
+		} else if ownsPackages {
+			return nil, packages_model.ErrUserOwnPackages{UID: u.ID}
+		}
+
+		toBeCleanedDeletions, err := deleteUser(ctx, u, purge)
+		if err != nil {
+			return nil, fmt.Errorf("DeleteUser: %w", err)
+		}
+		return toBeCleanedDeletions, nil
+	})
 	if err != nil {
 		return err
 	}
-	defer committer.Close()
 
-	// Note: A user owns any repository or belongs to any organization
-	//	cannot perform delete operation. This causes a race with the purge above
-	//  however consistency requires that we ensure that this is the case
-
-	// Check ownership of repository.
-	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: u.ID})
-	if err != nil {
-		return fmt.Errorf("GetRepositoryCount: %w", err)
-	} else if count > 0 {
-		return repo_model.ErrUserOwnRepos{UID: u.ID}
-	}
-
-	// Check membership of organization.
-	count, err = organization.GetOrganizationCount(ctx, u)
-	if err != nil {
-		return fmt.Errorf("GetOrganizationCount: %w", err)
-	} else if count > 0 {
-		return organization.ErrUserHasOrgs{UID: u.ID}
-	}
-
-	// Check ownership of packages.
-	if ownsPackages, err := packages_model.HasOwnerPackages(ctx, u.ID); err != nil {
-		return fmt.Errorf("HasOwnerPackages: %w", err)
-	} else if ownsPackages {
-		return packages_model.ErrUserOwnPackages{UID: u.ID}
-	}
-
-	if err := deleteUser(ctx, u, purge); err != nil {
-		return fmt.Errorf("DeleteUser: %w", err)
-	}
-
-	if err := committer.Commit(); err != nil {
-		return err
-	}
-	_ = committer.Close()
+	storagecleanup.AddDeletionsToCleanQueue(ctx, toBeCleanedDeletions)
 
 	if err = asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 		return err

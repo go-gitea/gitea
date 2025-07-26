@@ -19,10 +19,10 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
+	"code.gitea.io/gitea/services/storagecleanup"
 )
 
 // ErrInvalidTagName represents a "InvalidTagName" kind of error.
@@ -288,6 +288,8 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	}
 
 	deletedUUIDs := make(container.Set[string])
+	deletedAttachments := make([]*repo_model.Attachment, 0, len(delAttachmentUUIDs))
+	toBeCleanedDeletions := make([]int64, 0, len(delAttachmentUUIDs))
 	if len(delAttachmentUUIDs) > 0 {
 		// Check attachments
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, delAttachmentUUIDs)
@@ -299,11 +301,15 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 				return util.NewPermissionDeniedErrorf("delete attachment of release permission denied")
 			}
 			deletedUUIDs.Add(attach.UUID)
+			deletedAttachments = append(deletedAttachments, attach)
 		}
 
-		if _, err := repo_model.DeleteAttachments(ctx, attachments, true); err != nil {
-			return fmt.Errorf("DeleteAttachments [uuids: %v]: %w", delAttachmentUUIDs, err)
+		deletions, err := repo_model.DeleteAttachments(ctx, deletedAttachments)
+		if err != nil {
+			return fmt.Errorf("DeleteAttachments [uuids: %v]: %w", deletedUUIDs.Values(), err)
 		}
+		toBeCleanedDeletions = append(toBeCleanedDeletions, deletions...)
+		// files will be deleted after database transaction is committed successfully
 	}
 
 	if len(editAttachments) > 0 {
@@ -338,15 +344,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 
-	for _, uuid := range delAttachmentUUIDs {
-		if err := storage.Attachments.Delete(repo_model.AttachmentRelativePath(uuid)); err != nil {
-			// Even delete files failed, but the attachments has been removed from database, so we
-			// should not return error but only record the error on logs.
-			// users have to delete this attachments manually or we should have a
-			// synchronize between database attachment table and attachment storage
-			log.Error("delete attachment[uuid: %s] failed: %v", uuid, err)
-		}
-	}
+	storagecleanup.AddDeletionsToCleanQueue(ctx, toBeCleanedDeletions)
 
 	if !rel.IsDraft {
 		if !isTagCreated && !isConvertedFromTag {
@@ -360,64 +358,67 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
 func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *repo_model.Release, doer *user_model.User, delTag bool) error {
-	if delTag {
-		protectedTags, err := git_model.GetProtectedTags(ctx, rel.RepoID)
-		if err != nil {
-			return fmt.Errorf("GetProtectedTags: %w", err)
-		}
-		isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, protectedTags, rel.TagName, rel.PublisherID)
-		if err != nil {
-			return err
-		}
-		if !isAllowed {
-			return ErrProtectedTagName{
-				TagName: rel.TagName,
+	var toBeCleanedDeletions []int64
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if delTag {
+			protectedTags, err := git_model.GetProtectedTags(ctx, rel.RepoID)
+			if err != nil {
+				return fmt.Errorf("GetProtectedTags: %w", err)
+			}
+			isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, protectedTags, rel.TagName, rel.PublisherID)
+			if err != nil {
+				return err
+			}
+			if !isAllowed {
+				return ErrProtectedTagName{
+					TagName: rel.TagName,
+				}
+			}
+
+			if stdout, _, err := git.NewCommand("tag", "-d").AddDashesAndList(rel.TagName).
+				RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil && !strings.Contains(err.Error(), "not found") {
+				log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)
+				return fmt.Errorf("git tag -d: %w", err)
+			}
+
+			refName := git.RefNameFromTag(rel.TagName)
+			objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+			notify_service.PushCommits(
+				ctx, doer, repo,
+				&repository.PushUpdateOptions{
+					RefFullName: refName,
+					OldCommitID: rel.Sha1,
+					NewCommitID: objectFormat.EmptyObjectID().String(),
+				}, repository.NewPushCommits())
+			notify_service.DeleteRef(ctx, doer, repo, refName)
+
+			if _, err := db.DeleteByID[repo_model.Release](ctx, rel.ID); err != nil {
+				return fmt.Errorf("DeleteReleaseByID: %w", err)
+			}
+		} else {
+			rel.IsTag = true
+
+			if err := repo_model.UpdateRelease(ctx, rel); err != nil {
+				return fmt.Errorf("Update: %w", err)
 			}
 		}
 
-		if stdout, _, err := git.NewCommand("tag", "-d").AddDashesAndList(rel.TagName).
-			RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil && !strings.Contains(err.Error(), "not found") {
-			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)
-			return fmt.Errorf("git tag -d: %w", err)
+		rel.Repo = repo
+		if err := rel.LoadAttributes(ctx); err != nil {
+			return fmt.Errorf("LoadAttributes: %w", err)
 		}
 
-		refName := git.RefNameFromTag(rel.TagName)
-		objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
-		notify_service.PushCommits(
-			ctx, doer, repo,
-			&repository.PushUpdateOptions{
-				RefFullName: refName,
-				OldCommitID: rel.Sha1,
-				NewCommitID: objectFormat.EmptyObjectID().String(),
-			}, repository.NewPushCommits())
-		notify_service.DeleteRef(ctx, doer, repo, refName)
-
-		if _, err := db.DeleteByID[repo_model.Release](ctx, rel.ID); err != nil {
-			return fmt.Errorf("DeleteReleaseByID: %w", err)
+		deletions, err := repo_model.DeleteAttachments(ctx, rel.Attachments)
+		if err != nil {
+			return fmt.Errorf("DeleteAttachments: %w", err)
 		}
-	} else {
-		rel.IsTag = true
-
-		if err := repo_model.UpdateRelease(ctx, rel); err != nil {
-			return fmt.Errorf("Update: %w", err)
-		}
+		toBeCleanedDeletions = append(toBeCleanedDeletions, deletions...)
+		return nil
+	}); err != nil {
+		return err
 	}
 
-	rel.Repo = repo
-	if err := rel.LoadAttributes(ctx); err != nil {
-		return fmt.Errorf("LoadAttributes: %w", err)
-	}
-
-	if err := repo_model.DeleteAttachmentsByRelease(ctx, rel.ID); err != nil {
-		return fmt.Errorf("DeleteAttachments: %w", err)
-	}
-
-	for i := range rel.Attachments {
-		attachment := rel.Attachments[i]
-		if err := storage.Attachments.Delete(attachment.RelativePath()); err != nil {
-			log.Error("Delete attachment %s of release %s failed: %v", attachment.UUID, rel.ID, err)
-		}
-	}
+	storagecleanup.AddDeletionsToCleanQueue(ctx, toBeCleanedDeletions)
 
 	if !rel.IsDraft {
 		notify_service.DeleteRelease(ctx, doer, rel)
