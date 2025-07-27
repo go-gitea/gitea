@@ -99,7 +99,6 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 // SendCollaboratorMail sends mail notification to new collaborator.
 func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository) {
 	if setting.MailService == nil || !u.IsActive {
-		// No mail service configured OR the user is inactive
 		return
 	}
 	locale := translation.NewLocale(u.Language)
