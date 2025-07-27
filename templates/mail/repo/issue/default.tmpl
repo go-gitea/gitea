@@ -75,6 +75,6 @@
 			</ul>
 		{{end}}
 	</p>
-	{{template "footer_view_on_gitea" .}}
+	{{template "footer_view_on_gitea" (dict "CanReply" $.CanReply "AppName" $.AppName "Link" .Link)}}
 </body>
 </html>

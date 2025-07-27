@@ -49,6 +49,6 @@
 			{{end}}
 		</ul>
 	</p>
-	{{template "footer_view_on_gitea" .}}
+	{{template "footer_view_on_gitea" (dict "AppName" $.AppName "Link" .Link)}}
 </body>
 </html>

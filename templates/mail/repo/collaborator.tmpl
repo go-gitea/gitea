@@ -7,6 +7,6 @@
 
 <body>
 	<p>{{.locale.Tr "mail.repo.collaborator.added.text"}} <code>{{.RepoName}}</code></p>
-	{{template "footer_view_on_gitea" .}}
+	{{template "footer_view_on_gitea" (dict "AppName" $.AppName "Link" .Link)}}
 </body>
 </html>
