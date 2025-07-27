@@ -15,6 +15,6 @@
 			{{.locale.Tr "mail.issue_assigned.issue" .Doer.Name $link $repo_url}}
 		{{end}}
 	</p>
-	{{template "footer_view_on_gitea" (dict "AppName" $.AppName "Link" .Link)}}
+	{{template "footer_view_on_gitea" .}}
 </body>
 </html>
