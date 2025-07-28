@@ -48,6 +48,7 @@ var (
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
+		SnippetRemoteName                       string
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
@@ -166,6 +167,7 @@ var (
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
+		SnippetRemoteName:                       "origin",
 		AllowForkWithoutMaximumLimit:            true,
 
 		// Repository editor settings
