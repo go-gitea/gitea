@@ -32,6 +32,8 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/gobwas/glob"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (req *http.Request, body []byte, err error) {
@@ -148,6 +150,8 @@ func addDefaultHeaders(req *http.Request, secret []byte, w *webhook_model.Webhoo
 	return nil
 }
 
+var webhookCounter = promauto.NewCounterVec(prometheus.CounterOpts{Namespace: "gitea", Subsystem: "webhook", Name: "deliveries", Help: "Number of webhook deliveries"}, []string{"success"})
+
 // Deliver creates the [http.Request] (depending on the webhook type), sends it
 // and records the status and response.
 func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
@@ -263,6 +267,12 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	t.ResponseInfo.Status = resp.StatusCode
 	for k, vals := range resp.Header {
 		t.ResponseInfo.Headers[k] = strings.Join(vals, ",")
+	}
+
+	if t.IsSucceed {
+		webhookCounter.WithLabelValues("success").Inc()
+	} else {
+		webhookCounter.WithLabelValues("failure").Inc()
 	}
 
 	p, err := io.ReadAll(resp.Body)
