@@ -135,6 +135,228 @@ jobs:
 	})
 }
 
+func TestWorkflowConcurrencyShort(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		defer doAPIDeleteRepository(httpContext)(t)
+
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+		// add a variable for test
+		req := NewRequestWithJSON(t, "POST",
+			fmt.Sprintf("/api/v1/repos/%s/%s/actions/variables/myvar", user2.Name, repo.Name), &api.CreateVariableOption{
+				Value: "abc123",
+			}).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
+		wf1FileContent := `name: concurrent-workflow-1
+on: 
+  push:
+    paths:
+      - '.gitea/workflows/concurrent-workflow-1.yml'
+concurrency: workflow-main-abc123-user2
+jobs:
+  wf1-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job from workflow1'
+`
+		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
+		wf2FileContent := `name: concurrent-workflow-2
+on: 
+  push:
+    paths:
+      - '.gitea/workflows/concurrent-workflow-2.yml'
+concurrency: workflow-${{ gitea.ref_name }}-${{ vars.myvar }}-${{ gitea.event.pusher.username }}
+jobs:
+  wf2-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job from workflow2'
+`
+		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
+		wf3FileContent := `name: concurrent-workflow-3
+on: 
+  push:
+    paths:
+      - '.gitea/workflows/concurrent-workflow-3.yml'
+concurrency: workflow-main-abc${{ 123 }}-${{ gitea.event.pusher.username }}
+jobs:
+  wf3-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job from workflow3'
+`
+		// push workflow1
+		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
+		// fetch and exec workflow1
+		task := runner.fetchTask(t)
+		_, _, run := getTaskAndJobAndRunByTaskID(t, task.Id)
+		assert.Equal(t, "workflow-main-abc123-user2", run.ConcurrencyGroup)
+		assert.Equal(t, "concurrent-workflow-1.yml", run.WorkflowID)
+		runner.fetchNoTask(t)
+		runner.execTask(t, task, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+		})
+
+		// push workflow2
+		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
+		// fetch workflow2
+		task = runner.fetchTask(t)
+		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
+		assert.Equal(t, "workflow-main-abc123-user2", run.ConcurrencyGroup)
+		assert.Equal(t, "concurrent-workflow-2.yml", run.WorkflowID)
+
+		// push workflow3
+		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf3TreePath, wf3FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
+		runner.fetchNoTask(t)
+
+		// exec workflow2
+		runner.execTask(t, task, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+		})
+
+		// fetch and exec workflow3
+		task = runner.fetchTask(t)
+		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
+		assert.Equal(t, "workflow-main-abc123-user2", run.ConcurrencyGroup)
+		assert.Equal(t, "concurrent-workflow-3.yml", run.WorkflowID)
+		runner.fetchNoTask(t)
+		runner.execTask(t, task, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+		})
+	})
+}
+
+func TestWorkflowConcurrencyShortJson(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		defer doAPIDeleteRepository(httpContext)(t)
+
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+		// add a variable for test
+		req := NewRequestWithJSON(t, "POST",
+			fmt.Sprintf("/api/v1/repos/%s/%s/actions/variables/myvar", user2.Name, repo.Name), &api.CreateVariableOption{
+				Value: "abc123",
+			}).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
+		wf1FileContent := `name: concurrent-workflow-1
+on: 
+  push:
+    paths:
+      - '.gitea/workflows/concurrent-workflow-1.yml'
+concurrency: |-
+    ${{ fromjson('{
+        "group": "workflow-main-abc123-user2",
+        "cancel-in-progress": false
+    }') }}
+jobs:
+  wf1-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job from workflow1'
+`
+		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
+		wf2FileContent := `name: concurrent-workflow-2
+on: 
+  push:
+    paths:
+      - '.gitea/workflows/concurrent-workflow-2.yml'
+concurrency: |-
+    ${{ fromjson('{
+        "group": "workflow-main-abc123-user2",
+        "cancel-in-progress": false
+    }') }}
+jobs:
+  wf2-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job from workflow2'
+`
+		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
+		wf3FileContent := `name: concurrent-workflow-3
+on: 
+  push:
+    paths:
+      - '.gitea/workflows/concurrent-workflow-3.yml'
+concurrency: |-
+    ${{ fromjson('{
+        "group": "workflow-main-abc123-user2",
+        "cancel-in-progress": false
+    }') }}
+jobs:
+  wf3-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job from workflow3'
+`
+		// push workflow1
+		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
+		// fetch and exec workflow1
+		task := runner.fetchTask(t)
+		_, _, run := getTaskAndJobAndRunByTaskID(t, task.Id)
+		assert.Equal(t, "workflow-main-abc123-user2", run.ConcurrencyGroup)
+		assert.Equal(t, "concurrent-workflow-1.yml", run.WorkflowID)
+		runner.fetchNoTask(t)
+		runner.execTask(t, task, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+		})
+
+		// push workflow2
+		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
+		// fetch workflow2
+		task = runner.fetchTask(t)
+		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
+		assert.Equal(t, "workflow-main-abc123-user2", run.ConcurrencyGroup)
+		assert.Equal(t, "concurrent-workflow-2.yml", run.WorkflowID)
+
+		// push workflow3
+		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf3TreePath, wf3FileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
+		runner.fetchNoTask(t)
+
+		// exec workflow2
+		runner.execTask(t, task, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+		})
+
+		// fetch and exec workflow3
+		task = runner.fetchTask(t)
+		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
+		assert.Equal(t, "workflow-main-abc123-user2", run.ConcurrencyGroup)
+		assert.Equal(t, "concurrent-workflow-3.yml", run.WorkflowID)
+		runner.fetchNoTask(t)
+		runner.execTask(t, task, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+		})
+	})
+}
+
 func TestPullRequestWorkflowConcurrency(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		// user2 is the owner of the base repo
