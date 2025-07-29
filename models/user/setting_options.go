@@ -21,4 +21,9 @@ const (
 	SignupUserAgent = "signup.user_agent"
 
 	SettingsKeyCodeViewShowFileTree = "code_view.show_file_tree"
+
+	SettingsKeyEmailNotificationGiteaActions        = "email_notification.gitea_actions"
+	SettingEmailNotificationGiteaActionsAll         = "all"
+	SettingEmailNotificationGiteaActionsFailureOnly = "failure-only" // Default for actions email preference
+	SettingEmailNotificationGiteaActionsDisabled    = "disabled"
 )
