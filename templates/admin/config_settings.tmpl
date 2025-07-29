@@ -39,4 +39,19 @@
 		</div>
 	</form>
 </div>
+
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "admin.config.repository_snippets"}}
+</h4>
+<div class="ui attached segment">
+	<form class="ui form form-fetch-action" method="post" action="{{AppSubUrl}}/-/admin/config?key={{.SystemConfig.Repository.SnippetRemoteName.DynKey}}">
+		<div class="field" data-field-patched="true">
+			<label for="remote_name">{{ctx.Locale.Tr "admin.config.repository_snippets.remote_name"}}</label>
+			<input id="remote_name" name="value" value="{{.SystemConfig.Repository.SnippetRemoteName.Value ctx}}" maxlength="100" dir="auto" placeholder="{{.SystemConfig.Repository.SnippetRemoteName.Def}}">
+		</div>
+		<div class="field">
+			<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
+		</div>
+	</form>
+</div>
 {{template "admin/layout_footer" .}}

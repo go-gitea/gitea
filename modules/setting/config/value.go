@@ -79,6 +79,10 @@ func (value *Value[T]) DynKey() string {
 	return value.dynKey
 }
 
+func (value *Value[T]) Def() T {
+	return value.def
+}
+
 func (value *Value[T]) WithDefault(def T) *Value[T] {
 	value.def = def
 	return value

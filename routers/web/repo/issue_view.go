@@ -446,7 +446,7 @@ func ViewPullMergeBox(ctx *context.Context) {
 
 	// TODO: it should use a dedicated struct to render the pull merge box, to make sure all data is prepared correctly
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
-	ctx.Data["SnippetRemoteName"] = setting.Repository.SnippetRemoteName
+	ctx.Data["SnippetRemoteName"] = setting.Config().Repository.SnippetRemoteName.Value(ctx)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.HTML(http.StatusOK, tplPullMergeBox)
 }
