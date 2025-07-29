@@ -21,7 +21,7 @@
     },
     "version": "{{AppVer | JSEscape}}"
   },
-  "basePath": "{{AppSubUrl | JSEscape}}/api/v1",
+  "basePath": "/{{AppSubUrl | JSEscape}}/api/v1",
   "paths": {
     "/activitypub/user-id/{user-id}": {
       "get": {
@@ -468,6 +468,207 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Hook"
+          }
+        }
+      }
+    },
+    "/admin/identity-auth": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Search authentication sources",
+        "operationId": "adminSearchAuth",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SearchResults of authentication sources",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/AuthOauth2Option"
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/admin/identity-auth/oauth": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Search OAuth2 authentication sources",
+        "operationId": "adminSearchOauth2Auth",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SearchResults of OAuth2 authentication sources",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/AuthOauth2Option"
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create an OAuth2 authentication source",
+        "operationId": "adminCreateOauth2Auth",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateAuthOauth2Option"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "OAuth2 authentication source created successfully"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/admin/identity-auth/oauth/{id}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete an OAuth2 authentication source",
+        "operationId": "adminDeleteOauth2Auth",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "authentication source ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth2 authentication source deleted successfully"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update an OAuth2 authentication source",
+        "operationId": "adminEditOauth2Auth",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "authentication source ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateAuthOauth2Option"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "OAuth2 authentication source updated successfully"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }

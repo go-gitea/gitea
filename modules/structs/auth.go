@@ -3,6 +3,7 @@
 
 package structs
 
+// swagger:model
 type AuthSourceOption struct {
 	ID                 int64  `json:"id"`
 	AuthenticationName string `json:"authentication_name" binding:"Required"`

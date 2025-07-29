@@ -4,6 +4,7 @@
 package structs
 
 // CreateUserOption create user options
+// swagger:model
 type CreateAuthOauth2Option struct {
 	AuthenticationName       string `json:"authentication_name" binding:"Required"`
 	ProviderIconURL          string `json:"provider_icon_url"`
@@ -27,6 +28,7 @@ type CreateAuthOauth2Option struct {
 }
 
 // EditUserOption edit user options
+// swagger:model
 type EditAuthOauth2Option struct {
 	AuthenticationName       string `json:"authentication_name" binding:"Required"`
 	ProviderIconURL          string `json:"provider_icon_url"`

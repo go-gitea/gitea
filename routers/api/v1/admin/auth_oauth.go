@@ -136,7 +136,7 @@ func EditOauthAuth(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.CreateAuthOauth2Option)
+	form := web.GetForm(ctx).(*api.EditAuthOauth2Option)
 
 	config := &oauth2.Source{
 		Provider:                      "openidConnect",
