@@ -6,32 +6,44 @@ package git
 
 import (
 	"context"
+	"path"
+	"strings"
 
 	giturl "code.gitea.io/gitea/modules/git/url"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // CommitSubmoduleFile represents a file with submodule type.
 type CommitSubmoduleFile struct {
-	refURL    string
-	parsedURL *giturl.RepositoryURL
-	parsed    bool
-	refID     string
-	repoLink  string
+	repoLink string
+	fullPath string
+	refURL   string
+	refID    string
+
+	parsed           bool
+	parsedTargetLink string
 }
 
 // NewCommitSubmoduleFile create a new submodule file
-func NewCommitSubmoduleFile(refURL, refID string) *CommitSubmoduleFile {
-	return &CommitSubmoduleFile{refURL: refURL, refID: refID}
+func NewCommitSubmoduleFile(repoLink, fullPath, refURL, refID string) *CommitSubmoduleFile {
+	return &CommitSubmoduleFile{repoLink: repoLink, fullPath: fullPath, refURL: refURL, refID: refID}
 }
 
+// RefID returns the commit ID of the submodule, it returns empty string for nil receiver
 func (sf *CommitSubmoduleFile) RefID() string {
-	return sf.refID // this function is only used in templates
+	if sf == nil {
+		return ""
+	}
+	return sf.refID
 }
 
-// SubmoduleWebLink tries to make some web links for a submodule, it also works on "nil" receiver
-func (sf *CommitSubmoduleFile) SubmoduleWebLink(ctx context.Context, optCommitID ...string) *SubmoduleWebLink {
-	if sf == nil {
+func (sf *CommitSubmoduleFile) getWebLinkInTargetRepo(ctx context.Context, moreLinkPath string) *SubmoduleWebLink {
+	if sf == nil || sf.refURL == "" {
 		return nil
+	}
+	if strings.HasPrefix(sf.refURL, "../") {
+		targetLink := path.Join(sf.repoLink, path.Dir(sf.fullPath), sf.refURL)
+		return &SubmoduleWebLink{RepoWebLink: targetLink, CommitWebLink: targetLink + moreLinkPath}
 	}
 	if !sf.parsed {
 		sf.parsed = true
@@ -39,16 +51,19 @@ func (sf *CommitSubmoduleFile) SubmoduleWebLink(ctx context.Context, optCommitID
 		if err != nil {
 			return nil
 		}
-		sf.parsedURL = parsedURL
-		sf.repoLink = giturl.MakeRepositoryWebLink(sf.parsedURL)
+		sf.parsedTargetLink = giturl.MakeRepositoryWebLink(parsedURL)
 	}
-	var commitLink string
-	if len(optCommitID) == 2 {
-		commitLink = sf.repoLink + "/compare/" + optCommitID[0] + "..." + optCommitID[1]
-	} else if len(optCommitID) == 1 {
-		commitLink = sf.repoLink + "/tree/" + optCommitID[0]
-	} else {
-		commitLink = sf.repoLink + "/tree/" + sf.refID
-	}
-	return &SubmoduleWebLink{RepoWebLink: sf.repoLink, CommitWebLink: commitLink}
+	return &SubmoduleWebLink{RepoWebLink: sf.parsedTargetLink, CommitWebLink: sf.parsedTargetLink + moreLinkPath}
+}
+
+// SubmoduleWebLinkTree tries to make the submodule's tree link in its own repo, it also works on "nil" receiver
+// It returns nil if the submodule does not have a valid URL or is nil
+func (sf *CommitSubmoduleFile) SubmoduleWebLinkTree(ctx context.Context, optCommitID ...string) *SubmoduleWebLink {
+	return sf.getWebLinkInTargetRepo(ctx, "/tree/"+util.OptionalArg(optCommitID, sf.RefID()))
+}
+
+// SubmoduleWebLinkCompare tries to make the submodule's compare link in its own repo, it also works on "nil" receiver
+// It returns nil if the submodule does not have a valid URL or is nil
+func (sf *CommitSubmoduleFile) SubmoduleWebLinkCompare(ctx context.Context, commitID1, commitID2 string) *SubmoduleWebLink {
+	return sf.getWebLinkInTargetRepo(ctx, "/compare/"+commitID1+"..."+commitID2)
 }

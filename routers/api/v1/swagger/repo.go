@@ -331,6 +331,12 @@ type swaggerContentsListResponse struct {
 	Body []api.ContentsResponse `json:"body"`
 }
 
+// swagger:response ContentsExtResponse
+type swaggerContentsExtResponse struct {
+	// in:body
+	Body api.ContentsExtResponse `json:"body"`
+}
+
 // FileDeleteResponse
 // swagger:response FileDeleteResponse
 type swaggerFileDeleteResponse struct {
@@ -441,6 +447,34 @@ type swaggerRepoNewIssuePinsAllowed struct {
 type swaggerRepoTasksList struct {
 	// in:body
 	Body api.ActionTaskResponse `json:"body"`
+}
+
+// WorkflowRunsList
+// swagger:response WorkflowRunsList
+type swaggerActionWorkflowRunsResponse struct {
+	// in:body
+	Body api.ActionWorkflowRunsResponse `json:"body"`
+}
+
+// WorkflowRun
+// swagger:response WorkflowRun
+type swaggerWorkflowRun struct {
+	// in:body
+	Body api.ActionWorkflowRun `json:"body"`
+}
+
+// WorkflowJobsList
+// swagger:response WorkflowJobsList
+type swaggerActionWorkflowJobsResponse struct {
+	// in:body
+	Body api.ActionWorkflowJobsResponse `json:"body"`
+}
+
+// WorkflowJob
+// swagger:response WorkflowJob
+type swaggerWorkflowJob struct {
+	// in:body
+	Body api.ActionWorkflowJob `json:"body"`
 }
 
 // ArtifactsList

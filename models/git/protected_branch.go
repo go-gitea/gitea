@@ -246,7 +246,7 @@ func (protectBranch *ProtectedBranch) GetUnprotectedFilePatterns() []glob.Glob {
 
 func getFilePatterns(filePatterns string) []glob.Glob {
 	extarr := make([]glob.Glob, 0, 10)
-	for _, expr := range strings.Split(strings.ToLower(filePatterns), ";") {
+	for expr := range strings.SplitSeq(strings.ToLower(filePatterns), ";") {
 		expr = strings.TrimSpace(expr)
 		if expr != "" {
 			if g, err := glob.Compile(expr, '.', '/'); err != nil {
@@ -518,7 +518,7 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 		return currentWhitelist, nil
 	}
 
-	teams, err := organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
+	teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		return nil, fmt.Errorf("GetTeamsWithAccessToRepo [org_id: %d, repo_id: %d]: %v", repo.OwnerID, repo.ID, err)
 	}

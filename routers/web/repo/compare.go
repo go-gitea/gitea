@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	csv_module "code.gitea.io/gitea/modules/csv"
+	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -401,12 +402,11 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		ci.HeadRepo = ctx.Repo.Repository
 		ci.HeadGitRepo = ctx.Repo.GitRepo
 	} else if has {
-		ci.HeadGitRepo, err = gitrepo.OpenRepository(ctx, ci.HeadRepo)
+		ci.HeadGitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ci.HeadRepo)
 		if err != nil {
-			ctx.ServerError("OpenRepository", err)
+			ctx.ServerError("RepositoryFromRequestContextOrOpen", err)
 			return nil
 		}
-		defer ci.HeadGitRepo.Close()
 	} else {
 		ctx.NotFound(nil)
 		return nil
@@ -575,7 +575,13 @@ func PrepareCompareDiff(
 
 	ctx.Data["CommitRepoLink"] = ci.HeadRepo.Link()
 	ctx.Data["AfterCommitID"] = headCommitID
-	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand")
+
+	// follow GitHub's behavior: autofill the form and expand
+	newPrFormTitle := ctx.FormTrim("title")
+	newPrFormBody := ctx.FormTrim("body")
+	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand") || ctx.FormBool("quick_pull") || newPrFormTitle != "" || newPrFormBody != ""
+	ctx.Data["TitleQuery"] = newPrFormTitle
+	ctx.Data["BodyQuery"] = newPrFormBody
 
 	if (headCommitID == ci.CompareInfo.MergeBase && !ci.DirectComparison) ||
 		headCommitID == ci.CompareInfo.BaseCommitID {
@@ -608,7 +614,7 @@ func PrepareCompareDiff(
 
 	fileOnly := ctx.FormBool("file-only")
 
-	diff, err := gitdiff.GetDiffForRender(ctx, ci.HeadGitRepo,
+	diff, err := gitdiff.GetDiffForRender(ctx, ci.HeadRepo.Link(), ci.HeadGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     beforeCommitID,
 			AfterCommitID:      headCommitID,
@@ -639,7 +645,11 @@ func PrepareCompareDiff(
 			return false
 		}
 
-		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(diffTree, nil)
+		renderedIconPool := fileicon.NewRenderedIconPool()
+		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, nil)
+		ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
+		ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
+		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 	}
 
 	headCommit, err := ci.HeadGitRepo.GetCommit(headCommitID)
@@ -721,11 +731,6 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
 	ci := ParseCompareInfo(ctx)
-	defer func() {
-		if ci != nil && ci.HeadGitRepo != nil {
-			ci.HeadGitRepo.Close()
-		}
-	}()
 	if ctx.Written() {
 		return
 	}

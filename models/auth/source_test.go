@@ -19,6 +19,8 @@ import (
 )
 
 type TestSource struct {
+	auth_model.ConfigBase
+
 	Provider                      string
 	ClientID                      string
 	ClientSecret                  string

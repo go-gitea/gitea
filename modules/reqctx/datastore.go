@@ -6,6 +6,7 @@ package reqctx
 import (
 	"context"
 	"io"
+	"maps"
 	"sync"
 
 	"code.gitea.io/gitea/modules/process"
@@ -22,9 +23,7 @@ func (ds ContextData) GetData() ContextData {
 }
 
 func (ds ContextData) MergeFrom(other ContextData) ContextData {
-	for k, v := range other {
-		ds[k] = v
-	}
+	maps.Copy(ds, other)
 	return ds
 }
 

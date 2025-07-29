@@ -13,37 +13,46 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch string, treeNames []string) (*api.FilesResponse, error) {
-	files := []*api.ContentsResponse{}
-	for _, file := range treeNames {
-		fileContents, _ := GetContents(ctx, repo, file, branch, false) // ok if fails, then will be nil
+func GetContentsListFromTreePaths(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, treePaths []string) (files []*api.ContentsResponse) {
+	var size int64
+	for _, treePath := range treePaths {
+		// ok if fails, then will be nil
+		fileContents, _ := GetFileContents(ctx, repo, gitRepo, refCommit, GetContentsOrListOptions{
+			TreePath:                 treePath,
+			IncludeSingleFileContent: true,
+			IncludeCommitMetadata:    true,
+		})
+		if fileContents != nil && fileContents.Content != nil && *fileContents.Content != "" {
+			// if content isn't empty (e.g., due to the single blob being too large), add file size to response size
+			size += int64(len(*fileContents.Content))
+		}
+		if size > setting.API.DefaultMaxResponseSize {
+			break // stop if max response size would be exceeded
+		}
 		files = append(files, fileContents)
+		if len(files) == setting.API.DefaultPagingNum {
+			break // stop if paging num reached
+		}
 	}
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
-	verification := GetPayloadCommitVerification(ctx, commit)
+	return files
+}
+
+func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, treeNames []string) (*api.FilesResponse, error) {
+	files := GetContentsListFromTreePaths(ctx, repo, gitRepo, refCommit, treeNames)
+	fileCommitResponse, _ := GetFileCommitResponse(repo, refCommit.Commit) // ok if fails, then will be nil
+	verification := GetPayloadCommitVerification(ctx, refCommit.Commit)
 	filesResponse := &api.FilesResponse{
 		Files:        files,
 		Commit:       fileCommitResponse,
 		Verification: verification,
 	}
 	return filesResponse, nil
-}
-
-// GetFileResponseFromCommit Constructs a FileResponse from a Commit object
-func GetFileResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch, treeName string) (*api.FileResponse, error) {
-	fileContents, _ := GetContents(ctx, repo, treeName, branch, false) // ok if fails, then will be nil
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit)       // ok if fails, then will be nil
-	verification := GetPayloadCommitVerification(ctx, commit)
-	fileResponse := &api.FileResponse{
-		Content:      fileContents,
-		Commit:       fileCommitResponse,
-		Verification: verification,
-	}
-	return fileResponse, nil
 }
 
 // constructs a FileResponse with the file at the index from FilesResponse
@@ -130,15 +139,17 @@ func (err ErrFilenameInvalid) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
-// CleanUploadFileName Trims a filename and returns empty string if it is a .git directory
-func CleanUploadFileName(name string) string {
-	// Rebase the filename
+// CleanGitTreePath cleans a tree path for git, it returns an empty string the path is invalid (e.g.: contains ".git" part)
+func CleanGitTreePath(name string) string {
 	name = util.PathJoinRel(name)
 	// Git disallows any filenames to have a .git directory in them.
-	for _, part := range strings.Split(name, "/") {
-		if strings.ToLower(part) == ".git" {
+	for part := range strings.SplitSeq(name, "/") {
+		if strings.EqualFold(part, ".git") {
 			return ""
 		}
+	}
+	if name == "." {
+		name = ""
 	}
 	return name
 }

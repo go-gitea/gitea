@@ -10,6 +10,8 @@ import (
 
 // Source holds configuration for the OAuth2 login source.
 type Source struct {
+	auth.ConfigBase `json:"-"`
+
 	Provider                      string
 	ClientID                      string
 	ClientSecret                  string
@@ -27,8 +29,8 @@ type Source struct {
 	RestrictedGroup     string
 	SkipLocalTwoFA      bool
 
-	// reference to the authSource
-	authSource *auth.Source
+	SSHPublicKeyClaimName string
+	FullNameClaimName     string
 }
 
 // FromDB fills up an OAuth2Config from serialized format.
@@ -39,11 +41,6 @@ func (source *Source) FromDB(bs []byte) error {
 // ToDB exports an OAuth2Config to a serialized format.
 func (source *Source) ToDB() ([]byte, error) {
 	return json.Marshal(source)
-}
-
-// SetAuthSource sets the related AuthSource
-func (source *Source) SetAuthSource(authSource *auth.Source) {
-	source.authSource = authSource
 }
 
 func init() {

@@ -1,4 +1,4 @@
-import {isElemHidden, onInputDebounce, submitEventSubmitter, toggleElem} from '../utils/dom.ts';
+import {isElemVisible, onInputDebounce, submitEventSubmitter, toggleElem} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 
 const {appSubUrl} = window.config;
@@ -28,7 +28,7 @@ export function parseIssueListQuickGotoLink(repoLink: string, searchText: string
 }
 
 export function initCommonIssueListQuickGoto() {
-  const goto = document.querySelector('#issue-list-quick-goto');
+  const goto = document.querySelector<HTMLElement>('#issue-list-quick-goto');
   if (!goto) return;
 
   const form = goto.closest('form');
@@ -37,7 +37,7 @@ export function initCommonIssueListQuickGoto() {
 
   form.addEventListener('submit', (e) => {
     // if there is no goto button, or the form is submitted by non-quick-goto elements, submit the form directly
-    let doQuickGoto = !isElemHidden(goto);
+    let doQuickGoto = isElemVisible(goto);
     const submitter = submitEventSubmitter(e);
     if (submitter !== form && submitter !== input && submitter !== goto) doQuickGoto = false;
     if (!doQuickGoto) return;

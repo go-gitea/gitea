@@ -91,6 +91,7 @@ module.exports = {
       plugins: ['@vitest/eslint-plugin'],
       globals: vitestPlugin.environments.env.globals,
       rules: {
+        'github/unescaped-html-literal': [0],
         '@vitest/consistent-test-filename': [0],
         '@vitest/consistent-test-it': [0],
         '@vitest/expect-expect': [0],
@@ -325,6 +326,7 @@ module.exports = {
     '@typescript-eslint/no-unnecessary-type-arguments': [0],
     '@typescript-eslint/no-unnecessary-type-assertion': [2],
     '@typescript-eslint/no-unnecessary-type-constraint': [2],
+    '@typescript-eslint/no-unnecessary-type-conversion': [2],
     '@typescript-eslint/no-unsafe-argument': [0],
     '@typescript-eslint/no-unsafe-assignment': [0],
     '@typescript-eslint/no-unsafe-call': [0],
@@ -423,7 +425,7 @@ module.exports = {
     'github/no-useless-passive': [2],
     'github/prefer-observers': [2],
     'github/require-passive-events': [2],
-    'github/unescaped-html-literal': [0],
+    'github/unescaped-html-literal': [2],
     'grouped-accessor-pairs': [2],
     'guard-for-in': [0],
     'id-blacklist': [0],
@@ -644,7 +646,7 @@ module.exports = {
     'no-multi-str': [2],
     'no-negated-condition': [0],
     'no-nested-ternary': [0],
-    'no-new-func': [2],
+    'no-new-func': [0], // handled by @typescript-eslint/no-implied-eval
     'no-new-native-nonconstructor': [2],
     'no-new-object': [2],
     'no-new-symbol': [2],

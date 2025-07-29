@@ -209,24 +209,20 @@ func NewLabel(ctx context.Context, l *Label) error {
 
 // NewLabels creates new labels
 func NewLabels(ctx context.Context, labels ...*Label) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, l := range labels {
+			color, err := label.NormalizeColor(l.Color)
+			if err != nil {
+				return err
+			}
+			l.Color = color
 
-	for _, l := range labels {
-		color, err := label.NormalizeColor(l.Color)
-		if err != nil {
-			return err
+			if err := db.Insert(ctx, l); err != nil {
+				return err
+			}
 		}
-		l.Color = color
-
-		if err := db.Insert(ctx, l); err != nil {
-			return err
-		}
-	}
-	return committer.Commit()
+		return nil
+	})
 }
 
 // UpdateLabel updates label information.
@@ -250,35 +246,26 @@ func DeleteLabel(ctx context.Context, id, labelID int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if l.BelongsToOrg() && l.OrgID != id {
+			return nil
+		}
+		if l.BelongsToRepo() && l.RepoID != id {
+			return nil
+		}
+
+		if _, err = db.DeleteByID[Label](ctx, labelID); err != nil {
+			return err
+		} else if _, err = db.GetEngine(ctx).
+			Where("label_id = ?", labelID).
+			Delete(new(IssueLabel)); err != nil {
+			return err
+		}
+
+		// delete comments about now deleted label_id
+		_, err = db.GetEngine(ctx).Where("label_id = ?", labelID).Cols("label_id").Delete(&Comment{})
 		return err
-	}
-	defer committer.Close()
-
-	sess := db.GetEngine(ctx)
-
-	if l.BelongsToOrg() && l.OrgID != id {
-		return nil
-	}
-	if l.BelongsToRepo() && l.RepoID != id {
-		return nil
-	}
-
-	if _, err = db.DeleteByID[Label](ctx, labelID); err != nil {
-		return err
-	} else if _, err = sess.
-		Where("label_id = ?", labelID).
-		Delete(new(IssueLabel)); err != nil {
-		return err
-	}
-
-	// delete comments about now deleted label_id
-	if _, err = sess.Where("label_id = ?", labelID).Cols("label_id").Delete(&Comment{}); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	})
 }
 
 // GetLabelByID returns a label by given ID.

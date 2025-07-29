@@ -64,27 +64,23 @@
 				</tr>
 			</thead>
 			<tbody>
-				{{if .Runners}}
-					{{range .Runners}}
+				{{range .Runners}}
 					<tr>
-						<td>
-							<span class="ui {{if .IsOnline}}green{{end}} label">{{.StatusLocaleName ctx.Locale}}</span>
-						</td>
+						<td><span class="ui label {{if .IsOnline}}green{{end}}">{{.StatusLocaleName ctx.Locale}}</span></td>
 						<td>{{.ID}}</td>
 						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
 						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
 						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString ctx.Locale}}</span></td>
-						<td class="tw-flex tw-flex-wrap tw-gap-2 runner-tags">
-							{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}
+						<td>
+							<span class="flex-text-inline">{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}</span>
 						</td>
 						<td>{{if .LastOnline}}{{DateUtils.TimeSince .LastOnline}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
-						<td class="runner-ops">
-							{{if .Editable $.RunnerOwnerID $.RunnerRepoID}}
-							<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
+						<td>
+							{{if .EditableInContext $.RunnerOwnerID $.RunnerRepoID}}
+								<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
 							{{end}}
 						</td>
 					</tr>
-					{{end}}
 				{{else}}
 					<tr>
 						<td class="tw-text-center" colspan="8">{{ctx.Locale.Tr "actions.runners.none"}}</td>
