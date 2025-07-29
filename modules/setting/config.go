@@ -49,7 +49,7 @@ func DefaultOpenWithEditorApps() OpenWithEditorAppsType {
 
 type RepositoryStruct struct {
 	OpenWithEditorApps *config.Value[OpenWithEditorAppsType]
-	SnippetRemoteName *config.Value[string]
+	SnippetRemoteName  *config.Value[string]
 }
 
 type ConfigStruct struct {
@@ -71,7 +71,7 @@ func initDefaultConfig() {
 		},
 		Repository: &RepositoryStruct{
 			OpenWithEditorApps: config.ValueJSON[OpenWithEditorAppsType]("repository.open-with.editor-apps"),
-			SnippetRemoteName: config.ValueJSON[string]("repository.snippet-remote-name").WithDefault("origin"),
+			SnippetRemoteName:  config.ValueJSON[string]("repository.snippet-remote-name").WithDefault("origin"),
 		},
 	}
 }
