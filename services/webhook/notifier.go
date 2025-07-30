@@ -657,39 +657,39 @@ func (m *webhookNotifier) applyWebhookPayloadOptimizations(ctx context.Context, 
 	}
 
 	// Check if any webhook has payload optimization options enabled
-	hasFilesLimit := -1
-	hasCommitsLimit := -1
+	hasFilesLimit := 0
+	hasCommitsLimit := 0
 	for _, webhook := range webhooks {
 		if webhook.HasEvent(webhook_module.HookEventPush) {
-			if webhook.ExcludeFilesLimit >= 0 && (hasFilesLimit == -1 || webhook.ExcludeFilesLimit < hasFilesLimit) {
+			if webhook.ExcludeFilesLimit != 0 && (hasFilesLimit == 0 || webhook.ExcludeFilesLimit < hasFilesLimit) {
 				hasFilesLimit = webhook.ExcludeFilesLimit
 			}
-			if webhook.ExcludeCommitsLimit >= 0 && (hasCommitsLimit == -1 || webhook.ExcludeCommitsLimit < hasCommitsLimit) {
+			if webhook.ExcludeCommitsLimit != 0 && (hasCommitsLimit == 0 || webhook.ExcludeCommitsLimit < hasCommitsLimit) {
 				hasCommitsLimit = webhook.ExcludeCommitsLimit
 			}
 		}
 	}
 
 	// Apply payload optimizations based on webhook configurations
-	// -1 not trim, 0 trim all (none kept), >0 trim to N commits
-	if hasFilesLimit != -1 {
+	// -1 trim all (none kept), 0 do not trim, >0 trim to N commits
+	if hasFilesLimit != 0 {
 		for _, commit := range apiCommits {
 			if commit.Added != nil {
-				if hasFilesLimit == 0 {
+				if hasFilesLimit == -1 {
 					commit.Added = nil
 				} else if hasFilesLimit > 0 && len(commit.Added) > hasFilesLimit {
 					commit.Added = commit.Added[:hasFilesLimit]
 				}
 			}
 			if commit.Removed != nil {
-				if hasFilesLimit == 0 {
+				if hasFilesLimit == -1 {
 					commit.Removed = nil
 				} else if hasFilesLimit > 0 && len(commit.Removed) > hasFilesLimit {
 					commit.Removed = commit.Removed[:hasFilesLimit]
 				}
 			}
 			if commit.Modified != nil {
-				if hasFilesLimit == 0 {
+				if hasFilesLimit == -1 {
 					commit.Modified = nil
 				} else if hasFilesLimit > 0 && len(commit.Modified) > hasFilesLimit {
 					commit.Modified = commit.Modified[:hasFilesLimit]
@@ -698,21 +698,21 @@ func (m *webhookNotifier) applyWebhookPayloadOptimizations(ctx context.Context, 
 		}
 		if apiHeadCommit != nil {
 			if apiHeadCommit.Added != nil {
-				if hasFilesLimit == 0 {
+				if hasFilesLimit == -1 {
 					apiHeadCommit.Added = nil
 				} else if hasFilesLimit > 0 && len(apiHeadCommit.Added) > hasFilesLimit {
 					apiHeadCommit.Added = apiHeadCommit.Added[:hasFilesLimit]
 				}
 			}
 			if apiHeadCommit.Removed != nil {
-				if hasFilesLimit == 0 {
+				if hasFilesLimit == -1 {
 					apiHeadCommit.Removed = nil
 				} else if hasFilesLimit > 0 && len(apiHeadCommit.Removed) > hasFilesLimit {
 					apiHeadCommit.Removed = apiHeadCommit.Removed[:hasFilesLimit]
 				}
 			}
 			if apiHeadCommit.Modified != nil {
-				if hasFilesLimit == 0 {
+				if hasFilesLimit == -1 {
 					apiHeadCommit.Modified = nil
 				} else if hasFilesLimit > 0 && len(apiHeadCommit.Modified) > hasFilesLimit {
 					apiHeadCommit.Modified = apiHeadCommit.Modified[:hasFilesLimit]
@@ -721,8 +721,8 @@ func (m *webhookNotifier) applyWebhookPayloadOptimizations(ctx context.Context, 
 		}
 	}
 
-	if hasCommitsLimit != -1 {
-		if hasCommitsLimit == 0 {
+	if hasCommitsLimit != 0 {
+		if hasCommitsLimit == -1 {
 			apiCommits = nil
 		} else if hasCommitsLimit > 0 && len(apiCommits) > hasCommitsLimit {
 			apiCommits = apiCommits[:hasCommitsLimit]

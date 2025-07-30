@@ -108,7 +108,7 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	// Case: -1 (no trimming)
+	// Case: 0 (no trimming)
 	webhook := &webhook_model.Webhook{
 		RepoID:              repo.ID,
 		URL:                 "http://example.com/webhook",
@@ -117,8 +117,8 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 		Secret:              "secret",
 		IsActive:            true,
 		Type:                webhook_module.GITEA,
-		ExcludeFilesLimit:   -1,
-		ExcludeCommitsLimit: -1,
+		ExcludeFilesLimit:   0,
+		ExcludeCommitsLimit: 0,
 		HookEvent: &webhook_module.HookEvent{
 			PushOnly: true,
 		},
@@ -168,9 +168,9 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 		assert.Equal(t, []string{"file1.txt"}, optimizedHeadCommit.Modified)
 	}
 
-	// Case: 0 (keep nothing)
-	webhook.ExcludeFilesLimit = 0
-	webhook.ExcludeCommitsLimit = 0
+	// Case: -1 (trim all)
+	webhook.ExcludeFilesLimit = -1
+	webhook.ExcludeCommitsLimit = -1
 	err = webhook_model.UpdateWebhook(db.DefaultContext, webhook)
 	assert.NoError(t, err)
 	apiCommits = []*api.PayloadCommit{
