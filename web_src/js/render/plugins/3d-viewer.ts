@@ -3,7 +3,6 @@ import {extname} from '../../utils.ts';
 
 // support common 3D model file formats, use online-3d-viewer library for rendering
 
-// eslint-disable-next-line multiline-comment-style
 /* a simple text STL file example:
 solid SimpleTriangle
   facet normal 0 0 1
