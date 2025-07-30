@@ -748,6 +748,22 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 	if !willShowSpecifiedCommit {
 		diffOptions.BeforeCommitID = startCommitID
+	} else {
+		endCommit, err := gitRepo.GetCommit(endCommitID)
+		if err != nil {
+			ctx.ServerError("GetCommit", err)
+			return
+		}
+
+		if endCommit.ParentCount() > 0 {
+			endCommitParent, err := endCommit.Parent(0)
+			if err != nil {
+				ctx.ServerError("Parent", err)
+				return
+			}
+
+			startCommitID = endCommitParent.ID.String()
+		}
 	}
 
 	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, diffOptions, files...)
