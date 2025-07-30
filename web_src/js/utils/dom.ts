@@ -107,8 +107,7 @@ export function isDocumentFragmentOrElementNode(el: Node) {
 }
 
 /** autosize a textarea to fit content. */
-// Based on
-// https://github.com/github/textarea-autosize
+// Based on https://github.com/github/textarea-autosize
 // ---------------------------------------------------------------------
 // Copyright (c) 2018 GitHub, Inc.
 //
