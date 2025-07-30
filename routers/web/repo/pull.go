@@ -747,7 +747,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	}
 
 	if willShowSpecifiedCommit {
-		// Attempt to extract parent commit when viewing diff of a specific commit
+		// Attempt to extract parent of endCommit commit when viewing diff of a specific commit
 		// instead of showing the entire diff-tree from the merge base.
 		// This is mostly for the GetDiffTree() call
 		endCommit, err := gitRepo.GetCommit(endCommitID)
