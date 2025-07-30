@@ -417,6 +417,8 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		Config:              config,
 		Events:              w.EventsArray(),
 		AuthorizationHeader: authorizationHeader,
+		ExcludeFilesLimit:   w.ExcludeFilesLimit,
+		ExcludeCommitsLimit: w.ExcludeCommitsLimit,
 		Updated:             w.UpdatedUnix.AsTime(),
 		Created:             w.CreatedUnix.AsTime(),
 		BranchFilter:        w.BranchFilter,

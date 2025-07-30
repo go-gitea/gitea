@@ -1222,3 +1222,59 @@ jobs:
 		assert.Equal(t, "user2/repo1", webhookData.payloads[i].Repo.FullName)
 	}
 }
+
+func Test_WebhookPayloadOptimizationAPI(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user2")
+
+		// Test creating webhook with payload optimization options via API
+		createHookOption := map[string]any{
+			"type": "gitea",
+			"config": map[string]string{
+				"url":          "http://example.com/webhook",
+				"content_type": "json",
+			},
+			"events":                []string{"push"},
+			"exclude_files_limit":   5,
+			"exclude_commits_limit": 10,
+			"active":                true,
+		}
+
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/hooks", createHookOption)
+		resp := session.MakeRequest(t, req, http.StatusCreated)
+
+		var hook api.Hook
+		DecodeJSON(t, resp, &hook)
+
+		// Verify the webhook was created with correct payload optimization settings
+		assert.Equal(t, 5, hook.ExcludeFilesLimit)
+		assert.Equal(t, 10, hook.ExcludeCommitsLimit)
+
+		// Test updating webhook with different payload optimization options
+		editHookOption := map[string]any{
+			"exclude_files_limit":   -1,
+			"exclude_commits_limit": 0,
+		}
+
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/user2/repo1/hooks/%d", hook.ID), editHookOption)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+
+		var updatedHook api.Hook
+		DecodeJSON(t, resp, &updatedHook)
+
+		// Verify the webhook was updated with correct payload optimization settings
+		assert.Equal(t, -1, updatedHook.ExcludeFilesLimit)
+		assert.Equal(t, 0, updatedHook.ExcludeCommitsLimit)
+
+		// Test getting webhook to verify the settings are persisted
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/hooks/%d", hook.ID))
+		resp = session.MakeRequest(t, req, http.StatusOK)
+
+		var retrievedHook api.Hook
+		DecodeJSON(t, resp, &retrievedHook)
+
+		// Verify the webhook settings are correctly retrieved
+		assert.Equal(t, -1, retrievedHook.ExcludeFilesLimit)
+		assert.Equal(t, 0, retrievedHook.ExcludeCommitsLimit)
+	})
+}

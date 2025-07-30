@@ -224,8 +224,10 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 			HookEvents:   updateHookEvents(form.Events),
 			BranchFilter: form.BranchFilter,
 		},
-		IsActive: form.Active,
-		Type:     form.Type,
+		IsActive:            form.Active,
+		Type:                form.Type,
+		ExcludeFilesLimit:   form.ExcludeFilesLimit,
+		ExcludeCommitsLimit: form.ExcludeCommitsLimit,
 	}
 	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
 	if err != nil {
@@ -389,6 +391,14 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 
 	if form.Active != nil {
 		w.IsActive = *form.Active
+	}
+
+	if form.ExcludeFilesLimit != nil {
+		w.ExcludeFilesLimit = *form.ExcludeFilesLimit
+	}
+
+	if form.ExcludeCommitsLimit != nil {
+		w.ExcludeCommitsLimit = *form.ExcludeCommitsLimit
 	}
 
 	if err := webhook.UpdateWebhook(ctx, w); err != nil {
