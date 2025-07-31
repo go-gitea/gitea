@@ -125,9 +125,9 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	t.Run("NonExistingSubmoduleAsNil", func(t *testing.T) {
 		commit, err := bareRepo1.GetCommit("HEAD")
 		require.NoError(t, err)
-		tree, err := commit.GetTreeEntryByPath("file1.txt")
+		treeEntry, err := commit.GetTreeEntryByPath("file1.txt")
 		require.NoError(t, err)
-		cisf, err := getCommitInfoSubmoduleFile("/any/repo-link", tree, commit, "")
+		cisf, err := GetCommitInfoSubmoduleFile("/any/repo-link", "file1.txt", commit, treeEntry.ID)
 		require.NoError(t, err)
 		assert.Equal(t, &CommitSubmoduleFile{
 			repoLink: "/any/repo-link",
