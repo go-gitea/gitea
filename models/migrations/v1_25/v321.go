@@ -4,79 +4,49 @@
 package v1_25
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
-// NotificationV321 represents a notification
-type NotificationV321 struct {
-	ID     int64 `xorm:"pk autoincr"`
-	UserID int64 `xorm:"NOT NULL"`
-	RepoID int64 `xorm:"NOT NULL"`
+func UseLongTextInSomeColumnsAndFixBugs(x *xorm.Engine) error {
+	if !setting.Database.Type.IsMySQL() {
+		return nil // Only mysql need to change from text to long text, for other databases, they are the same
+	}
 
-	Status uint8 `xorm:"SMALLINT NOT NULL"`
-	Source uint8 `xorm:"SMALLINT NOT NULL"`
+	if err := base.ModifyColumn(x, "review_state", &schemas.Column{
+		Name: "updated_files",
+		SQLType: schemas.SQLType{
+			Name: "LONGTEXT",
+		},
+		Length:         0,
+		Nullable:       false,
+		DefaultIsEmpty: true,
+	}); err != nil {
+		return err
+	}
 
-	IssueID   int64 `xorm:"NOT NULL"`
-	CommitID  string
-	CommentID int64
-	ReleaseID int64
+	if err := base.ModifyColumn(x, "package_property", &schemas.Column{
+		Name: "value",
+		SQLType: schemas.SQLType{
+			Name: "LONGTEXT",
+		},
+		Length:         0,
+		Nullable:       false,
+		DefaultIsEmpty: true,
+	}); err != nil {
+		return err
+	}
 
-	UpdatedBy int64 `xorm:"NOT NULL"`
-
-	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
-}
-
-func (n *NotificationV321) TableName() string {
-	return "notification"
-}
-
-// TableIndices implements xorm's TableIndices interface
-func (n *NotificationV321) TableIndices() []*schemas.Index {
-	indices := make([]*schemas.Index, 0, 8)
-	usuuIndex := schemas.NewIndex("u_s_uu", schemas.IndexType)
-	usuuIndex.AddColumn("user_id", "status", "updated_unix")
-	indices = append(indices, usuuIndex)
-
-	// Add the individual indices that were previously defined in struct tags
-	userIDIndex := schemas.NewIndex("idx_notification_user_id", schemas.IndexType)
-	userIDIndex.AddColumn("user_id")
-	indices = append(indices, userIDIndex)
-
-	repoIDIndex := schemas.NewIndex("idx_notification_repo_id", schemas.IndexType)
-	repoIDIndex.AddColumn("repo_id")
-	indices = append(indices, repoIDIndex)
-
-	statusIndex := schemas.NewIndex("idx_notification_status", schemas.IndexType)
-	statusIndex.AddColumn("status")
-	indices = append(indices, statusIndex)
-
-	sourceIndex := schemas.NewIndex("idx_notification_source", schemas.IndexType)
-	sourceIndex.AddColumn("source")
-	indices = append(indices, sourceIndex)
-
-	issueIDIndex := schemas.NewIndex("idx_notification_issue_id", schemas.IndexType)
-	issueIDIndex.AddColumn("issue_id")
-	indices = append(indices, issueIDIndex)
-
-	commitIDIndex := schemas.NewIndex("idx_notification_commit_id", schemas.IndexType)
-	commitIDIndex.AddColumn("commit_id")
-	indices = append(indices, commitIDIndex)
-
-	releaseIDIndex := schemas.NewIndex("idx_notification_release_id", schemas.IndexType)
-	releaseIDIndex.AddColumn("release_id")
-	indices = append(indices, releaseIDIndex)
-
-	updatedByIndex := schemas.NewIndex("idx_notification_updated_by", schemas.IndexType)
-	updatedByIndex.AddColumn("updated_by")
-	indices = append(indices, updatedByIndex)
-
-	return indices
-}
-
-func AddReleaseNotification(x *xorm.Engine) error {
-	return x.Sync(new(NotificationV321))
+	return base.ModifyColumn(x, "notice", &schemas.Column{
+		Name: "description",
+		SQLType: schemas.SQLType{
+			Name: "LONGTEXT",
+		},
+		Length:         0,
+		Nullable:       false,
+		DefaultIsEmpty: true,
+	})
 }

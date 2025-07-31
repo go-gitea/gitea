@@ -3,8 +3,6 @@
 
 package git
 
-import "path"
-
 // CommitInfo describes the first commit with the provided entry
 type CommitInfo struct {
 	Entry         *TreeEntry
@@ -12,15 +10,14 @@ type CommitInfo struct {
 	SubmoduleFile *CommitSubmoduleFile
 }
 
-func getCommitInfoSubmoduleFile(repoLink string, entry *TreeEntry, commit *Commit, treePathDir string) (*CommitSubmoduleFile, error) {
-	fullPath := path.Join(treePathDir, entry.Name())
+func GetCommitInfoSubmoduleFile(repoLink, fullPath string, commit *Commit, refCommitID ObjectID) (*CommitSubmoduleFile, error) {
 	submodule, err := commit.GetSubModule(fullPath)
 	if err != nil {
 		return nil, err
 	}
 	if submodule == nil {
 		// unable to find submodule from ".gitmodules" file
-		return NewCommitSubmoduleFile(repoLink, fullPath, "", entry.ID.String()), nil
+		return NewCommitSubmoduleFile(repoLink, fullPath, "", refCommitID.String()), nil
 	}
-	return NewCommitSubmoduleFile(repoLink, fullPath, submodule.URL, entry.ID.String()), nil
+	return NewCommitSubmoduleFile(repoLink, fullPath, submodule.URL, refCommitID.String()), nil
 }
