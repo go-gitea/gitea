@@ -7,7 +7,6 @@
 package git
 
 import (
-	"bufio"
 	"context"
 	"path/filepath"
 
@@ -26,10 +25,7 @@ type Repository struct {
 	gpgSettings *GPGSettings
 
 	batchInUse bool
-	batch      *Batch
-
-	checkInUse bool
-	check      *Batch
+	batch      Batch
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
@@ -64,18 +60,18 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 }
 
 // CatFileBatch obtains a CatFileBatch for this repository
-func (repo *Repository) CatFileBatch(ctx context.Context) (WriteCloserError, *bufio.Reader, func(), error) {
+func (repo *Repository) CatFileBatch(ctx context.Context) (Batch, func(), error) {
 	if repo.batch == nil {
 		var err error
 		repo.batch, err = NewBatch(ctx, repo.Path)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 	}
 
 	if !repo.batchInUse {
 		repo.batchInUse = true
-		return repo.batch.Writer, repo.batch.Reader, func() {
+		return repo.batch, func() {
 			repo.batchInUse = false
 		}, nil
 	}
@@ -83,34 +79,9 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (WriteCloserError, *bu
 	log.Debug("Opening temporary cat file batch for: %s", repo.Path)
 	tempBatch, err := NewBatch(ctx, repo.Path)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
-	return tempBatch.Writer, tempBatch.Reader, tempBatch.Close, nil
-}
-
-// CatFileBatchCheck obtains a CatFileBatchCheck for this repository
-func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError, *bufio.Reader, func(), error) {
-	if repo.check == nil {
-		var err error
-		repo.check, err = NewBatchCheck(ctx, repo.Path)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-	}
-
-	if !repo.checkInUse {
-		repo.checkInUse = true
-		return repo.check.Writer, repo.check.Reader, func() {
-			repo.checkInUse = false
-		}, nil
-	}
-
-	log.Debug("Opening temporary cat file batch-check for: %s", repo.Path)
-	tempBatchCheck, err := NewBatchCheck(ctx, repo.Path)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return tempBatchCheck.Writer, tempBatchCheck.Reader, tempBatchCheck.Close, nil
+	return tempBatch, tempBatch.Close, nil
 }
 
 func (repo *Repository) Close() error {
@@ -122,11 +93,7 @@ func (repo *Repository) Close() error {
 		repo.batch = nil
 		repo.batchInUse = false
 	}
-	if repo.check != nil {
-		repo.check.Close()
-		repo.check = nil
-		repo.checkInUse = false
-	}
+
 	repo.LastCommitCache = nil
 	repo.tagCache = nil
 	return nil
