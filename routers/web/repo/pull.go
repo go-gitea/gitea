@@ -581,7 +581,7 @@ func GetPullCommits(ctx *context.Context) {
 	}
 	resp := &pullCommitList{}
 
-	commits, lastReviewCommitSha, err := pull_service.GetPullCommits(ctx, issue)
+	commits, lastReviewCommitSha, err := pull_service.GetPullCommits(ctx, ctx.Repo.GitRepo, ctx.Doer, issue)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
