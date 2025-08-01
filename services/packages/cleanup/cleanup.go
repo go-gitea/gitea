@@ -164,42 +164,38 @@ func ExecuteCleanupRules(ctx context.Context) error {
 	})
 }
 
-func CleanupExpiredData(outerCtx context.Context, olderThan time.Duration) error {
-	ctx, committer, err := db.TxContext(outerCtx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := container_service.Cleanup(ctx, olderThan); err != nil {
-		return err
-	}
-
-	ps, err := packages_model.FindUnreferencedPackages(ctx)
-	if err != nil {
-		return err
-	}
-	for _, p := range ps {
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypePackage, p.ID); err != nil {
+func CleanupExpiredData(ctx context.Context, olderThan time.Duration) error {
+	pbs := make([]*packages_model.PackageBlob, 0, 100)
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := container_service.Cleanup(ctx, olderThan); err != nil {
 			return err
 		}
-		if err := packages_model.DeletePackageByID(ctx, p.ID); err != nil {
+
+		ps, err := packages_model.FindUnreferencedPackages(ctx)
+		if err != nil {
 			return err
 		}
-	}
+		for _, p := range ps {
+			if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypePackage, p.ID); err != nil {
+				return err
+			}
+			if err := packages_model.DeletePackageByID(ctx, p.ID); err != nil {
+				return err
+			}
+		}
 
-	pbs, err := packages_model.FindExpiredUnreferencedBlobs(ctx, olderThan)
-	if err != nil {
-		return err
-	}
-
-	for _, pb := range pbs {
-		if err := packages_model.DeleteBlobByID(ctx, pb.ID); err != nil {
+		pbs, err = packages_model.FindExpiredUnreferencedBlobs(ctx, olderThan)
+		if err != nil {
 			return err
 		}
-	}
 
-	if err := committer.Commit(); err != nil {
+		for _, pb := range pbs {
+			if err := packages_model.DeleteBlobByID(ctx, pb.ID); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
 		return err
 	}
 

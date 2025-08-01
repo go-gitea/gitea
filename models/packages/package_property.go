@@ -32,7 +32,7 @@ type PackageProperty struct {
 	RefType PropertyType `xorm:"INDEX NOT NULL"`
 	RefID   int64        `xorm:"INDEX NOT NULL"`
 	Name    string       `xorm:"INDEX NOT NULL"`
-	Value   string       `xorm:"TEXT NOT NULL"`
+	Value   string       `xorm:"LONGTEXT NOT NULL"`
 }
 
 // InsertProperty creates a property

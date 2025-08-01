@@ -1,4 +1,4 @@
-import {htmlEscape} from 'escape-goat';
+import {htmlEscape} from '../utils/html.ts';
 import {svg} from '../svg.ts';
 import {animateOnce, queryElems, showElem} from '../utils/dom.ts';
 import Toastify from 'toastify-js'; // don't use "async import", because when network error occurs, the "async import" also fails and nothing is shown
@@ -42,9 +42,9 @@ type ToastOpts = {
 
 type ToastifyElement = HTMLElement & {_giteaToastifyInstance?: Toast };
 
-// See https://github.com/apvarun/toastify-js#api for options
+/** See https://github.com/apvarun/toastify-js#api for options */
 function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast {
-  const body = useHtmlBody ? String(message) : htmlEscape(message);
+  const body = useHtmlBody ? message : htmlEscape(message);
   const parent = document.querySelector('.ui.dimmer.active') ?? document.body;
   const duplicateKey = preventDuplicates ? (preventDuplicates === true ? `${level}-${body}` : preventDuplicates) : '';
 

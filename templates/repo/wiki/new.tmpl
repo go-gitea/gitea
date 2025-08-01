@@ -18,7 +18,7 @@
 				{{ctx.Locale.Tr "repo.wiki.page_name_desc"}}
 			</div>
 
-			{{$content := .content}}
+			{{$content := .WikiEditContent}}
 			{{if not .PageIsWikiEdit}}
 				{{$content = ctx.Locale.Tr "repo.wiki.welcome"}}
 			{{end}}

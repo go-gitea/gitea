@@ -251,7 +251,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		RepoTransfer:                  transfer,
 		Topics:                        util.SliceNilAsEmpty(repo.Topics),
 		ObjectFormatName:              repo.ObjectFormatName,
-		Licenses:                      repoLicenses.StringList(),
+		Licenses:                      util.SliceNilAsEmpty(repoLicenses.StringList()),
 	}
 }
 

@@ -71,7 +71,8 @@ type PayloadUser struct {
 	// Full name of the commit author
 	Name string `json:"name"`
 	// swagger:strfmt email
-	Email    string `json:"email"`
+	Email string `json:"email"`
+	// username of the user
 	UserName string `json:"username"`
 }
 
@@ -286,6 +287,8 @@ const (
 	HookIssueReOpened HookIssueAction = "reopened"
 	// HookIssueEdited edited
 	HookIssueEdited HookIssueAction = "edited"
+	// HookIssueDeleted is an issue action for deleting an issue
+	HookIssueDeleted HookIssueAction = "deleted"
 	// HookIssueAssigned assigned
 	HookIssueAssigned HookIssueAction = "assigned"
 	// HookIssueUnassigned unassigned

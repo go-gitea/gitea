@@ -6,13 +6,14 @@ package console
 import (
 	"bytes"
 	"io"
-	"path"
+	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 
 	trend "github.com/buildkite/terminal-to-html/v3"
-	"github.com/go-enry/go-enry/v2"
 )
 
 func init() {
@@ -21,6 +22,8 @@ func init() {
 
 // Renderer implements markup.Renderer
 type Renderer struct{}
+
+var _ markup.RendererContentDetector = (*Renderer)(nil)
 
 // Name implements markup.Renderer
 func (Renderer) Name() string {
@@ -40,15 +43,36 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 }
 
 // CanRender implements markup.RendererContentDetector
-func (Renderer) CanRender(filename string, input io.Reader) bool {
-	buf, err := io.ReadAll(input)
-	if err != nil {
+func (Renderer) CanRender(filename string, sniffedType typesniffer.SniffedType, prefetchBuf []byte) bool {
+	if !sniffedType.IsTextPlain() {
 		return false
 	}
-	if enry.GetLanguage(path.Base(filename), buf) != enry.OtherLanguage {
+
+	s := util.UnsafeBytesToString(prefetchBuf)
+	rs := []rune(s)
+	cnt := 0
+	firstErrPos := -1
+	isCtrlSep := func(p int) bool {
+		return p < len(rs) && (rs[p] == ';' || rs[p] == 'm')
+	}
+	for i, c := range rs {
+		if c == 0 {
+			return false
+		}
+		if c == '\x1b' {
+			match := i+1 < len(rs) && rs[i+1] == '['
+			if match && (isCtrlSep(i+2) || isCtrlSep(i+3) || isCtrlSep(i+4) || isCtrlSep(i+5)) {
+				cnt++
+			}
+		}
+		if c == utf8.RuneError && firstErrPos == -1 {
+			firstErrPos = i
+		}
+	}
+	if firstErrPos != -1 && firstErrPos != len(rs)-1 {
 		return false
 	}
-	return bytes.ContainsRune(buf, '\x1b')
+	return cnt >= 2 // only render it as console output if there are at least two escape sequences
 }
 
 // Render renders terminal colors to HTML with all specific handling stuff.

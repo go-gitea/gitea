@@ -17,6 +17,10 @@ import (
 // OpenIDProvider is a GothProvider for OpenID
 type OpenIDProvider struct{}
 
+func (o *OpenIDProvider) SupportSSHPublicKey() bool {
+	return true
+}
+
 // Name provides the technical name for this provider
 func (o *OpenIDProvider) Name() string {
 	return "openidConnect"

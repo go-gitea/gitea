@@ -249,7 +249,7 @@ func ViewPost(ctx *context_module.Context) {
 			ID:       v.ID,
 			Name:     v.Name,
 			Status:   v.Status.String(),
-			CanRerun: v.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions),
+			CanRerun: resp.State.Run.CanRerun,
 			Duration: v.Duration().String(),
 		})
 	}
@@ -445,7 +445,7 @@ func Rerun(ctx *context_module.Context) {
 				return
 			}
 		}
-		ctx.JSON(http.StatusOK, struct{}{})
+		ctx.JSONOK()
 		return
 	}
 
@@ -460,12 +460,12 @@ func Rerun(ctx *context_module.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, struct{}{})
+	ctx.JSONOK()
 }
 
 func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shouldBlock bool) error {
 	status := job.Status
-	if !status.IsDone() {
+	if !status.IsDone() || !job.Run.Status.IsDone() {
 		return nil
 	}
 

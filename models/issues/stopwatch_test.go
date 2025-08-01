@@ -10,7 +10,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -18,26 +17,22 @@ import (
 func TestCancelStopwatch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1, err := user_model.GetUserByID(db.DefaultContext, 1)
-	assert.NoError(t, err)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 
-	issue1, err := issues_model.GetIssueByID(db.DefaultContext, 1)
+	ok, err := issues_model.CancelStopwatch(db.DefaultContext, user1, issue1)
 	assert.NoError(t, err)
-	issue2, err := issues_model.GetIssueByID(db.DefaultContext, 2)
-	assert.NoError(t, err)
-
-	err = issues_model.CancelStopwatch(db.DefaultContext, user1, issue1)
-	assert.NoError(t, err)
+	assert.True(t, ok)
 	unittest.AssertNotExistsBean(t, &issues_model.Stopwatch{UserID: user1.ID, IssueID: issue1.ID})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{Type: issues_model.CommentTypeCancelTracking, PosterID: user1.ID, IssueID: issue1.ID})
 
-	_ = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{Type: issues_model.CommentTypeCancelTracking, PosterID: user1.ID, IssueID: issue1.ID})
-
-	assert.NoError(t, issues_model.CancelStopwatch(db.DefaultContext, user1, issue2))
+	ok, err = issues_model.CancelStopwatch(db.DefaultContext, user1, issue1)
+	assert.NoError(t, err)
+	assert.False(t, ok)
 }
 
 func TestStopwatchExists(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-
 	assert.True(t, issues_model.StopwatchExists(db.DefaultContext, 1, 1))
 	assert.False(t, issues_model.StopwatchExists(db.DefaultContext, 1, 2))
 }
@@ -58,21 +53,35 @@ func TestHasUserStopwatch(t *testing.T) {
 func TestCreateOrStopIssueStopwatch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user2, err := user_model.GetUserByID(db.DefaultContext, 2)
-	assert.NoError(t, err)
-	org3, err := user_model.GetUserByID(db.DefaultContext, 3)
-	assert.NoError(t, err)
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	issue3 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
 
-	issue1, err := issues_model.GetIssueByID(db.DefaultContext, 1)
+	// create a new stopwatch
+	ok, err := issues_model.CreateIssueStopwatch(db.DefaultContext, user4, issue1)
 	assert.NoError(t, err)
-	issue2, err := issues_model.GetIssueByID(db.DefaultContext, 2)
+	assert.True(t, ok)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: user4.ID, IssueID: issue1.ID})
+	// should not create a second stopwatch for the same issue
+	ok, err = issues_model.CreateIssueStopwatch(db.DefaultContext, user4, issue1)
 	assert.NoError(t, err)
+	assert.False(t, ok)
+	// on a different issue, it will finish the existing stopwatch and create a new one
+	ok, err = issues_model.CreateIssueStopwatch(db.DefaultContext, user4, issue3)
+	assert.NoError(t, err)
+	assert.True(t, ok)
+	unittest.AssertNotExistsBean(t, &issues_model.Stopwatch{UserID: user4.ID, IssueID: issue1.ID})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: user4.ID, IssueID: issue3.ID})
 
-	assert.NoError(t, issues_model.CreateOrStopIssueStopwatch(db.DefaultContext, org3, issue1))
-	sw := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: 3, IssueID: 1})
-	assert.LessOrEqual(t, sw.CreatedUnix, timeutil.TimeStampNow())
-
-	assert.NoError(t, issues_model.CreateOrStopIssueStopwatch(db.DefaultContext, user2, issue2))
-	unittest.AssertNotExistsBean(t, &issues_model.Stopwatch{UserID: 2, IssueID: 2})
-	unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{UserID: 2, IssueID: 2})
+	// user2 already has a stopwatch in test fixture
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	ok, err = issues_model.FinishIssueStopwatch(db.DefaultContext, user2, issue2)
+	assert.NoError(t, err)
+	assert.True(t, ok)
+	unittest.AssertNotExistsBean(t, &issues_model.Stopwatch{UserID: user2.ID, IssueID: issue2.ID})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{UserID: user2.ID, IssueID: issue2.ID})
+	ok, err = issues_model.FinishIssueStopwatch(db.DefaultContext, user2, issue2)
+	assert.NoError(t, err)
+	assert.False(t, ok)
 }
