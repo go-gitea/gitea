@@ -88,7 +88,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	}
 
 	var orgsAvailable []*organization.Organization
-	for i := 0; i < len(orgs); i++ {
+	for i := range orgs {
 		if ctx.Doer.CanCreateRepoIn(orgs[i].AsUser()) {
 			orgsAvailable = append(orgsAvailable, orgs[i])
 		}
@@ -398,7 +398,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 	rPath := archiver.RelativePath()
 	if setting.RepoArchive.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.RepoArchives.URL(rPath, downloadName, nil)
+		u, err := storage.RepoArchives.URL(rPath, downloadName, ctx.Req.Method, nil)
 		if u != nil && err == nil {
 			ctx.Redirect(u.String())
 			return

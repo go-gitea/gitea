@@ -149,8 +149,8 @@ func loadMarkupFrom(rootCfg ConfigProvider) {
 func newMarkupSanitizer(name string, sec ConfigSection) {
 	rule, ok := createMarkupSanitizerRule(name, sec)
 	if ok {
-		if strings.HasPrefix(name, "sanitizer.") {
-			names := strings.SplitN(strings.TrimPrefix(name, "sanitizer."), ".", 2)
+		if after, found := strings.CutPrefix(name, "sanitizer."); found {
+			names := strings.SplitN(after, ".", 2)
 			name = names[0]
 		}
 		for _, renderer := range ExternalMarkupRenderers {

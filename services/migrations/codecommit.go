@@ -155,10 +155,7 @@ func (c *CodeCommitDownloader) GetPullRequests(ctx context.Context, page, perPag
 	}
 
 	startIndex := (page - 1) * perPage
-	endIndex := page * perPage
-	if endIndex > len(allPullRequestIDs) {
-		endIndex = len(allPullRequestIDs)
-	}
+	endIndex := min(page*perPage, len(allPullRequestIDs))
 	batch := allPullRequestIDs[startIndex:endIndex]
 
 	prs := make([]*base.PullRequest, 0, len(batch))

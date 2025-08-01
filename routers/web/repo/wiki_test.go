@@ -164,7 +164,7 @@ func TestEditWiki(t *testing.T) {
 	EditWiki(ctx)
 	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	assert.EqualValues(t, "Home", ctx.Data["Title"])
-	assert.Equal(t, wikiContent(t, ctx.Repo.Repository, "Home"), ctx.Data["content"])
+	assert.Equal(t, wikiContent(t, ctx.Repo.Repository, "Home"), ctx.Data["WikiEditContent"])
 
 	ctx, _ = contexttest.MockContext(t, "user2/repo1/wiki/jpeg.jpg?action=_edit")
 	ctx.SetPathParam("*", "jpeg.jpg")
@@ -245,7 +245,12 @@ func TestDefaultWikiBranch(t *testing.T) {
 	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repoWithNoWiki, "main"))
 
 	// repo with wiki
-	assert.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(db.DefaultContext, &repo_model.Repository{ID: 1, DefaultWikiBranch: "wrong-branch"}))
+	assert.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(
+		db.DefaultContext,
+		&repo_model.Repository{ID: 1, DefaultWikiBranch: "wrong-branch"},
+		"default_wiki_branch",
+	),
+	)
 
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki")
 	ctx.SetPathParam("*", "Home")

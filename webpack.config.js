@@ -76,15 +76,9 @@ export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
-      fileURLToPath(new URL('web_src/js/globals.ts', import.meta.url)),
-      fileURLToPath(new URL('web_src/fomantic/build/fomantic.js', import.meta.url)),
       fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
-      fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/fomantic.css', import.meta.url)),
       fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
-    ],
-    webcomponents: [
-      fileURLToPath(new URL('web_src/js/webcomponents/index.ts', import.meta.url)),
     ],
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.ts', import.meta.url)),

@@ -50,7 +50,7 @@ func TestComplexity_Generate(t *testing.T) {
 
 	test := func(t *testing.T, modes []string) {
 		testComplextity(modes)
-		for i := 0; i < maxCount; i++ {
+		for range maxCount {
 			pwd, err := Generate(pwdLen)
 			assert.NoError(t, err)
 			assert.Len(t, pwd, pwdLen)

@@ -26,7 +26,7 @@
 
             # linting
             python312
-            poetry
+            uv
 
             # backend
             go_1_24

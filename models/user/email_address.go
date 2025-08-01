@@ -256,15 +256,9 @@ func IsEmailUsed(ctx context.Context, email string) (bool, error) {
 
 // ActivateEmail activates the email address to given user.
 func ActivateEmail(ctx context.Context, email *EmailAddress) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	if err := updateActivation(ctx, email, true); err != nil {
-		return err
-	}
-	return committer.Commit()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		return updateActivation(ctx, email, true)
+	})
 }
 
 func updateActivation(ctx context.Context, email *EmailAddress, activate bool) error {
@@ -305,33 +299,30 @@ func makeEmailPrimaryInternal(ctx context.Context, emailID int64, isActive bool)
 		return ErrUserNotExist{UID: email.UID}
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
 
-	// 1. Update user table
-	user.Email = email.Email
-	if _, err = sess.ID(user.ID).Cols("email").Update(user); err != nil {
-		return err
-	}
+		// 1. Update user table
+		user.Email = email.Email
+		if _, err := sess.ID(user.ID).Cols("email").Update(user); err != nil {
+			return err
+		}
 
-	// 2. Update old primary email
-	if _, err = sess.Where("uid=? AND is_primary=?", email.UID, true).Cols("is_primary").Update(&EmailAddress{
-		IsPrimary: false,
-	}); err != nil {
-		return err
-	}
+		// 2. Update old primary email
+		if _, err := sess.Where("uid=? AND is_primary=?", email.UID, true).Cols("is_primary").Update(&EmailAddress{
+			IsPrimary: false,
+		}); err != nil {
+			return err
+		}
 
-	// 3. update new primary email
-	email.IsPrimary = true
-	if _, err = sess.ID(email.ID).Cols("is_primary").Update(email); err != nil {
-		return err
-	}
+		// 3. update new primary email
+		email.IsPrimary = true
+		if _, err := sess.ID(email.ID).Cols("is_primary").Update(email); err != nil {
+			return err
+		}
 
-	return committer.Commit()
+		return nil
+	})
 }
 
 // ChangeInactivePrimaryEmail replaces the inactive primary email of a given user

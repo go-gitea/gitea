@@ -128,7 +128,7 @@ func (t *TemporaryUploadRepository) LsFiles(ctx context.Context, filenames ...st
 	}
 
 	fileList := make([]string, 0, len(filenames))
-	for _, line := range bytes.Split(stdOut.Bytes(), []byte{'\000'}) {
+	for line := range bytes.SplitSeq(stdOut.Bytes(), []byte{'\000'}) {
 		fileList = append(fileList, string(line))
 	}
 
@@ -164,8 +164,8 @@ func (t *TemporaryUploadRepository) RemoveFilesFromIndex(ctx context.Context, fi
 	return nil
 }
 
-// HashObject writes the provided content to the object db and returns its hash
-func (t *TemporaryUploadRepository) HashObject(ctx context.Context, content io.Reader) (string, error) {
+// HashObjectAndWrite writes the provided content to the object db and returns its hash
+func (t *TemporaryUploadRepository) HashObjectAndWrite(ctx context.Context, content io.Reader) (string, error) {
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 

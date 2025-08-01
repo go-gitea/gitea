@@ -46,7 +46,7 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repository
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -216,7 +216,7 @@ func (Action) GetVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -270,7 +270,7 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -319,7 +319,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -386,7 +386,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -458,7 +458,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -650,6 +650,114 @@ func (Action) DeleteRunner(ctx *context.APIContext) {
 	shared.DeleteRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
 }
 
+// GetWorkflowRunJobs Lists all jobs for a workflow run.
+func (Action) ListWorkflowJobs(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/jobs repository listWorkflowJobs
+	// ---
+	// summary: Lists all jobs for a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowJobsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repoID := ctx.Repo.Repository.ID
+
+	shared.ListJobs(ctx, 0, repoID, 0)
+}
+
+// ListWorkflowRuns Lists all runs for a repository run.
+func (Action) ListWorkflowRuns(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs repository getWorkflowRuns
+	// ---
+	// summary: Lists all runs for a repository run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: event
+	//   in: query
+	//   description: workflow event name
+	//   type: string
+	//   required: false
+	// - name: branch
+	//   in: query
+	//   description: workflow branch
+	//   type: string
+	//   required: false
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   type: string
+	//   required: false
+	// - name: actor
+	//   in: query
+	//   description: triggered by user
+	//   type: string
+	//   required: false
+	// - name: head_sha
+	//   in: query
+	//   description: triggering sha of the workflow run
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRunsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repoID := ctx.Repo.Repository.ID
+
+	shared.ListRuns(ctx, 0, repoID)
+}
+
 var _ actions_service.API = new(Action)
 
 // Action implements actions_service.API
@@ -756,7 +864,7 @@ func ActionsListRepositoryWorkflows(ctx *context.APIContext) {
 	//   "500":
 	//     "$ref": "#/responses/error"
 
-	workflows, err := actions_service.ListActionWorkflows(ctx)
+	workflows, err := convert.ListActionWorkflows(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -802,7 +910,7 @@ func ActionsGetWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	workflowID := ctx.PathParam("workflow_id")
-	workflow, err := actions_service.GetActionWorkflow(ctx, workflowID)
+	workflow, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
@@ -992,6 +1100,157 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
+// GetWorkflowRun Gets a specific workflow run.
+func GetWorkflowRun(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run} repository GetWorkflowRun
+	// ---
+	// summary: Gets a specific workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: id of the run
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRun"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	runID := ctx.PathParamInt64("run")
+	job, _, err := db.GetByID[actions_model.ActionRun](ctx, runID)
+
+	if err != nil || job.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIError(http.StatusNotFound, util.ErrNotExist)
+	}
+
+	convertedArtifact, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, job)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedArtifact)
+}
+
+// ListWorkflowRunJobs Lists all jobs for a workflow run.
+func ListWorkflowRunJobs(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/jobs repository listWorkflowRunJobs
+	// ---
+	// summary: Lists all jobs for a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: runid of the workflow run
+	//   type: integer
+	//   required: true
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowJobsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repoID := ctx.Repo.Repository.ID
+
+	runID := ctx.PathParamInt64("run")
+
+	// Avoid the list all jobs functionality for this api route to be used with a runID == 0.
+	if runID <= 0 {
+		ctx.APIError(http.StatusBadRequest, util.NewInvalidArgumentErrorf("runID must be a positive integer"))
+		return
+	}
+
+	// runID is used as an additional filter next to repoID to ensure that we only list jobs for the specified repoID and runID.
+	// no additional checks for runID are needed here
+	shared.ListJobs(ctx, 0, repoID, runID)
+}
+
+// GetWorkflowJob Gets a specific workflow job for a workflow run.
+func GetWorkflowJob(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/jobs/{job_id} repository getWorkflowJob
+	// ---
+	// summary: Gets a specific workflow job for a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: job_id
+	//   in: path
+	//   description: id of the job
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowJob"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	jobID := ctx.PathParamInt64("job_id")
+	job, _, err := db.GetByID[actions_model.ActionRunJob](ctx, jobID)
+
+	if err != nil || job.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIError(http.StatusNotFound, util.ErrNotExist)
+	}
+
+	convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, ctx.Repo.Repository, nil, job)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedWorkflowJob)
+}
+
 // GetArtifacts Lists all artifacts for a repository.
 func GetArtifactsOfRun(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/artifacts repository getArtifactsOfRun
@@ -1002,7 +1261,7 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1071,7 +1330,7 @@ func DeleteActionRun(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1123,7 +1382,7 @@ func GetArtifacts(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1184,7 +1443,7 @@ func GetArtifact(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1233,7 +1492,7 @@ func DeleteArtifact(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1300,7 +1559,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo

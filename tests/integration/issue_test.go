@@ -76,14 +76,11 @@ func TestViewIssuesSortByType(t *testing.T) {
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	issuesSelection := getIssuesSelection(t, htmlDoc)
-	expectedNumIssues := unittest.GetCount(t,
+	expectedNumIssues := min(unittest.GetCount(t,
 		&issues_model.Issue{RepoID: repo.ID, PosterID: user.ID},
 		unittest.Cond("is_closed=?", false),
 		unittest.Cond("is_pull=?", false),
-	)
-	if expectedNumIssues > setting.UI.IssuePagingNum {
-		expectedNumIssues = setting.UI.IssuePagingNum
-	}
+	), setting.UI.IssuePagingNum)
 	assert.Equal(t, expectedNumIssues, issuesSelection.Length())
 
 	issuesSelection.Each(func(_ int, selection *goquery.Selection) {
@@ -149,6 +146,13 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	assert.Equal(t, content, val)
 
 	return issueURL
+}
+
+func testIssueDelete(t *testing.T, session *TestSession, issueURL string) {
+	req := NewRequestWithValues(t, "POST", path.Join(issueURL, "delete"), map[string]string{
+		"_csrf": GetUserCSRFToken(t, session),
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
 func testIssueAssign(t *testing.T, session *TestSession, repoLink string, issueID, assigneeID int64) {
@@ -491,10 +495,7 @@ func TestSearchIssues(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
-	}
+	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
 
 	link, _ := url.Parse("/issues/search")
 	req := NewRequest(t, "GET", link.String())
@@ -585,10 +586,7 @@ func TestSearchIssues(t *testing.T) {
 func TestSearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
-	}
+	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
 
 	session := loginUser(t, "user1")
 	link, _ := url.Parse("/issues/search")

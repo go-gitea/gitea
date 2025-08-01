@@ -39,8 +39,8 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 		return "", err
 	}
 
-	tagRefs := strings.Split(stdout, "\n")
-	for _, tagRef := range tagRefs {
+	tagRefs := strings.SplitSeq(stdout, "\n")
+	for tagRef := range tagRefs {
 		if len(strings.TrimSpace(tagRef)) > 0 {
 			fields := strings.Fields(tagRef)
 			if strings.HasPrefix(fields[0], sha) && strings.HasPrefix(fields[1], TagPrefix) {
@@ -62,7 +62,7 @@ func (repo *Repository) GetTagID(name string) (string, error) {
 		return "", err
 	}
 	// Make sure exact match is used: "v1" != "release/v1"
-	for _, line := range strings.Split(stdout, "\n") {
+	for line := range strings.SplitSeq(stdout, "\n") {
 		fields := strings.Fields(line)
 		if len(fields) == 2 && fields[1] == "refs/tags/"+name {
 			return fields[0], nil

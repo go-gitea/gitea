@@ -4,6 +4,8 @@
 package actions
 
 import (
+	"slices"
+
 	"code.gitea.io/gitea/modules/translation"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
@@ -88,12 +90,7 @@ func (s Status) IsBlocked() bool {
 
 // In returns whether s is one of the given statuses
 func (s Status) In(statuses ...Status) bool {
-	for _, v := range statuses {
-		if s == v {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(statuses, s)
 }
 
 func (s Status) AsResult() runnerv1.Result {

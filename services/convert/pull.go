@@ -112,7 +112,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
-			Ref:    fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index),
+			Ref:    pr.GetGitHeadRefName(),
 			RepoID: -1,
 		},
 	}
@@ -170,9 +170,9 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if pr.Flow == issues_model.PullRequestFlowAGit {
-		apiPullRequest.Head.Sha, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
+		apiPullRequest.Head.Sha, err = gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
-			log.Error("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
+			log.Error("GetRefCommitID[%s]: %v", pr.GetGitHeadRefName(), err)
 			return nil
 		}
 		apiPullRequest.Head.RepoID = pr.BaseRepoID
@@ -383,7 +383,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			},
 			Head: &api.PRBranchInfo{
 				Name:   pr.HeadBranch,
-				Ref:    pr.GetGitRefName(),
+				Ref:    pr.GetGitHeadRefName(),
 				RepoID: -1,
 			},
 		}
@@ -444,15 +444,15 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			}
 		}
 		if apiPullRequest.Head.Ref == "" {
-			apiPullRequest.Head.Ref = pr.GetGitRefName()
+			apiPullRequest.Head.Ref = pr.GetGitHeadRefName()
 		}
 
 		if pr.Flow == issues_model.PullRequestFlowAGit {
 			apiPullRequest.Head.Name = ""
 		}
-		apiPullRequest.Head.Sha, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
+		apiPullRequest.Head.Sha, err = gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
-			log.Error("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
+			log.Error("GetRefCommitID[%s]: %v", pr.GetGitHeadRefName(), err)
 		}
 
 		if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {

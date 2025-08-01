@@ -19,16 +19,12 @@ type TreeEntry struct {
 	gogitTreeEntry *object.TreeEntry
 	ptree          *Tree
 
-	size     int64
-	sized    bool
-	fullName string
+	size  int64
+	sized bool
 }
 
 // Name returns the name of the entry
 func (te *TreeEntry) Name() string {
-	if te.fullName != "" {
-		return te.fullName
-	}
 	return te.gogitTreeEntry.Name
 }
 
@@ -55,7 +51,7 @@ func (te *TreeEntry) Size() int64 {
 	return te.size
 }
 
-// IsSubModule if the entry is a sub module
+// IsSubModule if the entry is a submodule
 func (te *TreeEntry) IsSubModule() bool {
 	return te.gogitTreeEntry.Mode == filemode.Submodule
 }

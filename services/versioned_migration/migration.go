@@ -1,7 +1,7 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package versioned_migration //nolint
+package versioned_migration
 
 import (
 	"context"

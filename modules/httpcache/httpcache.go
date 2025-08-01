@@ -79,7 +79,7 @@ func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag strin
 func checkIfNoneMatchIsValid(req *http.Request, etag string) bool {
 	ifNoneMatch := req.Header.Get("If-None-Match")
 	if len(ifNoneMatch) > 0 {
-		for _, item := range strings.Split(ifNoneMatch, ",") {
+		for item := range strings.SplitSeq(ifNoneMatch, ",") {
 			item = strings.TrimPrefix(strings.TrimSpace(item), "W/") // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag#directives
 			if item == etag {
 				return true

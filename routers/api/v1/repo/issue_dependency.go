@@ -77,10 +77,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	limit := ctx.FormInt("limit")
 	if limit == 0 {
 		limit = setting.API.DefaultPagingNum
@@ -328,10 +325,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	limit := ctx.FormInt("limit")
 	if limit <= 1 {
 		limit = setting.API.DefaultPagingNum

@@ -35,7 +35,7 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: createdRepo.Name})
 
-	err = DeleteRepositoryDirectly(db.DefaultContext, user2, createdRepo.ID)
+	err = DeleteRepositoryDirectly(db.DefaultContext, createdRepo.ID)
 	assert.NoError(t, err)
 
 	// a failed creating because some mock data

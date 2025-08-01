@@ -29,7 +29,7 @@ func GetDiffPreview(ctx context.Context, repo *repo_model.Repository, branch, tr
 	}
 
 	// Add the object to the database
-	objectHash, err := t.HashObject(ctx, strings.NewReader(content))
+	objectHash, err := t.HashObjectAndWrite(ctx, strings.NewReader(content))
 	if err != nil {
 		return nil, err
 	}

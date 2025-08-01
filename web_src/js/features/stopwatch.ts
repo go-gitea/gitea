@@ -134,7 +134,7 @@ function updateStopwatchData(data: any) {
     const {repo_owner_name, repo_name, issue_index, seconds} = watch;
     const issueUrl = `${appSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
     document.querySelector('.stopwatch-link')?.setAttribute('href', issueUrl);
-    document.querySelector('.stopwatch-commit')?.setAttribute('action', `${issueUrl}/times/stopwatch/toggle`);
+    document.querySelector('.stopwatch-commit')?.setAttribute('action', `${issueUrl}/times/stopwatch/stop`);
     document.querySelector('.stopwatch-cancel')?.setAttribute('action', `${issueUrl}/times/stopwatch/cancel`);
     const stopwatchIssue = document.querySelector('.stopwatch-issue');
     if (stopwatchIssue) stopwatchIssue.textContent = `${repo_owner_name}/${repo_name}#${issue_index}`;

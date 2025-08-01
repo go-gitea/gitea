@@ -64,13 +64,14 @@ func TestUserLogin(t *testing.T) {
 func TestSignUpOAuth2Login(t *testing.T) {
 	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
 
+	_ = oauth2.Init(t.Context())
 	addOAuth2Source(t, "dummy-auth-source", oauth2.Source{})
 
 	t.Run("OAuth2MissingField", func(t *testing.T) {
 		defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
 			return goth.User{Provider: "dummy-auth-source", UserID: "dummy-user"}, nil
 		})()
-		mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockStore("dummy-sid")}
+		mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid")}
 		ctx, resp := contexttest.MockContext(t, "/user/oauth2/dummy-auth-source/callback?code=dummy-code", mockOpt)
 		ctx.SetPathParam("provider", "dummy-auth-source")
 		SignInOAuthCallback(ctx)
@@ -84,7 +85,7 @@ func TestSignUpOAuth2Login(t *testing.T) {
 	})
 
 	t.Run("OAuth2CallbackError", func(t *testing.T) {
-		mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockStore("dummy-sid")}
+		mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid")}
 		ctx, resp := contexttest.MockContext(t, "/user/oauth2/dummy-auth-source/callback", mockOpt)
 		ctx.SetPathParam("provider", "dummy-auth-source")
 		SignInOAuthCallback(ctx)

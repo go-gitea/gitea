@@ -37,15 +37,14 @@ type StatusMessage struct {
 }
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.JSON(status, StatusResponse{
-			OK: false,
-			Errors: []StatusMessage{
-				{
-					Message: message,
-				},
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.JSON(status, StatusResponse{
+		OK: false,
+		Errors: []StatusMessage{
+			{
+				Message: message,
 			},
-		})
+		},
 	})
 }
 
@@ -95,10 +94,7 @@ type SearchResultMeta struct {
 
 // https://doc.rust-lang.org/cargo/reference/registries.html#search
 func SearchPackages(ctx *context.Context) {
-	page := ctx.FormInt("page")
-	if page < 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	perPage := ctx.FormInt("per_page")
 	paginator := db.ListOptions{
 		Page:     page,
@@ -168,7 +164,7 @@ func ListOwners(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -179,6 +175,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageFileInfo{
 			Filename: strings.ToLower(fmt.Sprintf("%s-%s.crate", ctx.PathParam("package"), ctx.PathParam("version"))),
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {

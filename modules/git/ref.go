@@ -109,8 +109,8 @@ func (ref RefName) IsFor() bool {
 }
 
 func (ref RefName) nameWithoutPrefix(prefix string) string {
-	if strings.HasPrefix(string(ref), prefix) {
-		return strings.TrimPrefix(string(ref), prefix)
+	if after, ok := strings.CutPrefix(string(ref), prefix); ok {
+		return after
 	}
 	return ""
 }

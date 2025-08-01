@@ -33,7 +33,7 @@ func SearchVersions(ctx context.Context, opts *packages_model.PackageSearchOptio
 		Where(cond).
 		OrderBy("package.name ASC")
 	if opts.Paginator != nil {
-		skip, take := opts.GetSkipTake()
+		skip, take := opts.Paginator.GetSkipTake()
 		inner = inner.Limit(take, skip)
 	}
 

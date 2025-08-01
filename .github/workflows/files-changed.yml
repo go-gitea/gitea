@@ -77,7 +77,7 @@ jobs:
               - "tools/lint-templates-*.js"
               - "templates/**/*.tmpl"
               - "pyproject.toml"
-              - "poetry.lock"
+              - "uv.lock"
 
             docker:
               - "Dockerfile"
@@ -98,4 +98,3 @@ jobs:
               - "**/*.yaml"
               - ".yamllint.yaml"
               - "pyproject.toml"
-              - "poetry.lock"

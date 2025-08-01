@@ -70,11 +70,11 @@ func parseThemeMetaInfoToMap(cssContent string) map[string]string {
 	m := map[string]string{}
 	for _, item := range matchedItems {
 		v := item[3]
-		if strings.HasPrefix(v, `"`) {
-			v = strings.TrimSuffix(strings.TrimPrefix(v, `"`), `"`)
+		if after, ok := strings.CutPrefix(v, `"`); ok {
+			v = strings.TrimSuffix(after, `"`)
 			v = strings.ReplaceAll(v, `\"`, `"`)
-		} else if strings.HasPrefix(v, `'`) {
-			v = strings.TrimSuffix(strings.TrimPrefix(v, `'`), `'`)
+		} else if after, ok := strings.CutPrefix(v, `'`); ok {
+			v = strings.TrimSuffix(after, `'`)
 			v = strings.ReplaceAll(v, `\'`, `'`)
 		}
 		m[item[2]] = v

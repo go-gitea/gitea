@@ -1,9 +1,6 @@
 *.min.css
 *.min.js
 /assets/*.json
-/modules/options/bindata.go
-/modules/public/bindata.go
-/modules/templates/bindata.go
 /options/gitignore
 /options/license
 /public/assets

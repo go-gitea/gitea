@@ -15,7 +15,7 @@ import (
 
 var ErrAuthTokenNotExist = util.NewNotExistErrorf("auth token does not exist")
 
-type AuthToken struct { //nolint:revive
+type AuthToken struct { //nolint:revive // export stutter
 	ID          string `xorm:"pk"`
 	TokenHash   string
 	UserID      int64              `xorm:"INDEX"`

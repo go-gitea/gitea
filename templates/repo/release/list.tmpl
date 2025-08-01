@@ -50,7 +50,11 @@
 								{{svg (MigrationIcon $release.Repo.GetOriginalURLHostname) 20 "tw-mr-1"}}{{$release.OriginalAuthor}}
 							{{else if $release.Publisher}}
 								{{ctx.AvatarUtils.Avatar $release.Publisher 20 "tw-mr-1"}}
-								<a href="{{$release.Publisher.HomeLink}}">{{$release.Publisher.GetDisplayName}}</a>
+								{{if gt $release.PublisherID 0}}
+									<a href="{{$release.Publisher.HomeLink}}">{{$release.Publisher.GetDisplayName}}</a>
+								{{else}}
+									{{$release.Publisher.GetDisplayName}}
+								{{end}}
 							{{else}}
 								Ghost
 							{{end}}
@@ -88,7 +92,7 @@
 								{{end}}
 								{{range $att := $release.Attachments}}
 									<li class="item">
-										<a target="_blank" class="tw-flex-grow-[2] gt-ellipsis" rel="nofollow" download href="{{$att.DownloadURL}}">
+										<a target="_blank" class="tw-flex-1 gt-ellipsis" rel="nofollow" download href="{{$att.DownloadURL}}">
 											<strong class="flex-text-inline">{{svg "octicon-package" 16 "download-icon"}}<span class="gt-ellipsis">{{$att.Name}}</span></strong>
 										</a>
 										<div class="attachment-right-info flex-text-inline">

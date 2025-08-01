@@ -108,10 +108,7 @@ func Runners(ctx *context.Context) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	opts := actions_model.FindRunnerOptions{
 		ListOptions: db.ListOptions{
@@ -179,10 +176,7 @@ func RunnersEdit(ctx *context.Context) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	runnerID := ctx.PathParamInt64("runnerid")
 	ownerID := rCtx.OwnerID

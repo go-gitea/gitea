@@ -85,6 +85,11 @@ func TestUserEmails(t *testing.T) {
 				testGetUserByEmail(t, c.Email, c.UID)
 			})
 		}
+
+		t.Run("NoReplyConflict", func(t *testing.T) {
+			setting.Service.NoReplyAddress = "example.com"
+			testGetUserByEmail(t, "user1-2@example.COM", 1)
+		})
 	})
 }
 
@@ -204,9 +209,9 @@ func TestHashPasswordDeterministic(t *testing.T) {
 	b := make([]byte, 16)
 	u := &user_model.User{}
 	algos := hash.RecommendedHashAlgorithms
-	for j := 0; j < len(algos); j++ {
+	for j := range algos {
 		u.PasswdHashAlgo = algos[j]
-		for i := 0; i < 50; i++ {
+		for range 50 {
 			// generate a random password
 			rand.Read(b)
 			pass := string(b)

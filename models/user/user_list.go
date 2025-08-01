@@ -17,10 +17,7 @@ func GetUsersMapByIDs(ctx context.Context, userIDs []int64) (map[int64]*User, er
 
 	left := len(userIDs)
 	for left > 0 {
-		limit := db.DefaultMaxInSize
-		if left < limit {
-			limit = left
-		}
+		limit := min(left, db.DefaultMaxInSize)
 		err := db.GetEngine(ctx).
 			In("id", userIDs[:limit]).
 			Find(&userMaps)

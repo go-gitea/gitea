@@ -5,10 +5,13 @@
 				{{if $commit.OnlyRelation}}
 					<span></span>
 				{{else}}
-					{{template "repo/commit_sign_badge" dict "Commit" $commit.Commit "CommitBaseLink" (print $.RepoLink "/commit") "CommitSignVerification" $commit.Verification}}
+					{{/* every field must be in a span to get correctly styled */}}
+					<span>
+						{{template "repo/commit_sign_badge" dict "Commit" $commit.Commit "CommitBaseLink" (print $.RepoLink "/commit") "CommitSignVerification" $commit.Verification}}
+					</span>
 
 					<span class="message tw-inline-block gt-ellipsis">
-						<span>{{ctx.RenderUtils.RenderCommitMessage $commit.Subject $.Repository}}</span>
+						{{ctx.RenderUtils.RenderCommitMessage $commit.Subject $.Repository}}
 					</span>
 
 					<span class="commit-refs flex-text-inline">
@@ -22,7 +25,7 @@
 									</a>
 								{{end}}
 							{{else if eq $refGroup "tags"}}
-								{{- template "repo/tag/name" dict "RepoLink" $.Repository.Link "TagName" .ShortName -}}
+								{{- template "repo/tag/name" dict "AdditionalClasses" "tag-label" "RepoLink" $.Repository.Link "TagName" .ShortName -}}
 							{{else if eq $refGroup "remotes"}}
 								<a class="ui basic tiny button" href="{{$.RepoLink}}/src/commit/{{$commit.Rev|PathEscape}}">
 									{{svg "octicon-cross-reference"}} {{.ShortName}}

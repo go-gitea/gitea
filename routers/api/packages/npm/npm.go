@@ -33,10 +33,9 @@ import (
 var errInvalidTagName = errors.New("The tag name is invalid")
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.JSON(status, map[string]string{
-			"error": message,
-		})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.JSON(status, map[string]string{
+		"error": message,
 	})
 }
 
@@ -85,7 +84,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	packageVersion := ctx.PathParam("version")
 	filename := ctx.PathParam("filename")
 
-	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -96,6 +95,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageFileInfo{
 			Filename: filename,
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
@@ -132,12 +132,13 @@ func DownloadPackageFileByName(ctx *context.Context) {
 		return
 	}
 
-	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageVersion(
 		ctx,
 		pvs[0],
 		&packages_service.PackageFileInfo{
 			Filename: filename,
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageFileNotExist) {

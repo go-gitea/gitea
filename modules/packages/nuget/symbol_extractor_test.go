@@ -24,14 +24,14 @@ func TestExtractPortablePdb(t *testing.T) {
 		var buf bytes.Buffer
 		archive := zip.NewWriter(&buf)
 		w, _ := archive.Create(name)
-		w.Write(content)
-		archive.Close()
+		_, _ = w.Write(content)
+		_ = archive.Close()
 		return buf.Bytes()
 	}
 
 	t.Run("MissingPdbFiles", func(t *testing.T) {
 		var buf bytes.Buffer
-		zip.NewWriter(&buf).Close()
+		_ = zip.NewWriter(&buf).Close()
 
 		pdbs, err := ExtractPortablePdb(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
 		assert.ErrorIs(t, err, ErrMissingPdbFiles)

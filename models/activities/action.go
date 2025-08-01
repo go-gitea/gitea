@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -125,12 +126,7 @@ func (at ActionType) String() string {
 }
 
 func (at ActionType) InActions(actions ...string) bool {
-	for _, action := range actions {
-		if action == at.String() {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(actions, at.String())
 }
 
 // Action represents user operation type and other information to
@@ -191,7 +187,7 @@ func (a *Action) LoadActUser(ctx context.Context) {
 		return
 	}
 	var err error
-	a.ActUser, err = user_model.GetUserByID(ctx, a.ActUserID)
+	a.ActUser, err = user_model.GetPossibleUserByID(ctx, a.ActUserID)
 	if err == nil {
 		return
 	} else if user_model.IsErrUserNotExist(err) {

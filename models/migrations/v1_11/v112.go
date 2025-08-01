@@ -1,12 +1,12 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_11 //nolint
+package v1_11
 
 import (
-	"fmt"
 	"path/filepath"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -31,7 +31,7 @@ func RemoveAttachmentMissedRepo(x *xorm.Engine) error {
 		for i := 0; i < len(attachments); i++ {
 			uuid := attachments[i].UUID
 			if err = util.RemoveAll(filepath.Join(setting.Attachment.Storage.Path, uuid[0:1], uuid[1:2], uuid)); err != nil {
-				fmt.Printf("Error: %v", err) //nolint:forbidigo
+				log.Warn("Unable to remove attachment file by UUID %s: %v", uuid, err)
 			}
 		}
 

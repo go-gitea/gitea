@@ -41,6 +41,7 @@ var CmdServ = &cli.Command{
 	Name:        "serv",
 	Usage:       "(internal) Should only be called by SSH shell",
 	Description: "Serv provides access auth for repositories",
+	Hidden:      true, // Internal commands shouldn't be visible in help
 	Before:      PrepareConsoleLoggerLevel(log.FATAL),
 	Action:      runServ,
 	Flags: []cli.Flag{

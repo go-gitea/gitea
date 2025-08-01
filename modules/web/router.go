@@ -125,8 +125,8 @@ func (r *Router) Methods(methods, pattern string, h ...any) {
 	middlewares, handlerFunc := wrapMiddlewareAndHandler(r.curMiddlewares, h)
 	fullPattern := r.getPattern(pattern)
 	if strings.Contains(methods, ",") {
-		methods := strings.Split(methods, ",")
-		for _, method := range methods {
+		methods := strings.SplitSeq(methods, ",")
+		for method := range methods {
 			r.chiRouter.With(middlewares...).Method(strings.TrimSpace(method), fullPattern, handlerFunc)
 		}
 	} else {

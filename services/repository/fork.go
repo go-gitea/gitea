@@ -124,7 +124,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	defer func() {
 		if err != nil {
 			// we can not use the ctx because it maybe canceled or timeout
-			cleanupRepository(doer, repo.ID)
+			cleanupRepository(repo.ID)
 		}
 	}()
 
@@ -209,7 +209,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
 func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Repository) error {
-	err := db.WithTx(ctx, func(ctx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		repo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
 		if err != nil {
 			return err
@@ -226,16 +226,8 @@ func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Reposit
 
 		repo.IsFork = false
 		repo.ForkID = 0
-
-		if err := updateRepository(ctx, repo, false); err != nil {
-			log.Error("Unable to update repository %-v whilst converting from fork. Error: %v", repo, err)
-			return err
-		}
-
-		return nil
+		return repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_fork", "fork_id")
 	})
-
-	return err
 }
 
 type findForksOptions struct {

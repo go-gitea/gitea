@@ -69,7 +69,7 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 		notify_service.DeleteRepository(ctx, doer, repo)
 	}
 
-	return DeleteRepositoryDirectly(ctx, doer, repo.ID)
+	return DeleteRepositoryDirectly(ctx, repo.ID)
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
@@ -127,9 +127,42 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error) {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		repo.IsPrivate = false
-		if err = updateRepository(ctx, repo, true); err != nil {
-			return fmt.Errorf("MakeRepoPublic: %w", err)
+		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
+			return err
 		}
+
+		if err = repo.LoadOwner(ctx); err != nil {
+			return fmt.Errorf("LoadOwner: %w", err)
+		}
+		if repo.Owner.IsOrganization() {
+			// Organization repository need to recalculate access table when visibility is changed.
+			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
+				return fmt.Errorf("recalculateTeamAccesses: %w", err)
+			}
+		}
+
+		// Create/Remove git-daemon-export-ok for git-daemon...
+		if err := checkDaemonExportOK(ctx, repo); err != nil {
+			return err
+		}
+
+		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
+		if err != nil {
+			return fmt.Errorf("getRepositoriesByForkID: %w", err)
+		}
+
+		if repo.Owner.Visibility != structs.VisibleTypePrivate {
+			for i := range forkRepos {
+				if err = MakeRepoPublic(ctx, forkRepos[i]); err != nil {
+					return fmt.Errorf("MakeRepoPublic[%d]: %w", forkRepos[i].ID, err)
+				}
+			}
+		}
+
+		// If visibility is changed, we need to update the issue indexer.
+		// Since the data in the issue indexer have field to indicate if the repo is public or not.
+		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
+
 		return nil
 	})
 }
@@ -137,9 +170,51 @@ func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error
 func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err error) {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		repo.IsPrivate = true
-		if err = updateRepository(ctx, repo, true); err != nil {
-			return fmt.Errorf("MakeRepoPrivate: %w", err)
+		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
+			return err
 		}
+
+		if err = repo.LoadOwner(ctx); err != nil {
+			return fmt.Errorf("LoadOwner: %w", err)
+		}
+		if repo.Owner.IsOrganization() {
+			// Organization repository need to recalculate access table when visibility is changed.
+			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
+				return fmt.Errorf("recalculateTeamAccesses: %w", err)
+			}
+		}
+
+		// If repo has become private, we need to set its actions to private.
+		_, err = db.GetEngine(ctx).Where("repo_id = ?", repo.ID).Cols("is_private").Update(&activities_model.Action{
+			IsPrivate: true,
+		})
+		if err != nil {
+			return err
+		}
+
+		if err = repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
+			return err
+		}
+
+		// Create/Remove git-daemon-export-ok for git-daemon...
+		if err := checkDaemonExportOK(ctx, repo); err != nil {
+			return err
+		}
+
+		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
+		if err != nil {
+			return fmt.Errorf("getRepositoriesByForkID: %w", err)
+		}
+		for i := range forkRepos {
+			if err = MakeRepoPrivate(ctx, forkRepos[i]); err != nil {
+				return fmt.Errorf("MakeRepoPrivate[%d]: %w", forkRepos[i].ID, err)
+			}
+		}
+
+		// If visibility is changed, we need to update the issue indexer.
+		// Since the data in the issue indexer have field to indicate if the repo is public or not.
+		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
+
 		return nil
 	})
 }

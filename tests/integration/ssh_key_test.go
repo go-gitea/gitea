@@ -27,7 +27,7 @@ func doCheckRepositoryEmptyStatus(ctx APITestContext, isEmpty bool) func(*testin
 
 func doAddChangesToCheckout(dstPath, filename string) func(*testing.T) {
 	return func(t *testing.T) {
-		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, filename), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s at time: %v", dstPath, time.Now())), 0o644))
+		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, filename), fmt.Appendf(nil, "# Testing Repository\n\nOriginally created in: %s at time: %v", dstPath, time.Now()), 0o644))
 		assert.NoError(t, git.AddChanges(dstPath, true))
 		signature := git.Signature{
 			Email: "test@example.com",

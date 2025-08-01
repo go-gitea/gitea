@@ -29,7 +29,7 @@ func TestCheckUnadoptedRepositories_Add(t *testing.T) {
 	}
 
 	total := 30
-	for i := 0; i < total; i++ {
+	for range total {
 		unadopted.add("something")
 	}
 

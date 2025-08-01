@@ -25,6 +25,7 @@ type BlobSearchOptions struct {
 	Digest     string
 	Tag        string
 	IsManifest bool
+	OnlyLead   bool
 	Repository string
 }
 
@@ -43,7 +44,10 @@ func (opts *BlobSearchOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"package_version.lower_version": strings.ToLower(opts.Tag)})
 	}
 	if opts.IsManifest {
-		cond = cond.And(builder.Eq{"package_file.lower_name": ManifestFilename})
+		cond = cond.And(builder.Eq{"package_file.lower_name": container_module.ManifestFilename})
+	}
+	if opts.OnlyLead {
+		cond = cond.And(builder.Eq{"package_file.is_lead": true})
 	}
 	if opts.Digest != "" {
 		var propsCond builder.Cond = builder.Eq{
@@ -73,11 +77,9 @@ func GetContainerBlob(ctx context.Context, opts *BlobSearchOptions) (*packages.P
 	pfds, err := getContainerBlobsLimit(ctx, opts, 1)
 	if err != nil {
 		return nil, err
-	}
-	if len(pfds) != 1 {
+	} else if len(pfds) == 0 {
 		return nil, ErrContainerBlobNotExist
 	}
-
 	return pfds[0], nil
 }
 
@@ -233,7 +235,7 @@ func SearchImageTags(ctx context.Context, opts *ImageTagsSearchOptions) ([]*pack
 func SearchExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) ([]*packages.PackageFile, error) {
 	var cond builder.Cond = builder.Eq{
 		"package_version.is_internal":   true,
-		"package_version.lower_version": UploadVersion,
+		"package_version.lower_version": container_module.UploadVersion,
 		"package.type":                  packages.TypeContainer,
 	}
 	cond = cond.And(builder.Lt{"package_file.created_unix": time.Now().Add(-olderThan).Unix()})

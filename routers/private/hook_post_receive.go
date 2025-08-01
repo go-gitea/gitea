@@ -207,25 +207,19 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			return
 		}
 
-		cols := make([]string, 0, 2)
-
-		if isPrivate.Has() {
+		// FIXME: these options are not quite right, for example: changing visibility should do more works than just setting the is_private flag
+		// These options should only be used for "push-to-create"
+		if isPrivate.Has() && repo.IsPrivate != isPrivate.Value() {
+			// TODO: it needs to do more work
 			repo.IsPrivate = isPrivate.Value()
-			cols = append(cols, "is_private")
+			if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
+				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Failed to change visibility"})
+			}
 		}
-
-		if isTemplate.Has() {
+		if isTemplate.Has() && repo.IsTemplate != isTemplate.Value() {
 			repo.IsTemplate = isTemplate.Value()
-			cols = append(cols, "is_template")
-		}
-
-		if len(cols) > 0 {
-			if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, cols...); err != nil {
-				log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
-				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-					Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
-				})
-				return
+			if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_template"); err != nil {
+				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Failed to change template status"})
 			}
 		}
 	}

@@ -5,7 +5,7 @@ package commitstatus
 
 // CommitStatusState holds the state of a CommitStatus
 // swagger:enum CommitStatusState
-type CommitStatusState string //nolint
+type CommitStatusState string //nolint:revive // export stutter
 
 const (
 	// CommitStatusPending is for when the CommitStatus is Pending
@@ -56,7 +56,7 @@ func (css CommitStatusState) IsSkipped() bool {
 	return css == CommitStatusSkipped
 }
 
-type CommitStatusStates []CommitStatusState //nolint
+type CommitStatusStates []CommitStatusState //nolint:revive // export stutter
 
 // According to https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
 // > Additionally, a combined state is returned. The state is one of:

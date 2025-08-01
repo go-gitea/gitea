@@ -5,6 +5,12 @@ package optional
 
 import "strconv"
 
+// Option is a generic type that can hold a value of type T or be empty (None).
+//
+// It must use the slice type to work with "chi" form values binding:
+// * non-existing value are represented as an empty slice (None)
+// * existing value is represented as a slice with one element (Some)
+// * multiple values are represented as a slice with multiple elements (Some), the Value is the first element (not well-defined in this case)
 type Option[T any] []T
 
 func None[T any]() Option[T] {
@@ -20,6 +26,13 @@ func FromPtr[T any](v *T) Option[T] {
 		return None[T]()
 	}
 	return Some(*v)
+}
+
+func FromMapLookup[K comparable, V any](m map[K]V, k K) Option[V] {
+	if v, ok := m[k]; ok {
+		return Some(v)
+	}
+	return None[V]()
 }
 
 func FromNonDefault[T comparable](v T) Option[T] {

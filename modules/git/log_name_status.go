@@ -346,10 +346,7 @@ func WalkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath st
 
 	results := make([]string, len(paths))
 	remaining := len(paths)
-	nextRestart := (len(paths) * 3) / 4
-	if nextRestart > 70 {
-		nextRestart = 70
-	}
+	nextRestart := min((len(paths)*3)/4, 70)
 	lastEmptyParent := head.ID.String()
 	commitSinceLastEmptyParent := uint64(0)
 	commitSinceNextRestart := uint64(0)

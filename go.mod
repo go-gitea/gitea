@@ -1,6 +1,6 @@
 module code.gitea.io/gitea
 
-go 1.24.4
+go 1.24.5
 
 // rfc5280 said: "The serial number is an integer assigned by the CA to each certificate."
 // But some CAs use negative serial number, just relax the check. related:
@@ -51,7 +51,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.8
 	github.com/go-ap/activitypub v0.0.0-20250409143848-7113328b1f3d
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
-	github.com/go-chi/chi/v5 v5.2.1
+	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-chi/cors v1.2.1
 	github.com/go-co-op/gocron v1.37.0
 	github.com/go-enry/go-enry/v2 v2.9.2
@@ -91,7 +91,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.91
 	github.com/msteinert/pam v1.2.0
 	github.com/nektos/act v0.2.63
-	github.com/niklasfasching/go-org v1.7.0
+	github.com/niklasfasching/go-org v1.8.0
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
@@ -131,7 +131,7 @@ require (
 	mvdan.cc/xurls/v2 v2.6.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.13
-	xorm.io/xorm v1.3.9
+	xorm.io/xorm v1.3.10
 )
 
 require (

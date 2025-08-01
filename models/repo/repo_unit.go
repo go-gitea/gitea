@@ -185,10 +185,8 @@ func (cfg *ActionsConfig) IsWorkflowDisabled(file string) bool {
 }
 
 func (cfg *ActionsConfig) DisableWorkflow(file string) {
-	for _, workflow := range cfg.DisabledWorkflows {
-		if file == workflow {
-			return
-		}
+	if slices.Contains(cfg.DisabledWorkflows, file) {
+		return
 	}
 
 	cfg.DisabledWorkflows = append(cfg.DisabledWorkflows, file)

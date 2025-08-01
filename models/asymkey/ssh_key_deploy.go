@@ -125,39 +125,35 @@ func AddDeployKey(ctx context.Context, repoID int64, name, content string, readO
 		accessMode = perm.AccessModeWrite
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-
-	pkey, exist, err := db.Get[PublicKey](ctx, builder.Eq{"fingerprint": fingerprint})
-	if err != nil {
-		return nil, err
-	} else if exist {
-		if pkey.Type != KeyTypeDeploy {
-			return nil, ErrKeyAlreadyExist{0, fingerprint, ""}
+	return db.WithTx2(ctx, func(ctx context.Context) (*DeployKey, error) {
+		pkey, exist, err := db.Get[PublicKey](ctx, builder.Eq{"fingerprint": fingerprint})
+		if err != nil {
+			return nil, err
+		} else if exist {
+			if pkey.Type != KeyTypeDeploy {
+				return nil, ErrKeyAlreadyExist{0, fingerprint, ""}
+			}
+		} else {
+			// First time use this deploy key.
+			pkey = &PublicKey{
+				Fingerprint: fingerprint,
+				Mode:        accessMode,
+				Type:        KeyTypeDeploy,
+				Content:     content,
+				Name:        name,
+			}
+			if err = addKey(ctx, pkey); err != nil {
+				return nil, fmt.Errorf("addKey: %w", err)
+			}
 		}
-	} else {
-		// First time use this deploy key.
-		pkey = &PublicKey{
-			Fingerprint: fingerprint,
-			Mode:        accessMode,
-			Type:        KeyTypeDeploy,
-			Content:     content,
-			Name:        name,
-		}
-		if err = addKey(ctx, pkey); err != nil {
-			return nil, fmt.Errorf("addKey: %w", err)
-		}
-	}
 
-	key, err := addDeployKey(ctx, pkey.ID, repoID, name, pkey.Fingerprint, accessMode)
-	if err != nil {
-		return nil, err
-	}
+		key, err := addDeployKey(ctx, pkey.ID, repoID, name, pkey.Fingerprint, accessMode)
+		if err != nil {
+			return nil, err
+		}
 
-	return key, committer.Commit()
+		return key, nil
+	})
 }
 
 // GetDeployKeyByID returns deploy key by given ID.

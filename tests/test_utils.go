@@ -1,7 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//nolint:forbidigo
 package tests
 
 import (
@@ -55,7 +54,7 @@ func InitTest(requireGitea bool) {
 		// Notice: when doing "ssh push", Gitea executes sub processes, debugger won't work for the sub processes.
 		giteaConf = "tests/sqlite.ini"
 		_ = os.Setenv("GITEA_CONF", giteaConf)
-		fmt.Printf("Environment variable $GITEA_CONF not set, use default: %s\n", giteaConf)
+		_, _ = fmt.Fprintf(os.Stderr, "Environment variable $GITEA_CONF not set - defaulting to %s\n", giteaConf)
 		if !setting.EnableSQLite3 {
 			testlogger.Fatalf(`sqlite3 requires: -tags sqlite,sqlite_unlock_notify` + "\n")
 		}

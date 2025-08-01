@@ -755,18 +755,14 @@ func (issue *Issue) HasOriginalAuthor() bool {
 
 // InsertIssues insert issues to database
 func InsertIssues(ctx context.Context, issues ...*Issue) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	for _, issue := range issues {
-		if err := insertIssue(ctx, issue); err != nil {
-			return err
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, issue := range issues {
+			if err := insertIssue(ctx, issue); err != nil {
+				return err
+			}
 		}
-	}
-	return committer.Commit()
+		return nil
+	})
 }
 
 func insertIssue(ctx context.Context, issue *Issue) error {

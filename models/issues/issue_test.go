@@ -5,6 +5,7 @@ package issues_test
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"sync"
 	"testing"
@@ -270,7 +271,7 @@ func TestIssue_ResolveMentions(t *testing.T) {
 		for i, user := range resolved {
 			ids[i] = user.ID
 		}
-		sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+		slices.Sort(ids)
 		assert.Equal(t, expected, ids)
 	}
 
@@ -292,7 +293,7 @@ func TestResourceIndex(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	var wg sync.WaitGroup
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		wg.Add(1)
 		go func(i int) {
 			testInsertIssue(t, fmt.Sprintf("issue %d", i+1), "my issue", 0)
@@ -314,7 +315,7 @@ func TestCorrectIssueStats(t *testing.T) {
 	issueAmount := issues_model.MaxQueryParameters + 10
 
 	var wg sync.WaitGroup
-	for i := 0; i < issueAmount; i++ {
+	for i := range issueAmount {
 		wg.Add(1)
 		go func(i int) {
 			testInsertIssue(t, fmt.Sprintf("Issue %d", i+1), "Bugs are nasty", 0)

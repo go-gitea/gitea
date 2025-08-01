@@ -35,26 +35,22 @@ func UpdateSession(ctx context.Context, key string, data []byte) error {
 
 // ReadSession reads the data for the provided session
 func ReadSession(ctx context.Context, key string) (*Session, error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-
-	session, exist, err := db.Get[Session](ctx, builder.Eq{"`key`": key})
-	if err != nil {
-		return nil, err
-	} else if !exist {
-		session = &Session{
-			Key:    key,
-			Expiry: timeutil.TimeStampNow(),
-		}
-		if err := db.Insert(ctx, session); err != nil {
+	return db.WithTx2(ctx, func(ctx context.Context) (*Session, error) {
+		session, exist, err := db.Get[Session](ctx, builder.Eq{"`key`": key})
+		if err != nil {
 			return nil, err
+		} else if !exist {
+			session = &Session{
+				Key:    key,
+				Expiry: timeutil.TimeStampNow(),
+			}
+			if err := db.Insert(ctx, session); err != nil {
+				return nil, err
+			}
 		}
-	}
 
-	return session, committer.Commit()
+		return session, nil
+	})
 }
 
 // ExistSession checks if a session exists
@@ -72,40 +68,36 @@ func DestroySession(ctx context.Context, key string) error {
 
 // RegenerateSession regenerates a session from the old id
 func RegenerateSession(ctx context.Context, oldKey, newKey string) (*Session, error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
+	return db.WithTx2(ctx, func(ctx context.Context) (*Session, error) {
+		if has, err := db.Exist[Session](ctx, builder.Eq{"`key`": newKey}); err != nil {
+			return nil, err
+		} else if has {
+			return nil, fmt.Errorf("session Key: %s already exists", newKey)
+		}
 
-	if has, err := db.Exist[Session](ctx, builder.Eq{"`key`": newKey}); err != nil {
-		return nil, err
-	} else if has {
-		return nil, fmt.Errorf("session Key: %s already exists", newKey)
-	}
+		if has, err := db.Exist[Session](ctx, builder.Eq{"`key`": oldKey}); err != nil {
+			return nil, err
+		} else if !has {
+			if err := db.Insert(ctx, &Session{
+				Key:    oldKey,
+				Expiry: timeutil.TimeStampNow(),
+			}); err != nil {
+				return nil, err
+			}
+		}
 
-	if has, err := db.Exist[Session](ctx, builder.Eq{"`key`": oldKey}); err != nil {
-		return nil, err
-	} else if !has {
-		if err := db.Insert(ctx, &Session{
-			Key:    oldKey,
-			Expiry: timeutil.TimeStampNow(),
-		}); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE "+db.TableName(&Session{})+" SET `key` = ? WHERE `key`=?", newKey, oldKey); err != nil {
 			return nil, err
 		}
-	}
 
-	if _, err := db.Exec(ctx, "UPDATE "+db.TableName(&Session{})+" SET `key` = ? WHERE `key`=?", newKey, oldKey); err != nil {
-		return nil, err
-	}
+		s, _, err := db.Get[Session](ctx, builder.Eq{"`key`": newKey})
+		if err != nil {
+			// is not exist, it should be impossible
+			return nil, err
+		}
 
-	s, _, err := db.Get[Session](ctx, builder.Eq{"`key`": newKey})
-	if err != nil {
-		// is not exist, it should be impossible
-		return nil, err
-	}
-
-	return s, committer.Commit()
+		return s, nil
+	})
 }
 
 // CountSessions returns the number of sessions

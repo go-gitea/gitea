@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -489,40 +490,60 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 }
 
 func doProtectBranch(ctx APITestContext, branch, userToWhitelistPush, userToWhitelistForcePush, unprotectedFilePatterns, protectedFilePatterns string) func(t *testing.T) {
+	return doProtectBranchExt(ctx, branch, doProtectBranchOptions{
+		UserToWhitelistPush:      userToWhitelistPush,
+		UserToWhitelistForcePush: userToWhitelistForcePush,
+		UnprotectedFilePatterns:  unprotectedFilePatterns,
+		ProtectedFilePatterns:    protectedFilePatterns,
+	})
+}
+
+type doProtectBranchOptions struct {
+	UserToWhitelistPush, UserToWhitelistForcePush, UnprotectedFilePatterns, ProtectedFilePatterns string
+
+	StatusCheckPatterns []string
+}
+
+func doProtectBranchExt(ctx APITestContext, ruleName string, opts doProtectBranchOptions) func(t *testing.T) {
 	// We are going to just use the owner to set the protection.
 	return func(t *testing.T) {
 		csrf := GetUserCSRFToken(t, ctx.Session)
 
 		formData := map[string]string{
 			"_csrf":                     csrf,
-			"rule_name":                 branch,
-			"unprotected_file_patterns": unprotectedFilePatterns,
-			"protected_file_patterns":   protectedFilePatterns,
+			"rule_name":                 ruleName,
+			"unprotected_file_patterns": opts.UnprotectedFilePatterns,
+			"protected_file_patterns":   opts.ProtectedFilePatterns,
 		}
 
-		if userToWhitelistPush != "" {
-			user, err := user_model.GetUserByName(db.DefaultContext, userToWhitelistPush)
+		if opts.UserToWhitelistPush != "" {
+			user, err := user_model.GetUserByName(db.DefaultContext, opts.UserToWhitelistPush)
 			assert.NoError(t, err)
 			formData["whitelist_users"] = strconv.FormatInt(user.ID, 10)
 			formData["enable_push"] = "whitelist"
 			formData["enable_whitelist"] = "on"
 		}
 
-		if userToWhitelistForcePush != "" {
-			user, err := user_model.GetUserByName(db.DefaultContext, userToWhitelistForcePush)
+		if opts.UserToWhitelistForcePush != "" {
+			user, err := user_model.GetUserByName(db.DefaultContext, opts.UserToWhitelistForcePush)
 			assert.NoError(t, err)
 			formData["force_push_allowlist_users"] = strconv.FormatInt(user.ID, 10)
 			formData["enable_force_push"] = "whitelist"
 			formData["enable_force_push_allowlist"] = "on"
 		}
 
+		if len(opts.StatusCheckPatterns) > 0 {
+			formData["enable_status_check"] = "on"
+			formData["status_check_contexts"] = strings.Join(opts.StatusCheckPatterns, "\n")
+		}
+
 		// Send the request to update branch protection settings
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), formData)
 		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
 
-		// Check if master branch has been locked successfully
+		// Check if the "master" branch has been locked successfully
 		flashMsg := ctx.Session.GetCookieFlashMessage()
-		assert.Equal(t, `Branch protection for rule "`+branch+`" has been updated.`, flashMsg.SuccessMsg)
+		assert.Equal(t, `Branch protection for rule "`+ruleName+`" has been updated.`, flashMsg.SuccessMsg)
 	}
 }
 
@@ -688,6 +709,10 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 
 		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, auth_model.AccessTokenScopeWriteRepository)
 
+		// automerge will merge immediately if the PR is mergeable and there is no "status check" because no status check also means "all checks passed"
+		// so we must set up a status check to test the auto merge feature
+		doProtectBranchExt(ctx, "protected", doProtectBranchOptions{StatusCheckPatterns: []string{"*"}})(t)
+
 		t.Run("CheckoutProtected", doGitCheckoutBranch(dstPath, "protected"))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
 		t.Run("GenerateCommit", func(t *testing.T) {
@@ -728,13 +753,13 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 
 		// Cancel not existing auto merge
 		ctx.ExpectedCode = http.StatusNotFound
-		t.Run("CancelAutoMergePR", doAPICancelAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		t.Run("CancelAutoMergePRNotExist", doAPICancelAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
 		// Add auto merge request
 		ctx.ExpectedCode = http.StatusCreated
 		t.Run("AutoMergePR", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
-		// Can not create schedule twice
+		// Cannot create schedule twice
 		ctx.ExpectedCode = http.StatusConflict
 		t.Run("AutoMergePRTwice", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 

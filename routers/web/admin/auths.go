@@ -177,7 +177,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		customURLMapping = nil
 	}
 	var scopes []string
-	for _, s := range strings.Split(form.Oauth2Scopes, ",") {
+	for s := range strings.SplitSeq(form.Oauth2Scopes, ",") {
 		s = strings.TrimSpace(s)
 		if s != "" {
 			scopes = append(scopes, s)
@@ -199,6 +199,9 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		AdminGroup:                    form.Oauth2AdminGroup,
 		GroupTeamMap:                  form.Oauth2GroupTeamMap,
 		GroupTeamMapRemoval:           form.Oauth2GroupTeamMapRemoval,
+
+		SSHPublicKeyClaimName: form.Oauth2SSHPublicKeyClaimName,
+		FullNameClaimName:     form.Oauth2FullNameClaimName,
 	}
 }
 

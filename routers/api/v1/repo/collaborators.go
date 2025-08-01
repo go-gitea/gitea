@@ -93,7 +93,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	//   required: true
 	// - name: collaborator
 	//   in: path
-	//   description: username of the collaborator
+	//   description: username of the user to check for being a collaborator
 	//   type: string
 	//   required: true
 	// responses:
@@ -145,7 +145,7 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 	//   required: true
 	// - name: collaborator
 	//   in: path
-	//   description: username of the collaborator to add
+	//   description: username of the user to add or update as a collaborator
 	//   type: string
 	//   required: true
 	// - name: body
@@ -264,7 +264,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 	//   required: true
 	// - name: collaborator
 	//   in: path
-	//   description: username of the collaborator
+	//   description: username of the collaborator whose permissions are to be obtained
 	//   type: string
 	//   required: true
 	// responses:
@@ -276,7 +276,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	collaboratorUsername := ctx.PathParam("collaborator")
-	if !ctx.Doer.IsAdmin && ctx.Doer.LowerName != strings.ToLower(collaboratorUsername) && !ctx.IsUserRepoAdmin() {
+	if !ctx.Doer.IsAdmin && !strings.EqualFold(ctx.Doer.LowerName, collaboratorUsername) && !ctx.IsUserRepoAdmin() {
 		ctx.APIError(http.StatusForbidden, "Only admins can query all permissions, repo admins can query all repo permissions, collaborators can query only their own")
 		return
 	}

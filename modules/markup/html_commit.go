@@ -62,7 +62,7 @@ func anyHashPatternExtract(s string) (ret anyHashPatternResult, ok bool) {
 		// if url ends in '.', it's very likely that it is not part of the actual url but used to finish a sentence.
 		ret.PosEnd--
 		ret.FullURL = ret.FullURL[:len(ret.FullURL)-1]
-		for i := 0; i < len(m); i++ {
+		for i := range m {
 			m[i] = min(m[i], ret.PosEnd)
 		}
 	}

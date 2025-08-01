@@ -85,5 +85,5 @@ func GetReviewerTeams(ctx context.Context, repo *repo_model.Repository) ([]*orga
 		return nil, nil
 	}
 
-	return organization.GetTeamsWithAccessToRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
+	return organization.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
 }

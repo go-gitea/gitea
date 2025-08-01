@@ -20,7 +20,7 @@ func IsArtifactV4(art *actions_model.ActionArtifact) bool {
 
 func DownloadArtifactV4ServeDirectOnly(ctx *context.Base, art *actions_model.ActionArtifact) (bool, error) {
 	if setting.Actions.ArtifactStorage.ServeDirect() {
-		u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, nil)
+		u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, ctx.Req.Method, nil)
 		if u != nil && err == nil {
 			ctx.Redirect(u.String(), http.StatusFound)
 			return true, nil

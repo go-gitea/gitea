@@ -132,7 +132,7 @@ func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 	selectedStyle := ctx.FormString("style", badge.DefaultStyle)
 	var badges []badge.Badge
 	badges = append(badges, badge.GenerateBadge("啊啊啊啊啊啊啊啊啊啊啊啊", "🌞🌞🌞🌞🌞", "green"))
-	for r := rune(0); r < 256; r++ {
+	for r := range rune(256) {
 		if unicode.IsPrint(r) {
 			s := strings.Repeat(string(r), 15)
 			badges = append(badges, badge.GenerateBadge(s, util.TruncateRunes(s, 7), "green"))

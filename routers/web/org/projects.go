@@ -53,10 +53,7 @@ func Projects(ctx *context.Context) {
 
 	isShowClosed := strings.ToLower(ctx.FormTrim("state")) == "closed"
 	keyword := ctx.FormTrim("q")
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	var projectType project_model.Type
 	if ctx.ContextUser.IsOrganization() {

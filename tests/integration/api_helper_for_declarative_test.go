@@ -263,7 +263,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 		var req *RequestWrapper
 		var resp *httptest.ResponseRecorder
 
-		for i := 0; i < 6; i++ {
+		for range 6 {
 			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 				MergeMessageField: "doAPIMergePullRequest Merge",
 				Do:                string(repo_model.MergeStyleMerge),

@@ -83,7 +83,7 @@ func prepareLevelDB(cfg *BaseConfig) (conn string, db *leveldb.DB, err error) {
 		}
 		conn = cfg.ConnStr
 	}
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		if db, err = nosql.GetManager().GetLevelDB(conn); err == nil {
 			break
 		}

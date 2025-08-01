@@ -233,7 +233,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 				defer baseGitRepo.Close()
 				repoIDToGitRepo[pr.BaseRepoID] = baseGitRepo
 			}
-			pullCommit, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+			pullCommit, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 			if err != nil && !git.IsErrNotExist(err) {
 				return nil, fmt.Errorf("GetBranchCommitID: %v", err)
 			}

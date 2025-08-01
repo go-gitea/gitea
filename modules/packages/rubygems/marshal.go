@@ -250,7 +250,7 @@ func (e *MarshalEncoder) marshalArray(arr reflect.Value) error {
 		return err
 	}
 
-	for i := 0; i < length; i++ {
+	for i := range length {
 		if err := e.marshal(arr.Index(i).Interface()); err != nil {
 			return err
 		}

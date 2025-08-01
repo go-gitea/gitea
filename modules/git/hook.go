@@ -8,6 +8,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/util"
@@ -25,12 +26,7 @@ var ErrNotValidHook = errors.New("not a valid Git hook")
 
 // IsValidHookName returns true if given name is a valid Git hook.
 func IsValidHookName(name string) bool {
-	for _, hn := range hookNames {
-		if hn == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(hookNames, name)
 }
 
 // Hook represents a Git hook.

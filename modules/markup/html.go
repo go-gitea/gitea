@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
@@ -109,13 +110,7 @@ func CustomLinkURLSchemes(schemes []string) {
 		if !validScheme.MatchString(s) {
 			continue
 		}
-		without := false
-		for _, sna := range xurls.SchemesNoAuthority {
-			if s == sna {
-				without = true
-				break
-			}
-		}
+		without := slices.Contains(xurls.SchemesNoAuthority, s)
 		if without {
 			s += ":"
 		} else {

@@ -61,7 +61,7 @@ func (err ErrRepoTransferInProgress) Unwrap() error {
 }
 
 // RepoTransfer is used to manage repository transfers
-type RepoTransfer struct { //nolint
+type RepoTransfer struct { //nolint:revive // export stutter
 	ID          int64 `xorm:"pk autoincr"`
 	DoerID      int64
 	Doer        *user_model.User `xorm:"-"`

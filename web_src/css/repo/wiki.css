@@ -39,10 +39,6 @@
   min-width: 150px;
 }
 
-.repository.wiki .wiki-content-sidebar .ui.message.unicode-escape-prompt p {
-  display: none;
-}
-
 .repository.wiki .wiki-content-footer {
   margin-top: 1em;
 }

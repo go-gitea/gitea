@@ -29,7 +29,7 @@ const (
 type Notice struct {
 	ID          int64 `xorm:"pk autoincr"`
 	Type        NoticeType
-	Description string             `xorm:"TEXT"`
+	Description string             `xorm:"LONGTEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 

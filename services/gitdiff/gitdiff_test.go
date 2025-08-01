@@ -416,7 +416,7 @@ index 0000000..6bb8f39
 `
 	diffBuilder.WriteString(diff)
 
-	for i := 0; i < 35; i++ {
+	for i := range 35 {
 		diffBuilder.WriteString("+line" + strconv.Itoa(i) + "\n")
 	}
 	diff = diffBuilder.String()
@@ -453,11 +453,11 @@ index 0000000..6bb8f39
 	diffBuilder.Reset()
 	diffBuilder.WriteString(diff)
 
-	for i := 0; i < 33; i++ {
+	for i := range 33 {
 		diffBuilder.WriteString("+line" + strconv.Itoa(i) + "\n")
 	}
 	diffBuilder.WriteString("+line33")
-	for i := 0; i < 512; i++ {
+	for range 512 {
 		diffBuilder.WriteString("0123456789ABCDEF")
 	}
 	diffBuilder.WriteByte('\n')

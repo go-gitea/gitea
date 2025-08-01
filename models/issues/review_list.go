@@ -22,7 +22,7 @@ type ReviewList []*Review
 // LoadReviewers loads reviewers
 func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
 	reviewerIDs := make([]int64, len(reviews))
-	for i := 0; i < len(reviews); i++ {
+	for i := range reviews {
 		reviewerIDs[i] = reviews[i].ReviewerID
 	}
 	reviewers, err := user_model.GetPossibleUserByIDs(ctx, reviewerIDs)

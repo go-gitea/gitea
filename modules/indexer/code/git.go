@@ -129,8 +129,8 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 		changes.Updates = append(changes.Updates, updates...)
 		return nil
 	}
-	lines := strings.Split(stdout, "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(stdout, "\n")
+	for line := range lines {
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
 			continue

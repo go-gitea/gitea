@@ -43,13 +43,16 @@ export function initGlobalDeleteButton(): void {
 
       fomanticQuery(modal).modal({
         closable: false,
-        onApprove: async () => {
+        onApprove: () => {
           // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
           if (btn.getAttribute('data-type') === 'form') {
             const formSelector = btn.getAttribute('data-form');
             const form = document.querySelector<HTMLFormElement>(formSelector);
             if (!form) throw new Error(`no form named ${formSelector} found`);
+            modal.classList.add('is-loading'); // the form is not in the modal, so also add loading indicator to the modal
+            form.classList.add('is-loading');
             form.submit();
+            return false; // prevent modal from closing automatically
           }
 
           // prepare an AJAX form by data attributes
@@ -62,12 +65,15 @@ export function initGlobalDeleteButton(): void {
               postData.append('id', value);
             }
           }
-
-          const response = await POST(btn.getAttribute('data-url'), {data: postData});
-          if (response.ok) {
-            const data = await response.json();
-            window.location.href = data.redirect;
-          }
+          (async () => {
+            const response = await POST(btn.getAttribute('data-url'), {data: postData});
+            if (response.ok) {
+              const data = await response.json();
+              window.location.href = data.redirect;
+            }
+          })();
+          modal.classList.add('is-loading'); // the request is in progress, so also add loading indicator to the modal
+          return false; // prevent modal from closing automatically
         },
       }).modal('show');
     });
@@ -103,18 +109,26 @@ function onHidePanelClick(el: HTMLElement, e: MouseEvent) {
   throw new Error('no panel to hide'); // should never happen, otherwise there is a bug in code
 }
 
-export function assignElementProperty(el: any, name: string, val: string) {
-  name = camelize(name);
-  const old = el[name];
+export type ElementWithAssignableProperties = {
+  getAttribute: (name: string) => string | null;
+  setAttribute: (name: string, value: string) => void;
+} & Record<string, any>
+
+export function assignElementProperty(el: ElementWithAssignableProperties, kebabName: string, val: string) {
+  const camelizedName = camelize(kebabName);
+  const old = el[camelizedName];
   if (typeof old === 'boolean') {
-    el[name] = val === 'true';
+    el[camelizedName] = val === 'true';
   } else if (typeof old === 'number') {
-    el[name] = parseFloat(val);
+    el[camelizedName] = parseFloat(val);
   } else if (typeof old === 'string') {
-    el[name] = val;
+    el[camelizedName] = val;
+  } else if (old?.nodeName) {
+    // "form" has an edge case: its "<input name=action>" element overwrites the "action" property, we can only set attribute
+    el.setAttribute(kebabName, val);
   } else {
     // in the future, we could introduce a better typing system like `data-modal-form.action:string="..."`
-    throw new Error(`cannot assign element property ${name} by value ${val}`);
+    throw new Error(`cannot assign element property "${camelizedName}" by value "${val}"`);
   }
 }
 
@@ -139,11 +153,12 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
 
     const attrTargetCombo = attrib.name.substring(modalAttrPrefix.length);
     const [attrTargetName, attrTargetProp] = attrTargetCombo.split('.');
-    // try to find target by: "#target" -> "[name=target]" -> ".target" -> "<target> tag"
+    // try to find target by: "#target" -> "[name=target]" -> ".target" -> "<target> tag", and then try the modal itself
     const attrTarget = elModal.querySelector(`#${attrTargetName}`) ||
       elModal.querySelector(`[name=${attrTargetName}]`) ||
       elModal.querySelector(`.${attrTargetName}`) ||
-      elModal.querySelector(`${attrTargetName}`);
+      elModal.querySelector(`${attrTargetName}`) ||
+      (elModal.matches(`${attrTargetName}`) || elModal.matches(`#${attrTargetName}`) || elModal.matches(`.${attrTargetName}`) ? elModal : null);
     if (!attrTarget) {
       if (!window.config.runModeIsProd) throw new Error(`attr target "${attrTargetCombo}" not found for modal`);
       continue;
@@ -158,13 +173,7 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
     }
   }
 
-  fomanticQuery(elModal).modal('setting', {
-    onApprove: () => {
-      // "form-fetch-action" can handle network errors gracefully,
-      // so keep the modal dialog to make users can re-submit the form if anything wrong happens.
-      if (elModal.querySelector('.form-fetch-action')) return false;
-    },
-  }).modal('show');
+  fomanticQuery(elModal).modal('show');
 }
 
 export function initGlobalButtons(): void {

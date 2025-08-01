@@ -449,7 +449,7 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 	if opts.Keyword != "" {
 		// separate keyword
 		subQueryCond := builder.NewCond()
-		for _, v := range strings.Split(opts.Keyword, ",") {
+		for v := range strings.SplitSeq(opts.Keyword, ",") {
 			if opts.TopicOnly {
 				subQueryCond = subQueryCond.Or(builder.Eq{"topic.name": strings.ToLower(v)})
 			} else {
@@ -464,7 +464,7 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 		keywordCond := builder.In("id", subQuery)
 		if !opts.TopicOnly {
 			likes := builder.NewCond()
-			for _, v := range strings.Split(opts.Keyword, ",") {
+			for v := range strings.SplitSeq(opts.Keyword, ",") {
 				likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
 
 				// If the string looks like "org/repo", match against that pattern too

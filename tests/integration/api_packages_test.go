@@ -15,9 +15,9 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
-	container_model "code.gitea.io/gitea/models/packages/container"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -538,7 +538,7 @@ func TestPackageCleanup(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, pbs)
 
-		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_model.UploadVersion)
+		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_module.UploadVersion)
 		assert.NoError(t, err)
 
 		err = packages_cleanup_service.CleanupTask(db.DefaultContext, duration)
@@ -548,7 +548,7 @@ func TestPackageCleanup(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Empty(t, pbs)
 
-		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_model.UploadVersion)
+		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_module.UploadVersion)
 		assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
 	})
 
@@ -636,12 +636,16 @@ func TestPackageCleanup(t *testing.T) {
 			},
 			{
 				Name: "Mixed",
-				Versions: []version{
-					{Version: "keep", ShouldExist: true, Created: time.Now().Add(time.Duration(10000)).Unix()},
-					{Version: "dummy", ShouldExist: true, Created: 1},
-					{Version: "test-3", ShouldExist: true},
-					{Version: "test-4", ShouldExist: false, Created: 1},
-				},
+				Versions: func(limit, removeDays int) []version {
+					aa := []version{
+						{Version: "keep", ShouldExist: true, Created: time.Now().Add(time.Duration(10000)).Unix()},
+						{Version: "dummy", ShouldExist: true, Created: 1},
+					}
+					for i := range limit {
+						aa = append(aa, version{Version: fmt.Sprintf("test-%v", i+3), ShouldExist: util.Iif(i < removeDays, true, false), Created: time.Now().AddDate(0, 0, -i).Unix()})
+					}
+					return aa
+				}(220, 7),
 				Rule: &packages_model.PackageCleanupRule{
 					Enabled:       true,
 					KeepCount:     1,
@@ -686,7 +690,7 @@ func TestPackageCleanup(t *testing.T) {
 						err = packages_service.DeletePackageVersionAndReferences(db.DefaultContext, pv)
 						assert.NoError(t, err)
 					} else {
-						assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
+						assert.ErrorIs(t, err, packages_model.ErrPackageNotExist, v.Version)
 					}
 				}
 

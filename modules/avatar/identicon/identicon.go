@@ -134,7 +134,7 @@ func drawBlocks(p *image.Paletted, size int, c, b1, b2 blockFunc, b1Angle, b2Ang
 
 	// then we make it left-right mirror, so we didn't draw 3/6/9 before
 	for x := 0; x < size/2; x++ {
-		for y := 0; y < size; y++ {
+		for y := range size {
 			p.SetColorIndex(size-x, y, p.ColorIndexAt(x, y))
 		}
 	}

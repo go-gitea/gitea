@@ -64,6 +64,7 @@ func TestGetTreeViewNodes(t *testing.T) {
 	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 
+	curRepoLink := "/any/repo-link"
 	renderedIconPool := fileicon.NewRenderedIconPool()
 	mockIconForFile := func(id string) template.HTML {
 		return template.HTML(`<svg class="svg git-entry-icon octicon-file" width="16" height="16" aria-hidden="true"><use xlink:href="#` + id + `"></use></svg>`)
@@ -74,7 +75,7 @@ func TestGetTreeViewNodes(t *testing.T) {
 	mockOpenIconForFolder := func(id string) template.HTML {
 		return template.HTML(`<svg class="svg git-entry-icon octicon-file-directory-open-fill" width="16" height="16" aria-hidden="true"><use xlink:href="#` + id + `"></use></svg>`)
 	}
-	treeNodes, err := GetTreeViewNodes(ctx, renderedIconPool, ctx.Repo.Commit, "", "")
+	treeNodes, err := GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.Commit, "", "")
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{
@@ -86,7 +87,7 @@ func TestGetTreeViewNodes(t *testing.T) {
 		},
 	}, treeNodes)
 
-	treeNodes, err = GetTreeViewNodes(ctx, renderedIconPool, ctx.Repo.Commit, "", "docs/README.md")
+	treeNodes, err = GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.Commit, "", "docs/README.md")
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{
@@ -106,7 +107,7 @@ func TestGetTreeViewNodes(t *testing.T) {
 		},
 	}, treeNodes)
 
-	treeNodes, err = GetTreeViewNodes(ctx, renderedIconPool, ctx.Repo.Commit, "docs", "README.md")
+	treeNodes, err = GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.Commit, "docs", "README.md")
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{

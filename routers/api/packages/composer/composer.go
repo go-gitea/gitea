@@ -28,18 +28,17 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		type Error struct {
-			Status  int    `json:"status"`
-			Message string `json:"message"`
-		}
-		ctx.JSON(status, struct {
-			Errors []Error `json:"errors"`
-		}{
-			Errors: []Error{
-				{Status: status, Message: message},
-			},
-		})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	type Error struct {
+		Status  int    `json:"status"`
+		Message string `json:"message"`
+	}
+	ctx.JSON(status, struct {
+		Errors []Error `json:"errors"`
+	}{
+		Errors: []Error{
+			{Status: status, Message: message},
+		},
 	})
 }
 
@@ -53,10 +52,7 @@ func ServiceIndex(ctx *context.Context) {
 // SearchPackages searches packages, only "q" is supported
 // https://packagist.org/apidoc#search-packages
 func SearchPackages(ctx *context.Context) {
-	page := ctx.FormInt("page")
-	if page < 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	perPage := ctx.FormInt("per_page")
 	paginator := db.ListOptions{
 		Page:     page,
@@ -163,7 +159,7 @@ func PackageMetadata(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -174,6 +170,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageFileInfo{
 			Filename: ctx.PathParam("filename"),
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {

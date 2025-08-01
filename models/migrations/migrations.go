@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_22"
 	"code.gitea.io/gitea/models/migrations/v1_23"
 	"code.gitea.io/gitea/models/migrations/v1_24"
+	"code.gitea.io/gitea/models/migrations/v1_25"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -382,6 +383,9 @@ func prepareMigrationTasks() []*migration {
 		newMigration(318, "Add anonymous_access_mode for repo_unit", v1_24.AddRepoUnitAnonymousAccessMode),
 		newMigration(319, "Add ExclusiveOrder to Label table", v1_24.AddExclusiveOrderColumnToLabelTable),
 		newMigration(320, "Migrate two_factor_policy to login_source table", v1_24.MigrateSkipTwoFactor),
+
+		// Gitea 1.24.0 ends at database version 321
+		newMigration(321, "Use LONGTEXT for some columns and fix review_state.updated_files column", v1_25.UseLongTextInSomeColumnsAndFixBugs),
 	}
 	return preparedMigrations
 }

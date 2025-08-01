@@ -426,7 +426,7 @@ func GetTeamMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the member to list
+	//   description: username of the user whose data is to be listed
 	//   type: string
 	//   required: true
 	// responses:
@@ -467,7 +467,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user to add
+	//   description: username of the user to add to a team
 	//   type: string
 	//   required: true
 	// responses:
@@ -509,7 +509,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user to remove
+	//   description: username of the user to remove from a team
 	//   type: string
 	//   required: true
 	// responses:

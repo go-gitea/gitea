@@ -5,7 +5,6 @@ package fileicon
 
 import (
 	"html/template"
-	"path"
 	"strings"
 	"sync"
 
@@ -134,7 +133,7 @@ func (m *MaterialIconProvider) FindIconName(entry *EntryInfo) string {
 		return "folder-git"
 	}
 
-	fileNameLower := strings.ToLower(path.Base(entry.FullName))
+	fileNameLower := strings.ToLower(entry.BaseName)
 	if entry.EntryMode.IsDir() {
 		if s, ok := m.rules.FolderNames[fileNameLower]; ok {
 			return s

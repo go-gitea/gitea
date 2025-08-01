@@ -50,7 +50,7 @@ func GetStarredRepos(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose starred repos are to be listed
 	//   type: string
 	//   required: true
 	// - name: page

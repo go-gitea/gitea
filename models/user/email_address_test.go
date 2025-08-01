@@ -4,6 +4,7 @@
 package user_test
 
 import (
+	"slices"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -100,12 +101,7 @@ func TestListEmails(t *testing.T) {
 	assert.Greater(t, count, int64(5))
 
 	contains := func(match func(s *user_model.SearchEmailResult) bool) bool {
-		for _, v := range emails {
-			if match(v) {
-				return true
-			}
-		}
-		return false
+		return slices.ContainsFunc(emails, match)
 	}
 
 	assert.True(t, contains(func(s *user_model.SearchEmailResult) bool { return s.UID == 18 }))

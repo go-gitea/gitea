@@ -45,10 +45,7 @@ func LFSFiles(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	total, err := git_model.CountLFSMetaObjects(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("LFSFiles", err)
@@ -77,10 +74,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	total, err := git_model.CountLFSLockByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("LFSLocks", err)
@@ -273,8 +267,10 @@ func LFSFileGet(ctx *context.Context) {
 	buf = buf[:n]
 
 	st := typesniffer.DetectContentType(buf)
+	// FIXME: there is no IsPlainText set, but template uses it
 	ctx.Data["IsTextFile"] = st.IsText()
 	ctx.Data["FileSize"] = meta.Size
+	// FIXME: the last field is the URL-base64-encoded filename, it should not be "direct"
 	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/%s.git/info/lfs/objects/%s/%s", setting.AppURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid), "direct")
 	switch {
 	case st.IsRepresentableAsText():
@@ -315,8 +311,6 @@ func LFSFileGet(ctx *context.Context) {
 		}
 		ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 
-	case st.IsPDF():
-		ctx.Data["IsPDFFile"] = true
 	case st.IsVideo():
 		ctx.Data["IsVideoFile"] = true
 	case st.IsAudio():
