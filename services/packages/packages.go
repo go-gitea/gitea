@@ -469,24 +469,15 @@ func RemovePackageVersionByNameAndVersion(ctx context.Context, doer *user_model.
 
 // RemovePackageVersion deletes the package version and all associated files
 func RemovePackageVersion(ctx context.Context, doer *user_model.User, pv *packages_model.PackageVersion) error {
-	dbCtx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	pd, err := packages_model.GetPackageDescriptor(dbCtx, pv)
+	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
 		return err
 	}
 
-	log.Trace("Deleting package: %v", pv.ID)
-
-	if err := DeletePackageVersionAndReferences(dbCtx, pv); err != nil {
-		return err
-	}
-
-	if err := committer.Commit(); err != nil {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		log.Trace("Deleting package: %v", pv.ID)
+		return DeletePackageVersionAndReferences(ctx, pv)
+	}); err != nil {
 		return err
 	}
 
