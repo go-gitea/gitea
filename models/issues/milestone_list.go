@@ -59,7 +59,7 @@ func (opts FindMilestoneOptions) ToConds() builder.Cond {
 func (opts FindMilestoneOptions) ToOrders() string {
 	switch opts.SortType {
 	case "furthestduedate":
-		return "deadline_unix DESC"
+		return "CASE WHEN deadline_unix = 0 THEN 0 ELSE 1 END, deadline_unix DESC, name ASC"
 	case "leastcomplete":
 		return "completeness ASC"
 	case "mostcomplete":
@@ -73,7 +73,7 @@ func (opts FindMilestoneOptions) ToOrders() string {
 	case "name":
 		return "name DESC"
 	default:
-		return "deadline_unix ASC, name ASC"
+		return "CASE WHEN deadline_unix = 0 THEN 1 ELSE 0 END, deadline_unix ASC, name ASC"
 	}
 }
 
