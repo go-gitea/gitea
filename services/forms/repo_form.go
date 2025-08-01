@@ -239,6 +239,9 @@ type WebhookForm struct {
 	BranchFilter             string `binding:"GlobPattern"`
 	AuthorizationHeader      string
 	Secret                   string
+	// Payload size optimization options
+	ExcludeFilesLimit   int // -1: trim all (none kept), 0: do not trim, >0: keep N file changes in commit payloads
+	ExcludeCommitsLimit int // -1: trim all (none kept), 0: do not trim, >0: keep N commits in push payloads
 }
 
 // PushOnly if the hook will be triggered when push
@@ -622,7 +625,7 @@ type UpdateAllowEditsForm struct {
 //  |       _// __ \|  | _/ __ \\__  \  /  ___// __ \
 //  |    |   \  ___/|  |_\  ___/ / __ \_\___ \\  ___/
 //  |____|_  /\___  >____/\___  >____  /____  >\___  >
-//         \/     \/          \/     \/     \/     \/
+//         \/     \/            \/     \/     \/     \/
 
 // NewReleaseForm form for creating release
 type NewReleaseForm struct {

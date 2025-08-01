@@ -232,17 +232,19 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 	}
 
 	w := &webhook.Webhook{
-		RepoID:          orCtx.RepoID,
-		URL:             params.URL,
-		HTTPMethod:      params.HTTPMethod,
-		ContentType:     params.ContentType,
-		Secret:          params.WebhookForm.Secret,
-		HookEvent:       ParseHookEvent(params.WebhookForm),
-		IsActive:        params.WebhookForm.Active,
-		Type:            params.Type,
-		Meta:            string(meta),
-		OwnerID:         orCtx.OwnerID,
-		IsSystemWebhook: orCtx.IsSystemWebhook,
+		RepoID:              orCtx.RepoID,
+		URL:                 params.URL,
+		HTTPMethod:          params.HTTPMethod,
+		ContentType:         params.ContentType,
+		Secret:              params.WebhookForm.Secret,
+		HookEvent:           ParseHookEvent(params.WebhookForm),
+		IsActive:            params.WebhookForm.Active,
+		Type:                params.Type,
+		Meta:                string(meta),
+		OwnerID:             orCtx.OwnerID,
+		IsSystemWebhook:     orCtx.IsSystemWebhook,
+		ExcludeFilesLimit:   params.WebhookForm.ExcludeFilesLimit,
+		ExcludeCommitsLimit: params.WebhookForm.ExcludeCommitsLimit,
 	}
 	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
 	if err != nil {
@@ -294,6 +296,8 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	w.IsActive = params.WebhookForm.Active
 	w.HTTPMethod = params.HTTPMethod
 	w.Meta = string(meta)
+	w.ExcludeFilesLimit = params.WebhookForm.ExcludeFilesLimit
+	w.ExcludeCommitsLimit = params.WebhookForm.ExcludeCommitsLimit
 
 	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
 	if err != nil {
