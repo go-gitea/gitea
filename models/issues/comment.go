@@ -1168,15 +1168,10 @@ func DeleteComment(ctx context.Context, comment *Comment) (*Comment, error) {
 					return nil, err
 				}
 				if has && reviewComment.Content == "" {
-					if err := reviewComment.LoadAttachments(ctx); err != nil {
+					if _, err := db.GetEngine(ctx).ID(reviewComment.ID).Delete(new(Comment)); err != nil {
 						return nil, err
 					}
-					if len(reviewComment.Attachments) == 0 {
-						if _, err := db.GetEngine(ctx).ID(reviewComment.ID).Delete(new(Comment)); err != nil {
-							return nil, err
-						}
-						deletedReviewComment = &reviewComment
-					}
+					deletedReviewComment = &reviewComment
 				}
 				comment.ReviewID = 0 // reset review ID to 0 for the notification
 			}
