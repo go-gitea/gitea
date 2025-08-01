@@ -927,15 +927,16 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			}
 
 			c := issues_model.Comment{
-				Type:        issues_model.CommentTypeCode,
-				IssueID:     issue.ID,
-				Content:     comment.Content,
-				Line:        int64(line + comment.Position - 1),
-				TreePath:    comment.TreePath,
-				CommitSHA:   comment.CommitID,
-				Patch:       patch,
-				CreatedUnix: timeutil.TimeStamp(comment.CreatedAt.Unix()),
-				UpdatedUnix: timeutil.TimeStamp(comment.UpdatedAt.Unix()),
+				Type:           issues_model.CommentTypeCode,
+				IssueID:        issue.ID,
+				Content:        comment.Content,
+				Line:           int64(line + comment.Position - 1),
+				TreePath:       comment.TreePath,
+				BeforeCommitID: pr.MergeBase,
+				CommitSHA:      comment.CommitID,
+				Patch:          patch,
+				CreatedUnix:    timeutil.TimeStamp(comment.CreatedAt.Unix()),
+				UpdatedUnix:    timeutil.TimeStamp(comment.UpdatedAt.Unix()),
 			}
 
 			if err := g.remapUser(ctx, review, &c); err != nil {
