@@ -226,7 +226,7 @@ func registerRebuildIssueIndexer() {
 
 func registerCleanStorage() {
 	RegisterTaskFatal("cleanup_storage", &BaseConfig{
-		Enabled:    false,
+		Enabled:    true,
 		RunAtStart: false,
 		Schedule:   "@every 1m", // Run every minute to check for deletions
 	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
