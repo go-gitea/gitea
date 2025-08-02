@@ -42,7 +42,7 @@ type ToastOpts = {
 
 type ToastifyElement = HTMLElement & {_giteaToastifyInstance?: Toast };
 
-// See https://github.com/apvarun/toastify-js#api for options
+/** See https://github.com/apvarun/toastify-js#api for options */
 function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast {
   const body = useHtmlBody ? message : htmlEscape(message);
   const parent = document.querySelector('.ui.dimmer.active') ?? document.body;
