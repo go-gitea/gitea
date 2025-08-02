@@ -67,7 +67,7 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiMilestones)
 	assert.Len(t, apiMilestones, 4)
-	assert.Nil(t, apiMilestones[0].Deadline)
+	assert.Nil(t, apiMilestones[3].Deadline)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/milestones/%s", owner.Name, repo.Name, apiMilestones[2].Title)).
 		AddTokenAuth(token)
