@@ -1,0 +1,13 @@
+Inviter:
+  DisplayName: Inviter Display Name
+
+Team:
+  Name: Team name
+
+Organization:
+  DisplayName: Organization Display Name
+
+InviteURL: http://localhost/org/team/invite
+
+Invite:
+  Email: invited@example.com
