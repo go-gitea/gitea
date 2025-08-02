@@ -32,7 +32,7 @@ export default defineComponent({
       locale: {
         filter_changes_by_commit: el.getAttribute('data-filter_changes_by_commit'),
       } as Record<string, string>,
-      merge_base: el.getAttribute('data-merge-base'),
+      mergeBase: el.getAttribute('data-merge-base'),
       commits: [] as Array<Commit>,
       hoverActivated: false,
       lastReviewCommitSha: '',
@@ -190,7 +190,7 @@ export default defineComponent({
         const firstSelected = this.commits.findIndex((x) => x.selected);
         let start: string;
         if (firstSelected === 0) {
-          start = this.merge_base;
+          start = this.mergeBase;
         } else {
           start = this.commits[firstSelected - 1].id;
         }
@@ -199,7 +199,7 @@ export default defineComponent({
         if (start === end) {
           // if the start and end are the same, we show this single commit
           window.location.assign(`${this.issueLink}/commits/${start}${this.queryParams}`);
-        } else if (start === this.merge_base && end === this.commits.at(-1).id) {
+        } else if (start === this.mergeBase && end === this.commits.at(-1).id) {
           // if the first commit is selected and the last commit is selected, we show all commits
           window.location.assign(`${this.issueLink}/files${this.queryParams}`);
         } else {
