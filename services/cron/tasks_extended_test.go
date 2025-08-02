@@ -41,11 +41,11 @@ PROPORTION_TO_CHECK_PER_REPO = 0.1
 
 	_, err = setting.GetCronSettings("gc_lfs", config)
 	assert.NoError(t, err)
-	assert.Equal(t, true, config.Enabled)
-	assert.Equal(t, true, config.RunAtStart)
+	assert.True(t, config.Enabled)
+	assert.True(t, config.RunAtStart)
 	assert.Equal(t, "@every 2h", config.Schedule)
 	assert.Equal(t, 1*time.Hour, config.OlderThan)
 	assert.Equal(t, 7*time.Hour, config.LastUpdatedMoreThanAgo)
 	assert.Equal(t, int64(10), config.NumberToCheckPerRepo)
-	assert.Equal(t, 0.1, config.ProportionToCheckPerRepo)
+	assert.InDelta(t, 0.1, config.ProportionToCheckPerRepo, 0.001)
 }
