@@ -171,16 +171,17 @@ func registerDeleteOldSystemNotices() {
 	})
 }
 
+type GCLFSConfig struct {
+	BaseConfig
+	OlderThan                time.Duration
+	LastUpdatedMoreThanAgo   time.Duration
+	NumberToCheckPerRepo     int64
+	ProportionToCheckPerRepo float64
+}
+
 func registerGCLFS() {
 	if !setting.LFS.StartServer {
 		return
-	}
-	type GCLFSConfig struct {
-		BaseConfig
-		OlderThan                time.Duration
-		LastUpdatedMoreThanAgo   time.Duration
-		NumberToCheckPerRepo     int64
-		ProportionToCheckPerRepo float64
 	}
 
 	RegisterTaskFatal("gc_lfs", &GCLFSConfig{
