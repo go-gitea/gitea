@@ -11,7 +11,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/services/storagecleanup"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -45,9 +44,8 @@ func TestIssue_DeleteIssue(t *testing.T) {
 		ID:     issueIDs[2],
 	}
 
-	toBeCleanedDeletions, err := deleteIssue(db.DefaultContext, issue, true)
+	err = deleteIssue(db.DefaultContext, issue, true)
 	assert.NoError(t, err)
-	storagecleanup.AddDeletionsToCleanQueue(db.DefaultContext, toBeCleanedDeletions)
 	issueIDs, err = issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Len(t, issueIDs, 4)
@@ -57,9 +55,8 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	issue, err = issues_model.GetIssueByID(db.DefaultContext, 4)
 	assert.NoError(t, err)
-	toBeCleanedDeletions, err = deleteIssue(db.DefaultContext, issue, true)
+	err = deleteIssue(db.DefaultContext, issue, true)
 	assert.NoError(t, err)
-	storagecleanup.AddDeletionsToCleanQueue(db.DefaultContext, toBeCleanedDeletions)
 	assert.Len(t, attachments, 2)
 	for i := range attachments {
 		attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, attachments[i].UUID)
@@ -81,9 +78,8 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, left)
 
-	toBeCleanedDeletions, err = deleteIssue(db.DefaultContext, issue2, true)
+	err = deleteIssue(db.DefaultContext, issue2, true)
 	assert.NoError(t, err)
-	storagecleanup.AddDeletionsToCleanQueue(db.DefaultContext, toBeCleanedDeletions)
 	left, err = issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.True(t, left)

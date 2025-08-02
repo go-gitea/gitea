@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
-	"code.gitea.io/gitea/services/storagecleanup"
 )
 
 // ErrInvalidTagName represents a "InvalidTagName" kind of error.
@@ -289,7 +288,6 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 
 	deletedUUIDs := make(container.Set[string])
 	deletedAttachments := make([]*repo_model.Attachment, 0, len(delAttachmentUUIDs))
-	toBeCleanedDeletions := make([]int64, 0, len(delAttachmentUUIDs))
 	if len(delAttachmentUUIDs) > 0 {
 		// Check attachments
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, delAttachmentUUIDs)
@@ -304,12 +302,9 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 			deletedAttachments = append(deletedAttachments, attach)
 		}
 
-		deletions, err := repo_model.DeleteAttachments(ctx, deletedAttachments)
-		if err != nil {
+		if err := repo_model.DeleteAttachments(ctx, deletedAttachments); err != nil {
 			return fmt.Errorf("DeleteAttachments [uuids: %v]: %w", deletedUUIDs.Values(), err)
 		}
-		toBeCleanedDeletions = append(toBeCleanedDeletions, deletions...)
-		// files will be deleted after database transaction is committed successfully
 	}
 
 	if len(editAttachments) > 0 {
@@ -344,8 +339,6 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 
-	storagecleanup.AddDeletionsToCleanQueue(ctx, toBeCleanedDeletions)
-
 	if !rel.IsDraft {
 		if !isTagCreated && !isConvertedFromTag {
 			notify_service.UpdateRelease(gitRepo.Ctx, doer, rel)
@@ -358,7 +351,6 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
 func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *repo_model.Release, doer *user_model.User, delTag bool) error {
-	var toBeCleanedDeletions []int64
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if delTag {
 			protectedTags, err := git_model.GetProtectedTags(ctx, rel.RepoID)
@@ -408,17 +400,13 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 			return fmt.Errorf("LoadAttributes: %w", err)
 		}
 
-		deletions, err := repo_model.DeleteAttachments(ctx, rel.Attachments)
-		if err != nil {
+		if err := repo_model.DeleteAttachments(ctx, rel.Attachments); err != nil {
 			return fmt.Errorf("DeleteAttachments: %w", err)
 		}
-		toBeCleanedDeletions = append(toBeCleanedDeletions, deletions...)
 		return nil
 	}); err != nil {
 		return err
 	}
-
-	storagecleanup.AddDeletionsToCleanQueue(ctx, toBeCleanedDeletions)
 
 	if !rel.IsDraft {
 		notify_service.DeleteRelease(ctx, doer, rel)

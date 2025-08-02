@@ -166,9 +166,9 @@ func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, file
 }
 
 // DeleteAttachments delete the given attachments and add disk files to pending deletion
-func DeleteAttachments(ctx context.Context, attachments []*Attachment) ([]int64, error) {
+func DeleteAttachments(ctx context.Context, attachments []*Attachment) error {
 	if len(attachments) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	ids := make([]int64, 0, len(attachments))
@@ -176,14 +176,13 @@ func DeleteAttachments(ctx context.Context, attachments []*Attachment) ([]int64,
 		ids = append(ids, a.ID)
 	}
 
-	return db.WithTx2(ctx, func(ctx context.Context) ([]int64, error) {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		// delete attachments from database
 		if _, err := db.GetEngine(ctx).Table("attachment").In("id", ids).Delete(); err != nil {
-			return nil, err
+			return err
 		}
 
 		// add disk files to pending deletion table as well
-		var deletionIDs []int64
 		for _, a := range attachments {
 			pendingDeletion := &system_model.StoragePathDeletion{
 				StorageName:  storage.AttachmentStorageName,
@@ -191,12 +190,10 @@ func DeleteAttachments(ctx context.Context, attachments []*Attachment) ([]int64,
 				RelativePath: a.RelativePath(),
 			}
 			if err := db.Insert(ctx, pendingDeletion); err != nil {
-				return nil, fmt.Errorf("insert pending deletion: %w", err)
+				return fmt.Errorf("insert pending deletion: %w", err)
 			}
-
-			deletionIDs = append(deletionIDs, pendingDeletion.ID) // Collect pending deletions
 		}
-		return deletionIDs, nil
+		return nil
 	})
 }
 

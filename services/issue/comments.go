@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
-	"code.gitea.io/gitea/services/storagecleanup"
 )
 
 // CreateRefComment creates a commit reference comment to issue.
@@ -132,33 +131,30 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 }
 
 // deleteComment deletes the comment
-func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAttachments bool) ([]int64, error) {
-	return db.WithTx2(ctx, func(ctx context.Context) ([]int64, error) {
+func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAttachments bool) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		if removeAttachments {
 			// load attachments before deleting the comment
 			if err := comment.LoadAttachments(ctx); err != nil {
-				return nil, err
+				return err
 			}
 		}
 
 		if err := issues_model.DeleteComment(ctx, comment); err != nil {
-			return nil, err
+			return err
 		}
 
 		if removeAttachments {
 			return repo_model.DeleteAttachments(ctx, comment.Attachments)
 		}
-		return nil, nil
+		return nil
 	})
 }
 
 func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
-	deletions, err := deleteComment(ctx, comment, true)
-	if err != nil {
+	if err := deleteComment(ctx, comment, true); err != nil {
 		return err
 	}
-
-	storagecleanup.AddDeletionsToCleanQueue(ctx, deletions)
 
 	notify_service.DeleteComment(ctx, doer, comment)
 

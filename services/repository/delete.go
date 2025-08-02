@@ -30,7 +30,6 @@ import (
 	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
-	"code.gitea.io/gitea/services/storagecleanup"
 
 	"xorm.io/builder"
 )
@@ -78,7 +77,6 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	var needRewriteKeysFile bool
 	var archivePaths []string
 	var lfsPaths []string
-	toBeCleanedDeletions := make([]int64, 0, 20)
 
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		// In case owner is a organization, we have to change repo specific teams
@@ -123,11 +121,9 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 			return err
 		}
 
-		deletions, err := repo_model.DeleteAttachments(ctx, releaseAttachments)
-		if err != nil {
+		if err := repo_model.DeleteAttachments(ctx, releaseAttachments); err != nil {
 			return fmt.Errorf("delete release attachments: %w", err)
 		}
-		toBeCleanedDeletions = append(toBeCleanedDeletions, deletions...)
 
 		if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
 			return err
@@ -197,7 +193,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 
 		// Delete Issues and related objects
 		// attachments will be deleted later with repo_id, so we don't need to delete them here
-		if _, err := issue_service.DeleteIssuesByRepoID(ctx, repoID, false); err != nil {
+		if err := issue_service.DeleteIssuesByRepoID(ctx, repoID, false); err != nil {
 			return err
 		}
 
@@ -277,11 +273,9 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		}).Find(&repoAttachments); err != nil {
 			return err
 		}
-		deletions, err = repo_model.DeleteAttachments(ctx, repoAttachments)
-		if err != nil {
+		if err = repo_model.DeleteAttachments(ctx, repoAttachments); err != nil {
 			return err
 		}
-		toBeCleanedDeletions = append(toBeCleanedDeletions, deletions...)
 
 		// unlink packages linked to this repository
 		return packages_model.UnlinkRepositoryFromAllPackages(ctx, repoID)
@@ -322,8 +316,6 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	for _, lfsObj := range lfsPaths {
 		system_model.RemoveStorageWithNotice(ctx, storage.LFS, "Delete orphaned LFS file", lfsObj)
 	}
-
-	storagecleanup.AddDeletionsToCleanQueue(ctx, toBeCleanedDeletions)
 
 	if len(repo.Avatar) > 0 {
 		if err := storage.RepoAvatars.Delete(repo.CustomAvatarRelativePath()); err != nil {

@@ -17,7 +17,7 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	repo_service "code.gitea.io/gitea/services/repository"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
-	"code.gitea.io/gitea/services/storagecleanup"
+	storage_service "code.gitea.io/gitea/services/storage"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -228,9 +228,9 @@ func registerCleanStorage() {
 	RegisterTaskFatal("cleanup_storage", &BaseConfig{
 		Enabled:    false,
 		RunAtStart: false,
-		Schedule:   "@every 24h",
+		Schedule:   "@every 1m", // Run every minute to check for deletions
 	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return storagecleanup.ScanToBeDeletedFilesOrDir(ctx)
+		return storage_service.ScanToBeDeletedFilesOrDir(ctx)
 	})
 }
 

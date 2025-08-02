@@ -52,7 +52,6 @@ import (
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/repository/archiver"
-	"code.gitea.io/gitea/services/storagecleanup"
 	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/uinotification"
 	"code.gitea.io/gitea/services/webhook"
@@ -175,7 +174,6 @@ func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, actions_service.Init)
 
 	mustInit(repo_service.InitLicenseClassifier)
-	mustInit(storagecleanup.Init)
 
 	// Finally start up the cron
 	cron.NewContext(ctx)

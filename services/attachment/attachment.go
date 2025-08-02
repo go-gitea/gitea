@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context/upload"
-	"code.gitea.io/gitea/services/storagecleanup"
 
 	"github.com/google/uuid"
 )
@@ -69,12 +68,10 @@ func DeleteAttachment(ctx context.Context, a *repo_model.Attachment) error {
 
 // DeleteAttachments deletes the given attachments and optionally the associated files.
 func DeleteAttachments(ctx context.Context, attachments []*repo_model.Attachment) (int, error) {
-	deletions, err := repo_model.DeleteAttachments(ctx, attachments)
+	err := repo_model.DeleteAttachments(ctx, attachments)
 	if err != nil {
 		return 0, err
 	}
 
-	storagecleanup.AddDeletionsToCleanQueue(ctx, deletions)
-
-	return len(deletions), nil
+	return len(attachments), nil
 }
