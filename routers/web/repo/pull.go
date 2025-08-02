@@ -746,7 +746,24 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
 	}
 
-	if !willShowSpecifiedCommit {
+	if willShowSpecifiedCommit {
+		// Attempt to extract parent of endCommit when viewing diff of a specific commit.
+		// Instead of showing the entire diff-tree from the merge base, we only show diff-tree from the commit's parent.
+		// This is mostly for the GetDiffTree() call
+		endCommit, err := gitRepo.GetCommit(endCommitID)
+		if err != nil {
+			ctx.ServerError("GetCommit", err)
+			return
+		}
+		if endCommit.ParentCount() > 0 {
+			endCommitParent, err := endCommit.Parent(0)
+			if err != nil {
+				ctx.ServerError("Parent", err)
+				return
+			}
+			startCommitID = endCommitParent.ID.String()
+		}
+	} else {
 		diffOptions.BeforeCommitID = startCommitID
 	}
 
