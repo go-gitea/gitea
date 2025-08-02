@@ -643,8 +643,17 @@ func ViewPullCommits(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplPullCommits)
 }
 
+func indexCommit(commits []*git.Commit, commitID string) *git.Commit {
+	for i := range commits {
+		if commits[i].ID.String() == commitID {
+			return commits[i]
+		}
+	}
+	return nil
+}
+
 // ViewPullFiles render pull request changed files list page
-func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommit string, willShowSpecifiedCommitRange, willShowSpecifiedCommit bool) {
+func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["PageIsPullList"] = true
 	ctx.Data["PageIsPullFiles"] = true
 
@@ -654,11 +663,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	}
 	pull := issue.PullRequest
 
-	var (
-		startCommitID string
-		endCommitID   string
-		gitRepo       = ctx.Repo.GitRepo
-	)
+	gitRepo := ctx.Repo.GitRepo
 
 	prInfo := preparePullViewPullInfo(ctx, issue)
 	if ctx.Written() {
@@ -668,86 +673,73 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		return
 	}
 
-	// Validate the given commit sha to show (if any passed)
-	if willShowSpecifiedCommit || willShowSpecifiedCommitRange {
-		foundStartCommit := len(specifiedStartCommit) == 0
-		foundEndCommit := len(specifiedEndCommit) == 0
-
-		if !(foundStartCommit && foundEndCommit) {
-			for _, commit := range prInfo.Commits {
-				if commit.ID.String() == specifiedStartCommit {
-					foundStartCommit = true
-				}
-				if commit.ID.String() == specifiedEndCommit {
-					foundEndCommit = true
-				}
-
-				if foundStartCommit && foundEndCommit {
-					break
-				}
-			}
-		}
-
-		if !(foundStartCommit && foundEndCommit) {
-			ctx.NotFound(nil)
-			return
-		}
-	}
-
-	if ctx.Written() {
-		return
-	}
-
 	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return
 	}
 
-	ctx.Data["IsShowingOnlySingleCommit"] = willShowSpecifiedCommit
+	isSingleCommit := beforeCommitID == "" && afterCommitID != ""
+	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
+	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prInfo.MergeBase) && (afterCommitID == "" || afterCommitID == headCommitID)
+	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
 
-	if willShowSpecifiedCommit || willShowSpecifiedCommitRange {
-		if len(specifiedEndCommit) > 0 {
-			endCommitID = specifiedEndCommit
+	if afterCommitID == "" || afterCommitID == headCommitID {
+		afterCommitID = headCommitID
+	}
+	afterCommit := indexCommit(prInfo.Commits, afterCommitID)
+	if afterCommit == nil {
+		ctx.HTTPError(http.StatusBadRequest, "after commit not found in PR commits")
+		return
+	}
+
+	var beforeCommit *git.Commit
+	if !isSingleCommit {
+		if beforeCommitID == "" || beforeCommitID == prInfo.MergeBase {
+			beforeCommitID = prInfo.MergeBase
+			// mergebase commit is not in the list of the pull request commits
+			beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
+			if err != nil {
+				ctx.ServerError("GetCommit", err)
+				return
+			}
 		} else {
-			endCommitID = headCommitID
+			beforeCommit = indexCommit(prInfo.Commits, beforeCommitID)
+			if beforeCommit == nil {
+				ctx.HTTPError(http.StatusBadRequest, "before commit not found in PR commits")
+				return
+			}
 		}
-		if len(specifiedStartCommit) > 0 {
-			startCommitID = specifiedStartCommit
-		} else {
-			startCommitID = prInfo.MergeBase
-		}
-		ctx.Data["IsShowingAllCommits"] = false
 	} else {
-		endCommitID = headCommitID
-		startCommitID = prInfo.MergeBase
-		ctx.Data["IsShowingAllCommits"] = true
+		beforeCommit, err = afterCommit.Parent(0)
+		if err != nil {
+			ctx.ServerError("Parent", err)
+			return
+		}
+		beforeCommitID = beforeCommit.ID.String()
 	}
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-	ctx.Data["AfterCommitID"] = endCommitID
-	ctx.Data["BeforeCommitID"] = startCommitID
-
-	fileOnly := ctx.FormBool("file-only")
+	ctx.Data["MergeBase"] = prInfo.MergeBase
+	ctx.Data["AfterCommitID"] = afterCommitID
+	ctx.Data["BeforeCommitID"] = beforeCommitID
 
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
+	fileOnly := ctx.FormBool("file-only")
 	if fileOnly && (len(files) == 2 || len(files) == 1) {
 		maxLines, maxFiles = -1, -1
 	}
 
 	diffOptions := &gitdiff.DiffOptions{
-		AfterCommitID:      endCommitID,
+		BeforeCommitID:     beforeCommitID,
+		AfterCommitID:      afterCommitID,
 		SkipTo:             ctx.FormString("skip-to"),
 		MaxLines:           maxLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:           maxFiles,
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
-	}
-
-	if !willShowSpecifiedCommit {
-		diffOptions.BeforeCommitID = startCommitID
 	}
 
 	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, diffOptions, files...)
@@ -761,7 +753,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	// as the viewed information is designed to be loaded only on latest PR
 	// diff and if you're signed in.
 	var reviewState *pull_model.ReviewState
-	if ctx.IsSigned && !willShowSpecifiedCommit && !willShowSpecifiedCommitRange {
+	if ctx.IsSigned && isShowAllCommits {
 		reviewState, err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diff, diffOptions)
 		if err != nil {
 			ctx.ServerError("SyncUserSpecificDiff", err)
@@ -769,7 +761,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		}
 	}
 
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx.Repo.GitRepo, startCommitID, endCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx.Repo.GitRepo, beforeCommitID, afterCommitID)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return
@@ -816,7 +808,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 	if !fileOnly {
 		// note: use mergeBase is set to false because we already have the merge base from the pull request info
-		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, startCommitID, endCommitID)
+		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, beforeCommitID, afterCommitID)
 		if err != nil {
 			ctx.ServerError("GetDiffTree", err)
 			return
@@ -836,17 +828,6 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 
-	baseCommit, err := ctx.Repo.GitRepo.GetCommit(startCommitID)
-	if err != nil {
-		ctx.ServerError("GetCommit", err)
-		return
-	}
-	commit, err := gitRepo.GetCommit(endCommitID)
-	if err != nil {
-		ctx.ServerError("GetCommit", err)
-		return
-	}
-
 	if ctx.IsSigned && ctx.Doer != nil {
 		if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
 			ctx.ServerError("CanMarkConversation", err)
@@ -854,7 +835,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		}
 	}
 
-	setCompareContext(ctx, baseCommit, commit, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	setCompareContext(ctx, beforeCommit, afterCommit, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 
 	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
@@ -901,7 +882,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
-	if !willShowSpecifiedCommit && !willShowSpecifiedCommitRange && pull.Flow == issues_model.PullRequestFlowGithub {
+	if isShowAllCommits && pull.Flow == issues_model.PullRequestFlowGithub {
 		if err := pull.LoadHeadRepo(ctx); err != nil {
 			ctx.ServerError("LoadHeadRepo", err)
 			return
@@ -930,19 +911,17 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 }
 
 func ViewPullFilesForSingleCommit(ctx *context.Context) {
-	viewPullFiles(ctx, "", ctx.PathParam("sha"), true, true)
+	// it doesn't support showing files from mergebase to the special commit
+	// otherwise it will be ambiguous
+	viewPullFiles(ctx, "", ctx.PathParam("sha"))
 }
 
 func ViewPullFilesForRange(ctx *context.Context) {
-	viewPullFiles(ctx, ctx.PathParam("shaFrom"), ctx.PathParam("shaTo"), true, false)
-}
-
-func ViewPullFilesStartingFromCommit(ctx *context.Context) {
-	viewPullFiles(ctx, "", ctx.PathParam("sha"), true, false)
+	viewPullFiles(ctx, ctx.PathParam("shaFrom"), ctx.PathParam("shaTo"))
 }
 
 func ViewPullFilesForAllCommitsOfPr(ctx *context.Context) {
-	viewPullFiles(ctx, "", "", false, false)
+	viewPullFiles(ctx, "", "")
 }
 
 // UpdatePullRequest merge PR's baseBranch into headBranch
