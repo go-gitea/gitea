@@ -36,6 +36,10 @@ func TestAPIActionsDeleteRun(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/802", repo.FullName())).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
 	testAPIActionsDeleteRunListArtifacts(t, repo, token, 2)
 	testAPIActionsDeleteRunListTasks(t, repo, token, true)
 	testAPIActionsDeleteRun(t, repo, token, http.StatusNoContent)
