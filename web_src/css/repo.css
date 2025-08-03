@@ -1672,7 +1672,7 @@ tbody.commit-list {
 .diff-file-header .file-link {
   max-width: fit-content;
   display: -webkit-box;
-  -webkit-box-orient: vertical;
+  -webkit-box-orient: vertical; /* stylelint-disable property-no-deprecated -- https://github.com/stylelint/stylelint/issues/8698 */
   -webkit-line-clamp: 2;
   overflow: hidden;
   overflow-wrap: anywhere;
