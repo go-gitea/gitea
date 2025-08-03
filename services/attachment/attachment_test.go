@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	_ "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/system"
@@ -17,6 +16,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
 	storage_service "code.gitea.io/gitea/services/storage"
+
+	_ "code.gitea.io/gitea/models/actions"
 
 	"github.com/stretchr/testify/assert"
 )
