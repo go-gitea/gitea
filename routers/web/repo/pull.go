@@ -556,7 +556,7 @@ func GetPullCommits(ctx *context.Context) {
 	}
 	resp := &pullCommitList{}
 
-	commits, lastReviewCommitSha, err := pull_service.GetPullCommits(ctx, issue)
+	commits, lastReviewCommitSha, err := pull_service.GetPullCommits(ctx, ctx.Repo.GitRepo, ctx.Doer, issue)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
@@ -658,7 +658,16 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prInfo.MergeBase) && (afterCommitID == "" || afterCommitID == headCommitID)
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
 
-	var beforeCommit, afterCommit *git.Commit
+	if afterCommitID == "" || afterCommitID == headCommitID {
+		afterCommitID = headCommitID
+	}
+	afterCommit := indexCommit(prInfo.Commits, afterCommitID)
+	if afterCommit == nil {
+		ctx.HTTPError(http.StatusBadRequest, "after commit not found in PR commits")
+		return
+	}
+
+	var beforeCommit *git.Commit
 	if !isSingleCommit {
 		if beforeCommitID == "" || beforeCommitID == prInfo.MergeBase {
 			beforeCommitID = prInfo.MergeBase
@@ -675,21 +684,10 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 				return
 			}
 		}
-	}
-
-	if afterCommitID == "" || afterCommitID == headCommitID {
-		afterCommitID = headCommitID
-	}
-	afterCommit = indexCommit(prInfo.Commits, afterCommitID)
-	if afterCommit == nil {
-		ctx.HTTPError(http.StatusBadRequest, "after commit not found in PR commits")
-		return
-	}
-
-	if isSingleCommit {
+	} else {
 		beforeCommit, err = afterCommit.Parent(0)
 		if err != nil {
-			ctx.ServerError("GetParentCommit", err)
+			ctx.ServerError("Parent", err)
 			return
 		}
 		beforeCommitID = beforeCommit.ID.String()

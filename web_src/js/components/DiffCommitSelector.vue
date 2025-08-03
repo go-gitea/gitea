@@ -32,7 +32,7 @@ export default defineComponent({
       locale: {
         filter_changes_by_commit: el.getAttribute('data-filter_changes_by_commit'),
       } as Record<string, string>,
-      merge_base: el.getAttribute('data-merge-base'),
+      mergeBase: el.getAttribute('data-merge-base'),
       commits: [] as Array<Commit>,
       hoverActivated: false,
       lastReviewCommitSha: '',
@@ -177,32 +177,38 @@ export default defineComponent({
       }
     },
     /**
-     * When a commit is clicked with shift this enables the range
-     * selection. Second click (with shift) defines the end of the
-     * range. This opens the diff of this range
+     * When a commit is clicked while holding Shift, it enables range selection.
+     * - The range selection is a half-open, half-closed range, meaning it excludes the start commit but includes the end commit.
+     * - The start of the commit range is always the previous commit of the first clicked commit.
+     * - If the first commit in the list is clicked, the mergeBase will be used as the start of the range instead.
+     * - The second Shift-click defines the end of the range.
+     * - Once both are selected, the diff view for the selected commit range will open.
      */
     commitClickedShift(commit: Commit) {
       this.hoverActivated = !this.hoverActivated;
       commit.selected = true;
       // Second click -> determine our range and open links accordingly
       if (!this.hoverActivated) {
+        // since at least one commit is selected, we can determine the range
         // find all selected commits and generate a link
         const firstSelected = this.commits.findIndex((x) => x.selected);
-        let start: string;
+        const lastSelected = this.commits.findLastIndex((x) => x.selected);
+        let beforeCommitID: string;
         if (firstSelected === 0) {
-          start = this.merge_base;
+          beforeCommitID = this.mergeBase;
         } else {
-          start = this.commits[firstSelected - 1].id;
+          beforeCommitID = this.commits[firstSelected - 1].id;
         }
-        const end = this.commits.findLast((x) => x.selected).id;
-        if (start === end) {
+        const afterCommitID = this.commits[lastSelected].id;
+
+        if (firstSelected === lastSelected) {
           // if the start and end are the same, we show this single commit
-          window.location.assign(`${this.issueLink}/commits/${start}${this.queryParams}`);
-        } else if (start === this.merge_base && end === this.commits.at(-1).id) {
+          window.location.assign(`${this.issueLink}/commits/${afterCommitID}${this.queryParams}`);
+        } else if (beforeCommitID === this.mergeBase && afterCommitID === this.commits.at(-1).id) {
           // if the first commit is selected and the last commit is selected, we show all commits
           window.location.assign(`${this.issueLink}/files${this.queryParams}`);
         } else {
-          window.location.assign(`${this.issueLink}/files/${start}..${end}${this.queryParams}`);
+          window.location.assign(`${this.issueLink}/files/${beforeCommitID}..${afterCommitID}${this.queryParams}`);
         }
       }
     },
