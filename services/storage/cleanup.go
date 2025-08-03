@@ -58,6 +58,7 @@ func ScanToBeDeletedFilesOrDir(ctx context.Context) error {
 	lastID := int64(0)
 	for {
 		if err := db.GetEngine(ctx).
+			Table("storage_path_deletion").
 			Select("id").
 			Where("id > ?", lastID).
 			Asc("id").

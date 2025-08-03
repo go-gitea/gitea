@@ -8,22 +8,18 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
+	_ "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
-
-	_ "code.gitea.io/gitea/models/actions"
+	storage_service "code.gitea.io/gitea/services/storage"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestMain(m *testing.M) {
-	unittest.MainTest(m)
-}
 
 func TestUploadAttachment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
@@ -59,16 +55,28 @@ func TestDeleteAttachments(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, attachment8.Size, fileInfo.Size())
 
-	err = DeleteAttachment(db.DefaultContext, attachment8)
+	deletionsTotal, err := db.Count[system.StoragePathDeletion](t.Context(), db.ListOptionsAll)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), deletionsTotal)
+
+	err = DeleteAttachment(t.Context(), attachment8)
 	assert.NoError(t, err)
 
-	attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, attachment8.UUID)
+	attachment, err := repo_model.GetAttachmentByUUID(t.Context(), attachment8.UUID)
 	assert.Error(t, err)
 	assert.True(t, repo_model.IsErrAttachmentNotExist(err))
 	assert.Nil(t, attachment)
 
-	// allow the queue to process the deletion
-	time.Sleep(1 * time.Second)
+	deletions, err := db.Find[system.StoragePathDeletion](t.Context(), db.ListOptionsAll)
+	assert.NoError(t, err)
+	assert.Len(t, deletions, int(deletionsTotal)+1)
+	assert.Equal(t, attachment8.RelativePath(), deletions[deletionsTotal].RelativePath)
+
+	_, err = storage.Attachments.Stat(attachment8.RelativePath())
+	assert.NoError(t, err)
+
+	err = storage_service.ScanToBeDeletedFilesOrDir(t.Context())
+	assert.NoError(t, err)
 
 	_, err = storage.Attachments.Stat(attachment8.RelativePath())
 	assert.Error(t, err)
