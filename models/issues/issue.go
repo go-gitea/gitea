@@ -443,28 +443,29 @@ func (issue *Issue) PatchURL() string {
 	return ""
 }
 
-/* the logic should be kept the same as getIssueIcon/getIssueColor in TS code */
+// IconHTML returns the HTML for the issue icon.
+// the logic should be kept the same as getIssueIcon/getIssueColor in TS code
 func (issue *Issue) IconHTML(ctx context.Context) template.HTML {
-	if issue.IsPull {
-		if issue.PullRequest == nil { // pull request should be loaded before calling this function
-			return template.HTML("No PullRequest")
-		}
+	if !issue.IsPull {
 		if issue.IsClosed {
-			if issue.PullRequest.HasMerged {
-				return svg.RenderHTML("octicon-git-merge", 16, "text purple")
-			}
-			return svg.RenderHTML("octicon-git-pull-request-closed", 16, "text red")
+			return svg.RenderHTML("octicon-issue-closed", 16, "text red")
 		}
-		if issue.PullRequest.IsWorkInProgress(ctx) {
-			return svg.RenderHTML("octicon-git-pull-request-draft", 16, "text grey")
-		}
-		return svg.RenderHTML("octicon-git-pull-request", 16, "text green")
+		return svg.RenderHTML("octicon-issue-opened", 16, "text green")
 	}
 
-	if issue.IsClosed {
-		return svg.RenderHTML("octicon-issue-closed", 16, "text red")
+	switch {
+	case issue.PullRequest == nil: // pull request should be loaded before calling this function
+		return template.HTML("No PullRequest")
+	case issue.IsClosed:
+		if issue.PullRequest.HasMerged {
+			return svg.RenderHTML("octicon-git-merge", 16, "text purple")
+		}
+		return svg.RenderHTML("octicon-git-pull-request-closed", 16, "text red")
+	case issue.PullRequest.IsWorkInProgress(ctx):
+		return svg.RenderHTML("octicon-git-pull-request-draft", 16, "text grey")
+	default:
+		return svg.RenderHTML("octicon-git-pull-request", 16, "text green")
 	}
-	return svg.RenderHTML("octicon-issue-opened", 16, "text green")
 }
 
 // State returns string representation of issue status.
