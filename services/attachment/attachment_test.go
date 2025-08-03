@@ -21,6 +21,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestMain(m *testing.M) {
+	unittest.MainTest(m)
+}
+
 func TestUploadAttachment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
