@@ -1249,7 +1249,7 @@ func GetWorkflowJob(ctx *context.APIContext) {
 	}
 
 	if !has || job.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIError(http.StatusNotFound, util.ErrNotExist)
+		ctx.APIErrorNotFound(util.ErrNotExist)
 		return
 	}
 
