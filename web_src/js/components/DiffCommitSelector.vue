@@ -178,6 +178,7 @@ export default defineComponent({
     },
     /**
      * When a commit is clicked while holding Shift, it enables range selection.
+     * - The range selection is a half-open, half-closed range, meaning it excludes the start commit but includes the end commit.
      * - The start of the commit range is always the previous commit of the first clicked commit.
      * - If the first commit in the list is clicked, the mergeBase will be used as the start of the range instead.
      * - The second Shift-click defines the end of the range.
