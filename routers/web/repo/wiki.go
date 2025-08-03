@@ -474,7 +474,12 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.Repository.HasWiki() {
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, ctx.Repo.Repository.WikiStorageRepo())
+	if err != nil {
+		ctx.ServerError("IsWikiRepositoryExist", err)
+		return
+	}
+	if !hasWiki {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
 		ctx.HTML(http.StatusOK, tplWikiStart)
 		return
@@ -510,7 +515,12 @@ func Wiki(ctx *context.Context) {
 func WikiRevision(ctx *context.Context) {
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
-	if !ctx.Repo.Repository.HasWiki() {
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, ctx.Repo.Repository.WikiStorageRepo())
+	if err != nil {
+		ctx.ServerError("IsWikiRepositoryExist", err)
+		return
+	}
+	if !hasWiki {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
 		ctx.HTML(http.StatusOK, tplWikiStart)
 		return
@@ -540,7 +550,12 @@ func WikiRevision(ctx *context.Context) {
 
 // WikiPages render wiki pages list page
 func WikiPages(ctx *context.Context) {
-	if !ctx.Repo.Repository.HasWiki() {
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, ctx.Repo.Repository.WikiStorageRepo())
+	if err != nil {
+		ctx.ServerError("IsWikiRepositoryExist", err)
+		return
+	}
+	if !hasWiki {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
 		return
 	}
@@ -648,7 +663,12 @@ func WikiRaw(ctx *context.Context) {
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 
-	if !ctx.Repo.Repository.HasWiki() {
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, ctx.Repo.Repository.WikiStorageRepo())
+	if err != nil {
+		ctx.ServerError("IsWikiRepositoryExist", err)
+		return
+	}
+	if !hasWiki {
 		ctx.Data["title"] = "Home"
 	}
 	if ctx.FormString("title") != "" {
@@ -701,7 +721,12 @@ func NewWikiPost(ctx *context.Context) {
 func EditWiki(ctx *context.Context) {
 	ctx.Data["PageIsWikiEdit"] = true
 
-	if !ctx.Repo.Repository.HasWiki() {
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, ctx.Repo.Repository.WikiStorageRepo())
+	if err != nil {
+		ctx.ServerError("IsWikiRepositoryExist", err)
+		return
+	}
+	if !hasWiki {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
 		return
 	}
