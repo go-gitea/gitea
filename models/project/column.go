@@ -157,42 +157,52 @@ func NewColumn(ctx context.Context, column *Column) error {
 // DeleteColumnByID removes all issues references to the project column.
 func DeleteColumnByID(ctx context.Context, columnID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		return deleteColumnByID(ctx, columnID)
-	})
-}
+		column, err := GetColumn(ctx, columnID)
+		if err != nil {
+			if IsErrProjectColumnNotExist(err) {
+				return nil
+			}
 
-func deleteColumnByID(ctx context.Context, columnID int64) error {
-	column, err := GetColumn(ctx, columnID)
-	if err != nil {
-		if IsErrProjectColumnNotExist(err) {
-			return nil
+			return err
 		}
 
-		return err
-	}
+		if column.Default {
+			return errors.New("deleteColumnByID: cannot delete default column")
+		}
 
-	if column.Default {
-		return errors.New("deleteColumnByID: cannot delete default column")
-	}
+		var numColumns int64
+		if _, err := db.GetEngine(ctx).Table("project_board").
+			Where("project_id=?", column.ProjectID).Count(&numColumns); err != nil {
+			return err
+		}
 
-	// move all issues to the default column
-	project, err := GetProjectByID(ctx, column.ProjectID)
-	if err != nil {
-		return err
-	}
-	defaultColumn, err := project.MustDefaultColumn(ctx)
-	if err != nil {
-		return err
-	}
+		// last column with issues cannot be deleted
+		if column.NumIssues > 0 && numColumns <= 1 {
+			return errors.New("deleteColumnByID: cannot delete last column with issues")
+		}
 
-	if err = column.moveIssuesToAnotherColumn(ctx, defaultColumn); err != nil {
-		return err
-	}
+		if column.NumIssues > 0 {
+			project, err := GetProjectByID(ctx, column.ProjectID)
+			if err != nil {
+				return err
+			}
 
-	if _, err := db.GetEngine(ctx).ID(column.ID).NoAutoCondition().Delete(column); err != nil {
-		return err
-	}
-	return nil
+			defaultColumn, err := project.getDefaultColumn(ctx)
+			if err != nil {
+				return err
+			}
+
+			// move all issues to the default column
+			if err = column.moveIssuesToAnotherColumn(ctx, defaultColumn); err != nil {
+				return err
+			}
+		}
+
+		if _, err := db.GetEngine(ctx).ID(column.ID).NoAutoCondition().Delete(column); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func deleteColumnByProjectID(ctx context.Context, projectID int64) error {
@@ -261,6 +271,20 @@ func (p *Project) getDefaultColumn(ctx context.Context) (*Column, error) {
 	return nil, ErrProjectColumnNotExist{ColumnID: 0}
 }
 
+func (p *Project) createDefaultColumn(ctx context.Context) (*Column, error) {
+	// create a default column if none is found
+	column := Column{
+		ProjectID: p.ID,
+		Default:   true,
+		Title:     "Uncategorized",
+		CreatorID: p.CreatorID,
+	}
+	if _, err := db.GetEngine(ctx).Insert(&column); err != nil {
+		return nil, err
+	}
+	return &column, nil
+}
+
 // MustDefaultColumn returns the default column for a project.
 // If one exists, it is returned
 // If none exists, the first column will be elevated to the default column of this project
@@ -286,17 +310,7 @@ func (p *Project) MustDefaultColumn(ctx context.Context) (*Column, error) {
 		return &column, nil
 	}
 
-	// create a default column if none is found
-	column = Column{
-		ProjectID: p.ID,
-		Default:   true,
-		Title:     "Uncategorized",
-		CreatorID: p.CreatorID,
-	}
-	if _, err := db.GetEngine(ctx).Insert(&column); err != nil {
-		return nil, err
-	}
-	return &column, nil
+	return p.createDefaultColumn(ctx)
 }
 
 // SetDefaultColumn represents a column for issues not assigned to one
