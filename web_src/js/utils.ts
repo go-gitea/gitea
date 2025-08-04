@@ -2,19 +2,19 @@ import {decode, encode} from 'uint8-to-base64';
 import type {IssuePageInfo, IssuePathInfo, RepoOwnerPathInfo} from './types.ts';
 import {toggleElemClass, toggleElem} from './utils/dom.ts';
 
-// transform /path/to/file.ext to /path/to
+/** transform /path/to/file.ext to /path/to */
 export function dirname(path: string): string {
   const lastSlashIndex = path.lastIndexOf('/');
   return lastSlashIndex < 0 ? '' : path.substring(0, lastSlashIndex);
 }
 
-// transform /path/to/file.ext to file.ext
+/** transform /path/to/file.ext to file.ext */
 export function basename(path: string): string {
   const lastSlashIndex = path.lastIndexOf('/');
   return lastSlashIndex < 0 ? path : path.substring(lastSlashIndex + 1);
 }
 
-// transform /path/to/file.ext to .ext
+/** transform /path/to/file.ext to .ext */
 export function extname(path: string): string {
   const lastSlashIndex = path.lastIndexOf('/');
   const lastPointIndex = path.lastIndexOf('.');
@@ -22,18 +22,18 @@ export function extname(path: string): string {
   return lastPointIndex < 0 ? '' : path.substring(lastPointIndex);
 }
 
-// test whether a variable is an object
+/** test whether a variable is an object */
 export function isObject(obj: any): boolean {
   return Object.prototype.toString.call(obj) === '[object Object]';
 }
 
-// returns whether a dark theme is enabled
+/** returns whether a dark theme is enabled */
 export function isDarkTheme(): boolean {
   const style = window.getComputedStyle(document.documentElement);
   return style.getPropertyValue('--is-dark-theme').trim().toLowerCase() === 'true';
 }
 
-// strip <tags> from a string
+/** strip <tags> from a string */
 export function stripTags(text: string): string {
   return text.replace(/<[^>]*>?/g, '');
 }
@@ -62,27 +62,27 @@ export function parseIssuePageInfo(): IssuePageInfo {
   };
 }
 
-// parse a URL, either relative '/path' or absolute 'https://localhost/path'
+/** parse a URL, either relative '/path' or absolute 'https://localhost/path' */
 export function parseUrl(str: string): URL {
   return new URL(str, str.startsWith('http') ? undefined : window.location.origin);
 }
 
-// return current locale chosen by user
+/** return current locale chosen by user */
 export function getCurrentLocale(): string {
   return document.documentElement.lang;
 }
 
-// given a month (0-11), returns it in the documents language
+/** given a month (0-11), returns it in the documents language */
 export function translateMonth(month: number) {
   return new Date(Date.UTC(2022, month, 12)).toLocaleString(getCurrentLocale(), {month: 'short', timeZone: 'UTC'});
 }
 
-// given a weekday (0-6, Sunday to Saturday), returns it in the documents language
+/** given a weekday (0-6, Sunday to Saturday), returns it in the documents language */
 export function translateDay(day: number) {
   return new Date(Date.UTC(2022, 7, day)).toLocaleString(getCurrentLocale(), {weekday: 'short', timeZone: 'UTC'});
 }
 
-// convert a Blob to a DataURI
+/** convert a Blob to a DataURI */
 export function blobToDataURI(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     try {
@@ -100,7 +100,7 @@ export function blobToDataURI(blob: Blob): Promise<string> {
   });
 }
 
-// convert image Blob to another mime-type format.
+/** convert image Blob to another mime-type format. */
 export function convertImage(blob: Blob, mime: string): Promise<Blob> {
   return new Promise(async (resolve, reject) => {
     try {
@@ -143,7 +143,7 @@ export function toAbsoluteUrl(url: string): string {
   return `${window.location.origin}${url}`;
 }
 
-// Encode an Uint8Array into a URLEncoded base64 string.
+/** Encode an Uint8Array into a URLEncoded base64 string. */
 export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
   return encode(uint8Array)
     .replace(/\+/g, '-')
@@ -151,7 +151,7 @@ export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
     .replace(/=/g, '');
 }
 
-// Decode a URLEncoded base64 to an Uint8Array.
+/** Decode a URLEncoded base64 to an Uint8Array. */
 export function decodeURLEncodedBase64(base64url: string): Uint8Array {
   return decode(base64url
     .replace(/_/g, '/')
