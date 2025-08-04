@@ -19,7 +19,7 @@ import (
 	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
-// create or update one secret of the user scope
+// CreateOrUpdateSecret create or update one secret in a user scope
 func CreateOrUpdateSecret(ctx *context.APIContext) {
 	// swagger:operation PUT /user/actions/secrets/{secretname} user updateUserSecret
 	// ---
@@ -40,9 +40,9 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/CreateOrUpdateSecretOption"
 	// responses:
 	//   "201":
-	//     description: response when creating a secret
+	//     description: secret created
 	//   "204":
-	//     description: response when updating a secret
+	//     description: secret updated
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -69,7 +69,7 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 	}
 }
 
-// DeleteSecret delete one secret of the user scope
+// DeleteSecret delete one secret in a user scope
 func DeleteSecret(ctx *context.APIContext) {
 	// swagger:operation DELETE /user/actions/secrets/{secretname} user deleteUserSecret
 	// ---
@@ -86,7 +86,7 @@ func DeleteSecret(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "204":
-	//     description: delete one secret of the user
+	//     description: secret deleted
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":

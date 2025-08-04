@@ -287,6 +287,84 @@
         }
       }
     },
+    "/admin/actions/secrets/{secretname}": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create or Update a secret value in instance scope",
+        "operationId": "updateAdminSecret",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the secret",
+            "name": "secretname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateOrUpdateSecretOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "secret created"
+          },
+          "204": {
+            "description": "secret updated"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete a secret in instance scope",
+        "operationId": "deleteAdminSecret",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the secret",
+            "name": "secretname",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "secret deleted"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/admin/cron": {
       "get": {
         "produces": [
@@ -2270,10 +2348,10 @@
         ],
         "responses": {
           "201": {
-            "description": "response when creating a secret"
+            "description": "secret created"
           },
           "204": {
-            "description": "response when updating a secret"
+            "description": "secret updated"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -2313,7 +2391,7 @@
         ],
         "responses": {
           "204": {
-            "description": "delete one secret of the organization"
+            "description": "secret deleted"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5475,10 +5553,10 @@
         ],
         "responses": {
           "201": {
-            "description": "response when creating a secret"
+            "description": "secret created"
           },
           "204": {
-            "description": "response when updating a secret"
+            "description": "secret updated"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5525,7 +5603,7 @@
         ],
         "responses": {
           "204": {
-            "description": "delete one secret of the repository"
+            "description": "secret deleted"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -18429,10 +18507,10 @@
         ],
         "responses": {
           "201": {
-            "description": "response when creating a secret"
+            "description": "secret created"
           },
           "204": {
-            "description": "response when updating a secret"
+            "description": "secret updated"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -18465,7 +18543,7 @@
         ],
         "responses": {
           "204": {
-            "description": "delete one secret of the user"
+            "description": "secret deleted"
           },
           "400": {
             "$ref": "#/responses/error"
