@@ -117,10 +117,7 @@ function showLineButton() {
 
   // Hide menu when clicking menu items
   menu.addEventListener('click', () => {
-    const tippyInstance = btn._tippy;
-    if (tippyInstance) {
-      tippyInstance.hide();
-    }
+    btn._tippy?.hide();
   });
 }
 
