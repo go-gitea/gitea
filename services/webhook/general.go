@@ -409,6 +409,19 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		return nil, err
 	}
 
+	// Convert payload optimization config to map
+	payloadOptConfig := w.GetPayloadOptimizationConfig()
+	payloadOptimization := map[string]any{
+		"files": map[string]any{
+			"enable": payloadOptConfig.Files.Enable,
+			"limit":  payloadOptConfig.Files.Limit,
+		},
+		"commits": map[string]any{
+			"enable": payloadOptConfig.Commits.Enable,
+			"limit":  payloadOptConfig.Commits.Limit,
+		},
+	}
+
 	return &api.Hook{
 		ID:                  w.ID,
 		Type:                w.Type,
@@ -417,8 +430,7 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		Config:              config,
 		Events:              w.EventsArray(),
 		AuthorizationHeader: authorizationHeader,
-		ExcludeFilesLimit:   w.ExcludeFilesLimit,
-		ExcludeCommitsLimit: w.ExcludeCommitsLimit,
+		PayloadOptimization: payloadOptimization,
 		Updated:             w.UpdatedUnix.AsTime(),
 		Created:             w.CreatedUnix.AsTime(),
 		BranchFilter:        w.BranchFilter,

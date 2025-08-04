@@ -232,20 +232,35 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 	}
 
 	w := &webhook.Webhook{
-		RepoID:              orCtx.RepoID,
-		URL:                 params.URL,
-		HTTPMethod:          params.HTTPMethod,
-		ContentType:         params.ContentType,
-		Secret:              params.WebhookForm.Secret,
-		HookEvent:           ParseHookEvent(params.WebhookForm),
-		IsActive:            params.WebhookForm.Active,
-		Type:                params.Type,
-		Meta:                string(meta),
-		OwnerID:             orCtx.OwnerID,
-		IsSystemWebhook:     orCtx.IsSystemWebhook,
-		ExcludeFilesLimit:   params.WebhookForm.ExcludeFilesLimit,
-		ExcludeCommitsLimit: params.WebhookForm.ExcludeCommitsLimit,
+		RepoID:          orCtx.RepoID,
+		URL:             params.URL,
+		HTTPMethod:      params.HTTPMethod,
+		ContentType:     params.ContentType,
+		Secret:          params.WebhookForm.Secret,
+		HookEvent:       ParseHookEvent(params.WebhookForm),
+		IsActive:        params.WebhookForm.Active,
+		Type:            params.Type,
+		Meta:            string(meta),
+		OwnerID:         orCtx.OwnerID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
+
+	// Set payload optimization config
+	payloadOptConfig := &webhook.PayloadOptimizationConfig{
+		Files: &webhook.PayloadOptimizationItem{
+			Enable: params.WebhookForm.PayloadOptimizationFilesEnable,
+			Limit:  params.WebhookForm.PayloadOptimizationFilesLimit,
+		},
+		Commits: &webhook.PayloadOptimizationItem{
+			Enable: params.WebhookForm.PayloadOptimizationCommitsEnable,
+			Limit:  params.WebhookForm.PayloadOptimizationCommitsLimit,
+		},
+	}
+	if err := w.SetPayloadOptimizationConfig(payloadOptConfig); err != nil {
+		ctx.ServerError("SetPayloadOptimizationConfig", err)
+		return
+	}
+
 	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
 	if err != nil {
 		ctx.ServerError("SetHeaderAuthorization", err)
@@ -296,8 +311,22 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	w.IsActive = params.WebhookForm.Active
 	w.HTTPMethod = params.HTTPMethod
 	w.Meta = string(meta)
-	w.ExcludeFilesLimit = params.WebhookForm.ExcludeFilesLimit
-	w.ExcludeCommitsLimit = params.WebhookForm.ExcludeCommitsLimit
+
+	// Set payload optimization config
+	payloadOptConfig := &webhook.PayloadOptimizationConfig{
+		Files: &webhook.PayloadOptimizationItem{
+			Enable: params.WebhookForm.PayloadOptimizationFilesEnable,
+			Limit:  params.WebhookForm.PayloadOptimizationFilesLimit,
+		},
+		Commits: &webhook.PayloadOptimizationItem{
+			Enable: params.WebhookForm.PayloadOptimizationCommitsEnable,
+			Limit:  params.WebhookForm.PayloadOptimizationCommitsLimit,
+		},
+	}
+	if err := w.SetPayloadOptimizationConfig(payloadOptConfig); err != nil {
+		ctx.ServerError("SetPayloadOptimizationConfig", err)
+		return
+	}
 
 	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
 	if err != nil {

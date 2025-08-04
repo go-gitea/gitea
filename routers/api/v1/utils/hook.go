@@ -21,6 +21,37 @@ import (
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
+// getBoolFromMap extracts a boolean value from a map with a default fallback
+//
+//nolint:unparam // defaultValue is needed for generic helper function
+func getBoolFromMap(m map[string]any, defaultValue bool) bool {
+	if val, ok := m["enable"]; ok {
+		if boolVal, ok := val.(bool); ok {
+			return boolVal
+		}
+	}
+	return defaultValue
+}
+
+// getIntFromMap extracts an integer value from a map with a default fallback
+//
+//nolint:unparam // defaultValue is needed for generic helper function
+func getIntFromMap(m map[string]any, defaultValue int) int {
+	if val, ok := m["limit"]; ok {
+		switch v := val.(type) {
+		case int:
+			return v
+		case float64:
+			return int(v)
+		case string:
+			if intVal, err := strconv.Atoi(v); err == nil {
+				return intVal
+			}
+		}
+	}
+	return defaultValue
+}
+
 // ListOwnerHooks lists the webhooks of the provided owner
 func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
 	opts := &webhook.ListWebhookOptions{
@@ -224,11 +255,40 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 			HookEvents:   updateHookEvents(form.Events),
 			BranchFilter: form.BranchFilter,
 		},
-		IsActive:            form.Active,
-		Type:                form.Type,
-		ExcludeFilesLimit:   form.ExcludeFilesLimit,
-		ExcludeCommitsLimit: form.ExcludeCommitsLimit,
+		IsActive: form.Active,
+		Type:     form.Type,
 	}
+
+	// Set payload optimization config
+	if form.PayloadOptimization != nil {
+		payloadOptConfig := &webhook.PayloadOptimizationConfig{}
+
+		// Parse files config
+		if filesConfig, ok := form.PayloadOptimization["files"].(map[string]any); ok {
+			payloadOptConfig.Files = &webhook.PayloadOptimizationItem{
+				Enable: getBoolFromMap(filesConfig, false),
+				Limit:  getIntFromMap(filesConfig, 0),
+			}
+		} else {
+			payloadOptConfig.Files = &webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
+		}
+
+		// Parse commits config
+		if commitsConfig, ok := form.PayloadOptimization["commits"].(map[string]any); ok {
+			payloadOptConfig.Commits = &webhook.PayloadOptimizationItem{
+				Enable: getBoolFromMap(commitsConfig, false),
+				Limit:  getIntFromMap(commitsConfig, 0),
+			}
+		} else {
+			payloadOptConfig.Commits = &webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
+		}
+
+		if err := w.SetPayloadOptimizationConfig(payloadOptConfig); err != nil {
+			ctx.APIErrorInternal(err)
+			return nil, false
+		}
+	}
+
 	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -393,12 +453,34 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 		w.IsActive = *form.Active
 	}
 
-	if form.ExcludeFilesLimit != nil {
-		w.ExcludeFilesLimit = *form.ExcludeFilesLimit
-	}
+	// Update payload optimization config
+	if form.PayloadOptimization != nil {
+		payloadOptConfig := &webhook.PayloadOptimizationConfig{}
 
-	if form.ExcludeCommitsLimit != nil {
-		w.ExcludeCommitsLimit = *form.ExcludeCommitsLimit
+		// Parse files config
+		if filesConfig, ok := (*form.PayloadOptimization)["files"].(map[string]any); ok {
+			payloadOptConfig.Files = &webhook.PayloadOptimizationItem{
+				Enable: getBoolFromMap(filesConfig, false),
+				Limit:  getIntFromMap(filesConfig, 0),
+			}
+		} else {
+			payloadOptConfig.Files = &webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
+		}
+
+		// Parse commits config
+		if commitsConfig, ok := (*form.PayloadOptimization)["commits"].(map[string]any); ok {
+			payloadOptConfig.Commits = &webhook.PayloadOptimizationItem{
+				Enable: getBoolFromMap(commitsConfig, false),
+				Limit:  getIntFromMap(commitsConfig, 0),
+			}
+		} else {
+			payloadOptConfig.Commits = &webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
+		}
+
+		if err := w.SetPayloadOptimizationConfig(payloadOptConfig); err != nil {
+			ctx.APIErrorInternal(err)
+			return false
+		}
 	}
 
 	if err := webhook.UpdateWebhook(ctx, w); err != nil {

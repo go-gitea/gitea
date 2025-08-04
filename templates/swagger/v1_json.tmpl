@@ -22818,6 +22818,12 @@
           },
           "x-go-name": "Events"
         },
+        "payload_optimization": {
+          "description": "Payload size optimization options",
+          "type": "object",
+          "additionalProperties": {},
+          "x-go-name": "PayloadOptimization"
+        },
         "type": {
           "type": "string",
           "enum": [
@@ -23979,6 +23985,12 @@
             "type": "string"
           },
           "x-go-name": "Events"
+        },
+        "payload_optimization": {
+          "description": "Payload size optimization options",
+          "type": "object",
+          "additionalProperties": {},
+          "x-go-name": "PayloadOptimization"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -25249,6 +25261,12 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "payload_optimization": {
+          "description": "PayloadOptimization configuration for webhook payload optimization",
+          "type": "object",
+          "additionalProperties": {},
+          "x-go-name": "PayloadOptimization"
         },
         "type": {
           "type": "string",

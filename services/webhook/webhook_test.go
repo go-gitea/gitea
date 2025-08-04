@@ -95,40 +95,32 @@ func TestWebhookUserMail(t *testing.T) {
 func TestWebhookPayloadOptimization(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	var optimizedCommits []*api.PayloadCommit
-	var optimizedHeadCommit *api.PayloadCommit
-
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	// Clean up all webhooks for this repo to avoid interference
-	webhooks, err := db.Find[webhook_model.Webhook](db.DefaultContext, webhook_model.ListWebhookOptions{RepoID: repo.ID})
-	assert.NoError(t, err)
-	for _, wh := range webhooks {
-		err = webhook_model.DeleteWebhookByID(db.DefaultContext, wh.ID)
-		assert.NoError(t, err)
-	}
-
-	// Case: 0 (no trimming)
+	// Create test webhook
 	webhook := &webhook_model.Webhook{
-		RepoID:              repo.ID,
-		URL:                 "http://example.com/webhook",
-		HTTPMethod:          "POST",
-		ContentType:         webhook_model.ContentTypeJSON,
-		Secret:              "secret",
-		IsActive:            true,
-		Type:                webhook_module.GITEA,
-		ExcludeFilesLimit:   0,
-		ExcludeCommitsLimit: 0,
+		RepoID:      repo.ID,
+		URL:         "http://example.com/webhook",
+		HTTPMethod:  "POST",
+		ContentType: webhook_model.ContentTypeJSON,
+		Secret:      "secret",
+		IsActive:    true,
+		Type:        webhook_module.GITEA,
 		HookEvent: &webhook_module.HookEvent{
 			PushOnly: true,
 		},
 	}
 
-	err = webhook.UpdateEvent()
+	// Test case 1: No optimization enabled
+	webhook.SetPayloadOptimizationConfig(&webhook_model.PayloadOptimizationConfig{
+		Files:   &webhook_model.PayloadOptimizationItem{Enable: false, Limit: 0},
+		Commits: &webhook_model.PayloadOptimizationItem{Enable: false, Limit: 0},
+	})
+
+	err := webhook.UpdateEvent()
 	assert.NoError(t, err)
 	err = webhook_model.CreateWebhook(db.DefaultContext, webhook)
 	assert.NoError(t, err)
-	assert.NotZero(t, webhook.ID)
 
 	apiCommits := []*api.PayloadCommit{
 		{
@@ -153,7 +145,9 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 		Removed:  []string{},
 		Modified: []string{"file1.txt"},
 	}
-	optimizedCommits, optimizedHeadCommit = (&webhookNotifier{}).applyWebhookPayloadOptimizations(db.DefaultContext, repo, apiCommits, apiHeadCommit)
+
+	// Should not modify anything when optimization is disabled
+	optimizedCommits, optimizedHeadCommit := (&webhookNotifier{}).applyWebhookPayloadOptimizations(db.DefaultContext, repo, apiCommits, apiHeadCommit)
 	if assert.NotNil(t, optimizedCommits) && len(optimizedCommits) == 2 {
 		assert.Equal(t, []string{"file1.txt", "file2.txt"}, optimizedCommits[0].Added)
 		assert.Equal(t, []string{"oldfile.txt"}, optimizedCommits[0].Removed)
@@ -168,11 +162,14 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 		assert.Equal(t, []string{"file1.txt"}, optimizedHeadCommit.Modified)
 	}
 
-	// Case: -1 (trim all)
-	webhook.ExcludeFilesLimit = -1
-	webhook.ExcludeCommitsLimit = -1
+	// Test case 2: Files optimization enabled, limit = 0 (trim all)
+	webhook.SetPayloadOptimizationConfig(&webhook_model.PayloadOptimizationConfig{
+		Files:   &webhook_model.PayloadOptimizationItem{Enable: true, Limit: 0},
+		Commits: &webhook_model.PayloadOptimizationItem{Enable: false, Limit: 0},
+	})
 	err = webhook_model.UpdateWebhook(db.DefaultContext, webhook)
 	assert.NoError(t, err)
+
 	apiCommits = []*api.PayloadCommit{
 		{
 			ID:       "abc123",
@@ -196,19 +193,30 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 		Removed:  []string{},
 		Modified: []string{"file1.txt"},
 	}
+
 	optimizedCommits, optimizedHeadCommit = (&webhookNotifier{}).applyWebhookPayloadOptimizations(db.DefaultContext, repo, apiCommits, apiHeadCommit)
-	assert.Nil(t, optimizedCommits)
+	if assert.NotNil(t, optimizedCommits) && len(optimizedCommits) == 2 {
+		assert.Nil(t, optimizedCommits[0].Added)
+		assert.Nil(t, optimizedCommits[0].Removed)
+		assert.Nil(t, optimizedCommits[0].Modified)
+		assert.Nil(t, optimizedCommits[1].Added)
+		assert.Nil(t, optimizedCommits[1].Removed)
+		assert.Nil(t, optimizedCommits[1].Modified)
+	}
 	if assert.NotNil(t, optimizedHeadCommit) {
 		assert.Nil(t, optimizedHeadCommit.Added)
 		assert.Nil(t, optimizedHeadCommit.Removed)
 		assert.Nil(t, optimizedHeadCommit.Modified)
 	}
 
-	// Case: 1 (keep only 1)
-	webhook.ExcludeFilesLimit = 1
-	webhook.ExcludeCommitsLimit = 1
+	// Test case 3: Commits optimization enabled, limit = 1 (keep first)
+	webhook.SetPayloadOptimizationConfig(&webhook_model.PayloadOptimizationConfig{
+		Files:   &webhook_model.PayloadOptimizationItem{Enable: false, Limit: 0},
+		Commits: &webhook_model.PayloadOptimizationItem{Enable: true, Limit: 1},
+	})
 	err = webhook_model.UpdateWebhook(db.DefaultContext, webhook)
 	assert.NoError(t, err)
+
 	apiCommits = []*api.PayloadCommit{
 		{
 			ID:       "abc123",
@@ -232,10 +240,10 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 		Removed:  []string{},
 		Modified: []string{"file1.txt"},
 	}
+
 	optimizedCommits, optimizedHeadCommit = (&webhookNotifier{}).applyWebhookPayloadOptimizations(db.DefaultContext, repo, apiCommits, apiHeadCommit)
 	if assert.NotNil(t, optimizedCommits) && len(optimizedCommits) == 1 {
-		assert.Equal(t, "abc123", optimizedCommits[0].ID)
-		assert.Equal(t, []string{"file1.txt"}, optimizedCommits[0].Added)
+		assert.Equal(t, []string{"file1.txt", "file2.txt"}, optimizedCommits[0].Added)
 		assert.Equal(t, []string{"oldfile.txt"}, optimizedCommits[0].Removed)
 		assert.Equal(t, []string{"modified.txt"}, optimizedCommits[0].Modified)
 	}

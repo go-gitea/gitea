@@ -22,6 +22,26 @@ import (
 	"xorm.io/builder"
 )
 
+// PayloadOptimizationConfig represents the configuration for webhook payload optimization
+type PayloadOptimizationConfig struct {
+	Files   *PayloadOptimizationItem `json:"files,omitempty"`   // Files optimization config
+	Commits *PayloadOptimizationItem `json:"commits,omitempty"` // Commits optimization config
+}
+
+// PayloadOptimizationItem represents a single optimization item configuration
+type PayloadOptimizationItem struct {
+	Enable bool `json:"enable"` // Whether to enable optimization for this item
+	Limit  int  `json:"limit"`  // 0: trim all (none kept), >0: keep N items (forward order), <0: keep N items (reverse order)
+}
+
+// DefaultPayloadOptimizationConfig returns the default payload optimization configuration
+func DefaultPayloadOptimizationConfig() *PayloadOptimizationConfig {
+	return &PayloadOptimizationConfig{
+		Files:   &PayloadOptimizationItem{Enable: false, Limit: 0},
+		Commits: &PayloadOptimizationItem{Enable: false, Limit: 0},
+	}
+}
+
 // ErrWebhookNotExist represents a "WebhookNotExist" kind of error.
 type ErrWebhookNotExist struct {
 	ID int64
@@ -140,8 +160,7 @@ type Webhook struct {
 	HeaderAuthorizationEncrypted string `xorm:"TEXT"`
 
 	// Payload size optimization options
-	ExcludeFilesLimit   int `xorm:"exclude_files_limit"`   // -1: trim all (none kept), 0: do not trim, >0: keep N file changes in commit payloads
-	ExcludeCommitsLimit int `xorm:"exclude_commits_limit"` // -1: trim all (none kept), 0: do not trim, >0: keep N commits in push payloads
+	PayloadOptimization string `xorm:"payload_optimization TEXT"` // JSON: {"enable": bool, "limit": int}
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -349,4 +368,76 @@ func DeleteWebhookByOwnerID(ctx context.Context, ownerID, id int64) error {
 		return err
 	}
 	return DeleteWebhookByID(ctx, id)
+}
+
+// GetPayloadOptimizationConfig returns the payload optimization configuration
+func (w *Webhook) GetPayloadOptimizationConfig() *PayloadOptimizationConfig {
+	if w.PayloadOptimization == "" {
+		return DefaultPayloadOptimizationConfig()
+	}
+
+	var config PayloadOptimizationConfig
+	if err := json.Unmarshal([]byte(w.PayloadOptimization), &config); err != nil {
+		log.Error("Failed to unmarshal payload optimization config: %v", err)
+		return DefaultPayloadOptimizationConfig()
+	}
+
+	return &config
+}
+
+// SetPayloadOptimizationConfig sets the payload optimization configuration
+func (w *Webhook) SetPayloadOptimizationConfig(config *PayloadOptimizationConfig) error {
+	if config == nil {
+		config = DefaultPayloadOptimizationConfig()
+	}
+
+	data, err := json.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload optimization config: %w", err)
+	}
+
+	w.PayloadOptimization = string(data)
+	return nil
+}
+
+// IsPayloadOptimizationEnabled returns whether payload optimization is enabled
+func (w *Webhook) IsPayloadOptimizationEnabled() bool {
+	config := w.GetPayloadOptimizationConfig()
+	return config.Files.Enable || config.Commits.Enable
+}
+
+// GetPayloadOptimizationLimit returns the payload optimization limit
+func (w *Webhook) GetPayloadOptimizationLimit() int {
+	config := w.GetPayloadOptimizationConfig()
+	if config.Files.Enable {
+		return config.Files.Limit
+	}
+	if config.Commits.Enable {
+		return config.Commits.Limit
+	}
+	return 0
+}
+
+// IsFilesOptimizationEnabled returns whether files optimization is enabled
+func (w *Webhook) IsFilesOptimizationEnabled() bool {
+	config := w.GetPayloadOptimizationConfig()
+	return config.Files.Enable
+}
+
+// GetFilesOptimizationLimit returns the files optimization limit
+func (w *Webhook) GetFilesOptimizationLimit() int {
+	config := w.GetPayloadOptimizationConfig()
+	return config.Files.Limit
+}
+
+// IsCommitsOptimizationEnabled returns whether commits optimization is enabled
+func (w *Webhook) IsCommitsOptimizationEnabled() bool {
+	config := w.GetPayloadOptimizationConfig()
+	return config.Commits.Enable
+}
+
+// GetCommitsOptimizationLimit returns the commits optimization limit
+func (w *Webhook) GetCommitsOptimizationLimit() int {
+	config := w.GetPayloadOptimizationConfig()
+	return config.Commits.Limit
 }

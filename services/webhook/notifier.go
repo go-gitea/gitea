@@ -643,9 +643,9 @@ func (m *webhookNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 	}
 }
 
-// applyWebhookPayloadOptimizations applies payload size optimizations based on webhook configurations
+// applyWebhookPayloadOptimizations applies payload optimizations based on webhook configurations
 func (m *webhookNotifier) applyWebhookPayloadOptimizations(ctx context.Context, repo *repo_model.Repository, apiCommits []*api.PayloadCommit, apiHeadCommit *api.PayloadCommit) ([]*api.PayloadCommit, *api.PayloadCommit) {
-	// Get webhooks for this repository to check their configuration
+	// Get all webhooks for this repository
 	webhooks, err := db.Find[webhook_model.Webhook](ctx, webhook_model.ListWebhookOptions{
 		RepoID:   repo.ID,
 		IsActive: optional.Some(true),
@@ -657,75 +657,118 @@ func (m *webhookNotifier) applyWebhookPayloadOptimizations(ctx context.Context, 
 	}
 
 	// Check if any webhook has payload optimization options enabled
-	hasFilesLimit := 0
-	hasCommitsLimit := 0
+	var filesLimit, commitsLimit int
+	hasFilesLimit := false
+	hasCommitsLimit := false
+	optimizationEnabled := false
+
 	for _, webhook := range webhooks {
 		if webhook.HasEvent(webhook_module.HookEventPush) {
-			if webhook.ExcludeFilesLimit != 0 && (hasFilesLimit == 0 || webhook.ExcludeFilesLimit < hasFilesLimit) {
-				hasFilesLimit = webhook.ExcludeFilesLimit
+			config := webhook.GetPayloadOptimizationConfig()
+
+			// Check files optimization
+			if config.Files.Enable {
+				optimizationEnabled = true
+				if !hasFilesLimit || config.Files.Limit < filesLimit {
+					filesLimit = config.Files.Limit
+					hasFilesLimit = true
+				}
 			}
-			if webhook.ExcludeCommitsLimit != 0 && (hasCommitsLimit == 0 || webhook.ExcludeCommitsLimit < hasCommitsLimit) {
-				hasCommitsLimit = webhook.ExcludeCommitsLimit
+
+			// Check commits optimization
+			if config.Commits.Enable {
+				optimizationEnabled = true
+				if !hasCommitsLimit || config.Commits.Limit < commitsLimit {
+					commitsLimit = config.Commits.Limit
+					hasCommitsLimit = true
+				}
 			}
 		}
 	}
 
 	// Apply payload optimizations based on webhook configurations
-	// -1 trim all (none kept), 0 do not trim, >0 trim to N commits
-	if hasFilesLimit != 0 {
-		for _, commit := range apiCommits {
-			if commit.Added != nil {
-				if hasFilesLimit == -1 {
-					commit.Added = nil
-				} else if hasFilesLimit > 0 && len(commit.Added) > hasFilesLimit {
-					commit.Added = commit.Added[:hasFilesLimit]
+	// 0: trim all (none kept), >0: trim to N items (forward order), <0: trim to N items (reverse order)
+	if optimizationEnabled {
+		// Apply files optimization to all commits
+		if hasFilesLimit {
+			for _, commit := range apiCommits {
+				if commit.Added != nil {
+					if filesLimit == 0 {
+						commit.Added = nil
+					} else if filesLimit > 0 && len(commit.Added) > filesLimit {
+						commit.Added = commit.Added[:filesLimit]
+					} else if filesLimit < 0 && len(commit.Added) > -filesLimit {
+						// Reverse order: keep the last N items
+						commit.Added = commit.Added[len(commit.Added)+filesLimit:]
+					}
+				}
+				if commit.Removed != nil {
+					if filesLimit == 0 {
+						commit.Removed = nil
+					} else if filesLimit > 0 && len(commit.Removed) > filesLimit {
+						commit.Removed = commit.Removed[:filesLimit]
+					} else if filesLimit < 0 && len(commit.Removed) > -filesLimit {
+						// Reverse order: keep the last N items
+						commit.Removed = commit.Removed[len(commit.Removed)+filesLimit:]
+					}
+				}
+				if commit.Modified != nil {
+					if filesLimit == 0 {
+						commit.Modified = nil
+					} else if filesLimit > 0 && len(commit.Modified) > filesLimit {
+						commit.Modified = commit.Modified[:filesLimit]
+					} else if filesLimit < 0 && len(commit.Modified) > -filesLimit {
+						// Reverse order: keep the last N items
+						commit.Modified = commit.Modified[len(commit.Modified)+filesLimit:]
+					}
 				}
 			}
-			if commit.Removed != nil {
-				if hasFilesLimit == -1 {
-					commit.Removed = nil
-				} else if hasFilesLimit > 0 && len(commit.Removed) > hasFilesLimit {
-					commit.Removed = commit.Removed[:hasFilesLimit]
-				}
-			}
-			if commit.Modified != nil {
-				if hasFilesLimit == -1 {
-					commit.Modified = nil
-				} else if hasFilesLimit > 0 && len(commit.Modified) > hasFilesLimit {
-					commit.Modified = commit.Modified[:hasFilesLimit]
-				}
-			}
-		}
-		if apiHeadCommit != nil {
-			if apiHeadCommit.Added != nil {
-				if hasFilesLimit == -1 {
-					apiHeadCommit.Added = nil
-				} else if hasFilesLimit > 0 && len(apiHeadCommit.Added) > hasFilesLimit {
-					apiHeadCommit.Added = apiHeadCommit.Added[:hasFilesLimit]
-				}
-			}
-			if apiHeadCommit.Removed != nil {
-				if hasFilesLimit == -1 {
-					apiHeadCommit.Removed = nil
-				} else if hasFilesLimit > 0 && len(apiHeadCommit.Removed) > hasFilesLimit {
-					apiHeadCommit.Removed = apiHeadCommit.Removed[:hasFilesLimit]
-				}
-			}
-			if apiHeadCommit.Modified != nil {
-				if hasFilesLimit == -1 {
-					apiHeadCommit.Modified = nil
-				} else if hasFilesLimit > 0 && len(apiHeadCommit.Modified) > hasFilesLimit {
-					apiHeadCommit.Modified = apiHeadCommit.Modified[:hasFilesLimit]
-				}
-			}
-		}
-	}
 
-	if hasCommitsLimit != 0 {
-		if hasCommitsLimit == -1 {
-			apiCommits = nil
-		} else if hasCommitsLimit > 0 && len(apiCommits) > hasCommitsLimit {
-			apiCommits = apiCommits[:hasCommitsLimit]
+			// Apply files optimization to head commit
+			if apiHeadCommit != nil {
+				if apiHeadCommit.Added != nil {
+					if filesLimit == 0 {
+						apiHeadCommit.Added = nil
+					} else if filesLimit > 0 && len(apiHeadCommit.Added) > filesLimit {
+						apiHeadCommit.Added = apiHeadCommit.Added[:filesLimit]
+					} else if filesLimit < 0 && len(apiHeadCommit.Added) > -filesLimit {
+						// Reverse order: keep the last N items
+						apiHeadCommit.Added = apiHeadCommit.Added[len(apiHeadCommit.Added)+filesLimit:]
+					}
+				}
+				if apiHeadCommit.Removed != nil {
+					if filesLimit == 0 {
+						apiHeadCommit.Removed = nil
+					} else if filesLimit > 0 && len(apiHeadCommit.Removed) > filesLimit {
+						apiHeadCommit.Removed = apiHeadCommit.Removed[:filesLimit]
+					} else if filesLimit < 0 && len(apiHeadCommit.Removed) > -filesLimit {
+						// Reverse order: keep the last N items
+						apiHeadCommit.Removed = apiHeadCommit.Removed[len(apiHeadCommit.Removed)+filesLimit:]
+					}
+				}
+				if apiHeadCommit.Modified != nil {
+					if filesLimit == 0 {
+						apiHeadCommit.Modified = nil
+					} else if filesLimit > 0 && len(apiHeadCommit.Modified) > filesLimit {
+						apiHeadCommit.Modified = apiHeadCommit.Modified[:filesLimit]
+					} else if filesLimit < 0 && len(apiHeadCommit.Modified) > -filesLimit {
+						// Reverse order: keep the last N items
+						apiHeadCommit.Modified = apiHeadCommit.Modified[len(apiHeadCommit.Modified)+filesLimit:]
+					}
+				}
+			}
+		}
+
+		// Apply commits optimization
+		if hasCommitsLimit {
+			if commitsLimit == 0 {
+				apiCommits = nil
+			} else if commitsLimit > 0 && len(apiCommits) > commitsLimit {
+				apiCommits = apiCommits[:commitsLimit]
+			} else if commitsLimit < 0 && len(apiCommits) > -commitsLimit {
+				// Reverse order: keep the last N commits
+				apiCommits = apiCommits[len(apiCommits)+commitsLimit:]
+			}
 		}
 	}
 

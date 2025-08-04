@@ -239,9 +239,11 @@ type WebhookForm struct {
 	BranchFilter             string `binding:"GlobPattern"`
 	AuthorizationHeader      string
 	Secret                   string
-	// Payload size optimization options
-	ExcludeFilesLimit   int // -1: trim all (none kept), 0: do not trim, >0: keep N file changes in commit payloads
-	ExcludeCommitsLimit int // -1: trim all (none kept), 0: do not trim, >0: keep N commits in push payloads
+	// Payload optimization settings
+	PayloadOptimizationFilesEnable   bool `form:"payload_optimization_files_enable"`
+	PayloadOptimizationFilesLimit    int  `form:"payload_optimization_files_limit"`
+	PayloadOptimizationCommitsEnable bool `form:"payload_optimization_commits_enable"`
+	PayloadOptimizationCommitsLimit  int  `form:"payload_optimization_commits_limit"`
 }
 
 // PushOnly if the hook will be triggered when push

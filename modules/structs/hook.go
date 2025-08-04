@@ -25,9 +25,8 @@ type Hook struct {
 	Events              []string          `json:"events"`
 	AuthorizationHeader string            `json:"authorization_header"`
 	Active              bool              `json:"active"`
-	// Payload size optimization options
-	ExcludeFilesLimit   int `json:"exclude_files_limit"`   // -1: trim all (none kept), 0: do not trim, >0: keep N file changes
-	ExcludeCommitsLimit int `json:"exclude_commits_limit"` // -1: trim all (none kept), 0: do not trim, >0: keep N commits
+	// PayloadOptimization configuration for webhook payload optimization
+	PayloadOptimization map[string]any `json:"payload_optimization"`
 	// swagger:strfmt date-time
 	Updated time.Time `json:"updated_at"`
 	// swagger:strfmt date-time
@@ -52,8 +51,7 @@ type CreateHookOption struct {
 	BranchFilter        string                 `json:"branch_filter" binding:"GlobPattern"`
 	AuthorizationHeader string                 `json:"authorization_header"`
 	// Payload size optimization options
-	ExcludeFilesLimit   int `json:"exclude_files_limit"`   // -1: trim all (none kept), 0: do not trim, >0: keep N file changes
-	ExcludeCommitsLimit int `json:"exclude_commits_limit"` // -1: trim all (none kept), 0: do not trim, >0: keep N commits
+	PayloadOptimization map[string]any `json:"payload_optimization"` // {"enable": bool, "limit": int}
 	// default: false
 	Active bool `json:"active"`
 }
@@ -65,9 +63,8 @@ type EditHookOption struct {
 	BranchFilter        string            `json:"branch_filter" binding:"GlobPattern"`
 	AuthorizationHeader string            `json:"authorization_header"`
 	// Payload size optimization options
-	ExcludeFilesLimit   *int  `json:"exclude_files_limit"`   // -1: trim all (none kept), 0: do not trim, >0: keep N file changes
-	ExcludeCommitsLimit *int  `json:"exclude_commits_limit"` // -1: trim all (none kept), 0: do not trim, >0: keep N commits
-	Active              *bool `json:"active"`
+	PayloadOptimization *map[string]any `json:"payload_optimization"` // {"enable": bool, "limit": int}
+	Active              *bool           `json:"active"`
 }
 
 // Payloader payload is some part of one hook

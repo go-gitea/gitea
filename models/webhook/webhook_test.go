@@ -332,43 +332,39 @@ func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *test
 }
 
 func TestWebhookPayloadOptimization(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	webhook := &Webhook{}
 
-	webhook := &Webhook{
-		RepoID:              1,
-		URL:                 "http://example.com/webhook",
-		HTTPMethod:          "POST",
-		ContentType:         ContentTypeJSON,
-		Secret:              "secret",
-		IsActive:            true,
-		Type:                webhook_module.GITEA,
-		ExcludeFilesLimit:   1,
-		ExcludeCommitsLimit: 0,
-		HookEvent: &webhook_module.HookEvent{
-			PushOnly: true,
+	// Test default configuration
+	config := webhook.GetPayloadOptimizationConfig()
+	assert.False(t, config.Files.Enable)
+	assert.Equal(t, 0, config.Files.Limit)
+	assert.False(t, config.Commits.Enable)
+	assert.Equal(t, 0, config.Commits.Limit)
+
+	// Test setting configuration
+	newConfig := &PayloadOptimizationConfig{
+		Files: &PayloadOptimizationItem{
+			Enable: true,
+			Limit:  5,
+		},
+		Commits: &PayloadOptimizationItem{
+			Enable: true,
+			Limit:  -3,
 		},
 	}
+	webhook.SetPayloadOptimizationConfig(newConfig)
 
-	// Test creating webhook with payload optimization options
-	err := CreateWebhook(db.DefaultContext, webhook)
-	assert.NoError(t, err)
-	assert.NotZero(t, webhook.ID)
+	// Test getting configuration
+	config = webhook.GetPayloadOptimizationConfig()
+	assert.True(t, config.Files.Enable)
+	assert.Equal(t, 5, config.Files.Limit)
+	assert.True(t, config.Commits.Enable)
+	assert.Equal(t, -3, config.Commits.Limit)
 
-	// Test retrieving webhook and checking payload optimization options
-	retrievedWebhook, err := GetWebhookByID(db.DefaultContext, webhook.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, retrievedWebhook.ExcludeFilesLimit)
-	assert.Equal(t, 0, retrievedWebhook.ExcludeCommitsLimit)
-
-	// Test updating webhook with different payload optimization options
-	retrievedWebhook.ExcludeFilesLimit = 0
-	retrievedWebhook.ExcludeCommitsLimit = 2
-	err = UpdateWebhook(db.DefaultContext, retrievedWebhook)
-	assert.NoError(t, err)
-
-	// Verify the update
-	updatedWebhook, err := GetWebhookByID(db.DefaultContext, webhook.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, 0, updatedWebhook.ExcludeFilesLimit)
-	assert.Equal(t, 2, updatedWebhook.ExcludeCommitsLimit)
+	// Test individual methods
+	assert.True(t, webhook.IsFilesOptimizationEnabled())
+	assert.Equal(t, 5, webhook.GetFilesOptimizationLimit())
+	assert.True(t, webhook.IsCommitsOptimizationEnabled())
+	assert.Equal(t, -3, webhook.GetCommitsOptimizationLimit())
+	assert.True(t, webhook.IsPayloadOptimizationEnabled())
 }
