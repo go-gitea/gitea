@@ -69,12 +69,12 @@ func testEditorCreateFile(t *testing.T) {
 	}, `Branch "master" already exists in this repository.`)
 }
 
-func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, newBranchName, filePath, content string) {
+func testCreateFile(t *testing.T, session *TestSession, user, repo, baseBranchName, newBranchName, filePath, content string) {
 	commitChoice := "direct"
-	if newBranchName != "" && newBranchName != branch {
+	if newBranchName != "" && newBranchName != baseBranchName {
 		commitChoice = "commit-to-new-branch"
 	}
-	testEditorActionEdit(t, session, user, repo, "_new", branch, "", map[string]string{
+	testEditorActionEdit(t, session, user, repo, "_new", baseBranchName, "", map[string]string{
 		"tree_path":       filePath,
 		"content":         content,
 		"commit_choice":   commitChoice,
