@@ -58,8 +58,8 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="activity-bar-graph" ref="styleElement" style="width: 0; height: 0;"/>
-    <div class="activity-bar-graph-alt" ref="altStyleElement" style="width: 0; height: 0;"/>
+    <div class="activity-bar-graph tw-w-0 tw-h-0" ref="styleElement"/>
+    <div class="activity-bar-graph-alt tw-w-0 tw-h-0" ref="altStyleElement"/>
     <vue-bar-graph
       :points="graphPoints"
       :show-x-axis="true"
