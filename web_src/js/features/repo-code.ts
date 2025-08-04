@@ -108,7 +108,7 @@ function showLineButton() {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     const tippyInstance = btn._tippy;
-    if (tippyInstance && tippyInstance.state.isVisible) {
+    if (tippyInstance?.state.isVisible) {
       tippyInstance.hide();
     } else if (tippyInstance) {
       tippyInstance.show();
