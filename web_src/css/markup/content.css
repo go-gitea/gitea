@@ -1,6 +1,6 @@
 .markup {
   overflow: hidden;
-  font-size: 14px; /* 14px for comments, overridden to 16px for file-view below. */
+  font-size: 14px; /* 14px for comments, overridden to 16px for .file-view below. */
   line-height: 1.5 !important;
   overflow-wrap: break-word;
 }
