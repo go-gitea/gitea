@@ -33,7 +33,6 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	gitea_context "code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -1065,10 +1064,8 @@ type CommitInfo struct {
 // GetPullCommits returns all commits on given pull request and the last review commit sha
 // Attention: The last review commit sha must be from the latest review whose commit id is not empty.
 // So the type of the latest review cannot be "ReviewTypeRequest".
-func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]CommitInfo, string, error) {
+func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user_model.User, issue *issues_model.Issue) ([]CommitInfo, string, error) {
 	pull := issue.PullRequest
-
-	baseGitRepo := ctx.Repo.GitRepo
 
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		return nil, "", err
@@ -1105,11 +1102,11 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 	}
 
 	var lastReviewCommitID string
-	if ctx.IsSigned {
+	if doer != nil {
 		// get last review of current user and store information in context (if available)
 		lastreview, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
 			IssueID:    issue.ID,
-			ReviewerID: ctx.Doer.ID,
+			ReviewerID: doer.ID,
 			Types: []issues_model.ReviewType{
 				issues_model.ReviewTypeApprove,
 				issues_model.ReviewTypeComment,
