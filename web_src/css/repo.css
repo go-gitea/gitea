@@ -300,13 +300,6 @@ td .commit-summary {
   min-width: 100px;
 }
 
-.repository.new.issue .comment.form .content .markup,
-.repository.compare.pull .markup,
-.repository.view.issue .comment-list .comment .markup,
-.conversation-holder .markup {
-  font-size: 14px;
-}
-
 .repository.view.issue .instruct-toggle {
   display: inline-block;
 }
