@@ -164,11 +164,11 @@ func (d *OneDevDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, e
 		&serverVersion,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get OneDev server version. OneDev %s or newer required.", OneDevRequiredVersion)
+		return nil, fmt.Errorf("failed to get OneDev server version; OneDev %s or newer required", OneDevRequiredVersion)
 	}
 	requiredVersion, _ := version.NewVersion(OneDevRequiredVersion)
 	if serverVersion.LessThan(requiredVersion) {
-		return nil, fmt.Errorf("OneDev %s or newer required. Currently running OneDev %s.", OneDevRequiredVersion, serverVersion)
+		return nil, fmt.Errorf("OneDev %s or newer required; currently running OneDev %s", OneDevRequiredVersion, serverVersion)
 	}
 
 	info := make([]struct {
