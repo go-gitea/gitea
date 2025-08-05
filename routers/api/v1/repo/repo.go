@@ -879,6 +879,23 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
+  currHasCode := repo.UnitEnabled(ctx, unit_model.TypeCode)
+  newHasCode := currHasCode
+  if opts.HasCode != nil {
+    newHasCode = *opts.HasCode
+  }
+  if currHasCode || newHasCode {
+    if newHasCode && !unit_model.TypeCode.UnitGlobalDisabled() {
+      units = append(units, repo_model.RepoUnit{
+        RepoID: repo.ID,
+        Type:   unit_model.TypeCode,
+        Config: &repo_model.UnitConfig{},
+      })
+    } else if !newHasCode && !unit_model.TypeCode.UnitGlobalDisabled() {
+      deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeCode)
+    }
+  }
+
 	currHasPullRequests := repo.UnitEnabled(ctx, unit_model.TypePullRequests)
 	newHasPullRequests := currHasPullRequests
 	if opts.HasPullRequests != nil {

@@ -24328,6 +24328,11 @@
         "external_wiki": {
           "$ref": "#/definitions/ExternalWiki"
         },
+        "has_code": {
+          "description": "either `true` to enable code for this repository or `false` to disable it.",
+          "type": "boolean",
+          "x-go-name": "HasCode"
+        },
         "has_actions": {
           "description": "either `true` to enable actions unit, or `false` to disable them.",
           "type": "boolean",
@@ -27370,6 +27375,10 @@
         "full_name": {
           "type": "string",
           "x-go-name": "FullName"
+        },
+        "has_code": {
+          "type": "boolean",
+          "x-go-name": "HasCode"
         },
         "has_actions": {
           "type": "boolean",
