@@ -560,9 +560,9 @@ func Cancel(ctx *context_module.Context) {
 	if len(updatedjobs) > 0 {
 		job := updatedjobs[0]
 		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
+		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 	}
-
-	ctx.JSONOK()
+	ctx.JSON(http.StatusOK, struct{}{})
 }
 
 func Approve(ctx *context_module.Context) {
@@ -603,16 +603,18 @@ func Approve(ctx *context_module.Context) {
 
 	actions_service.CreateCommitStatus(ctx, jobs...)
 
+	if len(updatedjobs) > 0 {
+		job := updatedjobs[0]
+		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
+		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
+	}
+
 	for _, job := range updatedjobs {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
-	if len(updatedjobs) > 0 {
-		job := updatedjobs[0]
-		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
-	}
 
-	ctx.JSONOK()
+	ctx.JSON(http.StatusOK, struct{}{})
 }
 
 func Delete(ctx *context_module.Context) {
