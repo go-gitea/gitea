@@ -2,8 +2,8 @@ import requests
 import random
 import string
 
-BASE_URL = "http://54.247.213.28:3000/"
-API_TOKEN = "ed10e99db13b34b5b45be5c44d1197eb1f161a32"
+# Load from config.py written in GitHub Actions
+from config import BASE_URL, API_TOKEN
 
 def test_get_users():
     headers = {
