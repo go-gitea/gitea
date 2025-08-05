@@ -484,7 +484,7 @@ module.exports = {
     'max-nested-callbacks': [0],
     'max-params': [0],
     'max-statements': [0],
-    'multiline-comment-style': [2, 'separate-lines'],
+    'multiline-comment-style': [0],
     'new-cap': [0],
     'no-alert': [0],
     'no-array-constructor': [0], // handled by @typescript-eslint/no-array-constructor
