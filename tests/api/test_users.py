@@ -2,7 +2,7 @@ import requests
 import random
 import string
 
-BASE_URL = "http://18.202.226.4:3000/"
+BASE_URL = "http://54.247.213.28:3000/"
 API_TOKEN = "ed10e99db13b34b5b45be5c44d1197eb1f161a32"
 
 def test_get_users():
