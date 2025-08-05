@@ -250,16 +250,20 @@ func (d *OneDevDownloader) GetMilestones(ctx context.Context) ([]*base.Milestone
 				d := time.Unix(milestone.DueDay*24*60*60, 0)
 				dueDate = &d
 			}
-			closed := dueDate
-			if !milestone.Closed {
-				closed = nil
+
+			var closedDate *time.Time
+			state := "open"
+			if milestone.Closed {
+				closedDate = dueDate
+				state = "closed"
 			}
 
 			milestones = append(milestones, &base.Milestone{
 				Title:       milestone.Name,
 				Description: milestone.Description,
 				Deadline:    dueDate,
-				Closed:      closed,
+				Closed:      closedDate,
+				State:       state,
 			})
 		}
 	}
