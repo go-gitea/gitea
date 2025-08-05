@@ -41,6 +41,7 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 	}
 	for _, job := range jobs {
 		if !job.Status.IsDone() {
+			log.Trace("composeAndSendActionsWorkflowRunStatusEmail: A job is not done. Will not compose and send actions email.")
 			return
 		}
 	}
@@ -122,7 +123,7 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 		}
 		msgs := make([]*sender_service.Message, 0, len(tos))
 		for _, rec := range tos {
-			log.Trace("Composing actions email and sending to %s (UID: %d)", rec.Name, rec.ID)
+			log.Trace("Sending actions email to %s (UID: %d)", rec.Name, rec.ID)
 			msg := sender_service.NewMessageFrom(
 				rec.Email,
 				displayName,
@@ -167,6 +168,7 @@ func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo
 	}
 
 	if len(recipients) > 0 {
+		log.Trace("MailActionsTrigger: Initiate email composition")
 		composeAndSendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
 	}
 }
