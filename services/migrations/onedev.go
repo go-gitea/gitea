@@ -212,19 +212,19 @@ func (d *OneDevDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, e
 
 // GetMilestones returns milestones
 func (d *OneDevDownloader) GetMilestones(ctx context.Context) ([]*base.Milestone, error) {
-	rawMilestones := make([]struct {
-		ID          int64  `json:"id"`
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		DueDay      int64  `json:"dueDay"`
-		Closed      bool   `json:"closed"`
-	}, 0, 100)
-
 	endpoint := fmt.Sprintf("/~api/projects/%d/iterations", d.repoID)
 
 	milestones := make([]*base.Milestone, 0, 100)
 	offset := 0
 	for {
+		rawMilestones := make([]struct {
+			ID          int64  `json:"id"`
+			Name        string `json:"name"`
+			Description string `json:"description"`
+			DueDay      int64  `json:"dueDay"`
+			Closed      bool   `json:"closed"`
+		}, 0, 100)
+
 		err := d.callAPI(
 			ctx,
 			endpoint,
