@@ -11,6 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"xorm.io/xorm/contexts"
 )
 
@@ -21,12 +23,22 @@ type EngineHook struct {
 
 var _ contexts.Hook = (*EngineHook)(nil)
 
+// follows: https://opentelemetry.io/docs/specs/semconv/database/database-metrics/#metric-dbclientoperationduration
+var durationHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
+	Namespace: "db",
+	Subsystem: "client",
+	Name:      "operation_duration_seconds",
+	Help:      "Duration of database client operations.",
+	// ConstLabels: prometheus.Labels{"db.system.name": BuilderDialect()}, //TODO: add type of database per spec.
+})
+
 func (*EngineHook) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
 	ctx, _ := gtprof.GetTracer().Start(c.Ctx, gtprof.TraceSpanDatabase)
 	return ctx, nil
 }
 
 func (h *EngineHook) AfterProcess(c *contexts.ContextHook) error {
+	durationHistogram.Observe(c.ExecuteTime.Seconds())
 	span := gtprof.GetContextSpan(c.Ctx)
 	if span != nil {
 		// Do not record SQL parameters here:
