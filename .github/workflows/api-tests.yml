@@ -31,6 +31,6 @@ jobs:
         env:
           API_TOKEN: ${{ secrets.GITEA_API_TOKEN }}
         run: |
-          echo "BASE_URL = 'http://localhost:3000'" > config.py
+          echo "BASE_URL = 'http://18.202.226.4:3000/'" > config.py
           echo "API_TOKEN = '${API_TOKEN}'" >> config.py
           pytest tests/api -v
