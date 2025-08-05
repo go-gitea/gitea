@@ -147,7 +147,7 @@ func TestRepoActions(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	_ = db.TruncateBeans(db.DefaultContext, &activities_model.Action{})
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		_ = db.Insert(db.DefaultContext, &activities_model.Action{
 			UserID:    2 + int64(i),
 			ActUserID: 2,

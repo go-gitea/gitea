@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
@@ -102,7 +103,7 @@ func NewComment(ctx *context.Context) {
 				// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo
 				// get head commit of PR
 				if pull.Flow == issues_model.PullRequestFlowGithub {
-					prHeadRef := pull.GetGitRefName()
+					prHeadRef := pull.GetGitHeadRefName()
 					if err := pull.LoadBaseRepo(ctx); err != nil {
 						ctx.ServerError("Unable to load base repo", err)
 						return
@@ -278,7 +279,9 @@ func UpdateCommentContent(ctx *context.Context) {
 
 	var renderedContent template.HTML
 	if comment.Content != "" {
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
+			FootnoteContextID: strconv.FormatInt(comment.ID, 10),
+		})
 		renderedContent, err = markdown.RenderString(rctx, comment.Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)

@@ -26,12 +26,10 @@ import (
 
 func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 	listOptions := utils.GetListOptions(ctx)
-	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == u.ID)
-
 	opts := organization.FindOrgOptions{
-		ListOptions:    listOptions,
-		UserID:         u.ID,
-		IncludePrivate: showPrivate,
+		ListOptions:       listOptions,
+		UserID:            u.ID,
+		IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, u),
 	}
 	orgs, maxResults, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
@@ -84,7 +82,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose organizations are to be listed
 	//   type: string
 	//   required: true
 	// - name: page
@@ -114,7 +112,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose permissions are to be obtained
 	//   type: string
 	//   required: true
 	// - name: org
@@ -393,7 +391,7 @@ func Edit(ctx *context.APIContext) {
 		Description:               optional.Some(form.Description),
 		Website:                   optional.Some(form.Website),
 		Location:                  optional.Some(form.Location),
-		Visibility:                optional.FromNonDefault(api.VisibilityModes[form.Visibility]),
+		Visibility:                optional.FromMapLookup(api.VisibilityModes, form.Visibility),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {

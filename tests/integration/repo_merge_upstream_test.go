@@ -147,5 +147,37 @@ func TestRepoMergeUpstream(t *testing.T) {
 				return queryMergeUpstreamButtonLink(htmlDoc) == ""
 			}, 5*time.Second, 100*time.Millisecond)
 		})
+
+		t.Run("FastForwardOnly", func(t *testing.T) {
+			// Create a clean branch for fast-forward testing
+			req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/test-repo-fork/branches/_new/branch/master", forkUser.Name), map[string]string{
+				"_csrf":           GetUserCSRFToken(t, session),
+				"new_branch_name": "ff-test-branch",
+			})
+			session.MakeRequest(t, req, http.StatusSeeOther)
+
+			// Add content to base repository that can be fast-forwarded
+			require.NoError(t, createOrReplaceFileInBranch(baseUser, baseRepo, "ff-test.txt", "master", "ff-content-1"))
+
+			// ff_only=true with fast-forward possible (should succeed)
+			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/test-repo-fork/merge-upstream", forkUser.Name), &api.MergeUpstreamRequest{
+				Branch: "ff-test-branch",
+				FfOnly: true,
+			}).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			var mergeResp api.MergeUpstreamResponse
+			DecodeJSON(t, resp, &mergeResp)
+			assert.Equal(t, "fast-forward", mergeResp.MergeStyle)
+
+			// ff_only=true when fast-forward is not possible (should fail)
+			require.NoError(t, createOrReplaceFileInBranch(baseUser, baseRepo, "another-file.txt", "master", "more-content"))
+
+			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/test-repo-fork/merge-upstream", forkUser.Name), &api.MergeUpstreamRequest{
+				Branch: "fork-branch",
+				FfOnly: true,
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusBadRequest)
+		})
 	})
 }

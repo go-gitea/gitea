@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -38,7 +39,7 @@ func TestForkRepository(t *testing.T) {
 	assert.False(t, repo_model.IsErrReachLimitOfRepo(err))
 
 	// change AllowForkWithoutMaximumLimit to false for the test
-	setting.Repository.AllowForkWithoutMaximumLimit = false
+	defer test.MockVariableValue(&setting.Repository.AllowForkWithoutMaximumLimit, false)()
 	// user has reached maximum limit of repositories
 	user.MaxRepoCreation = 0
 	fork2, err := ForkRepository(git.DefaultContext, user, user, ForkRepoOptions{
@@ -68,7 +69,7 @@ func TestForkRepositoryCleanup(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, exist)
 
-	err = DeleteRepositoryDirectly(db.DefaultContext, user2, fork.ID)
+	err = DeleteRepositoryDirectly(db.DefaultContext, fork.ID)
 	assert.NoError(t, err)
 
 	// a failed creating because some mock data

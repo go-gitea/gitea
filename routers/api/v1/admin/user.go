@@ -175,7 +175,7 @@ func EditUser(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user to edit
+	//   description: username of the user whose data is to be edited
 	//   type: string
 	//   required: true
 	// - name: body
@@ -239,8 +239,8 @@ func EditUser(ctx *context.APIContext) {
 		Location:                optional.FromPtr(form.Location),
 		Description:             optional.FromPtr(form.Description),
 		IsActive:                optional.FromPtr(form.Active),
-		IsAdmin:                 optional.FromPtr(form.Admin),
-		Visibility:              optional.FromNonDefault(api.VisibilityModes[form.Visibility]),
+		IsAdmin:                 user_service.UpdateOptionFieldFromPtr(form.Admin),
+		Visibility:              optional.FromMapLookup(api.VisibilityModes, form.Visibility),
 		AllowGitHook:            optional.FromPtr(form.AllowGitHook),
 		AllowImportLocal:        optional.FromPtr(form.AllowImportLocal),
 		MaxRepoCreation:         optional.FromPtr(form.MaxRepoCreation),
@@ -272,7 +272,7 @@ func DeleteUser(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user to delete
+	//   description: username of the user to delete
 	//   type: string
 	//   required: true
 	// - name: purge
@@ -328,7 +328,7 @@ func CreatePublicKey(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of the user
+	//   description: username of the user who is to receive a public key
 	//   type: string
 	//   required: true
 	// - name: key
@@ -358,7 +358,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose public key is to be deleted
 	//   type: string
 	//   required: true
 	// - name: id
@@ -405,7 +405,7 @@ func SearchUsers(ctx *context.APIContext) {
 	//   format: int64
 	// - name: login_name
 	//   in: query
-	//   description: user's login name to search for
+	//   description: identifier of the user, provided by the external authenticator
 	//   type: string
 	// - name: page
 	//   in: query
@@ -456,7 +456,7 @@ func RenameUser(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: existing username of user
+	//   description: current username of the user
 	//   type: string
 	//   required: true
 	// - name: body

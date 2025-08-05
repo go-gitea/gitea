@@ -318,7 +318,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []Workflow) {
 	ctx.Data["Page"] = pager
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 
-	ctx.Data["AllowDeleteWorkflowRuns"] = ctx.Repo.CanWrite(unit.TypeActions)
+	ctx.Data["CanWriteRepoUnitActions"] = ctx.Repo.CanWrite(unit.TypeActions)
 }
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.
@@ -377,10 +377,8 @@ func workflowDispatchConfig(w *model.Workflow) *WorkflowDispatch {
 		if !decodeNode(w.RawOn, &val) {
 			return nil
 		}
-		for _, v := range val {
-			if v == "workflow_dispatch" {
-				return &WorkflowDispatch{}
-			}
+		if slices.Contains(val, "workflow_dispatch") {
+			return &WorkflowDispatch{}
 		}
 	case yaml.MappingNode:
 		var val map[string]yaml.Node

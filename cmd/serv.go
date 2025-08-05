@@ -33,7 +33,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/kballard/go-shellquote"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // CmdServ represents the available serv sub-command.
@@ -41,6 +41,7 @@ var CmdServ = &cli.Command{
 	Name:        "serv",
 	Usage:       "(internal) Should only be called by SSH shell",
 	Description: "Serv provides access auth for repositories",
+	Hidden:      true, // Internal commands shouldn't be visible in help
 	Before:      PrepareConsoleLoggerLevel(log.FATAL),
 	Action:      runServ,
 	Flags: []cli.Flag{
@@ -152,10 +153,7 @@ func getLFSAuthToken(ctx context.Context, lfsVerb string, results *private.ServC
 	return "Bearer " + tokenString, nil
 }
 
-func runServ(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runServ(ctx context.Context, c *cli.Command) error {
 	// FIXME: This needs to internationalised
 	setup(ctx, c.Bool("debug"))
 
@@ -215,7 +213,7 @@ func runServ(c *cli.Context) error {
 		if git.DefaultFeatures().SupportProcReceive {
 			// for AGit Flow
 			if cmd == "ssh_info" {
-				fmt.Print(`{"type":"gitea","version":1}`)
+				fmt.Print(`{"type":"agit","version":1}`)
 				return nil
 			}
 		}

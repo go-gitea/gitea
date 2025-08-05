@@ -230,7 +230,7 @@
 				<div class="overflow-menu-items">
 					{{if(and .Repository.IsBeingCreated (.Permission.CanRead ctx.Consts.RepoUnitTypeCode))}}
 					<a class="{{if not .PageIsRepoSettings}}active {{end}}item" href="{{.RepoLink}}">
-						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.migrating_status"}}
+						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.migration_status"}}
 					</a>
 					{{end}}
 

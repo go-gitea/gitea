@@ -284,7 +284,7 @@ func TestPackageDebian(t *testing.T) {
 		// because "Iterate" keeps a dangling SQL session but the callback function still uses the same session to execute statements.
 		// The "Iterate" problem has been checked by TestContextSafety now, so here we only need to check the cleanup logic with a small number
 		packagesCount := 2
-		for i := 0; i < packagesCount; i++ {
+		for i := range packagesCount {
 			uploadURL := fmt.Sprintf("%s/pool/%s/%s/upload", rootURL, "test", "main")
 			req := NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, "1.0."+strconv.Itoa(i), "all")).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)

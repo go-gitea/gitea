@@ -6,6 +6,7 @@
 			<label for="payload_url">{{ctx.Locale.Tr "repo.settings.payload_url"}}</label>
 			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>
 		</div>
-		{{template "repo/settings/webhook/settings" .}}
+		{{/* FIXME: support authorization header or not? */}}
+		{{template "repo/settings/webhook/settings" dict "BaseLink" .BaseLink "Webhook" .Webhook "UseAuthorizationHeader" "optional"}}
 	</form>
 {{end}}

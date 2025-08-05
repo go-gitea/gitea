@@ -22,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/services/versioned_migration"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // CmdMigrateStorage represents the available migrate storage sub-command.
@@ -213,11 +213,8 @@ func migrateActionsArtifacts(ctx context.Context, dstStorage storage.ObjectStora
 	})
 }
 
-func runMigrateStorage(ctx *cli.Context) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
-	if err := initDB(stdCtx); err != nil {
+func runMigrateStorage(ctx context.Context, cmd *cli.Command) error {
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -238,51 +235,51 @@ func runMigrateStorage(ctx *cli.Context) error {
 
 	var dstStorage storage.ObjectStorage
 	var err error
-	switch strings.ToLower(ctx.String("storage")) {
+	switch strings.ToLower(cmd.String("storage")) {
 	case "":
 		fallthrough
 	case string(setting.LocalStorageType):
-		p := ctx.String("path")
+		p := cmd.String("path")
 		if p == "" {
 			log.Fatal("Path must be given when storage is local")
 			return nil
 		}
 		dstStorage, err = storage.NewLocalStorage(
-			stdCtx,
+			ctx,
 			&setting.Storage{
 				Path: p,
 			})
 	case string(setting.MinioStorageType):
 		dstStorage, err = storage.NewMinioStorage(
-			stdCtx,
+			ctx,
 			&setting.Storage{
 				MinioConfig: setting.MinioStorageConfig{
-					Endpoint:           ctx.String("minio-endpoint"),
-					AccessKeyID:        ctx.String("minio-access-key-id"),
-					SecretAccessKey:    ctx.String("minio-secret-access-key"),
-					Bucket:             ctx.String("minio-bucket"),
-					Location:           ctx.String("minio-location"),
-					BasePath:           ctx.String("minio-base-path"),
-					UseSSL:             ctx.Bool("minio-use-ssl"),
-					InsecureSkipVerify: ctx.Bool("minio-insecure-skip-verify"),
-					ChecksumAlgorithm:  ctx.String("minio-checksum-algorithm"),
-					BucketLookUpType:   ctx.String("minio-bucket-lookup-type"),
+					Endpoint:           cmd.String("minio-endpoint"),
+					AccessKeyID:        cmd.String("minio-access-key-id"),
+					SecretAccessKey:    cmd.String("minio-secret-access-key"),
+					Bucket:             cmd.String("minio-bucket"),
+					Location:           cmd.String("minio-location"),
+					BasePath:           cmd.String("minio-base-path"),
+					UseSSL:             cmd.Bool("minio-use-ssl"),
+					InsecureSkipVerify: cmd.Bool("minio-insecure-skip-verify"),
+					ChecksumAlgorithm:  cmd.String("minio-checksum-algorithm"),
+					BucketLookUpType:   cmd.String("minio-bucket-lookup-type"),
 				},
 			})
 	case string(setting.AzureBlobStorageType):
 		dstStorage, err = storage.NewAzureBlobStorage(
-			stdCtx,
+			ctx,
 			&setting.Storage{
 				AzureBlobConfig: setting.AzureBlobStorageConfig{
-					Endpoint:    ctx.String("azureblob-endpoint"),
-					AccountName: ctx.String("azureblob-account-name"),
-					AccountKey:  ctx.String("azureblob-account-key"),
-					Container:   ctx.String("azureblob-container"),
-					BasePath:    ctx.String("azureblob-base-path"),
+					Endpoint:    cmd.String("azureblob-endpoint"),
+					AccountName: cmd.String("azureblob-account-name"),
+					AccountKey:  cmd.String("azureblob-account-key"),
+					Container:   cmd.String("azureblob-container"),
+					BasePath:    cmd.String("azureblob-base-path"),
 				},
 			})
 	default:
-		return fmt.Errorf("unsupported storage type: %s", ctx.String("storage"))
+		return fmt.Errorf("unsupported storage type: %s", cmd.String("storage"))
 	}
 	if err != nil {
 		return err
@@ -299,14 +296,14 @@ func runMigrateStorage(ctx *cli.Context) error {
 		"actions-artifacts": migrateActionsArtifacts,
 	}
 
-	tp := strings.ToLower(ctx.String("type"))
+	tp := strings.ToLower(cmd.String("type"))
 	if m, ok := migratedMethods[tp]; ok {
-		if err := m(stdCtx, dstStorage); err != nil {
+		if err := m(ctx, dstStorage); err != nil {
 			return err
 		}
 		log.Info("%s files have successfully been copied to the new storage.", tp)
 		return nil
 	}
 
-	return fmt.Errorf("unsupported storage: %s", ctx.String("type"))
+	return fmt.Errorf("unsupported storage: %s", cmd.String("type"))
 }

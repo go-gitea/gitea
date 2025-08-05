@@ -35,37 +35,12 @@
 			{{end}}
 		</div>
 
-		{{if not (and ($.UserDisabledFeatures.Contains "manage_credentials") (not $.EnableNotifyMail))}}
+		{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "settings.manage_emails"}}
 		</h4>
 		<div class="ui attached segment">
 			<div class="ui list flex-items-block">
-				{{if $.EnableNotifyMail}}
-				<div class="item">
-					<form class="ui form tw-w-full" action="{{AppSubUrl}}/user/settings/account/email" method="post">
-						{{$.CsrfTokenHtml}}
-						<input name="_method" type="hidden" value="NOTIFICATION">
-						<div class="field">
-							<label>{{ctx.Locale.Tr "settings.email_desc"}}</label>
-							<div class="ui selection dropdown">
-								<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="text"></div>
-								<div class="menu">
-									<div data-value="enabled" class="{{if eq .EmailNotificationsPreference "enabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.enable"}}</div>
-									<div data-value="andyourown" class="{{if eq .EmailNotificationsPreference "andyourown"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.andyourown"}}</div>
-									<div data-value="onmention" class="{{if eq .EmailNotificationsPreference "onmention"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.onmention"}}</div>
-									<div data-value="disabled" class="{{if eq .EmailNotificationsPreference "disabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.disable"}}</div>
-								</div>
-							</div>
-						</div>
-						<div class="field">
-							<button class="ui primary button">{{ctx.Locale.Tr "settings.email_notifications.submit"}}</button>
-						</div>
-					</form>
-				</div>
-				{{end}}
 				{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
 					{{range .Emails}}
 						<div class="item tw-flex-wrap">
