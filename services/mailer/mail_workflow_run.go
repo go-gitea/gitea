@@ -34,6 +34,17 @@ func generateMessageIDForActionsWorkflowRunStatusEmail(repo *repo_model.Reposito
 }
 
 func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, sender *user_model.User, recipients []*user_model.User) {
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+	if err != nil {
+		log.Error("GetRunJobsByRunID: %v", err)
+		return
+	}
+	for _, job := range jobs {
+		if !job.Status.IsDone() {
+			return
+		}
+	}
+
 	subject := "Run"
 	switch run.Status {
 	case actions_model.StatusFailure:
@@ -48,11 +59,6 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 	messageID := generateMessageIDForActionsWorkflowRunStatusEmail(repo, run)
 	metadataHeaders := generateMetadataHeaders(repo)
 
-	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
-	if err != nil {
-		log.Error("GetRunJobsByRunID: %v", err)
-		return
-	}
 	sort.SliceStable(jobs, func(i, j int) bool {
 		si, sj := jobs[i].Status, jobs[j].Status
 		/*
