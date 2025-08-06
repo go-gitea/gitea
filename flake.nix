@@ -11,33 +11,45 @@
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            # generic
-            git
-            git-lfs
-            gnumake
-            gnused
-            gnutar
-            gzip
+        devShells.default =
+          with pkgs;
+          let
+            # only bump toolchain versions here
+            go = go_1_24;
+            nodejs = nodejs_24;
+            python3 = python312;
+          in
+          pkgs.mkShell {
+            buildInputs = [
+              # generic
+              git
+              git-lfs
+              gnumake
+              gnused
+              gnutar
+              gzip
 
-            # frontend
-            nodejs_22
+              # frontend
+              nodejs
 
-            # linting
-            python312
-            uv
+              # linting
+              python3
+              uv
 
-            # backend
-            go_1_24
-            gofumpt
-            sqlite
-          ];
-          shellHook = ''
-            export GO="${pkgs.go_1_24}/bin/go"
-            export GOROOT="${pkgs.go_1_24}/share/go"
-          '';
-        };
+              # backend
+              go
+              glibc.static
+              gofumpt
+              sqlite
+            ];
+            CFLAGS = "-I${glibc.static.dev}/include";
+            LDFLAGS = "-L ${glibc.static}/lib";
+            GO = "${go}/bin/go";
+            GOROOT = "${go}/share/go";
+
+            TAGS = "sqlite sqlite_unlock_notify";
+            STATIC = "true";
+          };
       }
     );
 }
