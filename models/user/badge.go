@@ -27,7 +27,7 @@ type Badge struct {
 type UserBadge struct { //nolint:revive // export stutter
 	ID      int64 `xorm:"pk autoincr"`
 	BadgeID int64
-	UserID  int64 `xorm:"INDEX"`
+	UserID  int64
 }
 
 // TableIndices implements xorm's TableIndices interface
