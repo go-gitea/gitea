@@ -21,7 +21,7 @@ func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo

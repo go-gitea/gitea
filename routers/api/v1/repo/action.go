@@ -46,7 +46,7 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repository
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -216,7 +216,7 @@ func (Action) GetVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -270,7 +270,7 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -319,7 +319,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -386,7 +386,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -458,7 +458,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -660,7 +660,7 @@ func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -704,7 +704,7 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1110,7 +1110,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1132,18 +1132,23 @@ func GetWorkflowRun(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	runID := ctx.PathParamInt64("run")
-	job, _, err := db.GetByID[actions_model.ActionRun](ctx, runID)
-
-	if err != nil || job.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIError(http.StatusNotFound, util.ErrNotExist)
-	}
-
-	convertedArtifact, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, job)
+	job, has, err := db.GetByID[actions_model.ActionRun](ctx, runID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convertedArtifact)
+
+	if !has || job.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIErrorNotFound(util.ErrNotExist)
+		return
+	}
+
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, job)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedRun)
 }
 
 // ListWorkflowRunJobs Lists all jobs for a workflow run.
@@ -1156,7 +1161,7 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1215,7 +1220,7 @@ func GetWorkflowJob(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1237,10 +1242,15 @@ func GetWorkflowJob(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	jobID := ctx.PathParamInt64("job_id")
-	job, _, err := db.GetByID[actions_model.ActionRunJob](ctx, jobID)
+	job, has, err := db.GetByID[actions_model.ActionRunJob](ctx, jobID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 
-	if err != nil || job.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIError(http.StatusNotFound, util.ErrNotExist)
+	if !has || job.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIErrorNotFound(util.ErrNotExist)
+		return
 	}
 
 	convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, ctx.Repo.Repository, nil, job)
@@ -1251,7 +1261,7 @@ func GetWorkflowJob(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convertedWorkflowJob)
 }
 
-// GetArtifacts Lists all artifacts for a repository.
+// GetArtifactsOfRun Lists all artifacts for a repository.
 func GetArtifactsOfRun(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/artifacts repository getArtifactsOfRun
 	// ---
@@ -1261,7 +1271,7 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1330,7 +1340,7 @@ func DeleteActionRun(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1354,7 +1364,7 @@ func DeleteActionRun(ctx *context.APIContext) {
 	runID := ctx.PathParamInt64("run")
 	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
 	if errors.Is(err, util.ErrNotExist) {
-		ctx.APIError(http.StatusNotFound, err)
+		ctx.APIErrorNotFound(err)
 		return
 	} else if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1382,7 +1392,7 @@ func GetArtifacts(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1443,7 +1453,7 @@ func GetArtifact(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1492,7 +1502,7 @@ func DeleteArtifact(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -1559,7 +1569,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
