@@ -15,7 +15,7 @@
 					</span>
 				{{end}}
 			</div>
-			<div>
+			<div class="tw-flex tw-items-center">
 				{{if or $invalid $resolved}}
 					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}tw-hidden{{end}} btn tiny show-outdated">
 						{{svg "octicon-unfold" 16 "tw-mr-2"}}
