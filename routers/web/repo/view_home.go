@@ -19,8 +19,8 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -258,35 +258,41 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 	ctx.Redirect(link)
 }
 
-func handleRepoViewSubmodule(ctx *context.Context, submodule *git.SubModule) {
-	// TODO: it needs to use git.NewCommitSubmoduleFile and SubmoduleWebLinkTree to correctly handle relative paths
-	submoduleRepoURL, err := giturl.ParseRepositoryURL(ctx, submodule.URL)
-	if err != nil {
-		HandleGitError(ctx, "handleRepoViewSubmodule: ParseRepositoryURL", err)
+func isViewHomeOnlyContent(ctx *context.Context) bool {
+	return ctx.FormBool("only_content")
+}
+
+func handleRepoViewSubmodule(ctx *context.Context, commitSubmoduleFile *git.CommitSubmoduleFile) {
+	submoduleWebLink := commitSubmoduleFile.SubmoduleWebLinkTree(ctx)
+	if submoduleWebLink == nil {
+		ctx.Data["NotFoundPrompt"] = ctx.Repo.TreePath
+		ctx.NotFound(nil)
 		return
 	}
-	submoduleURL := giturl.MakeRepositoryWebLink(submoduleRepoURL)
-	if httplib.IsCurrentGiteaSiteURL(ctx, submoduleURL) {
-		ctx.RedirectToCurrentSite(submoduleURL)
-	} else {
+
+	redirectLink := submoduleWebLink.CommitWebLink
+	if isViewHomeOnlyContent(ctx) {
+		ctx.Resp.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = ctx.Resp.Write([]byte(htmlutil.HTMLFormat(`<a href="%s">%s</a>`, redirectLink, redirectLink)))
+	} else if !httplib.IsCurrentGiteaSiteURL(ctx, redirectLink) {
 		// don't auto-redirect to external URL, to avoid open redirect or phishing
-		ctx.Data["NotFoundPrompt"] = submoduleURL
+		ctx.Data["NotFoundPrompt"] = redirectLink
 		ctx.NotFound(nil)
+	} else {
+		ctx.Redirect(submoduleWebLink.CommitWebLink)
 	}
 }
 
 func prepareToRenderDirOrFile(entry *git.TreeEntry) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
 		if entry.IsSubModule() {
-			submodule, err := ctx.Repo.Commit.GetSubModule(entry.Name())
+			commitSubmoduleFile, err := git.GetCommitInfoSubmoduleFile(ctx.Repo.RepoLink, ctx.Repo.TreePath, ctx.Repo.Commit, entry.ID)
 			if err != nil {
-				HandleGitError(ctx, "prepareToRenderDirOrFile: GetSubModule", err)
+				HandleGitError(ctx, "prepareToRenderDirOrFile: GetCommitInfoSubmoduleFile", err)
 				return
 			}
-			handleRepoViewSubmodule(ctx, submodule)
-			return
-		}
-		if entry.IsDir() {
+			handleRepoViewSubmodule(ctx, commitSubmoduleFile)
+		} else if entry.IsDir() {
 			prepareToRenderDirectory(ctx)
 		} else {
 			prepareFileView(ctx, entry)
@@ -441,7 +447,7 @@ func Home(ctx *context.Context) {
 		}
 	}
 
-	if ctx.FormBool("only_content") {
+	if isViewHomeOnlyContent(ctx) {
 		ctx.HTML(http.StatusOK, tplRepoViewContent)
 	} else if len(treeNames) != 0 {
 		ctx.HTML(http.StatusOK, tplRepoView)

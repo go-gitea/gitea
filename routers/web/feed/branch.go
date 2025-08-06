@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/services/context"
 
 	"github.com/gorilla/feeds"
@@ -15,10 +16,14 @@ import (
 
 // ShowBranchFeed shows tags and/or releases on the repo as RSS / Atom feed
 func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType string) {
-	commits, err := ctx.Repo.Commit.CommitsByRange(0, 10, "", "", "")
-	if err != nil {
-		ctx.ServerError("ShowBranchFeed", err)
-		return
+	var commits []*git.Commit
+	var err error
+	if ctx.Repo.Commit != nil {
+		commits, err = ctx.Repo.Commit.CommitsByRange(0, 10, "", "", "")
+		if err != nil {
+			ctx.ServerError("ShowBranchFeed", err)
+			return
+		}
 	}
 
 	title := "Latest commits for branch " + ctx.Repo.BranchName
