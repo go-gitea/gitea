@@ -37,6 +37,7 @@ const baseOptions: MonacoOpts = {
   rulers: [],
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
   scrollBeyondLastLine: false,
+  automaticLayout: true,
 };
 
 function getEditorconfig(input: HTMLInputElement): EditorConfig | null {

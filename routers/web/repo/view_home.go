@@ -9,7 +9,6 @@ import (
 	"html/template"
 	"net/http"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/htmlutil"
@@ -318,19 +316,6 @@ func handleRepoHomeFeed(ctx *context.Context) bool {
 	return true
 }
 
-func prepareHomeTreeSideBarSwitch(ctx *context.Context) {
-	showFileTree := true
-	if ctx.Doer != nil {
-		v, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyCodeViewShowFileTree, "true")
-		if err != nil {
-			log.Error("GetUserSetting: %v", err)
-		} else {
-			showFileTree, _ = strconv.ParseBool(v)
-		}
-	}
-	ctx.Data["UserSettingCodeViewShowFileTree"] = showFileTree
-}
-
 func redirectSrcToRaw(ctx *context.Context) bool {
 	// GitHub redirects a tree path with "?raw=1" to the raw path
 	// It is useful to embed some raw contents into Markdown files,
@@ -386,7 +371,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	prepareHomeTreeSideBarSwitch(ctx)
+	prepareTreeSideBarSwitch(ctx)
 
 	// get the current git entry which doer user is currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)

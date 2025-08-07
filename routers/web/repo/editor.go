@@ -280,6 +280,8 @@ func EditFile(ctx *context.Context) {
 		return
 	}
 
+	prepareTreeSideBarSwitch(ctx)
+
 	// on the "New File" page, we should add an empty path field to make end users could input a new name
 	prepareTreePathFieldsAndPaths(ctx, util.Iif(isNewFile, ctx.Repo.TreePath+"/", ctx.Repo.TreePath))
 

@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -255,6 +256,19 @@ func LastCommit(ctx *context.Context) {
 	ctx.Data["BranchLink"] = branchLink
 
 	ctx.HTML(http.StatusOK, tplRepoViewList)
+}
+
+func prepareTreeSideBarSwitch(ctx *context.Context) {
+	showFileTree := true
+	if ctx.Doer != nil {
+		v, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyCodeViewShowFileTree, "true")
+		if err != nil {
+			log.Error("GetUserSetting: %v", err)
+		} else {
+			showFileTree, _ = strconv.ParseBool(v)
+		}
+	}
+	ctx.Data["UserSettingCodeViewShowFileTree"] = showFileTree
 }
 
 func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {

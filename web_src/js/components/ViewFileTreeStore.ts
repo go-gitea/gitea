@@ -4,10 +4,11 @@ import {pathEscapeSegments} from '../utils/url.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 
-export function createViewFileTreeStore(props: { repoLink: string, treePath: string, currentRefNameSubURL: string, isEdit?: boolean }) {
+export function createViewFileTreeStore(props: { repoLink: string, treePath: string, currentRefNameSubURL: string, pageIsEdit: boolean }) {
   const store = reactive({
     rootFiles: [],
     selectedItem: props.treePath,
+    pageIsEdit: props.pageIsEdit,
 
     async loadChildren(treePath: string, subPath: string = '') {
       const response = await GET(`${props.repoLink}/tree-view/${props.currentRefNameSubURL}/${pathEscapeSegments(treePath)}?sub_path=${encodeURIComponent(subPath)}`);
@@ -32,11 +33,6 @@ export function createViewFileTreeStore(props: { repoLink: string, treePath: str
 
     async navigateTreeView(treePath: string) {
       const url = store.buildTreePathWebUrl(treePath);
-      // do full page reload to show confirmation dialog if editor has unsaved changed
-      if (props.isEdit) {
-        window.location.href = url;
-        return;
-      }
       window.history.pushState({treePath, url}, null, url);
       store.selectedItem = treePath;
       await store.loadViewContent(url);

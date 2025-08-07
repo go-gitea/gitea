@@ -16,6 +16,7 @@
   display: flex;
   margin: 4px 0;
   padding: 3px 0;
+  gap: 0.5rem
 }
 
 .editor-toolbar {
