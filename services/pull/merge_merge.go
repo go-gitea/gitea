@@ -4,6 +4,10 @@
 package pull
 
 import (
+	"context"
+	"strings"
+
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -22,4 +26,27 @@ func doMergeStyleMerge(ctx *mergeContext, message string) error {
 		return err
 	}
 	return nil
+}
+
+// CalcMergeBase calculates the merge base for a pull request.
+func CalcMergeBase(ctx context.Context, pr *issues_model.PullRequest) (string, error) {
+	repoPath := pr.BaseRepo.RepoPath()
+	if pr.HasMerged {
+		mergeBase, _, err := git.NewCommand("merge-base").AddDashesAndList(pr.MergedCommitID+"^", pr.GetGitHeadRefName()).
+			RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+		return strings.TrimSpace(mergeBase), err
+	}
+
+	mergeBase, _, err := git.NewCommand("merge-base").AddDashesAndList(pr.BaseBranch, pr.GetGitHeadRefName()).
+		RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+	if err != nil {
+		var err2 error
+		mergeBase, _, err2 = git.NewCommand("rev-parse").AddDynamicArguments(git.BranchPrefix+pr.BaseBranch).
+			RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+		if err2 != nil {
+			log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err, err2)
+			return "", err2
+		}
+	}
+	return strings.TrimSpace(mergeBase), nil
 }
