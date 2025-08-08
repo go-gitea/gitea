@@ -869,6 +869,18 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
+	if opts.HasCode != nil && !unit_model.TypeCode.UnitGlobalDisabled() {
+		if *opts.HasCode {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeCode,
+				Config: &repo_model.UnitConfig{},
+			})
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeCode)
+		}
+	}
+
 	if opts.HasPullRequests != nil && !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		if *opts.HasPullRequests {
 			// We do allow setting individual PR settings through the API, so

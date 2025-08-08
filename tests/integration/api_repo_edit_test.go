@@ -76,12 +76,36 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 		allowFastForwardOnly = config.AllowFastForwardOnly
 	}
 	archived := repo.IsArchived
+	hasProjects := false
+	var projectsMode *string
+	if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypeProjects); err == nil && unit != nil {
+		hasProjects = true
+		pm := string(unit.ProjectsConfig().ProjectsMode)
+		projectsMode = &pm
+	}
+	hasCode := repo.UnitEnabled(db.DefaultContext, unit_model.TypeCode)
+	hasPackages := repo.UnitEnabled(db.DefaultContext, unit_model.TypePackages)
+	hasReleases := repo.UnitEnabled(db.DefaultContext, unit_model.TypeReleases)
+	hasActions := false
+	if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypeActions); err == nil && unit != nil {
+		hasActions = true
+		// TODO: expose action config of repo to api
+		// actionsConfig = &api.RepoActionsConfig{
+		// 	DisabledWorkflows: unit.ActionsConfig().DisabledWorkflows,
+		// }
+	}
 	return &api.EditRepoOption{
 		Name:                      &name,
 		Description:               &description,
 		Website:                   &website,
 		Private:                   &private,
 		HasIssues:                 &hasIssues,
+		HasProjects:               &hasProjects,
+		ProjectsMode:              projectsMode,
+		HasCode:                   &hasCode,
+		HasPackages:               &hasPackages,
+		HasReleases:               &hasReleases,
+		HasActions:                &hasActions,
 		ExternalTracker:           externalTracker,
 		InternalTracker:           internalTracker,
 		HasWiki:                   &hasWiki,
@@ -108,6 +132,11 @@ func getNewRepoEditOption(opts *api.EditRepoOption) *api.EditRepoOption {
 	private := !*opts.Private
 	hasIssues := !*opts.HasIssues
 	hasWiki := !*opts.HasWiki
+	hasProjects := !*opts.HasProjects
+	hasCode := !*opts.HasCode
+	hasPackages := !*opts.HasPackages
+	hasReleases := !*opts.HasReleases
+	hasActions := !*opts.HasActions
 	defaultBranch := "master"
 	hasPullRequests := !*opts.HasPullRequests
 	ignoreWhitespaceConflicts := !*opts.IgnoreWhitespaceConflicts
@@ -125,6 +154,11 @@ func getNewRepoEditOption(opts *api.EditRepoOption) *api.EditRepoOption {
 		DefaultBranch:             &defaultBranch,
 		HasIssues:                 &hasIssues,
 		HasWiki:                   &hasWiki,
+		HasProjects:               &hasProjects,
+		HasCode:                   &hasCode,
+		HasPackages:               &hasPackages,
+		HasReleases:               &hasReleases,
+		HasActions:                &hasActions,
 		HasPullRequests:           &hasPullRequests,
 		IgnoreWhitespaceConflicts: &ignoreWhitespaceConflicts,
 		AllowMerge:                &allowMerge,
@@ -156,6 +190,11 @@ func TestAPIRepoEdit(t *testing.T) {
 
 		// Test editing a repo1 which user2 owns, changing name and many properties
 		origRepoEditOption := getRepoEditOptionFromRepo(repo1)
+		assert.True(t, *origRepoEditOption.HasCode)
+		assert.True(t, *origRepoEditOption.HasPackages)
+		assert.True(t, *origRepoEditOption.HasProjects)
+		assert.True(t, *origRepoEditOption.HasReleases)
+		assert.True(t, *origRepoEditOption.HasActions)
 		repoEditOption := getNewRepoEditOption(origRepoEditOption)
 		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo1.Name), &repoEditOption).
 			AddTokenAuth(token2)
@@ -177,6 +216,11 @@ func TestAPIRepoEdit(t *testing.T) {
 		assert.Equal(t, *repoEditOption.Archived, *repo1editedOption.Archived)
 		assert.Equal(t, *repoEditOption.Private, *repo1editedOption.Private)
 		assert.Equal(t, *repoEditOption.HasWiki, *repo1editedOption.HasWiki)
+		assert.Equal(t, *repoEditOption.HasCode, *repo1editedOption.HasCode)
+		assert.Equal(t, *repoEditOption.HasPackages, *repo1editedOption.HasPackages)
+		assert.Equal(t, *repoEditOption.HasProjects, *repo1editedOption.HasProjects)
+		assert.Equal(t, *repoEditOption.HasReleases, *repo1editedOption.HasReleases)
+		assert.Equal(t, *repoEditOption.HasActions, *repo1editedOption.HasActions)
 
 		// Test editing repo1 to use internal issue and wiki (default)
 		*repoEditOption.HasIssues = true
@@ -224,6 +268,11 @@ func TestAPIRepoEdit(t *testing.T) {
 		assert.Equal(t, *repo1editedOption.ExternalTracker, *repoEditOption.ExternalTracker)
 		assert.True(t, *repo1editedOption.HasWiki)
 		assert.Equal(t, *repo1editedOption.ExternalWiki, *repoEditOption.ExternalWiki)
+		assert.False(t, *repo1editedOption.HasCode)
+		assert.False(t, *repo1editedOption.HasPackages)
+		assert.False(t, *repo1editedOption.HasProjects)
+		assert.False(t, *repo1editedOption.HasReleases)
+		assert.False(t, *repo1editedOption.HasActions)
 
 		repoEditOption.ExternalTracker.ExternalTrackerStyle = "regexp"
 		repoEditOption.ExternalTracker.ExternalTrackerRegexpPattern = `(\d+)`
@@ -272,6 +321,11 @@ func TestAPIRepoEdit(t *testing.T) {
 		assert.NotNil(t, *repo1editedOption.ExternalTracker)
 		assert.True(t, *repo1editedOption.HasWiki)
 		assert.NotNil(t, *repo1editedOption.ExternalWiki)
+		assert.False(t, *repo1editedOption.HasCode)
+		assert.False(t, *repo1editedOption.HasPackages)
+		assert.False(t, *repo1editedOption.HasProjects)
+		assert.False(t, *repo1editedOption.HasReleases)
+		assert.False(t, *repo1editedOption.HasActions)
 
 		// reset repo in db
 		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, *repoEditOption.Name), &origRepoEditOption).
