@@ -107,4 +107,7 @@ var (
 	// ErrContextNotSupported is the error used if a context is not
 	// supported.
 	ErrContextNotSupported = errors.New("context not supported")
+
+	// ErrContextTooLong is the error used if the context string is too long.
+	ErrContextTooLong = errors.New("context string too long")
 )

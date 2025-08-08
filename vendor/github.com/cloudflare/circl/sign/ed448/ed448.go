@@ -206,7 +206,7 @@ func newKeyFromSeed(privateKey, seed []byte) {
 
 func signAll(signature []byte, privateKey PrivateKey, message, ctx []byte, preHash bool) {
 	if len(ctx) > ContextMaxSize {
-		panic(fmt.Errorf("ed448: bad context length: " + strconv.Itoa(len(ctx))))
+		panic(fmt.Errorf("ed448: bad context length: %v", len(ctx)))
 	}
 
 	H := sha3.NewShake256()

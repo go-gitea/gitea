@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+
+	"golang.org/x/crypto/cryptobyte"
 )
 
 // BytesLe2Hex returns an hexadecimal string of a number stored in a
@@ -137,4 +139,35 @@ func BigInt2Uint64Le(z []uint64, x *big.Int) {
 	for i := xLen; i < zLen; i++ {
 		z[i] = 0
 	}
+}
+
+// MarshalBinary encodes a value into a byte array in a format readable by UnmarshalBinary.
+func MarshalBinary(v cryptobyte.MarshalingValue) ([]byte, error) {
+	const DefaultSize = 32
+	b := cryptobyte.NewBuilder(make([]byte, 0, DefaultSize))
+	b.AddValue(v)
+	return b.Bytes()
+}
+
+// MarshalBinaryLen encodes a value into an array of n bytes in a format readable by UnmarshalBinary.
+func MarshalBinaryLen(v cryptobyte.MarshalingValue, length uint) ([]byte, error) {
+	b := cryptobyte.NewFixedBuilder(make([]byte, 0, length))
+	b.AddValue(v)
+	return b.Bytes()
+}
+
+// A UnmarshalingValue decodes itself from a cryptobyte.String and advances the pointer.
+// It reports whether the read was successful.
+type UnmarshalingValue interface {
+	Unmarshal(*cryptobyte.String) bool
+}
+
+// UnmarshalBinary recovers a value from a byte array.
+// It returns an error if the read was unsuccessful.
+func UnmarshalBinary(v UnmarshalingValue, data []byte) (err error) {
+	s := cryptobyte.String(data)
+	if data == nil || !v.Unmarshal(&s) || !s.Empty() {
+		err = fmt.Errorf("cannot read %T from input string", v)
+	}
+	return
 }
