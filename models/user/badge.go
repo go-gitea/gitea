@@ -246,7 +246,6 @@ func (opts *SearchBadgeOptions) ToConds() builder.Cond {
 		keywordCond := builder.Or(
 			builder.Like{"badge.slug", lowerKeyword},
 			builder.Like{"badge.description", lowerKeyword},
-			builder.Like{"badge.id", lowerKeyword},
 		)
 		cond = cond.And(keywordCond)
 	}
