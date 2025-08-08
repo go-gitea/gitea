@@ -1,0 +1,44 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin view user")}}
+
+<div class="admin-setting-content">
+	<div class="admin-responsive-columns">
+		<div class="tw-flex-1">
+			<h4 class="ui top attached header">
+				{{.Title}}
+				<div class="ui right">
+					<a class="ui primary tiny button" href="{{.Link}}/edit">{{ctx.Locale.Tr "admin.users.edit"}}</a>
+				</div>
+			</h4>
+			<div class="ui attached segment">
+				<div class="flex-list">
+					<div class="flex-item">
+					{{if .Image}}
+						<div class="flex-item-leading">
+						<img width="64" height="64" src="{{.Badge.ImageURL}}" alt="{{.Badge.Description}}" data-tooltip-content="{{.Badge.Description}}">
+					</div>
+					{{end}}
+					<div class="flex-item-main">
+							<div class="flex-item-title">
+								{{.Badge.Slug}}
+							</div>
+							<div class="flex-item-body">
+								{{.Badge.Description}}
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "explore.users"}} ({{.UsersTotal}})
+		<div class="ui right">
+			<a class="ui primary tiny button" href="{{.Link}}/users">{{ctx.Locale.Tr "admin.badges.manage_users"}}</a>
+		</div>
+	</h4>
+	<div class="ui attached segment">
+		{{template "explore/user_list" .}}
+	</div>
+</div>
+
+{{template "admin/layout_footer" .}}
