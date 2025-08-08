@@ -29,8 +29,6 @@ func TestUserSSHKeypair(t *testing.T) {
 		assert.NotEmpty(t, keypair.PublicKey)
 		assert.NotEmpty(t, keypair.PrivateKeyEncrypted)
 		assert.NotEmpty(t, keypair.Fingerprint)
-		assert.Positive(t, keypair.CreatedUnix)
-		assert.Positive(t, keypair.UpdatedUnix)
 
 		// Verify the public key is in SSH format
 		assert.Contains(t, keypair.PublicKey, "ssh-ed25519")
@@ -54,7 +52,7 @@ func TestUserSSHKeypair(t *testing.T) {
 		// Test retrieving the keypair
 		retrieved, err := repo_model.GetUserSSHKeypairByOwner(db.DefaultContext, 3)
 		require.NoError(t, err)
-		assert.Equal(t, created.ID, retrieved.ID)
+		assert.Equal(t, created.OwnerID, retrieved.OwnerID)
 		assert.Equal(t, created.PublicKey, retrieved.PublicKey)
 		assert.Equal(t, created.Fingerprint, retrieved.Fingerprint)
 
@@ -128,7 +126,7 @@ func TestUserSSHKeypairConcurrency(t *testing.T) {
 
 	// Test concurrent creation of keypairs to ensure no race conditions
 	t.Run("ConcurrentCreation", func(t *testing.T) {
-		ctx := t.Context()
+		ctx := db.DefaultContext
 		results := make(chan error, 10)
 
 		// Start multiple goroutines creating keypairs for different owners

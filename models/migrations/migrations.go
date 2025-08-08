@@ -386,7 +386,6 @@ func prepareMigrationTasks() []*migration {
 
 		// Gitea 1.24.0 ends at migration ID number 320 (database version 321)
 		newMigration(321, "Use LONGTEXT for some columns and fix review_state.updated_files column", v1_25.UseLongTextInSomeColumnsAndFixBugs),
-		newMigration(322, "Add Mirror SSH keypair table", v1_25.AddUserSSHKeypairTable),
 	}
 	return preparedMigrations
 }

@@ -16,7 +16,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/crypto/ssh"
@@ -24,30 +23,44 @@ import (
 
 // UserSSHKeypair represents an SSH keypair for repository mirroring
 type UserSSHKeypair struct {
-	ID                  int64              `xorm:"pk autoincr"`
-	OwnerID             int64              `xorm:"INDEX NOT NULL"`
-	PrivateKeyEncrypted string             `xorm:"TEXT NOT NULL"`
-	PublicKey           string             `xorm:"TEXT NOT NULL"`
-	Fingerprint         string             `xorm:"VARCHAR(255) UNIQUE NOT NULL"`
-	CreatedUnix         timeutil.TimeStamp `xorm:"created"`
-	UpdatedUnix         timeutil.TimeStamp `xorm:"updated"`
+	OwnerID             int64
+	PrivateKeyEncrypted string
+	PublicKey           string
+	Fingerprint         string
 }
 
-func init() {
-	db.RegisterModel(new(UserSSHKeypair))
-}
-
-// GetUserSSHKeypairByOwner gets the most recent SSH keypair for the given owner
+// GetUserSSHKeypairByOwner gets the SSH keypair for the given owner
 func GetUserSSHKeypairByOwner(ctx context.Context, ownerID int64) (*UserSSHKeypair, error) {
-	keypair := &UserSSHKeypair{}
-	has, err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).
-		Desc("created_unix").Get(keypair)
+	settings, err := user_model.GetSettings(ctx, ownerID, []string{
+		user_model.UserSSHMirrorPrivPem,
+		user_model.UserSSHMirrorPubPem,
+		user_model.UserSSHMirrorFingerprint,
+	})
 	if err != nil {
 		return nil, err
 	}
-	if !has {
+	if len(settings) == 0 {
 		return nil, util.NewNotExistErrorf("SSH keypair does not exist for owner %d", ownerID)
 	}
+
+	keypair := &UserSSHKeypair{
+		OwnerID: ownerID,
+	}
+
+	if privSetting, exists := settings[user_model.UserSSHMirrorPrivPem]; exists {
+		keypair.PrivateKeyEncrypted = privSetting.SettingValue
+	}
+	if pubSetting, exists := settings[user_model.UserSSHMirrorPubPem]; exists {
+		keypair.PublicKey = pubSetting.SettingValue
+	}
+	if fpSetting, exists := settings[user_model.UserSSHMirrorFingerprint]; exists {
+		keypair.Fingerprint = fpSetting.SettingValue
+	}
+
+	if keypair.PrivateKeyEncrypted == "" || keypair.PublicKey == "" || keypair.Fingerprint == "" {
+		return nil, util.NewNotExistErrorf("SSH keypair incomplete for owner %d", ownerID)
+	}
+
 	return keypair, nil
 }
 
@@ -73,6 +86,22 @@ func CreateUserSSHKeypair(ctx context.Context, ownerID int64) (*UserSSHKeypair, 
 		return nil, fmt.Errorf("failed to encrypt private key: %w", err)
 	}
 
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		if err := user_model.SetUserSetting(ctx, ownerID, user_model.UserSSHMirrorPrivPem, privateKeyEncrypted); err != nil {
+			return fmt.Errorf("failed to save private key: %w", err)
+		}
+		if err := user_model.SetUserSetting(ctx, ownerID, user_model.UserSSHMirrorPubPem, publicKeyStr); err != nil {
+			return fmt.Errorf("failed to save public key: %w", err)
+		}
+		if err := user_model.SetUserSetting(ctx, ownerID, user_model.UserSSHMirrorFingerprint, fingerprintStr); err != nil {
+			return fmt.Errorf("failed to save fingerprint: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	keypair := &UserSSHKeypair{
 		OwnerID:             ownerID,
 		PrivateKeyEncrypted: privateKeyEncrypted,
@@ -80,7 +109,7 @@ func CreateUserSSHKeypair(ctx context.Context, ownerID int64) (*UserSSHKeypair, 
 		Fingerprint:         fingerprintStr,
 	}
 
-	return keypair, db.Insert(ctx, keypair)
+	return keypair, nil
 }
 
 // GetDecryptedPrivateKey returns the decrypted private key
@@ -115,12 +144,29 @@ func (k *UserSSHKeypair) GetPublicKeyWithComment(ctx context.Context) (string, e
 
 // DeleteUserSSHKeypair deletes an SSH keypair
 func DeleteUserSSHKeypair(ctx context.Context, ownerID int64) error {
-	_, err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).Delete(&UserSSHKeypair{})
-	return err
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := user_model.DeleteUserSetting(ctx, ownerID, user_model.UserSSHMirrorPrivPem); err != nil {
+			return err
+		}
+		if err := user_model.DeleteUserSetting(ctx, ownerID, user_model.UserSSHMirrorPubPem); err != nil {
+			return err
+		}
+		return user_model.DeleteUserSetting(ctx, ownerID, user_model.UserSSHMirrorFingerprint)
+	})
 }
 
 // RegenerateUserSSHKeypair regenerates an SSH keypair for the given owner
 func RegenerateUserSSHKeypair(ctx context.Context, ownerID int64) (*UserSSHKeypair, error) {
-	// TODO: This creates a new one old ones will be garbage collected later, as the user may accidentally regenerate
-	return CreateUserSSHKeypair(ctx, ownerID)
+	var keypair *UserSSHKeypair
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		_ = DeleteUserSSHKeypair(ctx, ownerID)
+
+		newKeypair, err := CreateUserSSHKeypair(ctx, ownerID)
+		if err != nil {
+			return err
+		}
+		keypair = newKeypair
+		return nil
+	})
+	return keypair, err
 }
