@@ -21,10 +21,3 @@ updates:
     groups:
       all-devcontainers:
         patterns: [ "*" ]
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    groups:
-      all-npm:
-        patterns: [ "*" ]
