@@ -42,7 +42,7 @@ func (sf *CommitSubmoduleFile) getWebLinkInTargetRepo(ctx context.Context, moreL
 		return nil
 	}
 	if strings.HasPrefix(sf.refURL, "../") {
-		targetLink := path.Join(sf.repoLink, path.Dir(sf.fullPath), sf.refURL)
+		targetLink := path.Join(sf.repoLink, sf.refURL)
 		return &SubmoduleWebLink{RepoWebLink: targetLink, CommitWebLink: targetLink + moreLinkPath}
 	}
 	if !sf.parsed {
