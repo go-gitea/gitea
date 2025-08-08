@@ -36,7 +36,7 @@ import (
 	"github.com/nektos/act/pkg/model"
 )
 
-// ListActionsSecrets list an repo's actions secrets
+// ListActionsSecrets list a repo's actions secrets
 func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/secrets repository repoListActionsSecrets
 	// ---
@@ -94,7 +94,7 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiSecrets)
 }
 
-// create or update one secret of the repository
+// CreateOrUpdateSecret create or update one secret in a repository
 func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/actions/secrets/{secretname} repository updateRepoSecret
 	// ---
@@ -125,9 +125,9 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/CreateOrUpdateSecretOption"
 	// responses:
 	//   "201":
-	//     description: response when creating a secret
+	//     description: secret created
 	//   "204":
-	//     description: response when updating a secret
+	//     description: secret updated
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -156,7 +156,7 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	}
 }
 
-// DeleteSecret delete one secret of the repository
+// DeleteSecret delete one secret in a repository
 func (Action) DeleteSecret(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/actions/secrets/{secretname} repository deleteRepoSecret
 	// ---
@@ -183,7 +183,7 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "204":
-	//     description: delete one secret of the repository
+	//     description: secret deleted
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":

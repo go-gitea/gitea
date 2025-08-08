@@ -3,6 +3,9 @@
 	{{if eq .PageType "runners"}}
 		{{template "shared/actions/runner_list" .}}
 	{{end}}
+	{{if eq .PageType "secrets"}}
+		{{template "shared/secrets/add_list" (dict "ctxData" . "desc" "secrets.instance_desc")}}
+	{{end}}
 	{{if eq .PageType "variables"}}
 		{{template "shared/variables/variable_list" .}}
 	{{end}}
