@@ -41,13 +41,13 @@
 </div>
 
 <h4 class="ui top attached header">
-	{{ctx.Locale.Tr "admin.config.repository_snippets"}}
+	{{ctx.Locale.Tr "admin.config.empty_repo_page"}}
 </h4>
 <div class="ui attached segment">
-	<form class="ui form form-fetch-action" method="post" action="{{AppSubUrl}}/-/admin/config?key={{.SystemConfig.Repository.SnippetRemoteName.DynKey}}">
+	<form class="ui form form-fetch-action" method="post" action="{{AppSubUrl}}/-/admin/config?key={{.SystemConfig.Template.GitRemoteName.DynKey}}">
 		<div class="field" data-field-patched="true">
-			<label for="remote_name">{{ctx.Locale.Tr "admin.config.repository_snippets.remote_name"}}</label>
-			<input id="remote_name" name="value" value="{{.SystemConfig.Repository.SnippetRemoteName.Value ctx}}" maxlength="100" dir="auto" placeholder="{{.SystemConfig.Repository.SnippetRemoteName.Def}}">
+			<label for="remote_name">{{ctx.Locale.Tr "admin.config.empty_repo_page.git_remote_name"}}</label>
+			<input id="remote_name" name="value" value="{{.SystemConfig.Template.GitRemoteName.Value ctx}}" maxlength="100" dir="auto" placeholder="{{.SystemConfig.Template.GitRemoteName.Def}}">
 		</div>
 		<div class="field">
 			<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>

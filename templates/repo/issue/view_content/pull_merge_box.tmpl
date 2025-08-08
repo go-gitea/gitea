@@ -396,7 +396,7 @@
 			{{end}}
 
 			{{if and .Issue.PullRequest.HeadRepo (not .Issue.PullRequest.HasMerged) (not .Issue.IsClosed)}}
-				{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "ShowMergeInstructions" .ShowMergeInstructions "SnippetRemoteName" .SnippetRemoteName}}
+				{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "ShowMergeInstructions" .ShowMergeInstructions "GitRemoteName" .GitRemoteName}}
 			{{end}}
 		</div>
 	</div>

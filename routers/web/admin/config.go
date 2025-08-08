@@ -248,7 +248,7 @@ func ChangeConfig(ctx *context.Context) {
 		cfg.Picture.DisableGravatar.DynKey():       marshalBool,
 		cfg.Picture.EnableFederatedAvatar.DynKey(): marshalBool,
 		cfg.Repository.OpenWithEditorApps.DynKey(): marshalOpenWithApps,
-		cfg.Repository.SnippetRemoteName.DynKey():  marshalStringWithDefault(cfg.Repository.SnippetRemoteName.Def()),
+		cfg.Template.GitRemoteName.DynKey():        marshalStringWithDefault(cfg.Template.GitRemoteName.Def()),
 	}
 	marshaller, hasMarshaller := marshallers[key]
 	if !hasMarshaller {

@@ -51,8 +51,8 @@ git init{{if ne .Repository.ObjectFormatName "sha1"}} --object-format={{.Reposit
 {{if ne .Repository.DefaultBranch "master"}}git checkout -b {{.Repository.DefaultBranch}}{{end}}
 git add README.md
 git commit -m "first commit"
-git remote add {{.SnippetRemoteName}} <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS}}</span>
-git push -u {{.SnippetRemoteName}} {{.Repository.DefaultBranch}}</code></pre>
+git remote add {{.GitRemoteName}} <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS}}</span>
+git push -u {{.GitRemoteName}} {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
 							<div class="divider"></div>
@@ -60,8 +60,8 @@ git push -u {{.SnippetRemoteName}} {{.Repository.DefaultBranch}}</code></pre>
 							<div class="item">
 								<h3>{{ctx.Locale.Tr "repo.push_exist_repo"}}</h3>
 								<div class="markup">
-									<pre><code>git remote add {{.SnippetRemoteName}} <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS}}</span>
-git push -u {{.SnippetRemoteName}} {{.Repository.DefaultBranch}}</code></pre>
+									<pre><code>git remote add {{.GitRemoteName}} <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS}}</span>
+git push -u {{.GitRemoteName}} {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
 						{{end}}
