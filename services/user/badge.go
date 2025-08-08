@@ -13,36 +13,19 @@ import (
 
 // UpdateBadgeDescription changes the description and/or image of a badge
 func UpdateBadge(ctx context.Context, b *user_model.Badge) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := user_model.UpdateBadge(ctx, b); err != nil {
-		return err
-	}
-	return committer.Commit()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		return user_model.UpdateBadge(ctx, b)
+	})
 }
 
 // DeleteBadge remove record of badge in the database
 func DeleteBadge(ctx context.Context, b *user_model.Badge) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := user_model.DeleteBadge(ctx, b); err != nil {
-		return fmt.Errorf("DeleteBadge: %w", err)
-	}
-
-	if err := committer.Commit(); err != nil {
-		return err
-	}
-	_ = committer.Close()
-
-	return nil
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := user_model.DeleteBadge(ctx, b); err != nil {
+			return fmt.Errorf("DeleteBadge: %w", err)
+		}
+		return nil
+	})
 }
 
 // GetBadgeUsers returns the users that have a specific badge
