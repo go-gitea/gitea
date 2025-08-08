@@ -189,7 +189,7 @@ func SearchIssues(ctx *context.Context) {
 		IsClosed:            isClosed,
 		IncludedAnyLabelIDs: includedAnyLabels,
 		MilestoneIDs:        includedMilestones,
-		ProjectID:           projectID,
+		ProjectIDs:          projectID,
 		SortBy:              issue_indexer.SortByCreatedDesc,
 	}
 
@@ -345,12 +345,12 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		Keyword:   keyword,
-		RepoIDs:   []int64{ctx.Repo.Repository.ID},
-		IsPull:    isPull,
-		IsClosed:  isClosed,
-		ProjectID: projectID,
-		SortBy:    issue_indexer.SortByCreatedDesc,
+		Keyword:    keyword,
+		RepoIDs:    []int64{ctx.Repo.Repository.ID},
+		IsPull:     isPull,
+		IsClosed:   isClosed,
+		ProjectIDs: projectID,
+		SortBy:     issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)
@@ -542,7 +542,6 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		RepoIDs:           []int64{repo.ID},
 		LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 		MilestoneIDs:      mileIDs,
-		ProjectID:         projectID,
 		AssigneeID:        assigneeID,
 		MentionedID:       mentionedID,
 		PosterID:          posterUserID,
@@ -551,6 +550,11 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		IsPull:            isPullOption,
 		IssueIDs:          nil,
 	}
+
+	if projectID != 0 {
+		statsOpts.ProjectIDs = []int64{projectID}
+	}
+
 	if keyword != "" {
 		keywordMatchedIssueIDs, _, err = issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, statsOpts))
 		if err != nil {
@@ -629,7 +633,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 			ReviewRequestedID: reviewRequestedID,
 			ReviewedID:        reviewedID,
 			MilestoneIDs:      mileIDs,
-			ProjectID:         projectID,
+			ProjectIDs:        []int64{projectID},
 			IsClosed:          isShowClosed,
 			IsPull:            isPullOption,
 			LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
