@@ -7,6 +7,7 @@ import {attachRefIssueContextPopup} from './contextpopup.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
 import {applyAreYouSure, reinitializeAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {registerGlobalEventFunc} from '../modules/observer.ts';
 
 async function tryOnEditContent(e: DOMEvent<MouseEvent>) {
   const clickTarget = e.target.closest('.edit-content');
@@ -153,7 +154,7 @@ async function tryOnQuoteReply(e: Event) {
 }
 
 export function initRepoIssueCommentEdit() {
-  document.addEventListener('click', (e) => {
+  registerGlobalEventFunc('click', 'onEditCodeCommentButtonClick', async (_el: HTMLElement, e: DOMEvent<MouseEvent>) => {
     tryOnEditContent(e); // Edit issue or comment content
     tryOnQuoteReply(e); // Quote reply to the comment editor
   });

@@ -184,7 +184,13 @@
 										{{end}}
 									</div>
 								{{else}}
-									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
+									{{- $newCommentUrl := "" -}}
+									{{if $.PageIsPullFiles}}
+										{{$newCommentUrl =  printf "%s/files/reviews/new_comment" $.Issue.Link -}}
+									{{else if $.PageIsDiff}}
+										{{$newCommentUrl = printf "%s/commit/%s/comments/new_comment" $.RepoLink $.CommitID -}}
+									{{end}}
+									<table class="chroma" data-new-comment-url="{{$newCommentUrl}}" data-path="{{$file.Name}}">
 										{{if $.IsSplitStyle}}
 											{{template "repo/diff/section_split" dict "file" . "root" $}}
 										{{else}}

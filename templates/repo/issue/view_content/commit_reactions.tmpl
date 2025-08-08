@@ -1,0 +1,18 @@
+{{- $commitData := .CommitData -}}
+<div class="bottom-reactions" data-action-url="{{$.ActionURL}}">
+{{range $key, $value := .Reactions}}
+	{{$hasReacted := $commitData.HasUser $key ctx.RootData.SignedUserID}}
+	<a role="button" class="ui label basic{{if $hasReacted}} primary{{end}}{{if not ctx.RootData.IsSigned}} disabled{{end}}"
+		data-global-click="onCommentReactionButtonClick"
+		data-tooltip-content title="{{$commitData.GetFirstUsers ctx $key}}{{if gt ($commitData.GetMoreUserCount $key) 0}} {{ctx.Locale.Tr "repo.reactions_more" $commitData.GetMoreUserCount $key}}{{end}}"
+		aria-label="{{$commitData.GetFirstUsers ctx $key}}{{if gt ($commitData.GetMoreUserCount $key) 0}} {{ctx.Locale.Tr "repo.reactions_more" $commitData.GetMoreUserCount $key}}{{end}}"
+		data-tooltip-placement="bottom-start"
+		data-reaction-content="{{$key}}" data-has-reacted="{{$hasReacted}}">
+		<span class="reaction">{{ReactionToEmoji $key}}</span>
+		<span class="reaction-count">{{len $value}}</span>
+	</a>
+{{end}}
+{{if AllowedReactions}}
+	{{template "repo/issue/view_content/add_reaction" dict "ActionURL" .ActionURL}}
+{{end}}
+</div>

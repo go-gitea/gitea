@@ -17,7 +17,7 @@ import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
-import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 
 const {appSubUrl} = window.config;
 
@@ -127,7 +127,7 @@ export function initRepoIssueFilterItemLabel() {
 
 export function initRepoIssueCommentDelete() {
   // Delete comment
-  document.addEventListener('click', async (e: DOMEvent<MouseEvent>) => {
+  registerGlobalEventFunc('click', 'onDeleteCodeCommentButtonClick', async (_el: HTMLElement, e: DOMEvent<MouseEvent>) => {
     if (!e.target.matches('.delete-comment')) return;
     e.preventDefault();
 
@@ -184,7 +184,7 @@ export function initRepoIssueCommentDelete() {
 
 export function initRepoIssueCodeCommentCancel() {
   // Cancel inline code comment
-  document.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
+  registerGlobalEventFunc('click', 'onCancelCodeCommentButtonClick', async (_el: HTMLElement, e: DOMEvent<MouseEvent>) => {
     if (!e.target.matches('.cancel-code-comment')) return;
 
     const form = e.target.closest('form');
@@ -193,6 +193,11 @@ export function initRepoIssueCodeCommentCancel() {
       showElem(form.closest('.comment-code-cloud')?.querySelectorAll('button.comment-form-reply'));
     } else {
       form.closest('.comment-code-cloud')?.remove();
+    }
+    const cancelButton = e.target;
+    if (cancelButton.getAttribute('data-action-url')) {
+      const response = await POST(cancelButton.getAttribute('data-action-url'));
+      if (!response.ok) throw new Error('Failed to cancel comment');
     }
   });
 }
@@ -253,6 +258,49 @@ export async function handleReply(el: HTMLElement) {
   const editor = getComboMarkdownEditor(textarea) ?? await initComboMarkdownEditor(form.querySelector('.combo-markdown-editor'));
   editor.focus();
   return editor;
+}
+
+export function initRepoAddCommentButton() {
+  registerGlobalEventFunc('click', 'onAddCodeCommentButtonClick', async (el: HTMLElement, e: DOMEvent<MouseEvent>) => {
+  // addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
+    e.preventDefault();
+
+    const isSplit = el.closest('.code-diff')?.classList.contains('code-diff-split');
+    const side = el.getAttribute('data-side');
+    const idx = el.getAttribute('data-idx');
+    const path = el.closest('[data-path]')?.getAttribute('data-path');
+    const tr = el.closest('tr');
+    const lineType = tr.getAttribute('data-line-type');
+
+    let ntr = tr.nextElementSibling;
+    if (!ntr?.classList.contains('add-comment')) {
+      ntr = createElementFromHTML(`
+        <tr class="add-comment" data-line-type="${lineType}">
+          ${isSplit ? `
+            <td class="add-comment-left" colspan="4"></td>
+            <td class="add-comment-right" colspan="4"></td>
+          ` : `
+            <td class="add-comment-left add-comment-right" colspan="5"></td>
+          `}
+        </tr>`);
+      tr.after(ntr);
+    }
+    const td = ntr.querySelector(`.add-comment-${side}`);
+    const commentCloud = td.querySelector('.comment-code-cloud');
+    if (!commentCloud && !ntr.querySelector('button[name="pending_review"]')) {
+      const response = await GET(el.closest('[data-new-comment-url]')?.getAttribute('data-new-comment-url'));
+      if (!response.ok) {
+        showErrorToast(`Failed to create comment`);
+        return;
+      }
+      td.innerHTML = await response.text();
+      td.querySelector<HTMLInputElement>("input[name='line']").value = idx;
+      td.querySelector<HTMLInputElement>("input[name='side']").value = (side === 'left' ? 'previous' : 'proposed');
+      td.querySelector<HTMLInputElement>("input[name='path']").value = path;
+      const editor = await initComboMarkdownEditor(td.querySelector<HTMLElement>('.combo-markdown-editor'));
+      editor.focus();
+    }
+  });
 }
 
 export function initRepoPullRequestReview() {
@@ -319,42 +367,6 @@ export function initRepoPullRequestReview() {
     });
     elReviewPanel.querySelector('.close').addEventListener('click', () => tippy.hide());
   }
-
-  addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
-    e.preventDefault();
-
-    const isSplit = el.closest('.code-diff')?.classList.contains('code-diff-split');
-    const side = el.getAttribute('data-side');
-    const idx = el.getAttribute('data-idx');
-    const path = el.closest('[data-path]')?.getAttribute('data-path');
-    const tr = el.closest('tr');
-    const lineType = tr.getAttribute('data-line-type');
-
-    let ntr = tr.nextElementSibling;
-    if (!ntr?.classList.contains('add-comment')) {
-      ntr = createElementFromHTML(`
-        <tr class="add-comment" data-line-type="${lineType}">
-          ${isSplit ? `
-            <td class="add-comment-left" colspan="4"></td>
-            <td class="add-comment-right" colspan="4"></td>
-          ` : `
-            <td class="add-comment-left add-comment-right" colspan="5"></td>
-          `}
-        </tr>`);
-      tr.after(ntr);
-    }
-    const td = ntr.querySelector(`.add-comment-${side}`);
-    const commentCloud = td.querySelector('.comment-code-cloud');
-    if (!commentCloud && !ntr.querySelector('button[name="pending_review"]')) {
-      const response = await GET(el.closest('[data-new-comment-url]')?.getAttribute('data-new-comment-url'));
-      td.innerHTML = await response.text();
-      td.querySelector<HTMLInputElement>("input[name='line']").value = idx;
-      td.querySelector<HTMLInputElement>("input[name='side']").value = (side === 'left' ? 'previous' : 'proposed');
-      td.querySelector<HTMLInputElement>("input[name='path']").value = path;
-      const editor = await initComboMarkdownEditor(td.querySelector<HTMLElement>('.combo-markdown-editor'));
-      editor.focus();
-    }
-  });
 }
 
 export function initRepoIssueReferenceIssue() {

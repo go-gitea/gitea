@@ -5,6 +5,7 @@ package git
 
 import (
 	"context"
+	"sort"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -14,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/gitdiff"
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
@@ -87,4 +89,70 @@ func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.Sig
 		newCommits = append(newCommits, commit)
 	}
 	return newCommits, nil
+}
+
+func CreateCommitComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, opts git_model.CreateCommitDataOptions) (*git_model.CommitData, error) {
+	comment, err := git_model.CreateCommitData(ctx, &opts)
+	if err != nil {
+		return nil, err
+	}
+	return comment, nil
+}
+
+// LoadComments loads comments into each line
+func LoadCommitComments(ctx context.Context, diff *gitdiff.Diff, commitData *git_model.CommitData, currentUser *user_model.User) error {
+	opts := git_model.FindCommitDataOptions{
+		CommitSHA: commitData.CommitSHA,
+	}
+
+	commitData, err := git_model.GetCommitDataBySHA(ctx, commitData.RefRepoID, commitData.CommitSHA)
+	if err != nil {
+		return err
+	}
+	commitComments, err := git_model.FindCommitCommentsByCommit(ctx, &opts, commitData)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range diff.Files {
+		for _, cc := range commitComments {
+			if cc.FileName == file.Name {
+				for _, section := range file.Sections {
+					for _, line := range section.Lines {
+						if cc.Line == int64(line.LeftIdx*-1) {
+							line.CommitComments = append(line.CommitComments, cc)
+							cc.Repo = commitData.Repo
+							cc.Poster = commitData.Poster
+						}
+						if cc.Line == int64(line.RightIdx) {
+							line.CommitComments = append(line.CommitComments, cc)
+							cc.Repo = commitData.Repo
+							cc.Poster = commitData.Poster
+						}
+						sort.SliceStable(line.CommitComments, func(i, j int) bool {
+							return line.CommitComments[i].CreatedUnix < line.CommitComments[j].CreatedUnix
+						})
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// CreateCommentReaction creates a reaction on a comment.
+func CreateCommentReaction(ctx context.Context, doer *user_model.User, commitData *git_model.CommitData, reaction string) error {
+	err := git_model.CreateCommitCommentReaction(ctx, reaction, doer.ID, commitData)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeleteCommentReaction(ctx context.Context, doer *user_model.User, commitData *git_model.CommitData, reaction string) error {
+	err := git_model.DeleteCommentReaction(ctx, reaction, doer.ID, commitData)
+	if err != nil {
+		return err
+	}
+	return nil
 }

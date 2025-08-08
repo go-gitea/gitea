@@ -1,0 +1,43 @@
+<div class="dropzone-attachments">
+	{{if .Attachments}}
+		<div class="divider"></div>
+	{{end}}
+	{{$hasThumbnails := false}}
+	{{- $commitData := .CommitData -}}
+	{{- range $key, $value := .Attachments -}}
+		<div class="tw-flex">
+			<div class="tw-flex-1 tw-p-2">
+				<a target="_blank" rel="noopener noreferrer" href="{{(printf "%s/commit/%s/%d/attachments/%s" ctx.RootData.RepoLink $commitData.CommitSHA $commitData.ID $key)}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" $value.FileName}}">
+					{{if FilenameIsImage $value.FileName}}
+						{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) $key)}}
+							{{$hasThumbnails = true}}
+						{{end}}
+						{{svg "octicon-file"}}
+					{{else}}
+						{{svg "octicon-desktop-download"}}
+					{{end}}
+					<span><strong>{{$value.FileName}}</strong></span>
+				</a>
+			</div>
+			<div class="tw-p-2 tw-flex tw-items-center">
+				<span class="ui text grey">{{$value.Size | FileSize}}</span>
+			</div>
+		</div>
+	{{end -}}
+
+	{{if $hasThumbnails}}
+		<div class="divider"></div>
+		<div class="ui small thumbnails">
+			{{- range $key, $value := .Attachments -}}
+				{{if FilenameIsImage $value.FileName}}
+					{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) $key)}}
+					<a target="_blank" rel="noopener noreferrer" href="{{(printf "%s/commit/%s/%d/attachments/%s" ctx.RootData.RepoLink $commitData.CommitSHA $commitData.ID $key)}}">
+						<img loading="lazy" alt="{{$value.FileName}}" src="{{(printf "%s/commit/%s/%d/attachments/%s" ctx.RootData.RepoLink $commitData.CommitSHA $commitData.ID $key)}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" $value.FileName}}">
+					</a>
+					{{end}}
+				{{end}}
+			{{end -}}
+		</div>
+	{{end}}
+
+</div>
