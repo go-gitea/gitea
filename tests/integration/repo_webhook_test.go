@@ -12,7 +12,6 @@ import (
 	"path"
 	"strings"
 	"testing"
-	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/repo"
@@ -1245,8 +1244,6 @@ jobs:
 	assert.Equal(t, commitID, webhookData.payloads[0].WorkflowRun.HeadSha)
 	assert.Equal(t, "repo1", webhookData.payloads[0].Repo.Name)
 	assert.Equal(t, "user2/repo1", webhookData.payloads[0].Repo.FullName)
-
-	time.Sleep(15 * time.Second) // wait for the workflow to be processed
 
 	// Call cancel ui api
 	// Only a web UI API exists for cancelling workflow runs, so use the UI endpoint.
