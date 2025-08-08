@@ -210,7 +210,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 
 	if setting.LFS.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name(), nil)
+		u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name(), ctx.Req.Method, nil)
 		if u != nil && err == nil {
 			ctx.Redirect(u.String())
 			return
@@ -331,7 +331,7 @@ func download(ctx *context.APIContext, archiveName string, archiver *repo_model.
 	rPath := archiver.RelativePath()
 	if setting.RepoArchive.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.RepoArchives.URL(rPath, downloadName, nil)
+		u, err := storage.RepoArchives.URL(rPath, downloadName, ctx.Req.Method, nil)
 		if u != nil && err == nil {
 			ctx.Redirect(u.String())
 			return

@@ -53,9 +53,8 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 		hasWiki = true
 	} else if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypeExternalWiki); err == nil {
 		hasWiki = true
-		config := unit.ExternalWikiConfig()
 		externalWiki = &api.ExternalWiki{
-			ExternalWikiURL: config.ExternalWikiURL,
+			ExternalWikiURL: unit.ExternalWikiConfig().ExternalWikiURL,
 		}
 	}
 	defaultBranch := repo.DefaultBranch

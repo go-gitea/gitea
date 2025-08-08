@@ -141,7 +141,7 @@ td .commit-summary {
   align-items: center;
   overflow: hidden;
   text-overflow: ellipsis;
-  gap: 0.25em;
+  gap: 0.5em;
 }
 
 @media (max-width: 767.98px) {
@@ -334,7 +334,7 @@ td .commit-summary {
   display: flex;
   gap: 0.5em;
   margin-bottom: 8px;
-  min-height: 40px; /* avoid layout shift on edit */
+  min-height: 36px; /* avoid layout shift on edit */
 }
 
 .repository.view.issue .issue-title h1 {
@@ -342,18 +342,10 @@ td .commit-summary {
   width: 100%;
   font-weight: var(--font-weight-normal);
   font-size: 32px;
-  line-height: 40px;
+  line-height: 36px; /* vertically center single-line text with .issue-title-buttons */
   margin: 0;
   padding-right: 0.25rem;
   overflow-wrap: anywhere;
-}
-
-.repository.view.issue .issue-title#issue-title-display .issue-title-buttons {
-  margin-top: 4px; /* the title's height is 40px, fine tune to align the buttons */
-}
-
-.repository.view.issue .issue-title#issue-title-editor {
-  padding-top: 4px;
 }
 
 @media (max-width: 767.98px) {
@@ -1680,7 +1672,7 @@ tbody.commit-list {
 .diff-file-header .file-link {
   max-width: fit-content;
   display: -webkit-box;
-  -webkit-box-orient: vertical;
+  -webkit-box-orient: vertical; /* stylelint-disable property-no-deprecated -- https://github.com/stylelint/stylelint/issues/8698 */
   -webkit-line-clamp: 2;
   overflow: hidden;
   overflow-wrap: anywhere;

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -120,6 +121,23 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	defer clonedRepo1.Close()
 
 	testGetCommitsInfo(t, clonedRepo1)
+
+	t.Run("NonExistingSubmoduleAsNil", func(t *testing.T) {
+		commit, err := bareRepo1.GetCommit("HEAD")
+		require.NoError(t, err)
+		treeEntry, err := commit.GetTreeEntryByPath("file1.txt")
+		require.NoError(t, err)
+		cisf, err := GetCommitInfoSubmoduleFile("/any/repo-link", "file1.txt", commit, treeEntry.ID)
+		require.NoError(t, err)
+		assert.Equal(t, &CommitSubmoduleFile{
+			repoLink: "/any/repo-link",
+			fullPath: "file1.txt",
+			refURL:   "",
+			refID:    "e2129701f1a4d54dc44f03c93bca0a2aec7c5449",
+		}, cisf)
+		// since there is no refURL, it means that the submodule info doesn't exist, so it won't have a web link
+		assert.Nil(t, cisf.SubmoduleWebLinkTree(t.Context()))
+	})
 }
 
 func BenchmarkEntries_GetCommitsInfo(b *testing.B) {

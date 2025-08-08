@@ -90,11 +90,8 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	if rangeStart >= len(entries) {
 		return tree, nil
 	}
-	var rangeEnd int
-	if len(entries) > perPage {
-		tree.Truncated = true
-	}
-	rangeEnd = min(rangeStart+perPage, len(entries))
+	rangeEnd := min(rangeStart+perPage, len(entries))
+	tree.Truncated = rangeEnd < len(entries)
 	tree.Entries = make([]api.GitEntry, rangeEnd-rangeStart)
 	for e := rangeStart; e < rangeEnd; e++ {
 		i := e - rangeStart
@@ -174,7 +171,9 @@ func newTreeViewNodeFromEntry(ctx context.Context, repoLink string, renderedIcon
 		} else if subModule != nil {
 			submoduleFile := git.NewCommitSubmoduleFile(repoLink, node.FullPath, subModule.URL, entry.ID.String())
 			webLink := submoduleFile.SubmoduleWebLinkTree(ctx)
-			node.SubmoduleURL = webLink.CommitWebLink
+			if webLink != nil {
+				node.SubmoduleURL = webLink.CommitWebLink
+			}
 		}
 	}
 
