@@ -9,8 +9,8 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddMirrorSSHKeypairTable(x *xorm.Engine) error {
-	type MirrorSSHKeypair struct {
+func AddUserSSHKeypairTable(x *xorm.Engine) error {
+	type UserSSHKeypair struct {
 		ID                  int64              `xorm:"pk autoincr"`
 		OwnerID             int64              `xorm:"INDEX NOT NULL"`
 		PrivateKeyEncrypted string             `xorm:"TEXT NOT NULL"`
@@ -20,5 +20,5 @@ func AddMirrorSSHKeypairTable(x *xorm.Engine) error {
 		UpdatedUnix         timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	return x.Sync(new(MirrorSSHKeypair))
+	return x.Sync(new(UserSSHKeypair))
 }

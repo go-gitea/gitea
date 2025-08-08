@@ -20,12 +20,12 @@ func IsSSHURL(url string) bool {
 }
 
 // GetOrCreateSSHKeypairForUser gets or creates an SSH keypair for the given user
-func GetOrCreateSSHKeypairForUser(ctx context.Context, userID int64) (*repo_model.MirrorSSHKeypair, error) {
-	keypair, err := repo_model.GetMirrorSSHKeypairByOwner(ctx, userID)
+func GetOrCreateSSHKeypairForUser(ctx context.Context, userID int64) (*repo_model.UserSSHKeypair, error) {
+	keypair, err := repo_model.GetUserSSHKeypairByOwner(ctx, userID)
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			log.Debug("Creating new SSH keypair for user %d", userID)
-			return repo_model.CreateMirrorSSHKeypair(ctx, userID)
+			return repo_model.CreateUserSSHKeypair(ctx, userID)
 		}
 		return nil, fmt.Errorf("failed to get SSH keypair for user %d: %w", userID, err)
 	}
@@ -33,12 +33,12 @@ func GetOrCreateSSHKeypairForUser(ctx context.Context, userID int64) (*repo_mode
 }
 
 // GetOrCreateSSHKeypairForOrg gets or creates an SSH keypair for the given organization
-func GetOrCreateSSHKeypairForOrg(ctx context.Context, orgID int64) (*repo_model.MirrorSSHKeypair, error) {
-	keypair, err := repo_model.GetMirrorSSHKeypairByOwner(ctx, orgID)
+func GetOrCreateSSHKeypairForOrg(ctx context.Context, orgID int64) (*repo_model.UserSSHKeypair, error) {
+	keypair, err := repo_model.GetUserSSHKeypairByOwner(ctx, orgID)
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			log.Debug("Creating new SSH keypair for organization %d", orgID)
-			return repo_model.CreateMirrorSSHKeypair(ctx, orgID)
+			return repo_model.CreateUserSSHKeypair(ctx, orgID)
 		}
 		return nil, fmt.Errorf("failed to get SSH keypair for organization %d: %w", orgID, err)
 	}
@@ -48,7 +48,7 @@ func GetOrCreateSSHKeypairForOrg(ctx context.Context, orgID int64) (*repo_model.
 // GetSSHKeypairForRepository gets the appropriate SSH keypair for a repository
 // If the repository belongs to an organization, it uses the org's keypair,
 // otherwise it uses the user's keypair
-func GetSSHKeypairForRepository(ctx context.Context, repo *repo_model.Repository) (*repo_model.MirrorSSHKeypair, error) {
+func GetSSHKeypairForRepository(ctx context.Context, repo *repo_model.Repository) (*repo_model.UserSSHKeypair, error) {
 	if repo.Owner == nil {
 		owner, err := user_model.GetUserByID(ctx, repo.OwnerID)
 		if err != nil {
@@ -65,7 +65,7 @@ func GetSSHKeypairForRepository(ctx context.Context, repo *repo_model.Repository
 
 // GetSSHKeypairForURL gets the appropriate SSH keypair for a given repository and URL
 // Returns nil if the URL is not an SSH URL
-func GetSSHKeypairForURL(ctx context.Context, repo *repo_model.Repository, url string) (*repo_model.MirrorSSHKeypair, error) {
+func GetSSHKeypairForURL(ctx context.Context, repo *repo_model.Repository, url string) (*repo_model.UserSSHKeypair, error) {
 	if !IsSSHURL(url) {
 		return nil, nil
 	}

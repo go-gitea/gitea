@@ -17,12 +17,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMirrorSSHKeypair(t *testing.T) {
+func TestUserSSHKeypair(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	t.Run("CreateMirrorSSHKeypair", func(t *testing.T) {
+	t.Run("CreateUserSSHKeypair", func(t *testing.T) {
 		// Test creating a new SSH keypair for a user
-		keypair, err := repo_model.CreateMirrorSSHKeypair(db.DefaultContext, 1)
+		keypair, err := repo_model.CreateUserSSHKeypair(db.DefaultContext, 1)
 		require.NoError(t, err)
 		assert.NotNil(t, keypair)
 		assert.Equal(t, int64(1), keypair.OwnerID)
@@ -36,7 +36,7 @@ func TestMirrorSSHKeypair(t *testing.T) {
 		assert.Contains(t, keypair.PublicKey, "ssh-ed25519")
 
 		// Test creating a keypair for an organization
-		orgKeypair, err := repo_model.CreateMirrorSSHKeypair(db.DefaultContext, 2)
+		orgKeypair, err := repo_model.CreateUserSSHKeypair(db.DefaultContext, 2)
 		require.NoError(t, err)
 		assert.NotNil(t, orgKeypair)
 		assert.Equal(t, int64(2), orgKeypair.OwnerID)
@@ -46,20 +46,20 @@ func TestMirrorSSHKeypair(t *testing.T) {
 		assert.NotEqual(t, keypair.Fingerprint, orgKeypair.Fingerprint)
 	})
 
-	t.Run("GetMirrorSSHKeypairByOwner", func(t *testing.T) {
+	t.Run("GetUserSSHKeypairByOwner", func(t *testing.T) {
 		// Create a keypair first
-		created, err := repo_model.CreateMirrorSSHKeypair(db.DefaultContext, 3)
+		created, err := repo_model.CreateUserSSHKeypair(db.DefaultContext, 3)
 		require.NoError(t, err)
 
 		// Test retrieving the keypair
-		retrieved, err := repo_model.GetMirrorSSHKeypairByOwner(db.DefaultContext, 3)
+		retrieved, err := repo_model.GetUserSSHKeypairByOwner(db.DefaultContext, 3)
 		require.NoError(t, err)
 		assert.Equal(t, created.ID, retrieved.ID)
 		assert.Equal(t, created.PublicKey, retrieved.PublicKey)
 		assert.Equal(t, created.Fingerprint, retrieved.Fingerprint)
 
 		// Test retrieving non-existent keypair
-		_, err = repo_model.GetMirrorSSHKeypairByOwner(db.DefaultContext, 999)
+		_, err = repo_model.GetUserSSHKeypairByOwner(db.DefaultContext, 999)
 		assert.ErrorIs(t, err, util.ErrNotExist)
 	})
 
@@ -70,7 +70,7 @@ func TestMirrorSSHKeypair(t *testing.T) {
 		}
 
 		// Create a keypair
-		keypair, err := repo_model.CreateMirrorSSHKeypair(db.DefaultContext, 4)
+		keypair, err := repo_model.CreateUserSSHKeypair(db.DefaultContext, 4)
 		require.NoError(t, err)
 
 		// Test decrypting the private key
@@ -84,31 +84,31 @@ func TestMirrorSSHKeypair(t *testing.T) {
 		assert.Len(t, publicKey, ed25519.PublicKeySize)
 	})
 
-	t.Run("DeleteMirrorSSHKeypair", func(t *testing.T) {
+	t.Run("DeleteUserSSHKeypair", func(t *testing.T) {
 		// Create a keypair
-		_, err := repo_model.CreateMirrorSSHKeypair(db.DefaultContext, 5)
+		_, err := repo_model.CreateUserSSHKeypair(db.DefaultContext, 5)
 		require.NoError(t, err)
 
 		// Verify it exists
-		_, err = repo_model.GetMirrorSSHKeypairByOwner(db.DefaultContext, 5)
+		_, err = repo_model.GetUserSSHKeypairByOwner(db.DefaultContext, 5)
 		require.NoError(t, err)
 
 		// Delete it
-		err = repo_model.DeleteMirrorSSHKeypair(db.DefaultContext, 5)
+		err = repo_model.DeleteUserSSHKeypair(db.DefaultContext, 5)
 		require.NoError(t, err)
 
 		// Verify it's gone
-		_, err = repo_model.GetMirrorSSHKeypairByOwner(db.DefaultContext, 5)
+		_, err = repo_model.GetUserSSHKeypairByOwner(db.DefaultContext, 5)
 		assert.ErrorIs(t, err, util.ErrNotExist)
 	})
 
-	t.Run("RegenerateMirrorSSHKeypair", func(t *testing.T) {
+	t.Run("RegenerateUserSSHKeypair", func(t *testing.T) {
 		// Create initial keypair
-		original, err := repo_model.CreateMirrorSSHKeypair(db.DefaultContext, 6)
+		original, err := repo_model.CreateUserSSHKeypair(db.DefaultContext, 6)
 		require.NoError(t, err)
 
 		// Regenerate it
-		regenerated, err := repo_model.RegenerateMirrorSSHKeypair(db.DefaultContext, 6)
+		regenerated, err := repo_model.RegenerateUserSSHKeypair(db.DefaultContext, 6)
 		require.NoError(t, err)
 
 		// Verify it's different
@@ -119,7 +119,7 @@ func TestMirrorSSHKeypair(t *testing.T) {
 	})
 }
 
-func TestMirrorSSHKeypairConcurrency(t *testing.T) {
+func TestUserSSHKeypairConcurrency(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	if setting.SecretKey == "" {
@@ -134,7 +134,7 @@ func TestMirrorSSHKeypairConcurrency(t *testing.T) {
 		// Start multiple goroutines creating keypairs for different owners
 		for i := range 10 {
 			go func(ownerID int64) {
-				_, err := repo_model.CreateMirrorSSHKeypair(ctx, ownerID+100)
+				_, err := repo_model.CreateUserSSHKeypair(ctx, ownerID+100)
 				results <- err
 			}(int64(i))
 		}

@@ -22,8 +22,8 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// MirrorSSHKeypair represents an SSH keypair for repository mirroring
-type MirrorSSHKeypair struct {
+// UserSSHKeypair represents an SSH keypair for repository mirroring
+type UserSSHKeypair struct {
 	ID                  int64              `xorm:"pk autoincr"`
 	OwnerID             int64              `xorm:"INDEX NOT NULL"`
 	PrivateKeyEncrypted string             `xorm:"TEXT NOT NULL"`
@@ -34,12 +34,12 @@ type MirrorSSHKeypair struct {
 }
 
 func init() {
-	db.RegisterModel(new(MirrorSSHKeypair))
+	db.RegisterModel(new(UserSSHKeypair))
 }
 
-// GetMirrorSSHKeypairByOwner gets the most recent SSH keypair for the given owner
-func GetMirrorSSHKeypairByOwner(ctx context.Context, ownerID int64) (*MirrorSSHKeypair, error) {
-	keypair := &MirrorSSHKeypair{}
+// GetUserSSHKeypairByOwner gets the most recent SSH keypair for the given owner
+func GetUserSSHKeypairByOwner(ctx context.Context, ownerID int64) (*UserSSHKeypair, error) {
+	keypair := &UserSSHKeypair{}
 	has, err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).
 		Desc("created_unix").Get(keypair)
 	if err != nil {
@@ -51,8 +51,8 @@ func GetMirrorSSHKeypairByOwner(ctx context.Context, ownerID int64) (*MirrorSSHK
 	return keypair, nil
 }
 
-// CreateMirrorSSHKeypair creates a new SSH keypair for mirroring
-func CreateMirrorSSHKeypair(ctx context.Context, ownerID int64) (*MirrorSSHKeypair, error) {
+// CreateUserSSHKeypair creates a new SSH keypair for mirroring
+func CreateUserSSHKeypair(ctx context.Context, ownerID int64) (*UserSSHKeypair, error) {
 	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate Ed25519 keypair: %w", err)
@@ -73,7 +73,7 @@ func CreateMirrorSSHKeypair(ctx context.Context, ownerID int64) (*MirrorSSHKeypa
 		return nil, fmt.Errorf("failed to encrypt private key: %w", err)
 	}
 
-	keypair := &MirrorSSHKeypair{
+	keypair := &UserSSHKeypair{
 		OwnerID:             ownerID,
 		PrivateKeyEncrypted: privateKeyEncrypted,
 		PublicKey:           publicKeyStr,
@@ -84,7 +84,7 @@ func CreateMirrorSSHKeypair(ctx context.Context, ownerID int64) (*MirrorSSHKeypa
 }
 
 // GetDecryptedPrivateKey returns the decrypted private key
-func (k *MirrorSSHKeypair) GetDecryptedPrivateKey() (ed25519.PrivateKey, error) {
+func (k *UserSSHKeypair) GetDecryptedPrivateKey() (ed25519.PrivateKey, error) {
 	decrypted, err := secret.DecryptSecret(setting.SecretKey, k.PrivateKeyEncrypted)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt private key: %w", err)
@@ -93,7 +93,7 @@ func (k *MirrorSSHKeypair) GetDecryptedPrivateKey() (ed25519.PrivateKey, error) 
 }
 
 // GetPublicKeyWithComment returns the public key with a descriptive comment (namespace-fingerprint@domain)
-func (k *MirrorSSHKeypair) GetPublicKeyWithComment(ctx context.Context) (string, error) {
+func (k *UserSSHKeypair) GetPublicKeyWithComment(ctx context.Context) (string, error) {
 	owner, err := user_model.GetUserByID(ctx, k.OwnerID)
 	if err != nil {
 		return k.PublicKey, nil
@@ -113,14 +113,14 @@ func (k *MirrorSSHKeypair) GetPublicKeyWithComment(ctx context.Context) (string,
 	return strings.TrimSpace(k.PublicKey) + " " + comment, nil
 }
 
-// DeleteMirrorSSHKeypair deletes an SSH keypair
-func DeleteMirrorSSHKeypair(ctx context.Context, ownerID int64) error {
-	_, err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).Delete(&MirrorSSHKeypair{})
+// DeleteUserSSHKeypair deletes an SSH keypair
+func DeleteUserSSHKeypair(ctx context.Context, ownerID int64) error {
+	_, err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).Delete(&UserSSHKeypair{})
 	return err
 }
 
-// RegenerateMirrorSSHKeypair regenerates an SSH keypair for the given owner
-func RegenerateMirrorSSHKeypair(ctx context.Context, ownerID int64) (*MirrorSSHKeypair, error) {
+// RegenerateUserSSHKeypair regenerates an SSH keypair for the given owner
+func RegenerateUserSSHKeypair(ctx context.Context, ownerID int64) (*UserSSHKeypair, error) {
 	// TODO: This creates a new one old ones will be garbage collected later, as the user may accidentally regenerate
-	return CreateMirrorSSHKeypair(ctx, ownerID)
+	return CreateUserSSHKeypair(ctx, ownerID)
 }

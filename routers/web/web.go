@@ -641,7 +641,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Combo("/keys").Get(user_setting.Keys).
 			Post(web.Bind(forms.AddKeyForm{}), user_setting.KeysPost)
 		m.Post("/keys/delete", user_setting.DeleteKey)
-		m.Post("/keys/mirror-ssh/regenerate", user_setting.RegenerateMirrorSSHKeyPair)
+		m.Post("/keys/mirror-ssh/regenerate", user_setting.RegenerateUserSSHKeypair)
 		m.Group("/packages", func() {
 			m.Get("", user_setting.Packages)
 			m.Group("/rules", func() {

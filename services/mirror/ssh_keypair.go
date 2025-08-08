@@ -12,32 +12,32 @@ import (
 )
 
 // GetOrCreateSSHKeypairForUser gets or creates an SSH keypair for the given user
-func GetOrCreateSSHKeypairForUser(ctx context.Context, userID int64) (*repo_model.MirrorSSHKeypair, error) {
+func GetOrCreateSSHKeypairForUser(ctx context.Context, userID int64) (*repo_model.UserSSHKeypair, error) {
 	return ssh_module.GetOrCreateSSHKeypairForUser(ctx, userID)
 }
 
 // GetOrCreateSSHKeypairForOrg gets or creates an SSH keypair for the given organization
-func GetOrCreateSSHKeypairForOrg(ctx context.Context, orgID int64) (*repo_model.MirrorSSHKeypair, error) {
+func GetOrCreateSSHKeypairForOrg(ctx context.Context, orgID int64) (*repo_model.UserSSHKeypair, error) {
 	return ssh_module.GetOrCreateSSHKeypairForOrg(ctx, orgID)
 }
 
 // GetSSHKeypairForRepository gets the appropriate SSH keypair for a repository
 // If the repository belongs to an organization, it uses the org's keypair,
 // otherwise it uses the user's keypair
-func GetSSHKeypairForRepository(ctx context.Context, repo *repo_model.Repository) (*repo_model.MirrorSSHKeypair, error) {
+func GetSSHKeypairForRepository(ctx context.Context, repo *repo_model.Repository) (*repo_model.UserSSHKeypair, error) {
 	return ssh_module.GetSSHKeypairForRepository(ctx, repo)
 }
 
 // RegenerateSSHKeypairForUser regenerates the SSH keypair for a user
-func RegenerateSSHKeypairForUser(ctx context.Context, userID int64) (*repo_model.MirrorSSHKeypair, error) {
+func RegenerateSSHKeypairForUser(ctx context.Context, userID int64) (*repo_model.UserSSHKeypair, error) {
 	log.Info("Regenerating SSH keypair for user %d", userID)
-	return repo_model.RegenerateMirrorSSHKeypair(ctx, userID)
+	return repo_model.RegenerateUserSSHKeypair(ctx, userID)
 }
 
 // RegenerateSSHKeypairForOrg regenerates the SSH keypair for an organization
-func RegenerateSSHKeypairForOrg(ctx context.Context, orgID int64) (*repo_model.MirrorSSHKeypair, error) {
+func RegenerateSSHKeypairForOrg(ctx context.Context, orgID int64) (*repo_model.UserSSHKeypair, error) {
 	log.Info("Regenerating SSH keypair for organization %d", orgID)
-	return repo_model.RegenerateMirrorSSHKeypair(ctx, orgID)
+	return repo_model.RegenerateUserSSHKeypair(ctx, orgID)
 }
 
 // IsSSHURL checks if a URL is an SSH URL
@@ -47,6 +47,6 @@ func IsSSHURL(url string) bool {
 
 // GetSSHKeypairForURL gets the appropriate SSH keypair for a given repository and URL
 // Returns nil if the URL is not an SSH URL
-func GetSSHKeypairForURL(ctx context.Context, repo *repo_model.Repository, url string) (*repo_model.MirrorSSHKeypair, error) {
+func GetSSHKeypairForURL(ctx context.Context, repo *repo_model.Repository, url string) (*repo_model.UserSSHKeypair, error) {
 	return ssh_module.GetSSHKeypairForURL(ctx, repo, url)
 }
