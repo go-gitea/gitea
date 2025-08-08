@@ -276,7 +276,7 @@ require (
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 
-replace github.com/nektos/act => gitea.com/gitea/act v0.261.6
+replace github.com/nektos/act => gitea.com/gitea/act v0.261.7-0.20250729091447-39509e9ad05c
 
 // TODO: the only difference is in `PutObject`: the fork doesn't use `NewVerifyingReader(r, sha256.New(), oid, expectedSize)`, need to figure out why
 replace github.com/charmbracelet/git-lfs-transfer => gitea.com/gitea/git-lfs-transfer v0.2.0
