@@ -10,6 +10,7 @@ const cssVarFiles = [
 
 export default defineConfig({
   extends: 'stylelint-config-recommended',
+  reportNeedlessDisables: true,
   plugins: [
     'stylelint-declaration-strict-value',
     'stylelint-declaration-block-no-ignored-properties',
