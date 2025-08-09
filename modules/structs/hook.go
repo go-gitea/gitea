@@ -25,6 +25,8 @@ type Hook struct {
 	Events              []string          `json:"events"`
 	AuthorizationHeader string            `json:"authorization_header"`
 	Active              bool              `json:"active"`
+	// PayloadOptimization configuration for webhook payload optimization
+	PayloadOptimization map[string]any `json:"payload_optimization"`
 	// swagger:strfmt date-time
 	Updated time.Time `json:"updated_at"`
 	// swagger:strfmt date-time
@@ -48,6 +50,8 @@ type CreateHookOption struct {
 	Events              []string               `json:"events"`
 	BranchFilter        string                 `json:"branch_filter" binding:"GlobPattern"`
 	AuthorizationHeader string                 `json:"authorization_header"`
+	// Payload size optimization options
+	PayloadOptimization map[string]any `json:"payload_optimization"` // {"enable": bool, "limit": int}
 	// default: false
 	Active bool `json:"active"`
 }
@@ -58,7 +62,9 @@ type EditHookOption struct {
 	Events              []string          `json:"events"`
 	BranchFilter        string            `json:"branch_filter" binding:"GlobPattern"`
 	AuthorizationHeader string            `json:"authorization_header"`
-	Active              *bool             `json:"active"`
+	// Payload size optimization options
+	PayloadOptimization *map[string]any `json:"payload_optimization"` // {"enable": bool, "limit": int}
+	Active              *bool           `json:"active"`
 }
 
 // Payloader payload is some part of one hook
