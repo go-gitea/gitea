@@ -19,8 +19,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/commitstatus"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/tests"
@@ -365,7 +367,7 @@ func Test_WebhookPush(t *testing.T) {
 		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push")
 
 		// 2. trigger the webhook
-		testCreateFile(t, session, "user2", "repo1", "master", "test_webhook_push.md", "# a test file for webhook push")
+		testCreateFile(t, session, "user2", "repo1", "master", "", "test_webhook_push.md", "# a test file for webhook push")
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "push", triggeredEvent)
@@ -398,21 +400,90 @@ func Test_WebhookPushDevBranch(t *testing.T) {
 		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push", "develop")
 
 		// 2. this should not trigger the webhook
-		testCreateFile(t, session, "user2", "repo1", "master", "test_webhook_push.md", "# a test file for webhook push")
+		testCreateFile(t, session, "user2", "repo1", "master", "", "test_webhook_push.md", "# a test file for webhook push")
 		assert.Empty(t, triggeredEvent)
 		assert.Empty(t, payloads)
 
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+
+		beforeCommitID, err := gitRepo.GetBranchCommitID("develop")
+		assert.NoError(t, err)
+
 		// 3. trigger the webhook
-		testCreateFile(t, session, "user2", "repo1", "develop", "test_webhook_push.md", "# a test file for webhook push")
+		testCreateFile(t, session, "user2", "repo1", "develop", "", "test_webhook_push.md", "# a test file for webhook push")
+
+		afterCommitID, err := gitRepo.GetBranchCommitID("develop")
+		assert.NoError(t, err)
 
 		// 4. validate the webhook is triggered
 		assert.Equal(t, "push", triggeredEvent)
 		assert.Len(t, payloads, 1)
+		assert.Equal(t, "refs/heads/develop", payloads[0].Ref)
+		assert.Equal(t, beforeCommitID, payloads[0].Before)
+		assert.Equal(t, afterCommitID, payloads[0].After)
 		assert.Equal(t, "repo1", payloads[0].Repo.Name)
 		assert.Equal(t, "develop", payloads[0].Branch())
 		assert.Equal(t, "user2/repo1", payloads[0].Repo.FullName)
 		assert.Len(t, payloads[0].Commits, 1)
+		assert.Equal(t, afterCommitID, payloads[0].Commits[0].ID)
+		assert.Equal(t, setting.AppURL+"user2/repo1/compare/"+beforeCommitID+"..."+afterCommitID, payloads[0].CompareURL)
 		assert.Equal(t, []string{"test_webhook_push.md"}, payloads[0].Commits[0].Added)
+		assert.Empty(t, payloads[0].Commits[0].Removed)
+	})
+}
+
+func Test_WebhookPushToNewBranch(t *testing.T) {
+	var payloads []api.PushPayload
+	var triggeredEvent string
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
+		var payload api.PushPayload
+		err := json.Unmarshal(content, &payload)
+		assert.NoError(t, err)
+		payloads = append(payloads, payload)
+		triggeredEvent = "push"
+	}, http.StatusOK)
+	defer provider.Close()
+
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// 1. create a new webhook with special webhook for repo1
+		session := loginUser(t, "user2")
+
+		// only for dev branch
+		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push", "new_branch")
+
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+
+		beforeCommitID, err := gitRepo.GetBranchCommitID("master")
+		assert.NoError(t, err)
+
+		// 2. trigger the webhook
+		testCreateFile(t, session, "user2", "repo1", "master", "new_branch", "test_webhook_push.md", "# a new push from new branch")
+
+		afterCommitID, err := gitRepo.GetBranchCommitID("new_branch")
+		assert.NoError(t, err)
+		emptyCommitID := git.Sha1ObjectFormat.EmptyObjectID().String()
+
+		// 4. validate the webhook is triggered
+		assert.Equal(t, "push", triggeredEvent)
+		assert.Len(t, payloads, 1)
+		assert.Equal(t, "refs/heads/new_branch", payloads[0].Ref)
+		assert.Equal(t, emptyCommitID, payloads[0].Before)
+		assert.Equal(t, afterCommitID, payloads[0].After)
+		assert.Equal(t, "repo1", payloads[0].Repo.Name)
+		assert.Equal(t, "new_branch", payloads[0].Branch())
+		assert.Equal(t, "user2/repo1", payloads[0].Repo.FullName)
+		assert.Len(t, payloads[0].Commits, 1)
+		assert.Equal(t, afterCommitID, payloads[0].Commits[0].ID)
+		assert.Equal(t, setting.AppURL+"user2/repo1/compare/"+beforeCommitID+"..."+afterCommitID, payloads[0].CompareURL)
+		assert.Equal(t, []string{"test_webhook_push.md"}, payloads[0].Commits[0].Added)
+		assert.Empty(t, payloads[0].Commits[0].Removed)
 	})
 }
 
@@ -878,7 +949,7 @@ func Test_WebhookStatus_NoWrongTrigger(t *testing.T) {
 		testCreateWebhookForRepo(t, session, "gitea", "user2", "repo1", provider.URL(), "push_only")
 
 		// 2. trigger the webhook with a push action
-		testCreateFile(t, session, "user2", "repo1", "master", "test_webhook_push.md", "# a test file for webhook push")
+		testCreateFile(t, session, "user2", "repo1", "master", "", "test_webhook_push.md", "# a test file for webhook push")
 
 		// 3. validate the webhook is triggered with right event
 		assert.Equal(t, "push", trigger)
