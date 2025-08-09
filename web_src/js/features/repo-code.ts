@@ -81,12 +81,11 @@ function showLineButton() {
     el.remove();
   }
 
-  // Find first active row and add button
-  const activeRows = document.querySelectorAll('.code-view tr.active');
-  if (activeRows.length === 0) return;
+  // find active row and add button
+  const tr = document.querySelector('.code-view tr.active');
+  if (!tr) return;
 
-  const firstActiveRow = activeRows[0];
-  const td = firstActiveRow.querySelector('td.lines-num');
+  const td = tr.querySelector('td.lines-num');
   const btn = document.createElement('button');
   btn.classList.add('code-line-button', 'ui', 'basic', 'button');
   btn.innerHTML = svg('octicon-kebab-horizontal');
@@ -97,27 +96,27 @@ function showLineButton() {
 
   createTippy(btn, {
     theme: 'menu',
-    trigger: 'manual', // Use manual trigger
+    trigger: 'click',
+    hideOnClick: true,
     content: menu,
     placement: 'right-start',
     interactive: true,
-    appendTo: () => document.body,
+    onShow: (tippy) => {
+      tippy.popper.addEventListener('click', () => {
+        tippy.hide();
+      }, {once: true});
+    },
   });
 
   // Handle menu button click manually
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     const tippyInstance = btn._tippy;
-    if (tippyInstance?.state.isVisible) {
+    if (tippyInstance?.state.isShown) {
       tippyInstance.hide();
     } else if (tippyInstance) {
       tippyInstance.show();
     }
-  });
-
-  // Hide menu when clicking menu items
-  menu.addEventListener('click', () => {
-    btn._tippy?.hide();
   });
 }
 
