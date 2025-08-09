@@ -22,7 +22,8 @@ import {initFindFileInRepo} from './features/repo-findfile.ts';
 import {initMarkupContent} from './markup/content.ts';
 import {initRepoFileView} from './features/file-view.ts';
 import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
-import {initRepoPullRequestAllowMaintainerEdit, initRepoPullRequestReview, initRepoIssueSidebarDependency, initRepoIssueFilterItemLabel} from './features/repo-issue.ts';
+import {initRepoPullRequestAllowMaintainerEdit, initRepoPullRequestReview, initRepoIssueSidebarDependency, initRepoIssueFilterItemLabel, initRepoAddCommentButton, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete} from './features/repo-issue.ts';
+import {initRepoIssueCommentEdit} from './features/repo-issue-edit.ts';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
 import {initAdminCommon} from './features/admin/common.ts';
@@ -37,6 +38,7 @@ import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/use
 import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.ts';
 import {initRepoEditor} from './features/repo-editor.ts';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
+import {initCompReactionSelector} from './features/comp/ReactionSelector.ts';
 import {initInstall} from './features/install.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
@@ -91,6 +93,7 @@ const initPerformanceTracer = callInitFunctions([
   initCommonIssueListQuickGoto,
 
   initCompSearchUserBox,
+  initCompReactionSelector,
   initCompWebHookEditor,
 
   initInstall,
@@ -132,6 +135,10 @@ const initPerformanceTracer = callInitFunctions([
   initRepoIssueContentHistory,
   initRepoIssueList,
   initRepoIssueFilterItemLabel,
+  initRepoAddCommentButton,
+  initRepoIssueCodeCommentCancel,
+  initRepoIssueCommentDelete,
+  initRepoIssueCommentEdit,
   initRepoIssueSidebarDependency,
   initRepoMigration,
   initRepoMigrationStatusChecker,

@@ -8,14 +8,17 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"maps"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -25,24 +28,35 @@ import (
 	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/common"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context/upload"
+	"code.gitea.io/gitea/services/forms"
 	git_service "code.gitea.io/gitea/services/git"
 	"code.gitea.io/gitea/services/gitdiff"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/repository/gitgraph"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
-	tplCommits    templates.TplName = "repo/commits"
-	tplGraph      templates.TplName = "repo/graph"
-	tplGraphDiv   templates.TplName = "repo/graph/div"
-	tplCommitPage templates.TplName = "repo/commit_page"
+	tplCommits                templates.TplName = "repo/commits"
+	tplGraph                  templates.TplName = "repo/graph"
+	tplGraphDiv               templates.TplName = "repo/graph/div"
+	tplCommitPage             templates.TplName = "repo/commit_page"
+	tplCommitConversation     templates.TplName = "repo/diff/commit_conversation"
+	tplCommitCommentReactions templates.TplName = "repo/issue/view_content/commit_reactions"
+	tplCommitAttachment       templates.TplName = "repo/issue/view_content/commit_attachments"
 )
 
 // RefCommits render commits page
@@ -345,6 +359,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 
 	var parentCommit *git.Commit
 	var parentCommitID string
@@ -417,6 +432,24 @@ func Diff(ctx *context.Context) {
 		ctx.Data["MergedPRIssueNumber"] = pr.Index
 	}
 
+	commitComment, err := git_model.GetCommitDataBySHA(ctx, ctx.Repo.Repository.ID, commitID)
+	if err != nil {
+		ctx.ServerError("GetCommitDataBySHA", err)
+		return
+	}
+
+	if commitComment != nil {
+		err := git_service.LoadCommitComments(ctx, diff, commitComment, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("LoadCommitComments", err)
+			return
+		}
+	}
+	upload.AddUploadContext(ctx, "comment")
+	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+	}
+
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }
 
@@ -468,4 +501,456 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 		}
 	}
 	return commits, nil
+}
+
+func RenderCommitCommentForm(ctx *context.Context) {
+	CommitSHA := ctx.PathParam("sha")
+
+	ctx.Data["PageIsDiff"] = true
+	ctx.Data["CommitSHA"] = CommitSHA
+	ctx.Data["AfterCommitID"] = CommitSHA
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
+	ctx.HTML(http.StatusOK, tplNewComment)
+}
+
+func CreateCommitComment(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.CodeCommentForm)
+	if ctx.Written() {
+		return
+	}
+
+	signedLine := form.Line
+	if form.Side == "previous" {
+		signedLine *= -1
+	}
+	replyid := form.Reply
+	attachmentsMap := make(git_model.AttachmentMap)
+
+	if ctx.Session.Get("attachmentsMaps") != nil {
+		attachmentsMap = ctx.Session.Get("attachmentsMaps").(git_model.AttachmentMap)
+	}
+
+	opts := git_model.CreateCommitDataOptions{
+		RefRepoID:        ctx.Repo.Repository.ID,
+		Repo:             ctx.Repo.Repository,
+		Doer:             ctx.Doer,
+		Comment:          form.Content,
+		FileName:         form.TreePath,
+		LineNum:          signedLine,
+		ReplyToCommentID: replyid,
+		CommitSHA:        form.LatestCommitID,
+		Attachments:      attachmentsMap,
+	}
+	commitComment, err := git_service.CreateCommitComment(ctx,
+		ctx.Doer,
+		ctx.Repo.GitRepo,
+		opts,
+	)
+	if err != nil {
+		ctx.ServerError("CreateCommitComment", err)
+		return
+	}
+	if ctx.Session.Get("attachmentsMaps") != nil {
+		err = ctx.Session.Delete("attachmentsMaps")
+		if err != nil {
+			ctx.ServerError("CreateCommitComment", err)
+			return
+		}
+	}
+	renderCommitData(ctx, commitComment, form.Origin, signedLine)
+}
+
+func renderCommitData(ctx *context.Context, commitComment *git_model.CommitComment, origin string, signedLine int64) {
+	ctx.Data["PageIsDiff"] = true
+
+	opts := git_model.FindCommitDataOptions{
+		CommitSHA: commitComment.CommitSHA,
+		Line:      signedLine,
+	}
+	comments, err := git_model.FindCommitCommentsByLine(ctx, &opts, commitComment)
+	if err != nil {
+		ctx.ServerError("FetchCodeCommentsByLine", err)
+		return
+	}
+
+	if len(comments) == 0 {
+		ctx.HTML(http.StatusOK, tplConversationOutdated)
+		return
+	}
+
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+
+	upload.AddUploadContext(ctx, "comment")
+	ctx.Data["comments"] = comments
+	ctx.Data["AfterCommitID"] = commitComment.CommitSHA
+	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+	}
+
+	switch origin {
+	case "diff":
+		ctx.HTML(http.StatusOK, tplCommitConversation)
+	case "timeline":
+		ctx.HTML(http.StatusOK, tplTimelineConversation)
+	default:
+		ctx.HTTPError(http.StatusBadRequest, "Unknown origin: "+origin)
+	}
+}
+
+// DeleteCommitComment delete comment of commit
+func DeleteCommitComment(ctx *context.Context) {
+	commitComment, err := git_model.GetCommitDataByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	if err != nil {
+		return
+	}
+	if !ctx.IsSigned || (ctx.Doer.ID != commitComment.PosterID) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
+	if err = git_model.DeleteCommitComment(ctx, commitComment); err != nil {
+		ctx.ServerError("GetCommitDataByID", err)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}
+
+func UpdateCommitComment(ctx *context.Context) {
+	commitComment, err := git_model.GetCommitDataByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	if err != nil {
+		ctx.ServerError("GetCommitDataByID", err)
+		return
+	}
+
+	if !ctx.IsSigned || (ctx.Doer.ID != commitComment.PosterID) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
+	newContent := ctx.FormString("content")
+
+	if newContent != commitComment.Comment {
+		commitComment.Comment = newContent
+		commitComment.ContentVersion++
+	}
+	files := ctx.FormStrings("files[]")
+	filesMap := make(map[string]struct{})
+	for _, key := range files {
+		filesMap[key] = struct{}{}
+	}
+
+	uploadedAttachments := make(git_model.AttachmentMap)
+	if ctx.Session.Get("attachmentsMaps") != nil {
+		uploadedAttachments = ctx.Session.Get("attachmentsMaps").(git_model.AttachmentMap)
+	}
+
+	attachmentMap := make(git_model.AttachmentMap)
+	err = json.Unmarshal([]byte(commitComment.Attachments), &attachmentMap)
+	if err != nil {
+		ctx.ServerError("UpdateCommitComment", err)
+		return
+	}
+
+	// handle removed files
+	for key := range attachmentMap {
+		if _, exists := filesMap[key]; !exists {
+			delete(attachmentMap, key)
+		}
+	}
+	maps.Copy(attachmentMap, uploadedAttachments)
+	err = git_model.UpdateCommitData(ctx, &attachmentMap, commitComment)
+	if err != nil {
+		ctx.ServerError("UpdateCommitComment", err)
+		return
+	}
+
+	var renderedContent template.HTML
+	if commitComment.Comment != "" {
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
+			FootnoteContextID: strconv.FormatInt(commitComment.ID, 10),
+		})
+		renderedContent, err = markdown.RenderString(rctx, commitComment.Comment)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+	} else {
+		contentEmpty := fmt.Sprintf(`<span class="no-content">%s</span>`, ctx.Tr("repo.issues.no_content"))
+		renderedContent = template.HTML(contentEmpty)
+	}
+
+	attachHTML, err := ctx.RenderToHTML(tplCommitAttachment, map[string]any{
+		"Attachments":   attachmentMap,
+		"CommitComment": commitComment,
+	})
+	if err != nil {
+		ctx.ServerError("attachmentsHTML.HTMLString", err)
+		return
+	}
+
+	if ctx.Session.Get("attachmentsMaps") != nil {
+		err = ctx.Session.Delete("attachmentsMaps")
+		if err != nil {
+			ctx.ServerError("UpdateCommitComment", err)
+			return
+		}
+	}
+	upload.AddUploadContext(ctx, "comment")
+	ctx.JSON(http.StatusOK, map[string]any{
+		"content":        renderedContent,
+		"contentVersion": commitComment.ContentVersion,
+		"attachments":    attachHTML,
+	})
+}
+
+func CancelCommitComment(ctx *context.Context) {
+	if ctx.Session.Get("attachmentsMaps") != nil {
+		err := ctx.Session.Delete("attachmentsMaps")
+		if err != nil {
+			ctx.ServerError("CancelCommitComment", err)
+			return
+		}
+	}
+}
+
+func ChangeCommitCommentReaction(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.ReactionForm)
+	commitComment, err := git_model.GetCommitDataByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	if err != nil {
+		ctx.ServerError("GetCommitDataByID", err)
+		return
+	}
+
+	action := ctx.PathParam("action")
+
+	if !ctx.IsSigned || (ctx.Doer.ID != commitComment.PosterID) {
+		if log.IsTrace() {
+			if ctx.IsSigned {
+				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
+					"User in Repo has Permissions: %-+v",
+					ctx.Doer,
+					commitComment.PosterID,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			} else {
+				log.Trace("Permission Denied: Not logged in")
+			}
+		}
+
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
+	switch action {
+	case "react":
+		err := git_service.CreateCommentReaction(ctx, ctx.Doer, commitComment, form.Content)
+		if err != nil {
+			log.Info("CreateCommentReaction: %s", err)
+			break
+		}
+
+	case "unreact":
+		if err := git_service.DeleteCommentReaction(ctx, ctx.Doer, commitComment, form.Content); err != nil {
+			ctx.ServerError("DeleteCommentReaction", err)
+			return
+		}
+
+	default:
+		ctx.NotFound(nil)
+		return
+	}
+
+	if len(commitComment.Reactions) == 0 {
+		ctx.JSON(http.StatusOK, map[string]any{
+			"empty": true,
+			"html":  "",
+		})
+		return
+	}
+	reactions, _ := commitComment.GroupReactionsByType()
+	html, err := ctx.RenderToHTML(tplCommitCommentReactions, map[string]any{
+		"ActionURL":     fmt.Sprintf("%s/commit/%s/comments/%d/reactions", ctx.Repo.RepoLink, commitComment.CommitSHA, commitComment.ID),
+		"Reactions":     reactions,
+		"CommitComment": commitComment,
+	})
+	if err != nil {
+		ctx.ServerError("ChangeCommentReaction.HTMLString", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]any{
+		"html": html,
+	})
+}
+
+func UploadCommitAttachment(ctx *context.Context) {
+	if !ctx.IsSigned {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
+	if !setting.Attachment.Enabled {
+		ctx.HTTPError(http.StatusNotFound, "attachment is not enabled")
+		return
+	}
+
+	file, header, err := ctx.Req.FormFile("file")
+	if err != nil {
+		ctx.HTTPError(http.StatusInternalServerError, fmt.Sprintf("FormFile: %v", err))
+		return
+	}
+
+	validExt := strings.Contains(setting.Attachment.AllowedTypes, path.Ext(header.Filename))
+	if !validExt {
+		ctx.HTTPError(http.StatusNotFound, "attachment type not valid")
+		return
+	}
+	ctx.Data["PageIsDiff"] = true
+
+	opts := git_model.AttachmentOptions{
+		FileName:   header.Filename,
+		Size:       header.Size,
+		UploaderID: ctx.Doer.ID,
+	}
+
+	attachmentUUID, err := git_model.SaveTemporaryAttachment(ctx, file, &opts)
+	if err != nil {
+		ctx.ServerError("SaveTemporaryAttachment", err)
+		return
+	}
+
+	attachmentsMap := ctx.Session.Get("attachmentsMaps")
+	if attachmentsMap != nil {
+		attachmentsMap := ctx.Session.Get("attachmentsMaps").(git_model.AttachmentMap)
+		attachmentsMap[attachmentUUID] = &opts
+		err = ctx.Session.Set("attachmentsMaps", attachmentsMap)
+		if err != nil {
+			ctx.ServerError("UploadCommitAttachment", err)
+			return
+		}
+	} else {
+		attachmentsMap := make(git_model.AttachmentMap)
+		attachmentsMap[attachmentUUID] = &opts
+		err = ctx.Session.Set("attachmentsMaps", attachmentsMap)
+		if err != nil {
+			ctx.ServerError("UploadCommitAttachment", err)
+			return
+		}
+	}
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	ctx.JSON(http.StatusOK, map[string]string{
+		"uuid": attachmentUUID,
+	})
+}
+
+func DeleteCommitAttachment(ctx *context.Context) {
+	uuid := ctx.FormString("file")
+
+	err := storage.Attachments.Delete(uuid)
+	if err != nil {
+		ctx.ServerError("delete ", err)
+		return
+	}
+
+	if ctx.Session.Get("attachmentsMaps") != nil {
+		attachmentsMap := ctx.Session.Get("attachmentsMaps").(git_model.AttachmentMap)
+		delete(attachmentsMap, uuid)
+		err = ctx.Session.Set("attachmentsMaps", attachmentsMap)
+		if err != nil {
+			ctx.ServerError("UploadCommitAttachment", err)
+			return
+		}
+	}
+}
+
+func GetCommitAttachmentByUUID(ctx *context.Context) {
+	commitComment, err := git_model.GetCommitDataByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	if err != nil {
+		return
+	}
+
+	repository, err := repo_model.GetRepositoryByID(ctx, commitComment.RefRepoID)
+	if err != nil {
+		ctx.ServerError("GetRepositoryByID", err)
+		return
+	}
+
+	attachmentMap := make(git_model.AttachmentMap)
+	err = json.Unmarshal([]byte(commitComment.Attachments), &attachmentMap)
+	if err != nil {
+		ctx.ServerError("GetCommitAttachmentByUUID", err)
+		return
+	}
+	uuid := ctx.PathParam("uuid")
+
+	attachment := attachmentMap[uuid]
+	if attachment == nil {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
+	if repository == nil {
+		if !(ctx.IsSigned && attachment.UploaderID == ctx.Doer.ID) {
+			ctx.HTTPError(http.StatusNotFound)
+			return
+		}
+	} else {
+		_, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
+		if err != nil {
+			ctx.HTTPError(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
+			return
+		}
+	}
+
+	fr, err := storage.Attachments.Open(uuid)
+	if err != nil {
+		ctx.ServerError("Open", err)
+		return
+	}
+	defer fr.Close()
+
+	common.ServeContentByReadSeeker(ctx.Base, attachment.FileName, util.ToPointer(commitComment.CreatedUnix.AsTime()), fr)
+}
+
+func GetCommitAttachments(ctx *context.Context) {
+	commitComment, err := git_model.GetCommitDataByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	if err != nil {
+		return
+	}
+
+	repository, err := repo_model.GetRepositoryByID(ctx, commitComment.RefRepoID)
+	if err != nil {
+		ctx.ServerError("GetRepositoryByID", err)
+		return
+	}
+	if repository == nil {
+		if !(ctx.IsSigned) {
+			ctx.HTTPError(http.StatusNotFound)
+			return
+		}
+	}
+
+	type AttachmentItem struct {
+		Name string `json:"name"`
+		UUID string `json:"uuid"`
+		Size int64  `json:"size"`
+	}
+
+	attachmentMap := make(git_model.AttachmentMap)
+	err = json.Unmarshal([]byte(commitComment.Attachments), &attachmentMap)
+	if err != nil {
+		ctx.ServerError("GetCommitAttachments", err)
+		return
+	}
+
+	attachmentItems := []*AttachmentItem{}
+	for key, value := range attachmentMap {
+		item := &AttachmentItem{
+			Name: value.FileName, Size: value.Size, UUID: key,
+		}
+		attachmentItems = append(attachmentItems, item)
+	}
+
+	ctx.JSON(http.StatusOK, attachmentItems)
 }
