@@ -560,9 +560,8 @@ func Cancel(ctx *context_module.Context) {
 	if len(updatedjobs) > 0 {
 		job := updatedjobs[0]
 		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
-		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 	}
-	ctx.JSON(http.StatusOK, struct{}{})
+	ctx.JSONOK()
 }
 
 func Approve(ctx *context_module.Context) {
@@ -606,7 +605,6 @@ func Approve(ctx *context_module.Context) {
 	if len(updatedjobs) > 0 {
 		job := updatedjobs[0]
 		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
-		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 	}
 
 	for _, job := range updatedjobs {
@@ -614,7 +612,7 @@ func Approve(ctx *context_module.Context) {
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
 
-	ctx.JSON(http.StatusOK, struct{}{})
+	ctx.JSONOK()
 }
 
 func Delete(ctx *context_module.Context) {

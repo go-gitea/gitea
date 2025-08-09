@@ -34,6 +34,18 @@ func generateMessageIDForActionsWorkflowRunStatusEmail(repo *repo_model.Reposito
 }
 
 func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, sender *user_model.User, recipients []*user_model.User) {
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+	if err != nil {
+		log.Error("GetRunJobsByRunID: %v", err)
+		return
+	}
+	for _, job := range jobs {
+		if !job.Status.IsDone() {
+			log.Trace("composeAndSendActionsWorkflowRunStatusEmail: A job is not done. Will not compose and send actions email.")
+			return
+		}
+	}
+
 	subject := "Run"
 	switch run.Status {
 	case actions_model.StatusFailure:
@@ -48,11 +60,6 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 	messageID := generateMessageIDForActionsWorkflowRunStatusEmail(repo, run)
 	metadataHeaders := generateMetadataHeaders(repo)
 
-	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
-	if err != nil {
-		log.Error("GetRunJobsByRunID: %v", err)
-		return
-	}
 	sort.SliceStable(jobs, func(i, j int) bool {
 		si, sj := jobs[i].Status, jobs[j].Status
 		/*
@@ -116,6 +123,7 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 		}
 		msgs := make([]*sender_service.Message, 0, len(tos))
 		for _, rec := range tos {
+			log.Trace("Sending actions email to %s (UID: %d)", rec.Name, rec.ID)
 			msg := sender_service.NewMessageFrom(
 				rec.Email,
 				displayName,
@@ -141,7 +149,7 @@ func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo
 	if setting.MailService == nil {
 		return
 	}
-	if run.Status.IsSkipped() {
+	if !run.Status.IsDone() || run.Status.IsSkipped() {
 		return
 	}
 
@@ -160,6 +168,7 @@ func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo
 	}
 
 	if len(recipients) > 0 {
+		log.Trace("MailActionsTrigger: Initiate email composition")
 		composeAndSendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
 	}
 }
