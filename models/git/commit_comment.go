@@ -1,4 +1,4 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 package git
 
@@ -45,12 +45,12 @@ type CommitComment struct {
 	ContentVersion   int                    `xorm:"NOT NULL DEFAULT 0"`
 	RefRepoID        int64                  `xorm:"index"`
 	Repo             *repo_model.Repository `xorm:"-"`
-	ReplyToCommentID int64
-	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix      timeutil.TimeStamp `xorm:"INDEX updated"`
+	ReplyToCommentID int64                  `xorm:"index"`
+	CreatedUnix      timeutil.TimeStamp     `xorm:"INDEX created"`
+	UpdatedUnix      timeutil.TimeStamp     `xorm:"INDEX updated"`
 }
 
-type CreateCommitDataOptions struct {
+type CreateCommitCommentOptions struct {
 	Doer *user_model.User
 	Repo *repo_model.Repository
 
@@ -71,7 +71,7 @@ type AttachmentOptions struct {
 	UploaderID int64
 }
 
-type FindCommitDataOptions struct {
+type FindCommitCommentOptions struct {
 	db.ListOptions
 	RepoID    int64
 	CommitSHA string
@@ -216,7 +216,7 @@ func (commitComment *CommitComment) GetMoreUserCount(reaction string) int {
 	return len(list) - setting.UI.ReactionMaxUserNum
 }
 
-func GetCommitDataByID(ctx context.Context, repoID, ID int64) (*CommitComment, error) {
+func GetCommitCommentByID(ctx context.Context, repoID, ID int64) (*CommitComment, error) {
 	commitComment := &CommitComment{
 		RefRepoID: repoID,
 		ID:        ID,
@@ -238,7 +238,7 @@ func GetCommitDataByID(ctx context.Context, repoID, ID int64) (*CommitComment, e
 	return commitComment, err
 }
 
-func GetCommitDataBySHA(ctx context.Context, repoID int64, commitSHA string) (*CommitComment, error) {
+func GetCommitCommentBySHA(ctx context.Context, repoID int64, commitSHA string) (*CommitComment, error) {
 	commitComment := &CommitComment{
 		RefRepoID: repoID,
 		CommitSHA: commitSHA,
@@ -261,7 +261,7 @@ func GetCommitDataBySHA(ctx context.Context, repoID int64, commitSHA string) (*C
 }
 
 // CreateCommitComment creates comment with context
-func CreateCommitData(ctx context.Context, opts *CreateCommitDataOptions) (_ *CommitComment, err error) {
+func CreateCommitComment(ctx context.Context, opts *CreateCommitCommentOptions) (_ *CommitComment, err error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
@@ -306,7 +306,7 @@ func CreateCommitData(ctx context.Context, opts *CreateCommitDataOptions) (_ *Co
 	return commit, nil
 }
 
-func UpdateCommitData(ctx context.Context, attachmentMap *AttachmentMap, commitComment *CommitComment) (err error) {
+func UpdateCommitComment(ctx context.Context, attachmentMap *AttachmentMap, commitComment *CommitComment) (err error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -350,7 +350,7 @@ func DeleteCommitComment(ctx context.Context, commitComment *CommitComment) erro
 	return nil
 }
 
-func FindCommitCommentsByCommit(ctx context.Context, opts *FindCommitDataOptions, commitComment *CommitComment) (CommitCommentList, error) {
+func FindCommitCommentsByCommit(ctx context.Context, opts *FindCommitCommentOptions, commitComment *CommitComment) (CommitCommentList, error) {
 	var commitCommentList CommitCommentList
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
 
@@ -389,7 +389,7 @@ func FindCommitCommentsByCommit(ctx context.Context, opts *FindCommitDataOptions
 	return commitCommentList, nil
 }
 
-func FindCommitCommentsByLine(ctx context.Context, opts *FindCommitDataOptions, commitComment *CommitComment) (CommitCommentList, error) {
+func FindCommitCommentsByLine(ctx context.Context, opts *FindCommitCommentOptions, commitComment *CommitComment) (CommitCommentList, error) {
 	var commitCommentList CommitCommentList
 
 	sess := db.GetEngine(ctx)

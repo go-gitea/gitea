@@ -432,9 +432,9 @@ func Diff(ctx *context.Context) {
 		ctx.Data["MergedPRIssueNumber"] = pr.Index
 	}
 
-	commitComment, err := git_model.GetCommitDataBySHA(ctx, ctx.Repo.Repository.ID, commitID)
+	commitComment, err := git_model.GetCommitCommentBySHA(ctx, ctx.Repo.Repository.ID, commitID)
 	if err != nil {
-		ctx.ServerError("GetCommitDataBySHA", err)
+		ctx.ServerError("GetCommitCommentBySHA", err)
 		return
 	}
 
@@ -531,7 +531,7 @@ func CreateCommitComment(ctx *context.Context) {
 		attachmentsMap = ctx.Session.Get("attachmentsMaps").(git_model.AttachmentMap)
 	}
 
-	opts := git_model.CreateCommitDataOptions{
+	opts := git_model.CreateCommitCommentOptions{
 		RefRepoID:        ctx.Repo.Repository.ID,
 		Repo:             ctx.Repo.Repository,
 		Doer:             ctx.Doer,
@@ -558,13 +558,13 @@ func CreateCommitComment(ctx *context.Context) {
 			return
 		}
 	}
-	renderCommitData(ctx, commitComment, form.Origin, signedLine)
+	renderCommitComment(ctx, commitComment, form.Origin, signedLine)
 }
 
-func renderCommitData(ctx *context.Context, commitComment *git_model.CommitComment, origin string, signedLine int64) {
+func renderCommitComment(ctx *context.Context, commitComment *git_model.CommitComment, origin string, signedLine int64) {
 	ctx.Data["PageIsDiff"] = true
 
-	opts := git_model.FindCommitDataOptions{
+	opts := git_model.FindCommitCommentOptions{
 		CommitSHA: commitComment.CommitSHA,
 		Line:      signedLine,
 	}
@@ -600,7 +600,7 @@ func renderCommitData(ctx *context.Context, commitComment *git_model.CommitComme
 
 // DeleteCommitComment delete comment of commit
 func DeleteCommitComment(ctx *context.Context) {
-	commitComment, err := git_model.GetCommitDataByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	commitComment, err := git_model.GetCommitCommentByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		return
 	}
@@ -610,7 +610,7 @@ func DeleteCommitComment(ctx *context.Context) {
 	}
 
 	if err = git_model.DeleteCommitComment(ctx, commitComment); err != nil {
-		ctx.ServerError("GetCommitDataByID", err)
+		ctx.ServerError("DeleteCommitComment", err)
 		return
 	}
 
@@ -618,9 +618,9 @@ func DeleteCommitComment(ctx *context.Context) {
 }
 
 func UpdateCommitComment(ctx *context.Context) {
-	commitComment, err := git_model.GetCommitDataByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	commitComment, err := git_model.GetCommitCommentByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
-		ctx.ServerError("GetCommitDataByID", err)
+		ctx.ServerError("GetCommitCommentByID", err)
 		return
 	}
 
@@ -660,7 +660,7 @@ func UpdateCommitComment(ctx *context.Context) {
 		}
 	}
 	maps.Copy(attachmentMap, uploadedAttachments)
-	err = git_model.UpdateCommitData(ctx, &attachmentMap, commitComment)
+	err = git_model.UpdateCommitComment(ctx, &attachmentMap, commitComment)
 	if err != nil {
 		ctx.ServerError("UpdateCommitComment", err)
 		return
@@ -717,9 +717,9 @@ func CancelCommitComment(ctx *context.Context) {
 
 func ChangeCommitCommentReaction(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.ReactionForm)
-	commitComment, err := git_model.GetCommitDataByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	commitComment, err := git_model.GetCommitCommentByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
-		ctx.ServerError("GetCommitDataByID", err)
+		ctx.ServerError("GetCommitCommentByID", err)
 		return
 	}
 
@@ -866,7 +866,7 @@ func DeleteCommitAttachment(ctx *context.Context) {
 }
 
 func GetCommitAttachmentByUUID(ctx *context.Context) {
-	commitComment, err := git_model.GetCommitDataByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	commitComment, err := git_model.GetCommitCommentByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		return
 	}
@@ -914,7 +914,7 @@ func GetCommitAttachmentByUUID(ctx *context.Context) {
 }
 
 func GetCommitAttachments(ctx *context.Context) {
-	commitComment, err := git_model.GetCommitDataByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	commitComment, err := git_model.GetCommitCommentByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		return
 	}

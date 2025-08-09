@@ -91,8 +91,8 @@ func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.Sig
 	return newCommits, nil
 }
 
-func CreateCommitComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, opts git_model.CreateCommitDataOptions) (*git_model.CommitComment, error) {
-	comment, err := git_model.CreateCommitData(ctx, &opts)
+func CreateCommitComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, opts git_model.CreateCommitCommentOptions) (*git_model.CommitComment, error) {
+	comment, err := git_model.CreateCommitComment(ctx, &opts)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func CreateCommitComment(ctx context.Context, doer *user_model.User, gitRepo *gi
 
 // LoadComments loads comments into each line
 func LoadCommitComments(ctx context.Context, diff *gitdiff.Diff, commitComment *git_model.CommitComment, currentUser *user_model.User) error {
-	opts := git_model.FindCommitDataOptions{
+	opts := git_model.FindCommitCommentOptions{
 		CommitSHA: commitComment.CommitSHA,
 	}
 
