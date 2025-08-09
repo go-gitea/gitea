@@ -149,7 +149,7 @@ func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo
 	if setting.MailService == nil {
 		return
 	}
-	if run.Status.IsSkipped() {
+	if !run.Status.IsDone() || run.Status.IsSkipped() {
 		return
 	}
 
