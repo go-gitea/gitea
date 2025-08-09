@@ -80,7 +80,7 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 		return nil, err
 	}
 
-	// reaload issue to ensure it has the latest data, especially the number of comments
+	// reload issue to ensure it has the latest data, especially the number of comments
 	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
 	if err != nil {
 		return nil, err
