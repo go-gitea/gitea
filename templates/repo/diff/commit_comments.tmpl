@@ -31,12 +31,12 @@
 			<div class="edit-content-zone tw-hidden" data-update-url="{{(printf "%s/commit/%s/comments/%d/update" $.root.RepoLink .CommitSHA .ID)}}" data-content-version="{{.ContentVersion}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{(printf "%s/commit/%s/comments/%d/attachments" $.root.RepoLink .CommitSHA .ID)}}"></div>
 			{{$attachments := .GroupAttachmentsByUUID}}
 			{{if $attachments}}
-				{{template "repo/issue/view_content/commit_attachments" dict "CommitData" . "Attachments" $attachments "RenderedContent" .RenderedComment}}
+				{{template "repo/issue/view_content/commit_attachments" dict "CommitComment" . "Attachments" $attachments "RenderedContent" .RenderedComment}}
 			{{end}}
 		</div>
 		{{$reactions := .GroupReactionsByType}}
 		{{if $reactions}}
-			{{template "repo/issue/view_content/commit_reactions" dict "CommitData" . "ActionURL" (printf  "%s/commit/%s/comments/%d/reactions" $.root.RepoLink .CommitSHA .ID) "Reactions" $reactions}}
+			{{template "repo/issue/view_content/commit_reactions" dict "CommitComment" . "ActionURL" (printf  "%s/commit/%s/comments/%d/reactions" $.root.RepoLink .CommitSHA .ID) "Reactions" $reactions}}
 		{{end}}
 	</div>
 </div>

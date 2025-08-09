@@ -91,7 +91,7 @@ func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.Sig
 	return newCommits, nil
 }
 
-func CreateCommitComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, opts git_model.CreateCommitDataOptions) (*git_model.CommitData, error) {
+func CreateCommitComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, opts git_model.CreateCommitDataOptions) (*git_model.CommitComment, error) {
 	comment, err := git_model.CreateCommitData(ctx, &opts)
 	if err != nil {
 		return nil, err
@@ -100,16 +100,12 @@ func CreateCommitComment(ctx context.Context, doer *user_model.User, gitRepo *gi
 }
 
 // LoadComments loads comments into each line
-func LoadCommitComments(ctx context.Context, diff *gitdiff.Diff, commitData *git_model.CommitData, currentUser *user_model.User) error {
+func LoadCommitComments(ctx context.Context, diff *gitdiff.Diff, commitComment *git_model.CommitComment, currentUser *user_model.User) error {
 	opts := git_model.FindCommitDataOptions{
-		CommitSHA: commitData.CommitSHA,
+		CommitSHA: commitComment.CommitSHA,
 	}
 
-	commitData, err := git_model.GetCommitDataBySHA(ctx, commitData.RefRepoID, commitData.CommitSHA)
-	if err != nil {
-		return err
-	}
-	commitComments, err := git_model.FindCommitCommentsByCommit(ctx, &opts, commitData)
+	commitComments, err := git_model.FindCommitCommentsByCommit(ctx, &opts, commitComment)
 	if err != nil {
 		return err
 	}
@@ -121,13 +117,13 @@ func LoadCommitComments(ctx context.Context, diff *gitdiff.Diff, commitData *git
 					for _, line := range section.Lines {
 						if cc.Line == int64(line.LeftIdx*-1) {
 							line.CommitComments = append(line.CommitComments, cc)
-							cc.Repo = commitData.Repo
-							cc.Poster = commitData.Poster
+							cc.Repo = commitComment.Repo
+							cc.Poster = commitComment.Poster
 						}
 						if cc.Line == int64(line.RightIdx) {
 							line.CommitComments = append(line.CommitComments, cc)
-							cc.Repo = commitData.Repo
-							cc.Poster = commitData.Poster
+							cc.Repo = commitComment.Repo
+							cc.Poster = commitComment.Poster
 						}
 						sort.SliceStable(line.CommitComments, func(i, j int) bool {
 							return line.CommitComments[i].CreatedUnix < line.CommitComments[j].CreatedUnix
@@ -141,16 +137,16 @@ func LoadCommitComments(ctx context.Context, diff *gitdiff.Diff, commitData *git
 }
 
 // CreateCommentReaction creates a reaction on a comment.
-func CreateCommentReaction(ctx context.Context, doer *user_model.User, commitData *git_model.CommitData, reaction string) error {
-	err := git_model.CreateCommitCommentReaction(ctx, reaction, doer.ID, commitData)
+func CreateCommentReaction(ctx context.Context, doer *user_model.User, commitComment *git_model.CommitComment, reaction string) error {
+	err := git_model.CreateCommitCommentReaction(ctx, reaction, doer.ID, commitComment)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func DeleteCommentReaction(ctx context.Context, doer *user_model.User, commitData *git_model.CommitData, reaction string) error {
-	err := git_model.DeleteCommentReaction(ctx, reaction, doer.ID, commitData)
+func DeleteCommentReaction(ctx context.Context, doer *user_model.User, commitComment *git_model.CommitComment, reaction string) error {
+	err := git_model.DeleteCommentReaction(ctx, reaction, doer.ID, commitComment)
 	if err != nil {
 		return err
 	}

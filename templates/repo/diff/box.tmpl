@@ -186,7 +186,7 @@
 								{{else}}
 									{{- $newCommentUrl := "" -}}
 									{{if $.PageIsPullFiles}}
-										{{$newCommentUrl =  printf "%s/files/reviews/new_comment" $.Issue.Link -}}
+										{{$newCommentUrl = printf "%s/files/reviews/new_comment" $.Issue.Link -}}
 									{{else if $.PageIsDiff}}
 										{{$newCommentUrl = printf "%s/commit/%s/comments/new_comment" $.RepoLink $.CommitID -}}
 									{{end}}

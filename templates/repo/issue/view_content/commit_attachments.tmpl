@@ -3,11 +3,11 @@
 		<div class="divider"></div>
 	{{end}}
 	{{$hasThumbnails := false}}
-	{{- $commitData := .CommitData -}}
+	{{- $commitComment := .CommitComment -}}
 	{{- range $key, $value := .Attachments -}}
 		<div class="tw-flex">
 			<div class="tw-flex-1 tw-p-2">
-				<a target="_blank" rel="noopener noreferrer" href="{{(printf "%s/commit/%s/%d/attachments/%s" ctx.RootData.RepoLink $commitData.CommitSHA $commitData.ID $key)}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" $value.FileName}}">
+				<a target="_blank" rel="noopener noreferrer" href="{{(printf "%s/commit/%s/%d/attachments/%s" ctx.RootData.RepoLink $commitComment.CommitSHA $commitComment.ID $key)}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" $value.FileName}}">
 					{{if FilenameIsImage $value.FileName}}
 						{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) $key)}}
 							{{$hasThumbnails = true}}
@@ -31,8 +31,8 @@
 			{{- range $key, $value := .Attachments -}}
 				{{if FilenameIsImage $value.FileName}}
 					{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) $key)}}
-					<a target="_blank" rel="noopener noreferrer" href="{{(printf "%s/commit/%s/%d/attachments/%s" ctx.RootData.RepoLink $commitData.CommitSHA $commitData.ID $key)}}">
-						<img loading="lazy" alt="{{$value.FileName}}" src="{{(printf "%s/commit/%s/%d/attachments/%s" ctx.RootData.RepoLink $commitData.CommitSHA $commitData.ID $key)}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" $value.FileName}}">
+					<a target="_blank" rel="noopener noreferrer" href="{{(printf "%s/commit/%s/%d/attachments/%s" ctx.RootData.RepoLink $commitComment.CommitSHA $commitComment.ID $key)}}">
+						<img loading="lazy" alt="{{$value.FileName}}" src="{{(printf "%s/commit/%s/%d/attachments/%s" ctx.RootData.RepoLink $commitComment.CommitSHA $commitComment.ID $key)}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" $value.FileName}}">
 					</a>
 					{{end}}
 				{{end}}

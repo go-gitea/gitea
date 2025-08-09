@@ -82,8 +82,8 @@ type DiffLine struct {
 	Match          int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
 	Type           DiffLineType
 	Content        string
-	Comments       issues_model.CommentList // related PR code commzents
-	CommitComments git_model.CommitDataList // related to commit comments
+	Comments       issues_model.CommentList    // related PR code commzents
+	CommitComments git_model.CommitCommentList // related to commit comments
 	SectionInfo    *DiffLineSectionInfo
 }
 

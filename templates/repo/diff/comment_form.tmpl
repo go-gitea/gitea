@@ -2,7 +2,7 @@
 	{{- $action := "" -}}
 	{{- $origin := "" -}}
 	{{if $.root.PageIsPullFiles}}
-		{{$action =  printf "%s/files/reviews/comments" $.root.Issue.Link -}}
+		{{$action = printf "%s/files/reviews/comments" $.root.Issue.Link -}}
 		{{$origin = "diff"}}
 	{{else if $.root.PageIsDiff}}
 		{{$action = printf "%s/commit/%s/comments/add" $.root.RepoLink $.root.CommitSHA -}}
