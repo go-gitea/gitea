@@ -1292,7 +1292,7 @@ func testWorkflowRunDuplicateEventsRerun(t *testing.T, webhookData *workflowRunW
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	runners := make([]*mockRunner, 2)
-	for i := 0; i < len(runners); i++ {
+	for i := range runners {
 		runners[i] = newMockRunner()
 		runners[i].registerAsRepoRunner(t, "user2", "repo1", fmt.Sprintf("mock-runner-%d", i), []string{"ubuntu-latest"}, false)
 	}
@@ -1392,7 +1392,7 @@ jobs:
 	assert.Equal(t, "user2/repo1", webhookData.payloads[0].Repo.FullName)
 
 	tasks := make([]*runnerv1.Task, len(runners))
-	for i := 0; i < len(runners); i++ {
+	for i := range runners {
 		tasks[i] = runners[i].fetchTask(t)
 		runners[i].execTask(t, tasks[i], &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
@@ -1437,7 +1437,7 @@ func testWorkflowRunDuplicateEventsCancelAbandoned(t *testing.T, webhookData *wo
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	runners := make([]*mockRunner, 2)
-	for i := 0; i < len(runners); i++ {
+	for i := range runners {
 		runners[i] = newMockRunner()
 		runners[i].registerAsRepoRunner(t, "user2", "repo1", fmt.Sprintf("mock-runner-%d", i), []string{"ubuntu-latest"}, false)
 	}
@@ -1537,7 +1537,7 @@ jobs:
 	assert.Equal(t, "user2/repo1", webhookData.payloads[0].Repo.FullName)
 
 	tasks := make([]*runnerv1.Task, len(runners))
-	for i := 0; i < len(runners); i++ {
+	for i := range runners {
 		tasks[i] = runners[i].fetchTask(t)
 		if !partiallyAbandoned {
 			runners[i].execTask(t, tasks[i], &mockTaskOutcome{
