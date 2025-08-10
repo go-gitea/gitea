@@ -111,6 +111,10 @@ func CancelAbandonedJobs(ctx context.Context) error {
 	}
 
 	now := timeutil.TimeStampNow()
+
+	// Collect one job per run to send workflow run status update
+	updatedRuns := map[int64]*actions_model.ActionRunJob{}
+
 	for _, job := range jobs {
 		job.Status = actions_model.StatusCancelled
 		job.Stopped = now
@@ -125,8 +129,22 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		}
 		CreateCommitStatus(ctx, job)
 		if updated {
-			NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
+			updatedRuns[job.RunID] = job
 			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+		}
+	}
+
+	for _, job := range updatedRuns {
+		c, err := db.Count[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
+			RunID:    job.RunID,
+			Statuses: []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning},
+		})
+		if err != nil {
+			log.Error("Count waiting jobs for run %d: %v", job.RunID, err)
+			continue
+		}
+		if c == 0 {
+			NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
 		}
 	}
 
