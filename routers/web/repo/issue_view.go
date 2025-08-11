@@ -389,6 +389,7 @@ func ViewIssue(ctx *context.Context) {
 		prepareIssueViewSidebarPin,
 		func(ctx *context.Context, issue *issues_model.Issue) { preparePullViewPullInfo(ctx, issue) },
 		preparePullViewReviewAndMerge,
+		prepareIssueViewSquashMergeMsg,
 	}
 
 	for _, prepareFunc := range prepareFuncs {
@@ -442,6 +443,7 @@ func ViewPullMergeBox(ctx *context.Context) {
 	}
 	preparePullViewPullInfo(ctx, issue)
 	preparePullViewReviewAndMerge(ctx, issue)
+	prepareIssueViewSquashMergeMsg(ctx, issue)
 	ctx.Data["PullMergeBoxReloading"] = issue.PullRequest.IsChecking()
 
 	// TODO: it should use a dedicated struct to render the pull merge box, to make sure all data is prepared correctly
@@ -928,14 +930,6 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 	ctx.Data["DefaultMergeMessage"] = defaultMergeMessage
 	ctx.Data["DefaultMergeBody"] = defaultMergeBody
 
-	defaultSquashMergeMessage, defaultSquashMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
-	if err != nil {
-		ctx.ServerError("GetDefaultSquashMergeMessage", err)
-		return
-	}
-	ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
-	ctx.Data["DefaultSquashMergeBody"] = defaultSquashMergeBody
-
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
 	if err != nil {
 		ctx.ServerError("LoadProtectedBranch", err)
@@ -1005,4 +999,43 @@ func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 		ctx.ServerError("roleDescriptor", err)
 		return
 	}
+}
+
+func getIssueViewSquashMergeCommits(ctx *context.Context, issue *issues_model.Issue) (string, error) {
+	pull := issue.PullRequest
+	pull.Issue = issue
+
+	baseCommit := GetMergedBaseCommitID(ctx, issue)
+
+	compareInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
+		baseCommit, pull.GetGitHeadRefName(), false, false)
+	if err != nil {
+		return "", err
+	}
+
+	commits := ""
+	for _, c := range compareInfo.Commits {
+		commits += fmt.Sprintf("* %s\n", c.CommitMessage)
+	}
+
+	return commits, nil
+}
+
+func prepareIssueViewSquashMergeMsg(ctx *context.Context, issue *issues_model.Issue) {
+	pull := issue.PullRequest
+
+	defaultSquashMergeMessage, defaultSquashMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
+	if err != nil {
+		ctx.ServerError("GetDefaultSquashMergeMessage", err)
+		return
+	}
+
+	commitsMsg, err := getIssueViewSquashMergeCommits(ctx, issue)
+	if err != nil {
+		ctx.ServerError("getIssueViewSquashMergeCommits", err)
+		return
+	}
+
+	ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
+	ctx.Data["DefaultSquashMergeBody"] = fmt.Sprintf("--------------------\n%s\n%s", commitsMsg, defaultSquashMergeBody)
 }
