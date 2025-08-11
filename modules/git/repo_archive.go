@@ -53,7 +53,7 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 		return fmt.Errorf("unknown format: %v", format)
 	}
 
-	cmd := NewCommand(ctx, "archive")
+	cmd := NewCommand("archive")
 	if usePrefix {
 		cmd.AddOptionFormat("--prefix=%s", filepath.Base(strings.TrimSuffix(repo.Path, ".git"))+"/")
 	}
@@ -61,7 +61,7 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 	cmd.AddDynamicArguments(commitID)
 
 	var stderr strings.Builder
-	err := cmd.Run(&RunOpts{
+	err := cmd.Run(ctx, &RunOpts{
 		Dir:    repo.Path,
 		Stdout: target,
 		Stderr: &stderr,

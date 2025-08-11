@@ -6,6 +6,7 @@ package mailer
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -18,9 +19,7 @@ import (
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
 
-const (
-	tplTeamInviteMail templates.TplName = "team_invite"
-)
+const tplTeamInviteMail templates.TplName = "team_invite"
 
 // MailTeamInvite sends team invites
 func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_model.Team, invite *org_model.TeamInvite) error {
@@ -40,10 +39,10 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 	if err != nil && !user_model.IsErrUserNotExist(err) {
 		return err
 	} else if user != nil && user.ProhibitLogin {
-		return fmt.Errorf("login is prohibited for the invited user")
+		return errors.New("login is prohibited for the invited user")
 	}
 
-	inviteRedirect := url.QueryEscape(fmt.Sprintf("/org/invite/%s", invite.Token))
+	inviteRedirect := url.QueryEscape("/org/invite/" + invite.Token)
 	inviteURL := fmt.Sprintf("%suser/sign_up?redirect_to=%s", setting.AppURL, inviteRedirect)
 
 	if (err == nil && user != nil) || setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
@@ -63,7 +62,7 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 	}
 
 	var mailBody bytes.Buffer
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplTeamInviteMail), mailMeta); err != nil {
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplTeamInviteMail), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplTeamInviteMail)+"/body", err)
 		return err
 	}

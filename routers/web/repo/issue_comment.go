@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -53,7 +55,7 @@ func NewComment(ctx *context.Context) {
 			}
 		}
 
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -95,13 +97,13 @@ func NewComment(ctx *context.Context) {
 				// Regenerate patch and test conflict.
 				if pr == nil {
 					issue.PullRequest.HeadCommitID = ""
-					pull_service.AddToTaskQueue(ctx, issue.PullRequest)
+					pull_service.StartPullRequestCheckImmediately(ctx, issue.PullRequest)
 				}
 
 				// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo
 				// get head commit of PR
 				if pull.Flow == issues_model.PullRequestFlowGithub {
-					prHeadRef := pull.GetGitRefName()
+					prHeadRef := pull.GetGitHeadRefName()
 					if err := pull.LoadBaseRepo(ctx); err != nil {
 						ctx.ServerError("Unable to load base repo", err)
 						return
@@ -117,7 +119,7 @@ func NewComment(ctx *context.Context) {
 						ctx.ServerError("Unable to load head repo", err)
 						return
 					}
-					if ok := git.IsBranchExist(ctx, pull.HeadRepo.RepoPath(), pull.BaseBranch); !ok {
+					if ok := gitrepo.IsBranchExist(ctx, pull.HeadRepo, pull.BaseBranch); !ok {
 						// todo localize
 						ctx.JSONError("The origin branch is delete, cannot reopen.")
 						return
@@ -224,35 +226,42 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
 
 	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
 	if !comment.Type.HasContentSupport() {
-		ctx.Error(http.StatusNoContent)
+		ctx.HTTPError(http.StatusNoContent)
 		return
 	}
 
-	oldContent := comment.Content
 	newContent := ctx.FormString("content")
 	contentVersion := ctx.FormInt("content_version")
-
-	// allow to save empty content
-	comment.Content = newContent
-	if err = issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
-		} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
-			ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
-		} else {
-			ctx.ServerError("UpdateComment", err)
-		}
+	if contentVersion != comment.ContentVersion {
+		ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
 		return
+	}
+
+	if newContent != comment.Content {
+		// allow to save empty content
+		oldContent := comment.Content
+		comment.Content = newContent
+
+		if err = issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
+			if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
+			} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
+				ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
+			} else {
+				ctx.ServerError("UpdateComment", err)
+			}
+			return
+		}
 	}
 
 	if err := comment.LoadAttachments(ctx); err != nil {
@@ -270,7 +279,9 @@ func UpdateCommentContent(ctx *context.Context) {
 
 	var renderedContent template.HTML
 	if comment.Content != "" {
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
+			FootnoteContextID: strconv.FormatInt(comment.ID, 10),
+		})
 		renderedContent, err = markdown.RenderString(rctx, comment.Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -302,15 +313,15 @@ func DeleteComment(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
 
 	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	} else if !comment.Type.HasContentSupport() {
-		ctx.Error(http.StatusNoContent)
+		ctx.HTTPError(http.StatusNoContent)
 		return
 	}
 
@@ -337,7 +348,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
 
@@ -360,12 +371,12 @@ func ChangeCommentReaction(ctx *context.Context) {
 			}
 		}
 
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
 	if !comment.Type.HasContentSupport() {
-		ctx.Error(http.StatusNoContent)
+		ctx.HTTPError(http.StatusNoContent)
 		return
 	}
 
@@ -403,7 +414,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for comment removed: %d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID)
 	default:
-		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.PathParam("action")), nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -442,12 +453,12 @@ func GetCommentAttachments(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
 
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
-		ctx.NotFound("CanReadIssuesOrPulls", issues_model.ErrCommentNotExist{})
+		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
 

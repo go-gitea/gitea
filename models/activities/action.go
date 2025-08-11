@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -16,9 +17,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -72,9 +71,9 @@ func (at ActionType) String() string {
 	case ActionRenameRepo:
 		return "rename_repo"
 	case ActionStarRepo:
-		return "star_repo"
+		return "star_repo" // will not displayed in feeds.tmpl
 	case ActionWatchRepo:
-		return "watch_repo"
+		return "watch_repo" // will not displayed in feeds.tmpl
 	case ActionCommitRepo:
 		return "commit_repo"
 	case ActionCreateIssue:
@@ -127,12 +126,7 @@ func (at ActionType) String() string {
 }
 
 func (at ActionType) InActions(actions ...string) bool {
-	for _, action := range actions {
-		if action == at.String() {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(actions, at.String())
 }
 
 // Action represents user operation type and other information to
@@ -174,7 +168,10 @@ func (a *Action) TableIndices() []*schemas.Index {
 	cuIndex := schemas.NewIndex("c_u", schemas.IndexType)
 	cuIndex.AddColumn("user_id", "is_deleted")
 
-	indices := []*schemas.Index{actUserIndex, repoIndex, cudIndex, cuIndex}
+	actUserUserIndex := schemas.NewIndex("au_c_u", schemas.IndexType)
+	actUserUserIndex.AddColumn("act_user_id", "created_unix", "user_id")
+
+	indices := []*schemas.Index{actUserIndex, repoIndex, cudIndex, cuIndex, actUserUserIndex}
 
 	return indices
 }
@@ -190,7 +187,7 @@ func (a *Action) LoadActUser(ctx context.Context) {
 		return
 	}
 	var err error
-	a.ActUser, err = user_model.GetUserByID(ctx, a.ActUserID)
+	a.ActUser, err = user_model.GetPossibleUserByID(ctx, a.ActUserID)
 	if err == nil {
 		return
 	} else if user_model.IsErrUserNotExist(err) {
@@ -200,15 +197,13 @@ func (a *Action) LoadActUser(ctx context.Context) {
 	}
 }
 
-func (a *Action) LoadRepo(ctx context.Context) {
+func (a *Action) LoadRepo(ctx context.Context) error {
 	if a.Repo != nil {
-		return
+		return nil
 	}
 	var err error
 	a.Repo, err = repo_model.GetRepositoryByID(ctx, a.RepoID)
-	if err != nil {
-		log.Error("repo_model.GetRepositoryByID(%d): %v", a.RepoID, err)
-	}
+	return err
 }
 
 // GetActFullName gets the action's user full name.
@@ -250,7 +245,7 @@ func (a *Action) GetActDisplayNameTitle(ctx context.Context) string {
 
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName(ctx context.Context) string {
-	a.LoadRepo(ctx)
+	_ = a.LoadRepo(ctx)
 	if a.Repo == nil {
 		return "(non-existing-repo)"
 	}
@@ -265,7 +260,7 @@ func (a *Action) ShortRepoUserName(ctx context.Context) string {
 
 // GetRepoName returns the name of the action repository.
 func (a *Action) GetRepoName(ctx context.Context) string {
-	a.LoadRepo(ctx)
+	_ = a.LoadRepo(ctx)
 	if a.Repo == nil {
 		return "(non-existing-repo)"
 	}
@@ -446,12 +441,31 @@ type GetFeedsOptions struct {
 	OnlyPerformedBy bool                   // only actions performed by requested user
 	IncludeDeleted  bool                   // include deleted actions
 	Date            string                 // the day we want activity for: YYYY-MM-DD
+	DontCount       bool                   // do counting in GetFeeds
 }
 
 // ActivityReadable return whether doer can read activities of user
 func ActivityReadable(user, doer *user_model.User) bool {
 	return !user.KeepActivityPrivate ||
 		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
+}
+
+func FeedDateCond(opts GetFeedsOptions) builder.Cond {
+	cond := builder.NewCond()
+	if opts.Date == "" {
+		return cond
+	}
+
+	dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
+	if err != nil {
+		log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
+	} else {
+		dateHigh := dateLow.Add(86399000000000) // 23h59m59s
+
+		cond = cond.And(builder.Gte{"`action`.created_unix": dateLow.Unix()})
+		cond = cond.And(builder.Lte{"`action`.created_unix": dateHigh.Unix()})
+	}
+	return cond
 }
 
 func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.Cond, error) {
@@ -511,8 +525,8 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	}
 
 	if opts.RequestedTeam != nil {
-		env := repo_model.AccessibleTeamReposEnv(ctx, organization.OrgFromUser(opts.RequestedUser), opts.RequestedTeam)
-		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
+		env := repo_model.AccessibleTeamReposEnv(organization.OrgFromUser(opts.RequestedUser), opts.RequestedTeam)
+		teamRepoIDs, err := env.RepoIDs(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamRepositories: %w", err)
 		}
@@ -534,17 +548,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 		cond = cond.And(builder.Eq{"is_deleted": false})
 	}
 
-	if opts.Date != "" {
-		dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
-		if err != nil {
-			log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
-		} else {
-			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
-
-			cond = cond.And(builder.Gte{"`action`.created_unix": dateLow.Unix()})
-			cond = cond.And(builder.Lte{"`action`.created_unix": dateHigh.Unix()})
-		}
-	}
+	cond = cond.And(FeedDateCond(opts))
 
 	return cond, nil
 }
@@ -557,130 +561,6 @@ func DeleteOldActions(ctx context.Context, olderThan time.Duration) (err error) 
 
 	_, err = db.GetEngine(ctx).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
 	return err
-}
-
-// NotifyWatchers creates batch of actions for every watcher.
-// It could insert duplicate actions for a repository action, like this:
-// * Original action: UserID=1 (the real actor), ActUserID=1
-// * Organization action: UserID=100 (the repo's org), ActUserID=1
-// * Watcher action: UserID=20 (a user who is watching a repo), ActUserID=1
-func NotifyWatchers(ctx context.Context, actions ...*Action) error {
-	var watchers []*repo_model.Watch
-	var repo *repo_model.Repository
-	var err error
-	var permCode []bool
-	var permIssue []bool
-	var permPR []bool
-
-	e := db.GetEngine(ctx)
-
-	for _, act := range actions {
-		repoChanged := repo == nil || repo.ID != act.RepoID
-
-		if repoChanged {
-			// Add feeds for user self and all watchers.
-			watchers, err = repo_model.GetWatchers(ctx, act.RepoID)
-			if err != nil {
-				return fmt.Errorf("get watchers: %w", err)
-			}
-		}
-
-		// Add feed for actioner.
-		act.UserID = act.ActUserID
-		if _, err = e.Insert(act); err != nil {
-			return fmt.Errorf("insert new actioner: %w", err)
-		}
-
-		if repoChanged {
-			act.LoadRepo(ctx)
-			repo = act.Repo
-
-			// check repo owner exist.
-			if err := act.Repo.LoadOwner(ctx); err != nil {
-				return fmt.Errorf("can't get repo owner: %w", err)
-			}
-		} else if act.Repo == nil {
-			act.Repo = repo
-		}
-
-		// Add feed for organization
-		if act.Repo.Owner.IsOrganization() && act.ActUserID != act.Repo.Owner.ID {
-			act.ID = 0
-			act.UserID = act.Repo.Owner.ID
-			if err = db.Insert(ctx, act); err != nil {
-				return fmt.Errorf("insert new actioner: %w", err)
-			}
-		}
-
-		if repoChanged {
-			permCode = make([]bool, len(watchers))
-			permIssue = make([]bool, len(watchers))
-			permPR = make([]bool, len(watchers))
-			for i, watcher := range watchers {
-				user, err := user_model.GetUserByID(ctx, watcher.UserID)
-				if err != nil {
-					permCode[i] = false
-					permIssue[i] = false
-					permPR[i] = false
-					continue
-				}
-				perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
-				if err != nil {
-					permCode[i] = false
-					permIssue[i] = false
-					permPR[i] = false
-					continue
-				}
-				permCode[i] = perm.CanRead(unit.TypeCode)
-				permIssue[i] = perm.CanRead(unit.TypeIssues)
-				permPR[i] = perm.CanRead(unit.TypePullRequests)
-			}
-		}
-
-		for i, watcher := range watchers {
-			if act.ActUserID == watcher.UserID {
-				continue
-			}
-			act.ID = 0
-			act.UserID = watcher.UserID
-			act.Repo.Units = nil
-
-			switch act.OpType {
-			case ActionCommitRepo, ActionPushTag, ActionDeleteTag, ActionPublishRelease, ActionDeleteBranch:
-				if !permCode[i] {
-					continue
-				}
-			case ActionCreateIssue, ActionCommentIssue, ActionCloseIssue, ActionReopenIssue:
-				if !permIssue[i] {
-					continue
-				}
-			case ActionCreatePullRequest, ActionCommentPull, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest, ActionAutoMergePullRequest:
-				if !permPR[i] {
-					continue
-				}
-			}
-
-			if err = db.Insert(ctx, act); err != nil {
-				return fmt.Errorf("insert new action: %w", err)
-			}
-		}
-	}
-	return nil
-}
-
-// NotifyWatchersActions creates batch of actions for every watcher.
-func NotifyWatchersActions(ctx context.Context, acts []*Action) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	for _, act := range acts {
-		if err := NotifyWatchers(ctx, act); err != nil {
-			return err
-		}
-	}
-	return committer.Commit()
 }
 
 // DeleteIssueActions delete all actions related with issueID

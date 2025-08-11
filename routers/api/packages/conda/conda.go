@@ -13,7 +13,6 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	conda_model "code.gitea.io/gitea/models/packages/conda"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	conda_module "code.gitea.io/gitea/modules/packages/conda"
 	"code.gitea.io/gitea/modules/util"
@@ -25,15 +24,32 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.JSON(status, struct {
-			Reason  string `json:"reason"`
-			Message string `json:"message"`
-		}{
-			Reason:  http.StatusText(status),
-			Message: message,
-		})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.JSON(status, struct {
+		Reason  string `json:"reason"`
+		Message string `json:"message"`
+	}{
+		Reason:  http.StatusText(status),
+		Message: message,
 	})
+}
+
+func isCondaPackageFileName(filename string) bool {
+	return strings.HasSuffix(filename, ".tar.bz2") || strings.HasSuffix(filename, ".conda")
+}
+
+func ListOrGetPackages(ctx *context.Context) {
+	filename := ctx.PathParam("filename")
+	switch filename {
+	case "repodata.json", "repodata.json.bz2", "current_repodata.json", "current_repodata.json.bz2":
+		EnumeratePackages(ctx)
+		return
+	}
+	if isCondaPackageFileName(filename) {
+		DownloadPackageFile(ctx)
+		return
+	}
+	http.NotFound(ctx.Resp, ctx.Req)
 }
 
 func EnumeratePackages(ctx *context.Context) {
@@ -167,13 +183,16 @@ func EnumeratePackages(ctx *context.Context) {
 	}
 
 	resp.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(repoData); err != nil {
-		log.Error("JSON encode: %v", err)
-	}
+	_ = json.NewEncoder(w).Encode(repoData)
 }
 
 func UploadPackageFile(ctx *context.Context) {
+	filename := ctx.PathParam("filename")
+	if !isCondaPackageFileName(filename) {
+		apiError(ctx, http.StatusBadRequest, nil)
+		return
+	}
+
 	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -191,7 +210,7 @@ func UploadPackageFile(ctx *context.Context) {
 	defer buf.Close()
 
 	var pck *conda_module.Package
-	if strings.HasSuffix(strings.ToLower(ctx.PathParam("filename")), ".tar.bz2") {
+	if strings.HasSuffix(filename, ".tar.bz2") {
 		pck, err = conda_module.ParsePackageBZ2(buf)
 	} else {
 		pck, err = conda_module.ParsePackageConda(buf, buf.Size())
@@ -293,7 +312,7 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pf := pfs[0]
 
-	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf, ctx.Req.Method)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

@@ -125,13 +125,13 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 		_ = stdoutWriter.Close()
 	}()
 
-	gitCmd := git.NewCommand(repo.Ctx, "log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%as", "--reverse")
+	gitCmd := git.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%as", "--reverse")
 	// AddOptionFormat("--max-count=%d", limit)
 	gitCmd.AddDynamicArguments(baseCommit.ID.String())
 
 	var extendedCommitStats []*ExtendedCommitStats
 	stderr := new(strings.Builder)
-	err = gitCmd.Run(&git.RunOpts{
+	err = gitCmd.Run(repo.Ctx, &git.RunOpts{
 		Dir:    repo.Path,
 		Stdout: stdoutWriter,
 		Stderr: stderr,

@@ -127,7 +127,7 @@ func IsTableNotEmpty(beanOrTableName any) (bool, error) {
 
 // DeleteAllRecords will delete all the records of this table
 func DeleteAllRecords(tableName string) error {
-	_, err := xormEngine.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
+	_, err := xormEngine.Exec("DELETE FROM " + tableName)
 	return err
 }
 

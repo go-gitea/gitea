@@ -10,94 +10,59 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 )
 
 // MergeRequiredContextsCommitStatus returns a commit status state for given required contexts
-func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus, requiredContexts []string) structs.CommitStatusState {
-	// matchedCount is the number of `CommitStatus.Context` that match any context of `requiredContexts`
-	matchedCount := 0
-	returnedStatus := structs.CommitStatusSuccess
-
-	if len(requiredContexts) > 0 {
-		requiredContextsGlob := make(map[string]glob.Glob, len(requiredContexts))
-		for _, ctx := range requiredContexts {
-			if gp, err := glob.Compile(ctx); err != nil {
-				log.Error("glob.Compile %s failed. Error: %v", ctx, err)
-			} else {
-				requiredContextsGlob[ctx] = gp
-			}
-		}
-
-		for _, gp := range requiredContextsGlob {
-			var targetStatus structs.CommitStatusState
-			for _, commitStatus := range commitStatuses {
-				if gp.Match(commitStatus.Context) {
-					targetStatus = commitStatus.State
-					matchedCount++
-					break
-				}
-			}
-
-			// If required rule not match any action, then it is pending
-			if targetStatus == "" {
-				if structs.CommitStatusPending.NoBetterThan(returnedStatus) {
-					returnedStatus = structs.CommitStatusPending
-				}
-				break
-			}
-
-			if targetStatus.NoBetterThan(returnedStatus) {
-				returnedStatus = targetStatus
-			}
-		}
+func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus, requiredContexts []string) commitstatus.CommitStatusState {
+	if len(commitStatuses) == 0 {
+		return commitstatus.CommitStatusPending
 	}
 
-	if matchedCount == 0 && returnedStatus == structs.CommitStatusSuccess {
-		status := git_model.CalcCommitStatus(commitStatuses)
-		if status != nil {
-			return status.State
-		}
-		return structs.CommitStatusSuccess
-	}
-
-	return returnedStatus
-}
-
-// IsCommitStatusContextSuccess returns true if all required status check contexts succeed.
-func IsCommitStatusContextSuccess(commitStatuses []*git_model.CommitStatus, requiredContexts []string) bool {
-	// If no specific context is required, require that last commit status is a success
 	if len(requiredContexts) == 0 {
-		status := git_model.CalcCommitStatus(commitStatuses)
-		if status == nil || status.State != structs.CommitStatusSuccess {
-			return false
-		}
-		return true
+		return git_model.CalcCommitStatus(commitStatuses).State
 	}
 
+	requiredContextsGlob := make(map[string]glob.Glob, len(requiredContexts))
 	for _, ctx := range requiredContexts {
-		var found bool
-		for _, commitStatus := range commitStatuses {
-			if commitStatus.Context == ctx {
-				if commitStatus.State != structs.CommitStatusSuccess {
-					return false
-				}
+		if gp, err := glob.Compile(ctx); err != nil {
+			log.Error("glob.Compile %s failed. Error: %v", ctx, err)
+		} else {
+			requiredContextsGlob[ctx] = gp
+		}
+	}
 
-				found = true
-				break
+	requiredCommitStatuses := make([]*git_model.CommitStatus, 0, len(commitStatuses))
+	allRequiredContextsMatched := true
+	for _, gp := range requiredContextsGlob {
+		requiredContextMatched := false
+		for _, commitStatus := range commitStatuses {
+			if gp.Match(commitStatus.Context) {
+				requiredCommitStatuses = append(requiredCommitStatuses, commitStatus)
+				requiredContextMatched = true
 			}
 		}
-		if !found {
-			return false
-		}
+		allRequiredContextsMatched = allRequiredContextsMatched && requiredContextMatched
 	}
-	return true
+	if len(requiredCommitStatuses) == 0 {
+		return commitstatus.CommitStatusPending
+	}
+
+	returnedStatus := git_model.CalcCommitStatus(requiredCommitStatuses).State
+	if allRequiredContextsMatched {
+		return returnedStatus
+	}
+
+	if returnedStatus == commitstatus.CommitStatusFailure {
+		return commitstatus.CommitStatusFailure
+	}
+	// even if part of success, return pending
+	return commitstatus.CommitStatusPending
 }
 
 // IsPullCommitStatusPass returns if all required status checks PASS
@@ -118,7 +83,7 @@ func IsPullCommitStatusPass(ctx context.Context, pr *issues_model.PullRequest) (
 }
 
 // GetPullRequestCommitStatusState returns pull request merged commit status state
-func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullRequest) (structs.CommitStatusState, error) {
+func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullRequest) (commitstatus.CommitStatusState, error) {
 	// Ensure HeadRepo is loaded
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return "", errors.Wrap(err, "LoadHeadRepo")
@@ -131,10 +96,10 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	}
 	defer closer.Close()
 
-	if pr.Flow == issues_model.PullRequestFlowGithub && !headGitRepo.IsBranchExist(pr.HeadBranch) {
+	if pr.Flow == issues_model.PullRequestFlowGithub && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
-	if pr.Flow == issues_model.PullRequestFlowAGit && !git.IsReferenceExist(ctx, headGitRepo.Path, pr.GetGitRefName()) {
+	if pr.Flow == issues_model.PullRequestFlowAGit && !gitrepo.IsReferenceExist(ctx, pr.HeadRepo, pr.GetGitHeadRefName()) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
 
@@ -142,7 +107,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		sha, err = headGitRepo.GetBranchCommitID(pr.HeadBranch)
 	} else {
-		sha, err = headGitRepo.GetRefCommitID(pr.GetGitRefName())
+		sha, err = headGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	}
 	if err != nil {
 		return "", err
@@ -152,7 +117,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 		return "", errors.Wrap(err, "LoadBaseRepo")
 	}
 
-	commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
+	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
 	if err != nil {
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}

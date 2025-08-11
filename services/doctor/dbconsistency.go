@@ -12,8 +12,10 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/migrations"
 	repo_model "code.gitea.io/gitea/models/repo"
+	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 type consistencyCheck struct {
@@ -92,7 +94,7 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 			// find issues without existing repository
 			Name:    "Orphaned Issues without existing repository",
 			Counter: issues_model.CountOrphanedIssues,
-			Fixer:   asFixer(issues_model.DeleteOrphanedIssues),
+			Fixer:   asFixer(issue_service.DeleteOrphanedIssues),
 		},
 		// find releases without existing repository
 		genericOrphanCheck("Orphaned Releases without existing repository",
@@ -163,6 +165,24 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 			Counter:      repo_model.CountOrphanedTopics,
 			Fixer:        repo_model.DeleteOrphanedTopics,
 			FixedMessage: "Removed",
+		},
+		{
+			Name:         "Repository level Runners with non-zero owner_id",
+			Counter:      actions_model.CountWrongRepoLevelRunners,
+			Fixer:        actions_model.UpdateWrongRepoLevelRunners,
+			FixedMessage: "Corrected",
+		},
+		{
+			Name:         "Repository level Variables with non-zero owner_id",
+			Counter:      actions_model.CountWrongRepoLevelVariables,
+			Fixer:        actions_model.UpdateWrongRepoLevelVariables,
+			FixedMessage: "Corrected",
+		},
+		{
+			Name:         "Repository level Secrets with non-zero owner_id",
+			Counter:      secret_model.CountWrongRepoLevelSecrets,
+			Fixer:        secret_model.UpdateWrongRepoLevelSecrets,
+			FixedMessage: "Corrected",
 		},
 	}
 

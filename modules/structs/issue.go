@@ -203,7 +203,7 @@ func (l *IssueTemplateStringSlice) UnmarshalYAML(value *yaml.Node) error {
 		if err != nil {
 			return err
 		}
-		for _, v := range strings.Split(str, ",") {
+		for v := range strings.SplitSeq(str, ",") {
 			if v = strings.TrimSpace(v); v == "" {
 				continue
 			}
@@ -262,7 +262,13 @@ func (it IssueTemplate) Type() IssueTemplateType {
 // IssueMeta basic issue information
 // swagger:model
 type IssueMeta struct {
-	Index int64  `json:"index"`
+	Index int64 `json:"index"`
+	// owner of the issue's repo
 	Owner string `json:"owner"`
 	Name  string `json:"repo"`
+}
+
+// LockIssueOption options to lock an issue
+type LockIssueOption struct {
+	Reason string `json:"lock_reason"`
 }

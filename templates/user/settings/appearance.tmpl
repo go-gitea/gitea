@@ -18,7 +18,7 @@
 					<label>{{ctx.Locale.Tr "settings.ui"}}</label>
 					<select name="theme" class="ui dropdown">
 						{{range $theme := .AllThemes}}
-						<option value="{{$theme}}" {{Iif (eq $.SignedUser.Theme $theme) "selected"}}>{{$theme}}</option>
+						<option value="{{$theme.InternalName}}" {{Iif (eq $.SignedUser.Theme $theme.InternalName) "selected"}}>{{$theme.DisplayName}}</option>
 						{{end}}
 					</select>
 				</div>

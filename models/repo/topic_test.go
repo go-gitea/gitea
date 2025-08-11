@@ -53,7 +53,7 @@ func TestAddTopic(t *testing.T) {
 	totalNrOfTopics++
 	topic, err := repo_model.GetTopicByName(db.DefaultContext, "gitea")
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, topic.RepoCount)
+	assert.Equal(t, 1, topic.RepoCount)
 
 	topics, err = db.Find[repo_model.Topic](db.DefaultContext, &repo_model.FindTopicOptions{})
 	assert.NoError(t, err)

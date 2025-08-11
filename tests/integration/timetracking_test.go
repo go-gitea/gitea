@@ -42,41 +42,41 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	htmlDoc.AssertElement(t, ".issue-start-time", canTrackTime)
-	htmlDoc.AssertElement(t, ".issue-add-time", canTrackTime)
+	AssertHTMLElement(t, htmlDoc, ".issue-start-time", canTrackTime)
+	AssertHTMLElement(t, htmlDoc, ".issue-add-time", canTrackTime)
 
 	issueLink := path.Join(user, repo, "issues", issue)
-	req = NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "toggle"), map[string]string{
+	reqStart := NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "start"), map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 	})
 	if canTrackTime {
-		session.MakeRequest(t, req, http.StatusOK)
+		session.MakeRequest(t, reqStart, http.StatusOK)
 
 		req = NewRequest(t, "GET", issueLink)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 
-		events := htmlDoc.doc.Find(".event > span.text")
+		events := htmlDoc.doc.Find(".event > .comment-text-line")
 		assert.Contains(t, events.Last().Text(), "started working")
 
-		htmlDoc.AssertElement(t, ".issue-stop-time", true)
-		htmlDoc.AssertElement(t, ".issue-cancel-time", true)
+		AssertHTMLElement(t, htmlDoc, ".issue-stop-time", true)
+		AssertHTMLElement(t, htmlDoc, ".issue-cancel-time", true)
 
 		// Sleep for 1 second to not get wrong order for stopping timer
 		time.Sleep(time.Second)
 
-		req = NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "toggle"), map[string]string{
+		reqStop := NewRequestWithValues(t, "POST", path.Join(issueLink, "times", "stopwatch", "stop"), map[string]string{
 			"_csrf": htmlDoc.GetCSRF(),
 		})
-		session.MakeRequest(t, req, http.StatusOK)
+		session.MakeRequest(t, reqStop, http.StatusOK)
 
 		req = NewRequest(t, "GET", issueLink)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 
-		events = htmlDoc.doc.Find(".event > span.text")
+		events = htmlDoc.doc.Find(".event > .comment-text-line")
 		assert.Contains(t, events.Last().Text(), "worked for ")
 	} else {
-		session.MakeRequest(t, req, http.StatusNotFound)
+		session.MakeRequest(t, reqStart, http.StatusNotFound)
 	}
 }

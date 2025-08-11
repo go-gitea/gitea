@@ -26,6 +26,9 @@ TYPE = immediate
 [queue.push_update]
 TYPE = immediate
 
+[queue.webhook_sender]
+TYPE = immediate
+
 [repository]
 ROOT = {{REPO_TEST_DIR}}tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mssql/gitea-repositories
 
@@ -42,6 +45,7 @@ SIGNING_KEY = none
 SSH_DOMAIN       = localhost
 HTTP_PORT        = 3003
 ROOT_URL         = http://localhost:3003/
+LOCAL_ROOT_URL   = http://127.0.0.1:3003/
 DISABLE_SSH      = false
 SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2201
@@ -111,3 +115,6 @@ ENABLED = true
 
 [actions]
 ENABLED = true
+
+[webhook]
+ALLOWED_HOST_LIST = 127.0.0.1

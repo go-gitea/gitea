@@ -16,12 +16,11 @@ test('svgParseOuterInner', () => {
 
 test('SvgIcon', () => {
   const root = document.createElement('div');
-  createApp({render: () => h(SvgIcon, {name: 'octicon-link', size: 24, class: 'base', className: 'extra'})}).mount(root);
+  createApp({render: () => h(SvgIcon, {name: 'octicon-link', size: 24, class: 'base'})}).mount(root);
   const node = root.firstChild as Element;
   expect(node.nodeName).toEqual('svg');
   expect(node.getAttribute('width')).toEqual('24');
   expect(node.getAttribute('height')).toEqual('24');
   expect(node.classList.contains('octicon-link')).toBeTruthy();
   expect(node.classList.contains('base')).toBeTruthy();
-  expect(node.classList.contains('extra')).toBeTruthy();
 });

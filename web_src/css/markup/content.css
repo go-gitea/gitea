@@ -5,10 +5,6 @@
   overflow-wrap: break-word;
 }
 
-.conversation-holder .markup {
-  overflow-wrap: anywhere; /* prevent overflow in code comments. TODO: properly restrict .conversation-holder width and remove this */
-}
-
 .markup > *:first-child {
   margin-top: 0 !important;
 }
@@ -135,6 +131,13 @@
 .markup table,
 .markup pre {
   margin-top: 0;
+  margin-bottom: 16px;
+}
+
+/* override p:last-child from base.css.
+Fomantic assumes that <p>/<hX> elements only have margins between elements, but not for the first's top or last's bottom.
+In markup content, we always use bottom margin for all elements */
+.markup p:last-child {
   margin-bottom: 16px;
 }
 
@@ -285,7 +288,6 @@
 .markup table {
   display: block;
   width: 100%;
-  width: max-content;
   max-width: 100%;
   overflow: auto;
 }
@@ -314,10 +316,18 @@
   box-sizing: initial;
 }
 
+.file-view.markup {
+  padding: 1em 2em;
+}
+
+.file-view.markup:has(.file-not-rendered-prompt) {
+  padding: 0; /* let the file-not-rendered-prompt layout itself */
+}
+
 /* this background ensures images can break <hr>. We can only do this on
    cases where the background is known and not transparent. */
-.markup.file-view img,
-.markup.file-view video,
+.file-view.markup img,
+.file-view.markup video,
 .comment-body .markup img, /* regular comment */
 .comment-body .markup video,
 .comment-content .markup img, /* code comment */
@@ -335,11 +345,6 @@
 .markup img[align="left"],
 .markup video[align="left"] {
   padding-right: 28px;
-}
-
-.markup .emoji {
-  max-width: none;
-  vertical-align: text-top;
 }
 
 .markup span.frame {
@@ -453,14 +458,25 @@
 }
 
 .markup pre > code {
-  padding: 0;
-  margin: 0;
   font-size: 100%;
+}
+
+.markup .code-block,
+.markup .code-block-container {
+  position: relative;
+}
+
+.markup .code-block-container.code-overflow-wrap pre > code {
   white-space: pre-wrap;
-  word-break: break-all;
-  overflow-wrap: break-word;
-  background: transparent;
-  border: 0;
+}
+
+.markup .code-block-container.code-overflow-scroll pre {
+  overflow-x: auto;
+}
+
+.markup .code-block-container.code-overflow-scroll pre > code {
+  white-space: pre;
+  overflow-wrap: normal;
 }
 
 .markup .highlight {
@@ -481,16 +497,11 @@
   word-break: normal;
 }
 
-.markup pre {
-  word-wrap: normal;
-}
-
 .markup pre code,
 .markup pre tt {
   display: inline;
   padding: 0;
   line-height: inherit;
-  word-wrap: normal;
   background-color: transparent;
   border: 0;
 }
@@ -521,21 +532,19 @@
   padding-left: 2em;
 }
 
-.file-revisions-btn {
-  display: block;
-  float: left;
-  margin-bottom: 2px !important;
-  padding: 11px !important;
-  margin-right: 10px !important;
+.markup details.frontmatter-content summary {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  margin-bottom: 0.25em;
 }
 
-.file-revisions-btn i {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
+.markup details.frontmatter-content svg {
+  vertical-align: middle;
+  margin: 0 0.25em;
 }
 
-.markup-render {
+.markup-content-iframe {
   display: block;
   border: none;
   width: 100%;

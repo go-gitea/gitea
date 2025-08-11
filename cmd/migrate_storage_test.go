@@ -4,7 +4,6 @@
 package cmd
 
 import (
-	"context"
 	"os"
 	"strings"
 	"testing"
@@ -53,7 +52,7 @@ func TestMigratePackages(t *testing.T) {
 	assert.NotNil(t, v)
 	assert.NotNil(t, f)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	p := t.TempDir()
 
@@ -70,6 +69,6 @@ func TestMigratePackages(t *testing.T) {
 	entries, err := os.ReadDir(p)
 	assert.NoError(t, err)
 	assert.Len(t, entries, 2)
-	assert.EqualValues(t, "01", entries[0].Name())
-	assert.EqualValues(t, "tmp", entries[1].Name())
+	assert.Equal(t, "01", entries[0].Name())
+	assert.Equal(t, "tmp", entries[1].Name())
 }

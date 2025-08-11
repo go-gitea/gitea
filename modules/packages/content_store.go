@@ -28,8 +28,7 @@ func NewContentStore() *ContentStore {
 	return contentStore
 }
 
-// Get gets a package blob
-func (s *ContentStore) Get(key BlobHash256Key) (storage.Object, error) {
+func (s *ContentStore) OpenBlob(key BlobHash256Key) (storage.Object, error) {
 	return s.store.Open(KeyToRelativePath(key))
 }
 
@@ -37,8 +36,8 @@ func (s *ContentStore) ShouldServeDirect() bool {
 	return setting.Packages.Storage.ServeDirect()
 }
 
-func (s *ContentStore) GetServeDirectURL(key BlobHash256Key, filename string, reqParams url.Values) (*url.URL, error) {
-	return s.store.URL(KeyToRelativePath(key), filename, reqParams)
+func (s *ContentStore) GetServeDirectURL(key BlobHash256Key, filename, method string, reqParams url.Values) (*url.URL, error) {
+	return s.store.URL(KeyToRelativePath(key), filename, method, reqParams)
 }
 
 // FIXME: Workaround to be removed in v1.20

@@ -4,12 +4,10 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
-	contributors_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -25,17 +23,4 @@ func RecentCommits(ctx *context.Context) {
 	ctx.PageData["repoLink"] = ctx.Repo.RepoLink
 
 	ctx.HTML(http.StatusOK, tplRecentCommits)
-}
-
-// RecentCommitsData returns JSON of recent commits data
-func RecentCommitsData(ctx *context.Context) {
-	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch); err != nil {
-		if errors.Is(err, contributors_service.ErrAwaitGeneration) {
-			ctx.Status(http.StatusAccepted)
-			return
-		}
-		ctx.ServerError("RecentCommitsData", err)
-	} else {
-		ctx.JSON(http.StatusOK, contributorStats["total"].Weeks)
-	}
 }

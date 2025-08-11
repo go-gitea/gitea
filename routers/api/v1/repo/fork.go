@@ -57,15 +57,15 @@ func ListForks(ctx *context.APIContext) {
 
 	forks, total, err := repo_service.FindForks(ctx, ctx.Repo.Repository, ctx.Doer, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindForks", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if err := repo_model.RepositoryList(forks).LoadOwners(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadOwners", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if err := repo_model.RepositoryList(forks).LoadUnits(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadUnits", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -73,7 +73,7 @@ func ListForks(ctx *context.APIContext) {
 	for i, fork := range forks {
 		permission, err := access_model.GetUserRepoPermission(ctx, fork, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		apiForks[i] = convert.ToRepo(ctx, fork, permission)
@@ -126,19 +126,21 @@ func CreateFork(ctx *context.APIContext) {
 		org, err := organization.GetOrgByName(ctx, *form.Organization)
 		if err != nil {
 			if organization.IsErrOrgNotExist(err) {
-				ctx.Error(http.StatusUnprocessableEntity, "", err)
+				ctx.APIError(http.StatusUnprocessableEntity, err)
 			} else {
-				ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
+				ctx.APIErrorInternal(err)
 			}
 			return
 		}
-		isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
-			return
-		} else if !isMember {
-			ctx.Error(http.StatusForbidden, "isMemberNot", fmt.Sprintf("User is no Member of Organisation '%s'", org.Name))
-			return
+		if !ctx.Doer.IsAdmin {
+			isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			} else if !isMember {
+				ctx.APIError(http.StatusForbidden, fmt.Sprintf("User is no Member of Organisation '%s'", org.Name))
+				return
+			}
 		}
 		forker = org.AsUser()
 	}
@@ -157,11 +159,11 @@ func CreateFork(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrAlreadyExist) || repo_model.IsErrReachLimitOfRepo(err) {
-			ctx.Error(http.StatusConflict, "ForkRepository", err)
+			ctx.APIError(http.StatusConflict, err)
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Error(http.StatusForbidden, "ForkRepository", err)
+			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "ForkRepository", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

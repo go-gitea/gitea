@@ -99,7 +99,7 @@ func BenchmarkFixturesLoader(b *testing.B) {
 	// BenchmarkFixturesLoader/Internal
 	// BenchmarkFixturesLoader/Internal-12       	    1746	    670457 ns/op
 	b.Run("Internal", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			require.NoError(b, loaderInternal.Load())
 		}
 	})
@@ -107,7 +107,7 @@ func BenchmarkFixturesLoader(b *testing.B) {
 		if loaderVendor == nil {
 			b.Skip()
 		}
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			require.NoError(b, loaderVendor.Load())
 		}
 	})

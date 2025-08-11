@@ -133,8 +133,8 @@ func TestPackageCran(t *testing.T) {
 			assert.Contains(t, resp.Header().Get("Content-Type"), "text/plain")
 
 			body := resp.Body.String()
-			assert.Contains(t, body, fmt.Sprintf("Package: %s", packageName))
-			assert.Contains(t, body, fmt.Sprintf("Version: %s", packageVersion))
+			assert.Contains(t, body, "Package: "+packageName)
+			assert.Contains(t, body, "Version: "+packageVersion)
 
 			req = NewRequest(t, "GET", url+"/src/contrib/PACKAGES.gz").
 				AddBasicAuth(user.Name)
@@ -230,8 +230,8 @@ func TestPackageCran(t *testing.T) {
 			assert.Contains(t, resp.Header().Get("Content-Type"), "text/plain")
 
 			body := resp.Body.String()
-			assert.Contains(t, body, fmt.Sprintf("Package: %s", packageName))
-			assert.Contains(t, body, fmt.Sprintf("Version: %s", packageVersion))
+			assert.Contains(t, body, "Package: "+packageName)
+			assert.Contains(t, body, "Version: "+packageVersion)
 
 			req = NewRequest(t, "GET", url+"/bin/windows/contrib/4.2/PACKAGES.gz").
 				AddBasicAuth(user.Name)

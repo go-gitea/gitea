@@ -163,10 +163,10 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 		req = NewRequest(t, "GET", url)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
-		titleHTML, err := htmlDoc.doc.Find(".comment-list .timeline-item.event .text b").First().Html()
+		titleHTML, err := htmlDoc.doc.Find(".comment-list .timeline-item.event .comment-text-line b").First().Html()
 		assert.NoError(t, err)
 		assert.Equal(t, "<strike>&lt;i&gt;XSS PR&lt;/i&gt;</strike>", titleHTML)
-		titleHTML, err = htmlDoc.doc.Find(".comment-list .timeline-item.event .text b").Next().Html()
+		titleHTML, err = htmlDoc.doc.Find(".comment-list .timeline-item.event .comment-text-line b").Next().Html()
 		assert.NoError(t, err)
 		assert.Equal(t, "&lt;u&gt;XSS PR&lt;/u&gt;", titleHTML)
 	})
@@ -265,7 +265,7 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 		t.Run("add commit", doGitAddSomeCommits(dstPath, "master"))
 
 		t.Run("do agit pull create", func(t *testing.T) {
-			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic=" + "test-topic").Run(&git.RunOpts{Dir: dstPath})
+			err := git.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic="+"test-topic").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 			assert.NoError(t, err)
 		})
 	})
@@ -293,10 +293,10 @@ func TestCreatePullWhenBlocked(t *testing.T) {
 		// sessionBase := loginUser(t, "user2")
 		token := getUserToken(t, RepoOwner, auth_model.AccessTokenScopeWriteUser)
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/blocks/%s", ForkOwner)).
+		req := NewRequest(t, "GET", "/api/v1/user/blocks/"+ForkOwner).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
-		req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/blocks/%s", ForkOwner)).
+		req = NewRequest(t, "PUT", "/api/v1/user/blocks/"+ForkOwner).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 
@@ -308,7 +308,7 @@ func TestCreatePullWhenBlocked(t *testing.T) {
 
 		// Teardown
 		// Unblock user
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/blocks/%s", ForkOwner)).
+		req = NewRequest(t, "DELETE", "/api/v1/user/blocks/"+ForkOwner).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 	})

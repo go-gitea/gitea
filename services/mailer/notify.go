@@ -7,11 +7,13 @@ import (
 	"context"
 	"fmt"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -30,15 +32,16 @@ func (m *mailNotifier) CreateIssueComment(ctx context.Context, doer *user_model.
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
 	var act activities_model.ActionType
-	if comment.Type == issues_model.CommentTypeClose {
+	switch comment.Type {
+	case issues_model.CommentTypeClose:
 		act = activities_model.ActionCloseIssue
-	} else if comment.Type == issues_model.CommentTypeReopen {
+	case issues_model.CommentTypeReopen:
 		act = activities_model.ActionReopenIssue
-	} else if comment.Type == issues_model.CommentTypeComment {
+	case issues_model.CommentTypeComment:
 		act = activities_model.ActionCommentIssue
-	} else if comment.Type == issues_model.CommentTypeCode {
+	case issues_model.CommentTypeCode:
 		act = activities_model.ActionCommentIssue
-	} else if comment.Type == issues_model.CommentTypePullRequestPush {
+	case issues_model.CommentTypePullRequestPush:
 		act = 0
 	}
 
@@ -94,11 +97,12 @@ func (m *mailNotifier) NewPullRequest(ctx context.Context, pr *issues_model.Pull
 
 func (m *mailNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, r *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	var act activities_model.ActionType
-	if comment.Type == issues_model.CommentTypeClose {
+	switch comment.Type {
+	case issues_model.CommentTypeClose:
 		act = activities_model.ActionCloseIssue
-	} else if comment.Type == issues_model.CommentTypeReopen {
+	case issues_model.CommentTypeReopen:
 		act = activities_model.ActionReopenIssue
-	} else if comment.Type == issues_model.CommentTypeComment {
+	case issues_model.CommentTypeComment:
 		act = activities_model.ActionCommentPull
 	}
 	if err := MailParticipantsComment(ctx, comment, act, pr.Issue, mentions); err != nil {
@@ -169,7 +173,7 @@ func (m *mailNotifier) PullRequestPushCommits(ctx context.Context, doer *user_mo
 		log.Error("comment.Issue.PullRequest.LoadBaseRepo: %v", err)
 		return
 	}
-	if err := comment.LoadPushCommits(ctx); err != nil {
+	if err := issue_service.LoadCommentPushCommits(ctx, comment); err != nil {
 		log.Error("comment.LoadPushCommits: %v", err)
 	}
 	m.CreateIssueComment(ctx, doer, comment.Issue.Repo, comment.Issue, comment, nil)
@@ -201,4 +205,11 @@ func (m *mailNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *
 	if err := SendRepoTransferNotifyMail(ctx, doer, newOwner, repo); err != nil {
 		log.Error("SendRepoTransferNotifyMail: %v", err)
 	}
+}
+
+func (m *mailNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
+	if !run.Status.IsDone() {
+		return
+	}
+	MailActionsTrigger(ctx, sender, repo, run)
 }

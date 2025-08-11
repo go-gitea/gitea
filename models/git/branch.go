@@ -173,6 +173,18 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 	return &branch, nil
 }
 
+// IsBranchExist returns true if the branch exists in the repository.
+func IsBranchExist(ctx context.Context, repoID int64, branchName string) (bool, error) {
+	var branch Branch
+	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).Get(&branch)
+	if err != nil {
+		return false, err
+	} else if !has {
+		return false, nil
+	}
+	return !branch.IsDeleted, nil
+}
+
 func GetBranches(ctx context.Context, repoID int64, branchNames []string, includeDeleted bool) ([]*Branch, error) {
 	branches := make([]*Branch, 0, len(branchNames))
 
@@ -221,6 +233,11 @@ func GetDeletedBranchByID(ctx context.Context, repoID, branchID int64) (*Branch,
 		}
 	}
 	return &branch, nil
+}
+
+func DeleteRepoBranches(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Delete(new(Branch))
+	return err
 }
 
 func DeleteBranches(ctx context.Context, repoID, doerID int64, branchIDs []int64) error {
@@ -455,7 +472,7 @@ type RecentlyPushedNewBranch struct {
 // if opts.CommitAfterUnix is 0, we will find the branches that were committed to in the last 2 hours
 // if opts.ListOptions is not set, we will only display top 2 latest branches.
 // Protected branches will be skipped since they are unlikely to be used to create new PRs.
-func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, opts *FindRecentlyPushedNewBranchesOptions) ([]*RecentlyPushedNewBranch, error) {
+func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, opts FindRecentlyPushedNewBranchesOptions) ([]*RecentlyPushedNewBranch, error) {
 	if doer == nil {
 		return []*RecentlyPushedNewBranch{}, nil
 	}
@@ -470,7 +487,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 		ForkFrom:   opts.BaseRepo.ID,
 		Archived:   optional.Some(false),
 	}
-	repoCond := repo_model.SearchRepositoryCondition(&repoOpts).And(repo_model.AccessibleRepositoryCondition(doer, unit.TypeCode))
+	repoCond := repo_model.SearchRepositoryCondition(repoOpts).And(repo_model.AccessibleRepositoryCondition(doer, unit.TypeCode))
 	if opts.Repo.ID == opts.BaseRepo.ID {
 		// should also include the base repo's branches
 		repoCond = repoCond.Or(builder.Eq{"id": opts.BaseRepo.ID})

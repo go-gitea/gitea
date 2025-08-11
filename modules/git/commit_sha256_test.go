@@ -60,8 +60,7 @@ func TestGetFullCommitIDErrorSha256(t *testing.T) {
 }
 
 func TestCommitFromReaderSha256(t *testing.T) {
-	commitString := `9433b2a62b964c17a4485ae180f45f595d3e69d31b786087775e28c6b6399df0 commit 1114
-tree e7f9e96dd79c09b078cac8b303a7d3b9d65ff9b734e86060a4d20409fd379f9e
+	commitString := `tree e7f9e96dd79c09b078cac8b303a7d3b9d65ff9b734e86060a4d20409fd379f9e
 parent 26e9ccc29fad747e9c5d9f4c9ddeb7eff61cc45ef6a8dc258cbeb181afc055e8
 author Adam Majer <amajer@suse.de> 1698676906 +0100
 committer Adam Majer <amajer@suse.de> 1698676906 +0100
@@ -97,7 +96,7 @@ signed commit`
 	assert.NoError(t, err)
 	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
-	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
+	assert.Equal(t, `-----BEGIN PGP SIGNATURE-----
 
 iQIrBAABCgAtFiEES+fB08xlgTrzSdQvhkUIsBsmec8FAmU/wKoPHGFtYWplckBz
 dXNlLmRlAAoJEIZFCLAbJnnP4s4PQIJATa++WPzR6/H4etT7bsOGoMyguEJYyWOd
@@ -112,21 +111,20 @@ VAEUo6ecdDxSpyt2naeg9pKus/BRi7P6g4B1hkk/zZstUX/QP4IQuAJbXjkvsC+X
 HKRr3NlRM/DygzTyj0gN74uoa0goCIbyAQhiT42nm0cuhM7uN/W0ayrlZjGF1cbR
 8NCJUL2Nwj0ywKIavC99Ipkb8AsFwpVT6U6effs6
 =xybZ
------END PGP SIGNATURE-----
-`, commitFromReader.Signature.Signature)
-	assert.EqualValues(t, `tree e7f9e96dd79c09b078cac8b303a7d3b9d65ff9b734e86060a4d20409fd379f9e
+-----END PGP SIGNATURE-----`, commitFromReader.Signature.Signature)
+	assert.Equal(t, `tree e7f9e96dd79c09b078cac8b303a7d3b9d65ff9b734e86060a4d20409fd379f9e
 parent 26e9ccc29fad747e9c5d9f4c9ddeb7eff61cc45ef6a8dc258cbeb181afc055e8
 author Adam Majer <amajer@suse.de> 1698676906 +0100
 committer Adam Majer <amajer@suse.de> 1698676906 +0100
 
 signed commit`, commitFromReader.Signature.Payload)
-	assert.EqualValues(t, "Adam Majer <amajer@suse.de>", commitFromReader.Author.String())
+	assert.Equal(t, "Adam Majer <amajer@suse.de>", commitFromReader.Author.String())
 
 	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
 	commitFromReader.CommitMessage += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
-	assert.EqualValues(t, commitFromReader, commitFromReader2)
+	assert.Equal(t, commitFromReader, commitFromReader2)
 }
 
 func TestHasPreviousCommitSha256(t *testing.T) {

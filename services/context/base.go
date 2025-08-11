@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/httplib"
@@ -23,6 +24,10 @@ type BaseContextKeyType struct{}
 
 var BaseContextKey BaseContextKeyType
 
+// Base is the base context for all web handlers
+// ATTENTION: This struct should never be manually constructed in routes/services,
+// it has many internal details which should be carefully prepared by the framework.
+// If it is abused, it would cause strange bugs like panic/resource-leak.
 type Base struct {
 	reqctx.RequestContext
 
@@ -49,7 +54,7 @@ func (b *Base) AppendAccessControlExposeHeaders(names ...string) {
 
 // SetTotalCountHeader set "X-Total-Count" header
 func (b *Base) SetTotalCountHeader(total int64) {
-	b.RespHeader().Set("X-Total-Count", fmt.Sprint(total))
+	b.RespHeader().Set("X-Total-Count", strconv.FormatInt(total, 10))
 	b.AppendAccessControlExposeHeaders("X-Total-Count")
 }
 
@@ -77,8 +82,9 @@ func (b *Base) RespHeader() http.Header {
 	return b.Resp.Header()
 }
 
-// Error returned an error to web browser
-func (b *Base) Error(status int, contents ...string) {
+// HTTPError returned an error to web browser
+// FIXME: many calls to this HTTPError are not right: it shouldn't expose err.Error() directly, it doesn't accept more than one content
+func (b *Base) HTTPError(status int, contents ...string) {
 	v := http.StatusText(status)
 	if len(contents) > 0 {
 		v = contents[0]

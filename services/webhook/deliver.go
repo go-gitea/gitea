@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/hostmatcher"
@@ -40,7 +42,7 @@ func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook
 	case http.MethodPost:
 		switch w.ContentType {
 		case webhook_model.ContentTypeJSON:
-			req, err = http.NewRequest("POST", w.URL, strings.NewReader(t.PayloadContent))
+			req, err = http.NewRequest(http.MethodPost, w.URL, strings.NewReader(t.PayloadContent))
 			if err != nil {
 				return nil, nil, err
 			}
@@ -51,7 +53,7 @@ func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook
 				"payload": []string{t.PayloadContent},
 			}
 
-			req, err = http.NewRequest("POST", w.URL, strings.NewReader(forms.Encode()))
+			req, err = http.NewRequest(http.MethodPost, w.URL, strings.NewReader(forms.Encode()))
 			if err != nil {
 				return nil, nil, err
 			}
@@ -68,7 +70,7 @@ func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook
 		vals := u.Query()
 		vals["payload"] = []string{t.PayloadContent}
 		u.RawQuery = vals.Encode()
-		req, err = http.NewRequest("GET", u.String(), nil)
+		req, err = http.NewRequest(http.MethodGet, u.String(), nil)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -80,7 +82,7 @@ func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook
 				return nil, nil, err
 			}
 			url := fmt.Sprintf("%s/%s", w.URL, url.PathEscape(txnID))
-			req, err = http.NewRequest("PUT", url, strings.NewReader(t.PayloadContent))
+			req, err = http.NewRequest(http.MethodPut, url, strings.NewReader(t.PayloadContent))
 			if err != nil {
 				return nil, nil, err
 			}
@@ -92,10 +94,10 @@ func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook
 	}
 
 	body = []byte(t.PayloadContent)
-	return req, body, addDefaultHeaders(req, []byte(w.Secret), t, body)
+	return req, body, addDefaultHeaders(req, []byte(w.Secret), w, t, body)
 }
 
-func addDefaultHeaders(req *http.Request, secret []byte, t *webhook_model.HookTask, payloadContent []byte) error {
+func addDefaultHeaders(req *http.Request, secret []byte, w *webhook_model.Webhook, t *webhook_model.HookTask, payloadContent []byte) error {
 	var signatureSHA1 string
 	var signatureSHA256 string
 	if len(secret) > 0 {
@@ -112,10 +114,27 @@ func addDefaultHeaders(req *http.Request, secret []byte, t *webhook_model.HookTa
 
 	event := t.EventType.Event()
 	eventType := string(t.EventType)
+	targetType := "default"
+	if w.IsSystemWebhook {
+		targetType = "system"
+	} else if w.RepoID != 0 {
+		targetType = "repository"
+	} else if w.OwnerID != 0 {
+		owner, err := user_model.GetUserByID(req.Context(), w.OwnerID)
+		if owner != nil && err == nil {
+			if owner.IsOrganization() {
+				targetType = "organization"
+			} else {
+				targetType = "user"
+			}
+		}
+	}
+
 	req.Header.Add("X-Gitea-Delivery", t.UUID)
 	req.Header.Add("X-Gitea-Event", event)
 	req.Header.Add("X-Gitea-Event-Type", eventType)
 	req.Header.Add("X-Gitea-Signature", signatureSHA256)
+	req.Header.Add("X-Gitea-Hook-Installation-Target-Type", targetType)
 	req.Header.Add("X-Gogs-Delivery", t.UUID)
 	req.Header.Add("X-Gogs-Event", event)
 	req.Header.Add("X-Gogs-Event-Type", eventType)
@@ -125,6 +144,7 @@ func addDefaultHeaders(req *http.Request, secret []byte, t *webhook_model.HookTa
 	req.Header["X-GitHub-Delivery"] = []string{t.UUID}
 	req.Header["X-GitHub-Event"] = []string{event}
 	req.Header["X-GitHub-Event-Type"] = []string{eventType}
+	req.Header["X-GitHub-Hook-Installation-Target-Type"] = []string{targetType}
 	return nil
 }
 
@@ -309,7 +329,7 @@ func Init() error {
 
 	hookQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "webhook_sender", handler)
 	if hookQueue == nil {
-		return fmt.Errorf("unable to create webhook_sender queue")
+		return errors.New("unable to create webhook_sender queue")
 	}
 	go graceful.GetManager().RunWithCancel(hookQueue)
 

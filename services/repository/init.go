@@ -33,18 +33,21 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	committerName := sig.Name
 	committerEmail := sig.Email
 
-	if stdout, _, err := git.NewCommand(ctx, "add", "--all").
-		RunStdString(&git.RunOpts{Dir: tmpPath}); err != nil {
+	if stdout, _, err := git.NewCommand("add", "--all").
+		RunStdString(ctx, &git.RunOpts{Dir: tmpPath}); err != nil {
 		log.Error("git add --all failed: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git add --all: %w", err)
 	}
 
-	cmd := git.NewCommand(ctx, "commit", "--message=Initial commit").
+	cmd := git.NewCommand("commit", "--message=Initial commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email)
 
-	sign, keyID, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
+	sign, key, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
 	if sign {
-		cmd.AddOptionFormat("-S%s", keyID)
+		if key.Format != "" {
+			cmd.AddConfig("gpg.format", key.Format)
+		}
+		cmd.AddOptionFormat("-S%s", key.KeyID)
 
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			// need to set the committer to the KeyID owner
@@ -61,7 +64,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	)
 
 	if stdout, _, err := cmd.
-		RunStdString(&git.RunOpts{Dir: tmpPath, Env: env}); err != nil {
+		RunStdString(ctx, &git.RunOpts{Dir: tmpPath, Env: env}); err != nil {
 		log.Error("Failed to commit: %v: Stdout: %s\nError: %v", cmd.LogString(), stdout, err)
 		return fmt.Errorf("git commit: %w", err)
 	}
@@ -70,8 +73,8 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		defaultBranch = setting.Repository.DefaultBranch
 	}
 
-	if stdout, _, err := git.NewCommand(ctx, "push", "origin").AddDynamicArguments("HEAD:" + defaultBranch).
-		RunStdString(&git.RunOpts{Dir: tmpPath, Env: repo_module.InternalPushingEnvironment(u, repo)}); err != nil {
+	if stdout, _, err := git.NewCommand("push", "origin").AddDynamicArguments("HEAD:"+defaultBranch).
+		RunStdString(ctx, &git.RunOpts{Dir: tmpPath, Env: repo_module.InternalPushingEnvironment(u, repo)}); err != nil {
 		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git push: %w", err)
 	}

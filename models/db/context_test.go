@@ -118,7 +118,7 @@ func TestContextSafety(t *testing.T) {
 		})
 		return nil
 	})
-	assert.EqualValues(t, testCount, actualCount)
+	assert.Equal(t, testCount, actualCount)
 
 	// deny the bad usages
 	assert.PanicsWithError(t, "using database context in an iterator would cause corrupted results", func() {

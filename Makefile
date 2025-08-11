@@ -23,20 +23,21 @@ SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
-XGO_VERSION := go-1.23.x
+XGO_VERSION := go-1.24.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.0.3
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.7.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.8.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.12
-MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.6.0
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.31.0
+MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.32.3
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
-GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.17.0
+GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.20.0
+GOPLS_MODERNIZE_PACKAGE ?= golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.20.0
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -45,6 +46,17 @@ DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 ifeq ($(HAS_GO), yes)
 	CGO_EXTRA_CFLAGS := -DSQLITE_MAX_VARIABLE_NUMBER=32766
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
+endif
+
+CGO_ENABLED ?= 0
+ifneq (,$(findstring sqlite,$(TAGS))$(findstring pam,$(TAGS)))
+	CGO_ENABLED = 1
+endif
+
+STATIC ?=
+EXTLDFLAGS ?=
+ifneq ($(STATIC),)
+	EXTLDFLAGS = -extldflags "-static"
 endif
 
 ifeq ($(GOOS),windows)
@@ -73,13 +85,13 @@ EXTRA_GOFLAGS ?=
 MAKE_VERSION := $(shell "$(MAKE)" -v | cat | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
+GOTESTFLAGS ?=
 ifeq ($(RACE_ENABLED),true)
 	GOFLAGS += -race
 	GOTESTFLAGS += -race
 endif
 
 STORED_VERSION_FILE := VERSION
-HUGO_VERSION ?= 0.111.3
 
 GITHUB_REF_TYPE ?= branch
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
@@ -109,20 +121,17 @@ endif
 
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
-LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
+LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/riscv64
 
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration code.gitea.io/gitea/tests/e2e,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
-
-FOMANTIC_WORK_DIR := web_src/fomantic
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
 WEBPACK_CONFIGS := webpack.config.js tailwind.config.js
 WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
 WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts
 
-BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
-BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
+BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* modules/options/bindata.* modules/templates/bindata.*
 
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
@@ -139,25 +148,19 @@ TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 TEST_TAGS ?= $(TAGS_SPLIT) sqlite sqlite_unlock_notify
 
-TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
+TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
-ESLINT_FILES := web_src/js tools *.js *.ts tests/e2e
+ESLINT_FILES := web_src/js tools *.js *.ts *.cjs tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
-SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.js *.md *.yml *.yaml *.toml))
+SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.js *.md *.yml *.yaml *.toml)) $(filter-out tools/misspellings.csv, $(wildcard tools/*))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
 
 GO_SOURCES := $(wildcard *.go)
-GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" ! -path modules/options/bindata.go ! -path modules/public/bindata.go ! -path modules/templates/bindata.go)
+GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go")
 GO_SOURCES += $(GENERATED_GO_DEST)
-GO_SOURCES_NO_BINDATA := $(GO_SOURCES)
-
-ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
-	GO_SOURCES += $(BINDATA_DEST)
-	GENERATED_GO_DEST += $(BINDATA_DEST)
-endif
 
 # Force installation of playwright dependencies by setting this flag
 ifdef DEPS_PLAYWRIGHT
@@ -165,10 +168,8 @@ ifdef DEPS_PLAYWRIGHT
 endif
 
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
-SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl \| JSEscape}}/api/v1"|g
-SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl \| JSEscape}}/api/v1"|"basePath": "/api/v1"|g
+SWAGGER_SPEC_INPUT := templates/swagger/v1_input.json
 SWAGGER_EXCLUDE := code.gitea.io/sdk
-SWAGGER_NEWLINE_COMMAND := -e '$$a\'
 
 TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
@@ -189,67 +190,11 @@ TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 all: build
 
 .PHONY: help
-help:
-	@echo "Make Routines:"
-	@echo " - \"\"                               equivalent to \"build\""
-	@echo " - build                            build everything"
-	@echo " - frontend                         build frontend files"
-	@echo " - backend                          build backend files"
-	@echo " - watch                            watch everything and continuously rebuild"
-	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
-	@echo " - watch-backend                    watch backend files and continuously rebuild"
-	@echo " - clean                            delete backend and integration files"
-	@echo " - clean-all                        delete backend, frontend and integration files"
-	@echo " - deps                             install dependencies"
-	@echo " - deps-frontend                    install frontend dependencies"
-	@echo " - deps-backend                     install backend dependencies"
-	@echo " - deps-tools                       install tool dependencies"
-	@echo " - deps-py                          install python dependencies"
-	@echo " - lint                             lint everything"
-	@echo " - lint-fix                         lint everything and fix issues"
-	@echo " - lint-actions                     lint action workflow files"
-	@echo " - lint-frontend                    lint frontend files"
-	@echo " - lint-frontend-fix                lint frontend files and fix issues"
-	@echo " - lint-backend                     lint backend files"
-	@echo " - lint-backend-fix                 lint backend files and fix issues"
-	@echo " - lint-go                          lint go files"
-	@echo " - lint-go-fix                      lint go files and fix issues"
-	@echo " - lint-go-vet                      lint go files with vet"
-	@echo " - lint-go-gopls                    lint go files with gopls"
-	@echo " - lint-js                          lint js files"
-	@echo " - lint-js-fix                      lint js files and fix issues"
-	@echo " - lint-css                         lint css files"
-	@echo " - lint-css-fix                     lint css files and fix issues"
-	@echo " - lint-md                          lint markdown files"
-	@echo " - lint-swagger                     lint swagger files"
-	@echo " - lint-templates                   lint template files"
-	@echo " - lint-yaml                        lint yaml files"
-	@echo " - lint-spell                       lint spelling"
-	@echo " - lint-spell-fix                   lint spelling and fix issues"
-	@echo " - checks                           run various consistency checks"
-	@echo " - checks-frontend                  check frontend files"
-	@echo " - checks-backend                   check backend files"
-	@echo " - test                             test everything"
-	@echo " - test-frontend                    test frontend files"
-	@echo " - test-backend                     test backend files"
-	@echo " - test-e2e[\#TestSpecificName]     test end to end using playwright"
-	@echo " - update                           update js and py dependencies"
-	@echo " - update-js                        update js dependencies"
-	@echo " - update-py                        update py dependencies"
-	@echo " - webpack                          build webpack files"
-	@echo " - svg                              build svg files"
-	@echo " - fomantic                         build fomantic files"
-	@echo " - generate                         run \"go generate\""
-	@echo " - fmt                              format the Go code"
-	@echo " - generate-license                 update license files"
-	@echo " - generate-gitignore               update gitignore files"
-	@echo " - generate-manpage                 generate manpage"
-	@echo " - generate-swagger                 generate the swagger spec from code comments"
-	@echo " - swagger-validate                 check if the swagger spec is valid"
-	@echo " - go-licenses                      regenerate go licenses"
-	@echo " - tidy                             run go mod tidy"
-	@echo " - test[\#TestSpecificName]    	    run unit test"
-	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
+help: Makefile ## print Makefile help information.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m[TARGETS] default target: build\033[0m\n\n\033[35mTargets:\033[0m\n"} /^[0-9A-Za-z._-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 }' Makefile #$(MAKEFILE_LIST)
+	@printf "  \033[36m%-46s\033[0m %s\n" "test-e2e[#TestSpecificName]" "test end to end using playwright"
+	@printf "  \033[36m%-46s\033[0m %s\n" "test[#TestSpecificName]" "run unit test"
+	@printf "  \033[36m%-46s\033[0m %s\n" "test-sqlite[#TestSpecificName]" "run integration test for sqlite"
 
 .PHONY: go-check
 go-check:
@@ -280,12 +225,12 @@ node-check:
 	fi
 
 .PHONY: clean-all
-clean-all: clean
+clean-all: clean ## delete backend, frontend and integration files
 	rm -rf $(WEBPACK_DEST_ENTRIES) node_modules
 
 .PHONY: clean
-clean:
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) $(BINDATA_HASH) \
+clean: ## delete backend and integration files
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST_WILDCARD) \
 		integrations*.test \
 		e2e*.test \
 		tests/integration/gitea-integration-* \
@@ -296,7 +241,7 @@ clean:
 		tests/e2e/reports/ tests/e2e/test-artifacts/ tests/e2e/test-snapshots/
 
 .PHONY: fmt
-fmt:
+fmt: ## format the Go and template code
 	@GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
@@ -311,7 +256,20 @@ fmt-check: fmt
 	@diff=$$(git diff --color=always $(GO_SOURCES) templates $(WEB_DIRS)); \
 	if [ -n "$$diff" ]; then \
 	  echo "Please run 'make fmt' and commit the result:"; \
-	  echo "$${diff}"; \
+	  printf "%s" "$${diff}"; \
+	  exit 1; \
+	fi
+
+.PHONY: fix
+fix: ## apply automated fixes to Go code
+	$(GO) run $(GOPLS_MODERNIZE_PACKAGE) -fix ./...
+
+.PHONY: fix-check
+fix-check: fix
+	@diff=$$(git diff --color=always $(GO_SOURCES)); \
+	if [ -n "$$diff" ]; then \
+	  echo "Please run 'make fix' and commit the result:"; \
+	  printf "%s" "$${diff}"; \
 	  exit 1; \
 	fi
 
@@ -325,95 +283,95 @@ TAGS_PREREQ := $(TAGS_EVIDENCE)
 endif
 
 .PHONY: generate-swagger
-generate-swagger: $(SWAGGER_SPEC)
+generate-swagger: $(SWAGGER_SPEC) ## generate the swagger spec from code comments
 
-$(SWAGGER_SPEC): $(GO_SOURCES_NO_BINDATA)
-	$(GO) run $(SWAGGER_PACKAGE) generate spec -x "$(SWAGGER_EXCLUDE)" -o './$(SWAGGER_SPEC)'
-	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
-	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
+$(SWAGGER_SPEC): $(GO_SOURCES) $(SWAGGER_SPEC_INPUT)
+	$(GO) run $(SWAGGER_PACKAGE) generate spec --exclude "$(SWAGGER_EXCLUDE)" --input "$(SWAGGER_SPEC_INPUT)" --output './$(SWAGGER_SPEC)'
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
 	@diff=$$(git diff --color=always '$(SWAGGER_SPEC)'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make generate-swagger' and commit the result:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
 
 .PHONY: swagger-validate
-swagger-validate:
-	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
+swagger-validate: ## check if the swagger spec is valid
+	@# swagger "validate" requires that the "basePath" must start with a slash, but we are using Golang template "{{...}}"
+	@$(SED_INPLACE) -E -e 's|"basePath":( *)"(.*)"|"basePath":\1"/\2"|g' './$(SWAGGER_SPEC)' # add a prefix slash to basePath
+	@# FIXME: there are some warnings
 	$(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)'
-	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
+	@$(SED_INPLACE) -E -e 's|"basePath":( *)"/(.*)"|"basePath":\1"\2"|g' './$(SWAGGER_SPEC)' # remove the prefix slash from basePath
 
 .PHONY: checks
-checks: checks-frontend checks-backend
+checks: checks-frontend checks-backend ## run various consistency checks
 
 .PHONY: checks-frontend
-checks-frontend: lockfile-check svg-check
+checks-frontend: lockfile-check svg-check ## check frontend files
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check fmt-check swagger-validate security-check
+checks-backend: tidy-check swagger-check fmt-check fix-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
-lint: lint-frontend lint-backend lint-spell
+lint: lint-frontend lint-backend lint-spell ## lint everything
 
 .PHONY: lint-fix
-lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix
+lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix ## lint everything and fix issues
 
 .PHONY: lint-frontend
-lint-frontend: lint-js lint-css
+lint-frontend: lint-js lint-css ## lint frontend files
 
 .PHONY: lint-frontend-fix
-lint-frontend-fix: lint-js-fix lint-css-fix
+lint-frontend-fix: lint-js-fix lint-css-fix ## lint frontend files and fix issues
 
 .PHONY: lint-backend
-lint-backend: lint-go lint-go-vet lint-go-gopls lint-editorconfig
+lint-backend: lint-go lint-go-gitea-vet lint-go-gopls lint-editorconfig ## lint backend files
 
 .PHONY: lint-backend-fix
-lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
+lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backend files and fix issues
 
 .PHONY: lint-js
-lint-js: node_modules
+lint-js: node_modules ## lint js files
 	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
 	npx vue-tsc
 
 .PHONY: lint-js-fix
-lint-js-fix: node_modules
+lint-js-fix: node_modules ## lint js files and fix issues
 	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
 	npx vue-tsc
 
 .PHONY: lint-css
-lint-css: node_modules
+lint-css: node_modules ## lint css files
 	npx stylelint --color --max-warnings=0 $(STYLELINT_FILES)
 
 .PHONY: lint-css-fix
-lint-css-fix: node_modules
+lint-css-fix: node_modules ## lint css files and fix issues
 	npx stylelint --color --max-warnings=0 $(STYLELINT_FILES) --fix
 
 .PHONY: lint-swagger
-lint-swagger: node_modules
+lint-swagger: node_modules ## lint swagger files
 	npx spectral lint -q -F hint $(SWAGGER_SPEC)
 
 .PHONY: lint-md
-lint-md: node_modules
+lint-md: node_modules ## lint markdown files
 	npx markdownlint *.md
 
 .PHONY: lint-spell
-lint-spell:
+lint-spell: ## lint spelling
 	@go run $(MISSPELL_PACKAGE) -dict tools/misspellings.csv -error $(SPELLCHECK_FILES)
 
 .PHONY: lint-spell-fix
-lint-spell-fix:
+lint-spell-fix: ## lint spelling and fix issues
 	@go run $(MISSPELL_PACKAGE) -dict tools/misspellings.csv -w $(SPELLCHECK_FILES)
 
 .PHONY: lint-go
-lint-go:
+lint-go: ## lint go files
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) run
 
 .PHONY: lint-go-fix
-lint-go-fix:
+lint-go-fix: ## lint go files and fix issues
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
 
 # workaround step for the lint-go-windows CI task because 'go run' can not
@@ -423,57 +381,58 @@ lint-go-windows:
 	@GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
 	golangci-lint run
 
-.PHONY: lint-go-vet
-lint-go-vet:
-	@echo "Running go vet..."
+.PHONY: lint-go-gitea-vet
+lint-go-gitea-vet: ## lint go files with gitea-vet
+	@echo "Running gitea-vet..."
 	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
 	@$(GO) vet -vettool=gitea-vet ./...
 
 .PHONY: lint-go-gopls
-lint-go-gopls:
+lint-go-gopls: ## lint go files with gopls
 	@echo "Running gopls check..."
-	@GO=$(GO) GOPLS_PACKAGE=$(GOPLS_PACKAGE) tools/lint-go-gopls.sh $(GO_SOURCES_NO_BINDATA)
+	@GO=$(GO) GOPLS_PACKAGE=$(GOPLS_PACKAGE) tools/lint-go-gopls.sh $(GO_SOURCES)
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
+	@echo "Running editorconfig check..."
 	@$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) $(EDITORCONFIG_FILES)
 
 .PHONY: lint-actions
-lint-actions:
+lint-actions: ## lint action workflow files
 	$(GO) run $(ACTIONLINT_PACKAGE)
 
 .PHONY: lint-templates
-lint-templates: .venv node_modules
+lint-templates: .venv node_modules ## lint template files
 	@node tools/lint-templates-svg.js
-	@poetry run djlint $(shell find templates -type f -iname '*.tmpl')
+	@uv run --frozen djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: lint-yaml
-lint-yaml: .venv
-	@poetry run yamllint .
+lint-yaml: .venv ## lint yaml files
+	@uv run --frozen yamllint -s .
 
 .PHONY: watch
-watch:
+watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: node-check node_modules
+watch-frontend: node-check node_modules ## watch frontend files and continuously rebuild
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --watch --progress
 
 .PHONY: watch-backend
-watch-backend: go-check
+watch-backend: go-check ## watch backend files and continuously rebuild
 	GITEA_RUN_MODE=dev $(GO) run $(AIR_PACKAGE) -c .air.toml
 
 .PHONY: test
-test: test-frontend test-backend
+test: test-frontend test-backend ## test everything
 
 .PHONY: test-backend
-test-backend:
+test-backend: ## test backend files
 	@echo "Running go test with $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' $(GO_TEST_PACKAGES)
 
 .PHONY: test-frontend
-test-frontend: node_modules
+test-frontend: node_modules ## test frontend files
 	npx vitest
 
 .PHONY: test-check
@@ -482,7 +441,7 @@ test-check:
 	@diff=$$(git status -s); \
 	if [ -n "$$diff" ]; then \
 		echo "make test-backend has changed files in the source tree:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		echo "You should change the tests to create these files in a temporary directory."; \
 		echo "Do not simply add these files to .gitignore"; \
 		exit 1; \
@@ -505,7 +464,7 @@ unit-test-coverage:
 	@$(GO) test $(GOTESTFLAGS) -timeout=20m -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_TEST_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: tidy
-tidy:
+tidy: ## run go mod tidy
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
 	@$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
@@ -519,15 +478,17 @@ tidy-check: tidy
 	@diff=$$(git diff --color=always go.mod go.sum $(GO_LICENSE_FILE)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make tidy' and commit the result:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
 
 .PHONY: go-licenses
-go-licenses: $(GO_LICENSE_FILE)
+go-licenses: $(GO_LICENSE_FILE) ## regenerate go licenses
 
 $(GO_LICENSE_FILE): go.mod go.sum
-	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path=$(GO_LICENSE_TMP_DIR) 2>/dev/null
+	@rm -rf $(GO_LICENSE_FILE)
+	$(GO) install $(GO_LICENSES_PACKAGE)
+	-GOOS=linux CGO_ENABLED=1 go-licenses save . --force --save_path=$(GO_LICENSE_TMP_DIR) 2>/dev/null
 	$(GO) run build/generate-go-licenses.go $(GO_LICENSE_TMP_DIR) $(GO_LICENSE_FILE)
 	@rm -rf $(GO_LICENSE_TMP_DIR)
 
@@ -771,17 +732,17 @@ install: $(wildcard *.go)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
 .PHONY: build
-build: frontend backend
+build: frontend backend ## build everything
 
 .PHONY: frontend
-frontend: $(WEBPACK_DEST)
+frontend: $(WEBPACK_DEST) ## build frontend files
 
 .PHONY: backend
-backend: go-check generate-backend $(EXECUTABLE)
+backend: go-check generate-backend $(EXECUTABLE) ## build backend files
 
 # We generate the backend before the frontend in case we in future we want to generate things in the frontend from generated files in backend
 .PHONY: generate
-generate: generate-backend
+generate: generate-backend ## run "go generate"
 
 .PHONY: generate-backend
 generate-backend: $(TAGS_PREREQ) generate-go
@@ -793,10 +754,13 @@ generate-go: $(TAGS_PREREQ)
 
 .PHONY: security-check
 security-check:
-	go run $(GOVULNCHECK_PACKAGE) ./...
+	go run $(GOVULNCHECK_PACKAGE) -show color ./...
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)
+  $(error pam support set via TAGS doesn't support static builds)
+endif
+	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
 
 .PHONY: release
 release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-check
@@ -846,20 +810,20 @@ release-sources: | $(DIST_DIRS)
 	rm -f $(STORED_VERSION_FILE)
 
 .PHONY: deps
-deps: deps-frontend deps-backend deps-tools deps-py
+deps: deps-frontend deps-backend deps-tools deps-py ## install dependencies
 
 .PHONY: deps-py
-deps-py: .venv
+deps-py: .venv ## install python dependencies
 
 .PHONY: deps-frontend
-deps-frontend: node_modules
+deps-frontend: node_modules ## install frontend dependencies
 
 .PHONY: deps-backend
-deps-backend:
+deps-backend: ## install backend dependencies
 	$(GO) mod download
 
 .PHONY: deps-tools
-deps-tools:
+deps-tools: ## install tool dependencies
 	$(GO) install $(AIR_PACKAGE) & \
 	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE) & \
 	$(GO) install $(GOFUMPT_PACKAGE) & \
@@ -872,21 +836,22 @@ deps-tools:
 	$(GO) install $(GOVULNCHECK_PACKAGE) & \
 	$(GO) install $(ACTIONLINT_PACKAGE) & \
 	$(GO) install $(GOPLS_PACKAGE) & \
+	$(GO) install $(GOPLS_MODERNIZE_PACKAGE) & \
 	wait
 
 node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
 
-.venv: poetry.lock
-	poetry install
+.venv: uv.lock
+	uv sync
 	@touch .venv
 
 .PHONY: update
-update: update-js update-py
+update: update-js update-py ## update js and py dependencies
 
 .PHONY: update-js
-update-js: node-check | node_modules
+update-js: node-check | node_modules ## update js dependencies
 	npx updates -u -f package.json
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
@@ -895,27 +860,14 @@ update-js: node-check | node_modules
 	@touch node_modules
 
 .PHONY: update-py
-update-py: node-check | node_modules
+update-py: node-check | node_modules ## update py dependencies
 	npx updates -u -f pyproject.toml
-	rm -rf .venv poetry.lock
-	poetry install
+	rm -rf .venv uv.lock
+	uv sync
 	@touch .venv
 
-.PHONY: fomantic
-fomantic:
-	rm -rf $(FOMANTIC_WORK_DIR)/build
-	cd $(FOMANTIC_WORK_DIR) && npm install --no-save
-	cp -f $(FOMANTIC_WORK_DIR)/theme.config.less $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/theme.config
-	cp -rf $(FOMANTIC_WORK_DIR)/_site $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/
-	$(SED_INPLACE) -e 's/  overrideBrowserslist\r/  overrideBrowserslist: ["defaults"]\r/g' $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/tasks/config/tasks.js
-	cd $(FOMANTIC_WORK_DIR) && npx gulp -f node_modules/fomantic-ui/gulpfile.js build
-	# fomantic uses "touchstart" as click event for some browsers, it's not ideal, so we force fomantic to always use "click" as click event
-	$(SED_INPLACE) -e 's/clickEvent[ \t]*=/clickEvent = "click", unstableClickEvent =/g' $(FOMANTIC_WORK_DIR)/build/semantic.js
-	$(SED_INPLACE) -e 's/\r//g' $(FOMANTIC_WORK_DIR)/build/semantic.css $(FOMANTIC_WORK_DIR)/build/semantic.js
-	rm -f $(FOMANTIC_WORK_DIR)/build/*.min.*
-
 .PHONY: webpack
-webpack: $(WEBPACK_DEST)
+webpack: $(WEBPACK_DEST) ## build webpack files
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json
 	@$(MAKE) -s node-check node_modules
@@ -925,7 +877,7 @@ $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
-svg: node-check | node_modules
+svg: node-check | node_modules ## build svg files
 	rm -rf $(SVG_DEST_DIR)
 	node tools/generate-svg.js
 
@@ -935,7 +887,7 @@ svg-check: svg
 	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
 
@@ -946,7 +898,7 @@ lockfile-check:
 	if [ -n "$$diff" ]; then \
 		echo "package-lock.json is inconsistent with package.json"; \
 		echo "Please run 'npm install --package-lock-only' and commit the result:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
 
@@ -960,12 +912,8 @@ update-translations:
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
 
-.PHONY: generate-license
-generate-license:
-	$(GO) run build/generate-licenses.go
-
 .PHONY: generate-gitignore
-generate-gitignore:
+generate-gitignore: ## update gitignore files
 	$(GO) run build/generate-gitignores.go
 
 .PHONY: generate-images
@@ -974,7 +922,7 @@ generate-images: | node_modules
 	node tools/generate-images.js $(TAGS)
 
 .PHONY: generate-manpage
-generate-manpage:
+generate-manpage: ## generate manpage
 	@[ -f gitea ] || make backend
 	@mkdir -p man/man1/ man/man5
 	@./gitea docs --man > man/man1/gitea.1

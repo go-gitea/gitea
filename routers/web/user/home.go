@@ -26,6 +26,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/indexer"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -41,8 +42,8 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
-	"github.com/keybase/go-crypto/openpgp"
-	"github.com/keybase/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	"xorm.io/builder"
 )
 
@@ -118,7 +119,7 @@ func Dashboard(ctx *context.Context) {
 		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
-	feeds, count, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
+	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.Doer,
@@ -136,11 +137,10 @@ func Dashboard(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Feeds"] = feeds
-
-	pager := context.NewPagination(int(count), setting.UI.FeedPagingNum, page, 5)
+	pager := context.NewPagination(count, setting.UI.FeedPagingNum, page, 5).WithCurRows(len(feeds))
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
+	ctx.Data["Feeds"] = feeds
 
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
@@ -176,7 +176,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	var (
-		userRepoCond = repo_model.SearchRepositoryCondition(&repoOpts) // all repo condition user could visit
+		userRepoCond = repo_model.SearchRepositoryCondition(repoOpts) // all repo condition user could visit
 		repoCond     = userRepoCond
 		repoIDs      []int64
 
@@ -197,7 +197,7 @@ func Milestones(ctx *context.Context) {
 			reposQuery = reposQuery[1 : len(reposQuery)-1]
 			// for each ID (delimiter ",") add to int to repoIDs
 
-			for _, rID := range strings.Split(reposQuery, ",") {
+			for rID := range strings.SplitSeq(reposQuery, ",") {
 				// Ensure nonempty string entries
 				if rID != "" && rID != "0" {
 					rIDint64, err := strconv.ParseInt(rID, 10, 64)
@@ -242,7 +242,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, &repoOpts, userRepoCond, false)
+	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, repoOpts, userRepoCond, false)
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByCondition", err)
 		return
@@ -417,7 +417,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		IsPull:     optional.Some(isPullList),
 		SortType:   sortType,
 		IsArchived: optional.Some(false),
-		User:       ctx.Doer,
+		Doer:       ctx.Doer,
 	}
 	// --------------------------------------------------------------------------
 	// Build opts (IssuesOptions), which contains filter information.
@@ -429,7 +429,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Get repository IDs where User/Org/Team has access.
 	if ctx.Org != nil && ctx.Org.Organization != nil {
-		opts.Org = ctx.Org.Organization
+		opts.Owner = ctx.Org.Organization.AsUser()
 		opts.Team = ctx.Org.Team
 
 		issue.PrepareFilterIssueLabels(ctx, 0, ctx.Org.Organization.AsUser())
@@ -447,7 +447,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["FilterAssigneeUsername"] = assigneeUsername
 	opts.AssigneeID = user.GetFilterUserIDByName(ctx, assigneeUsername)
 
-	isFuzzy := ctx.FormBool("fuzzy")
+	searchMode := ctx.FormString("search_mode")
 
 	// Search all repositories which
 	//
@@ -461,7 +461,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// As team:
 	// - Team org's owns the repository.
 	// - Team has read permission to repository.
-	repoOpts := &repo_model.SearchRepoOptions{
+	repoOpts := repo_model.SearchRepoOptions{
 		Actor:       ctx.Doer,
 		OwnerID:     ctxUser.ID,
 		Private:     true,
@@ -500,9 +500,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	case issues_model.FilterModeAll:
 	case issues_model.FilterModeYourRepositories:
 	case issues_model.FilterModeAssign:
-		opts.AssigneeID = optional.Some(ctx.Doer.ID)
+		opts.AssigneeID = strconv.FormatInt(ctx.Doer.ID, 10)
 	case issues_model.FilterModeCreate:
-		opts.PosterID = optional.Some(ctx.Doer.ID)
+		opts.PosterID = strconv.FormatInt(ctx.Doer.ID, 10)
 	case issues_model.FilterModeMention:
 		opts.MentionedID = ctx.Doer.ID
 	case issues_model.FilterModeReviewRequested:
@@ -520,10 +520,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	opts.IsClosed = optional.Some(isShowClosed)
 
 	// Make sure page number is at least 1. Will be posted to ctx.Data.
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	opts.Paginator = &db.ListOptions{
 		Page:     page,
 		PageSize: setting.UI.IssuePagingNum,
@@ -549,7 +546,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	var issues issues_model.IssueList
 	{
 		issueIDs, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts).Copy(
-			func(o *issue_indexer.SearchOptions) { o.IsFuzzyKeyword = isFuzzy },
+			func(o *issue_indexer.SearchOptions) {
+				o.SearchMode = indexer.SearchModeType(searchMode)
+			},
 		))
 		if err != nil {
 			ctx.ServerError("issueIDsFromSearch", err)
@@ -578,7 +577,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	issueStats, err := getUserIssueStats(ctx, ctxUser, filterMode, issue_indexer.ToSearchOptions(keyword, opts).Copy(
 		func(o *issue_indexer.SearchOptions) {
-			o.IsFuzzyKeyword = isFuzzy
+			o.SearchMode = indexer.SearchModeType(searchMode)
 		},
 	))
 	if err != nil {
@@ -615,9 +614,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			return 0
 		}
 		reviewTyp := issues_model.ReviewTypeApprove
-		if typ == "reject" {
+		switch typ {
+		case "reject":
 			reviewTyp = issues_model.ReviewTypeReject
-		} else if typ == "waiting" {
+		case "waiting":
 			reviewTyp = issues_model.ReviewTypeRequest
 		}
 		for _, count := range counts {
@@ -633,7 +633,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["IsShowClosed"] = isShowClosed
-	ctx.Data["IsFuzzy"] = isFuzzy
+	ctx.Data["SearchModes"] = issue_indexer.SupportedSearchModes()
+	ctx.Data["SelectedSearchMode"] = ctx.FormTrim("search_mode")
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -695,7 +696,7 @@ func ShowGPGKeys(ctx *context.Context) {
 
 	headers := make(map[string]string)
 	if len(failedEntitiesID) > 0 { // If some key need re-import to be exported
-		headers["Note"] = fmt.Sprintf("The keys with the following IDs couldn't be exported and need to be reuploaded %s", strings.Join(failedEntitiesID, ", "))
+		headers["Note"] = "The keys with the following IDs couldn't be exported and need to be reuploaded " + strings.Join(failedEntitiesID, ", ")
 	} else if len(entities) == 0 {
 		headers["Note"] = "This user hasn't uploaded any GPG keys."
 	}
@@ -724,7 +725,7 @@ func UsernameSubRoute(ctx *context.Context) {
 
 		// check view permissions
 		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-			ctx.NotFound("user", fmt.Errorf("%s", ctx.ContextUser.Name))
+			ctx.NotFound(fmt.Errorf("%s", ctx.ContextUser.Name))
 			return false
 		}
 		return true
@@ -732,7 +733,7 @@ func UsernameSubRoute(ctx *context.Context) {
 	switch {
 	case strings.HasSuffix(username, ".png"):
 		if reloadParam(".png") {
-			AvatarByUserName(ctx)
+			AvatarByUsernameSize(ctx)
 		}
 	case strings.HasSuffix(username, ".keys"):
 		if reloadParam(".keys") {
@@ -744,7 +745,7 @@ func UsernameSubRoute(ctx *context.Context) {
 		}
 	case strings.HasSuffix(username, ".rss"):
 		if !setting.Other.EnableFeed {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		if reloadParam(".rss") {
@@ -752,7 +753,7 @@ func UsernameSubRoute(ctx *context.Context) {
 		}
 	case strings.HasSuffix(username, ".atom"):
 		if !setting.Other.EnableFeed {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		if reloadParam(".atom") {
@@ -788,9 +789,9 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 		case issues_model.FilterModeYourRepositories:
 			openClosedOpts.AllPublic = false
 		case issues_model.FilterModeAssign:
-			openClosedOpts.AssigneeID = optional.Some(doerID)
+			openClosedOpts.AssigneeID = strconv.FormatInt(doerID, 10)
 		case issues_model.FilterModeCreate:
-			openClosedOpts.PosterID = optional.Some(doerID)
+			openClosedOpts.PosterID = strconv.FormatInt(doerID, 10)
 		case issues_model.FilterModeMention:
 			openClosedOpts.MentionID = optional.Some(doerID)
 		case issues_model.FilterModeReviewRequested:
@@ -812,8 +813,8 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 
 	// Below stats are for the left sidebar
 	opts = opts.Copy(func(o *issue_indexer.SearchOptions) {
-		o.AssigneeID = nil
-		o.PosterID = nil
+		o.AssigneeID = ""
+		o.PosterID = ""
 		o.MentionID = nil
 		o.ReviewRequestedID = nil
 		o.ReviewedID = nil
@@ -823,11 +824,11 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 	if err != nil {
 		return nil, err
 	}
-	ret.AssignCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.AssigneeID = optional.Some(doerID) }))
+	ret.AssignCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.AssigneeID = strconv.FormatInt(doerID, 10) }))
 	if err != nil {
 		return nil, err
 	}
-	ret.CreateCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.PosterID = optional.Some(doerID) }))
+	ret.CreateCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.PosterID = strconv.FormatInt(doerID, 10) }))
 	if err != nil {
 		return nil, err
 	}

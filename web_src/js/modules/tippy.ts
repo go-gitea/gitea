@@ -2,6 +2,7 @@ import tippy, {followCursor} from 'tippy.js';
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
 import type {Content, Instance, Placement, Props} from 'tippy.js';
+import {html} from '../utils/html.ts';
 
 type TippyOpts = {
   role?: string,
@@ -9,7 +10,7 @@ type TippyOpts = {
 } & Partial<Props>;
 
 const visibleInstances = new Set<Instance>();
-const arrowSvg = `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
+const arrowSvg = html`<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
@@ -40,18 +41,20 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
         }
       }
       visibleInstances.add(instance);
+      target.setAttribute('aria-controls', instance.popper.id);
       return onShow?.(instance);
     },
-    arrow: arrow || (theme === 'bare' ? false : arrowSvg),
+    arrow: arrow ?? (theme === 'bare' ? false : arrowSvg),
     // HTML role attribute, ideally the default role would be "popover" but it does not exist
     role: role || 'menu',
     // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
     theme: theme || role || 'default',
+    offset: [0, arrow ? 10 : 6],
     plugins: [followCursor],
     ...other,
   } satisfies Partial<Props>);
 
-  if (role === 'menu') {
+  if (instance.props.role === 'menu') {
     target.setAttribute('aria-haspopup', 'true');
   }
 
@@ -179,13 +182,25 @@ export function initGlobalTooltips(): void {
 }
 
 export function showTemporaryTooltip(target: Element, content: Content): void {
-  // if the target is inside a dropdown, the menu will be hidden soon
-  // so display the tooltip on the dropdown instead
-  target = target.closest('.ui.dropdown') || target;
-  const tippy = target._tippy ?? attachTooltip(target, content);
-  tippy.setContent(content);
-  if (!tippy.state.isShown) tippy.show();
-  tippy.setProps({
+  // if the target is inside a dropdown or tippy popup, the menu will be hidden soon
+  // so display the tooltip on the "aria-controls" element or dropdown instead
+  let refClientRect: DOMRect;
+  const popupTippyId = target.closest(`[data-tippy-root]`)?.id;
+  if (popupTippyId) {
+    // for example, the "Copy Permalink" button in the "File View" page for the selected lines
+    target = document.body;
+    refClientRect = document.querySelector(`[aria-controls="${CSS.escape(popupTippyId)}"]`)?.getBoundingClientRect();
+    refClientRect = refClientRect ?? new DOMRect(0, 0, 0, 0); // fallback to empty rect if not found, tippy doesn't accept null
+  } else {
+    // for example, the "Copy Link" button in the issue header dropdown menu
+    target = target.closest('.ui.dropdown') ?? target;
+    refClientRect = target.getBoundingClientRect();
+  }
+  const tooltipTippy = target._tippy ?? attachTooltip(target, content);
+  tooltipTippy.setContent(content);
+  tooltipTippy.setProps({getReferenceClientRect: () => refClientRect});
+  if (!tooltipTippy.state.isShown) tooltipTippy.show();
+  tooltipTippy.setProps({
     onHidden: (tippy) => {
       // reset the default tooltip content, if no default, then this temporary tooltip could be destroyed
       if (!attachTooltip(target)) {

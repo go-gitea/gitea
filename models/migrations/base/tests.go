@@ -1,7 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//nolint:forbidigo
 package base
 
 import (
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/tempdir"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/testlogger"
 
@@ -105,7 +105,7 @@ func MainTest(m *testing.M) {
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {
 		giteaConf = filepath.Join(filepath.Dir(setting.AppPath), "tests/sqlite.ini")
-		fmt.Printf("Environment variable $GITEA_CONF not set - defaulting to %s\n", giteaConf)
+		_, _ = fmt.Fprintf(os.Stderr, "Environment variable $GITEA_CONF not set - defaulting to %s\n", giteaConf)
 	}
 
 	if !filepath.IsAbs(giteaConf) {
@@ -114,15 +114,16 @@ func MainTest(m *testing.M) {
 		setting.CustomConf = giteaConf
 	}
 
-	tmpDataPath, err := os.MkdirTemp("", "data")
+	tmpDataPath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("data")
 	if err != nil {
 		testlogger.Fatalf("Unable to create temporary data path %v\n", err)
 	}
+	defer cleanup()
 
 	setting.CustomPath = filepath.Join(setting.AppWorkPath, "custom")
 	setting.AppDataPath = tmpDataPath
 
-	unittest.InitSettings()
+	unittest.InitSettingsForTesting()
 	if err = git.InitFull(context.Background()); err != nil {
 		testlogger.Fatalf("Unable to InitFull: %v\n", err)
 	}
@@ -132,10 +133,7 @@ func MainTest(m *testing.M) {
 	exitStatus := m.Run()
 
 	if err := removeAllWithRetry(setting.RepoRootPath); err != nil {
-		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
-	}
-	if err := removeAllWithRetry(tmpDataPath); err != nil {
-		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
 	}
 	os.Exit(exitStatus)
 }

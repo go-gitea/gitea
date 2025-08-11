@@ -28,7 +28,7 @@ import (
 func RedirectToUser(ctx *Base, userName string, redirectUserID int64) {
 	user, err := user_model.GetUserByID(ctx, redirectUserID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "unable to get user")
+		ctx.HTTPError(http.StatusInternalServerError, "unable to get user")
 		return
 	}
 
@@ -92,7 +92,7 @@ func (ctx *Context) HTML(status int, name templates.TplName) {
 }
 
 // JSONTemplate renders the template as JSON response
-// keep in mind that the template is processed in HTML context, so JSON-things should be handled carefully, eg: by JSEscape
+// keep in mind that the template is processed in HTML context, so JSON things should be handled carefully, e.g.: use JSEscape
 func (ctx *Context) JSONTemplate(tmpl templates.TplName) {
 	t, err := ctx.Render.TemplateLookup(string(tmpl), nil)
 	if err != nil {
@@ -122,8 +122,8 @@ func (ctx *Context) RenderWithErr(msg any, tpl templates.TplName, form any) {
 }
 
 // NotFound displays a 404 (Not Found) page and prints the given error, if any.
-func (ctx *Context) NotFound(logMsg string, logErr error) {
-	ctx.notFoundInternal(logMsg, logErr)
+func (ctx *Context) NotFound(logErr error) {
+	ctx.notFoundInternal("", logErr)
 }
 
 func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
@@ -150,7 +150,7 @@ func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 
 	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
 	ctx.Data["Title"] = "Page Not Found"
-	ctx.HTML(http.StatusNotFound, templates.TplName("status/404"))
+	ctx.HTML(http.StatusNotFound, "status/404")
 }
 
 // ServerError displays a 500 (Internal Server Error) page and prints the given error, if any.

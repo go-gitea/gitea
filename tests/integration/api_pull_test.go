@@ -5,11 +5,13 @@ package integration
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -18,11 +20,15 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
+	pull_service "code.gitea.io/gitea/services/pull"
+	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -51,30 +57,30 @@ func TestAPIViewPulls(t *testing.T) {
 	assert.Empty(t, pull.RequestedReviewersTeams)
 	assert.EqualValues(t, 5, pull.RequestedReviewers[0].ID)
 	assert.EqualValues(t, 6, pull.RequestedReviewers[1].ID)
-	assert.EqualValues(t, 1, pull.ChangedFiles)
 
 	if assert.EqualValues(t, 5, pull.ID) {
 		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
 		bs, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
-		patch, err := gitdiff.ParsePatch(context.Background(), 1000, 5000, 10, bytes.NewReader(bs), "")
+		patch, err := gitdiff.ParsePatch(t.Context(), 1000, 5000, 10, bytes.NewReader(bs), "")
 		assert.NoError(t, err)
-		if assert.Len(t, patch.Files, pull.ChangedFiles) {
+		if assert.Len(t, patch.Files, 1) {
 			assert.Equal(t, "File-WoW", patch.Files[0].Name)
 			// FIXME: The old name should be empty if it's a file add type
 			assert.Equal(t, "File-WoW", patch.Files[0].OldName)
-			assert.EqualValues(t, pull.Additions, patch.Files[0].Addition)
-			assert.EqualValues(t, pull.Deletions, patch.Files[0].Deletion)
+			assert.Equal(t, 1, patch.Files[0].Addition)
+			assert.Equal(t, 0, patch.Files[0].Deletion)
 			assert.Equal(t, gitdiff.DiffFileAdd, patch.Files[0].Type)
 		}
 
 		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID),
 			doAPIGetPullFiles(ctx, pull, func(t *testing.T, files []*api.ChangedFile) {
-				if assert.Len(t, files, pull.ChangedFiles) {
+				if assert.Len(t, files, 1) {
 					assert.Equal(t, "File-WoW", files[0].Filename)
 					assert.Empty(t, files[0].PreviousFilename)
-					assert.EqualValues(t, pull.Additions, files[0].Additions)
-					assert.EqualValues(t, pull.Deletions, files[0].Deletions)
+					assert.Equal(t, 1, files[0].Additions)
+					assert.Equal(t, 1, files[0].Changes)
+					assert.Equal(t, 0, files[0].Deletions)
 					assert.Equal(t, "added", files[0].Status)
 				}
 			}))
@@ -88,53 +94,51 @@ func TestAPIViewPulls(t *testing.T) {
 	assert.EqualValues(t, 4, pull.RequestedReviewers[1].ID)
 	assert.EqualValues(t, 2, pull.RequestedReviewers[2].ID)
 	assert.EqualValues(t, 5, pull.RequestedReviewers[3].ID)
-	assert.EqualValues(t, 1, pull.ChangedFiles)
 
 	if assert.EqualValues(t, 2, pull.ID) {
 		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
 		bs, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
-		patch, err := gitdiff.ParsePatch(context.Background(), 1000, 5000, 10, bytes.NewReader(bs), "")
+		patch, err := gitdiff.ParsePatch(t.Context(), 1000, 5000, 10, bytes.NewReader(bs), "")
 		assert.NoError(t, err)
-		if assert.Len(t, patch.Files, pull.ChangedFiles) {
+		if assert.Len(t, patch.Files, 1) {
 			assert.Equal(t, "README.md", patch.Files[0].Name)
 			assert.Equal(t, "README.md", patch.Files[0].OldName)
-			assert.EqualValues(t, pull.Additions, patch.Files[0].Addition)
-			assert.EqualValues(t, pull.Deletions, patch.Files[0].Deletion)
+			assert.Equal(t, 4, patch.Files[0].Addition)
+			assert.Equal(t, 1, patch.Files[0].Deletion)
 			assert.Equal(t, gitdiff.DiffFileChange, patch.Files[0].Type)
 		}
 
 		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID),
 			doAPIGetPullFiles(ctx, pull, func(t *testing.T, files []*api.ChangedFile) {
-				if assert.Len(t, files, pull.ChangedFiles) {
+				if assert.Len(t, files, 1) {
 					assert.Equal(t, "README.md", files[0].Filename)
 					// FIXME: The PreviousFilename name should be the same as Filename if it's a file change
-					assert.Equal(t, "", files[0].PreviousFilename)
-					assert.EqualValues(t, pull.Additions, files[0].Additions)
-					assert.EqualValues(t, pull.Deletions, files[0].Deletions)
+					assert.Empty(t, files[0].PreviousFilename)
+					assert.Equal(t, 4, files[0].Additions)
+					assert.Equal(t, 1, files[0].Deletions)
 					assert.Equal(t, "changed", files[0].Status)
 				}
 			}))
 	}
 
-	pull = pulls[2]
+	pull = pulls[0]
 	assert.EqualValues(t, 1, pull.Poster.ID)
-	assert.Len(t, pull.RequestedReviewers, 1)
+	assert.Len(t, pull.RequestedReviewers, 2)
 	assert.Empty(t, pull.RequestedReviewersTeams)
-	assert.EqualValues(t, 1, pull.RequestedReviewers[0].ID)
-	assert.EqualValues(t, 0, pull.ChangedFiles)
+	assert.EqualValues(t, 5, pull.RequestedReviewers[0].ID)
 
-	if assert.EqualValues(t, 1, pull.ID) {
+	if assert.EqualValues(t, 5, pull.ID) {
 		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
 		bs, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
-		patch, err := gitdiff.ParsePatch(context.Background(), 1000, 5000, 10, bytes.NewReader(bs), "")
+		patch, err := gitdiff.ParsePatch(t.Context(), 1000, 5000, 10, bytes.NewReader(bs), "")
 		assert.NoError(t, err)
-		assert.EqualValues(t, pull.ChangedFiles, patch.NumFiles)
+		assert.Len(t, patch.Files, 1)
 
 		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID),
 			doAPIGetPullFiles(ctx, pull, func(t *testing.T, files []*api.ChangedFile) {
-				assert.Len(t, files, pull.ChangedFiles)
+				assert.Len(t, files, 1)
 			}))
 	}
 }
@@ -196,7 +200,7 @@ func TestAPICreatePullSuccess(t *testing.T) {
 	session := loginUser(t, owner11.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &api.CreatePullRequestOption{
-		Head:  fmt.Sprintf("%s:master", owner11.Name),
+		Head:  owner11.Name + ":master",
 		Base:  "master",
 		Title: "create a failure pr",
 	}).AddTokenAuth(token)
@@ -216,7 +220,7 @@ func TestAPICreatePullBasePermission(t *testing.T) {
 	session := loginUser(t, user4.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	opts := &api.CreatePullRequestOption{
-		Head:  fmt.Sprintf("%s:master", repo11.OwnerName),
+		Head:  repo11.OwnerName + ":master",
 		Base:  "master",
 		Title: "create a failure pr",
 	}
@@ -244,7 +248,7 @@ func TestAPICreatePullHeadPermission(t *testing.T) {
 	session := loginUser(t, user4.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	opts := &api.CreatePullRequestOption{
-		Head:  fmt.Sprintf("%s:master", repo11.OwnerName),
+		Head:  repo11.OwnerName + ":master",
 		Base:  "master",
 		Title: "create a failure pr",
 	}
@@ -272,7 +276,7 @@ func TestAPICreatePullSameRepoSuccess(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner.Name, repo.Name), &api.CreatePullRequestOption{
-		Head:  fmt.Sprintf("%s:pr-to-update", owner.Name),
+		Head:  owner.Name + ":pr-to-update",
 		Base:  "master",
 		Title: "successfully create a PR between branches of the same repository",
 	}).AddTokenAuth(token)
@@ -293,7 +297,7 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	opts := &api.CreatePullRequestOption{
-		Head:      fmt.Sprintf("%s:master", owner11.Name),
+		Head:      owner11.Name + ":master",
 		Base:      "master",
 		Title:     "create a failure pr",
 		Body:      "foobaaar",
@@ -310,12 +314,12 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 	DecodeJSON(t, res, pull)
 
 	assert.NotNil(t, pull.Milestone)
-	assert.EqualValues(t, opts.Milestone, pull.Milestone.ID)
+	assert.Equal(t, opts.Milestone, pull.Milestone.ID)
 	if assert.Len(t, pull.Assignees, 1) {
-		assert.EqualValues(t, opts.Assignees[0], owner10.Name)
+		assert.Equal(t, opts.Assignees[0], owner10.Name)
 	}
 	assert.NotNil(t, pull.Labels)
-	assert.EqualValues(t, opts.Labels[0], pull.Labels[0].ID)
+	assert.Equal(t, opts.Labels[0], pull.Labels[0].ID)
 }
 
 func TestAPICreatePullWithFieldsFailure(t *testing.T) {
@@ -331,7 +335,7 @@ func TestAPICreatePullWithFieldsFailure(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	opts := &api.CreatePullRequestOption{
-		Head: fmt.Sprintf("%s:master", owner11.Name),
+		Head: owner11.Name + ":master",
 		Base: "master",
 	}
 
@@ -369,7 +373,7 @@ func TestAPIEditPull(t *testing.T) {
 	apiPull := new(api.PullRequest)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, apiPull)
-	assert.EqualValues(t, "master", apiPull.Base.Name)
+	assert.Equal(t, "master", apiPull.Base.Name)
 
 	newTitle := "edit a this pr"
 	newBody := "edited body"
@@ -380,7 +384,7 @@ func TestAPIEditPull(t *testing.T) {
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, apiPull)
-	assert.EqualValues(t, "feature/1", apiPull.Base.Name)
+	assert.Equal(t, "feature/1", apiPull.Base.Name)
 	// check comment history
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: apiPull.ID})
 	err := pull.LoadIssue(db.DefaultContext)
@@ -426,4 +430,95 @@ func TestAPICommitPullRequest(t *testing.T) {
 	invalidCommitSHA := "abcd1234abcd1234abcd1234abcd1234abcd1234"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/commits/%s/pull", owner.Name, repo.Name, invalidCommitSHA).AddTokenAuth(ctx.Token)
 	ctx.Session.MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+		ctx := NewAPITestContext(t, "user1", baseRepo.Name, auth_model.AccessTokenScopeAll)
+
+		doAPIForkRepository(ctx, "user2")(t)
+
+		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ForkID: baseRepo.ID, OwnerName: "user1"})
+
+		// add a new file to the forked repo
+		addFileToForkedResp, err := files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, user1, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      "file_1.txt",
+					ContentReader: strings.NewReader("file1"),
+				},
+			},
+			Message:   "add file1",
+			OldBranch: "master",
+			NewBranch: "fork-branch-1",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user1.Name,
+				GitUserEmail: user1.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user1.Name,
+				GitUserEmail: user1.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addFileToForkedResp)
+
+		// create Pull
+		pullIssue := &issues_model.Issue{
+			RepoID:   baseRepo.ID,
+			Title:    "Test pull-request-target-event",
+			PosterID: user1.ID,
+			Poster:   user1,
+			IsPull:   true,
+		}
+		pullRequest := &issues_model.PullRequest{
+			HeadRepoID: forkedRepo.ID,
+			BaseRepoID: baseRepo.ID,
+			HeadBranch: "fork-branch-1",
+			BaseBranch: "master",
+			HeadRepo:   forkedRepo,
+			BaseRepo:   baseRepo,
+			Type:       issues_model.PullRequestGitea,
+		}
+
+		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
+		err = pull_service.NewPullRequest(git.DefaultContext, prOpts)
+		assert.NoError(t, err)
+		pr := convert.ToAPIPullRequest(t.Context(), pullRequest, user1)
+
+		ctx = NewAPITestContext(t, "user2", baseRepo.Name, auth_model.AccessTokenScopeAll)
+		doAPIGetPullFiles(ctx, pr, func(t *testing.T, files []*api.ChangedFile) {
+			if assert.Len(t, files, 1) {
+				assert.Equal(t, "file_1.txt", files[0].Filename)
+				assert.Empty(t, files[0].PreviousFilename)
+				assert.Equal(t, 1, files[0].Additions)
+				assert.Equal(t, 1, files[0].Changes)
+				assert.Equal(t, 0, files[0].Deletions)
+				assert.Equal(t, "added", files[0].Status)
+			}
+		})(t)
+
+		// delete the head repository of the pull request
+		forkCtx := NewAPITestContext(t, "user1", forkedRepo.Name, auth_model.AccessTokenScopeAll)
+		doAPIDeleteRepository(forkCtx)(t)
+
+		doAPIGetPullFiles(ctx, pr, func(t *testing.T, files []*api.ChangedFile) {
+			if assert.Len(t, files, 1) {
+				assert.Equal(t, "file_1.txt", files[0].Filename)
+				assert.Empty(t, files[0].PreviousFilename)
+				assert.Equal(t, 1, files[0].Additions)
+				assert.Equal(t, 1, files[0].Changes)
+				assert.Equal(t, 0, files[0].Deletions)
+				assert.Equal(t, "added", files[0].Status)
+			}
+		})(t)
+	})
 }

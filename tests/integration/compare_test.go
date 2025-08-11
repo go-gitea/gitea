@@ -133,7 +133,7 @@ func TestCompareCodeExpand(t *testing.T) {
 			Readme:        "Default",
 			AutoInit:      true,
 			DefaultBranch: "main",
-		})
+		}, true)
 		assert.NoError(t, err)
 
 		session := loginUser(t, user1.Name)

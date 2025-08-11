@@ -157,9 +157,14 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 			t.Run("Download", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
+				// download the package without the file name
 				req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture))
 				resp := MakeRequest(t, req, http.StatusOK)
+				assert.Equal(t, content, resp.Body.Bytes())
 
+				// download the package with a file name (it can be anything)
+				req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s/any-file-name", groupURL, packageName, packageVersion, packageArchitecture))
+				resp = MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, content, resp.Body.Bytes())
 			})
 
@@ -317,7 +322,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					var result Metadata
 					decodeGzipXML(t, resp, &result)
 
-					assert.EqualValues(t, 1, result.PackageCount)
+					assert.Equal(t, 1, result.PackageCount)
 					assert.Len(t, result.Packages, 1)
 					p := result.Packages[0]
 					assert.Equal(t, "rpm", p.Type)
@@ -366,7 +371,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					var result Filelists
 					decodeGzipXML(t, resp, &result)
 
-					assert.EqualValues(t, 1, result.PackageCount)
+					assert.Equal(t, 1, result.PackageCount)
 					assert.Len(t, result.Packages, 1)
 					p := result.Packages[0]
 					assert.NotEmpty(t, p.Pkgid)
@@ -403,7 +408,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					var result Other
 					decodeGzipXML(t, resp, &result)
 
-					assert.EqualValues(t, 1, result.PackageCount)
+					assert.Equal(t, 1, result.PackageCount)
 					assert.Len(t, result.Packages, 1)
 					p := result.Packages[0]
 					assert.NotEmpty(t, p.Pkgid)
@@ -447,7 +452,8 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 				pub, err := openpgp.ReadArmoredKeyRing(gpgResp.Body)
 				require.NoError(t, err)
 
-				req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture))
+				rpmFileName := fmt.Sprintf("%s-%s.%s.rpm", packageName, packageVersion, packageArchitecture)
+				req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture, rpmFileName))
 				resp := MakeRequest(t, req, http.StatusOK)
 
 				_, sigs, err := rpmutils.Verify(resp.Body, pub)

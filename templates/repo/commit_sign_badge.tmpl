@@ -38,6 +38,8 @@ so this template should be kept as small as possbile, DO NOT put large component
 	{{- else -}}
 		{{- if $verification.Warning -}}
 			{{- $extraClass = print $extraClass " sign-warning" -}}
+		{{- else -}}
+			{{- $extraClass = "" -}}{{/* the commit is not signed */}}
 		{{- end -}}
 		{{- $msgReason = ctx.Locale.Tr $verification.Reason -}}{{- /* dirty part: it is the translation key ..... */ -}}
 	{{- end -}}
@@ -57,6 +59,7 @@ so this template should be kept as small as possbile, DO NOT put large component
 <a {{if $commitBaseLink}}href="{{$commitBaseLink}}/{{$commit.ID}}"{{end}} class="ui label commit-id-short {{$extraClass}}" rel="nofollow">
 	{{- ShortSha $commit.ID.String -}}
 {{- end -}}
+{{- if or (not $commit) $extraClass}}{{/* only show the lock icon if there is no commit info (icon only) or the commit is really signed */}}
 	<span class="ui label commit-sign-badge {{$extraClass}}">
 		{{- if $verified -}}
 			{{- if and $signingUser $signingUser.ID -}}
@@ -70,7 +73,7 @@ so this template should be kept as small as possbile, DO NOT put large component
 			<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-unlock"}}</span>
 		{{- end -}}
 	</span>
-
+{{- end -}}
 {{- if $commit -}}
 </a>
 {{- end -}}

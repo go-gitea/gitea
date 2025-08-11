@@ -9,7 +9,7 @@
 			<div class="ui compact tiny secondary menu">
 				<span class="item" data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
 					{{svg "octicon-clock"}}
-					{{.TotalTrackedTime | Sec2Time}}
+					{{.TotalTrackedTime | Sec2Hour}}
 				</span>
 			</div>
 		{{end}}

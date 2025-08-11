@@ -6,6 +6,7 @@ package mailer
 import (
 	"bytes"
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -18,9 +19,11 @@ import (
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
 
-const (
-	tplNewReleaseMail templates.TplName = "release"
-)
+const tplNewReleaseMail templates.TplName = "release"
+
+func generateMessageIDForRelease(release *repo_model.Release) string {
+	return fmt.Sprintf("<%s/releases/%d@%s>", release.Repo.FullName(), release.ID, setting.Domain)
+}
 
 // MailNewRelease send new release notify to all repo watchers.
 func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
@@ -35,9 +38,9 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 		return
 	}
 
-	recipients, err := user_model.GetMaileableUsersByIDs(ctx, watcherIDList, false)
+	recipients, err := user_model.GetMailableUsersByIDs(ctx, watcherIDList, false)
 	if err != nil {
-		log.Error("user_model.GetMaileableUsersByIDs: %v", err)
+		log.Error("user_model.GetMailableUsersByIDs: %v", err)
 		return
 	}
 
@@ -76,7 +79,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, re
 
 	var mailBody bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplNewReleaseMail)+"/body", err)
 		return
 	}

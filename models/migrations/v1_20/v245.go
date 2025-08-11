@@ -1,11 +1,10 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_20 //nolint
+package v1_20
 
 import (
 	"context"
-	"fmt"
 
 	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
@@ -57,7 +56,7 @@ func RenameWebhookOrgToOwner(x *xorm.Engine) error {
 			return err
 		}
 		sqlType := x.Dialect().SQLType(inferredTable.GetColumn("org_id"))
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `webhook` CHANGE org_id owner_id %s", sqlType)); err != nil {
+		if _, err := sess.Exec("ALTER TABLE `webhook` CHANGE org_id owner_id " + sqlType); err != nil {
 			return err
 		}
 	case setting.Database.Type.IsMSSQL():

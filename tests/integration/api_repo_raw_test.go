@@ -30,11 +30,11 @@ func TestAPIReposRaw(t *testing.T) {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/raw/%s/README.md", user.Name, ref).
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		assert.EqualValues(t, "file", resp.Header().Get("x-gitea-object-type"))
+		assert.Equal(t, "file", resp.Header().Get("x-gitea-object-type"))
 	}
 	// Test default branch
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/raw/README.md", user.Name).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	assert.EqualValues(t, "file", resp.Header().Get("x-gitea-object-type"))
+	assert.Equal(t, "file", resp.Header().Get("x-gitea-object-type"))
 }

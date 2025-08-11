@@ -1,5 +1,6 @@
 import {toggleElem} from '../../utils/dom.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {submitFormFetchAction} from '../common-fetch-action.ts';
 
 function nameHasScope(name: string): boolean {
   return /.*[^/]\/[^/].*/.test(name);
@@ -18,10 +19,12 @@ export function initCompLabelEdit(pageSelector: string) {
   const elExclusiveField = elModal.querySelector('.label-exclusive-input-field');
   const elExclusiveInput = elModal.querySelector<HTMLInputElement>('.label-exclusive-input');
   const elExclusiveWarning = elModal.querySelector('.label-exclusive-warning');
+  const elExclusiveOrderField = elModal.querySelector<HTMLInputElement>('.label-exclusive-order-input-field');
+  const elExclusiveOrderInput = elModal.querySelector<HTMLInputElement>('.label-exclusive-order-input');
   const elIsArchivedField = elModal.querySelector('.label-is-archived-input-field');
   const elIsArchivedInput = elModal.querySelector<HTMLInputElement>('.label-is-archived-input');
   const elDescInput = elModal.querySelector<HTMLInputElement>('.label-desc-input');
-  const elColorInput = elModal.querySelector<HTMLInputElement>('.js-color-picker-input input');
+  const elColorInput = elModal.querySelector<HTMLInputElement>('.color-picker-combo input');
 
   const syncModalUi = () => {
     const hasScope = nameHasScope(elNameInput.value);
@@ -29,6 +32,13 @@ export function initCompLabelEdit(pageSelector: string) {
     const showExclusiveWarning = hasScope && elExclusiveInput.checked && elModal.hasAttribute('data-need-warn-exclusive');
     toggleElem(elExclusiveWarning, showExclusiveWarning);
     if (!hasScope) elExclusiveInput.checked = false;
+    toggleElem(elExclusiveOrderField, elExclusiveInput.checked);
+
+    if (parseInt(elExclusiveOrderInput.value) <= 0) {
+      elExclusiveOrderInput.style.color = 'var(--color-placeholder-text) !important';
+    } else {
+      elExclusiveOrderInput.style.color = null;
+    }
   };
 
   const showLabelEditModal = (btn:HTMLElement) => {
@@ -36,6 +46,7 @@ export function initCompLabelEdit(pageSelector: string) {
     const form = elModal.querySelector<HTMLFormElement>('form');
     elLabelId.value = btn.getAttribute('data-label-id') || '';
     elNameInput.value = btn.getAttribute('data-label-name') || '';
+    elExclusiveOrderInput.value = btn.getAttribute('data-label-exclusive-order') || '0';
     elIsArchivedInput.checked = btn.getAttribute('data-label-is-archived') === 'true';
     elExclusiveInput.checked = btn.getAttribute('data-label-exclusive') === 'true';
     elDescInput.value = btn.getAttribute('data-label-description') || '';
@@ -60,7 +71,8 @@ export function initCompLabelEdit(pageSelector: string) {
           form.reportValidity();
           return false;
         }
-        form.submit();
+        submitFormFetchAction(form);
+        return false;
       },
     }).modal('show');
   };

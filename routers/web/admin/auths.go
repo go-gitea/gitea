@@ -28,8 +28,6 @@ import (
 	"code.gitea.io/gitea/services/auth/source/sspi"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
-
-	"xorm.io/xorm/convert"
 )
 
 const (
@@ -149,7 +147,6 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 		RestrictedFilter:      form.RestrictedFilter,
 		AllowDeactivateAll:    form.AllowDeactivateAll,
 		Enabled:               true,
-		SkipLocalTwoFA:        form.SkipLocalTwoFA,
 	}
 }
 
@@ -163,7 +160,6 @@ func parseSMTPConfig(form forms.AuthenticationForm) *smtp.Source {
 		SkipVerify:     form.SkipVerify,
 		HeloHostname:   form.HeloHostname,
 		DisableHelo:    form.DisableHelo,
-		SkipLocalTwoFA: form.SkipLocalTwoFA,
 	}
 }
 
@@ -181,7 +177,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		customURLMapping = nil
 	}
 	var scopes []string
-	for _, s := range strings.Split(form.Oauth2Scopes, ",") {
+	for s := range strings.SplitSeq(form.Oauth2Scopes, ",") {
 		s = strings.TrimSpace(s)
 		if s != "" {
 			scopes = append(scopes, s)
@@ -198,12 +194,14 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		Scopes:                        scopes,
 		RequiredClaimName:             form.Oauth2RequiredClaimName,
 		RequiredClaimValue:            form.Oauth2RequiredClaimValue,
-		SkipLocalTwoFA:                form.SkipLocalTwoFA,
 		GroupClaimName:                form.Oauth2GroupClaimName,
 		RestrictedGroup:               form.Oauth2RestrictedGroup,
 		AdminGroup:                    form.Oauth2AdminGroup,
 		GroupTeamMap:                  form.Oauth2GroupTeamMap,
 		GroupTeamMapRemoval:           form.Oauth2GroupTeamMapRemoval,
+
+		SSHPublicKeyClaimName: form.Oauth2SSHPublicKeyClaimName,
+		FullNameClaimName:     form.Oauth2FullNameClaimName,
 	}
 }
 
@@ -252,7 +250,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	hasTLS := false
-	var config convert.Conversion
+	var config auth.Config
 	switch auth.Type(form.Type) {
 	case auth.LDAP, auth.DLDAP:
 		config = parseLDAPConfig(form)
@@ -262,9 +260,8 @@ func NewAuthSourcePost(ctx *context.Context) {
 		hasTLS = true
 	case auth.PAM:
 		config = &pam_service.Source{
-			ServiceName:    form.PAMServiceName,
-			EmailDomain:    form.PAMEmailDomain,
-			SkipLocalTwoFA: form.SkipLocalTwoFA,
+			ServiceName: form.PAMServiceName,
+			EmailDomain: form.PAMEmailDomain,
 		}
 	case auth.OAuth2:
 		config = parseOAuth2Config(form)
@@ -291,7 +288,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 			return
 		}
 	default:
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 	ctx.Data["HasTLS"] = hasTLS
@@ -302,11 +299,12 @@ func NewAuthSourcePost(ctx *context.Context) {
 	}
 
 	if err := auth.CreateSource(ctx, &auth.Source{
-		Type:          auth.Type(form.Type),
-		Name:          form.Name,
-		IsActive:      form.IsActive,
-		IsSyncEnabled: form.IsSyncEnabled,
-		Cfg:           config,
+		Type:            auth.Type(form.Type),
+		Name:            form.Name,
+		IsActive:        form.IsActive,
+		IsSyncEnabled:   form.IsSyncEnabled,
+		TwoFactorPolicy: form.TwoFactorPolicy,
+		Cfg:             config,
 	}); err != nil {
 		if auth.IsErrSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
@@ -384,7 +382,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	var config convert.Conversion
+	var config auth.Config
 	switch auth.Type(form.Type) {
 	case auth.LDAP, auth.DLDAP:
 		config = parseLDAPConfig(form)
@@ -413,7 +411,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 			return
 		}
 	default:
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
@@ -421,6 +419,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.IsActive = form.IsActive
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
+	source.TwoFactorPolicy = form.TwoFactorPolicy
 	if err := auth.UpdateSource(ctx, source); err != nil {
 		if auth.IsErrSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true

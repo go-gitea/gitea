@@ -1,5 +1,6 @@
 import {defineComponent, h, type PropType} from 'vue';
 import {parseDom, serializeXml} from './utils.ts';
+import {html, htmlRaw} from './utils/html.ts';
 import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
@@ -29,6 +30,7 @@ import octiconFile from '../../public/assets/img/svg/octicon-file.svg';
 import octiconFileDirectoryFill from '../../public/assets/img/svg/octicon-file-directory-fill.svg';
 import octiconFileDirectoryOpenFill from '../../public/assets/img/svg/octicon-file-directory-open-fill.svg';
 import octiconFileSubmodule from '../../public/assets/img/svg/octicon-file-submodule.svg';
+import octiconFileSymlinkFile from '../../public/assets/img/svg/octicon-file-symlink-file.svg';
 import octiconFilter from '../../public/assets/img/svg/octicon-filter.svg';
 import octiconGear from '../../public/assets/img/svg/octicon-gear.svg';
 import octiconGitBranch from '../../public/assets/img/svg/octicon-git-branch.svg';
@@ -107,6 +109,7 @@ const svgs = {
   'octicon-file-directory-fill': octiconFileDirectoryFill,
   'octicon-file-directory-open-fill': octiconFileDirectoryOpenFill,
   'octicon-file-submodule': octiconFileSubmodule,
+  'octicon-file-symlink-file': octiconFileSymlinkFile,
   'octicon-filter': octiconFilter,
   'octicon-gear': octiconGear,
   'octicon-git-branch': octiconGitBranch,
@@ -201,7 +204,6 @@ export const SvgIcon = defineComponent({
   props: {
     name: {type: String as PropType<SvgName>, required: true},
     size: {type: Number, default: 16},
-    className: {type: String, default: ''},
     symbolId: {type: String},
   },
   render() {
@@ -216,18 +218,10 @@ export const SvgIcon = defineComponent({
     attrs[`^width`] = this.size;
     attrs[`^height`] = this.size;
 
-    // make the <SvgIcon class="foo" class-name="bar"> classes work together
-    const classes: Array<string> = [];
-    for (const cls of svgOuter.classList) {
-      classes.push(cls);
-    }
-    // TODO: drop the `className/class-name` prop in the future, only use "class" prop
-    if (this.className) {
-      classes.push(...this.className.split(/\s+/).filter(Boolean));
-    }
+    const classes = Array.from(svgOuter.classList);
     if (this.symbolId) {
       classes.push('tw-hidden', 'svg-symbol-container');
-      svgInnerHtml = `<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${svgInnerHtml}</symbol>`;
+      svgInnerHtml = html`<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${htmlRaw(svgInnerHtml)}</symbol>`;
     }
     // create VNode
     return h('svg', {

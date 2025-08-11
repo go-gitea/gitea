@@ -59,11 +59,13 @@
 	</div>
 </div>
 
+{{if or .EnablePasskeyAuth .ShowRegistrationButton}}
 <div class="ui container fluid">
-	{{template "user/auth/webauthn_error" .}}
-
 	<div class="ui attached segment header top tw-max-w-2xl tw-m-auto tw-flex tw-flex-col tw-items-center">
-		<a class="signin-passkey">{{ctx.Locale.Tr "auth.signin_passkey"}}</a>
+		{{if .EnablePasskeyAuth}}
+			{{template "user/auth/webauthn_error" .}}
+			<a class="signin-passkey">{{ctx.Locale.Tr "auth.signin_passkey"}}</a>
+		{{end}}
 
 		{{if .ShowRegistrationButton}}
 			<div class="field">
@@ -73,3 +75,4 @@
 		{{end}}
 	</div>
 </div>
+{{end}}

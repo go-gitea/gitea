@@ -19,8 +19,8 @@ func Test_ToPullReview(t *testing.T) {
 
 	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 6})
-	assert.EqualValues(t, reviewer.ID, review.ReviewerID)
-	assert.EqualValues(t, issues_model.ReviewTypePending, review.Type)
+	assert.Equal(t, reviewer.ID, review.ReviewerID)
+	assert.Equal(t, issues_model.ReviewTypePending, review.Type)
 
 	reviewList := []*issues_model.Review{review}
 
