@@ -936,7 +936,7 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 	}
 	_, coAuthors := pull_service.GetSquashMergeCommitMessages(ctx, pull)
 
-	defaultSquashMergeBody += fmt.Sprintf("\n%s", coAuthors)
+	defaultSquashMergeBody = fmt.Sprintf("%s\n%s", defaultSquashMergeBody, coAuthors)
 
 	commitsMsg, err := getPullViewSquashMergeCommits(ctx, issue)
 	if err != nil {
