@@ -392,7 +392,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	if issue.IsPull {
-		prepareFuncs = append(prepareFuncs, prepareIssueViewSquashMergeMsg)
+		prepareFuncs = append(prepareFuncs, preparePullViewSquashMergeMsg)
 	}
 
 	for _, prepareFunc := range prepareFuncs {
@@ -446,7 +446,7 @@ func ViewPullMergeBox(ctx *context.Context) {
 	}
 	preparePullViewPullInfo(ctx, issue)
 	preparePullViewReviewAndMerge(ctx, issue)
-	prepareIssueViewSquashMergeMsg(ctx, issue)
+	preparePullViewSquashMergeMsg(ctx, issue)
 	ctx.Data["PullMergeBoxReloading"] = issue.PullRequest.IsChecking()
 
 	// TODO: it should use a dedicated struct to render the pull merge box, to make sure all data is prepared correctly
@@ -1024,7 +1024,7 @@ func getIssueViewSquashMergeCommits(ctx *context.Context, issue *issues_model.Is
 	return commits, nil
 }
 
-func prepareIssueViewSquashMergeMsg(ctx *context.Context, issue *issues_model.Issue) {
+func preparePullViewSquashMergeMsg(ctx *context.Context, issue *issues_model.Issue) {
 	pull := issue.PullRequest
 
 	defaultSquashMergeMessage, defaultSquashMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
