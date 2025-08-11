@@ -22,6 +22,14 @@ import (
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	repoMigrationsInflightGauge = promauto.NewGauge(prometheus.GaugeOpts{Namespace: "gitea", Subsystem: "repository", Name: "inflight_migrations", Help: "Number of inflight repository migrations"})
+	repoMigrationsCounter       = promauto.NewGaugeVec(prometheus.GaugeOpts{Namespace: "gitea", Subsystem: "repository", Name: "migrations", Help: "Total migrations"}, []string{"result"})
 )
 
 // MigrateOptions is equal to base.MigrateOptions
@@ -123,6 +131,9 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 		return nil, err
 	}
 
+	repoMigrationsInflightGauge.Inc()
+	defer repoMigrationsInflightGauge.Dec()
+
 	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 	uploader.gitServiceType = opts.GitServiceType
 
@@ -133,8 +144,10 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
 			log.Error("create respotiry notice failed: ", err2)
 		}
+		repoMigrationsCounter.WithLabelValues("fail").Inc()
 		return nil, err
 	}
+	repoMigrationsCounter.WithLabelValues("success").Inc()
 	return uploader.repo, nil
 }
 

@@ -53,6 +53,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/klauspost/compress/gzhttp"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 )
 
 var GzipMinSize = 1400 // min size to compress for the body size of response
@@ -259,6 +260,7 @@ func Routes() *web.Router {
 	}
 
 	if setting.Metrics.Enabled {
+		prometheus.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{Namespace: "gitea"}))
 		prometheus.MustRegister(metrics.NewCollector())
 		routes.Get("/metrics", append(mid, Metrics)...)
 	}

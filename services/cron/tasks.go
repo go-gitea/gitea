@@ -19,9 +19,18 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
+	cronInflight = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gitea",
+		Subsystem: "cron",
+		Name:      "active_tasks",
+		Help:      "Number of running cron tasks",
+	})
 	lock     = sync.Mutex{}
 	started  = false
 	tasks    = []*Task{}
@@ -86,6 +95,8 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 		taskStatusTable.Stop(t.Name)
 	}()
 	graceful.GetManager().RunWithShutdownContext(func(baseCtx context.Context) {
+		cronInflight.Inc()
+		defer cronInflight.Dec()
 		defer func() {
 			if err := recover(); err != nil {
 				// Recover a panic within the execution of the task.
