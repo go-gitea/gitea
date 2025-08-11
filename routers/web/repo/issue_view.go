@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
@@ -1029,10 +1030,12 @@ func getPullViewSquashMergeCommits(ctx *context.Context, issue *issues_model.Iss
 		return "", err
 	}
 
-	commits := ""
+	commitsBuilder := strings.Builder{}
 	for _, c := range compareInfo.Commits {
-		commits += fmt.Sprintf("* %s\n", c.CommitMessage)
+		commitsBuilder.WriteString("* ")
+		commitsBuilder.WriteString(c.CommitMessage)
+		commitsBuilder.WriteRune('\n')
 	}
 
-	return commits, nil
+	return commitsBuilder.String(), nil
 }
