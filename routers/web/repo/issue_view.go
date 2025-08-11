@@ -1004,7 +1004,7 @@ func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 	}
 }
 
-func getIssueViewSquashMergeCommits(ctx *context.Context, issue *issues_model.Issue) (string, error) {
+func getPullViewSquashMergeCommits(ctx *context.Context, issue *issues_model.Issue) (string, error) {
 	pull := issue.PullRequest
 	pull.Issue = issue
 
@@ -1033,7 +1033,7 @@ func preparePullViewSquashMergeMsg(ctx *context.Context, issue *issues_model.Iss
 		return
 	}
 
-	commitsMsg, err := getIssueViewSquashMergeCommits(ctx, issue)
+	commitsMsg, err := getPullViewSquashMergeCommits(ctx, issue)
 	if err != nil {
 		ctx.ServerError("getIssueViewSquashMergeCommits", err)
 		return
