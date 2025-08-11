@@ -97,6 +97,13 @@ func TestRender_Source(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
+	test(`#+begin_src c
+int a;
+#+end_src
+`, `<div class="src src-c">
+<pre><code class="chroma language-c"><span class="kt">int</span> <span class="n">a</span><span class="p">;</span></code></pre>
+</div>`)
+
 	test(`#+begin_src go
 // HelloWorld prints "Hello World"
 func HelloWorld() {
@@ -104,9 +111,9 @@ func HelloWorld() {
 }
 #+end_src
 `, `<div class="src src-go">
-<pre><code class="chroma language-go"><span class="c1">// HelloWorld prints &#34;Hello World&#34;</span>
-<span class="kd">func</span> <span class="nf">HelloWorld</span><span class="p">()</span> <span class="p">{</span>
-	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Hello World&#34;</span><span class="p">)</span>
-<span class="p">}</span></code></pre>
+<pre><code class="chroma language-go"><span class="c1">// HelloWorld prints &#34;Hello World&#34;</span><span class="w">
+</span><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">HelloWorld</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span><span class="w">	</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Hello World&#34;</span><span class="p">)</span><span class="w">
+</span><span class="w"></span><span class="p">}</span></code></pre>
 </div>`)
 }
