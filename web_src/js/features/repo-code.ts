@@ -14,7 +14,7 @@ function changeHash(hash: string) {
 // it selects the code lines defined by range: `L1-L3` (3 lines) or `L2` (singe line)
 function selectRange(range: string): Element {
   for (const el of document.querySelectorAll('.code-view tr.active')) el.classList.remove('active');
-  const elLineNums = document.querySelectorAll(`.code-view td.lines-num[id^="L"]`);
+  const elLineNums = document.querySelectorAll(`.code-view td.lines-num span[id^="L"]`);
 
   const refInNewIssue = document.querySelector('a.ref-in-new-issue');
   const copyPermalink = document.querySelector('a.copy-line-permalink');
@@ -107,17 +107,6 @@ function showLineButton() {
       }, {once: true});
     },
   });
-
-  // Handle menu button click manually
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const tippyInstance = btn._tippy;
-    if (tippyInstance?.state.isShown) {
-      tippyInstance.hide();
-    } else if (tippyInstance) {
-      tippyInstance.show();
-    }
-  });
 }
 
 export function initRepoCodeView() {
@@ -129,7 +118,7 @@ export function initRepoCodeView() {
 
   // "file code view" and "blame" pages need this "line number button" feature
   let selRangeStart: string;
-  addDelegatedEventListener(document, 'click', '.code-view .lines-num', (el: HTMLElement, e: KeyboardEvent) => {
+  addDelegatedEventListener(document, 'click', '.code-view .lines-num span', (el: HTMLElement, e: KeyboardEvent) => {
     if (!selRangeStart || !e.shiftKey) {
       selRangeStart = el.getAttribute('id');
       selectRange(selRangeStart);
