@@ -15,7 +15,7 @@
   top: 50%;
   transform: translateY(-50%);
   border-radius: 2px;
-  background: repeating-linear-gradient(45deg, #aaa 25%, transparent 25%, transparent 75%, #aaa 75%, #aaa), repeating-linear-gradient(45deg, #aaa 25%, #fff 25%, #fff 75%, #aaa 75%, #aaa); /* stylelint-disable-line scale-unlimited/declaration-strict-value */
+  background: repeating-linear-gradient(45deg, #aaa 25%, transparent 25%, transparent 75%, #aaa 75%, #aaa), repeating-linear-gradient(45deg, #aaa 25%, #fff 25%, #fff 75%, #aaa 75%, #aaa);
   background-position: 0 0, 4px 4px;
   background-size: 8px 8px;
 }
