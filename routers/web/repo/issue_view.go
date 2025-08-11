@@ -939,7 +939,7 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 
 	commitsMsg, err := getPullViewSquashMergeCommits(ctx, issue)
 	if err != nil {
-		ctx.ServerError("getIssueViewSquashMergeCommits", err)
+		ctx.ServerError("getPullViewSquashMergeCommits", err)
 		return
 	}
 
