@@ -9,7 +9,7 @@ import (
 
 func AddWebhookPayloadOptimizationColumns(x *xorm.Engine) error {
 	type Webhook struct {
-		PayloadOptimization string `xorm:"payload_optimization TEXT"`
+		MetaSettings string `xorm:"meta_settings TEXT"`
 	}
 	_, err := x.SyncWithOptions(
 		xorm.SyncOptions{

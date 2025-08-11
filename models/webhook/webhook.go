@@ -22,6 +22,11 @@ import (
 	"xorm.io/builder"
 )
 
+// MetaSettings represents the metadata settings for webhook
+type MetaSettings struct {
+	PayloadOptimization *PayloadOptimizationConfig `json:"payload_optimization,omitempty"` // Payload optimization configuration
+}
+
 // PayloadOptimizationConfig represents the configuration for webhook payload optimization
 type PayloadOptimizationConfig struct {
 	Files   *PayloadOptimizationItem `json:"files,omitempty"`   // Files optimization config
@@ -32,6 +37,13 @@ type PayloadOptimizationConfig struct {
 type PayloadOptimizationItem struct {
 	Enable bool `json:"enable"` // Whether to enable optimization for this item
 	Limit  int  `json:"limit"`  // 0: trim all (none kept), >0: keep N items (forward order), <0: keep N items (reverse order)
+}
+
+// DefaultMetaSettings returns the default webhook meta settings
+func DefaultMetaSettings() *MetaSettings {
+	return &MetaSettings{
+		PayloadOptimization: DefaultPayloadOptimizationConfig(),
+	}
 }
 
 // DefaultPayloadOptimizationConfig returns the default payload optimization configuration
@@ -159,8 +171,8 @@ type Webhook struct {
 	// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
 	HeaderAuthorizationEncrypted string `xorm:"TEXT"`
 
-	// Payload size optimization options
-	PayloadOptimization string `xorm:"payload_optimization TEXT"` // JSON: {"enable": bool, "limit": int}
+	// Webhook metadata settings (JSON format)
+	MetaSettings string `xorm:"meta_settings TEXT"` // JSON: webhook metadata configuration
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -370,34 +382,54 @@ func DeleteWebhookByOwnerID(ctx context.Context, ownerID, id int64) error {
 	return DeleteWebhookByID(ctx, id)
 }
 
+// GetMetaSettings returns the webhook meta settings
+func (w *Webhook) GetMetaSettings() *MetaSettings {
+	if w.MetaSettings == "" {
+		return DefaultMetaSettings()
+	}
+
+	var settings MetaSettings
+	if err := json.Unmarshal([]byte(w.MetaSettings), &settings); err != nil {
+		log.Error("Failed to unmarshal webhook meta settings: %v", err)
+		return DefaultMetaSettings()
+	}
+
+	// Ensure payload optimization config is initialized
+	if settings.PayloadOptimization == nil {
+		settings.PayloadOptimization = DefaultPayloadOptimizationConfig()
+	}
+
+	return &settings
+}
+
 // GetPayloadOptimizationConfig returns the payload optimization configuration
 func (w *Webhook) GetPayloadOptimizationConfig() *PayloadOptimizationConfig {
-	if w.PayloadOptimization == "" {
-		return DefaultPayloadOptimizationConfig()
+	return w.GetMetaSettings().PayloadOptimization
+}
+
+// SetMetaSettings sets the webhook meta settings
+func (w *Webhook) SetMetaSettings(settings *MetaSettings) error {
+	if settings == nil {
+		settings = DefaultMetaSettings()
 	}
 
-	var config PayloadOptimizationConfig
-	if err := json.Unmarshal([]byte(w.PayloadOptimization), &config); err != nil {
-		log.Error("Failed to unmarshal payload optimization config: %v", err)
-		return DefaultPayloadOptimizationConfig()
+	data, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("failed to marshal webhook meta settings: %w", err)
 	}
 
-	return &config
+	w.MetaSettings = string(data)
+	return nil
 }
 
 // SetPayloadOptimizationConfig sets the payload optimization configuration
 func (w *Webhook) SetPayloadOptimizationConfig(config *PayloadOptimizationConfig) error {
+	settings := w.GetMetaSettings()
 	if config == nil {
 		config = DefaultPayloadOptimizationConfig()
 	}
-
-	data, err := json.Marshal(config)
-	if err != nil {
-		return fmt.Errorf("failed to marshal payload optimization config: %w", err)
-	}
-
-	w.PayloadOptimization = string(data)
-	return nil
+	settings.PayloadOptimization = config
+	return w.SetMetaSettings(settings)
 }
 
 // IsPayloadOptimizationEnabled returns whether payload optimization is enabled
