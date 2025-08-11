@@ -56,16 +56,29 @@ func MoveRepositoryToGroup(ctx context.Context, repo *repo_model.Repository, new
 }
 
 func MoveGroupItem(ctx context.Context, itemID, newParent int64, isGroup bool, newPos int) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
+	var committer db.Committer
+	ctx, committer, err = db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-
+	var parentGroup *group_model.Group
+	parentGroup, err = group_model.GetGroupByID(ctx, newParent)
+	if err != nil {
+		return err
+	}
+	err = parentGroup.LoadSubgroups(ctx, false)
+	if err != nil {
+		return err
+	}
 	if isGroup {
-		group, err := group_model.GetGroupByID(ctx, itemID)
+		var group *group_model.Group
+		group, err = group_model.GetGroupByID(ctx, itemID)
 		if err != nil {
 			return err
+		}
+		if newPos < 0 {
+			newPos = len(parentGroup.Subgroups)
 		}
 		if group.ParentGroupID != newParent || group.SortOrder != newPos {
 			if err = group_model.MoveGroup(ctx, group, newParent, newPos); err != nil {
@@ -76,9 +89,20 @@ func MoveGroupItem(ctx context.Context, itemID, newParent int64, isGroup bool, n
 			}
 		}
 	} else {
-		repo, err := repo_model.GetRepositoryByID(ctx, itemID)
+		var repo *repo_model.Repository
+		repo, err = repo_model.GetRepositoryByID(ctx, itemID)
 		if err != nil {
 			return err
+		}
+		if newPos < 0 {
+			var repoCount int64
+			repoCount, err = repo_model.CountRepository(ctx, &repo_model.SearchRepoOptions{
+				GroupID: newParent,
+			})
+			if err != nil {
+				return err
+			}
+			newPos = int(repoCount)
 		}
 		if repo.GroupID != newParent || repo.GroupSortOrder != newPos {
 			if err = MoveRepositoryToGroup(ctx, repo, newParent, newPos); err != nil {
