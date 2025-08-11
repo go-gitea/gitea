@@ -1,2 +1,3 @@
-BASE_URL = 'http://54.247.213.28:3000'
-API_TOKEN = 'f1600abdf735b9e11dbfc45e57db04319d58235e'
+import os
+API_TOKEN = 'b32712d989aeee1e78f112ba4fc8e9f93ae7fe78'
+BASE_URL = os.getenv('GITEA_URL', 'http://localhost:3000')
