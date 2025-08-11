@@ -389,7 +389,10 @@ func ViewIssue(ctx *context.Context) {
 		prepareIssueViewSidebarPin,
 		func(ctx *context.Context, issue *issues_model.Issue) { preparePullViewPullInfo(ctx, issue) },
 		preparePullViewReviewAndMerge,
-		prepareIssueViewSquashMergeMsg,
+	}
+
+	if ctx.PathParam("type") == "pulls" {
+		prepareFuncs = append(prepareFuncs, prepareIssueViewSquashMergeMsg)
 	}
 
 	for _, prepareFunc := range prepareFuncs {
