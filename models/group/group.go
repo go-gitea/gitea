@@ -322,6 +322,12 @@ func ParentGroupCond(idStr string, groupID int64) builder.Cond {
 	return builder.In(idStr, groupList)
 }
 
+func UpdateGroup(ctx context.Context, group *Group) error {
+	sess := db.GetEngine(ctx)
+	_, err := sess.Table(group.TableName()).ID(group.ID).Update(group)
+	return err
+}
+
 func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder int) error {
 	sess := db.GetEngine(ctx)
 	ng, err := GetGroupByID(ctx, newParent)
