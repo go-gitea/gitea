@@ -391,7 +391,7 @@ func ViewIssue(ctx *context.Context) {
 		preparePullViewReviewAndMerge,
 	}
 
-	if ctx.PathParam("type") == "pulls" {
+	if issue.IsPull {
 		prepareFuncs = append(prepareFuncs, prepareIssueViewSquashMergeMsg)
 	}
 
