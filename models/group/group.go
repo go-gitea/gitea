@@ -24,11 +24,10 @@ type Group struct {
 	ID          int64 `xorm:"pk autoincr"`
 	OwnerID     int64 `xorm:"UNIQUE(s) index NOT NULL"`
 	OwnerName   string
-	Owner       *user_model.User `xorm:"-"`
-	LowerName   string           `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name        string           `xorm:"TEXT INDEX NOT NULL"`
-	Description string           `xorm:"TEXT"`
-	IsPrivate   bool
+	Owner       *user_model.User    `xorm:"-"`
+	LowerName   string              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name        string              `xorm:"TEXT INDEX NOT NULL"`
+	Description string              `xorm:"TEXT"`
 	Visibility  structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 	Avatar      string              `xorm:"VARCHAR(64)"`
 
