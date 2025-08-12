@@ -6,7 +6,6 @@ package convert
 import (
 	"context"
 	"net/url"
-	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/perm"
@@ -70,9 +69,10 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 		}
 	case activities_model.NotificationSourceCommit:
 		url := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
+		title, _ := utils.SplitCommitTitleBody(n.Commit.CommitMessage)
 		result.Subject = &api.NotificationSubject{
 			Type:    api.NotifySubjectCommit,
-			Title:   strings.TrimSpace(n.Commit.CommitMessage),
+			Title:   title,
 			URL:     url,
 			HTMLURL: url,
 		}
