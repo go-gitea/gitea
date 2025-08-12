@@ -469,7 +469,7 @@ func cleanupRepository(repoID int64) {
 }
 
 func updateGitRepoAfterCreate(ctx context.Context, repo *repo_model.Repository) error {
-	if err := checkDaemonExportOK(ctx, repo); err != nil {
+	if err := CheckDaemonExportOK(ctx, repo); err != nil {
 		return fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
