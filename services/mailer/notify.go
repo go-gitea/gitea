@@ -208,5 +208,7 @@ func (m *mailNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *
 }
 
 func (m *mailNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
-	MailActionsTrigger(ctx, sender, repo, run)
+	if err := MailActionsTrigger(ctx, sender, repo, run); err != nil {
+		log.Error("MailActionsTrigger: %v", err)
+	}
 }

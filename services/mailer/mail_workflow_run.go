@@ -33,16 +33,15 @@ func generateMessageIDForActionsWorkflowRunStatusEmail(repo *repo_model.Reposito
 	return fmt.Sprintf("<%s/actions/runs/%d@%s>", repo.FullName(), run.Index, setting.Domain)
 }
 
-func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, sender *user_model.User, recipients []*user_model.User) {
+func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, sender *user_model.User, recipients []*user_model.User) error {
 	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
 	if err != nil {
-		log.Error("GetRunJobsByRunID: %v", err)
-		return
+		return err
 	}
 	for _, job := range jobs {
 		if !job.Status.IsDone() {
-			log.Trace("composeAndSendActionsWorkflowRunStatusEmail: A job is not done. Will not compose and send actions email.")
-			return
+			log.Debug("composeAndSendActionsWorkflowRunStatusEmail: A job is not done. Will not compose and send actions email.")
+			return nil
 		}
 	}
 
@@ -118,8 +117,7 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 			"Jobs":          convertedJobs,
 			"locale":        locale,
 		}); err != nil {
-			log.Error("ExecuteTemplate [%s]: %v", tplWorkflowRun, err)
-			return
+			return err
 		}
 		msgs := make([]*sender_service.Message, 0, len(tos))
 		for _, rec := range tos {
@@ -143,14 +141,16 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 		}
 		SendAsync(msgs...)
 	}
+
+	return nil
 }
 
-func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo_model.Repository, run *actions_model.ActionRun) {
+func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo_model.Repository, run *actions_model.ActionRun) error {
 	if setting.MailService == nil {
-		return
+		return nil
 	}
 	if !run.Status.IsDone() || run.Status.IsSkipped() {
-		return
+		return nil
 	}
 
 	recipients := make([]*user_model.User, 0)
@@ -159,8 +159,7 @@ func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo
 		notifyPref, err := user_model.GetUserSetting(ctx, sender.ID,
 			user_model.SettingsKeyEmailNotificationGiteaActions, user_model.SettingEmailNotificationGiteaActionsFailureOnly)
 		if err != nil {
-			log.Error("GetUserSetting: %v", err)
-			return
+			return err
 		}
 		if notifyPref == user_model.SettingEmailNotificationGiteaActionsAll || !run.Status.IsSuccess() && notifyPref != user_model.SettingEmailNotificationGiteaActionsDisabled {
 			recipients = append(recipients, sender)
@@ -168,7 +167,8 @@ func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo
 	}
 
 	if len(recipients) > 0 {
-		log.Trace("MailActionsTrigger: Initiate email composition")
-		composeAndSendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
+		log.Debug("MailActionsTrigger: Initiate email composition")
+		return composeAndSendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
 	}
+	return nil
 }
