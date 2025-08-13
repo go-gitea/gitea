@@ -82,6 +82,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/activitypub"
 	"code.gitea.io/gitea/routers/api/v1/admin"
+	"code.gitea.io/gitea/routers/api/v1/group"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
@@ -208,7 +209,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			}
 		}
 
-		if !ctx.Repo.Permission.HasAnyUnitAccessOrEveryoneAccess() {
+		if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() {
 			ctx.APIErrorNotFound()
 			return
 		}
