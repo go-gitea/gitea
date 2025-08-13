@@ -1,0 +1,34 @@
+<div class="ui container">
+	<overflow-menu class="ui secondary pointing tabular borderless menu tw-mb-4">
+		<div class="overflow-menu-items">
+			<a class="{{if .PageIsViewRepositories}}active {{end}}item" href="{{.GroupLink}}">
+				{{svg "octicon-repo"}} {{ctx.Locale.Tr "user.repositories"}}
+				{{if .RepoCount}}
+					<div class="ui small label">{{.RepoCount}}</div>
+				{{end}}
+			</a>
+			{{if .CanReadProjects}}
+			<a class="{{if .PageIsViewProjects}}active {{end}}item" href="{{$.Group.GroupLink}}/projects">
+				{{svg "octicon-project-symlink"}} {{ctx.Locale.Tr "user.projects"}}
+				{{if .ProjectCount}}
+					<div class="ui small label">{{.ProjectCount}}</div>
+				{{end}}
+			</a>
+			{{end}}
+			{{if .IsGroupMember}}
+				<a class="{{if $.PageIsGroupTeams}}active {{end}}item" href="{{$.OrgGroupLink}}/teams">
+					{{svg "octicon-people"}} {{ctx.Locale.Tr "org.teams"}}
+					{{if .NumTeams}}
+						<div class="ui small label">{{.NumTeams}}</div>
+					{{end}}
+				</a>
+			{{end}}
+			{{if or .IsGroupOwner .IsGroupAdmin}}
+				<span class="item-flex-space"></span>
+				<a class="{{if .PageIsGroupSettings}}active {{end}}item" href="{{$.OrgGroupLink}}/settings">
+					{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
+				</a>
+			{{end}}
+		</div>
+	</overflow-menu>
+</div>
