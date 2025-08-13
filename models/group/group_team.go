@@ -1,12 +1,13 @@
 package group
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
-	"context"
 )
 
 // GroupTeam represents a relation for a team's access to a group

@@ -12,6 +12,7 @@ import (
 func (g *Group) CustomAvatarRelativePath() string {
 	return g.Avatar
 }
+
 func (g *Group) relAvatarLink() string {
 	// If no avatar - path is empty
 	avatarPath := g.CustomAvatarRelativePath()
@@ -28,6 +29,7 @@ func (g *Group) AvatarLink(ctx context.Context) string {
 	}
 	return ""
 }
+
 func (g *Group) AvatarLinkWithSize(size int) string {
 	if g.Avatar == "" {
 		return avatars.DefaultAvatarLink()

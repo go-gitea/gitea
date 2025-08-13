@@ -4,7 +4,6 @@
 package templates
 
 import (
-	group_model "code.gitea.io/gitea/models/group"
 	"context"
 	"html"
 	"html/template"
@@ -12,6 +11,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/avatars"
+	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
