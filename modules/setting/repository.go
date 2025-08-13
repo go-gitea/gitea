@@ -53,7 +53,7 @@ var (
 		DisableDownloadSourceArchives           bool
 		AllowForkWithoutMaximumLimit            bool
 		AllowForkIntoSameOwner                  bool
-
+		EnablePushSecretDetection               bool `ini:"ENABLE_PUSH_SECRET_DETECTION"`
 		// Repository editor settings
 		Editor struct {
 			LineWrapExtensions []string
