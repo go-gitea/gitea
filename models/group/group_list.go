@@ -11,9 +11,9 @@ import (
 	"xorm.io/builder"
 )
 
-type GroupList []*Group
+type RepoGroupList []*Group
 
-func (groups GroupList) LoadOwners(ctx context.Context) error {
+func (groups RepoGroupList) LoadOwners(ctx context.Context) error {
 	for _, g := range groups {
 		if g.Owner == nil {
 			err := g.LoadOwner(ctx)
