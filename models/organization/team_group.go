@@ -10,7 +10,7 @@ import (
 
 func GetTeamsWithAccessToGroup(ctx context.Context, orgID, groupID int64, mode perm.AccessMode) ([]*Team, error) {
 	teams := make([]*Team, 0)
-	inCond := group_model.ParentGroupCond("group_team.group_id", groupID)
+	inCond := group_model.ParentGroupCond(ctx, "group_team.group_id", groupID)
 	return teams, db.GetEngine(ctx).Distinct("team.*").Where("group_team.access_mode >= ?", mode).
 		Join("INNER", "group_team", "group_team.team_id = team.id and group_team.org_id = ?", orgID).
 		And("group_team.org_id = ?", orgID).
@@ -21,7 +21,7 @@ func GetTeamsWithAccessToGroup(ctx context.Context, orgID, groupID int64, mode p
 
 func GetTeamsWithAccessToGroupUnit(ctx context.Context, orgID, groupID int64, mode perm.AccessMode, unitType unit.Type) ([]*Team, error) {
 	teams := make([]*Team, 0)
-	inCond := group_model.ParentGroupCond("group_team.group_id", groupID)
+	inCond := group_model.ParentGroupCond(ctx, "group_team.group_id", groupID)
 	return teams, db.GetEngine(ctx).Where("group_team.access_mode >= ?", mode).
 		Join("INNER", "group_team", "group_team.team_id = team.id").
 		Join("INNER", "group_unit", "group_unit.team_id = team.id").

@@ -1,0 +1,52 @@
+package group
+
+import (
+	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
+	organization_model "code.gitea.io/gitea/models/organization"
+	user_model "code.gitea.io/gitea/models/user"
+	"context"
+	"xorm.io/builder"
+)
+
+// FindGroupMembers finds all users who have access to a group via team membership
+func FindGroupMembers(ctx context.Context, groupID int64, opts *organization_model.FindOrgMembersOpts) (user_model.UserList, error) {
+	cond := builder.
+		Select("`team_user`.uid").
+		From("team_user").
+		InnerJoin("org_user", "`org_user`.uid = team_user.uid").
+		InnerJoin("group_team", "`group_team`.team_id = team_user.team_id").
+		Where(builder.Eq{"`org_user`.org_id": opts.OrgID}).
+		And(group_model.ParentGroupCond(context.TODO(), "`group_team`.group_id", groupID))
+	if opts.PublicOnly() {
+		cond = cond.And(builder.Eq{"`org_user`.is_public": true})
+	}
+	sess := db.GetEngine(ctx).Where(builder.In("`user`.id", cond))
+	if opts.ListOptions.PageSize > 0 {
+		sess = db.SetSessionPagination(sess, opts)
+		users := make([]*user_model.User, 0, opts.ListOptions.PageSize)
+		return users, sess.Find(&users)
+	}
+
+	var users []*user_model.User
+	err := sess.Find(&users)
+	return users, err
+}
+
+func GetGroupTeams(ctx context.Context, groupID int64) (teams []*organization_model.Team, err error) {
+	err = db.GetEngine(ctx).
+		Where("`group_team`.group_id = ?", groupID).
+		Join("INNER", "group_team", "`group_team`.team_id = `team`.id").
+		Asc("`team`.name").
+		Find(&teams)
+	return
+}
+
+func IsGroupMember(ctx context.Context, groupID, userID int64) (bool, error) {
+	return db.GetEngine(ctx).
+		Where("`group_team`.group_id = ?", groupID).
+		Join("INNER", "group_team", "`group_team`.team_id = `team_user`.team_id").
+		And("`team_user`.uid = ?", userID).
+		Table("team_user").
+		Exist()
+}
