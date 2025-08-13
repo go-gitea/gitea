@@ -29,7 +29,7 @@ func ToAPIGroup(ctx context.Context, g *group_model.Group, actor *user_model.Use
 	}); err != nil {
 		return nil, err
 	}
-	if _, apiGroup.NumRepos, err = repo_model.SearchRepositoryByCondition(ctx, &repo_model.SearchRepoOptions{
+	if _, apiGroup.NumRepos, err = repo_model.SearchRepositoryByCondition(ctx, repo_model.SearchRepoOptions{
 		GroupID: g.ID,
 		Actor:   actor,
 		OwnerID: g.OwnerID,
