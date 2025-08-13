@@ -9,7 +9,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 // group 12 is private
@@ -39,7 +38,7 @@ func TestMoveGroup(t *testing.T) {
 		}
 		origCount := unittest.GetCount(t, new(group_model.Group), cond.ToConds())
 
-		assert.NoError(t, MoveGroupItem(context.TODO(), gid, 123, true, -1))
+		assert.NoError(t, MoveGroupItem(t.Context(), gid, 123, true, -1))
 		unittest.AssertCountByCond(t, "repo_group", cond.ToConds(), origCount+1)
 	}
 	testfn(124)

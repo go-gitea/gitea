@@ -8,8 +8,8 @@ import (
 	"code.gitea.io/gitea/models/unit"
 )
 
-// GroupUnit describes all units of a repository group
-type GroupUnit struct {
+// RepoGroupUnit describes all units of a repository group
+type RepoGroupUnit struct {
 	ID         int64     `xorm:"pk autoincr"`
 	GroupID    int64     `xorm:"UNIQUE(s)"`
 	TeamID     int64     `xorm:"UNIQUE(s)"`
@@ -17,16 +17,16 @@ type GroupUnit struct {
 	AccessMode perm.AccessMode
 }
 
-func (g *GroupUnit) Unit() unit.Unit {
+func (g *RepoGroupUnit) Unit() unit.Unit {
 	return unit.Units[g.Type]
 }
 
-func GetUnitsByGroupID(ctx context.Context, groupID int64) (units []*GroupUnit, err error) {
+func GetUnitsByGroupID(ctx context.Context, groupID int64) (units []*RepoGroupUnit, err error) {
 	return units, db.GetEngine(ctx).Where("group_id = ?", groupID).Find(&units)
 }
 
-func GetGroupUnit(ctx context.Context, groupID, teamID int64, unitType unit.Type) (unit *GroupUnit, err error) {
-	unit = new(GroupUnit)
+func GetGroupUnit(ctx context.Context, groupID, teamID int64, unitType unit.Type) (unit *RepoGroupUnit, err error) {
+	unit = new(RepoGroupUnit)
 	_, err = db.GetEngine(ctx).
 		Where("group_id = ?", groupID).
 		And("team_id = ?", teamID).
@@ -35,8 +35,8 @@ func GetGroupUnit(ctx context.Context, groupID, teamID int64, unitType unit.Type
 	return
 }
 
-func GetMaxGroupUnit(ctx context.Context, groupID int64, unitType unit.Type) (unit *GroupUnit, err error) {
-	units := make([]*GroupUnit, 0)
+func GetMaxGroupUnit(ctx context.Context, groupID int64, unitType unit.Type) (unit *RepoGroupUnit, err error) {
+	units := make([]*RepoGroupUnit, 0)
 	err = db.GetEngine(ctx).
 		Where("group_id = ?", groupID).
 		And("type = ?", unitType).

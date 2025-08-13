@@ -23,10 +23,10 @@ func DeleteGroup(ctx context.Context, gid int64) error {
 	}
 
 	// remove team permissions and units for deleted group
-	if _, err = sess.Where("group_id = ?", gid).Delete(new(group_model.GroupTeam)); err != nil {
+	if _, err = sess.Where("group_id = ?", gid).Delete(new(group_model.RepoGroupTeam)); err != nil {
 		return err
 	}
-	if _, err = sess.Where("group_id = ?", gid).Delete(new(group_model.GroupUnit)); err != nil {
+	if _, err = sess.Where("group_id = ?", gid).Delete(new(group_model.RepoGroupUnit)); err != nil {
 		return err
 	}
 
