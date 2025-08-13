@@ -1,16 +1,17 @@
 package group
 
 import (
-	"code.gitea.io/gitea/models/db"
-	group_model "code.gitea.io/gitea/models/group"
-	"code.gitea.io/gitea/modules/avatar"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/storage"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+
+	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
+	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/storage"
 )
 
 // UploadAvatar saves custom icon for group.

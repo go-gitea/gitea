@@ -1,12 +1,13 @@
 package group
 
 import (
+	"context"
+	"strings"
+
 	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/structs"
-	"context"
-	"strings"
 )
 
 type UpdateOptions struct {

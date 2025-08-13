@@ -4,12 +4,12 @@
 package access
 
 import (
-	group_model "code.gitea.io/gitea/models/group"
 	"context"
 	"fmt"
 	"slices"
 
 	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/organization"
 	perm_model "code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
