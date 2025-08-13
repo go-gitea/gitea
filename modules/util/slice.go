@@ -78,7 +78,7 @@ func SliceNilAsEmpty[T any](a []T) []T {
 	return a
 }
 
-func SliceMap[T any, R any](slice []T, mapper func(it T) R) []R {
+func SliceMap[T, R any](slice []T, mapper func(it T) R) []R {
 	ret := make([]R, 0)
 	for _, it := range slice {
 		ret = append(ret, mapper(it))
