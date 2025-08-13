@@ -4,7 +4,6 @@
 package user
 
 import (
-	group_model "code.gitea.io/gitea/models/group"
 	"context"
 	"fmt"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"

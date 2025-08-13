@@ -1,10 +1,11 @@
 package group
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
-	"context"
 )
 
 // GroupUnit describes all units of a repository group
