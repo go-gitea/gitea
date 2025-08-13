@@ -119,6 +119,9 @@ type Repository struct {
 	RepoTransfer  *RepoTransfer `json:"repo_transfer,omitempty"`
 	Topics        []string      `json:"topics"`
 	Licenses      []string      `json:"licenses"`
+
+	GroupID        int64 `json:"group_id"`
+	GroupSortOrder int   `json:"group_sort_order"`
 }
 
 // CreateRepoOption options when creating repository
