@@ -331,7 +331,7 @@ func UpdateGroup(ctx context.Context, group *Group) error {
 func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder int) error {
 	sess := db.GetEngine(ctx)
 	ng, err := GetGroupByID(ctx, newParent)
-	if !IsErrGroupNotExist(err) {
+	if err != nil && !IsErrGroupNotExist(err) {
 		return err
 	}
 	if ng != nil {
