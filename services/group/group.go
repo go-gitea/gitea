@@ -44,6 +44,15 @@ func NewGroup(ctx context.Context, g *group_model.Group) (err error) {
 
 func MoveRepositoryToGroup(ctx context.Context, repo *repo_model.Repository, newGroupID int64, groupSortOrder int) error {
 	sess := db.GetEngine(ctx)
+	if newGroupID > 0 {
+		newGroup, err := group_model.GetGroupByID(ctx, newGroupID)
+		if err != nil {
+			return err
+		}
+		if newGroup.OwnerID != repo.OwnerID {
+			return fmt.Errorf("repo[%d]'s ownerID is not equal to new parent group[%d]'s owner ID", repo.ID, newGroup.ID)
+		}
+	}
 	repo.GroupID = newGroupID
 	repo.GroupSortOrder = groupSortOrder
 	cnt, err := sess.
