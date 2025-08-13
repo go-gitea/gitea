@@ -1,0 +1,18 @@
+<h4 class="ui top attached header tw-flex tw-items-center">
+	<strong class="tw-flex-1 tw-flex-grow">{{ctx.Locale.Tr "org.groups"}}</strong>
+	{{if .IsOrganizationMember}}
+	<a class="text grey tw-items-center tw-block tw-h-4" href="{{.OrgLink}}/groups/new">
+		<span class="tw-block tw-h-full">
+			{{svg "octicon-plus" 16 "tw-inline-block"}}
+		</span>
+	</a>
+	{{end}}
+</h4>
+<div class="ui attached segment" id="group-navigation-menu">
+		<ul class="tw-list-none tw-px-0 expandable-menu tw-m-0 tw-space-y-4{{if .IsOrganizationMember}} sortable{{end}}"{{if .IsOrganizationMember}}
+				data-url="{{ctx.Org.HomeLink}}/groups"{{end}}>
+			{{ range .GroupNavItems }}
+				{{template "group/sidebar/sidebar_item" dict "item" . "root" $}}
+			{{end}}
+		</ul>
+</div>
