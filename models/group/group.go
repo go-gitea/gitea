@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+
 	"xorm.io/builder"
 )
 
@@ -129,8 +130,12 @@ func (g *Group) LoadOwner(ctx context.Context) error {
 }
 
 func (g *Group) CanAccess(ctx context.Context, userID int64) (bool, error) {
+	return g.CanAccessAtLevel(ctx, userID, perm.AccessModeRead)
+}
+
+func (g *Group) CanAccessAtLevel(ctx context.Context, userID int64, level perm.AccessMode) (bool, error) {
 	return db.GetEngine(ctx).
-		Where(UserOrgTeamPermCond("id", userID, perm.AccessModeRead)).Table("repo_group").Exist()
+		Where(UserOrgTeamPermCond("id", userID, level)).Table("repo_group").Exist()
 }
 
 func (g *Group) IsOwnedBy(ctx context.Context, userID int64) (bool, error) {

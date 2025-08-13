@@ -1,11 +1,12 @@
 package organization
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
-	"context"
 )
 
 func GetTeamsWithAccessToGroup(ctx context.Context, orgID, groupID int64, mode perm.AccessMode) ([]*Team, error) {
