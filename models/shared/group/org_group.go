@@ -35,13 +35,13 @@ func FindGroupMembers(ctx context.Context, groupID int64, opts *organization_mod
 	return users, err
 }
 
-func GetGroupTeams(ctx context.Context, groupID int64) (teams []*organization_model.Team, err error) {
-	err = db.GetEngine(ctx).
+func GetGroupTeams(ctx context.Context, groupID int64) ([]*organization_model.Team, error) {
+	var teams []*organization_model.Team
+	return teams, db.GetEngine(ctx).
 		Where("`group_team`.group_id = ?", groupID).
 		Join("INNER", "group_team", "`group_team`.team_id = `team`.id").
 		Asc("`team`.name").
 		Find(&teams)
-	return
 }
 
 func IsGroupMember(ctx context.Context, groupID, userID int64) (bool, error) {
