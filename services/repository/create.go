@@ -54,6 +54,7 @@ type CreateRepoOptions struct {
 	TrustModel       repo_model.TrustModelType
 	MirrorInterval   string
 	ObjectFormatName string
+	GroupID          int64
 }
 
 func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir string, opts CreateRepoOptions) error {
@@ -257,6 +258,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		DefaultBranch:                   opts.DefaultBranch,
 		DefaultWikiBranch:               setting.Repository.DefaultBranch,
 		ObjectFormatName:                opts.ObjectFormatName,
+		GroupID:                         opts.GroupID,
 	}
 
 	// 1 - create the repository database operations first
