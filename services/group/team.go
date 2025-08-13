@@ -135,7 +135,7 @@ func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew boo
 					"type":     u.Type,
 					"team_id":  t.ID,
 					"group_id": g.ID,
-				}).Update(&group_model.GroupUnit{
+				}).Cols("access_mode").Update(&group_model.GroupUnit{
 					AccessMode: newAccessMode,
 				}); err != nil {
 					return err
