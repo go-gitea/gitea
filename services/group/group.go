@@ -96,7 +96,7 @@ func MoveGroupItem(ctx context.Context, itemID, newParent int64, isGroup bool, n
 		}
 		if newPos < 0 {
 			var repoCount int64
-			repoCount, err = repo_model.CountRepository(ctx, &repo_model.SearchRepoOptions{
+			repoCount, err = repo_model.CountRepository(ctx, repo_model.SearchRepoOptions{
 				GroupID: newParent,
 			})
 			if err != nil {

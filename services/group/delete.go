@@ -31,13 +31,13 @@ func DeleteGroup(ctx context.Context, gid int64) error {
 	}
 
 	// move all repos in the deleted group to its immediate parent
-	repos, cnt, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	repos, cnt, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		GroupID: gid,
 	})
 	if err != nil {
 		return err
 	}
-	_, inParent, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	_, inParent, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		GroupID: toDelete.ParentGroupID,
 	})
 	if err != nil {

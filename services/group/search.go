@@ -35,7 +35,7 @@ type GroupWebSearchOptions struct {
 	Locale    translation.Locale
 	Recurse   bool
 	Actor     *user_model.User
-	RepoOpts  *repo_model.SearchRepoOptions
+	RepoOpts  repo_model.SearchRepoOptions
 	GroupOpts *group_model.FindGroupsOptions
 	OrgID     int64
 }
