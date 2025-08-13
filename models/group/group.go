@@ -195,7 +195,7 @@ func ParentGroupCondByRepoID(ctx context.Context, repoID int64, idStr string) bu
 	if err != nil {
 		return builder.In(idStr)
 	}
-	return ParentGroupCond(idStr, g.ID)
+	return ParentGroupCond(ctx, idStr, g.ID)
 }
 
 type FindGroupsOptions struct {
@@ -313,8 +313,8 @@ func GetParentGroupIDChain(ctx context.Context, groupID int64) (ids []int64, err
 }
 
 // ParentGroupCond returns a condition matching a group and its ancestors
-func ParentGroupCond(idStr string, groupID int64) builder.Cond {
-	groupList, err := GetParentGroupIDChain(db.DefaultContext, groupID)
+func ParentGroupCond(ctx context.Context, idStr string, groupID int64) builder.Cond {
+	groupList, err := GetParentGroupIDChain(ctx, groupID)
 	if err != nil {
 		log.Info("Error building group cond: %w", err)
 		return builder.NotIn(idStr)
@@ -331,7 +331,7 @@ func UpdateGroup(ctx context.Context, group *Group) error {
 func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder int) error {
 	sess := db.GetEngine(ctx)
 	ng, err := GetGroupByID(ctx, newParent)
-	if err != nil && !IsErrGroupNotExist(err) {
+	if !IsErrGroupNotExist(err) {
 		return err
 	}
 	if ng != nil {
