@@ -32,9 +32,9 @@ type Group struct {
 	Visibility  structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 	Avatar      string              `xorm:"VARCHAR(64)"`
 
-	ParentGroupID int64     `xorm:"DEFAULT NULL"`
-	ParentGroup   *Group    `xorm:"-"`
-	Subgroups     GroupList `xorm:"-"`
+	ParentGroupID int64         `xorm:"DEFAULT NULL"`
+	ParentGroup   *Group        `xorm:"-"`
+	Subgroups     RepoGroupList `xorm:"-"`
 
 	SortOrder int `xorm:"INDEX"`
 }
@@ -52,8 +52,8 @@ func (Group) TableName() string { return "repo_group" }
 
 func init() {
 	db.RegisterModel(new(Group))
-	db.RegisterModel(new(GroupTeam))
-	db.RegisterModel(new(GroupUnit))
+	db.RegisterModel(new(RepoGroupTeam))
+	db.RegisterModel(new(RepoGroupUnit))
 }
 
 func (g *Group) doLoadSubgroups(ctx context.Context, recursive bool, cond builder.Cond, currentLevel int) error {
@@ -141,30 +141,30 @@ func (g *Group) CanAccessAtLevel(ctx context.Context, userID int64, level perm.A
 func (g *Group) IsOwnedBy(ctx context.Context, userID int64) (bool, error) {
 	return db.GetEngine(ctx).
 		Where("team_user.uid = ?", userID).
-		Join("INNER", "team_user", "team_user.team_id = group_team.team_id").
-		And("group_team.access_mode = ?", perm.AccessModeOwner).
-		And("group_team.group_id = ?", g.ID).
-		Table("group_team").
+		Join("INNER", "team_user", "team_user.team_id = repo_group_team.team_id").
+		And("repo_group_team.access_mode = ?", perm.AccessModeOwner).
+		And("repo_group_team.group_id = ?", g.ID).
+		Table("repo_group_team").
 		Exist()
 }
 
 func (g *Group) CanCreateIn(ctx context.Context, userID int64) (bool, error) {
 	return db.GetEngine(ctx).
 		Where("team_user.uid = ?", userID).
-		Join("INNER", "team_user", "team_user.team_id = group_team.team_id").
-		And("group_team.group_id = ?", g.ID).
-		And("group_team.can_create_in = ?", true).
-		Table("group_team").
+		Join("INNER", "team_user", "team_user.team_id = repo_group_team.team_id").
+		And("repo_group_team.group_id = ?", g.ID).
+		And("repo_group_team.can_create_in = ?", true).
+		Table("repo_group_team").
 		Exist()
 }
 
 func (g *Group) IsAdminOf(ctx context.Context, userID int64) (bool, error) {
 	return db.GetEngine(ctx).
 		Where("team_user.uid = ?", userID).
-		Join("INNER", "team_user", "team_user.team_id = group_team.team_id").
-		And("group_team.group_id = ?", g.ID).
-		And("group_team.access_mode >= ?", perm.AccessModeAdmin).
-		Table("group_team").
+		Join("INNER", "team_user", "team_user.team_id = repo_group_team.team_id").
+		And("repo_group_team.group_id = ?", g.ID).
+		And("repo_group_team.access_mode >= ?", perm.AccessModeAdmin).
+		Table("repo_group_team").
 		Exist()
 }
 
@@ -224,11 +224,11 @@ func (opts FindGroupsOptions) ToConds() builder.Cond {
 	}
 	if opts.CanCreateIn.Has() && opts.ActorID > 0 {
 		cond = cond.And(builder.In("id",
-			builder.Select("group_team.group_id").
-				From("group_team").
+			builder.Select("repo_group_team.group_id").
+				From("repo_group_team").
 				Where(builder.Eq{"team_user.uid": opts.ActorID}).
-				Join("INNER", "team_user", "team_user.team_id = group_team.team_id").
-				And(builder.Eq{"group_team.can_create_in": true})))
+				Join("INNER", "team_user", "team_user.team_id = repo_group_team.team_id").
+				And(builder.Eq{"repo_group_team.can_create_in": true})))
 	}
 	if opts.Name != "" {
 		cond = cond.And(builder.Eq{"lower_name": opts.Name})
@@ -236,7 +236,7 @@ func (opts FindGroupsOptions) ToConds() builder.Cond {
 	return cond
 }
 
-func FindGroups(ctx context.Context, opts *FindGroupsOptions) (GroupList, error) {
+func FindGroups(ctx context.Context, opts *FindGroupsOptions) (RepoGroupList, error) {
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, opts)
@@ -260,7 +260,7 @@ func findGroupsByCond(ctx context.Context, opts *FindGroupsOptions, cond builder
 	return sess.Asc("sort_order")
 }
 
-func FindGroupsByCond(ctx context.Context, opts *FindGroupsOptions, cond builder.Cond) (GroupList, error) {
+func FindGroupsByCond(ctx context.Context, opts *FindGroupsOptions, cond builder.Cond) (RepoGroupList, error) {
 	defaultSize := 50
 	if opts.PageSize > 0 {
 		defaultSize = opts.PageSize
@@ -285,7 +285,7 @@ func UpdateGroupOwnerName(ctx context.Context, oldUser, newUser string) error {
 }
 
 // GetParentGroupChain returns a slice containing a group and its ancestors
-func GetParentGroupChain(ctx context.Context, groupID int64) (GroupList, error) {
+func GetParentGroupChain(ctx context.Context, groupID int64) (RepoGroupList, error) {
 	groupList := make([]*Group, 0, 20)
 	currentGroupID := groupID
 	for {
@@ -306,7 +306,8 @@ func GetParentGroupChain(ctx context.Context, groupID int64) (GroupList, error) 
 	return groupList, nil
 }
 
-func GetParentGroupIDChain(ctx context.Context, groupID int64) (ids []int64, err error) {
+func GetParentGroupIDChain(ctx context.Context, groupID int64) ([]int64, error) {
+	var ids []int64
 	groupList, err := GetParentGroupChain(ctx, groupID)
 	if err != nil {
 		return nil, err
@@ -314,7 +315,7 @@ func GetParentGroupIDChain(ctx context.Context, groupID int64) (ids []int64, err
 	ids = util.SliceMap(groupList, func(g *Group) int64 {
 		return g.ID
 	})
-	return
+	return ids, err
 }
 
 // ParentGroupCond returns a condition matching a group and its ancestors
