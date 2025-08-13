@@ -1,11 +1,13 @@
 package group
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
 	organization_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
-	"context"
+
 	"xorm.io/builder"
 )
 

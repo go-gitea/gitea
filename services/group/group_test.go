@@ -1,13 +1,15 @@
 package group
 
 import (
+	"testing"
+
 	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
-	"testing"
 )
 
 // group 12 is private
@@ -44,9 +46,10 @@ func TestMoveGroup(t *testing.T) {
 	testfn(132)
 	testfn(150)
 }
+
 func TestMoveRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	cond := repo_model.SearchRepositoryCondition(&repo_model.SearchRepoOptions{
+	cond := repo_model.SearchRepositoryCondition(repo_model.SearchRepoOptions{
 		GroupID: 123,
 	})
 	origCount := unittest.GetCount(t, new(repo_model.Repository), cond)
