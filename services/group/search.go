@@ -25,12 +25,12 @@ type WebSearchGroup struct {
 	Repos                    []*repo_service.WebSearchRepository `json:"repos"`
 }
 
-type GroupWebSearchResult struct {
+type WebSearchResult struct {
 	OK   bool            `json:"ok"`
 	Data *WebSearchGroup `json:"data"`
 }
 
-type GroupWebSearchOptions struct {
+type WebSearchOptions struct {
 	Ctx       context.Context
 	Locale    translation.Locale
 	Recurse   bool
@@ -47,7 +47,7 @@ type WebSearchGroupRoot struct {
 	Repos  []*repo_service.WebSearchRepository
 }
 
-type GroupWebSearchRootResult struct {
+type WebSearchGroupRootResult struct {
 	OK   bool                `json:"ok"`
 	Data *WebSearchGroupRoot `json:"data"`
 }
@@ -71,7 +71,7 @@ func ToWebSearchRepo(ctx context.Context, repo *repo_model.Repository) *repo_ser
 	}
 }
 
-func (w *WebSearchGroup) doLoadChildren(opts *GroupWebSearchOptions) error {
+func (w *WebSearchGroup) doLoadChildren(opts *WebSearchOptions) error {
 	opts.RepoOpts.OwnerID = opts.OrgID
 	opts.RepoOpts.GroupID = 0
 	opts.GroupOpts.OwnerID = opts.OrgID
@@ -138,7 +138,7 @@ func (w *WebSearchGroup) doLoadChildren(opts *GroupWebSearchOptions) error {
 	return nil
 }
 
-func ToWebSearchGroup(group *group_model.Group, opts *GroupWebSearchOptions) (*WebSearchGroup, error) {
+func ToWebSearchGroup(group *group_model.Group, opts *WebSearchOptions) (*WebSearchGroup, error) {
 	res := new(WebSearchGroup)
 
 	res.Repos = make([]*repo_service.WebSearchRepository, 0)
@@ -152,8 +152,8 @@ func ToWebSearchGroup(group *group_model.Group, opts *GroupWebSearchOptions) (*W
 	return res, nil
 }
 
-func SearchRepoGroupWeb(group *group_model.Group, opts *GroupWebSearchOptions) (*GroupWebSearchResult, error) {
-	res := new(WebSearchGroup)
+func SearchRepoGroupWeb(group *group_model.Group, opts *WebSearchOptions) (*WebSearchResult, error) {
+	var res *WebSearchGroup
 	var err error
 	res, err = ToWebSearchGroup(group, opts)
 	if err != nil {
@@ -163,37 +163,8 @@ func SearchRepoGroupWeb(group *group_model.Group, opts *GroupWebSearchOptions) (
 	if err != nil {
 		return nil, err
 	}
-	return &GroupWebSearchResult{
+	return &WebSearchResult{
 		Data: res,
 		OK:   true,
 	}, nil
 }
-
-/* func SearchRootItems(ctx context.Context, oid int64, groupSearchOptions *group_model.FindGroupsOptions, repoSearchOptions *repo_model.SearchRepoOptions, actor *user_model.User, recursive bool) (*WebSearchGroupRoot, error) {
-	root := &WebSearchGroupRoot{
-		Repos:  make([]*repo_service.WebSearchRepository, 0),
-		Groups: make([]*WebSearchGroup, 0),
-	}
-	groupSearchOptions.ParentGroupID = 0
-	groups, err := group_model.FindGroupsByCond(ctx, groupSearchOptions, group_model.AccessibleGroupCondition(actor, unit.TypeInvalid))
-	if err != nil {
-		return nil, err
-	}
-	for _, g := range groups {
-		toAppend, err := ToWebSearchGroup(ctx, g, actor, oid)
-		if err != nil {
-			return nil, err
-		}
-		root.Groups = append(root.Groups, toAppend)
-	}
-	repos, _, err := repo_model.SearchRepositoryByCondition(ctx, repoSearchOptions, repo_model.AccessibleRepositoryCondition(actor, unit.TypeInvalid), true)
-	if err != nil {
-		return nil, err
-	}
-	for _, r := range repos {
-		root.Repos = append(root.Repos, ToWebSearchRepo(ctx, r))
-	}
-
-	return root, nil
-}
-*/

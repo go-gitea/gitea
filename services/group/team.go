@@ -20,25 +20,25 @@ func AddTeamToGroup(ctx context.Context, group *group_model.Group, tname string)
 	has := group_model.HasTeamGroup(ctx, group.OwnerID, t.ID, group.ID)
 	if has {
 		return fmt.Errorf("team '%s' already exists in group[%d]", tname, group.ID)
-	} else {
-		parentGroup, err := group_model.FindGroupTeamByTeamID(ctx, group.ID, t.ID)
-		if err != nil {
-			return err
-		}
-		mode := t.AccessMode
-		canCreateIn := t.CanCreateOrgRepo
-		if parentGroup != nil {
-			mode = max(t.AccessMode, parentGroup.AccessMode)
-			canCreateIn = parentGroup.CanCreateIn || t.CanCreateOrgRepo
-		}
-		if err = group.LoadParentGroup(ctx); err != nil {
-			return err
-		}
-		err = group_model.AddTeamGroup(ctx, group.ID, t.ID, group.ID, mode, canCreateIn)
-		if err != nil {
-			return err
-		}
 	}
+	parentGroup, err := group_model.FindGroupTeamByTeamID(ctx, group.ID, t.ID)
+	if err != nil {
+		return err
+	}
+	mode := t.AccessMode
+	canCreateIn := t.CanCreateOrgRepo
+	if parentGroup != nil {
+		mode = max(t.AccessMode, parentGroup.AccessMode)
+		canCreateIn = parentGroup.CanCreateIn || t.CanCreateOrgRepo
+	}
+	if err = group.LoadParentGroup(ctx); err != nil {
+		return err
+	}
+	err = group_model.AddTeamGroup(ctx, group.ID, t.ID, group.ID, mode, canCreateIn)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -47,13 +47,10 @@ func DeleteTeamFromGroup(ctx context.Context, group *group_model.Group, org int6
 	if err != nil {
 		return err
 	}
-	if err = group_model.RemoveTeamGroup(ctx, org, team.ID, group.ID); err != nil {
-		return err
-	}
-	return nil
+	return group_model.RemoveTeamGroup(ctx, org, team.ID, group.ID)
 }
 
-func UpdateGroupTeam(ctx context.Context, gt *group_model.GroupTeam) (err error) {
+func UpdateGroupTeam(ctx context.Context, gt *group_model.RepoGroupTeam) (err error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -79,38 +76,38 @@ func UpdateGroupTeam(ctx context.Context, gt *group_model.GroupTeam) (err error)
 
 // RecalculateGroupAccess recalculates team access to a group.
 // should only be called if and only if a group was moved from another group.
-func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew bool) (err error) {
+func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew bool) error {
+	var err error
 	sess := db.GetEngine(ctx)
 	if err = g.LoadParentGroup(ctx); err != nil {
-		return
+		return err
 	}
 	var teams []*org_model.Team
 	if g.ParentGroup == nil {
 		teams, err = org_model.FindOrgTeams(ctx, g.OwnerID)
 		if err != nil {
-			return
+			return err
 		}
 	} else {
 		teams, err = org_model.GetTeamsWithAccessToGroup(ctx, g.OwnerID, g.ParentGroupID, perm.AccessModeRead)
 	}
 	for _, t := range teams {
-
-		var gt *group_model.GroupTeam = nil
+		var gt *group_model.RepoGroupTeam = nil
 		if gt, err = group_model.FindGroupTeamByTeamID(ctx, g.ParentGroupID, t.ID); err != nil {
-			return
+			return err
 		}
 		if gt != nil {
 			if err = group_model.UpdateTeamGroup(ctx, g.OwnerID, t.ID, g.ID, gt.AccessMode, gt.CanCreateIn, isNew); err != nil {
-				return
+				return err
 			}
 		} else {
 			if err = group_model.UpdateTeamGroup(ctx, g.OwnerID, t.ID, g.ID, t.AccessMode, t.IsOwnerTeam() || t.AccessMode >= perm.AccessModeAdmin || t.CanCreateOrgRepo, isNew); err != nil {
-				return
+				return err
 			}
 		}
 
 		if err = t.LoadUnits(ctx); err != nil {
-			return
+			return err
 		}
 		for _, u := range t.Units {
 
@@ -123,20 +120,20 @@ func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew boo
 				newAccessMode = min(newAccessMode, gu.AccessMode)
 			}
 			if isNew {
-				if _, err = sess.Table("group_unit").Insert(&group_model.GroupUnit{
+				if _, err = sess.Table("repo_group_unit").Insert(&group_model.RepoGroupUnit{
 					Type:       u.Type,
 					TeamID:     t.ID,
 					GroupID:    g.ID,
 					AccessMode: newAccessMode,
 				}); err != nil {
-					return
+					return err
 				}
 			} else {
-				if _, err = sess.Table("group_unit").Where(builder.Eq{
+				if _, err = sess.Table("repo_group_unit").Where(builder.Eq{
 					"type":     u.Type,
 					"team_id":  t.ID,
 					"group_id": g.ID,
-				}).Cols("access_mode").Update(&group_model.GroupUnit{
+				}).Cols("access_mode").Update(&group_model.RepoGroupUnit{
 					AccessMode: newAccessMode,
 				}); err != nil {
 					return err
@@ -144,5 +141,5 @@ func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew boo
 			}
 		}
 	}
-	return
+	return err
 }

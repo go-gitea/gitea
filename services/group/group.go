@@ -2,6 +2,7 @@ package group
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -13,7 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func NewGroup(ctx context.Context, g *group_model.Group) (err error) {
+func NewGroup(ctx context.Context, g *group_model.Group) error {
+	var err error
 	if len(g.Name) == 0 {
 		return util.NewInvalidArgumentErrorf("empty group name")
 	}
@@ -32,7 +34,7 @@ func NewGroup(ctx context.Context, g *group_model.Group) (err error) {
 	defer committer.Close()
 
 	if err = db.Insert(ctx, g); err != nil {
-		return
+		return err
 	}
 
 	if err = RecalculateGroupAccess(ctx, g, true); err != nil {
