@@ -376,7 +376,7 @@ func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *use
 	}
 
 	for _, team := range teams {
-		if team.AccessMode >= perm_model.AccessModeAdmin {
+		if team.HasAdminAccess() {
 			return true, nil
 		}
 	}
@@ -385,13 +385,13 @@ func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *use
 
 // AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
 // user does not have access.
-func AccessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (perm_model.AccessMode, error) { //nolint
+func AccessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (perm_model.AccessMode, error) { //nolint:revive // export stutter
 	return AccessLevelUnit(ctx, user, repo, unit.TypeCode)
 }
 
 // AccessLevelUnit returns the Access a user has to a repository's. Will return NoneAccess if the
 // user does not have access.
-func AccessLevelUnit(ctx context.Context, user *user_model.User, repo *repo_model.Repository, unitType unit.Type) (perm_model.AccessMode, error) { //nolint
+func AccessLevelUnit(ctx context.Context, user *user_model.User, repo *repo_model.Repository, unitType unit.Type) (perm_model.AccessMode, error) { //nolint:revive // export stutter
 	perm, err := GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		return perm_model.AccessModeNone, err
@@ -498,4 +498,8 @@ func CheckRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *u
 	}
 
 	return perm.CanRead(unitType)
+}
+
+func PermissionNoAccess() Permission {
+	return Permission{AccessMode: perm_model.AccessModeNone}
 }
