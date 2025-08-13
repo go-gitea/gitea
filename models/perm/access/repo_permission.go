@@ -30,8 +30,7 @@ type Permission struct {
 	units     []*repo_model.RepoUnit
 	unitsMode map[unit.Type]perm_model.AccessMode
 
-	everyoneAccessMode  map[unit.Type]perm_model.AccessMode // the unit's minimal access mode for every signed-in user
-	anonymousAccessMode map[unit.Type]perm_model.AccessMode // the unit's minimal access mode for anonymous (non-signed-in) user
+	everyoneAccessMode map[unit.Type]perm_model.AccessMode
 }
 
 // IsOwner returns true if current user is the owner of repository.
