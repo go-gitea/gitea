@@ -211,7 +211,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			}
 		}
 
-		if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() {
+		if !ctx.Repo.Permission.HasAnyUnitAccessOrEveryoneAccess() {
 			ctx.APIErrorNotFound()
 			return
 		}
