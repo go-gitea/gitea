@@ -1,0 +1,18 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repo-group profile">
+	{{template "group/header" .}}
+	<div class="ui container">
+
+		<div class="ui mobile reversed stackable grid">
+			<div class="ui eleven wide column">
+				{{template "shared/repo_search" .}}
+				{{template "explore/repo_list" .}}
+				{{template "base/paginate" .}}
+			</div>
+			<div class="ui five wide column">
+				{{ template "group/sidebar/menu" .}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}
