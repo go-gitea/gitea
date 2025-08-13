@@ -235,7 +235,7 @@ export default {
           return {name, version, licenseName, body: formatLicenseText(licenseText)};
         });
 
-        const modules = [...goModules, ...jsModules].sort((a, b) => a.name.localeCompare(b.name));
+        const modules = [...goModules, ...jsModules].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         return modules.map(({name, version, licenseName, body}) => {
           const title = licenseName ? `${name}@${version} - ${licenseName}` : name;
           return `${line}\n${title}\n${line}\n${body}`;
@@ -254,7 +254,8 @@ export default {
     maxAssetSize: Infinity,
   },
   resolve: {
-    symlinks: false,
+    symlinks: true,
+    modules: ['node_modules'],
   },
   watchOptions: {
     ignored: [

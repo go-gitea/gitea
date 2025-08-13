@@ -32,7 +32,7 @@
     "idiomorph": "0.7.3",
     "jquery": "3.7.1",
     "katex": "0.16.22",
-    "license-checker-webpack-plugin": "0.2.1",
+    "license-checker-webpack-plugin": "github:tklk-forks/license-checker-webpack-plugin#pnpm-support",
     "mermaid": "11.9.0",
     "mini-css-extract-plugin": "2.9.2",
     "minimatch": "10.0.3",
