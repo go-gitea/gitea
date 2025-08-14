@@ -1,3 +1,6 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package group
 
 import (
@@ -42,7 +45,12 @@ func TestMoveGroup(t *testing.T) {
 		}
 		origCount := unittest.GetCount(t, new(group_model.Group), cond.ToConds())
 
-		assert.NoError(t, MoveGroupItem(t.Context(), MoveGroupOptions{123, gid, true, -1}, doer))
+		assert.NoError(t, MoveGroupItem(t.Context(), MoveGroupOptions{
+			NewParent: 123,
+			ItemID:    gid,
+			IsGroup:   true,
+			NewPos:    -1,
+		}, doer))
 		unittest.AssertCountByCond(t, "repo_group", cond.ToConds(), origCount+1)
 	}
 	testfn(124)
@@ -60,6 +68,11 @@ func TestMoveRepo(t *testing.T) {
 	})
 	origCount := unittest.GetCount(t, new(repo_model.Repository), cond)
 
-	assert.NoError(t, MoveGroupItem(db.DefaultContext, MoveGroupOptions{123, 32, false, -1}, doer))
+	assert.NoError(t, MoveGroupItem(db.DefaultContext, MoveGroupOptions{
+		NewParent: 123,
+		ItemID:    32,
+		IsGroup:   false,
+		NewPos:    -1,
+	}, doer))
 	unittest.AssertCountByCond(t, "repository", cond, origCount+1)
 }
