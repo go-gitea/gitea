@@ -143,7 +143,7 @@ func MoveGroup(ctx *context.APIContext) {
 	}
 	err = group_service.MoveGroupItem(ctx, group_service.MoveGroupOptions{
 		form.NewParent, id, true, npos,
-	}, 3)
+	}, ctx.Doer)
 	if group_model.IsErrGroupNotExist(err) {
 		ctx.APIErrorNotFound()
 		return

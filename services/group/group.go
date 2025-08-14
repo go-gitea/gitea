@@ -72,7 +72,7 @@ type MoveGroupOptions struct {
 	NewPos            int
 }
 
-func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doerID int64) (err error) {
+func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.User) (err error) {
 	var committer db.Committer
 	ctx, committer, err = db.TxContext(ctx)
 	if err != nil {
@@ -84,7 +84,7 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doerID int64) (er
 	if err != nil {
 		return err
 	}
-	canAccessNewParent, err := parentGroup.CanAccess(ctx, doerID)
+	canAccessNewParent, err := parentGroup.CanAccess(ctx, doer)
 	if err != nil {
 		return err
 	}
