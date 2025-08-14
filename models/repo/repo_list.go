@@ -306,7 +306,7 @@ func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
 // userOrgTeamRepoGroupBuilder selects repos that the given user has access to through team membership and group permissions
 func userOrgTeamRepoGroupBuilder(userID int64) *builder.Builder {
 	return userOrgTeamRepoBuilder(userID).
-		Join("INNER", "group_team", "`group_team`.team_id=`team_repo`.team_id")
+		Join("INNER", "repo_group_team", "`repo_group_team`.team_id=`team_repo`.team_id")
 }
 
 // userOrgTeamUnitRepoBuilder returns repo ids where user's teams can access the special unit.
@@ -343,8 +343,8 @@ func UserOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) 
 func ReposAccessibleByGroupTeamBuilder(teamID int64) *builder.Builder {
 	innerGroupCond := builder.Select("`repo_group`.id").
 		From("repo_group").
-		InnerJoin("group_team", "`group_team`.group_id = `repo_group`.id").
-		Where(builder.Eq{"`group_team`.team_id": teamID})
+		InnerJoin("repo_group_team", "`repo_group_team`.group_id = `repo_group`.id").
+		Where(builder.Eq{"`repo_group_team`.team_id": teamID})
 	return builder.Select("`repository`.id").
 		From("repository").
 		Where(builder.In("`repository`.group_id", innerGroupCond))

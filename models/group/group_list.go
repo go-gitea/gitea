@@ -27,16 +27,16 @@ func (groups RepoGroupList) LoadOwners(ctx context.Context) error {
 
 // userOrgTeamGroupBuilder returns group ids where user's teams can access.
 func userOrgTeamGroupBuilder(userID int64) *builder.Builder {
-	return builder.Select("`group_team`.group_id").
-		From("group_team").
-		Join("INNER", "team_user", "`team_user`.team_id = `group_team`.team_id").
+	return builder.Select("`repo_group_team`.group_id").
+		From("repo_group_team").
+		Join("INNER", "team_user", "`team_user`.team_id = `repo_group_team`.team_id").
 		Where(builder.Eq{"`team_user`.uid": userID})
 }
 
 func UserOrgTeamPermCond(idStr string, userID int64, level perm.AccessMode) builder.Cond {
 	selCond := userOrgTeamGroupBuilder(userID)
-	selCond = selCond.InnerJoin("team", "`team`.id = `group_team`.team_id").
-		And(builder.Or(builder.Gte{"`team`.authorize": level}, builder.Gte{"`group_team`.access_mode": level}))
+	selCond = selCond.InnerJoin("team", "`team`.id = `repo_group_team`.team_id").
+		And(builder.Or(builder.Gte{"`team`.authorize": level}, builder.Gte{"`repo_group_team`.access_mode": level}))
 	return builder.In(idStr, selCond)
 }
 
