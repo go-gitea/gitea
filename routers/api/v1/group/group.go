@@ -58,7 +58,7 @@ func NewGroup(ctx *context.APIContext) {
 	//   in: body
 	//   required: true
 	//   schema:
-	//     "$ref": "#/definitions/CreateGroupOption"
+	//     "$ref": "#/definitions/NewGroupOption"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Group"
@@ -94,7 +94,7 @@ func NewSubGroup(ctx *context.APIContext) {
 	//   in: body
 	//   required: true
 	//   schema:
-	//     "$ref": "#/definitions/CreateGroupOption"
+	//     "$ref": "#/definitions/NewGroupOption"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Group"
