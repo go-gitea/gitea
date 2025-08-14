@@ -94,7 +94,7 @@ func (g *Group) LoadSubgroups(ctx context.Context, recursive bool) error {
 }
 
 func (g *Group) LoadAccessibleSubgroups(ctx context.Context, recursive bool, doer *user_model.User) error {
-	return g.doLoadSubgroups(ctx, recursive, AccessibleGroupCondition(doer, unit.TypeInvalid), 0)
+	return g.doLoadSubgroups(ctx, recursive, AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead), 0)
 }
 
 func (g *Group) LoadAttributes(ctx context.Context) error {
@@ -129,13 +129,12 @@ func (g *Group) LoadOwner(ctx context.Context) error {
 	return err
 }
 
-func (g *Group) CanAccess(ctx context.Context, userID int64) (bool, error) {
-	return g.CanAccessAtLevel(ctx, userID, perm.AccessModeRead)
+func (g *Group) CanAccess(ctx context.Context, user *user_model.User) (bool, error) {
+	return g.CanAccessAtLevel(ctx, user, perm.AccessModeRead)
 }
 
-func (g *Group) CanAccessAtLevel(ctx context.Context, userID int64, level perm.AccessMode) (bool, error) {
-	return db.GetEngine(ctx).
-		Where(UserOrgTeamPermCond("id", userID, level)).Table("repo_group").Exist()
+func (g *Group) CanAccessAtLevel(ctx context.Context, user *user_model.User, level perm.AccessMode) (bool, error) {
+	return db.GetEngine(ctx).Where(AccessibleGroupCondition(user, unit.TypeInvalid, level).And(builder.Eq{"`repo_group`.id": g.ID})).Exist(&Group{})
 }
 
 func (g *Group) IsOwnedBy(ctx context.Context, userID int64) (bool, error) {
@@ -337,9 +336,10 @@ func UpdateGroup(ctx context.Context, group *Group) error {
 func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder int) error {
 	sess := db.GetEngine(ctx)
 	ng, err := GetGroupByID(ctx, newParent)
-	if !IsErrGroupNotExist(err) {
+	if err != nil && !IsErrGroupNotExist(err) {
 		return err
 	}
+
 	if ng != nil {
 		if ng.OwnerID != group.OwnerID {
 			return fmt.Errorf("group[%d]'s ownerID is not equal to new parent group[%d]'s owner ID", group.ID, ng.ID)
