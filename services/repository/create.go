@@ -5,6 +5,7 @@ package repository
 
 import (
 	"bytes"
+	group_model "code.gitea.io/gitea/models/group"
 	"context"
 	"fmt"
 	"os"
@@ -229,6 +230,24 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 
 	if opts.ObjectFormatName == "" {
 		opts.ObjectFormatName = git.Sha1ObjectFormat.Name()
+	}
+	if opts.GroupID < 0 {
+		opts.GroupID = 0
+	}
+
+	// ensure that the parent group is owned by same user
+	if opts.GroupID > 0 {
+		newGroup, err := group_model.GetGroupByID(ctx, opts.GroupID)
+		if err != nil {
+			if group_model.IsErrGroupNotExist(err) {
+				opts.GroupID = 0
+			} else {
+				return nil, err
+			}
+		}
+		if newGroup.OwnerID != owner.ID {
+			return nil, fmt.Errorf("group[%d] is not owned by user[%d]", newGroup.ID, owner.ID)
+		}
 	}
 
 	repo := &repo_model.Repository{
