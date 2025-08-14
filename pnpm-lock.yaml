@@ -198,6 +198,9 @@ importers:
       '@stylistic/stylelint-plugin':
         specifier: 4.0.0
         version: 4.0.0(stylelint@16.23.1(typescript@5.8.3))
+      '@types/codemirror':
+        specifier: 5.60.16
+        version: 5.60.16
       '@types/dropzone':
         specifier: 5.7.9
         version: 5.7.9

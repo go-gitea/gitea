@@ -70,6 +70,7 @@
     "@stoplight/spectral-cli": "6.15.0",
     "@stylistic/eslint-plugin-js": "3.1.0",
     "@stylistic/stylelint-plugin": "4.0.0",
+    "@types/codemirror": "5.60.16",
     "@types/dropzone": "5.7.9",
     "@types/jquery": "3.5.32",
     "@types/katex": "0.16.7",
