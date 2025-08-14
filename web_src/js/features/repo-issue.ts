@@ -194,10 +194,10 @@ export function initRepoIssueCodeCommentCancel() {
     } else {
       form.closest('.comment-code-cloud')?.remove();
     }
-    const cancelButton = e.target;
-    if (cancelButton.getAttribute('data-action-url')) {
-      const response = await POST(cancelButton.getAttribute('data-action-url'));
-      if (!response.ok) throw new Error('Failed to cancel comment');
+    const textarea = form.querySelector('textarea');
+    const editor = getComboMarkdownEditor(textarea) ?? await initComboMarkdownEditor(form.querySelector('.combo-markdown-editor'));
+    if (editor.attachedDropzoneInst) {
+      editor.attachedDropzoneInst.removeAllFiles();
     }
   });
 }
@@ -262,7 +262,6 @@ export async function handleReply(el: HTMLElement) {
 
 export function initRepoAddCommentButton() {
   registerGlobalEventFunc('click', 'onAddCodeCommentButtonClick', async (el: HTMLElement, e: DOMEvent<MouseEvent>) => {
-  // addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
     e.preventDefault();
 
     const isSplit = el.closest('.code-diff')?.classList.contains('code-diff-split');

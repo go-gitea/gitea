@@ -5,6 +5,8 @@ package git
 
 import (
 	"context"
+	"errors"
+	"io"
 	"sort"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -14,8 +16,12 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
+
+	"github.com/google/uuid"
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
@@ -138,6 +144,9 @@ func LoadCommitComments(ctx context.Context, diff *gitdiff.Diff, commitComment *
 
 // CreateCommentReaction creates a reaction on a comment.
 func CreateCommentReaction(ctx context.Context, doer *user_model.User, commitComment *git_model.CommitComment, reaction string) error {
+	if !setting.UI.ReactionsLookup.Contains(reaction) {
+		return errors.New("reaction not found in reactions list : " + reaction)
+	}
 	err := git_model.CreateCommitCommentReaction(ctx, reaction, doer.ID, commitComment)
 	if err != nil {
 		return err
@@ -151,4 +160,10 @@ func DeleteCommentReaction(ctx context.Context, doer *user_model.User, commitCom
 		return err
 	}
 	return nil
+}
+
+func SaveTemporaryAttachment(ctx context.Context, file io.Reader, opts *git_model.AttachmentOptions) (string, error) {
+	attachmentUUID := uuid.New().String()
+	_, err := storage.Attachments.Save(attachmentUUID, file, opts.Size)
+	return attachmentUUID, err
 }

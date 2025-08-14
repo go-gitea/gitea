@@ -8,9 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"slices"
 	"strconv"
+	"sync"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/renderhelper"
@@ -19,10 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"github.com/google/uuid"
 )
 
 type (
@@ -81,8 +78,37 @@ type FindCommitCommentOptions struct {
 	FileName  string
 }
 
+var (
+	attachmentsMap = make(AttachmentMap)
+	mutex          sync.Mutex
+)
+
 func init() {
 	db.RegisterModel(new(CommitComment))
+}
+
+func AddAttachment(uuid string, opts AttachmentOptions) {
+	mutex.Lock()
+	attachmentsMap[uuid] = &opts
+	mutex.Unlock()
+}
+
+func RemoveAttachment(uuid string) {
+	mutex.Lock()
+	if attachmentsMap[uuid] != nil {
+		delete(attachmentsMap, uuid)
+	}
+	mutex.Unlock()
+}
+
+func GetAttachments() AttachmentMap {
+	return attachmentsMap
+}
+
+func ClearAttachments() {
+	mutex.Lock()
+	attachmentsMap = make(AttachmentMap)
+	mutex.Unlock()
 }
 
 // HashTag returns unique hash tag for CommitComment.
@@ -217,330 +243,241 @@ func (commitComment *CommitComment) GetMoreUserCount(reaction string) int {
 }
 
 func GetCommitCommentByID(ctx context.Context, repoID, ID int64) (*CommitComment, error) {
-	commitComment := &CommitComment{
-		RefRepoID: repoID,
-		ID:        ID,
-	}
-	has, err := db.GetEngine(ctx).Get(commitComment)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, err
-	}
-	err = commitComment.LoadRepo(ctx)
-	if err != nil {
-		return nil, err
-	}
-	err = commitComment.LoadPoster(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return commitComment, err
+	return db.WithTx2(ctx, func(ctx context.Context) (*CommitComment, error) {
+		commitComment := &CommitComment{
+			RefRepoID: repoID,
+			ID:        ID,
+		}
+		has, err := db.GetEngine(ctx).Get(commitComment)
+		if err != nil {
+			return nil, err
+		} else if !has {
+			return nil, err
+		}
+		err = commitComment.LoadRepo(ctx)
+		if err != nil {
+			return nil, err
+		}
+		err = commitComment.LoadPoster(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return commitComment, err
+	})
 }
 
 func GetCommitCommentBySHA(ctx context.Context, repoID int64, commitSHA string) (*CommitComment, error) {
-	commitComment := &CommitComment{
-		RefRepoID: repoID,
-		CommitSHA: commitSHA,
-	}
-	has, err := db.GetEngine(ctx).Get(commitComment)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, err
-	}
-	err = commitComment.LoadRepo(ctx)
-	if err != nil {
-		return nil, err
-	}
-	err = commitComment.LoadPoster(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return commitComment, err
+	return db.WithTx2(ctx, func(ctx context.Context) (*CommitComment, error) {
+		commitComment := &CommitComment{
+			RefRepoID: repoID,
+			CommitSHA: commitSHA,
+		}
+		has, err := db.GetEngine(ctx).Get(commitComment)
+		if err != nil {
+			return nil, err
+		} else if !has {
+			return nil, err
+		}
+		err = commitComment.LoadRepo(ctx)
+		if err != nil {
+			return nil, err
+		}
+		err = commitComment.LoadPoster(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return commitComment, err
+	})
 }
 
 // CreateCommitComment creates comment with context
 func CreateCommitComment(ctx context.Context, opts *CreateCommitCommentOptions) (_ *CommitComment, err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-
-	e := db.GetEngine(ctx)
-	reactions := make(ReactionMap)
-	jsonBytes, err := json.Marshal(reactions)
-	if err != nil {
-		return nil, err
-	}
-
-	jsonString := string(jsonBytes)
-
-	attachmentsJSONBytes, err := json.Marshal(opts.Attachments)
-	if err != nil {
-		return nil, err
-	}
-
-	attachmentsJSON := string(attachmentsJSONBytes)
-
-	commit := &CommitComment{
-		PosterID:         opts.Doer.ID,
-		Poster:           opts.Doer,
-		CommitSHA:        opts.CommitSHA,
-		FileName:         opts.FileName,
-		Line:             opts.LineNum,
-		Comment:          opts.Comment,
-		Reactions:        jsonString,
-		Attachments:      attachmentsJSON,
-		RefRepoID:        opts.RefRepoID,
-		ReplyToCommentID: opts.ReplyToCommentID,
-	}
-	if _, err = e.Insert(commit); err != nil {
-		return nil, err
-	}
-
-	if err = committer.Commit(); err != nil {
-		return nil, err
-	}
-	return commit, nil
+	return db.WithTx2(ctx, func(ctx context.Context) (*CommitComment, error) {
+		reactions := make(ReactionMap)
+		jsonBytes, err := json.Marshal(reactions)
+		if err != nil {
+			return nil, err
+		}
+		jsonString := string(jsonBytes)
+		attachmentsJSONBytes, err := json.Marshal(opts.Attachments)
+		if err != nil {
+			return nil, err
+		}
+		attachmentsJSON := string(attachmentsJSONBytes)
+		commitComment := &CommitComment{
+			PosterID:         opts.Doer.ID,
+			Poster:           opts.Doer,
+			CommitSHA:        opts.CommitSHA,
+			FileName:         opts.FileName,
+			Line:             opts.LineNum,
+			Comment:          opts.Comment,
+			Reactions:        jsonString,
+			Attachments:      attachmentsJSON,
+			RefRepoID:        opts.RefRepoID,
+			ReplyToCommentID: opts.ReplyToCommentID,
+		}
+		if err = db.Insert(ctx, commitComment); err != nil {
+			return nil, err
+		}
+		return commitComment, err
+	})
 }
 
 func UpdateCommitComment(ctx context.Context, attachmentMap *AttachmentMap, commitComment *CommitComment) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		attachmentsJSONBytes, err := json.Marshal(attachmentMap)
+		if err != nil {
+			return err
+		}
+		attachmentsJSON := string(attachmentsJSONBytes)
+		_, err = db.GetEngine(ctx).ID(commitComment.ID).Where("commit_sha = ?", commitComment.CommitSHA).Update(&CommitComment{
+			PosterID:       commitComment.PosterID,
+			Poster:         commitComment.Poster,
+			CommitSHA:      commitComment.CommitSHA,
+			FileName:       commitComment.FileName,
+			Line:           commitComment.Line,
+			Comment:        commitComment.Comment,
+			ContentVersion: commitComment.ContentVersion,
+			Attachments:    attachmentsJSON,
+			RefRepoID:      commitComment.RefRepoID,
+		})
 		return err
-	}
-	defer committer.Close()
-
-	attachmentsJSONBytes, err := json.Marshal(attachmentMap)
-	if err != nil {
-		return err
-	}
-
-	attachmentsJSON := string(attachmentsJSONBytes)
-
-	commit := &CommitComment{
-		PosterID:       commitComment.PosterID,
-		Poster:         commitComment.Poster,
-		CommitSHA:      commitComment.CommitSHA,
-		FileName:       commitComment.FileName,
-		Line:           commitComment.Line,
-		Comment:        commitComment.Comment,
-		ContentVersion: commitComment.ContentVersion,
-		Attachments:    attachmentsJSON,
-		RefRepoID:      commitComment.RefRepoID,
-	}
-
-	sess := db.GetEngine(ctx)
-	_, err = sess.ID(commitComment.ID).Where("commit_sha = ?", commitComment.CommitSHA).Update(commit)
-	if err != nil {
-		return err
-	}
-	err = committer.Commit()
-	return err
+	})
 }
 
 // DeleteComment deletes the comment
 func DeleteCommitComment(ctx context.Context, commitComment *CommitComment) error {
-	e := db.GetEngine(ctx)
-	if _, err := e.ID(commitComment.ID).NoAutoCondition().Delete(commitComment); err != nil {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		_, err := db.GetEngine(ctx).ID(commitComment.ID).NoAutoCondition().Delete(commitComment)
 		return err
-	}
-	return nil
+	})
 }
 
 func FindCommitCommentsByCommit(ctx context.Context, opts *FindCommitCommentOptions, commitComment *CommitComment) (CommitCommentList, error) {
-	var commitCommentList CommitCommentList
-	sess := db.GetEngine(ctx).Where(opts.ToConds())
+	return db.WithTx2(ctx, func(ctx context.Context) (CommitCommentList, error) {
+		var commitCommentList CommitCommentList
+		sess := db.GetEngine(ctx).Where(opts.ToConds())
 
-	if opts.CommitSHA == "" {
-		return nil, nil
-	}
+		if opts.CommitSHA == "" {
+			return nil, nil
+		}
 
-	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, opts)
-	}
+		if opts.Page > 0 {
+			sess = db.SetSessionPagination(sess, opts)
+		}
 
-	err := sess.Table(&CommitComment{}).Where(opts.ToConds()).Find(&commitCommentList)
-	if err != nil {
-		return nil, err
-	}
-	err = commitComment.LoadRepo(ctx)
-	if err != nil {
-		return nil, err
-	}
-	err = commitComment.LoadPoster(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, cd := range commitCommentList {
-		var err error
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, commitComment.Repo, renderhelper.RepoCommentOptions{
-			FootnoteContextID: strconv.FormatInt(commitComment.ID, 10),
-		})
-
-		if cd.RenderedComment, err = markdown.RenderString(rctx, cd.Comment); err != nil {
+		err := sess.Table(&CommitComment{}).Where(opts.ToConds()).Find(&commitCommentList)
+		if err != nil {
 			return nil, err
 		}
-		cd.Repo = commitComment.Repo
-		cd.Poster = commitComment.Poster
-	}
-	return commitCommentList, nil
+		err = commitComment.LoadRepo(ctx)
+		if err != nil {
+			return nil, err
+		}
+		err = commitComment.LoadPoster(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, cd := range commitCommentList {
+			var err error
+			rctx := renderhelper.NewRenderContextRepoComment(ctx, commitComment.Repo, renderhelper.RepoCommentOptions{
+				FootnoteContextID: strconv.FormatInt(commitComment.ID, 10),
+			})
+
+			if cd.RenderedComment, err = markdown.RenderString(rctx, cd.Comment); err != nil {
+				return nil, err
+			}
+			cd.Repo = commitComment.Repo
+			cd.Poster = commitComment.Poster
+		}
+		return commitCommentList, nil
+	})
 }
 
 func FindCommitCommentsByLine(ctx context.Context, opts *FindCommitCommentOptions, commitComment *CommitComment) (CommitCommentList, error) {
-	var commitCommentList CommitCommentList
+	return db.WithTx2(ctx, func(ctx context.Context) (CommitCommentList, error) {
+		var commitCommentList CommitCommentList
 
-	sess := db.GetEngine(ctx)
-
-	err := sess.Table(&CommitComment{}).Where("commit_sha=? AND line=? ", opts.CommitSHA, opts.Line).Find(&commitCommentList)
-	if err != nil {
-		return nil, err
-	}
-	err = commitComment.LoadRepo(ctx)
-	if err != nil {
-		return nil, err
-	}
-	err = commitComment.LoadPoster(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, cd := range commitCommentList {
-		var err error
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, commitComment.Repo, renderhelper.RepoCommentOptions{
-			FootnoteContextID: strconv.FormatInt(commitComment.ID, 10),
-		})
-
-		if cd.RenderedComment, err = markdown.RenderString(rctx, cd.Comment); err != nil {
+		err := db.GetEngine(ctx).Table(&CommitComment{}).Where("commit_sha=? AND line=? ", opts.CommitSHA, opts.Line).Find(&commitCommentList)
+		if err != nil {
 			return nil, err
 		}
-		cd.Repo = commitComment.Repo
-		cd.Poster = commitComment.Poster
-	}
-	return commitCommentList, nil
+		err = commitComment.LoadRepo(ctx)
+		if err != nil {
+			return nil, err
+		}
+		err = commitComment.LoadPoster(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, cd := range commitCommentList {
+			var err error
+			rctx := renderhelper.NewRenderContextRepoComment(ctx, commitComment.Repo, renderhelper.RepoCommentOptions{
+				FootnoteContextID: strconv.FormatInt(commitComment.ID, 10),
+			})
+
+			if cd.RenderedComment, err = markdown.RenderString(rctx, cd.Comment); err != nil {
+				return nil, err
+			}
+			cd.Repo = commitComment.Repo
+			cd.Poster = commitComment.Poster
+		}
+		return commitCommentList, nil
+	})
 }
 
 func CreateCommitCommentReaction(ctx context.Context, reaction string, userID int64, commitComment *CommitComment) error {
-	if !setting.UI.ReactionsLookup.Contains(reaction) {
-		return nil
-	}
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		reactions := make(ReactionMap)
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
+		err := json.Unmarshal([]byte(commitComment.Reactions), &reactions)
+		if err != nil {
+			return err
+		}
+
+		reactions[reaction] = append(reactions[reaction], strconv.FormatInt(userID, 10))
+
+		jsonBytes, err := json.Marshal(reactions)
+		if err != nil {
+			return err
+		}
+
+		jsonString := string(jsonBytes)
+
+		commitComment.Reactions = jsonString
+		_, err = db.GetEngine(ctx).ID(commitComment.ID).Where("commit_sha = ?", commitComment.CommitSHA).Update(commitComment)
 		return err
-	}
-
-	reactions := make(ReactionMap)
-
-	err = json.Unmarshal([]byte(commitComment.Reactions), &reactions)
-	if err != nil {
-		return err
-	}
-
-	reactions[reaction] = append(reactions[reaction], strconv.FormatInt(userID, 10))
-
-	jsonBytes, err := json.Marshal(reactions)
-	if err != nil {
-		return err
-	}
-
-	jsonString := string(jsonBytes)
-
-	commitComment.Reactions = jsonString
-	sess := db.GetEngine(ctx)
-	_, err = sess.ID(commitComment.ID).Where("commit_sha = ?", commitComment.CommitSHA).Update(commitComment)
-	if err != nil {
-		return err
-	}
-
-	err = committer.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func DeleteCommentReaction(ctx context.Context, reaction string, userID int64, commitComment *CommitComment) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-
-	reactions := make(ReactionMap)
-
-	err = json.Unmarshal([]byte(commitComment.Reactions), &reactions)
-	if err != nil {
-		return err
-	}
-
-	list := reactions[reaction]
-	userid := strconv.FormatInt(userID, 10)
-	idx := slices.Index(list, userid)
-	reactions[reaction] = slices.Delete(list, idx, idx+1)
-
-	for reactionType, userIDs := range reactions {
-		if len(userIDs) == 0 {
-			delete(reactions, reactionType) // Delete the key with an empty slice
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		reactions := make(ReactionMap)
+		err := json.Unmarshal([]byte(commitComment.Reactions), &reactions)
+		if err != nil {
+			return err
 		}
-	}
 
-	jsonBytes, err := json.Marshal(reactions)
-	if err != nil {
+		list := reactions[reaction]
+		userid := strconv.FormatInt(userID, 10)
+		idx := slices.Index(list, userid)
+		reactions[reaction] = slices.Delete(list, idx, idx+1)
+
+		for reactionType, userIDs := range reactions {
+			if len(userIDs) == 0 {
+				delete(reactions, reactionType) // Delete the key with an empty slice
+			}
+		}
+
+		jsonBytes, err := json.Marshal(reactions)
+		if err != nil {
+			return err
+		}
+
+		jsonString := string(jsonBytes)
+
+		commitComment.Reactions = jsonString
+		_, err = db.GetEngine(ctx).ID(commitComment.ID).Where("commit_sha = ?", commitComment.CommitSHA).Update(commitComment)
 		return err
-	}
-
-	jsonString := string(jsonBytes)
-
-	commitComment.Reactions = jsonString
-	sess := db.GetEngine(ctx)
-	_, err = sess.ID(commitComment.ID).Where("commit_sha = ?", commitComment.CommitSHA).Update(commitComment)
-	if err != nil {
-		return err
-	}
-
-	err = committer.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SaveTemporaryAttachment(ctx context.Context, file io.Reader, opts *AttachmentOptions) (string, error) {
-	attachmentUUID := uuid.New().String()
-	_, err := storage.Attachments.Save(attachmentUUID, file, opts.Size)
-	return attachmentUUID, err
-}
-
-func UploadCommitAttachment(ctx context.Context, file io.Reader, commitComment *CommitComment, opts *AttachmentOptions) error {
-	attachmentUUID := uuid.New().String()
-
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-
-	attachment := make(AttachmentMap)
-	attachment[attachmentUUID] = opts
-
-	jsonBytes, err := json.Marshal(attachment)
-	if err != nil {
-		return err
-	}
-	jsonString := string(jsonBytes)
-	commitComment.Attachments = jsonString
-
-	sess := db.GetEngine(ctx)
-	_, err = sess.ID(commitComment.ID).Where("commit_sha = ?", commitComment.CommitSHA).Update(commitComment)
-	if err != nil {
-		return err
-	}
-
-	err = committer.Commit()
-	if err != nil {
-		return err
-	}
-	return err
+	})
 }

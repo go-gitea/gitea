@@ -1558,7 +1558,6 @@ func registerWebRoutes(m *web.Router) {
 			m.Get("/{id}/attachments/{uuid}", repo.GetCommitAttachmentByUUID)
 			m.Group("/comments", func() {
 				m.Get("/new_comment", repo.RenderCommitCommentForm)
-				m.Post("/cancel", repo.CancelCommitComment)
 				m.Post("/add", web.Bind(forms.CodeCommentForm{}), repo.SetShowOutdatedComments, repo.CreateCommitComment)
 				m.Post("/{id}/delete", repo.DeleteCommitComment)
 				m.Post("/{id}/update", repo.UpdateCommitComment)

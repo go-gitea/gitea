@@ -525,11 +525,8 @@ func CreateCommitComment(ctx *context.Context) {
 		signedLine *= -1
 	}
 	replyid := form.Reply
-	attachmentsMap := make(git_model.AttachmentMap)
 
-	if ctx.Session.Get("attachmentsMaps") != nil {
-		attachmentsMap = ctx.Session.Get("attachmentsMaps").(git_model.AttachmentMap)
-	}
+	attachmentsMap := git_model.GetAttachments()
 
 	opts := git_model.CreateCommitCommentOptions{
 		RefRepoID:        ctx.Repo.Repository.ID,
@@ -551,13 +548,7 @@ func CreateCommitComment(ctx *context.Context) {
 		ctx.ServerError("CreateCommitComment", err)
 		return
 	}
-	if ctx.Session.Get("attachmentsMaps") != nil {
-		err = ctx.Session.Delete("attachmentsMaps")
-		if err != nil {
-			ctx.ServerError("CreateCommitComment", err)
-			return
-		}
-	}
+	git_model.ClearAttachments()
 	renderCommitComment(ctx, commitComment, form.Origin, signedLine)
 }
 
@@ -641,10 +632,7 @@ func UpdateCommitComment(ctx *context.Context) {
 		filesMap[key] = struct{}{}
 	}
 
-	uploadedAttachments := make(git_model.AttachmentMap)
-	if ctx.Session.Get("attachmentsMaps") != nil {
-		uploadedAttachments = ctx.Session.Get("attachmentsMaps").(git_model.AttachmentMap)
-	}
+	uploadedAttachments := git_model.GetAttachments()
 
 	attachmentMap := make(git_model.AttachmentMap)
 	err = json.Unmarshal([]byte(commitComment.Attachments), &attachmentMap)
@@ -690,29 +678,13 @@ func UpdateCommitComment(ctx *context.Context) {
 		return
 	}
 
-	if ctx.Session.Get("attachmentsMaps") != nil {
-		err = ctx.Session.Delete("attachmentsMaps")
-		if err != nil {
-			ctx.ServerError("UpdateCommitComment", err)
-			return
-		}
-	}
+	git_model.ClearAttachments()
 	upload.AddUploadContext(ctx, "comment")
 	ctx.JSON(http.StatusOK, map[string]any{
 		"content":        renderedContent,
 		"contentVersion": commitComment.ContentVersion,
 		"attachments":    attachHTML,
 	})
-}
-
-func CancelCommitComment(ctx *context.Context) {
-	if ctx.Session.Get("attachmentsMaps") != nil {
-		err := ctx.Session.Delete("attachmentsMaps")
-		if err != nil {
-			ctx.ServerError("CancelCommitComment", err)
-			return
-		}
-	}
 }
 
 func ChangeCommitCommentReaction(ctx *context.Context) {
@@ -814,31 +786,12 @@ func UploadCommitAttachment(ctx *context.Context) {
 		Size:       header.Size,
 		UploaderID: ctx.Doer.ID,
 	}
-
-	attachmentUUID, err := git_model.SaveTemporaryAttachment(ctx, file, &opts)
+	attachmentUUID, err := git_service.SaveTemporaryAttachment(ctx, file, &opts)
 	if err != nil {
 		ctx.ServerError("SaveTemporaryAttachment", err)
 		return
 	}
-
-	attachmentsMap := ctx.Session.Get("attachmentsMaps")
-	if attachmentsMap != nil {
-		attachmentsMap := ctx.Session.Get("attachmentsMaps").(git_model.AttachmentMap)
-		attachmentsMap[attachmentUUID] = &opts
-		err = ctx.Session.Set("attachmentsMaps", attachmentsMap)
-		if err != nil {
-			ctx.ServerError("UploadCommitAttachment", err)
-			return
-		}
-	} else {
-		attachmentsMap := make(git_model.AttachmentMap)
-		attachmentsMap[attachmentUUID] = &opts
-		err = ctx.Session.Set("attachmentsMaps", attachmentsMap)
-		if err != nil {
-			ctx.ServerError("UploadCommitAttachment", err)
-			return
-		}
-	}
+	git_model.AddAttachment(attachmentUUID, opts)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	ctx.JSON(http.StatusOK, map[string]string{
 		"uuid": attachmentUUID,
@@ -847,22 +800,24 @@ func UploadCommitAttachment(ctx *context.Context) {
 
 func DeleteCommitAttachment(ctx *context.Context) {
 	uuid := ctx.FormString("file")
+	attachments := git_model.GetAttachments()
+	attachment := attachments[uuid]
+	if attachment == nil {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
 
+	if !ctx.IsSigned || (ctx.Doer.ID != attachment.UploaderID) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
 	err := storage.Attachments.Delete(uuid)
 	if err != nil {
 		ctx.ServerError("delete ", err)
 		return
 	}
 
-	if ctx.Session.Get("attachmentsMaps") != nil {
-		attachmentsMap := ctx.Session.Get("attachmentsMaps").(git_model.AttachmentMap)
-		delete(attachmentsMap, uuid)
-		err = ctx.Session.Set("attachmentsMaps", attachmentsMap)
-		if err != nil {
-			ctx.ServerError("UploadCommitAttachment", err)
-			return
-		}
-	}
+	git_model.RemoveAttachment(uuid)
 }
 
 func GetCommitAttachmentByUUID(ctx *context.Context) {
@@ -930,6 +885,8 @@ func GetCommitAttachments(ctx *context.Context) {
 			return
 		}
 	}
+
+	git_model.ClearAttachments()
 
 	type AttachmentItem struct {
 		Name string `json:"name"`
