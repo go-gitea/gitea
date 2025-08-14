@@ -1,12 +1,15 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package group
 
 import (
-	"code.gitea.io/gitea/models/perm"
 	"context"
 	"slices"
 
 	"code.gitea.io/gitea/models/git"
 	group_model "code.gitea.io/gitea/models/group"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -103,7 +106,7 @@ func (w *WebSearchGroup) doLoadChildren(opts *WebSearchOptions) error {
 			wsr.LatestCommitStatus = latestCommitStatuses[i]
 			wsr.LocaleLatestCommitStatus = latestCommitStatuses[i].LocaleString(opts.Locale)
 			if latestIdx > -1 {
-				if latestCommitStatuses[i].UpdatedUnix.AsLocalTime().Unix() > int64(latestCommitStatuses[latestIdx].UpdatedUnix.AsLocalTime().Unix()) {
+				if latestCommitStatuses[i].UpdatedUnix.AsLocalTime().Unix() > latestCommitStatuses[latestIdx].UpdatedUnix.AsLocalTime().Unix() {
 					latestIdx = i
 				}
 			} else {

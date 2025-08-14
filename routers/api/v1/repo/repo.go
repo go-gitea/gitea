@@ -1357,7 +1357,8 @@ func MoveRepoToGroup(ctx *context.APIContext) {
 		npos = *form.NewPos
 	}
 	err := group_service.MoveGroupItem(ctx, group_service.MoveGroupOptions{
-		IsGroup: false, NewPos: npos,
+		IsGroup:   false,
+		NewPos:    npos,
 		ItemID:    ctx.Repo.Repository.ID,
 		NewParent: form.NewParent,
 	}, ctx.Doer)
