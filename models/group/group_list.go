@@ -33,6 +33,7 @@ func userOrgTeamGroupBuilder(userID int64) *builder.Builder {
 		Where(builder.Eq{"`team_user`.uid": userID})
 }
 
+// UserOrgTeamPermCond returns a condition to select ids of groups that a user can access at the level described by `level`
 func UserOrgTeamPermCond(idStr string, userID int64, level perm.AccessMode) builder.Cond {
 	selCond := userOrgTeamGroupBuilder(userID)
 	selCond = selCond.InnerJoin("team", "`team`.id = `repo_group_team`.team_id").
@@ -60,7 +61,7 @@ func userOrgTeamUnitGroupBuilder(userID int64, unitType unit.Type) *builder.Buil
 }
 
 // AccessibleGroupCondition returns a condition that matches groups which a user can access via the specified unit
-func AccessibleGroupCondition(user *user_model.User, unitType unit.Type) builder.Cond {
+func AccessibleGroupCondition(user *user_model.User, unitType unit.Type, minMode perm.AccessMode) builder.Cond {
 	cond := builder.NewCond()
 	if user == nil || !user.IsRestricted || user.ID <= 0 {
 		orgVisibilityLimit := []structs.VisibleType{structs.VisibleTypePrivate}
@@ -68,7 +69,7 @@ func AccessibleGroupCondition(user *user_model.User, unitType unit.Type) builder
 			orgVisibilityLimit = append(orgVisibilityLimit, structs.VisibleTypeLimited)
 		}
 		cond = cond.Or(builder.And(
-			builder.Eq{"`repo_group`.is_private": false},
+			builder.Eq{"`repo_group`.visibility": structs.VisibleTypePublic},
 			builder.NotIn("`repo_group`.owner_id", builder.Select("id").From("`user`").Where(
 				builder.And(
 					builder.Eq{"type": user_model.UserTypeOrganization},
@@ -76,6 +77,7 @@ func AccessibleGroupCondition(user *user_model.User, unitType unit.Type) builder
 			))))
 	}
 	if user != nil {
+		cond = cond.Or(UserOrgTeamPermCond("`repo_group`.id", user.ID, minMode))
 		if unitType == unit.TypeInvalid {
 			cond = cond.Or(
 				UserOrgTeamGroupCond("`repo_group`.id", user.ID),
