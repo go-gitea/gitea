@@ -1120,51 +1120,51 @@ func Test_WebhookWorkflowRun(t *testing.T) {
 	defer provider.Close()
 	webhookData.URL = provider.URL()
 
-	tests := []struct {
+	testCases := []struct {
 		name     string
-		callback func(t *testing.T, webhookData *workflowRunWebhook)
+		testFunc func(t *testing.T, webhookData *workflowRunWebhook)
 	}{
 		{
 			name:     "WorkflowRun",
-			callback: testWebhookWorkflowRun,
+			testFunc: testWebhookWorkflowRun,
 		},
 		{
 			name:     "WorkflowRunDepthLimit",
-			callback: testWebhookWorkflowRunDepthLimit,
+			testFunc: testWebhookWorkflowRunDepthLimit,
 		},
 		{
-			name:     "WorkflowRunDuplicateEvents",
-			callback: testWorkflowRunDuplicateEvents,
+			name:     "WorkflowRunEvents",
+			testFunc: testWorkflowRunEvents,
 		},
 		{
-			name:     "WorkflowRunEventDuplicateEventsRerun",
-			callback: testWorkflowRunDuplicateEventsRerun,
+			name:     "WorkflowRunEventsOnRerun",
+			testFunc: testWorkflowRunEventsOnRerun,
 		},
 		{
-			name: "WorkflowRunDuplicateEventsCancelAbandoned",
-			callback: func(t *testing.T, webhookData *workflowRunWebhook) {
-				testWorkflowRunDuplicateEventsCancelAbandoned(t, webhookData, true)
+			name: "WorkflowRunEventsOnCancellingAllJobsAbandonedRun",
+			testFunc: func(t *testing.T, webhookData *workflowRunWebhook) {
+				testWorkflowRunEventsOnCancellingAbandonedRun(t, webhookData, true)
 			},
 		},
 		{
-			name: "WorkflowRunDuplicateEventsCancelAbandoned",
-			callback: func(t *testing.T, webhookData *workflowRunWebhook) {
-				testWorkflowRunDuplicateEventsCancelAbandoned(t, webhookData, false)
+			name: "WorkflowRunEventsOnCancellingPartiallyAbandonedRun",
+			testFunc: func(t *testing.T, webhookData *workflowRunWebhook) {
+				testWorkflowRunEventsOnCancellingAbandonedRun(t, webhookData, false)
 			},
 		},
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+	for _, obj := range testCases {
+		t.Run(obj.name, func(t *testing.T) {
 			webhookData.payloads = nil
 			webhookData.triggeredEvent = ""
 			onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-				test.callback(t, webhookData)
+				obj.testFunc(t, webhookData)
 			})
 		})
 	}
 }
 
-func testWorkflowRunDuplicateEvents(t *testing.T, webhookData *workflowRunWebhook) {
+func testWorkflowRunEvents(t *testing.T, webhookData *workflowRunWebhook) {
 	// 1. create a new webhook with special webhook for repo1
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, "user2")
@@ -1187,56 +1187,56 @@ func testWorkflowRunDuplicateEvents(t *testing.T, webhookData *workflowRunWebhoo
   workflow_dispatch:
 
 jobs:
-  test: 
+  test:
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
 
-  test2: 
+  test2:
     needs: [test]
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
 
-  test3: 
+  test3:
     needs: [test, test2]
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
-  test4: 
+
+  test4:
     needs: [test, test2, test3]
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
-  test5: 
+
+  test5:
     needs: [test, test2, test4]
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
+
   test6:
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04] 
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
     needs: [test, test2, test3]
     runs-on: ${{ matrix.os }}
     steps:
       - run: exit 0
-  
-  test7: 
+
+  test7:
     needs: test6
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
-  test8: 
+
+  test8:
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
-  test9: 
+
+  test9:
     strategy:
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04, ubuntu-25.04, windows-2022, windows-2025, macos-13, macos-14, macos-15]
@@ -1244,7 +1244,7 @@ jobs:
     steps:
       - run: exit 0
 
-  test10: 
+  test10:
     runs-on: ubuntu-latest
     steps:
       - run: exit 0`
@@ -1285,7 +1285,7 @@ jobs:
 	assert.Equal(t, "user2/repo1", webhookData.payloads[1].Repo.FullName)
 }
 
-func testWorkflowRunDuplicateEventsRerun(t *testing.T, webhookData *workflowRunWebhook) {
+func testWorkflowRunEventsOnRerun(t *testing.T, webhookData *workflowRunWebhook) {
 	// 1. create a new webhook with special webhook for repo1
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, "user2")
@@ -1314,56 +1314,56 @@ func testWorkflowRunDuplicateEventsRerun(t *testing.T, webhookData *workflowRunW
   workflow_dispatch:
 
 jobs:
-  test: 
+  test:
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
 
-  test2: 
+  test2:
     needs: [test]
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
 
-  test3: 
+  test3:
     needs: [test, test2]
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
-  test4: 
+
+  test4:
     needs: [test, test2, test3]
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
-  test5: 
+
+  test5:
     needs: [test, test2, test4]
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
+
   test6:
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04] 
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
     needs: [test, test2, test3]
     runs-on: ${{ matrix.os }}
     steps:
       - run: exit 0
-  
-  test7: 
+
+  test7:
     needs: test6
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
-  test8: 
+
+  test8:
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
-  test9: 
+
+  test9:
     strategy:
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04, ubuntu-25.04, windows-2022, windows-2025, macos-13, macos-14, macos-15]
@@ -1371,7 +1371,7 @@ jobs:
     steps:
       - run: exit 0
 
-  test10: 
+  test10:
     runs-on: ubuntu-latest
     steps:
       - run: exit 0`
@@ -1391,10 +1391,9 @@ jobs:
 	assert.Equal(t, "repo1", webhookData.payloads[0].Repo.Name)
 	assert.Equal(t, "user2/repo1", webhookData.payloads[0].Repo.FullName)
 
-	tasks := make([]*runnerv1.Task, len(runners))
-	for i := range runners {
-		tasks[i] = runners[i].fetchTask(t)
-		runners[i].execTask(t, tasks[i], &mockTaskOutcome{
+	for _, runner := range runners {
+		task := runner.fetchTask(t)
+		runner.execTask(t, task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
 	}
@@ -1430,7 +1429,9 @@ jobs:
 	assert.Len(t, webhookData.payloads, 3)
 }
 
-func testWorkflowRunDuplicateEventsCancelAbandoned(t *testing.T, webhookData *workflowRunWebhook, partiallyAbandoned bool) {
+func testWorkflowRunEventsOnCancellingAbandonedRun(t *testing.T, webhookData *workflowRunWebhook, allJobsAbandoned bool) {
+	defer test.MockVariableValue(&setting.Actions.AbandonedJobTimeout, (time.Duration)(0))()
+
 	// 1. create a new webhook with special webhook for repo1
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, "user2")
@@ -1459,56 +1460,56 @@ func testWorkflowRunDuplicateEventsCancelAbandoned(t *testing.T, webhookData *wo
   workflow_dispatch:
 
 jobs:
-  test: 
+  test:
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
 
-  test2: 
+  test2:
     needs: [test]
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
 
-  test3: 
+  test3:
     needs: [test, test2]
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
-  test4: 
+
+  test4:
     needs: [test, test2, test3]
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
-  test5: 
+
+  test5:
     needs: [test, test2, test4]
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
+
   test6:
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04] 
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
     needs: [test, test2, test3]
     runs-on: ${{ matrix.os }}
     steps:
       - run: exit 0
-  
-  test7: 
+
+  test7:
     needs: test6
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
-  test8: 
+
+  test8:
     runs-on: ubuntu-latest
     steps:
       - run: exit 0
-  
-  test9: 
+
+  test9:
     strategy:
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04, ubuntu-25.04, windows-2022, windows-2025, macos-13, macos-14, macos-15]
@@ -1516,7 +1517,7 @@ jobs:
     steps:
       - run: exit 0
 
-  test10: 
+  test10:
     runs-on: ubuntu-latest
     steps:
       - run: exit 0`
@@ -1536,22 +1537,19 @@ jobs:
 	assert.Equal(t, "repo1", webhookData.payloads[0].Repo.Name)
 	assert.Equal(t, "user2/repo1", webhookData.payloads[0].Repo.FullName)
 
-	tasks := make([]*runnerv1.Task, len(runners))
-	for i := range runners {
-		tasks[i] = runners[i].fetchTask(t)
-		if !partiallyAbandoned {
-			runners[i].execTask(t, tasks[i], &mockTaskOutcome{
+	for _, runner := range runners {
+		task := runner.fetchTask(t)
+		if !allJobsAbandoned {
+			runner.execTask(t, task, &mockTaskOutcome{
 				result: runnerv1.Result_RESULT_SUCCESS,
 			})
 		}
 	}
 
-	defer test.MockVariableValue(&setting.Actions.AbandonedJobTimeout, (time.Duration)(0))()
-
 	err = actions.CancelAbandonedJobs(t.Context())
 	assert.NoError(t, err)
 
-	if partiallyAbandoned {
+	if allJobsAbandoned {
 		assert.Len(t, webhookData.payloads, 1)
 	} else {
 		assert.Len(t, webhookData.payloads, 2)
