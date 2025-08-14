@@ -27,7 +27,7 @@ type NewGroupOption struct {
 	Visibility VisibleType `json:"visibility"`
 }
 
-// MoveGroupOption - options for changing a group's parent and sort order
+// MoveGroupOption - options for changing a group or repo's parent and sort order
 // swagger:model
 type MoveGroupOption struct {
 	// the new parent group. can be 0 to specify no parent

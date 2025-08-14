@@ -156,6 +156,8 @@ type CreateRepoOption struct {
 	// ObjectFormatName of the underlying git repository
 	// enum: sha1,sha256
 	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6)"`
+	// GroupID of the group which will contain this repository. ignored if the repo owner is not an organization.
+	GroupID int64 `json:"group_id"`
 }
 
 // EditRepoOption options when editing a repository's properties

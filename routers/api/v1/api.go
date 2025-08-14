@@ -70,11 +70,15 @@ import (
 	"net/http"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	group_model "code.gitea.io/gitea/models/group"
+	shared_group_model "code.gitea.io/gitea/models/shared/group"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
@@ -489,6 +493,60 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 				ctx.APIErrorNotFound()
 			}
 			return
+		}
+	}
+}
+
+// reqGroupMembership user should be organization owner,
+// a member of a team with access to the group, or site admin
+func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.IsUserSiteAdmin() {
+			return
+		}
+		gid := ctx.PathParamInt64("group_id")
+		g, err := group_model.GetGroupByID(ctx, gid)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		err = g.LoadOwner(ctx)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		var canAccess bool
+		if ctx.IsSigned {
+			canAccess, err = g.CanAccessAtLevel(ctx, ctx.Doer.ID, mode)
+		} else {
+			canAccess, err = g.CanAccessAtLevel(ctx, 0, mode)
+		}
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		igm, err := shared_group_model.IsGroupMember(ctx, gid, ctx.Doer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !igm && !canAccess {
+			ctx.APIErrorNotFound()
+			return
+		}
+		if needsCreatePerm {
+			canCreateIn := false
+			if ctx.IsSigned {
+				canCreateIn, err = g.CanCreateIn(ctx, ctx.Doer.ID)
+				if err != nil {
+					ctx.APIErrorInternal(err)
+					return
+				}
+			}
+			if !canCreateIn {
+				ctx.APIError(http.StatusForbidden, fmt.Sprintf("User[%d] does not have permission to create new items in group[%d]", ctx.Doer.ID, gid))
+				return
+			}
 		}
 	}
 }
@@ -1175,6 +1233,7 @@ func Routes() *web.Router {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
+				m.Post("/groups/move", reqToken(), bind(api.EditGroupOption{}), reqOrgMembership(), reqGroupMembership(perm.AccessModeWrite, false), repo.MoveRepoToGroup)
 				m.Post("/generate", reqToken(), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
 				m.Group("/transfer", func() {
 					m.Post("", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
@@ -1675,6 +1734,10 @@ func Routes() *web.Router {
 					m.Delete("", org.UnblockUser)
 				})
 			}, reqToken(), reqOrgOwnership())
+			m.Group("/groups", func() {
+				m.Post("/new", reqToken(), reqGroupMembership(perm.AccessModeWrite, true), group.NewGroup)
+				m.Post("/{group_id}/move", reqToken(), reqGroupMembership(perm.AccessModeWrite, false), group.MoveGroup)
+			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(reqToken(), org.GetTeam).
@@ -1757,7 +1820,15 @@ func Routes() *web.Router {
 			m.Get("/search", repo.TopicSearch)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 	}, sudo())
-
+	m.Group("/groups", func() {
+		m.Group("/{group_id}", func() {
+			m.Combo("").
+				Get(reqGroupMembership(perm.AccessModeRead, false), group.GetGroup).
+				Patch(reqToken(), reqGroupMembership(perm.AccessModeWrite, false), bind(api.EditGroupOption{}), group.EditGroup).
+				Delete(reqToken(), reqGroupMembership(perm.AccessModeAdmin, false), group.DeleteGroup)
+			m.Post("/new", reqToken(), reqGroupMembership(perm.AccessModeWrite, true), bind(api.NewGroupOption{}), group.NewSubGroup)
+		})
+	})
 	return m
 }
 
