@@ -1,6 +1,7 @@
 package group
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -12,12 +13,22 @@ import (
 	group_service "code.gitea.io/gitea/services/group"
 )
 
-func createCommonGroup(ctx *context.APIContext, parentGroupID int64) (*api.Group, error) {
+func createCommonGroup(ctx *context.APIContext, parentGroupID, ownerID int64) (*api.Group, error) {
+	if ownerID < 1 {
+		if parentGroupID < 1 {
+			return nil, fmt.Errorf("cannot determine new group's owner")
+		}
+		npg, err := group_model.GetGroupByID(ctx, parentGroupID)
+		if err != nil {
+			return nil, err
+		}
+		ownerID = npg.OwnerID
+	}
 	form := web.GetForm(ctx).(*api.NewGroupOption)
 	group := &group_model.Group{
 		Name:          form.Name,
 		Description:   form.Description,
-		OwnerID:       ctx.Org.Organization.ID,
+		OwnerID:       ownerID,
 		LowerName:     strings.ToLower(form.Name),
 		Visibility:    form.Visibility,
 		ParentGroupID: parentGroupID,
@@ -45,6 +56,7 @@ func NewGroup(ctx *context.APIContext) {
 	//   required: true
 	// - name: body
 	//   in: body
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/CreateGroupOption"
 	// responses:
@@ -54,7 +66,7 @@ func NewGroup(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	ag, err := createCommonGroup(ctx, 0)
+	ag, err := createCommonGroup(ctx, 0, ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -80,6 +92,7 @@ func NewSubGroup(ctx *context.APIContext) {
 	//   required: true
 	// - name: body
 	//   in: body
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/CreateGroupOption"
 	// responses:
@@ -94,7 +107,7 @@ func NewSubGroup(ctx *context.APIContext) {
 		err   error
 	)
 	gid := ctx.PathParamInt64("group_id")
-	group, err = createCommonGroup(ctx, gid)
+	group, err = createCommonGroup(ctx, gid, 0)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -120,6 +133,7 @@ func MoveGroup(ctx *context.APIContext) {
 	//   required: true
 	// - name: body
 	//   in: body
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/MoveGroupOption"
 	// responses:
@@ -185,6 +199,7 @@ func EditGroup(ctx *context.APIContext) {
 	//   required: true
 	// - name: body
 	//   in: body
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/EditGroupOption"
 	// responses:
@@ -245,10 +260,6 @@ func GetGroup(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
-	// - name: body
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/EditGroupOption"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Group"
@@ -288,11 +299,6 @@ func DeleteGroup(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the group to delete
-	//   type: string
-	//   required: true
 	// - name: group_id
 	//   in: path
 	//   description: id of the group to delete
