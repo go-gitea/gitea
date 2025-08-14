@@ -35,8 +35,6 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv python install 3.12
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -64,8 +62,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -138,8 +134,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -190,8 +184,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 24
