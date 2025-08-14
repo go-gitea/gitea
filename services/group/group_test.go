@@ -1,13 +1,13 @@
 package group
 
 import (
-	user_model "code.gitea.io/gitea/models/user"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
