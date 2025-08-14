@@ -515,12 +515,8 @@ func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *co
 			ctx.APIErrorInternal(err)
 			return
 		}
-		var canAccess bool
-		if ctx.IsSigned {
-			canAccess, err = g.CanAccessAtLevel(ctx, ctx.Doer.ID, mode)
-		} else {
-			canAccess, err = g.CanAccessAtLevel(ctx, 0, mode)
-		}
+		canAccess, err := g.CanAccessAtLevel(ctx, ctx.Doer, mode)
+
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
