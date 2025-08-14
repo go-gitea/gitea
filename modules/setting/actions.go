@@ -24,7 +24,7 @@ var (
 		ZombieTaskTimeout     time.Duration     `ini:"ZOMBIE_TASK_TIMEOUT"`
 		EndlessTaskTimeout    time.Duration     `ini:"ENDLESS_TASK_TIMEOUT"`
 		AbandonedJobTimeout   time.Duration     `ini:"ABANDONED_JOB_TIMEOUT"`
-		SkipWorkflowStrings   []string          `ìni:"SKIP_WORKFLOW_STRINGS"`
+		SkipWorkflowStrings   []string          `ini:"SKIP_WORKFLOW_STRINGS"`
 	}{
 		Enabled:             true,
 		DefaultActionsURL:   defaultActionsURLGitHub,

@@ -300,10 +300,6 @@ td .commit-summary {
   min-width: 100px;
 }
 
-.repository.new.issue .comment.form .content .markup {
-  font-size: 14px;
-}
-
 .repository.view.issue .instruct-toggle {
   display: inline-block;
 }
@@ -630,10 +626,6 @@ td .commit-summary {
   background: var(--color-light);
 }
 
-.repository.view.issue .comment-list .comment .markup {
-  font-size: 14px;
-}
-
 .repository.view.issue .comment-list .comment .no-content {
   color: var(--color-text-light-2);
   font-style: italic;
@@ -721,10 +713,6 @@ td .commit-summary {
   width: 100%;
   margin-top: -1rem;
   text-align: center;
-}
-
-.repository.compare.pull .markup {
-  font-size: 14px;
 }
 
 .repository.branches .commit-divergence .bar-group {
