@@ -197,7 +197,7 @@ importers:
         version: 3.1.0(eslint@8.57.0)
       '@stylistic/stylelint-plugin':
         specifier: 4.0.0
-        version: 4.0.0(stylelint@16.23.0(typescript@5.8.3))
+        version: 4.0.0(stylelint@16.23.1(typescript@5.8.3))
       '@types/dropzone':
         specifier: 5.7.9
         version: 5.7.9
@@ -298,23 +298,23 @@ importers:
         specifier: 1.8.0
         version: 1.8.0
       stylelint:
-        specifier: 16.23.0
-        version: 16.23.0(typescript@5.8.3)
+        specifier: 16.23.1
+        version: 16.23.1(typescript@5.8.3)
       stylelint-config-recommended:
         specifier: 17.0.0
-        version: 17.0.0(stylelint@16.23.0(typescript@5.8.3))
+        version: 17.0.0(stylelint@16.23.1(typescript@5.8.3))
       stylelint-declaration-block-no-ignored-properties:
         specifier: 2.8.0
-        version: 2.8.0(stylelint@16.23.0(typescript@5.8.3))
+        version: 2.8.0(stylelint@16.23.1(typescript@5.8.3))
       stylelint-declaration-strict-value:
         specifier: 1.10.11
-        version: 1.10.11(stylelint@16.23.0(typescript@5.8.3))
+        version: 1.10.11(stylelint@16.23.1(typescript@5.8.3))
       stylelint-define-config:
         specifier: 16.22.0
-        version: 16.22.0(stylelint@16.23.0(typescript@5.8.3))
+        version: 16.22.0(stylelint@16.23.1(typescript@5.8.3))
       stylelint-value-no-unknown-custom-properties:
         specifier: 6.0.1
-        version: 6.0.1(stylelint@16.23.0(typescript@5.8.3))
+        version: 6.0.1(stylelint@16.23.1(typescript@5.8.3))
       svgo:
         specifier: 4.0.0
         version: 4.0.0
@@ -4521,8 +4521,8 @@ packages:
     peerDependencies:
       stylelint: '>=16'
 
-  stylelint@16.23.0:
-    resolution: {integrity: sha512-69T5aS2LUY306ekt1Q1oaSPwz/jaG9HjyMix3UMrai1iEbuOafBe2Dh8xlyczrxFAy89qcKyZWWtc42XLx3Bbw==}
+  stylelint@16.23.1:
+    resolution: {integrity: sha512-dNvDTsKV1U2YtiUDfe9d2gp902veFeo3ecCWdGlmLm2WFrAV0+L5LoOj/qHSBABQwMsZPJwfC4bf39mQm1S5zw==}
     engines: {node: '>=18.12.0'}
     hasBin: true
 
@@ -5833,7 +5833,7 @@ snapshots:
       eslint-visitor-keys: 4.2.1
       espree: 10.4.0
 
-  '@stylistic/stylelint-plugin@4.0.0(stylelint@16.23.0(typescript@5.8.3))':
+  '@stylistic/stylelint-plugin@4.0.0(stylelint@16.23.1(typescript@5.8.3))':
     dependencies:
       '@csstools/css-parser-algorithms': 3.0.5(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-tokenizer': 3.0.4
@@ -5842,7 +5842,7 @@ snapshots:
       postcss-selector-parser: 7.1.0
       postcss-value-parser: 4.2.0
       style-search: 0.1.0
-      stylelint: 16.23.0(typescript@5.8.3)
+      stylelint: 16.23.1(typescript@5.8.3)
 
   '@swc/helpers@0.2.14': {}
 
@@ -9709,30 +9709,30 @@ snapshots:
 
   style-search@0.1.0: {}
 
-  stylelint-config-recommended@17.0.0(stylelint@16.23.0(typescript@5.8.3)):
+  stylelint-config-recommended@17.0.0(stylelint@16.23.1(typescript@5.8.3)):
     dependencies:
-      stylelint: 16.23.0(typescript@5.8.3)
+      stylelint: 16.23.1(typescript@5.8.3)
 
-  stylelint-declaration-block-no-ignored-properties@2.8.0(stylelint@16.23.0(typescript@5.8.3)):
+  stylelint-declaration-block-no-ignored-properties@2.8.0(stylelint@16.23.1(typescript@5.8.3)):
     dependencies:
-      stylelint: 16.23.0(typescript@5.8.3)
+      stylelint: 16.23.1(typescript@5.8.3)
 
-  stylelint-declaration-strict-value@1.10.11(stylelint@16.23.0(typescript@5.8.3)):
+  stylelint-declaration-strict-value@1.10.11(stylelint@16.23.1(typescript@5.8.3)):
     dependencies:
-      stylelint: 16.23.0(typescript@5.8.3)
+      stylelint: 16.23.1(typescript@5.8.3)
 
-  stylelint-define-config@16.22.0(stylelint@16.23.0(typescript@5.8.3)):
+  stylelint-define-config@16.22.0(stylelint@16.23.1(typescript@5.8.3)):
     dependencies:
       csstype: 3.1.3
-      stylelint: 16.23.0(typescript@5.8.3)
+      stylelint: 16.23.1(typescript@5.8.3)
 
-  stylelint-value-no-unknown-custom-properties@6.0.1(stylelint@16.23.0(typescript@5.8.3)):
+  stylelint-value-no-unknown-custom-properties@6.0.1(stylelint@16.23.1(typescript@5.8.3)):
     dependencies:
       postcss-value-parser: 4.2.0
       resolve: 1.22.10
-      stylelint: 16.23.0(typescript@5.8.3)
+      stylelint: 16.23.1(typescript@5.8.3)
 
-  stylelint@16.23.0(typescript@5.8.3):
+  stylelint@16.23.1(typescript@5.8.3):
     dependencies:
       '@csstools/css-parser-algorithms': 3.0.5(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-tokenizer': 3.0.4
