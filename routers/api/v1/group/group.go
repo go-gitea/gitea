@@ -104,7 +104,7 @@ func NewSubGroup(ctx *context.APIContext) {
 
 // MoveGroup - move a group to a different group in the same organization, or to the root level if
 func MoveGroup(ctx *context.APIContext) {
-	// swagger:operation POST /orgs/{org}/groups/{group_id}/move repository-group groupMove
+	// swagger:operation POST /groups/{group_id}/move repository-group groupMove
 	// ---
 	// summary: move a group to a different parent group
 	// consumes:
@@ -112,11 +112,6 @@ func MoveGroup(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: org
-	//   in: path
-	//   description: name of the organization
-	//   type: string
-	//   required: true
 	// - name: group_id
 	//   in: path
 	//   description: id of the group to move
@@ -174,7 +169,7 @@ func MoveGroup(ctx *context.APIContext) {
 
 // EditGroup - update a group in an organization
 func EditGroup(ctx *context.APIContext) {
-	// swagger:operation PATCH /orgs/{org}/groups/{group_id} repository-group groupEdit
+	// swagger:operation PATCH /groups/{group_id} repository-group groupEdit
 	// ---
 	// summary: edits a group in an organization. only fields that are set will be changed.
 	// consumes:
@@ -182,11 +177,6 @@ func EditGroup(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: org
-	//   in: path
-	//   description: name of the organization
-	//   type: string
-	//   required: true
 	// - name: group_id
 	//   in: path
 	//   description: id of the group to edit
@@ -243,17 +233,12 @@ func EditGroup(ctx *context.APIContext) {
 }
 
 func GetGroup(ctx *context.APIContext) {
-	// swagger:operation GET /orgs/{org}/groups/{group_id} repository-group groupGet
+	// swagger:operation GET /groups/{group_id} repository-group groupGet
 	// ---
 	// summary: gets a group in an organization
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: org
-	//   in: path
-	//   description: name of the organization
-	//   type: string
-	//   required: true
 	// - name: group_id
 	//   in: path
 	//   description: id of the group to retrieve
@@ -297,7 +282,7 @@ func GetGroup(ctx *context.APIContext) {
 }
 
 func DeleteGroup(ctx *context.APIContext) {
-	// swagger:operation DELETE /orgs/{org}/groups/{group_id} repositoryGroup groupDelete
+	// swagger:operation DELETE /groups/{group_id} repositoryGroup groupDelete
 	// ---
 	// summary: Delete a repository group
 	// produces:

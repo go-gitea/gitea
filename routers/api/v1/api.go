@@ -516,7 +516,6 @@ func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *co
 			return
 		}
 		canAccess, err := g.CanAccessAtLevel(ctx, ctx.Doer, mode)
-
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -1229,7 +1228,7 @@ func Routes() *web.Router {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
-				m.Post("/groups/move", reqToken(), bind(api.EditGroupOption{}), reqOrgMembership(), reqGroupMembership(perm.AccessModeWrite, false), repo.MoveRepoToGroup)
+				m.Post("/groups/move", reqToken(), bind(api.MoveGroupOption{}), reqOrgMembership(), reqGroupMembership(perm.AccessModeWrite, false), repo.MoveRepoToGroup)
 				m.Post("/generate", reqToken(), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
 				m.Group("/transfer", func() {
 					m.Post("", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
@@ -1732,7 +1731,6 @@ func Routes() *web.Router {
 			}, reqToken(), reqOrgOwnership())
 			m.Group("/groups", func() {
 				m.Post("/new", reqToken(), reqGroupMembership(perm.AccessModeWrite, true), group.NewGroup)
-				m.Post("/{group_id}/move", reqToken(), reqGroupMembership(perm.AccessModeWrite, false), group.MoveGroup)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {
@@ -1822,8 +1820,9 @@ func Routes() *web.Router {
 				Get(reqGroupMembership(perm.AccessModeRead, false), group.GetGroup).
 				Patch(reqToken(), reqGroupMembership(perm.AccessModeWrite, false), bind(api.EditGroupOption{}), group.EditGroup).
 				Delete(reqToken(), reqGroupMembership(perm.AccessModeAdmin, false), group.DeleteGroup)
+			m.Post("/move", reqToken(), reqGroupMembership(perm.AccessModeWrite, false), bind(api.MoveGroupOption{}), group.MoveGroup)
 			m.Post("/new", reqToken(), reqGroupMembership(perm.AccessModeWrite, true), bind(api.NewGroupOption{}), group.NewSubGroup)
-		})
+		}, checkTokenPublicOnly())
 	})
 	return m
 }
