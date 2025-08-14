@@ -128,14 +128,13 @@ func GetUserRepoTeams(ctx context.Context, orgID, userID, repoID int64) (teams T
 
 // GetUserGroupTeams returns teams in a group that a user has access to
 func GetUserGroupTeams(ctx context.Context, groupID, userID int64) (teams TeamList, err error) {
-	err = db.GetEngine(ctx).
+	return teams, db.GetEngine(ctx).
 		Where("`repo_group_team`.group_id = ?", groupID).
 		Join("INNER", "repo_group_team", "`repo_group_team`.team_id = `team`.id").
 		Join("INNER", "team_user", "`team_user`.team_id = `team`.id").
 		And("`team_user`.uid = ?", userID).
 		Asc("`team`.name").
 		Find(&teams)
-	return
 }
 
 func GetTeamsByOrgIDs(ctx context.Context, orgIDs []int64) (TeamList, error) {
