@@ -1,7 +1,6 @@
 package structs
 
 // Group represents a group of repositories and subgroups in an organization
-// swagger:model
 type Group struct {
 	ID            int64  `json:"id"`
 	Owner         *User  `json:"owner"`
@@ -14,7 +13,7 @@ type Group struct {
 	SortOrder     int    `json:"sort_order"`
 }
 
-// NewGroupOption - options for creating a new group in an organization
+// NewGroupOption represents options for creating a new group in an organization
 // swagger:model
 type NewGroupOption struct {
 	// the name for the newly created group
@@ -27,7 +26,7 @@ type NewGroupOption struct {
 	Visibility VisibleType `json:"visibility"`
 }
 
-// MoveGroupOption - options for changing a group or repo's parent and sort order
+// MoveGroupOption represents options for changing a group or repo's parent and sort order
 // swagger:model
 type MoveGroupOption struct {
 	// the new parent group. can be 0 to specify no parent
@@ -38,7 +37,7 @@ type MoveGroupOption struct {
 	NewPos *int `json:"newPos,omitempty"`
 }
 
-// EditGroupOption - options for editing a repository group
+// EditGroupOption represents options for editing a repository group
 // swagger:model
 type EditGroupOption struct {
 	// the new name of the group
