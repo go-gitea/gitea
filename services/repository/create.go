@@ -5,7 +5,6 @@ package repository
 
 import (
 	"bytes"
-	group_model "code.gitea.io/gitea/models/group"
 	"context"
 	"fmt"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
