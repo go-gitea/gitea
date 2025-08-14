@@ -1287,8 +1287,8 @@
         "tags": [
           "repository-group"
         ],
-        "summary": "gets the repos contained within a group",
-        "operationId": "groupRepos",
+        "summary": "gets a group in an organization",
+        "operationId": "groupGet",
         "parameters": [
           {
             "type": "integer",
@@ -1305,9 +1305,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -1468,6 +1465,66 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/groups/{group_id}/repos": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository-group"
+        ],
+        "summary": "gets the repos contained within a group",
+        "operationId": "groupGetRepos",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the group containing the repositories",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepositoryList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/groups/{group_id}/subgroups": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository-group"
+        ],
+        "summary": "gets the subgroups contained within a group",
+        "operationId": "groupGetSubGroups",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the parent group",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GroupList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
