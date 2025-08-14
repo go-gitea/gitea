@@ -38,7 +38,7 @@ func TestMoveGroup(t *testing.T) {
 		}
 		origCount := unittest.GetCount(t, new(group_model.Group), cond.ToConds())
 
-		assert.NoError(t, MoveGroupItem(t.Context(), gid, 123, true, -1))
+		assert.NoError(t, MoveGroupItem(t.Context(), MoveGroupOptions{123, gid, true, -1}, 3))
 		unittest.AssertCountByCond(t, "repo_group", cond.ToConds(), origCount+1)
 	}
 	testfn(124)
@@ -53,6 +53,6 @@ func TestMoveRepo(t *testing.T) {
 	})
 	origCount := unittest.GetCount(t, new(repo_model.Repository), cond)
 
-	assert.NoError(t, MoveGroupItem(db.DefaultContext, 32, 123, false, -1))
+	assert.NoError(t, MoveGroupItem(db.DefaultContext, MoveGroupOptions{123, 32, false, -1}, 3))
 	unittest.AssertCountByCond(t, "repository", cond, origCount+1)
 }

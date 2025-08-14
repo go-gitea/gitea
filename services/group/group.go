@@ -66,7 +66,13 @@ func MoveRepositoryToGroup(ctx context.Context, repo *repo_model.Repository, new
 	return err
 }
 
-func MoveGroupItem(ctx context.Context, itemID, newParent int64, isGroup bool, newPos int) (err error) {
+type MoveGroupOptions struct {
+	NewParent, ItemID int64
+	IsGroup           bool
+	NewPos            int
+}
+
+func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doerID int64) (err error) {
 	var committer db.Committer
 	ctx, committer, err = db.TxContext(ctx)
 	if err != nil {
@@ -74,25 +80,33 @@ func MoveGroupItem(ctx context.Context, itemID, newParent int64, isGroup bool, n
 	}
 	defer committer.Close()
 	var parentGroup *group_model.Group
-	parentGroup, err = group_model.GetGroupByID(ctx, newParent)
+	parentGroup, err = group_model.GetGroupByID(ctx, opts.NewParent)
 	if err != nil {
 		return err
 	}
+	canAccessNewParent, err := parentGroup.CanAccess(ctx, doerID)
+	if err != nil {
+		return err
+	}
+	if !canAccessNewParent {
+		return fmt.Errorf("cannot access new parent group")
+	}
+
 	err = parentGroup.LoadSubgroups(ctx, false)
 	if err != nil {
 		return err
 	}
-	if isGroup {
+	if opts.IsGroup {
 		var group *group_model.Group
-		group, err = group_model.GetGroupByID(ctx, itemID)
+		group, err = group_model.GetGroupByID(ctx, opts.ItemID)
 		if err != nil {
 			return err
 		}
-		if newPos < 0 {
-			newPos = len(parentGroup.Subgroups)
+		if opts.NewPos < 0 {
+			opts.NewPos = len(parentGroup.Subgroups)
 		}
-		if group.ParentGroupID != newParent || group.SortOrder != newPos {
-			if err = group_model.MoveGroup(ctx, group, newParent, newPos); err != nil {
+		if group.ParentGroupID != opts.NewParent || group.SortOrder != opts.NewPos {
+			if err = group_model.MoveGroup(ctx, group, opts.NewParent, opts.NewPos); err != nil {
 				return err
 			}
 			if err = RecalculateGroupAccess(ctx, group, false); err != nil {
@@ -101,22 +115,22 @@ func MoveGroupItem(ctx context.Context, itemID, newParent int64, isGroup bool, n
 		}
 	} else {
 		var repo *repo_model.Repository
-		repo, err = repo_model.GetRepositoryByID(ctx, itemID)
+		repo, err = repo_model.GetRepositoryByID(ctx, opts.ItemID)
 		if err != nil {
 			return err
 		}
-		if newPos < 0 {
+		if opts.NewPos < 0 {
 			var repoCount int64
 			repoCount, err = repo_model.CountRepository(ctx, repo_model.SearchRepoOptions{
-				GroupID: newParent,
+				GroupID: opts.NewParent,
 			})
 			if err != nil {
 				return err
 			}
-			newPos = int(repoCount)
+			opts.NewPos = int(repoCount)
 		}
-		if repo.GroupID != newParent || repo.GroupSortOrder != newPos {
-			if err = MoveRepositoryToGroup(ctx, repo, newParent, newPos); err != nil {
+		if repo.GroupID != opts.NewParent || repo.GroupSortOrder != opts.NewPos {
+			if err = MoveRepositoryToGroup(ctx, repo, opts.NewParent, opts.NewPos); err != nil {
 				return err
 			}
 		}
