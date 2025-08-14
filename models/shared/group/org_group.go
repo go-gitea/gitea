@@ -17,9 +17,9 @@ func FindGroupMembers(ctx context.Context, groupID int64, opts *organization_mod
 		Select("`team_user`.uid").
 		From("team_user").
 		InnerJoin("org_user", "`org_user`.uid = team_user.uid").
-		InnerJoin("group_team", "`group_team`.team_id = team_user.team_id").
+		InnerJoin("repo_group_team", "`repo_group_team`.team_id = team_user.team_id").
 		Where(builder.Eq{"`org_user`.org_id": opts.OrgID}).
-		And(group_model.ParentGroupCond(context.TODO(), "`group_team`.group_id", groupID))
+		And(group_model.ParentGroupCond(context.TODO(), "`repo_group_team`.group_id", groupID))
 	if opts.PublicOnly() {
 		cond = cond.And(builder.Eq{"`org_user`.is_public": true})
 	}
@@ -38,17 +38,20 @@ func FindGroupMembers(ctx context.Context, groupID int64, opts *organization_mod
 func GetGroupTeams(ctx context.Context, groupID int64) ([]*organization_model.Team, error) {
 	var teams []*organization_model.Team
 	return teams, db.GetEngine(ctx).
-		Where("`group_team`.group_id = ?", groupID).
-		Join("INNER", "group_team", "`group_team`.team_id = `team`.id").
+		Where("`repo_group_team`.group_id = ?", groupID).
+		Join("INNER", "repo_group_team", "`repo_group_team`.team_id = `team`.id").
 		Asc("`team`.name").
 		Find(&teams)
 }
 
-func IsGroupMember(ctx context.Context, groupID, userID int64) (bool, error) {
+func IsGroupMember(ctx context.Context, groupID int64, user *user_model.User) (bool, error) {
+	if user == nil {
+		return false, nil
+	}
 	return db.GetEngine(ctx).
-		Where("`group_team`.group_id = ?", groupID).
-		Join("INNER", "group_team", "`group_team`.team_id = `team_user`.team_id").
-		And("`team_user`.uid = ?", userID).
+		Where("`repo_group_team`.group_id = ?", groupID).
+		Join("INNER", "repo_group_team", "`repo_group_team`.team_id = `team_user`.team_id").
+		And("`team_user`.uid = ?", user.ID).
 		Table("team_user").
 		Exist()
 }
