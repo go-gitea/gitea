@@ -1,3 +1,6 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package structs
 
 // Group represents a group of repositories and subgroups in an organization

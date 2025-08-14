@@ -1,13 +1,16 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package group
 
 import (
-	access_model "code.gitea.io/gitea/models/perm/access"
-	shared_group_model "code.gitea.io/gitea/models/shared/group"
-	"fmt"
+	"errors"
 	"net/http"
 	"strings"
 
 	group_model "code.gitea.io/gitea/models/group"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	shared_group_model "code.gitea.io/gitea/models/shared/group"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -18,7 +21,7 @@ import (
 func createCommonGroup(ctx *context.APIContext, parentGroupID, ownerID int64) (*api.Group, error) {
 	if ownerID < 1 {
 		if parentGroupID < 1 {
-			return nil, fmt.Errorf("cannot determine new group's owner")
+			return nil, errors.New("cannot determine new group's owner")
 		}
 		npg, err := group_model.GetGroupByID(ctx, parentGroupID)
 		if err != nil {
@@ -153,7 +156,10 @@ func MoveGroup(ctx *context.APIContext) {
 		npos = *form.NewPos
 	}
 	err = group_service.MoveGroupItem(ctx, group_service.MoveGroupOptions{
-		form.NewParent, id, true, npos,
+		NewParent: form.NewParent,
+		ItemID:    id,
+		IsGroup:   true,
+		NewPos:    npos,
 	}, ctx.Doer)
 	if group_model.IsErrGroupNotExist(err) {
 		ctx.APIErrorNotFound()
