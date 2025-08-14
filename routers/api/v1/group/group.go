@@ -1,6 +1,8 @@
 package group
 
 import (
+	access_model "code.gitea.io/gitea/models/perm/access"
+	shared_group_model "code.gitea.io/gitea/models/shared/group"
 	"fmt"
 	"net/http"
 	"strings"
@@ -265,8 +267,6 @@ func GetGroup(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Group"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 	var (
 		err   error
 		group *group_model.Group
@@ -317,4 +317,95 @@ func DeleteGroup(ctx *context.APIContext) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+func GetGroupRepos(ctx *context.APIContext) {
+	// swagger:operation GET /groups/{group_id}/repos repository-group groupGetRepos
+	// ---
+	// summary: gets the repos contained within a group
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: group_id
+	//   in: path
+	//   description: id of the group containing the repositories
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepositoryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	gid := ctx.PathParamInt64("group_id")
+	_, err := group_model.GetGroupByID(ctx, gid)
+	if err != nil {
+		if group_model.IsErrGroupNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	groupRepos, err := shared_group_model.GetGroupRepos(ctx, gid, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	repos := make([]*api.Repository, len(groupRepos))
+	for i, repo := range groupRepos {
+		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		repos[i] = convert.ToRepo(ctx, repo, permission)
+	}
+	ctx.SetTotalCountHeader(int64(len(repos)))
+	ctx.JSON(http.StatusOK, repos)
+}
+
+func GetGroupSubGroups(ctx *context.APIContext) {
+	// swagger:operation GET /groups/{group_id}/subgroups repository-group groupGetSubGroups
+	// ---
+	// summary: gets the subgroups contained within a group
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: group_id
+	//   in: path
+	//   description: id of the parent group
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/GroupList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	g, err := group_model.GetGroupByID(ctx, ctx.PathParamInt64("group_id"))
+	if err != nil {
+		if group_model.IsErrGroupNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+	err = g.LoadAccessibleSubgroups(ctx, false, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	groups := make([]*api.Group, len(g.Subgroups))
+	for i, group := range g.Subgroups {
+		groups[i], err = convert.ToAPIGroup(ctx, group, ctx.Doer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+	ctx.SetTotalCountHeader(int64(len(groups)))
+	ctx.JSON(http.StatusOK, groups)
 }

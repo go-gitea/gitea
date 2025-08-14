@@ -1,6 +1,7 @@
 package group
 
 import (
+	repo_model "code.gitea.io/gitea/models/repo"
 	"context"
 
 	"code.gitea.io/gitea/models/db"
@@ -54,4 +55,14 @@ func IsGroupMember(ctx context.Context, groupID int64, user *user_model.User) (b
 		And("`team_user`.uid = ?", user.ID).
 		Table("team_user").
 		Exist()
+}
+
+func GetGroupRepos(ctx context.Context, groupID int64, doer *user_model.User) ([]*repo_model.Repository, error) {
+	sess := db.GetEngine(ctx)
+	repos := make([]*repo_model.Repository, 0)
+	return repos, sess.Table("repository").
+		Where("group_id = ?", groupID).
+		And(builder.In("id", repo_model.AccessibleRepoIDsQuery(doer))).
+		OrderBy("group_sort_order").
+		Find(&repos)
 }

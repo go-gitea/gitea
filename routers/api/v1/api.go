@@ -1822,6 +1822,8 @@ func Routes() *web.Router {
 				Delete(reqToken(), reqGroupMembership(perm.AccessModeAdmin, false), group.DeleteGroup)
 			m.Post("/move", reqToken(), reqGroupMembership(perm.AccessModeWrite, false), bind(api.MoveGroupOption{}), group.MoveGroup)
 			m.Post("/new", reqToken(), reqGroupMembership(perm.AccessModeWrite, true), bind(api.NewGroupOption{}), group.NewSubGroup)
+			m.Get("/subgroups", reqGroupMembership(perm.AccessModeRead, false), group.GetGroupSubGroups)
+			m.Get("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqGroupMembership(perm.AccessModeRead, false), group.GetGroupRepos)
 		}, checkTokenPublicOnly())
 	})
 	return m
