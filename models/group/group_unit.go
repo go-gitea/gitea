@@ -1,3 +1,6 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package group
 
 import (
@@ -32,7 +35,7 @@ func GetGroupUnit(ctx context.Context, groupID, teamID int64, unitType unit.Type
 		And("team_id = ?", teamID).
 		And("type = ?", unitType).
 		Get(unit)
-	return
+	return unit, err
 }
 
 func GetMaxGroupUnit(ctx context.Context, groupID int64, unitType unit.Type) (unit *RepoGroupUnit, err error) {
@@ -42,12 +45,12 @@ func GetMaxGroupUnit(ctx context.Context, groupID int64, unitType unit.Type) (un
 		And("type = ?", unitType).
 		Find(&units)
 	if err != nil {
-		return
+		return nil, err
 	}
 	for _, u := range units {
 		if unit == nil || u.AccessMode > unit.AccessMode {
 			unit = u
 		}
 	}
-	return
+	return unit, err
 }

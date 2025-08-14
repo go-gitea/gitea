@@ -1,7 +1,11 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package group
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -89,7 +93,7 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 		return err
 	}
 	if !canAccessNewParent {
-		return fmt.Errorf("cannot access new parent group")
+		return errors.New("cannot access new parent group")
 	}
 
 	err = parentGroup.LoadSubgroups(ctx, false)

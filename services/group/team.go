@@ -1,3 +1,6 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package group
 
 import (
@@ -68,7 +71,7 @@ func UpdateGroupTeam(ctx context.Context, gt *group_model.RepoGroupTeam) (err er
 			And("group_id=?", gt.GroupID).
 			And("type = ?", unit.Type).
 			Update(unit); err != nil {
-			return
+			return err
 		}
 	}
 	return committer.Commit()
@@ -92,7 +95,7 @@ func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew boo
 		teams, err = org_model.GetTeamsWithAccessToGroup(ctx, g.OwnerID, g.ParentGroupID, perm.AccessModeRead)
 	}
 	for _, t := range teams {
-		var gt *group_model.RepoGroupTeam = nil
+		var gt *group_model.RepoGroupTeam
 		if gt, err = group_model.FindGroupTeamByTeamID(ctx, g.ParentGroupID, t.ID); err != nil {
 			return err
 		}
@@ -110,7 +113,6 @@ func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew boo
 			return err
 		}
 		for _, u := range t.Units {
-
 			newAccessMode := u.AccessMode
 			if g.ParentGroup == nil {
 				gu, err := group_model.GetGroupUnit(ctx, g.ID, t.ID, u.Type)
