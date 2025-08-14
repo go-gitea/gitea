@@ -1,6 +1,7 @@
 package group
 
 import (
+	user_model "code.gitea.io/gitea/models/user"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -31,6 +32,9 @@ func TestNewGroup(t *testing.T) {
 
 func TestMoveGroup(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+		ID: 3,
+	})
 	testfn := func(gid int64) {
 		cond := &group_model.FindGroupsOptions{
 			ParentGroupID: 123,
@@ -38,7 +42,7 @@ func TestMoveGroup(t *testing.T) {
 		}
 		origCount := unittest.GetCount(t, new(group_model.Group), cond.ToConds())
 
-		assert.NoError(t, MoveGroupItem(t.Context(), MoveGroupOptions{123, gid, true, -1}, 3))
+		assert.NoError(t, MoveGroupItem(t.Context(), MoveGroupOptions{123, gid, true, -1}, doer))
 		unittest.AssertCountByCond(t, "repo_group", cond.ToConds(), origCount+1)
 	}
 	testfn(124)
@@ -48,11 +52,14 @@ func TestMoveGroup(t *testing.T) {
 
 func TestMoveRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+		ID: 3,
+	})
 	cond := repo_model.SearchRepositoryCondition(repo_model.SearchRepoOptions{
 		GroupID: 123,
 	})
 	origCount := unittest.GetCount(t, new(repo_model.Repository), cond)
 
-	assert.NoError(t, MoveGroupItem(db.DefaultContext, MoveGroupOptions{123, 32, false, -1}, 3))
+	assert.NoError(t, MoveGroupItem(db.DefaultContext, MoveGroupOptions{123, 32, false, -1}, doer))
 	unittest.AssertCountByCond(t, "repository", cond, origCount+1)
 }
