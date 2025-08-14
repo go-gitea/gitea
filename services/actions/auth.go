@@ -53,7 +53,7 @@ func CreateAuthorizationToken(taskID, runID, jobID int64) (string, error) {
 
 	claims := actionsClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(1*time.Hour + setting.Actions.EndlessTaskTimeout)),
 			NotBefore: jwt.NewNumericDate(now),
 		},
 		Scp:    fmt.Sprintf("Actions.Results:%d:%d", runID, jobID),
