@@ -167,6 +167,8 @@ type CreateRepoOption struct {
 	TrustModel string `json:"trust_model"`
 	// ObjectFormatName of the underlying git repository, empty string for default (sha1)
 	ObjectFormatName ObjectFormatName `json:"object_format_name" binding:"MaxSize(6)"`
+	// GroupID of the group which will contain this repository. ignored if the repo owner is not an organization.
+	GroupID int64 `json:"group_id"`
 }
 
 // EditRepoOption options when editing a repository's properties
