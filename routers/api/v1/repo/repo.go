@@ -1360,7 +1360,7 @@ func MoveRepoToGroup(ctx *context.APIContext) {
 		IsGroup: false, NewPos: npos,
 		ItemID:    ctx.Repo.Repository.ID,
 		NewParent: form.NewParent,
-	}, ctx.Doer.ID)
+	}, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
