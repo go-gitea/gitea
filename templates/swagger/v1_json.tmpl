@@ -1279,6 +1279,199 @@
         }
       }
     },
+    "/groups/{group_id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository-group"
+        ],
+        "summary": "gets the repos contained within a group",
+        "operationId": "groupRepos",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the group to retrieve",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Group"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repositoryGroup"
+        ],
+        "summary": "Delete a repository group",
+        "operationId": "groupDelete",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the group to delete",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository-group"
+        ],
+        "summary": "edits a group in an organization. only fields that are set will be changed.",
+        "operationId": "groupEdit",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the group to edit",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/EditGroupOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Group"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/groups/{group_id}/move": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository-group"
+        ],
+        "summary": "move a group to a different parent group",
+        "operationId": "groupMove",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the group to move",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MoveGroupOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Group"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/groups/{group_id}/new": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository-group"
+        ],
+        "summary": "create a subgroup inside a group",
+        "operationId": "groupNewSubGroup",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the group to create a subgroup in",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateGroupOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Group"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/label/templates": {
       "get": {
         "produces": [
@@ -2796,6 +2989,49 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/groups/new": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository-group"
+        ],
+        "summary": "create a root-level repository group for an organization",
+        "operationId": "groupNew",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateGroupOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Group"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -23538,6 +23774,12 @@
           "type": "string",
           "x-go-name": "Gitignores"
         },
+        "group_id": {
+          "description": "GroupID of the group which will contain this repository. ignored if the repo owner is not an organization.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "GroupID"
+        },
         "issue_labels": {
           "description": "Label-Set to use",
           "type": "string",
@@ -24209,6 +24451,26 @@
           "description": "Content is the new script content for the hook",
           "type": "string",
           "x-go-name": "Content"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "EditGroupOption": {
+      "description": "EditGroupOption represents options for editing a repository group",
+      "type": "object",
+      "properties": {
+        "description": {
+          "description": "the new description of the group",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "name": {
+          "description": "the new name of the group",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "visibility": {
+          "$ref": "#/definitions/VisibleType"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -25605,6 +25867,53 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "Group": {
+      "description": "Group represents a group of repositories and subgroups in an organization",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "link": {
+          "type": "string",
+          "x-go-name": "Link"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "num_repos": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NumRepos"
+        },
+        "num_subgroups": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NumSubgroups"
+        },
+        "owner": {
+          "$ref": "#/definitions/User"
+        },
+        "parentGroupID": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ParentGroupID"
+        },
+        "sort_order": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SortOrder"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Hook": {
       "description": "Hook a hook is a web hook when one repository changed",
       "type": "object",
@@ -26437,6 +26746,51 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "MoveGroupOption": {
+      "description": "MoveGroupOption represents options for changing a group or repo's parent and sort order",
+      "type": "object",
+      "required": [
+        "newParent"
+      ],
+      "properties": {
+        "newParent": {
+          "description": "the new parent group. can be 0 to specify no parent",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NewParent"
+        },
+        "newPos": {
+          "description": "the position of this group in its new parent",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NewPos"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NewGroupOption": {
+      "description": "NewGroupOption represents options for creating a new group in an organization",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "description": {
+          "description": "the description of the newly created group",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "name": {
+          "description": "the name for the newly created group",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "visibility": {
+          "$ref": "#/definitions/VisibleType"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -29062,6 +29416,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "VisibleType": {
+      "description": "VisibleType defines the visibility of user and org",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "WatchInfo": {
       "description": "WatchInfo represents an API watch status of one repository",
       "type": "object",
@@ -29610,6 +29970,21 @@
         "type": "array",
         "items": {
           "type": "string"
+        }
+      }
+    },
+    "Group": {
+      "description": "Group",
+      "schema": {
+        "$ref": "#/definitions/Group"
+      }
+    },
+    "GroupList": {
+      "description": "GroupList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Group"
         }
       }
     },
@@ -30318,7 +30693,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/LockIssueOption"
+        "$ref": "#/definitions/MoveGroupOption"
       }
     },
     "redirect": {
