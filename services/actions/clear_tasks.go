@@ -134,23 +134,18 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		}
 	}
 
-	for runid, job := range updatedRuns {
-		jobs, err := actions_model.GetRunJobsByRunID(ctx, runid)
+	for _, job := range updatedRuns {
+		c, err := db.Count[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
+			RunID:    job.RunID,
+			Statuses: []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning},
+		})
 		if err != nil {
-			log.Error("Count waiting jobs for run %d: %v", runid, err)
+			log.Error("Count waiting jobs for run %d: %v", job.RunID, err)
 			continue
 		}
-		unfinished := false
-		for _, job := range jobs {
-			if !job.Status.IsDone() {
-				unfinished = true
-				break
-			}
+		if c == 0 {
+			NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
 		}
-		if unfinished {
-			continue
-		}
-		NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
 	}
 
 	return nil
