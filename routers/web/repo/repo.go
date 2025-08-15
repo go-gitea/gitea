@@ -289,6 +289,7 @@ func CreatePost(ctx *context.Context) {
 			IsTemplate:       form.Template,
 			TrustModel:       repo_model.DefaultTrustModel,
 			ObjectFormatName: form.ObjectFormatName,
+			GroupID:          form.ParentGroupID,
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
@@ -477,6 +478,7 @@ func SearchRepo(ctx *context.Context) {
 		Template:           optional.None[bool](),
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
+		GroupID:            ctx.FormInt64("group_id"),
 	}
 
 	if ctx.FormString("template") != "" {
@@ -567,16 +569,18 @@ func SearchRepo(ctx *context.Context) {
 	for i, repo := range repos {
 		results[i] = &repo_service.WebSearchRepository{
 			Repository: &api.Repository{
-				ID:       repo.ID,
-				FullName: repo.FullName(),
-				Fork:     repo.IsFork,
-				Private:  repo.IsPrivate,
-				Template: repo.IsTemplate,
-				Mirror:   repo.IsMirror,
-				Stars:    repo.NumStars,
-				HTMLURL:  repo.HTMLURL(ctx),
-				Link:     repo.Link(),
-				Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+				ID:             repo.ID,
+				FullName:       repo.FullName(),
+				Fork:           repo.IsFork,
+				Private:        repo.IsPrivate,
+				Template:       repo.IsTemplate,
+				Mirror:         repo.IsMirror,
+				Stars:          repo.NumStars,
+				HTMLURL:        repo.HTMLURL(ctx),
+				Link:           repo.Link(),
+				Internal:       !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+				GroupSortOrder: repo.GroupSortOrder,
+				GroupID:        repo.GroupID,
 			},
 		}
 
