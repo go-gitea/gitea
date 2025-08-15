@@ -14,6 +14,7 @@ import (
 )
 
 func NewDiffPatch(ctx *context.Context) {
+	prepareTreeSideBarSwitch(ctx)
 	prepareEditorCommitFormOptions(ctx, "_diffpatch")
 	if ctx.Written() {
 		return

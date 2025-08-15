@@ -3,24 +3,19 @@
 	{{template "repo/header" .}}
 	<div class="ui container fluid">
 		{{template "base/alert" .}}
+		{{template "repo/editor/common_top" .}}
 		<div class="repo-view-container">
-			<div class="tw-flex tw-flex-col repo-view-file-tree-container not-mobile {{if or (not .UserSettingCodeViewShowFileTree) .IsEditingFileOnly}}tw-hidden{{end}}" data-user-is-signed-in>
-				{{template "repo/view_file_tree" .}}
-			</div>
+			<div class="tw-flex tw-flex-col repo-view-file-tree-container not-mobile {{if (not .UserSettingCodeViewShowFileTree)}}tw-hidden{{end}}" data-user-is-signed-in>
+      	{{template "repo/view_file_tree" .}}
+      </div>
 			<div class="repo-view-content">
 				<form class="ui edit form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}"
 							data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}"
 							data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}"
 				>
 					{{.CsrfTokenHtml}}
-					{{template "repo/editor/common_top" .}}
 					<div class="repo-editor-header">
-						<button class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile {{if and .UserSettingCodeViewShowFileTree (not .IsEditingFileOnly)}}tw-hidden{{end}}"
-							data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show"
-							data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}"
-							type="button">
-							{{svg "octicon-sidebar-collapse"}}
-						</button>
+						{{template "repo/editor/file_tree_toggle" .}}
 						{{template "repo/editor/common_breadcrumb" .}}
 					</div>
 					{{if not .NotEditableReason}}

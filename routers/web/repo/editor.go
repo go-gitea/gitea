@@ -263,6 +263,7 @@ func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.Read
 func EditFile(ctx *context.Context) {
 	editorAction := ctx.PathParam("editor_action")
 	isNewFile := editorAction == "_new"
+	ctx.Data["PageIsEdit"] = true
 	ctx.Data["IsNewFile"] = isNewFile
 
 	// Check if the filename (and additional path) is specified in the querystring
@@ -378,6 +379,8 @@ func EditFilePost(ctx *context.Context) {
 
 // DeleteFile render delete file page
 func DeleteFile(ctx *context.Context) {
+	prepareTreePathFieldsAndPaths(ctx, ctx.Repo.TreePath)
+	prepareTreeSideBarSwitch(ctx)
 	prepareEditorCommitFormOptions(ctx, "_delete")
 	if ctx.Written() {
 		return

@@ -1,18 +1,25 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui container fluid">
 		{{template "base/alert" .}}
-		<form class="ui form form-fetch-action" method="post" action="{{.RepoLink}}/_fork/{{.BranchName | PathEscapeSegments}}">
-			{{.CsrfTokenHtml}}
-			<div class="tw-text-center">
-				<div class="tw-my-[40px]">
-					<h3>{{ctx.Locale.Tr "repo.editor.fork_create"}}</h3>
-					<p>{{ctx.Locale.Tr "repo.editor.fork_create_description"}}</p>
-				</div>
-				<button class="ui primary button">{{ctx.Locale.Tr "repo.fork_repo"}}</button>
+		<div class="repo-view-container">
+			<div class="tw-flex tw-flex-col repo-view-file-tree-container not-mobile {{if (not .UserSettingCodeViewShowFileTree)}}tw-hidden{{end}}" data-user-is-signed-in>
+				{{template "repo/view_file_tree" .}}
 			</div>
-		</form>
+			<div class="repo-view-content">
+				<form class="ui form form-fetch-action" method="post" action="{{.RepoLink}}/_fork/{{.BranchName | PathEscapeSegments}}">
+					{{.CsrfTokenHtml}}
+					<div class="tw-text-center">
+						<div class="tw-my-[40px]">
+							<h3>{{ctx.Locale.Tr "repo.editor.fork_create"}}</h3>
+							<p>{{ctx.Locale.Tr "repo.editor.fork_create_description"}}</p>
+						</div>
+						<button class="ui primary button">{{ctx.Locale.Tr "repo.fork_repo"}}</button>
+					</div>
+				</form>
+			</div>
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}}
