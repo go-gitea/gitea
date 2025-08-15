@@ -627,7 +627,7 @@ type UpdateAllowEditsForm struct {
 //  |       _// __ \|  | _/ __ \\__  \  /  ___// __ \
 //  |    |   \  ___/|  |_\  ___/ / __ \_\___ \\  ___/
 //  |____|_  /\___  >____/\___  >____  /____  >\___  >
-//         \/     \/            \/     \/     \/     \/
+//         \/     \/          \/     \/     \/     \/
 
 // NewReleaseForm form for creating release
 type NewReleaseForm struct {

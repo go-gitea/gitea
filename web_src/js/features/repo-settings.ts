@@ -3,6 +3,7 @@ import {createMonaco} from './codeeditor.ts';
 import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
+import {initRepoSettingsWebhook} from './repo-settings-webhook.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl, csrfToken} = window.config;
@@ -152,4 +153,5 @@ export function initRepoSettings() {
   initRepoSettingsSearchTeamBox();
   initRepoSettingsGitHook();
   initRepoSettingsBranchesDrag();
+  initRepoSettingsWebhook();
 }

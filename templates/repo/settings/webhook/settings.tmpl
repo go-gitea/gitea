@@ -54,7 +54,7 @@
 		<h5>{{ctx.Locale.Tr "repo.settings.payload_optimization_files"}}</h5>
 		<div class="field">
 			<div class="ui checkbox">
-				<input name="payload_optimization_files_enable" type="checkbox" {{if .Webhook.IsFilesOptimizationEnabled}}checked{{end}} onchange="toggleLimitField('payload_optimization_files_limit', this.checked)">
+				<input name="payload_optimization_files_enable" type="checkbox" {{if .Webhook.IsFilesOptimizationEnabled}}checked{{end}}>
 				<label>{{ctx.Locale.Tr "repo.settings.payload_optimization_enable"}}</label>
 				<span class="help">{{ctx.Locale.Tr "repo.settings.payload_optimization_enable_desc"}}</span>
 			</div>
@@ -69,7 +69,7 @@
 		<h5>{{ctx.Locale.Tr "repo.settings.payload_optimization_commits"}}</h5>
 		<div class="field">
 			<div class="ui checkbox">
-				<input name="payload_optimization_commits_enable" type="checkbox" {{if .Webhook.IsCommitsOptimizationEnabled}}checked{{end}} onchange="toggleLimitField('payload_optimization_commits_limit', this.checked)">
+				<input name="payload_optimization_commits_enable" type="checkbox" {{if .Webhook.IsCommitsOptimizationEnabled}}checked{{end}}>
 				<label>{{ctx.Locale.Tr "repo.settings.payload_optimization_enable"}}</label>
 				<span class="help">{{ctx.Locale.Tr "repo.settings.payload_optimization_enable_desc"}}</span>
 			</div>
@@ -81,15 +81,6 @@
 		</div>
 	</div>
 </div>
-
-<script>
-function toggleLimitField(fieldName, enabled) {
-	const field = document.querySelector('input[name="' + fieldName + '"]');
-	if (field) {
-		field.disabled = !enabled;
-	}
-}
-</script>
 
 <div class="field">
 	<h4>{{ctx.Locale.Tr "repo.settings.event_desc"}}</h4>
