@@ -1,6 +1,7 @@
 package group
 
 import (
+	"code.gitea.io/gitea/models/perm"
 	"context"
 	"slices"
 
@@ -102,7 +103,7 @@ func GetTopLevelGroupItemList(ctx context.Context, orgID int64, doer *user_model
 		ActorID:       doer.ID,
 		OwnerID:       orgID,
 	}, group_model.
-		AccessibleGroupCondition(doer, unit.TypeInvalid))
+		AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead))
 	if err != nil {
 		return
 	}

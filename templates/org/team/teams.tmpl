@@ -1,6 +1,10 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content organization teams">
+	{{if .PageIsOrgTeams}}
 	{{template "org/header" .}}
+	{{else if .PageIsGroupTeams}}
+		{{template "group/header" .}}
+	{{end}}
 	<div class="ui container">
 		{{template "base/alert" .}}
 		{{if .IsOrganizationOwner}}
