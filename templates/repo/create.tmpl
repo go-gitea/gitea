@@ -43,6 +43,16 @@
 					<span class="help tw-hidden" data-help-for-repo-name=".profile">{{ctx.Locale.Tr "repo.repo_name_profile_public_hint"}}</span>
 					<span class="help tw-hidden" data-help-for-repo-name=".profile-private">{{ctx.Locale.Tr "repo.repo_name_profile_private_hint"}}</span>
 				</div>
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.group"}}</label>
+					<div id="group_selector" class="ui search dropdown">
+						<span class="text truncated-item-container" title="{{ctx.Locale.Tr "group.parent.none_selected"}}"></span>
+						<input type="hidden" id="gid" name="parent_group_id" value="0" required>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+						</div>
+					</div>
+				</div>
 
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.visibility"}}</label>

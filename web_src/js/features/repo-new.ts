@@ -58,6 +58,36 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
   onChangeOwner();
 }
 
+function initRepoGroupSelector(form: HTMLFormElement) {
+  const inputRepoOwnerUid = form.querySelector<HTMLInputElement>('#uid');
+  const elGroupDropdown = form.querySelector<HTMLInputElement>('#group_selector');
+  const $dropdown = fomanticQuery(elGroupDropdown);
+  const onChangeRepoOwner = function () {
+    $dropdown.dropdown('setting', {
+      apiSettings: {
+        url: `${appSubUrl}/group/search?uid=${inputRepoOwnerUid.value}&recurse=true`,
+        onResponse(response) {
+          const results = [];
+          results.push({name: '', value: ''}); // empty item means not using template
+          const forEachFn = function({group, subgroups}, depth: number) {
+            results.push({name: group.name, value: String(group.id)});
+            for (const sg of subgroups) {
+              forEachFn(sg, depth + 1);
+            }
+          };
+          for (const g of response.data.subgroups) {
+            forEachFn(g, 0);
+          }
+          return {results};
+        },
+        cache: false,
+      },
+    });
+  };
+  inputRepoOwnerUid.addEventListener('change', onChangeRepoOwner);
+  onChangeRepoOwner();
+}
+
 export function initRepoNew() {
   const pageContent = document.querySelector('.page-content.repository.new-repo');
   if (!pageContent) return;
@@ -96,4 +126,5 @@ export function initRepoNew() {
   updateUiRepoName();
 
   initRepoNewTemplateSearch(form);
+  initRepoGroupSelector(form);
 }
