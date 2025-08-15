@@ -183,25 +183,25 @@ td .commit-summary {
   cursor: default;
 }
 
-.repository .non-diff-file-content .plain-text {
+.repository.file.list .non-diff-file-content .plain-text {
   padding: 1em 2em;
 }
 
-.repository .non-diff-file-content .plain-text pre {
+.repository.file.list .non-diff-file-content .plain-text pre {
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
-.repository .non-diff-file-content .csv {
+.repository.file.list .non-diff-file-content .csv {
   overflow-x: auto;
   padding: 0 !important;
 }
 
-.repository .non-diff-file-content pre {
+.repository.file.list .non-diff-file-content pre {
   overflow: auto;
 }
 
-.repository .non-diff-file-content .asciicast {
+.repository.file.list .non-diff-file-content .asciicast {
   padding: 0 !important;
 }
 
