@@ -10,6 +10,10 @@
 			<div class="repo-view-content">
 				<form class="ui form form-fetch-action" method="post" action="{{.RepoLink}}/_fork/{{.BranchName | PathEscapeSegments}}">
 					{{.CsrfTokenHtml}}
+					<div class="repo-editor-header">
+						{{template "repo/editor/file_tree_toggle" .}}
+						{{template "repo/editor/common_breadcrumb" .}}
+					</div>
 					<div class="tw-text-center">
 						<div class="tw-my-[40px]">
 							<h3>{{ctx.Locale.Tr "repo.editor.fork_create"}}</h3>

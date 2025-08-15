@@ -263,7 +263,6 @@ func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.Read
 func EditFile(ctx *context.Context) {
 	editorAction := ctx.PathParam("editor_action")
 	isNewFile := editorAction == "_new"
-	ctx.Data["PageIsEdit"] = true
 	ctx.Data["IsNewFile"] = isNewFile
 
 	// Check if the filename (and additional path) is specified in the querystring
@@ -323,6 +322,7 @@ func EditFile(ctx *context.Context) {
 		}
 	}
 
+	ctx.Data["PageIsEdit"] = true
 	ctx.Data["EditorconfigJson"] = getContextRepoEditorConfig(ctx, ctx.Repo.TreePath)
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
