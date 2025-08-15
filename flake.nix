@@ -15,7 +15,7 @@
           with pkgs;
           let
             # only bump toolchain versions here
-            go = go_1_24;
+            go = go_1_25;
             nodejs = nodejs_24;
             python3 = python312;
             pnpm = pnpm_10;
