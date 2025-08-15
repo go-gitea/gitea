@@ -39,7 +39,7 @@ const doLoadChildren = async () => {
 const onItemClick = (e: MouseEvent) => {
   // only handle the click event with partial page reloading if
   // - the user didn't press any special key let browsers handle special keys like "Ctrl+Click"
-  // - the user doesn't edit the file (a full page reload shows a confirmation dialog if the editor or commit dialog have unsaved changed)
+  // - the user doesn't edit the file (a full page reload shows a confirmation dialog if the editor or commit dialog have unsaved changes)
   if (!isPlainClick(e) || props.store.pageIsEdit) return;
   e.preventDefault();
   if (props.item.entryMode === 'tree') doLoadChildren();
