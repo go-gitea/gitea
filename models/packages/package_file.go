@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -247,9 +248,14 @@ func GetFilesBelowBuildNumber(ctx context.Context, versionID int64, maxBuildNumb
 		return nil, nil, fmt.Errorf("failed to retrieve files: %w", err)
 	}
 
+	// Sort classifiers by length (longest first) once per call
+	sort.SliceStable(classifiers, func(i, j int) bool {
+		return len(classifiers[i]) > len(classifiers[j])
+	})
+
 	var filteredFiles, skippedFiles []*PackageFile
 	for _, file := range files {
-		buildNumber, err := extractBuildNumberFromFileName(file.Name, classifiers...)
+		buildNumber, err := ExtractBuildNumberFromFileName(file.Name, classifiers...)
 		if err != nil {
 			if !errors.Is(err, ErrMetadataFile) {
 				skippedFiles = append(skippedFiles, file)
@@ -264,12 +270,12 @@ func GetFilesBelowBuildNumber(ctx context.Context, versionID int64, maxBuildNumb
 	return filteredFiles, skippedFiles, nil
 }
 
-// extractBuildNumberFromFileName extracts the build number from a Maven snapshot file name.
+// ExtractBuildNumberFromFileName extracts the build number from a Maven snapshot file name.
 // Expected formats:
 //
 //	"artifact-1.0.0-20250311.083409-9.tgz" returns 9
 //	"artifact-to-test-2.0.0-20250311.083409-10-sources.tgz" returns 10
-func extractBuildNumberFromFileName(filename string, classifiers ...string) (int, error) {
+func ExtractBuildNumberFromFileName(filename string, classifiers ...string) (int, error) {
 	if strings.Contains(filename, "maven-metadata.xml") {
 		return 0, ErrMetadataFile
 	}

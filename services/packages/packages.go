@@ -611,7 +611,7 @@ func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb
 	internalServe := len(forceInternalServe) > 0 && forceInternalServe[0]
 
 	if !internalServe && cs.ShouldServeDirect() {
-		u, err = cs.GetServeDirectURL(key, pf.Name, serveDirectReqParams)
+		u, err = cs.GetServeDirectURL(key, pf.Name, method, serveDirectReqParams)
 		if err != nil && !errors.Is(err, storage.ErrURLNotSupported) {
 			log.Error("Error getting serve direct url (fallback to local reader): %v", err)
 		}

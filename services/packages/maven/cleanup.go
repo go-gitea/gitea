@@ -2,6 +2,8 @@ package maven
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -16,42 +18,62 @@ import (
 func CleanupSnapshotVersions(ctx context.Context) error {
 	retainBuilds := setting.Packages.RetainMavenSnapshotBuilds
 	debugSession := setting.Packages.DebugMavenCleanup
-	log.Debug("Starting Maven CleanupSnapshotVersions with retainBuilds: %d, debugSession: %t", retainBuilds, debugSession)
-
-	if retainBuilds == -1 {
-		log.Info("Maven CleanupSnapshotVersions skipped because retainBuilds is set to -1")
-		return nil
-	}
+	log.Debug("Maven Cleanup: starting with retainBuilds: %d, debugSession: %t", retainBuilds, debugSession)
 
 	if retainBuilds < 1 {
-		return fmt.Errorf("Maven CleanupSnapshotVersions: forbidden value for retainBuilds: %d. Minimum 1 build should be retained", retainBuilds)
+		log.Warn("Maven Cleanup: skipped as value for retainBuilds less than 1: %d. Minimum 1 build should be retained", retainBuilds)
+		return nil
 	}
 
 	versions, err := packages.GetVersionsByPackageType(ctx, 0, packages.TypeMaven)
 	if err != nil {
-		return fmt.Errorf("Maven CleanupSnapshotVersions: failed to retrieve Maven package versions: %w", err)
+		return fmt.Errorf("maven Cleanup: failed to retrieve Maven package versions: %w", err)
 	}
 
-	var errors []error
+	var errs []error
+	var metadataErrors []error
 
 	for _, version := range versions {
 		if !isSnapshotVersion(version.Version) {
 			continue
 		}
 
+		var artifactId, groupId string
+		if version.MetadataJSON != "" {
+			var metadata map[string]interface{}
+			if err := json.Unmarshal([]byte(version.MetadataJSON), &metadata); err != nil {
+				log.Warn("Maven Cleanup: error during cleanup: failed to unmarshal metadataJSON for package version ID: %d: %w", version.ID, err)
+			} else {
+				artifactId, _ = metadata["artifact_id"].(string)
+				groupId, _ = metadata["group_id"].(string)
+				log.Trace("Maven Cleanup: processing package version with ID: %s, Group ID: %s, Artifact ID: %s, Version: %s", version.ID, groupId, artifactId, version.Version)
+			}
+		}
+
 		if err := cleanSnapshotFiles(ctx, version.ID, retainBuilds, debugSession); err != nil {
-			errors = append(errors, fmt.Errorf("Maven CleanupSnapshotVersions: version '%s' (ID: %d): %w", version.Version, version.ID, err))
+			formattedErr := fmt.Errorf("version '%s' (ID: %d, Group ID: %s, Artifact ID: %s): %w",
+				version.Version, version.ID, groupId, artifactId, err)
+
+			if errors.Is(err, packages.ErrMetadataFile) {
+				metadataErrors = append(metadataErrors, formattedErr)
+			} else {
+				errs = append(errs, formattedErr)
+			}
 		}
 	}
 
-	if len(errors) > 0 {
-		for _, err := range errors {
-			log.Warn("Maven CleanupSnapshotVersions: Error during cleanup: %v", err)
-		}
-		return fmt.Errorf("Maven CleanupSnapshotVersions: cleanup completed with errors: %v", errors)
+	for _, err := range metadataErrors {
+		log.Warn("Maven Cleanup: error during cleanup: %v", err)
 	}
 
-	log.Debug("Completed Maven CleanupSnapshotVersions")
+	if len(errs) > 0 {
+		for _, err := range errs {
+			log.Error("Maven Cleanup: error during cleanup: %v", err)
+		}
+		return fmt.Errorf("maven Cleanup: completed with errors: %v", errs)
+	}
+
+	log.Trace("Completed Maven Cleanup")
 	return nil
 }
 
@@ -60,27 +82,27 @@ func isSnapshotVersion(version string) bool {
 }
 
 func cleanSnapshotFiles(ctx context.Context, versionID int64, retainBuilds int, debugSession bool) error {
-	log.Debug("Starting Maven cleanSnapshotFiles for versionID: %d with retainBuilds: %d, debugSession: %t", versionID, retainBuilds, debugSession)
+	log.Trace("Maven Cleanup: starting cleanSnapshotFiles for versionID: %d with retainBuilds: %d, debugSession: %t", versionID, retainBuilds, debugSession)
 
 	metadataFile, err := packages.GetFileForVersionByName(ctx, versionID, "maven-metadata.xml", packages.EmptyFileKey)
 	if err != nil {
-		return fmt.Errorf("cleanSnapshotFiles: failed to retrieve Maven metadata file for version ID %d: %w", versionID, err)
+		return fmt.Errorf("%w: failed to retrieve maven-metadata.xml: %w", packages.ErrMetadataFile, err)
 	}
 
 	maxBuildNumber, classifiers, err := extractMaxBuildNumber(ctx, metadataFile)
 	if err != nil {
-		return fmt.Errorf("cleanSnapshotFiles: failed to extract max build number from maven-metadata.xml for version ID %d: %w", versionID, err)
+		return fmt.Errorf("%w: failed to extract max build number from maven-metadata.xml: %w", packages.ErrMetadataFile, err)
 	}
 
 	thresholdBuildNumber := maxBuildNumber - retainBuilds
 	if thresholdBuildNumber <= 0 {
-		log.Debug("cleanSnapshotFiles: No files to clean up, as the threshold build number is less than or equal to zero for versionID %d", versionID)
+		log.Trace("Maven Cleanup: no files to clean up, as the threshold build number is less than or equal to zero for versionID %d", versionID)
 		return nil
 	}
 
 	filesToRemove, skippedFiles, err := packages.GetFilesBelowBuildNumber(ctx, versionID, thresholdBuildNumber, classifiers...)
 	if err != nil {
-		return fmt.Errorf("cleanSnapshotFiles: failed to retrieve files for version ID %d: %w", versionID, err)
+		return fmt.Errorf("cleanSnapshotFiles: failed to retrieve files for version: %w", err)
 	}
 
 	if debugSession {
@@ -94,36 +116,35 @@ func cleanSnapshotFiles(ctx context.Context, versionID int64, retainBuilds int, 
 			skippedFileNames = append(skippedFileNames, file.Name)
 		}
 
-		log.Info("cleanSnapshotFiles: Debug session active. Files to remove: %v, Skipped files: %v", fileNamesToRemove, skippedFileNames)
+		log.Debug("Maven Cleanup: debug session active. Files to remove: %v, Skipped files: %v", fileNamesToRemove, skippedFileNames)
 		return nil
 	}
 
 	for _, file := range filesToRemove {
-		log.Debug("Removing file '%s' below threshold %d", file.Name, thresholdBuildNumber)
+		log.Trace("Maven Cleanup: removing file '%s' below threshold %d", file.Name, thresholdBuildNumber)
 		if err := packages_service.DeletePackageFile(ctx, file); err != nil {
-			return fmt.Errorf("Maven cleanSnapshotFiles: failed to delete file '%s': %w", file.Name, err)
+			return fmt.Errorf("cleanSnapshotFiles: failed to delete file '%s': %w", file.Name, err)
 		}
 	}
 
-	log.Debug("Completed Maven cleanSnapshotFiles for versionID: %d", versionID)
 	return nil
 }
 
 func extractMaxBuildNumber(ctx context.Context, metadataFile *packages.PackageFile) (int, []string, error) {
 	pb, err := packages.GetBlobByID(ctx, metadataFile.BlobID)
 	if err != nil {
-		return 0, nil, fmt.Errorf("extractMaxBuildNumber: failed to get package blob: %w", err)
+		return 0, nil, fmt.Errorf("failed to get package blob: %w", err)
 	}
 
-	content, _, _, err := packages_service.GetPackageBlobStream(ctx, metadataFile, pb, nil, true)
+	content, _, _, err := packages_service.OpenBlobForDownload(ctx, metadataFile, pb, "", nil, true)
 	if err != nil {
-		return 0, nil, fmt.Errorf("extractMaxBuildNumber: failed to get package file stream: %w", err)
+		return 0, nil, fmt.Errorf("failed to get package file stream: %w", err)
 	}
 	defer content.Close()
 
 	snapshotMetadata, err := maven.ParseSnapshotVersionMetaData(content)
 	if err != nil {
-		return 0, nil, fmt.Errorf("extractMaxBuildNumber: failed to parse maven-metadata.xml: %w", err)
+		return 0, nil, fmt.Errorf("failed to parse maven-metadata.xml: %w", err)
 	}
 
 	buildNumber := snapshotMetadata.BuildNumber

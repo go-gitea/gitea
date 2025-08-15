@@ -173,7 +173,7 @@ func CleanupExpiredData(ctx context.Context, olderThan time.Duration) error {
 		}
 
 		if err := maven_service.CleanupSnapshotVersions(ctx); err != nil {
-			return err
+			log.Error("Error cleaning up Maven snapshot versions: %v", err)
 		}
 
 		ps, err := packages_model.FindUnreferencedPackages(ctx)
