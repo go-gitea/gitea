@@ -608,7 +608,9 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnablePackages && !unit_model.TypePackages.UnitGlobalDisabled() {
-		units = append(units, newRepoUnit(repo, unit_model.TypePackages, nil))
+		units = append(units, newRepoUnit(repo, unit_model.TypePackages, &repo_model.PackagesConfig{
+			GoModuleSubDir: form.GoModuleSubDir,
+		}))
 	} else if !unit_model.TypePackages.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
 	}

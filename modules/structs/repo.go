@@ -227,6 +227,8 @@ type EditRepoOption struct {
 	MirrorInterval *string `json:"mirror_interval,omitempty"`
 	// enable prune - remove obsolete remote-tracking references when mirroring
 	EnablePrune *bool `json:"enable_prune,omitempty"`
+	// set the subdirectory for Go modules
+	GoModuleSubDir *string `json:"go_module_sub_dir,omitempty"`
 }
 
 // GenerateRepoOption options when creating a repository using a template

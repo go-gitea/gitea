@@ -468,6 +468,12 @@ func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit
 			Type:   tp,
 			Config: cfg,
 		}
+	case unit.TypePackages:
+		cfg := new(PackagesConfig)
+		return &RepoUnit{
+			Type:   tp,
+			Config: cfg,
+		}
 	}
 
 	return &RepoUnit{
