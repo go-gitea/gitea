@@ -106,6 +106,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.AbandonedJobTimeout).Unix()),
 	})
 	if err != nil {
+		log.Warn("find abandoned tasks: %v", err)
 		return err
 	}
 
@@ -123,7 +124,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 			updated = err == nil && n > 0
 			return err
 		}); err != nil {
-			log.Warn("CancelAbandonedJobs jobid %v: %v", job.ID, err)
+			log.Warn("cancel abandoned job %v: %v", job.ID, err)
 			// go on
 		}
 		CreateCommitStatus(ctx, job)
@@ -136,7 +137,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 	for runid, job := range updatedRuns {
 		jobs, err := actions_model.GetRunJobsByRunID(ctx, runid)
 		if err != nil {
-			log.Error("CancelAbandonedJobs runid %d: %v", runid, err)
+			log.Error("Count waiting jobs for run %d: %v", runid, err)
 			continue
 		}
 		unfinished := false
