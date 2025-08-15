@@ -263,11 +263,6 @@ func (n *actionsNotifier) CreateIssueComment(ctx context.Context, doer *user_mod
 func (n *actionsNotifier) UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
 	ctx = withMethod(ctx, "UpdateComment")
 
-	if err := c.LoadIssue(ctx); err != nil {
-		log.Error("LoadIssue: %v", err)
-		return
-	}
-
 	if c.Issue.IsPull {
 		notifyIssueCommentChange(ctx, doer, c, oldContent, webhook_module.HookEventPullRequestComment, api.HookIssueCommentEdited)
 		return
@@ -278,11 +273,6 @@ func (n *actionsNotifier) UpdateComment(ctx context.Context, doer *user_model.Us
 func (n *actionsNotifier) DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) {
 	ctx = withMethod(ctx, "DeleteComment")
 
-	if err := comment.LoadIssue(ctx); err != nil {
-		log.Error("LoadIssue: %v", err)
-		return
-	}
-
 	if comment.Issue.IsPull {
 		notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventPullRequestComment, api.HookIssueCommentDeleted)
 		return
@@ -291,6 +281,7 @@ func (n *actionsNotifier) DeleteComment(ctx context.Context, doer *user_model.Us
 }
 
 func notifyIssueCommentChange(ctx context.Context, doer *user_model.User, comment *issues_model.Comment, oldContent string, event webhook_module.HookEventType, action api.HookIssueCommentAction) {
+	comment.Issue = nil // force issue to be loaded
 	if err := comment.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return
