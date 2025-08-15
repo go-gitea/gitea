@@ -410,6 +410,15 @@ lint-templates: .venv node_modules ## lint template files
 lint-yaml: .venv ## lint yaml files
 	@uv run --frozen yamllint -s .
 
+.PHONY: generate-locale
+generate-locale:
+	@python3 tools/locales/generate_locales.py
+
+
+.PHONY: search-not-exist-keys-locale
+search-not-exist-keys-locale:
+	@python3 tools/locales/search_not_exist_key_to_EN_us.py
+
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
