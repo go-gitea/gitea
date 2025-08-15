@@ -1,0 +1,28 @@
+.repo-group-header {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 4px;
+  align-items: center;
+}
+
+.repo-group-header .flex-item {
+  padding: 0;
+}
+
+.repo-group-header .flex-item-main {
+  flex: 0;
+  flex-basis: unset;
+}
+
+.repo-group-header .flex-item-trailing {
+  flex-wrap: nowrap;
+}
+.repo-group-buttons {
+  align-items: center;
+  display: flex;
+  flex-flow: row wrap;
+  word-break: keep-all;
+  gap: 0.25em;
+}
