@@ -106,7 +106,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.AbandonedJobTimeout).Unix()),
 	})
 	if err != nil {
-		log.Warn("find abandoned tasks: %v", err)
+		log.Error("CancelAbandonedJobs: %v", err)
 		return err
 	}
 
@@ -124,7 +124,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 			updated = err == nil && n > 0
 			return err
 		}); err != nil {
-			log.Warn("cancel abandoned job %v: %v", job.ID, err)
+			log.Warn("CancelAbandonedJobs jobid %v: %v", job.ID, err)
 			// go on
 		}
 		CreateCommitStatus(ctx, job)
@@ -134,18 +134,24 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		}
 	}
 
-	for _, job := range updatedRuns {
-		c, err := db.Count[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
-			RunID:    job.RunID,
-			Statuses: []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning},
-		})
+	for _, obj := range updatedRuns {
+		jobs, err := actions_model.GetRunJobsByRunID(ctx, obj.RunID)
 		if err != nil {
-			log.Error("Count waiting jobs for run %d: %v", job.RunID, err)
+			log.Error("CancelAbandonedJobs runid %d: %v", obj.RunID, err)
 			continue
 		}
-		if c == 0 {
-			NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
+
+		unfinished := false
+		for _, job := range jobs {
+			if !job.Status.IsDone() {
+				unfinished = true
+				break
+			}
 		}
+		if unfinished {
+			continue
+		}
+		NotifyWorkflowRunStatusUpdateWithReload(ctx, obj)
 	}
 
 	return nil
