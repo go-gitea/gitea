@@ -21,22 +21,18 @@ import (
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
-// getBoolFromMap extracts a boolean value from a map with a default fallback
-//
-//nolint:unparam // defaultValue is needed for generic helper function
-func getBoolFromMap(m map[string]any, defaultValue bool) bool {
+// getPayloadOptimizationEnable extracts the "enable" boolean value from a payload optimization config map
+func getPayloadOptimizationEnable(m map[string]any) bool {
 	if val, ok := m["enable"]; ok {
 		if boolVal, ok := val.(bool); ok {
 			return boolVal
 		}
 	}
-	return defaultValue
+	return false
 }
 
-// getIntFromMap extracts an integer value from a map with a default fallback
-//
-//nolint:unparam // defaultValue is needed for generic helper function
-func getIntFromMap(m map[string]any, defaultValue int) int {
+// getPayloadOptimizationLimit extracts the "limit" integer value from a payload optimization config map
+func getPayloadOptimizationLimit(m map[string]any) int {
 	if val, ok := m["limit"]; ok {
 		switch v := val.(type) {
 		case int:
@@ -49,7 +45,7 @@ func getIntFromMap(m map[string]any, defaultValue int) int {
 			}
 		}
 	}
-	return defaultValue
+	return 0
 }
 
 // ListOwnerHooks lists the webhooks of the provided owner
@@ -270,8 +266,8 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 			// Parse files config
 			if filesConfig, ok := payloadOptMap["files"].(map[string]any); ok {
 				payloadOptConfig.Files = &webhook.PayloadOptimizationItem{
-					Enable: getBoolFromMap(filesConfig, false),
-					Limit:  getIntFromMap(filesConfig, 0),
+					Enable: getPayloadOptimizationEnable(filesConfig),
+					Limit:  getPayloadOptimizationLimit(filesConfig),
 				}
 			} else {
 				payloadOptConfig.Files = &webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
@@ -280,8 +276,8 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 			// Parse commits config
 			if commitsConfig, ok := payloadOptMap["commits"].(map[string]any); ok {
 				payloadOptConfig.Commits = &webhook.PayloadOptimizationItem{
-					Enable: getBoolFromMap(commitsConfig, false),
-					Limit:  getIntFromMap(commitsConfig, 0),
+					Enable: getPayloadOptimizationEnable(commitsConfig),
+					Limit:  getPayloadOptimizationLimit(commitsConfig),
 				}
 			} else {
 				payloadOptConfig.Commits = &webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
@@ -471,8 +467,8 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 			// Parse files config
 			if filesConfig, ok := payloadOptMap["files"].(map[string]any); ok {
 				payloadOptConfig.Files = &webhook.PayloadOptimizationItem{
-					Enable: getBoolFromMap(filesConfig, false),
-					Limit:  getIntFromMap(filesConfig, 0),
+					Enable: getPayloadOptimizationEnable(filesConfig),
+					Limit:  getPayloadOptimizationLimit(filesConfig),
 				}
 			} else {
 				payloadOptConfig.Files = &webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
@@ -481,8 +477,8 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 			// Parse commits config
 			if commitsConfig, ok := payloadOptMap["commits"].(map[string]any); ok {
 				payloadOptConfig.Commits = &webhook.PayloadOptimizationItem{
-					Enable: getBoolFromMap(commitsConfig, false),
-					Limit:  getIntFromMap(commitsConfig, 0),
+					Enable: getPayloadOptimizationEnable(commitsConfig),
+					Limit:  getPayloadOptimizationLimit(commitsConfig),
 				}
 			} else {
 				payloadOptConfig.Commits = &webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
