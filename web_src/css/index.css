@@ -58,6 +58,7 @@
 @import "./base.css";
 @import "./home.css";
 @import "./install.css";
+@import "./group.css";
 
 @import "./repo.css";
 @import "./repo/release-tag.css";
