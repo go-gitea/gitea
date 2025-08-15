@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
@@ -933,8 +934,18 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		ctx.ServerError("GetDefaultSquashMergeMessage", err)
 		return
 	}
+	_, coAuthors := pull_service.GetSquashMergeCommitMessages(ctx, pull)
+
+	defaultSquashMergeBody = fmt.Sprintf("%s%s", defaultSquashMergeBody, coAuthors)
+
+	commitsMsg, err := getPullViewSquashMergeCommits(ctx, issue)
+	if err != nil {
+		ctx.ServerError("getPullViewSquashMergeCommits", err)
+		return
+	}
+
 	ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
-	ctx.Data["DefaultSquashMergeBody"] = defaultSquashMergeBody
+	ctx.Data["DefaultSquashMergeBody"] = fmt.Sprintf("--------------------\n%s%s", commitsMsg, defaultSquashMergeBody)
 
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
 	if err != nil {
@@ -1005,4 +1016,26 @@ func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 		ctx.ServerError("roleDescriptor", err)
 		return
 	}
+}
+
+func getPullViewSquashMergeCommits(ctx *context.Context, issue *issues_model.Issue) (string, error) {
+	pull := issue.PullRequest
+	pull.Issue = issue
+
+	baseCommit := GetMergedBaseCommitID(ctx, issue)
+
+	compareInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
+		baseCommit, pull.GetGitHeadRefName(), false, false)
+	if err != nil {
+		return "", err
+	}
+
+	commitsBuilder := strings.Builder{}
+	for _, c := range compareInfo.Commits {
+		commitsBuilder.WriteString("* ")
+		commitsBuilder.WriteString(c.CommitMessage)
+		commitsBuilder.WriteRune('\n')
+	}
+
+	return commitsBuilder.String(), nil
 }

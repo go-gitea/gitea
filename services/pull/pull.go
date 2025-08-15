@@ -784,15 +784,15 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 var commitMessageTrailersPattern = regexp.MustCompile(`(?:^|\n\n)(?:[\w-]+[ \t]*:[^\n]+\n*(?:[ \t]+[^\n]+\n*)*)+$`)
 
 // GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
-func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequest) string {
+func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequest) (string, string) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
-		return ""
+		return "", ""
 	}
 
 	if err := pr.Issue.LoadPoster(ctx); err != nil {
 		log.Error("Cannot load poster %d for pr id %d, index %d Error: %v", pr.Issue.PosterID, pr.ID, pr.Index, err)
-		return ""
+		return "", ""
 	}
 
 	if pr.HeadRepo == nil {
@@ -800,14 +800,14 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		pr.HeadRepo, err = repo_model.GetRepositoryByID(ctx, pr.HeadRepoID)
 		if err != nil {
 			log.Error("GetRepositoryByIdCtx[%d]: %v", pr.HeadRepoID, err)
-			return ""
+			return "", ""
 		}
 	}
 
 	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
 	if err != nil {
 		log.Error("Unable to open head repository: Error: %v", err)
-		return ""
+		return "", ""
 	}
 	defer closer.Close()
 
@@ -818,19 +818,19 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
 			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitHeadRefName(), err)
-			return ""
+			return "", ""
 		}
 		headCommit, err = gitRepo.GetCommit(pr.HeadCommitID)
 	}
 	if err != nil {
 		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
-		return ""
+		return "", ""
 	}
 
 	mergeBase, err := gitRepo.GetCommit(pr.MergeBase)
 	if err != nil {
 		log.Error("Unable to get merge base commit: %s Error: %v", pr.MergeBase, err)
-		return ""
+		return "", ""
 	}
 
 	limit := setting.Repository.PullRequest.DefaultMergeMessageCommitsLimit
@@ -838,7 +838,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, 0)
 	if err != nil {
 		log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
-		return ""
+		return "", ""
 	}
 
 	posterSig := pr.Issue.Poster.NewGitSig().String()
@@ -846,6 +846,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	uniqueAuthors := make(container.Set[string])
 	authors := make([]string, 0, len(commits))
 	stringBuilder := strings.Builder{}
+	coAuthorStringBuilder := strings.Builder{}
 
 	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
 		message := strings.TrimSpace(pr.Issue.Content)
@@ -879,12 +880,12 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 				}
 				if _, err := stringBuilder.Write(toWrite); err != nil {
 					log.Error("Unable to write commit message Error: %v", err)
-					return ""
+					return "", ""
 				}
 
 				if _, err := stringBuilder.WriteRune('\n'); err != nil {
 					log.Error("Unable to write commit message Error: %v", err)
-					return ""
+					return "", ""
 				}
 			}
 		}
@@ -908,7 +909,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 			commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
 			if err != nil {
 				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
-				return ""
+				return "", ""
 			}
 			if len(commits) == 0 {
 				break
@@ -927,21 +928,21 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	}
 
 	for _, author := range authors {
-		if _, err := stringBuilder.WriteString("Co-authored-by: "); err != nil {
+		if _, err := coAuthorStringBuilder.WriteString("Co-authored-by: "); err != nil {
 			log.Error("Unable to write to string builder Error: %v", err)
-			return ""
+			return "", ""
 		}
-		if _, err := stringBuilder.WriteString(author); err != nil {
+		if _, err := coAuthorStringBuilder.WriteString(author); err != nil {
 			log.Error("Unable to write to string builder Error: %v", err)
-			return ""
+			return "", ""
 		}
-		if _, err := stringBuilder.WriteRune('\n'); err != nil {
+		if _, err := coAuthorStringBuilder.WriteRune('\n'); err != nil {
 			log.Error("Unable to write to string builder Error: %v", err)
-			return ""
+			return "", ""
 		}
 	}
 
-	return stringBuilder.String()
+	return stringBuilder.String(), coAuthorStringBuilder.String()
 }
 
 // GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status
