@@ -207,7 +207,7 @@ func ChangeConfig(ctx *context.Context) {
 		return "false", nil
 	}
 
-	marshalString :=  func(v string) (string, error) {
+	marshalString := func(v string) (string, error) {
 		if strings.TrimSpace(v) == "" {
 			return "null", nil
 		}
@@ -217,7 +217,6 @@ func ChangeConfig(ctx *context.Context) {
 		}
 		return string(b), nil
 	}
-
 
 	marshalOpenWithApps := func(value string) (string, error) {
 		lines := strings.Split(value, "\n")
