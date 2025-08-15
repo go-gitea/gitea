@@ -75,6 +75,12 @@ func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
 // value is used to store display data
 var gothProviders = map[string]GothProvider{}
 
+var azureProviders = map[string]bool{
+	"azuread":         true,
+	"microsoftonline": true,
+	"azureadv2":       true,
+}
+
 // RegisterGothProvider registers a GothProvider
 func RegisterGothProvider(provider GothProvider) {
 	if _, has := gothProviders[provider.Name()]; has {
@@ -85,12 +91,6 @@ func RegisterGothProvider(provider GothProvider) {
 
 // hasExistingAzureADAuthSources checks if there are any existing Azure AD auth sources configured
 func hasExistingAzureADAuthSources(ctx context.Context) bool {
-	azureProviders := map[string]bool{
-		"azuread":         true,
-		"microsoftonline": true,
-		"azureadv2":       true,
-	}
-
 	authSources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		LoginType: auth.OAuth2,
 	})
@@ -121,12 +121,6 @@ func GetSupportedOAuth2Providers() []Provider {
 func GetSupportedOAuth2ProvidersWithContext(ctx context.Context) []Provider {
 	providers := make([]Provider, 0, len(gothProviders))
 	hasExistingAzure := hasExistingAzureADAuthSources(ctx)
-
-	azureProviders := map[string]bool{
-		"azuread":         true,
-		"microsoftonline": true,
-		"azureadv2":       true,
-	}
 
 	for _, provider := range gothProviders {
 		if azureProviders[provider.Name()] && !hasExistingAzure {
