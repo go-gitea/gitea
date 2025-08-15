@@ -1,0 +1,91 @@
+@import "./repo_group/header.css";
+
+.repo-group.new.group form {
+  margin: auto;
+}
+
+.repo-group.new.group form .ui.message {
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .repo-group.new.group form {
+    width: 800px !important;
+  }
+  .repo-group.new.group form .header {
+    padding-left: 280px !important;
+  }
+  .repo-group.new.group form .inline.field > label {
+    text-align: right;
+    width: 250px !important;
+    word-wrap: break-word;
+  }
+  .repo-group.new.group form .help {
+    margin-left: 265px !important;
+  }
+  .repo-group.new.group form .optional .title {
+    margin-left: 250px !important;
+  }
+  .repo-group.new.group form .inline.field > input,
+  .repo-group.new.group form .inline.field > textarea {
+    width: 50%;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .repo-group.new.group form .optional .title {
+    margin-left: 15px;
+  }
+  .repo-group.new.group form .inline.field > label {
+    display: block;
+  }
+}
+
+.repo-group.new.group form .header {
+  padding-left: 0 !important;
+  text-align: center;
+}
+
+.expandable-menu-item label + div.menu-expandable-content > .menu-expandable-content-inner {
+  overflow: hidden;
+}
+.expandable-menu-item label + div.menu-expandable-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: all 0.2s cubic-bezier(.86,0,.07,1);
+}
+
+.expandable-menu-item label:has(input.toggle:checked) + div.menu-expandable-content {
+  grid-template-rows: 1fr;
+}
+.expandable-menu-item label > .collapse-icon {
+  position: relative;
+  top: 2px;
+  display: none;
+}
+
+.expandable-menu-item label.has-children > .collapse-icon {
+  display: inline-block;
+}
+.expandable-menu-item label {
+  display: flex;
+  align-items: center;
+}
+
+label.has-children:has(input.toggle:checked) > .collapse-icon {
+  transform: rotate(90deg);
+}
+ul:has(.expandable-menu-item), ul:has(.expandable-menu-item) .collapse-icon {
+  transition: all 0.2s ease;
+}
+ul:has(.expandable-menu-item) {
+  list-style: none;
+  overflow: hidden;
+}
+li.expandable-menu-item.item:only-child, li.expandable-menu-item.item:last-child, li.expandable-menu-item.item:first-child {
+  padding-bottom: 0;
+}
+ul.expandable-menu ul li.expandable-menu-item {
+  margin-top: 1rem;
+}
+
