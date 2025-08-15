@@ -41,12 +41,12 @@
 </div>
 
 <h4 class="ui top attached header">
-	{{ctx.Locale.Tr "admin.config.empty_repo_page"}}
+	{{ctx.Locale.Tr "admin.config.git_guide"}}
 </h4>
 <div class="ui attached segment">
 	<form class="ui form form-fetch-action" method="post" action="{{AppSubUrl}}/-/admin/config?key={{.SystemConfig.Template.GitRemoteName.DynKey}}">
 		<div class="field" data-field-patched="true">
-			<label for="remote_name">{{ctx.Locale.Tr "admin.config.empty_repo_page.git_remote_name"}}</label>
+			<label for="remote_name">{{ctx.Locale.Tr "admin.config.git_guide.remote_name"}}</label>
 			<input id="remote_name" name="value" value="{{.SystemConfig.Template.GitRemoteName.Value ctx}}" maxlength="100" dir="auto" required>
 		</div>
 		<div class="field">
