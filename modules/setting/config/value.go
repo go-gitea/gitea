@@ -28,7 +28,7 @@ type Value[T any] struct {
 
 func (value *Value[T]) parse(key, valStr string) (v T) {
 	v = value.def
-	if valStr != "" {
+	if valStr != "" && valStr != "null" {
 		if err := json.Unmarshal(util.UnsafeStringToBytes(valStr), &v); err != nil {
 			log.Error("Unable to unmarshal json config for key %q, err: %v", key, err)
 		}
@@ -77,10 +77,6 @@ func (value *Value[T]) Value(ctx context.Context) (v T) {
 
 func (value *Value[T]) DynKey() string {
 	return value.dynKey
-}
-
-func (value *Value[T]) Def() T {
-	return value.def
 }
 
 func (value *Value[T]) WithDefault(def T) *Value[T] {
