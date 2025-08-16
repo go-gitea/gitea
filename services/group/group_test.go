@@ -36,7 +36,7 @@ func TestNewGroup(t *testing.T) {
 func TestMoveGroup(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{
-		ID: 3,
+		ID: 28,
 	})
 	testfn := func(gid int64) {
 		cond := &group_model.FindGroupsOptions{
@@ -61,7 +61,7 @@ func TestMoveGroup(t *testing.T) {
 func TestMoveRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{
-		ID: 3,
+		ID: 28,
 	})
 	cond := repo_model.SearchRepositoryCondition(repo_model.SearchRepoOptions{
 		GroupID: 123,

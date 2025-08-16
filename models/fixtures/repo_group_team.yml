@@ -142,3 +142,9 @@
   group_id: 376
   access_mode: 1
   can_create_in: false
+- id: 25
+  org_id: 3
+  team_id: 12
+  group_id: 123
+  access_mode: 4
+  can_create_in: true
