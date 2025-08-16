@@ -174,6 +174,35 @@ func (g *Group) ShortName(length int) string {
 	return util.EllipsisDisplayString(g.Name, length)
 }
 
+// Depth retrieves the depth/nesting level of this group
+func (g *Group) Depth(ctx context.Context) (d int) {
+	err := g.LoadParentGroup(ctx)
+	if err != nil {
+		return 0
+	}
+	pg := g.ParentGroup
+	for {
+		if pg == nil {
+			break
+		}
+		if pg.ParentGroup == nil {
+			err = pg.LoadParentGroup(ctx)
+			if err != nil {
+				return 0
+			}
+		}
+		d++
+		pg = pg.ParentGroup
+	}
+	return
+}
+
+// DisplayLeftMargin generates a value for the left margin
+// displayed on the frontend beside this group
+func (g *Group) DisplayLeftMargin(ctx context.Context) string {
+	return fmt.Sprintf("%drem", g.Depth(ctx)+1)
+}
+
 func GetGroupByID(ctx context.Context, id int64) (*Group, error) {
 	group := new(Group)
 
