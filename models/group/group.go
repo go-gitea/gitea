@@ -26,16 +26,16 @@ import (
 // Group represents a group of repositories for a user or organization
 type Group struct {
 	ID          int64 `xorm:"pk autoincr"`
-	OwnerID     int64 `xorm:"UNIQUE(s) index NOT NULL"`
+	OwnerID     int64 `xorm:"INDEX NOT NULL"`
 	OwnerName   string
 	Owner       *user_model.User    `xorm:"-"`
-	LowerName   string              `xorm:"TEXT INDEX NOT NULL"`
-	Name        string              `xorm:"TEXT INDEX NOT NULL"`
+	LowerName   string              `xorm:"TEXT NOT NULL"`
+	Name        string              `xorm:"TEXT NOT NULL"`
 	Description string              `xorm:"TEXT"`
 	Visibility  structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 	Avatar      string              `xorm:"VARCHAR(64)"`
 
-	ParentGroupID int64         `xorm:"DEFAULT NULL"`
+	ParentGroupID int64         `xorm:"INDEX DEFAULT NULL"`
 	ParentGroup   *Group        `xorm:"-"`
 	Subgroups     RepoGroupList `xorm:"-"`
 
