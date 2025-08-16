@@ -359,6 +359,23 @@ func ParentGroupCond(ctx context.Context, idStr string, groupID int64) builder.C
 	return builder.In(idStr, groupList)
 }
 
+// ChildGroupCond returns a condition recursively matching a group and its descendants
+func ChildGroupCond(firstParent int64) builder.Cond {
+	if firstParent < 0 {
+		firstParent = 0
+	}
+	return builder.Expr(`with recursive groups as (
+		select * from repo_group
+		WHERE parent_group_id = ?
+
+		union all
+
+		select subgroup.*
+		from repo_group subgroup
+		join groups g on g.id = subgroup.parent_group_id
+	) select g.id from groups g`, firstParent)
+}
+
 func UpdateGroup(ctx context.Context, group *Group) error {
 	sess := db.GetEngine(ctx)
 	_, err := sess.Table(group.TableName()).ID(group.ID).Update(group)
