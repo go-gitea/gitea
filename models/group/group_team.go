@@ -34,6 +34,7 @@ func (g *RepoGroupTeam) UnitAccessModeEx(ctx context.Context, tp unit.Type) (acc
 	accessMode = perm.AccessModeNone
 	if err := g.LoadGroupUnits(ctx); err != nil {
 		log.Warn("Error loading units of team for group[%d] (ID: %d): %s", g.GroupID, g.TeamID, err.Error())
+		return accessMode, false
 	}
 	for _, u := range g.Units {
 		if u.Type == tp {
