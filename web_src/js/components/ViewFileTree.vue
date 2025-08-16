@@ -9,6 +9,7 @@ const props = defineProps({
   repoLink: {type: String, required: true},
   treePath: {type: String, required: true},
   currentRefNameSubURL: {type: String, required: true},
+  pageIsEdit: {type: Boolean, required: true},
 });
 
 const store = createViewFileTreeStore(props);
