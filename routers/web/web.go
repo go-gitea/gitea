@@ -4,6 +4,7 @@
 package web
 
 import (
+	"code.gitea.io/gitea/routers/web/group"
 	"net/http"
 	"strings"
 
@@ -874,6 +875,7 @@ func registerWebRoutes(m *web.Router) {
 
 	m.Group("/org", func() {
 		m.Group("/{org}", func() {
+			m.Get("/-/search_team_candidates", optExploreSignIn, group.SearchTeamCandidates)
 			m.Get("/members", org.Members)
 		}, context.OrgAssignment(context.OrgAssignmentOptions{}))
 	}, optSignIn)
@@ -901,6 +903,31 @@ func registerWebRoutes(m *web.Router) {
 			m.Get("/milestones/{team}", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Post("/members/action/{action}", org.MembersAction)
 			m.Get("/teams", org.Teams)
+
+			m.Group("/groups", func() {
+				m.Combo("/new").
+					Get(group.NewGroup).
+					Post(web.Bind(forms.CreateGroupForm{}), group.NewGroupPost)
+				m.Group("/{group_id}", func() {
+					m.Get("/teams", group.Teams)
+					m.Post("/teams/add", group.TeamAddPost)
+					m.Combo("/teams/{team}/edit").
+						Get(group.EditTeam).
+						Post(web.Bind(forms.CreateGroupTeamForm{}), group.EditTeamPost)
+					m.Post("/teams/{team}/remove", group.TeamRemove)
+					m.Group("/settings", func() {
+						m.Combo("").
+							Get(group.Settings).
+							Post(web.Bind(forms.UpdateGroupSettingForm{}), group.SettingsPost)
+						m.Post("/avatar", web.Bind(forms.AvatarForm{}), group.SettingsAvatar)
+						m.Post("/avatar/delete", group.SettingsDeleteAvatar)
+					}, ctxDataSet("PageIsGroupSettings", true))
+				}, context.GroupAssignment(context.GroupAssignmentOptions{
+					RequireMember:     true,
+					RequireOwner:      false,
+					RequireGroupAdmin: true,
+				}))
+			})
 		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamMember: true}))
 
 		m.Group("/{org}", func() {
@@ -999,6 +1026,11 @@ func registerWebRoutes(m *web.Router) {
 	}, reqSignIn)
 	// end "/org": most org routes
 
+	m.Group("/group", func() {
+		m.Get("/search", group.SearchGroup)
+	}, reqSignIn)
+	// end "/group": search
+
 	m.Group("/repo", func() {
 		m.Get("/create", repo.Create)
 		m.Post("/create", web.Bind(forms.CreateRepoForm{}), repo.CreatePost)
@@ -1068,6 +1100,18 @@ func registerWebRoutes(m *web.Router) {
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)
 	}, optSignIn, context.UserAssignmentWeb(), context.OrgAssignment(context.OrgAssignmentOptions{}))
 	// end "/{username}/-": packages, projects, code
+	m.Group("/{username}/groups", func() {
+		m.Group("/{group_id}", func() {
+			m.Get("", group.Home)
+		}, context.GroupAssignment(context.GroupAssignmentOptions{}))
+	}, optSignIn, context.UserAssignmentWeb(), context.OrgAssignment(context.OrgAssignmentOptions{}))
+
+	m.Group("/{username}/groups", func() {
+		m.Post("/items/move", group.MoveGroupItem)
+	}, context.UserAssignmentWeb(), context.OrgAssignment(context.OrgAssignmentOptions{
+		RequireMember: true,
+	}))
+	// end "/{username}/groups"
 
 	repoDashFn := func() {
 		m.Group("/migrate", func() {
