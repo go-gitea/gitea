@@ -295,7 +295,7 @@ func NewTeam(ctx *context.Context) {
 //   - Org owner need to click the permission for each unit, but can't just set a common "write" permission for all units.
 //
 // Ideally, "team.authorize=write" should mean the team has write access to all units including newly (future) added ones.
-func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_model.Type]perm.AccessMode {
+func GetUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_model.Type]perm.AccessMode {
 	unitPerms := make(map[unit_model.Type]perm.AccessMode)
 	for _, ut := range unit_model.AllRepoUnitTypes {
 		// Default access mode is none
@@ -326,7 +326,7 @@ func NewTeamPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateTeamForm)
 	includesAllRepositories := form.RepoAccess == "all"
 	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
-	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
+	unitPerms := GetUnitPerms(ctx.Req.Form, teamPermission)
 
 	t := &org_model.Team{
 		OrgID:                   ctx.Org.Organization.ID,
@@ -492,7 +492,7 @@ func EditTeamPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateTeamForm)
 	t := ctx.Org.Team
 	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
-	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
+	unitPerms := GetUnitPerms(ctx.Req.Form, teamPermission)
 	isAuthChanged := false
 	isIncludeAllChanged := false
 	includesAllRepositories := form.RepoAccess == "all"
