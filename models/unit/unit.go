@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Type is Unit's Type
@@ -33,6 +34,10 @@ const (
 	TypeProjects        // 8 Projects
 	TypePackages        // 9 Packages
 	TypeActions         // 10 Actions
+
+	// misc is a special uint to store special configs for a repo which is not related to any unit,
+	// it should be considered as enabled anyway
+	TypeMisc Type = 999 // 999 misc
 
 	// FIXME: TEAM-UNIT-PERMISSION: the team unit "admin" permission's design is not right, when a new unit is added in the future,
 	// admin team won't inherit the correct admin permission for the new unit, need to have a complete fix before adding any new unit.
@@ -65,6 +70,7 @@ var (
 		TypeProjects,
 		TypePackages,
 		TypeActions,
+		TypeMisc,
 	}
 
 	// DefaultRepoUnits contains the default unit types
@@ -77,12 +83,14 @@ var (
 		TypeProjects,
 		TypePackages,
 		TypeActions,
+		TypeMisc,
 	}
 
 	// ForkRepoUnits contains the default unit types for forks
 	DefaultForkRepoUnits = []Type{
 		TypeCode,
 		TypePullRequests,
+		TypeMisc,
 	}
 
 	// DefaultMirrorRepoUnits contains the default unit types for mirrors
@@ -93,6 +101,7 @@ var (
 		TypeWiki,
 		TypeProjects,
 		TypePackages,
+		TypeMisc,
 	}
 
 	// DefaultTemplateRepoUnits contains the default unit types for templates
@@ -104,12 +113,14 @@ var (
 		TypeWiki,
 		TypeProjects,
 		TypePackages,
+		TypeMisc,
 	}
 
 	// NotAllowedDefaultRepoUnits contains units that can't be default
 	NotAllowedDefaultRepoUnits = []Type{
 		TypeExternalWiki,
 		TypeExternalTracker,
+		TypeMisc,
 	}
 
 	disabledRepoUnitsAtomic atomic.Pointer[[]Type] // the units that have been globally disabled
@@ -163,6 +174,11 @@ func LoadUnitConfig() error {
 	if len(invalidKeys) > 0 {
 		log.Warn("Invalid keys in disabled repo units: %s", strings.Join(invalidKeys, ", "))
 	}
+	if slices.Contains(disabledRepoUnits, TypeMisc) {
+		log.Warn("Misc unit should not be disabled")
+		disabledRepoUnits = util.SliceRemoveAll(disabledRepoUnits, TypeMisc)
+	}
+
 	DisabledRepoUnitsSet(disabledRepoUnits)
 
 	setDefaultRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
@@ -328,6 +344,15 @@ var (
 		perm.AccessModeOwner,
 	}
 
+	UnitMisc = Unit{
+		TypeMisc,
+		"repo.misc",
+		"/misc",
+		"misc.unit.desc",
+		999,
+		perm.AccessModeOwner,
+	}
+
 	// Units contains all the units
 	Units = map[Type]Unit{
 		TypeCode:            UnitCode,
@@ -340,6 +365,7 @@ var (
 		TypeProjects:        UnitProjects,
 		TypePackages:        UnitPackages,
 		TypeActions:         UnitActions,
+		TypeMisc:            UnitMisc,
 	}
 )
 

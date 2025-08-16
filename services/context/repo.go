@@ -346,9 +346,9 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 
 // GetGoModuleSubDirConfig retrieves the subdirectory configuration for a Go module.
 func GetGoModuleSubDirConfig(ctx *Context, repo *repo_model.Repository) string {
-	pkgCfg := repo.MustGetUnit(ctx, unit_model.TypePackages).PackagesConfig()
+	miscCfg := repo.MustGetUnit(ctx, unit_model.TypeMisc).MiscConfig()
 
-	return strings.TrimSpace(pkgCfg.GoModuleSubDir)
+	return strings.TrimSpace(miscCfg.GoModuleSubDir)
 }
 
 // RedirectToRepo redirect to a differently-named repository

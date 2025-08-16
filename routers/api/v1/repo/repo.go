@@ -994,17 +994,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 	if opts.HasPackages != nil && !unit_model.TypePackages.UnitGlobalDisabled() {
 		if *opts.HasPackages {
-			unit := repo.MustGetUnit(ctx, unit_model.TypePackages)
-			cfg := unit.PackagesConfig()
-
-			if opts.GoModuleSubDir != nil {
-				cfg.GoModuleSubDir = *opts.GoModuleSubDir
-			}
-
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypePackages,
-				Config: cfg,
 			})
 		} else {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
@@ -1020,6 +1012,22 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		} else {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeActions)
 		}
+	}
+
+	miscCfg := repo.MustGetUnit(ctx, unit_model.TypeMisc).MiscConfig()
+	misCfgUpdated := false
+
+	if opts.GoModuleSubDir != nil {
+		miscCfg.GoModuleSubDir = *opts.GoModuleSubDir
+		misCfgUpdated = true
+	}
+
+	if misCfgUpdated {
+		units = append(units, repo_model.RepoUnit{
+			RepoID: repo.ID,
+			Type:   unit_model.TypeMisc,
+			Config: miscCfg,
+		})
 	}
 
 	if len(units)+len(deleteUnitTypes) > 0 {
