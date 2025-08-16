@@ -1,0 +1,30 @@
+{{if len .comments}}
+	{{$comment := index .comments 0}}
+	<div class="conversation-holder" data-path="{{$comment.FileName}}" data-side="{{if lt $comment.Line 0}}left{{else}}right{{end}}" data-idx="{{$comment.Line}}">
+		<div id="code-comments-{{$comment.ID}}" class="field comment-code-cloud">
+			<div class="comment-list">
+				<div class="ui comments">
+					{{template "repo/diff/commit_comments" dict "root" $ "comments" .comments}}
+				</div>
+			</div>
+			<div class="flex-text-block tw-mt-2 tw-flex-wrap tw-justify-end">
+				<div class="ui buttons">
+					<button class="ui icon tiny basic button previous-conversation">
+						{{svg "octicon-arrow-up" 12}} {{ctx.Locale.Tr "repo.issues.previous"}}
+					</button>
+					<button class="ui icon tiny basic button next-conversation">
+						{{svg "octicon-arrow-down" 12}} {{ctx.Locale.Tr "repo.issues.next"}}
+					</button>
+				</div>
+				{{if and $.SignedUserID (not $.Repository.IsArchived)}}
+					<button class="comment-form-reply ui primary icon tiny button">
+						{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
+					</button>
+				{{end}}
+			</div>
+			{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" $comment.ID "root" $ "comment" $comment}}
+		</div>
+	</div>
+{{else}}
+	{{template "repo/diff/conversation_outdated"}}
+{{end}}

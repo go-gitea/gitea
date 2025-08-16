@@ -1552,6 +1552,25 @@ func registerWebRoutes(m *web.Router) {
 	// end "/{username}/{reponame}/pulls/{index}": repo pull request
 
 	m.Group("/{username}/{reponame}", func() {
+		m.Group("/commit/{sha:([a-f0-9]{7,64})$}", func() {
+			m.Get("", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
+			m.Post("/attachments", repo.UploadCommitAttachment)
+			m.Get("/{id}/attachments/{uuid}", repo.GetCommitAttachmentByUUID)
+			m.Group("/comments", func() {
+				m.Get("/new_comment", repo.RenderCommitCommentForm)
+				m.Post("/add", web.Bind(forms.CodeCommentForm{}), repo.SetShowOutdatedComments, repo.CreateCommitComment)
+				m.Post("/{id}/delete", repo.DeleteCommitComment)
+				m.Post("/{id}/update", repo.UpdateCommitComment)
+				m.Get("/{id}/attachments", repo.GetCommitAttachments)
+				m.Post("/attachments/remove", repo.DeleteCommitAttachment)
+			}, context.RepoMustNotBeArchived())
+			m.Group("/comments/{id}", func() {
+				m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeCommitCommentReaction)
+			})
+		})
+	}, optSignIn, context.RepoAssignment, repo.MustAllowPulls, reqUnitPullsReader)
+
+	m.Group("/{username}/{reponame}", func() {
 		m.Group("/activity_author_data", func() {
 			m.Get("", repo.ActivityAuthors)
 			m.Get("/{period}", repo.ActivityAuthors)

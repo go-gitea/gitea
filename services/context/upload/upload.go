@@ -4,6 +4,7 @@
 package upload
 
 import (
+	"fmt"
 	"mime"
 	"net/http"
 	"net/url"
@@ -89,6 +90,9 @@ func Verify(buf []byte, fileName, allowedTypesStr string) error {
 
 // AddUploadContext renders template values for dropzone
 func AddUploadContext(ctx *context.Context, uploadType string) {
+	PageIsDiff := ctx.Data["PageIsDiff"]
+	ctx.Data["CommitSHA"] = ctx.PathParam("sha")
+	CommitSHA := ctx.PathParam("sha")
 	switch uploadType {
 	case "release":
 		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/releases/attachments"
@@ -98,8 +102,14 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 		ctx.Data["UploadMaxFiles"] = setting.Attachment.MaxFiles
 		ctx.Data["UploadMaxSize"] = setting.Attachment.MaxSize
 	case "comment":
-		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
-		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/issues/attachments/remove"
+		if PageIsDiff == true {
+			ctx.Data["UploadUrl"] = fmt.Sprintf("%s/commit/%s/attachments", ctx.Repo.RepoLink, CommitSHA)
+			ctx.Data["UploadRemoveUrl"] = fmt.Sprintf("%s/commit/%s/comments/attachments/remove", ctx.Repo.RepoLink, CommitSHA)
+		} else {
+			ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
+			ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/issues/attachments/remove"
+		}
+
 		if len(ctx.PathParam("index")) > 0 {
 			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/" + url.PathEscape(ctx.PathParam("index")) + "/attachments"
 		} else {
