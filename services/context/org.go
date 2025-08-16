@@ -5,6 +5,7 @@
 package context
 
 import (
+	shared_group "code.gitea.io/gitea/models/shared/group"
 	"strings"
 
 	"code.gitea.io/gitea/models/organization"
@@ -249,6 +250,20 @@ func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
 				return
 			}
 			ctx.Data["RenderedDescription"] = content
+		}
+		ctx.Data["AsGroupItem"] = func(v any) shared_group.GroupItem {
+			if gi, ok := v.(shared_group.GroupItem); ok {
+				return gi
+			}
+			return nil
+		}
+		ctx.Data["GroupNavItems"] = shared_group.GetTopLevelGroupItemList(ctx, ctx.ContextUser.ID, ctx.Doer)
+		ctx.Data["GroupIsCurrent"] = groupIsCurrent(ctx)
+		ctx.Data["GroupHasChild"] = func(it shared_group.GroupItem) bool {
+			if ctx.RepoGroup == nil || ctx.RepoGroup.Group == nil {
+				return false
+			}
+			return shared_group.GroupItemHasChild(it, ctx.RepoGroup.Group.ID, ctx, ctx.Doer)
 		}
 	}
 }
