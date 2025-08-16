@@ -22,6 +22,38 @@ import (
 	"xorm.io/builder"
 )
 
+// MetaSettings represents the metadata settings for webhook
+type MetaSettings struct {
+	PayloadOptimization *PayloadOptimizationConfig `json:"payload_optimization,omitempty"` // Payload optimization configuration
+}
+
+// PayloadOptimizationConfig represents the configuration for webhook payload optimization
+type PayloadOptimizationConfig struct {
+	Files   *PayloadOptimizationItem `json:"files,omitempty"`   // Files optimization config
+	Commits *PayloadOptimizationItem `json:"commits,omitempty"` // Commits optimization config
+}
+
+// PayloadOptimizationItem represents a single optimization item configuration
+type PayloadOptimizationItem struct {
+	Enable bool `json:"enable"` // Whether to enable optimization for this item
+	Limit  int  `json:"limit"`  // 0: trim all (none kept), >0: keep N items (forward order), <0: keep N items (reverse order)
+}
+
+// DefaultMetaSettings returns the default webhook meta settings
+func DefaultMetaSettings() *MetaSettings {
+	return &MetaSettings{
+		PayloadOptimization: DefaultPayloadOptimizationConfig(),
+	}
+}
+
+// DefaultPayloadOptimizationConfig returns the default payload optimization configuration
+func DefaultPayloadOptimizationConfig() *PayloadOptimizationConfig {
+	return &PayloadOptimizationConfig{
+		Files:   &PayloadOptimizationItem{Enable: false, Limit: 0},
+		Commits: &PayloadOptimizationItem{Enable: false, Limit: 0},
+	}
+}
+
 // ErrWebhookNotExist represents a "WebhookNotExist" kind of error.
 type ErrWebhookNotExist struct {
 	ID int64
@@ -138,6 +170,9 @@ type Webhook struct {
 
 	// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
 	HeaderAuthorizationEncrypted string `xorm:"TEXT"`
+
+	// Webhook metadata settings (JSON format)
+	MetaSettings string `xorm:"meta_settings TEXT"` // JSON: webhook metadata configuration
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -345,4 +380,96 @@ func DeleteWebhookByOwnerID(ctx context.Context, ownerID, id int64) error {
 		return err
 	}
 	return DeleteWebhookByID(ctx, id)
+}
+
+// GetMetaSettings returns the webhook meta settings
+func (w *Webhook) GetMetaSettings() *MetaSettings {
+	if w.MetaSettings == "" {
+		return DefaultMetaSettings()
+	}
+
+	var settings MetaSettings
+	if err := json.Unmarshal([]byte(w.MetaSettings), &settings); err != nil {
+		log.Error("Failed to unmarshal webhook meta settings: %v", err)
+		return DefaultMetaSettings()
+	}
+
+	// Ensure payload optimization config is initialized
+	if settings.PayloadOptimization == nil {
+		settings.PayloadOptimization = DefaultPayloadOptimizationConfig()
+	}
+
+	return &settings
+}
+
+// GetPayloadOptimizationConfig returns the payload optimization configuration
+func (w *Webhook) GetPayloadOptimizationConfig() *PayloadOptimizationConfig {
+	return w.GetMetaSettings().PayloadOptimization
+}
+
+// SetMetaSettings sets the webhook meta settings
+func (w *Webhook) SetMetaSettings(settings *MetaSettings) error {
+	if settings == nil {
+		settings = DefaultMetaSettings()
+	}
+
+	data, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("failed to marshal webhook meta settings: %w", err)
+	}
+
+	w.MetaSettings = string(data)
+	return nil
+}
+
+// SetPayloadOptimizationConfig sets the payload optimization configuration
+func (w *Webhook) SetPayloadOptimizationConfig(config *PayloadOptimizationConfig) error {
+	settings := w.GetMetaSettings()
+	if config == nil {
+		config = DefaultPayloadOptimizationConfig()
+	}
+	settings.PayloadOptimization = config
+	return w.SetMetaSettings(settings)
+}
+
+// IsPayloadOptimizationEnabled returns whether payload optimization is enabled
+func (w *Webhook) IsPayloadOptimizationEnabled() bool {
+	config := w.GetPayloadOptimizationConfig()
+	return config.Files.Enable || config.Commits.Enable
+}
+
+// GetPayloadOptimizationLimit returns the payload optimization limit
+func (w *Webhook) GetPayloadOptimizationLimit() int {
+	config := w.GetPayloadOptimizationConfig()
+	if config.Files.Enable {
+		return config.Files.Limit
+	}
+	if config.Commits.Enable {
+		return config.Commits.Limit
+	}
+	return 0
+}
+
+// IsFilesOptimizationEnabled returns whether files optimization is enabled
+func (w *Webhook) IsFilesOptimizationEnabled() bool {
+	config := w.GetPayloadOptimizationConfig()
+	return config.Files.Enable
+}
+
+// GetFilesOptimizationLimit returns the files optimization limit
+func (w *Webhook) GetFilesOptimizationLimit() int {
+	config := w.GetPayloadOptimizationConfig()
+	return config.Files.Limit
+}
+
+// IsCommitsOptimizationEnabled returns whether commits optimization is enabled
+func (w *Webhook) IsCommitsOptimizationEnabled() bool {
+	config := w.GetPayloadOptimizationConfig()
+	return config.Commits.Enable
+}
+
+// GetCommitsOptimizationLimit returns the commits optimization limit
+func (w *Webhook) GetCommitsOptimizationLimit() int {
+	config := w.GetPayloadOptimizationConfig()
+	return config.Commits.Limit
 }
