@@ -4,7 +4,6 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {sanitizeRepoName} from './repo-common.ts';
 
 const {appSubUrl} = window.config;
-const $ = window.$;
 function initRepoNewTemplateSearch(form: HTMLFormElement) {
   const elSubmitButton = querySingleVisibleElem<HTMLInputElement>(form, '.ui.primary.button');
   const elCreateRepoErrorMessage = form.querySelector('#create-repo-error-message');
