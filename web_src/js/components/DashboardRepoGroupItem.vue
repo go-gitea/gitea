@@ -103,22 +103,4 @@ const active = computed(() => isGroup.value && expandedGroups.value.includes(id.
   flex: 1;
   gap: 0.5rem;
 }
-
-.repo-list-link .svg {
-  color: var(--color-text-light-2);
-}
-
-.repo-list-icon, .collapse-icon {
-  min-width: 16px;
-  margin-right: 2px;
-  top: 0px;
-}
-
-/* octicon-mirror has no padding inside the SVG */
-.repo-list-icon.octicon-mirror {
-  width: 14px;
-  min-width: 14px;
-  margin-left: 1px;
-  margin-right: 3px;
-}
 </style>

@@ -14,7 +14,7 @@
 						<input id="group_name" name="group_name" value="{{.Group.Name}}" required {{if eq .Group.LowerName "owners"}}disabled{{end}} autofocus>
 						<span class="help">{{ctx.Locale.Tr "group.group_name_helper"}}</span>
 					</div>
-					{{ template "group/selector" . }}
+					{{template "group/selector" .}}
 
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{ctx.Locale.Tr "group.group_desc"}}</label>

@@ -7,7 +7,7 @@ export function initCommonGroup() {
     return;
   }
 
-  document.querySelector('.group.settings.options #group_name')?.addEventListener('input', function () {
+  document.querySelector('.group.settings.options #group_name')?.addEventListener('input', function (this: HTMLInputElement) {
     const nameChanged = this.value.toLowerCase() !== this.getAttribute('data-group-name').toLowerCase();
     toggleElem('#group-name-change-prompt', nameChanged);
   });

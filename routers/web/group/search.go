@@ -14,9 +14,9 @@ import (
 	group_service "code.gitea.io/gitea/services/group"
 )
 
-func toSearchRepoOptions(ctx *context.Context) (opts *repo_model.SearchRepoOptions) {
+func toSearchRepoOptions(ctx *context.Context) *repo_model.SearchRepoOptions {
 	page := ctx.FormInt("page")
-	opts = &repo_model.SearchRepoOptions{
+	opts := &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
@@ -91,7 +91,7 @@ func toSearchRepoOptions(ctx *context.Context) (opts *repo_model.SearchRepoOptio
 			return nil
 		}
 	}
-	return
+	return opts
 }
 
 func SearchGroup(ctx *context.Context) {
@@ -99,8 +99,8 @@ func SearchGroup(ctx *context.Context) {
 	var (
 		group  *group_model.Group
 		err    error
-		canSee bool  = true
-		oid    int64 = ctx.FormInt64("uid")
+		canSee = true
+		oid    = ctx.FormInt64("uid")
 	)
 	if gid > 0 {
 		group, err = group_model.GetGroupByID(ctx, gid)
