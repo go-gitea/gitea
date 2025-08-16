@@ -290,16 +290,22 @@ Loop:
 				return false, nil, nil, err
 			}
 			defer gitRepo.Close()
-			commit, err := gitRepo.GetCommit(parentCommit)
+			isEmpty, err := gitRepo.IsEmpty()
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if commit.Signature == nil {
-				return false, nil, nil, &ErrWontSign{parentSigned}
-			}
-			verification := ParseCommitWithSignature(ctx, commit)
-			if !verification.Verified {
-				return false, nil, nil, &ErrWontSign{parentSigned}
+			if !isEmpty {
+				commit, err := gitRepo.GetCommit(parentCommit)
+				if err != nil {
+					return false, nil, nil, err
+				}
+				if commit.Signature == nil {
+					return false, nil, nil, &ErrWontSign{parentSigned}
+				}
+				verification := ParseCommitWithSignature(ctx, commit)
+				if !verification.Verified {
+					return false, nil, nil, &ErrWontSign{parentSigned}
+				}
 			}
 		}
 	}
