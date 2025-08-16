@@ -638,6 +638,10 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 	}
 
+	miscCfg := repo.MustGetUnit(ctx, unit_model.TypeMisc).MiscConfig()
+	miscCfg.GoModuleSubDir = form.GoModuleSubDir
+	units = append(units, newRepoUnit(repo, unit_model.TypeMisc, miscCfg))
+
 	if len(units) == 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.update_settings_no_unit"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")

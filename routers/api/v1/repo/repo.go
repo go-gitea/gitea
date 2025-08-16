@@ -1014,6 +1014,22 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
+	miscCfg := repo.MustGetUnit(ctx, unit_model.TypeMisc).MiscConfig()
+	misCfgUpdated := false
+
+	if opts.GoModuleSubDir != nil {
+		miscCfg.GoModuleSubDir = *opts.GoModuleSubDir
+		misCfgUpdated = true
+	}
+
+	if misCfgUpdated {
+		units = append(units, repo_model.RepoUnit{
+			RepoID: repo.ID,
+			Type:   unit_model.TypeMisc,
+			Config: miscCfg,
+		})
+	}
+
 	if len(units)+len(deleteUnitTypes) > 0 {
 		if err := repo_service.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
 			ctx.APIErrorInternal(err)

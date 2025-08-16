@@ -648,6 +648,20 @@
 				{{end}}
 
 				<div class="divider"></div>
+				{{$miscUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeMisc}}
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.misc"}}</label>
+				</div>
+
+				<div class="field" id="misc_box">
+					<div class="field tw-pl-4">
+						<label for="go_module_sub_dir">{{ctx.Locale.Tr "repo.settings.go_module_sub_dir"}}</label>
+						<input id="go_module_sub_dir" name="go_module_sub_dir" value="{{$miscUnit.MiscConfig.GoModuleSubDir}}">
+						<p class="help">{{ctx.Locale.Tr "repo.settings.go_module_sub_dir_desc" "https://github.com/golang/go/commit/835e36fc7f631f74233edfd4ab43b6b56833db86" "github.com/golang/go@835e36fc7f"}}</p>
+					</div>
+				</div>
+
+				<div class="divider"></div>
 				<div class="field">
 					<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
 				</div>

@@ -266,6 +266,8 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			r.Config = new(ActionsConfig)
 		case unit.TypeProjects:
 			r.Config = new(ProjectsConfig)
+		case unit.TypeMisc:
+			r.Config = new(MiscConfig)
 		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypePackages:
 			fallthrough
 		default:
@@ -317,6 +319,26 @@ func (r *RepoUnit) ActionsConfig() *ActionsConfig {
 // ProjectsConfig returns config for unit.ProjectsConfig
 func (r *RepoUnit) ProjectsConfig() *ProjectsConfig {
 	return r.Config.(*ProjectsConfig)
+}
+
+// MiscConfig returns config for unit.MiscConfig
+func (r *RepoUnit) MiscConfig() *MiscConfig {
+	return r.Config.(*MiscConfig)
+}
+
+// MiscConfig describes repo misc config
+type MiscConfig struct {
+	GoModuleSubDir string
+}
+
+// FromDB fills up a MiscConfig from serialized format.
+func (cfg *MiscConfig) FromDB(bs []byte) error {
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+}
+
+// ToDB exports a MiscConfig to a serialized format.
+func (cfg *MiscConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
 }
 
 func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err error) {
