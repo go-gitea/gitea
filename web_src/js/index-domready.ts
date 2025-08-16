@@ -35,6 +35,7 @@ import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/use
 import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.ts';
 import {initRepoEditor} from './features/repo-editor.ts';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
+import {initCompSearchTeamBox} from './features/comp/SearchTeamBox.ts';
 import {initInstall} from './features/install.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
@@ -89,6 +90,7 @@ const initPerformanceTracer = callInitFunctions([
   initCommonIssueListQuickGoto,
 
   initCompSearchUserBox,
+  initCompSearchTeamBox,
   initCompWebHookEditor,
 
   initInstall,
