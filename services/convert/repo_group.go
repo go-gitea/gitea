@@ -26,6 +26,7 @@ func ToAPIGroup(ctx context.Context, g *group_model.Group, actor *user_model.Use
 		ParentGroupID: g.ParentGroupID,
 		Link:          g.GroupLink(),
 		SortOrder:     g.SortOrder,
+		AvatarURL:     g.AvatarLink(ctx),
 	}
 	if apiGroup.NumSubgroups, err = group_model.CountGroups(ctx, &group_model.FindGroupsOptions{
 		ParentGroupID: g.ID,
