@@ -29,7 +29,7 @@ type Group struct {
 	OwnerID     int64 `xorm:"UNIQUE(s) index NOT NULL"`
 	OwnerName   string
 	Owner       *user_model.User    `xorm:"-"`
-	LowerName   string              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	LowerName   string              `xorm:"INDEX NOT NULL"`
 	Name        string              `xorm:"TEXT INDEX NOT NULL"`
 	Description string              `xorm:"TEXT"`
 	Visibility  structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
