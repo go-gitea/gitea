@@ -13,6 +13,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -142,7 +143,7 @@ func UploadPackage(ctx *context.Context) {
 
 // DeletePackage deletes the specific generic package.
 func DeletePackage(ctx *context.Context) {
-	err := packages_service.RemovePackageVersionByNameAndVersion(
+	err := common.RemovePackageVersionByNameAndVersion(
 		ctx,
 		ctx.Doer,
 		&packages_service.PackageInfo{
@@ -195,7 +196,7 @@ func DeletePackageFile(ctx *context.Context) {
 	}
 
 	if len(pfs) == 1 {
-		if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
+		if err := common.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
