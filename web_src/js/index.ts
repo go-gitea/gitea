@@ -35,6 +35,7 @@ import {initRepoReleaseNew} from './features/repo-release.ts';
 import {initRepoEditor} from './features/repo-editor.ts';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
 import {initInstall} from './features/install.ts';
+import {initCompSearchTeamBox} from './features/comp/SearchTeamBox.ts'
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
 import {initCommonOrganization} from './features/common-organization.ts';
@@ -91,6 +92,7 @@ const initPerformanceTracer = callInitFunctions([
 
   initCompSearchUserBox,
   initCompWebHookEditor,
+  initCompSearchTeamBox,
 
   initInstall,
 
