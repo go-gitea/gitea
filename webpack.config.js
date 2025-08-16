@@ -254,7 +254,8 @@ export default {
     maxAssetSize: Infinity,
   },
   resolve: {
-    symlinks: false,
+    symlinks: true,
+    modules: ['node_modules'],
   },
   watchOptions: {
     ignored: [
