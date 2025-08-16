@@ -895,12 +895,16 @@ func registerWebRoutes(m *web.Router) {
 		m.Group("/{org}", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/dashboard/{team}", user.Dashboard)
+			m.Get("/dashboard/group/{group_id}", ctxDataSet("PageIsGroupDashboard", true), context.GroupAssignment(context.GroupAssignmentOptions{RequireMember: true}), user.Dashboard)
 			m.Get("/issues", user.Issues)
 			m.Get("/issues/{team}", user.Issues)
+			m.Get("/issues/group/{group_id}", context.GroupAssignment(context.GroupAssignmentOptions{RequireMember: true}), user.Issues)
 			m.Get("/pulls", user.Pulls)
 			m.Get("/pulls/{team}", user.Pulls)
+			m.Get("/pulls/group/{group_id}", context.GroupAssignment(context.GroupAssignmentOptions{RequireMember: true}), user.Pulls)
 			m.Get("/milestones", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/milestones/{team}", reqMilestonesDashboardPageEnabled, user.Milestones)
+			m.Get("/milestones/group/{group_id}", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Post("/members/action/{action}", org.MembersAction)
 			m.Get("/teams", org.Teams)
 
