@@ -143,7 +143,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 	wontSignReason := ""
 	if asymkey_service.IsErrWontSign(err) {
 		wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
-	} else if err != nil {
+	} else if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return nil, err
 	}
 
