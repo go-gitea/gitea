@@ -75,6 +75,12 @@ func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
 // value is used to store display data
 var gothProviders = map[string]GothProvider{}
 
+var azureProviders = map[string]bool{
+	"azuread":         true,
+	"microsoftonline": true,
+	"azureadv2":       true,
+}
+
 // RegisterGothProvider registers a GothProvider
 func RegisterGothProvider(provider GothProvider) {
 	if _, has := gothProviders[provider.Name()]; has {
@@ -83,13 +89,43 @@ func RegisterGothProvider(provider GothProvider) {
 	gothProviders[provider.Name()] = provider
 }
 
+// hasExistingAzureADAuthSources checks if there are any existing Azure AD auth sources configured
+func hasExistingAzureADAuthSources(ctx context.Context) bool {
+	authSources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
+		LoginType: auth.OAuth2,
+	})
+	if err != nil {
+		return false
+	}
+
+	for _, source := range authSources {
+		if oauth2Cfg, ok := source.Cfg.(*Source); ok {
+			if azureProviders[oauth2Cfg.Provider] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // GetSupportedOAuth2Providers returns the map of unconfigured OAuth2 providers
 // key is used as technical name (like in the callbackURL)
 // values to display
+// Note: Azure AD providers (azuread, microsoftonline, azureadv2) are filtered out
+// unless they already exist in the system to encourage use of OpenID Connect
 func GetSupportedOAuth2Providers() []Provider {
+	return GetSupportedOAuth2ProvidersWithContext(context.Background())
+}
+
+// GetSupportedOAuth2ProvidersWithContext returns the list of supported OAuth2 providers with context for filtering
+func GetSupportedOAuth2ProvidersWithContext(ctx context.Context) []Provider {
 	providers := make([]Provider, 0, len(gothProviders))
+	hasExistingAzure := hasExistingAzureADAuthSources(ctx)
 
 	for _, provider := range gothProviders {
+		if azureProviders[provider.Name()] && !hasExistingAzure {
+			continue
+		}
 		providers = append(providers, provider)
 	}
 	sort.Slice(providers, func(i, j int) bool {
