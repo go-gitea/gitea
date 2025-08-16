@@ -1,4 +1,3 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin config")}}
 <h4 class="ui top attached header">
 	{{ctx.Locale.Tr "admin.config.picture_config"}}
 </h4>
@@ -19,24 +18,3 @@
 		</dd>
 	</dl>
 </div>
-
-<h4 class="ui top attached header">
-	{{ctx.Locale.Tr "repository"}}
-</h4>
-<div class="ui attached segment">
-	<form class="ui form form-fetch-action" method="post" action="{{AppSubUrl}}/-/admin/config?key={{.SystemConfig.Repository.OpenWithEditorApps.DynKey}}">
-		<div class="field">
-			<details>
-				<summary>{{ctx.Locale.Tr "admin.config.open_with_editor_app_help"}}</summary>
-				<pre class="tw-px-4">{{.DefaultOpenWithEditorAppsString}}</pre>
-			</details>
-		</div>
-		<div class="field">
-			<textarea name="value">{{(.SystemConfig.Repository.OpenWithEditorApps.Value ctx).ToTextareaString}}</textarea>
-		</div>
-		<div class="field">
-			<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
-		</div>
-	</form>
-</div>
-{{template "admin/layout_footer" .}}
