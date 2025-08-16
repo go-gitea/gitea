@@ -1,10 +1,10 @@
 import {hideElem, querySingleVisibleElem, showElem, toggleElem} from '../utils/dom.ts';
-import {htmlEscape} from '../utils/html.ts';
+import {html, htmlEscape} from '../utils/html.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {sanitizeRepoName} from './repo-common.ts';
 
 const {appSubUrl} = window.config;
-
+const $ = window.$;
 function initRepoNewTemplateSearch(form: HTMLFormElement) {
   const elSubmitButton = querySingleVisibleElem<HTMLInputElement>(form, '.ui.primary.button');
   const elCreateRepoErrorMessage = form.querySelector('#create-repo-error-message');
@@ -59,18 +59,25 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
 }
 
 function initRepoGroupSelector(form: HTMLFormElement) {
-  const inputRepoOwnerUid = form.querySelector<HTMLInputElement>('#uid');
+  const inputRepoOwnerUid = form.querySelector<HTMLInputElement>('input[name="uid"]');
   const elGroupDropdown = form.querySelector<HTMLInputElement>('#group_selector');
   const $dropdown = fomanticQuery(elGroupDropdown);
   const onChangeRepoOwner = function () {
-    $dropdown.dropdown('setting', {
+    $dropdown.dropdown({
+      keepSearchTerm: true,
+      fireOnInit: true,
+      saveRemoteData: false,
       apiSettings: {
         url: `${appSubUrl}/group/search?uid=${inputRepoOwnerUid.value}&recurse=true`,
-        onResponse(response) {
+        onResponse(response: {data: any}) {
           const results = [];
-          results.push({name: '', value: ''}); // empty item means not using template
-          const forEachFn = function({group, subgroups}, depth: number) {
-            results.push({name: group.name, value: String(group.id)});
+          results.push({name: '', value: '0'});
+          const forEachFn = function ({group, subgroups}: {group: any, subgroups: any[]}, depth: number) {
+            results.push({
+              // eslint-disable-next-line github/unescaped-html-literal
+              name: `<span style="margin-left: ${depth + 1}rem">${html`${group.name}`}</span>`,
+              value: String(group.id),
+            });
             for (const sg of subgroups) {
               forEachFn(sg, depth + 1);
             }
