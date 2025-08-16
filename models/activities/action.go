@@ -443,6 +443,7 @@ type GetFeedsOptions struct {
 	db.ListOptions
 	RequestedUser   *user_model.User       // the user we want activity for
 	RequestedTeam   *organization.Team     // the team we want activity for
+	RequestedGroup  *group_model.Group     // the group we want activity for
 	RequestedRepo   *repo_model.Repository // the repo we want activity for
 	RequestedGroup  *group_model.Group     // the repo group we want activity for
 	Actor           *user_model.User       // the user viewing the activity
@@ -523,8 +524,16 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
-
-	if opts.RequestedRepo != nil {
+	if opts.RequestedGroup != nil {
+		cond = cond.And(builder.In("`action`.repo_id",
+			builder.Select("id").
+				From("repository").
+				Where(builder.Or(
+					builder.In("`repository`.group_id", group_model.ChildGroupCond(opts.RequestedGroup.ID)),
+					builder.Eq{"`repository`.group_id": opts.RequestedGroup.ID}),
+				),
+		))
+	} else if opts.RequestedRepo != nil {
 		// repo's actions could have duplicate items, see the comment of NotifyWatchers
 		// so here we only filter the "original items", aka: user_id == act_user_id
 		cond = cond.And(
