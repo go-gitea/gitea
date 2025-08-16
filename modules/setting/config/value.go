@@ -28,7 +28,7 @@ type Value[T any] struct {
 
 func (value *Value[T]) parse(key, valStr string) (v T) {
 	v = value.def
-	if valStr != "" {
+	if valStr != "" && valStr != "null" {
 		if err := json.Unmarshal(util.UnsafeStringToBytes(valStr), &v); err != nil {
 			log.Error("Unable to unmarshal json config for key %q, err: %v", key, err)
 		}

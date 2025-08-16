@@ -206,6 +206,18 @@ func ChangeConfig(ctx *context.Context) {
 		}
 		return "false", nil
 	}
+
+	marshalString := func(v string) (string, error) {
+		if strings.TrimSpace(v) == "" {
+			return "null", nil
+		}
+		b, err := json.Marshal(v)
+		if err != nil {
+			return "", err
+		}
+		return string(b), nil
+	}
+
 	marshalOpenWithApps := func(value string) (string, error) {
 		lines := strings.Split(value, "\n")
 		var openWithEditorApps setting.OpenWithEditorAppsType
@@ -234,6 +246,7 @@ func ChangeConfig(ctx *context.Context) {
 		cfg.Picture.DisableGravatar.DynKey():       marshalBool,
 		cfg.Picture.EnableFederatedAvatar.DynKey(): marshalBool,
 		cfg.Repository.OpenWithEditorApps.DynKey(): marshalOpenWithApps,
+		cfg.Template.GitRemoteName.DynKey():        marshalString,
 	}
 	marshaller, hasMarshaller := marshallers[key]
 	if !hasMarshaller {
