@@ -14,6 +14,7 @@ type Group struct {
 	NumSubgroups  int64  `json:"num_subgroups"`
 	Link          string `json:"link"`
 	SortOrder     int    `json:"sort_order"`
+	AvatarURL     string `json:"avatar_url"`
 }
 
 // NewGroupOption represents options for creating a new group in an organization
