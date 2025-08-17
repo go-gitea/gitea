@@ -75,6 +75,8 @@
     "@types/dropzone": "5.7.9",
     "@types/jquery": "3.5.33",
     "@types/katex": "0.16.7",
+    "@types/license-checker-webpack-plugin": "0.2.5",
+    "@types/object-hash": "3.0.6",
     "@types/pdfobject": "2.2.5",
     "@types/sortablejs": "1.15.9",
     "@types/swagger-ui-dist": "3.30.6",

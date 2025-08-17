@@ -1,6 +1,9 @@
 package group
 
 import (
+	"net/http"
+	"strings"
+
 	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -14,8 +17,6 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	group_service "code.gitea.io/gitea/services/group"
-	"net/http"
-	"strings"
 )
 
 const (
