@@ -524,7 +524,9 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnableCode && !unit_model.TypeCode.UnitGlobalDisabled() {
-		units = append(units, newRepoUnit(repo, unit_model.TypeCode, nil))
+		units = append(units, newRepoUnit(repo, unit_model.TypeCode, &repo_model.CodeConfig{
+			GoModuleSubDir: form.GoModuleSubDir,
+		}))
 	} else if !unit_model.TypeCode.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeCode)
 	}
@@ -608,9 +610,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnablePackages && !unit_model.TypePackages.UnitGlobalDisabled() {
-		units = append(units, newRepoUnit(repo, unit_model.TypePackages, &repo_model.PackagesConfig{
-			GoModuleSubDir: form.GoModuleSubDir,
-		}))
+		units = append(units, newRepoUnit(repo, unit_model.TypePackages, nil))
 	} else if !unit_model.TypePackages.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
 	}

@@ -264,11 +264,11 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			r.Config = new(IssuesConfig)
 		case unit.TypeActions:
 			r.Config = new(ActionsConfig)
-		case unit.TypePackages:
-			r.Config = new(PackagesConfig)
 		case unit.TypeProjects:
 			r.Config = new(ProjectsConfig)
-		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki:
+		case unit.TypeCode:
+			r.Config = new(CodeConfig)
+		case unit.TypeReleases, unit.TypeWiki, unit.TypePackages:
 			fallthrough
 		default:
 			r.Config = new(UnitConfig)
@@ -281,9 +281,24 @@ func (r *RepoUnit) Unit() unit.Unit {
 	return unit.Units[r.Type]
 }
 
+// CodeConfig describes code config
+type CodeConfig struct {
+	GoModuleSubDir string
+}
+
+// FromDB fills up a CodeConfig from serialized format.
+func (cfg *CodeConfig) FromDB(bs []byte) error {
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+}
+
+// ToDB exports a CodeConfig to a serialized format.
+func (cfg *CodeConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
 // CodeConfig returns config for unit.TypeCode
-func (r *RepoUnit) CodeConfig() *UnitConfig {
-	return r.Config.(*UnitConfig)
+func (r *RepoUnit) CodeConfig() *CodeConfig {
+	return r.Config.(*CodeConfig)
 }
 
 // PullRequestsConfig returns config for unit.TypePullRequests
@@ -319,26 +334,6 @@ func (r *RepoUnit) ActionsConfig() *ActionsConfig {
 // ProjectsConfig returns config for unit.ProjectsConfig
 func (r *RepoUnit) ProjectsConfig() *ProjectsConfig {
 	return r.Config.(*ProjectsConfig)
-}
-
-// PackagesConfig returns config for unit.PackagesConfig
-func (r *RepoUnit) PackagesConfig() *PackagesConfig {
-	return r.Config.(*PackagesConfig)
-}
-
-// PackagesConfig describes package config
-type PackagesConfig struct {
-	GoModuleSubDir string
-}
-
-// FromDB fills up a PackagesConfig from serialized format.
-func (cfg *PackagesConfig) FromDB(bs []byte) error {
-	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
-}
-
-// ToDB exports a PackagesConfig to a serialized format.
-func (cfg *PackagesConfig) ToDB() ([]byte, error) {
-	return json.Marshal(cfg)
 }
 
 func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err error) {
