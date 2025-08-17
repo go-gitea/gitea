@@ -542,7 +542,7 @@ func TestGenerateRepository(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, generatedRepo)
 
-	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, generatedRepo.Name))
+	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, generatedRepo.Name, generatedRepo.GroupID))
 	require.NoError(t, err)
 	require.True(t, exist)
 
@@ -565,7 +565,7 @@ func TestGenerateRepository(t *testing.T) {
 
 	// a failed creating because some mock data
 	// create the repository directory so that the creation will fail after database record created.
-	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "generated-from-template-44"), os.ModePerm))
+	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "generated-from-template-44", generatedRepo.GroupID), os.ModePerm))
 
 	generatedRepo2, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
 		Name:       "generated-from-template-44",
@@ -577,7 +577,7 @@ func TestGenerateRepository(t *testing.T) {
 	// assert the cleanup is successful
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: generatedRepo.Name})
 
-	exist, err = util.IsExist(repo_model.RepoPath(user2.Name, generatedRepo.Name))
+	exist, err = util.IsExist(repo_model.RepoPath(user2.Name, generatedRepo.Name, generatedRepo.GroupID))
 	assert.NoError(t, err)
 	assert.False(t, exist)
 }
