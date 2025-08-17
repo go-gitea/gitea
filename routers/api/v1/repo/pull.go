@@ -1201,7 +1201,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	compareInfo, err := headGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseRef.ShortName(), headRef.ShortName(), false, false)
+	compareInfo, err := headGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name, baseRepo.GroupID), baseRef.ShortName(), headRef.ShortName(), false, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
