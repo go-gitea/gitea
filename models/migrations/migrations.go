@@ -410,6 +410,7 @@ func prepareMigrationTasks() []*migration {
 
 		newMigration(331, "Add ActionRunAttempt model and related action fields", v1_27.AddActionRunAttemptModel),
 		newMigration(332, "Add last_sync_unix to mirror", v1_27.AddLastSyncUnixToMirror),
+		newMigration(333, "Add group_id and group_sort_order columns to repository table", v1_26.AddGroupColumnsToRepositoryTable),
 	}
 	return preparedMigrations
 }
