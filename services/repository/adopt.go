@@ -209,12 +209,12 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 }
 
 // DeleteUnadoptedRepository deletes unadopted repository files from the filesystem
-func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, repoName string) error {
+func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, repoName string, groupID int64) error {
 	if err := repo_model.IsUsableRepoName(repoName); err != nil {
 		return err
 	}
 
-	repoPath := repo_model.RepoPath(u.Name, repoName)
+	repoPath := repo_model.RepoPath(u.Name, repoName, groupID)
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -227,7 +227,7 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 		}
 	}
 
-	if exist, err := repo_model.IsRepositoryModelExist(ctx, u, repoName); err != nil {
+	if exist, err := repo_model.IsRepositoryModelExist(ctx, u, repoName, groupID); err != nil {
 		return err
 	} else if exist {
 		return repo_model.ErrRepoAlreadyExist{

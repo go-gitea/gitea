@@ -362,7 +362,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 		return err
 	}
 
-	has, err := repo_model.IsRepositoryModelExist(ctx, u, repo.Name)
+	has, err := repo_model.IsRepositoryModelExist(ctx, u, repo.Name, repo.GroupID)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
