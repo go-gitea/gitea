@@ -49,7 +49,8 @@ func (g *groupItemGroup) Parent() Item {
 	return &groupItemGroup{group}
 }
 
-func (g *groupItemGroup) Children(doer *user_model.User) (items []Item) {
+func (g *groupItemGroup) Children(doer *user_model.User) []Item {
+	var items []Item
 	repos := make([]*repo_model.Repository, 0)
 	sess := db.GetEngine(db.DefaultContext)
 	err := sess.Table("repository").
@@ -76,7 +77,7 @@ func (g *groupItemGroup) Children(doer *user_model.User) (items []Item) {
 	for _, r := range repos {
 		items = append(items, &groupItemRepo{r})
 	}
-	return
+	return items
 }
 
 func (g *groupItemGroup) Avatar(ctx context.Context) string {
