@@ -608,7 +608,9 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnablePackages && !unit_model.TypePackages.UnitGlobalDisabled() {
-		units = append(units, newRepoUnit(repo, unit_model.TypePackages, nil))
+		units = append(units, newRepoUnit(repo, unit_model.TypePackages, &repo_model.PackagesConfig{
+			GoModuleSubDir: form.GoModuleSubDir,
+		}))
 	} else if !unit_model.TypePackages.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
 	}
@@ -637,10 +639,6 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 	}
-
-	miscCfg := repo.MustGetUnit(ctx, unit_model.TypeMisc).MiscConfig()
-	miscCfg.GoModuleSubDir = form.GoModuleSubDir
-	units = append(units, newRepoUnit(repo, unit_model.TypeMisc, miscCfg))
 
 	if len(units) == 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.update_settings_no_unit"))

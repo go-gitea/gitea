@@ -264,11 +264,11 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			r.Config = new(IssuesConfig)
 		case unit.TypeActions:
 			r.Config = new(ActionsConfig)
+		case unit.TypePackages:
+			r.Config = new(PackagesConfig)
 		case unit.TypeProjects:
 			r.Config = new(ProjectsConfig)
-		case unit.TypeMisc:
-			r.Config = new(MiscConfig)
-		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypePackages:
+		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki:
 			fallthrough
 		default:
 			r.Config = new(UnitConfig)
@@ -321,23 +321,23 @@ func (r *RepoUnit) ProjectsConfig() *ProjectsConfig {
 	return r.Config.(*ProjectsConfig)
 }
 
-// MiscConfig returns config for unit.MiscConfig
-func (r *RepoUnit) MiscConfig() *MiscConfig {
-	return r.Config.(*MiscConfig)
+// PackagesConfig returns config for unit.PackagesConfig
+func (r *RepoUnit) PackagesConfig() *PackagesConfig {
+	return r.Config.(*PackagesConfig)
 }
 
-// MiscConfig describes repo misc config
-type MiscConfig struct {
+// PackagesConfig describes package config
+type PackagesConfig struct {
 	GoModuleSubDir string
 }
 
-// FromDB fills up a MiscConfig from serialized format.
-func (cfg *MiscConfig) FromDB(bs []byte) error {
+// FromDB fills up a PackagesConfig from serialized format.
+func (cfg *PackagesConfig) FromDB(bs []byte) error {
 	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
-// ToDB exports a MiscConfig to a serialized format.
-func (cfg *MiscConfig) ToDB() ([]byte, error) {
+// ToDB exports a PackagesConfig to a serialized format.
+func (cfg *PackagesConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
