@@ -68,6 +68,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -143,7 +144,16 @@ func repoAssignment() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		userName := ctx.PathParam("username")
 		repoName := ctx.PathParam("reponame")
-
+		var gid int64
+		group := ctx.PathParam("group_id")
+		if group != "" {
+			gid, _ = strconv.ParseInt(group, 10, 64)
+			if gid == 0 {
+				ctx.Redirect(strings.Replace(ctx.Req.URL.RequestURI(), "/0/", "/", 1))
+				return
+			}
+			group += "/"
+		}
 		var (
 			owner *user_model.User
 			err   error
@@ -187,6 +197,10 @@ func repoAssignment() func(ctx *context.APIContext) {
 			} else {
 				ctx.APIErrorInternal(err)
 			}
+			return
+		}
+		if repo.GroupID != gid {
+			ctx.APIErrorNotFound()
 			return
 		}
 
@@ -1785,8 +1799,13 @@ func Routes() *web.Router {
 			})
 			m.Group("/unadopted", func() {
 				m.Get("", admin.ListUnadoptedRepositories)
-				m.Post("/{username}/{reponame}", admin.AdoptRepository)
-				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
+				m.Group("/{username}", func() {
+					m.Post("/{reponame}", admin.AdoptRepository)
+					m.Delete("/{reponame}", admin.DeleteUnadoptedRepository)
+					m.Post("/{group_id}/{reponame}", admin.AdoptGroupRepository)
+					m.Delete("/{group_id}/{reponame}", admin.DeleteUnadoptedRepositoryInGroup)
+				})
+
 			})
 			m.Group("/hooks", func() {
 				m.Combo("").Get(admin.ListHooks).

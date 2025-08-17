@@ -10,7 +10,7 @@ import (
 )
 
 func addOwnerRepoGitHTTPRouters(m *web.Router) {
-	m.Group("/{username}/{reponame}", func() {
+	m.Group("/{username}/{group_id}?/{reponame}", func() {
 		m.Methods("POST,OPTIONS", "/git-upload-pack", repo.ServiceUploadPack)
 		m.Methods("POST,OPTIONS", "/git-receive-pack", repo.ServiceReceivePack)
 		m.Methods("GET,OPTIONS", "/info/refs", repo.GetInfoRefs)

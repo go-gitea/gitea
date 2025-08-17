@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -334,6 +335,7 @@ func ComposeGoGetImport(ctx context.Context, owner, repo string) string {
 func EarlyResponseForGoGetMeta(ctx *Context) {
 	username := ctx.PathParam("username")
 	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
+	groupID := ctx.PathParamInt64("group_id")
 	if username == "" || reponame == "" {
 		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
@@ -341,9 +343,9 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 
 	var cloneURL string
 	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame)
+		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame, groupID)
 	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame)
+		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame, groupID)
 	}
 	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(ctx, username, reponame), cloneURL)
 	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
@@ -427,6 +429,20 @@ func RepoAssignment(ctx *Context) {
 	var err error
 	userName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
+	group := ctx.PathParam("group_id")
+	var gid int64
+	if group != "" {
+		gid, _ = strconv.ParseInt(group, 10, 64)
+		if gid == 0 {
+			q := ctx.Req.URL.RawQuery
+			if q != "" {
+				q = "?" + q
+			}
+			ctx.Redirect(strings.Replace(ctx.Link, "/0/", "/", 1) + q)
+			return
+		}
+		group += "/"
+	}
 	repoName = strings.TrimSuffix(repoName, ".git")
 	if setting.Other.EnableFeed {
 		ctx.Data["EnableFeed"] = true
@@ -473,7 +489,7 @@ func RepoAssignment(ctx *Context) {
 		redirectRepoName += originalRepoName[len(redirectRepoName)+5:]
 		redirectPath := strings.Replace(
 			ctx.Req.URL.EscapedPath(),
-			url.PathEscape(userName)+"/"+url.PathEscape(originalRepoName),
+			url.PathEscape(userName)+"/"+group+url.PathEscape(originalRepoName),
 			url.PathEscape(userName)+"/"+url.PathEscape(redirectRepoName)+"/wiki",
 			1,
 		)
@@ -504,6 +520,9 @@ func RepoAssignment(ctx *Context) {
 			ctx.ServerError("GetRepositoryByName", err)
 		}
 		return
+	}
+	if repo.GroupID != gid {
+		ctx.NotFound(nil)
 	}
 	repo.Owner = ctx.Repo.Owner
 
