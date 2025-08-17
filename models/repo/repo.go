@@ -220,8 +220,8 @@ type Repository struct {
 	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
 	ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
 
-	GroupID        int64 `xorm:"DEFAULT NULL"`
-	GroupSortOrder int
+	GroupID        int64 `xorm:"INDEX DEFAULT NULL"`
+	GroupSortOrder int   `xorm:"INDEX"`
 }
 
 func init() {
