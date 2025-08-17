@@ -38,5 +38,7 @@
       "onAutoForward": "notify"
     }
   },
-  "postCreateCommand": "make deps"
+  // (Workaround to match go.mod version) -- Upgrades go version to 1.24.6, detects container architecture
+  "postCreateCommand": "ARCH=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/') && curl -fsSL https://go.dev/dl/go1.24.6.linux-${ARCH}.tar.gz | sudo tar -C /usr/local -xz && make deps"
+  // "postCreateCommand": "make deps"
 }
