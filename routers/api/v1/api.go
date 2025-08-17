@@ -1184,7 +1184,7 @@ func Routes() *web.Router {
 			// (repo scope)
 			m.Group("/starred", func() {
 				m.Get("", user.GetMyStarredRepos)
-				m.Group("/{username}/{reponame}", func() {
+				m.Group("/{username}/{group_id}?/{reponame}", func() {
 					m.Get("", user.IsStarring)
 					m.Put("", user.Star)
 					m.Delete("", user.Unstar)
@@ -1236,7 +1236,7 @@ func Routes() *web.Router {
 			// (repo scope)
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
-			m.Group("/{username}/{reponame}", func() {
+			m.Group("/{username}/{group_id}?/{reponame}", func() {
 				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
 
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
@@ -1528,11 +1528,11 @@ func Routes() *web.Router {
 
 		// Artifacts direct download endpoint authenticates via signed url
 		// it is protected by the "sig" parameter (to help to access private repo), so no need to use other middlewares
-		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
+		m.Get("/repos/{username}/{group_id}?/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
 
 		// Notifications (requires notifications scope)
 		m.Group("/repos", func() {
-			m.Group("/{username}/{reponame}", func() {
+			m.Group("/{username}/{group_id}?/{reponame}", func() {
 				m.Combo("/notifications", reqToken()).
 					Get(notify.ListRepoNotifications).
 					Put(notify.ReadRepoNotifications)
@@ -1543,7 +1543,7 @@ func Routes() *web.Router {
 		m.Group("/repos", func() {
 			m.Get("/issues/search", repo.SearchIssues)
 
-			m.Group("/{username}/{reponame}", func() {
+			m.Group("/{username}/{group_id}?/{reponame}", func() {
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), reqRepoReader(unit.TypeIssues), repo.CreateIssue)
