@@ -1,3 +1,6 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package forms
 
 import "code.gitea.io/gitea/modules/structs"
