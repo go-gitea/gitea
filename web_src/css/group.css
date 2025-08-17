@@ -18,7 +18,7 @@
   .repo-group.new.group form .inline.field > label {
     text-align: right;
     width: 250px !important;
-    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   .repo-group.new.group form .help {
     margin-left: 265px !important;
@@ -88,4 +88,3 @@ li.expandable-menu-item.item:only-child, li.expandable-menu-item.item:last-child
 ul.expandable-menu ul li.expandable-menu-item {
   margin-top: 1rem;
 }
-

@@ -4,8 +4,8 @@
 	data-sort-id="{{if $item.IsGroup}}group{{else}}repo{{end}}-{{$item.ID}}-{{$item.Sort}}"
 		data-id="{{$item.ID}}">
 	<label class="tw-gap-2{{if $item.HasChildren $.root.Doer}} has-children{{end}}">
-		{{ $active := (and $item.IsGroup (call $.root.GroupIsCurrent $item.ID))}}
-		{{ $childContains := (call $.root.GroupHasChild $item)}}
+		{{$active := (and $item.IsGroup (call $.root.GroupIsCurrent $item.ID))}}
+		{{$childContains := (call $.root.GroupHasChild $item)}}
 		<input type="checkbox"
 					 class="toggle tw-h-0 tw-w-0 tw-overflow-hidden tw-opacity-0 tw-absolute"{{if or $active $childContains}} checked{{end}}>
 		{{svg "octicon-chevron-right" 16 "collapse-icon"}}

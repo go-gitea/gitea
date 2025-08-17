@@ -4,7 +4,6 @@
 package web
 
 import (
-	"code.gitea.io/gitea/routers/web/group"
 	"net/http"
 	"strings"
 
@@ -31,6 +30,7 @@ import (
 	"code.gitea.io/gitea/routers/web/events"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/routers/web/feed"
+	"code.gitea.io/gitea/routers/web/group"
 	"code.gitea.io/gitea/routers/web/healthcheck"
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"

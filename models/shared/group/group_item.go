@@ -1,26 +1,27 @@
 package group
 
 import (
-	"code.gitea.io/gitea/models/perm"
 	"context"
 	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+
 	"xorm.io/builder"
 )
 
-// GroupItem - represents an item in a group, either a repository or a subgroup.
+// Item - represents an item in a group, either a repository or a subgroup.
 // used to display, for example, the group sidebar
-type GroupItem interface {
+type Item interface {
 	Link() string
 	Title() string
-	Parent() GroupItem
-	Children(doer *user_model.User) []GroupItem
+	Parent() Item
+	Children(doer *user_model.User) []Item
 	Avatar(ctx context.Context) string
 	HasChildren(doer *user_model.User) bool
 	IsGroup() bool
@@ -40,7 +41,7 @@ func (g *groupItemGroup) Title() string {
 	return g.Group.Name
 }
 
-func (g *groupItemGroup) Parent() GroupItem {
+func (g *groupItemGroup) Parent() Item {
 	if g.Group.ParentGroupID == 0 {
 		return nil
 	}
@@ -48,7 +49,7 @@ func (g *groupItemGroup) Parent() GroupItem {
 	return &groupItemGroup{group}
 }
 
-func (g *groupItemGroup) Children(doer *user_model.User) (items []GroupItem) {
+func (g *groupItemGroup) Children(doer *user_model.User) (items []Item) {
 	repos := make([]*repo_model.Repository, 0)
 	sess := db.GetEngine(db.DefaultContext)
 	err := sess.Table("repository").
@@ -57,11 +58,11 @@ func (g *groupItemGroup) Children(doer *user_model.User) (items []GroupItem) {
 		Find(&repos)
 	if err != nil {
 		log.Error("%w", err)
-		return make([]GroupItem, 0)
+		return make([]Item, 0)
 	}
 	err = g.Group.LoadAccessibleSubgroups(db.DefaultContext, false, doer)
 	if err != nil {
-		return make([]GroupItem, 0)
+		return make([]Item, 0)
 	}
 	slices.SortStableFunc(g.Group.Subgroups, func(a, b *group_model.Group) int {
 		return a.SortOrder - b.SortOrder
@@ -97,7 +98,9 @@ func (g *groupItemGroup) ID() int64 {
 func (g *groupItemGroup) Sort() int {
 	return g.Group.SortOrder
 }
-func GetTopLevelGroupItemList(ctx context.Context, orgID int64, doer *user_model.User) (rootItems []GroupItem) {
+
+func GetTopLevelGroupItemList(ctx context.Context, orgID int64, doer *user_model.User) []Item {
+	var rootItems []Item
 	groups, err := group_model.FindGroupsByCond(ctx, &group_model.FindGroupsOptions{
 		ParentGroupID: 0,
 		ActorID:       doer.ID,
@@ -105,7 +108,7 @@ func GetTopLevelGroupItemList(ctx context.Context, orgID int64, doer *user_model
 	}, group_model.
 		AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead))
 	if err != nil {
-		return
+		return nil
 	}
 	repos := make([]*repo_model.Repository, 0)
 	cond := builder.NewCond().
@@ -115,7 +118,7 @@ func GetTopLevelGroupItemList(ctx context.Context, orgID int64, doer *user_model
 	sess := db.GetEngine(ctx)
 	err = sess.Table("repository").Where(cond).Find(&repos)
 	if err != nil {
-		return
+		return nil
 	}
 	slices.SortStableFunc(groups, func(a, b *group_model.Group) int {
 		return a.SortOrder - b.SortOrder
@@ -129,12 +132,12 @@ func GetTopLevelGroupItemList(ctx context.Context, orgID int64, doer *user_model
 	for _, r := range repos {
 		rootItems = append(rootItems, &groupItemRepo{r})
 	}
-	return
+	return rootItems
 }
 
-func GroupItemHasChild(it GroupItem, other int64, ctx context.Context, doer *user_model.User) bool {
+func ItemHasChild(ctx context.Context, it Item, other int64, doer *user_model.User) bool {
 	for _, item := range it.Children(doer) {
-		if GroupItemHasChild(item, other, ctx, doer) {
+		if ItemHasChild(ctx, item, other, doer) {
 			return true
 		}
 	}

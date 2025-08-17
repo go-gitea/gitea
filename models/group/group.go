@@ -194,7 +194,7 @@ func (g *Group) Depth(ctx context.Context) (d int) {
 		d++
 		pg = pg.ParentGroup
 	}
-	return
+	return d
 }
 
 // DisplayLeftMargin generates a value for the left margin
