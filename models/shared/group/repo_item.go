@@ -1,11 +1,12 @@
 package group
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"context"
 )
 
 type groupItemRepo struct {
@@ -20,7 +21,7 @@ func (repo *groupItemRepo) Title() string {
 	return repo.Repo.Name
 }
 
-func (repo *groupItemRepo) Parent() GroupItem {
+func (repo *groupItemRepo) Parent() Item {
 	if repo.Repo.GroupID == 0 {
 		return nil
 	}
@@ -28,8 +29,8 @@ func (repo *groupItemRepo) Parent() GroupItem {
 	return &groupItemGroup{group}
 }
 
-func (repo *groupItemRepo) Children(doer *user_model.User) []GroupItem {
-	return []GroupItem{}
+func (repo *groupItemRepo) Children(doer *user_model.User) []Item {
+	return []Item{}
 }
 
 func (repo *groupItemRepo) Avatar(ctx context.Context) string {

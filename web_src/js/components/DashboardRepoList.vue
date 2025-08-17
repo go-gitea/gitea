@@ -650,6 +650,7 @@ ul li:not(:last-child) {
   margin-right: 3px;
 }
 
+/*eslint-disable-next-line vue-scoped-css/no-unused-selector*/
 .repo-owner-name-list li.active {
   background: var(--color-hover);
 }

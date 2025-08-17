@@ -194,37 +194,3 @@ const options: SortableOptions = {
     </template>
   </Sortable>
 </template>
-<style scoped>
-ul.expandable-ul {
-  list-style: none;
-  margin: 0;
-  padding-left: 0;
-}
-
-ul.expandable-ul li {
-  padding: 0 10px;
-}
-.repos-search {
-  padding-bottom: 0 !important;
-}
-
-.repos-filter {
-  margin-top: 0 !important;
-  border-bottom-width: 0 !important;
-}
-
-.repos-filter .item {
-  padding-left: 6px !important;
-  padding-right: 6px !important;
-}
-
-.repo-owner-name-list li.active {
-  background: var(--color-hover);
-}
-ul.expandable-ul > li:not(:last-child) {
-  border-bottom: 1px solid var(--color-secondary);
-}
-ul.expandable-ul > li:first-child {
-  border-top: 1px solid var(--color-secondary);
-}
-</style>

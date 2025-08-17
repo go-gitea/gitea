@@ -1,11 +1,11 @@
 package group
 
 import (
-	"code.gitea.io/gitea/models/perm"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
+	"code.gitea.io/gitea/models/perm"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -59,6 +59,7 @@ func NewGroup(ctx *context.Context) {
 	ctx.Data["Groups"] = groups
 	ctx.HTML(http.StatusOK, tplGroupNew)
 }
+
 func NewGroupPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateGroupForm)
 	log.GetLogger(log.DEFAULT).Info("what? %+v", form)
