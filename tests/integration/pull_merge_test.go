@@ -293,7 +293,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 			OwnerID: user1.ID,
 			Name:    "repo1",
 		})
-		path := repo_model.RepoPath(user1.Name, repo1.Name)
+		path := repo_model.RepoPath(user1.Name, repo1.Name, repo1.GroupID)
 
 		err := git.NewCommand("read-tree", "--empty").Run(git.DefaultContext, &git.RunOpts{Dir: path})
 		assert.NoError(t, err)
