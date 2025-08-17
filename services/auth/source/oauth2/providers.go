@@ -75,10 +75,19 @@ func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
 // value is used to store display data
 var gothProviders = map[string]GothProvider{}
 
-var azureProviders = map[string]bool{
-	"azuread":         true,
-	"microsoftonline": true,
-	"azureadv2":       true,
+var azureProviders = []string{
+	"azuread",
+	"microsoftonline",
+	"azureadv2",
+}
+
+func isAzureProvider(providerName string) bool {
+	for _, azureProvider := range azureProviders {
+		if providerName == azureProvider {
+			return true
+		}
+	}
+	return false
 }
 
 // RegisterGothProvider registers a GothProvider
@@ -100,7 +109,7 @@ func hasExistingAzureADAuthSources(ctx context.Context) bool {
 
 	for _, source := range authSources {
 		if oauth2Cfg, ok := source.Cfg.(*Source); ok {
-			if azureProviders[oauth2Cfg.Provider] {
+			if isAzureProvider(oauth2Cfg.Provider) {
 				return true
 			}
 		}
@@ -123,7 +132,7 @@ func GetSupportedOAuth2ProvidersWithContext(ctx context.Context) []Provider {
 	hasExistingAzure := hasExistingAzureADAuthSources(ctx)
 
 	for _, provider := range gothProviders {
-		if azureProviders[provider.Name()] && !hasExistingAzure {
+		if isAzureProvider(provider.Name()) && !hasExistingAzure {
 			continue
 		}
 		providers = append(providers, provider)
