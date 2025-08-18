@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -347,6 +348,8 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 	ctx.PlainText(http.StatusOK, htmlMeta)
 }
 
+var pathRegex = regexp.MustCompile(`(?i).*/[a-z\-0-9_]+/(\d+/)?[a-z\-0-9_]`)
+
 // RedirectToRepo redirect to a differently-named repository
 func RedirectToRepo(ctx *Base, redirectRepoID int64) {
 	ownerName := ctx.PathParam("username")
@@ -358,6 +361,8 @@ func RedirectToRepo(ctx *Base, redirectRepoID int64) {
 		ctx.HTTPError(http.StatusInternalServerError, "GetRepositoryByID")
 		return
 	}
+	pathRegex.ReplaceAllString(ctx.Req.URL.EscapedPath(),
+		url.PathEscape(repo.OwnerName)+"/$1"+url.PathEscape(repo.Name))
 
 	redirectPath := strings.Replace(
 		ctx.Req.URL.EscapedPath(),
@@ -496,7 +501,7 @@ func RepoAssignment(ctx *Context) {
 	}
 
 	// Get repository.
-	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Repo.Owner.ID, repoName)
+	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Repo.Owner.ID, gid, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			redirectRepoID, err := repo_model.LookupRedirect(ctx, ctx.Repo.Owner.ID, repoName)

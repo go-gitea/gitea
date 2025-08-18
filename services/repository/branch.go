@@ -568,6 +568,7 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 			PusherID:     doer.ID,
 			PusherName:   doer.Name,
 			RepoUserName: repo.OwnerName,
+			RepoGroupID:  repo.GroupID,
 			RepoName:     repo.Name,
 		}); err != nil {
 		log.Error("PushUpdateOptions: %v", err)

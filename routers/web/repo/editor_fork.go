@@ -20,7 +20,7 @@ func ForkToEdit(ctx *context.Context) {
 func ForkToEditPost(ctx *context.Context) {
 	ForkRepoTo(ctx, ctx.Doer, repo_service.ForkRepoOptions{
 		BaseRepo:     ctx.Repo.Repository,
-		Name:         getUniqueRepositoryName(ctx, ctx.Doer.ID, ctx.Repo.Repository.Name),
+		Name:         getUniqueRepositoryName(ctx, ctx.Doer.ID, 0, ctx.Repo.Repository.Name),
 		Description:  ctx.Repo.Repository.Description,
 		SingleBranch: ctx.Repo.Repository.DefaultBranch, // maybe we only need the default branch in the fork?
 	})

@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -113,7 +114,7 @@ func TestAPICreateBranch(t *testing.T) {
 
 func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 	username := "user2"
-	ctx := NewAPITestContext(t, username, "my-noo-repo", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	ctx := NewAPITestContext(t, username, "my-noo-repo", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	giteaURL.Path = ctx.GitPath()
 
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
@@ -164,14 +165,18 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 	for _, test := range testCases {
 		session := ctx.Session
 		t.Run(test.NewBranch, func(t *testing.T) {
-			testAPICreateBranch(t, session, "user2", "my-noo-repo", test.OldBranch, test.NewBranch, test.ExpectedHTTPStatus)
+			testAPICreateBranch(t, session, 0, "user2", "my-noo-repo", test.OldBranch, test.NewBranch, test.ExpectedHTTPStatus)
 		})
 	}
 }
 
-func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBranch, newBranch string, status int) bool {
+func testAPICreateBranch(t testing.TB, session *TestSession, groupID int64, user, repo, oldBranch, newBranch string, status int) bool {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+user+"/"+repo+"/branches", &api.CreateBranchRepoOption{
+	var groupSegment string
+	if groupID > 0 {
+		groupSegment = fmt.Sprintf("%d/", groupID)
+	}
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+user+"/"+groupSegment+repo+"/branches", &api.CreateBranchRepoOption{
 		BranchName:    newBranch,
 		OldBranchName: oldBranch,
 	}).AddTokenAuth(token)
@@ -310,10 +315,10 @@ func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 	assert.NoError(t, err)
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		ctx := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 		giteaURL.Path = ctx.GitPath()
 
-		testAPICreateBranch(t, ctx.Session, "user2", "repo1", "", "new_branch", http.StatusCreated)
+		testAPICreateBranch(t, ctx.Session, 0, "user2", "repo1", "", "new_branch", http.StatusCreated)
 	})
 
 	branches, err = db.Find[git_model.Branch](t.Context(), git_model.FindBranchOptions{
