@@ -29,5 +29,5 @@ func AddOwnerRepoGitLFSRoutes(m *web.Router, middlewares ...any) {
 		m.Any("/*", http.NotFound)
 	}
 	m.Group("/{username}/{reponame}/info/lfs", fn, append([]any{web.RouterMockPoint(RouterMockPointCommonLFS)}, middlewares...)...)
-	m.Group("/{username}/{group_id}/{reponame}/info/lfs", fn, append([]any{web.RouterMockPoint(RouterMockPointCommonLFS)}, middlewares...)...)
+	m.Group("/{username}/group/{group_id}/{reponame}/info/lfs", fn, append([]any{web.RouterMockPoint(RouterMockPointCommonLFS)}, middlewares...)...)
 }
