@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -274,7 +275,15 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 				ci.HeadRepo = baseRepo
 			}
 		} else {
-			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, headInfosSplit[0], headInfosSplit[1])
+			var headOwner, headRepo string
+			var headGID int64
+			if len(headInfosSplit) == 2 {
+				headOwner, headRepo = headInfosSplit[0], headInfosSplit[1]
+			} else if len(headInfosSplit) >= 3 {
+				headOwner, headRepo = headInfosSplit[0], headInfosSplit[2]
+				headGID, _ = strconv.ParseInt(headInfosSplit[1], 10, 64)
+			}
+			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, headOwner, headRepo, headGID)
 			if err != nil {
 				if repo_model.IsErrRepoNotExist(err) {
 					ctx.NotFound(nil)

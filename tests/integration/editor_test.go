@@ -37,8 +37,8 @@ func TestEditor(t *testing.T) {
 		t.Run("DiffPreview", testEditorDiffPreview)
 		t.Run("CreateFile", testEditorCreateFile)
 		t.Run("EditFile", func(t *testing.T) {
-			testEditFile(t, sessionUser2, "user2", "repo1", "master", "README.md", "Hello, World (direct)\n")
-			testEditFileToNewBranch(t, sessionUser2, "user2", "repo1", "master", "feature/test", "README.md", "Hello, World (commit-to-new-branch)\n")
+			testEditFile(t, sessionUser2, 0, "user2", "repo1", "master", "README.md", "Hello, World (direct)\n")
+			testEditFileToNewBranch(t, sessionUser2, 0, "user2", "repo1", "master", "feature/test", "README.md", "Hello, World (commit-to-new-branch)\n")
 		})
 		t.Run("PatchFile", testEditorPatchFile)
 		t.Run("DeleteFile", func(t *testing.T) {
@@ -57,7 +57,7 @@ func TestEditor(t *testing.T) {
 
 func testEditorCreateFile(t *testing.T) {
 	session := loginUser(t, "user2")
-	testCreateFile(t, session, "user2", "repo1", "master", "", "test.txt", "Content")
+	testCreateFile(t, session, 0, "user2", "repo1", "master", "", "test.txt", "Content")
 	testEditorActionPostRequestError(t, session, "/user2/repo1/_new/master/", map[string]string{
 		"tree_path":       "test.txt",
 		"commit_choice":   "direct",
@@ -70,12 +70,12 @@ func testEditorCreateFile(t *testing.T) {
 	}, `Branch "master" already exists in this repository.`)
 }
 
-func testCreateFile(t *testing.T, session *TestSession, user, repo, baseBranchName, newBranchName, filePath, content string) {
+func testCreateFile(t *testing.T, session *TestSession, groupID int64, user, repo, baseBranchName, newBranchName, filePath, content string) {
 	commitChoice := "direct"
 	if newBranchName != "" && newBranchName != baseBranchName {
 		commitChoice = "commit-to-new-branch"
 	}
-	testEditorActionEdit(t, session, user, repo, "_new", baseBranchName, "", map[string]string{
+	testEditorActionEdit(t, session, groupID, user, repo, "_new", baseBranchName, "", map[string]string{
 		"tree_path":       filePath,
 		"content":         content,
 		"commit_choice":   commitChoice,
@@ -120,10 +120,14 @@ func testEditorActionPostRequestError(t *testing.T, session *TestSession, reques
 	assert.Equal(t, errorMessage, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 }
 
-func testEditorActionEdit(t *testing.T, session *TestSession, user, repo, editorAction, branch, filePath string, params map[string]string) *httptest.ResponseRecorder {
+func testEditorActionEdit(t *testing.T, session *TestSession, groupID int64, user, repo, editorAction, branch, filePath string, params map[string]string) *httptest.ResponseRecorder {
 	params["tree_path"] = util.IfZero(params["tree_path"], filePath)
 	newBranchName := util.Iif(params["commit_choice"] == "direct", branch, params["new_branch_name"])
-	resp := testEditorActionPostRequest(t, session, fmt.Sprintf("/%s/%s/%s/%s/%s", user, repo, editorAction, branch, filePath), params)
+	var groupSegment string
+	if groupID > 0 {
+		groupSegment = fmt.Sprintf("%d/", groupID)
+	}
+	resp := testEditorActionPostRequest(t, session, fmt.Sprintf("/%s/%s%s/%s/%s/%s", user, groupSegment, repo, editorAction, branch, filePath), params)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.NotEmpty(t, test.RedirectURL(resp))
 	req := NewRequest(t, "GET", path.Join(user, repo, "raw/branch", newBranchName, params["tree_path"]))
@@ -132,15 +136,15 @@ func testEditorActionEdit(t *testing.T, session *TestSession, user, repo, editor
 	return resp
 }
 
-func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePath, newContent string) {
-	testEditorActionEdit(t, session, user, repo, "_edit", branch, filePath, map[string]string{
+func testEditFile(t *testing.T, session *TestSession, groupID int64, user, repo, branch, filePath, newContent string) {
+	testEditorActionEdit(t, session, groupID, user, repo, "_edit", branch, filePath, map[string]string{
 		"content":       newContent,
 		"commit_choice": "direct",
 	})
 }
 
-func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, branch, targetBranch, filePath, newContent string) {
-	testEditorActionEdit(t, session, user, repo, "_edit", branch, filePath, map[string]string{
+func testEditFileToNewBranch(t *testing.T, session *TestSession, groupID int64, user, repo, branch, targetBranch, filePath, newContent string) {
+	testEditorActionEdit(t, session, groupID, user, repo, "_edit", branch, filePath, map[string]string{
 		"content":         newContent,
 		"commit_choice":   "commit-to-new-branch",
 		"new_branch_name": targetBranch,

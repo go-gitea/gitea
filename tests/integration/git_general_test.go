@@ -51,11 +51,11 @@ func TestGitGeneral(t *testing.T) {
 
 func testGitGeneral(t *testing.T, u *url.URL) {
 	username := "user2"
-	baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	baseAPITestContext := NewAPITestContext(t, username, "repo1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	u.Path = baseAPITestContext.GitPath()
 
-	forkedUserCtx := NewAPITestContext(t, "user4", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	forkedUserCtx := NewAPITestContext(t, "user4", "repo1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	t.Run("HTTP", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -370,7 +370,7 @@ func generateCommitWithNewData(ctx context.Context, size int, repoPath, email, f
 func doCreateProtectedBranch(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, auth_model.AccessTokenScopeWriteRepository)
+		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, 0, auth_model.AccessTokenScopeWriteRepository)
 
 		t.Run("ProtectBranchWithFilePatterns", doProtectBranch(ctx, "release-*", baseCtx.Username, "", "", "config*"))
 
@@ -401,7 +401,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("CreateBranchProtected", doGitCreateBranch(dstPath, "protected"))
 		t.Run("PushProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
 
-		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, auth_model.AccessTokenScopeWriteRepository)
+		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, 0, auth_model.AccessTokenScopeWriteRepository)
 
 		// Protect branch without any whitelisting
 		t.Run("ProtectBranchNoWhitelist", doProtectBranch(ctx, "protected", "", "", "", ""))
@@ -676,7 +676,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		t.Run("SuccessfullyPushAndCreateTestRepository", doGitPushTestRepository(tmpDir, "origin", "master"))
 
 		// Finally, fetch repo from database and ensure the correct repository has been created
-		repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), ctx.Username, ctx.Reponame)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), ctx.Username, ctx.Reponame, ctx.GroupID)
 		assert.NoError(t, err)
 		assert.False(t, repo.IsEmpty)
 		assert.True(t, repo.IsPrivate)
@@ -707,7 +707,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, auth_model.AccessTokenScopeWriteRepository)
+		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, 0, auth_model.AccessTokenScopeWriteRepository)
 
 		// automerge will merge immediately if the PR is mergeable and there is no "status check" because no status check also means "all checks passed"
 		// so we must set up a status check to test the auto merge feature
@@ -816,7 +816,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			pr1, pr2 *issues_model.PullRequest
 			commit   string
 		)
-		repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), ctx.Username, ctx.Reponame)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), ctx.Username, ctx.Reponame, ctx.GroupID)
 		require.NoError(t, err)
 
 		pullNum := unittest.GetCount(t, &issues_model.PullRequest{})

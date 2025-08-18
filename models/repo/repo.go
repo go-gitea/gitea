@@ -825,11 +825,12 @@ func (err ErrRepoNotExist) Unwrap() error {
 }
 
 // GetRepositoryByOwnerAndName returns the repository by given owner name and repo name
-func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string) (*Repository, error) {
+func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string, groupID int64) (*Repository, error) {
 	var repo Repository
 	has, err := db.GetEngine(ctx).Table("repository").Select("repository.*").
 		Join("INNER", "`user`", "`user`.id = repository.owner_id").
 		Where("repository.lower_name = ?", strings.ToLower(repoName)).
+		And("`repository`.group_id = ?", groupID).
 		And("`user`.lower_name = ?", strings.ToLower(ownerName)).
 		Get(&repo)
 	if err != nil {
@@ -841,10 +842,11 @@ func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string
 }
 
 // GetRepositoryByName returns the repository by given name under user if exists.
-func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repository, error) {
+func GetRepositoryByName(ctx context.Context, ownerID, groupID int64, name string) (*Repository, error) {
 	var repo Repository
 	has, err := db.GetEngine(ctx).
 		Where("`owner_id`=?", ownerID).
+		And("`group_id`=?", groupID).
 		And("`lower_name`=?", strings.ToLower(name)).
 		NoAutoCondition().
 		Get(&repo)
@@ -862,7 +864,7 @@ func GetRepositoryByURL(ctx context.Context, repoURL string) (*Repository, error
 	if err != nil || ret.OwnerName == "" {
 		return nil, errors.New("unknown or malformed repository URL")
 	}
-	return GetRepositoryByOwnerAndName(ctx, ret.OwnerName, ret.RepoName)
+	return GetRepositoryByOwnerAndName(ctx, ret.OwnerName, ret.RepoName, ret.GroupID)
 }
 
 // GetRepositoryByURLRelax also accepts an SSH clone URL without user part

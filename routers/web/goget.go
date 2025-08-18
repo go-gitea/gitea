@@ -55,8 +55,8 @@ func goGet(ctx *context.Context) {
 		return
 	}
 	branchName := setting.Repository.DefaultBranch
-
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
+	gid, _ := strconv.ParseInt(group, 10, 64)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName, gid)
 	if err == nil && len(repo.DefaultBranch) > 0 {
 		branchName = repo.DefaultBranch
 	}
@@ -76,7 +76,6 @@ func goGet(ctx *context.Context) {
 	goGetImport := context.ComposeGoGetImport(ctx, ownerName, trimmedRepoName)
 
 	var cloneURL string
-	gid, _ := strconv.ParseInt(group, 10, 64)
 	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
 		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, ownerName, repoName, gid)
 	} else {

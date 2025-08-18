@@ -152,7 +152,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// Now get the Repository and set the results section
 	repoExist := true
-	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, results.RepoName)
+	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, ctx.PathParamInt64("group_id"), results.RepoName)
 	if err != nil {
 		if !repo_model.IsErrRepoNotExist(err) {
 			log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
