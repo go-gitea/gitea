@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	user_service "code.gitea.io/gitea/services/user"
@@ -46,7 +45,7 @@ func Badges(ctx *context.Context) {
 		"SortType": sortType,
 	}
 
-	explore.RenderBadgeSearch(ctx, &user_model.SearchBadgeOptions{
+	RenderBadgeSearch(ctx, &user_model.SearchBadgeOptions{
 		Actor: ctx.Doer,
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
