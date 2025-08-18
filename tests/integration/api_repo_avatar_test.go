@@ -40,7 +40,7 @@ func TestAPIUpdateRepoAvatar(t *testing.T) {
 		Image: base64.StdEncoding.EncodeToString(avatar),
 	}
 
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/avatar", repo.OwnerName, repo.GroupID, repo.Name), &opts).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
@@ -49,7 +49,7 @@ func TestAPIUpdateRepoAvatar(t *testing.T) {
 		Image: "Invalid",
 	}
 
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/avatar", repo.OwnerName, repo.GroupID, repo.Name), &opts).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusBadRequest)
 
@@ -64,7 +64,7 @@ func TestAPIUpdateRepoAvatar(t *testing.T) {
 		Image: base64.StdEncoding.EncodeToString(text),
 	}
 
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/avatar", repo.OwnerName, repo.GroupID, repo.Name), &opts).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusInternalServerError)
 }
@@ -76,7 +76,7 @@ func TestAPIDeleteRepoAvatar(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeWriteRepository)
 
-	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name)).
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%d/%s/avatar", repo.OwnerName, repo.GroupID, repo.Name)).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 }
