@@ -29,9 +29,10 @@ type APITestContext struct {
 	Token        string
 	Username     string
 	ExpectedCode int
+	GroupID      int64
 }
 
-func NewAPITestContext(t *testing.T, username, reponame string, scope ...auth.AccessTokenScope) APITestContext {
+func NewAPITestContext(t *testing.T, username, reponame string, groupID int64, scope ...auth.AccessTokenScope) APITestContext {
 	session := loginUser(t, username)
 	if len(scope) == 0 {
 		// FIXME: legacy logic: no scope means all
@@ -41,6 +42,7 @@ func NewAPITestContext(t *testing.T, username, reponame string, scope ...auth.Ac
 	return APITestContext{
 		Session:  session,
 		Token:    token,
+		GroupID:  groupID,
 		Username: username,
 		Reponame: reponame,
 	}
@@ -60,6 +62,7 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 			Template:    true,
 			Gitignores:  "",
 			License:     "WTFPL",
+			GroupID:     ctx.GroupID,
 			Readme:      "Default",
 		}
 		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", createRepoOption).
