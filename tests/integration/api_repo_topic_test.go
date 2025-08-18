@@ -88,28 +88,28 @@ func TestAPIRepoTopic(t *testing.T) {
 	token2 := getUserToken(t, user2.Name, auth_model.AccessTokenScopeWriteRepository)
 
 	// Test read topics using login
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/topics", user2.Name, repo2.Name)).
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%d/%s/topics", user2.Name, repo2.GroupID, repo2.Name)).
 		AddTokenAuth(token2)
 	res := MakeRequest(t, req, http.StatusOK)
 	topics := DecodeJSON(t, res, &api.TopicName{})
 	assert.ElementsMatch(t, []string{"topicname1", "topicname2"}, topics.TopicNames)
 
 	// Test delete a topic
-	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/topics/%s", user2.Name, repo2.Name, "Topicname1").
+	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%d/%s/topics/%s", user2.Name, repo2.GroupID, repo2.Name, "Topicname1").
 		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Test add an existing topic
-	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s", user2.Name, repo2.Name, "Golang").
+	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%d/%s/topics/%s", user2.Name, repo2.GroupID, repo2.Name, "Golang").
 		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Test add a topic
-	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s", user2.Name, repo2.Name, "topicName3").
+	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%d/%s/topics/%s", user2.Name, repo2.GroupID, repo2.Name, "topicName3").
 		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusNoContent)
 
-	url := fmt.Sprintf("/api/v1/repos/%s/%s/topics", user2.Name, repo2.Name)
+	url := fmt.Sprintf("/api/v1/repos/%s/%d/%s/topics", user2.Name, repo2.GroupID, repo2.Name)
 
 	// Test read topics using token
 	req = NewRequest(t, "GET", url).
@@ -162,12 +162,12 @@ func TestAPIRepoTopic(t *testing.T) {
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// Test add a topic when there is already maximum
-	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s", user2.Name, repo2.Name, "t26").
+	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%d/%s/topics/%s", user2.Name, repo2.GroupID, repo2.Name, "t26").
 		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// Test delete a topic that repo doesn't have
-	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/topics/%s", user2.Name, repo2.Name, "Topicname1").
+	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%d/%s/topics/%s", user2.Name, repo2.GroupID, repo2.Name, "Topicname1").
 		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusNotFound)
 
@@ -175,14 +175,14 @@ func TestAPIRepoTopic(t *testing.T) {
 	token4 := getUserToken(t, user4.Name, auth_model.AccessTokenScopeWriteRepository)
 
 	// Test read topics with write access
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/topics", org3.Name, repo3.Name)).
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%d/%s/topics", org3.Name, repo3.GroupID, repo3.Name)).
 		AddTokenAuth(token4)
 	res = MakeRequest(t, req, http.StatusOK)
 	topics = DecodeJSON(t, res, &api.TopicName{})
 	assert.Empty(t, topics.TopicNames)
 
 	// Test add a topic to repo with write access (requires repo admin access)
-	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s", org3.Name, repo3.Name, "topicName").
+	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%d/%s/topics/%s", org3.Name, repo3.GroupID, repo3.Name, "topicName").
 		AddTokenAuth(token4)
 	MakeRequest(t, req, http.StatusForbidden)
 }
