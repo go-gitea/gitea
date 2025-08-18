@@ -1140,7 +1140,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	}
 	m.Group("/{username}/{reponame}/-", repoDashFn, optSignIn, context.RepoAssignment, reqUnitCodeReader)
-	m.Group("/{username}/{group_id}/{reponame}/-", repoDashFn, optSignIn, context.RepoAssignment, reqUnitCodeReader)
+	m.Group("/{username}/group/{group_id}/{reponame}/-", repoDashFn, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{group_id}/{reponame}/-": migrate
 
 	mentionsFn := func() {
@@ -1254,7 +1254,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		reqSignIn, context.RepoAssignment, reqRepoAdmin,
 		ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer),
 	)
-	m.Group("/{username}/{group_id}/{reponame}/settings", settingsFn,
+	m.Group("/{username}/group/{group_id}/{reponame}/settings", settingsFn,
 		reqSignIn, context.RepoAssignment, reqRepoAdmin,
 		ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer),
 	)
@@ -1262,10 +1262,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	// user/org home, including rss feeds like "/{username}/{reponame}.rss"
 	m.Get("/{username}/{reponame}", optSignIn, webAuth.AllowBasic, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)
+	m.Get("/{username}/group/{group_id}/{reponame}", optSignIn, webAuth.AllowBasic, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)
 
 	m.Post("/{username}/{reponame}/markup", optSignIn, context.RepoAssignment, reqUnitsWithMarkdown, web.Bind(structs.MarkupOption{}), misc.Markup)
-	m.Post("/{username}/{group_id}/{reponame}/markup", optSignIn, context.RepoAssignment, reqUnitsWithMarkdown, web.Bind(structs.MarkupOption{}), misc.Markup)
-
+	m.Post("/{username}/group/{group_id}/{reponame}/markup", optSignIn, context.RepoAssignment, reqUnitsWithMarkdown, web.Bind(structs.MarkupOption{}), misc.Markup)
 	rootRepoFn := func() {
 		m.Group("/tree-list", func() {
 			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.TreeList)
@@ -1284,7 +1284,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/pulls/new/*", repo.PullsNewRedirect)
 	}
 	m.Group("/{username}/{reponame}", rootRepoFn, optSignIn, context.RepoAssignment, reqUnitCodeReader)
-	m.Group("/{username}/{group_id}/{reponame}", rootRepoFn, optSignIn, context.RepoAssignment, reqUnitCodeReader)
+	m.Group("/{username}/group/{group_id}/{reponame}", rootRepoFn, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{group_id}/{reponame}": repo code: find, compare, list
 
 	addIssuesPullsViewRoutes := func() {
@@ -1302,9 +1302,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	}
 	// FIXME: many "pulls" requests are sent to "issues" endpoints correctly, so the issue endpoints have to tolerate pull request permissions at the moment
-	m.Group("/{username}/{group_id}/{reponame}/{type:issues}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests))
+	m.Group("/{username}/group/{group_id}/{reponame}/{type:issues}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests))
 	m.Group("/{username}/{reponame}/{type:issues}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests))
-	m.Group("/{username}/{group_id}/{reponame}/{type:pulls}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, reqUnitPullsReader)
+	m.Group("/{username}/group/{group_id}/{reponame}/{type:pulls}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, reqUnitPullsReader)
 	m.Group("/{username}/{reponame}/{type:pulls}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, reqUnitPullsReader)
 
 	repoIssueAttachmentFn := func() {
@@ -1315,15 +1315,15 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/issues/suggestions", repo.IssueSuggestions)
 	}
 
-	m.Group("/{username}/{group_id}/{reponame}", repoIssueAttachmentFn, optSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader) // issue/pull attachments, labels, milestones
-	m.Group("/{username}/{reponame}", repoIssueAttachmentFn, optSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader)            // issue/pull attachments, labels, milestones
+	m.Group("/{username}/group/{group_id}/{reponame}", repoIssueAttachmentFn, optSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader) // issue/pull attachments, labels, milestones
+	m.Group("/{username}/{reponame}", repoIssueAttachmentFn, optSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader)                  // issue/pull attachments, labels, milestones
 	// end "/{username}/{group_id}/{reponame}": view milestone, label, issue, pull, etc
 
 	issueViewFn := func() {
 		m.Get("", repo.Issues)
 		m.Get("/{index}", repo.ViewIssue)
 	}
-	m.Group("/{username}/{group_id}/{reponame}/{type:issues}", issueViewFn, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypeExternalTracker))
+	m.Group("/{username}/group/{group_id}/{reponame}/{type:issues}", issueViewFn, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypeExternalTracker))
 	m.Group("/{username}/{reponame}/{type:issues}", issueViewFn, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypeExternalTracker))
 	// end "/{username}/{group_id}/{reponame}": issue/pull list, issue/pull view, external tracker
 
@@ -1416,7 +1416,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, reqUnitPullsReader)
 		m.Post("/pull/{index}/target_branch", reqUnitPullsReader, repo.UpdatePullRequestTarget)
 	}
-	m.Group("/{username}/{group_id}/{reponame}", editIssueFn, reqSignIn, context.RepoAssignment, context.RepoMustNotBeArchived())
+	m.Group("/{username}/group/{group_id}/{reponame}", editIssueFn, reqSignIn, context.RepoAssignment, context.RepoMustNotBeArchived())
 	m.Group("/{username}/{reponame}", editIssueFn, reqSignIn, context.RepoAssignment, context.RepoMustNotBeArchived())
 	// end "/{username}/{group_id}/{reponame}": create or edit issues, pulls, labels, milestones
 
@@ -1469,7 +1469,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Combo("/fork").Get(repo.Fork).Post(web.Bind(forms.CreateRepoForm{}), repo.ForkPost)
 	}
-	m.Group("/{username}/{group_id}/{reponame}", codeFn, reqSignIn, context.RepoAssignment, reqUnitCodeReader)
+	m.Group("/{username}/group/{group_id}/{reponame}", codeFn, reqSignIn, context.RepoAssignment, reqUnitCodeReader)
 	m.Group("/{username}/{reponame}", codeFn, reqSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{group_id}/{reponame}": repo code
 
@@ -1482,7 +1482,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed))
 		m.Post("/tags/delete", reqSignIn, reqRepoCodeWriter, context.RepoMustNotBeArchived(), repo.DeleteTag)
 	}
-	m.Group("/{username}/{group_id}/{reponame}", repoTagFn, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqUnitCodeReader)
+	m.Group("/{username}/group/{group_id}/{reponame}", repoTagFn, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqUnitCodeReader)
 	m.Group("/{username}/{reponame}", repoTagFn, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqUnitCodeReader)
 	// end "/{username}/{group_id}/{reponame}": repo tags
 
@@ -1509,21 +1509,21 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/edit/*", web.Bind(forms.EditReleaseForm{}), repo.EditReleasePost)
 		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, repo.CommitInfoCache)
 	}
-	m.Group("/{username}/{group_id}/{reponame}", repoReleaseFn, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoReleaseReader)
+	m.Group("/{username}/group/{group_id}/{reponame}", repoReleaseFn, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 	m.Group("/{username}/{reponame}", repoReleaseFn, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 	// end "/{username}/{group_id}/{reponame}": repo releases
 
 	repoAttachmentsFn := func() { // to maintain compatibility with old attachments
 		m.Get("/attachments/{uuid}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.GetAttachment)
 	}
-	m.Group("/{username}/{group_id}/{reponame}", repoAttachmentsFn, optSignIn, context.RepoAssignment)
+	m.Group("/{username}/group/{group_id}/{reponame}", repoAttachmentsFn, optSignIn, context.RepoAssignment)
 	m.Group("/{username}/{reponame}", repoAttachmentsFn, optSignIn, context.RepoAssignment)
 	// end "/{username}/{group_id}/{reponame}": compatibility with old attachments
 
 	repoTopicFn := func() {
 		m.Post("/topics", repo.TopicsPost)
 	}
-	m.Group("/{username}/{group_id}/{reponame}", repoTopicFn, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
+	m.Group("/{username}/group/{group_id}/{reponame}", repoTopicFn, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
 	m.Group("/{username}/{reponame}", repoTopicFn, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
 
 	repoPackageFn := func() {
@@ -1531,7 +1531,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/packages", repo.Packages)
 		}
 	}
-	m.Group("/{username}/{group_id}/{reponame}", repoPackageFn, optSignIn, context.RepoAssignment)
+	m.Group("/{username}/group/{group_id}/{reponame}", repoPackageFn, optSignIn, context.RepoAssignment)
 	m.Group("/{username}/{reponame}", repoPackageFn, optSignIn, context.RepoAssignment)
 
 	repoProjectsFn := func() {
@@ -1559,7 +1559,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			})
 		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 	}
-	m.Group("/{username}/{group_id}/{reponame}/projects", repoProjectsFn, optSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)
+	m.Group("/{username}/group/{group_id}/{reponame}/projects", repoProjectsFn, optSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)
 	m.Group("/{username}/{reponame}/projects", repoProjectsFn, optSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)
 	// end "/{username}/{group_id}/{reponame}/projects"
 
@@ -1600,7 +1600,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/badge.svg", webAuth.AllowBasic, webAuth.AllowOAuth2, actions.GetWorkflowBadge)
 		})
 	}
-	m.Group("/{username}/{group_id}/{reponame}/actions", repoActionsFn, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoActionsReader, actions.MustEnableActions)
+	m.Group("/{username}/group/{group_id}/{reponame}/actions", repoActionsFn, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoActionsReader, actions.MustEnableActions)
 	m.Group("/{username}/{reponame}/actions", repoActionsFn, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoActionsReader, actions.MustEnableActions)
 	// end "/{username}/{group_id}/{reponame}/actions"
 
@@ -1616,7 +1616,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}.{ext:patch|diff}", repo.RawDiff)
 		m.Get("/raw/*", repo.WikiRaw)
 	}
-	m.Group("/{username}/{group_id}/{reponame}/wiki", repoWikiFn, optSignIn, context.RepoAssignment, repo.MustEnableWiki, reqUnitWikiReader, func(ctx *context.Context) {
+	m.Group("/{username}/group/{group_id}/{reponame}/wiki", repoWikiFn, optSignIn, context.RepoAssignment, repo.MustEnableWiki, reqUnitWikiReader, func(ctx *context.Context) {
 		ctx.Data["PageIsWiki"] = true
 		ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.WikiCloneLink(ctx, ctx.Doer)
 	})
@@ -1646,7 +1646,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			})
 		}, reqUnitCodeReader)
 	}
-	m.Group("/{username}/{group_id}/{reponame}/activity", activityFn,
+	m.Group("/{username}/group/{group_id}/{reponame}/activity", activityFn,
 		optSignIn, context.RepoAssignment, repo.MustBeNotEmpty,
 		context.RequireUnitReader(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases),
 	)
@@ -1684,7 +1684,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			})
 		})
 	}
-	m.Group("/{username}/{group_id}/{reponame}", repoPullFn, optSignIn, context.RepoAssignment, repo.MustAllowPulls, reqUnitPullsReader)
+	m.Group("/{username}/group/{group_id}/{reponame}", repoPullFn, optSignIn, context.RepoAssignment, repo.MustAllowPulls, reqUnitPullsReader)
 	m.Group("/{username}/{reponame}", repoPullFn, optSignIn, context.RepoAssignment, repo.MustAllowPulls, reqUnitPullsReader)
 	// end "/{username}/{group_id}/{reponame}/pulls/{index}": repo pull request
 
@@ -1768,7 +1768,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, repo.RawDiff)
 		m.Get("/lastcommit/*", context.RepoRefByType(git.RefTypeCommit), repo.LastCommit)
 	}
-	m.Group("/{username}/{group_id}/{reponame}", repoCodeFn, optSignIn, context.RepoAssignment, reqUnitCodeReader)
+	m.Group("/{username}/group/{group_id}/{reponame}", repoCodeFn, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	m.Group("/{username}/{reponame}", repoCodeFn, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{group_id}/{reponame}": repo code
 
@@ -1780,7 +1780,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Post("/action/{action:watch|unwatch}", reqSignIn, repo.ActionWatch)
 		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.ActionTransfer)
 	}
-	m.Group("/{username}/{group_id}/{reponame}", fn, optSignIn, context.RepoAssignment)
+	m.Group("/{username}/group/{group_id}/{reponame}", fn, optSignIn, context.RepoAssignment)
 	m.Group("/{username}/{reponame}", fn, optSignIn, context.RepoAssignment)
 
 	// git lfs uses its own jwt key, and it handles the token & auth by itself, it conflicts with the general "OAuth2" auth method
