@@ -26,6 +26,7 @@ var Git = struct {
 	VerbosePushDelay          time.Duration
 	GCArgs                    []string `ini:"GC_ARGS" delim:" "`
 	EnableAutoGitWireProtocol bool
+	EnableCommitGraphWrite    bool
 	PullRequestPushMessage    bool
 	LargeObjectThreshold      int64
 	DisableCoreProtectNTFS    bool
@@ -49,6 +50,7 @@ var Git = struct {
 	VerbosePushDelay:          5 * time.Second,
 	GCArgs:                    []string{},
 	EnableAutoGitWireProtocol: true,
+	EnableCommitGraphWrite:    true,
 	PullRequestPushMessage:    true,
 	LargeObjectThreshold:      1024 * 1024,
 	DisablePartialClone:       false,

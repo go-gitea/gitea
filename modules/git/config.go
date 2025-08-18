@@ -50,7 +50,7 @@ func syncGitConfig() (err error) {
 		}
 	}
 
-	if DefaultFeatures().CheckVersionAtLeast("2.18") {
+	if (DefaultFeatures().CheckVersionAtLeast("2.18")) && (setting.Git.EnableCommitGraphWrite) {
 		if err := configSet("core.commitGraph", "true"); err != nil {
 			return err
 		}
