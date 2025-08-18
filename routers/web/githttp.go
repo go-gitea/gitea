@@ -9,7 +9,7 @@ import (
 )
 
 func addOwnerRepoGitHTTPRouters(m *web.Router, middlewares ...any) {
-	m.Group("/{username}/{group_id}?/{reponame}", func() {
+	fn := func() {
 		m.Methods("POST,OPTIONS", "/git-upload-pack", repo.ServiceUploadPack)
 		m.Methods("POST,OPTIONS", "/git-receive-pack", repo.ServiceReceivePack)
 		m.Methods("POST,OPTIONS", "/git-upload-archive", repo.ServiceUploadArchive)
@@ -22,5 +22,7 @@ func addOwnerRepoGitHTTPRouters(m *web.Router, middlewares ...any) {
 		m.Methods("GET,OPTIONS", "/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38,62}}", repo.GetLooseObject)
 		m.Methods("GET,OPTIONS", "/objects/pack/pack-{file:[0-9a-f]{40,64}}.pack", repo.GetPackFile)
 		m.Methods("GET,OPTIONS", "/objects/pack/pack-{file:[0-9a-f]{40,64}}.idx", repo.GetIdxFile)
-	}, middlewares...)
+	}
+	m.Group("/{username}/{reponame}", fn, middlewares...)
+	m.Group("/{username}/{group_id}/{reponame}", fn, middlewares...)
 }

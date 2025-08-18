@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
