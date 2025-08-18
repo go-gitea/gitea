@@ -391,7 +391,7 @@ func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Iss
 		Types:      []ReviewType{ReviewTypePending},
 		IssueID:    issue.ID,
 		ReviewerID: reviewer.ID,
-		Dismissed:  optional.Some(true),
+		Dismissed:  optional.Some(false),
 	})
 	if err != nil {
 		return nil, err
