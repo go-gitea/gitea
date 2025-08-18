@@ -148,7 +148,7 @@ func TestRepushTag(t *testing.T) {
 		_, _, err = git.NewCommand("push", "origin", "--delete", "v2.0").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 		// query the release by API and it should be a draft
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0"))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%d/%s/releases/tags/%s", owner.Name, repo.GroupID, repo.Name, "v2.0"))
 		resp := MakeRequest(t, req, http.StatusOK)
 		var respRelease *api.Release
 		DecodeJSON(t, resp, &respRelease)
@@ -157,7 +157,7 @@ func TestRepushTag(t *testing.T) {
 		_, _, err = git.NewCommand("push", "origin", "--tags", "v2.0").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 		// query the release by API and it should not be a draft
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0"))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%d/%s/releases/tags/%s", owner.Name, repo.GroupID, repo.Name, "v2.0"))
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &respRelease)
 		assert.False(t, respRelease.IsDraft)

@@ -432,7 +432,7 @@ func RepoAssignment(ctx *Context) {
 			if q != "" {
 				q = "?" + q
 			}
-			ctx.Redirect(strings.Replace(ctx.Link, "/0/", "/", 1) + q)
+			ctx.Redirect(strings.Replace(ctx.Link, "/0/", "/", 1)+q, 307)
 			return
 		}
 		group += "/"

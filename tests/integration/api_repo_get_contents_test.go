@@ -98,14 +98,14 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	/*** END SETUP ***/
 
 	// not found
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/no-such/file.md", user2.Name, repo1.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/contents/no-such/file.md", user2.Name, repo1.GroupID, repo1.Name)
 	resp := MakeRequest(t, req, http.StatusNotFound)
 	assert.Contains(t, resp.Body.String(), "object does not exist [id: , rel_path: no-such]")
 
 	// ref is default ref
 	ref := repo1.DefaultBranch
 	refType := "branch"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/contents/%s?ref=%s", user2.Name, repo1.GroupID, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
 	var contentsResponse api.ContentsResponse
 	DecodeJSON(t, resp, &contentsResponse)
@@ -115,7 +115,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 
 	// No ref
 	refType = "branch"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/contents/%s", user2.Name, repo1.GroupID, repo1.Name, treePath)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsResponse)
 	expectedContentsResponse = getExpectedContentsResponseForContents(repo1.DefaultBranch, refType, lastCommit.ID.String())
@@ -124,7 +124,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	// ref is the branch we created above in setup
 	ref = newBranch
 	refType = "branch"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/contents/%s?ref=%s", user2.Name, repo1.GroupID, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsResponse)
 	branchCommit, _ := gitRepo.GetBranchCommit(ref)
@@ -135,7 +135,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	// ref is the new tag we created above in setup
 	ref = newTag
 	refType = "tag"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/contents/%s?ref=%s", user2.Name, repo1.GroupID, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsResponse)
 	tagCommit, _ := gitRepo.GetTagCommit(ref)
@@ -146,7 +146,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	// ref is a commit
 	ref = commitID
 	refType = "commit"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/contents/%s?ref=%s", user2.Name, repo1.GroupID, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsResponse)
 	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, commitID)
@@ -154,21 +154,21 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 
 	// Test file contents a file with a bad ref
 	ref = "badref"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/contents/%s?ref=%s", user2.Name, repo1.GroupID, repo1.Name, treePath, ref)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test accessing private ref with user token that does not have access - should fail
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath).
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/contents/%s", user2.Name, repo16.GroupID, repo16.Name, treePath).
 		AddTokenAuth(token4)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test access private ref of owner of token
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/readme.md", user2.Name, repo16.Name).
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/contents/readme.md", user2.Name, repo16.GroupID, repo16.Name).
 		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusOK)
 
 	// Test access of org org3 private repo file by owner user2
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath).
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/contents/%s", org3.Name, repo3.GroupID, repo3.Name, treePath).
 		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusOK)
 }
