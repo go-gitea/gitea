@@ -4,8 +4,6 @@
 package group
 
 import (
-	group_model "code.gitea.io/gitea/models/group"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -18,31 +16,14 @@ func MoveGroupItem(ctx *context.Context) {
 		ctx.ServerError("DecodeMovedGroupItemForm", err)
 		return
 	}
-	if form.IsGroup {
-		group, err := group_model.GetGroupByID(ctx, form.ItemID)
-		if err != nil {
-			ctx.ServerError("GetGroupByID", err)
-			return
-		}
-		if group.ParentGroupID != form.NewParent {
-			if err = group_model.MoveGroup(ctx, group, form.NewParent, form.NewPos); err != nil {
-				ctx.ServerError("MoveGroup", err)
-				return
-			}
-			if err = group_service.RecalculateGroupAccess(ctx, group, false); err != nil {
-				ctx.ServerError("RecalculateGroupAccess", err)
-			}
-		}
-	} else {
-		repo, err := repo_model.GetRepositoryByID(ctx, form.ItemID)
-		if err != nil {
-			ctx.ServerError("GetRepositoryByID", err)
-		}
-		if repo.GroupID != form.NewParent {
-			if err = group_service.MoveRepositoryToGroup(ctx, repo, form.NewParent, form.NewPos); err != nil {
-				ctx.ServerError("MoveRepositoryToGroup", err)
-			}
-		}
+	if err := group_service.MoveGroupItem(ctx, group_service.MoveGroupOptions{
+		IsGroup:   form.IsGroup,
+		ItemID:    form.ItemID,
+		NewPos:    form.NewPos,
+		NewParent: form.NewParent,
+	}, ctx.Doer); err != nil {
+		ctx.ServerError("MoveGroupItem", err)
+		return
 	}
 	ctx.JSONOK()
 }
