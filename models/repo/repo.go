@@ -622,7 +622,7 @@ func (repo *Repository) RepoPath() string {
 
 // Link returns the repository relative url
 func (repo *Repository) Link() string {
-	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
+	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + groupSegmentWithTrailingSlash(repo.GroupID) + url.PathEscape(repo.Name)
 }
 
 // ComposeCompareURL returns the repository comparison URL
@@ -693,7 +693,7 @@ type CloneLink struct {
 func getGroupSegment(gid int64) string {
 	var groupSegment string
 	if gid > 0 {
-		groupSegment = fmt.Sprintf("%d", gid)
+		groupSegment = fmt.Sprintf("group/%d", gid)
 	}
 	return groupSegment
 }
@@ -727,7 +727,7 @@ func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string, group
 	// non-standard port, it must use full URI
 	if setting.SSH.Port != 22 {
 		sshHost := net.JoinHostPort(sshDomain, strconv.Itoa(setting.SSH.Port))
-		return fmt.Sprintf("ssh://%s@%s/%s%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repoName))
+		return fmt.Sprintf("ssh://%s@%s/%s/%s%s.git", sshUser, sshHost, url.PathEscape(ownerName), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repoName))
 	}
 
 	// for standard port, it can use a shorter URI (without the port)
@@ -736,9 +736,9 @@ func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string, group
 		sshHost = "[" + sshHost + "]" // for IPv6 address, wrap it with brackets
 	}
 	if setting.Repository.UseCompatSSHURI {
-		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
+		return fmt.Sprintf("ssh://%s@%s/%s/%s%s.git", sshUser, sshHost, url.PathEscape(ownerName), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repoName))
 	}
-	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
+	return fmt.Sprintf("%s@%s:%s/%s%s.git", sshUser, sshHost, url.PathEscape(ownerName), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repoName))
 }
 
 // ComposeTeaCloneCommand returns Tea CLI clone command based on the given owner and repository name.
