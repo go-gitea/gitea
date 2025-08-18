@@ -85,7 +85,7 @@ type HookProcReceiveRefResult struct {
 func genGroupSegment(groupID int64) string {
 	var groupSegment string
 	if groupID > 0 {
-		groupSegment = fmt.Sprintf("%d/", groupID)
+		groupSegment = fmt.Sprintf("group/%d/", groupID)
 	}
 	return groupSegment
 }
