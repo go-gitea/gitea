@@ -85,21 +85,23 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 	}
 	defer committer.Close()
 	var parentGroup *group_model.Group
-	parentGroup, err = group_model.GetGroupByID(ctx, opts.NewParent)
-	if err != nil {
-		return err
-	}
-	canAccessNewParent, err := parentGroup.CanAccess(ctx, doer)
-	if err != nil {
-		return err
-	}
-	if !canAccessNewParent {
-		return errors.New("cannot access new parent group")
-	}
+	if opts.NewParent > 0 {
+		parentGroup, err = group_model.GetGroupByID(ctx, opts.NewParent)
+		if err != nil {
+			return err
+		}
+		canAccessNewParent, err := parentGroup.CanAccess(ctx, doer)
+		if err != nil {
+			return err
+		}
+		if !canAccessNewParent {
+			return errors.New("cannot access new parent group")
+		}
 
-	err = parentGroup.LoadSubgroups(ctx, false)
-	if err != nil {
-		return err
+		err = parentGroup.LoadSubgroups(ctx, false)
+		if err != nil {
+			return err
+		}
 	}
 	if opts.IsGroup {
 		var group *group_model.Group
@@ -107,7 +109,7 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 		if err != nil {
 			return err
 		}
-		if opts.NewPos < 0 {
+		if opts.NewPos < 0 && parentGroup != nil {
 			opts.NewPos = len(parentGroup.Subgroups)
 		}
 		if group.ParentGroupID != opts.NewParent || group.SortOrder != opts.NewPos {
