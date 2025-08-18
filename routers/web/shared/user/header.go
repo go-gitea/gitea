@@ -151,6 +151,9 @@ func RenderUserOrgHeader(ctx *context.Context) (result *PrepareOwnerHeaderResult
 
 	result = &PrepareOwnerHeaderResult{}
 	if ctx.ContextUser.IsOrganization() {
+		org := organization.OrgFromUser(ctx.ContextUser)
+		ctx.Data["IsOrgArchived"] = org.IsArchived(ctx)
+
 		result.ProfilePublicRepo, result.ProfilePublicReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer)
 		result.ProfilePrivateRepo, result.ProfilePrivateReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer, RepoNameProfilePrivate)
 		result.HasOrgProfileReadme = result.ProfilePublicReadmeBlob != nil || result.ProfilePrivateReadmeBlob != nil

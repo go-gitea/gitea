@@ -20,7 +20,7 @@
 			{{if $canEditIssueTitle}}
 			<button id="issue-title-edit-show" class="ui small basic button">{{ctx.Locale.Tr "repo.issues.edit"}}</button>
 			{{end}}
-			{{if not .Issue.IsPull}}
+			{{if and (not .Issue.IsPull) (not .Repository.IsArchived)}}
 			<a role="button" class="ui small primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 			{{end}}
 		</div>

@@ -970,6 +970,8 @@ func registerWebRoutes(m *web.Router) {
 				}, actions.MustEnableActions)
 
 				m.Post("/rename", web.Bind(forms.RenameOrgForm{}), org.SettingsRenamePost)
+				m.Post("/archive", org.SettingsArchive)
+				m.Post("/unarchive", org.SettingsUnarchive)
 				m.Post("/delete", org.SettingsDeleteOrgPost)
 
 				m.Group("/packages", func() {

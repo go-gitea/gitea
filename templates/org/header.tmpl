@@ -6,6 +6,7 @@
 			<span class="org-visibility">
 				{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
 				{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
+				{{if .IsOrgArchived}}<span class="ui large basic red horizontal label">{{ctx.Locale.Tr "archived"}}</span>{{end}}
 			</span>
 			<span class="tw-flex tw-items-center tw-gap-1 tw-ml-auto tw-text-16 tw-whitespace-nowrap">
 				{{if .EnableFeed}}

@@ -45,6 +45,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
+	ctx.Data["IsArchived"] = ctx.Org.Organization.IsArchived(ctx)
 	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
@@ -163,6 +164,54 @@ func SettingsDeleteOrgPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("org.settings.delete_successful", ctx.Org.Organization.Name))
 	ctx.JSONRedirect(setting.AppSubURL + "/")
+}
+
+// SettingsArchive archives an organization
+func SettingsArchive(ctx *context.Context) {
+	if !ctx.Org.IsOwner {
+		ctx.JSONError(ctx.Tr("org.settings.archive_not_allowed"))
+		return
+	}
+
+	org := ctx.Org.Organization
+	orgName := ctx.FormString("org_name")
+
+	if orgName != org.Name {
+		ctx.JSONError(ctx.Tr("form.enterred_invalid_org_name"))
+		return
+	}
+
+	if err := org.SetArchived(ctx, true); err != nil {
+		ctx.ServerError("SetArchived", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("org.settings.archive_success"))
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
+}
+
+// SettingsUnarchive unarchives an organization
+func SettingsUnarchive(ctx *context.Context) {
+	if !ctx.Org.IsOwner {
+		ctx.JSONError(ctx.Tr("org.settings.archive_not_allowed"))
+		return
+	}
+
+	org := ctx.Org.Organization
+	orgName := ctx.FormString("org_name")
+
+	if orgName != org.Name {
+		ctx.JSONError(ctx.Tr("form.enterred_invalid_org_name"))
+		return
+	}
+
+	if err := org.SetArchived(ctx, false); err != nil {
+		ctx.ServerError("SetArchived", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("org.settings.unarchive_success"))
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
 }
 
 // Webhooks render webhook list page

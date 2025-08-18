@@ -13,6 +13,22 @@
 			</div>
 		</div>
 
+		{{if .IsOrganizationOwner}}
+		<div class="flex-item tw-items-center">
+			<div class="flex-item-main">
+				<div class="flex-item-title">{{ctx.Locale.Tr "org.settings.archive"}}</div>
+				<div class="flex-item-body">{{ctx.Locale.Tr "org.settings.archive_this_org_desc"}}</div>
+			</div>
+			<div class="flex-item-trailing">
+				{{if .IsArchived}}
+					<button class="ui basic red show-modal button" data-modal="#unarchive-org-modal">{{ctx.Locale.Tr "org.settings.unarchive_org_button"}}</button>
+				{{else}}
+					<button class="ui basic red show-modal button" data-modal="#archive-org-modal">{{ctx.Locale.Tr "org.settings.archive_org_button"}}</button>
+				{{end}}
+			</div>
+		</div>
+		{{end}}
+
 		<div class="flex-item">
 			<div class="flex-item-main">
 				<div class="flex-item-title">{{ctx.Locale.Tr "org.settings.delete_account"}}</div>
@@ -91,3 +107,63 @@
 		</form>
 	</div>
 </div>
+
+{{if .IsOrganizationOwner}}
+<div class="ui small modal" id="archive-org-modal">
+	<div class="header">
+		{{ctx.Locale.Tr "org.settings.archive_org_header"}}
+	</div>
+	<div class="content">
+		<div class="ui warning message">
+			{{ctx.Locale.Tr "org.settings.archive_this_org_desc"}}
+		</div>
+		<form class="ui form form-fetch-action" action="{{.Link}}/archive" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field">
+				<label>
+					{{ctx.Locale.Tr "org.settings.name_confirm"}}
+					<span class="text red">{{.Org.Name}}</span>
+				</label>
+			</div>
+			<div class="required field">
+				<label for="org_name_to_archive">{{ctx.Locale.Tr "org.org_name_holder"}}</label>
+				<input id="org_name_to_archive" name="org_name" required>
+			</div>
+
+			<div class="actions">
+				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+				<button class="ui red button">{{ctx.Locale.Tr "org.settings.archive_org_button"}}</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<div class="ui small modal" id="unarchive-org-modal">
+	<div class="header">
+		{{ctx.Locale.Tr "org.settings.unarchive_org_header"}}
+	</div>
+	<div class="content">
+		<div class="ui warning message">
+			{{ctx.Locale.Tr "repo.unarchive.text"}}
+		</div>
+		<form class="ui form form-fetch-action" action="{{.Link}}/unarchive" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field">
+				<label>
+					{{ctx.Locale.Tr "org.settings.name_confirm"}}
+					<span class="text red">{{.Org.Name}}</span>
+				</label>
+			</div>
+			<div class="required field">
+				<label for="org_name_to_unarchive">{{ctx.Locale.Tr "org.org_name_holder"}}</label>
+				<input id="org_name_to_unarchive" name="org_name" required>
+			</div>
+
+			<div class="actions">
+				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+				<button class="ui green button">{{ctx.Locale.Tr "org.settings.unarchive_org_button"}}</button>
+			</div>
+		</form>
+	</div>
+</div>
+{{end}}

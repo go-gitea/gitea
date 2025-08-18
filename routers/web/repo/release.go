@@ -165,7 +165,7 @@ func Releases(ctx *context.Context) {
 	}
 
 	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
-	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
+	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsEffectivelyArchived(ctx)
 
 	releases, err := getReleaseInfos(ctx, &repo_model.FindReleasesOptions{
 		ListOptions: listOptions,
@@ -274,7 +274,7 @@ func SingleRelease(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
 
 	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
-	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
+	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsEffectivelyArchived(ctx)
 
 	releases, err := getReleaseInfos(ctx, &repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{Page: 1, PageSize: 1},
