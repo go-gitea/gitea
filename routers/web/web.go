@@ -1244,6 +1244,7 @@ func registerWebRoutes(m *web.Router) {
 				m.Get("/choose", repo.NewIssueChooseTemplate)
 			})
 			m.Get("/search", repo.SearchRepoIssuesJSON)
+			m.Get("/export", reqRepoAdmin, repo.ExportIssues)
 		}, reqUnitIssuesReader)
 
 		addIssuesPullsUpdateRoutes := func() {
