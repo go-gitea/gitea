@@ -331,3 +331,64 @@ func ViewBadgeUsers(ctx *context.Context) {
 	ctx.Data["Pages"] = context.NewPagination(int(count), setting.UI.Admin.UserPagingNum, page, 5)
 	ctx.HTML(http.StatusOK, tplBadgeUsers)
 }
+
+func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions, tplName templates.TplName) {
+	// Sitemap index for sitemap paths
+	opts.Page = int(ctx.PathParamInt64("idx"))
+	if opts.Page <= 1 {
+		opts.Page = ctx.FormInt("page")
+	}
+	if opts.Page <= 1 {
+		opts.Page = 1
+	}
+
+	var (
+		badges  []*user_model.Badge
+		count   int64
+		err     error
+		orderBy db.SearchOrderBy
+	)
+
+	// we can not set orderBy to `models.SearchOrderByXxx`, because there may be a JOIN in the statement, different tables may have the same name columns
+
+	sortOrder := ctx.FormString("sort")
+	if sortOrder == "" {
+		sortOrder = setting.UI.ExploreDefaultSort
+	}
+	ctx.Data["SortType"] = sortOrder
+
+	switch sortOrder {
+	case "newest":
+		orderBy = "`badge`.id DESC"
+	case "oldest":
+		orderBy = "`badge`.id ASC"
+	case "reversealphabetically":
+		orderBy = "`badge`.slug DESC"
+	case "alphabetically":
+		orderBy = "`badge`.slug ASC"
+	default:
+		// in case the sortType is not valid, we set it to recent update
+		ctx.Data["SortType"] = "oldest"
+		orderBy = "`badge`.id ASC"
+	}
+
+	opts.Keyword = ctx.FormTrim("q")
+	opts.OrderBy = orderBy
+	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
+		badges, count, err = user_model.SearchBadges(ctx, opts)
+		if err != nil {
+			ctx.ServerError("SearchBadges", err)
+			return
+		}
+	}
+
+	ctx.Data["Keyword"] = opts.Keyword
+	ctx.Data["Total"] = count
+	ctx.Data["Badges"] = badges
+
+	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager.AddParamFromRequest(ctx.Req)
+	ctx.Data["Page"] = pager
+
+	ctx.HTML(http.StatusOK, tplName)
+}
