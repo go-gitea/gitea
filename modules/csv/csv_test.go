@@ -259,7 +259,7 @@ a,"quoted ""text"" with
 new lines
 in second column",c`,
 			expectedText: `col1,col2,col3
-a,,c`,
+a,c`,
 		},
 		// case 2 - quoted text with escaped quotes in last column
 		{
@@ -279,9 +279,9 @@ a,bb,c,d,ee ,"f
 f"
 a,b,"c ""
 c",d,e,f`,
-			expectedText: `a,,c,d,,f
+			expectedText: `a,c,d,f
 a,bb,c,d,ee ,
-a,b,,d,e,f`,
+a,b,d,e,f`,
 		},
 		// case 4 - csv with pipes and quotes
 		{
@@ -394,17 +394,17 @@ f" | 4.56 | 789`,
 		// In the previous bestScore algorithm, this would have picked comma as the delimiter, but now it should guess tab
 		{
 			csv: `c1	c2	c3	c4	c5	c6
-v,k,x,v	ym,f,oa,qn,uqijh,n,s,wvygpo	uj,kt,j,w,i,fvv,tm,f,ddt,b,mwt,e,t,teq,rd,p,a	e,wfuae,t,h,q,im,ix,y	h,mrlu,l,dz,ff,zi,af,emh	,gov,bmfelvb,axp,f,u,i,cni,x,z,v,sh,w,jo,,m,h
-k,ohf,pgr,tde,m,s	te,ek,,v,,ic,kqc,dv,w,oi,j,w,gojjr,ug,,l,j,zl	g,qziq,bcajx,zfow,ka,j,re,ohbc	k,nzm,qm,ts,auf	th,elb,lx,l,q,e,qf	asbr,z,k,y,tltobga
-g,m,bu,el	h,l,jwi,o,wge,fy,rure,c,g,lcxu,fxte,uns,cl,s,o,t,h,rsoy,f	bq,s,uov,z,ikkhgyg,,sabs,c,hzue	mc,b,,j,t,n	sp,mn,,m,t,dysi,eq,pigb,rfa,z	w,rfli,sg,,o,wjjjf,f,wxdzfk,x,t,p,zy,p,mg,r,l,h
-e,ewbkc,nugd,jj,sf,ih,i,n,jo,b,poem,kw,q,i,x,t,e,uug,k	j,xm,sch,ux,h,,fb,f,pq,,mh,,f,v,,oba,w,h,v,eiz,yzd,o,a,c,e,dhp,q	a,pbef,epc,k,rdpuw,cw	k,j,e,d	xf,dz,sviv,w,sqnzew,t,b	v,yg,f,cq,ti,g,m,ta,hm,ym,ii,hxy,p,z,r,e,ga,sfs,r,p,l,aar,w,kox,j
+v,k,x,v	ym,f,oa,qn,uqijh,n,s,wvygpo	uj,kt,j,w,i,fvv,tm,f,ddt,b,mwt,e,t,teq,rd,p,a	e,wfuae,t,h,q,im,ix,y	h,mrlu,l,dz,ff,zi,af,emh	,gov,bmfelvb,axp,f,u,i,cni,x,z,v,sh,w,jo,m,h
+k,ohf,pgr,tde,m,s	te,ek,v,ic,kqc,dv,w,oi,j,w,gojjr,ug,l,j,zl	g,qziq,bcajx,zfow,ka,j,re,ohbc	k,nzm,qm,ts,auf	th,elb,lx,l,q,e,qf	asbr,z,k,y,tltobga
+g,m,bu,el	h,l,jwi,o,wge,fy,rure,c,g,lcxu,fxte,uns,cl,s,o,t,h,rsoy,f	bq,s,uov,z,ikkhgyg,sabs,c,hzue	mc,b,j,t,n	sp,mn,m,t,dysi,eq,pigb,rfa,z	w,rfli,sg,o,wjjjf,f,wxdzfk,x,t,p,zy,p,mg,r,l,h
+e,ewbkc,nugd,jj,sf,ih,i,n,jo,b,poem,kw,q,i,x,t,e,uug,k	j,xm,sch,ux,h,fb,f,pq,mh,f,v,oba,w,h,v,eiz,yzd,o,a,c,e,dhp,q	a,pbef,epc,k,rdpuw,cw	k,j,e,d	xf,dz,sviv,w,sqnzew,t,b	v,yg,f,cq,ti,g,m,ta,hm,ym,ii,hxy,p,z,r,e,ga,sfs,r,p,l,aar,w,kox,j
 l,d,v,pp,q,j,bxip,w,i,im,qa,o	e,o	h,w,a,a,qzj,nt,qfn,ut,fvhu,ts	hu,q,g,p,q,ofpje,fsqa,frp,p,vih,j,w,k,jx,	ln,th,ka,l,b,vgk,rv,hkx	rj,v,y,cwm,rao,e,l,wvr,ptc,lm,yg,u,k,i,b,zk,b,gv,fls
 velxtnhlyuysbnlchosqlhkozkdapjaueexjwrndwb	nglvnv	kqiv	pbshwlmcexdzipopxjyrxhvjalwp	pydvipwlkkpdvbtepahskwuornbsb	qwbacgq
-l,y,u,bf,y,m,eals,n,cop,h,g,vs,jga,opt	x,b,zwmn,hh,b,n,pdj,t,d	px	yn,vtd,u,y,b,ps,yo,qqnem,mxg,m,al,rd,c,k,d,q,f	ilxdxa,m,y,,p,p,y,prgmg,q,n,etj,k,ns	b,pl,z,jq,hk
-p,gc	jn,mzr,bw	sb,e,r,dy,ur,wzy,r,c,n,yglr,jbdu,r,pqk,k	q,d,,,p,l,euhl,dc,rwh,t,tq,z,h,p,s,t,x,fugr,h	wi,zxb,jcig,o,t,k	mfh,ym,h,e,p,cnvx,uv,zx,x,pq,blt,v,r,u,tr,g,g,xt
-nri,p,,t,if,,y,ptlqq	a,i	w,ovli,um,w,f,re,k,sb,w,jy,zf	i,g,p,q,mii,nr,jm,cc	i,szl,k,eg,l,d	,ah,w,b,vh
-,,sh,wx,mn,xm,u,d,yy,u,t,m,j,s,b	ogadq,g,y,y,i,h,ln,jda,g,cz,s,rv,r,s,s,le,r,	y,nu,f,nagj	o,h,,adfy,o,nf,ns,gvsvnub,k,b,xyz	v,h,g,ef,y,gb	c,x,cw,x,go,h,t,x,cu,u,qgrqzrcmn,kq,cd,g,rejp,zcq
-skxg,t,vay,d,wug,d,xg,sexc	rt	g,ag,mjq,fjnyji,iwa,m,ml,b,ua,b,qjxeoc	be,s,sh,n,jbzxs,g,n,i,h,y,r,be,mfo,u,p	cw,r,,u,zn,eg,r,yac,m,l,edkr,ha,x,g,b,c,tg,c	j,ye,u,ejd,maj,ea,bm,u,iy`,
+l,y,u,bf,y,m,eals,n,cop,h,g,vs,jga,opt	x,b,zwmn,hh,b,n,pdj,t,d	px	yn,vtd,u,y,b,ps,yo,qqnem,mxg,m,al,rd,c,k,d,q,f	ilxdxa,m,y,p,p,y,prgmg,q,n,etj,k,ns	b,pl,z,jq,hk
+p,gc	jn,mzr,bw	sb,e,r,dy,ur,wzy,r,c,n,yglr,jbdu,r,pqk,k	q,d,,p,l,euhl,dc,rwh,t,tq,z,h,p,s,t,x,fugr,h	wi,zxb,jcig,o,t,k	mfh,ym,h,e,p,cnvx,uv,zx,x,pq,blt,v,r,u,tr,g,g,xt
+nri,p,t,if,y,ptlqq	a,i	w,ovli,um,w,f,re,k,sb,w,jy,zf	i,g,p,q,mii,nr,jm,cc	i,szl,k,eg,l,d	,ah,w,b,vh
+,sh,wx,mn,xm,u,d,yy,u,t,m,j,s,b	ogadq,g,y,y,i,h,ln,jda,g,cz,s,rv,r,s,s,le,r,	y,nu,f,nagj	o,h,adfy,o,nf,ns,gvsvnub,k,b,xyz	v,h,g,ef,y,gb	c,x,cw,x,go,h,t,x,cu,u,qgrqzrcmn,kq,cd,g,rejp,zcq
+skxg,t,vay,d,wug,d,xg,sexc	rt	g,ag,mjq,fjnyji,iwa,m,ml,b,ua,b,qjxeoc	be,s,sh,n,jbzxs,g,n,i,h,y,r,be,mfo,u,p	cw,r,u,zn,eg,r,yac,m,l,edkr,ha,x,g,b,c,tg,c	j,ye,u,ejd,maj,ea,bm,u,iy`,
 			expectedDelimiter: '\t',
 		},
 		// case 13 - a CSV with more than 10 lines and since we only use the first 10 lines, it should still get the delimiter as semicolon

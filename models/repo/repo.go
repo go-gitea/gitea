@@ -365,7 +365,7 @@ func (repo *Repository) LoadAttributes(ctx context.Context) error {
 
 // FullName returns the repository full name
 func (repo *Repository) FullName() string {
-	return repo.OwnerName + "/" + repo.Name
+	return repo.OwnerName + "/" + groupSegmentWithTrailingSlash(repo.GroupID) + repo.Name
 }
 
 // HTMLURL returns the repository HTML URL
