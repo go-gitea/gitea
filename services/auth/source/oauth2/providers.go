@@ -10,6 +10,7 @@ import (
 	"html"
 	"html/template"
 	"net/url"
+	"slices"
 	"sort"
 
 	"code.gitea.io/gitea/models/auth"
@@ -82,12 +83,7 @@ var azureProviders = []string{
 }
 
 func isAzureProvider(providerName string) bool {
-	for _, azureProvider := range azureProviders {
-		if providerName == azureProvider {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(azureProviders, providerName)
 }
 
 // RegisterGothProvider registers a GothProvider
