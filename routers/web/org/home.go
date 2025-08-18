@@ -132,6 +132,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 		Mirror:             mirror,
 		Template:           template,
 		IsPrivate:          private,
+		GroupID:            -1,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
