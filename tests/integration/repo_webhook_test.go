@@ -1029,7 +1029,7 @@ jobs:
       - run: echo 'cmd 2'
 `
 		opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
+		createWorkflowFile(t, token, "user2", "repo1", wfTreePath, repo1.GroupID, opts)
 
 		commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 		assert.NoError(t, err)
@@ -1621,7 +1621,7 @@ jobs:
     steps:
       - run: echo 'test the webhook'
 `)
-	createWorkflowFile(t, token, "user2", "repo1", ".gitea/workflows/dispatch.yml", opts)
+	createWorkflowFile(t, token, "user2", "repo1", ".gitea/workflows/dispatch.yml", repo1.GroupID, opts)
 
 	// 2.2 trigger the webhooks
 
@@ -1643,7 +1643,7 @@ jobs:
       - run: echo 'cmd 2'
 `
 	opts = getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
+	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, repo1.GroupID, opts)
 
 	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 	assert.NoError(t, err)
@@ -1720,7 +1720,7 @@ jobs:
       - run: echo 'test the webhook'
 `
 	opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
+	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, repo1.GroupID, opts)
 
 	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 	assert.NoError(t, err)

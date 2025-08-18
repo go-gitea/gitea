@@ -31,7 +31,7 @@ func TestAPIEditReleaseAttachmentWithUnallowedFile(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	filename := "file.bad"
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d/assets/%d", repoOwner.Name, repo.Name, release.ID, attachment.ID)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%d/%s/releases/%d/assets/%d", repoOwner.Name, repo.GroupID, repo.Name, release.ID, attachment.ID)
 	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
 		"name": filename,
 	}).AddTokenAuth(token)

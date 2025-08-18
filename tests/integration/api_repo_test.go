@@ -82,66 +82,66 @@ func TestAPISearchRepo(t *testing.T) {
 	}{
 		{
 			name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-				nil:   {count: 36},
-				user:  {count: 36},
-				user2: {count: 36},
-			},
+			nil:   {count: 36},
+			user:  {count: 36},
+			user2: {count: 36},
+		},
 		},
 		{
 			name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10&private=false", expectedResults: expectedResults{
-				nil:   {count: 10},
-				user:  {count: 10},
-				user2: {count: 10},
-			},
+			nil:   {count: 10},
+			user:  {count: 10},
+			user2: {count: 10},
+		},
 		},
 		{
 			name: "RepositoriesDefault", requestURL: "/api/v1/repos/search?default&private=false", expectedResults: expectedResults{
-				nil:   {count: 10},
-				user:  {count: 10},
-				user2: {count: 10},
-			},
+			nil:   {count: 10},
+			user:  {count: 10},
+			user2: {count: 10},
+		},
 		},
 		{
 			name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s&private=false", "big_test_"), expectedResults: expectedResults{
-				nil:   {count: 7, repoName: "big_test_"},
-				user:  {count: 7, repoName: "big_test_"},
-				user2: {count: 7, repoName: "big_test_"},
-			},
+			nil:   {count: 7, repoName: "big_test_"},
+			user:  {count: 7, repoName: "big_test_"},
+			user2: {count: 7, repoName: "big_test_"},
+		},
 		},
 		{
 			name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s&private=false", "user2/big_test_"), expectedResults: expectedResults{
-				user2: {count: 2, repoName: "big_test_"},
-			},
+			user2: {count: 2, repoName: "big_test_"},
+		},
 		},
 		{
 			name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
-				nil:   {count: 5},
-				user:  {count: 9, includesPrivate: true},
-				user2: {count: 6, includesPrivate: true},
-			},
+			nil:   {count: 5},
+			user:  {count: 9, includesPrivate: true},
+			user2: {count: 6, includesPrivate: true},
+		},
 		},
 		{
 			name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
-				nil:   {count: 1},
-				user:  {count: 2, includesPrivate: true},
-				user2: {count: 2, includesPrivate: true},
-				user4: {count: 1},
-			},
+			nil:   {count: 1},
+			user:  {count: 2, includesPrivate: true},
+			user2: {count: 2, includesPrivate: true},
+			user4: {count: 1},
+		},
 		},
 		{
 			name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", org3.ID), expectedResults: expectedResults{
-				nil:   {count: 1},
-				user:  {count: 4, includesPrivate: true},
-				user2: {count: 3, includesPrivate: true},
-				org3:  {count: 4, includesPrivate: true},
-			},
+			nil:   {count: 1},
+			user:  {count: 4, includesPrivate: true},
+			user2: {count: 3, includesPrivate: true},
+			org3:  {count: 4, includesPrivate: true},
+		},
 		},
 		{
 			name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
-				nil:   {count: 1, repoOwnerID: orgUser.ID},
-				user:  {count: 2, repoOwnerID: orgUser.ID, includesPrivate: true},
-				user2: {count: 1, repoOwnerID: orgUser.ID},
-			},
+			nil:   {count: 1, repoOwnerID: orgUser.ID},
+			user:  {count: 2, repoOwnerID: orgUser.ID, includesPrivate: true},
+			user2: {count: 1, repoOwnerID: orgUser.ID},
+		},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser4", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user4.ID), expectedResults: expectedResults{
 			nil:   {count: 3},
@@ -565,7 +565,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 		session = loginUser(t, user.Name)
 		token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer", repo.OwnerName, repo.Name), &api.TransferRepoOption{
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/transfer", repo.OwnerName, repo.GroupID, repo.Name), &api.TransferRepoOption{
 			NewOwner: testCase.newOwner,
 			TeamIDs:  testCase.teams,
 		}).AddTokenAuth(token)
@@ -596,7 +596,7 @@ func transfer(t *testing.T) *repo_model.Repository {
 	DecodeJSON(t, resp, apiRepo)
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer", repo.OwnerName, repo.Name), &api.TransferRepoOption{
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/transfer", repo.OwnerName, repo.GroupID, repo.Name), &api.TransferRepoOption{
 		NewOwner: "user4",
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
@@ -612,7 +612,7 @@ func TestAPIAcceptTransfer(t *testing.T) {
 	// try to accept with not authorized user
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject", repo.OwnerName, repo.Name)).
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/transfer/reject", repo.OwnerName, repo.GroupID, repo.Name)).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
@@ -625,7 +625,7 @@ func TestAPIAcceptTransfer(t *testing.T) {
 	session = loginUser(t, "user4")
 	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept", repo.OwnerName, repo.Name)).
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/transfer/accept", repo.OwnerName, repo.GroupID, repo.Name)).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusAccepted)
 	apiRepo := new(api.Repository)
@@ -641,7 +641,7 @@ func TestAPIRejectTransfer(t *testing.T) {
 	// try to reject with not authorized user
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject", repo.OwnerName, repo.Name)).
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/transfer/reject", repo.OwnerName, repo.GroupID, repo.Name)).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
@@ -654,7 +654,7 @@ func TestAPIRejectTransfer(t *testing.T) {
 	session = loginUser(t, "user4")
 	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject", repo.OwnerName, repo.Name)).
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/transfer/reject", repo.OwnerName, repo.GroupID, repo.Name)).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	apiRepo := new(api.Repository)
@@ -673,7 +673,7 @@ func TestAPIGenerateRepo(t *testing.T) {
 
 	// user
 	repo := new(api.Repository)
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate", templateRepo.OwnerName, templateRepo.Name), &api.GenerateRepoOption{
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/generate", templateRepo.OwnerName, templateRepo.GroupID, templateRepo.Name), &api.GenerateRepoOption{
 		Owner:       user.Name,
 		Name:        "new-repo",
 		Description: "test generate repo",
@@ -686,7 +686,7 @@ func TestAPIGenerateRepo(t *testing.T) {
 	assert.Equal(t, "new-repo", repo.Name)
 
 	// org
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate", templateRepo.OwnerName, templateRepo.Name), &api.GenerateRepoOption{
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/generate", templateRepo.OwnerName, templateRepo.GroupID, templateRepo.Name), &api.GenerateRepoOption{
 		Owner:       "org3",
 		Name:        "new-repo",
 		Description: "test generate repo",
@@ -706,7 +706,7 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/reviewers", user.Name, repo.Name).
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/reviewers", user.Name, repo.GroupID, repo.Name).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var reviewers []*api.User
@@ -723,7 +723,7 @@ func TestAPIRepoGetAssignees(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees", user.Name, repo.Name).
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/assignees", user.Name, repo.GroupID, repo.Name).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var assignees []*api.User

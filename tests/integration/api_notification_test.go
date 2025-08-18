@@ -63,7 +63,7 @@ func TestAPINotification(t *testing.T) {
 	assert.False(t, apiNL[2].Pinned)
 
 	// -- GET /repos/{owner}/{repo}/notifications --
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?status-types=unread", user2.Name, repo1.Name)).
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%d/%s/notifications?status-types=unread", user2.Name, repo1.GroupID, repo1.Name)).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiNL)
@@ -72,7 +72,7 @@ func TestAPINotification(t *testing.T) {
 	assert.EqualValues(t, 4, apiNL[0].ID)
 
 	// -- GET /repos/{owner}/{repo}/notifications -- multiple status-types
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?status-types=unread&status-types=pinned", user2.Name, repo1.Name)).
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%d/%s/notifications?status-types=unread&status-types=pinned", user2.Name, repo1.GroupID, repo1.Name)).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiNL)
@@ -129,7 +129,7 @@ func TestAPINotification(t *testing.T) {
 	assert.Len(t, apiNL, 2)
 
 	lastReadAt := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801 <- only Notification 4 is in this filter ...
-	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?last_read_at=%s", user2.Name, repo1.Name, lastReadAt)).
+	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%d/%s/notifications?last_read_at=%s", user2.Name, repo1.GroupID, repo1.Name, lastReadAt)).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusResetContent)
 

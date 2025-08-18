@@ -56,7 +56,7 @@ func TestAPIRepoTags(t *testing.T) {
 	}
 
 	// get created tag
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/tags/%s", user.Name, repoName, newTag.Name).
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/tags/%s", user.Name, repoName, newTag.GroupID, newTag.Name).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	var tag *api.Tag
@@ -64,7 +64,7 @@ func TestAPIRepoTags(t *testing.T) {
 	assert.Equal(t, newTag, tag)
 
 	// delete tag
-	delReq := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/tags/%s", user.Name, repoName, newTag.Name).
+	delReq := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%d/%s/tags/%s", user.Name, repoName, newTag.GroupID, newTag.Name).
 		AddTokenAuth(token)
 	MakeRequest(t, delReq, http.StatusNoContent)
 

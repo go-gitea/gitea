@@ -147,7 +147,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		if group != "" {
 			gid, _ = strconv.ParseInt(group, 10, 64)
 			if gid == 0 {
-				ctx.Redirect(strings.Replace(ctx.Req.URL.RequestURI(), "/0/", "/", 1))
+				ctx.Redirect(strings.Replace(ctx.Req.URL.RequestURI(), "/0/", "/", 1), 307)
 				return
 			}
 			group += "/"

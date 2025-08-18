@@ -64,7 +64,7 @@ func TestAPIDeleteFile(t *testing.T) {
 			createFile(user2, repo1, treePath)
 			deleteFileOptions := getDeleteFileOptions()
 			deleteFileOptions.BranchName = branch
-			req := NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
+			req := NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%d/%s/contents/%s", user2.Name, repo1.GroupID, repo1.Name, treePath), &deleteFileOptions).
 				AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusOK)
 			var fileResponse api.FileResponse
@@ -80,7 +80,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		deleteFileOptions := getDeleteFileOptions()
 		deleteFileOptions.BranchName = repo1.DefaultBranch
 		deleteFileOptions.NewBranchName = "new_branch"
-		req := NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
+		req := NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%d/%s/contents/%s", user2.Name, repo1.GroupID, repo1.Name, treePath), &deleteFileOptions).
 			AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusOK)
 		var fileResponse api.FileResponse
@@ -95,7 +95,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		createFile(user2, repo1, treePath)
 		deleteFileOptions = getDeleteFileOptions()
 		deleteFileOptions.Message = ""
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
+		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%d/%s/contents/%s", user2.Name, repo1.GroupID, repo1.Name, treePath), &deleteFileOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &fileResponse)
@@ -108,7 +108,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		createFile(user2, repo1, treePath)
 		deleteFileOptions = getDeleteFileOptions()
 		deleteFileOptions.SHA = "badsha"
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
+		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%d/%s/contents/%s", user2.Name, repo1.GroupID, repo1.Name, treePath), &deleteFileOptions).
 			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusUnprocessableEntity)
 
@@ -117,7 +117,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
 		createFile(user2, repo16, treePath)
 		deleteFileOptions = getDeleteFileOptions()
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &deleteFileOptions).
+		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%d/%s/contents/%s", user2.Name, repo16.GroupID, repo16.Name, treePath), &deleteFileOptions).
 			AddTokenAuth(token4)
 		MakeRequest(t, req, http.StatusNotFound)
 
@@ -126,7 +126,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
 		createFile(user2, repo16, treePath)
 		deleteFileOptions = getDeleteFileOptions()
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &deleteFileOptions)
+		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%d/%s/contents/%s", user2.Name, repo16.GroupID, repo16.Name, treePath), &deleteFileOptions)
 		MakeRequest(t, req, http.StatusNotFound)
 
 		// Test using access token for a private repo that the user of the token owns
@@ -134,7 +134,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
 		createFile(user2, repo16, treePath)
 		deleteFileOptions = getDeleteFileOptions()
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &deleteFileOptions).
+		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%d/%s/contents/%s", user2.Name, repo16.GroupID, repo16.Name, treePath), &deleteFileOptions).
 			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusOK)
 
@@ -143,7 +143,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
 		createFile(org3, repo3, treePath)
 		deleteFileOptions = getDeleteFileOptions()
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath), &deleteFileOptions).
+		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%d/%s/contents/%s", org3.Name, repo3.GroupID, repo3.Name, treePath), &deleteFileOptions).
 			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusOK)
 
@@ -152,7 +152,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
 		createFile(org3, repo3, treePath)
 		deleteFileOptions = getDeleteFileOptions()
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath), &deleteFileOptions)
+		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%d/%s/contents/%s", org3.Name, repo3.GroupID, repo3.Name, treePath), &deleteFileOptions)
 		MakeRequest(t, req, http.StatusNotFound)
 
 		// Test using repo "user2/repo1" where user4 is a NOT collaborator
@@ -160,7 +160,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
 		createFile(user2, repo1, treePath)
 		deleteFileOptions = getDeleteFileOptions()
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
+		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%d/%s/contents/%s", user2.Name, repo1.GroupID, repo1.Name, treePath), &deleteFileOptions).
 			AddTokenAuth(token4)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
