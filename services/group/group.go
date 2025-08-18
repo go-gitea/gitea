@@ -4,6 +4,7 @@
 package group
 
 import (
+	"code.gitea.io/gitea/modules/gitrepo"
 	"context"
 	"errors"
 	"fmt"
@@ -134,6 +135,9 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 			opts.NewPos = int(repoCount)
 		}
 		if repo.GroupID != opts.NewParent || repo.GroupSortOrder != opts.NewPos {
+			if err = gitrepo.RenameRepository(ctx, repo, repo_model.StorageRepo(repo_model.RelativePath(repo.OwnerName, repo.Name, opts.NewParent))); err != nil {
+				return err
+			}
 			if err = MoveRepositoryToGroup(ctx, repo, opts.NewParent, opts.NewPos); err != nil {
 				return err
 			}
