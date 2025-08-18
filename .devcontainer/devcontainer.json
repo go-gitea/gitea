@@ -36,5 +36,11 @@
       ]
     }
   },
+  "portsAttributes": {
+    "3000": {
+      "label": "Gitea Web",
+      "onAutoForward": "notify"
+    }
+  },
   "postCreateCommand": "make deps"
 }
