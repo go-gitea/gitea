@@ -12,6 +12,7 @@ type PushUpdateOptions struct {
 	PusherID     int64
 	PusherName   string
 	RepoUserName string
+	RepoGroupID  int64
 	RepoName     string
 	RefFullName  git.RefName // branch, tag or other name to push
 	OldCommitID  string
