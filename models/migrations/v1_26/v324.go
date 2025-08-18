@@ -4,7 +4,7 @@ import "xorm.io/xorm"
 
 func AddGroupColumnsToRepositoryTable(x *xorm.Engine) error {
 	type Repository struct {
-		GroupID        int64 `xorm:"DEFAULT NULL"`
+		GroupID        int64 `xorm:"UNIQUE(s) INDEX DEFAULT NULL"`
 		GroupSortOrder int
 	}
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
