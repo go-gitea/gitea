@@ -82,10 +82,6 @@ var azureProviders = []string{
 	"azureadv2",
 }
 
-func isAzureProvider(providerName string) bool {
-	return slices.Contains(azureProviders, providerName)
-}
-
 // RegisterGothProvider registers a GothProvider
 func RegisterGothProvider(provider GothProvider) {
 	if _, has := gothProviders[provider.Name()]; has {
@@ -94,23 +90,24 @@ func RegisterGothProvider(provider GothProvider) {
 	gothProviders[provider.Name()] = provider
 }
 
-// hasExistingAzureADAuthSources checks if there are any existing Azure AD auth sources configured
-func hasExistingAzureADAuthSources(ctx context.Context) bool {
+// getExistingAzureADAuthSources returns a list of Azure AD provider names that are already configured
+func getExistingAzureADAuthSources(ctx context.Context) []string {
 	authSources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		LoginType: auth.OAuth2,
 	})
 	if err != nil {
-		return false
+		return nil
 	}
 
+	var existingAzureProviders []string
 	for _, source := range authSources {
 		if oauth2Cfg, ok := source.Cfg.(*Source); ok {
-			if isAzureProvider(oauth2Cfg.Provider) {
-				return true
+			if slices.Contains(azureProviders, oauth2Cfg.Provider) {
+				existingAzureProviders = append(existingAzureProviders, oauth2Cfg.Provider)
 			}
 		}
 	}
-	return false
+	return existingAzureProviders
 }
 
 // GetSupportedOAuth2Providers returns the map of unconfigured OAuth2 providers
@@ -125,10 +122,10 @@ func GetSupportedOAuth2Providers() []Provider {
 // GetSupportedOAuth2ProvidersWithContext returns the list of supported OAuth2 providers with context for filtering
 func GetSupportedOAuth2ProvidersWithContext(ctx context.Context) []Provider {
 	providers := make([]Provider, 0, len(gothProviders))
-	hasExistingAzure := hasExistingAzureADAuthSources(ctx)
+	existAuthSources := getExistingAzureADAuthSources(ctx)
 
 	for _, provider := range gothProviders {
-		if isAzureProvider(provider.Name()) && !hasExistingAzure {
+		if slices.Contains(azureProviders, provider.Name()) && !slices.Contains(existAuthSources, provider.Name()) {
 			continue
 		}
 		providers = append(providers, provider)
