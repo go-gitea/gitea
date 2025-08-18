@@ -181,7 +181,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		ctx.ContextUser = owner
 
 		// Get repository.
-		repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
+		repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, gid, repoName)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
 				redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, repoName)

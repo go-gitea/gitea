@@ -88,10 +88,10 @@ func getParentTreeFields(treePath string) (treeNames, treePaths []string) {
 
 // getUniqueRepositoryName Gets a unique repository name for a user
 // It will append a -<num> postfix if the name is already taken
-func getUniqueRepositoryName(ctx context.Context, ownerID int64, name string) string {
+func getUniqueRepositoryName(ctx context.Context, ownerID, groupID int64, name string) string {
 	uniqueName := name
 	for i := 1; i < 1000; i++ {
-		_, err := repo_model.GetRepositoryByName(ctx, ownerID, uniqueName)
+		_, err := repo_model.GetRepositoryByName(ctx, ownerID, groupID, uniqueName)
 		if err != nil || repo_model.IsErrRepoNotExist(err) {
 			return uniqueName
 		}

@@ -15,4 +15,5 @@ func AddGroupColumnsToRepositoryTable(x *xorm.Engine) error {
 		IgnoreIndices:    false,
 	}, new(Repository))
 	return err
+
 }
