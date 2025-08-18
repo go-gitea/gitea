@@ -24,5 +24,5 @@ func addOwnerRepoGitHTTPRouters(m *web.Router) {
 		m.Methods("GET,OPTIONS", "/objects/pack/pack-{file:[0-9a-f]{40,64}}.idx", repo.GetIdxFile)
 	}
 	m.Group("/{username}/{reponame}", fn, optSignInIgnoreCsrf, repo.HTTPGitEnabledHandler, repo.CorsHandler(), context.UserAssignmentWeb())
-	m.Group("/{username}/{group_id}/{reponame}", fn, optSignInIgnoreCsrf, repo.HTTPGitEnabledHandler, repo.CorsHandler(), context.UserAssignmentWeb())
+	m.Group("/{username}/group/{group_id}/{reponame}", fn, optSignInIgnoreCsrf, repo.HTTPGitEnabledHandler, repo.CorsHandler(), context.UserAssignmentWeb())
 }
