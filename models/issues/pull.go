@@ -350,7 +350,11 @@ type ReviewCount struct {
 func (pr *PullRequest) GetApprovalCounts(ctx context.Context) ([]*ReviewCount, error) {
 	rCounts := make([]*ReviewCount, 0, 6)
 	sess := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID)
-	return rCounts, sess.Select("issue_id, type, count(id) as `count`").Where("official = ? AND dismissed = ?", true, false).GroupBy("issue_id, type").Table("review").Find(&rCounts)
+	return rCounts, sess.Select("issue_id, type, count(id) as `count`").
+		Where(builder.Eq{"official": true, "dismissed": false}).
+		GroupBy("issue_id, type").
+		Table("review").
+		Find(&rCounts)
 }
 
 // GetApprovers returns the approvers of the pull request
