@@ -10,7 +10,7 @@
 </h4>
 <div class="ui attached segment" id="group-navigation-menu">
 		<ul class="tw-list-none tw-px-0 expandable-menu tw-m-0 tw-space-y-4{{if .IsOrganizationMember}} sortable{{end}}"{{if .IsOrganizationMember}}
-				data-url="{{ctx.Org.HomeLink}}/groups"{{end}}>
+				data-url="{{ctx.RootData.Org.HomeLink}}/groups"{{end}}>
 			{{range .GroupNavItems}}
 				{{template "group/sidebar/sidebar_item" dict "item" . "root" $}}
 			{{end}}
