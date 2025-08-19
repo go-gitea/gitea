@@ -22085,13 +22085,22 @@
     "CodeSearchResult": {
       "type": "object",
       "properties": {
-        "git_url": {
-          "type": "string",
-          "x-go-name": "GitURL"
+        "Color": {
+          "type": "string"
+        },
+        "Lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchResultLine"
+          }
         },
         "html_url": {
           "type": "string",
           "x-go-name": "HTMLURL"
+        },
+        "language": {
+          "type": "string",
+          "x-go-name": "Language"
         },
         "name": {
           "type": "string",
@@ -22128,6 +22137,21 @@
         },
         "Language": {
           "type": "string"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CodeSearchResultLine": {
+      "type": "object",
+      "properties": {
+        "line_number": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LineNumber"
+        },
+        "raw_content": {
+          "type": "string",
+          "x-go-name": "RawContent"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
