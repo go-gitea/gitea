@@ -55,6 +55,22 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 	return err
 }
 
+func notifyCommentCreated(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, comment *issues_model.Comment) error {
+	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, doer, comment.Content)
+	if err != nil {
+		return err
+	}
+
+	// reload issue to ensure it has the latest data, especially the number of comments
+	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
+	if err != nil {
+		return err
+	}
+
+	notify_service.CreateIssueComment(ctx, doer, repo, issue, comment, mentions)
+	return nil
+}
+
 // CreateIssueComment creates a plain issue comment.
 func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content string, attachments []string) (*issues_model.Comment, error) {
 	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, repo.OwnerID) {
@@ -75,18 +91,15 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 		return nil, err
 	}
 
-	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, doer, comment.Content)
+	return comment, notifyCommentCreated(ctx, doer, repo, issue, comment)
+}
+
+// CreateCommentAndChangeStatus creates a comment and changes the issue status.
+func CreateCommentAndChangeStatus(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content string, attachments []string) (*issues_model.Comment, error) {
+	comment, err := CreateIssueComment(ctx, doer, repo, issue, content, attachments)
 	if err != nil {
 		return nil, err
 	}
-
-	// reload issue to ensure it has the latest data, especially the number of comments
-	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	notify_service.CreateIssueComment(ctx, doer, repo, issue, comment, mentions)
 
 	return comment, nil
 }
