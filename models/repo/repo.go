@@ -210,6 +210,7 @@ type Repository struct {
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	Topics                          []string           `xorm:"TEXT JSON"`
 	ObjectFormatName                string             `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
+	// SecretScanning                  int64
 
 	TrustModel TrustModelType
 
@@ -310,6 +311,11 @@ func (repo *Repository) IsBeingCreated() bool {
 // IsBroken indicates that repository is broken
 func (repo *Repository) IsBroken() bool {
 	return repo.Status == RepositoryBroken
+}
+
+// IsPushSecretDetectionEnabled indicates if repository should have push scan enabled
+func (repo *Repository) IsPushSecretDetectionEnabled() bool {
+	return true //TODO: add record
 }
 
 // MarkAsBrokenEmpty marks the repo as broken and empty
