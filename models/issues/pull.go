@@ -29,6 +29,8 @@ import (
 
 var ErrMustCollaborator = util.NewPermissionDeniedErrorf("user must be a collaborator")
 
+const reviewedBy = "Reviewed-by: "
+
 // ErrPullRequestNotExist represents a "PullRequestNotExist" kind of error.
 type ErrPullRequestNotExist struct {
 	ID         int64
@@ -348,7 +350,11 @@ type ReviewCount struct {
 func (pr *PullRequest) GetApprovalCounts(ctx context.Context) ([]*ReviewCount, error) {
 	rCounts := make([]*ReviewCount, 0, 6)
 	sess := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID)
-	return rCounts, sess.Select("issue_id, type, count(id) as `count`").Where("official = ? AND dismissed = ?", true, false).GroupBy("issue_id, type").Table("review").Find(&rCounts)
+	return rCounts, sess.Select("issue_id, type, count(id) as `count`").
+		Where(builder.Eq{"official": true, "dismissed": false}).
+		GroupBy("issue_id, type").
+		Table("review").
+		Find(&rCounts)
 }
 
 // GetApprovers returns the approvers of the pull request
@@ -392,7 +398,7 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 		} else if review.Reviewer == nil {
 			continue
 		}
-		if _, err := writer.Write([]byte("Reviewed-by: ")); err != nil {
+		if _, err := writer.Write([]byte(reviewedBy)); err != nil {
 			return err
 		}
 		if _, err := writer.Write([]byte(review.Reviewer.NewGitSig().String())); err != nil {
