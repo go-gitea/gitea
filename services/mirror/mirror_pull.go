@@ -46,7 +46,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		return err
 	}
 
-	err = gitrepo.GitRemoteAdd(ctx, repo, remoteName, addr, "--mirror=fetch")
+	err = gitrepo.GitRemoteAdd(ctx, repo, remoteName, addr, gitrepo.RemoteOptionMirrorFetch)
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
@@ -59,7 +59,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 			return err
 		}
 
-		err = gitrepo.GitRemoteAdd(ctx, repo.WikiStorageRepo(), remoteName, wikiRemotePath, "--mirror=fetch")
+		err = gitrepo.GitRemoteAdd(ctx, repo.WikiStorageRepo(), remoteName, wikiRemotePath, gitrepo.RemoteOptionMirrorFetch)
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
@@ -365,15 +365,11 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
 
-		// check whether the remote still exists before pruning to avoid prune creating a new remote
+		// check whether the remote still exists before remote update prune
 		// this is needed because prune will not fail if the remote does not exist
-		u, err := gitrepo.GitRemoteGetURL(ctx, m.Repo.WikiStorageRepo(), m.GetRemoteName())
+		_, err := gitrepo.GitRemoteGetURL(ctx, m.Repo.WikiStorageRepo(), m.GetRemoteName())
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v Wiki]: GetRemoteURL Error %v", m.Repo, err)
-			return nil, false
-		}
-		if u == nil {
-			log.Error("remote %s does not exist for repository %s", m.GetRemoteName(), m.Repo.WikiStorageRepo().RelativePath())
 			return nil, false
 		}
 

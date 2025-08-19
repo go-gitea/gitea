@@ -265,11 +265,6 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		handleSettingRemoteAddrError(ctx, err, form)
 		return
 	}
-	if u == nil {
-		ctx.Data["Err_MirrorAddress"] = true
-		handleSettingRemoteAddrError(ctx, err, form)
-		return
-	}
 	if u.User != nil && form.MirrorPassword == "" && form.MirrorUsername == u.User.Username() {
 		form.MirrorPassword, _ = u.User.Password()
 	}

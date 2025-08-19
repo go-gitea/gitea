@@ -149,10 +149,6 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 		log.Error("GetRemoteURL %v", err)
 		return ret
 	}
-	if u == nil {
-		log.Error("GetRemoteURL %s returned nil", remoteName)
-		return ret
-	}
 
 	if u.Scheme != "ssh" && u.Scheme != "file" {
 		if u.User != nil {
