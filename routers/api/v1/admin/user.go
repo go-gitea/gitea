@@ -238,6 +238,7 @@ func EditUser(ctx *context.APIContext) {
 		Website:                 optional.FromPtr(form.Website),
 		Location:                optional.FromPtr(form.Location),
 		Description:             optional.FromPtr(form.Description),
+		Pronouns:                optional.FromPtr(form.Pronouns),
 		IsActive:                optional.FromPtr(form.Active),
 		IsAdmin:                 user_service.UpdateOptionFieldFromPtr(form.Admin),
 		Visibility:              optional.FromMapLookup(api.VisibilityModes, form.Visibility),

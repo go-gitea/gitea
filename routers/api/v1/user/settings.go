@@ -48,6 +48,7 @@ func UpdateUserSettings(ctx *context.APIContext) {
 	opts := &user_service.UpdateOptions{
 		FullName:            optional.FromPtr(form.FullName),
 		Description:         optional.FromPtr(form.Description),
+		Pronouns:            optional.FromPtr(form.Pronouns),
 		Website:             optional.FromPtr(form.Website),
 		Location:            optional.FromPtr(form.Location),
 		Language:            optional.FromPtr(form.Language),

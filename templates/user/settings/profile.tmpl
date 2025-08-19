@@ -24,6 +24,10 @@
 					<p class="help text blue">{{ctx.Locale.Tr "settings.password_full_name_disabled"}}</p>
 					{{end}}
 				</div>
+                                <div class="field">
+                                        <label for="pronouns">{{ctx.Locale.Tr "settings.pronouns"}}</label>
+                                        <input id="pronouns" name="pronouns" value="{{.SignedUser.Pronouns}}" maxlength="50">
+                                </div>
 				<div class="field {{if .Err_Email}}error{{end}}">
 					<label>{{ctx.Locale.Tr "email"}}</label>
 					<p id="signed-user-email">{{.SignedUser.Email}}</p>

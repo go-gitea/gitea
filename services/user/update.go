@@ -41,6 +41,7 @@ type UpdateOptions struct {
 	Website                      optional.Option[string]
 	Location                     optional.Option[string]
 	Description                  optional.Option[string]
+	Pronouns                     optional.Option[string]
 	AllowGitHook                 optional.Option[bool]
 	AllowImportLocal             optional.Option[bool]
 	MaxRepoCreation              optional.Option[int]
@@ -71,6 +72,11 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		u.FullName = opts.FullName.Value()
 
 		cols = append(cols, "full_name")
+	}
+	if opts.Pronouns.Has() {
+		u.Pronouns = opts.Pronouns.Value()
+
+		cols = append(cols, "pronouns")
 	}
 	if opts.Website.Has() {
 		u.Website = opts.Website.Value()
