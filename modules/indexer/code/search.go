@@ -26,7 +26,9 @@ type Result struct {
 }
 
 type ResultLine struct {
-	Num              int
+	Num        int
+	RawContent string // Raw content of the line
+	// FormattedContent is the HTML formatted content of the line, it will only be set if Hightlight is true
 	FormattedContent template.HTML
 }
 
@@ -86,7 +88,7 @@ func HighlightSearchResultCode(filename, language string, lineNums []int, code s
 	return lines
 }
 
-func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Result, error) {
+func searchResult(result *internal.SearchResult, startIndex, endIndex int, noHighlight bool) (*Result, error) {
 	startLineNum := 1 + strings.Count(result.Content[:startIndex], "\n")
 
 	var formattedLinesBuffer bytes.Buffer
@@ -117,6 +119,19 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 		index += len(line)
 	}
 
+	var lines []*ResultLine
+	if noHighlight {
+		lines = make([]*ResultLine, len(lineNums))
+		for i, lineNum := range lineNums {
+			lines[i] = &ResultLine{
+				Num:        lineNum,
+				RawContent: contentLines[i],
+			}
+		}
+	} else {
+		lines = HighlightSearchResultCode(result.Filename, result.Language, lineNums, formattedLinesBuffer.String())
+	}
+
 	return &Result{
 		RepoID:      result.RepoID,
 		Filename:    result.Filename,
@@ -124,7 +139,7 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 		UpdatedUnix: result.UpdatedUnix,
 		Language:    result.Language,
 		Color:       result.Color,
-		Lines:       HighlightSearchResultCode(result.Filename, result.Language, lineNums, formattedLinesBuffer.String()),
+		Lines:       lines,
 	}, nil
 }
 
@@ -143,7 +158,7 @@ func PerformSearch(ctx context.Context, opts *SearchOptions) (int, []*Result, []
 
 	for i, result := range results {
 		startIndex, endIndex := indices(result.Content, result.StartIndex, result.EndIndex)
-		displayResults[i], err = searchResult(result, startIndex, endIndex)
+		displayResults[i], err = searchResult(result, startIndex, endIndex, opts.NoHighlight)
 		if err != nil {
 			return 0, nil, nil, err
 		}

@@ -90,6 +90,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/packages"
 	"code.gitea.io/gitea/routers/api/v1/repo"
+	"code.gitea.io/gitea/routers/api/v1/repo/code"
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/common"
@@ -1767,6 +1768,10 @@ func Routes() *web.Router {
 
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+
+		m.Group("/search", func() {
+			m.Get("/code", code.GlobalSearch)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 	}, sudo())
 

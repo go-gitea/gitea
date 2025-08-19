@@ -17532,6 +17532,72 @@
         }
       }
     },
+    "/search/code": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "search"
+        ],
+        "summary": "Search for repositories",
+        "operationId": "GlobalSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "keyword",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "collectionFormat": "multi",
+            "description": "multiple repository names to search in",
+            "name": "repo",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "exact",
+              "words",
+              "fuzzy",
+              "regexp"
+            ],
+            "type": "string",
+            "description": "include search of keyword within repository description",
+            "name": "mode",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "filter by programming language",
+            "name": "language",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CodeSearchResults"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/settings/api": {
       "get": {
         "produces": [
@@ -22012,6 +22078,81 @@
         "status": {
           "type": "string",
           "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CodeSearchResult": {
+      "type": "object",
+      "properties": {
+        "git_url": {
+          "type": "string",
+          "x-go-name": "GitURL"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "Sha"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CodeSearchResultLanguage": {
+      "description": "CodeSearchResultLanguage result of top languages count in search results",
+      "type": "object",
+      "properties": {
+        "Color": {
+          "type": "string"
+        },
+        "Count": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "Language": {
+          "type": "string"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CodeSearchResults": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchResult"
+          },
+          "x-go-name": "Items"
+        },
+        "languages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchResultLanguage"
+          },
+          "x-go-name": "Languages"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -28743,6 +28884,12 @@
           "format": "int64",
           "description": "Total commit count"
         }
+      }
+    },
+    "CodeSearchResults": {
+      "description": "CodeSearchResults",
+      "schema": {
+        "$ref": "#/definitions/CodeSearchResults"
       }
     },
     "CombinedStatus": {

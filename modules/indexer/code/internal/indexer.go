@@ -29,6 +29,8 @@ type SearchOptions struct {
 
 	SearchMode indexer.SearchModeType
 
+	NoHighlight bool // If true, return raw content, else highlight the search results
+
 	db.Paginator
 }
 

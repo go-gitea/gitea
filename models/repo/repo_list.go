@@ -771,3 +771,29 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 	repos := make(RepositoryList, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, &opts).Find(&repos)
 }
+
+// GetRepositoriesIDsByFullNames returns repository IDs by their full names.
+func GetRepositoriesIDsByFullNames(ctx context.Context, fullRepoNames []string) ([]int64, error) {
+	if len(fullRepoNames) == 0 {
+		return nil, nil
+	}
+
+	var cond builder.Cond = builder.NewCond()
+	for _, name := range fullRepoNames {
+		ownerName, repoName, ok := strings.Cut(name, "/")
+		if !ok {
+			continue
+		}
+		cond = cond.Or(builder.Eq{"name": repoName, "owner_name": ownerName})
+	}
+
+	repoIDs := make([]int64, 0, len(fullRepoNames))
+	if err := db.GetEngine(ctx).
+		Where(cond).
+		Cols("id").
+		Table("repository").
+		Find(&repoIDs); err != nil {
+		return nil, fmt.Errorf("Find: %w", err)
+	}
+	return repoIDs, nil
+}
