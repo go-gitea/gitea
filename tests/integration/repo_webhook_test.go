@@ -1536,6 +1536,9 @@ jobs:
 		runner.fetchTask(t)
 	}
 
+	// Add this sleep to ensure the func can find the tasks by timestamp.
+	time.Sleep(time.Second)
+
 	err = actions.CancelAbandonedJobs(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, webhookData.payloads, 2)
@@ -1572,6 +1575,8 @@ jobs:
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
 	}
+
+	time.Sleep(time.Second)
 
 	err = actions.CancelAbandonedJobs(ctx)
 	assert.NoError(t, err)
