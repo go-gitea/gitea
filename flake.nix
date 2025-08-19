@@ -39,6 +39,7 @@
                 gnused
                 gnutar
                 gzip
+                zip
 
                 # frontend
                 nodejs
