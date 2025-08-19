@@ -99,7 +99,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 	return nil
 }
 
-// CancelAbandonedJobs cancels the jobs which have waiting status, but haven't been picked by a runner for a long time
+// CancelAbandonedJobs cancels jobs that have not been picked by any runner for a long time
 func CancelAbandonedJobs(ctx context.Context) error {
 	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
 		Statuses:      []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked},
@@ -121,31 +121,29 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		updated := false
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
 			n, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
-			updated = err == nil && n > 0
-			return err
+			if err != nil {
+				return err
+			}
+			if err := job.LoadAttributes(ctx); err != nil {
+				return err
+			}
+			updated = n > 0
+			if updated && job.Run.Status.IsDone() {
+				updatedRuns[job.RunID] = job
+			}
+			return nil
 		}); err != nil {
 			log.Warn("cancel abandoned job %v: %v", job.ID, err)
 			// go on
 		}
 		CreateCommitStatus(ctx, job)
 		if updated {
-			updatedRuns[job.RunID] = job
 			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 		}
 	}
 
 	for _, job := range updatedRuns {
-		c, err := db.Count[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
-			RunID:    job.RunID,
-			Statuses: []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning},
-		})
-		if err != nil {
-			log.Error("Count waiting jobs for run %d: %v", job.RunID, err)
-			continue
-		}
-		if c == 0 {
-			NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
-		}
+		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 	}
 
 	return nil

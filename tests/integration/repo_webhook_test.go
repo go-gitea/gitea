@@ -1105,21 +1105,6 @@ type workflowRunWebhook struct {
 }
 
 func Test_WebhookWorkflowRun(t *testing.T) {
-	webhookData := &workflowRunWebhook{}
-	provider := newMockWebhookProvider(func(r *http.Request) {
-		assert.Contains(t, r.Header["X-Github-Event-Type"], "workflow_run", "X-GitHub-Event-Type should contain workflow_run")
-		assert.Contains(t, r.Header["X-Gitea-Event-Type"], "workflow_run", "X-Gitea-Event-Type should contain workflow_run")
-		assert.Contains(t, r.Header["X-Gogs-Event-Type"], "workflow_run", "X-Gogs-Event-Type should contain workflow_run")
-		content, _ := io.ReadAll(r.Body)
-		var payload api.WorkflowRunPayload
-		err := json.Unmarshal(content, &payload)
-		assert.NoError(t, err)
-		webhookData.payloads = append(webhookData.payloads, payload)
-		webhookData.triggeredEvent = "workflow_run"
-	}, http.StatusOK)
-	defer provider.Close()
-	webhookData.URL = provider.URL()
-
 	testCases := []struct {
 		name     string
 		testFunc func(t *testing.T, webhookData *workflowRunWebhook)
@@ -1141,23 +1126,29 @@ func Test_WebhookWorkflowRun(t *testing.T) {
 			testFunc: testWorkflowRunEventsOnRerun,
 		},
 		{
-			name: "WorkflowRunEventsOnCancellingAllJobsAbandonedRun",
-			testFunc: func(t *testing.T, webhookData *workflowRunWebhook) {
-				testWorkflowRunEventsOnCancellingAbandonedRun(t, webhookData, true)
-			},
-		},
-		{
-			name: "WorkflowRunEventsOnCancellingPartiallyAbandonedRun",
-			testFunc: func(t *testing.T, webhookData *workflowRunWebhook) {
-				testWorkflowRunEventsOnCancellingAbandonedRun(t, webhookData, false)
-			},
+			name:     "WorkflowRunEventsOnCancellingAbandonedRun",
+			testFunc: testWorkflowRunEventsOnCancellingAbandonedRun,
 		},
 	}
 	for _, obj := range testCases {
 		t.Run(obj.name, func(t *testing.T) {
-			webhookData.payloads = nil
-			webhookData.triggeredEvent = ""
 			onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+				webhookData := &workflowRunWebhook{}
+				provider := newMockWebhookProvider(func(r *http.Request) {
+					assert.Contains(t, r.Header["X-Github-Event-Type"], "workflow_run", "X-GitHub-Event-Type should contain workflow_run")
+					assert.Contains(t, r.Header["X-Gitea-Event-Type"], "workflow_run", "X-Gitea-Event-Type should contain workflow_run")
+					assert.Contains(t, r.Header["X-Gogs-Event-Type"], "workflow_run", "X-Gogs-Event-Type should contain workflow_run")
+					content, _ := io.ReadAll(r.Body)
+					var payload api.WorkflowRunPayload
+					err := json.Unmarshal(content, &payload)
+					assert.NoError(t, err)
+					webhookData.payloads = append(webhookData.payloads, payload)
+					webhookData.triggeredEvent = "workflow_run"
+				}, http.StatusOK)
+				defer provider.Close()
+				webhookData.URL = provider.URL()
+				webhookData.payloads = nil
+				webhookData.triggeredEvent = ""
 				obj.testFunc(t, webhookData)
 			})
 		})
@@ -1429,32 +1420,35 @@ jobs:
 	assert.Len(t, webhookData.payloads, 3)
 }
 
-func testWorkflowRunEventsOnCancellingAbandonedRun(t *testing.T, webhookData *workflowRunWebhook, allJobsAbandoned bool) {
-	defer test.MockVariableValue(&setting.Actions.AbandonedJobTimeout, (time.Duration)(0))()
+func testWorkflowRunEventsOnCancellingAbandonedRun(t *testing.T, webhookData *workflowRunWebhook) {
+	defer test.MockVariableValue(&setting.Actions.AbandonedJobTimeout, 0*time.Nanosecond)()
 
 	// 1. create a new webhook with special webhook for repo1
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
+	repoName := "test-workflow-run-cancelling-abandoned-run"
+	testRepo := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: createActionsTestRepo(t, token, repoName, false).ID})
+
 	runners := make([]*mockRunner, 2)
 	for i := range runners {
 		runners[i] = newMockRunner()
-		runners[i].registerAsRepoRunner(t, "user2", "repo1", fmt.Sprintf("mock-runner-%d", i), []string{"ubuntu-latest"}, false)
+		runners[i].registerAsRepoRunner(t, "user2", repoName, fmt.Sprintf("mock-runner-%d", i), []string{"ubuntu-latest"}, false)
 	}
 
-	testAPICreateWebhookForRepo(t, session, "user2", "repo1", webhookData.URL, "workflow_run")
+	testAPICreateWebhookForRepo(t, session, "user2", repoName, webhookData.URL, "workflow_run")
 
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-
-	gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
+	ctx := t.Context()
+	gitRepo, err := gitrepo.OpenRepository(ctx, testRepo)
 	assert.NoError(t, err)
 
 	// 2.2 trigger the webhooks
 
 	// add workflow file to the repo
 	// init the workflow
-	wfTreePath := ".gitea/workflows/push.yml"
+	wfilename := "push.yml"
+	wfTreePath := ".gitea/workflows/" + wfilename
 	wfFileContent := `on:
   push:
   workflow_dispatch:
@@ -1521,10 +1515,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: exit 0`
-	opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
 
-	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
+	opts := getWorkflowCreateFileOptions(user2, testRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
+	createWorkflowFile(t, token, "user2", repoName, wfTreePath, opts)
+
+	commitID, err := gitRepo.GetBranchCommitID(testRepo.DefaultBranch)
 	assert.NoError(t, err)
 
 	// 3. validate the webhook is triggered
@@ -1532,28 +1527,61 @@ jobs:
 	assert.Len(t, webhookData.payloads, 1)
 	assert.Equal(t, "requested", webhookData.payloads[0].Action)
 	assert.Equal(t, "queued", webhookData.payloads[0].WorkflowRun.Status)
-	assert.Equal(t, repo1.DefaultBranch, webhookData.payloads[0].WorkflowRun.HeadBranch)
+	assert.Equal(t, testRepo.DefaultBranch, webhookData.payloads[0].WorkflowRun.HeadBranch)
 	assert.Equal(t, commitID, webhookData.payloads[0].WorkflowRun.HeadSha)
-	assert.Equal(t, "repo1", webhookData.payloads[0].Repo.Name)
-	assert.Equal(t, "user2/repo1", webhookData.payloads[0].Repo.FullName)
+	assert.Equal(t, repoName, webhookData.payloads[0].Repo.Name)
+	assert.Equal(t, "user2/"+repoName, webhookData.payloads[0].Repo.FullName)
+
+	for _, runner := range runners {
+		runner.fetchTask(t)
+	}
+
+	err = actions.CancelAbandonedJobs(ctx)
+	assert.NoError(t, err)
+	assert.Len(t, webhookData.payloads, 2)
+	assert.Equal(t, "completed", webhookData.payloads[1].Action)
+	assert.Equal(t, "completed", webhookData.payloads[1].WorkflowRun.Status)
+	assert.Equal(t, testRepo.DefaultBranch, webhookData.payloads[1].WorkflowRun.HeadBranch)
+	assert.Equal(t, commitID, webhookData.payloads[1].WorkflowRun.HeadSha)
+	assert.Equal(t, repoName, webhookData.payloads[1].Repo.Name)
+	assert.Equal(t, "user2/"+repoName, webhookData.payloads[1].Repo.FullName)
+
+	apiReqValues := url.Values{}
+	apiReqValues.Set("ref", testRepo.DefaultBranch)
+	req := NewRequestWithURLValues(t, "POST",
+		fmt.Sprintf("/api/v1/repos/%s/actions/workflows/%s/dispatches", testRepo.FullName(), wfilename),
+		apiReqValues).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	for i := range runners {
+		runners[i] = newMockRunner()
+		runners[i].registerAsRepoRunner(t, "user2", repoName, fmt.Sprintf("mock-runner-2-%d", i), []string{"ubuntu-latest"}, false)
+	}
+
+	assert.Len(t, webhookData.payloads, 3)
+	assert.Equal(t, "requested", webhookData.payloads[2].Action)
+	assert.Equal(t, "queued", webhookData.payloads[2].WorkflowRun.Status)
+	assert.Equal(t, testRepo.DefaultBranch, webhookData.payloads[2].WorkflowRun.HeadBranch)
+	assert.Equal(t, commitID, webhookData.payloads[2].WorkflowRun.HeadSha)
+	assert.Equal(t, repoName, webhookData.payloads[2].Repo.Name)
+	assert.Equal(t, "user2/"+repoName, webhookData.payloads[2].Repo.FullName)
 
 	for _, runner := range runners {
 		task := runner.fetchTask(t)
-		if !allJobsAbandoned {
-			runner.execTask(t, task, &mockTaskOutcome{
-				result: runnerv1.Result_RESULT_SUCCESS,
-			})
-		}
+		runner.execTask(t, task, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+		})
 	}
 
-	err = actions.CancelAbandonedJobs(t.Context())
+	err = actions.CancelAbandonedJobs(ctx)
 	assert.NoError(t, err)
-
-	if allJobsAbandoned {
-		assert.Len(t, webhookData.payloads, 1)
-	} else {
-		assert.Len(t, webhookData.payloads, 2)
-	}
+	assert.Len(t, webhookData.payloads, 4)
+	assert.Equal(t, "completed", webhookData.payloads[3].Action)
+	assert.Equal(t, "completed", webhookData.payloads[3].WorkflowRun.Status)
+	assert.Equal(t, testRepo.DefaultBranch, webhookData.payloads[3].WorkflowRun.HeadBranch)
+	assert.Equal(t, commitID, webhookData.payloads[3].WorkflowRun.HeadSha)
+	assert.Equal(t, repoName, webhookData.payloads[3].Repo.Name)
+	assert.Equal(t, "user2/"+repoName, webhookData.payloads[3].Repo.FullName)
 }
 
 func testWebhookWorkflowRun(t *testing.T, webhookData *workflowRunWebhook) {
