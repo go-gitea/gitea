@@ -778,7 +778,7 @@ func GetRepositoriesIDsByFullNames(ctx context.Context, fullRepoNames []string) 
 		return nil, nil
 	}
 
-	var cond builder.Cond = builder.NewCond()
+	cond := builder.NewCond()
 	for _, name := range fullRepoNames {
 		ownerName, repoName, ok := strings.Cut(name, "/")
 		if !ok {

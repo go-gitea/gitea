@@ -19,10 +19,10 @@ func TestAPISearchCodeNotLogin(t *testing.T) {
 
 	// test with no keyword
 	req := NewRequest(t, "GET", "/api/v1/search/code")
-	resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	req = NewRequest(t, "GET", "/api/v1/search/code?q=Description")
-	resp = MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiCodeSearchResults api.CodeSearchResults
 	DecodeJSON(t, resp, &apiCodeSearchResults)
