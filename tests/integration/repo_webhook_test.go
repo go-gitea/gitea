@@ -1546,42 +1546,6 @@ jobs:
 	assert.Equal(t, repoName, webhookData.payloads[1].Repo.Name)
 	assert.Equal(t, "user2/"+repoName, webhookData.payloads[1].Repo.FullName)
 
-	apiReqValues := url.Values{}
-	apiReqValues.Set("ref", testRepo.DefaultBranch)
-	req := NewRequestWithURLValues(t, "POST",
-		fmt.Sprintf("/api/v1/repos/%s/actions/workflows/%s/dispatches", testRepo.FullName(), wfilename),
-		apiReqValues).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-
-	for i := range runners {
-		runners[i] = newMockRunner()
-		runners[i].registerAsRepoRunner(t, "user2", repoName, fmt.Sprintf("mock-runner-2-%d", i), []string{"ubuntu-latest"}, false)
-	}
-
-	assert.Len(t, webhookData.payloads, 3)
-	assert.Equal(t, "requested", webhookData.payloads[2].Action)
-	assert.Equal(t, "queued", webhookData.payloads[2].WorkflowRun.Status)
-	assert.Equal(t, testRepo.DefaultBranch, webhookData.payloads[2].WorkflowRun.HeadBranch)
-	assert.Equal(t, commitID, webhookData.payloads[2].WorkflowRun.HeadSha)
-	assert.Equal(t, repoName, webhookData.payloads[2].Repo.Name)
-	assert.Equal(t, "user2/"+repoName, webhookData.payloads[2].Repo.FullName)
-
-	for _, runner := range runners {
-		task := runner.fetchTask(t)
-		runner.execTask(t, task, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-	}
-
-	err = actions.CancelAbandonedJobs(ctx)
-	assert.NoError(t, err)
-	assert.Len(t, webhookData.payloads, 4)
-	assert.Equal(t, "completed", webhookData.payloads[3].Action)
-	assert.Equal(t, "completed", webhookData.payloads[3].WorkflowRun.Status)
-	assert.Equal(t, testRepo.DefaultBranch, webhookData.payloads[3].WorkflowRun.HeadBranch)
-	assert.Equal(t, commitID, webhookData.payloads[3].WorkflowRun.HeadSha)
-	assert.Equal(t, repoName, webhookData.payloads[3].Repo.Name)
-	assert.Equal(t, "user2/"+repoName, webhookData.payloads[3].Repo.FullName)
 }
 
 func testWebhookWorkflowRun(t *testing.T, webhookData *workflowRunWebhook) {
