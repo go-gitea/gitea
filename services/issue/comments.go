@@ -15,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -91,14 +92,9 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 		return nil, err
 	}
 
-	return comment, notifyCommentCreated(ctx, doer, repo, issue, comment)
-}
-
-// CreateCommentAndChangeStatus creates a comment and changes the issue status.
-func CreateCommentAndChangeStatus(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content string, attachments []string) (*issues_model.Comment, error) {
-	comment, err := CreateIssueComment(ctx, doer, repo, issue, content, attachments)
-	if err != nil {
-		return nil, err
+	if err := notifyCommentCreated(ctx, doer, repo, issue, comment); err != nil {
+		// If notification fails, we still return the comment but log the error.
+		log.Error("Failed to notify comment creation: %v", err)
 	}
 
 	return comment, nil
