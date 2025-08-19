@@ -102,7 +102,7 @@ func NewComment(ctx *context.Context) {
 		pr, err := issues_model.GetUnmergedPullRequest(ctx, pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch, pull.Flow)
 		if err != nil {
 			if !issues_model.IsErrPullRequestNotExist(err) {
-				ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+				ctx.JSONError(err.Error())
 				return
 			}
 		}
@@ -120,10 +120,6 @@ func NewComment(ctx *context.Context) {
 			}
 			return
 		}
-
-		// Regenerate patch and test conflict.
-		pull.HeadCommitID = ""
-		pull_service.StartPullRequestCheckImmediately(ctx, pull)
 
 		// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo
 		// get head commit of PR
@@ -176,6 +172,10 @@ func NewComment(ctx *context.Context) {
 				}
 			}
 		}
+
+		// Regenerate patch and test conflict.
+		pull.HeadCommitID = ""
+		pull_service.StartPullRequestCheckImmediately(ctx, pull)
 	case "close":
 		if issue.IsClosed {
 			ctx.JSONError(ctx.Tr("repo.issues.already_closed"))
