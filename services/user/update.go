@@ -149,6 +149,9 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		if !u.IsOrganization() && !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(opts.Visibility.Value()) {
 			return fmt.Errorf("visibility mode not allowed: %s", opts.Visibility.Value().String())
 		}
+		if u.IsOrganization() && !setting.Service.AllowedOrgVisibilityModesSlice.IsAllowedVisibility(opts.Visibility.Value()) {
+			return fmt.Errorf("visibility mode not allowed for organization: %s", opts.Visibility.Value().String())
+		}
 		u.Visibility = opts.Visibility.Value()
 
 		cols = append(cols, "visibility")

@@ -3,6 +3,16 @@
 </h4>
 <div class="ui attached error danger segment">
 	<div class="flex-list">
+		<div class="flex-item">
+			<div class="flex-item-main">
+				<div class="flex-item-title">{{ctx.Locale.Tr "org.settings.visibility"}}</div>
+				<div class="flex-item-body">{{ctx.Locale.Tr "org.settings.visibility_helper"}}</div>
+			</div>
+			<div class="flex-item-trailing">
+				<button class="ui basic red show-modal button" data-modal="#change-visibility-modal">{{ctx.Locale.Tr "org.settings.change_visibility"}}</button>
+			</div>
+		</div>
+
 		<div class="flex-item tw-items-center">
 			<div class="flex-item-main">
 				<div class="flex-item-title">{{ctx.Locale.Tr "org.settings.rename"}}</div>
@@ -22,6 +32,49 @@
 				<button class="ui basic red show-modal button" data-modal="#delete-org-modal">{{ctx.Locale.Tr "org.settings.delete_account"}}</button>
 			</div>
 		</div>
+	</div>
+</div>
+
+<div class="ui small modal" id="change-visibility-modal">
+	<div class="header">
+		{{ctx.Locale.Tr "org.settings.change_visibility"}}
+	</div>
+	<div class="content">
+		<p>{{ctx.Locale.Tr "org.settings.visibility_change_warning"}}</p>
+		<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field" id="visibility_box">
+				<label for="visibility">{{ctx.Locale.Tr "org.settings.visibility"}}</label>
+				{{range $mode := .AllowedOrgVisibilityModes}}
+					{{if $mode.IsPublic}}
+						<div class="field">
+							<div class="ui radio checkbox">
+								<input class="enable-system-radio" name="visibility" type="radio" value="0" {{if eq $.CurrentVisibility 0}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "org.settings.visibility.public"}}</label>
+							</div>
+						</div>
+					{{else if $mode.IsLimited}}
+						<div class="field">
+							<div class="ui radio checkbox">
+								<input class="enable-system-radio" name="visibility" type="radio" value="1" {{if eq $.CurrentVisibility 1}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "org.settings.visibility.limited"}}</label>
+							</div>
+						</div>
+					{{else if $mode.IsPrivate}}
+						<div class="field">
+							<div class="ui radio checkbox">
+								<input class="enable-system-radio" name="visibility" type="radio" value="2" {{if eq $.CurrentVisibility 2}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "org.settings.visibility.private"}}</label>
+							</div>
+						</div>
+					{{end}}
+				{{end}}
+			</div>
+			<div class="actions">
+				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+				<button class="ui red button">{{ctx.Locale.Tr "org.settings.update_settings"}}</button>
+			</div>
+		</form>
 	</div>
 </div>
 

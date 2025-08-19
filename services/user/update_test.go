@@ -11,7 +11,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	password_module "code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -121,4 +123,69 @@ func TestUpdateAuth(t *testing.T) {
 	assert.ErrorIs(t, UpdateAuth(db.DefaultContext, user, &UpdateAuthOptions{
 		Password: optional.Some("aaaa"),
 	}), password_module.ErrMinLength)
+}
+
+func TestVisibilityModeValidation(t *testing.T) {
+	// Mock testing setup
+	defer test.MockVariableValue(&setting.Service)()
+
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// Organization user
+	org := &user_model.User{
+		ID:        500,
+		Type:      user_model.UserTypeOrganization,
+		Name:      "test-org",
+		LowerName: "test-org",
+	}
+
+	// Regular user
+	user := &user_model.User{
+		ID:        501,
+		Type:      user_model.UserTypeIndividual,
+		Name:      "test-user",
+		LowerName: "test-user",
+	}
+
+	// Test case 1: Allow only limited and private visibility for organizations
+	setting.Service.AllowedOrgVisibilityModesSlice = []bool{false, true, true}
+	setting.Service.AllowedOrgVisibilityModes = []string{"limited", "private"}
+
+	// Should fail when trying to set public visibility for organization
+	err := UpdateUser(db.DefaultContext, org, &UpdateOptions{
+		Visibility: optional.Some(structs.VisibleTypePublic),
+	})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "visibility mode not allowed for organization")
+
+	// Should succeed when setting limited visibility for organization
+	err = UpdateUser(db.DefaultContext, org, &UpdateOptions{
+		Visibility: optional.Some(structs.VisibleTypeLimited),
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, structs.VisibleTypeLimited, org.Visibility)
+
+	// Test case 2: Allow only public and limited visibility for users
+	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, false}
+	setting.Service.AllowedUserVisibilityModes = []string{"public", "limited"}
+
+	// Should fail when trying to set private visibility for user
+	err = UpdateUser(db.DefaultContext, user, &UpdateOptions{
+		Visibility: optional.Some(structs.VisibleTypePrivate),
+	})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "visibility mode not allowed")
+
+	// Should succeed when setting public visibility for user
+	err = UpdateUser(db.DefaultContext, user, &UpdateOptions{
+		Visibility: optional.Some(structs.VisibleTypePublic),
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, structs.VisibleTypePublic, user.Visibility)
+
+	// Reset to default settings
+	setting.Service.AllowedOrgVisibilityModesSlice = []bool{true, true, true}
+	setting.Service.AllowedOrgVisibilityModes = []string{"public", "limited", "private"}
+	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
+	setting.Service.AllowedUserVisibilityModes = []string{"public", "limited", "private"}
 }
