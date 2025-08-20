@@ -26,8 +26,8 @@ func TestAPISearchCodeNotLogin(t *testing.T) {
 
 	var apiCodeSearchResults api.CodeSearchResults
 	DecodeJSON(t, resp, &apiCodeSearchResults)
-	assert.Equal(t, int64(4), apiCodeSearchResults.TotalCount)
-	assert.Len(t, apiCodeSearchResults.Items, 4)
+	assert.Equal(t, int64(1), apiCodeSearchResults.TotalCount)
+	assert.Len(t, apiCodeSearchResults.Items, 1)
 	assert.Equal(t, "README.md", apiCodeSearchResults.Items[0].Name)
 	assert.Equal(t, "README.md", apiCodeSearchResults.Items[0].Path)
 	assert.Equal(t, "Markdown", apiCodeSearchResults.Items[0].Language)
@@ -35,12 +35,12 @@ func TestAPISearchCodeNotLogin(t *testing.T) {
 	assert.Equal(t, "\n", apiCodeSearchResults.Items[0].Lines[0].RawContent)
 	assert.Equal(t, "Description for repo1", apiCodeSearchResults.Items[0].Lines[1].RawContent)
 
-	assert.Equal(t, setting.AppURL+"api/v1/repos/user2/git_hooks_test/contents/README.md?ref=65f1bf27bc3bf70f64657658635e66094edbcb4d", apiCodeSearchResults.Items[0].URL)
-	assert.Equal(t, setting.AppURL+"user2/git_hooks_test/blob/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md", apiCodeSearchResults.Items[0].HTMLURL)
+	assert.Equal(t, setting.AppURL+"api/v1/repos/user2/repo1/contents/README.md?ref=65f1bf27bc3bf70f64657658635e66094edbcb4d", apiCodeSearchResults.Items[0].URL)
+	assert.Equal(t, setting.AppURL+"user2/repo1/blob/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md", apiCodeSearchResults.Items[0].HTMLURL)
 
-	assert.Equal(t, int64(37), apiCodeSearchResults.Items[0].Repository.ID)
+	assert.Equal(t, int64(1), apiCodeSearchResults.Items[0].Repository.ID)
 
 	assert.Len(t, apiCodeSearchResults.Languages, 1)
 	assert.Equal(t, "Markdown", apiCodeSearchResults.Languages[0].Language)
-	assert.Equal(t, 4, apiCodeSearchResults.Languages[0].Count)
+	assert.Equal(t, 1, apiCodeSearchResults.Languages[0].Count)
 }
