@@ -35,8 +35,8 @@ func TestAPISearchCodeNotLogin(t *testing.T) {
 	assert.Equal(t, "\n", apiCodeSearchResults.Items[0].Lines[0].RawContent)
 	assert.Equal(t, "Description for repo1", apiCodeSearchResults.Items[0].Lines[1].RawContent)
 
-	assert.Equal(t, setting.AppURL+"api/v1/repos/user2/repo1/contents/README.md?ref=65f1bf27bc3bf70f64657658635e66094edbcb4d", apiCodeSearchResults.Items[0].URL)
-	assert.Equal(t, setting.AppURL+"user2/repo1/blob/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md", apiCodeSearchResults.Items[0].HTMLURL)
+	assert.Equal(t, setting.AppURL+"api/v1/repos/user2/repo1/contents/README.md?ref=26b303da6e256eb9f27b23d27c1c7fd22b6770db", apiCodeSearchResults.Items[0].URL)
+	assert.Equal(t, setting.AppURL+"user2/repo1/blob/26b303da6e256eb9f27b23d27c1c7fd22b6770db/README.md", apiCodeSearchResults.Items[0].HTMLURL)
 
 	assert.Equal(t, int64(1), apiCodeSearchResults.Items[0].Repository.ID)
 
