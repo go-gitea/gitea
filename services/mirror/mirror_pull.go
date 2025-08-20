@@ -365,25 +365,6 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
 
-		// Verify that the remote exists before running `git remote update --prune`.
-		// Without this check, the command will not fail if the remote is missing;
-		// it will appear to succeed silently, even though nothing was updated.
-		_, err := gitrepo.GitRemoteGetURL(ctx, m.Repo.WikiStorageRepo(), m.GetRemoteName())
-		if err != nil {
-			log.Error("SyncMirrors [repo: %-v Wiki]: GetRemoteURL Error %v", m.Repo, err)
-			return nil, false
-		}
-
-		fetchConfig, err := gitrepo.GitConfigGet(ctx, m.Repo.WikiStorageRepo(), "remote.origin.fetch")
-		if err != nil {
-			log.Error("SyncMirrors [repo: %-v Wiki]: GetGitConfig Error %v", m.Repo, err)
-			return nil, false
-		}
-		if fetchConfig == "" {
-			log.Error("remote %s has no fetch config for repository %s", m.GetRemoteName(), m.Repo.WikiStorageRepo().RelativePath())
-			return nil, false
-		}
-
 		if err := gitrepo.GitRemoteUpdatePrune(ctx, m.Repo.WikiStorageRepo(), m.GetRemoteName(),
 			timeout, &stdoutBuilder, &stderrBuilder); err != nil {
 			stdout := stdoutBuilder.String()
