@@ -1434,7 +1434,8 @@ func testWorkflowRunEventsOnCancellingAbandonedRun(t *testing.T, webhookData *wo
 	runners := make([]*mockRunner, 2)
 	for i := range runners {
 		runners[i] = newMockRunner()
-		runners[i].registerAsRepoRunner(t, "user2", repoName, fmt.Sprintf("mock-runner-%d", i), []string{"ubuntu-latest"}, false)
+		runners[i].registerAsRepoRunner(t, "user2", repoName,
+			fmt.Sprintf("mock-runner-1-%d", i), []string{"ubuntu-latest"}, false)
 	}
 
 	testAPICreateWebhookForRepo(t, session, "user2", repoName, webhookData.URL, "workflow_run")
@@ -1549,16 +1550,17 @@ jobs:
 	assert.Equal(t, repoName, webhookData.payloads[1].Repo.Name)
 	assert.Equal(t, "user2/"+repoName, webhookData.payloads[1].Repo.FullName)
 
-	apiReqValues := url.Values{}
-	apiReqValues.Set("ref", testRepo.DefaultBranch)
-	req := NewRequestWithURLValues(t, "POST",
-		fmt.Sprintf("/api/v1/repos/%s/actions/workflows/%s/dispatches", testRepo.FullName(), wfilename),
-		apiReqValues).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t,
+		NewRequestWithURLValues(t, "POST",
+			fmt.Sprintf("/api/v1/repos/%s/actions/workflows/%s/dispatches", testRepo.FullName(), wfilename),
+			url.Values{"ref": {testRepo.DefaultBranch}}).
+			AddTokenAuth(token),
+		http.StatusNoContent)
 
 	for i := range runners {
 		runners[i] = newMockRunner()
-		runners[i].registerAsRepoRunner(t, "user2", repoName, fmt.Sprintf("mock-runner-2-%d", i), []string{"ubuntu-latest"}, false)
+		runners[i].registerAsRepoRunner(t, "user2", repoName,
+			fmt.Sprintf("mock-runner-2-%d", i), []string{"ubuntu-latest"}, false)
 	}
 
 	assert.Len(t, webhookData.payloads, 3)
