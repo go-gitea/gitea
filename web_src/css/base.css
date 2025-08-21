@@ -604,10 +604,8 @@ img.ui.avatar,
 }
 
 .ui .message > ul {
-  margin-left: auto;
-  margin-right: auto;
-  display: table;
-  text-align: left;
+  margin: 0;
+  padding: 0 1em;
 }
 
 .ui .header > i + .content {
