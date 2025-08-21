@@ -955,6 +955,16 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 	return err
 }
 
+// UpdateUserColsNoAutoTime update user according special columns
+func UpdateUserColsNoAutoTime(ctx context.Context, u *User, cols ...string) error {
+	if err := ValidateUser(u, cols...); err != nil {
+		return err
+	}
+
+	_, err := db.GetEngine(ctx).ID(u.ID).Cols(cols...).NoAutoTime().Update(u)
+	return err
+}
+
 // GetInactiveUsers gets all inactive users
 func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, error) {
 	cond := builder.And(

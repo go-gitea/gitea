@@ -1132,18 +1132,23 @@ func GetWorkflowRun(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	runID := ctx.PathParamInt64("run")
-	job, _, err := db.GetByID[actions_model.ActionRun](ctx, runID)
-
-	if err != nil || job.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIError(http.StatusNotFound, util.ErrNotExist)
-	}
-
-	convertedArtifact, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, job)
+	job, has, err := db.GetByID[actions_model.ActionRun](ctx, runID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convertedArtifact)
+
+	if !has || job.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIErrorNotFound(util.ErrNotExist)
+		return
+	}
+
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, job)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedRun)
 }
 
 // ListWorkflowRunJobs Lists all jobs for a workflow run.
@@ -1237,10 +1242,15 @@ func GetWorkflowJob(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	jobID := ctx.PathParamInt64("job_id")
-	job, _, err := db.GetByID[actions_model.ActionRunJob](ctx, jobID)
+	job, has, err := db.GetByID[actions_model.ActionRunJob](ctx, jobID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 
-	if err != nil || job.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIError(http.StatusNotFound, util.ErrNotExist)
+	if !has || job.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIErrorNotFound(util.ErrNotExist)
+		return
 	}
 
 	convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, ctx.Repo.Repository, nil, job)
@@ -1251,7 +1261,7 @@ func GetWorkflowJob(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convertedWorkflowJob)
 }
 
-// GetArtifacts Lists all artifacts for a repository.
+// GetArtifactsOfRun Lists all artifacts for a repository.
 func GetArtifactsOfRun(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/artifacts repository getArtifactsOfRun
 	// ---
@@ -1354,7 +1364,7 @@ func DeleteActionRun(ctx *context.APIContext) {
 	runID := ctx.PathParamInt64("run")
 	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
 	if errors.Is(err, util.ErrNotExist) {
-		ctx.APIError(http.StatusNotFound, err)
+		ctx.APIErrorNotFound(err)
 		return
 	} else if err != nil {
 		ctx.APIErrorInternal(err)
