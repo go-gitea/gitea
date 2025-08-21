@@ -196,8 +196,6 @@ func ConfigSettings(ctx *context.Context) {
 }
 
 func ChangeConfig(ctx *context.Context) {
-	key := strings.TrimSpace(ctx.FormString("key"))
-	value := ctx.FormString("value")
 	cfg := setting.Config()
 
 	marshalBool := func(v string) (string, error) { //nolint:unparam // error is always nil
@@ -248,21 +246,38 @@ func ChangeConfig(ctx *context.Context) {
 		cfg.Repository.OpenWithEditorApps.DynKey(): marshalOpenWithApps,
 		cfg.Template.GitRemoteName.DynKey():        marshalString,
 	}
-	marshaller, hasMarshaller := marshallers[key]
-	if !hasMarshaller {
-		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
-		return
-	}
-	marshaledValue, err := marshaller(value)
-	if err != nil {
-		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
-		return
-	}
-	if err = system_model.SetSettings(ctx, map[string]string{key: marshaledValue}); err != nil {
-		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
-		return
+
+	_ = ctx.Req.ParseForm()
+	queryKeys := ctx.Req.Form["key"]
+	queryValues := ctx.Req.Form["value"]
+loop:
+	for i, key := range queryKeys {
+		if i >= len(queryValues) {
+			ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+			break loop
+		}
+		value := queryValues[i]
+
+		marshaller, hasMarshaller := marshallers[key]
+		if !hasMarshaller {
+			ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+			break loop
+		}
+
+		marshaledValue, err := marshaller(value)
+		if err != nil {
+			ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+			break loop
+		}
+
+		if err = system_model.SetSettings(ctx, map[string]string{key: marshaledValue}); err != nil {
+			ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+			break loop
+		}
 	}
 
 	config.GetDynGetter().InvalidateCache()
-	ctx.JSONOK()
+	if !ctx.Written() {
+		ctx.JSONOK()
+	}
 }

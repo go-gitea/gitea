@@ -24,7 +24,7 @@
 	{{ctx.Locale.Tr "repository"}}
 </h4>
 <div class="ui attached segment">
-	<form class="ui form form-fetch-action" method="post" action="{{AppSubUrl}}/-/admin/config?key={{.SystemConfig.Repository.OpenWithEditorApps.DynKey}}">
+	<form class="ui form form-fetch-action" method="post" action="{{AppSubUrl}}/-/admin/config">
 		<div class="field">
 			<details>
 				<summary>{{ctx.Locale.Tr "admin.config.open_with_editor_app_help"}}</summary>
@@ -32,22 +32,14 @@
 			</details>
 		</div>
 		<div class="field">
+			<input type="hidden" name="key" value="{{.SystemConfig.Repository.OpenWithEditorApps.DynKey}}">
 			<textarea name="value">{{(.SystemConfig.Repository.OpenWithEditorApps.Value ctx).ToTextareaString}}</textarea>
 		</div>
-		<div class="field">
-			<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
-		</div>
-	</form>
-</div>
 
-<h4 class="ui top attached header">
-	{{ctx.Locale.Tr "admin.config.git_guide"}}
-</h4>
-<div class="ui attached segment">
-	<form class="ui form form-fetch-action" method="post" action="{{AppSubUrl}}/-/admin/config?key={{.SystemConfig.Template.GitRemoteName.DynKey}}">
-		<div class="field" data-field-patched="true">
-			<label for="remote_name">{{ctx.Locale.Tr "admin.config.git_guide.remote_name"}}</label>
-			<input id="remote_name" name="value" value="{{.SystemConfig.Template.GitRemoteName.Value ctx}}" maxlength="100" dir="auto" required>
+		<div class="field">
+			<label>{{ctx.Locale.Tr "admin.config.git_guide_remote_name"}}</label>
+			<input type="hidden" name="key" value="{{.SystemConfig.Template.GitRemoteName.DynKey}}">
+			<input name="value" value="{{.SystemConfig.Template.GitRemoteName.Value ctx}}" maxlength="100" dir="auto" required pattern="^[A-Za-z0-9][\-_A-Za-z0-9]*$">
 		</div>
 		<div class="field">
 			<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
