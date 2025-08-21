@@ -32,14 +32,16 @@
 			</details>
 		</div>
 		<div class="field">
-			<input type="hidden" name="key" value="{{.SystemConfig.Repository.OpenWithEditorApps.DynKey}}">
-			<textarea name="value">{{(.SystemConfig.Repository.OpenWithEditorApps.Value ctx).ToTextareaString}}</textarea>
+			{{$cfg := .SystemConfig.Repository.OpenWithEditorApps}}
+			<input type="hidden" name="key" value="{{$cfg.DynKey}}">
+			<textarea name="value">{{($cfg.Value ctx).ToTextareaString}}</textarea>
 		</div>
 
 		<div class="field">
 			<label>{{ctx.Locale.Tr "admin.config.git_guide_remote_name"}}</label>
-			<input type="hidden" name="key" value="{{.SystemConfig.Template.GitRemoteName.DynKey}}">
-			<input name="value" value="{{.SystemConfig.Template.GitRemoteName.Value ctx}}" maxlength="100" dir="auto" required pattern="^[A-Za-z0-9][\-_A-Za-z0-9]*$">
+			{{$cfg = .SystemConfig.Repository.GitGuideRemoteName}}
+			<input type="hidden" name="key" value="{{$cfg.DynKey}}">
+			<input name="value" value="{{$cfg.Value ctx}}" placeholder="{{$cfg.DefaultValue}}" maxlength="100" dir="auto" required pattern="^[A-Za-z0-9][\-_A-Za-z0-9]*$">
 		</div>
 		<div class="field">
 			<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>

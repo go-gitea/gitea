@@ -542,7 +542,6 @@ func RepoAssignment(ctx *Context) {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
 	ctx.Data["CanWriteActions"] = ctx.Repo.CanWrite(unit_model.TypeActions)
-	ctx.Data["GitRemoteName"] = setting.Config().Template.GitRemoteName.Value(ctx)
 
 	canSignedUserFork, err := repo_module.CanUserForkRepo(ctx, ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
