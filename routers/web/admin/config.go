@@ -198,7 +198,7 @@ func ConfigSettings(ctx *context.Context) {
 func ChangeConfig(ctx *context.Context) {
 	cfg := setting.Config()
 
-	marshalBool := func(v string) ([]byte, error) { //nolint:unparam // error is always nil
+	marshalBool := func(v string) ([]byte, error) {
 		b, _ := strconv.ParseBool(v)
 		return json.Marshal(b)
 	}
@@ -210,6 +210,7 @@ func ChangeConfig(ctx *context.Context) {
 	}
 
 	marshalOpenWithApps := func(value string) ([]byte, error) {
+		// TODO: move the block alongside OpenWithEditorAppsType.ToTextareaString
 		lines := strings.Split(value, "\n")
 		var openWithEditorApps setting.OpenWithEditorAppsType
 		for _, line := range lines {
