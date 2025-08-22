@@ -73,6 +73,7 @@ type FindRunOptions struct {
 	Approved      bool // not util.OptionalBool, it works only when it's true
 	Status        []Status
 	CommitSHA     string
+	Environment   string // filter by environment name through deployments
 }
 
 func (opts FindRunOptions) ToConds() builder.Cond {
@@ -105,13 +106,27 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 }
 
 func (opts FindRunOptions) ToJoins() []db.JoinFunc {
+	joins := make([]db.JoinFunc, 0, 3)
+
 	if opts.OwnerID > 0 {
-		return []db.JoinFunc{func(sess db.Engine) error {
+		joins = append(joins, func(sess db.Engine) error {
 			sess.Join("INNER", "repository", "repository.id = repo_id AND repository.owner_id = ?", opts.OwnerID)
 			return nil
-		}}
+		})
 	}
-	return nil
+
+	if opts.Environment != "" {
+		joins = append(joins, func(sess db.Engine) error {
+			sess.Join("INNER", "action_deployment", "`action_deployment`.run_id = `action_run`.id")
+			sess.Join("INNER", "action_environment", "`action_environment`.id = `action_deployment`.environment_id AND `action_environment`.name = ?", opts.Environment)
+			return nil
+		})
+	}
+
+	if len(joins) == 0 {
+		return nil
+	}
+	return joins
 }
 
 func (opts FindRunOptions) ToOrders() string {

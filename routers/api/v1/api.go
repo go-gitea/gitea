@@ -1299,6 +1299,15 @@ func Routes() *web.Router {
 						m.Delete("", reqRepoWriter(unit.TypeActions), repo.DeleteArtifact)
 					})
 					m.Get("/artifacts/{artifact_id}/zip", repo.DownloadArtifact)
+					// Environment management endpoints
+					m.Group("/environments", func() {
+						m.Get("", repo.ListEnvironments)
+						m.Group("/{environment_name}", func() {
+							m.Get("", repo.GetEnvironment)
+							m.Put("", reqToken(), reqRepoWriter(unit.TypeActions), bind(api.CreateEnvironmentOption{}), repo.CreateOrUpdateEnvironment)
+							m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteEnvironment)
+						})
+					})
 				}, reqRepoReader(unit.TypeActions), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
