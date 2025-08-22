@@ -1541,9 +1541,9 @@ jobs:
 	assert.Equal(t, repoName, webhookData.payloads[0].Repo.Name)
 	assert.Equal(t, "user2/"+repoName, webhookData.payloads[0].Repo.FullName)
 
-	for _, runner := range runners {
-		task := runner.fetchTask(t)
-		if !allJobsAbandoned {
+	if !allJobsAbandoned {
+		for _, runner := range runners {
+			task := runner.fetchTask(t)
 			runner.execTask(t, task, &mockTaskOutcome{
 				result: runnerv1.Result_RESULT_SUCCESS,
 			})
