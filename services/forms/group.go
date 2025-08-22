@@ -18,7 +18,7 @@ type MovedGroupItemForm struct {
 	IsGroup   bool  `json:"isGroup"`
 	ItemID    int64 `json:"id"`
 	NewParent int64 `json:"newParent"`
-	NewPos    int   `json:"newPosition"`
+	NewPos    int   `json:"newPos"`
 }
 type CreateGroupTeamForm struct {
 	Permission              string
