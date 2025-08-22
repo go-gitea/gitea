@@ -282,10 +282,6 @@ func GetGroup(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
-	if group.OwnerID != ctx.Org.Organization.ID {
-		ctx.APIErrorNotFound()
-		return
-	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -299,7 +295,7 @@ func GetGroup(ctx *context.APIContext) {
 }
 
 func DeleteGroup(ctx *context.APIContext) {
-	// swagger:operation DELETE /groups/{group_id} repositoryGroup groupDelete
+	// swagger:operation DELETE /groups/{group_id} repository-group groupDelete
 	// ---
 	// summary: Delete a repository group
 	// produces:
