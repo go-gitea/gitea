@@ -196,17 +196,21 @@ func ConfigSettings(ctx *context.Context) {
 }
 
 func ChangeConfig(ctx *context.Context) {
-	key := strings.TrimSpace(ctx.FormString("key"))
-	value := ctx.FormString("value")
 	cfg := setting.Config()
 
-	marshalBool := func(v string) (string, error) { //nolint:unparam // error is always nil
-		if b, _ := strconv.ParseBool(v); b {
-			return "true", nil
-		}
-		return "false", nil
+	marshalBool := func(v string) ([]byte, error) {
+		b, _ := strconv.ParseBool(v)
+		return json.Marshal(b)
 	}
-	marshalOpenWithApps := func(value string) (string, error) {
+
+	marshalString := func(emptyDefault string) func(v string) ([]byte, error) {
+		return func(v string) ([]byte, error) {
+			return json.Marshal(util.IfZero(v, emptyDefault))
+		}
+	}
+
+	marshalOpenWithApps := func(value string) ([]byte, error) {
+		// TODO: move the block alongside OpenWithEditorAppsType.ToTextareaString
 		lines := strings.Split(value, "\n")
 		var openWithEditorApps setting.OpenWithEditorAppsType
 		for _, line := range lines {
@@ -224,32 +228,47 @@ func ChangeConfig(ctx *context.Context) {
 				OpenURL:     strings.TrimSpace(openURL),
 			})
 		}
-		b, err := json.Marshal(openWithEditorApps)
-		if err != nil {
-			return "", err
-		}
-		return string(b), nil
+		return json.Marshal(openWithEditorApps)
 	}
-	marshallers := map[string]func(string) (string, error){
+	marshallers := map[string]func(string) ([]byte, error){
 		cfg.Picture.DisableGravatar.DynKey():       marshalBool,
 		cfg.Picture.EnableFederatedAvatar.DynKey(): marshalBool,
 		cfg.Repository.OpenWithEditorApps.DynKey(): marshalOpenWithApps,
-	}
-	marshaller, hasMarshaller := marshallers[key]
-	if !hasMarshaller {
-		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
-		return
-	}
-	marshaledValue, err := marshaller(value)
-	if err != nil {
-		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
-		return
-	}
-	if err = system_model.SetSettings(ctx, map[string]string{key: marshaledValue}); err != nil {
-		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
-		return
+		cfg.Repository.GitGuideRemoteName.DynKey(): marshalString(cfg.Repository.GitGuideRemoteName.DefaultValue()),
 	}
 
+	_ = ctx.Req.ParseForm()
+	configKeys := ctx.Req.Form["key"]
+	configValues := ctx.Req.Form["value"]
+	configSettings := map[string]string{}
+loop:
+	for i, key := range configKeys {
+		if i >= len(configValues) {
+			ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+			break loop
+		}
+		value := configValues[i]
+
+		marshaller, hasMarshaller := marshallers[key]
+		if !hasMarshaller {
+			ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+			break loop
+		}
+
+		marshaledValue, err := marshaller(value)
+		if err != nil {
+			ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+			break loop
+		}
+		configSettings[key] = string(marshaledValue)
+	}
+	if ctx.Written() {
+		return
+	}
+	if err := system_model.SetSettings(ctx, configSettings); err != nil {
+		ctx.ServerError("SetSettings", err)
+		return
+	}
 	config.GetDynGetter().InvalidateCache()
 	ctx.JSONOK()
 }
