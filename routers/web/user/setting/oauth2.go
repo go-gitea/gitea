@@ -66,3 +66,8 @@ func RevokeOAuth2Grant(ctx *context.Context) {
 	oa := newOAuth2CommonHandlers(ctx.Doer.ID)
 	oa.RevokeGrant(ctx)
 }
+
+func RevokeOAuth2DeviceGrant(ctx *context.Context) {
+	oa := newOAuth2CommonHandlers(ctx.Doer.ID)
+	oa.RevokeDeviceGrant(ctx)
+}

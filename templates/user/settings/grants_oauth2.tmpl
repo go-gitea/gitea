@@ -2,6 +2,7 @@
 	{{ctx.Locale.Tr "settings.authorized_oauth2_applications"}}
 </h4>
 <div class="ui attached segment">
+	{{if gt (len .Grants) 0}}
 	<div class="flex-list">
 		<div class="flex-item">
 			{{ctx.Locale.Tr "settings.authorized_oauth2_applications_description"}}
@@ -26,6 +27,34 @@
 			</div>
 		{{end}}
 	</div>
+	{{end}}
+
+	{{if gt (len .DeviceGrants) 0}}
+	<div class="flex-list">
+		<div class="flex-item">
+			{{ctx.Locale.Tr "settings.authorized_oauth2_device_description"}}
+		</div>
+		{{range .DeviceGrants}}
+			<div class="flex-item">
+				<div class="flex-item-leading">
+					{{svg "octicon-key" 32}}
+				</div>
+				<div class="flex-item-main">
+					<div class="flex-item-title">{{.Application.Name}} ({{ctx.Locale.Tr "settings.authorized_oauth2_user_code" .UserCode}})</div>
+					<div class="flex-item-body">
+						<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}}</i>
+					</div>
+				</div>
+				<div class="flex-item-trailing">
+					<button class="ui red tiny button delete-button" data-modal-id="revoke-gitea-oauth2-grant"
+							data-url="{{AppSubUrl}}/user/settings/applications/oauth2/{{.ApplicationID}}/revoke_device/{{.ID}}">
+						{{ctx.Locale.Tr "settings.revoke_key"}}
+					</button>
+				</div>
+			</div>
+		{{end}}
+	</div>
+	{{end}}
 
 	<div class="ui g-modal-confirm delete modal" id="revoke-gitea-oauth2-grant">
 		<div class="header">

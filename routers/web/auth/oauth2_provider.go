@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
@@ -30,8 +31,10 @@ import (
 )
 
 const (
-	tplGrantAccess templates.TplName = "user/auth/grant"
-	tplGrantError  templates.TplName = "user/auth/grant_error"
+	tplGrantAccess   templates.TplName = "user/auth/grant"
+	tplGrantError    templates.TplName = "user/auth/grant_error"
+	tplDeviceAuth    templates.TplName = "user/auth/device"
+	tplDeviceConfirm templates.TplName = "user/auth/device_confirm"
 )
 
 // TODO move error and responses to SDK or models
@@ -55,6 +58,8 @@ const (
 	ErrorCodeServerError AuthorizeErrorCode = "server_error"
 	// ErrorCodeTemporaryUnavailable represents the according error in RFC 6749
 	ErrorCodeTemporaryUnavailable AuthorizeErrorCode = "temporarily_unavailable"
+	// ErrorDeviceFlowDisabled represents the according error like github
+	ErrorDeviceFlowDisabled AuthorizeErrorCode = "device_flow_disabled"
 )
 
 // AuthorizeError represents an error type specified in RFC 6749
@@ -511,6 +516,8 @@ func AccessTokenOAuth(ctx *context.Context) {
 		handleRefreshToken(ctx, form, serverKey, clientKey)
 	case "authorization_code":
 		handleAuthorizationCode(ctx, form, serverKey, clientKey)
+	case "urn:ietf:params:oauth:grant-type:device_code":
+		handleDeviceAuthorizationCode(ctx, form, serverKey, clientKey)
 	default:
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeUnsupportedGrantType,
@@ -552,8 +559,15 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 		})
 		return
 	}
+
+	var grant auth.IOAuth2Grant
+
 	// get grant before increasing counter
-	grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
+	if token.GrantID < 0 {
+		grant, err = auth.GetOAuth2DeviceGrantByID(ctx, -token.GrantID)
+	} else {
+		grant, err = auth.GetOAuth2GrantByID(ctx, token.GrantID)
+	}
 	if err != nil || grant == nil {
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
@@ -563,12 +577,12 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 	}
 
 	// check if token got already used
-	if setting.OAuth2.InvalidateRefreshTokens && (grant.Counter != token.Counter || token.Counter == 0) {
+	if setting.OAuth2.InvalidateRefreshTokens && (grant.GetCounter() != token.Counter || token.Counter == 0) {
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "token was already used",
 		})
-		log.Warn("A client tried to use a refresh token for grant_id = %d was used twice!", grant.ID)
+		log.Warn("A client tried to use a refresh token for grant_id = %d was used twice!", grant.GetID())
 		return
 	}
 	accessToken, tokenErr := oauth2_provider.NewAccessTokenResponse(ctx, grant, serverKey, clientKey)
@@ -676,4 +690,223 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	q.Set("state", authErr.State)
 	redirect.RawQuery = q.Encode()
 	ctx.Redirect(redirect.String(), http.StatusSeeOther)
+}
+
+// AuthorizeOAuth manages device flow authorize requests
+func AuthorizeDeviceOAuth(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.AuthorizationDeviceForm)
+	errs := binding.Errors{}
+	errs = form.Validate(ctx.Req, errs)
+	if len(errs) > 0 {
+		errstring := ""
+		for _, e := range errs {
+			errstring += e.Error() + "\n"
+		}
+		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring))
+		return
+	}
+
+	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
+	if err != nil {
+		if auth.IsErrOauthClientIDInvalid(err) {
+			handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+				ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidClient,
+				ErrorDescription: "Client ID not registered",
+			})
+			return
+		}
+		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
+		return
+	}
+
+	if !app.EnableDeviceFlow {
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorDeviceFlowDisabled,
+			ErrorDescription: "Device Flow must be explicitly enabled for this App",
+		})
+		return
+	}
+
+	code, err := app.CreateDevice(ctx, form.Scope)
+	if err != nil {
+		ctx.ServerError("CreateDevice", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, &oauth2_provider.DeviceAuthorizationResponse{
+		DeviceCode:      code.DeviceCode,
+		UserCode:        code.UserCode,
+		ExpiresIn:       setting.OAuth2.DeviceFlowExpirationTime,
+		VerificationURI: setting.AppURL + "login/device",
+		Interval:        5,
+	})
+}
+
+func handleDeviceAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, serverKey, clientKey oauth2_provider.JWTSigningKey) {
+	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
+	if err != nil {
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidClient,
+			ErrorDescription: fmt.Sprintf("cannot load client with client id: '%s'", form.ClientID),
+		})
+		return
+	}
+
+	device, err := app.GetDeviceByDeviceCode(ctx, form.DeviceCode)
+	if err != nil {
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: fmt.Sprintf("cannot find device with device code: '%s'", form.DeviceCode),
+		})
+		return
+	}
+
+	if !app.EnableDeviceFlow {
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorDeviceFlowDisabled,
+			ErrorDescription: "Device Flow must be explicitly enabled for this App",
+		})
+		return
+	}
+
+	grant, err := device.GetGrant(ctx)
+	if err != nil {
+		if device.ExpiredUnix < timeutil.TimeStampNow() {
+			handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+				ErrorCode:        oauth2_provider.AccessTokenErrorExpiredToken,
+				ErrorDescription: fmt.Sprintf("device code '%s' expired", form.DeviceCode),
+			})
+			return
+		}
+
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeAuthorizationPending,
+			ErrorDescription: fmt.Sprintf("cannot find grant for device code: '%s'", form.DeviceCode),
+		})
+		return
+	}
+
+	resp, tokenErr := oauth2_provider.NewAccessTokenResponse(ctx, grant, serverKey, clientKey)
+	if tokenErr != nil {
+		handleAccessTokenError(ctx, *tokenErr)
+		return
+	}
+
+	// send successful response
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func AuthorizeOAuthDevice(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("auth.authorize_device_title")
+
+	ctx.HTML(http.StatusOK, tplDeviceAuth)
+}
+
+func AuthorizeOAuthDevicePost(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("auth.authorize_device_title")
+
+	form := web.GetForm(ctx).(*forms.Oauth2DeviceActivationForm)
+	errs := binding.Errors{}
+	errs = form.Validate(ctx.Req, errs)
+	if len(errs) > 0 {
+		errstring := ""
+		for _, e := range errs {
+			errstring += e.Error() + "\n"
+		}
+		ctx.ServerError("Oauth2DeviceActivationForm: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring))
+		return
+	}
+
+	form.UserCode = strings.ToUpper(strings.TrimSpace(form.UserCode))
+
+	device, err := auth.GetDeviceByUserCode(ctx, form.UserCode)
+	if err != nil {
+		if !auth.IsErrOAuth2DeviceNotFound(err) {
+			ctx.ServerError("GetDeviceByUserCode", err)
+			return
+		}
+
+		ctx.Data["Err_UserCode"] = true
+		ctx.Data["UserCode"] = form.UserCode
+		ctx.RenderWithErr(ctx.Tr("auth.device_not_found"), tplDeviceAuth, &form)
+
+		return
+	}
+
+	err = device.LoadApplication(ctx)
+	if err != nil {
+		ctx.ServerError("LoadApplication", err)
+		return
+	}
+
+	ctx.Data["UserCode"] = form.UserCode
+	ctx.Data["DeviceID"] = device.ID
+	ctx.Data["AdditionalScopes"] = oauth2_provider.GrantAdditionalScopes(device.Scope) != auth.AccessTokenScopeAll
+
+	var user *user_model.User
+	if device.Application.UID != 0 {
+		user, err = user_model.GetUserByID(ctx, device.Application.UID)
+		if err != nil {
+			ctx.ServerError("GetUserByID", err)
+			return
+		}
+	}
+
+	ctx.Data["Application"] = device.Application
+	ctx.Data["Scope"] = device.Scope
+	if user != nil {
+		ctx.Data["ApplicationCreatorLinkHTML"] = template.HTML(fmt.Sprintf(`<a href="%s">@%s</a>`, html.EscapeString(user.HomeLink()), html.EscapeString(user.Name)))
+	} else {
+		ctx.Data["ApplicationCreatorLinkHTML"] = template.HTML(fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(setting.AppSubURL+"/"), html.EscapeString(setting.AppName)))
+	}
+
+	ctx.HTML(http.StatusOK, tplDeviceConfirm)
+}
+
+func AuthorizeOAuthDeviceConfirm(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("auth.authorize_device_title")
+
+	form := web.GetForm(ctx).(*forms.Oauth2DeviceConfirmationForm)
+	errs := binding.Errors{}
+	errs = form.Validate(ctx.Req, errs)
+	if len(errs) > 0 {
+		errstring := ""
+		for _, e := range errs {
+			errstring += e.Error() + "\n"
+		}
+		ctx.ServerError("Oauth2DeviceConfirmationForm: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring))
+		return
+	}
+
+	if !form.Granted {
+		ctx.Redirect(setting.AppSubURL+"/login/device", http.StatusSeeOther)
+		return
+	}
+
+	device, err := auth.GetDeviceByID(ctx, form.DeviceID)
+	if err != nil && !auth.IsErrOAuth2DeviceNotFound(err) {
+		ctx.ServerError("GetDeviceByID", err)
+		return
+	}
+
+	if err != nil || device.ExpiredUnix < timeutil.TimeStampNow() {
+		ctx.Flash.Error(ctx.Tr("auth.device_expired"))
+		ctx.Redirect(setting.AppSubURL+"/login/device", http.StatusSeeOther)
+		return
+	}
+
+	if device.GrantID != 0 {
+		ctx.Flash.Error(ctx.Tr("auth.device_granted"))
+		ctx.Redirect(setting.AppSubURL+"/login/device", http.StatusSeeOther)
+		return
+	}
+
+	err = device.CreateGrant(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("CreateGrant", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("auth.device_granted_success", device.UserCode))
+	ctx.Redirect(setting.AppSubURL+"/login/device", http.StatusSeeOther)
 }

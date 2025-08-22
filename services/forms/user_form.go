@@ -180,6 +180,7 @@ type AccessTokenForm struct {
 	RedirectURI  string `json:"redirect_uri"`
 	Code         string `json:"code"`
 	RefreshToken string `json:"refresh_token"`
+	DeviceCode   string `json:"device_code"`
 
 	// PKCE support
 	CodeVerifier string `json:"code_verifier"`
@@ -187,6 +188,38 @@ type AccessTokenForm struct {
 
 // Validate validates the fields
 func (f *AccessTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type AuthorizationDeviceForm struct {
+	ClientID string `json:"client_id" binding:"Required"`
+	Scope    string
+}
+
+// Validate validates the fields
+func (f *AuthorizationDeviceForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type Oauth2DeviceActivationForm struct {
+	UserCode string `json:"user_code" binding:"Required"`
+}
+
+// Validate validates the fields
+func (f *Oauth2DeviceActivationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type Oauth2DeviceConfirmationForm struct {
+	DeviceID int64 `json:"device_id" binding:"Required"`
+	Granted  bool
+}
+
+// Validate validates the fields
+func (f *Oauth2DeviceConfirmationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -362,6 +395,7 @@ type EditOAuth2ApplicationForm struct {
 	RedirectURIs               string `binding:"Required;ValidUrlList" form:"redirect_uris"`
 	ConfidentialClient         bool   `form:"confidential_client"`
 	SkipSecondaryAuthorization bool   `form:"skip_secondary_authorization"`
+	EnableDeviceFlow           bool   `form:"enable_device_flow"`
 }
 
 // Validate validates the fields

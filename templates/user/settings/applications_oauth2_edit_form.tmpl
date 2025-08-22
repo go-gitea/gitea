@@ -53,6 +53,12 @@
 				<input type="checkbox" name="skip_secondary_authorization" {{if .App.SkipSecondaryAuthorization}}checked{{end}}>
 			</div>
 		</div>
+		<div class="field" id="enable-device-flow">
+			<div class="ui checkbox">
+				<label>{{ctx.Locale.Tr "settings.oauth2_enable_device_flow"}}</label>
+				<input type="checkbox" name="enable_device_flow" {{if .App.EnableDeviceFlow}}checked{{end}}>
+			</div>
+		</div>
 		<button class="ui primary button">
 			{{ctx.Locale.Tr "settings.save_application"}}
 		</button>
