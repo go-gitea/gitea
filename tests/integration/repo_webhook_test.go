@@ -1126,8 +1126,16 @@ func Test_WebhookWorkflowRun(t *testing.T) {
 			testFunc: testWorkflowRunEventsOnRerun,
 		},
 		{
-			name:     "WorkflowRunEventsOnCancellingAbandonedRun",
-			testFunc: testWorkflowRunEventsOnCancellingAbandonedRun,
+			name: "WorkflowRunEventsOnCancellingAbandonedRunAllJobsAbandoned",
+			testFunc: func(t *testing.T, webhookData *workflowRunWebhook) {
+				testWorkflowRunEventsOnCancellingAbandonedRun(t, webhookData, true)
+			},
+		},
+		{
+			name: "WorkflowRunEventsOnCancellingAbandonedRunPartiallyAbandoned",
+			testFunc: func(t *testing.T, webhookData *workflowRunWebhook) {
+				testWorkflowRunEventsOnCancellingAbandonedRun(t, webhookData, false)
+			},
 		},
 	}
 	for _, obj := range testCases {
@@ -1420,7 +1428,7 @@ jobs:
 	assert.Len(t, webhookData.payloads, 3)
 }
 
-func testWorkflowRunEventsOnCancellingAbandonedRun(t *testing.T, webhookData *workflowRunWebhook) {
+func testWorkflowRunEventsOnCancellingAbandonedRun(t *testing.T, webhookData *workflowRunWebhook, allJobsAbandoned bool) {
 	defer test.MockVariableValue(&setting.Actions.AbandonedJobTimeout, 0*time.Nanosecond)()
 
 	// 1. create a new webhook with special webhook for repo1
@@ -1435,7 +1443,7 @@ func testWorkflowRunEventsOnCancellingAbandonedRun(t *testing.T, webhookData *wo
 	for i := range runners {
 		runners[i] = newMockRunner()
 		runners[i].registerAsRepoRunner(t, "user2", repoName,
-			fmt.Sprintf("mock-runner-1-%d", i), []string{"ubuntu-latest"}, false)
+			fmt.Sprintf("mock-runner-%d", i), []string{"ubuntu-latest"}, false)
 	}
 
 	testAPICreateWebhookForRepo(t, session, "user2", repoName, webhookData.URL, "workflow_run")
@@ -1535,9 +1543,11 @@ jobs:
 
 	for _, runner := range runners {
 		task := runner.fetchTask(t)
-		runner.execTask(t, task, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
+		if !allJobsAbandoned {
+			runner.execTask(t, task, &mockTaskOutcome{
+				result: runnerv1.Result_RESULT_SUCCESS,
+			})
+		}
 	}
 
 	// Add this sleep to ensure the func can find the tasks by timestamp.
