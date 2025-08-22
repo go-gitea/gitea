@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -16,6 +17,21 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 )
+
+// isEffectivelyArchived checks if a repository is archived either directly or through its parent organization
+func isEffectivelyArchived(ctx context.Context, repo *repo_model.Repository) bool {
+	if repo.IsArchived {
+		return true
+	}
+
+	// Check if parent organization is archived (if repository belongs to an organization)
+	if repo.Owner != nil && repo.Owner.IsOrganization() {
+		org := organization.OrgFromUser(repo.Owner)
+		return org.IsArchived(ctx)
+	}
+
+	return false
+}
 
 // ToRepo converts a Repository to api.Repository
 func ToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission) *api.Repository {
@@ -197,7 +213,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		Private:                       repo.IsPrivate,
 		Template:                      repo.IsTemplate,
 		Empty:                         repo.IsEmpty,
-		Archived:                      repo.IsArchived,
+		Archived:                      isEffectivelyArchived(ctx, repo),
 		Size:                          int(repo.Size / 1024),
 		Fork:                          repo.IsFork,
 		Parent:                        parent,

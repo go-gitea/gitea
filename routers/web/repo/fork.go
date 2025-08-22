@@ -143,6 +143,14 @@ func ForkPost(ctx *context.Context) {
 		return
 	}
 
+	if ctxUser.IsOrganization() {
+		org := organization.OrgFromUser(ctxUser)
+		if err := org.MustNotBeArchived(ctx); err != nil {
+			ctx.JSONError(ctx.Tr("org.archived_create_repo_not_allowed"))
+			return
+		}
+	}
+
 	forkRepo := getForkRepository(ctx)
 	if ctx.Written() {
 		return

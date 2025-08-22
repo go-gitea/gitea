@@ -510,6 +510,11 @@ func CreateOrgRepo(ctx *context.APIContext) {
 		return
 	}
 
+	if err := org.MustNotBeArchived(ctx); err != nil {
+		ctx.APIError(http.StatusForbidden, err)
+		return
+	}
+
 	if !ctx.Doer.IsAdmin {
 		canCreate, err := org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
 		if err != nil {

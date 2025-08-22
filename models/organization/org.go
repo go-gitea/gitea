@@ -7,7 +7,9 @@ package organization
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -591,4 +593,66 @@ func getUserTeamIDsQueryBuilder(orgID, userID int64) *builder.Builder {
 			"team_user.org_id": orgID,
 			"team_user.uid":    userID,
 		})
+}
+
+// ErrOrgIsArchived represents a "OrgIsArchived" error
+type ErrOrgIsArchived struct {
+	OrgName string
+}
+
+func (err ErrOrgIsArchived) Error() string {
+	return fmt.Sprintf("organization is archived [name: %s]", err.OrgName)
+}
+
+func (err ErrOrgIsArchived) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
+// IsArchived returns true if organization is archived
+func (org *Organization) IsArchived(ctx context.Context) bool {
+	archived, _ := user_model.GetSetting(ctx, org.ID, "org_archived")
+	return archived == "true"
+}
+
+// SetArchived sets the archived status of the organization
+func (org *Organization) SetArchived(ctx context.Context, archived bool) error {
+	archivedStr := "false"
+	if archived {
+		archivedStr = "true"
+	}
+
+	if err := user_model.SetUserSetting(ctx, org.ID, "org_archived", archivedStr); err != nil {
+		return err
+	}
+
+	if archived {
+		// Set the archived date
+		return user_model.SetUserSetting(ctx, org.ID, "org_archived_date", strconv.FormatInt(time.Now().Unix(), 10))
+	} else {
+		// Clear the archived date when unarchiving
+		return user_model.SetUserSetting(ctx, org.ID, "org_archived_date", "")
+	}
+}
+
+// GetArchivedDate returns the date when the organization was archived, or zero time if not archived
+func (org *Organization) GetArchivedDate(ctx context.Context) (time.Time, error) {
+	dateStr, err := user_model.GetSetting(ctx, org.ID, "org_archived_date")
+	if err != nil || dateStr == "" {
+		return time.Time{}, err
+	}
+
+	timestamp, err := strconv.ParseInt(dateStr, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return time.Unix(timestamp, 0), nil
+}
+
+// MustNotBeArchived returns ErrOrgIsArchived if the organization is archived
+func (org *Organization) MustNotBeArchived(ctx context.Context) error {
+	if org.IsArchived(ctx) {
+		return ErrOrgIsArchived{OrgName: org.Name}
+	}
+	return nil
 }

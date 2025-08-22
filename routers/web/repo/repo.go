@@ -89,7 +89,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 
 	var orgsAvailable []*organization.Organization
 	for i := range orgs {
-		if ctx.Doer.CanCreateRepoIn(orgs[i].AsUser()) {
+		if ctx.Doer.CanCreateRepoIn(orgs[i].AsUser()) && !orgs[i].IsArchived(ctx) {
 			orgsAvailable = append(orgsAvailable, orgs[i])
 		}
 	}
@@ -224,6 +224,14 @@ func CreatePost(ctx *context.Context) {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
+
+	if ctxUser.IsOrganization() {
+		org := organization.OrgFromUser(ctxUser)
+		if err := org.MustNotBeArchived(ctx); err != nil {
+			ctx.RenderWithErr(ctx.Tr("org.archived_create_repo_not_allowed"), tplCreate, form)
+			return
+		}
+	}
 
 	if form.RepoTemplate > 0 {
 		templateRepo, err := repo_model.GetRepositoryByID(ctx, form.RepoTemplate)

@@ -43,6 +43,7 @@ type UpdateOrgSettingForm struct {
 	Location                  string `binding:"MaxSize(50)"`
 	MaxRepoCreation           int
 	RepoAdminChangeTeamAccess bool
+	Archived                  bool
 }
 
 // Validate validates the fields
