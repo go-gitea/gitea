@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-const tplRepoSettingsPublicAccess templates.TplName = "repo/settings/public_access"
+const tplRepoSettingsPublicAccess templates.TplName = "repo/settings/access/public_access"
 
 func parsePublicAccessMode(permission string, allowed []string) (ret struct {
 	AnonymousAccessMode, EveryoneAccessMode perm.AccessMode
