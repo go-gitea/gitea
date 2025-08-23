@@ -8,18 +8,18 @@ import (
 )
 
 // RenderBranchFeed render format for branch or file
-func RenderBranchFeedRSS(ctx *context.Context) {
+func RenderBranchFeed(ctx *context.Context, feedType string) {
 	if ctx.Repo.TreePath == "" {
-		ShowBranchFeed(ctx, ctx.Repo.Repository, "rss")
+		ShowBranchFeed(ctx, ctx.Repo.Repository, feedType)
 	} else {
-		ShowFileFeed(ctx, ctx.Repo.Repository, "rss")
+		ShowFileFeed(ctx, ctx.Repo.Repository, feedType)
 	}
 }
 
+func RenderBranchFeedRSS(ctx *context.Context) {
+	RenderBranchFeed(ctx, "rss")
+}
+
 func RenderBranchFeedAtom(ctx *context.Context) {
-	if ctx.Repo.TreePath == "" {
-		ShowBranchFeed(ctx, ctx.Repo.Repository, "atom")
-	} else {
-		ShowFileFeed(ctx, ctx.Repo.Repository, "atom")
-	}
+	RenderBranchFeed(ctx, "atom")
 }
