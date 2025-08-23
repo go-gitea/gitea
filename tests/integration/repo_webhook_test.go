@@ -717,6 +717,7 @@ func Test_WebhookPullRequest(t *testing.T) {
 		assert.Equal(t, 0, *payloads[0].PullRequest.Deletions)
 		assert.Len(t, payloads[0].PullRequest.RequestedReviewers, 1)
 		assert.Equal(t, int64(2), payloads[0].PullRequest.RequestedReviewers[0].ID)
+		assert.True(t, payloads[0].PullRequest.Mergeable)
 	})
 }
 
