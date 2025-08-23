@@ -188,7 +188,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		for _, reviewer := range opts.Reviewers {
-			err = IsValidReviewRequest(ctx, reviewer, issue.Poster, true, issue, &permDoer)
+			err = isValidReviewRequest(ctx, reviewer, issue.Poster, true, issue, &permDoer)
 			if err != nil {
 				return err
 			}
@@ -197,15 +197,17 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			if err != nil {
 				return err
 			}
-			reviewNotifiers = append(reviewNotifiers, &ReviewRequestNotifier{
-				Comment:  comment,
-				IsAdd:    true,
-				Reviewer: reviewer,
-			})
+			if comment != nil {
+				reviewNotifiers = append(reviewNotifiers, &ReviewRequestNotifier{
+					Comment:  comment,
+					IsAdd:    true,
+					Reviewer: reviewer,
+				})
+			}
 		}
 
 		for _, teamReviewer := range opts.TeamReviewers {
-			err = IsValidTeamReviewRequest(ctx, teamReviewer, issue.Poster, true, issue)
+			err = isValidTeamReviewRequest(ctx, teamReviewer, issue.Poster, true, issue)
 			if err != nil {
 				return err
 			}
@@ -214,11 +216,13 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			if err != nil {
 				return err
 			}
-			reviewNotifiers = append(reviewNotifiers, &ReviewRequestNotifier{
-				Comment:    comment,
-				IsAdd:      true,
-				ReviewTeam: teamReviewer,
-			})
+			if comment != nil {
+				reviewNotifiers = append(reviewNotifiers, &ReviewRequestNotifier{
+					Comment:    comment,
+					IsAdd:      true,
+					ReviewTeam: teamReviewer,
+				})
+			}
 		}
 
 		return nil

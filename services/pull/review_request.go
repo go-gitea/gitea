@@ -19,7 +19,7 @@ import (
 
 // ReviewRequest add or remove a review request from a user for this PR, and make comment for it.
 func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, permDoer *access_model.Permission, reviewer *user_model.User, isAdd bool) (comment *issues_model.Comment, err error) {
-	err = IsValidReviewRequest(ctx, reviewer, doer, isAdd, issue, permDoer)
+	err = isValidReviewRequest(ctx, reviewer, doer, isAdd, issue, permDoer)
 	if err != nil {
 		return nil, err
 	}
@@ -41,8 +41,8 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 	return comment, err
 }
 
-// IsValidReviewRequest Check permission for ReviewRequest
-func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer *access_model.Permission) error {
+// isValidReviewRequest Check permission for ReviewRequest
+func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer *access_model.Permission) error {
 	if reviewer.IsOrganization() {
 		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Organization can't be added as reviewer",
@@ -125,8 +125,8 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 	}
 }
 
-// IsValidTeamReviewRequest Check permission for ReviewRequest Team
-func IsValidTeamReviewRequest(ctx context.Context, reviewer *org_model.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue) error {
+// isValidTeamReviewRequest Check permission for ReviewRequest Team
+func isValidTeamReviewRequest(ctx context.Context, reviewer *org_model.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue) error {
 	if doer.IsOrganization() {
 		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Organization can't be doer to add reviewer",
@@ -174,7 +174,7 @@ func IsValidTeamReviewRequest(ctx context.Context, reviewer *org_model.Team, doe
 
 // TeamReviewRequest add or remove a review request from a team for this PR, and make comment for it.
 func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewer *org_model.Team, isAdd bool) (comment *issues_model.Comment, err error) {
-	err = IsValidTeamReviewRequest(ctx, reviewer, doer, isAdd, issue)
+	err = isValidTeamReviewRequest(ctx, reviewer, doer, isAdd, issue)
 	if err != nil {
 		return nil, err
 	}
