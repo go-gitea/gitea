@@ -76,10 +76,8 @@ func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
 // value is used to store display data
 var gothProviders = map[string]GothProvider{}
 
-var azureProviders = []string{
-	"azuread",
-	"microsoftonline",
-	"azureadv2",
+func isAzureProvider(name string) bool {
+	return name == "azuread" || name == "microsoftonline" || name == "azureadv2"
 }
 
 // RegisterGothProvider registers a GothProvider
@@ -91,23 +89,23 @@ func RegisterGothProvider(provider GothProvider) {
 }
 
 // getExistingAzureADAuthSources returns a list of Azure AD provider names that are already configured
-func getExistingAzureADAuthSources(ctx context.Context) []string {
+func getExistingAzureADAuthSources(ctx context.Context) ([]string, error) {
 	authSources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		LoginType: auth.OAuth2,
 	})
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	var existingAzureProviders []string
 	for _, source := range authSources {
 		if oauth2Cfg, ok := source.Cfg.(*Source); ok {
-			if slices.Contains(azureProviders, oauth2Cfg.Provider) {
+			if isAzureProvider(oauth2Cfg.Provider) {
 				existingAzureProviders = append(existingAzureProviders, oauth2Cfg.Provider)
 			}
 		}
 	}
-	return existingAzureProviders
+	return existingAzureProviders, nil
 }
 
 // GetSupportedOAuth2Providers returns the map of unconfigured OAuth2 providers
@@ -122,10 +120,13 @@ func GetSupportedOAuth2Providers() []Provider {
 // GetSupportedOAuth2ProvidersWithContext returns the list of supported OAuth2 providers with context for filtering
 func GetSupportedOAuth2ProvidersWithContext(ctx context.Context) []Provider {
 	providers := make([]Provider, 0, len(gothProviders))
-	existAuthSources := getExistingAzureADAuthSources(ctx)
+	existingAzureSources, err := getExistingAzureADAuthSources(ctx)
+	if err != nil {
+		log.Error("Failed to get existing OAuth2 auth sources: %v", err)
+	}
 
 	for _, provider := range gothProviders {
-		if slices.Contains(azureProviders, provider.Name()) && !slices.Contains(existAuthSources, provider.Name()) {
+		if isAzureProvider(provider.Name()) && !slices.Contains(existingAzureSources, provider.Name()) {
 			continue
 		}
 		providers = append(providers, provider)
