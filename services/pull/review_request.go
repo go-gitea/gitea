@@ -195,12 +195,12 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 	return comment, teamReviewRequestNotify(ctx, issue, doer, reviewer, isAdd, comment)
 }
 
-func ReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewNotifiers []*ReviewRequestNotifier) {
+func reviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewNotifiers []*ReviewRequestNotifier) {
 	for _, reviewNotifier := range reviewNotifiers {
 		if reviewNotifier.Reviewer != nil {
-			notify_service.PullRequestReviewRequest(ctx, issue.Poster, issue, reviewNotifier.Reviewer, reviewNotifier.IsAdd, reviewNotifier.Comment)
+			notify_service.PullRequestReviewRequest(ctx, doer, issue, reviewNotifier.Reviewer, reviewNotifier.IsAdd, reviewNotifier.Comment)
 		} else if reviewNotifier.ReviewTeam != nil {
-			if err := teamReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifier.ReviewTeam, reviewNotifier.IsAdd, reviewNotifier.Comment); err != nil {
+			if err := teamReviewRequestNotify(ctx, issue, doer, reviewNotifier.ReviewTeam, reviewNotifier.IsAdd, reviewNotifier.Comment); err != nil {
 				log.Error("teamReviewRequestNotify: %v", err)
 			}
 		}
@@ -298,19 +298,17 @@ type reviewRequestNotifer struct {
 }
 
 func (n *reviewRequestNotifer) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
-	var reviewNotifiers []*ReviewRequestNotifier
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(issue.Title) {
 		if err := issue.LoadPullRequest(ctx); err != nil {
 			log.Error("IssueChangeTitle: LoadPullRequest: %v", err)
 			return
 		}
 
-		var err error
-		reviewNotifiers, err = RequestCodeOwnersReview(ctx, issue.PullRequest)
+		reviewNotifiers, err := RequestCodeOwnersReview(ctx, issue.PullRequest)
 		if err != nil {
 			log.Error("RequestCodeOwnersReview: %v", err)
+		} else {
+			reviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 		}
 	}
-
-	ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 }

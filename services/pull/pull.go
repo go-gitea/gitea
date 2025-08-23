@@ -231,7 +231,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 	baseGitRepo.Close() // close immediately to avoid notifications will open the repository again
 
-	ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
+	reviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
 	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, issue.Poster, issue.Content)
 	if err != nil {
@@ -498,7 +498,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 							log.Error("RequestCodeOwnersReview: %v", err)
 						}
 						if len(reviewNotifiers) > 0 {
-							ReviewRequestNotify(ctx, pr.Issue, opts.Doer, reviewNotifiers)
+							reviewRequestNotify(ctx, pr.Issue, opts.Doer, reviewNotifiers)
 						}
 					}
 
