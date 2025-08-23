@@ -147,6 +147,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		if err != nil {
 			return err
 		}
+		// It maybe an empty pull request. Only non-empty pull request need to create push comment
 		if len(compareInfo.Commits) > 0 {
 			data := issues_model.PushActionContent{IsForcePush: false}
 			data.CommitIDs = make([]string, 0, len(compareInfo.Commits))
