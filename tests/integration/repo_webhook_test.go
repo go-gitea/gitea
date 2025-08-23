@@ -14,6 +14,7 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -529,15 +530,30 @@ func Test_WebhookPullRequest(t *testing.T) {
 		}, http.StatusOK)
 		defer provider.Close()
 
+		testCtx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeAll)
+		// add user4 as collabrator so that it can be a reviewer
+		doAPIAddCollaborator(testCtx, "user4", perm.AccessModeWrite)(t)
+
 		// 1. create a new webhook with special webhook for repo1
-		session := loginUser(t, "user2")
+		sessionUser2 := loginUser(t, "user2")
+		sessionUser4 := loginUser(t, "user4")
 
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "pull_request")
+		// ignore the possible review_requested event to keep the test deterministic
+		testAPICreateWebhookForRepo(t, sessionUser2, "user2", "repo1", provider.URL(), "pull_request")
 
-		testAPICreateBranch(t, session, "user2", "repo1", "master", "master2", http.StatusCreated)
+		testAPICreateBranch(t, sessionUser2, "user2", "repo1", "master", "master2", http.StatusCreated)
 		// 2. trigger the webhook
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-		testCreatePullToDefaultBranch(t, session, repo1, repo1, "master2", "first pull request")
+		testPullCreateDirectly(t, sessionUser4, createPullRequestOptions{
+			BaseRepoOwner: repo1.OwnerName,
+			BaseRepoName:  repo1.Name,
+			BaseBranch:    repo1.DefaultBranch,
+			HeadRepoOwner: "",
+			HeadRepoName:  "",
+			HeadBranch:    "master2",
+			Title:         "first pull request",
+			ReviewerIDs:   "2", // add user2 as reviewer
+		})
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "pull_request", triggeredEvent)
@@ -549,6 +565,8 @@ func Test_WebhookPullRequest(t *testing.T) {
 		assert.Equal(t, 0, *payloads[0].PullRequest.Additions)
 		assert.Equal(t, 0, *payloads[0].PullRequest.ChangedFiles)
 		assert.Equal(t, 0, *payloads[0].PullRequest.Deletions)
+		assert.Len(t, payloads[0].PullRequest.RequestedReviewers, 1)
+		assert.Equal(t, int64(2), payloads[0].PullRequest.RequestedReviewers[0].ID)
 	})
 }
 
