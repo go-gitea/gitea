@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
 	issue_service "code.gitea.io/gitea/services/issue"
+	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
@@ -108,7 +109,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			})
 			assert.NoError(t, err)
 
-			reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(db.DefaultContext, pr)
+			reviewNotifiers, err := pull_service.RequestCodeOwnersReview(db.DefaultContext, pr)
 			assert.NoError(t, err)
 			assert.Len(t, reviewNotifiers, 1)
 			assert.EqualValues(t, 8, reviewNotifiers[0].Reviewer.ID)

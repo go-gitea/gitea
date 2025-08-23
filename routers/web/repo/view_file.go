@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
-	issue_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
@@ -22,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -199,9 +199,9 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 		if workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
-	} else if issue_service.IsCodeOwnerFile(ctx.Repo.TreePath) {
+	} else if repo_module.IsCodeOwnerFile(ctx.Repo.TreePath) {
 		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
-			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
+			_, warnings := repo_module.GetCodeOwnersFromContent(ctx, data)
 			if len(warnings) > 0 {
 				ctx.Data["FileWarning"] = strings.Join(warnings, "\n")
 			}
