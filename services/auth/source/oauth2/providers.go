@@ -10,6 +10,7 @@ import (
 	"html"
 	"html/template"
 	"net/url"
+	"slices"
 	"sort"
 
 	"code.gitea.io/gitea/models/auth"
@@ -75,6 +76,12 @@ func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
 // value is used to store display data
 var gothProviders = map[string]GothProvider{}
 
+var azureProviders = []string{
+	"azuread",
+	"microsoftonline",
+	"azureadv2",
+}
+
 // RegisterGothProvider registers a GothProvider
 func RegisterGothProvider(provider GothProvider) {
 	if _, has := gothProviders[provider.Name()]; has {
@@ -83,13 +90,44 @@ func RegisterGothProvider(provider GothProvider) {
 	gothProviders[provider.Name()] = provider
 }
 
+// getExistingAzureADAuthSources returns a list of Azure AD provider names that are already configured
+func getExistingAzureADAuthSources(ctx context.Context) []string {
+	authSources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
+		LoginType: auth.OAuth2,
+	})
+	if err != nil {
+		return nil
+	}
+
+	var existingAzureProviders []string
+	for _, source := range authSources {
+		if oauth2Cfg, ok := source.Cfg.(*Source); ok {
+			if slices.Contains(azureProviders, oauth2Cfg.Provider) {
+				existingAzureProviders = append(existingAzureProviders, oauth2Cfg.Provider)
+			}
+		}
+	}
+	return existingAzureProviders
+}
+
 // GetSupportedOAuth2Providers returns the map of unconfigured OAuth2 providers
 // key is used as technical name (like in the callbackURL)
 // values to display
+// Note: Azure AD providers (azuread, microsoftonline, azureadv2) are filtered out
+// unless they already exist in the system to encourage use of OpenID Connect
 func GetSupportedOAuth2Providers() []Provider {
+	return GetSupportedOAuth2ProvidersWithContext(context.Background())
+}
+
+// GetSupportedOAuth2ProvidersWithContext returns the list of supported OAuth2 providers with context for filtering
+func GetSupportedOAuth2ProvidersWithContext(ctx context.Context) []Provider {
 	providers := make([]Provider, 0, len(gothProviders))
+	existAuthSources := getExistingAzureADAuthSources(ctx)
 
 	for _, provider := range gothProviders {
+		if slices.Contains(azureProviders, provider.Name()) && !slices.Contains(existAuthSources, provider.Name()) {
+			continue
+		}
 		providers = append(providers, provider)
 	}
 	sort.Slice(providers, func(i, j int) bool {
