@@ -686,7 +686,16 @@ func Test_WebhookPullRequest(t *testing.T) {
 		testAPICreateBranch(t, session, "user2", "repo1", "master", "master2", http.StatusCreated)
 		// 2. trigger the webhook
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-		testCreatePullToDefaultBranch(t, session, repo1, repo1, "master2", "first pull request")
+		testPullCreateDirectly(t, session, createPullRequestOptions{
+			BaseRepoOwner: repo1.OwnerName,
+			BaseRepoName:  repo1.Name,
+			BaseBranch:    repo1.DefaultBranch,
+			HeadRepoOwner: "",
+			HeadRepoName:  "",
+			HeadBranch:    "master2",
+			Title:         "first pull request",
+			ReviewerIDs:   "1",
+		})
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "pull_request", triggeredEvent)
@@ -698,6 +707,8 @@ func Test_WebhookPullRequest(t *testing.T) {
 		assert.Equal(t, 0, *payloads[0].PullRequest.Additions)
 		assert.Equal(t, 0, *payloads[0].PullRequest.ChangedFiles)
 		assert.Equal(t, 0, *payloads[0].PullRequest.Deletions)
+		assert.Len(t, payloads[0].PullRequest.RequestedReviewers, 1)
+		assert.Equal(t, int64(1), payloads[0].PullRequest.RequestedReviewers[0].ID)
 	})
 }
 
