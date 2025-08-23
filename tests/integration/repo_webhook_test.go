@@ -539,7 +539,7 @@ func Test_WebhookPullRequest(t *testing.T) {
 		sessionUser4 := loginUser(t, "user4")
 
 		// ignore the possible review_requested event to keep the test deterministic
-		testAPICreateWebhookForRepo(t, sessionUser2, "user2", "repo1", provider.URL(), "pull_request")
+		testAPICreateWebhookForRepo(t, sessionUser2, "user2", "repo1", provider.URL(), "pull_request_only")
 
 		testAPICreateBranch(t, sessionUser2, "user2", "repo1", "master", "master2", http.StatusCreated)
 		// 2. trigger the webhook
