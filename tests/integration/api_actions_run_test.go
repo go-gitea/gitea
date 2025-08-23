@@ -18,6 +18,44 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestAPIActionsGetWorkflowRun(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/802802", repo.FullName())).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/802", repo.FullName())).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/803", repo.FullName())).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+}
+
+func TestAPIActionsGetWorkflowJob(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/jobs/198198", repo.FullName())).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/jobs/198", repo.FullName())).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/jobs/196", repo.FullName())).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+}
+
 func TestAPIActionsDeleteRunCheckPermission(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
