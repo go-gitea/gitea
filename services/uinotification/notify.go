@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -76,12 +77,13 @@ func handler(items ...notificationOpts) []notificationOpts {
 			if err := activities_model.CreateOrUpdateReleaseNotifications(db.DefaultContext, opts.NotificationAuthorID, opts.RepoID, opts.ReleaseID, opts.ReceiverID); err != nil {
 				log.Error("Was unable to create release notification: %v", err)
 			}
-		case activities_model.NotificationSourceIssue, activities_model.NotificationSourcePullRequest:
-			fallthrough
-		default:
+		case activities_model.NotificationSourceIssue, activities_model.NotificationSourcePullRequest, 0:
+			// 0 is for fallback to issue notifications because source is a newly added field
 			if err := activities_model.CreateOrUpdateIssueNotifications(db.DefaultContext, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
 				log.Error("Was unable to create issue notification: %v", err)
 			}
+		default:
+			setting.PanicInDevOrTesting("Unknown notification source: %v", opts.Source)
 		}
 	}
 	return nil
