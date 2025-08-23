@@ -219,8 +219,12 @@ node-check:
 	$(eval MIN_NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(MIN_NODE_VERSION_STR)' | tr '.' ' ')))
 	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | cut -c2- | tr '.' ' ');))
 	$(eval PNPM_MISSING := $(shell hash pnpm > /dev/null 2>&1 || echo 1))
-	@if [ "$(NODE_VERSION)" -lt "$(MIN_NODE_VERSION)" -o "$(PNPM_MISSING)" = "1" ]; then \
-		echo "Gitea requires Node.js $(MIN_NODE_VERSION_STR) or greater and pnpm to build. You can get it at https://nodejs.org/en/download/"; \
+	@if [ "$(NODE_VERSION)" -lt "$(MIN_NODE_VERSION)" ]; then \
+		echo "Gitea requires Node.js $(MIN_NODE_VERSION_STR) or greater to build. You can get it at https://nodejs.org/en/download/"; \
+		exit 1; \
+	fi
+	@if [ "$(PNPM_MISSING)" = "1" ]; then \
+		echo "Gitea requires pnpm to build. You can install it at https://pnpm.io/installation"; \
 		exit 1; \
 	fi
 
