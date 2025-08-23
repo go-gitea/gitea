@@ -151,32 +151,30 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		if err != nil {
 			return err
 		}
-		if len(compareInfo.Commits) == 0 {
-			return nil
-		}
+		if len(compareInfo.Commits) > 0 {
+			data := issues_model.PushActionContent{IsForcePush: false}
+			data.CommitIDs = make([]string, 0, len(compareInfo.Commits))
+			for i := len(compareInfo.Commits) - 1; i >= 0; i-- {
+				data.CommitIDs = append(data.CommitIDs, compareInfo.Commits[i].ID.String())
+			}
 
-		data := issues_model.PushActionContent{IsForcePush: false}
-		data.CommitIDs = make([]string, 0, len(compareInfo.Commits))
-		for i := len(compareInfo.Commits) - 1; i >= 0; i-- {
-			data.CommitIDs = append(data.CommitIDs, compareInfo.Commits[i].ID.String())
-		}
+			dataJSON, err := json.Marshal(data)
+			if err != nil {
+				return err
+			}
 
-		dataJSON, err := json.Marshal(data)
-		if err != nil {
-			return err
-		}
+			ops := &issues_model.CreateCommentOptions{
+				Type:        issues_model.CommentTypePullRequestPush,
+				Doer:        issue.Poster,
+				Repo:        repo,
+				Issue:       pr.Issue,
+				IsForcePush: false,
+				Content:     string(dataJSON),
+			}
 
-		ops := &issues_model.CreateCommentOptions{
-			Type:        issues_model.CommentTypePullRequestPush,
-			Doer:        issue.Poster,
-			Repo:        repo,
-			Issue:       pr.Issue,
-			IsForcePush: false,
-			Content:     string(dataJSON),
-		}
-
-		if _, err = issues_model.CreateComment(ctx, ops); err != nil {
-			return err
+			if _, err = issues_model.CreateComment(ctx, ops); err != nil {
+				return err
+			}
 		}
 
 		// review request from CodeOwners
