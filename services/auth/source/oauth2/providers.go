@@ -10,6 +10,7 @@ import (
 	"html"
 	"html/template"
 	"net/url"
+	"slices"
 	"sort"
 
 	"code.gitea.io/gitea/models/auth"
@@ -75,6 +76,10 @@ func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
 // value is used to store display data
 var gothProviders = map[string]GothProvider{}
 
+func isAzureProvider(name string) bool {
+	return name == "azuread" || name == "microsoftonline" || name == "azureadv2"
+}
+
 // RegisterGothProvider registers a GothProvider
 func RegisterGothProvider(provider GothProvider) {
 	if _, has := gothProviders[provider.Name()]; has {
@@ -83,13 +88,47 @@ func RegisterGothProvider(provider GothProvider) {
 	gothProviders[provider.Name()] = provider
 }
 
+// getExistingAzureADAuthSources returns a list of Azure AD provider names that are already configured
+func getExistingAzureADAuthSources(ctx context.Context) ([]string, error) {
+	authSources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
+		LoginType: auth.OAuth2,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var existingAzureProviders []string
+	for _, source := range authSources {
+		if oauth2Cfg, ok := source.Cfg.(*Source); ok {
+			if isAzureProvider(oauth2Cfg.Provider) {
+				existingAzureProviders = append(existingAzureProviders, oauth2Cfg.Provider)
+			}
+		}
+	}
+	return existingAzureProviders, nil
+}
+
 // GetSupportedOAuth2Providers returns the map of unconfigured OAuth2 providers
 // key is used as technical name (like in the callbackURL)
 // values to display
+// Note: Azure AD providers (azuread, microsoftonline, azureadv2) are filtered out
+// unless they already exist in the system to encourage use of OpenID Connect
 func GetSupportedOAuth2Providers() []Provider {
+	return GetSupportedOAuth2ProvidersWithContext(context.Background())
+}
+
+// GetSupportedOAuth2ProvidersWithContext returns the list of supported OAuth2 providers with context for filtering
+func GetSupportedOAuth2ProvidersWithContext(ctx context.Context) []Provider {
 	providers := make([]Provider, 0, len(gothProviders))
+	existingAzureSources, err := getExistingAzureADAuthSources(ctx)
+	if err != nil {
+		log.Error("Failed to get existing OAuth2 auth sources: %v", err)
+	}
 
 	for _, provider := range gothProviders {
+		if isAzureProvider(provider.Name()) && !slices.Contains(existingAzureSources, provider.Name()) {
+			continue
+		}
 		providers = append(providers, provider)
 	}
 	sort.Slice(providers, func(i, j int) bool {

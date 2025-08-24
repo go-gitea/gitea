@@ -97,7 +97,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetSupportedOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2ProvidersWithContext(ctx)
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
@@ -107,7 +107,9 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
-	ctx.Data["oauth2_provider"] = oauth2providers[0].Name()
+	if len(oauth2providers) > 0 {
+		ctx.Data["oauth2_provider"] = oauth2providers[0].Name()
+	}
 
 	ctx.HTML(http.StatusOK, tplAuthNew)
 }
@@ -240,7 +242,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetSupportedOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2ProvidersWithContext(ctx)
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	ctx.Data["SSPIAutoCreateUsers"] = true

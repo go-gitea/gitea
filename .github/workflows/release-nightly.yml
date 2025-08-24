@@ -75,11 +75,6 @@ jobs:
       - name: Get cleaned branch name
         id: clean_name
         run: |
-          # if main then say nightly otherwise cleanup name
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "branch=nightly" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
           echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
       - name: Login to Docker Hub
@@ -122,11 +117,6 @@ jobs:
       - name: Get cleaned branch name
         id: clean_name
         run: |
-          # if main then say nightly otherwise cleanup name
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "branch=nightly" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
           echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
       - name: Login to Docker Hub
