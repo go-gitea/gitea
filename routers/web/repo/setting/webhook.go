@@ -121,7 +121,7 @@ func checkHookType(ctx *context.Context) string {
 // WebhooksNew render creating webhook page
 func WebhooksNew(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
-	
+
 	// Create a new webhook with default meta settings
 	newWebhook := &webhook.Webhook{HookEvent: &webhook_module.HookEvent{}}
 	// Initialize meta settings with default values
@@ -215,7 +215,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
-	
+
 	// Create a webhook with default meta settings for template rendering
 	newWebhook := &webhook.Webhook{HookEvent: &webhook_module.HookEvent{}}
 	if err := newWebhook.SetMetaSettings(webhook.DefaultMetaSettings()); err != nil {
