@@ -1299,7 +1299,7 @@ func Test_WebhookPayloadOptimizationAPI(t *testing.T) {
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 
-		// Test creating webhook with payload optimization options via API
+		// Test creating webhook with payload config options via API
 		createHookOption := map[string]any{
 			"type": "gitea",
 			"config": map[string]string{
@@ -1308,7 +1308,7 @@ func Test_WebhookPayloadOptimizationAPI(t *testing.T) {
 			},
 			"events": []string{"push"},
 			"meta_settings": map[string]any{
-				"payload_optimization": map[string]any{
+				"payload_config": map[string]any{
 					"files": map[string]any{
 						"enable": true,
 						"limit":  2,
@@ -1328,9 +1328,9 @@ func Test_WebhookPayloadOptimizationAPI(t *testing.T) {
 		var hook api.Hook
 		DecodeJSON(t, resp, &hook)
 
-		// Verify the webhook was created with correct payload optimization settings
+		// Verify the webhook was created with correct payload config settings
 		assert.NotNil(t, hook.MetaSettings)
-		payloadOptConfig := hook.MetaSettings["payload_optimization"].(map[string]any)
+		payloadOptConfig := hook.MetaSettings["payload_config"].(map[string]any)
 		filesConfig := payloadOptConfig["files"].(map[string]any)
 		commitsConfig := payloadOptConfig["commits"].(map[string]any)
 		assert.Equal(t, true, filesConfig["enable"])
@@ -1338,10 +1338,10 @@ func Test_WebhookPayloadOptimizationAPI(t *testing.T) {
 		assert.Equal(t, true, commitsConfig["enable"])
 		assert.InEpsilon(t, 1.0, commitsConfig["limit"], 0.01)
 
-		// Test updating webhook with different payload optimization options
+		// Test updating webhook with different payload config options
 		editHookOption := map[string]any{
 			"meta_settings": map[string]any{
-				"payload_optimization": map[string]any{
+				"payload_config": map[string]any{
 					"files": map[string]any{
 						"enable": false,
 						"limit":  0,
@@ -1360,9 +1360,9 @@ func Test_WebhookPayloadOptimizationAPI(t *testing.T) {
 		var updatedHook api.Hook
 		DecodeJSON(t, resp, &updatedHook)
 
-		// Verify the webhook was updated with correct payload optimization settings
+		// Verify the webhook was updated with correct payload config settings
 		assert.NotNil(t, updatedHook.MetaSettings)
-		payloadOptConfig = updatedHook.MetaSettings["payload_optimization"].(map[string]any)
+		payloadOptConfig = updatedHook.MetaSettings["payload_config"].(map[string]any)
 		filesConfig = payloadOptConfig["files"].(map[string]any)
 		commitsConfig = payloadOptConfig["commits"].(map[string]any)
 		assert.Equal(t, false, filesConfig["enable"])
@@ -1379,7 +1379,7 @@ func Test_WebhookPayloadOptimizationAPI(t *testing.T) {
 
 		// Verify the webhook settings are correctly retrieved
 		assert.NotNil(t, retrievedHook.MetaSettings)
-		payloadOptConfig = retrievedHook.MetaSettings["payload_optimization"].(map[string]any)
+		payloadOptConfig = retrievedHook.MetaSettings["payload_config"].(map[string]any)
 		filesConfig = payloadOptConfig["files"].(map[string]any)
 		commitsConfig = payloadOptConfig["commits"].(map[string]any)
 		assert.Equal(t, false, filesConfig["enable"])

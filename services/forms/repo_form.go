@@ -239,7 +239,7 @@ type WebhookForm struct {
 	BranchFilter             string `binding:"GlobPattern"`
 	AuthorizationHeader      string
 	Secret                   string
-	// Payload optimization settings
+	// Payload config settings
 	PayloadOptimizationFilesEnable   bool `form:"payload_optimization_files_enable"`
 	PayloadOptimizationFilesLimit    int  `form:"payload_optimization_files_limit"`
 	PayloadOptimizationCommitsEnable bool `form:"payload_optimization_commits_enable"`

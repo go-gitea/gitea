@@ -51,7 +51,7 @@ type CreateHookOption struct {
 	BranchFilter        string                 `json:"branch_filter" binding:"GlobPattern"`
 	AuthorizationHeader string                 `json:"authorization_header"`
 	// Webhook metadata settings including payload optimization
-	MetaSettings map[string]any `json:"meta_settings"` // {"payload_optimization": {"files": {"enable": bool, "limit": int}, "commits": {"enable": bool, "limit": int}}}
+	MetaSettings map[string]any `json:"meta_settings"` // {"payload_config": {"files": {"enable": bool, "limit": int}, "commits": {"enable": bool, "limit": int}}}
 	// default: false
 	Active bool `json:"active"`
 }
@@ -63,7 +63,7 @@ type EditHookOption struct {
 	BranchFilter        string            `json:"branch_filter" binding:"GlobPattern"`
 	AuthorizationHeader string            `json:"authorization_header"`
 	// Webhook metadata settings including payload optimization
-	MetaSettings *map[string]any `json:"meta_settings"` // {"payload_optimization": {"files": {"enable": bool, "limit": int}, "commits": {"enable": bool, "limit": int}}}
+	MetaSettings *map[string]any `json:"meta_settings"` // {"payload_config": {"files": {"enable": bool, "limit": int}, "commits": {"enable": bool, "limit": int}}}
 	Active       *bool           `json:"active"`
 }
 

@@ -59,7 +59,7 @@
 				<span class="help">{{ctx.Locale.Tr "repo.settings.payload_optimization_enable_desc"}}</span>
 			</div>
 		</div>
-		<div class="field">
+		<div class="field {{if not .Webhook.IsFilesConfigEnabled}}tw-hidden{{end}}">
 			<label>{{ctx.Locale.Tr "repo.settings.payload_optimization_limit"}}</label>
 			<input name="payload_optimization_files_limit" type="number" value="{{.Webhook.GetFilesConfigLimit}}" placeholder="0" {{if not .Webhook.IsFilesConfigEnabled}}disabled{{end}}>
 			<span class="help">{{ctx.Locale.Tr "repo.settings.payload_optimization_limit_desc"}}</span>
@@ -74,7 +74,7 @@
 				<span class="help">{{ctx.Locale.Tr "repo.settings.payload_optimization_enable_desc"}}</span>
 			</div>
 		</div>
-		<div class="field">
+		<div class="field {{if not .Webhook.IsCommitsConfigEnabled}}tw-hidden{{end}}">
 			<label>{{ctx.Locale.Tr "repo.settings.payload_optimization_limit"}}</label>
 			<input name="payload_optimization_commits_limit" type="number" value="{{.Webhook.GetCommitsConfigLimit}}" placeholder="0" {{if not .Webhook.IsCommitsConfigEnabled}}disabled{{end}}>
 			<span class="help">{{ctx.Locale.Tr "repo.settings.payload_optimization_limit_desc"}}</span>
