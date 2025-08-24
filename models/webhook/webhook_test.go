@@ -342,13 +342,13 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 	assert.Equal(t, 0, config.Commits.Limit)
 
 	// Test setting configuration via meta settings
-	metaSettings := &MetaSettings{
-		PayloadOptimization: &PayloadOptimizationConfig{
-			Files: &PayloadOptimizationItem{
+	metaSettings := MetaSettings{
+		PayloadOptimization: PayloadOptimizationConfig{
+			Files: PayloadOptimizationItem{
 				Enable: true,
 				Limit:  5,
 			},
-			Commits: &PayloadOptimizationItem{
+			Commits: PayloadOptimizationItem{
 				Enable: true,
 				Limit:  -3,
 			},
@@ -371,12 +371,12 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 	assert.True(t, webhook.IsPayloadOptimizationEnabled())
 
 	// Test backward compatibility with direct payload optimization config setting
-	newConfig := &PayloadOptimizationConfig{
-		Files: &PayloadOptimizationItem{
+	newConfig := PayloadOptimizationConfig{
+		Files: PayloadOptimizationItem{
 			Enable: false,
 			Limit:  10,
 		},
-		Commits: &PayloadOptimizationItem{
+		Commits: PayloadOptimizationItem{
 			Enable: false,
 			Limit:  20,
 		},

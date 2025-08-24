@@ -261,13 +261,13 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 	}
 
 	// Set webhook meta settings with payload optimization config
-	metaSettings := &webhook.MetaSettings{
-		PayloadOptimization: &webhook.PayloadOptimizationConfig{
-			Files: &webhook.PayloadOptimizationItem{
+	metaSettings := webhook.MetaSettings{
+		PayloadOptimization: webhook.PayloadOptimizationConfig{
+			Files: webhook.PayloadOptimizationItem{
 				Enable: params.WebhookForm.PayloadOptimizationFilesEnable,
 				Limit:  params.WebhookForm.PayloadOptimizationFilesLimit,
 			},
-			Commits: &webhook.PayloadOptimizationItem{
+			Commits: webhook.PayloadOptimizationItem{
 				Enable: params.WebhookForm.PayloadOptimizationCommitsEnable,
 				Limit:  params.WebhookForm.PayloadOptimizationCommitsLimit,
 			},
@@ -330,13 +330,13 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	w.Meta = string(meta)
 
 	// Set webhook meta settings with payload optimization config
-	metaSettings := &webhook.MetaSettings{
-		PayloadOptimization: &webhook.PayloadOptimizationConfig{
-			Files: &webhook.PayloadOptimizationItem{
+	metaSettings := webhook.MetaSettings{
+		PayloadOptimization: webhook.PayloadOptimizationConfig{
+			Files: webhook.PayloadOptimizationItem{
 				Enable: params.WebhookForm.PayloadOptimizationFilesEnable,
 				Limit:  params.WebhookForm.PayloadOptimizationFilesLimit,
 			},
-			Commits: &webhook.PayloadOptimizationItem{
+			Commits: webhook.PayloadOptimizationItem{
 				Enable: params.WebhookForm.PayloadOptimizationCommitsEnable,
 				Limit:  params.WebhookForm.PayloadOptimizationCommitsLimit,
 			},

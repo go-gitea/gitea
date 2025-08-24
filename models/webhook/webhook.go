@@ -24,13 +24,13 @@ import (
 
 // MetaSettings represents the metadata settings for webhook
 type MetaSettings struct {
-	PayloadOptimization *PayloadOptimizationConfig `json:"payload_optimization,omitempty"` // Payload optimization configuration
+	PayloadOptimization PayloadOptimizationConfig `json:"payload_optimization"` // Payload optimization configuration
 }
 
 // PayloadOptimizationConfig represents the configuration for webhook payload optimization
 type PayloadOptimizationConfig struct {
-	Files   *PayloadOptimizationItem `json:"files,omitempty"`   // Files optimization config
-	Commits *PayloadOptimizationItem `json:"commits,omitempty"` // Commits optimization config
+	Files   PayloadOptimizationItem `json:"files"`   // Files optimization config
+	Commits PayloadOptimizationItem `json:"commits"` // Commits optimization config
 }
 
 // PayloadOptimizationItem represents a single optimization item configuration
@@ -40,17 +40,17 @@ type PayloadOptimizationItem struct {
 }
 
 // DefaultMetaSettings returns the default webhook meta settings
-func DefaultMetaSettings() *MetaSettings {
-	return &MetaSettings{
+func DefaultMetaSettings() MetaSettings {
+	return MetaSettings{
 		PayloadOptimization: DefaultPayloadOptimizationConfig(),
 	}
 }
 
 // DefaultPayloadOptimizationConfig returns the default payload optimization configuration
-func DefaultPayloadOptimizationConfig() *PayloadOptimizationConfig {
-	return &PayloadOptimizationConfig{
-		Files:   &PayloadOptimizationItem{Enable: false, Limit: 0},
-		Commits: &PayloadOptimizationItem{Enable: false, Limit: 0},
+func DefaultPayloadOptimizationConfig() PayloadOptimizationConfig {
+	return PayloadOptimizationConfig{
+		Files:   PayloadOptimizationItem{Enable: false, Limit: 0},
+		Commits: PayloadOptimizationItem{Enable: false, Limit: 0},
 	}
 }
 
@@ -383,7 +383,7 @@ func DeleteWebhookByOwnerID(ctx context.Context, ownerID, id int64) error {
 }
 
 // GetMetaSettings returns the webhook meta settings
-func (w *Webhook) GetMetaSettings() *MetaSettings {
+func (w *Webhook) GetMetaSettings() MetaSettings {
 	if w.MetaSettings == "" {
 		return DefaultMetaSettings()
 	}
@@ -394,25 +394,16 @@ func (w *Webhook) GetMetaSettings() *MetaSettings {
 		return DefaultMetaSettings()
 	}
 
-	// Ensure payload optimization config is initialized
-	if settings.PayloadOptimization == nil {
-		settings.PayloadOptimization = DefaultPayloadOptimizationConfig()
-	}
-
-	return &settings
+	return settings
 }
 
 // GetPayloadOptimizationConfig returns the payload optimization configuration
-func (w *Webhook) GetPayloadOptimizationConfig() *PayloadOptimizationConfig {
+func (w *Webhook) GetPayloadOptimizationConfig() PayloadOptimizationConfig {
 	return w.GetMetaSettings().PayloadOptimization
 }
 
 // SetMetaSettings sets the webhook meta settings
-func (w *Webhook) SetMetaSettings(settings *MetaSettings) error {
-	if settings == nil {
-		settings = DefaultMetaSettings()
-	}
-
+func (w *Webhook) SetMetaSettings(settings MetaSettings) error {
 	data, err := json.Marshal(settings)
 	if err != nil {
 		return fmt.Errorf("failed to marshal webhook meta settings: %w", err)
@@ -423,11 +414,8 @@ func (w *Webhook) SetMetaSettings(settings *MetaSettings) error {
 }
 
 // SetPayloadOptimizationConfig sets the payload optimization configuration
-func (w *Webhook) SetPayloadOptimizationConfig(config *PayloadOptimizationConfig) error {
+func (w *Webhook) SetPayloadOptimizationConfig(config PayloadOptimizationConfig) error {
 	settings := w.GetMetaSettings()
-	if config == nil {
-		config = DefaultPayloadOptimizationConfig()
-	}
 	settings.PayloadOptimization = config
 	return w.SetMetaSettings(settings)
 }

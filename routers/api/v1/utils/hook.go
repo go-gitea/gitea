@@ -257,30 +257,30 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 
 	// Set webhook meta settings
 	if form.MetaSettings != nil {
-		metaSettings := &webhook.MetaSettings{}
+		metaSettings := webhook.MetaSettings{}
 
 		// Parse payload optimization config
 		if payloadOptMap, ok := form.MetaSettings["payload_optimization"].(map[string]any); ok {
-			payloadOptConfig := &webhook.PayloadOptimizationConfig{}
+			payloadOptConfig := webhook.PayloadOptimizationConfig{}
 
 			// Parse files config
 			if filesConfig, ok := payloadOptMap["files"].(map[string]any); ok {
-				payloadOptConfig.Files = &webhook.PayloadOptimizationItem{
+				payloadOptConfig.Files = webhook.PayloadOptimizationItem{
 					Enable: getPayloadOptimizationEnable(filesConfig),
 					Limit:  getPayloadOptimizationLimit(filesConfig),
 				}
 			} else {
-				payloadOptConfig.Files = &webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
+				payloadOptConfig.Files = webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
 			}
 
 			// Parse commits config
 			if commitsConfig, ok := payloadOptMap["commits"].(map[string]any); ok {
-				payloadOptConfig.Commits = &webhook.PayloadOptimizationItem{
+				payloadOptConfig.Commits = webhook.PayloadOptimizationItem{
 					Enable: getPayloadOptimizationEnable(commitsConfig),
 					Limit:  getPayloadOptimizationLimit(commitsConfig),
 				}
 			} else {
-				payloadOptConfig.Commits = &webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
+				payloadOptConfig.Commits = webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
 			}
 
 			metaSettings.PayloadOptimization = payloadOptConfig
@@ -458,30 +458,30 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 
 	// Update webhook meta settings
 	if form.MetaSettings != nil {
-		metaSettings := &webhook.MetaSettings{}
+		metaSettings := webhook.MetaSettings{}
 
 		// Parse payload optimization config
 		if payloadOptMap, ok := (*form.MetaSettings)["payload_optimization"].(map[string]any); ok {
-			payloadOptConfig := &webhook.PayloadOptimizationConfig{}
+			payloadOptConfig := webhook.PayloadOptimizationConfig{}
 
 			// Parse files config
 			if filesConfig, ok := payloadOptMap["files"].(map[string]any); ok {
-				payloadOptConfig.Files = &webhook.PayloadOptimizationItem{
+				payloadOptConfig.Files = webhook.PayloadOptimizationItem{
 					Enable: getPayloadOptimizationEnable(filesConfig),
 					Limit:  getPayloadOptimizationLimit(filesConfig),
 				}
 			} else {
-				payloadOptConfig.Files = &webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
+				payloadOptConfig.Files = webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
 			}
 
 			// Parse commits config
 			if commitsConfig, ok := payloadOptMap["commits"].(map[string]any); ok {
-				payloadOptConfig.Commits = &webhook.PayloadOptimizationItem{
+				payloadOptConfig.Commits = webhook.PayloadOptimizationItem{
 					Enable: getPayloadOptimizationEnable(commitsConfig),
 					Limit:  getPayloadOptimizationLimit(commitsConfig),
 				}
 			} else {
-				payloadOptConfig.Commits = &webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
+				payloadOptConfig.Commits = webhook.PayloadOptimizationItem{Enable: false, Limit: 0}
 			}
 
 			metaSettings.PayloadOptimization = payloadOptConfig
