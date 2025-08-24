@@ -113,9 +113,9 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 
 	// Test case 1: No optimization enabled
 	webhook.SetMetaSettings(webhook_model.MetaSettings{
-		PayloadOptimization: webhook_model.PayloadOptimizationConfig{
-			Files:   webhook_model.PayloadOptimizationItem{Enable: false, Limit: 0},
-			Commits: webhook_model.PayloadOptimizationItem{Enable: false, Limit: 0},
+		PayloadConfig: webhook_model.PayloadConfig{
+			Files:   webhook_model.PayloadConfigItem{Enable: false, Limit: 0},
+			Commits: webhook_model.PayloadConfigItem{Enable: false, Limit: 0},
 		},
 	})
 
@@ -166,9 +166,9 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 
 	// Test case 2: Files optimization enabled, limit = 0 (trim all)
 	webhook.SetMetaSettings(webhook_model.MetaSettings{
-		PayloadOptimization: webhook_model.PayloadOptimizationConfig{
-			Files:   webhook_model.PayloadOptimizationItem{Enable: true, Limit: 0},
-			Commits: webhook_model.PayloadOptimizationItem{Enable: false, Limit: 0},
+		PayloadConfig: webhook_model.PayloadConfig{
+			Files:   webhook_model.PayloadConfigItem{Enable: true, Limit: 0},
+			Commits: webhook_model.PayloadConfigItem{Enable: false, Limit: 0},
 		},
 	})
 	err = webhook_model.UpdateWebhook(db.DefaultContext, webhook)
@@ -215,9 +215,9 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 
 	// Test case 3: Commits optimization enabled, limit = 1 (keep first)
 	webhook.SetMetaSettings(webhook_model.MetaSettings{
-		PayloadOptimization: webhook_model.PayloadOptimizationConfig{
-			Files:   webhook_model.PayloadOptimizationItem{Enable: false, Limit: 0},
-			Commits: webhook_model.PayloadOptimizationItem{Enable: true, Limit: 1},
+		PayloadConfig: webhook_model.PayloadConfig{
+			Files:   webhook_model.PayloadConfigItem{Enable: false, Limit: 0},
+			Commits: webhook_model.PayloadConfigItem{Enable: true, Limit: 1},
 		},
 	})
 	err = webhook_model.UpdateWebhook(db.DefaultContext, webhook)

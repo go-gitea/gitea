@@ -335,7 +335,7 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 	webhook := &Webhook{}
 
 	// Test default configuration
-	config := webhook.GetPayloadOptimizationConfig()
+	config := webhook.GetPayloadConfig()
 	assert.False(t, config.Files.Enable)
 	assert.Equal(t, 0, config.Files.Limit)
 	assert.False(t, config.Commits.Enable)
@@ -343,12 +343,12 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 
 	// Test setting configuration via meta settings
 	metaSettings := MetaSettings{
-		PayloadOptimization: PayloadOptimizationConfig{
-			Files: PayloadOptimizationItem{
+		PayloadConfig: PayloadConfig{
+			Files: PayloadConfigItem{
 				Enable: true,
 				Limit:  5,
 			},
-			Commits: PayloadOptimizationItem{
+			Commits: PayloadConfigItem{
 				Enable: true,
 				Limit:  -3,
 			},
@@ -357,34 +357,34 @@ func TestWebhookPayloadOptimization(t *testing.T) {
 	webhook.SetMetaSettings(metaSettings)
 
 	// Test getting configuration
-	config = webhook.GetPayloadOptimizationConfig()
+	config = webhook.GetPayloadConfig()
 	assert.True(t, config.Files.Enable)
 	assert.Equal(t, 5, config.Files.Limit)
 	assert.True(t, config.Commits.Enable)
 	assert.Equal(t, -3, config.Commits.Limit)
 
 	// Test individual methods
-	assert.True(t, webhook.IsFilesOptimizationEnabled())
-	assert.Equal(t, 5, webhook.GetFilesOptimizationLimit())
-	assert.True(t, webhook.IsCommitsOptimizationEnabled())
-	assert.Equal(t, -3, webhook.GetCommitsOptimizationLimit())
-	assert.True(t, webhook.IsPayloadOptimizationEnabled())
+	assert.True(t, webhook.IsFilesConfigEnabled())
+	assert.Equal(t, 5, webhook.GetFilesConfigLimit())
+	assert.True(t, webhook.IsCommitsConfigEnabled())
+	assert.Equal(t, -3, webhook.GetCommitsConfigLimit())
+	assert.True(t, webhook.IsPayloadConfigEnabled())
 
-	// Test backward compatibility with direct payload optimization config setting
-	newConfig := PayloadOptimizationConfig{
-		Files: PayloadOptimizationItem{
+	// Test backward compatibility with direct payload config setting
+	newConfig := PayloadConfig{
+		Files: PayloadConfigItem{
 			Enable: false,
 			Limit:  10,
 		},
-		Commits: PayloadOptimizationItem{
+		Commits: PayloadConfigItem{
 			Enable: false,
 			Limit:  20,
 		},
 	}
-	webhook.SetPayloadOptimizationConfig(newConfig)
+	webhook.SetPayloadConfig(newConfig)
 
 	// Verify the config is properly set through meta settings
-	config = webhook.GetPayloadOptimizationConfig()
+	config = webhook.GetPayloadConfig()
 	assert.False(t, config.Files.Enable)
 	assert.Equal(t, 10, config.Files.Limit)
 	assert.False(t, config.Commits.Enable)

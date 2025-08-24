@@ -24,33 +24,33 @@ import (
 
 // MetaSettings represents the metadata settings for webhook
 type MetaSettings struct {
-	PayloadOptimization PayloadOptimizationConfig `json:"payload_optimization"` // Payload optimization configuration
+	PayloadConfig PayloadConfig `json:"payload_config"` // Payload configuration
 }
 
-// PayloadOptimizationConfig represents the configuration for webhook payload optimization
-type PayloadOptimizationConfig struct {
-	Files   PayloadOptimizationItem `json:"files"`   // Files optimization config
-	Commits PayloadOptimizationItem `json:"commits"` // Commits optimization config
+// PayloadConfig represents the configuration for webhook payload
+type PayloadConfig struct {
+	Files   PayloadConfigItem `json:"files"`   // Files configuration
+	Commits PayloadConfigItem `json:"commits"` // Commits configuration
 }
 
-// PayloadOptimizationItem represents a single optimization item configuration
-type PayloadOptimizationItem struct {
-	Enable bool `json:"enable"` // Whether to enable optimization for this item
+// PayloadConfigItem represents a single payload configuration item
+type PayloadConfigItem struct {
+	Enable bool `json:"enable"` // Whether to enable this configuration
 	Limit  int  `json:"limit"`  // 0: trim all (none kept), >0: keep N items (forward order), <0: keep N items (reverse order)
 }
 
 // DefaultMetaSettings returns the default webhook meta settings
 func DefaultMetaSettings() MetaSettings {
 	return MetaSettings{
-		PayloadOptimization: DefaultPayloadOptimizationConfig(),
+		PayloadConfig: DefaultPayloadConfig(),
 	}
 }
 
-// DefaultPayloadOptimizationConfig returns the default payload optimization configuration
-func DefaultPayloadOptimizationConfig() PayloadOptimizationConfig {
-	return PayloadOptimizationConfig{
-		Files:   PayloadOptimizationItem{Enable: false, Limit: 0},
-		Commits: PayloadOptimizationItem{Enable: false, Limit: 0},
+// DefaultPayloadConfig returns the default payload configuration
+func DefaultPayloadConfig() PayloadConfig {
+	return PayloadConfig{
+		Files:   PayloadConfigItem{Enable: false, Limit: 0},
+		Commits: PayloadConfigItem{Enable: false, Limit: 0},
 	}
 }
 
@@ -397,9 +397,9 @@ func (w *Webhook) GetMetaSettings() MetaSettings {
 	return settings
 }
 
-// GetPayloadOptimizationConfig returns the payload optimization configuration
-func (w *Webhook) GetPayloadOptimizationConfig() PayloadOptimizationConfig {
-	return w.GetMetaSettings().PayloadOptimization
+// GetPayloadConfig returns the payload configuration
+func (w *Webhook) GetPayloadConfig() PayloadConfig {
+	return w.GetMetaSettings().PayloadConfig
 }
 
 // SetMetaSettings sets the webhook meta settings
@@ -413,22 +413,22 @@ func (w *Webhook) SetMetaSettings(settings MetaSettings) error {
 	return nil
 }
 
-// SetPayloadOptimizationConfig sets the payload optimization configuration
-func (w *Webhook) SetPayloadOptimizationConfig(config PayloadOptimizationConfig) error {
+// SetPayloadConfig sets the payload configuration
+func (w *Webhook) SetPayloadConfig(config PayloadConfig) error {
 	settings := w.GetMetaSettings()
-	settings.PayloadOptimization = config
+	settings.PayloadConfig = config
 	return w.SetMetaSettings(settings)
 }
 
-// IsPayloadOptimizationEnabled returns whether payload optimization is enabled
-func (w *Webhook) IsPayloadOptimizationEnabled() bool {
-	config := w.GetPayloadOptimizationConfig()
+// IsPayloadConfigEnabled returns whether payload configuration is enabled
+func (w *Webhook) IsPayloadConfigEnabled() bool {
+	config := w.GetPayloadConfig()
 	return config.Files.Enable || config.Commits.Enable
 }
 
-// GetPayloadOptimizationLimit returns the payload optimization limit
-func (w *Webhook) GetPayloadOptimizationLimit() int {
-	config := w.GetPayloadOptimizationConfig()
+// GetPayloadConfigLimit returns the payload configuration limit
+func (w *Webhook) GetPayloadConfigLimit() int {
+	config := w.GetPayloadConfig()
 	if config.Files.Enable {
 		return config.Files.Limit
 	}
@@ -438,26 +438,26 @@ func (w *Webhook) GetPayloadOptimizationLimit() int {
 	return 0
 }
 
-// IsFilesOptimizationEnabled returns whether files optimization is enabled
-func (w *Webhook) IsFilesOptimizationEnabled() bool {
-	config := w.GetPayloadOptimizationConfig()
+// IsFilesConfigEnabled returns whether files configuration is enabled
+func (w *Webhook) IsFilesConfigEnabled() bool {
+	config := w.GetPayloadConfig()
 	return config.Files.Enable
 }
 
-// GetFilesOptimizationLimit returns the files optimization limit
-func (w *Webhook) GetFilesOptimizationLimit() int {
-	config := w.GetPayloadOptimizationConfig()
+// GetFilesConfigLimit returns the files configuration limit
+func (w *Webhook) GetFilesConfigLimit() int {
+	config := w.GetPayloadConfig()
 	return config.Files.Limit
 }
 
-// IsCommitsOptimizationEnabled returns whether commits optimization is enabled
-func (w *Webhook) IsCommitsOptimizationEnabled() bool {
-	config := w.GetPayloadOptimizationConfig()
+// IsCommitsConfigEnabled returns whether commits configuration is enabled
+func (w *Webhook) IsCommitsConfigEnabled() bool {
+	config := w.GetPayloadConfig()
 	return config.Commits.Enable
 }
 
-// GetCommitsOptimizationLimit returns the commits optimization limit
-func (w *Webhook) GetCommitsOptimizationLimit() int {
-	config := w.GetPayloadOptimizationConfig()
+// GetCommitsConfigLimit returns the commits configuration limit
+func (w *Webhook) GetCommitsConfigLimit() int {
+	config := w.GetPayloadConfig()
 	return config.Commits.Limit
 }

@@ -412,14 +412,14 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 	// Convert meta settings to map
 	metaSettings := w.GetMetaSettings()
 	metaSettingsMap := map[string]any{
-		"payload_optimization": map[string]any{
+		"payload_config": map[string]any{
 			"files": map[string]any{
-				"enable": metaSettings.PayloadOptimization.Files.Enable,
-				"limit":  metaSettings.PayloadOptimization.Files.Limit,
+				"enable": metaSettings.PayloadConfig.Files.Enable,
+				"limit":  metaSettings.PayloadConfig.Files.Limit,
 			},
 			"commits": map[string]any{
-				"enable": metaSettings.PayloadOptimization.Commits.Enable,
-				"limit":  metaSettings.PayloadOptimization.Commits.Limit,
+				"enable": metaSettings.PayloadConfig.Commits.Enable,
+				"limit":  metaSettings.PayloadConfig.Commits.Limit,
 			},
 		},
 	}

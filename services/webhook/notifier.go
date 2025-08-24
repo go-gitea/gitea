@@ -665,7 +665,7 @@ func (m *webhookNotifier) applyWebhookPayloadOptimizations(ctx context.Context, 
 
 	for _, webhook := range webhooks {
 		if webhook.HasEvent(webhook_module.HookEventPush) {
-			config := webhook.GetPayloadOptimizationConfig()
+			config := webhook.GetPayloadConfig()
 
 			// Check files optimization
 			if config.Files.Enable {
