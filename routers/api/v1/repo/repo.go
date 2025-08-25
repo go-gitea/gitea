@@ -871,10 +871,16 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 	if opts.HasCode != nil && !unit_model.TypeCode.UnitGlobalDisabled() {
 		if *opts.HasCode {
+			cfg := &repo_model.CodeConfig{}
+
+			if opts.GoModuleSubDir != nil {
+				cfg.GoModuleSubDir = *opts.GoModuleSubDir
+			}
+
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeCode,
-				Config: &repo_model.UnitConfig{},
+				Config: cfg,
 			})
 		} else {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeCode)
