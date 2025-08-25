@@ -77,6 +77,8 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, gitRepo *Repository, repo
 	var treeCommit *Commit
 	if treePath == "" {
 		treeCommit = commit
+	} else {
+		treeCommit = revs[""]
 	}
 	return commitsInfo, treeCommit, nil
 }
