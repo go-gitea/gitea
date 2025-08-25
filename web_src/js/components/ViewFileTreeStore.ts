@@ -4,10 +4,11 @@ import {pathEscapeSegments} from '../utils/url.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 
-export function createViewFileTreeStore(props: { repoLink: string, treePath: string, currentRefNameSubURL: string}) {
+export function createViewFileTreeStore(props: { repoLink: string, treePath: string, currentRefNameSubURL: string, pageIsEdit: boolean }) {
   const store = reactive({
     rootFiles: [],
     selectedItem: props.treePath,
+    pageIsEdit: props.pageIsEdit,
 
     async loadChildren(treePath: string, subPath: string = '') {
       const response = await GET(`${props.repoLink}/tree-view/${props.currentRefNameSubURL}/${pathEscapeSegments(treePath)}?sub_path=${encodeURIComponent(subPath)}`);
