@@ -50,11 +50,12 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 	templateCandidates = append(templateCandidates, possibleFiles...) // Append files to the end because they should be fallback
 
 	templateErrs := map[string]error{}
+	tree := git.NewTree(ctx.Repo.GitRepo, commit.TreeID)
 	for _, filename := range templateCandidates {
-		if ok, _ := commit.HasFile(filename); !ok {
+		if entry, _ := tree.GetTreeEntryByPath(filename); entry == nil {
 			continue
 		}
-		template, err := issue_template.UnmarshalFromCommit(commit, filename)
+		template, err := issue_template.UnmarshalFromCommit(tree, filename)
 		if err != nil {
 			templateErrs[filename] = err
 			continue

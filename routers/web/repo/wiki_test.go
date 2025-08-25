@@ -34,7 +34,8 @@ func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.
 	defer wikiRepo.Close()
 	commit, err := wikiRepo.GetBranchCommit("master")
 	assert.NoError(t, err)
-	entries, err := commit.ListEntries()
+	tree := git.NewTree(wikiRepo, commit.TreeID)
+	entries, err := tree.ListEntries()
 	assert.NoError(t, err)
 	for _, entry := range entries {
 		if entry.Name() == wiki_service.WebPathToGitPath(wikiName) {

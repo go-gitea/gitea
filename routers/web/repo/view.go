@@ -124,7 +124,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 	// or of directory if not in root directory.
 	ctx.Data["LatestCommit"] = latestCommit
 	if latestCommit != nil {
-		verification := asymkey_service.ParseCommitWithSignature(ctx, latestCommit)
+		verification := asymkey_service.ParseCommitWithSignature(ctx, ctx.Repo.GitRepo, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
@@ -260,9 +260,10 @@ func LastCommit(ctx *context.Context) {
 func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 	renderedIconPool := fileicon.NewRenderedIconPool()
 	fileIcons := map[string]template.HTML{}
+	tree := git.NewTree(ctx.Repo.GitRepo, ctx.Repo.Commit.TreeID)
 	for _, f := range files {
 		fullPath := path.Join(ctx.Repo.TreePath, f.Entry.Name())
-		entryInfo := fileicon.EntryInfoFromGitTreeEntry(ctx.Repo.Commit, fullPath, f.Entry)
+		entryInfo := fileicon.EntryInfoFromGitTreeEntry(tree, fullPath, f.Entry)
 		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
 	}
 	fileIcons[".."] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
@@ -271,7 +272,8 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 }
 
 func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entries {
-	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+	rootTree := git.NewTree(ctx.Repo.GitRepo, ctx.Repo.Commit.TreeID)
+	tree, err := rootTree.SubTree(ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.SubTree", err)
 		return nil
@@ -280,7 +282,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	ctx.Data["LastCommitLoaderURL"] = ctx.Repo.RepoLink + "/lastcommit/" + url.PathEscape(ctx.Repo.CommitID) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	// Get current entry user currently looking at.
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := rootTree.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return nil
@@ -305,7 +307,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		defer cancel()
 	}
 
-	files, latestCommit, err := allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.RepoLink, ctx.Repo.Commit, ctx.Repo.TreePath)
+	files, latestCommit, err := allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.GitRepo, ctx.Repo.RepoLink, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return nil

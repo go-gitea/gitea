@@ -44,12 +44,12 @@ func IsWorkflow(path string) bool {
 	return strings.HasPrefix(path, ".gitea/workflows") || strings.HasPrefix(path, ".github/workflows")
 }
 
-func ListWorkflows(commit *git.Commit) (string, git.Entries, error) {
+func ListWorkflows(tree *git.Tree) (string, git.Entries, error) {
 	rpath := ".gitea/workflows"
-	tree, err := commit.SubTree(rpath)
+	tree, err := tree.SubTree(rpath)
 	if _, ok := err.(git.ErrNotExist); ok {
 		rpath = ".github/workflows"
-		tree, err = commit.SubTree(rpath)
+		tree, err = tree.SubTree(rpath)
 	}
 	if _, ok := err.(git.ErrNotExist); ok {
 		return "", nil, nil
@@ -105,7 +105,7 @@ func DetectWorkflows(
 	payload api.Payloader,
 	detectSchedule bool,
 ) ([]*DetectedWorkflow, []*DetectedWorkflow, error) {
-	_, entries, err := ListWorkflows(commit)
+	_, entries, err := ListWorkflows(git.NewTree(gitRepo, commit.TreeID))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -150,7 +150,7 @@ func DetectWorkflows(
 }
 
 func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
-	_, entries, err := ListWorkflows(commit)
+	_, entries, err := ListWorkflows(git.NewTree(gitRepo, commit.TreeID))
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 
 	case // push
 		webhook_module.HookEventPush:
-		return matchPushEvent(commit, payload.(*api.PushPayload), evt)
+		return matchPushEvent(gitRepo, commit, payload.(*api.PushPayload), evt)
 
 	case // issues
 		webhook_module.HookEventIssues,
@@ -256,7 +256,7 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 	}
 }
 
-func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobparser.Event) bool {
+func matchPushEvent(gitRepo *git.Repository, commit *git.Commit, pushPayload *api.PushPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
 		return true
@@ -322,7 +322,7 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				matchTimes++
 				break
 			}
-			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
+			filesChanged, err := gitRepo.GetFilesChangedBetween(pushPayload.Before, commit.ID.String())
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
 			} else {
@@ -339,7 +339,7 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				matchTimes++
 				break
 			}
-			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
+			filesChanged, err := gitRepo.GetFilesChangedBetween(pushPayload.Before, commit.ID.String())
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
 			} else {
@@ -478,7 +478,7 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 				matchTimes++
 			}
 		case "paths":
-			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.MergeBase)
+			filesChanged, err := gitRepo.GetFilesChangedBetween(prPayload.PullRequest.MergeBase, headCommit.ID.String())
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", headCommit.ID.String(), err)
 			} else {
@@ -491,7 +491,7 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 				}
 			}
 		case "paths-ignore":
-			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.MergeBase)
+			filesChanged, err := gitRepo.GetFilesChangedBetween(prPayload.PullRequest.MergeBase, headCommit.ID.String())
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", headCommit.ID.String(), err)
 			} else {

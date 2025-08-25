@@ -48,7 +48,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		return nil, git.ErrNotExist{ID: commitID}
 	}
 
-	commit, err := git.CommitFromReader(repo, sha, io.LimitReader(batchReader, size))
+	commit, err := git.CommitFromReader(sha, io.LimitReader(batchReader, size))
 	if err != nil {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, err
@@ -57,7 +57,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		return nil, err
 	}
 
-	tree := commit.Tree
+	tree := git.NewTree(repo, commit.TreeID)
 
 	entries, err := tree.ListEntriesRecursiveWithSize()
 	if err != nil {

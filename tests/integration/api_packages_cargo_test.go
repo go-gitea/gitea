@@ -17,6 +17,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
@@ -84,7 +85,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 		commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
 		assert.NoError(t, err)
 
-		blob, err := commit.GetBlobByPath(path)
+		blob, err := git.NewTree(gitRepo, commit.TreeID).GetBlobByPath(path)
 		assert.NoError(t, err)
 
 		content, err := blob.GetBlobContent(1024)

@@ -84,7 +84,7 @@ func repoLicenseUpdater(items ...*LicenseUpdaterOptions) []*LicenseUpdaterOption
 			log.Error("repoLicenseUpdater [%d] failed: GetBranchCommit: %v", opts.RepoID, err)
 			continue
 		}
-		if err = UpdateRepoLicenses(ctx, repo, commit); err != nil {
+		if err = UpdateRepoLicenses(ctx, repo, gitRepo, commit); err != nil {
 			log.Error("repoLicenseUpdater [%d] failed: updateRepoLicenses: %v", opts.RepoID, err)
 		}
 	}
@@ -115,12 +115,12 @@ func SyncRepoLicenses(ctx context.Context) error {
 }
 
 // UpdateRepoLicenses will update repository licenses col if license file exists
-func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit *git.Commit) error {
+func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit) error {
 	if commit == nil {
 		return nil
 	}
 
-	b, err := commit.GetBlobByPath(LicenseFileName)
+	b, err := git.NewTree(gitRepo, commit.TreeID).GetBlobByPath(LicenseFileName)
 	if err != nil && !git.IsErrNotExist(err) {
 		return fmt.Errorf("GetBlobByPath: %w", err)
 	}

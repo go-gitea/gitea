@@ -6,7 +6,10 @@ package git
 
 import (
 	"bytes"
+	"io"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // NewTree create a new tree according the repository and tree id
@@ -72,4 +75,33 @@ func (repo *Repository) GetTreePathLatestCommit(refName, treePath string) (*Comm
 		return nil, err
 	}
 	return repo.GetCommit(strings.TrimSpace(stdout))
+}
+
+// GetFileContent reads a file content as a string or returns false if this was not possible
+func (t *Tree) GetFileContent(filename string, limit int) (string, error) {
+	entry, err := t.GetTreeEntryByPath(filename)
+	if err != nil {
+		return "", err
+	}
+
+	r, err := entry.Blob().DataAsync()
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+
+	if limit > 0 {
+		bs := make([]byte, limit)
+		n, err := util.ReadAtMost(r, bs)
+		if err != nil {
+			return "", err
+		}
+		return string(bs[:n]), nil
+	}
+
+	bytes, err := io.ReadAll(r)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
 }

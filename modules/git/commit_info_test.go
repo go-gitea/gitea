@@ -62,10 +62,9 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 			continue
 		}
 		assert.NotNil(t, commit)
-		assert.NotNil(t, commit.Tree)
-		assert.NotNil(t, commit.Tree.repo)
+		assert.NotEmpty(t, commit.TreeID)
 
-		tree, err := commit.Tree.SubTree(testCase.Path)
+		tree, err := NewTree(repo1, commit.TreeID).SubTree(testCase.Path)
 		if err != nil {
 			assert.NoError(t, err, "Unable to get subtree: %s of commit: %s from testcase due to error: %v", testCase.Path, testCase.CommitID, err)
 			// no point trying to do anything else for this test.
@@ -83,7 +82,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		}
 
 		// FIXME: Context.TODO() - if graceful has started we should use its Shutdown context otherwise use install signals in TestMain.
-		commitsInfo, treeCommit, err := entries.GetCommitsInfo(t.Context(), "/any/repo-link", commit, testCase.Path)
+		commitsInfo, treeCommit, err := entries.GetCommitsInfo(t.Context(), repo1, "/any/repo-link", commit, testCase.Path)
 		assert.NoError(t, err, "Unable to get commit information for entries of subtree: %s in commit: %s from testcase due to error: %v", testCase.Path, testCase.CommitID, err)
 		if err != nil {
 			t.FailNow()
@@ -125,11 +124,12 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	t.Run("NonExistingSubmoduleAsNil", func(t *testing.T) {
 		commit, err := bareRepo1.GetCommit("HEAD")
 		require.NoError(t, err)
-		treeEntry, err := commit.GetTreeEntryByPath("file1.txt")
+		tree := NewTree(bareRepo1, commit.TreeID)
+		treeEntry, err := tree.GetTreeEntryByPath("file1.txt")
 		require.NoError(t, err)
-		cisf, err := GetCommitInfoSubmoduleFile("/any/repo-link", "file1.txt", commit, treeEntry.ID)
+		cisf, err := GetCommitInfoSubmoduleFile(bareRepo1, "/any/repo-link", "file1.txt", commit.TreeID, treeEntry.ID)
 		require.NoError(t, err)
-		assert.Equal(t, &CommitSubmoduleFile{
+		assert.Equal(t, &SubmoduleFile{
 			repoLink: "/any/repo-link",
 			fullPath: "file1.txt",
 			refURL:   "",
@@ -170,14 +170,14 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 
 		if commit, err = repo.GetBranchCommit("master"); err != nil {
 			b.Fatal(err)
-		} else if entries, err = commit.Tree.ListEntries(); err != nil {
+		} else if entries, err = NewTree(repo, commit.TreeID).ListEntries(); err != nil {
 			b.Fatal(err)
 		}
 		entries.Sort()
 		b.ResetTimer()
 		b.Run(benchmark.name, func(b *testing.B) {
 			for b.Loop() {
-				_, _, err := entries.GetCommitsInfo(b.Context(), "/any/repo-link", commit, "")
+				_, _, err := entries.GetCommitsInfo(b.Context(), repo, "/any/repo-link", commit, "")
 				if err != nil {
 					b.Fatal(err)
 				}

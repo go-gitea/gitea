@@ -22,9 +22,9 @@ func CountDivergingCommits(ctx context.Context, repo *repo_model.Repository, bra
 }
 
 // GetPayloadCommitVerification returns the verification information of a commit
-func GetPayloadCommitVerification(ctx context.Context, commit *git.Commit) *structs.PayloadCommitVerification {
+func GetPayloadCommitVerification(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) *structs.PayloadCommitVerification {
 	verification := &structs.PayloadCommitVerification{}
-	commitVerification := asymkey_service.ParseCommitWithSignature(ctx, commit)
+	commitVerification := asymkey_service.ParseCommitWithSignature(ctx, gitRepo, commit)
 	if commit.Signature != nil {
 		verification.Signature = commit.Signature.Signature
 		verification.Payload = commit.Signature.Payload

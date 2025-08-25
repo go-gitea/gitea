@@ -228,7 +228,8 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 }
 
 func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified *time.Time) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	tree := git.NewTree(ctx.Repo.GitRepo, ctx.Repo.Commit.TreeID)
+	entry, err := tree.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound()

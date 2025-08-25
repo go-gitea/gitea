@@ -126,7 +126,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, commit *git.Commit) (
 
 	var curWorkflow *model.Workflow
 
-	_, entries, err := actions.ListWorkflows(commit)
+	_, entries, err := actions.ListWorkflows(git.NewTree(ctx.Repo.GitRepo, commit.TreeID))
 	if err != nil {
 		ctx.ServerError("ListWorkflows", err)
 		return nil

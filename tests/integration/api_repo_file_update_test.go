@@ -142,7 +142,7 @@ func TestAPIUpdateFile(t *testing.T) {
 			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
 			defer gitRepo.Close()
 			commitID, _ := gitRepo.GetBranchCommitID(updateFileOptions.NewBranchName)
-			lasCommit, _ := gitRepo.GetCommitByPath(treePath)
+			lasCommit, _ := gitRepo.GetCommitByPathDefaultBranch(treePath)
 			expectedFileResponse := getExpectedFileResponseForUpdate(apiFileResponseInfo{
 				commitID:          commitID,
 				treePath:          treePath,

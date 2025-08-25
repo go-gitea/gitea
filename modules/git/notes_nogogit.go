@@ -28,7 +28,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 
 	path := ""
 
-	tree := &notes.Tree
+	tree := NewTree(repo, notes.TreeID)
 	log.Trace("Found tree with ID %q while searching for git note corresponding to the commit %q", tree.ID, commitID)
 
 	var entry *TreeEntry
@@ -80,7 +80,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 		path = path[idx+1:]
 	}
 
-	lastCommits, err := GetLastCommitForPaths(ctx, notes, treePath, []string{path})
+	lastCommits, err := GetLastCommitForPaths(ctx, repo, notes, treePath, []string{path})
 	if err != nil {
 		log.Error("Unable to get the commit for the path %q. Error: %v", treePath, err)
 		return err

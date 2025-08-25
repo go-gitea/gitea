@@ -46,7 +46,7 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
-	lastCommit, _ := gitRepo.GetCommitByPath("README.md")
+	lastCommit, _ := gitRepo.GetCommitByPathDefaultBranch("README.md")
 
 	requestFiles := func(t *testing.T, url string, files []string, expectedStatusCode ...int) (ret []*api.ContentsResponse) {
 		req := NewRequestWithJSON(t, "POST", url, &api.GetFilesOptions{Files: files})

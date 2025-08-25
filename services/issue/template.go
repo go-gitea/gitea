@@ -47,12 +47,12 @@ func GetDefaultTemplateConfig() api.IssueConfig {
 
 // GetTemplateConfig loads the given issue config file.
 // It never returns a nil config.
-func GetTemplateConfig(gitRepo *git.Repository, path string, commit *git.Commit) (api.IssueConfig, error) {
+func GetTemplateConfig(gitRepo *git.Repository, path string, tree *git.Tree) (api.IssueConfig, error) {
 	if gitRepo == nil {
 		return GetDefaultTemplateConfig(), nil
 	}
 
-	treeEntry, err := commit.GetTreeEntryByPath(path)
+	treeEntry, err := tree.GetTreeEntryByPath(path)
 	if err != nil {
 		return GetDefaultTemplateConfig(), err
 	}
@@ -124,8 +124,10 @@ func ParseTemplatesFromDefaultBranch(repo *repo.Repository, gitRepo *git.Reposit
 		return ret
 	}
 
+	tree := git.NewTree(gitRepo, commit.TreeID)
+
 	for _, dirName := range templateDirCandidates {
-		tree, err := commit.SubTree(dirName)
+		tree, err := tree.SubTree(dirName)
 		if err != nil {
 			log.Debug("get sub tree of %s: %v", dirName, err)
 			continue
@@ -165,13 +167,15 @@ func GetTemplateConfigFromDefaultBranch(repo *repo.Repository, gitRepo *git.Repo
 		return GetDefaultTemplateConfig(), err
 	}
 
+	tree := git.NewTree(gitRepo, commit.TreeID)
+
 	for _, configName := range templateConfigCandidates {
-		if _, err := commit.GetTreeEntryByPath(configName + ".yaml"); err == nil {
-			return GetTemplateConfig(gitRepo, configName+".yaml", commit)
+		if _, err := tree.GetTreeEntryByPath(configName + ".yaml"); err == nil {
+			return GetTemplateConfig(gitRepo, configName+".yaml", tree)
 		}
 
-		if _, err := commit.GetTreeEntryByPath(configName + ".yml"); err == nil {
-			return GetTemplateConfig(gitRepo, configName+".yml", commit)
+		if _, err := tree.GetTreeEntryByPath(configName + ".yml"); err == nil {
+			return GetTemplateConfig(gitRepo, configName+".yml", tree)
 		}
 	}
 

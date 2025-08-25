@@ -80,7 +80,7 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 		}, err)
 		return
 	}
-	rpath, entries, err := actions.ListWorkflows(commit)
+	rpath, entries, err := actions.ListWorkflows(git.NewTree(ctx.Repo.GitRepo, commit.TreeID))
 	if err != nil {
 		ctx.ServerError("ListWorkflows", err)
 		return

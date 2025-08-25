@@ -92,7 +92,7 @@ signed commit`
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
 
-	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
+	commitFromReader, err := CommitFromReader(sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
 	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
@@ -120,7 +120,7 @@ committer Adam Majer <amajer@suse.de> 1698676906 +0100
 signed commit`, commitFromReader.Signature.Payload)
 	assert.Equal(t, "Adam Majer <amajer@suse.de>", commitFromReader.Author.String())
 
-	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
+	commitFromReader2, err := CommitFromReader(sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
 	commitFromReader.CommitMessage += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
@@ -145,15 +145,15 @@ func TestHasPreviousCommitSha256(t *testing.T) {
 	assert.Equal(t, objectFormat, parentSHA.Type())
 	assert.Equal(t, "sha256", objectFormat.Name())
 
-	haz, err := commit.HasPreviousCommit(parentSHA)
+	haz, err := repo.HasPreviousCommit(commit, parentSHA)
 	assert.NoError(t, err)
 	assert.True(t, haz)
 
-	hazNot, err := commit.HasPreviousCommit(notParentSHA)
+	hazNot, err := repo.HasPreviousCommit(commit, notParentSHA)
 	assert.NoError(t, err)
 	assert.False(t, hazNot)
 
-	selfNot, err := commit.HasPreviousCommit(commit.ID)
+	selfNot, err := repo.HasPreviousCommit(commit, commit.ID)
 	assert.NoError(t, err)
 	assert.False(t, selfNot)
 }

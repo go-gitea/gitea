@@ -132,7 +132,7 @@ func (r *BlameReader) Close() error {
 }
 
 // CreateBlameReader creates reader for given repository, commit and file
-func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (rd *BlameReader, err error) {
+func CreateBlameReader(ctx context.Context, repo *Repository, objectFormat ObjectFormat, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (rd *BlameReader, err error) {
 	var ignoreRevsFileName string
 	var ignoreRevsFileCleanup func()
 	defer func() {
@@ -144,7 +144,8 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 	cmd := NewCommandNoGlobals("blame", "--porcelain")
 
 	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
-		ignoreRevsFileName, ignoreRevsFileCleanup, err = tryCreateBlameIgnoreRevsFile(commit)
+		tree := NewTree(repo, commit.TreeID)
+		ignoreRevsFileName, ignoreRevsFileCleanup, err = tryCreateBlameIgnoreRevsFile(tree)
 		if err != nil && !IsErrNotExist(err) {
 			return nil, err
 		}
@@ -190,8 +191,8 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 	}, nil
 }
 
-func tryCreateBlameIgnoreRevsFile(commit *Commit) (string, func(), error) {
-	entry, err := commit.GetTreeEntryByPath(".git-blame-ignore-revs")
+func tryCreateBlameIgnoreRevsFile(tree *Tree) (string, func(), error) {
+	entry, err := tree.GetTreeEntryByPath(".git-blame-ignore-revs")
 	if err != nil {
 		return "", nil, err
 	}

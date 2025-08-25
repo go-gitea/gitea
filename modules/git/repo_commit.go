@@ -6,8 +6,10 @@ package git
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -73,7 +75,7 @@ func (repo *Repository) getCommitByPathWithID(id ObjectID, relpath string) (*Com
 }
 
 // GetCommitByPath returns the last commit of relative path.
-func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
+func (repo *Repository) GetCommitByPathDefaultBranch(relpath string) (*Commit, error) {
 	stdout, _, runErr := NewCommand("log", "-1", prettyLogFormat).AddDashesAndList(relpath).RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
 	if runErr != nil {
 		return nil, runErr
@@ -89,8 +91,8 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 	return commits[0], nil
 }
 
-// commitsByRangeWithTime returns the specific page commits before current revision, with not, since, until support
-func (repo *Repository) commitsByRangeWithTime(id ObjectID, page, pageSize int, not, since, until string) ([]*Commit, error) {
+// CommitsByRangeWithTime returns the specific page commits before current revision, with not, since, until support
+func (repo *Repository) CommitsByRangeWithTime(id ObjectID, page, pageSize int, not, since, until string) ([]*Commit, error) {
 	cmd := NewCommand("log").
 		AddOptionFormat("--skip=%d", (page-1)*pageSize).
 		AddOptionFormat("--max-count=%d", pageSize).
@@ -115,7 +117,8 @@ func (repo *Repository) commitsByRangeWithTime(id ObjectID, page, pageSize int, 
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
-func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([]*Commit, error) {
+// SearchCommits returns the commits match the keyword before current revision
+func (repo *Repository) SearchCommits(id ObjectID, opts SearchCommitsOptions) ([]*Commit, error) {
 	// add common arguments to git command
 	addCommonSearchArgs := func(c *Command) {
 		// ignore case
@@ -443,11 +446,13 @@ func (repo *Repository) commitsBefore(id ObjectID, limit int) ([]*Commit, error)
 	return commits, nil
 }
 
-func (repo *Repository) getCommitsBefore(id ObjectID) ([]*Commit, error) {
+// CommitsBefore returns all the commits before current revision
+func (repo *Repository) CommitsBefore(id ObjectID) ([]*Commit, error) {
 	return repo.commitsBefore(id, 0)
 }
 
-func (repo *Repository) getCommitsBeforeLimit(id ObjectID, num int) ([]*Commit, error) {
+// CommitsBeforeLimit returns num commits before current revision
+func (repo *Repository) CommitsBeforeLimit(id ObjectID, num int) ([]*Commit, error) {
 	return repo.commitsBefore(id, num)
 }
 
@@ -520,11 +525,7 @@ func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err e
 func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error {
 	if repo.LastCommitCache == nil {
 		commitsCount, err := cache.GetInt64(cacheKey, func() (int64, error) {
-			commit, err := repo.GetCommit(sha)
-			if err != nil {
-				return 0, err
-			}
-			return commit.CommitsCount()
+			return repo.CommitsCount(sha)
 		})
 		if err != nil {
 			return err
@@ -564,4 +565,104 @@ func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID s
 	}
 
 	return "", nil
+}
+
+// Parent returns n-th parent (0-based index) of the commit.
+func (repo *Repository) ParentCommit(c *Commit, n int) (*Commit, error) {
+	id, err := c.ParentID(n)
+	if err != nil {
+		return nil, err
+	}
+	parent, err := repo.getCommit(id)
+	if err != nil {
+		return nil, err
+	}
+	return parent, nil
+}
+
+// GetCommitByPath return the commit of relative path object.
+func (repo *Repository) GetCommitByPath(commitID ObjectID, relpath string) (*Commit, error) {
+	if repo.LastCommitCache != nil {
+		return repo.LastCommitCache.GetCommitByPath(commitID.String(), relpath)
+	}
+	return repo.getCommitByPathWithID(commitID, relpath)
+}
+
+// CommitsCount returns number of total commits of until current revision.
+func (repo *Repository) CommitsCount(commitID string) (int64, error) {
+	return CommitsCount(repo.Ctx, CommitsCountOptions{
+		RepoPath: repo.Path,
+		Revision: []string{commitID},
+	})
+}
+
+// HasPreviousCommit returns true if a given commitHash is contained in commit's parents
+func (repo *Repository) HasPreviousCommit(c *Commit, objectID ObjectID) (bool, error) {
+	this := c.ID.String()
+	that := objectID.String()
+
+	if this == that {
+		return false, nil
+	}
+
+	_, _, err := NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(that, this).
+		RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	if err == nil {
+		return true, nil
+	}
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
+		if exitError.ProcessState.ExitCode() == 1 && len(exitError.Stderr) == 0 {
+			return false, nil
+		}
+	}
+	return false, err
+}
+
+// IsForcePush returns true if a push from oldCommitHash to this is a force push
+func (repo *Repository) IsForcePush(c *Commit, oldCommitID string) (bool, error) {
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return false, err
+	}
+	if oldCommitID == objectFormat.EmptyObjectID().String() {
+		return false, nil
+	}
+
+	oldCommit, err := repo.GetCommit(oldCommitID)
+	if err != nil {
+		return false, err
+	}
+	hasPreviousCommit, err := repo.HasPreviousCommit(c, oldCommit.ID)
+	return !hasPreviousCommit, err
+}
+
+// CommitsBeforeUntil returns the commits between commitID to current revision
+func (repo *Repository) CommitsBeforeUntil(c *Commit, commitID string) ([]*Commit, error) {
+	endCommit, err := repo.GetCommit(commitID)
+	if err != nil {
+		return nil, err
+	}
+	return repo.CommitsBetween(c, endCommit)
+}
+
+// GetClosestBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
+func (repo *Repository) GetClosestBranchName(c *Commit) (string, error) {
+	cmd := NewCommand("name-rev")
+	if DefaultFeatures().CheckVersionAtLeast("2.13.0") {
+		cmd.AddArguments("--exclude", "refs/tags/*")
+	}
+	cmd.AddArguments("--name-only", "--no-undefined").AddDynamicArguments(c.ID.String())
+	data, _, err := cmd.RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	if err != nil {
+		// handle special case where git can not describe commit
+		if strings.Contains(err.Error(), "cannot describe") {
+			return "", nil
+		}
+
+		return "", err
+	}
+
+	// name-rev commitID output will be "master" or "master~12"
+	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }

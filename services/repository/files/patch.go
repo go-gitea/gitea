@@ -109,7 +109,7 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 }
 
 // ApplyDiffPatch applies a patch to the given repository
-func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
 	err := repo.MustNotBeArchived()
 	if err != nil {
 		return nil, err
@@ -209,8 +209,8 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 		return nil, err
 	}
 
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
-	verification := GetPayloadCommitVerification(ctx, commit)
+	fileCommitResponse, _ := GetFileCommitResponse(repo, gitRepo, commit) // ok if fails, then will be nil
+	verification := GetPayloadCommitVerification(ctx, gitRepo, commit)
 	fileResponse := &structs.FileResponse{
 		Commit:       fileCommitResponse,
 		Verification: verification,

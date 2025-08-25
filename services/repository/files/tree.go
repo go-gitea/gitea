@@ -151,14 +151,14 @@ func (node *TreeViewNode) sortLevel() int {
 	return util.Iif(node.EntryMode == "tree" || node.EntryMode == "commit", 0, 1)
 }
 
-func newTreeViewNodeFromEntry(ctx context.Context, repoLink string, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, parentDir string, entry *git.TreeEntry) *TreeViewNode {
+func newTreeViewNodeFromEntry(ctx context.Context, repoLink string, renderedIconPool *fileicon.RenderedIconPool, tree *git.Tree, parentDir string, entry *git.TreeEntry) *TreeViewNode {
 	node := &TreeViewNode{
 		EntryName: entry.Name(),
 		EntryMode: entryModeString(entry.Mode()),
 		FullPath:  path.Join(parentDir, entry.Name()),
 	}
 
-	entryInfo := fileicon.EntryInfoFromGitTreeEntry(commit, node.FullPath, entry)
+	entryInfo := fileicon.EntryInfoFromGitTreeEntry(tree, node.FullPath, entry)
 	node.EntryIcon = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
 	if entryInfo.EntryMode.IsDir() {
 		entryInfo.IsOpen = true
@@ -166,10 +166,10 @@ func newTreeViewNodeFromEntry(ctx context.Context, repoLink string, renderedIcon
 	}
 
 	if node.EntryMode == "commit" {
-		if subModule, err := commit.GetSubModule(node.FullPath); err != nil {
+		if subModule, err := tree.GetSubModule(node.FullPath); err != nil {
 			log.Error("GetSubModule: %v", err)
 		} else if subModule != nil {
-			submoduleFile := git.NewCommitSubmoduleFile(repoLink, node.FullPath, subModule.URL, entry.ID.String())
+			submoduleFile := git.NewSubmoduleFile(repoLink, node.FullPath, subModule.URL, entry.ID.String())
 			webLink := submoduleFile.SubmoduleWebLinkTree(ctx)
 			if webLink != nil {
 				node.SubmoduleURL = webLink.CommitWebLink
@@ -191,7 +191,7 @@ func sortTreeViewNodes(nodes []*TreeViewNode) {
 	})
 }
 
-func listTreeNodes(ctx context.Context, repoLink string, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
+func listTreeNodes(ctx context.Context, repoLink string, renderedIconPool *fileicon.RenderedIconPool, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
 	entries, err := tree.ListEntries()
 	if err != nil {
 		return nil, err
@@ -200,14 +200,14 @@ func listTreeNodes(ctx context.Context, repoLink string, renderedIconPool *filei
 	subPathDirName, subPathRemaining, _ := strings.Cut(subPath, "/")
 	nodes := make([]*TreeViewNode, 0, len(entries))
 	for _, entry := range entries {
-		node := newTreeViewNodeFromEntry(ctx, repoLink, renderedIconPool, commit, treePath, entry)
+		node := newTreeViewNodeFromEntry(ctx, repoLink, renderedIconPool, tree, treePath, entry)
 		nodes = append(nodes, node)
 		if entry.IsDir() && subPathDirName == entry.Name() {
 			subTreePath := treePath + "/" + node.EntryName
 			if subTreePath[0] == '/' {
 				subTreePath = subTreePath[1:]
 			}
-			subNodes, err := listTreeNodes(ctx, repoLink, renderedIconPool, commit, entry.Tree(), subTreePath, subPathRemaining)
+			subNodes, err := listTreeNodes(ctx, repoLink, renderedIconPool, entry.Tree(), subTreePath, subPathRemaining)
 			if err != nil {
 				log.Error("listTreeNodes: %v", err)
 			} else {
@@ -219,10 +219,10 @@ func listTreeNodes(ctx context.Context, repoLink string, renderedIconPool *filei
 	return nodes, nil
 }
 
-func GetTreeViewNodes(ctx context.Context, repoLink string, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, treePath, subPath string) ([]*TreeViewNode, error) {
-	entry, err := commit.GetTreeEntryByPath(treePath)
+func GetTreeViewNodes(ctx context.Context, repoLink string, renderedIconPool *fileicon.RenderedIconPool, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
+	entry, err := tree.GetTreeEntryByPath(treePath)
 	if err != nil {
 		return nil, err
 	}
-	return listTreeNodes(ctx, repoLink, renderedIconPool, commit, entry.Tree(), treePath, subPath)
+	return listTreeNodes(ctx, repoLink, renderedIconPool, entry.Tree(), treePath, subPath)
 }

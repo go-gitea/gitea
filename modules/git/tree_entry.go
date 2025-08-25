@@ -30,7 +30,7 @@ type EntryFollowResult struct {
 	TargetEntry    *TreeEntry
 }
 
-func EntryFollowLink(commit *Commit, fullPath string, te *TreeEntry) (*EntryFollowResult, error) {
+func EntryFollowLink(tree *Tree, fullPath string, te *TreeEntry) (*EntryFollowResult, error) {
 	if !te.IsLink() {
 		return nil, util.ErrorWrap(util.ErrUnprocessableContent, "%q is not a symlink", fullPath)
 	}
@@ -51,18 +51,18 @@ func EntryFollowLink(commit *Commit, fullPath string, te *TreeEntry) (*EntryFoll
 	}
 
 	targetFullPath := path.Join(path.Dir(fullPath), link)
-	targetEntry, err := commit.GetTreeEntryByPath(targetFullPath)
+	targetEntry, err := tree.GetTreeEntryByPath(targetFullPath)
 	if err != nil {
 		return &EntryFollowResult{SymlinkContent: link}, err
 	}
 	return &EntryFollowResult{SymlinkContent: link, TargetFullPath: targetFullPath, TargetEntry: targetEntry}, nil
 }
 
-func EntryFollowLinks(commit *Commit, firstFullPath string, firstTreeEntry *TreeEntry, optLimit ...int) (res *EntryFollowResult, err error) {
+func EntryFollowLinks(tree *Tree, firstFullPath string, firstTreeEntry *TreeEntry, optLimit ...int) (res *EntryFollowResult, err error) {
 	limit := util.OptionalArg(optLimit, 10)
 	treeEntry, fullPath := firstTreeEntry, firstFullPath
 	for range limit {
-		res, err = EntryFollowLink(commit, fullPath, treeEntry)
+		res, err = EntryFollowLink(tree, fullPath, treeEntry)
 		if err != nil {
 			return res, err
 		}

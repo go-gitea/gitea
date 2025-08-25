@@ -123,7 +123,7 @@ func (repo *Repository) getCommitFromBatchReader(wr WriteCloserError, rd *bufio.
 
 		return commit, nil
 	case "commit":
-		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, size))
+		commit, err := CommitFromReader(id, io.LimitReader(rd, size))
 		if err != nil {
 			return nil, err
 		}

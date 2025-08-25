@@ -302,7 +302,7 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 					return fmt.Errorf("GetTagCommit[%v]: %w", rel.TagName, err)
 				}
 				rel.Sha1 = commit.ID.String()
-				rel.NumCommits, err = commit.CommitsCount()
+				rel.NumCommits, err = g.gitRepo.CommitsCount(commit.ID.String())
 				if err != nil {
 					return fmt.Errorf("CommitsCount: %w", err)
 				}

@@ -15,7 +15,7 @@ import (
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
+func (tes Entries) GetCommitsInfo(ctx context.Context, gitRepo *Repository, repoLink string, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
@@ -26,15 +26,15 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 	var err error
 
 	var revs map[string]*Commit
-	if commit.repo.LastCommitCache != nil {
+	if gitRepo.LastCommitCache != nil {
 		var unHitPaths []string
-		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, commit.repo.LastCommitCache)
+		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, gitRepo.LastCommitCache)
 		if err != nil {
 			return nil, nil, err
 		}
 		if len(unHitPaths) > 0 {
 			sort.Strings(unHitPaths)
-			commits, err := GetLastCommitForPaths(ctx, commit, treePath, unHitPaths)
+			commits, err := GetLastCommitForPaths(ctx, gitRepo, commit, treePath, unHitPaths)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -43,7 +43,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 		}
 	} else {
 		sort.Strings(entryPaths)
-		revs, err = GetLastCommitForPaths(ctx, commit, treePath, entryPaths)
+		revs, err = GetLastCommitForPaths(ctx, gitRepo, commit, treePath, entryPaths)
 	}
 	if err != nil {
 		return nil, nil, err
@@ -64,7 +64,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 
 		// If the entry is a submodule, add a submodule file for this
 		if entry.IsSubModule() {
-			commitsInfo[i].SubmoduleFile, err = GetCommitInfoSubmoduleFile(repoLink, path.Join(treePath, entry.Name()), commit, entry.ID)
+			commitsInfo[i].SubmoduleFile, err = GetCommitInfoSubmoduleFile(gitRepo, repoLink, path.Join(treePath, entry.Name()), commit.TreeID, entry.ID)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -75,11 +75,8 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 	// get it for free during the tree traversal, and it's used for listing
 	// pages to display information about the newest commit for a given path.
 	var treeCommit *Commit
-	var ok bool
 	if treePath == "" {
 		treeCommit = commit
-	} else if treeCommit, ok = revs[""]; ok {
-		treeCommit.repo = commit.repo
 	}
 	return commitsInfo, treeCommit, nil
 }
@@ -104,9 +101,9 @@ func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cac
 }
 
 // GetLastCommitForPaths returns last commit information
-func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string, paths []string) (map[string]*Commit, error) {
+func GetLastCommitForPaths(ctx context.Context, gitRepo *Repository, commit *Commit, treePath string, paths []string) (map[string]*Commit, error) {
 	// We read backwards from the commit to obtain all of the commits
-	revs, err := WalkGitLog(ctx, commit.repo, commit, treePath, paths...)
+	revs, err := WalkGitLog(ctx, gitRepo, commit, treePath, paths...)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +123,7 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 			continue
 		}
 
-		c, err := commit.repo.GetCommit(commitID) // Ensure the commit exists in the repository
+		c, err := gitRepo.GetCommit(commitID) // Ensure the commit exists in the repository
 		if err != nil {
 			return nil, err
 		}

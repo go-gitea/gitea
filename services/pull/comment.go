@@ -33,7 +33,7 @@ func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldC
 		return nil, false, err
 	}
 
-	isForcePush, err = newCommit.IsForcePush(oldCommitID)
+	isForcePush, err = gitRepo.IsForcePush(newCommit, oldCommitID)
 	if err != nil {
 		return nil, false, err
 	}

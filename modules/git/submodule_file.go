@@ -13,8 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// CommitSubmoduleFile represents a file with submodule type.
-type CommitSubmoduleFile struct {
+// SubmoduleFile represents a file with submodule type.
+type SubmoduleFile struct {
 	repoLink string
 	fullPath string
 	refURL   string
@@ -24,20 +24,20 @@ type CommitSubmoduleFile struct {
 	parsedTargetLink string
 }
 
-// NewCommitSubmoduleFile create a new submodule file
-func NewCommitSubmoduleFile(repoLink, fullPath, refURL, refID string) *CommitSubmoduleFile {
-	return &CommitSubmoduleFile{repoLink: repoLink, fullPath: fullPath, refURL: refURL, refID: refID}
+// NewSubmoduleFile create a new submodule file
+func NewSubmoduleFile(repoLink, fullPath, refURL, refID string) *SubmoduleFile {
+	return &SubmoduleFile{repoLink: repoLink, fullPath: fullPath, refURL: refURL, refID: refID}
 }
 
 // RefID returns the commit ID of the submodule, it returns empty string for nil receiver
-func (sf *CommitSubmoduleFile) RefID() string {
+func (sf *SubmoduleFile) RefID() string {
 	if sf == nil {
 		return ""
 	}
 	return sf.refID
 }
 
-func (sf *CommitSubmoduleFile) getWebLinkInTargetRepo(ctx context.Context, moreLinkPath string) *SubmoduleWebLink {
+func (sf *SubmoduleFile) getWebLinkInTargetRepo(ctx context.Context, moreLinkPath string) *SubmoduleWebLink {
 	if sf == nil || sf.refURL == "" {
 		return nil
 	}
@@ -58,12 +58,12 @@ func (sf *CommitSubmoduleFile) getWebLinkInTargetRepo(ctx context.Context, moreL
 
 // SubmoduleWebLinkTree tries to make the submodule's tree link in its own repo, it also works on "nil" receiver
 // It returns nil if the submodule does not have a valid URL or is nil
-func (sf *CommitSubmoduleFile) SubmoduleWebLinkTree(ctx context.Context, optCommitID ...string) *SubmoduleWebLink {
+func (sf *SubmoduleFile) SubmoduleWebLinkTree(ctx context.Context, optCommitID ...string) *SubmoduleWebLink {
 	return sf.getWebLinkInTargetRepo(ctx, "/tree/"+util.OptionalArg(optCommitID, sf.RefID()))
 }
 
 // SubmoduleWebLinkCompare tries to make the submodule's compare link in its own repo, it also works on "nil" receiver
 // It returns nil if the submodule does not have a valid URL or is nil
-func (sf *CommitSubmoduleFile) SubmoduleWebLinkCompare(ctx context.Context, commitID1, commitID2 string) *SubmoduleWebLink {
+func (sf *SubmoduleFile) SubmoduleWebLinkCompare(ctx context.Context, commitID1, commitID2 string) *SubmoduleWebLink {
 	return sf.getWebLinkInTargetRepo(ctx, "/compare/"+commitID1+"..."+commitID2)
 }
