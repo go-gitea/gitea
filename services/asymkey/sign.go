@@ -75,7 +75,7 @@ func userHasPubkeys(ctx context.Context, u *user_model.User) (bool, error) {
 		IncludeSubKeys: true,
 	})
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	if len(gpgKeys) > 0 {
 		return true, nil
@@ -86,7 +86,7 @@ func userHasPubkeys(ctx context.Context, u *user_model.User) (bool, error) {
 		NotKeytype: asymkey_model.KeyTypePrincipal,
 	})
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	if len(sshKeys) > 0 {
 		return true, nil
