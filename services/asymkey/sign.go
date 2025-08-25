@@ -69,6 +69,32 @@ func signingModeFromStrings(modeStrings []string) []signingMode {
 	return returnable
 }
 
+func userHasPubkeys(ctx context.Context, u *user_model.User) (bool, error) {
+	gpgKeys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		OwnerID:        u.ID,
+		IncludeSubKeys: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(gpgKeys) > 0 {
+		return true, nil
+	}
+
+	sshKeys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		OwnerID:    u.ID,
+		NotKeytype: asymkey_model.KeyTypePrincipal,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(sshKeys) > 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // ErrWontSign explains the first reason why a commit would not be signed
 // There may be other reasons - this is just the first reason found
 type ErrWontSign struct {
@@ -170,14 +196,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
@@ -210,14 +233,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
@@ -266,14 +286,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
@@ -337,14 +354,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
