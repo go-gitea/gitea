@@ -4,7 +4,6 @@
 package tests
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -68,7 +67,7 @@ func InitTest(requireGitea bool) {
 	unittest.InitSettingsForTesting()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 
-	if err := git.InitFull(context.Background()); err != nil {
+	if err := git.InitFull(); err != nil {
 		log.Fatal("git.InitOnceWithSync: %v", err)
 	}
 

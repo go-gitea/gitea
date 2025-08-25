@@ -18,9 +18,9 @@
 {{end}}
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/favicon.svg" type="image/svg+xml">
 	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
-	{{template "base/head_script" .}}
 	{{template "base/head_opengraph" .}}
 	{{template "base/head_style" .}}
+	{{template "base/head_script" .}}
 	{{template "custom/header" .}}
 </head>
 <body hx-headers='{"x-csrf-token": "{{.CsrfToken}}"}' hx-swap="outerHTML" hx-ext="morph" hx-push-url="false">

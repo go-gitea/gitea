@@ -67,7 +67,7 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	oidcToken = createAndParseToken(t, grants[0])
 	assert.Equal(t, user.DisplayName(), oidcToken.Name)
 	assert.Equal(t, user.Name, oidcToken.PreferredUsername)
-	assert.Equal(t, user.HTMLURL(), oidcToken.Profile)
+	assert.Equal(t, user.HTMLURL(t.Context()), oidcToken.Profile)
 	assert.Equal(t, user.AvatarLink(db.DefaultContext), oidcToken.Picture)
 	assert.Equal(t, user.Website, oidcToken.Website)
 	assert.Equal(t, user.UpdatedUnix, oidcToken.UpdatedAt)

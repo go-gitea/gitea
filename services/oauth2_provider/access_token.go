@@ -196,7 +196,7 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 		if grant.ScopeContains("profile") {
 			idToken.Name = user.DisplayName()
 			idToken.PreferredUsername = user.Name
-			idToken.Profile = user.HTMLURL()
+			idToken.Profile = user.HTMLURL(ctx)
 			idToken.Picture = user.AvatarLink(ctx)
 			idToken.Website = user.Website
 			idToken.Locale = user.Language

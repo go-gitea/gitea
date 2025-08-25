@@ -53,7 +53,7 @@ func DefaultFeatures() *Features {
 		if !setting.IsProd || setting.IsInTesting {
 			log.Warn("git.DefaultFeatures is called before git.InitXxx, initializing with default values")
 		}
-		if err := InitSimple(context.Background()); err != nil {
+		if err := InitSimple(); err != nil {
 			log.Fatal("git.InitSimple failed: %v", err)
 		}
 	}
@@ -158,7 +158,7 @@ func HomeDir() string {
 
 // InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
 // This method doesn't change anything to filesystem. At the moment, it is only used by some Gitea sub-commands.
-func InitSimple(ctx context.Context) error {
+func InitSimple() error {
 	if setting.Git.HomePath == "" {
 		return errors.New("unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
 	}
@@ -167,7 +167,8 @@ func InitSimple(ctx context.Context) error {
 		log.Warn("git module has been initialized already, duplicate init may work but it's better to fix it")
 	}
 
-	DefaultContext = ctx
+	// FIXME: git context is used across the application, so it should use the global default context, this design is not right but it's hard to change now.
+	DefaultContext = context.Background()
 	globalCommandArgs = nil
 
 	if setting.Git.Timeout.Default > 0 {
@@ -196,8 +197,8 @@ func InitSimple(ctx context.Context) error {
 
 // InitFull initializes git module with version check and change global variables, sync gitconfig.
 // It should only be called once at the beginning of the program initialization (TestMain/GlobalInitInstalled) as this code makes unsynchronized changes to variables.
-func InitFull(ctx context.Context) (err error) {
-	if err = InitSimple(ctx); err != nil {
+func InitFull() (err error) {
+	if err = InitSimple(); err != nil {
 		return err
 	}
 

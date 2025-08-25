@@ -150,12 +150,12 @@ func TestComposeIssueComment(t *testing.T) {
 	assert.NoError(t, err)
 
 	// text/plain
-	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, doer.HTMLURL()))
-	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, issue.HTMLURL()))
+	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, doer.HTMLURL(t.Context())))
+	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, issue.HTMLURL(t.Context())))
 
 	// text/html
-	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, doer.HTMLURL()))
-	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, issue.HTMLURL()))
+	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, doer.HTMLURL(t.Context())))
+	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, issue.HTMLURL(t.Context())))
 }
 
 func TestMailMentionsComment(t *testing.T) {

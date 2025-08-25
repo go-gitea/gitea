@@ -4,7 +4,6 @@
 package git
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -25,7 +24,7 @@ func testRun(m *testing.M) error {
 
 	setting.Git.HomePath = gitHomePath
 
-	if err = InitFull(context.Background()); err != nil {
+	if err = InitFull(); err != nil {
 		return fmt.Errorf("failed to call Init: %w", err)
 	}
 

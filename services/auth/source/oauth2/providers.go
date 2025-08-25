@@ -108,17 +108,12 @@ func getExistingAzureADAuthSources(ctx context.Context) ([]string, error) {
 	return existingAzureProviders, nil
 }
 
-// GetSupportedOAuth2Providers returns the map of unconfigured OAuth2 providers
+// GetSupportedOAuth2Providers returns the list of supported OAuth2 providers with context for filtering
 // key is used as technical name (like in the callbackURL)
 // values to display
 // Note: Azure AD providers (azuread, microsoftonline, azureadv2) are filtered out
 // unless they already exist in the system to encourage use of OpenID Connect
-func GetSupportedOAuth2Providers() []Provider {
-	return GetSupportedOAuth2ProvidersWithContext(context.Background())
-}
-
-// GetSupportedOAuth2ProvidersWithContext returns the list of supported OAuth2 providers with context for filtering
-func GetSupportedOAuth2ProvidersWithContext(ctx context.Context) []Provider {
+func GetSupportedOAuth2Providers(ctx context.Context) []Provider {
 	providers := make([]Provider, 0, len(gothProviders))
 	existingAzureSources, err := getExistingAzureADAuthSources(ctx)
 	if err != nil {

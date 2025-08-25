@@ -100,7 +100,7 @@ func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 		return err
 	}
 
-	if err := git.InitSimple(ctx); err != nil {
+	if err := git.InitSimple(); err != nil {
 		return err
 	}
 
