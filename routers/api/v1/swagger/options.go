@@ -222,4 +222,10 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	LockIssueOption api.LockIssueOption
+
+	// in:body
+	NewProjectOption api.NewProjectOption
+
+	// in:body
+	UpdateProjectOption api.UpdateProjectOption
 }
