@@ -15,7 +15,7 @@
 	{{range $job := .Jobs}}
 		<li style="background-color: #ffffff; border: 1px solid #ddd; border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); transition: box-shadow 0.2s ease;">
 			<a href="{{$job.HTMLURL}}" style="color: #0073e6; text-decoration: none; font-weight: bold;">
-				{{$job.Status}}: {{$job.Name}}{{if gt $job.Attempt 1}}, Attempt #{{$job.Attempt}}{{end}}
+				{{$job.Status}}: {{$job.Name}}{{if gt $job.Attempt 1}}, Attempt #{{$job.Attempt}}{{end}}, {{$job.Duration}}
 			</a>
 		</li>
 	{{end}}
