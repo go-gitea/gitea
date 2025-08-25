@@ -77,13 +77,14 @@ const (
 
 // DiffLine represents a line difference in a DiffSection.
 type DiffLine struct {
-	LeftIdx     int // line number, 1-based
-	RightIdx    int // line number, 1-based
-	Match       int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
-	Type        DiffLineType
-	Content     string
-	Comments    issues_model.CommentList // related PR code comments
-	SectionInfo *DiffLineSectionInfo
+	LeftIdx        int // line number, 1-based
+	RightIdx       int // line number, 1-based
+	Match          int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
+	Type           DiffLineType
+	Content        string
+	Comments       issues_model.CommentList    // related PR code commzents
+	CommitComments git_model.CommitCommentList // related to commit comments
+	SectionInfo    *DiffLineSectionInfo
 }
 
 // DiffLineSectionInfo represents diff line section meta data
@@ -133,12 +134,25 @@ func (d *DiffLine) CanComment() bool {
 	return len(d.Comments) == 0 && d.Type != DiffLineSection
 }
 
+// CanCommitComment returns whether a line can get commented
+func (d *DiffLine) CanCommitComment() bool {
+	return len(d.CommitComments) == 0 && d.Type != DiffLineSection
+}
+
 // GetCommentSide returns the comment side of the first comment, if not set returns empty string
 func (d *DiffLine) GetCommentSide() string {
 	if len(d.Comments) == 0 {
 		return ""
 	}
 	return d.Comments[0].DiffSide()
+}
+
+// GetCommentSide returns the comment side of the first comment, if not set returns empty string
+func (d *DiffLine) GetCommitCommentSide() string {
+	if len(d.CommitComments) == 0 {
+		return ""
+	}
+	return d.CommitComments[0].DiffSide()
 }
 
 // GetLineTypeMarker returns the line type marker

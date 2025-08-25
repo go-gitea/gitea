@@ -54,7 +54,12 @@
 			{{else}}
 				<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
 					{{- if and $.root.SignedUserID $.root.PageIsPullFiles -}}
-						<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
+						<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" aria-expanded="false" data-global-click="onAddCodeCommentButtonClick" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
+							{{- svg "octicon-plus" -}}
+						</button>
+					{{- end -}}
+					{{- if and $.root.SignedUserID $.root.PageIsDiff -}}
+						<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" aria-expanded="false" data-global-click="onAddCodeCommentButtonClick" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanCommitComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
 							{{- svg "octicon-plus" -}}
 						</button>
 					{{- end -}}
@@ -62,12 +67,23 @@
 				</td>
 			{{end}}
 		</tr>
-		{{if $line.Comments}}
-			<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
-				<td class="add-comment-left add-comment-right" colspan="5">
-					{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
-				</td>
-			</tr>
+		{{- if and $.root.SignedUserID $.root.PageIsPullFiles -}}
+			{{if $line.Comments}}
+				<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
+					<td class="add-comment-left add-comment-right" colspan="5">
+						{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
+					</td>
+				</tr>
+			{{end}}
+		{{end}}
+		{{- if and $.root.SignedUserID $.root.PageIsDiff -}}
+			{{if $line.CommitComments}}
+				<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
+					<td class="add-comment-left add-comment-right" colspan="5">
+						{{template "repo/diff/commit_conversation" dict "." $.root "comments" $line.CommitComments}}
+					</td>
+				</tr>
+			{{end}}
 		{{end}}
 	{{end}}
 {{end}}
