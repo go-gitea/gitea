@@ -330,3 +330,63 @@ func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *test
 	assert.NoError(t, CleanupHookTaskTable(t.Context(), OlderThan, 168*time.Hour, 0))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }
+
+func TestWebhookPayloadOptimization(t *testing.T) {
+	webhook := &Webhook{}
+
+	// Test default configuration
+	config := webhook.GetPayloadConfig()
+	assert.False(t, config.Files.Enable)
+	assert.Equal(t, 0, config.Files.Limit)
+	assert.False(t, config.Commits.Enable)
+	assert.Equal(t, 0, config.Commits.Limit)
+
+	// Test setting configuration via meta settings
+	metaSettings := MetaSettings{
+		PayloadConfig: PayloadConfig{
+			Files: PayloadConfigItem{
+				Enable: true,
+				Limit:  5,
+			},
+			Commits: PayloadConfigItem{
+				Enable: true,
+				Limit:  -3,
+			},
+		},
+	}
+	webhook.SetMetaSettings(metaSettings)
+
+	// Test getting configuration
+	config = webhook.GetPayloadConfig()
+	assert.True(t, config.Files.Enable)
+	assert.Equal(t, 5, config.Files.Limit)
+	assert.True(t, config.Commits.Enable)
+	assert.Equal(t, -3, config.Commits.Limit)
+
+	// Test individual methods
+	assert.True(t, webhook.IsFilesConfigEnabled())
+	assert.Equal(t, 5, webhook.GetFilesConfigLimit())
+	assert.True(t, webhook.IsCommitsConfigEnabled())
+	assert.Equal(t, -3, webhook.GetCommitsConfigLimit())
+	assert.True(t, webhook.IsPayloadConfigEnabled())
+
+	// Test backward compatibility with direct payload config setting
+	newConfig := PayloadConfig{
+		Files: PayloadConfigItem{
+			Enable: false,
+			Limit:  10,
+		},
+		Commits: PayloadConfigItem{
+			Enable: false,
+			Limit:  20,
+		},
+	}
+	webhook.SetPayloadConfig(newConfig)
+
+	// Verify the config is properly set through meta settings
+	config = webhook.GetPayloadConfig()
+	assert.False(t, config.Files.Enable)
+	assert.Equal(t, 10, config.Files.Limit)
+	assert.False(t, config.Commits.Enable)
+	assert.Equal(t, 20, config.Commits.Limit)
+}
