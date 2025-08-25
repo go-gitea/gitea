@@ -23,6 +23,22 @@ type Tree struct {
 
 	// parent tree
 	ptree *Tree
+
+	submoduleCache *ObjectCache[*SubModule]
+}
+
+// NewTree create a new tree according the repository and tree id
+func NewTree(repo *Repository, id ObjectID) *Tree {
+	tree, err := object.GetTree(repo.gogitRepo.Storer, plumbing.Hash(id.RawValue()))
+	if err != nil {
+		return nil
+	}
+
+	return &Tree{
+		ID:        id,
+		repo:      repo,
+		gogitTree: tree,
+	}
 }
 
 func (t *Tree) loadTreeObject() error {

@@ -12,14 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// NewTree create a new tree according the repository and tree id
-func NewTree(repo *Repository, id ObjectID) *Tree {
-	return &Tree{
-		ID:   id,
-		repo: repo,
-	}
-}
-
 // SubTree get a subtree by the sub dir path
 func (t *Tree) SubTree(rpath string) (*Tree, error) {
 	if len(rpath) == 0 {

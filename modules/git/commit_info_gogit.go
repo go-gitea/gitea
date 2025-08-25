@@ -16,7 +16,7 @@ import (
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
+func (tes Entries) GetCommitsInfo(ctx context.Context, gitRepo *Repository, repoLink string, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
@@ -24,7 +24,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 		entryPaths[i+1] = entry.Name()
 	}
 
-	commitNodeIndex, commitGraphFile := commit.repo.CommitNodeIndex()
+	commitNodeIndex, commitGraphFile := gitRepo.CommitNodeIndex()
 	if commitGraphFile != nil {
 		defer commitGraphFile.Close()
 	}
@@ -35,14 +35,14 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 	}
 
 	var revs map[string]*Commit
-	if commit.repo.LastCommitCache != nil {
+	if gitRepo.LastCommitCache != nil {
 		var unHitPaths []string
-		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, commit.repo.LastCommitCache)
+		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, gitRepo.LastCommitCache)
 		if err != nil {
 			return nil, nil, err
 		}
 		if len(unHitPaths) > 0 {
-			revs2, err := GetLastCommitForPaths(ctx, commit.repo.LastCommitCache, c, treePath, unHitPaths)
+			revs2, err := GetLastCommitForPaths(ctx, gitRepo.LastCommitCache, c, treePath, unHitPaths)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -58,7 +58,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 		return nil, nil, err
 	}
 
-	commit.repo.gogitStorage.Close()
+	gitRepo.gogitStorage.Close()
 
 	commitsInfo := make([]CommitInfo, len(tes))
 	for i, entry := range tes {
@@ -73,7 +73,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 
 		// If the entry is a submodule, add a submodule file for this
 		if entry.IsSubModule() {
-			commitsInfo[i].SubmoduleFile, err = GetCommitInfoSubmoduleFile(repoLink, path.Join(treePath, entry.Name()), commit, entry.ID)
+			commitsInfo[i].SubmoduleFile, err = GetCommitInfoSubmoduleFile(gitRepo, repoLink, path.Join(treePath, entry.Name()), commit.TreeID, entry.ID)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -84,11 +84,8 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 	// get it for free during the tree traversal and it's used for listing
 	// pages to display information about newest commit for a given path.
 	var treeCommit *Commit
-	var ok bool
 	if treePath == "" {
 		treeCommit = commit
-	} else if treeCommit, ok = revs[""]; ok {
-		treeCommit.repo = commit.repo
 	}
 	return commitsInfo, treeCommit, nil
 }

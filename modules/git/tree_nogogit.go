@@ -28,6 +28,14 @@ type Tree struct {
 	submoduleCache *ObjectCache[*SubModule]
 }
 
+// NewTree create a new tree according the repository and tree id
+func NewTree(repo *Repository, id ObjectID) *Tree {
+	return &Tree{
+		ID:   id,
+		repo: repo,
+	}
+}
+
 // ListEntries returns all entries of current tree.
 func (t *Tree) ListEntries() (Entries, error) {
 	if t.entriesParsed {
