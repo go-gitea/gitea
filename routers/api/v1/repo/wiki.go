@@ -196,7 +196,7 @@ func getWikiPage(ctx *context.APIContext, wikiName wiki_service.WebPath) *api.Wi
 	commitsCount, _ := wikiRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 
 	// Get last change information.
-	lastCommit, err := wikiRepo.GetCommitByPath(commit.ID, pageFilename)
+	lastCommit, err := wikiRepo.GetCommitByPathDefaultBranch(pageFilename)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil
@@ -317,7 +317,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		if i < skip || i >= maxNum || !entry.IsRegular() {
 			continue
 		}
-		c, err := wikiRepo.GetCommitByPath(commit.ID, entry.Name())
+		c, err := wikiRepo.GetCommitByPathDefaultBranch(entry.Name())
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

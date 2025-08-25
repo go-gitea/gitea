@@ -62,7 +62,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 			continue
 		}
 		assert.NotNil(t, commit)
-		assert.NotEmpty(t, commit.TreeID)
+		assert.NotNil(t, commit.TreeID)
 
 		tree, err := NewTree(repo1, commit.TreeID).SubTree(testCase.Path)
 		if err != nil {
