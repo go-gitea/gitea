@@ -149,7 +149,9 @@ func TestRepository_InitWiki(t *testing.T) {
 	// repo2 does not already have a wiki
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	assert.NoError(t, InitWiki(git.DefaultContext, repo2))
-	assert.True(t, repo2.HasWiki())
+	exist, err := gitrepo.IsRepositoryExist(git.DefaultContext, repo2.WikiStorageRepo())
+	assert.NoError(t, err)
+	assert.True(t, exist)
 }
 
 func TestRepository_AddWikiPage(t *testing.T) {
