@@ -5,6 +5,7 @@
 package context
 
 import (
+	group_model "code.gitea.io/gitea/models/group"
 	"context"
 	"errors"
 	"fmt"
@@ -12,6 +13,8 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -328,6 +331,7 @@ func ComposeGoGetImport(ctx context.Context, owner, repo string) string {
 func EarlyResponseForGoGetMeta(ctx *Context) {
 	username := ctx.PathParam("username")
 	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
+	groupID := ctx.PathParamInt64("group_id")
 	if username == "" || reponame == "" {
 		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
@@ -335,14 +339,16 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 
 	var cloneURL string
 	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame)
+		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame, groupID)
 	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame)
+		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame, groupID)
 	}
 	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(ctx, username, reponame), cloneURL)
 	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
 	ctx.PlainText(http.StatusOK, htmlMeta)
 }
+
+var pathRegex = regexp.MustCompile(`(?i).*/[a-z\-0-9_]+/(\d+/)?[a-z\-0-9_]`)
 
 // RedirectToRepo redirect to a differently-named repository
 func RedirectToRepo(ctx *Base, redirectRepoID int64) {
@@ -355,6 +361,8 @@ func RedirectToRepo(ctx *Base, redirectRepoID int64) {
 		ctx.HTTPError(http.StatusInternalServerError, "GetRepositoryByID")
 		return
 	}
+	pathRegex.ReplaceAllString(ctx.Req.URL.EscapedPath(),
+		url.PathEscape(repo.OwnerName)+"/$1"+url.PathEscape(repo.Name))
 
 	redirectPath := strings.Replace(
 		ctx.Req.URL.EscapedPath(),
@@ -421,6 +429,20 @@ func RepoAssignment(ctx *Context) {
 	var err error
 	userName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
+	group := ctx.PathParam("group_id")
+	var gid int64
+	if group != "" {
+		gid, _ = strconv.ParseInt(group, 10, 64)
+		if gid == 0 {
+			q := ctx.Req.URL.RawQuery
+			if q != "" {
+				q = "?" + q
+			}
+			ctx.Redirect(strings.Replace(ctx.Link, "/0/", "/", 1)+q, 307)
+			return
+		}
+		group += "/"
+	}
 	repoName = strings.TrimSuffix(repoName, ".git")
 	if setting.Other.EnableFeed {
 		ctx.Data["EnableFeed"] = true
@@ -467,7 +489,7 @@ func RepoAssignment(ctx *Context) {
 		redirectRepoName += originalRepoName[len(redirectRepoName)+5:]
 		redirectPath := strings.Replace(
 			ctx.Req.URL.EscapedPath(),
-			url.PathEscape(userName)+"/"+url.PathEscape(originalRepoName),
+			url.PathEscape(userName)+"/"+group+url.PathEscape(originalRepoName),
 			url.PathEscape(userName)+"/"+url.PathEscape(redirectRepoName)+"/wiki",
 			1,
 		)
@@ -479,7 +501,7 @@ func RepoAssignment(ctx *Context) {
 	}
 
 	// Get repository.
-	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Repo.Owner.ID, repoName)
+	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Repo.Owner.ID, gid, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			redirectRepoID, err := repo_model.LookupRedirect(ctx, ctx.Repo.Owner.ID, repoName)
@@ -498,6 +520,9 @@ func RepoAssignment(ctx *Context) {
 			ctx.ServerError("GetRepositoryByName", err)
 		}
 		return
+	}
+	if repo.GroupID != gid {
+		ctx.NotFound(nil)
 	}
 	repo.Owner = ctx.Repo.Owner
 
@@ -537,6 +562,15 @@ func RepoAssignment(ctx *Context) {
 
 	ctx.Data["Title"] = repo.Owner.Name + "/" + repo.Name
 	ctx.Data["Repository"] = repo
+	if repo.GroupID > 0 {
+		if ctx.Data["Breadcrumbs"], err = group_model.GetParentGroupChain(ctx, repo.GroupID); err != nil {
+			ctx.ServerError("GetParentGroupChain", err)
+			return
+		}
+	} else {
+		ctx.Data["Breadcrumbs"] = nil
+	}
+
 	ctx.Data["Owner"] = ctx.Repo.Repository.Owner
 	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)

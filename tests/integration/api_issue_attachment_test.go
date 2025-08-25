@@ -33,7 +33,7 @@ func TestAPIGetIssueAttachment(t *testing.T) {
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
 
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d", repoOwner.Name, repo.Name, issue.Index, attachment.ID)).
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/%d/assets/%d", repoOwner.Name, repo.GroupID, repo.Name, issue.Index, attachment.ID)).
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	apiAttachment := new(api.Attachment)
@@ -53,7 +53,7 @@ func TestAPIListIssueAttachments(t *testing.T) {
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
 
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets", repoOwner.Name, repo.Name, issue.Index)).
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/%d/assets", repoOwner.Name, repo.GroupID, repo.Name, issue.Index)).
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	apiAttachment := new([]api.Attachment)
@@ -85,7 +85,7 @@ func TestAPICreateIssueAttachment(t *testing.T) {
 	err = writer.Close()
 	assert.NoError(t, err)
 
-	req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets", repoOwner.Name, repo.Name, issue.Index), body).
+	req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/%d/assets", repoOwner.Name, repo.GroupID, repo.Name, issue.Index), body).
 		AddTokenAuth(token)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	resp := session.MakeRequest(t, req, http.StatusCreated)
@@ -116,7 +116,7 @@ func TestAPICreateIssueAttachmentWithUnallowedFile(t *testing.T) {
 	err = writer.Close()
 	assert.NoError(t, err)
 
-	req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets", repoOwner.Name, repo.Name, issue.Index), body).
+	req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/%d/assets", repoOwner.Name, repo.GroupID, repo.Name, issue.Index), body).
 		AddTokenAuth(token)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 
@@ -159,7 +159,7 @@ func TestAPIEditIssueAttachmentWithUnallowedFile(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	filename := "file.bad"
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d", repoOwner.Name, repo.Name, issue.Index, attachment.ID)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/%d/assets/%d", repoOwner.Name, repo.GroupID, repo.Name, issue.Index, attachment.ID)
 	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
 		"name": filename,
 	}).AddTokenAuth(token)
@@ -178,7 +178,7 @@ func TestAPIDeleteIssueAttachment(t *testing.T) {
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
-	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d", repoOwner.Name, repo.Name, issue.Index, attachment.ID)).
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/%d/assets/%d", repoOwner.Name, repo.GroupID, repo.Name, issue.Index, attachment.ID)).
 		AddTokenAuth(token)
 	session.MakeRequest(t, req, http.StatusNoContent)
 

@@ -37,6 +37,7 @@ import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/use
 import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.ts';
 import {initRepoEditor} from './features/repo-editor.ts';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
+import {initCompSearchTeamBox} from './features/comp/SearchTeamBox.ts';
 import {initInstall} from './features/install.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
@@ -66,6 +67,7 @@ import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton}
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
+import {initCommonGroup, initGroup} from './features/group.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -91,6 +93,7 @@ const initPerformanceTracer = callInitFunctions([
   initCommonIssueListQuickGoto,
 
   initCompSearchUserBox,
+  initCompSearchTeamBox,
   initCompWebHookEditor,
 
   initInstall,
@@ -164,6 +167,9 @@ const initPerformanceTracer = callInitFunctions([
   initOAuth2SettingsDisableCheckbox,
 
   initRepoFileView,
+
+  initCommonGroup,
+  initGroup,
 ]);
 
 // it must be the last one, then the "querySelectorAll" only needs to be executed once for global init functions.

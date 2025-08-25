@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/organization"
 	perm_model "code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -345,14 +346,31 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 			return perm, nil
 		}
 	}
-
+	groupTeams, err := group_model.FindGroupTeams(ctx, repo.GroupID)
+	for _, team := range groupTeams {
+		if team.AccessMode >= perm_model.AccessModeAdmin {
+			perm.AccessMode = perm_model.AccessModeOwner
+			perm.unitsMode = nil
+			return perm, nil
+		}
+	}
 	for _, u := range repo.Units {
-		for _, team := range teams {
-			unitAccessMode := minAccessMode
+		var found bool
+		for _, team := range groupTeams {
 			if teamMode, exist := team.UnitAccessModeEx(ctx, u.Type); exist {
-				unitAccessMode = max(perm.unitsMode[u.Type], unitAccessMode, teamMode)
+				perm.unitsMode[u.Type] = max(perm.unitsMode[u.Type], teamMode)
+				found = true
 			}
-			perm.unitsMode[u.Type] = unitAccessMode
+		}
+		if !found {
+			for _, team := range teams {
+				unitAccessMode := minAccessMode
+				if teamMode, exist := team.UnitAccessModeEx(ctx, u.Type); exist {
+					unitAccessMode = max(perm.unitsMode[u.Type], unitAccessMode, teamMode)
+					found = true
+				}
+				perm.unitsMode[u.Type] = unitAccessMode
+			}
 		}
 	}
 

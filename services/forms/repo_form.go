@@ -43,6 +43,7 @@ type CreateRepoForm struct {
 
 	ForkSingleBranch string
 	ObjectFormatName string
+	ParentGroupID    int64
 }
 
 // Validate validates the fields

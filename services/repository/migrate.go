@@ -27,7 +27,7 @@ import (
 )
 
 func cloneWiki(ctx context.Context, u *user_model.User, opts migration.MigrateOptions, migrateTimeout time.Duration) (string, error) {
-	wikiPath := repo_model.WikiPath(u.Name, opts.RepoName)
+	wikiPath := repo_model.WikiPath(u.Name, opts.RepoName, 0)
 	wikiRemotePath := repo_module.WikiRemoteURL(ctx, opts.CloneAddr)
 	if wikiRemotePath == "" {
 		return "", nil
@@ -72,7 +72,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repo *repo_model.Repository, opts migration.MigrateOptions,
 	httpTransport *http.Transport,
 ) (*repo_model.Repository, error) {
-	repoPath := repo_model.RepoPath(u.Name, opts.RepoName)
+	repoPath := repo_model.RepoPath(u.Name, opts.RepoName, 0)
 
 	if u.IsOrganization() {
 		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)

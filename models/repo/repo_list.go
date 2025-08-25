@@ -158,6 +158,7 @@ type SearchRepoOptions struct {
 	OwnerID         int64
 	PriorityOwnerID int64
 	TeamID          int64
+	GroupID         int64
 	OrderBy         db.SearchOrderBy
 	Private         bool // Include private repositories in results
 	StarredByID     int64
@@ -289,9 +290,9 @@ func UserCollaborationRepoCond(idStr string, userID int64) builder.Cond {
 	)
 }
 
-// UserOrgTeamRepoCond selects repos that the given user has access to through team membership
+// UserOrgTeamRepoCond selects repos that the given user has access to through team membership and/or group permissions
 func UserOrgTeamRepoCond(idStr string, userID int64) builder.Cond {
-	return builder.In(idStr, userOrgTeamRepoBuilder(userID))
+	return builder.In(idStr, userOrgTeamRepoBuilder(userID), userOrgTeamRepoGroupBuilder(userID))
 }
 
 // userOrgTeamRepoBuilder returns repo ids where user's teams can access.
@@ -302,6 +303,12 @@ func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
 		Where(builder.Eq{"`team_user`.uid": userID})
 }
 
+// userOrgTeamRepoGroupBuilder selects repos that the given user has access to through team membership and group permissions
+func userOrgTeamRepoGroupBuilder(userID int64) *builder.Builder {
+	return userOrgTeamRepoBuilder(userID).
+		Join("INNER", "repo_group_team", "`repo_group_team`.team_id=`team_repo`.team_id")
+}
+
 // userOrgTeamUnitRepoBuilder returns repo ids where user's teams can access the special unit.
 func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Builder {
 	return userOrgTeamRepoBuilder(userID).
@@ -310,9 +317,18 @@ func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Build
 		And(builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)})
 }
 
+func userOrgTeamUnitRepoGroupBuilder(userID int64, unitType unit.Type) *builder.Builder {
+	return userOrgTeamRepoGroupBuilder(userID).
+		Join("INNER", "team_unit", "`team_unit`.team_id = `team_repo`.team_id").
+		Where(builder.Eq{"`team_unit`.`type`": unitType}).
+		And(builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)})
+}
+
 // userOrgTeamUnitRepoCond returns a condition to select repo ids where user's teams can access the special unit.
 func userOrgTeamUnitRepoCond(idStr string, userID int64, unitType unit.Type) builder.Cond {
-	return builder.In(idStr, userOrgTeamUnitRepoBuilder(userID, unitType))
+	return builder.Or(builder.In(
+		idStr, userOrgTeamUnitRepoBuilder(userID, unitType)),
+		builder.In(idStr, userOrgTeamUnitRepoGroupBuilder(userID, unitType)))
 }
 
 // UserOrgUnitRepoCond selects repos that the given user has access to through org and the special unit
@@ -320,7 +336,18 @@ func UserOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) 
 	return builder.In(idStr,
 		userOrgTeamUnitRepoBuilder(userID, unitType).
 			And(builder.Eq{"`team_unit`.org_id": orgID}),
-	)
+		userOrgTeamUnitRepoGroupBuilder(userID, unitType).And(builder.Eq{"`team_unit`.org_id": orgID}))
+}
+
+// ReposAccessibleByGroupTeamBuilder returns repositories that are accessible by a team via group permissions
+func ReposAccessibleByGroupTeamBuilder(teamID int64) *builder.Builder {
+	innerGroupCond := builder.Select("`repo_group`.id").
+		From("repo_group").
+		InnerJoin("repo_group_team", "`repo_group_team`.group_id = `repo_group`.id").
+		Where(builder.Eq{"`repo_group_team`.team_id": teamID})
+	return builder.Select("`repository`.id").
+		From("repository").
+		Where(builder.In("`repository`.group_id", innerGroupCond))
 }
 
 // userOrgPublicRepoCond returns the condition that one user could access all public repositories in organizations
@@ -444,6 +471,11 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 
 	if opts.TeamID > 0 {
 		cond = cond.And(builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").From("team_repo").Where(builder.Eq{"`team_repo`.team_id": opts.TeamID})))
+	}
+	if opts.GroupID > 0 {
+		cond = cond.And(builder.Eq{"`repository`.group_id": opts.GroupID})
+	} else if opts.GroupID == -1 {
+		cond = cond.And(builder.Lt{"`repository`.group_id": 1})
 	}
 
 	if opts.Keyword != "" {

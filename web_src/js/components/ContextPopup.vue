@@ -37,7 +37,8 @@ async function load(issuePathInfo: IssuePathInfo) {
   i18nErrorMessage.value = null;
 
   try {
-    const response = await GET(`${appSubUrl}/${issuePathInfo.ownerName}/${issuePathInfo.repoName}/issues/${issuePathInfo.indexString}/info`); // backend: GetIssueInfo
+    const groupSegment = issuePathInfo.group ? `group/${issuePathInfo.group}/` : '';
+    const response = await GET(`${appSubUrl}/${issuePathInfo.ownerName}/${groupSegment}${issuePathInfo.repoName}/issues/${issuePathInfo.indexString}/info`); // backend: GetIssueInfo
     const respJson = await response.json();
     if (!response.ok) {
       i18nErrorMessage.value = respJson.message ?? i18n.network_error;

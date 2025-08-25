@@ -55,6 +55,47 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, repoNames)
 }
 
+func commonAdoptRepository(ctx *context.APIContext) {
+	ownerName := ctx.PathParam("username")
+	repoName := ctx.PathParam("reponame")
+	groupID := ctx.PathParamInt64("group_id")
+
+	ctxUser, err := user_model.GetUserByName(ctx, ownerName)
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.APIErrorNotFound()
+			return
+		}
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	// check not a repo
+	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName, groupID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	isDir, err := util.IsDir(repo_model.RepoPath(ctxUser.Name, repoName, groupID))
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if has || !isDir {
+		ctx.APIErrorNotFound()
+		return
+	}
+	if _, err := repo_service.AdoptRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
+		Name:      repoName,
+		IsPrivate: true,
+	}); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
 // AdoptRepository will adopt an unadopted repository
 func AdoptRepository(ctx *context.APIContext) {
 	// swagger:operation POST /admin/unadopted/{owner}/{repo} admin adminAdoptRepository
@@ -80,8 +121,40 @@ func AdoptRepository(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	commonAdoptRepository(ctx)
+}
+
+func AdoptGroupRepository(ctx *context.APIContext) {
+	// swagger:operation POST /admin/unadopted/{owner}/{group_id}/{repo} admin adminAdoptRepository
+	// ---
+	// summary: Adopt unadopted files as a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	commonAdoptRepository(ctx)
+}
+
+func commonDeleteUnadoptedRepo(ctx *context.APIContext) {
 	ownerName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
+	groupID := ctx.PathParamInt64("group_id")
 
 	ctxUser, err := user_model.GetUserByName(ctx, ownerName)
 	if err != nil {
@@ -94,12 +167,12 @@ func AdoptRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName)
+	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName, groupID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	isDir, err := util.IsDir(repo_model.RepoPath(ctxUser.Name, repoName))
+	isDir, err := util.IsDir(repo_model.RepoPath(ctxUser.Name, repoName, groupID))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -108,10 +181,8 @@ func AdoptRepository(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
-	if _, err := repo_service.AdoptRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
-		Name:      repoName,
-		IsPrivate: true,
-	}); err != nil {
+
+	if err := repo_service.DeleteUnadoptedRepository(ctx, ctx.Doer, ctxUser, repoName, groupID); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -142,39 +213,30 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	ownerName := ctx.PathParam("username")
-	repoName := ctx.PathParam("reponame")
+	commonDeleteUnadoptedRepo(ctx)
+}
 
-	ctxUser, err := user_model.GetUserByName(ctx, ownerName)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.APIErrorNotFound()
-			return
-		}
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	// check not a repo
-	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	isDir, err := util.IsDir(repo_model.RepoPath(ctxUser.Name, repoName))
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if has || !isDir {
-		ctx.APIErrorNotFound()
-		return
-	}
-
-	if err := repo_service.DeleteUnadoptedRepository(ctx, ctx.Doer, ctxUser, repoName); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	ctx.Status(http.StatusNoContent)
+func DeleteUnadoptedRepositoryInGroup(ctx *context.APIContext) {
+	// swagger:operation DELETE /admin/unadopted/{owner}/{group_id}/{repo} admin adminDeleteUnadoptedRepository
+	// ---
+	// summary: Delete unadopted files
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	commonDeleteUnadoptedRepo(ctx)
 }
