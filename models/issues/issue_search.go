@@ -106,8 +106,8 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 				"WHEN milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
 				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
 				"ELSE issue.deadline_unix END ASC").
-			Desc("issue.created_unix").
-			Desc("issue.id")
+			Asc("issue.created_unix").
+			Asc("issue.id")
 	case "farduedate":
 		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
 			OrderBy("CASE " +
