@@ -17,7 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
-	issue_service "code.gitea.io/gitea/services/issue"
+	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -425,7 +425,7 @@ func TestAPIPullReviewStayDismissed(t *testing.T) {
 	// user8 dismiss review
 	permUser8, err := access_model.GetUserRepoPermission(db.DefaultContext, pullIssue.Repo, user8)
 	assert.NoError(t, err)
-	_, err = issue_service.ReviewRequest(db.DefaultContext, pullIssue, user8, &permUser8, user8, false)
+	_, err = pull_service.ReviewRequest(db.DefaultContext, pullIssue, user8, &permUser8, user8, false)
 	assert.NoError(t, err)
 
 	reviewsCountCheck(t,
