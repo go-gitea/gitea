@@ -70,6 +70,10 @@ func (*NullNotifier) PullRequestSynchronized(ctx context.Context, doer *user_mod
 func (*NullNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
 }
 
+// PullRequestChangeFlowType places a place holder function
+func (*NullNotifier) PullRequestChangeFlowType(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+}
+
 // PullRequestPushCommits notifies when push commits to pull request's head branch
 func (*NullNotifier) PullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment) {
 }

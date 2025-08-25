@@ -36,6 +36,7 @@ var hiddenCommentTypeGroups = hiddenCommentTypeGroupsType{
 	"branch": {
 		/*11*/ issues_model.CommentTypeDeleteBranch,
 		/*25*/ issues_model.CommentTypeChangeTargetBranch,
+		/*39*/ issues_model.CommentTypeChangePRFlowType,
 	},
 	"time_tracking": {
 		/*12*/ issues_model.CommentTypeStartTracking,
