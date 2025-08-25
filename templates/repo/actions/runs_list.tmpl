@@ -35,6 +35,11 @@
 				<div class="run-list-item-right">
 					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince $run.Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{$run.Duration}}</div>
+					{{if and $.CurEnvironment $.CanWriteRepoUnitActions $run.Status.IsDone (gt $run.EnvironmentJobIndex -1)}}
+						<a href="{{$run.Link}}/jobs/{{$run.EnvironmentJobIndex}}?auto-rerun=1" class="tw-mr-2" data-tooltip-content="{{ctx.Locale.Tr "rerun"}} for {{$.CurEnvironment}}">
+							{{svg "octicon-sync" 16}}
+						</a>
+					{{end}}
 				</div>
 				<div class="ui dropdown jump tw-p-2">
 					{{svg "octicon-kebab-horizontal"}}

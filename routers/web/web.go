@@ -463,6 +463,13 @@ func registerWebRoutes(m *web.Router) {
 		})
 	}
 
+	addSettingsEnvironmentsRoutes := func() {
+		m.Group("/environments", func() {
+			m.Get("", repo_setting.Environments)
+			m.Post("", web.Bind(forms.AddSecretForm{}), repo_setting.EnvironmentsPost)
+		})
+	}
+
 	addSettingsRunnersRoutes := func() {
 		m.Group("/runners", func() {
 			m.Get("", shared_actions.Runners)
@@ -666,6 +673,7 @@ func registerWebRoutes(m *web.Router) {
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
+			addSettingsEnvironmentsRoutes()
 		}, actions.MustEnableActions)
 
 		m.Get("/organization", user_setting.Organization)
@@ -967,6 +975,7 @@ func registerWebRoutes(m *web.Router) {
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()
+					addSettingsEnvironmentsRoutes()
 				}, actions.MustEnableActions)
 
 				m.Post("/rename", web.Bind(forms.RenameOrgForm{}), org.SettingsRenamePost)
@@ -1160,6 +1169,7 @@ func registerWebRoutes(m *web.Router) {
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
+			addSettingsEnvironmentsRoutes()
 		}, actions.MustEnableActions)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 		m.Group("/migrate", func() {

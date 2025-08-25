@@ -6,7 +6,42 @@
 		"RunIndex" .RunIndex
 		"JobIndex" .JobIndex
 		"ActionsURL" .ActionsURL
+		"AutoRerun" .AutoRerun
 	)}}
 </div>
+
+{{if .AutoRerun}}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+	// Wait a moment for the page to fully load, then trigger the rerun
+	setTimeout(function() {
+		// Find and trigger the rerun button for this specific job
+		const rerunButton = document.querySelector('.job-brief-rerun[data-url*="/jobs/{{.JobIndex}}/rerun"]');
+		if (rerunButton) {
+			// Dispatch a click event to properly trigger the link-action
+			const clickEvent = new MouseEvent('click', {
+				view: window,
+				bubbles: true,
+				cancelable: true
+			});
+			rerunButton.dispatchEvent(clickEvent);
+		} else {
+			// Fallback: make a POST request directly
+			fetch('{{.ActionsURL}}/runs/{{.RunIndex}}/jobs/{{.JobIndex}}/rerun', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+				}
+			}).then(function() {
+				// Remove the auto-rerun parameter from URL
+				const url = new URL(window.location);
+				url.searchParams.delete('auto-rerun');
+				window.history.replaceState({}, '', url);
+			});
+		}
+	}, 500);
+});
+</script>
+{{end}}
 
 {{template "base/footer" .}}

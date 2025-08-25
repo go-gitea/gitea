@@ -61,6 +61,11 @@ func View(ctx *context_module.Context) {
 		return
 	}
 
+	// Check if auto-rerun is requested
+	if ctx.FormString("auto-rerun") == "1" && ctx.Repo.CanWrite(unit.TypeActions) {
+		ctx.Data["AutoRerun"] = true
+	}
+
 	ctx.HTML(http.StatusOK, tplViewActions)
 }
 

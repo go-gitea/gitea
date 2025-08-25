@@ -386,6 +386,9 @@ func prepareMigrationTasks() []*migration {
 
 		// Gitea 1.24.0 ends at database version 321
 		newMigration(321, "Use LONGTEXT for some columns and fix review_state.updated_files column", v1_25.UseLongTextInSomeColumnsAndFixBugs),
+		// Gitea 1.25.0 starts at database version 322
+		newMigration(322, "Create action_environment table for deployment environments", v1_25.CreateActionEnvironmentTable),
+		newMigration(323, "Create action_deployment table for deployment tracking", v1_25.CreateActionDeploymentTable),
 	}
 	return preparedMigrations
 }

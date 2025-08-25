@@ -87,6 +87,16 @@ func List(ctx *context.Context) {
 		return
 	}
 
+	// Load environments for the deployments sidebar
+	envs, err := actions_model.FindEnvironments(ctx, actions_model.FindEnvironmentsOptions{
+		RepoID: ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.ServerError("FindEnvironments", err)
+		return
+	}
+	ctx.Data["Environments"] = envs
+
 	ctx.HTML(http.StatusOK, tplListActions)
 }
 
@@ -255,6 +265,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []Workflow) {
 	actorID := ctx.FormInt64("actor")
 	status := ctx.FormInt("status")
 	workflowID := ctx.FormString("workflow")
+	environmentName := ctx.FormString("environment")
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
@@ -264,7 +275,8 @@ func prepareWorkflowList(ctx *context.Context, workflows []Workflow) {
 	// they will be 0 by default, which indicates get all status or actors
 	ctx.Data["CurActor"] = actorID
 	ctx.Data["CurStatus"] = status
-	if actorID > 0 || status > int(actions_model.StatusUnknown) {
+	ctx.Data["CurEnvironment"] = environmentName
+	if actorID > 0 || status > int(actions_model.StatusUnknown) || environmentName != "" {
 		ctx.Data["IsFiltered"] = true
 	}
 
@@ -276,6 +288,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []Workflow) {
 		RepoID:        ctx.Repo.Repository.ID,
 		WorkflowID:    workflowID,
 		TriggerUserID: actorID,
+		Environment:   environmentName,
 	}
 
 	// if status is not StatusUnknown, it means user has selected a status filter
@@ -300,6 +313,13 @@ func prepareWorkflowList(ctx *context.Context, workflows []Workflow) {
 
 	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, runs); err != nil {
 		log.Error("LoadIsRefDeleted", err)
+	}
+
+	// If viewing by environment, find the job index for each run that targets this environment
+	if environmentName != "" {
+		if err := loadEnvironmentJobIndexes(ctx, ctx.Repo.Repository.ID, environmentName, runs); err != nil {
+			log.Error("LoadEnvironmentJobIndexes", err)
+		}
 	}
 
 	ctx.Data["Runs"] = runs
@@ -346,6 +366,67 @@ func loadIsRefDeleted(ctx stdCtx.Context, repoID int64, runs actions_model.RunLi
 			run.IsRefDeleted = true
 		}
 	}
+	return nil
+}
+
+// loadEnvironmentJobIndexes loads the job index for each run that targets the specified environment
+func loadEnvironmentJobIndexes(ctx stdCtx.Context, repoID int64, environmentName string, runs actions_model.RunList) error {
+	if len(runs) == 0 {
+		return nil
+	}
+
+	// Create a map of run IDs for quick lookup
+	runIDs := make([]int64, 0, len(runs))
+	runMap := make(map[int64]*actions_model.ActionRun)
+	for _, run := range runs {
+		runIDs = append(runIDs, run.ID)
+		runMap[run.ID] = run
+	}
+
+	// Find deployments for these runs in the specified environment
+	env, err := actions_model.GetEnvironmentByRepoIDAndName(ctx, repoID, environmentName)
+	if err != nil {
+		return err // Environment not found, no job indexes to set
+	}
+
+	deployments, err := actions_model.FindDeployments(ctx, actions_model.FindDeploymentsOptions{
+		RepoID:        repoID,
+		EnvironmentID: env.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Create a map of run ID to job name (from deployments)
+	runJobNames := make(map[int64]string)
+	for _, deployment := range deployments {
+		if _, exists := runMap[deployment.RunID]; exists {
+			runJobNames[deployment.RunID] = deployment.Task
+		}
+	}
+
+	// For each run, find the job index that matches the deployment task name
+	for _, run := range runs {
+		jobName, exists := runJobNames[run.ID]
+		if !exists {
+			continue
+		}
+
+		// Get the jobs for this run to find the index
+		jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+		if err != nil {
+			continue // Skip this run if we can't get jobs
+		}
+
+		// Find the job index by matching the job name
+		for i, job := range jobs {
+			if job.Name == jobName {
+				run.EnvironmentJobIndex = int64(i)
+				break
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -429,3 +510,4 @@ func decodeNode(node yaml.Node, out any) bool {
 	}
 	return true
 }
+
