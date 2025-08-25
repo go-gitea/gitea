@@ -35,6 +35,8 @@ import (
 	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/markbates/goth"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -180,6 +182,8 @@ func prepareSignInPageData(ctx *context.Context) {
 	}
 }
 
+var loginCounter = promauto.NewCounterVec(prometheus.CounterOpts{Namespace: "gitea", Subsystem: "auth", Name: "login"}, []string{"status"}) // TODO: Add source/provider in the future?
+
 // SignIn render sign in page
 func SignIn(ctx *context.Context) {
 	if CheckAutoLogin(ctx) {
@@ -217,6 +221,7 @@ func SignInPost(ctx *context.Context) {
 
 	u, source, err := auth_service.UserSignIn(ctx, form.UserName, form.Password)
 	if err != nil {
+		loginCounter.WithLabelValues("failure").Inc()
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
 			log.Warn("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
@@ -237,6 +242,7 @@ func SignInPost(ctx *context.Context) {
 				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 			}
 		} else {
+			loginCounter.WithLabelValues("success").Inc()
 			ctx.ServerError("UserSignIn", err)
 		}
 		return

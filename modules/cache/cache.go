@@ -12,10 +12,39 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+
 	_ "gitea.com/go-chi/cache/memcache" //nolint:depguard // memcache plugin for cache, it is required for config "ADAPTER=memcache"
 )
 
-var defaultCache StringCache
+var (
+	defaultCache StringCache
+
+	// TODO: Combine hit and miss into one
+	hitCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace:   "gitea",
+		Help:        "Cache count",
+		Subsystem:   "cache",
+		Name:        "response",
+		ConstLabels: prometheus.Labels{"state": "hit"},
+	})
+	missCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace:   "gitea",
+		Help:        "Cache count",
+		Subsystem:   "cache",
+		Name:        "response",
+		ConstLabels: prometheus.Labels{"state": "miss"},
+	})
+	latencyHistogram = promauto.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace: "gitea",
+			Help:      "Cache latency",
+			Subsystem: "cache",
+			Name:      "duration",
+		},
+	)
+)
 
 // Init start cache service
 func Init() error {

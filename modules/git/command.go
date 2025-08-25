@@ -22,6 +22,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // TrustedCmdArgs returns the trusted arguments for git command.
@@ -29,12 +32,29 @@ import (
 // In most cases, it shouldn't be used. Use AddXxx function instead
 type TrustedCmdArgs []internal.CmdArg
 
+// const gitOperation = "command"
+
 var (
 	// globalCommandArgs global command args for external package setting
 	globalCommandArgs TrustedCmdArgs
 
 	// defaultCommandExecutionTimeout default command execution timeout duration
 	defaultCommandExecutionTimeout = 360 * time.Second
+
+	reqInflightGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gitea",
+		Subsystem: "git",
+		Name:      "active_commands",
+		Help:      "Number of active git subprocesses.",
+	})
+	// reqDurationHistogram tracks the time taken by git call
+	reqDurationHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace: "gitea",
+		Subsystem: "git",
+		Name:      "command_duration_seconds", // diverge from spec to store the unit in metric.
+		Help:      "Measures the time taken by git subprocesses",
+		Buckets:   []float64{0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 30, 60, 120, 300}, // based on dotnet buckets https://github.com/open-telemetry/semantic-conventions/issues/336
+	})
 )
 
 // DefaultLocale is the default LC_ALL to run git commands in.
@@ -315,6 +335,10 @@ func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(opts.Dir), cmdLogString)
 	log.Debug("git.Command: %s", desc)
 
+	inflight := reqInflightGauge // add command type
+	inflight.Inc()
+	defer inflight.Dec()
+
 	_, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanGitRun)
 	defer span.End()
 	span.SetAttributeString(gtprof.TraceAttrFuncCaller, callerInfo)
@@ -364,6 +388,7 @@ func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 	if elapsed > time.Second {
 		log.Debug("slow git.Command.Run: %s (%s)", c, elapsed)
 	}
+	reqDurationHistogram.Observe(elapsed.Seconds())
 
 	// We need to check if the context is canceled by the program on Windows.
 	// This is because Windows does not have signal checking when terminating the process.
