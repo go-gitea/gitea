@@ -156,6 +156,15 @@ func GetVersionsByPackageName(ctx context.Context, ownerID int64, packageType Ty
 	return pvs, err
 }
 
+// GetVersionsByPackageID gets all versions of a specific package
+func GetVersionsByPackageID(ctx context.Context, packageID int64) ([]*PackageVersion, error) {
+	pvs, _, err := SearchVersions(ctx, &PackageSearchOptions{
+		PackageID:  packageID,
+		IsInternal: optional.Some(false),
+	})
+	return pvs, err
+}
+
 // DeleteVersionByID deletes a version by id
 func DeleteVersionByID(ctx context.Context, versionID int64) error {
 	_, err := db.GetEngine(ctx).ID(versionID).Delete(&PackageVersion{})

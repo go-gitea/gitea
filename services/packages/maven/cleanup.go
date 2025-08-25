@@ -2,12 +2,12 @@ package maven
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/modules/setting"
@@ -38,21 +38,21 @@ func CleanupSnapshotVersions(ctx context.Context) error {
 			continue
 		}
 
-		var artifactId, groupId string
+		var artifactID, groupID string
 		if version.MetadataJSON != "" {
-			var metadata map[string]interface{}
+			var metadata map[string]any
 			if err := json.Unmarshal([]byte(version.MetadataJSON), &metadata); err != nil {
 				log.Warn("Maven Cleanup: error during cleanup: failed to unmarshal metadataJSON for package version ID: %d: %w", version.ID, err)
 			} else {
-				artifactId, _ = metadata["artifact_id"].(string)
-				groupId, _ = metadata["group_id"].(string)
-				log.Trace("Maven Cleanup: processing package version with ID: %s, Group ID: %s, Artifact ID: %s, Version: %s", version.ID, groupId, artifactId, version.Version)
+				artifactID, _ = metadata["artifact_id"].(string)
+				groupID, _ = metadata["group_id"].(string)
+				log.Debug("Maven Cleanup: processing package version with ID: %s, Group ID: %s, Artifact ID: %s, Version: %s", version.ID, groupID, artifactID, version.Version)
 			}
 		}
 
 		if err := cleanSnapshotFiles(ctx, version.ID, retainBuilds, debugSession); err != nil {
 			formattedErr := fmt.Errorf("version '%s' (ID: %d, Group ID: %s, Artifact ID: %s): %w",
-				version.Version, version.ID, groupId, artifactId, err)
+				version.Version, version.ID, groupID, artifactID, err)
 
 			if errors.Is(err, packages.ErrMetadataFile) {
 				metadataErrors = append(metadataErrors, formattedErr)
@@ -70,10 +70,10 @@ func CleanupSnapshotVersions(ctx context.Context) error {
 		for _, err := range errs {
 			log.Error("Maven Cleanup: error during cleanup: %v", err)
 		}
-		return fmt.Errorf("maven Cleanup: completed with errors: %v", errs)
+		return fmt.Errorf("maven cleanup: completed with errors: %v", errs)
 	}
 
-	log.Trace("Completed Maven Cleanup")
+	log.Debug("Completed Maven Cleanup")
 	return nil
 }
 
@@ -82,7 +82,7 @@ func isSnapshotVersion(version string) bool {
 }
 
 func cleanSnapshotFiles(ctx context.Context, versionID int64, retainBuilds int, debugSession bool) error {
-	log.Trace("Maven Cleanup: starting cleanSnapshotFiles for versionID: %d with retainBuilds: %d, debugSession: %t", versionID, retainBuilds, debugSession)
+	log.Debug("Maven Cleanup: starting cleanSnapshotFiles for versionID: %d with retainBuilds: %d, debugSession: %t", versionID, retainBuilds, debugSession)
 
 	metadataFile, err := packages.GetFileForVersionByName(ctx, versionID, "maven-metadata.xml", packages.EmptyFileKey)
 	if err != nil {
@@ -96,7 +96,7 @@ func cleanSnapshotFiles(ctx context.Context, versionID int64, retainBuilds int, 
 
 	thresholdBuildNumber := maxBuildNumber - retainBuilds
 	if thresholdBuildNumber <= 0 {
-		log.Trace("Maven Cleanup: no files to clean up, as the threshold build number is less than or equal to zero for versionID %d", versionID)
+		log.Debug("Maven Cleanup: no files to clean up, as the threshold build number is less than or equal to zero for versionID %d", versionID)
 		return nil
 	}
 
@@ -121,7 +121,7 @@ func cleanSnapshotFiles(ctx context.Context, versionID int64, retainBuilds int, 
 	}
 
 	for _, file := range filesToRemove {
-		log.Trace("Maven Cleanup: removing file '%s' below threshold %d", file.Name, thresholdBuildNumber)
+		log.Debug("Maven Cleanup: removing file '%s' below threshold %d", file.Name, thresholdBuildNumber)
 		if err := packages_service.DeletePackageFile(ctx, file); err != nil {
 			return fmt.Errorf("cleanSnapshotFiles: failed to delete file '%s': %w", file.Name, err)
 		}

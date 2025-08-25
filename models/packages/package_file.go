@@ -236,7 +236,7 @@ func HasFiles(ctx context.Context, opts *PackageFileSearchOptions) (bool, error)
 	return db.Exist[PackageFile](ctx, opts.toConds())
 }
 
-// GetFilesBelowBuildNumber retrieves all files for maven snapshot version where the build number is <= maxBuildNumber.
+// GetFilesBelowBuildNumber retrieves all files for a Maven snapshot version where the build number is <= maxBuildNumber.
 // Returns two slices: one for filtered files and one for skipped files.
 func GetFilesBelowBuildNumber(ctx context.Context, versionID int64, maxBuildNumber int, classifiers ...string) ([]*PackageFile, []*PackageFile, error) {
 	if maxBuildNumber <= 0 {
@@ -255,13 +255,14 @@ func GetFilesBelowBuildNumber(ctx context.Context, versionID int64, maxBuildNumb
 
 	var filteredFiles, skippedFiles []*PackageFile
 	for _, file := range files {
-		buildNumber, err := ExtractBuildNumberFromFileName(file.Name, classifiers...)
+		buildNumber, err := extractBuildNumberFromFileName(file.Name, classifiers...)
 		if err != nil {
 			if !errors.Is(err, ErrMetadataFile) {
 				skippedFiles = append(skippedFiles, file)
 			}
 			continue
 		}
+
 		if buildNumber <= maxBuildNumber {
 			filteredFiles = append(filteredFiles, file)
 		}
@@ -270,12 +271,12 @@ func GetFilesBelowBuildNumber(ctx context.Context, versionID int64, maxBuildNumb
 	return filteredFiles, skippedFiles, nil
 }
 
-// ExtractBuildNumberFromFileName extracts the build number from a Maven snapshot file name.
+// extractBuildNumberFromFileName extracts the build number from a Maven snapshot file name.
 // Expected formats:
 //
 //	"artifact-1.0.0-20250311.083409-9.tgz" returns 9
 //	"artifact-to-test-2.0.0-20250311.083409-10-sources.tgz" returns 10
-func ExtractBuildNumberFromFileName(filename string, classifiers ...string) (int, error) {
+func extractBuildNumberFromFileName(filename string, classifiers ...string) (int, error) {
 	if strings.Contains(filename, "maven-metadata.xml") {
 		return 0, ErrMetadataFile
 	}
