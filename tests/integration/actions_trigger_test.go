@@ -61,7 +61,7 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		assert.NotEmpty(t, baseRepo)
 
 		// add user4 as the collaborator
-		ctx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+		ctx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 		t.Run("AddUser4AsCollaboratorWithReadAccess", doAPIAddCollaborator(ctx, "user4", perm.AccessModeRead))
 
 		// create the forked repo
@@ -487,7 +487,7 @@ func TestPullRequestCommitStatusEvent(t *testing.T) {
 		assert.NotEmpty(t, repo)
 
 		// add user4 as the collaborator
-		ctx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		ctx := NewAPITestContext(t, repo.OwnerName, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 		t.Run("AddUser4AsCollaboratorWithReadAccess", doAPIAddCollaborator(ctx, "user4", perm.AccessModeRead))
 
 		// add the workflow file to the repo
@@ -1385,7 +1385,7 @@ func TestClosePullRequestWithPath(t *testing.T) {
 		// create the base repo
 		apiBaseRepo := createActionsTestRepo(t, user2Token, "close-pull-request-with-path", false)
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
-		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 
 		// init the workflow
 		wfTreePath := ".gitea/workflows/pull.yml"
@@ -1403,10 +1403,10 @@ jobs:
       - run: echo 'Hello World'
 `
 		opts1 := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts1)
+		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, baseRepo.GroupID, opts1)
 
 		// user4 forks the repo
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/forks", baseRepo.OwnerName, baseRepo.GroupID, baseRepo.Name),
 			&api.CreateForkOption{
 				Name: util.ToPointer("close-pull-request-with-path-fork"),
 			}).AddTokenAuth(user4Token)
@@ -1414,7 +1414,7 @@ jobs:
 		var apiForkRepo api.Repository
 		DecodeJSON(t, resp, &apiForkRepo)
 		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
-		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, forkRepo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 
 		// user4 creates a pull request to add file "app/main.go"
 		doAPICreateFile(user4APICtx, "app/main.go", &api.CreateFileOptions{

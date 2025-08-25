@@ -116,14 +116,14 @@ func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, na
 		return err
 	}
 
-	has, err := IsRepositoryModelOrDirExist(ctx, owner, name)
+	has, err := IsRepositoryModelOrDirExist(ctx, owner, name, 0)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return ErrRepoAlreadyExist{owner.Name, name}
 	}
 
-	repoPath := RepoPath(owner.Name, name)
+	repoPath := RepoPath(owner.Name, name, 0)
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)

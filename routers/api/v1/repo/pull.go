@@ -251,15 +251,23 @@ func GetPullRequestByBaseHead(ctx *context.APIContext) {
 		split := strings.SplitN(head, ":", 2)
 		headBranch = split[1]
 		var owner, name string
+		var gid int64
 		if strings.Contains(split[0], "/") {
 			split = strings.Split(split[0], "/")
-			owner = split[0]
-			name = split[1]
+			if len(split) == 3 {
+				owner = split[0]
+				gid, _ = strconv.ParseInt(split[1], 10, 64)
+				name = split[2]
+			} else {
+				owner, name = split[0], split[1]
+			}
+
 		} else {
 			owner = split[0]
+			gid = ctx.Repo.Repository.GroupID
 			name = ctx.Repo.Repository.Name
 		}
-		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner, name)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner, name, gid)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
 				ctx.APIErrorNotFound()
@@ -1201,7 +1209,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	compareInfo, err := headGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseRef.ShortName(), headRef.ShortName(), false, false)
+	compareInfo, err := headGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name, baseRepo.GroupID), baseRef.ShortName(), headRef.ShortName(), false, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
