@@ -7,6 +7,7 @@
 package git
 
 import (
+	"code.gitea.io/gitea/modules/log"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -39,6 +40,11 @@ func (te *TreeEntry) Size() int64 {
 		return 0
 	} else if te.sized {
 		return te.size
+	}
+
+	if err := te.ptree.loadTreeObject(); err != nil {
+		log.Error("Unable to load tree object: %v", err)
+		return 0
 	}
 
 	file, err := te.ptree.gogitTree.TreeEntryFile(te.gogitTreeEntry)

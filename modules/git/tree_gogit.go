@@ -27,21 +27,10 @@ type Tree struct {
 	submoduleCache *ObjectCache[*SubModule]
 }
 
-// NewTree create a new tree according the repository and tree id
-func NewTree(repo *Repository, id ObjectID) *Tree {
-	tree, err := object.GetTree(repo.gogitRepo.Storer, plumbing.Hash(id.RawValue()))
-	if err != nil {
+func (t *Tree) loadTreeObject() error {
+	if t.gogitTree != nil {
 		return nil
 	}
-
-	return &Tree{
-		ID:        id,
-		repo:      repo,
-		gogitTree: tree,
-	}
-}
-
-func (t *Tree) loadTreeObject() error {
 	gogitTree, err := t.repo.gogitRepo.TreeObject(plumbing.Hash(t.ID.RawValue()))
 	if err != nil {
 		return err
@@ -53,11 +42,8 @@ func (t *Tree) loadTreeObject() error {
 
 // ListEntries returns all entries of current tree.
 func (t *Tree) ListEntries() (Entries, error) {
-	if t.gogitTree == nil {
-		err := t.loadTreeObject()
-		if err != nil {
-			return nil, err
-		}
+	if err := t.loadTreeObject(); err != nil {
+		return nil, err
 	}
 
 	entries := make([]*TreeEntry, len(t.gogitTree.Entries))
@@ -74,11 +60,9 @@ func (t *Tree) ListEntries() (Entries, error) {
 
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees
 func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
-	if t.gogitTree == nil {
-		err := t.loadTreeObject()
-		if err != nil {
-			return nil, err
-		}
+	err := t.loadTreeObject()
+	if err != nil {
+		return nil, err
 	}
 
 	var entries []*TreeEntry
