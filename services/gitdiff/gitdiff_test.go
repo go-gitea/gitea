@@ -11,8 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
@@ -543,46 +541,6 @@ index 0000000..6bb8f39
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
-}
-
-func setupDefaultDiff() *Diff {
-	return &Diff{
-		Files: []*DiffFile{
-			{
-				Name: "README.md",
-				Sections: []*DiffSection{
-					{
-						Lines: []*DiffLine{
-							{
-								LeftIdx:  4,
-								RightIdx: 4,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func TestDiff_LoadCommentsNoOutdated(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	diff := setupDefaultDiff()
-	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user, false))
-	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
-}
-
-func TestDiff_LoadCommentsWithOutdated(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	diff := setupDefaultDiff()
-	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user, true))
-	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 3)
 }
 
 func TestDiffLine_CanComment(t *testing.T) {

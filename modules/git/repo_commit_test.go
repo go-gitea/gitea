@@ -148,3 +148,26 @@ func TestCommitsByFileAndRange(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, commits, 1)
 }
+
+func Test_CommitIDsBetween(t *testing.T) {
+	defer test.MockVariableValue(&setting.Git.CommitsRangeSize, 2)()
+
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	require.NoError(t, err)
+	defer bareRepo1.Close()
+
+	// Test with empty beforeCommitID
+	commitIDs, err := CommitIDsBetween(bareRepo1.Ctx, bareRepo1.Path, "", "master")
+	require.NoError(t, err)
+	assert.Len(t, commitIDs, 7)
+	assert.Equal(t, "ce064814f4a0d337b333e646ece456cd39fab612", commitIDs[0])
+	assert.Equal(t, "95bb4d39648ee7e325106df01a621c530863a653", commitIDs[6])
+
+	// Test with a specific beforeCommitID
+	commitIDs, err = CommitIDsBetween(bareRepo1.Ctx, bareRepo1.Path, "37991dec2c8e592043f47155ce4808d4580f9123", "master")
+	require.NoError(t, err)
+	assert.Len(t, commitIDs, 2)
+	assert.Equal(t, "ce064814f4a0d337b333e646ece456cd39fab612", commitIDs[0])
+	assert.Equal(t, "feaf4ba6bc635fec442f46ddd4512416ec43c2c2", commitIDs[1])
+}
