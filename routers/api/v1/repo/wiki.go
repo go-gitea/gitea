@@ -177,17 +177,17 @@ func getWikiPage(ctx *context.APIContext, wikiName wiki_service.WebPath) *api.Wi
 	}
 
 	// lookup filename in wiki - get filecontent, real filename
-	content, pageFilename := wikiContentsByName(ctx, commit, wikiName, false)
+	content, pageFilename := wikiContentsByName(ctx, wikiRepo, commit, wikiName, false)
 	if ctx.Written() {
 		return nil
 	}
 
-	sidebarContent, _ := wikiContentsByName(ctx, commit, "_Sidebar", true)
+	sidebarContent, _ := wikiContentsByName(ctx, wikiRepo, commit, "_Sidebar", true)
 	if ctx.Written() {
 		return nil
 	}
 
-	footerContent, _ := wikiContentsByName(ctx, commit, "_Footer", true)
+	footerContent, _ := wikiContentsByName(ctx, wikiRepo, commit, "_Footer", true)
 	if ctx.Written() {
 		return nil
 	}
@@ -423,7 +423,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// lookup filename in wiki - get filecontent, gitTree entry , real filename
-	_, pageFilename := wikiContentsByName(ctx, commit, pageName, false)
+	_, pageFilename := wikiContentsByName(ctx, wikiRepo, commit, pageName, false)
 	if ctx.Written() {
 		return
 	}
@@ -509,9 +509,9 @@ func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) string {
 
 // wikiContentsByName returns the contents of a wiki page, along with a boolean
 // indicating whether the page exists. Writes to ctx if an error occurs.
-func wikiContentsByName(ctx *context.APIContext, commit *git.Commit, wikiName wiki_service.WebPath, isSidebarOrFooter bool) (string, string) {
+func wikiContentsByName(ctx *context.APIContext, wikiRepo *git.Repository, commit *git.Commit, wikiName wiki_service.WebPath, isSidebarOrFooter bool) (string, string) {
 	gitFilename := wiki_service.WebPathToGitPath(wikiName)
-	entry, err := findEntryForFile(git.NewTree(ctx.Repo.GitRepo, commit.TreeID), gitFilename)
+	entry, err := findEntryForFile(git.NewTree(wikiRepo, commit.TreeID), gitFilename)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			if !isSidebarOrFooter {

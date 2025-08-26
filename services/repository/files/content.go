@@ -61,7 +61,7 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, gitRepo
 	}
 
 	// list directory contents
-	tree := git.NewTree(gitRepo, refCommit.Commit.ID)
+	tree := git.NewTree(gitRepo, refCommit.Commit.TreeID)
 	gitTree, err := tree.SubTree(opts.TreePath)
 	if err != nil {
 		return ret, err
