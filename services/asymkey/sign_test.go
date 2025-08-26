@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
-
 	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
