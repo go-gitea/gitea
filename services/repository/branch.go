@@ -532,9 +532,14 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	// database branch record not exist or it's a deleted branch
 	notExist := git_model.IsErrBranchNotExist(err) || rawBranch.IsDeleted
 
-	commit, err := gitRepo.GetBranchCommit(branchName)
-	if err != nil {
-		return err
+	branchExistInGit := gitRepo.IsBranchExist(branchName)
+	var commitID string
+	if branchExistInGit {
+		commit, err := gitRepo.GetBranchCommit(branchName)
+		if err != nil {
+			return err
+		}
+		commitID = commit.ID.String()
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
@@ -549,6 +554,9 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 				return fmt.Errorf("DeleteBranch: %v", err)
 			}
 		}
+		if !branchExistInGit {
+			return nil
+		}
 
 		return gitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
 			Force: true,
@@ -557,20 +565,22 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		return err
 	}
 
-	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+	if branchExistInGit {
+		objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 
-	// Don't return error below this
-	if err := PushUpdate(
-		&repo_module.PushUpdateOptions{
-			RefFullName:  git.RefNameFromBranch(branchName),
-			OldCommitID:  commit.ID.String(),
-			NewCommitID:  objectFormat.EmptyObjectID().String(),
-			PusherID:     doer.ID,
-			PusherName:   doer.Name,
-			RepoUserName: repo.OwnerName,
-			RepoName:     repo.Name,
-		}); err != nil {
-		log.Error("Update: %v", err)
+		// Don't return error below this
+		if err := PushUpdate(
+			&repo_module.PushUpdateOptions{
+				RefFullName:  git.RefNameFromBranch(branchName),
+				OldCommitID:  commitID,
+				NewCommitID:  objectFormat.EmptyObjectID().String(),
+				PusherID:     doer.ID,
+				PusherName:   doer.Name,
+				RepoUserName: repo.OwnerName,
+				RepoName:     repo.Name,
+			}); err != nil {
+			log.Error("Update: %v", err)
+		}
 	}
 
 	return nil
