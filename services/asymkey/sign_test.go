@@ -6,11 +6,14 @@ package asymkey
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
+	
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestUserHasPubkeys(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(t *testing.T, userID int64, expectedHasGPG, expectedHasSSH bool) {
 		ctx := t.Context()
 		hasGPG, err := userHasPubkeysGPG(ctx, userID)
