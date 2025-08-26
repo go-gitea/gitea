@@ -69,30 +69,27 @@ func signingModeFromStrings(modeStrings []string) []signingMode {
 	return returnable
 }
 
-func userHasPubkeys(ctx context.Context, u *user_model.User) (bool, error) {
-	gpgKeys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-		OwnerID:        u.ID,
+func userHasPubkeysGPG(ctx context.Context, userID int64) (bool, error) {
+	return db.Exist[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		OwnerID:        userID,
 		IncludeSubKeys: true,
-	})
-	if err != nil {
-		return false, err
-	}
-	if len(gpgKeys) > 0 {
-		return true, nil
-	}
+	}.ToConds())
+}
 
-	sshKeys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
-		OwnerID:    u.ID,
+func userHasPubkeysSSH(ctx context.Context, userID int64) (bool, error) {
+	return db.Exist[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		OwnerID:    userID,
 		NotKeytype: asymkey_model.KeyTypePrincipal,
-	})
-	if err != nil {
-		return false, err
-	}
-	if len(sshKeys) > 0 {
-		return true, nil
-	}
+	}.ToConds())
+}
 
-	return false, nil
+// userHasPubkeys checks if a user has any public keys (GPG or SSH)
+func userHasPubkeys(ctx context.Context, userID int64) (bool, error) {
+	has, err := userHasPubkeysGPG(ctx, userID)
+	if has || err != nil {
+		return has, err
+	}
+	return userHasPubkeysSSH(ctx, userID)
 }
 
 // ErrWontSign explains the first reason why a commit would not be signed
@@ -196,7 +193,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			hasKeys, err := userHasPubkeys(ctx, u)
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
@@ -233,7 +230,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			hasKeys, err := userHasPubkeys(ctx, u)
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
@@ -286,7 +283,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			hasKeys, err := userHasPubkeys(ctx, u)
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
@@ -354,7 +351,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			hasKeys, err := userHasPubkeys(ctx, u)
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
