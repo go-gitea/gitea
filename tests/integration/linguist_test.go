@@ -14,7 +14,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/queue"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -237,7 +236,7 @@ func TestLinguist(t *testing.T) {
 					f.Operation = "create"
 				}
 
-				_, err = files_service.ChangeRepoFiles(git.DefaultContext, repo, user, &files_service.ChangeRepoFilesOptions{
+				_, err = files_service.ChangeRepoFiles(t.Context(), repo, user, &files_service.ChangeRepoFilesOptions{
 					Files:     files,
 					OldBranch: repo.DefaultBranch,
 					NewBranch: repo.DefaultBranch,

@@ -12,7 +12,6 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +24,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadAttributes(db.DefaultContext))
 	assert.NoError(t, pr.LoadIssue(db.DefaultContext))
-	apiPullRequest := ToAPIPullRequest(git.DefaultContext, pr, nil)
+	apiPullRequest := ToAPIPullRequest(t.Context(), pr, nil)
 	assert.NotNil(t, apiPullRequest)
 	assert.Equal(t, &structs.PRBranchInfo{
 		Name:       "branch1",
@@ -42,12 +41,12 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	// simulate fork deletion
 	pr.HeadRepo = nil
 	pr.HeadRepoID = 100000
-	apiPullRequest = ToAPIPullRequest(git.DefaultContext, pr, nil)
+	apiPullRequest = ToAPIPullRequest(t.Context(), pr, nil)
 	assert.NotNil(t, apiPullRequest)
 	assert.Nil(t, apiPullRequest.Head.Repository)
 	assert.EqualValues(t, -1, apiPullRequest.Head.RepoID)
 
-	apiPullRequests, err := ToAPIPullRequests(git.DefaultContext, pr.BaseRepo, []*issues_model.PullRequest{pr}, nil)
+	apiPullRequests, err := ToAPIPullRequests(t.Context(), pr.BaseRepo, []*issues_model.PullRequest{pr}, nil)
 	assert.NoError(t, err)
 	assert.Len(t, apiPullRequests, 1)
 	assert.NotNil(t, apiPullRequests[0])
