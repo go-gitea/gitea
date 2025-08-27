@@ -60,18 +60,13 @@ func (c *Commit) ParentCount() int {
 }
 
 // AddChanges marks local changes to be ready for commit.
-func AddChanges(repoPath string, all bool, files ...string) error {
-	return AddChangesWithArgs(repoPath, globalCommandArgs, all, files...)
-}
-
-// AddChangesWithArgs marks local changes to be ready for commit.
-func AddChangesWithArgs(repoPath string, globalArgs TrustedCmdArgs, all bool, files ...string) error {
-	cmd := NewCommandNoGlobals(globalArgs...).AddArguments("add")
+func AddChanges(ctx context.Context, repoPath string, all bool, files ...string) error {
+	cmd := NewCommand().AddArguments("add")
 	if all {
 		cmd.AddArguments("--all")
 	}
 	cmd.AddDashesAndList(files...)
-	_, _, err := cmd.RunStdString(DefaultContext, &RunOpts{Dir: repoPath})
+	_, _, err := cmd.RunStdString(ctx, &RunOpts{Dir: repoPath})
 	return err
 }
 
@@ -84,16 +79,8 @@ type CommitChangesOptions struct {
 
 // CommitChanges commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
-func CommitChanges(repoPath string, opts CommitChangesOptions) error {
-	cargs := make(TrustedCmdArgs, len(globalCommandArgs))
-	copy(cargs, globalCommandArgs)
-	return CommitChangesWithArgs(repoPath, cargs, opts)
-}
-
-// CommitChangesWithArgs commits local changes with given committer, author and message.
-// If author is nil, it will be the same as committer.
-func CommitChangesWithArgs(repoPath string, args TrustedCmdArgs, opts CommitChangesOptions) error {
-	cmd := NewCommandNoGlobals(args...)
+func CommitChanges(ctx context.Context, repoPath string, opts CommitChangesOptions) error {
+	cmd := NewCommand()
 	if opts.Committer != nil {
 		cmd.AddOptionValues("-c", "user.name="+opts.Committer.Name)
 		cmd.AddOptionValues("-c", "user.email="+opts.Committer.Email)
@@ -108,7 +95,7 @@ func CommitChangesWithArgs(repoPath string, args TrustedCmdArgs, opts CommitChan
 	}
 	cmd.AddOptionFormat("--message=%s", opts.Message)
 
-	_, _, err := cmd.RunStdString(DefaultContext, &RunOpts{Dir: repoPath})
+	_, _, err := cmd.RunStdString(ctx, &RunOpts{Dir: repoPath})
 	// No stderr but exit status 1 means nothing to commit.
 	if err != nil && err.Error() == "exit status 1" {
 		return nil

@@ -206,7 +206,7 @@ func TestGitDiffTree(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.Name, func(t *testing.T) {
-			gitRepo, err := git.OpenRepository(git.DefaultContext, tt.RepoPath)
+			gitRepo, err := git.OpenRepository(t.Context(), tt.RepoPath)
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 
@@ -415,7 +415,7 @@ func TestGitDiffTreeErrors(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.Name, func(t *testing.T) {
-			gitRepo, err := git.OpenRepository(git.DefaultContext, tt.RepoPath)
+			gitRepo, err := git.OpenRepository(t.Context(), tt.RepoPath)
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 

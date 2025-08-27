@@ -141,7 +141,7 @@ func CreateBlameReader(ctx context.Context, repo *Repository, objectFormat Objec
 		}
 	}()
 
-	cmd := NewCommandNoGlobals("blame", "--porcelain")
+	cmd := NewCommand("blame", "--porcelain")
 
 	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
 		tree := NewTree(repo, commit.TreeID)

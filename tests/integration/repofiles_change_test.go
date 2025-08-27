@@ -407,11 +407,11 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 		opts := getCreateRepoFilesOptions(repo)
 
 		// test
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
@@ -444,11 +444,11 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 		opts := getUpdateRepoFilesOptions(repo)
 
 		// test
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
@@ -480,11 +480,11 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 		opts.Files[0].TreePath = "README_new.md" // new file name, README_new.md
 
 		// test
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
@@ -527,11 +527,11 @@ func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
 		opts := getUpdateRepoFilesRenameOptions(repo)
 
 		// test
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, ctx.Doer, opts)
+		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, ctx.Doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
@@ -564,11 +564,11 @@ func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 		opts.NewBranch = ""
 
 		// test
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
@@ -597,7 +597,7 @@ func testDeleteRepoFiles(t *testing.T, u *url.URL) {
 	opts := getDeleteRepoFilesOptions(repo)
 
 	t.Run("Delete README.md file", func(t *testing.T) {
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 		assert.NoError(t, err)
 		expectedFileResponse := getExpectedFileResponseForRepoFilesDelete()
 		assert.NotNil(t, filesResponse)
@@ -609,7 +609,7 @@ func testDeleteRepoFiles(t *testing.T, u *url.URL) {
 	})
 
 	t.Run("Verify README.md has been deleted", func(t *testing.T) {
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 		assert.Nil(t, filesResponse)
 		expectedError := "repository file does not exist [path: " + opts.Files[0].TreePath + "]"
 		assert.EqualError(t, err, expectedError)
@@ -639,7 +639,7 @@ func testDeleteRepoFilesWithoutBranchNames(t *testing.T, u *url.URL) {
 	opts.NewBranch = ""
 
 	t.Run("Delete README.md without Branch Name", func(t *testing.T) {
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 		assert.NoError(t, err)
 		expectedFileResponse := getExpectedFileResponseForRepoFilesDelete()
 		assert.NotNil(t, filesResponse)
@@ -668,7 +668,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 		t.Run("bad branch", func(t *testing.T) {
 			opts := getUpdateRepoFilesOptions(repo)
 			opts.OldBranch = "bad_branch"
-			filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 			assert.Error(t, err)
 			assert.Nil(t, filesResponse)
 			expectedError := fmt.Sprintf("branch does not exist [repo_id: %d name: %s]", repo.ID, opts.OldBranch)
@@ -679,7 +679,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 			opts := getUpdateRepoFilesOptions(repo)
 			origSHA := opts.Files[0].SHA
 			opts.Files[0].SHA = "bad_sha"
-			filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 			assert.Nil(t, filesResponse)
 			assert.Error(t, err)
 			expectedError := "sha does not match [given: " + opts.Files[0].SHA + ", expected: " + origSHA + "]"
@@ -689,7 +689,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 		t.Run("new branch already exists", func(t *testing.T) {
 			opts := getUpdateRepoFilesOptions(repo)
 			opts.NewBranch = "develop"
-			filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 			assert.Nil(t, filesResponse)
 			assert.Error(t, err)
 			expectedError := "branch already exists [name: " + opts.NewBranch + "]"
@@ -699,7 +699,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 		t.Run("treePath is empty:", func(t *testing.T) {
 			opts := getUpdateRepoFilesOptions(repo)
 			opts.Files[0].TreePath = ""
-			filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 			assert.Nil(t, filesResponse)
 			assert.Error(t, err)
 			expectedError := "path contains a malformed path component [path: ]"
@@ -709,7 +709,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 		t.Run("treePath is a git directory:", func(t *testing.T) {
 			opts := getUpdateRepoFilesOptions(repo)
 			opts.Files[0].TreePath = ".git"
-			filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 			assert.Nil(t, filesResponse)
 			assert.Error(t, err)
 			expectedError := "path contains a malformed path component [path: " + opts.Files[0].TreePath + "]"
@@ -719,7 +719,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 		t.Run("create file that already exists", func(t *testing.T) {
 			opts := getCreateRepoFilesOptions(repo)
 			opts.Files[0].TreePath = "README.md" // already exists
-			fileResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+			fileResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 			assert.Nil(t, fileResponse)
 			assert.Error(t, err)
 			expectedError := "repository file already exists [path: " + opts.Files[0].TreePath + "]"

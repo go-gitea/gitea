@@ -73,7 +73,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 
 	apiPullRequest := &api.PullRequest{
 		ID:             pr.ID,
-		URL:            pr.Issue.HTMLURL(),
+		URL:            pr.Issue.HTMLURL(ctx),
 		Index:          pr.Index,
 		Poster:         apiIssue.Poster,
 		Title:          apiIssue.Title,
@@ -87,7 +87,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		IsLocked:       apiIssue.IsLocked,
 		Comments:       apiIssue.Comments,
 		ReviewComments: pr.GetReviewCommentsCount(ctx),
-		HTMLURL:        pr.Issue.HTMLURL(),
+		HTMLURL:        pr.Issue.HTMLURL(ctx),
 		DiffURL:        pr.Issue.DiffURL(),
 		PatchURL:       pr.Issue.PatchURL(),
 		HasMerged:      pr.HasMerged,
@@ -348,7 +348,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 
 		apiPullRequest := &api.PullRequest{
 			ID:             pr.ID,
-			URL:            pr.Issue.HTMLURL(),
+			URL:            pr.Issue.HTMLURL(ctx),
 			Index:          pr.Index,
 			Poster:         apiIssue.Poster,
 			Title:          apiIssue.Title,
@@ -362,7 +362,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			IsLocked:       apiIssue.IsLocked,
 			Comments:       apiIssue.Comments,
 			ReviewComments: reviewCounts[pr.IssueID],
-			HTMLURL:        pr.Issue.HTMLURL(),
+			HTMLURL:        pr.Issue.HTMLURL(ctx),
 			DiffURL:        pr.Issue.DiffURL(),
 			PatchURL:       pr.Issue.PatchURL(),
 			HasMerged:      pr.HasMerged,

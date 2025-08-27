@@ -16,7 +16,7 @@ import (
 func TestCommitsCount(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	commitsCount, err := CommitsCount(DefaultContext,
+	commitsCount, err := CommitsCount(t.Context(),
 		CommitsCountOptions{
 			RepoPath: bareRepo1Path,
 			Revision: []string{"8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"},
@@ -29,7 +29,7 @@ func TestCommitsCount(t *testing.T) {
 func TestCommitsCountWithoutBase(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	commitsCount, err := CommitsCount(DefaultContext,
+	commitsCount, err := CommitsCount(t.Context(),
 		CommitsCountOptions{
 			RepoPath: bareRepo1Path,
 			Not:      "master",
@@ -43,7 +43,7 @@ func TestCommitsCountWithoutBase(t *testing.T) {
 func TestGetFullCommitID(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	id, err := GetFullCommitID(DefaultContext, bareRepo1Path, "8006ff9a")
+	id, err := GetFullCommitID(t.Context(), bareRepo1Path, "8006ff9a")
 	assert.NoError(t, err)
 	assert.Equal(t, "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0", id)
 }
@@ -51,7 +51,7 @@ func TestGetFullCommitID(t *testing.T) {
 func TestGetFullCommitIDError(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	id, err := GetFullCommitID(DefaultContext, bareRepo1Path, "unknown")
+	id, err := GetFullCommitID(t.Context(), bareRepo1Path, "unknown")
 	assert.Empty(t, id)
 	if assert.Error(t, err) {
 		assert.EqualError(t, err, "object does not exist [id: unknown, rel_path: ]")
@@ -83,7 +83,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 empty commit`
 
 	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
-	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
+	gitRepo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
@@ -147,7 +147,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 ISO-8859-1`
 	commitString = strings.ReplaceAll(commitString, "<SPACE>", " ")
 	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
-	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
+	gitRepo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
@@ -189,7 +189,7 @@ ISO-8859-1`, commitFromReader.Signature.Payload)
 func TestHasPreviousCommit(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	repo, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 
@@ -320,7 +320,7 @@ func TestParseCommitFileStatus(t *testing.T) {
 func TestGetCommitFileStatusMerges(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo6_merge")
 
-	commitFileStatus, err := GetCommitFileStatus(DefaultContext, bareRepo1Path, "022f4ce6214973e018f02bf363bf8a2e3691f699")
+	commitFileStatus, err := GetCommitFileStatus(t.Context(), bareRepo1Path, "022f4ce6214973e018f02bf363bf8a2e3691f699")
 	assert.NoError(t, err)
 
 	expected := CommitFileStatus{

@@ -97,14 +97,14 @@ func TestAgitPullPush(t *testing.T) {
 		doGitCreateBranch(dstPath, "test-agit-push")
 
 		// commit 1
-		_, err = generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+		_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-")
 		assert.NoError(t, err)
 
 		// push to create an agit pull request
 		err = git.NewCommand("push", "origin",
 			"-o", "title=test-title", "-o", "description=test-description",
 			"HEAD:refs/for/master/test-agit-push",
-		).Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		).Run(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		// check pull request exist
@@ -114,24 +114,24 @@ func TestAgitPullPush(t *testing.T) {
 		assert.Equal(t, "test-description", pr.Issue.Content)
 
 		// commit 2
-		_, err = generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-2-")
+		_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-2-")
 		assert.NoError(t, err)
 
 		// push 2
-		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").Run(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		// reset to first commit
-		err = git.NewCommand("reset", "--hard", "HEAD~1").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		err = git.NewCommand("reset", "--hard", "HEAD~1").Run(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		// test force push without confirm
-		_, stderr, err := git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		_, stderr, err := git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.Error(t, err)
 		assert.Contains(t, stderr, "[remote rejected] HEAD -> refs/for/master/test-agit-push (request `force-push` push option)")
 
 		// test force push with confirm
-		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").Run(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 	})
 }
@@ -153,14 +153,14 @@ func TestAgitReviewStaleness(t *testing.T) {
 		doGitCreateBranch(dstPath, "test-agit-review")
 
 		// Create initial commit
-		_, err = generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "initial-")
+		_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "initial-")
 		assert.NoError(t, err)
 
 		// create PR via agit
 		err = git.NewCommand("push", "origin",
 			"-o", "title=Test agit Review Staleness", "-o", "description=Testing review staleness",
 			"HEAD:refs/for/master/test-agit-review",
-		).Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		).Run(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
@@ -197,10 +197,10 @@ func TestAgitReviewStaleness(t *testing.T) {
 		assert.False(t, reviews[0].Stale, "Review should not be stale initially")
 
 		// Create a new commit and update the agit PR
-		_, err = generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "updated-")
+		_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "updated-")
 		assert.NoError(t, err)
 
-		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-review").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-review").Run(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		// Reload PR to get updated commit ID

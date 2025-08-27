@@ -236,22 +236,22 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	//
 	fromRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	baseRef := "master"
-	assert.NoError(t, git.InitRepository(git.DefaultContext, fromRepo.RepoPath(), false, fromRepo.ObjectFormatName))
-	err := git.NewCommand("symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef).Run(git.DefaultContext, &git.RunOpts{Dir: fromRepo.RepoPath()})
+	assert.NoError(t, git.InitRepository(t.Context(), fromRepo.RepoPath(), false, fromRepo.ObjectFormatName))
+	err := git.NewCommand("symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef).Run(t.Context(), &git.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("# Testing Repository\n\nOriginally created in: "+fromRepo.RepoPath()), 0o644))
-	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
+	assert.NoError(t, git.AddChanges(t.Context(), fromRepo.RepoPath(), true))
 	signature := git.Signature{
 		Email: "test@example.com",
 		Name:  "test",
 		When:  time.Now(),
 	}
-	assert.NoError(t, git.CommitChanges(fromRepo.RepoPath(), git.CommitChangesOptions{
+	assert.NoError(t, git.CommitChanges(t.Context(), fromRepo.RepoPath(), git.CommitChangesOptions{
 		Committer: &signature,
 		Author:    &signature,
 		Message:   "Initial Commit",
 	}))
-	fromGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, fromRepo)
+	fromGitRepo, err := gitrepo.OpenRepository(t.Context(), fromRepo)
 	assert.NoError(t, err)
 	defer fromGitRepo.Close()
 	baseSHA, err := fromGitRepo.GetBranchCommitID(baseRef)
@@ -261,12 +261,12 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	// fromRepo branch1
 	//
 	headRef := "branch1"
-	_, _, err = git.NewCommand("checkout", "-b").AddDynamicArguments(headRef).RunStdString(git.DefaultContext, &git.RunOpts{Dir: fromRepo.RepoPath()})
+	_, _, err = git.NewCommand("checkout", "-b").AddDynamicArguments(headRef).RunStdString(t.Context(), &git.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("SOMETHING"), 0o644))
-	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
+	assert.NoError(t, git.AddChanges(t.Context(), fromRepo.RepoPath(), true))
 	signature.When = time.Now()
-	assert.NoError(t, git.CommitChanges(fromRepo.RepoPath(), git.CommitChangesOptions{
+	assert.NoError(t, git.CommitChanges(t.Context(), fromRepo.RepoPath(), git.CommitChangesOptions{
 		Committer: &signature,
 		Author:    &signature,
 		Message:   "Pull request",
@@ -282,19 +282,19 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	//
 	forkHeadRef := "branch2"
 	forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 8})
-	assert.NoError(t, git.CloneWithArgs(git.DefaultContext, nil, fromRepo.RepoPath(), forkRepo.RepoPath(), git.CloneRepoOptions{
+	assert.NoError(t, git.Clone(t.Context(), fromRepo.RepoPath(), forkRepo.RepoPath(), git.CloneRepoOptions{
 		Branch: headRef,
 	}))
-	_, _, err = git.NewCommand("checkout", "-b").AddDynamicArguments(forkHeadRef).RunStdString(git.DefaultContext, &git.RunOpts{Dir: forkRepo.RepoPath()})
+	_, _, err = git.NewCommand("checkout", "-b").AddDynamicArguments(forkHeadRef).RunStdString(t.Context(), &git.RunOpts{Dir: forkRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(forkRepo.RepoPath(), "README.md"), []byte("# branch2 "+forkRepo.RepoPath()), 0o644))
-	assert.NoError(t, git.AddChanges(forkRepo.RepoPath(), true))
-	assert.NoError(t, git.CommitChanges(forkRepo.RepoPath(), git.CommitChangesOptions{
+	assert.NoError(t, git.AddChanges(t.Context(), forkRepo.RepoPath(), true))
+	assert.NoError(t, git.CommitChanges(t.Context(), forkRepo.RepoPath(), git.CommitChangesOptions{
 		Committer: &signature,
 		Author:    &signature,
 		Message:   "branch2 commit",
 	}))
-	forkGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, forkRepo)
+	forkGitRepo, err := gitrepo.OpenRepository(t.Context(), forkRepo)
 	assert.NoError(t, err)
 	defer forkGitRepo.Close()
 	forkHeadSHA, err := forkGitRepo.GetBranchCommitID(forkHeadRef)

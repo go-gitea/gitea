@@ -15,7 +15,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -80,13 +79,13 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Get the commit ID of the default branch
-	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"
-	err = repo_service.CreateNewBranch(git.DefaultContext, user2, repo1, gitRepo, repo1.DefaultBranch, newBranch)
+	err = repo_service.CreateNewBranch(t.Context(), user2, repo1, gitRepo, repo1.DefaultBranch, newBranch)
 	require.NoError(t, err)
 
 	commitID, err := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
