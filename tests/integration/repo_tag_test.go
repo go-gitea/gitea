@@ -99,7 +99,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 	})
 
 	// Cleanup
-	releases, err := db.Find[repo_model.Release](db.DefaultContext, repo_model.FindReleasesOptions{
+	releases, err := db.Find[repo_model.Release](t.Context(), repo_model.FindReleasesOptions{
 		IncludeTags: true,
 		TagNames:    []string{"v-1", "v-1.1"},
 		RepoID:      repo.ID,
@@ -107,15 +107,15 @@ func TestCreateNewTagProtected(t *testing.T) {
 	assert.NoError(t, err)
 
 	for _, release := range releases {
-		_, err = db.DeleteByID[repo_model.Release](db.DefaultContext, release.ID)
+		_, err = db.DeleteByID[repo_model.Release](t.Context(), release.ID)
 		assert.NoError(t, err)
 	}
 
-	protectedTags, err := git_model.GetProtectedTags(db.DefaultContext, repo.ID)
+	protectedTags, err := git_model.GetProtectedTags(t.Context(), repo.ID)
 	assert.NoError(t, err)
 
 	for _, protectedTag := range protectedTags {
-		err = git_model.DeleteProtectedTag(db.DefaultContext, protectedTag)
+		err = git_model.DeleteProtectedTag(t.Context(), protectedTag)
 		assert.NoError(t, err)
 	}
 }

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -35,8 +34,8 @@ func TestAPIPullUpdate(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
-		assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
-		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
+		assert.NoError(t, pr.LoadIssue(t.Context()))
 
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -64,8 +63,8 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
-		assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
-		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
+		assert.NoError(t, pr.LoadIssue(t.Context()))
 
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -82,7 +81,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 }
 
 func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_model.PullRequest {
-	baseRepo, err := repo_service.CreateRepository(db.DefaultContext, actor, actor, repo_service.CreateRepoOptions{
+	baseRepo, err := repo_service.CreateRepository(t.Context(), actor, actor, repo_service.CreateRepoOptions{
 		Name:        "repo-pr-update",
 		Description: "repo-tmp-pr-update description",
 		AutoInit:    true,
@@ -178,7 +177,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 	assert.NoError(t, err)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "Test Pull -to-update-"})
-	assert.NoError(t, issue.LoadPullRequest(db.DefaultContext))
+	assert.NoError(t, issue.LoadPullRequest(t.Context()))
 
 	return issue.PullRequest
 }

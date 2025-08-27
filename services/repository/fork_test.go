@@ -7,7 +7,6 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -69,14 +68,14 @@ func TestForkRepositoryCleanup(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, exist)
 
-	err = DeleteRepositoryDirectly(db.DefaultContext, fork.ID)
+	err = DeleteRepositoryDirectly(t.Context(), fork.ID)
 	assert.NoError(t, err)
 
 	// a failed creating because some mock data
 	// create the repository directory so that the creation will fail after database record created.
 	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "test"), os.ModePerm))
 
-	fork2, err := ForkRepository(db.DefaultContext, user2, user2, ForkRepoOptions{
+	fork2, err := ForkRepository(t.Context(), user2, user2, ForkRepoOptions{
 		BaseRepo: repo10,
 		Name:     "test",
 	})

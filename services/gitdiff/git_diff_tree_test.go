@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 
 	"github.com/stretchr/testify/assert"
@@ -210,7 +209,7 @@ func TestGitDiffTree(t *testing.T) {
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 
-			diffPaths, err := GetDiffTree(db.DefaultContext, gitRepo, tt.useMergeBase, tt.BaseSha, tt.HeadSha)
+			diffPaths, err := GetDiffTree(t.Context(), gitRepo, tt.useMergeBase, tt.BaseSha, tt.HeadSha)
 			require.NoError(t, err)
 
 			assert.Equal(t, tt.Expected, diffPaths)
@@ -419,7 +418,7 @@ func TestGitDiffTreeErrors(t *testing.T) {
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 
-			diffPaths, err := GetDiffTree(db.DefaultContext, gitRepo, true, tt.BaseSha, tt.HeadSha)
+			diffPaths, err := GetDiffTree(t.Context(), gitRepo, true, tt.BaseSha, tt.HeadSha)
 			assert.Error(t, err)
 			assert.Nil(t, diffPaths)
 		})

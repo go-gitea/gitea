@@ -15,13 +15,13 @@ import (
 
 func TestInTransaction(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	assert.False(t, db.InTransaction(db.DefaultContext))
-	assert.NoError(t, db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	assert.False(t, db.InTransaction(t.Context()))
+	assert.NoError(t, db.WithTx(t.Context(), func(ctx context.Context) error {
 		assert.True(t, db.InTransaction(ctx))
 		return nil
 	}))
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(t.Context())
 	assert.NoError(t, err)
 	defer committer.Close()
 	assert.True(t, db.InTransaction(ctx))
@@ -35,14 +35,14 @@ func TestTxContext(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	{ // create new transaction
-		ctx, committer, err := db.TxContext(db.DefaultContext)
+		ctx, committer, err := db.TxContext(t.Context())
 		assert.NoError(t, err)
 		assert.True(t, db.InTransaction(ctx))
 		assert.NoError(t, committer.Commit())
 	}
 
 	{ // reuse the transaction created by TxContext and commit it
-		ctx, committer, err := db.TxContext(db.DefaultContext)
+		ctx, committer, err := db.TxContext(t.Context())
 		engine := db.GetEngine(ctx)
 		assert.NoError(t, err)
 		assert.True(t, db.InTransaction(ctx))
@@ -57,7 +57,7 @@ func TestTxContext(t *testing.T) {
 	}
 
 	{ // reuse the transaction created by TxContext and close it
-		ctx, committer, err := db.TxContext(db.DefaultContext)
+		ctx, committer, err := db.TxContext(t.Context())
 		engine := db.GetEngine(ctx)
 		assert.NoError(t, err)
 		assert.True(t, db.InTransaction(ctx))
@@ -72,7 +72,7 @@ func TestTxContext(t *testing.T) {
 	}
 
 	{ // reuse the transaction created by WithTx
-		assert.NoError(t, db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		assert.NoError(t, db.WithTx(t.Context(), func(ctx context.Context) error {
 			assert.True(t, db.InTransaction(ctx))
 			{
 				ctx, committer, err := db.TxContext(ctx)
@@ -93,16 +93,16 @@ func TestContextSafety(t *testing.T) {
 		ID int64
 	}
 	assert.NoError(t, unittest.GetXORMEngine().Sync(&TestModel1{}, &TestModel2{}))
-	assert.NoError(t, db.TruncateBeans(db.DefaultContext, &TestModel1{}, &TestModel2{}))
+	assert.NoError(t, db.TruncateBeans(t.Context(), &TestModel1{}, &TestModel2{}))
 	testCount := 10
 	for i := 1; i <= testCount; i++ {
-		assert.NoError(t, db.Insert(db.DefaultContext, &TestModel1{ID: int64(i)}))
-		assert.NoError(t, db.Insert(db.DefaultContext, &TestModel2{ID: int64(-i)}))
+		assert.NoError(t, db.Insert(t.Context(), &TestModel1{ID: int64(i)}))
+		assert.NoError(t, db.Insert(t.Context(), &TestModel2{ID: int64(-i)}))
 	}
 
 	actualCount := 0
-	// here: db.GetEngine(db.DefaultContext) is a new *Session created from *Engine
-	_ = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	// here: db.GetEngine(t.Context()) is a new *Session created from *Engine
+	_ = db.WithTx(t.Context(), func(ctx context.Context) error {
 		_ = db.GetEngine(ctx).Iterate(&TestModel1{}, func(i int, bean any) error {
 			// here: db.GetEngine(ctx) is always the unclosed "Iterate" *Session with autoResetStatement=false,
 			// and the internal states (including "cond" and others) are always there and not be reset in this callback.
@@ -123,7 +123,7 @@ func TestContextSafety(t *testing.T) {
 	// deny the bad usages
 	assert.PanicsWithError(t, "using database context in an iterator would cause corrupted results", func() {
 		_ = unittest.GetXORMEngine().Iterate(&TestModel1{}, func(i int, bean any) error {
-			_ = db.GetEngine(db.DefaultContext)
+			_ = db.GetEngine(t.Context())
 			return nil
 		})
 	})

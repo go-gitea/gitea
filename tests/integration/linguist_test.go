@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -221,7 +220,7 @@ func TestLinguist(t *testing.T) {
 		for i, c := range cases {
 			t.Run("Case-"+strconv.Itoa(i), func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
-				repo, err := repo_service.CreateRepository(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
+				repo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
 					Name: "linguist-test-" + strconv.Itoa(i),
 				})
 				assert.NoError(t, err)
@@ -247,7 +246,7 @@ func TestLinguist(t *testing.T) {
 				assert.NoError(t, stats.UpdateRepoIndexer(repo))
 				assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 10*time.Second))
 
-				stats, err := repo_model.GetTopLanguageStats(db.DefaultContext, repo, len(c.FilesToAdd))
+				stats, err := repo_model.GetTopLanguageStats(t.Context(), repo, len(c.FilesToAdd))
 				assert.NoError(t, err)
 
 				languages := make([]string, 0, len(stats))

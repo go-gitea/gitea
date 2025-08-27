@@ -21,7 +21,6 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -517,7 +516,7 @@ func doProtectBranchExt(ctx APITestContext, ruleName string, opts doProtectBranc
 		}
 
 		if opts.UserToWhitelistPush != "" {
-			user, err := user_model.GetUserByName(db.DefaultContext, opts.UserToWhitelistPush)
+			user, err := user_model.GetUserByName(t.Context(), opts.UserToWhitelistPush)
 			assert.NoError(t, err)
 			formData["whitelist_users"] = strconv.FormatInt(user.ID, 10)
 			formData["enable_push"] = "whitelist"
@@ -525,7 +524,7 @@ func doProtectBranchExt(ctx APITestContext, ruleName string, opts doProtectBranc
 		}
 
 		if opts.UserToWhitelistForcePush != "" {
-			user, err := user_model.GetUserByName(db.DefaultContext, opts.UserToWhitelistForcePush)
+			user, err := user_model.GetUserByName(t.Context(), opts.UserToWhitelistForcePush)
 			assert.NoError(t, err)
 			formData["force_push_allowlist_users"] = strconv.FormatInt(user.ID, 10)
 			formData["enable_force_push"] = "whitelist"
@@ -676,7 +675,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		t.Run("SuccessfullyPushAndCreateTestRepository", doGitPushTestRepository(tmpDir, "origin", "master"))
 
 		// Finally, fetch repo from database and ensure the correct repository has been created
-		repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, ctx.Username, ctx.Reponame)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), ctx.Username, ctx.Reponame)
 		assert.NoError(t, err)
 		assert.False(t, repo.IsEmpty)
 		assert.True(t, repo.IsPrivate)
@@ -816,7 +815,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			pr1, pr2 *issues_model.PullRequest
 			commit   string
 		)
-		repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, ctx.Username, ctx.Reponame)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), ctx.Username, ctx.Reponame)
 		require.NoError(t, err)
 
 		pullNum := unittest.GetCount(t, &issues_model.PullRequest{})

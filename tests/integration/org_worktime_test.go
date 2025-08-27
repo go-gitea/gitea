@@ -6,7 +6,6 @@ package integration_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 
@@ -87,7 +86,7 @@ func testTimesByRepos(t *testing.T) {
 	// Run test kases
 	for _, kase := range kases {
 		t.Run(kase.name, func(t *testing.T) {
-			org, err := organization.GetOrgByID(db.DefaultContext, kase.orgname)
+			org, err := organization.GetOrgByID(t.Context(), kase.orgname)
 			assert.NoError(t, err)
 			results, err := organization.GetWorktimeByRepos(org, kase.unixfrom, kase.unixto)
 			assert.NoError(t, err)
@@ -191,7 +190,7 @@ func testTimesByMilestones(t *testing.T) {
 	// Run test kases
 	for _, kase := range kases {
 		t.Run(kase.name, func(t *testing.T) {
-			org, err := organization.GetOrgByID(db.DefaultContext, kase.orgname)
+			org, err := organization.GetOrgByID(t.Context(), kase.orgname)
 			require.NoError(t, err)
 			results, err := organization.GetWorktimeByMilestones(org, kase.unixfrom, kase.unixto)
 			if assert.NoError(t, err) {
@@ -275,7 +274,7 @@ func testTimesByMembers(t *testing.T) {
 	// Run test kases
 	for _, kase := range kases {
 		t.Run(kase.name, func(t *testing.T) {
-			org, err := organization.GetOrgByID(db.DefaultContext, kase.orgname)
+			org, err := organization.GetOrgByID(t.Context(), kase.orgname)
 			assert.NoError(t, err)
 			results, err := organization.GetWorktimeByMembers(org, kase.unixfrom, kase.unixto)
 			assert.NoError(t, err)

@@ -20,7 +20,7 @@ type TestCollationTbl struct {
 }
 
 func TestDatabaseCollation(t *testing.T) {
-	x := db.GetEngine(db.DefaultContext).(*xorm.Engine)
+	x := db.GetEngine(t.Context()).(*xorm.Engine)
 
 	// all created tables should use case-sensitive collation by default
 	_, _ = x.Exec("DROP TABLE IF EXISTS test_collation_tbl")
