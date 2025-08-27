@@ -90,7 +90,8 @@ func contextSafetyCheck(e Engine) {
 }
 
 // GetEngine gets an existing db Engine/Statement or creates a new Session
-func GetEngine(ctx context.Context) Engine {
+func GetEngine(ctx context.Context) (e Engine) {
+	defer func() { contextSafetyCheck(e) }()
 	if e := getExistingEngine(ctx); e != nil {
 		return e
 	}
@@ -99,7 +100,6 @@ func GetEngine(ctx context.Context) Engine {
 
 // getExistingEngine gets an existing db Engine/Statement from this context or returns nil
 func getExistingEngine(ctx context.Context) (e Engine) {
-	defer func() { contextSafetyCheck(e) }()
 	if engined, ok := ctx.(*Context); ok {
 		return engined.engine
 	}

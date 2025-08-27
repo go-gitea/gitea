@@ -14,7 +14,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -59,7 +58,7 @@ func TestDumpAuthSource(t *testing.T) {
 	sb := new(strings.Builder)
 
 	// TODO: this test is quite hacky, it should use a low-level "select" (without model processors) but not a database dump
-	engine := db.GetEngine(t.Context()).(*xorm.Engine)
+	engine := unittest.GetXORMEngine()
 	require.NoError(t, engine.DumpTables([]*schemas.Table{authSourceSchema}, sb))
 	assert.Contains(t, sb.String(), `"Provider":"ConvertibleSourceName"`)
 }
