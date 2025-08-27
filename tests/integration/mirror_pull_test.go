@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/migration"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -61,7 +60,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.True(t, slices.ContainsFunc(mirrorRepo.Units, func(u *repo_model.RepoUnit) bool { return u.Type == unit.TypeReleases }))
 	assert.True(t, slices.ContainsFunc(mirrorRepo.Units, func(u *repo_model.RepoUnit) bool { return u.Type == unit.TypeWiki }))
 
-	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

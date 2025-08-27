@@ -53,9 +53,9 @@ func TestGitArgument(t *testing.T) {
 }
 
 func TestCommandString(t *testing.T) {
-	cmd := NewCommandNoGlobals("a", "-m msg", "it's a test", `say "hello"`)
+	cmd := NewCommand("a", "-m msg", "it's a test", `say "hello"`)
 	assert.Equal(t, cmd.prog+` a "-m msg" "it's a test" "say \"hello\""`, cmd.LogString())
 
-	cmd = NewCommandNoGlobals("url: https://a:b@c/", "/root/dir-a/dir-b")
+	cmd = NewCommand("url: https://a:b@c/", "/root/dir-a/dir-b")
 	assert.Equal(t, cmd.prog+` "url: https://sanitized-credential@c/" .../dir-a/dir-b`, cmd.LogString())
 }

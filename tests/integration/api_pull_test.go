@@ -19,7 +19,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/convert"
@@ -443,7 +442,7 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ForkID: baseRepo.ID, OwnerName: "user1"})
 
 		// add a new file to the forked repo
-		addFileToForkedResp, err := files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, user1, &files_service.ChangeRepoFilesOptions{
+		addFileToForkedResp, err := files_service.ChangeRepoFiles(t.Context(), forkedRepo, user1, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -489,7 +488,7 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 		}
 
 		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(git.DefaultContext, prOpts)
+		err = pull_service.NewPullRequest(t.Context(), prOpts)
 		assert.NoError(t, err)
 		pr := convert.ToAPIPullRequest(t.Context(), pullRequest, user1)
 

@@ -10,7 +10,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +21,7 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 	// a successful creating repository
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	createdRepo, err := CreateRepositoryDirectly(git.DefaultContext, user2, user2, CreateRepoOptions{
+	createdRepo, err := CreateRepositoryDirectly(t.Context(), user2, user2, CreateRepoOptions{
 		Name: "created-repo",
 	}, true)
 	assert.NoError(t, err)

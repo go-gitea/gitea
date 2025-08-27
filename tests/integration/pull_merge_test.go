@@ -263,7 +263,7 @@ func TestCantMergeConflict(t *testing.T) {
 			BaseBranch: "base",
 		})
 
-		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
 
 		err = pull_service.Merge(t.Context(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "CONFLICT", false)
@@ -294,12 +294,12 @@ func TestCantMergeUnrelated(t *testing.T) {
 		})
 		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
-		err := git.NewCommand("read-tree", "--empty").Run(git.DefaultContext, &git.RunOpts{Dir: path})
+		err := git.NewCommand("read-tree", "--empty").Run(t.Context(), &git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
 		stdin := strings.NewReader("Unrelated File")
 		var stdout strings.Builder
-		err = git.NewCommand("hash-object", "-w", "--stdin").Run(git.DefaultContext, &git.RunOpts{
+		err = git.NewCommand("hash-object", "-w", "--stdin").Run(t.Context(), &git.RunOpts{
 			Dir:    path,
 			Stdin:  stdin,
 			Stdout: &stdout,
@@ -308,10 +308,10 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		sha := strings.TrimSpace(stdout.String())
 
-		_, _, err = git.NewCommand("update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments("100644", sha, "somewher-over-the-rainbow").RunStdString(git.DefaultContext, &git.RunOpts{Dir: path})
+		_, _, err = git.NewCommand("update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments("100644", sha, "somewher-over-the-rainbow").RunStdString(t.Context(), &git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
-		treeSha, _, err := git.NewCommand("write-tree").RunStdString(git.DefaultContext, &git.RunOpts{Dir: path})
+		treeSha, _, err := git.NewCommand("write-tree").RunStdString(t.Context(), &git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 		treeSha = strings.TrimSpace(treeSha)
 
@@ -332,7 +332,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		stdout.Reset()
 		err = git.NewCommand("commit-tree").AddDynamicArguments(treeSha).
-			Run(git.DefaultContext, &git.RunOpts{
+			Run(t.Context(), &git.RunOpts{
 				Env:    env,
 				Dir:    path,
 				Stdin:  messageBytes,
@@ -341,7 +341,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout.String())
 
-		_, _, err = git.NewCommand("branch", "unrelated").AddDynamicArguments(commitSha).RunStdString(git.DefaultContext, &git.RunOpts{Dir: path})
+		_, _, err = git.NewCommand("branch", "unrelated").AddDynamicArguments(commitSha).RunStdString(t.Context(), &git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
@@ -356,7 +356,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
-		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 			HeadRepoID: repo1.ID,
@@ -402,7 +402,7 @@ func TestFastForwardOnlyMerge(t *testing.T) {
 			BaseBranch: "master",
 		})
 
-		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
+		gitRepo, err := git.OpenRepository(t.Context(), repo_model.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
 
 		err = pull_service.Merge(t.Context(), pr, user1, gitRepo, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false)
@@ -444,7 +444,7 @@ func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
 			BaseBranch: "master",
 		})
 
-		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
+		gitRepo, err := git.OpenRepository(t.Context(), repo_model.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
 
 		err = pull_service.Merge(t.Context(), pr, user1, gitRepo, repo_model.MergeStyleFastForwardOnly, "", "DIVERGING", false)
@@ -472,7 +472,7 @@ func TestConflictChecking(t *testing.T) {
 		assert.NotEmpty(t, baseRepo)
 
 		// create a commit on new branch.
-		_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user, &files_service.ChangeRepoFilesOptions{
+		_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -487,7 +487,7 @@ func TestConflictChecking(t *testing.T) {
 		assert.NoError(t, err)
 
 		// create a commit on main branch.
-		_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user, &files_service.ChangeRepoFilesOptions{
+		_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -520,7 +520,7 @@ func TestConflictChecking(t *testing.T) {
 			Type:       issues_model.PullRequestGitea,
 		}
 		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(git.DefaultContext, prOpts)
+		err = pull_service.NewPullRequest(t.Context(), prOpts)
 		assert.NoError(t, err)
 
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"})
@@ -905,10 +905,10 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		err := os.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content"), 0o666)
 		assert.NoError(t, err)
 
-		err = git.AddChanges(dstPath, true)
+		err = git.AddChanges(t.Context(), dstPath, true)
 		assert.NoError(t, err)
 
-		err = git.CommitChanges(dstPath, git.CommitChangesOptions{
+		err = git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
 			Committer: &git.Signature{
 				Email: "user2@example.com",
 				Name:  "user2",
@@ -931,7 +931,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 			AddDynamicArguments(`title="create a test pull request with agit"`).
 			AddArguments("-o").
 			AddDynamicArguments(`description="This PR is a test pull request which created with agit"`).
-			Run(git.DefaultContext, &git.RunOpts{Dir: dstPath, Stderr: stderrBuf})
+			Run(t.Context(), &git.RunOpts{Dir: dstPath, Stderr: stderrBuf})
 		assert.NoError(t, err)
 
 		assert.Contains(t, stderrBuf.String(), setting.AppURL+"user2/repo1/pulls/6")

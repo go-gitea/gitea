@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 
 	"github.com/stretchr/testify/assert"
@@ -187,7 +186,7 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo2)
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo2)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
