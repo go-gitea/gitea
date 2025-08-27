@@ -250,7 +250,7 @@ func restoreOldDB(t *testing.T, version string) {
 
 func wrappedMigrate(ctx context.Context, x *xorm.Engine) error {
 	currentEngine = x
-	return migrations.Migrate(x)
+	return migrations.Migrate(ctx, x)
 }
 
 func doMigrationTest(t *testing.T, version string) {
