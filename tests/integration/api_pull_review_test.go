@@ -43,7 +43,7 @@ func TestAPIPullReview(t *testing.T) {
 	require.Len(t, reviews, 8)
 
 	for _, r := range reviews {
-		assert.Equal(t, pullIssue.HTMLURL(), r.HTMLPullURL)
+		assert.Equal(t, pullIssue.HTMLURL(t.Context()), r.HTMLPullURL)
 	}
 	assert.EqualValues(t, 8, reviews[3].ID)
 	assert.EqualValues(t, "APPROVED", reviews[3].State)

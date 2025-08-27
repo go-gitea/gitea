@@ -65,7 +65,7 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		t.Run("AddUser4AsCollaboratorWithReadAccess", doAPIAddCollaborator(ctx, "user4", perm.AccessModeRead))
 
 		// create the forked repo
-		forkedRepo, err := repo_service.ForkRepository(git.DefaultContext, user2, user4, repo_service.ForkRepoOptions{
+		forkedRepo, err := repo_service.ForkRepository(t.Context(), user2, user4, repo_service.ForkRepoOptions{
 			BaseRepo:    baseRepo,
 			Name:        "forked-repo-pull-request-target",
 			Description: "test pull-request-target event",
@@ -74,7 +74,7 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		assert.NotEmpty(t, forkedRepo)
 
 		// add workflow file to the base repo
-		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user2, &files_service.ChangeRepoFilesOptions{
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(t.Context(), baseRepo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation: "create",
@@ -112,7 +112,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// add a new file to the forked repo
-		addFileToForkedResp, err := files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, user4, &files_service.ChangeRepoFilesOptions{
+		addFileToForkedResp, err := files_service.ChangeRepoFiles(t.Context(), forkedRepo, user4, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -157,7 +157,7 @@ jobs:
 			Type:       issues_model.PullRequestGitea,
 		}
 		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(git.DefaultContext, prOpts)
+		err = pull_service.NewPullRequest(t.Context(), prOpts)
 		assert.NoError(t, err)
 
 		// load and compare ActionRun
@@ -167,7 +167,7 @@ jobs:
 		assert.Equal(t, actions_module.GithubEventPullRequestTarget, actionRun.TriggerEvent)
 
 		// add another file whose name cannot match the specified path
-		addFileToForkedResp, err = files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, user4, &files_service.ChangeRepoFilesOptions{
+		addFileToForkedResp, err = files_service.ChangeRepoFiles(t.Context(), forkedRepo, user4, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -212,7 +212,7 @@ jobs:
 			Type:       issues_model.PullRequestGitea,
 		}
 		prOpts = &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(git.DefaultContext, prOpts)
+		err = pull_service.NewPullRequest(t.Context(), prOpts)
 		assert.NoError(t, err)
 
 		// the new pull request cannot trigger actions, so there is still only 1 record
@@ -240,7 +240,7 @@ func TestSkipCI(t *testing.T) {
 		assert.NotEmpty(t, repo)
 
 		// add workflow file to the repo
-		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation: "create",
@@ -281,7 +281,7 @@ jobs:
 		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
 
 		// add a file with a configured skip-ci string in commit message
-		addFileResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addFileResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -312,7 +312,7 @@ jobs:
 		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
 
 		// add file to new branch
-		addFileToBranchResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addFileToBranchResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -369,7 +369,7 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		assert.NotEmpty(t, repo)
 
 		// add workflow file to the repo
-		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation: "create",
@@ -405,7 +405,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
@@ -491,7 +491,7 @@ func TestPullRequestCommitStatusEvent(t *testing.T) {
 		t.Run("AddUser4AsCollaboratorWithReadAccess", doAPIAddCollaborator(ctx, "user4", perm.AccessModeRead))
 
 		// add the workflow file to the repo
-		addWorkflow, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addWorkflow, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation: "create",
@@ -530,9 +530,9 @@ jobs:
 
 		// create a new branch
 		testBranch := "test-branch"
-		gitRepo, err := git.OpenRepository(git.DefaultContext, ".")
+		gitRepo, err := git.OpenRepository(t.Context(), ".")
 		assert.NoError(t, err)
-		err = repo_service.CreateNewBranch(git.DefaultContext, user2, repo, gitRepo, "main", testBranch)
+		err = repo_service.CreateNewBranch(t.Context(), user2, repo, gitRepo, "main", testBranch)
 		assert.NoError(t, err)
 
 		// create Pull
@@ -606,7 +606,7 @@ jobs:
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// synchronize
-		addFileResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addFileResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -715,7 +715,7 @@ func TestWorkflowDispatchPublicApi(t *testing.T) {
 		assert.NotEmpty(t, repo)
 
 		// add workflow file to the repo
-		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation: "create",
@@ -751,7 +751,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
@@ -795,7 +795,7 @@ func TestWorkflowDispatchPublicApiWithInputs(t *testing.T) {
 		assert.NotEmpty(t, repo)
 
 		// add workflow file to the repo
-		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation: "create",
@@ -831,7 +831,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
@@ -886,7 +886,7 @@ func TestWorkflowDispatchPublicApiJSON(t *testing.T) {
 		assert.NotEmpty(t, repo)
 
 		// add workflow file to the repo
-		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation: "create",
@@ -922,7 +922,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
@@ -972,7 +972,7 @@ func TestWorkflowDispatchPublicApiWithInputsJSON(t *testing.T) {
 		assert.NotEmpty(t, repo)
 
 		// add workflow file to the repo
-		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation: "create",
@@ -1008,7 +1008,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
@@ -1066,7 +1066,7 @@ func TestWorkflowDispatchPublicApiWithInputsNonDefaultBranchJSON(t *testing.T) {
 		assert.NotEmpty(t, repo)
 
 		// add workflow file to the repo
-		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation: "create",
@@ -1102,7 +1102,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// add workflow file to the repo
-		addWorkflowToBaseResp, err = files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addWorkflowToBaseResp, err = files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation: "update",
@@ -1138,7 +1138,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the dispatch branch
-		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		commit, err := gitRepo.GetBranchCommit("dispatch")
@@ -1204,7 +1204,7 @@ func TestWorkflowApi(t *testing.T) {
 		assert.Empty(t, workflows.Workflows)
 
 		// add workflow file to the repo
-		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation: "create",
@@ -1336,7 +1336,7 @@ jobs:
 		assert.Equal(t, workflows.Workflows[0].State, workflow.State)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
@@ -1470,7 +1470,7 @@ func TestActionRunNameWithContextVariables(t *testing.T) {
 		assert.NotEmpty(t, repo)
 
 		// add workflow file to the repo
-		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation: "create",
@@ -1507,7 +1507,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
@@ -1547,7 +1547,7 @@ func TestActionRunName(t *testing.T) {
 		assert.NotEmpty(t, repo)
 
 		// add workflow file to the repo
-		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation: "create",
@@ -1584,7 +1584,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)

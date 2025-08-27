@@ -162,7 +162,7 @@ func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gi
 
 	doGitAddRemote(gitPath, "origin", u)(t)
 
-	gitRepo, err := git.OpenRepository(git.DefaultContext, gitPath)
+	gitRepo, err := git.OpenRepository(t.Context(), gitPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -205,7 +205,7 @@ func TestPushPullRefs(t *testing.T) {
 		doGitClone(dstPath, u)(t)
 
 		cmd := git.NewCommand("push", "--delete", "origin", "refs/pull/2/head")
-		stdout, stderr, err := cmd.RunStdString(git.DefaultContext, &git.RunOpts{
+		stdout, stderr, err := cmd.RunStdString(t.Context(), &git.RunOpts{
 			Dir: dstPath,
 		})
 		assert.Error(t, err)
