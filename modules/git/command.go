@@ -82,7 +82,6 @@ func (c *Command) ProcessState() string {
 // NewCommand creates and returns a new Git Command based on given command and arguments.
 // Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
 func NewCommand(args ...internal.CmdArg) *Command {
-	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
 	cargs := make([]string, 0, len(args))
 	for _, arg := range args {
 		cargs = append(cargs, string(arg))
