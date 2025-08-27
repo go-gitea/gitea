@@ -117,12 +117,12 @@ func Test_Projects(t *testing.T) {
 
 		// issue 6 belongs to private repo 3 under org 3
 		issue6 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
-		err = issues_model.IssueAssignOrRemoveProject(db.DefaultContext, issue6, user2, project1.ID, column1.ID)
+		err = issues_model.IssueAssignOrRemoveProject(db.DefaultContext, issue6, user2, []int64{project1.ID}, column1.ID)
 		assert.NoError(t, err)
 
 		// issue 16 belongs to public repo 16 under org 3
 		issue16 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 16})
-		err = issues_model.IssueAssignOrRemoveProject(db.DefaultContext, issue16, user2, project1.ID, column1.ID)
+		err = issues_model.IssueAssignOrRemoveProject(db.DefaultContext, issue16, user2, []int64{project1.ID}, column1.ID)
 		assert.NoError(t, err)
 
 		projects, err := db.Find[project_model.Project](db.DefaultContext, project_model.SearchOptions{
