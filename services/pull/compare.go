@@ -36,7 +36,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		// Add a temporary remote
 		tmpRemote = strconv.FormatInt(time.Now().UnixNano(), 10)
 		if err = gitrepo.GitRemoteAdd(ctx, headRepo, tmpRemote, baseRepo.RepoPath()); err != nil {
-			return nil, fmt.Errorf("AddRemote: %w", err)
+			return nil, fmt.Errorf("GitRemoteAdd: %w", err)
 		}
 		defer func() {
 			if err := gitrepo.GitRemoteRemove(ctx, headRepo, tmpRemote); err != nil {
