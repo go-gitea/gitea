@@ -299,14 +299,14 @@ func TestAPIBranchProtection(t *testing.T) {
 func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	branches, err := db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+	branches, err := db.Find[git_model.Branch](t.Context(), git_model.FindBranchOptions{
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, branches, 6)
 
 	// make a broke repository with no branch on database
-	_, err = db.DeleteByBean(db.DefaultContext, git_model.Branch{RepoID: 1})
+	_, err = db.DeleteByBean(t.Context(), git_model.Branch{RepoID: 1})
 	assert.NoError(t, err)
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
@@ -316,13 +316,13 @@ func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 		testAPICreateBranch(t, ctx.Session, "user2", "repo1", "", "new_branch", http.StatusCreated)
 	})
 
-	branches, err = db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+	branches, err = db.Find[git_model.Branch](t.Context(), git_model.FindBranchOptions{
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, branches, 7)
 
-	branches, err = db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+	branches, err = db.Find[git_model.Branch](t.Context(), git_model.FindBranchOptions{
 		RepoID:  1,
 		Keyword: "new_branch",
 	})

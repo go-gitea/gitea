@@ -30,9 +30,9 @@ func TestLinkedRepository(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			attach, err := repo_model.GetAttachmentByID(db.DefaultContext, tc.attachID)
+			attach, err := repo_model.GetAttachmentByID(t.Context(), tc.attachID)
 			assert.NoError(t, err)
-			repo, unitType, err := LinkedRepository(db.DefaultContext, attach)
+			repo, unitType, err := LinkedRepository(t.Context(), attach)
 			assert.NoError(t, err)
 			if tc.expectedRepo != nil {
 				assert.Equal(t, tc.expectedRepo.ID, repo.ID)
@@ -46,17 +46,17 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Get sample repo and change visibility
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 9)
+	repo, err := repo_model.GetRepositoryByID(t.Context(), 9)
 	assert.NoError(t, err)
 	repo.IsPrivate = true
 
 	// Update it
-	err = updateRepository(db.DefaultContext, repo, true)
+	err = updateRepository(t.Context(), repo, true)
 	assert.NoError(t, err)
 
 	// Check visibility of action has become private
 	act := activities_model.Action{}
-	_, err = db.GetEngine(db.DefaultContext).ID(3).Get(&act)
+	_, err = db.GetEngine(t.Context()).ID(3).Get(&act)
 
 	assert.NoError(t, err)
 	assert.True(t, act.IsPrivate)

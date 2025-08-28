@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +27,7 @@ func TestGetCommitStatuses(t *testing.T) {
 
 	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
 
-	statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](db.DefaultContext, &git_model.CommitStatusOptions{
+	statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
 		ListOptions: db.ListOptions{Page: 1, PageSize: 50},
 		RepoID:      repo1.ID,
 		SHA:         sha1,
@@ -39,25 +38,25 @@ func TestGetCommitStatuses(t *testing.T) {
 
 	assert.Equal(t, "ci/awesomeness", statuses[0].Context)
 	assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[0].APIURL(db.DefaultContext))
+	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[0].APIURL(t.Context()))
 
 	assert.Equal(t, "cov/awesomeness", statuses[1].Context)
 	assert.Equal(t, commitstatus.CommitStatusWarning, statuses[1].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[1].APIURL(db.DefaultContext))
+	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[1].APIURL(t.Context()))
 
 	assert.Equal(t, "cov/awesomeness", statuses[2].Context)
 	assert.Equal(t, commitstatus.CommitStatusSuccess, statuses[2].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[2].APIURL(db.DefaultContext))
+	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[2].APIURL(t.Context()))
 
 	assert.Equal(t, "ci/awesomeness", statuses[3].Context)
 	assert.Equal(t, commitstatus.CommitStatusFailure, statuses[3].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[3].APIURL(db.DefaultContext))
+	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[3].APIURL(t.Context()))
 
 	assert.Equal(t, "deploy/awesomeness", statuses[4].Context)
 	assert.Equal(t, commitstatus.CommitStatusError, statuses[4].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[4].APIURL(db.DefaultContext))
+	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[4].APIURL(t.Context()))
 
-	statuses, maxResults, err = db.FindAndCount[git_model.CommitStatus](db.DefaultContext, &git_model.CommitStatusOptions{
+	statuses, maxResults, err = db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
 		ListOptions: db.ListOptions{Page: 2, PageSize: 50},
 		RepoID:      repo1.ID,
 		SHA:         sha1,
@@ -187,7 +186,7 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo2)
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo2)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -195,7 +194,7 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 	assert.NoError(t, err)
 
 	defer func() {
-		_, err := db.DeleteByBean(db.DefaultContext, &git_model.CommitStatus{
+		_, err := db.DeleteByBean(t.Context(), &git_model.CommitStatus{
 			RepoID:    repo2.ID,
 			CreatorID: user2.ID,
 			SHA:       commit.ID.String(),
@@ -203,7 +202,7 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 		assert.NoError(t, err)
 	}()
 
-	err = git_model.NewCommitStatus(db.DefaultContext, git_model.NewCommitStatusOptions{
+	err = git_model.NewCommitStatus(t.Context(), git_model.NewCommitStatusOptions{
 		Repo:    repo2,
 		Creator: user2,
 		SHA:     commit.ID,
@@ -215,7 +214,7 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	err = git_model.NewCommitStatus(db.DefaultContext, git_model.NewCommitStatusOptions{
+	err = git_model.NewCommitStatus(t.Context(), git_model.NewCommitStatusOptions{
 		Repo:    repo2,
 		Creator: user2,
 		SHA:     commit.ID,
@@ -227,7 +226,7 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	contexts, err := git_model.FindRepoRecentCommitStatusContexts(db.DefaultContext, repo2.ID, time.Hour)
+	contexts, err := git_model.FindRepoRecentCommitStatusContexts(t.Context(), repo2.ID, time.Hour)
 	assert.NoError(t, err)
 	if assert.Len(t, contexts, 1) {
 		assert.Equal(t, "compliance/lint-backend", contexts[0])
@@ -239,7 +238,7 @@ func TestCommitStatusesHideActionsURL(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 791, RepoID: repo.ID})
-	assert.NoError(t, run.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, run.LoadAttributes(t.Context()))
 
 	statuses := []*git_model.CommitStatus{
 		{
@@ -252,7 +251,7 @@ func TestCommitStatusesHideActionsURL(t *testing.T) {
 		},
 	}
 
-	git_model.CommitStatusesHideActionsURL(db.DefaultContext, statuses)
+	git_model.CommitStatusesHideActionsURL(t.Context(), statuses)
 	assert.Empty(t, statuses[0].TargetURL)
 	assert.Equal(t, "https://mycicd.org/1", statuses[1].TargetURL)
 }
@@ -264,7 +263,7 @@ func TestGetCountLatestCommitStatus(t *testing.T) {
 
 	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
 
-	commitStatuses, err := git_model.GetLatestCommitStatus(db.DefaultContext, repo1.ID, sha1, db.ListOptions{
+	commitStatuses, err := git_model.GetLatestCommitStatus(t.Context(), repo1.ID, sha1, db.ListOptions{
 		Page:     1,
 		PageSize: 2,
 	})
@@ -275,7 +274,7 @@ func TestGetCountLatestCommitStatus(t *testing.T) {
 	assert.Equal(t, commitstatus.CommitStatusError, commitStatuses[1].State)
 	assert.Equal(t, "deploy/awesomeness", commitStatuses[1].Context)
 
-	count, err := git_model.CountLatestCommitStatus(db.DefaultContext, repo1.ID, sha1)
+	count, err := git_model.CountLatestCommitStatus(t.Context(), repo1.ID, sha1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, count)
 }

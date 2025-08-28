@@ -6,7 +6,6 @@ package issue
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -23,7 +22,7 @@ func Test_DeleteCommentWithReview(t *testing.T) {
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	// since this is the last comment of the review, it should be deleted when the comment is deleted
-	deletedReviewComment, err := DeleteComment(db.DefaultContext, user1, comment)
+	deletedReviewComment, err := DeleteComment(t.Context(), user1, comment)
 	assert.NoError(t, err)
 	assert.NotNil(t, deletedReviewComment)
 
