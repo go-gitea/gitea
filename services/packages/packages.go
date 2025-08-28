@@ -457,16 +457,6 @@ func GetOrCreateInternalPackageVersion(ctx context.Context, ownerID int64, packa
 	})
 }
 
-// RemovePackageVersionByNameAndVersion deletes a package version and all associated files
-func RemovePackageVersionByNameAndVersion(ctx context.Context, doer *user_model.User, pvi *PackageInfo) error {
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
-	if err != nil {
-		return err
-	}
-
-	return RemovePackageVersion(ctx, doer, pv)
-}
-
 // RemovePackageVersion deletes the package version and all associated files
 func RemovePackageVersion(ctx context.Context, doer *user_model.User, pv *packages_model.PackageVersion) error {
 	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
