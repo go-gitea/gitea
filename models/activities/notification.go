@@ -358,7 +358,7 @@ func (n *Notification) HTMLURL(ctx context.Context) string {
 	case NotificationSourceRepository:
 		return n.Repository.HTMLURL(ctx)
 	case NotificationSourceRelease:
-		return n.Release.HTMLURL()
+		return n.Release.HTMLURL(ctx)
 	}
 	return ""
 }

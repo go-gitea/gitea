@@ -289,7 +289,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 			title = rel.Title
 		}
 
-		link := &feeds.Link{Href: rel.HTMLURL()}
+		link := &feeds.Link{Href: rel.HTMLURL(ctx)}
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, rel.Repo).WithUseAbsoluteLink(true)
 		content, err = markdown.RenderString(rctx,
 			rel.Note)

@@ -69,7 +69,7 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 			}
 		}
 	case activities_model.NotificationSourceCommit:
-		url := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
+		url := n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.CommitID)
 		title, _ := git.SplitCommitTitleBody(n.Commit.CommitMessage, 255)
 		result.Subject = &api.NotificationSubject{
 			Type:    api.NotifySubjectCommit,
@@ -83,14 +83,14 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 			Title: n.Repository.FullName(),
 			// FIXME: this is a relative URL, rather useless and inconsistent, but keeping for backwards compat
 			URL:     n.Repository.Link(),
-			HTMLURL: n.Repository.HTMLURL(),
+			HTMLURL: n.Repository.HTMLURL(ctx),
 		}
 	case activities_model.NotificationSourceRelease:
 		result.Subject = &api.NotificationSubject{
 			Type:    api.NotifySubjectRelease,
 			Title:   n.Release.Title,
 			URL:     n.Release.Link(),
-			HTMLURL: n.Release.HTMLURL(),
+			HTMLURL: n.Release.HTMLURL(ctx),
 		}
 	}
 

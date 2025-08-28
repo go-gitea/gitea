@@ -74,7 +74,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, re
 		"Release":  rel,
 		"Subject":  subject,
 		"Language": locale.Language(),
-		"Link":     rel.HTMLURL(),
+		"Link":     rel.HTMLURL(ctx),
 	}
 
 	var mailBody bytes.Buffer
