@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -459,7 +460,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 }
 
 func cleanupRepository(repoID int64) {
-	if errDelete := DeleteRepositoryDirectly(db.DefaultContext, repoID); errDelete != nil {
+	if errDelete := DeleteRepositoryDirectly(graceful.GetManager().ShutdownContext(), repoID); errDelete != nil {
 		log.Error("cleanupRepository failed: %v", errDelete)
 		// add system notice
 		if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when cleanup repository: %v", errDelete); err != nil {

@@ -216,7 +216,7 @@ func PrepareLFSStorage(t testing.TB) {
 
 func PrepareCleanPackageData(t testing.TB) {
 	// clear all package data
-	assert.NoError(t, db.TruncateBeans(db.DefaultContext,
+	assert.NoError(t, db.TruncateBeans(t.Context(),
 		&packages_model.Package{},
 		&packages_model.PackageVersion{},
 		&packages_model.PackageFile{},

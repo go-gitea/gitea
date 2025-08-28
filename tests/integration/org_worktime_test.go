@@ -88,7 +88,7 @@ func testTimesByRepos(t *testing.T) {
 		t.Run(kase.name, func(t *testing.T) {
 			org, err := organization.GetOrgByID(t.Context(), kase.orgname)
 			assert.NoError(t, err)
-			results, err := organization.GetWorktimeByRepos(org, kase.unixfrom, kase.unixto)
+			results, err := organization.GetWorktimeByRepos(t.Context(), org, kase.unixfrom, kase.unixto)
 			assert.NoError(t, err)
 			assert.Equal(t, kase.expected, results)
 		})
@@ -192,7 +192,7 @@ func testTimesByMilestones(t *testing.T) {
 		t.Run(kase.name, func(t *testing.T) {
 			org, err := organization.GetOrgByID(t.Context(), kase.orgname)
 			require.NoError(t, err)
-			results, err := organization.GetWorktimeByMilestones(org, kase.unixfrom, kase.unixto)
+			results, err := organization.GetWorktimeByMilestones(t.Context(), org, kase.unixfrom, kase.unixto)
 			if assert.NoError(t, err) {
 				assert.Equal(t, kase.expected, results)
 			}
@@ -276,7 +276,7 @@ func testTimesByMembers(t *testing.T) {
 		t.Run(kase.name, func(t *testing.T) {
 			org, err := organization.GetOrgByID(t.Context(), kase.orgname)
 			assert.NoError(t, err)
-			results, err := organization.GetWorktimeByMembers(org, kase.unixfrom, kase.unixto)
+			results, err := organization.GetWorktimeByMembers(t.Context(), org, kase.unixfrom, kase.unixto)
 			assert.NoError(t, err)
 			assert.Equal(t, kase.expected, results)
 		})
