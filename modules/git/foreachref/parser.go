@@ -32,8 +32,7 @@ func NewParser(r io.Reader, format Format) *Parser {
 
 	// default MaxScanTokenSize = 64 kiB may be too small for some references,
 	// so allow the buffer to grow up to 4x if needed
-	buf := make([]byte, 0, bufio.MaxScanTokenSize)
-	scanner.Buffer(buf, 4 * bufio.MaxScanTokenSize)
+	scanner.Buffer(nil, 4*bufio.MaxScanTokenSize)
 
 	// in addition to the reference delimiter we specified in the --format,
 	// `git for-each-ref` will always add a newline after every reference.
