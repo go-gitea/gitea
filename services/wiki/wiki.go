@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
@@ -360,7 +361,7 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 	if err := gitrepo.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
 		desc := fmt.Sprintf("Delete wiki repository files [%s]: %v", repo.FullName(), err)
 		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
-		if err = system_model.CreateNotice(db.DefaultContext, system_model.NoticeRepository, desc); err != nil {
+		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
