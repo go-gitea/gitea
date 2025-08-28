@@ -34,8 +34,7 @@ type Features struct {
 }
 
 var (
-	GitExecutable   = "git"         // the command name of git, will be updated to an absolute path during initialization
-	DefaultContext  context.Context // the default context to run git commands in, must be initialized by git.InitXxx
+	GitExecutable   = "git" // the command name of git, will be updated to an absolute path during initialization
 	defaultFeatures *Features
 )
 
@@ -61,7 +60,7 @@ func DefaultFeatures() *Features {
 }
 
 func loadGitVersionFeatures() (*Features, error) {
-	stdout, _, runErr := NewCommand("version").RunStdString(DefaultContext, nil)
+	stdout, _, runErr := NewCommand("version").RunStdString(context.Background(), nil)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -163,13 +162,9 @@ func InitSimple() error {
 		return errors.New("unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
 	}
 
-	if DefaultContext != nil && (!setting.IsProd || setting.IsInTesting) {
+	if defaultFeatures != nil && (!setting.IsProd || setting.IsInTesting) {
 		log.Warn("git module has been initialized already, duplicate init may work but it's better to fix it")
 	}
-
-	// FIXME: git context is used across the application, so it should use the global default context, this design is not right but it's hard to change now.
-	DefaultContext = context.Background()
-	globalCommandArgs = nil
 
 	if setting.Git.Timeout.Default > 0 {
 		defaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
@@ -202,22 +197,11 @@ func InitFull() (err error) {
 		return err
 	}
 
-	// Since git wire protocol has been released from git v2.18
-	if setting.Git.EnableAutoGitWireProtocol && DefaultFeatures().CheckVersionAtLeast("2.18") {
-		globalCommandArgs = append(globalCommandArgs, "-c", "protocol.version=2")
-	}
-
-	// Explicitly disable credential helper, otherwise Git credentials might leak
-	if DefaultFeatures().CheckVersionAtLeast("2.9") {
-		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
-	}
-
 	if setting.LFS.StartServer {
 		if !DefaultFeatures().CheckVersionAtLeast("2.1.2") {
 			return errors.New("LFS server support requires Git >= 2.1.2")
 		}
-		globalCommandArgs = append(globalCommandArgs, "-c", "filter.lfs.required=", "-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
 	}
 
-	return syncGitConfig()
+	return syncGitConfig(context.Background())
 }

@@ -6,7 +6,6 @@ package v1_22
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/project"
 
@@ -32,12 +31,12 @@ func Test_CheckProjectColumnsConsistency(t *testing.T) {
 	assert.True(t, defaultColumn.Default)
 
 	// check if multiple defaults, previous were removed and last will be kept
-	expectDefaultColumn, err := project.GetColumn(db.DefaultContext, 2)
+	expectDefaultColumn, err := project.GetColumn(t.Context(), 2)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), expectDefaultColumn.ProjectID)
 	assert.False(t, expectDefaultColumn.Default)
 
-	expectNonDefaultColumn, err := project.GetColumn(db.DefaultContext, 3)
+	expectNonDefaultColumn, err := project.GetColumn(t.Context(), 3)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), expectNonDefaultColumn.ProjectID)
 	assert.True(t, expectNonDefaultColumn.Default)
