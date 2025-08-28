@@ -18,7 +18,6 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -68,7 +67,7 @@ func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Re
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, Owner: doer})
 	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1, Repo: repo, Poster: doer})
 	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2, Issue: issue})
-	require.NoError(t, issue.LoadRepo(db.DefaultContext))
+	require.NoError(t, issue.LoadRepo(t.Context()))
 	return doer, repo, issue, comment
 }
 
@@ -150,12 +149,12 @@ func TestComposeIssueComment(t *testing.T) {
 	assert.NoError(t, err)
 
 	// text/plain
-	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, doer.HTMLURL()))
-	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, issue.HTMLURL()))
+	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, doer.HTMLURL(t.Context())))
+	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, issue.HTMLURL(t.Context())))
 
 	// text/html
-	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, doer.HTMLURL()))
-	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, issue.HTMLURL()))
+	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, doer.HTMLURL(t.Context())))
+	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, issue.HTMLURL(t.Context())))
 }
 
 func TestMailMentionsComment(t *testing.T) {
@@ -252,7 +251,7 @@ func TestTemplateSelection(t *testing.T) {
 
 func TestTemplateServices(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
-	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
+	assert.NoError(t, issue.LoadRepo(t.Context()))
 
 	expect := func(t *testing.T, issue *issues_model.Issue, comment *issues_model.Comment, doer *user_model.User,
 		actionType activities_model.ActionType, fromMention bool, tplSubject, tplBody, expSubject, expBody string,
@@ -447,7 +446,7 @@ func TestGenerateMessageIDForActionsWorkflowRunStatusEmail(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 795, RepoID: repo.ID})
-	assert.NoError(t, run.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, run.LoadAttributes(t.Context()))
 	msgID := generateMessageIDForActionsWorkflowRunStatusEmail(repo, run)
 	assert.Equal(t, "<user2/repo2/actions/runs/191@localhost>", msgID)
 }

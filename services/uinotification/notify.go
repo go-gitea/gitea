@@ -8,7 +8,6 @@ import (
 	"slices"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -63,23 +62,24 @@ func NewNotifier() notify_service.Notifier {
 }
 
 func handler(items ...notificationOpts) []notificationOpts {
+	ctx := graceful.GetManager().ShutdownContext()
 	for _, opts := range items {
 		switch opts.Source {
 		case activities_model.NotificationSourceRepository:
-			if err := activities_model.CreateRepoTransferNotification(db.DefaultContext, opts.NotificationAuthorID, opts.RepoID, opts.ReceiverID); err != nil {
+			if err := activities_model.CreateRepoTransferNotification(ctx, opts.NotificationAuthorID, opts.RepoID, opts.ReceiverID); err != nil {
 				log.Error("CreateRepoTransferNotification: %v", err)
 			}
 		case activities_model.NotificationSourceCommit:
-			if err := activities_model.CreateCommitNotifications(db.DefaultContext, opts.NotificationAuthorID, opts.RepoID, opts.CommitID, opts.ReceiverID); err != nil {
+			if err := activities_model.CreateCommitNotifications(ctx, opts.NotificationAuthorID, opts.RepoID, opts.CommitID, opts.ReceiverID); err != nil {
 				log.Error("Was unable to create commit notification: %v", err)
 			}
 		case activities_model.NotificationSourceRelease:
-			if err := activities_model.CreateOrUpdateReleaseNotifications(db.DefaultContext, opts.NotificationAuthorID, opts.RepoID, opts.ReleaseID, opts.ReceiverID); err != nil {
+			if err := activities_model.CreateOrUpdateReleaseNotifications(ctx, opts.NotificationAuthorID, opts.RepoID, opts.ReleaseID, opts.ReceiverID); err != nil {
 				log.Error("Was unable to create release notification: %v", err)
 			}
 		case activities_model.NotificationSourceIssue, activities_model.NotificationSourcePullRequest, 0:
 			// 0 is for fallback to issue notifications because source is a newly added field
-			if err := activities_model.CreateOrUpdateIssueNotifications(db.DefaultContext, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
+			if err := activities_model.CreateOrUpdateIssueNotifications(ctx, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
 				log.Error("Was unable to create issue notification: %v", err)
 			}
 		default:

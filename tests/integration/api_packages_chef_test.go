@@ -25,7 +25,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -83,7 +82,7 @@ kPuCu6vH9brvOuYo0q8hLVNkBeXcimRpsDjLhQYzEJjoMTbaiVGnjBky+PWNiofJ
 nwIDAQAB
 -----END PUBLIC KEY-----`
 
-	err := user_model.SetUserSetting(db.DefaultContext, user.ID, chef_module.SettingPublicPem, pubPem)
+	err := user_model.SetUserSetting(t.Context(), user.ID, chef_module.SettingPublicPem, pubPem)
 	assert.NoError(t, err)
 
 	t.Run("Authenticate", func(t *testing.T) {
@@ -306,18 +305,18 @@ nwIDAQAB
 
 		uploadPackage(t, packageVersion, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeChef)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeChef)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		assert.NoError(t, err)
 		assert.NotNil(t, pd.SemVer)
 		assert.IsType(t, &chef_module.Metadata{}, pd.Metadata)
 		assert.Equal(t, packageName, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
 
-		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 		assert.Equal(t, packageVersion+".tar.gz", pfs[0].Name)
@@ -538,7 +537,7 @@ nwIDAQAB
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusOK)
 
-			pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages.TypeChef, packageName, "1.0.2")
+			pv, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeChef, packageName, "1.0.2")
 			assert.Nil(t, pv)
 			assert.Error(t, err)
 		})
@@ -553,7 +552,7 @@ nwIDAQAB
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusOK)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeChef)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeChef)
 			assert.NoError(t, err)
 			assert.Empty(t, pvs)
 		})

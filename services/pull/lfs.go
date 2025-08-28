@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"sync"
 
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/git/pipeline"
@@ -40,7 +39,7 @@ func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string
 	// 6. Take the output of cat-file --batch and check if each file in turn
 	// to see if they're pointers to files in the LFS store associated with
 	// the head repo and add them to the base repo if so
-	go createLFSMetaObjectsFromCatFileBatch(db.DefaultContext, catFileBatchReader, &wg, pr)
+	go createLFSMetaObjectsFromCatFileBatch(ctx, catFileBatchReader, &wg, pr)
 
 	// 5. Take the shas of the blobs and batch read them
 	go pipeline.CatFileBatch(ctx, shasToBatchReader, catFileBatchWriter, &wg, tmpBasePath)
