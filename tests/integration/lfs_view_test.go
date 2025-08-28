@@ -103,7 +103,7 @@ func TestLFSRender(t *testing.T) {
 		assert.Contains(t, content, "Testing documents in LFS")
 
 		// then make it disappear
-		assert.NoError(t, db.TruncateBeans(db.DefaultContext, &git.LFSMetaObject{}))
+		assert.NoError(t, db.TruncateBeans(t.Context(), &git.LFSMetaObject{}))
 		req = NewRequest(t, "GET", "/user2/lfs/src/branch/master/CONTRIBUTING.md")
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		content = NewHTMLParser(t, resp.Body).Find("div.file-view").Text()

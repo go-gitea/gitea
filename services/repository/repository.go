@@ -142,7 +142,7 @@ func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		if err := checkDaemonExportOK(ctx, repo); err != nil {
+		if err := CheckDaemonExportOK(ctx, repo); err != nil {
 			return err
 		}
 
@@ -197,7 +197,7 @@ func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err erro
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		if err := checkDaemonExportOK(ctx, repo); err != nil {
+		if err := CheckDaemonExportOK(ctx, repo); err != nil {
 			return err
 		}
 
@@ -243,8 +243,8 @@ func LinkedRepository(ctx context.Context, a *repo_model.Attachment) (*repo_mode
 	return nil, -1, nil
 }
 
-// checkDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
-func checkDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error {
+// CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
+func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error {
 	if err := repo.LoadOwner(ctx); err != nil {
 		return err
 	}
@@ -314,7 +314,7 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		if err := checkDaemonExportOK(ctx, repo); err != nil {
+		if err := CheckDaemonExportOK(ctx, repo); err != nil {
 			return err
 		}
 

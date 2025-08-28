@@ -83,13 +83,13 @@ func (pd *PackageDescriptor) VersionWebLink() string {
 }
 
 // PackageHTMLURL returns the absolute package HTML URL
-func (pd *PackageDescriptor) PackageHTMLURL() string {
-	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HTMLURL(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+func (pd *PackageDescriptor) PackageHTMLURL(ctx context.Context) string {
+	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HTMLURL(ctx), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
 // VersionHTMLURL returns the absolute package version HTML URL
-func (pd *PackageDescriptor) VersionHTMLURL() string {
-	return fmt.Sprintf("%s/%s", pd.PackageHTMLURL(), url.PathEscape(pd.Version.LowerVersion))
+func (pd *PackageDescriptor) VersionHTMLURL(ctx context.Context) string {
+	return fmt.Sprintf("%s/%s", pd.PackageHTMLURL(ctx), url.PathEscape(pd.Version.LowerVersion))
 }
 
 // CalculateBlobSize returns the total blobs size in bytes
