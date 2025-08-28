@@ -48,10 +48,7 @@ func DefaultMetaSettings() MetaSettings {
 
 // DefaultPayloadConfig returns the default payload configuration
 func DefaultPayloadConfig() PayloadConfig {
-	return PayloadConfig{
-		Files:   PayloadConfigItem{Enable: false, Limit: 0},
-		Commits: PayloadConfigItem{Enable: false, Limit: 0},
-	}
+	return PayloadConfig{}
 }
 
 // ErrWebhookNotExist represents a "WebhookNotExist" kind of error.
