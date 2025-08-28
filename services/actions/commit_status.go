@@ -14,9 +14,9 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/commitstatus"
 	git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 
@@ -92,7 +92,7 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	}
 	ctxname := fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)
 	state := toCommitStatus(job.Status)
-	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptionsAll); err == nil {
+	if statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptionsAll); err == nil {
 		for _, v := range statuses {
 			if v.Context == ctxname {
 				if v.State == state {
@@ -147,16 +147,18 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	return commitstatus_service.CreateCommitStatus(ctx, repo, creator, commitID.String(), &status)
 }
 
-func toCommitStatus(status actions_model.Status) api.CommitStatusState {
+func toCommitStatus(status actions_model.Status) commitstatus.CommitStatusState {
 	switch status {
-	case actions_model.StatusSuccess, actions_model.StatusSkipped:
-		return api.CommitStatusSuccess
+	case actions_model.StatusSuccess:
+		return commitstatus.CommitStatusSuccess
 	case actions_model.StatusFailure, actions_model.StatusCancelled:
-		return api.CommitStatusFailure
+		return commitstatus.CommitStatusFailure
 	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning:
-		return api.CommitStatusPending
+		return commitstatus.CommitStatusPending
+	case actions_model.StatusSkipped:
+		return commitstatus.CommitStatusSkipped
 	default:
-		return api.CommitStatusError
+		return commitstatus.CommitStatusError
 	}
 }
 

@@ -19,7 +19,7 @@ import (
 func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
-	repos, count, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
 		Actor:       u,
 		Private:     private,
 		ListOptions: opts,
@@ -62,7 +62,7 @@ func ListUserRepos(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose owned repos are to be listed
 	//   type: string
 	//   required: true
 	// - name: page
@@ -103,7 +103,7 @@ func ListMyRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	opts := &repo_model.SearchRepoOptions{
+	opts := repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.Doer.ID,

@@ -62,7 +62,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
 
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
-	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
+	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
@@ -105,7 +105,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
-	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
+	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
@@ -165,7 +165,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 
 	newRepoName := form.RepoName
 	// Check if repository name has been changed.
-	if repo.LowerName != strings.ToLower(newRepoName) {
+	if !strings.EqualFold(repo.LowerName, newRepoName) {
 		// Close the GitRepo if open
 		if ctx.Repo.GitRepo != nil {
 			ctx.Repo.GitRepo.Close()
@@ -663,43 +663,36 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 func handleSettingsPostSigning(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
-	changed := false
 	trustModel := repo_model.ToTrustModel(form.TrustModel)
 	if trustModel != repo.TrustModel {
 		repo.TrustModel = trustModel
-		changed = true
-	}
-
-	if changed {
-		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
-			ctx.ServerError("UpdateRepository", err)
+		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "trust_model"); err != nil {
+			ctx.ServerError("UpdateRepositoryColsNoAutoTime", err)
 			return
 		}
+		log.Trace("Repository signing settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 	}
-	log.Trace("Repository signing settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }
 
 func handleSettingsPostAdmin(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
-	repo := ctx.Repo.Repository
 	if !ctx.Doer.IsAdmin {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
+	repo := ctx.Repo.Repository
+	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	if repo.IsFsckEnabled != form.EnableHealthCheck {
 		repo.IsFsckEnabled = form.EnableHealthCheck
+		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_fsck_enabled"); err != nil {
+			ctx.ServerError("UpdateRepositoryColsNoAutoTime", err)
+			return
+		}
+		log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 	}
-
-	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
-		ctx.ServerError("UpdateRepository", err)
-		return
-	}
-
-	log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")

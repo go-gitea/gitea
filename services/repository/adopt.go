@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -28,7 +29,7 @@ import (
 )
 
 func deleteFailedAdoptRepository(repoID int64) error {
-	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	return db.WithTx(graceful.GetManager().ShutdownContext(), func(ctx context.Context) error {
 		if err := deleteDBRepository(ctx, repoID); err != nil {
 			return fmt.Errorf("deleteDBRepository: %w", err)
 		}
@@ -196,8 +197,13 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	}
-	if err = updateRepository(ctx, repo, false); err != nil {
-		return fmt.Errorf("updateRepository: %w", err)
+
+	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_empty", "default_branch"); err != nil {
+		return fmt.Errorf("UpdateRepositoryCols: %w", err)
+	}
+
+	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
+		log.Error("Failed to update size for repository: %v", err)
 	}
 
 	return nil
@@ -260,7 +266,7 @@ func checkUnadoptedRepositories(ctx context.Context, userName string, repoNamesT
 		}
 		return err
 	}
-	repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
+	repos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
 		Actor:   ctxUser,
 		Private: true,
 		ListOptions: db.ListOptions{

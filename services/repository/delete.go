@@ -24,10 +24,13 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
+	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	issue_service "code.gitea.io/gitea/services/issue"
 
 	"xorm.io/builder"
 )
@@ -47,7 +50,7 @@ func deleteDBRepository(ctx context.Context, repoID int64) error {
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
-func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID int64, ignoreOrgTeams ...bool) error {
+func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams ...bool) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -133,6 +136,14 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		return err
 	}
 
+	// CleanupEphemeralRunnersByPickedTaskOfRepo deletes ephemeral global/org/user that have started any task of this repo
+	// The cannot pick a second task hardening for ephemeral runners expect that task objects remain available until runner deletion
+	// This method will delete affected ephemeral global/org/user runners
+	// &actions_model.ActionRunner{RepoID: repoID} does only handle ephemeral repository runners
+	if err := actions_service.CleanupEphemeralRunnersByPickedTaskOfRepo(ctx, repoID); err != nil {
+		return fmt.Errorf("cleanupEphemeralRunners: %w", err)
+	}
+
 	if err := db.DeleteBeans(ctx,
 		&access_model.Access{RepoID: repo.ID},
 		&activities_model.Action{RepoID: repo.ID},
@@ -184,7 +195,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 
 	// Delete Issues and related objects
 	var attachmentPaths []string
-	if attachmentPaths, err = issues_model.DeleteIssuesByRepoID(ctx, repoID); err != nil {
+	if attachmentPaths, err = issue_service.DeleteIssuesByRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
@@ -299,8 +310,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	// Remove repository files.
 	if err := gitrepo.DeleteRepository(ctx, repo); err != nil {
 		desc := fmt.Sprintf("Delete repository files [%s]: %v", repo.FullName(), err)
-		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
-		if err = system_model.CreateNotice(db.DefaultContext, system_model.NoticeRepository, desc); err != nil {
+		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
@@ -365,7 +375,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 // DeleteOwnerRepositoriesDirectly calls DeleteRepositoryDirectly for all repos of the given owner
 func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User) error {
 	for {
-		repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
+		repos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     1,
@@ -381,7 +391,7 @@ func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User
 			break
 		}
 		for _, repo := range repos {
-			if err := DeleteRepositoryDirectly(ctx, owner, repo.ID); err != nil {
+			if err := DeleteRepositoryDirectly(ctx, repo.ID); err != nil {
 				return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, owner.Name, owner.ID, err)
 			}
 		}

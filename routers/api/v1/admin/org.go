@@ -29,7 +29,7 @@ func CreateOrg(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of the user that will own the created organization
+	//   description: username of the user who will own the created organization
 	//   type: string
 	//   required: true
 	// - name: organization
@@ -101,7 +101,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	users, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
+	users, maxResults, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeOrganization,
 		OrderBy:     db.SearchOrderByAlphabetically,

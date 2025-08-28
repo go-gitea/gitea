@@ -20,10 +20,11 @@ import (
 
 // Commit represents a git commit.
 type Commit struct {
-	Tree
-	ID            ObjectID // The ID of this commit object
-	Author        *Signature
-	Committer     *Signature
+	Tree // FIXME: bad design, this field can be nil if the commit is from "last commit cache"
+
+	ID            ObjectID
+	Author        *Signature // never nil
+	Committer     *Signature // never nil
 	CommitMessage string
 	Signature     *CommitSignature
 
@@ -34,7 +35,7 @@ type Commit struct {
 // CommitSignature represents a git commit signature part.
 type CommitSignature struct {
 	Signature string
-	Payload   string // TODO check if can be reconstruct from the rest of commit information to not have duplicate data
+	Payload   string
 }
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
@@ -82,18 +83,13 @@ func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
 }
 
 // AddChanges marks local changes to be ready for commit.
-func AddChanges(repoPath string, all bool, files ...string) error {
-	return AddChangesWithArgs(repoPath, globalCommandArgs, all, files...)
-}
-
-// AddChangesWithArgs marks local changes to be ready for commit.
-func AddChangesWithArgs(repoPath string, globalArgs TrustedCmdArgs, all bool, files ...string) error {
-	cmd := NewCommandNoGlobals(globalArgs...).AddArguments("add")
+func AddChanges(ctx context.Context, repoPath string, all bool, files ...string) error {
+	cmd := NewCommand().AddArguments("add")
 	if all {
 		cmd.AddArguments("--all")
 	}
 	cmd.AddDashesAndList(files...)
-	_, _, err := cmd.RunStdString(DefaultContext, &RunOpts{Dir: repoPath})
+	_, _, err := cmd.RunStdString(ctx, &RunOpts{Dir: repoPath})
 	return err
 }
 
@@ -106,16 +102,8 @@ type CommitChangesOptions struct {
 
 // CommitChanges commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
-func CommitChanges(repoPath string, opts CommitChangesOptions) error {
-	cargs := make(TrustedCmdArgs, len(globalCommandArgs))
-	copy(cargs, globalCommandArgs)
-	return CommitChangesWithArgs(repoPath, cargs, opts)
-}
-
-// CommitChangesWithArgs commits local changes with given committer, author and message.
-// If author is nil, it will be the same as committer.
-func CommitChangesWithArgs(repoPath string, args TrustedCmdArgs, opts CommitChangesOptions) error {
-	cmd := NewCommandNoGlobals(args...)
+func CommitChanges(ctx context.Context, repoPath string, opts CommitChangesOptions) error {
+	cmd := NewCommand()
 	if opts.Committer != nil {
 		cmd.AddOptionValues("-c", "user.name="+opts.Committer.Name)
 		cmd.AddOptionValues("-c", "user.email="+opts.Committer.Email)
@@ -130,7 +118,7 @@ func CommitChangesWithArgs(repoPath string, args TrustedCmdArgs, opts CommitChan
 	}
 	cmd.AddOptionFormat("--message=%s", opts.Message)
 
-	_, _, err := cmd.RunStdString(DefaultContext, &RunOpts{Dir: repoPath})
+	_, _, err := cmd.RunStdString(ctx, &RunOpts{Dir: repoPath})
 	// No stderr but exit status 1 means nothing to commit.
 	if err != nil && err.Error() == "exit status 1" {
 		return nil
@@ -163,6 +151,8 @@ type CommitsCountOptions struct {
 	Not      string
 	Revision []string
 	RelPath  []string
+	Since    string
+	Until    string
 }
 
 // CommitsCount returns number of total commits of until given revision.
@@ -196,8 +186,8 @@ func (c *Commit) CommitsCount() (int64, error) {
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
-func (c *Commit) CommitsByRange(page, pageSize int, not string) ([]*Commit, error) {
-	return c.repo.commitsByRange(c.ID, page, pageSize, not)
+func (c *Commit) CommitsByRange(page, pageSize int, not, since, until string) ([]*Commit, error) {
+	return c.repo.commitsByRangeWithTime(c.ID, page, pageSize, not, since, until)
 }
 
 // CommitsBefore returns all the commits before current revision
@@ -272,8 +262,8 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 	var keywords, authors, committers []string
 	var after, before string
 
-	fields := strings.Fields(searchString)
-	for _, k := range fields {
+	fields := strings.FieldsSeq(searchString)
+	for k := range fields {
 		switch {
 		case strings.HasPrefix(k, "author:"):
 			authors = append(authors, strings.TrimPrefix(k, "author:"))

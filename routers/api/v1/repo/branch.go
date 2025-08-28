@@ -224,9 +224,9 @@ func CreateBranch(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-	} else if len(opt.OldBranchName) > 0 { //nolint
-		if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, opt.OldBranchName) { //nolint
-			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldBranchName) //nolint
+	} else if len(opt.OldBranchName) > 0 { //nolint:staticcheck // deprecated field
+		if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, opt.OldBranchName) { //nolint:staticcheck // deprecated field
+			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldBranchName) //nolint:staticcheck // deprecated field
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -579,7 +579,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 
 	ruleName := form.RuleName
 	if ruleName == "" {
-		ruleName = form.BranchName //nolint
+		ruleName = form.BranchName //nolint:staticcheck // deprecated field
 	}
 	if len(ruleName) == 0 {
 		ctx.APIError(http.StatusBadRequest, "both rule_name and branch_name are empty")
@@ -1181,7 +1181,7 @@ func MergeUpstream(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.MergeUpstreamRequest)
-	mergeStyle, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, form.Branch)
+	mergeStyle, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, form.Branch, form.FfOnly)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err)

@@ -28,6 +28,7 @@ type GPGSettings struct {
 	Email            string
 	Name             string
 	PublicKeyContent string
+	Format           string
 }
 
 const prettyLogFormat = `--pretty=format:%H`
@@ -43,9 +44,9 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 		return commits, nil
 	}
 
-	parts := bytes.Split(logs, []byte{'\n'})
+	parts := bytes.SplitSeq(logs, []byte{'\n'})
 
-	for _, commitID := range parts {
+	for commitID := range parts {
 		commit, err := repo.GetCommit(string(commitID))
 		if err != nil {
 			return nil, err
@@ -120,17 +121,12 @@ type CloneRepoOptions struct {
 
 // Clone clones original repository to target path.
 func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
-	return CloneWithArgs(ctx, globalCommandArgs, from, to, opts)
-}
-
-// CloneWithArgs original repository to target path.
-func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
-	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
 	}
 
-	cmd := NewCommandNoGlobals(args...).AddArguments("clone")
+	cmd := NewCommand().AddArguments("clone")
 	if opts.SkipTLSVerify {
 		cmd.AddArguments("-c", "http.sslVerify=false")
 	}

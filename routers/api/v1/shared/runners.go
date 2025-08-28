@@ -67,6 +67,28 @@ func ListRunners(ctx *context.APIContext, ownerID, repoID int64) {
 	ctx.JSON(http.StatusOK, &res)
 }
 
+func getRunnerByID(ctx *context.APIContext, ownerID, repoID, runnerID int64) (*actions_model.ActionRunner, bool) {
+	if ownerID != 0 && repoID != 0 {
+		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
+	}
+
+	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound("Runner not found")
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return nil, false
+	}
+
+	if !runner.EditableInContext(ownerID, repoID) {
+		ctx.APIErrorNotFound("No permission to access this runner")
+		return nil, false
+	}
+	return runner, true
+}
+
 // GetRunner get the runner for api route validated ownerID and repoID
 // ownerID == 0 and repoID == 0 means any runner including global runners
 // ownerID == 0 and repoID != 0 means any runner for the given repo
@@ -77,13 +99,8 @@ func GetRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
-	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
-	if err != nil {
-		ctx.APIErrorNotFound(err)
-		return
-	}
-	if !runner.EditableInContext(ownerID, repoID) {
-		ctx.APIErrorNotFound("No permission to get this runner")
+	runner, ok := getRunnerByID(ctx, ownerID, repoID, runnerID)
+	if !ok {
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToActionRunner(ctx, runner))
@@ -96,20 +113,12 @@ func GetRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 // ownerID != 0 and repoID != 0 undefined behavior
 // Access rights are checked at the API route level
 func DeleteRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
-	if ownerID != 0 && repoID != 0 {
-		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
-	}
-	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if !runner.EditableInContext(ownerID, repoID) {
-		ctx.APIErrorNotFound("No permission to delete this runner")
+	runner, ok := getRunnerByID(ctx, ownerID, repoID, runnerID)
+	if !ok {
 		return
 	}
 
-	err = actions_model.DeleteRunner(ctx, runner.ID)
+	err := actions_model.DeleteRunner(ctx, runner.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
