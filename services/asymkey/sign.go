@@ -69,6 +69,29 @@ func signingModeFromStrings(modeStrings []string) []signingMode {
 	return returnable
 }
 
+func userHasPubkeysGPG(ctx context.Context, userID int64) (bool, error) {
+	return db.Exist[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		OwnerID:        userID,
+		IncludeSubKeys: true,
+	}.ToConds())
+}
+
+func userHasPubkeysSSH(ctx context.Context, userID int64) (bool, error) {
+	return db.Exist[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		OwnerID:    userID,
+		NotKeytype: asymkey_model.KeyTypePrincipal,
+	}.ToConds())
+}
+
+// userHasPubkeys checks if a user has any public keys (GPG or SSH)
+func userHasPubkeys(ctx context.Context, userID int64) (bool, error) {
+	has, err := userHasPubkeysGPG(ctx, userID)
+	if has || err != nil {
+		return has, err
+	}
+	return userHasPubkeysSSH(ctx, userID)
+}
+
 // ErrWontSign explains the first reason why a commit would not be signed
 // There may be other reasons - this is just the first reason found
 type ErrWontSign struct {
@@ -170,14 +193,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
@@ -210,14 +230,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
@@ -266,14 +283,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
@@ -337,14 +351,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:

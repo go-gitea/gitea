@@ -6,7 +6,6 @@ package repository
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 
@@ -15,7 +14,7 @@ import (
 
 func TestGetDirectorySize(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 1)
+	repo, err := repo_model.GetRepositoryByID(t.Context(), 1)
 	assert.NoError(t, err)
 	size, err := getDirectorySize(repo.RepoPath())
 	assert.NoError(t, err)

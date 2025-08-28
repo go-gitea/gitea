@@ -121,17 +121,12 @@ type CloneRepoOptions struct {
 
 // Clone clones original repository to target path.
 func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
-	return CloneWithArgs(ctx, globalCommandArgs, from, to, opts)
-}
-
-// CloneWithArgs original repository to target path.
-func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
-	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
 	}
 
-	cmd := NewCommandNoGlobals(args...).AddArguments("clone")
+	cmd := NewCommand().AddArguments("clone")
 	if opts.SkipTLSVerify {
 		cmd.AddArguments("-c", "http.sslVerify=false")
 	}

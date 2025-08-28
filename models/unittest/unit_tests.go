@@ -4,6 +4,7 @@
 package unittest
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"os"
@@ -14,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // Code in this file is mainly used by unittest.CheckConsistencyFor, which is not in the unit test for various reasons.
@@ -22,6 +22,12 @@ import (
 
 // NonexistentID an ID that will never exist
 const NonexistentID = int64(math.MaxInt64)
+
+type TestingT interface {
+	require.TestingT
+	assert.TestingT
+	Context() context.Context
+}
 
 type testCond struct {
 	query any
@@ -55,13 +61,13 @@ func whereOrderConditions(e db.Engine, conditions []any) db.Engine {
 	return e.OrderBy(orderBy)
 }
 
-func getBeanIfExists(bean any, conditions ...any) (bool, error) {
-	e := db.GetEngine(db.DefaultContext)
+func getBeanIfExists(t TestingT, bean any, conditions ...any) (bool, error) {
+	e := db.GetEngine(t.Context())
 	return whereOrderConditions(e, conditions).Get(bean)
 }
 
-func GetBean[T any](t require.TestingT, bean T, conditions ...any) (ret T) {
-	exists, err := getBeanIfExists(bean, conditions...)
+func GetBean[T any](t TestingT, bean T, conditions ...any) (ret T) {
+	exists, err := getBeanIfExists(t, bean, conditions...)
 	require.NoError(t, err)
 	if exists {
 		return bean
@@ -70,8 +76,8 @@ func GetBean[T any](t require.TestingT, bean T, conditions ...any) (ret T) {
 }
 
 // AssertExistsAndLoadBean assert that a bean exists and load it from the test database
-func AssertExistsAndLoadBean[T any](t require.TestingT, bean T, conditions ...any) T {
-	exists, err := getBeanIfExists(bean, conditions...)
+func AssertExistsAndLoadBean[T any](t TestingT, bean T, conditions ...any) T {
+	exists, err := getBeanIfExists(t, bean, conditions...)
 	require.NoError(t, err)
 	require.True(t, exists,
 		"Expected to find %+v (of type %T, with conditions %+v), but did not",
@@ -80,8 +86,8 @@ func AssertExistsAndLoadBean[T any](t require.TestingT, bean T, conditions ...an
 }
 
 // AssertExistsAndLoadMap assert that a row exists and load it from the test database
-func AssertExistsAndLoadMap(t assert.TestingT, table string, conditions ...any) map[string]string {
-	e := db.GetEngine(db.DefaultContext).Table(table)
+func AssertExistsAndLoadMap(t TestingT, table string, conditions ...any) map[string]string {
+	e := db.GetEngine(t.Context()).Table(table)
 	res, err := whereOrderConditions(e, conditions).Query()
 	assert.NoError(t, err)
 	assert.Len(t, res, 1,
@@ -100,8 +106,8 @@ func AssertExistsAndLoadMap(t assert.TestingT, table string, conditions ...any) 
 }
 
 // GetCount get the count of a bean
-func GetCount(t assert.TestingT, bean any, conditions ...any) int {
-	e := db.GetEngine(db.DefaultContext)
+func GetCount(t TestingT, bean any, conditions ...any) int {
+	e := db.GetEngine(t.Context())
 	for _, condition := range conditions {
 		switch cond := condition.(type) {
 		case *testCond:
@@ -116,14 +122,14 @@ func GetCount(t assert.TestingT, bean any, conditions ...any) int {
 }
 
 // AssertNotExistsBean assert that a bean does not exist in the test database
-func AssertNotExistsBean(t assert.TestingT, bean any, conditions ...any) {
-	exists, err := getBeanIfExists(bean, conditions...)
+func AssertNotExistsBean(t TestingT, bean any, conditions ...any) {
+	exists, err := getBeanIfExists(t, bean, conditions...)
 	assert.NoError(t, err)
 	assert.False(t, exists)
 }
 
 // AssertCount assert the count of a bean
-func AssertCount(t assert.TestingT, bean, expected any) bool {
+func AssertCount(t TestingT, bean, expected any) bool {
 	return assert.EqualValues(t, expected, GetCount(t, bean))
 }
 
@@ -134,22 +140,22 @@ func AssertInt64InRange(t assert.TestingT, low, high, value int64) {
 }
 
 // GetCountByCond get the count of database entries matching bean
-func GetCountByCond(t assert.TestingT, tableName string, cond builder.Cond) int64 {
-	e := db.GetEngine(db.DefaultContext)
+func GetCountByCond(t TestingT, tableName string, cond builder.Cond) int64 {
+	e := db.GetEngine(t.Context())
 	count, err := e.Table(tableName).Where(cond).Count()
 	assert.NoError(t, err)
 	return count
 }
 
 // AssertCountByCond test the count of database entries matching bean
-func AssertCountByCond(t assert.TestingT, tableName string, cond builder.Cond, expected int) bool {
+func AssertCountByCond(t TestingT, tableName string, cond builder.Cond, expected int) bool {
 	return assert.EqualValues(t, expected, GetCountByCond(t, tableName, cond),
 		"Failed consistency test, the counted bean (of table %s) was %+v", tableName, cond)
 }
 
 // DumpQueryResult dumps the result of a query for debugging purpose
 func DumpQueryResult(t require.TestingT, sqlOrBean any, sqlArgs ...any) {
-	x := db.GetEngine(db.DefaultContext).(*xorm.Engine)
+	x := GetXORMEngine()
 	goDB := x.DB().DB
 	sql, ok := sqlOrBean.(string)
 	if !ok {

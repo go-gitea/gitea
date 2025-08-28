@@ -65,7 +65,7 @@ func setup(ctx context.Context, debug bool) {
 		_ = fail(ctx, "Unable to access repository path", "Unable to access repository path %q, err: %v", setting.RepoRootPath, err)
 		return
 	}
-	if err := git.InitSimple(context.Background()); err != nil {
+	if err := git.InitSimple(); err != nil {
 		_ = fail(ctx, "Failed to init git", "Failed to init git, err: %v", err)
 	}
 }

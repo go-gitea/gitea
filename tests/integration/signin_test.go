@@ -50,7 +50,7 @@ func TestSignin(t *testing.T) {
 	user.Name = "testuser"
 	user.LowerName = strings.ToLower(user.Name)
 	user.ID = 0
-	require.NoError(t, db.Insert(db.DefaultContext, user))
+	require.NoError(t, db.Insert(t.Context(), user))
 
 	samples := []struct {
 		username string

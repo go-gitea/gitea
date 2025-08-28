@@ -66,8 +66,8 @@ ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ib
 
 	for i, kase := range testCases {
 		s.ID = int64(i) + 20
-		asymkey_model.AddPublicKeysBySource(db.DefaultContext, user, s, []string{kase.keyString})
-		keys, err := db.Find[asymkey_model.PublicKey](db.DefaultContext, asymkey_model.FindPublicKeyOptions{
+		asymkey_model.AddPublicKeysBySource(t.Context(), user, s, []string{kase.keyString})
+		keys, err := db.Find[asymkey_model.PublicKey](t.Context(), asymkey_model.FindPublicKeyOptions{
 			OwnerID:       user.ID,
 			LoginSourceID: s.ID,
 		})
@@ -81,7 +81,7 @@ ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ib
 			assert.Contains(t, kase.keyContents, key.Content)
 		}
 		for _, key := range keys {
-			DeletePublicKey(db.DefaultContext, user, key.ID)
+			DeletePublicKey(t.Context(), user, key.ID)
 		}
 	}
 }

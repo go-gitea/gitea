@@ -17,26 +17,23 @@ import (
 	"xorm.io/xorm"
 )
 
-// DefaultContext is the default context to run xorm queries in
-// will be overwritten by Init with HammerContext
-var DefaultContext context.Context
-
 type engineContextKeyType struct{}
 
 var engineContextKey = engineContextKeyType{}
 
-// Context represents a db context
-type Context struct {
+type xormContextType struct {
 	context.Context
 	engine Engine
 }
 
-func newContext(ctx context.Context, e Engine) *Context {
-	return &Context{Context: ctx, engine: e}
+var xormContext *xormContextType
+
+func newContext(ctx context.Context, e Engine) *xormContextType {
+	return &xormContextType{Context: ctx, engine: e}
 }
 
 // Value shadows Value for context.Context but allows us to get ourselves and an Engined object
-func (ctx *Context) Value(key any) any {
+func (ctx *xormContextType) Value(key any) any {
 	if key == engineContextKey {
 		return ctx
 	}
@@ -44,7 +41,7 @@ func (ctx *Context) Value(key any) any {
 }
 
 // WithContext returns this engine tied to this context
-func (ctx *Context) WithContext(other context.Context) *Context {
+func (ctx *xormContextType) WithContext(other context.Context) *xormContextType {
 	return newContext(ctx, ctx.engine.Context(other))
 }
 
@@ -90,20 +87,24 @@ func contextSafetyCheck(e Engine) {
 }
 
 // GetEngine gets an existing db Engine/Statement or creates a new Session
-func GetEngine(ctx context.Context) Engine {
+func GetEngine(ctx context.Context) (e Engine) {
+	defer func() { contextSafetyCheck(e) }()
 	if e := getExistingEngine(ctx); e != nil {
 		return e
 	}
 	return xormEngine.Context(ctx)
 }
 
+func GetXORMEngineForTesting() *xorm.Engine {
+	return xormEngine
+}
+
 // getExistingEngine gets an existing db Engine/Statement from this context or returns nil
 func getExistingEngine(ctx context.Context) (e Engine) {
-	defer func() { contextSafetyCheck(e) }()
-	if engined, ok := ctx.(*Context); ok {
+	if engined, ok := ctx.(*xormContextType); ok {
 		return engined.engine
 	}
-	if engined, ok := ctx.Value(engineContextKey).(*Context); ok {
+	if engined, ok := ctx.Value(engineContextKey).(*xormContextType); ok {
 		return engined.engine
 	}
 	return nil
@@ -150,7 +151,7 @@ func (c *halfCommitter) Close() error {
 //	     So calling `Commit()` will do nothing, but calling `Close()` without calling `Commit()` will rollback the transaction.
 //	     And all operations submitted by the caller stack will be rollbacked as well, not only the operations in the current function.
 //	  d. It doesn't mean rollback is forbidden, but always do it only when there is an error, and you do want to rollback.
-func TxContext(parentCtx context.Context) (*Context, Committer, error) {
+func TxContext(parentCtx context.Context) (context.Context, Committer, error) {
 	if sess, ok := inTransaction(parentCtx); ok {
 		return newContext(parentCtx, sess), &halfCommitter{committer: sess}, nil
 	}
@@ -161,7 +162,7 @@ func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 		return nil, nil, err
 	}
 
-	return newContext(DefaultContext, sess), sess, nil
+	return newContext(xormContext, sess), sess, nil
 }
 
 // WithTx represents executing database operations on a transaction, if the transaction exist,

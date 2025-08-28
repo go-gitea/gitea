@@ -42,7 +42,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	assert.NoError(t, err)
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	StartPullRequestCheckImmediately(db.DefaultContext, pr)
+	StartPullRequestCheckImmediately(t.Context(), pr)
 
 	assert.Eventually(t, func() bool {
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})

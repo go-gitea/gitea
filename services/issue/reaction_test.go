@@ -6,7 +6,6 @@ package issue
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -20,9 +19,9 @@ func addReaction(t *testing.T, doer *user_model.User, issue *issues_model.Issue,
 	var reaction *issues_model.Reaction
 	var err error
 	if comment == nil {
-		reaction, err = CreateIssueReaction(db.DefaultContext, doer, issue, content)
+		reaction, err = CreateIssueReaction(t.Context(), doer, issue, content)
 	} else {
-		reaction, err = CreateCommentReaction(db.DefaultContext, doer, comment, content)
+		reaction, err = CreateCommentReaction(t.Context(), doer, comment, content)
 	}
 	assert.NoError(t, err)
 	assert.NotNil(t, reaction)
@@ -47,7 +46,7 @@ func TestIssueAddDuplicateReaction(t *testing.T) {
 
 	addReaction(t, user1, issue, nil, "heart")
 
-	reaction, err := CreateIssueReaction(db.DefaultContext, user1, issue, "heart")
+	reaction, err := CreateIssueReaction(t.Context(), user1, issue, "heart")
 	assert.Error(t, err)
 	assert.Equal(t, issues_model.ErrReactionAlreadyExist{Reaction: "heart"}, err)
 
@@ -63,7 +62,7 @@ func TestIssueDeleteReaction(t *testing.T) {
 
 	addReaction(t, user1, issue, nil, "heart")
 
-	err := issues_model.DeleteIssueReaction(db.DefaultContext, user1.ID, issue.ID, "heart")
+	err := issues_model.DeleteIssueReaction(t.Context(), user1.ID, issue.ID, "heart")
 	assert.NoError(t, err)
 
 	unittest.AssertNotExistsBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue.ID})
@@ -91,12 +90,12 @@ func TestIssueReactionCount(t *testing.T) {
 	addReaction(t, user4, issue, nil, "heart")
 	addReaction(t, ghost, issue, nil, "-1")
 
-	reactionsList, _, err := issues_model.FindReactions(db.DefaultContext, issues_model.FindReactionsOptions{
+	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{
 		IssueID: issue.ID,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, reactionsList, 7)
-	_, err = reactionsList.LoadUsers(db.DefaultContext, repo)
+	_, err = reactionsList.LoadUsers(t.Context(), repo)
 	assert.NoError(t, err)
 
 	reactions := reactionsList.GroupByType()
@@ -137,7 +136,7 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 	addReaction(t, org3, nil, comment, "heart")
 	addReaction(t, user4, nil, comment, "+1")
 
-	reactionsList, _, err := issues_model.FindReactions(db.DefaultContext, issues_model.FindReactionsOptions{
+	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{
 		IssueID:   comment.IssueID,
 		CommentID: comment.ID,
 	})
@@ -156,7 +155,7 @@ func TestIssueCommentReactionCount(t *testing.T) {
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 1})
 
 	addReaction(t, user1, nil, comment, "heart")
-	assert.NoError(t, issues_model.DeleteCommentReaction(db.DefaultContext, user1.ID, comment.IssueID, comment.ID, "heart"))
+	assert.NoError(t, issues_model.DeleteCommentReaction(t.Context(), user1.ID, comment.IssueID, comment.ID, "heart"))
 
 	unittest.AssertNotExistsBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: comment.IssueID, CommentID: comment.ID})
 }

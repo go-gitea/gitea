@@ -4,6 +4,7 @@
 package v1_12
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"path/filepath"
@@ -17,7 +18,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func FixMergeBase(x *xorm.Engine) error {
+func FixMergeBase(ctx context.Context, x *xorm.Engine) error {
 	type Repository struct {
 		ID        int64 `xorm:"pk autoincr"`
 		OwnerID   int64 `xorm:"UNIQUE(s) index"`
@@ -82,17 +83,17 @@ func FixMergeBase(x *xorm.Engine) error {
 
 			if !pr.HasMerged {
 				var err error
-				pr.MergeBase, _, err = git.NewCommand("merge-base").AddDashesAndList(pr.BaseBranch, gitRefName).RunStdString(git.DefaultContext, &git.RunOpts{Dir: repoPath})
+				pr.MergeBase, _, err = git.NewCommand("merge-base").AddDashesAndList(pr.BaseBranch, gitRefName).RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 				if err != nil {
 					var err2 error
-					pr.MergeBase, _, err2 = git.NewCommand("rev-parse").AddDynamicArguments(git.BranchPrefix+pr.BaseBranch).RunStdString(git.DefaultContext, &git.RunOpts{Dir: repoPath})
+					pr.MergeBase, _, err2 = git.NewCommand("rev-parse").AddDynamicArguments(git.BranchPrefix+pr.BaseBranch).RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 					if err2 != nil {
 						log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err, err2)
 						continue
 					}
 				}
 			} else {
-				parentsString, _, err := git.NewCommand("rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID).RunStdString(git.DefaultContext, &git.RunOpts{Dir: repoPath})
+				parentsString, _, err := git.NewCommand("rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID).RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 				if err != nil {
 					log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 					continue
@@ -106,7 +107,7 @@ func FixMergeBase(x *xorm.Engine) error {
 				refs = append(refs, gitRefName)
 				cmd := git.NewCommand("merge-base").AddDashesAndList(refs...)
 
-				pr.MergeBase, _, err = cmd.RunStdString(git.DefaultContext, &git.RunOpts{Dir: repoPath})
+				pr.MergeBase, _, err = cmd.RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 				if err != nil {
 					log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 					continue

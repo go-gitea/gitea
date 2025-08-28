@@ -141,7 +141,7 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 		}
 	}()
 
-	cmd := NewCommandNoGlobals("blame", "--porcelain")
+	cmd := NewCommand("blame", "--porcelain")
 
 	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
 		ignoreRevsFileName, ignoreRevsFileCleanup, err = tryCreateBlameIgnoreRevsFile(commit)

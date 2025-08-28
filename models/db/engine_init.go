@@ -52,7 +52,7 @@ func newXORMEngine() (*xorm.Engine, error) {
 	return engine, nil
 }
 
-// InitEngine initializes the xorm.Engine and sets it as db.DefaultContext
+// InitEngine initializes the xorm.Engine and sets it as XORM's default context
 func InitEngine(ctx context.Context) error {
 	xe, err := newXORMEngine()
 	if err != nil {
@@ -70,7 +70,6 @@ func InitEngine(ctx context.Context) error {
 	xe.SetMaxOpenConns(setting.Database.MaxOpenConns)
 	xe.SetMaxIdleConns(setting.Database.MaxIdleConns)
 	xe.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
-	xe.SetDefaultContext(ctx)
 
 	if setting.Database.SlowQueryThreshold > 0 {
 		xe.AddHook(&EngineHook{
@@ -86,22 +85,23 @@ func InitEngine(ctx context.Context) error {
 // SetDefaultEngine sets the default engine for db
 func SetDefaultEngine(ctx context.Context, eng *xorm.Engine) {
 	xormEngine = eng
-	DefaultContext = &Context{Context: ctx, engine: xormEngine}
+	xormEngine.SetDefaultContext(ctx)
+	xormContext = &xormContextType{Context: ctx, engine: xormEngine}
 }
 
 // UnsetDefaultEngine closes and unsets the default engine
 // We hope the SetDefaultEngine and UnsetDefaultEngine can be paired, but it's impossible now,
-// there are many calls to InitEngine -> SetDefaultEngine directly to overwrite the `xormEngine` and DefaultContext without close
+// there are many calls to InitEngine -> SetDefaultEngine directly to overwrite the `xormEngine` and `xormContext` without close
 // Global database engine related functions are all racy and there is no graceful close right now.
 func UnsetDefaultEngine() {
 	if xormEngine != nil {
 		_ = xormEngine.Close()
 		xormEngine = nil
 	}
-	DefaultContext = nil
+	xormContext = nil
 }
 
-// InitEngineWithMigration initializes a new xorm.Engine and sets it as the db.DefaultContext
+// InitEngineWithMigration initializes a new xorm.Engine and sets it as the XORM's default context
 // This function must never call .Sync() if the provided migration function fails.
 // When called from the "doctor" command, the migration function is a version check
 // that prevents the doctor from fixing anything in the database if the migration level

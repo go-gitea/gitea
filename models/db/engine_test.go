@@ -27,7 +27,7 @@ func TestDumpDatabase(t *testing.T) {
 		ID      int64 `xorm:"pk autoincr"`
 		Version int64
 	}
-	assert.NoError(t, db.GetEngine(db.DefaultContext).Sync(new(Version)))
+	assert.NoError(t, db.GetEngine(t.Context()).Sync(new(Version)))
 
 	for _, dbType := range setting.SupportedDatabaseTypes {
 		assert.NoError(t, db.DumpDatabase(filepath.Join(dir, dbType+".sql"), dbType))
@@ -37,20 +37,20 @@ func TestDumpDatabase(t *testing.T) {
 func TestDeleteOrphanedObjects(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	countBefore, err := db.GetEngine(db.DefaultContext).Count(&issues_model.PullRequest{})
+	countBefore, err := db.GetEngine(t.Context()).Count(&issues_model.PullRequest{})
 	assert.NoError(t, err)
 
-	_, err = db.GetEngine(db.DefaultContext).Insert(&issues_model.PullRequest{IssueID: 1000}, &issues_model.PullRequest{IssueID: 1001}, &issues_model.PullRequest{IssueID: 1003})
+	_, err = db.GetEngine(t.Context()).Insert(&issues_model.PullRequest{IssueID: 1000}, &issues_model.PullRequest{IssueID: 1001}, &issues_model.PullRequest{IssueID: 1003})
 	assert.NoError(t, err)
 
-	orphaned, err := db.CountOrphanedObjects(db.DefaultContext, "pull_request", "issue", "pull_request.issue_id=issue.id")
+	orphaned, err := db.CountOrphanedObjects(t.Context(), "pull_request", "issue", "pull_request.issue_id=issue.id")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, orphaned)
 
-	err = db.DeleteOrphanedObjects(db.DefaultContext, "pull_request", "issue", "pull_request.issue_id=issue.id")
+	err = db.DeleteOrphanedObjects(t.Context(), "pull_request", "issue", "pull_request.issue_id=issue.id")
 	assert.NoError(t, err)
 
-	countAfter, err := db.GetEngine(db.DefaultContext).Count(&issues_model.PullRequest{})
+	countAfter, err := db.GetEngine(t.Context()).Count(&issues_model.PullRequest{})
 	assert.NoError(t, err)
 	assert.Equal(t, countBefore, countAfter)
 }

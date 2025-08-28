@@ -4,13 +4,13 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
@@ -22,6 +22,7 @@ import (
 
 // getRepoEditOptionFromRepo gets the options for an existing repo exactly as is
 func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption {
+	ctx := context.TODO()
 	name := repo.Name
 	description := repo.Description
 	website := repo.Website
@@ -29,7 +30,7 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 	hasIssues := false
 	var internalTracker *api.InternalTracker
 	var externalTracker *api.ExternalTracker
-	if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypeIssues); err == nil {
+	if unit, err := repo.GetUnit(ctx, unit_model.TypeIssues); err == nil {
 		config := unit.IssuesConfig()
 		hasIssues = true
 		internalTracker = &api.InternalTracker{
@@ -37,7 +38,7 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
 			EnableIssueDependencies:          config.EnableDependencies,
 		}
-	} else if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypeExternalTracker); err == nil {
+	} else if unit, err := repo.GetUnit(ctx, unit_model.TypeExternalTracker); err == nil {
 		config := unit.ExternalTrackerConfig()
 		hasIssues = true
 		externalTracker = &api.ExternalTracker{
@@ -49,9 +50,9 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 	}
 	hasWiki := false
 	var externalWiki *api.ExternalWiki
-	if _, err := repo.GetUnit(db.DefaultContext, unit_model.TypeWiki); err == nil {
+	if _, err := repo.GetUnit(ctx, unit_model.TypeWiki); err == nil {
 		hasWiki = true
-	} else if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypeExternalWiki); err == nil {
+	} else if unit, err := repo.GetUnit(ctx, unit_model.TypeExternalWiki); err == nil {
 		hasWiki = true
 		externalWiki = &api.ExternalWiki{
 			ExternalWikiURL: unit.ExternalWikiConfig().ExternalWikiURL,
@@ -65,7 +66,7 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 	allowRebaseMerge := false
 	allowSquash := false
 	allowFastForwardOnly := false
-	if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypePullRequests); err == nil {
+	if unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
 		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
@@ -78,16 +79,16 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 	archived := repo.IsArchived
 	hasProjects := false
 	var projectsMode *string
-	if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypeProjects); err == nil && unit != nil {
+	if unit, err := repo.GetUnit(ctx, unit_model.TypeProjects); err == nil && unit != nil {
 		hasProjects = true
 		pm := string(unit.ProjectsConfig().ProjectsMode)
 		projectsMode = &pm
 	}
-	hasCode := repo.UnitEnabled(db.DefaultContext, unit_model.TypeCode)
-	hasPackages := repo.UnitEnabled(db.DefaultContext, unit_model.TypePackages)
-	hasReleases := repo.UnitEnabled(db.DefaultContext, unit_model.TypeReleases)
+	hasCode := repo.UnitEnabled(ctx, unit_model.TypeCode)
+	hasPackages := repo.UnitEnabled(ctx, unit_model.TypePackages)
+	hasReleases := repo.UnitEnabled(ctx, unit_model.TypeReleases)
 	hasActions := false
-	if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypeActions); err == nil && unit != nil {
+	if unit, err := repo.GetUnit(ctx, unit_model.TypeActions); err == nil && unit != nil {
 		hasActions = true
 		// TODO: expose action config of repo to api
 		// actionsConfig = &api.RepoActionsConfig{

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
 	"code.gitea.io/gitea/models/unittest"
@@ -321,11 +320,11 @@ func TestPackageConan(t *testing.T) {
 			t.Run("Validate", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeConan)
+				pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeConan)
 				assert.NoError(t, err)
 				assert.Len(t, pvs, 1)
 
-				pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+				pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 				assert.NoError(t, err)
 				assert.Nil(t, pd.SemVer)
 				assert.Equal(t, name, pd.Package.Name)
@@ -339,12 +338,12 @@ func TestPackageConan(t *testing.T) {
 				assert.Equal(t, conanDescription, metadata.Description)
 				assert.Equal(t, []string{conanTopic}, metadata.Keywords)
 
-				pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+				pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 				assert.NoError(t, err)
 				assert.Len(t, pfs, 2)
 
 				for _, pf := range pfs {
-					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
 
 					if pf.Name == conanfileName {
@@ -494,7 +493,7 @@ func TestPackageConan(t *testing.T) {
 
 				for i, c := range cases {
 					rref, _ := conan_module.NewRecipeReference(name, version1, user1, c.Channel, conan_module.DefaultRevision)
-					references, err := conan_model.GetPackageReferences(db.DefaultContext, user.ID, rref)
+					references, err := conan_model.GetPackageReferences(t.Context(), user.ID, rref)
 					assert.NoError(t, err)
 					assert.NotEmpty(t, references)
 
@@ -508,7 +507,7 @@ func TestPackageConan(t *testing.T) {
 					}).AddTokenAuth(token)
 					MakeRequest(t, req, http.StatusOK)
 
-					references, err = conan_model.GetPackageReferences(db.DefaultContext, user.ID, rref)
+					references, err = conan_model.GetPackageReferences(t.Context(), user.ID, rref)
 					assert.NoError(t, err)
 					assert.Empty(t, references, "case %d: should be empty", i)
 				}
@@ -526,7 +525,7 @@ func TestPackageConan(t *testing.T) {
 
 				for i, c := range cases {
 					rref, _ := conan_module.NewRecipeReference(name, version1, user1, c.Channel, conan_module.DefaultRevision)
-					revisions, err := conan_model.GetRecipeRevisions(db.DefaultContext, user.ID, rref)
+					revisions, err := conan_model.GetRecipeRevisions(t.Context(), user.ID, rref)
 					assert.NoError(t, err)
 					assert.NotEmpty(t, revisions)
 
@@ -538,7 +537,7 @@ func TestPackageConan(t *testing.T) {
 						AddTokenAuth(token)
 					MakeRequest(t, req, http.StatusOK)
 
-					revisions, err = conan_model.GetRecipeRevisions(db.DefaultContext, user.ID, rref)
+					revisions, err = conan_model.GetRecipeRevisions(t.Context(), user.ID, rref)
 					assert.NoError(t, err)
 					assert.Empty(t, revisions, "case %d: should be empty", i)
 				}
@@ -653,7 +652,7 @@ func TestPackageConan(t *testing.T) {
 			t.Run("Validate", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeConan)
+				pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeConan)
 				assert.NoError(t, err)
 				assert.Len(t, pvs, 3)
 			})
@@ -794,12 +793,12 @@ func TestPackageConan(t *testing.T) {
 				pref, _ := conan_module.NewPackageReference(rref, conanPackageReference, conan_module.DefaultRevision)
 
 				checkPackageRevisionCount := func(count int) {
-					revisions, err := conan_model.GetPackageRevisions(db.DefaultContext, user.ID, pref)
+					revisions, err := conan_model.GetPackageRevisions(t.Context(), user.ID, pref)
 					assert.NoError(t, err)
 					assert.Len(t, revisions, count)
 				}
 				checkPackageReferenceCount := func(count int) {
-					references, err := conan_model.GetPackageReferences(db.DefaultContext, user.ID, rref)
+					references, err := conan_model.GetPackageReferences(t.Context(), user.ID, rref)
 					assert.NoError(t, err)
 					assert.Len(t, references, count)
 				}
@@ -847,7 +846,7 @@ func TestPackageConan(t *testing.T) {
 				rref, _ := conan_module.NewRecipeReference(name, version1, user1, channel1, conan_module.DefaultRevision)
 
 				checkRecipeRevisionCount := func(count int) {
-					revisions, err := conan_model.GetRecipeRevisions(db.DefaultContext, user.ID, rref)
+					revisions, err := conan_model.GetRecipeRevisions(t.Context(), user.ID, rref)
 					assert.NoError(t, err)
 					assert.Len(t, revisions, count)
 				}

@@ -56,9 +56,9 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 	commentType := issues_model.CommentTypeComment
 	if comment.Comment != nil {
 		commentType = comment.Comment.Type
-		link = comment.Issue.HTMLURL() + "#" + comment.Comment.HashTag()
+		link = comment.Issue.HTMLURL(ctx) + "#" + comment.Comment.HashTag()
 	} else {
-		link = comment.Issue.HTMLURL()
+		link = comment.Issue.HTMLURL(ctx)
 	}
 
 	reviewType := issues_model.ReviewTypeComment
@@ -175,7 +175,7 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 		msg.SetHeader("In-Reply-To", reference)
 
 		references := []string{reference}
-		listUnsubscribe := []string{"<" + comment.Issue.HTMLURL() + ">"}
+		listUnsubscribe := []string{"<" + comment.Issue.HTMLURL(ctx) + ">"}
 
 		if setting.IncomingEmail.Enabled {
 			if replyPayload != nil {
@@ -313,7 +313,7 @@ func generateAdditionalHeadersForIssue(ctx *mailComment, reason string, recipien
 	maps.Copy(headers, generateReasonHeaders(reason))
 
 	headers["X-Gitea-Issue-ID"] = issueID
-	headers["X-Gitea-Issue-Link"] = ctx.Issue.HTMLURL()
+	headers["X-Gitea-Issue-Link"] = ctx.Issue.HTMLURL(context.TODO()) // FIXME: use proper context
 	headers["X-GitLab-Issue-IID"] = issueID
 
 	return headers
