@@ -32,20 +32,20 @@ func TestFind(t *testing.T) {
 	assert.NoError(t, xe.Sync(&repo_model.RepoUnit{}))
 
 	var repoUnitCount int
-	_, err := db.GetEngine(db.DefaultContext).SQL("SELECT COUNT(*) FROM repo_unit").Get(&repoUnitCount)
+	_, err := db.GetEngine(t.Context()).SQL("SELECT COUNT(*) FROM repo_unit").Get(&repoUnitCount)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, repoUnitCount)
 
 	opts := mockListOptions{}
-	repoUnits, err := db.Find[repo_model.RepoUnit](db.DefaultContext, opts)
+	repoUnits, err := db.Find[repo_model.RepoUnit](t.Context(), opts)
 	assert.NoError(t, err)
 	assert.Len(t, repoUnits, repoUnitCount)
 
-	cnt, err := db.Count[repo_model.RepoUnit](db.DefaultContext, opts)
+	cnt, err := db.Count[repo_model.RepoUnit](t.Context(), opts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, repoUnitCount, cnt)
 
-	repoUnits, newCnt, err := db.FindAndCount[repo_model.RepoUnit](db.DefaultContext, opts)
+	repoUnits, newCnt, err := db.FindAndCount[repo_model.RepoUnit](t.Context(), opts)
 	assert.NoError(t, err)
 	assert.Equal(t, cnt, newCnt)
 	assert.Len(t, repoUnits, repoUnitCount)

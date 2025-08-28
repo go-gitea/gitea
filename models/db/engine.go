@@ -59,7 +59,13 @@ type Engine interface {
 	Cols(...string) *xorm.Session
 	Context(ctx context.Context) *xorm.Session
 	Ping() error
+	IsTableExist(tableNameOrBean any) (bool, error)
 }
+
+var (
+	_ Engine = (*xorm.Engine)(nil)
+	_ Engine = (*xorm.Session)(nil)
+)
 
 // TableInfo returns table's information via an object
 func TableInfo(v any) (*schemas.Table, error) {

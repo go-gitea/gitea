@@ -42,17 +42,24 @@ const minDBVersion = 70 // Gitea 1.5.3
 type migration struct {
 	idNumber    int64 // DB version is "the last migration's idNumber" + 1
 	description string
-	migrate     func(*xorm.Engine) error
+	migrate     func(context.Context, *xorm.Engine) error
 }
 
 // newMigration creates a new migration
-func newMigration(idNumber int64, desc string, fn func(*xorm.Engine) error) *migration {
-	return &migration{idNumber, desc, fn}
+func newMigration[T func(*xorm.Engine) error | func(context.Context, *xorm.Engine) error](idNumber int64, desc string, fn T) *migration {
+	m := &migration{idNumber: idNumber, description: desc}
+	var ok bool
+	if m.migrate, ok = any(fn).(func(context.Context, *xorm.Engine) error); !ok {
+		m.migrate = func(ctx context.Context, x *xorm.Engine) error {
+			return any(fn).(func(*xorm.Engine) error)(x)
+		}
+	}
+	return m
 }
 
 // Migrate executes the migration
-func (m *migration) Migrate(x *xorm.Engine) error {
-	return m.migrate(x)
+func (m *migration) Migrate(ctx context.Context, x *xorm.Engine) error {
+	return m.migrate(ctx, x)
 }
 
 // Version describes the version table. Should have only one row with id==1
@@ -456,7 +463,7 @@ func migrationIDNumberToDBVersion(idNumber int64) int64 {
 }
 
 // Migrate database to current version
-func Migrate(x *xorm.Engine) error {
+func Migrate(ctx context.Context, x *xorm.Engine) error {
 	migrations := prepareMigrationTasks()
 	maxDBVer := calcDBVersion(migrations)
 
@@ -500,10 +507,8 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 	}
 
 	// Some migration tasks depend on the git command
-	if git.DefaultContext == nil {
-		if err = git.InitSimple(context.Background()); err != nil {
-			return err
-		}
+	if err = git.InitSimple(); err != nil {
+		return err
 	}
 
 	// Migrate
@@ -511,7 +516,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		log.Info("Migration[%d]: %s", m.idNumber, m.description)
 		// Reset the mapper between each migration - migrations are not supposed to depend on each other
 		x.SetMapper(names.GonicMapper{})
-		if err = m.Migrate(x); err != nil {
+		if err = m.Migrate(ctx, x); err != nil {
 			return fmt.Errorf("migration[%d]: %s failed: %w", m.idNumber, m.description, err)
 		}
 		currentVersion.Version = migrationIDNumberToDBVersion(m.idNumber)
