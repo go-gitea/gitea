@@ -138,7 +138,14 @@ function initDiffHeaderPopup() {
     btn.setAttribute('data-header-popup-initialized', '');
     const popup = btn.nextElementSibling;
     if (!popup?.matches('.tippy-target')) throw new Error('Popup element not found');
-    createTippy(btn, {content: popup, theme: 'menu', placement: 'bottom', trigger: 'click', interactive: true, hideOnClick: true});
+    createTippy(btn, {
+      content: popup,
+      theme: 'menu',
+      placement: 'bottom-end',
+      trigger: 'click',
+      interactive: true,
+      hideOnClick: true,
+    });
   }
 }
 

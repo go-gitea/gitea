@@ -85,17 +85,3 @@ func (repo *Repository) hashObject(reader io.Reader, save bool) (string, error) 
 	}
 	return strings.TrimSpace(stdout.String()), nil
 }
-
-// GetRefType gets the type of the ref based on the string
-func (repo *Repository) GetRefType(ref string) ObjectType {
-	if repo.IsTagExist(ref) {
-		return ObjectTag
-	} else if repo.IsBranchExist(ref) {
-		return ObjectBranch
-	} else if repo.IsCommitExist(ref) {
-		return ObjectCommit
-	} else if _, err := repo.GetBlob(ref); err == nil {
-		return ObjectBlob
-	}
-	return ObjectType("invalid")
-}

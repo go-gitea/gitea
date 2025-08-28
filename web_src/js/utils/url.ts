@@ -14,8 +14,8 @@ export function isUrl(url: string): boolean {
   }
 }
 
-// Convert an absolute or relative URL to an absolute URL with the current origin. It only
-// processes absolute HTTP/HTTPS URLs or relative URLs like '/xxx' or '//host/xxx'.
+/** Convert an absolute or relative URL to an absolute URL with the current origin. It only
+ *  processes absolute HTTP/HTTPS URLs or relative URLs like '/xxx' or '//host/xxx'. */
 export function toOriginUrl(urlStr: string) {
   try {
     if (urlStr.startsWith('http://') || urlStr.startsWith('https://') || urlStr.startsWith('/')) {

@@ -1,5 +1,5 @@
 import {POST} from '../modules/fetch.ts';
-import {addDelegatedEventListener, hideElem, showElem, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, hideElem, isElemVisible, showElem, toggleElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {camelize} from 'vue';
 
@@ -43,13 +43,16 @@ export function initGlobalDeleteButton(): void {
 
       fomanticQuery(modal).modal({
         closable: false,
-        onApprove: async () => {
+        onApprove: () => {
           // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
           if (btn.getAttribute('data-type') === 'form') {
             const formSelector = btn.getAttribute('data-form');
             const form = document.querySelector<HTMLFormElement>(formSelector);
             if (!form) throw new Error(`no form named ${formSelector} found`);
+            modal.classList.add('is-loading'); // the form is not in the modal, so also add loading indicator to the modal
+            form.classList.add('is-loading');
             form.submit();
+            return false; // prevent modal from closing automatically
           }
 
           // prepare an AJAX form by data attributes
@@ -62,12 +65,15 @@ export function initGlobalDeleteButton(): void {
               postData.append('id', value);
             }
           }
-
-          const response = await POST(btn.getAttribute('data-url'), {data: postData});
-          if (response.ok) {
-            const data = await response.json();
-            window.location.href = data.redirect;
-          }
+          (async () => {
+            const response = await POST(btn.getAttribute('data-url'), {data: postData});
+            if (response.ok) {
+              const data = await response.json();
+              window.location.href = data.redirect;
+            }
+          })();
+          modal.classList.add('is-loading'); // the request is in progress, so also add loading indicator to the modal
+          return false; // prevent modal from closing automatically
         },
       }).modal('show');
     });
@@ -79,10 +85,11 @@ function onShowPanelClick(el: HTMLElement, e: MouseEvent) {
   // if it has "toggle" class, it toggles the panel
   e.preventDefault();
   const sel = el.getAttribute('data-panel');
-  if (el.classList.contains('toggle')) {
-    toggleElem(sel);
-  } else {
-    showElem(sel);
+  const elems = el.classList.contains('toggle') ? toggleElem(sel) : showElem(sel);
+  for (const elem of elems) {
+    if (isElemVisible(elem as HTMLElement)) {
+      elem.querySelector<HTMLElement>('[autofocus]')?.focus();
+    }
   }
 }
 
@@ -102,6 +109,29 @@ function onHidePanelClick(el: HTMLElement, e: MouseEvent) {
   throw new Error('no panel to hide'); // should never happen, otherwise there is a bug in code
 }
 
+export type ElementWithAssignableProperties = {
+  getAttribute: (name: string) => string | null;
+  setAttribute: (name: string, value: string) => void;
+} & Record<string, any>
+
+export function assignElementProperty(el: ElementWithAssignableProperties, kebabName: string, val: string) {
+  const camelizedName = camelize(kebabName);
+  const old = el[camelizedName];
+  if (typeof old === 'boolean') {
+    el[camelizedName] = val === 'true';
+  } else if (typeof old === 'number') {
+    el[camelizedName] = parseFloat(val);
+  } else if (typeof old === 'string') {
+    el[camelizedName] = val;
+  } else if (old?.nodeName) {
+    // "form" has an edge case: its "<input name=action>" element overwrites the "action" property, we can only set attribute
+    el.setAttribute(kebabName, val);
+  } else {
+    // in the future, we could introduce a better typing system like `data-modal-form.action:string="..."`
+    throw new Error(`cannot assign element property "${camelizedName}" by value "${val}"`);
+  }
+}
+
 function onShowModalClick(el: HTMLElement, e: MouseEvent) {
   // A ".show-modal" button will show a modal dialog defined by its "data-modal" attribute.
   // Each "data-modal-{target}" attribute will be filled to target element's value or text-content.
@@ -109,7 +139,7 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
   // * Then, try to query '[name=target]'
   // * Then, try to query '.target'
   // * Then, try to query 'target' as HTML tag
-  // If there is a ".{attr}" part like "data-modal-form.action", then the form's "action" attribute will be set.
+  // If there is a ".{prop-name}" part like "data-modal-form.action", the "form" element's "action" property will be set, the "prop-name" will be camel-cased to "propName".
   e.preventDefault();
   const modalSelector = el.getAttribute('data-modal');
   const elModal = document.querySelector(modalSelector);
@@ -122,19 +152,20 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
     }
 
     const attrTargetCombo = attrib.name.substring(modalAttrPrefix.length);
-    const [attrTargetName, attrTargetAttr] = attrTargetCombo.split('.');
-    // try to find target by: "#target" -> "[name=target]" -> ".target" -> "<target> tag"
+    const [attrTargetName, attrTargetProp] = attrTargetCombo.split('.');
+    // try to find target by: "#target" -> "[name=target]" -> ".target" -> "<target> tag", and then try the modal itself
     const attrTarget = elModal.querySelector(`#${attrTargetName}`) ||
       elModal.querySelector(`[name=${attrTargetName}]`) ||
       elModal.querySelector(`.${attrTargetName}`) ||
-      elModal.querySelector(`${attrTargetName}`);
+      elModal.querySelector(`${attrTargetName}`) ||
+      (elModal.matches(`${attrTargetName}`) || elModal.matches(`#${attrTargetName}`) || elModal.matches(`.${attrTargetName}`) ? elModal : null);
     if (!attrTarget) {
       if (!window.config.runModeIsProd) throw new Error(`attr target "${attrTargetCombo}" not found for modal`);
       continue;
     }
 
-    if (attrTargetAttr) {
-      (attrTarget as any)[camelize(attrTargetAttr)] = attrib.value;
+    if (attrTargetProp) {
+      assignElementProperty(attrTarget, attrTargetProp, attrib.value);
     } else if (attrTarget.matches('input, textarea')) {
       (attrTarget as HTMLInputElement | HTMLTextAreaElement).value = attrib.value; // FIXME: add more supports like checkbox
     } else {
@@ -142,13 +173,7 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
     }
   }
 
-  fomanticQuery(elModal).modal('setting', {
-    onApprove: () => {
-      // "form-fetch-action" can handle network errors gracefully,
-      // so keep the modal dialog to make users can re-submit the form if anything wrong happens.
-      if (elModal.querySelector('.form-fetch-action')) return false;
-    },
-  }).modal('show');
+  fomanticQuery(elModal).modal('show');
 }
 
 export function initGlobalButtons(): void {

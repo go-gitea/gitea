@@ -1,10 +1,11 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_11 //nolint
+package v1_11
 
 import (
 	"fmt"
+	"slices"
 
 	"xorm.io/xorm"
 )
@@ -344,10 +345,8 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 			}
 			return AccessModeWrite <= perm.UnitsMode[UnitTypeCode], nil
 		}
-		for _, id := range protectedBranch.ApprovalsWhitelistUserIDs {
-			if id == reviewer.ID {
-				return true, nil
-			}
+		if slices.Contains(protectedBranch.ApprovalsWhitelistUserIDs, reviewer.ID) {
+			return true, nil
 		}
 
 		// isUserInTeams
