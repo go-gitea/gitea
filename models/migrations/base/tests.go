@@ -4,7 +4,6 @@
 package base
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -124,7 +123,7 @@ func MainTest(m *testing.M) {
 	setting.AppDataPath = tmpDataPath
 
 	unittest.InitSettingsForTesting()
-	if err = git.InitFull(context.Background()); err != nil {
+	if err = git.InitFull(); err != nil {
 		testlogger.Fatalf("Unable to InitFull: %v\n", err)
 	}
 	setting.LoadDBSetting()

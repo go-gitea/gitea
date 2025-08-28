@@ -128,7 +128,7 @@ func runRecreateTable(ctx context.Context, cmd *cli.Command) error {
 	}
 	recreateTables := migrate_base.RecreateTables(beans...)
 
-	return db.InitEngineWithMigration(ctx, func(ctx context.Context, x *xorm.Engine) error {
+	return db.InitEngineWithMigration(context.Background(), func(ctx context.Context, x *xorm.Engine) error {
 		if err := migrations.EnsureUpToDate(ctx, x); err != nil {
 			return err
 		}

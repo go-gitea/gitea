@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
@@ -29,7 +28,7 @@ const (
 )
 
 func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) *git.TreeEntry {
-	wikiRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo.WikiStorageRepo())
+	wikiRepo, err := gitrepo.OpenRepository(t.Context(), repo.WikiStorageRepo())
 	assert.NoError(t, err)
 	defer wikiRepo.Close()
 	commit, err := wikiRepo.GetBranchCommit("master")
@@ -242,11 +241,11 @@ func TestDefaultWikiBranch(t *testing.T) {
 	// repo with no wiki
 	repoWithNoWiki := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	assert.False(t, repoWithNoWiki.HasWiki())
-	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repoWithNoWiki, "main"))
+	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(t.Context(), repoWithNoWiki, "main"))
 
 	// repo with wiki
 	assert.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(
-		db.DefaultContext,
+		t.Context(),
 		&repo_model.Repository{ID: 1, DefaultWikiBranch: "wrong-branch"},
 		"default_wiki_branch",
 	),
@@ -261,17 +260,17 @@ func TestDefaultWikiBranch(t *testing.T) {
 	assert.Equal(t, "master", ctx.Repo.Repository.DefaultWikiBranch)
 
 	// invalid branch name should fail
-	assert.Error(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repo, "the bad name"))
+	assert.Error(t, wiki_service.ChangeDefaultWikiBranch(t.Context(), repo, "the bad name"))
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, "master", repo.DefaultWikiBranch)
 
 	// the same branch name, should succeed (actually a no-op)
-	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repo, "master"))
+	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(t.Context(), repo, "master"))
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, "master", repo.DefaultWikiBranch)
 
 	// change to another name
-	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repo, "main"))
+	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(t.Context(), repo, "main"))
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, "main", repo.DefaultWikiBranch)
 }

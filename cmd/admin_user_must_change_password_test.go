@@ -16,7 +16,7 @@ import (
 
 func TestMustChangePassword(t *testing.T) {
 	defer func() {
-		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.User{}))
+		require.NoError(t, db.TruncateBeans(t.Context(), &user_model.User{}))
 	}()
 	err := microcmdUserCreate().Run(t.Context(), []string{"create", "--username", "testuser", "--email", "testuser@gitea.local", "--random-password"})
 	require.NoError(t, err)
