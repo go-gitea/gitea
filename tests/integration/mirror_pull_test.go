@@ -69,7 +69,7 @@ func TestMirrorPull(t *testing.T) {
 		IncludeTags:   true,
 		RepoID:        mirrorRepo.ID,
 	}
-	initCount, err := db.Count[repo_model.Release](db.DefaultContext, findOptions)
+	initCount, err := db.Count[repo_model.Release](t.Context(), findOptions)
 	assert.NoError(t, err)
 	assert.Zero(t, initCount) // no sync yet, so even though there is a tag in source repo, the mirror's release table is still empty
 
@@ -96,18 +96,18 @@ func TestMirrorPull(t *testing.T) {
 	// actually there is a tag in the source repo, so after "sync", that tag will also come into the mirror
 	initCount++
 
-	count, err := db.Count[repo_model.Release](db.DefaultContext, findOptions)
+	count, err := db.Count[repo_model.Release](t.Context(), findOptions)
 	assert.NoError(t, err)
 	assert.Equal(t, initCount+1, count)
 
-	release, err := repo_model.GetRelease(db.DefaultContext, repo.ID, "v0.2")
+	release, err := repo_model.GetRelease(t.Context(), repo.ID, "v0.2")
 	assert.NoError(t, err)
 	assert.NoError(t, release_service.DeleteReleaseByID(ctx, repo, release, user, true))
 
 	ok = mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
 	assert.True(t, ok)
 
-	count, err = db.Count[repo_model.Release](db.DefaultContext, findOptions)
+	count, err = db.Count[repo_model.Release](t.Context(), findOptions)
 	assert.NoError(t, err)
 	assert.Equal(t, initCount, count)
 }
