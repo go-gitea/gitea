@@ -1,6 +1,6 @@
 module code.gitea.io/gitea
 
-go 1.24.5
+go 1.24.6
 
 // rfc5280 said: "The serial number is an integer assigned by the CA to each certificate."
 // But some CAs use negative serial number, just relax the check. related:
@@ -27,7 +27,7 @@ require (
 	github.com/ProtonMail/go-crypto v1.2.0
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.7.3
-	github.com/alecthomas/chroma/v2 v2.17.0
+	github.com/alecthomas/chroma/v2 v2.20.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.67
 	github.com/aws/aws-sdk-go-v2/service/codecommit v1.28.2
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb

@@ -1,6 +1,10 @@
 {
   "name": "Gitea DevContainer",
   "image": "mcr.microsoft.com/devcontainers/go:1.24-bookworm",
+  "containerEnv": {
+    // override "local" from packaged version
+    "GOTOOLCHAIN": "auto"
+  },
   "features": {
     // installs nodejs into container
     "ghcr.io/devcontainers/features/node:1": {
