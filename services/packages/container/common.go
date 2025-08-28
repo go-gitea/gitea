@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // UpdateRepositoryNames updates the repository name property for all packages of the specific owner

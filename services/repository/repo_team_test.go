@@ -6,7 +6,6 @@ package repository
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -20,7 +19,7 @@ func TestTeam_AddRepository(t *testing.T) {
 	testSuccess := func(teamID, repoID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
-		assert.NoError(t, TeamAddRepository(db.DefaultContext, team, repo))
+		assert.NoError(t, TeamAddRepository(t.Context(), team, repo))
 		unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: teamID, RepoID: repoID})
 		unittest.CheckConsistencyFor(t, &organization.Team{ID: teamID}, &repo_model.Repository{ID: repoID})
 	}
@@ -29,6 +28,6 @@ func TestTeam_AddRepository(t *testing.T) {
 
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	assert.Error(t, TeamAddRepository(db.DefaultContext, team, repo))
+	assert.Error(t, TeamAddRepository(t.Context(), team, repo))
 	unittest.CheckConsistencyFor(t, &organization.Team{ID: 1}, &repo_model.Repository{ID: 1})
 }
