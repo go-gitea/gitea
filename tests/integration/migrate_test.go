@@ -9,10 +9,10 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -95,7 +95,7 @@ func TestMigrateGiteaForm(t *testing.T) {
 			"issues":      "on",
 			"repo_name":   migratedRepoName,
 			"description": "",
-			"uid":         fmt.Sprintf("%d", repoOwner.ID),
+			"uid":         strconv.FormatInt(repoOwner.ID, 10),
 		})
 		resp = session.MakeRequest(t, req, http.StatusSeeOther)
 		// Step 5: a redirection displays the migrated repository
@@ -109,6 +109,6 @@ func TestMigrateGiteaForm(t *testing.T) {
 func Test_UpdateCommentsMigrationsByType(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	err := issues_model.UpdateCommentsMigrationsByType(db.DefaultContext, structs.GithubService, "1", 1)
+	err := issues_model.UpdateCommentsMigrationsByType(t.Context(), structs.GithubService, "1", 1)
 	assert.NoError(t, err)
 }

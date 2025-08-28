@@ -30,7 +30,7 @@ func TestRouteMock(t *testing.T) {
 
 	// normal request
 	recorder := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "http://localhost:8000/foo", nil)
+	req, err := http.NewRequest(http.MethodGet, "http://localhost:8000/foo", nil)
 	assert.NoError(t, err)
 	r.ServeHTTP(recorder, req)
 	assert.Len(t, recorder.Header(), 3)
@@ -45,7 +45,7 @@ func TestRouteMock(t *testing.T) {
 		resp.WriteHeader(http.StatusOK)
 	})
 	recorder = httptest.NewRecorder()
-	req, err = http.NewRequest("GET", "http://localhost:8000/foo", nil)
+	req, err = http.NewRequest(http.MethodGet, "http://localhost:8000/foo", nil)
 	assert.NoError(t, err)
 	r.ServeHTTP(recorder, req)
 	assert.Len(t, recorder.Header(), 2)
@@ -59,7 +59,7 @@ func TestRouteMock(t *testing.T) {
 		resp.WriteHeader(http.StatusOK)
 	})
 	recorder = httptest.NewRecorder()
-	req, err = http.NewRequest("GET", "http://localhost:8000/foo", nil)
+	req, err = http.NewRequest(http.MethodGet, "http://localhost:8000/foo", nil)
 	assert.NoError(t, err)
 	r.ServeHTTP(recorder, req)
 	assert.Len(t, recorder.Header(), 3)

@@ -5,7 +5,7 @@ package migrations
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net/url"
 	"strconv"
 	"strings"
@@ -42,13 +42,13 @@ func (c *CodeCommitDownloaderFactory) New(ctx context.Context, opts base.Migrate
 
 	hostElems := strings.Split(u.Host, ".")
 	if len(hostElems) != 4 {
-		return nil, fmt.Errorf("cannot get the region from clone URL")
+		return nil, errors.New("cannot get the region from clone URL")
 	}
 	region := hostElems[1]
 
 	pathElems := strings.Split(u.Path, "/")
 	if len(pathElems) == 0 {
-		return nil, fmt.Errorf("cannot get the repo name from clone URL")
+		return nil, errors.New("cannot get the repo name from clone URL")
 	}
 	repoName := pathElems[len(pathElems)-1]
 
@@ -155,10 +155,7 @@ func (c *CodeCommitDownloader) GetPullRequests(ctx context.Context, page, perPag
 	}
 
 	startIndex := (page - 1) * perPage
-	endIndex := page * perPage
-	if endIndex > len(allPullRequestIDs) {
-		endIndex = len(allPullRequestIDs)
-	}
+	endIndex := min(page*perPage, len(allPullRequestIDs))
 	batch := allPullRequestIDs[startIndex:endIndex]
 
 	prs := make([]*base.PullRequest, 0, len(batch))
@@ -180,11 +177,15 @@ func (c *CodeCommitDownloader) GetPullRequests(ctx context.Context, page, perPag
 			continue
 		}
 		target := orig.PullRequestTargets[0]
+		description := ""
+		if orig.Description != nil {
+			description = *orig.Description
+		}
 		pr := &base.PullRequest{
 			Number:     number,
 			Title:      *orig.Title,
 			PosterName: c.getUsernameFromARN(*orig.AuthorArn),
-			Content:    *orig.Description,
+			Content:    description,
 			State:      "open",
 			Created:    *orig.CreationDate,
 			Updated:    *orig.LastActivityDate,
@@ -205,6 +206,10 @@ func (c *CodeCommitDownloader) GetPullRequests(ctx context.Context, page, perPag
 		if orig.PullRequestStatus == types.PullRequestStatusEnumClosed {
 			pr.State = "closed"
 			pr.Closed = orig.LastActivityDate
+		}
+		if pr.Merged {
+			pr.MergeCommitSHA = *target.MergeMetadata.MergeCommitId
+			pr.MergedTime = orig.LastActivityDate
 		}
 
 		_ = CheckAndEnsureSafePR(pr, c.baseURL, c)

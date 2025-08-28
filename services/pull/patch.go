@@ -41,7 +41,7 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 	}
 	defer closer.Close()
 
-	compareArg := pr.MergeBase + "..." + pr.GetGitRefName()
+	compareArg := pr.MergeBase + "..." + pr.GetGitHeadRefName()
 	switch {
 	case patch:
 		err = gitRepo.GetPatch(compareArg, w)
@@ -67,9 +67,8 @@ var patchErrorSuffices = []string{
 	": does not exist in index",
 }
 
-// TestPatch will test whether a simple patch will apply
-func TestPatch(pr *issues_model.PullRequest) error {
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("TestPatch: %s", pr))
+func testPullRequestBranchMergeable(pr *issues_model.PullRequest) error {
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("testPullRequestBranchMergeable: %s", pr))
 	defer finished()
 
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
@@ -81,10 +80,10 @@ func TestPatch(pr *issues_model.PullRequest) error {
 	}
 	defer cancel()
 
-	return testPatch(ctx, prCtx, pr)
+	return testPullRequestTmpRepoBranchMergeable(ctx, prCtx, pr)
 }
 
-func testPatch(ctx context.Context, prCtx *prContext, pr *issues_model.PullRequest) error {
+func testPullRequestTmpRepoBranchMergeable(ctx context.Context, prCtx *prTmpRepoContext, pr *issues_model.PullRequest) error {
 	gitRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
@@ -134,7 +133,7 @@ type errMergeConflict struct {
 }
 
 func (e *errMergeConflict) Error() string {
-	return fmt.Sprintf("conflict detected at: %s", e.filename)
+	return "conflict detected at: " + e.filename
 }
 
 func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, filesToRemove *[]string, filesToAdd *[]git.IndexObjectInfo) error {
@@ -355,23 +354,19 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	}
 
 	// 3b. Create a plain patch from head to base
-	tmpPatchFile, err := os.CreateTemp("", "patch")
+	tmpPatchFile, cleanup, err := setting.AppDataTempDir("git-repo-content").CreateTempFileRandom("patch")
 	if err != nil {
 		log.Error("Unable to create temporary patch file! Error: %v", err)
 		return false, fmt.Errorf("unable to create temporary patch file! Error: %w", err)
 	}
-	defer func() {
-		_ = util.Remove(tmpPatchFile.Name())
-	}()
+	defer cleanup()
 
 	if err := gitRepo.GetDiffBinary(pr.MergeBase+"...tracking", tmpPatchFile); err != nil {
-		tmpPatchFile.Close()
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return false, fmt.Errorf("unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	stat, err := tmpPatchFile.Stat()
 	if err != nil {
-		tmpPatchFile.Close()
 		return false, fmt.Errorf("unable to stat patch file: %w", err)
 	}
 	patchPath := tmpPatchFile.Name()
@@ -384,7 +379,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		return false, nil
 	}
 
-	log.Trace("PullRequest[%d].testPatch (patchPath): %s", pr.ID, patchPath)
+	log.Trace("PullRequest[%d].testPullRequestTmpRepoBranchMergeable (patchPath): %s", pr.ID, patchPath)
 
 	// 4. Read the base branch in to the index of the temporary repository
 	_, _, err = git.NewCommand("read-tree", "base").RunStdString(gitRepo.Ctx, &git.RunOpts{Dir: tmpBasePath})
@@ -454,7 +449,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 			scanner := bufio.NewScanner(stderrReader)
 			for scanner.Scan() {
 				line := scanner.Text()
-				log.Trace("PullRequest[%d].testPatch: stderr: %s", pr.ID, line)
+				log.Trace("PullRequest[%d].testPullRequestTmpRepoBranchMergeable: stderr: %s", pr.ID, line)
 				if strings.HasPrefix(line, prefix) {
 					conflict = true
 					filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])

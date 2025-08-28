@@ -104,15 +104,11 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	hasDefaultBranch := gitrepo.IsBranchExist(ctx, repo.WikiStorageRepo(), repo.DefaultWikiBranch)
 
-	basePath, err := repo_module.CreateTemporaryPath("update-wiki")
+	basePath, cleanup, err := repo_module.CreateTemporaryPath("update-wiki")
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err := repo_module.RemoveTemporaryPath(basePath); err != nil {
-			log.Error("Merge: RemoveTemporaryPath: %s", err)
-		}
-	}()
+	defer cleanup()
 
 	cloneOpts := git.CloneRepoOptions{
 		Bare:   true,
@@ -200,7 +196,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
 	if sign {
-		commitTreeOpts.KeyID = signingKey
+		commitTreeOpts.Key = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}
@@ -266,15 +262,11 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("InitWiki: %w", err)
 	}
 
-	basePath, err := repo_module.CreateTemporaryPath("update-wiki")
+	basePath, cleanup, err := repo_module.CreateTemporaryPath("update-wiki")
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err := repo_module.RemoveTemporaryPath(basePath); err != nil {
-			log.Error("Merge: RemoveTemporaryPath: %s", err)
-		}
-	}()
+	defer cleanup()
 
 	if err := git.Clone(ctx, repo.WikiPath(), basePath, git.CloneRepoOptions{
 		Bare:   true,
@@ -326,7 +318,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
 	if sign {
-		commitTreeOpts.KeyID = signingKey
+		commitTreeOpts.Key = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}
@@ -382,7 +374,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		repo.DefaultWikiBranch = newBranch
-		if err := repo_model.UpdateRepositoryCols(ctx, repo, "default_wiki_branch"); err != nil {
+		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "default_wiki_branch"); err != nil {
 			return fmt.Errorf("unable to update database: %w", err)
 		}
 

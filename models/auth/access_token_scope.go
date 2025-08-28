@@ -213,12 +213,7 @@ func GetRequiredScopes(level AccessTokenScopeLevel, scopeCategories ...AccessTok
 
 // ContainsCategory checks if a list of categories contains a specific category
 func ContainsCategory(categories []AccessTokenScopeCategory, category AccessTokenScopeCategory) bool {
-	for _, c := range categories {
-		if c == category {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(categories, category)
 }
 
 // GetScopeLevelFromAccessMode converts permission access mode to scope level
@@ -293,6 +288,10 @@ func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
 	}
 
 	return bitmap.toScope(), nil
+}
+
+func (s AccessTokenScope) HasPermissionScope() bool {
+	return s != "" && s != AccessTokenScopePublicOnly
 }
 
 // PublicOnly checks if this token scope is limited to public resources

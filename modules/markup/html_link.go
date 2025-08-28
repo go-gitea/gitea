@@ -31,8 +31,8 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 		// It makes page handling terrible, but we prefer GitHub syntax
 		// And fall back to MediaWiki only when it is obvious from the look
 		// Of text and link contents
-		sl := strings.Split(content, "|")
-		for _, v := range sl {
+		sl := strings.SplitSeq(content, "|")
+		for v := range sl {
 			if equalPos := strings.IndexByte(v, '='); equalPos == -1 {
 				// There is no equal in this argument; this is a mandatory arg
 				if props["name"] == "" {
@@ -125,7 +125,6 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			}
 		}
 		if image {
-			link = ctx.RenderHelper.ResolveLink(link, LinkTypeMedia)
 			title := props["title"]
 			if title == "" {
 				title = props["alt"]
@@ -151,7 +150,6 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 				childNode.Attr = childNode.Attr[:2]
 			}
 		} else {
-			link = ctx.RenderHelper.ResolveLink(link, LinkTypeDefault)
 			childNode.Type = html.TextNode
 			childNode.Data = name
 		}

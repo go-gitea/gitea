@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -372,8 +373,8 @@ func writeDescription(tw *tar.Writer, opts *entryOptions) error {
 		{"MD5SUM", opts.Blob.HashMD5},
 		{"SHA256SUM", opts.Blob.HashSHA256},
 		{"PGPSIG", opts.Signature},
-		{"CSIZE", fmt.Sprintf("%d", opts.Blob.Size)},
-		{"ISIZE", fmt.Sprintf("%d", opts.FileMetadata.InstalledSize)},
+		{"CSIZE", strconv.FormatInt(opts.Blob.Size, 10)},
+		{"ISIZE", strconv.FormatInt(opts.FileMetadata.InstalledSize, 10)},
 		{"NAME", opts.Package.Name},
 		{"BASE", opts.FileMetadata.Base},
 		{"ARCH", opts.FileMetadata.Architecture},
@@ -382,7 +383,7 @@ func writeDescription(tw *tar.Writer, opts *entryOptions) error {
 		{"URL", opts.VersionMetadata.ProjectURL},
 		{"LICENSE", strings.Join(opts.VersionMetadata.Licenses, "\n")},
 		{"GROUPS", strings.Join(opts.FileMetadata.Groups, "\n")},
-		{"BUILDDATE", fmt.Sprintf("%d", opts.FileMetadata.BuildDate)},
+		{"BUILDDATE", strconv.FormatInt(opts.FileMetadata.BuildDate, 10)},
 		{"PACKAGER", opts.FileMetadata.Packager},
 		{"PROVIDES", strings.Join(opts.FileMetadata.Provides, "\n")},
 		{"REPLACES", strings.Join(opts.FileMetadata.Replaces, "\n")},

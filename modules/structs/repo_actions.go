@@ -57,7 +57,7 @@ type ActionWorkflow struct {
 	HTMLURL   string    `json:"html_url"`
 	BadgeURL  string    `json:"badge_url"`
 	// swagger:strfmt date-time
-	DeletedAt time.Time `json:"deleted_at,omitempty"`
+	DeletedAt time.Time `json:"deleted_at"`
 }
 
 // ActionWorkflowResponse returns a ActionWorkflow
@@ -86,9 +86,39 @@ type ActionArtifact struct {
 
 // ActionWorkflowRun represents a WorkflowRun
 type ActionWorkflowRun struct {
-	ID           int64  `json:"id"`
-	RepositoryID int64  `json:"repository_id"`
-	HeadSha      string `json:"head_sha"`
+	ID             int64       `json:"id"`
+	URL            string      `json:"url"`
+	HTMLURL        string      `json:"html_url"`
+	DisplayTitle   string      `json:"display_title"`
+	Path           string      `json:"path"`
+	Event          string      `json:"event"`
+	RunAttempt     int64       `json:"run_attempt"`
+	RunNumber      int64       `json:"run_number"`
+	RepositoryID   int64       `json:"repository_id,omitempty"`
+	HeadSha        string      `json:"head_sha"`
+	HeadBranch     string      `json:"head_branch,omitempty"`
+	Status         string      `json:"status"`
+	Actor          *User       `json:"actor,omitempty"`
+	TriggerActor   *User       `json:"trigger_actor,omitempty"`
+	Repository     *Repository `json:"repository,omitempty"`
+	HeadRepository *Repository `json:"head_repository,omitempty"`
+	Conclusion     string      `json:"conclusion,omitempty"`
+	// swagger:strfmt date-time
+	StartedAt time.Time `json:"started_at"`
+	// swagger:strfmt date-time
+	CompletedAt time.Time `json:"completed_at"`
+}
+
+// ActionWorkflowRunsResponse returns ActionWorkflowRuns
+type ActionWorkflowRunsResponse struct {
+	Entries    []*ActionWorkflowRun `json:"workflow_runs"`
+	TotalCount int64                `json:"total_count"`
+}
+
+// ActionWorkflowJobsResponse returns ActionWorkflowJobs
+type ActionWorkflowJobsResponse struct {
+	Entries    []*ActionWorkflowJob `json:"jobs"`
+	TotalCount int64                `json:"total_count"`
 }
 
 // ActionArtifactsResponse returns ActionArtifacts
@@ -104,9 +134,9 @@ type ActionWorkflowStep struct {
 	Status     string `json:"status"`
 	Conclusion string `json:"conclusion,omitempty"`
 	// swagger:strfmt date-time
-	StartedAt time.Time `json:"started_at,omitempty"`
+	StartedAt time.Time `json:"started_at"`
 	// swagger:strfmt date-time
-	CompletedAt time.Time `json:"completed_at,omitempty"`
+	CompletedAt time.Time `json:"completed_at"`
 }
 
 // ActionWorkflowJob represents a WorkflowJob
@@ -129,7 +159,30 @@ type ActionWorkflowJob struct {
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	StartedAt time.Time `json:"started_at,omitempty"`
+	StartedAt time.Time `json:"started_at"`
 	// swagger:strfmt date-time
-	CompletedAt time.Time `json:"completed_at,omitempty"`
+	CompletedAt time.Time `json:"completed_at"`
+}
+
+// ActionRunnerLabel represents a Runner Label
+type ActionRunnerLabel struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+// ActionRunner represents a Runner
+type ActionRunner struct {
+	ID        int64                `json:"id"`
+	Name      string               `json:"name"`
+	Status    string               `json:"status"`
+	Busy      bool                 `json:"busy"`
+	Ephemeral bool                 `json:"ephemeral"`
+	Labels    []*ActionRunnerLabel `json:"labels"`
+}
+
+// ActionRunnersResponse returns Runners
+type ActionRunnersResponse struct {
+	Entries    []*ActionRunner `json:"runners"`
+	TotalCount int64           `json:"total_count"`
 }

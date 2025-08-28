@@ -4,9 +4,9 @@
 package devtest
 
 import (
-	"fmt"
 	mathRand "math/rand/v2"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,8 +38,8 @@ func generateMockStepsLog(logCur actions.LogCursor) (stepsLog []*actions.ViewSte
 	for i := 0; i < mockCount; i++ {
 		logStr := mockedLogs[int(cur)%len(mockedLogs)]
 		cur++
-		logStr = strings.ReplaceAll(logStr, "{step}", fmt.Sprintf("%d", logCur.Step))
-		logStr = strings.ReplaceAll(logStr, "{cursor}", fmt.Sprintf("%d", cur))
+		logStr = strings.ReplaceAll(logStr, "{step}", strconv.Itoa(logCur.Step))
+		logStr = strings.ReplaceAll(logStr, "{cursor}", strconv.FormatInt(cur, 10))
 		stepsLog = append(stepsLog, &actions.ViewStepLog{
 			Step:    logCur.Step,
 			Cursor:  cur,
@@ -91,6 +91,16 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:   "artifact-b",
+		Size:   1024 * 1024,
+		Status: "completed",
+	})
+	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
+		Name:   "artifact-very-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+		Size:   100 * 1024,
+		Status: "expired",
+	})
+	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
+		Name:   "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
 		Size:   1024 * 1024,
 		Status: "completed",
 	})

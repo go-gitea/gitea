@@ -25,7 +25,7 @@ func avatarStorageHandler(storageSetting *setting.Storage, prefix string, objSto
 
 	if storageSetting.ServeDirect() {
 		return func(w http.ResponseWriter, req *http.Request) {
-			if req.Method != "GET" && req.Method != "HEAD" {
+			if req.Method != http.MethodGet && req.Method != http.MethodHead {
 				http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 				return
 			}
@@ -39,7 +39,7 @@ func avatarStorageHandler(storageSetting *setting.Storage, prefix string, objSto
 			rPath := strings.TrimPrefix(req.URL.Path, "/"+prefix+"/")
 			rPath = util.PathJoinRelX(rPath)
 
-			u, err := objStore.URL(rPath, path.Base(rPath), nil)
+			u, err := objStore.URL(rPath, path.Base(rPath), req.Method, nil)
 			if err != nil {
 				if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
 					log.Warn("Unable to find %s %s", prefix, rPath)
@@ -56,7 +56,7 @@ func avatarStorageHandler(storageSetting *setting.Storage, prefix string, objSto
 	}
 
 	return func(w http.ResponseWriter, req *http.Request) {
-		if req.Method != "GET" && req.Method != "HEAD" {
+		if req.Method != http.MethodGet && req.Method != http.MethodHead {
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
 		}

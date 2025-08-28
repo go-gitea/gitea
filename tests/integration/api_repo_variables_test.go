@@ -35,11 +35,11 @@ func TestAPIRepoVariables(t *testing.T) {
 			},
 			{
 				Name:           "_",
-				ExpectedStatus: http.StatusNoContent,
+				ExpectedStatus: http.StatusCreated,
 			},
 			{
 				Name:           "TEST_VAR",
-				ExpectedStatus: http.StatusNoContent,
+				ExpectedStatus: http.StatusCreated,
 			},
 			{
 				Name:           "test_var",
@@ -81,7 +81,7 @@ func TestAPIRepoVariables(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", url, api.CreateVariableOption{
 			Value: "initial_val",
 		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNoContent)
+		MakeRequest(t, req, http.StatusCreated)
 
 		cases := []struct {
 			Name           string
@@ -138,7 +138,7 @@ func TestAPIRepoVariables(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", url, api.CreateVariableOption{
 			Value: "initial_val",
 		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNoContent)
+		MakeRequest(t, req, http.StatusCreated)
 
 		req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)

@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -74,11 +75,9 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 		return &git.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
 	}
 
-	hostName, _, err := net.SplitHostPort(u.Host)
-	if err != nil {
-		// u.Host can be "host" or "host:port"
-		err = nil //nolint
-		hostName = u.Host
+	hostName, _, errIgnored := net.SplitHostPort(u.Host)
+	if errIgnored != nil {
+		hostName = u.Host // u.Host can be "host" or "host:port"
 	}
 
 	// some users only use proxy, there is no DNS resolver. it's safe to ignore the LookupIP error
@@ -211,7 +210,7 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 
 		if cloneURL.Scheme == "file" || cloneURL.Scheme == "" {
 			if cloneAddrURL.Scheme != "file" && cloneAddrURL.Scheme != "" {
-				return fmt.Errorf("repo info has changed from external to local filesystem")
+				return errors.New("repo info has changed from external to local filesystem")
 			}
 		}
 

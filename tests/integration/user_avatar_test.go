@@ -5,14 +5,12 @@ package integration
 
 import (
 	"bytes"
-	"fmt"
 	"image/png"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
@@ -75,7 +73,7 @@ func TestUserAvatar(t *testing.T) {
 
 	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of the repo3, is an org
 
-	req = NewRequest(t, "GET", user2.AvatarLinkWithSize(db.DefaultContext, 0))
+	req = NewRequest(t, "GET", user2.AvatarLinkWithSize(t.Context(), 0))
 	_ = session.MakeRequest(t, req, http.StatusOK)
 
 	testGetAvatarRedirect(t, user2)
@@ -84,9 +82,9 @@ func TestUserAvatar(t *testing.T) {
 }
 
 func testGetAvatarRedirect(t *testing.T, user *user_model.User) {
-	t.Run(fmt.Sprintf("getAvatarRedirect_%s", user.Name), func(t *testing.T) {
+	t.Run("getAvatarRedirect_"+user.Name, func(t *testing.T) {
 		req := NewRequestf(t, "GET", "/%s.png", user.Name)
 		resp := MakeRequest(t, req, http.StatusSeeOther)
-		assert.Equal(t, fmt.Sprintf("/avatars/%s", user.Avatar), resp.Header().Get("location"))
+		assert.Equal(t, "/avatars/"+user.Avatar, resp.Header().Get("location"))
 	})
 }

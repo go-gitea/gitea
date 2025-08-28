@@ -101,6 +101,13 @@ var (
 	redColor         = color("ff3232")
 )
 
+// https://discord.com/developers/docs/resources/message#embed-object-embed-limits
+// Discord has some limits in place for the embeds.
+// According to some tests, there is no consistent limit for different character sets.
+// For example: 4096 ASCII letters are allowed, but only 2490 emoji characters are allowed.
+// To keep it simple, we currently truncate at 2000.
+const discordDescriptionCharactersLimit = 2000
+
 type discordConvertor struct {
 	Username  string
 	AvatarURL string
@@ -271,6 +278,12 @@ func (d discordConvertor) Status(p *api.CommitStatusPayload) (DiscordPayload, er
 	return d.createPayload(p.Sender, text, "", p.TargetURL, color), nil
 }
 
+func (d discordConvertor) WorkflowRun(p *api.WorkflowRunPayload) (DiscordPayload, error) {
+	text, color := getWorkflowRunPayloadInfo(p, noneLinkFormatter, false)
+
+	return d.createPayload(p.Sender, text, "", p.WorkflowRun.HTMLURL, color), nil
+}
+
 func (d discordConvertor) WorkflowJob(p *api.WorkflowJobPayload) (DiscordPayload, error) {
 	text, color := getWorkflowJobPayloadInfo(p, noneLinkFormatter, false)
 
@@ -298,7 +311,7 @@ func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, 
 	case webhook_module.HookEventPullRequestReviewApproved:
 		return "approved", nil
 	case webhook_module.HookEventPullRequestReviewRejected:
-		return "rejected", nil
+		return "requested changes", nil
 	case webhook_module.HookEventPullRequestReviewComment:
 		return "comment", nil
 	default:
@@ -313,7 +326,7 @@ func (d discordConvertor) createPayload(s *api.User, title, text, url string, co
 		Embeds: []DiscordEmbed{
 			{
 				Title:       title,
-				Description: text,
+				Description: util.TruncateRunes(text, discordDescriptionCharactersLimit),
 				URL:         url,
 				Color:       color,
 				Author: DiscordEmbedAuthor{

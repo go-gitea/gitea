@@ -9,11 +9,9 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
@@ -76,10 +74,9 @@ func TestPullCompare(t *testing.T) {
 		assert.Positive(t, editButtonCount, "Expected to find a button to edit a file in the PR diff view but there were none")
 
 		repoForked := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// delete the head repository and revisit the PR diff view
-		err := repo_service.DeleteRepositoryDirectly(db.DefaultContext, user2, repoForked.ID)
+		err := repo_service.DeleteRepositoryDirectly(t.Context(), repoForked.ID)
 		assert.NoError(t, err)
 
 		req = NewRequest(t, "GET", prFilesURL)
@@ -110,7 +107,7 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 
 		// user2 (admin of repo3) goes to the PR files page
 		user2Session := loginUser(t, "user2")
-		resp = user2Session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/files", prURL)), http.StatusOK)
+		resp = user2Session.MakeRequest(t, NewRequest(t, "GET", prURL+"/files"), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		nodes := htmlDoc.doc.Find(".diff-file-box[data-new-filename=\"README.md\"] .diff-file-header-actions .tippy-target a")
 		if assert.Equal(t, 1, nodes.Length()) {
@@ -127,14 +124,14 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 		htmlDoc = NewHTMLParser(t, resp.Body)
 		dataURL, exists := htmlDoc.doc.Find("#allow-edits-from-maintainers").Attr("data-url")
 		assert.True(t, exists)
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/set_allow_maintainer_edit", dataURL), map[string]string{
+		req := NewRequestWithValues(t, "POST", dataURL+"/set_allow_maintainer_edit", map[string]string{
 			"_csrf":                 htmlDoc.GetCSRF(),
 			"allow_maintainer_edit": "true",
 		})
 		user4Session.MakeRequest(t, req, http.StatusOK)
 
 		// user2 (admin of repo3) goes to the PR files page again
-		resp = user2Session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/files", prURL)), http.StatusOK)
+		resp = user2Session.MakeRequest(t, NewRequest(t, "GET", prURL+"/files"), http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 		nodes = htmlDoc.doc.Find(".diff-file-box[data-new-filename=\"README.md\"] .diff-file-header-actions .tippy-target a")
 		if assert.Equal(t, 2, nodes.Length()) {
@@ -161,7 +158,8 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 					"commit_summary": "user2 updated the file",
 					"commit_choice":  "direct",
 				})
-				user2Session.MakeRequest(t, req, http.StatusSeeOther)
+				resp = user2Session.MakeRequest(t, req, http.StatusOK)
+				assert.NotEmpty(t, test.RedirectURL(resp))
 			}
 		}
 	})

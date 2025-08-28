@@ -5,6 +5,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"maps"
@@ -59,22 +60,22 @@ type ErrRepoIsArchived struct {
 }
 
 func (err ErrRepoIsArchived) Error() string {
-	return fmt.Sprintf("%s is archived", err.Repo.LogString())
+	return err.Repo.LogString() + " is archived"
 }
 
 type globalVarsStruct struct {
-	validRepoNamePattern   *regexp.Regexp
-	invalidRepoNamePattern *regexp.Regexp
-	reservedRepoNames      []string
-	reservedRepoPatterns   []string
+	validRepoNamePattern     *regexp.Regexp
+	invalidRepoNamePattern   *regexp.Regexp
+	reservedRepoNames        []string
+	reservedRepoNamePatterns []string
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
 	return &globalVarsStruct{
-		validRepoNamePattern:   regexp.MustCompile(`[-.\w]+`),
-		invalidRepoNamePattern: regexp.MustCompile(`[.]{2,}`),
-		reservedRepoNames:      []string{".", "..", "-"},
-		reservedRepoPatterns:   []string{"*.git", "*.wiki", "*.rss", "*.atom"},
+		validRepoNamePattern:     regexp.MustCompile(`^[-.\w]+$`),
+		invalidRepoNamePattern:   regexp.MustCompile(`[.]{2,}`),
+		reservedRepoNames:        []string{".", "..", "-"},
+		reservedRepoNamePatterns: []string{"*.wiki", "*.git", "*.rss", "*.atom"},
 	}
 })
 
@@ -85,7 +86,16 @@ func IsUsableRepoName(name string) error {
 		// Note: usually this error is normally caught up earlier in the UI
 		return db.ErrNameCharsNotAllowed{Name: name}
 	}
-	return db.IsUsableName(vars.reservedRepoNames, vars.reservedRepoPatterns, name)
+	return db.IsUsableName(vars.reservedRepoNames, vars.reservedRepoNamePatterns, name)
+}
+
+// IsValidSSHAccessRepoName is like IsUsableRepoName, but it allows "*.wiki" because wiki repo needs to be accessed in SSH code
+func IsValidSSHAccessRepoName(name string) bool {
+	vars := globalVars()
+	if !vars.validRepoNamePattern.MatchString(name) || vars.invalidRepoNamePattern.MatchString(name) {
+		return false
+	}
+	return db.IsUsableName(vars.reservedRepoNames, vars.reservedRepoNamePatterns[1:], name) == nil
 }
 
 // TrustModelType defines the types of trust model for this repository
@@ -357,10 +367,8 @@ func (repo *Repository) FullName() string {
 
 // HTMLURL returns the repository HTML URL
 func (repo *Repository) HTMLURL(ctxs ...context.Context) string {
-	ctx := context.TODO()
-	if len(ctxs) > 0 {
-		ctx = ctxs[0]
-	}
+	// FIXME: this HTMLURL is still used in mail templates, so the "ctx" is not provided.
+	ctx := util.OptionalArg(ctxs, context.TODO())
 	return httplib.MakeAbsoluteURL(ctx, repo.Link())
 }
 
@@ -515,15 +523,15 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 			"repo": repo.Name,
 		}
 
-		unit, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
+		unitExternalTracker, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
 		if err == nil {
-			metas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
-			switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
+			metas["format"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerFormat
+			switch unitExternalTracker.ExternalTrackerConfig().ExternalTrackerStyle {
 			case markup.IssueNameStyleAlphanumeric:
 				metas["style"] = markup.IssueNameStyleAlphanumeric
 			case markup.IssueNameStyleRegexp:
 				metas["style"] = markup.IssueNameStyleRegexp
-				metas["regexp"] = unit.ExternalTrackerConfig().ExternalTrackerRegexpPattern
+				metas["regexp"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerRegexpPattern
 			default:
 				metas["style"] = markup.IssueNameStyleNumeric
 			}
@@ -547,11 +555,11 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 	return repo.commonRenderingMetas
 }
 
-// ComposeMetas composes a map of metas for properly rendering comments or comment-like contents (commit message)
-func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
+// ComposeCommentMetas composes a map of metas for properly rendering comments or comment-like contents (commit message)
+func (repo *Repository) ComposeCommentMetas(ctx context.Context) map[string]string {
 	metas := maps.Clone(repo.composeCommonMetas(ctx))
-	metas["markdownLineBreakStyle"] = "comment"
-	metas["markupAllowShortIssuePattern"] = "true"
+	metas["markdownNewLineHardBreak"] = strconv.FormatBool(setting.Markdown.RenderOptionsComment.NewLineHardBreak)
+	metas["markupAllowShortIssuePattern"] = strconv.FormatBool(setting.Markdown.RenderOptionsComment.ShortIssuePattern)
 	return metas
 }
 
@@ -559,16 +567,17 @@ func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
 func (repo *Repository) ComposeWikiMetas(ctx context.Context) map[string]string {
 	// does wiki need the "teams" and "org" from common metas?
 	metas := maps.Clone(repo.composeCommonMetas(ctx))
-	metas["markdownLineBreakStyle"] = "document"
-	metas["markupAllowShortIssuePattern"] = "true"
+	metas["markdownNewLineHardBreak"] = strconv.FormatBool(setting.Markdown.RenderOptionsWiki.NewLineHardBreak)
+	metas["markupAllowShortIssuePattern"] = strconv.FormatBool(setting.Markdown.RenderOptionsWiki.ShortIssuePattern)
 	return metas
 }
 
-// ComposeDocumentMetas composes a map of metas for properly rendering documents (repo files)
-func (repo *Repository) ComposeDocumentMetas(ctx context.Context) map[string]string {
+// ComposeRepoFileMetas composes a map of metas for properly rendering documents (repo files)
+func (repo *Repository) ComposeRepoFileMetas(ctx context.Context) map[string]string {
 	// does document(file) need the "teams" and "org" from common metas?
 	metas := maps.Clone(repo.composeCommonMetas(ctx))
-	metas["markdownLineBreakStyle"] = "document"
+	metas["markdownNewLineHardBreak"] = strconv.FormatBool(setting.Markdown.RenderOptionsRepoFile.NewLineHardBreak)
+	metas["markupAllowShortIssuePattern"] = strconv.FormatBool(setting.Markdown.RenderOptionsRepoFile.ShortIssuePattern)
 	return metas
 }
 
@@ -645,8 +654,14 @@ func (repo *Repository) AllowsPulls(ctx context.Context) bool {
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
+// FIXME: most CanEnableEditor calls should be replaced with CanContentChange
+// And all other like CanCreateBranch / CanEnablePulls should also be updated
 func (repo *Repository) CanEnableEditor() bool {
-	return !repo.IsMirror
+	return repo.CanContentChange()
+}
+
+func (repo *Repository) CanContentChange() bool {
+	return !repo.IsMirror && !repo.IsArchived
 }
 
 // DescriptionHTML does special handles to description and return HTML string.
@@ -824,7 +839,7 @@ func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repo
 func GetRepositoryByURL(ctx context.Context, repoURL string) (*Repository, error) {
 	ret, err := giturl.ParseRepositoryURL(ctx, repoURL)
 	if err != nil || ret.OwnerName == "" {
-		return nil, fmt.Errorf("unknown or malformed repository URL")
+		return nil, errors.New("unknown or malformed repository URL")
 	}
 	return GetRepositoryByOwnerAndName(ctx, ret.OwnerName, ret.RepoName)
 }

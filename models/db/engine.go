@@ -59,7 +59,13 @@ type Engine interface {
 	Cols(...string) *xorm.Session
 	Context(ctx context.Context) *xorm.Session
 	Ping() error
+	IsTableExist(tableNameOrBean any) (bool, error)
 }
+
+var (
+	_ Engine = (*xorm.Engine)(nil)
+	_ Engine = (*xorm.Session)(nil)
+)
 
 // TableInfo returns table's information via an object
 func TableInfo(v any) (*schemas.Table, error) {
@@ -127,7 +133,7 @@ func IsTableNotEmpty(beanOrTableName any) (bool, error) {
 
 // DeleteAllRecords will delete all the records of this table
 func DeleteAllRecords(tableName string) error {
-	_, err := xormEngine.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
+	_, err := xormEngine.Exec("DELETE FROM " + tableName)
 	return err
 }
 

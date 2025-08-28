@@ -141,24 +141,16 @@ func GetTeam(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiTeam)
 }
 
-func attachTeamUnits(team *organization.Team, units []string) {
+func attachTeamUnits(team *organization.Team, defaultAccessMode perm.AccessMode, units []string) {
 	unitTypes, _ := unit_model.FindUnitTypes(units...)
 	team.Units = make([]*organization.TeamUnit, 0, len(units))
 	for _, tp := range unitTypes {
 		team.Units = append(team.Units, &organization.TeamUnit{
 			OrgID:      team.OrgID,
 			Type:       tp,
-			AccessMode: team.AccessMode,
+			AccessMode: defaultAccessMode,
 		})
 	}
-}
-
-func convertUnitsMap(unitsMap map[string]string) map[unit_model.Type]perm.AccessMode {
-	res := make(map[unit_model.Type]perm.AccessMode, len(unitsMap))
-	for unitKey, p := range unitsMap {
-		res[unit_model.TypeFromKey(unitKey)] = perm.ParseAccessMode(p)
-	}
-	return res
 }
 
 func attachTeamUnitsMap(team *organization.Team, unitsMap map[string]string) {
@@ -214,24 +206,22 @@ func CreateTeam(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateTeamOption)
-	p := perm.ParseAccessMode(form.Permission)
-	if p < perm.AccessModeAdmin && len(form.UnitsMap) > 0 {
-		p = unit_model.MinUnitAccessMode(convertUnitsMap(form.UnitsMap))
-	}
+	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
 	team := &organization.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.Name,
 		Description:             form.Description,
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
-		AccessMode:              p,
+		AccessMode:              teamPermission,
 	}
 
 	if team.AccessMode < perm.AccessModeAdmin {
 		if len(form.UnitsMap) > 0 {
 			attachTeamUnitsMap(team, form.UnitsMap)
 		} else if len(form.Units) > 0 {
-			attachTeamUnits(team, form.Units)
+			unitPerm := perm.ParseAccessMode(form.Permission, perm.AccessModeRead, perm.AccessModeWrite)
+			attachTeamUnits(team, unitPerm, form.Units)
 		} else {
 			ctx.APIErrorInternal(errors.New("units permission should not be empty"))
 			return
@@ -304,15 +294,10 @@ func EditTeam(ctx *context.APIContext) {
 	isAuthChanged := false
 	isIncludeAllChanged := false
 	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
-		// Validate permission level.
-		p := perm.ParseAccessMode(form.Permission)
-		if p < perm.AccessModeAdmin && len(form.UnitsMap) > 0 {
-			p = unit_model.MinUnitAccessMode(convertUnitsMap(form.UnitsMap))
-		}
-
-		if team.AccessMode != p {
+		teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
+		if team.AccessMode != teamPermission {
 			isAuthChanged = true
-			team.AccessMode = p
+			team.AccessMode = teamPermission
 		}
 
 		if form.IncludesAllRepositories != nil {
@@ -325,7 +310,8 @@ func EditTeam(ctx *context.APIContext) {
 		if len(form.UnitsMap) > 0 {
 			attachTeamUnitsMap(team, form.UnitsMap)
 		} else if len(form.Units) > 0 {
-			attachTeamUnits(team, form.Units)
+			unitPerm := perm.ParseAccessMode(form.Permission, perm.AccessModeRead, perm.AccessModeWrite)
+			attachTeamUnits(team, unitPerm, form.Units)
 		}
 	} else {
 		attachAdminTeamUnits(team)
@@ -440,7 +426,7 @@ func GetTeamMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the member to list
+	//   description: username of the user whose data is to be listed
 	//   type: string
 	//   required: true
 	// responses:
@@ -481,7 +467,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user to add
+	//   description: username of the user to add to a team
 	//   type: string
 	//   required: true
 	// responses:
@@ -523,7 +509,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user to remove
+	//   description: username of the user to remove from a team
 	//   type: string
 	//   required: true
 	// responses:

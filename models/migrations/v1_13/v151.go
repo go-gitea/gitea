@@ -1,10 +1,11 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_13 //nolint
+package v1_13
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -113,7 +114,7 @@ func SetDefaultPasswordToArgon2(x *xorm.Engine) error {
 
 	newTableColumns := table.Columns()
 	if len(newTableColumns) == 0 {
-		return fmt.Errorf("no columns in new table")
+		return errors.New("no columns in new table")
 	}
 	hasID := false
 	for _, column := range newTableColumns {

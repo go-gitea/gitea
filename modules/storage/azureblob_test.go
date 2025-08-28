@@ -4,9 +4,9 @@
 package storage
 
 import (
-	"bytes"
 	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -76,7 +76,7 @@ func Test_azureBlobObject(t *testing.T) {
 	assert.NoError(t, err)
 
 	data := "Q2xTckt6Y1hDOWh0"
-	_, err = s.Save("test.txt", bytes.NewBufferString(data), int64(len(data)))
+	_, err = s.Save("test.txt", strings.NewReader(data), int64(len(data)))
 	assert.NoError(t, err)
 	obj, err := s.Open("test.txt")
 	assert.NoError(t, err)

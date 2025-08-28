@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -29,7 +30,6 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 
@@ -78,7 +78,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-archive") {
 		isPull = true
 	} else {
-		isPull = ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET"
+		isPull = ctx.Req.Method == http.MethodHead || ctx.Req.Method == http.MethodGet
 	}
 
 	var accessMode perm.AccessMode
@@ -303,17 +303,12 @@ var (
 
 func dummyInfoRefs(ctx *context.Context) {
 	infoRefsOnce.Do(func() {
-		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-info-refs-cache")
+		tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-info-refs-cache")
 		if err != nil {
 			log.Error("Failed to create temp dir for git-receive-pack cache: %v", err)
 			return
 		}
-
-		defer func() {
-			if err := util.RemoveAll(tmpDir); err != nil {
-				log.Error("RemoveAll: %v", err)
-			}
-		}()
+		defer cleanup()
 
 		if err := git.InitRepository(ctx, tmpDir, true, git.Sha1ObjectFormat.Name()); err != nil {
 			log.Error("Failed to init bare repo for git-receive-pack cache: %v", err)
@@ -360,8 +355,8 @@ func setHeaderNoCache(ctx *context.Context) {
 func setHeaderCacheForever(ctx *context.Context) {
 	now := time.Now().Unix()
 	expires := now + 31536000
-	ctx.Resp.Header().Set("Date", fmt.Sprintf("%d", now))
-	ctx.Resp.Header().Set("Expires", fmt.Sprintf("%d", expires))
+	ctx.Resp.Header().Set("Date", strconv.FormatInt(now, 10))
+	ctx.Resp.Header().Set("Expires", strconv.FormatInt(expires, 10))
 	ctx.Resp.Header().Set("Cache-Control", "public, max-age=31536000")
 }
 
@@ -369,12 +364,7 @@ func containsParentDirectorySeparator(v string) bool {
 	if !strings.Contains(v, "..") {
 		return false
 	}
-	for _, ent := range strings.FieldsFunc(v, isSlashRune) {
-		if ent == ".." {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(strings.FieldsFunc(v, isSlashRune), "..")
 }
 
 func isSlashRune(r rune) bool { return r == '/' || r == '\\' }
@@ -394,7 +384,7 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 	}
 
 	ctx.Resp.Header().Set("Content-Type", contentType)
-	ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", fi.Size()))
+	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
 	// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
 	ctx.Resp.Header().Set("Last-Modified", fi.ModTime().UTC().Format(http.TimeFormat))
 	http.ServeFile(ctx.Resp, ctx.Req, reqFile)

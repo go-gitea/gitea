@@ -4,6 +4,7 @@
 /assets/*.json linguist-generated
 /public/assets/img/svg/*.svg linguist-generated
 /templates/swagger/v1_json.tmpl linguist-generated
+/options/fileicon/** linguist-generated
 /vendor/** -text -eol linguist-vendored
 /web_src/js/vendor/** -text -eol linguist-vendored
 Dockerfile.* linguist-language=Dockerfile

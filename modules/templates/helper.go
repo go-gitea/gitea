@@ -6,9 +6,9 @@ package templates
 
 import (
 	"fmt"
-	"html"
 	"html/template"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -37,12 +37,9 @@ func NewFuncMap() template.FuncMap {
 		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
 		"Iif":          iif,
 		"Eval":         evalTokens,
-		"SafeHTML":     safeHTML,
 		"HTMLFormat":   htmlFormat,
-		"HTMLEscape":   htmlEscape,
 		"QueryEscape":  queryEscape,
 		"QueryBuild":   QueryBuild,
-		"JSEscape":     jsEscapeSafe,
 		"SanitizeHTML": SanitizeHTML,
 		"URLJoin":      util.URLJoin,
 		"DotEscape":    dotEscape,
@@ -73,7 +70,7 @@ func NewFuncMap() template.FuncMap {
 		"TimeEstimateString": timeEstimateString,
 
 		"LoadTimes": func(startTime time.Time) string {
-			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
+			return strconv.FormatInt(time.Since(startTime).Nanoseconds()/1e6, 10) + "ms"
 		},
 
 		// -----------------------------------------------------------------
@@ -161,49 +158,12 @@ func NewFuncMap() template.FuncMap {
 
 		"FilenameIsImage": filenameIsImage,
 		"TabSizeClass":    tabSizeClass,
-
-		// for backward compatibility only, do not use them anymore
-		"TimeSince":     timeSinceLegacy,
-		"TimeSinceUnix": timeSinceLegacy,
-		"DateTime":      dateTimeLegacy,
-
-		"RenderEmoji":      renderEmojiLegacy,
-		"RenderLabel":      renderLabelLegacy,
-		"RenderLabels":     renderLabelsLegacy,
-		"RenderIssueTitle": renderIssueTitleLegacy,
-
-		"RenderMarkdownToHtml": renderMarkdownToHtmlLegacy,
-
-		"RenderCommitMessage":            renderCommitMessageLegacy,
-		"RenderCommitMessageLinkSubject": renderCommitMessageLinkSubjectLegacy,
-		"RenderCommitBody":               renderCommitBodyLegacy,
 	}
 }
 
-// safeHTML render raw as HTML
-func safeHTML(s any) template.HTML {
-	switch v := s.(type) {
-	case string:
-		return template.HTML(v)
-	case template.HTML:
-		return v
-	}
-	panic(fmt.Sprintf("unexpected type %T", s))
-}
-
-// SanitizeHTML sanitizes the input by pre-defined markdown rules
+// SanitizeHTML sanitizes the input by default sanitization rules.
 func SanitizeHTML(s string) template.HTML {
-	return template.HTML(markup.Sanitize(s))
-}
-
-func htmlEscape(s any) template.HTML {
-	switch v := s.(type) {
-	case string:
-		return template.HTML(html.EscapeString(v))
-	case template.HTML:
-		return v
-	}
-	panic(fmt.Sprintf("unexpected type %T", s))
+	return markup.Sanitize(s)
 }
 
 func htmlFormat(s any, args ...any) template.HTML {
@@ -218,10 +178,6 @@ func htmlFormat(s any, args ...any) template.HTML {
 		return htmlutil.HTMLFormat(v, args...)
 	}
 	panic(fmt.Sprintf("unexpected type %T", s))
-}
-
-func jsEscapeSafe(s string) template.HTML {
-	return template.HTML(template.JSEscapeString(s))
 }
 
 func queryEscape(s string) template.URL {
@@ -365,8 +321,4 @@ func QueryBuild(a ...any) template.URL {
 		}
 	}
 	return template.URL(s)
-}
-
-func panicIfDevOrTesting() {
-	setting.PanicInDevOrTesting("legacy template functions are for backward compatibility only, do not use them in new code")
 }

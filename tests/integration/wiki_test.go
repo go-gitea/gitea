@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -38,11 +37,11 @@ func TestRepoCloneWiki(t *testing.T) {
 
 		dstPath := t.TempDir()
 
-		r := fmt.Sprintf("%suser2/repo1.wiki.git", u.String())
+		r := u.String() + "user2/repo1.wiki.git"
 		u, _ = url.Parse(r)
 		u.User = url.UserPassword("user2", userPassword)
 		t.Run("Clone", func(t *testing.T) {
-			assert.NoError(t, git.CloneWithArgs(t.Context(), git.AllowLFSFiltersArgs(), u.String(), dstPath, git.CloneRepoOptions{}))
+			assert.NoError(t, git.Clone(t.Context(), u.String(), dstPath, git.CloneRepoOptions{}))
 			assertFileEqual(t, filepath.Join(dstPath, "Home.md"), []byte("# Home page\n\nThis is the home page!\n"))
 			assertFileExist(t, filepath.Join(dstPath, "Page-With-Image.md"))
 			assertFileExist(t, filepath.Join(dstPath, "Page-With-Spaced-Name.md"))

@@ -4,6 +4,7 @@
 package private
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -311,13 +312,13 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			if isForcePush {
 				log.Warn("Forbidden: User %d is not allowed to force-push to protected branch: %s in %-v", ctx.opts.UserID, branchName, repo)
 				ctx.JSON(http.StatusForbidden, private.Response{
-					UserMsg: fmt.Sprintf("Not allowed to force-push to protected branch %s", branchName),
+					UserMsg: "Not allowed to force-push to protected branch " + branchName,
 				})
 				return
 			}
 			log.Warn("Forbidden: User %d is not allowed to push to protected branch: %s in %-v", ctx.opts.UserID, branchName, repo)
 			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: fmt.Sprintf("Not allowed to push to protected branch %s", branchName),
+				UserMsg: "Not allowed to push to protected branch " + branchName,
 			})
 			return
 		}
@@ -353,7 +354,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		if !allowedMerge {
 			log.Warn("Forbidden: User %d is not allowed to push to protected branch: %s in %-v and is not allowed to merge pr #%d", ctx.opts.UserID, branchName, repo, pr.Index)
 			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: fmt.Sprintf("Not allowed to push to protected branch %s", branchName),
+				UserMsg: "Not allowed to push to protected branch " + branchName,
 			})
 			return
 		}
@@ -374,7 +375,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 		// Check all status checks and reviews are ok
 		if err := pull_service.CheckPullBranchProtections(ctx, pr, true); err != nil {
-			if pull_service.IsErrDisallowedToMerge(err) {
+			if errors.Is(err, pull_service.ErrNotReadyToMerge) {
 				log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", ctx.opts.UserID, branchName, repo, pr.Index, err.Error())
 				ctx.JSON(http.StatusForbidden, private.Response{
 					UserMsg: fmt.Sprintf("Not allowed to push to protected branch %s and pr #%d is not ready to be merged: %s", branchName, ctx.opts.PullRequestID, err.Error()),

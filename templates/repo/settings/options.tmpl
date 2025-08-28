@@ -10,7 +10,7 @@
 				<input type="hidden" name="action" value="update">
 				<div class="required field {{if .Err_RepoName}}error{{end}}">
 					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" autofocus required>
+					<input name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" required>
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.repo_size"}}</label>
@@ -802,7 +802,7 @@
 						</div>
 					</div>
 				{{end}}
-				{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
+				{{if .CanConvertFork}}
 					<div class="flex-item">
 						<div class="flex-item-main">
 							<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.convert_fork"}}</div>
@@ -916,7 +916,7 @@
 			</div>
 		</div>
 	{{end}}
-	{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
+	{{if .CanConvertFork}}
 		<div class="ui small modal" id="convert-fork-repo-modal">
 			<div class="header">
 				{{ctx.Locale.Tr "repo.settings.convert_fork"}}

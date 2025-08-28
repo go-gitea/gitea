@@ -1,7 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//nolint:forbidigo
+//nolint:forbidigo // use of print functions is allowed in tests
 package integration
 
 import (
@@ -148,6 +148,9 @@ func (s *TestSession) GetCookieFlashMessage() *middleware.Flash {
 
 func (s *TestSession) MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
+	if s == nil {
+		return MakeRequest(t, rw, expectedStatus)
+	}
 	req := rw.Request
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
@@ -310,7 +313,7 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 
 func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.Values) *RequestWrapper {
 	t.Helper()
-	return NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode())).
+	return NewRequestWithBody(t, method, urlStr, strings.NewReader(urlValues.Encode())).
 		SetHeader("Content-Type", "application/x-www-form-urlencoded")
 }
 

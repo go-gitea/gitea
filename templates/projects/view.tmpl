@@ -1,8 +1,8 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
-<div class="ui container tw-max-w-full">
-	<div class="flex-text-block tw-flex-wrap tw-mb-4">
-		<h2 class="tw-mb-0">{{.Project.Title}}</h2>
+<div class="ui container fluid padded projects-view">
+	<div class="ui container flex-text-block project-header">
+		<h2>{{.Project.Title}}</h2>
 		<div class="tw-flex-1"></div>
 		<div class="ui secondary menu tw-m-0">
 			{{$queryLink := QueryBuild "?" "labels" .SelectLabels "assignee" $.AssigneeID "archived_labels" (Iif $.ShowArchivedLabels "true")}}
@@ -13,12 +13,20 @@
 				"UserSearchList" $.Assignees
 				"SelectedUserId" $.AssigneeID
 				"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_assignee")
-				"TextFilterMatchNone" (ctx.Locale.Tr "repo.issues.filter_assginee_no_assignee")
+				"TextFilterMatchNone" (ctx.Locale.Tr "repo.issues.filter_assignee_no_assignee")
 				"TextFilterMatchAny" (ctx.Locale.Tr "repo.issues.filter_assignee_any_assignee")
 			}}
 		</div>
 		{{if $canWriteProject}}
 			<div class="ui compact mini menu">
+				<a class="item screen-full">
+					{{svg "octicon-screen-full"}}
+					{{ctx.Locale.Tr "projects.enter_fullscreen"}}
+				</a>
+				<a class="item screen-normal tw-hidden">
+					{{svg "octicon-screen-normal"}}
+					{{ctx.Locale.Tr "projects.exit_fullscreen"}}
+				</a>
 				<a class="item" href="{{.Link}}/edit?redirect=project">
 					{{svg "octicon-pencil"}}
 					{{ctx.Locale.Tr "repo.issues.label_edit"}}
@@ -56,13 +64,12 @@
 		{{end}}
 	</div>
 
-	<div class="content">{{$.Project.RenderedContent}}</div>
+	<div class="ui container project-description">
+		{{$.Project.RenderedContent}}
+		<div class="divider"></div>
+	</div>
 
-	<div class="divider"></div>
-</div>
-
-<div id="project-board" data-project-borad-writable="{{$canWriteProject}}">
-	<div class="board {{if $canWriteProject}}sortable{{end}}" {{if $canWriteProject}}data-url="{{$.Link}}/move"{{end}}>
+	<div id="project-board" class="board {{if $canWriteProject}}sortable{{end}}" data-project-borad-writable="{{$canWriteProject}}" {{if $canWriteProject}}data-url="{{$.Link}}/move"{{end}}>
 		{{range .Columns}}
 			<div class="project-column" {{if .Color}}style="background: {{.Color}} !important; color: {{ContrastColor .Color}} !important"{{end}} data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
 				<div class="project-column-header{{if $canWriteProject}} tw-cursor-grab{{end}}">
@@ -123,12 +130,12 @@
 			<input class="project-column-id" type="hidden" name="id">
 			<div class="required field">
 				<label class="project-column-title-label" for="project-column-title-input">title</label>
-				<input id="project-column-title-input" name="title" value="{{.Title}}" required>
+				<input id="project-column-title-input" name="title" required>
 			</div>
 			<div class="field">
 				<label class="project-column-color-label" for="project-column-color-input">color</label>
-				<div class="js-color-picker-input column">
-					<input maxlength="7" placeholder="#c320f6" id="project-column-color-input" name="color" value="{{.Color}}">
+				<div class="color-picker-combo" data-global-init="initColorPicker">
+					<input maxlength="7" placeholder="#c320f6" id="project-column-color-input" name="color">
 					{{template "repo/issue/label_precolors"}}
 				</div>
 			</div>

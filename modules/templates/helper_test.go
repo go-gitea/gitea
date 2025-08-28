@@ -15,7 +15,7 @@ import (
 
 func TestSubjectBodySeparator(t *testing.T) {
 	test := func(input, subject, body string) {
-		loc := mailSubjectSplit.FindIndex([]byte(input))
+		loc := mailSubjectSplit.FindStringIndex(input)
 		if loc == nil {
 			assert.Empty(t, subject, "no subject found, but one expected")
 			assert.Equal(t, body, input)
@@ -55,10 +55,6 @@ func TestSubjectBodySeparator(t *testing.T) {
 	test("Insufficient\n--\nSeparators",
 		"",
 		"Insufficient\n--\nSeparators")
-}
-
-func TestJSEscapeSafe(t *testing.T) {
-	assert.EqualValues(t, `\u0026\u003C\u003E\'\"`, jsEscapeSafe(`&<>'"`))
 }
 
 func TestSanitizeHTML(t *testing.T) {

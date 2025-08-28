@@ -4,6 +4,7 @@
 package packages
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -58,7 +59,7 @@ func ParseAuthorizationRequest(req *http.Request) (*PackageMeta, error) {
 	parts := strings.SplitN(h, " ", 2)
 	if len(parts) != 2 {
 		log.Error("split token failed: %s", h)
-		return nil, fmt.Errorf("split token failed")
+		return nil, errors.New("split token failed")
 	}
 
 	return ParseAuthorizationToken(parts[1])
@@ -77,7 +78,7 @@ func ParseAuthorizationToken(tokenStr string) (*PackageMeta, error) {
 
 	c, ok := token.Claims.(*packageClaims)
 	if !token.Valid || !ok {
-		return nil, fmt.Errorf("invalid token claim")
+		return nil, errors.New("invalid token claim")
 	}
 
 	return &c.PackageMeta, nil

@@ -1,7 +1,7 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_23 //nolint
+package v1_23
 
 import "xorm.io/xorm"
 
@@ -13,5 +13,9 @@ func AddForcePushBranchProtection(x *xorm.Engine) error {
 		ForcePushAllowlistTeamIDs    []int64 `xorm:"JSON TEXT"`
 		ForcePushAllowlistDeployKeys bool    `xorm:"NOT NULL DEFAULT false"`
 	}
-	return x.Sync(new(ProtectedBranch))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(ProtectedBranch))
+	return err
 }

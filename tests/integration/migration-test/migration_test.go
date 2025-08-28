@@ -52,11 +52,11 @@ func initMigrationTest(t *testing.T) func() {
 		setting.CustomConf = giteaConf
 	}
 
-	unittest.InitSettings()
+	unittest.InitSettingsForTesting()
 
 	assert.NotEmpty(t, setting.RepoRootPath)
 	assert.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
-	assert.NoError(t, git.InitFull(t.Context()))
+	assert.NoError(t, git.InitFull())
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
 
@@ -140,10 +140,10 @@ func restoreOldDB(t *testing.T, version string) {
 		assert.NoError(t, err)
 		defer db.Close()
 
-		_, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name))
+		_, err = db.Exec("DROP DATABASE IF EXISTS " + setting.Database.Name)
 		assert.NoError(t, err)
 
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name))
+		_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + setting.Database.Name)
 		assert.NoError(t, err)
 		db.Close()
 
@@ -170,10 +170,10 @@ func restoreOldDB(t *testing.T, version string) {
 		}
 		defer db.Close()
 
-		_, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name))
+		_, err = db.Exec("DROP DATABASE IF EXISTS " + setting.Database.Name)
 		assert.NoError(t, err)
 
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name))
+		_, err = db.Exec("CREATE DATABASE " + setting.Database.Name)
 		assert.NoError(t, err)
 		db.Close()
 
@@ -195,7 +195,7 @@ func restoreOldDB(t *testing.T, version string) {
 
 			if !schrows.Next() {
 				// Create and setup a DB schema
-				_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema))
+				_, err = db.Exec("CREATE SCHEMA " + setting.Database.Schema)
 				assert.NoError(t, err)
 			}
 			schrows.Close()
@@ -250,7 +250,7 @@ func restoreOldDB(t *testing.T, version string) {
 
 func wrappedMigrate(ctx context.Context, x *xorm.Engine) error {
 	currentEngine = x
-	return migrations.Migrate(x)
+	return migrations.Migrate(ctx, x)
 }
 
 func doMigrationTest(t *testing.T, version string) {

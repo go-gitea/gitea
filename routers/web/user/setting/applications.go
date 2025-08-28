@@ -43,8 +43,9 @@ func ApplicationsPost(ctx *context.Context) {
 
 	_ = ctx.Req.ParseForm()
 	var scopeNames []string
+	const accessTokenScopePrefix = "scope-"
 	for k, v := range ctx.Req.Form {
-		if strings.HasPrefix(k, "scope-") {
+		if strings.HasPrefix(k, accessTokenScopePrefix) {
 			scopeNames = append(scopeNames, v...)
 		}
 	}
@@ -54,7 +55,7 @@ func ApplicationsPost(ctx *context.Context) {
 		ctx.ServerError("GetScope", err)
 		return
 	}
-	if scope == "" || scope == auth_model.AccessTokenScopePublicOnly {
+	if !scope.HasPermissionScope() {
 		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"), true)
 	}
 

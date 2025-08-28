@@ -12,13 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/42wim/sshsig"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_SSHParsePublicKey(t *testing.T) {
@@ -44,27 +42,6 @@ func Test_SSHParsePublicKey(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.keyType, keyTypeN)
 				assert.Equal(t, tc.length, lengthN)
-			})
-			if tc.skipSSHKeygen {
-				return
-			}
-			t.Run("SSHKeygen", func(t *testing.T) {
-				keyTypeK, lengthK, err := SSHKeyGenParsePublicKey(tc.content)
-				if err != nil {
-					// Some servers do not support ecdsa format.
-					if !strings.Contains(err.Error(), "line 1 too long:") {
-						require.NoError(t, err)
-					}
-				}
-				assert.Equal(t, tc.keyType, keyTypeK)
-				assert.Equal(t, tc.length, lengthK)
-			})
-			t.Run("SSHParseKeyNative", func(t *testing.T) {
-				keyTypeK, lengthK, err := SSHNativeParsePublicKey(tc.content)
-				require.NoError(t, err)
-
-				assert.Equal(t, tc.keyType, keyTypeK)
-				assert.Equal(t, tc.length, lengthK)
 			})
 		})
 	}
@@ -185,14 +162,6 @@ func Test_calcFingerprint(t *testing.T) {
 				fpN, err := calcFingerprintNative(tc.content)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.fp, fpN)
-			})
-			if tc.skipSSHKeygen {
-				return
-			}
-			t.Run("SSHKeygen", func(t *testing.T) {
-				fpK, err := calcFingerprintSSHKeygen(tc.content)
-				assert.NoError(t, err)
-				assert.Equal(t, tc.fp, fpK)
 			})
 		})
 	}
@@ -506,7 +475,7 @@ func runErr(t *testing.T, stdin []byte, args ...string) {
 
 func Test_PublicKeysAreExternallyManaged(t *testing.T) {
 	key1 := unittest.AssertExistsAndLoadBean(t, &PublicKey{ID: 1})
-	externals, err := PublicKeysAreExternallyManaged(db.DefaultContext, []*PublicKey{key1})
+	externals, err := PublicKeysAreExternallyManaged(t.Context(), []*PublicKey{key1})
 	assert.NoError(t, err)
 	assert.Len(t, externals, 1)
 	assert.False(t, externals[0])

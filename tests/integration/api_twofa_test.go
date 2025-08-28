@@ -9,7 +9,6 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/tests"
@@ -39,7 +38,7 @@ func TestAPITwoFactor(t *testing.T) {
 	}
 	assert.NoError(t, tfa.SetSecret(otpKey.Secret()))
 
-	assert.NoError(t, auth_model.NewTwoFactor(db.DefaultContext, tfa))
+	assert.NoError(t, auth_model.NewTwoFactor(t.Context(), tfa))
 
 	req = NewRequest(t, "GET", "/api/v1/user").
 		AddBasicAuth(user.Name)
@@ -94,7 +93,7 @@ func TestBasicAuthWithWebAuthn(t *testing.T) {
 	}
 	var userParsed userResponse
 	DecodeJSON(t, resp, &userParsed)
-	assert.Equal(t, "Basic authorization is not allowed while webAuthn enrolled", userParsed.Message)
+	assert.Equal(t, "basic authorization is not allowed while WebAuthn enrolled", userParsed.Message)
 
 	// user32 has webauthn enrolled, he can't request git protocol with basic auth
 	req = NewRequest(t, "GET", "/user2/repo1/info/refs")

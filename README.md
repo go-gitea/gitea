@@ -11,7 +11,7 @@
 [![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod&color=green)](https://gitpod.io/#https://github.com/go-gitea/gitea)
 [![](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com "Crowdin")
 
-[View this document in Chinese](./README_ZH.md)
+[繁體中文](./README.zh-tw.md) | [简体中文](./README.zh-cn.md)
 
 ## Purpose
 
@@ -80,9 +80,9 @@ Expected workflow is: Fork -> Patch -> Push -> Pull Request
 
 [![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com)
 
-Translations are done through [Crowdin](https://translate.gitea.com). If you want to translate to a new language ask one of the managers in the Crowdin project to add a new language there.
+Translations are done through [Crowdin](https://translate.gitea.com). If you want to translate to a new language, ask one of the managers in the Crowdin project to add a new language there.
 
-You can also just create an issue for adding a language or ask on discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty but we hope to fill it as questions pop up.
+You can also just create an issue for adding a language or ask on Discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty, but we hope to fill it as questions pop up.
 
 Get more information from [documentation](https://docs.gitea.com/contributing/localization).
 

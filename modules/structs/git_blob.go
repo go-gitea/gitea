@@ -5,9 +5,12 @@ package structs
 
 // GitBlobResponse represents a git blob
 type GitBlobResponse struct {
-	Content  string `json:"content"`
-	Encoding string `json:"encoding"`
-	URL      string `json:"url"`
-	SHA      string `json:"sha"`
-	Size     int64  `json:"size"`
+	Content  *string `json:"content"`
+	Encoding *string `json:"encoding"`
+	URL      string  `json:"url"`
+	SHA      string  `json:"sha"`
+	Size     int64   `json:"size"`
+
+	LfsOid  *string `json:"lfs_oid,omitempty"`
+	LfsSize *int64  `json:"lfs_size,omitempty"`
 }

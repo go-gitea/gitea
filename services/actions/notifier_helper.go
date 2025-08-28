@@ -33,7 +33,9 @@ import (
 	"github.com/nektos/act/pkg/model"
 )
 
-var methodCtxKey struct{}
+type methodCtxKeyType struct{}
+
+var methodCtxKey methodCtxKeyType
 
 // withMethod sets the notification method that this context currently executes.
 // Used for debugging/ troubleshooting purposes.
@@ -44,8 +46,7 @@ func withMethod(ctx context.Context, method string) context.Context {
 			return ctx
 		}
 	}
-	// FIXME: review the use of this nolint directive
-	return context.WithValue(ctx, methodCtxKey, method) //nolint:staticcheck
+	return context.WithValue(ctx, methodCtxKey, method)
 }
 
 // getMethod gets the notification method that this context currently executes.
@@ -103,7 +104,7 @@ func (input *notifyInput) WithPayload(payload api.Payloader) *notifyInput {
 func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyInput {
 	input.PullRequest = pr
 	if input.Ref == "" {
-		input.Ref = git.RefName(pr.GetGitRefName())
+		input.Ref = git.RefName(pr.GetGitHeadRefName())
 	}
 	return input
 }
@@ -178,7 +179,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
-	if skipWorkflows(input, commit) {
+	if skipWorkflows(ctx, input, commit) {
 		return nil
 	}
 
@@ -243,7 +244,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref.String())
 }
 
-func skipWorkflows(input *notifyInput, commit *git.Commit) bool {
+func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) bool {
 	// skip workflow runs with a configured skip-ci string in commit message or pr title if the event is push or pull_request(_sync)
 	// https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
 	skipWorkflowEvents := []webhook_module.HookEventType{
@@ -262,6 +263,27 @@ func skipWorkflows(input *notifyInput, commit *git.Commit) bool {
 				return true
 			}
 		}
+	}
+	if input.Event == webhook_module.HookEventWorkflowRun {
+		wrun, ok := input.Payload.(*api.WorkflowRunPayload)
+		for i := 0; i < 5 && ok && wrun.WorkflowRun != nil; i++ {
+			if wrun.WorkflowRun.Event != "workflow_run" {
+				return false
+			}
+			r, err := actions_model.GetRunByRepoAndID(ctx, input.Repo.ID, wrun.WorkflowRun.ID)
+			if err != nil {
+				log.Error("GetRunByRepoAndID: %v", err)
+				return true
+			}
+			wrun, err = r.GetWorkflowRunEventPayload()
+			if err != nil {
+				log.Error("GetWorkflowRunEventPayload: %v", err)
+				return true
+			}
+		}
+		// skip workflow runs events exceeding the maxiumum of 5 recursive events
+		log.Debug("repo %s: skipped workflow_run because of recursive event of 5", input.Repo.RepoPath())
+		return true
 	}
 	return false
 }
@@ -302,9 +324,11 @@ func handleWorkflows(
 		run := &actions_model.ActionRun{
 			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:            input.Repo.ID,
+			Repo:              input.Repo,
 			OwnerID:           input.Repo.OwnerID,
 			WorkflowID:        dwf.EntryName,
 			TriggerUserID:     input.Doer.ID,
+			TriggerUser:       input.Doer,
 			Ref:               ref,
 			CommitSHA:         commit.ID.String(),
 			IsForkPullRequest: isForkPullRequest,
@@ -333,10 +357,16 @@ func handleWorkflows(
 			continue
 		}
 
-		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars))
+		giteaCtx := GenerateGiteaContext(run, nil)
+
+		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue
+		}
+
+		if len(jobs) > 0 && jobs[0].RunName != "" {
+			run.Title = jobs[0].RunName
 		}
 
 		// cancel running jobs if the event is push or pull_request_sync
@@ -364,6 +394,15 @@ func handleWorkflows(
 			continue
 		}
 		CreateCommitStatus(ctx, alljobs...)
+		if len(alljobs) > 0 {
+			job := alljobs[0]
+			err := job.LoadRun(ctx)
+			if err != nil {
+				log.Error("LoadRun: %v", err)
+				continue
+			}
+			notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
+		}
 		for _, job := range alljobs {
 			notify_service.WorkflowJobStatusUpdate(ctx, input.Repo, input.Doer, job, nil)
 		}
@@ -508,9 +547,11 @@ func handleSchedules(
 		run := &actions_model.ActionSchedule{
 			Title:         strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:        input.Repo.ID,
+			Repo:          input.Repo,
 			OwnerID:       input.Repo.OwnerID,
 			WorkflowID:    dwf.EntryName,
 			TriggerUserID: user_model.ActionsUserID,
+			TriggerUser:   user_model.NewActionsUser(),
 			Ref:           ref,
 			CommitSHA:     commit.ID.String(),
 			Event:         input.Event,
@@ -518,6 +559,25 @@ func handleSchedules(
 			Specs:         schedules,
 			Content:       dwf.Content,
 		}
+
+		vars, err := actions_model.GetVariablesOfRun(ctx, run.ToActionRun())
+		if err != nil {
+			log.Error("GetVariablesOfRun: %v", err)
+			continue
+		}
+
+		giteaCtx := GenerateGiteaContext(run.ToActionRun(), nil)
+
+		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
+		if err != nil {
+			log.Error("jobparser.Parse: %v", err)
+			continue
+		}
+
+		if len(jobs) > 0 && jobs[0].RunName != "" {
+			run.Title = jobs[0].RunName
+		}
+
 		crons = append(crons, run)
 	}
 
