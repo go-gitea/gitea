@@ -48,16 +48,17 @@ type ExternalWiki struct {
 
 // Repository represents a repository
 type Repository struct {
-	ID            int64       `json:"id"`
-	Owner         *User       `json:"owner"`
-	Name          string      `json:"name"`
-	FullName      string      `json:"full_name"`
-	Description   string      `json:"description"`
-	Empty         bool        `json:"empty"`
-	Private       bool        `json:"private"`
-	Fork          bool        `json:"fork"`
-	Template      bool        `json:"template"`
-	Parent        *Repository `json:"parent"`
+	ID          int64  `json:"id"`
+	Owner       *User  `json:"owner"`
+	Name        string `json:"name"`
+	FullName    string `json:"full_name"`
+	Description string `json:"description"`
+	Empty       bool   `json:"empty"`
+	Private     bool   `json:"private"`
+	Fork        bool   `json:"fork"`
+	Template    bool   `json:"template"`
+	// the original repository if this repository is a fork, otherwise null
+	Parent        *Repository `json:"parent,omitempty"`
 	Mirror        bool        `json:"mirror"`
 	Size          int         `json:"size"`
 	Language      string      `json:"language"`
@@ -83,6 +84,7 @@ type Repository struct {
 	Updated                       time.Time        `json:"updated_at"`
 	ArchivedAt                    time.Time        `json:"archived_at"`
 	Permissions                   *Permission      `json:"permissions,omitempty"`
+	HasCode                       bool             `json:"has_code"`
 	HasIssues                     bool             `json:"has_issues"`
 	InternalTracker               *InternalTracker `json:"internal_tracker,omitempty"`
 	ExternalTracker               *ExternalTracker `json:"external_tracker,omitempty"`
@@ -113,8 +115,8 @@ type Repository struct {
 	// enum: sha1,sha256
 	ObjectFormatName string `json:"object_format_name"`
 	// swagger:strfmt date-time
-	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
-	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
+	MirrorUpdated time.Time     `json:"mirror_updated"`
+	RepoTransfer  *RepoTransfer `json:"repo_transfer,omitempty"`
 	Topics        []string      `json:"topics"`
 	Licenses      []string      `json:"licenses"`
 }
@@ -169,6 +171,8 @@ type EditRepoOption struct {
 	Private *bool `json:"private,omitempty"`
 	// either `true` to make this repository a template or `false` to make it a normal repository
 	Template *bool `json:"template,omitempty"`
+	// either `true` to enable code for this repository or `false` to disable it.
+	HasCode *bool `json:"has_code,omitempty"`
 	// either `true` to enable issues for this repository or `false` to disable them.
 	HasIssues *bool `json:"has_issues,omitempty"`
 	// set this structure to configure internal issue tracker
@@ -225,15 +229,13 @@ type EditRepoOption struct {
 	EnablePrune *bool `json:"enable_prune,omitempty"`
 }
 
-// GenerateRepoOption options when creating repository using a template
+// GenerateRepoOption options when creating a repository using a template
 // swagger:model
 type GenerateRepoOption struct {
-	// The organization or person who will own the new repository
+	// the organization's name or individual user's name who will own the new repository
 	//
 	// required: true
 	Owner string `json:"owner"`
-	// Name of the repository to create
-	//
 	// required: true
 	// unique: true
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
@@ -352,9 +354,9 @@ func (gt GitServiceType) Title() string {
 type MigrateRepoOptions struct {
 	// required: true
 	CloneAddr string `json:"clone_addr" binding:"Required"`
-	// deprecated (only for backwards compatibility)
+	// deprecated (only for backwards compatibility, use repo_owner instead)
 	RepoOwnerID int64 `json:"uid"`
-	// Name of User or Organisation who will own Repo after migration
+	// the organization's name or individual user's name who will own the migrated repository
 	RepoOwner string `json:"repo_owner"`
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`

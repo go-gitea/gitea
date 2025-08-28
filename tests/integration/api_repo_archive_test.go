@@ -12,7 +12,9 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/tests"
@@ -58,9 +60,12 @@ func TestAPIDownloadArchive(t *testing.T) {
 
 	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master", user2.Name, repo.Name))
 	MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusBadRequest)
+
+	t.Run("GitHubStyle", testAPIDownloadArchiveGitHubStyle)
+	t.Run("PrivateRepo", testAPIDownloadArchivePrivateRepo)
 }
 
-func TestAPIDownloadArchive2(t *testing.T) {
+func testAPIDownloadArchiveGitHubStyle(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -95,7 +100,13 @@ func TestAPIDownloadArchive2(t *testing.T) {
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Len(t, bs, 382)
+}
 
-	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master", user2.Name, repo.Name))
-	MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusBadRequest)
+func testAPIDownloadArchivePrivateRepo(t *testing.T) {
+	_ = repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: 1, IsPrivate: true}, "is_private")
+	MakeRequest(t, NewRequest(t, "HEAD", "/api/v1/repos/user2/repo1/archive/master.zip"), http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "HEAD", "/api/v1/repos/user2/repo1/zipball/master"), http.StatusNotFound)
+	_ = repo_model.UpdateRepoUnitPublicAccess(t.Context(), &repo_model.RepoUnit{RepoID: 1, Type: unit.TypeCode, AnonymousAccessMode: perm.AccessModeRead})
+	MakeRequest(t, NewRequest(t, "HEAD", "/api/v1/repos/user2/repo1/archive/master.zip"), http.StatusOK)
+	MakeRequest(t, NewRequest(t, "HEAD", "/api/v1/repos/user2/repo1/zipball/master"), http.StatusOK)
 }

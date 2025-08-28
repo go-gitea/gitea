@@ -1,11 +1,9 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//nolint:forbidigo
 package tests
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -55,7 +53,7 @@ func InitTest(requireGitea bool) {
 		// Notice: when doing "ssh push", Gitea executes sub processes, debugger won't work for the sub processes.
 		giteaConf = "tests/sqlite.ini"
 		_ = os.Setenv("GITEA_CONF", giteaConf)
-		fmt.Printf("Environment variable $GITEA_CONF not set, use default: %s\n", giteaConf)
+		_, _ = fmt.Fprintf(os.Stderr, "Environment variable $GITEA_CONF not set - defaulting to %s\n", giteaConf)
 		if !setting.EnableSQLite3 {
 			testlogger.Fatalf(`sqlite3 requires: -tags sqlite,sqlite_unlock_notify` + "\n")
 		}
@@ -69,7 +67,7 @@ func InitTest(requireGitea bool) {
 	unittest.InitSettingsForTesting()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 
-	if err := git.InitFull(context.Background()); err != nil {
+	if err := git.InitFull(); err != nil {
 		log.Fatal("git.InitOnceWithSync: %v", err)
 	}
 
@@ -218,7 +216,7 @@ func PrepareLFSStorage(t testing.TB) {
 
 func PrepareCleanPackageData(t testing.TB) {
 	// clear all package data
-	assert.NoError(t, db.TruncateBeans(db.DefaultContext,
+	assert.NoError(t, db.TruncateBeans(t.Context(),
 		&packages_model.Package{},
 		&packages_model.PackageVersion{},
 		&packages_model.PackageFile{},

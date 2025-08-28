@@ -12,7 +12,7 @@
 <div class="issue-title-header">
 	{{$canEditIssueTitle := and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 	<div class="issue-title" id="issue-title-display">
-		<h1 class="tw-break-anywhere">
+		<h1>
 			{{ctx.RenderUtils.RenderIssueTitle .Issue.Title $.Repository}}
 			<span class="index">#{{.Issue.Index}}</span>
 		</h1>

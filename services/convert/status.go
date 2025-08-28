@@ -42,20 +42,19 @@ func ToCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) [
 }
 
 // ToCombinedStatus converts List of CommitStatus to a CombinedStatus
-func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, repo *api.Repository) *api.CombinedStatus {
-	if len(statuses) == 0 {
-		return nil
+func ToCombinedStatus(ctx context.Context, commitID string, statuses []*git_model.CommitStatus, repo *api.Repository) *api.CombinedStatus {
+	status := api.CombinedStatus{
+		SHA:        commitID,
+		TotalCount: len(statuses),
+		Repository: repo,
+		CommitURL:  repo.URL + "/commits/" + url.PathEscape(commitID),
+		URL:        repo.URL + "/commits/" + url.PathEscape(commitID) + "/status",
 	}
 
 	combinedStatus := git_model.CalcCommitStatus(statuses)
-
-	return &api.CombinedStatus{
-		State:      combinedStatus.State,
-		Statuses:   ToCommitStatuses(ctx, statuses),
-		SHA:        combinedStatus.SHA,
-		TotalCount: len(statuses),
-		Repository: repo,
-		CommitURL:  repo.URL + "/commits/" + url.PathEscape(combinedStatus.SHA),
-		URL:        repo.URL + "/commits/" + url.PathEscape(combinedStatus.SHA) + "/status",
+	if combinedStatus != nil {
+		status.Statuses = ToCommitStatuses(ctx, statuses)
+		status.State = combinedStatus.State
 	}
+	return &status
 }

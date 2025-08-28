@@ -45,10 +45,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	pageSize := setting.Git.BranchesRangeSize
 
 	kw := ctx.FormString("q")
@@ -261,7 +258,7 @@ func CreateBranch(ctx *context.Context) {
 
 func MergeUpstream(ctx *context.Context) {
 	branchName := ctx.FormString("branch")
-	_, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, branchName)
+	_, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, branchName, false)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.JSONErrorNotFound()

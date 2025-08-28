@@ -280,11 +280,11 @@ func (n *Notification) HTMLURL(ctx context.Context) string {
 		if n.Comment != nil {
 			return n.Comment.HTMLURL(ctx)
 		}
-		return n.Issue.HTMLURL()
+		return n.Issue.HTMLURL(ctx)
 	case NotificationSourceCommit:
-		return n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
+		return n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.CommitID)
 	case NotificationSourceRepository:
-		return n.Repository.HTMLURL()
+		return n.Repository.HTMLURL(ctx)
 	}
 	return ""
 }

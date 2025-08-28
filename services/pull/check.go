@@ -1,5 +1,4 @@
-// Copyright 2019 The Gitea Authors.
-// All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package pull
@@ -16,6 +15,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/automergequeue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -230,7 +231,7 @@ func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer 
 		return true, nil
 	}
 
-	sign, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+	sign, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitHeadRefName())
 
 	return sign, err
 }
@@ -238,7 +239,7 @@ func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer 
 // markPullRequestAsMergeable checks if pull request is possible to leaving checking status,
 // and set to be either conflict or mergeable.
 func markPullRequestAsMergeable(ctx context.Context, pr *issues_model.PullRequest) {
-	// If status has not been changed to conflict by testPullRequestTmpRepoBranchMergeable then we are mergeable
+	// If the status has not been changed to conflict by testPullRequestTmpRepoBranchMergeable then we are mergeable
 	if pr.Status == issues_model.PullRequestStatusChecking {
 		pr.Status = issues_model.PullRequestStatusMergeable
 	}
@@ -257,6 +258,16 @@ func markPullRequestAsMergeable(ctx context.Context, pr *issues_model.PullReques
 	if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
 		log.Error("Update[%-v]: %v", pr, err)
 	}
+
+	// if there is a scheduled merge for this pull request, start the auto merge check (again)
+	exist, _, err := pull.GetScheduledMergeByPullID(ctx, pr.ID)
+	if err != nil {
+		log.Error("GetScheduledMergeByPullID[%-v]: %v", pr, err)
+		return
+	} else if !exist {
+		return
+	}
+	automergequeue.StartPRCheckAndAutoMerge(ctx, pr)
 }
 
 // getMergeCommit checks if a pull request has been merged
@@ -266,7 +277,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 		return nil, fmt.Errorf("unable to load base repo for %s: %w", pr, err)
 	}
 
-	prHeadRef := pr.GetGitRefName()
+	prHeadRef := pr.GetGitHeadRefName()
 
 	// Check if the pull request is merged into BaseBranch
 	if _, _, err := git.NewCommand("merge-base", "--is-ancestor").

@@ -50,7 +50,7 @@
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 						<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_edit">{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}</a>
 						<a class="ui small primary button" href="{{.RepoLink}}/wiki?action=_new">{{ctx.Locale.Tr "repo.wiki.new_page_button"}}</a>
-						<a class="ui small red button delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete" data-id="{{.PageURL}}">{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}</a>
+						<a class="ui small red button link-action" href data-modal-confirm="#repo-wiki-delete-page-modal" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete">{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}</a>
 					{{end}}
 				</div>
 			</div>
@@ -62,50 +62,43 @@
 		{{end}}
 
 		<div class="wiki-content-parts">
-			{{if .sidebarTocContent}}
+			{{if .WikiSidebarTocHTML}}
 			<div class="render-content markup wiki-content-sidebar wiki-content-toc">
-				{{.sidebarTocContent | SafeHTML}}
+				{{.WikiSidebarTocHTML}}
 			</div>
 			{{end}}
 
-			<div class="render-content markup wiki-content-main {{if or .sidebarTocContent .sidebarPresent}}with-sidebar{{end}}">
-				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
-				{{.content | SafeHTML}}
+			<div class="render-content markup wiki-content-main {{if or .WikiSidebarTocHTML .WikiSidebarHTML}}with-sidebar{{end}}">
+				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus}}
+				{{.WikiContentHTML}}
 			</div>
 
-			{{if .sidebarPresent}}
+			{{if .WikiSidebarHTML}}
 			<div class="render-content markup wiki-content-sidebar">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 					<a class="tw-float-right muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
-				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .sidebarEscapeStatus "root" $}}
-				{{.sidebarContent | SafeHTML}}
+				{{.WikiSidebarHTML}}
 			</div>
 			{{end}}
 
 			<div class="tw-clear-both"></div>
 
-			{{if .footerPresent}}
+			{{if .WikiFooterHTML}}
 			<div class="render-content markup wiki-content-footer">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 					<a class="tw-float-right muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
-				{{template "repo/unicode_escape_prompt" dict "footerEscapeStatus" .sidebarEscapeStatus "root" $}}
-				{{.footerContent | SafeHTML}}
+				{{.WikiFooterHTML}}
 			</div>
 			{{end}}
 		</div>
 	</div>
 </div>
 
-<div class="ui g-modal-confirm delete modal">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}
-	</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "repo.wiki.delete_page_notice_1" $title}}</p>
-	</div>
+<div class="ui small modal" id="repo-wiki-delete-page-modal">
+	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.wiki.delete_page_button"}}</div>
+	<div class="content"><p>{{ctx.Locale.Tr "repo.wiki.delete_page_notice_1" $title}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
 
