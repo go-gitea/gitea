@@ -142,7 +142,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
 	// Init git bare new repository.
-	if err = git.InitRepository(ctx, repo.RepoPath(), true, repo.ObjectFormatName); err != nil {
+	if err = gitrepo.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
 		return fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
