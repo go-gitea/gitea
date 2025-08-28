@@ -59,7 +59,7 @@ func TimeEstimateParse(timeStr string) (int64, error) {
 		unit := timeStr[match[4]:match[5]]
 		found := false
 		for _, u := range timeStrGlobalVars().units {
-			if strings.ToLower(unit) == u.name {
+			if strings.EqualFold(unit, u.name) {
 				total += amount * u.num
 				found = true
 				break

@@ -14,7 +14,7 @@ import (
 
 func TestGetTemplateSubmoduleCommits(t *testing.T) {
 	testRepoPath := filepath.Join(testReposDir, "repo4_submodules")
-	submodules, err := GetTemplateSubmoduleCommits(DefaultContext, testRepoPath)
+	submodules, err := GetTemplateSubmoduleCommits(t.Context(), testRepoPath)
 	require.NoError(t, err)
 
 	assert.Len(t, submodules, 2)
@@ -39,7 +39,7 @@ func TestAddTemplateSubmoduleIndexes(t *testing.T) {
 	require.NoError(t, err)
 	_, _, err = NewCommand("-c", "user.name=a", "-c", "user.email=b", "commit", "-m=test").RunStdString(ctx, &RunOpts{Dir: tmpDir})
 	require.NoError(t, err)
-	submodules, err := GetTemplateSubmoduleCommits(DefaultContext, tmpDir)
+	submodules, err := GetTemplateSubmoduleCommits(t.Context(), tmpDir)
 	require.NoError(t, err)
 	assert.Len(t, submodules, 1)
 	assert.Equal(t, "new-dir", submodules[0].Path)

@@ -37,7 +37,7 @@
 					</div>
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
-						{{svg "octicon-plus"}}&nbsp;&nbsp;&nbsp;{{ctx.Locale.Tr "new_org"}}
+						{{svg "octicon-plus" 16 "tw-ml-1 tw-mr-5"}}{{ctx.Locale.Tr "new_org"}}
 					</a>
 					{{end}}
 				</div>
@@ -77,7 +77,7 @@
 		{{end}}
 
 	{{if .ContextUser.IsOrganization}}
-		<div class="right menu">
+		<div class="right menu tw-flex-wrap tw-justify-end">
 			<a class="{{if .PageIsNews}}active {{end}}item tw-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
 				{{svg "octicon-rss"}}&nbsp;{{ctx.Locale.Tr "activities"}}
 			</a>
@@ -98,7 +98,7 @@
 			{{end}}
 			<div class="item">
 				<a class="ui primary basic button" href="{{.ContextUser.HomeLink}}" title="{{ctx.Locale.Tr "home.view_home" .ContextUser.Name}}">
-					{{ctx.Locale.Tr "home.view_home" (.ContextUser.ShortName 40)}}
+					{{ctx.Locale.Tr "home.view_home" (.ContextUser.ShortName 20)}}
 				</a>
 			</div>
 		</div>

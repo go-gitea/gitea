@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -76,14 +75,11 @@ func TestViewIssuesSortByType(t *testing.T) {
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	issuesSelection := getIssuesSelection(t, htmlDoc)
-	expectedNumIssues := unittest.GetCount(t,
+	expectedNumIssues := min(unittest.GetCount(t,
 		&issues_model.Issue{RepoID: repo.ID, PosterID: user.ID},
 		unittest.Cond("is_closed=?", false),
 		unittest.Cond("is_pull=?", false),
-	)
-	if expectedNumIssues > setting.UI.IssuePagingNum {
-		expectedNumIssues = setting.UI.IssuePagingNum
-	}
+	), setting.UI.IssuePagingNum)
 	assert.Equal(t, expectedNumIssues, issuesSelection.Length())
 
 	issuesSelection.Each(func(_ int, selection *goquery.Selection) {
@@ -151,6 +147,22 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	return issueURL
 }
 
+func testIssueDelete(t *testing.T, session *TestSession, issueURL string) {
+	req := NewRequestWithValues(t, "POST", path.Join(issueURL, "delete"), map[string]string{
+		"_csrf": GetUserCSRFToken(t, session),
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+}
+
+func testIssueAssign(t *testing.T, session *TestSession, repoLink string, issueID, assigneeID int64) {
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf(repoLink+"/issues/assignee?issue_ids=%d", issueID), map[string]string{
+		"_csrf":  GetUserCSRFToken(t, session),
+		"id":     strconv.FormatInt(assigneeID, 10),
+		"action": "", // empty action means assign
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
 func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, status string) int64 {
 	req := NewRequest(t, "GET", issueURL)
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -182,6 +194,15 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 	id, err := strconv.Atoi(idStr)
 	assert.NoError(t, err)
 	return int64(id)
+}
+
+func testIssueChangeMilestone(t *testing.T, session *TestSession, repoLink string, issueID, milestoneID int64) {
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf(repoLink+"/issues/milestone?issue_ids=%d", issueID), map[string]string{
+		"_csrf": GetUserCSRFToken(t, session),
+		"id":    strconv.FormatInt(milestoneID, 10),
+	})
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, `{"ok":true}`, strings.TrimSpace(resp.Body.String()))
 }
 
 func TestNewIssue(t *testing.T) {
@@ -473,10 +494,7 @@ func TestSearchIssues(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
-	}
+	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
 
 	link, _ := url.Parse("/issues/search")
 	req := NewRequest(t, "GET", link.String())
@@ -567,10 +585,7 @@ func TestSearchIssues(t *testing.T) {
 func TestSearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
-	}
+	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
 
 	session := loginUser(t, "user1")
 	link, _ := url.Parse("/issues/search")
@@ -630,7 +645,7 @@ func TestGetIssueInfo(t *testing.T) {
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	assert.NoError(t, issue.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, issue.LoadAttributes(t.Context()))
 	assert.Equal(t, int64(1019307200), int64(issue.DeadlineUnix))
 	assert.Equal(t, api.StateOpen, issue.State())
 
@@ -655,7 +670,7 @@ func TestUpdateIssueDeadline(t *testing.T) {
 	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
-	assert.NoError(t, issueBefore.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, issueBefore.LoadAttributes(t.Context()))
 	assert.Equal(t, "2002-04-20", issueBefore.DeadlineUnix.FormatDate())
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 

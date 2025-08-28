@@ -4,8 +4,8 @@
 	<div class="issue-content-left">
 		<div class="ui comments">
 			<div class="comment">
-				{{ctx.AvatarUtils.Avatar .SignedUser 40}}
-				<div class="ui segment content tw-my-0">
+				<div class=" tw-mr-4 not-mobile">{{ctx.AvatarUtils.Avatar .SignedUser 40}}</div>
+				<div class="ui segment content tw-my-0 avatar-content-left-arrow">
 					<div class="field">
 						<input name="title" data-global-init="initInputAutoFocusEnd" id="issue_title" required maxlength="255" autocomplete="off"
 								placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}"
@@ -33,7 +33,7 @@
 					{{else}}
 						{{template "repo/issue/comment_tab" .}}
 					{{end}}
-					<div class="tw-text-right">
+					<div class="flex-text-block tw-justify-end">
 						<button class="ui primary button">
 							{{if .PageIsComparePull}}
 								{{ctx.Locale.Tr "repo.pulls.create"}}

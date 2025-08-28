@@ -12,44 +12,62 @@ import (
 )
 
 const (
-	id                = "System.Gitea"
-	semver            = "1.0.1"
-	authors           = "Gitea Authors"
-	projectURL        = "https://gitea.io"
-	description       = "Package Description"
-	releaseNotes      = "Package Release Notes"
-	readme            = "Readme"
-	repositoryURL     = "https://gitea.io/gitea/gitea"
-	targetFramework   = ".NETStandard2.1"
-	dependencyID      = "System.Text.Json"
-	dependencyVersion = "5.0.0"
+	authors                  = "Gitea Authors"
+	copyright                = "Package Copyright"
+	dependencyID             = "System.Text.Json"
+	dependencyVersion        = "5.0.0"
+	developmentDependency    = true
+	description              = "Package Description"
+	iconURL                  = "https://gitea.io/favicon.png"
+	id                       = "System.Gitea"
+	language                 = "Package Language"
+	licenseURL               = "https://gitea.io/license"
+	minClientVersion         = "1.0.0.0"
+	owners                   = "Package Owners"
+	projectURL               = "https://gitea.io"
+	readme                   = "Readme"
+	releaseNotes             = "Package Release Notes"
+	repositoryURL            = "https://gitea.io/gitea/gitea"
+	requireLicenseAcceptance = true
+	tags                     = "tag_1 tag_2 tag_3"
+	targetFramework          = ".NETStandard2.1"
+	title                    = "Package Title"
+	versionStr               = "1.0.1"
 )
 
 const nuspecContent = `<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
-  <metadata>
-    <id>` + id + `</id>
-    <version>` + semver + `</version>
-    <authors>` + authors + `</authors>
-    <requireLicenseAcceptance>true</requireLicenseAcceptance>
-    <projectUrl>` + projectURL + `</projectUrl>
-    <description>` + description + `</description>
-    <releaseNotes>` + releaseNotes + `</releaseNotes>
-    <repository url="` + repositoryURL + `" />
-    <readme>README.md</readme>
-    <dependencies>
-      <group targetFramework="` + targetFramework + `">
-        <dependency id="` + dependencyID + `" version="` + dependencyVersion + `" exclude="Build,Analyzers" />
-      </group>
-    </dependencies>
-  </metadata>
+	<metadata minClientVersion="` + minClientVersion + `">
+		<authors>` + authors + `</authors>
+		<copyright>` + copyright + `</copyright>
+		<description>` + description + `</description>
+		<developmentDependency>true</developmentDependency>
+		<iconUrl>` + iconURL + `</iconUrl>
+		<id>` + id + `</id>
+		<language>` + language + `</language>
+		<licenseUrl>` + licenseURL + `</licenseUrl>
+		<owners>` + owners + `</owners>
+		<projectUrl>` + projectURL + `</projectUrl>
+		<readme>README.md</readme>
+		<releaseNotes>` + releaseNotes + `</releaseNotes>
+		<repository url="` + repositoryURL + `" />
+		<requireLicenseAcceptance>true</requireLicenseAcceptance>
+		<tags>` + tags + `</tags>
+		<title>` + title + `</title>
+		<version>` + versionStr + `</version>
+		<dependencies>
+			<group targetFramework="` + targetFramework + `">
+				<dependency id="` + dependencyID + `" version="` + dependencyVersion + `" exclude="Build,Analyzers" />
+			</group>
+		</dependencies>
+	</metadata>
 </package>`
 
 const symbolsNuspecContent = `<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
     <id>` + id + `</id>
-    <version>` + semver + `</version>
+    <version>` + versionStr + `</version>
     <description>` + description + `</description>
     <packageTypes>
       <packageType name="SymbolsPackage" />
@@ -140,14 +158,26 @@ func TestParsePackageMetaData(t *testing.T) {
 		assert.NotNil(t, np)
 		assert.Equal(t, DependencyPackage, np.PackageType)
 
-		assert.Equal(t, id, np.ID)
-		assert.Equal(t, semver, np.Version)
 		assert.Equal(t, authors, np.Metadata.Authors)
-		assert.Equal(t, projectURL, np.Metadata.ProjectURL)
 		assert.Equal(t, description, np.Metadata.Description)
-		assert.Equal(t, releaseNotes, np.Metadata.ReleaseNotes)
+		assert.Equal(t, id, np.ID)
+		assert.Equal(t, versionStr, np.Version)
+
+		assert.Equal(t, copyright, np.Metadata.Copyright)
+		assert.Equal(t, developmentDependency, np.Metadata.DevelopmentDependency)
+		assert.Equal(t, iconURL, np.Metadata.IconURL)
+		assert.Equal(t, language, np.Metadata.Language)
+		assert.Equal(t, licenseURL, np.Metadata.LicenseURL)
+		assert.Equal(t, minClientVersion, np.Metadata.MinClientVersion)
+		assert.Equal(t, owners, np.Metadata.Owners)
+		assert.Equal(t, projectURL, np.Metadata.ProjectURL)
 		assert.Equal(t, readme, np.Metadata.Readme)
+		assert.Equal(t, releaseNotes, np.Metadata.ReleaseNotes)
 		assert.Equal(t, repositoryURL, np.Metadata.RepositoryURL)
+		assert.Equal(t, requireLicenseAcceptance, np.Metadata.RequireLicenseAcceptance)
+		assert.Equal(t, tags, np.Metadata.Tags)
+		assert.Equal(t, title, np.Metadata.Title)
+
 		assert.Len(t, np.Metadata.Dependencies, 1)
 		assert.Contains(t, np.Metadata.Dependencies, targetFramework)
 		deps := np.Metadata.Dependencies[targetFramework]
@@ -180,7 +210,7 @@ func TestParsePackageMetaData(t *testing.T) {
 		assert.Equal(t, SymbolsPackage, np.PackageType)
 
 		assert.Equal(t, id, np.ID)
-		assert.Equal(t, semver, np.Version)
+		assert.Equal(t, versionStr, np.Version)
 		assert.Equal(t, description, np.Metadata.Description)
 		assert.Empty(t, np.Metadata.Dependencies)
 	})

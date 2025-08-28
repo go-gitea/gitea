@@ -23,20 +23,21 @@ SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
-XGO_VERSION := go-1.24.x
+XGO_VERSION := go-1.25.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.2.1
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.7.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.0.2
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.8.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4.0
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.12
-MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.6.0
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.31.0
+MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.32.3
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
-GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.17.1
+GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.20.0
+GOPLS_MODERNIZE_PACKAGE ?= golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.20.0
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -45,6 +46,17 @@ DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 ifeq ($(HAS_GO), yes)
 	CGO_EXTRA_CFLAGS := -DSQLITE_MAX_VARIABLE_NUMBER=32766
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
+endif
+
+CGO_ENABLED ?= 0
+ifneq (,$(findstring sqlite,$(TAGS))$(findstring pam,$(TAGS)))
+	CGO_ENABLED = 1
+endif
+
+STATIC ?=
+EXTLDFLAGS ?=
+ifneq ($(STATIC),)
+	EXTLDFLAGS = -extldflags "-static"
 endif
 
 ifeq ($(GOOS),windows)
@@ -80,7 +92,6 @@ ifeq ($(RACE_ENABLED),true)
 endif
 
 STORED_VERSION_FILE := VERSION
-HUGO_VERSION ?= 0.111.3
 
 GITHUB_REF_TYPE ?= branch
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
@@ -110,7 +121,7 @@ endif
 
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
-LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
+LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/riscv64
 
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration code.gitea.io/gitea/tests/e2e,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
@@ -120,8 +131,7 @@ WEBPACK_CONFIGS := webpack.config.js tailwind.config.js
 WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
 WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts
 
-BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
-BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
+BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* modules/options/bindata.* modules/templates/bindata.*
 
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
@@ -149,14 +159,8 @@ SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
 
 GO_SOURCES := $(wildcard *.go)
-GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" ! -path modules/options/bindata.go ! -path modules/public/bindata.go ! -path modules/templates/bindata.go)
+GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go")
 GO_SOURCES += $(GENERATED_GO_DEST)
-GO_SOURCES_NO_BINDATA := $(GO_SOURCES)
-
-ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
-	GO_SOURCES += $(BINDATA_DEST)
-	GENERATED_GO_DEST += $(BINDATA_DEST)
-endif
 
 # Force installation of playwright dependencies by setting this flag
 ifdef DEPS_PLAYWRIGHT
@@ -226,7 +230,7 @@ clean-all: clean ## delete backend, frontend and integration files
 
 .PHONY: clean
 clean: ## delete backend and integration files
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) $(BINDATA_HASH) \
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST_WILDCARD) \
 		integrations*.test \
 		e2e*.test \
 		tests/integration/gitea-integration-* \
@@ -237,7 +241,7 @@ clean: ## delete backend and integration files
 		tests/e2e/reports/ tests/e2e/test-artifacts/ tests/e2e/test-snapshots/
 
 .PHONY: fmt
-fmt: ## format the Go code
+fmt: ## format the Go and template code
 	@GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
@@ -256,6 +260,19 @@ fmt-check: fmt
 	  exit 1; \
 	fi
 
+.PHONY: fix
+fix: ## apply automated fixes to Go code
+	$(GO) run $(GOPLS_MODERNIZE_PACKAGE) -fix ./...
+
+.PHONY: fix-check
+fix-check: fix
+	@diff=$$(git diff --color=always $(GO_SOURCES)); \
+	if [ -n "$$diff" ]; then \
+	  echo "Please run 'make fix' and commit the result:"; \
+	  printf "%s" "$${diff}"; \
+	  exit 1; \
+	fi
+
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
 	@mkdir -p $(MAKE_EVIDENCE_DIR)
@@ -268,7 +285,7 @@ endif
 .PHONY: generate-swagger
 generate-swagger: $(SWAGGER_SPEC) ## generate the swagger spec from code comments
 
-$(SWAGGER_SPEC): $(GO_SOURCES_NO_BINDATA) $(SWAGGER_SPEC_INPUT)
+$(SWAGGER_SPEC): $(GO_SOURCES) $(SWAGGER_SPEC_INPUT)
 	$(GO) run $(SWAGGER_PACKAGE) generate spec --exclude "$(SWAGGER_EXCLUDE)" --input "$(SWAGGER_SPEC_INPUT)" --output './$(SWAGGER_SPEC)'
 
 .PHONY: swagger-check
@@ -295,7 +312,7 @@ checks: checks-frontend checks-backend ## run various consistency checks
 checks-frontend: lockfile-check svg-check ## check frontend files
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check fmt-check swagger-validate security-check ## check backend files
+checks-backend: tidy-check swagger-check fmt-check fix-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
 lint: lint-frontend lint-backend lint-spell ## lint everything
@@ -373,7 +390,7 @@ lint-go-gitea-vet: ## lint go files with gitea-vet
 .PHONY: lint-go-gopls
 lint-go-gopls: ## lint go files with gopls
 	@echo "Running gopls check..."
-	@GO=$(GO) GOPLS_PACKAGE=$(GOPLS_PACKAGE) tools/lint-go-gopls.sh $(GO_SOURCES_NO_BINDATA)
+	@GO=$(GO) GOPLS_PACKAGE=$(GOPLS_PACKAGE) tools/lint-go-gopls.sh $(GO_SOURCES)
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
@@ -387,11 +404,11 @@ lint-actions: ## lint action workflow files
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
 	@node tools/lint-templates-svg.js
-	@poetry run djlint $(shell find templates -type f -iname '*.tmpl')
+	@uv run --frozen djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: lint-yaml
 lint-yaml: .venv ## lint yaml files
-	@poetry run yamllint -s .
+	@uv run --frozen yamllint -s .
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
@@ -740,7 +757,10 @@ security-check:
 	go run $(GOVULNCHECK_PACKAGE) -show color ./...
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)
+  $(error pam support set via TAGS doesn't support static builds)
+endif
+	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
 
 .PHONY: release
 release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-check
@@ -816,14 +836,15 @@ deps-tools: ## install tool dependencies
 	$(GO) install $(GOVULNCHECK_PACKAGE) & \
 	$(GO) install $(ACTIONLINT_PACKAGE) & \
 	$(GO) install $(GOPLS_PACKAGE) & \
+	$(GO) install $(GOPLS_MODERNIZE_PACKAGE) & \
 	wait
 
 node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
 
-.venv: poetry.lock
-	poetry install
+.venv: uv.lock
+	uv sync
 	@touch .venv
 
 .PHONY: update
@@ -841,8 +862,8 @@ update-js: node-check | node_modules ## update js dependencies
 .PHONY: update-py
 update-py: node-check | node_modules ## update py dependencies
 	npx updates -u -f pyproject.toml
-	rm -rf .venv poetry.lock
-	poetry install
+	rm -rf .venv uv.lock
+	uv sync
 	@touch .venv
 
 .PHONY: webpack

@@ -448,15 +448,13 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{RunID: runID})
+	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
+		RunID:  runID,
+		Status: int(actions.ArtifactStatusUploadConfirmed),
+	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, err.Error())
-		return
-	}
-	if len(artifacts) == 0 {
-		log.Debug("[artifact] handleListArtifacts, no artifacts")
-		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
@@ -510,11 +508,16 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
+	if artifact.Status != actions.ArtifactStatusUploadConfirmed {
+		log.Error("Error artifact not found: %s", artifact.Status.ToString())
+		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
+		return
+	}
 
 	respData := GetSignedArtifactURLResponse{}
 
 	if setting.Actions.ArtifactStorage.ServeDirect() {
-		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath, nil)
+		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath, ctx.Req.Method, nil)
 		if u != nil && err == nil {
 			respData.SignedUrl = u.String()
 		}
@@ -535,6 +538,11 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 	artifact, err := r.getArtifactByName(ctx, task.Job.RunID, artifactName)
 	if err != nil {
 		log.Error("Error artifact not found: %v", err)
+		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
+		return
+	}
+	if artifact.Status != actions.ArtifactStatusUploadConfirmed {
+		log.Error("Error artifact not found: %s", artifact.Status.ToString())
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}

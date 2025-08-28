@@ -7,7 +7,7 @@ import (
 	"runtime"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -184,7 +184,7 @@ func NewCollector() Collector {
 		Users: prometheus.NewDesc(
 			namespace+"users",
 			"Number of Users",
-			nil, nil,
+			[]string{"state"}, nil,
 		),
 		Watches: prometheus.NewDesc(
 			namespace+"watches",
@@ -233,7 +233,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect returns the metrics with values
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
-	stats := activities_model.GetStatistic(db.DefaultContext)
+	stats := activities_model.GetStatistic(graceful.GetManager().ShutdownContext())
 
 	ch <- prometheus.MustNewConstMetric(
 		c.Accesses,
@@ -373,7 +373,14 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(
 		c.Users,
 		prometheus.GaugeValue,
-		float64(stats.Counter.User),
+		float64(stats.Counter.UsersActive),
+		"active", // state label
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.Users,
+		prometheus.GaugeValue,
+		float64(stats.Counter.UsersNotActive),
+		"inactive", // state label
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.Watches,

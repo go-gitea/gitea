@@ -181,7 +181,7 @@ func Migrate(ctx *context.APIContext) {
 		IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 		IsMirror:       opts.Mirror,
 		Status:         repo_model.RepositoryBeingMigrated,
-	})
+	}, false)
 	if err != nil {
 		handleMigrateError(ctx, repoOwner, err)
 		return
@@ -203,7 +203,7 @@ func Migrate(ctx *context.APIContext) {
 		}
 
 		if repo != nil {
-			if errDelete := repo_service.DeleteRepositoryDirectly(ctx, ctx.Doer, repo.ID); errDelete != nil {
+			if errDelete := repo_service.DeleteRepositoryDirectly(ctx, repo.ID); errDelete != nil {
 				log.Error("DeleteRepository: %v", errDelete)
 			}
 		}

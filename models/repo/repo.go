@@ -64,18 +64,18 @@ func (err ErrRepoIsArchived) Error() string {
 }
 
 type globalVarsStruct struct {
-	validRepoNamePattern   *regexp.Regexp
-	invalidRepoNamePattern *regexp.Regexp
-	reservedRepoNames      []string
-	reservedRepoPatterns   []string
+	validRepoNamePattern     *regexp.Regexp
+	invalidRepoNamePattern   *regexp.Regexp
+	reservedRepoNames        []string
+	reservedRepoNamePatterns []string
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
 	return &globalVarsStruct{
-		validRepoNamePattern:   regexp.MustCompile(`[-.\w]+`),
-		invalidRepoNamePattern: regexp.MustCompile(`[.]{2,}`),
-		reservedRepoNames:      []string{".", "..", "-"},
-		reservedRepoPatterns:   []string{"*.git", "*.wiki", "*.rss", "*.atom"},
+		validRepoNamePattern:     regexp.MustCompile(`^[-.\w]+$`),
+		invalidRepoNamePattern:   regexp.MustCompile(`[.]{2,}`),
+		reservedRepoNames:        []string{".", "..", "-"},
+		reservedRepoNamePatterns: []string{"*.wiki", "*.git", "*.rss", "*.atom"},
 	}
 })
 
@@ -86,7 +86,16 @@ func IsUsableRepoName(name string) error {
 		// Note: usually this error is normally caught up earlier in the UI
 		return db.ErrNameCharsNotAllowed{Name: name}
 	}
-	return db.IsUsableName(vars.reservedRepoNames, vars.reservedRepoPatterns, name)
+	return db.IsUsableName(vars.reservedRepoNames, vars.reservedRepoNamePatterns, name)
+}
+
+// IsValidSSHAccessRepoName is like IsUsableRepoName, but it allows "*.wiki" because wiki repo needs to be accessed in SSH code
+func IsValidSSHAccessRepoName(name string) bool {
+	vars := globalVars()
+	if !vars.validRepoNamePattern.MatchString(name) || vars.invalidRepoNamePattern.MatchString(name) {
+		return false
+	}
+	return db.IsUsableName(vars.reservedRepoNames, vars.reservedRepoNamePatterns[1:], name) == nil
 }
 
 // TrustModelType defines the types of trust model for this repository
@@ -354,10 +363,8 @@ func (repo *Repository) FullName() string {
 
 // HTMLURL returns the repository HTML URL
 func (repo *Repository) HTMLURL(ctxs ...context.Context) string {
-	ctx := context.TODO()
-	if len(ctxs) > 0 {
-		ctx = ctxs[0]
-	}
+	// FIXME: this HTMLURL is still used in mail templates, so the "ctx" is not provided.
+	ctx := util.OptionalArg(ctxs, context.TODO())
 	return httplib.MakeAbsoluteURL(ctx, repo.Link())
 }
 
@@ -643,8 +650,14 @@ func (repo *Repository) AllowsPulls(ctx context.Context) bool {
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
+// FIXME: most CanEnableEditor calls should be replaced with CanContentChange
+// And all other like CanCreateBranch / CanEnablePulls should also be updated
 func (repo *Repository) CanEnableEditor() bool {
-	return !repo.IsMirror
+	return repo.CanContentChange()
+}
+
+func (repo *Repository) CanContentChange() bool {
+	return !repo.IsMirror && !repo.IsArchived
 }
 
 // DescriptionHTML does special handles to description and return HTML string.

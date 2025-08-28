@@ -30,6 +30,25 @@ const (
 	ArtifactStatusDeleted                                   // 6, ArtifactStatusDeleted is the status of an artifact that is deleted
 )
 
+func (status ArtifactStatus) ToString() string {
+	switch status {
+	case ArtifactStatusUploadPending:
+		return "upload is not yet completed"
+	case ArtifactStatusUploadConfirmed:
+		return "upload is completed"
+	case ArtifactStatusUploadError:
+		return "upload failed"
+	case ArtifactStatusExpired:
+		return "expired"
+	case ArtifactStatusPendingDeletion:
+		return "pending deletion"
+	case ArtifactStatusDeleted:
+		return "deleted"
+	default:
+		return "unknown"
+	}
+}
+
 func init() {
 	db.RegisterModel(new(ActionArtifact))
 }

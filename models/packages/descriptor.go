@@ -83,13 +83,13 @@ func (pd *PackageDescriptor) VersionWebLink() string {
 }
 
 // PackageHTMLURL returns the absolute package HTML URL
-func (pd *PackageDescriptor) PackageHTMLURL() string {
-	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HTMLURL(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+func (pd *PackageDescriptor) PackageHTMLURL(ctx context.Context) string {
+	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HTMLURL(ctx), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
 // VersionHTMLURL returns the absolute package version HTML URL
-func (pd *PackageDescriptor) VersionHTMLURL() string {
-	return fmt.Sprintf("%s/%s", pd.PackageHTMLURL(), url.PathEscape(pd.Version.LowerVersion))
+func (pd *PackageDescriptor) VersionHTMLURL(ctx context.Context) string {
+	return fmt.Sprintf("%s/%s", pd.PackageHTMLURL(ctx), url.PathEscape(pd.Version.LowerVersion))
 }
 
 // CalculateBlobSize returns the total blobs size in bytes
@@ -103,10 +103,10 @@ func (pd *PackageDescriptor) CalculateBlobSize() int64 {
 
 // GetPackageDescriptor gets the package description for a version
 func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDescriptor, error) {
-	return getPackageDescriptor(ctx, pv, cache.NewEphemeralCache())
+	return GetPackageDescriptorWithCache(ctx, pv, cache.NewEphemeralCache())
 }
 
-func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache.EphemeralCache) (*PackageDescriptor, error) {
+func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *cache.EphemeralCache) (*PackageDescriptor, error) {
 	p, err := cache.GetWithEphemeralCache(ctx, c, "package", pv.PackageID, GetPackageByID)
 	if err != nil {
 		return nil, err
@@ -270,7 +270,7 @@ func GetPackageDescriptors(ctx context.Context, pvs []*PackageVersion) ([]*Packa
 func getPackageDescriptors(ctx context.Context, pvs []*PackageVersion, c *cache.EphemeralCache) ([]*PackageDescriptor, error) {
 	pds := make([]*PackageDescriptor, 0, len(pvs))
 	for _, pv := range pvs {
-		pd, err := getPackageDescriptor(ctx, pv, c)
+		pd, err := GetPackageDescriptorWithCache(ctx, pv, c)
 		if err != nil {
 			return nil, err
 		}

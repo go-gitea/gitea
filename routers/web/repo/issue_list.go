@@ -61,7 +61,7 @@ func SearchIssues(ctx *context.Context) {
 	)
 	{
 		// find repos user can access (for issue search)
-		opts := &repo_model.SearchRepoOptions{
+		opts := repo_model.SearchRepoOptions{
 			Private:     false,
 			AllPublic:   true,
 			TopicOnly:   false,
@@ -767,6 +767,10 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.pulls")
 		ctx.Data["PageIsPullList"] = true
+		prepareRecentlyPushedNewBranches(ctx)
+		if ctx.Written() {
+			return
+		}
 	} else {
 		MustEnableIssues(ctx)
 		if ctx.Written() {

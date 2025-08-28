@@ -290,19 +290,14 @@ func UpdateRepoStats(ctx context.Context, id int64) error {
 }
 
 func updateUserStarNumbers(ctx context.Context, users []user_model.User) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	for _, user := range users {
-		if _, err = db.Exec(ctx, "UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
-			return err
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, user := range users {
+			if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
+				return err
+			}
 		}
-	}
-
-	return committer.Commit()
+		return nil
+	})
 }
 
 // DoctorUserStarNum recalculate Stars number for all user

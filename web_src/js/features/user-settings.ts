@@ -1,10 +1,7 @@
-import {hideElem, queryElems, showElem} from '../utils/dom.ts';
-import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
+import {hideElem, showElem} from '../utils/dom.ts';
 
 export function initUserSettings() {
   if (!document.querySelector('.user.settings.profile')) return;
-
-  queryElems(document, '.avatar-file-with-cropper', initAvatarUploaderWithCropper);
 
   const usernameInput = document.querySelector<HTMLInputElement>('#username');
   if (!usernameInput) return;

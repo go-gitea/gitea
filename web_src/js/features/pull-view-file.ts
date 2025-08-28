@@ -1,4 +1,4 @@
-import {diffTreeStore} from '../modules/stores.ts';
+import {diffTreeStore, diffTreeStoreSetViewed} from '../modules/diff-file.ts';
 import {setFileFolding} from './file-fold.ts';
 import {POST} from '../modules/fetch.ts';
 
@@ -58,11 +58,8 @@ export function initViewedCheckboxListenerFor() {
 
       const fileName = checkbox.getAttribute('name');
 
-      // check if the file is in our difftreestore and if we find it -> change the IsViewed status
-      const fileInPageData = diffTreeStore().files.find((x: Record<string, any>) => x.Name === fileName);
-      if (fileInPageData) {
-        fileInPageData.IsViewed = this.checked;
-      }
+      // check if the file is in our diffTreeStore and if we find it -> change the IsViewed status
+      diffTreeStoreSetViewed(diffTreeStore(), fileName, this.checked);
 
       // Unfortunately, actual forms cause too many problems, hence another approach is needed
       const files: Record<string, boolean> = {};

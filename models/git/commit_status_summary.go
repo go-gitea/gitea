@@ -7,19 +7,19 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
 )
 
 // CommitStatusSummary holds the latest commit Status of a single Commit
 type CommitStatusSummary struct {
-	ID        int64                 `xorm:"pk autoincr"`
-	RepoID    int64                 `xorm:"INDEX UNIQUE(repo_id_sha)"`
-	SHA       string                `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_id_sha)"`
-	State     api.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
-	TargetURL string                `xorm:"TEXT"`
+	ID        int64                          `xorm:"pk autoincr"`
+	RepoID    int64                          `xorm:"INDEX UNIQUE(repo_id_sha)"`
+	SHA       string                         `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_id_sha)"`
+	State     commitstatus.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
+	TargetURL string                         `xorm:"TEXT"`
 }
 
 func init() {
@@ -55,11 +55,15 @@ func GetLatestCommitStatusForRepoAndSHAs(ctx context.Context, repoSHAs []RepoSHA
 }
 
 func UpdateCommitStatusSummary(ctx context.Context, repoID int64, sha string) error {
-	commitStatuses, _, err := GetLatestCommitStatus(ctx, repoID, sha, db.ListOptionsAll)
+	commitStatuses, err := GetLatestCommitStatus(ctx, repoID, sha, db.ListOptionsAll)
 	if err != nil {
 		return err
 	}
-	state := CalcCommitStatus(commitStatuses)
+	// it guarantees that commitStatuses is not empty because this function is always called after a commit status is created
+	if len(commitStatuses) == 0 {
+		setting.PanicInDevOrTesting("no commit statuses found for repo %d and sha %s", repoID, sha)
+	}
+	state := CalcCommitStatus(commitStatuses) // non-empty commitStatuses is guaranteed
 	// mysql will return 0 when update a record which state hasn't been changed which behaviour is different from other database,
 	// so we need to use insert in on duplicate
 	if setting.Database.Type.IsMySQL() {

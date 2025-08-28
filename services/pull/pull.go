@@ -33,7 +33,6 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	gitea_context "code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -96,7 +95,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 	defer cancel()
 
-	if err := testPatch(ctx, prCtx, pr); err != nil {
+	if err := testPullRequestTmpRepoBranchMergeable(ctx, prCtx, pr); err != nil {
 		return err
 	}
 
@@ -143,7 +142,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
-			git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), false, false)
+			git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false, false)
 		if err != nil {
 			return err
 		}
@@ -184,7 +183,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		return nil
 	}); err != nil {
 		// cleanup: this will only remove the reference, the real commit will be clean up when next GC
-		if err1 := baseGitRepo.RemoveReference(pr.GetGitRefName()); err1 != nil {
+		if err1 := baseGitRepo.RemoveReference(pr.GetGitHeadRefName()); err1 != nil {
 			log.Error("RemoveReference: %v", err1)
 		}
 		return err
@@ -314,12 +313,12 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	pr.BaseBranch = targetBranch
 
 	// Refresh patch
-	if err := TestPatch(pr); err != nil {
+	if err := testPullRequestBranchMergeable(pr); err != nil {
 		return err
 	}
 
 	// Update target branch, PR diff and status
-	// This is the same as checkAndUpdateStatus in check service, but also updates base_branch
+	// This is the same as markPullRequestAsMergeable in check service, but also updates base_branch
 	if pr.Status == issues_model.PullRequestStatusChecking {
 		pr.Status = issues_model.PullRequestStatusMergeable
 	}
@@ -409,7 +408,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 				continue
 			}
 
-			AddToTaskQueue(ctx, pr)
+			StartPullRequestCheckImmediately(ctx, pr)
 			comment, err := CreatePushPullComment(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID)
 			if err == nil && comment != nil {
 				notify_service.PullRequestPushCommits(ctx, opts.Doer, pr, comment)
@@ -463,12 +462,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 					}
 
 					if !pr.IsWorkInProgress(ctx) {
-						var reviewNotifiers []*issue_service.ReviewRequestNotifier
-						if opts.IsForcePush {
-							reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, pr)
-						} else {
-							reviewNotifiers, err = issue_service.PullRequestCodeOwnersReviewSpecialCommits(ctx, pr, opts.OldCommitID, opts.NewCommitID)
-						}
+						reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(ctx, pr)
 						if err != nil {
 							log.Error("PullRequestCodeOwnersReview: %v", err)
 						}
@@ -502,7 +496,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 					log.Error("UpdateCommitDivergence: %v", err)
 				}
 			}
-			AddToTaskQueue(ctx, pr)
+			StartPullRequestCheckDelayable(ctx, pr)
 		}
 	})
 }
@@ -572,7 +566,7 @@ func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) (err erro
 }
 
 func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, prefixHeadBranch string) (err error) {
-	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
+	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitHeadRefName())
 
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		log.Error("Unable to load head repository for PR[%d] Error: %v", pr.ID, err)
@@ -593,7 +587,7 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 		return fmt.Errorf("unable to load poster %d for pr %d: %w", pr.Issue.PosterID, pr.ID, err)
 	}
 
-	gitRefName := pr.GetGitRefName()
+	gitRefName := pr.GetGitHeadRefName()
 
 	if err := git.Push(ctx, headRepoPath, git.PushOptions{
 		Remote: baseRepoPath,
@@ -647,13 +641,13 @@ func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *r
 
 // UpdateRef update refs/pull/id/head directly for agit flow pull request
 func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
-	log.Trace("UpdateRef[%d]: upgate pull request ref in base repo '%s'", pr.ID, pr.GetGitRefName())
+	log.Trace("UpdateRef[%d]: upgate pull request ref in base repo '%s'", pr.ID, pr.GetGitHeadRefName())
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
 
-	_, _, err = git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitRefName(), pr.HeadCommitID).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+	_, _, err = git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.HeadCommitID).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
 	if err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}
@@ -821,9 +815,9 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
 	} else {
-		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
+		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
-			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitRefName(), err)
+			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitHeadRefName(), err)
 			return ""
 		}
 		headCommit, err = gitRepo.GetCommit(pr.HeadCommitID)
@@ -950,12 +944,6 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	return stringBuilder.String()
 }
 
-// GetIssuesLastCommitStatus returns a map of issue ID to the most recent commit's latest status
-func GetIssuesLastCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64]*git_model.CommitStatus, error) {
-	_, lastStatus, err := GetIssuesAllCommitStatus(ctx, issues)
-	return lastStatus, err
-}
-
 // GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status
 func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64][]*git_model.CommitStatus, map[int64]*git_model.CommitStatus, error) {
 	if err := issues.LoadPullRequests(ctx); err != nil {
@@ -1004,12 +992,12 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 
 // getAllCommitStatus get pr's commit statuses.
 func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest) (statuses []*git_model.CommitStatus, lastStatus *git_model.CommitStatus, err error) {
-	sha, shaErr := gitRepo.GetRefCommitID(pr.GetGitRefName())
+	sha, shaErr := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	if shaErr != nil {
 		return nil, nil, shaErr
 	}
 
-	statuses, _, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
+	statuses, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
 	lastStatus = git_model.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }
@@ -1054,7 +1042,7 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 			return false, err
 		}
 	} else {
-		pr.HeadCommitID, err = baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+		pr.HeadCommitID, err = baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
 			return false, err
 		}
@@ -1076,10 +1064,8 @@ type CommitInfo struct {
 // GetPullCommits returns all commits on given pull request and the last review commit sha
 // Attention: The last review commit sha must be from the latest review whose commit id is not empty.
 // So the type of the latest review cannot be "ReviewTypeRequest".
-func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]CommitInfo, string, error) {
+func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user_model.User, issue *issues_model.Issue) ([]CommitInfo, string, error) {
 	pull := issue.PullRequest
-
-	baseGitRepo := ctx.Repo.GitRepo
 
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		return nil, "", err
@@ -1088,7 +1074,7 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 	if pull.HasMerged {
 		baseBranch = pull.MergeBase
 	}
-	prInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(), baseBranch, pull.GetGitRefName(), true, false)
+	prInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(), baseBranch, pull.GetGitHeadRefName(), true, false)
 	if err != nil {
 		return nil, "", err
 	}
@@ -1116,11 +1102,11 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 	}
 
 	var lastReviewCommitID string
-	if ctx.IsSigned {
+	if doer != nil {
 		// get last review of current user and store information in context (if available)
 		lastreview, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
 			IssueID:    issue.ID,
-			ReviewerID: ctx.Doer.ID,
+			ReviewerID: doer.ID,
 			Types: []issues_model.ReviewType{
 				issues_model.ReviewTypeApprove,
 				issues_model.ReviewTypeComment,
