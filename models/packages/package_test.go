@@ -6,7 +6,6 @@ package packages_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -27,7 +26,7 @@ func TestHasOwnerPackages(t *testing.T) {
 
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	p, err := packages_model.TryInsertPackage(db.DefaultContext, &packages_model.Package{
+	p, err := packages_model.TryInsertPackage(t.Context(), &packages_model.Package{
 		OwnerID:   owner.ID,
 		LowerName: "package",
 	})
@@ -35,11 +34,11 @@ func TestHasOwnerPackages(t *testing.T) {
 	assert.NoError(t, err)
 
 	// A package without package versions gets automatically cleaned up and should return false
-	has, err := packages_model.HasOwnerPackages(db.DefaultContext, owner.ID)
+	has, err := packages_model.HasOwnerPackages(t.Context(), owner.ID)
 	assert.False(t, has)
 	assert.NoError(t, err)
 
-	pv, err := packages_model.GetOrInsertVersion(db.DefaultContext, &packages_model.PackageVersion{
+	pv, err := packages_model.GetOrInsertVersion(t.Context(), &packages_model.PackageVersion{
 		PackageID:    p.ID,
 		LowerVersion: "internal",
 		IsInternal:   true,
@@ -48,11 +47,11 @@ func TestHasOwnerPackages(t *testing.T) {
 	assert.NoError(t, err)
 
 	// A package with an internal package version gets automatically cleaned up and should return false
-	has, err = packages_model.HasOwnerPackages(db.DefaultContext, owner.ID)
+	has, err = packages_model.HasOwnerPackages(t.Context(), owner.ID)
 	assert.False(t, has)
 	assert.NoError(t, err)
 
-	pv, err = packages_model.GetOrInsertVersion(db.DefaultContext, &packages_model.PackageVersion{
+	pv, err = packages_model.GetOrInsertVersion(t.Context(), &packages_model.PackageVersion{
 		PackageID:    p.ID,
 		LowerVersion: "normal",
 		IsInternal:   false,
@@ -61,7 +60,7 @@ func TestHasOwnerPackages(t *testing.T) {
 	assert.NoError(t, err)
 
 	// A package with a normal package version should return true
-	has, err = packages_model.HasOwnerPackages(db.DefaultContext, owner.ID)
+	has, err = packages_model.HasOwnerPackages(t.Context(), owner.ID)
 	assert.True(t, has)
 	assert.NoError(t, err)
 }

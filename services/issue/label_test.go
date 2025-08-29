@@ -6,7 +6,6 @@ package issue
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -33,7 +32,7 @@ func TestIssue_AddLabels(t *testing.T) {
 			labels[i] = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: labelID})
 		}
 		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.doerID})
-		assert.NoError(t, AddLabels(db.DefaultContext, issue, doer, labels))
+		assert.NoError(t, AddLabels(t.Context(), issue, doer, labels))
 		for _, labelID := range test.labelIDs {
 			unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: test.issueID, LabelID: labelID})
 		}
@@ -56,7 +55,7 @@ func TestIssue_AddLabel(t *testing.T) {
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: test.issueID})
 		label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: test.labelID})
 		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.doerID})
-		assert.NoError(t, AddLabel(db.DefaultContext, issue, doer, label))
+		assert.NoError(t, AddLabel(t.Context(), issue, doer, label))
 		unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: test.issueID, LabelID: test.labelID})
 	}
 }
