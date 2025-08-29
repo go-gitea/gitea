@@ -496,21 +496,23 @@ func preparePullViewSigning(ctx *context.Context, issue *issues_model.Issue) {
 	if ctx.Doer != nil {
 		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitHeadRefName())
 		ctx.Data["WillSign"] = sign
-		switch key.Format {
-		case git.SigningKeyFormatOpenPGP:
-			ctx.Data["SigningKey"] = key.KeyID
-		case git.SigningKeyFormatSSH:
-			content, readErr := os.ReadFile(key.KeyID)
-			if readErr != nil {
-				log.Error("Error whilst reading public key of pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), readErr)
-				ctx.Data["SigningKey"] = "Unknown"
-			} else {
-				var fingerprintErr error
-				ctx.Data["SigningKey"], fingerprintErr = asymkey_model.CalcFingerprint(string(content))
-				if fingerprintErr != nil {
-					log.Error("Error whilst generating public key fingerprint of pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), fingerprintErr)
-				} else {
+		if key != nil {
+			switch key.Format {
+			case git.SigningKeyFormatOpenPGP:
+				ctx.Data["SigningKey"] = key.KeyID
+			case git.SigningKeyFormatSSH:
+				content, readErr := os.ReadFile(key.KeyID)
+				if readErr != nil {
+					log.Error("Error whilst reading public key of pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), readErr)
 					ctx.Data["SigningKey"] = "Unknown"
+				} else {
+					var fingerprintErr error
+					ctx.Data["SigningKey"], fingerprintErr = asymkey_model.CalcFingerprint(string(content))
+					if fingerprintErr != nil {
+						log.Error("Error whilst generating public key fingerprint of pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), fingerprintErr)
+					} else {
+						ctx.Data["SigningKey"] = "Unknown"
+					}
 				}
 			}
 		}
