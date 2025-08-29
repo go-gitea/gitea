@@ -4,20 +4,22 @@
 
 package migration
 
+import "context"
+
 // Uploader uploads all the information of one repository
 type Uploader interface {
 	MaxBatchInsertSize(tp string) int
-	CreateRepo(repo *Repository, opts MigrateOptions) error
-	CreateTopics(topic ...string) error
-	CreateMilestones(milestones ...*Milestone) error
-	CreateReleases(releases ...*Release) error
-	SyncTags() error
-	CreateLabels(labels ...*Label) error
-	CreateIssues(issues ...*Issue) error
-	CreateComments(comments ...*Comment) error
-	CreatePullRequests(prs ...*PullRequest) error
-	CreateReviews(reviews ...*Review) error
+	CreateRepo(ctx context.Context, repo *Repository, opts MigrateOptions) error
+	CreateTopics(ctx context.Context, topic ...string) error
+	CreateMilestones(ctx context.Context, milestones ...*Milestone) error
+	CreateReleases(ctx context.Context, releases ...*Release) error
+	SyncTags(ctx context.Context) error
+	CreateLabels(ctx context.Context, labels ...*Label) error
+	CreateIssues(ctx context.Context, issues ...*Issue) error
+	CreateComments(ctx context.Context, comments ...*Comment) error
+	CreatePullRequests(ctx context.Context, prs ...*PullRequest) error
+	CreateReviews(ctx context.Context, reviews ...*Review) error
 	Rollback() error
-	Finish() error
+	Finish(ctx context.Context) error
 	Close()
 }

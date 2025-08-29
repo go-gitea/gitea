@@ -5,7 +5,7 @@
 				<th class="three wide">{{ctx.Locale.Tr "repo.commits.author"}}</th>
 				<th class="two wide sha">{{StringUtils.ToUpper $.Repository.ObjectFormatName}}</th>
 				<th class="eight wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
-				<th class="two wide right aligned">{{ctx.Locale.Tr "repo.commits.date"}}</th>
+				<th class="two wide tw-text-right">{{ctx.Locale.Tr "repo.commits.date"}}</th>
 				<th class="one wide"></th>
 			</tr>
 		</thead>
@@ -28,33 +28,15 @@
 						</div>
 					</td>
 					<td class="sha">
-						{{$class := "ui sha label"}}
-						{{if .Signature}}
-							{{$class = (print $class " isSigned")}}
-							{{if .Verification.Verified}}
-								{{if eq .Verification.TrustStatus "trusted"}}
-									{{$class = (print $class " isVerified")}}
-								{{else if eq .Verification.TrustStatus "untrusted"}}
-									{{$class = (print $class " isVerifiedUntrusted")}}
-								{{else}}
-									{{$class = (print $class " isVerifiedUnmatched")}}
-								{{end}}
-							{{else if .Verification.Warning}}
-								{{$class = (print $class " isWarning")}}
-							{{end}}
-						{{end}}
-						{{$commitShaLink := ""}}
+						{{$commitBaseLink := ""}}
 						{{if $.PageIsWiki}}
-							{{$commitShaLink = (printf "%s/wiki/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
+							{{$commitBaseLink = printf "%s/wiki/commit" $commitRepoLink}}
 						{{else if $.PageIsPullCommits}}
-							{{$commitShaLink = (printf "%s/pulls/%d/commits/%s" $commitRepoLink $.Issue.Index (PathEscape .ID.String))}}
+							{{$commitBaseLink = printf "%s/pulls/%d/commits" $commitRepoLink $.Issue.Index}}
 						{{else if $.Reponame}}
-							{{$commitShaLink = (printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
+							{{$commitBaseLink = printf "%s/commit" $commitRepoLink}}
 						{{end}}
-						<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="{{$class}}">
-							<span class="shortsha">{{ShortSha .ID.String}}</span>
-							{{if .Signature}}{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}{{end}}
-						</a>
+						{{template "repo/commit_sign_badge" dict "Commit" . "CommitBaseLink" $commitBaseLink "CommitSignVerification" .Verification}}
 					</td>
 					<td class="message">
 						<span class="message-wrapper">
@@ -62,33 +44,42 @@
 							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | ctx.RenderUtils.RenderEmoji}}</span>
 						{{else}}
 							{{$commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
-							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .Message $commitLink ($.Repository.ComposeMetas ctx)}}</span>
+							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .Message $commitLink $.Repository}}</span>
 						{{end}}
 						</span>
 						{{if IsMultilineCommitMessage .Message}}
-						<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
+						<button class="ui button ellipsis-button" aria-expanded="false" data-global-click="onRepoEllipsisButtonClick">...</button>
 						{{end}}
 						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 						{{if IsMultilineCommitMessage .Message}}
-						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .Message ($.Repository.ComposeMetas ctx)}}</pre>
+						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .Message $.Repository}}</pre>
 						{{end}}
 						{{if $.CommitsTagsMap}}
 							{{range (index $.CommitsTagsMap .ID.String)}}
-								{{- template "repo/tag/name" dict "RepoLink" $.Repository.Link "TagName" .TagName "IsRelease" (not .IsTag) -}}
+								{{- template "repo/tag/name" dict "AdditionalClasses" "tw-py-0" "RepoLink" $.Repository.Link "TagName" .TagName "IsRelease" (not .IsTag) -}}
 							{{end}}
 						{{end}}
 					</td>
 					{{if .Committer}}
-						<td class="text right aligned">{{DateUtils.TimeSince .Committer.When}}</td>
+						<td class="tw-text-right">{{DateUtils.TimeSince .Committer.When}}</td>
 					{{else}}
-						<td class="text right aligned">{{DateUtils.TimeSince .Author.When}}</td>
+						<td class="tw-text-right">{{DateUtils.TimeSince .Author.When}}</td>
 					{{end}}
-					<td class="text right aligned tw-py-0">
-						<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
-						{{if not $.PageIsWiki}}{{/* at the moment, wiki doesn't support "view at history point*/}}
+					<td class="tw-text-right tw-py-0">
+						<button class="btn interact-bg tw-p-2 copy-commit-id" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
+						{{/* at the moment, wiki doesn't support these "view" links like "view at history point" */}}
+						{{if not $.PageIsWiki}}
+							{{/* view single file diff */}}
+							{{if $.FileTreePath}}
+							<a class="btn interact-bg tw-p-2 view-single-diff" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_file_diff"}}"
+								href="{{$commitRepoLink}}/commit/{{.ID.String}}?files={{$.FileTreePath}}"
+							>{{svg "octicon-file-diff"}}</a>
+							{{end}}
+
+							{{/* view at history point */}}
 							{{$viewCommitLink := printf "%s/src/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
-							{{if $.FileName}}{{$viewCommitLink = printf "%s/%s" $viewCommitLink (PathEscapeSegments $.FileName)}}{{end}}
-							<a class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$viewCommitLink}}">{{svg "octicon-file-code"}}</a>
+							{{if $.FileTreePath}}{{$viewCommitLink = printf "%s/%s" $viewCommitLink (PathEscapeSegments $.FileTreePath)}}{{end}}
+							<a class="btn interact-bg tw-p-2 view-commit-path" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$viewCommitLink}}">{{svg "octicon-file-code"}}</a>
 						{{end}}
 					</td>
 				</tr>

@@ -9,23 +9,17 @@ import "code.gitea.io/gitea/modules/log"
 
 // TreeEntry the leaf in the git tree
 type TreeEntry struct {
-	ID ObjectID
-
+	ID    ObjectID
 	ptree *Tree
 
 	entryMode EntryMode
 	name      string
-
-	size     int64
-	sized    bool
-	fullName string
+	size      int64
+	sized     bool
 }
 
-// Name returns the name of the entry
+// Name returns the name of the entry (base name)
 func (te *TreeEntry) Name() string {
-	if te.fullName != "" {
-		return te.fullName
-	}
 	return te.name
 }
 
@@ -63,29 +57,29 @@ func (te *TreeEntry) Size() int64 {
 	return te.size
 }
 
-// IsSubModule if the entry is a sub module
+// IsSubModule if the entry is a submodule
 func (te *TreeEntry) IsSubModule() bool {
-	return te.entryMode == EntryModeCommit
+	return te.entryMode.IsSubModule()
 }
 
 // IsDir if the entry is a sub dir
 func (te *TreeEntry) IsDir() bool {
-	return te.entryMode == EntryModeTree
+	return te.entryMode.IsDir()
 }
 
 // IsLink if the entry is a symlink
 func (te *TreeEntry) IsLink() bool {
-	return te.entryMode == EntryModeSymlink
+	return te.entryMode.IsLink()
 }
 
 // IsRegular if the entry is a regular file
 func (te *TreeEntry) IsRegular() bool {
-	return te.entryMode == EntryModeBlob
+	return te.entryMode.IsRegular()
 }
 
 // IsExecutable if the entry is an executable file (not necessarily binary)
 func (te *TreeEntry) IsExecutable() bool {
-	return te.entryMode == EntryModeExec
+	return te.entryMode.IsExecutable()
 }
 
 // Blob returns the blob object the entry

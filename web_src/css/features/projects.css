@@ -1,43 +1,35 @@
-.board {
+#project-board {
   display: flex;
+  align-items: stretch;
   flex-direction: row;
   flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: clip;
-  align-items: stretch;
+  overflow: auto;
   margin: 0 0.5em;
+  min-height: max(calc(100vh - 400px), 300px);
+  max-height: calc(100vh - 120px);
 }
 
-.project-toolbar-right .filter.menu {
-  flex-direction: row;
+.project-header {
+  padding: 0.5em 0;
   flex-wrap: wrap;
 }
 
-@media (max-width: 767.98px) {
-  .project-toolbar-right .dropdown .menu {
-    left: auto !important;
-    right: auto !important;
-  }
+.project-header h2 {
+  white-space: nowrap;
+  margin: 0;
 }
 
 .project-column {
-  background-color: var(--color-project-column-bg) !important;
-  border: 1px solid var(--color-secondary) !important;
-  border-radius: var(--border-radius);
-  margin: 0 0.5rem !important;
-  padding: 0.5rem !important;
-  width: 320px;
-  height: initial;
-  min-height: max(calc(100vh - 400px), 300px);
   flex: 0 0 auto;
-  overflow: visible;
   display: flex;
   flex-direction: column;
-  cursor: default;
-}
-
-.project-column .issue-card {
-  color: var(--color-text);
+  background-color: var(--color-project-column-bg);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  margin: 0 0.5rem;
+  padding: 0.5rem;
+  width: 320px;
+  overflow: visible;
 }
 
 .project-column-header {
@@ -51,20 +43,15 @@
   color: inherit;
 }
 
-.project-column-title-label {
-  flex: 1;
-}
-
-.project-column > .cards {
+.project-column > .ui.cards {
   flex: 1;
   display: flex;
-  align-content: baseline;
-  margin: 0 !important;
-  padding: 0 !important;
-  flex-wrap: nowrap !important;
+  flex-wrap: nowrap;
   flex-direction: column;
-  overflow-x: clip;
+  overflow: clip auto;
   gap: .25rem;
+  margin: 0;
+  padding: 0;
 }
 
 .project-column > .divider {
@@ -84,7 +71,7 @@
 .card-attachment-images {
   display: inline-block;
   white-space: nowrap;
-  overflow: scroll;
+  overflow: auto;
   cursor: default;
   scroll-snap-type: x mandatory;
   text-align: center;
@@ -98,6 +85,7 @@
   scroll-snap-align: center;
   margin-right: 2px;
   aspect-ratio: 1;
+  object-fit: contain;
 }
 
 .card-attachment-images img:only-child {
@@ -113,4 +101,22 @@
 
 .card-ghost * {
   opacity: 0;
+}
+
+.fullscreen.projects-view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hide project-description in full-screen due to its variable height. No need to show it for better space use. */
+.fullscreen.projects-view .project-description {
+  display: none;
+}
+
+.fullscreen.projects-view #project-board {
+  flex: 1;
+  max-height: unset;
+  padding-bottom: 0.5em;
 }

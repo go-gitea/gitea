@@ -14,7 +14,6 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -39,31 +38,29 @@ import (
 
 // PullRequest contains information to make a pull request
 type PullRequest struct {
-	BaseRepo       *repo_model.Repository
-	Allowed        bool
-	SameRepo       bool
-	HeadInfoSubURL string // [<user>:]<branch> url segment
+	BaseRepo *repo_model.Repository
+	Allowed  bool // it only used by the web tmpl: "PullRequestCtx.Allowed"
+	SameRepo bool // it only used by the web tmpl: "PullRequestCtx.SameRepo"
 }
 
 // Repository contains information to operate a repository
 type Repository struct {
 	access_model.Permission
-	IsWatching   bool
-	IsViewBranch bool
-	IsViewTag    bool
-	IsViewCommit bool
-	Repository   *repo_model.Repository
-	Owner        *user_model.User
+
+	Repository *repo_model.Repository
+	Owner      *user_model.User
+
+	RepoLink string
+	GitRepo  *git.Repository
+
+	// RefFullName is the full ref name that the user is viewing
+	RefFullName git.RefName
+	BranchName  string // it is the RefFullName's short name if its type is "branch"
+	TreePath    string
+
+	// Commit it is always set to the commit for the branch or tag, or just the commit that the user is viewing
 	Commit       *git.Commit
-	Tag          *git.Tag
-	GitRepo      *git.Repository
-	RefName      string
-	BranchName   string
-	TagName      string
-	TreePath     string
 	CommitID     string
-	RepoLink     string
-	CloneLink    repo_model.CloneLink
 	CommitsCount int64
 
 	PullRequest *PullRequest
@@ -72,11 +69,6 @@ type Repository struct {
 // CanWriteToBranch checks if the branch is writable by the user
 func (r *Repository) CanWriteToBranch(ctx context.Context, user *user_model.User, branch string) bool {
 	return issues_model.CanMaintainerWriteToBranch(ctx, r.Permission, branch, user)
-}
-
-// CanEnableEditor returns true if repository is editable and user has proper access level.
-func (r *Repository) CanEnableEditor(ctx context.Context, user *user_model.User) bool {
-	return r.IsViewBranch && r.CanWriteToBranch(ctx, user, r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
@@ -92,66 +84,108 @@ func (r *Repository) GetObjectFormat() git.ObjectFormat {
 func RepoMustNotBeArchived() func(ctx *Context) {
 	return func(ctx *Context) {
 		if ctx.Repo.Repository.IsArchived {
-			ctx.NotFound("IsArchived", errors.New(ctx.Locale.TrString("repo.archive.title")))
+			ctx.NotFound(errors.New(ctx.Locale.TrString("repo.archive.title")))
 		}
 	}
 }
 
-// CanCommitToBranchResults represents the results of CanCommitToBranch
-type CanCommitToBranchResults struct {
-	CanCommitToBranch bool
-	EditorEnabled     bool
-	UserCanPush       bool
-	RequireSigned     bool
-	WillSign          bool
-	SigningKey        string
-	WontSignReason    string
+type CommitFormOptions struct {
+	NeedFork bool
+
+	TargetRepo               *repo_model.Repository
+	TargetFormAction         string
+	WillSubmitToFork         bool
+	CanCommitToBranch        bool
+	UserCanPush              bool
+	RequireSigned            bool
+	WillSign                 bool
+	SigningKey               *git.SigningKey
+	WontSignReason           string
+	CanCreatePullRequest     bool
+	CanCreateBasePullRequest bool
 }
 
-// CanCommitToBranch returns true if repository is editable and user has proper access level
-//
-// and branch is not protected for push
-func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
-	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, r.Repository.ID, r.BranchName)
-	if err != nil {
-		return CanCommitToBranchResults{}, err
+func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *repo_model.Repository, doerRepoPerm access_model.Permission, refName git.RefName) (*CommitFormOptions, error) {
+	if !refName.IsBranch() {
+		// it shouldn't happen because middleware already checks
+		return nil, util.NewInvalidArgumentErrorf("ref %q is not a branch", refName)
 	}
-	userCanPush := true
-	requireSigned := false
+
+	originRepo := targetRepo
+	branchName := refName.ShortName()
+	// TODO: CanMaintainerWriteToBranch is a bad name, but it really does what "CanWriteToBranch" does
+	if !issues_model.CanMaintainerWriteToBranch(ctx, doerRepoPerm, branchName, doer) {
+		targetRepo = repo_model.GetForkedRepo(ctx, doer.ID, targetRepo.ID)
+		if targetRepo == nil {
+			return &CommitFormOptions{NeedFork: true}, nil
+		}
+		// now, we get our own forked repo; it must be writable by us.
+	}
+	submitToForkedRepo := targetRepo.ID != originRepo.ID
+	err := targetRepo.GetBaseRepo(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, targetRepo.ID, branchName)
+	if err != nil {
+		return nil, err
+	}
+	canPushWithProtection := true
+	protectionRequireSigned := false
 	if protectedBranch != nil {
-		protectedBranch.Repo = r.Repository
-		userCanPush = protectedBranch.CanUserPush(ctx, doer)
-		requireSigned = protectedBranch.RequireSignedCommits
+		protectedBranch.Repo = targetRepo
+		canPushWithProtection = protectedBranch.CanUserPush(ctx, doer)
+		protectionRequireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	sign, keyID, _, err := asymkey_service.SignCRUDAction(ctx, r.Repository.RepoPath(), doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
-
-	canCommit := r.CanEnableEditor(ctx, doer) && userCanPush
-	if requireSigned {
-		canCommit = canCommit && sign
-	}
+	willSign, signKeyID, _, err := asymkey_service.SignCRUDAction(ctx, targetRepo.RepoPath(), doer, targetRepo.RepoPath(), refName.String())
 	wontSignReason := ""
-	if err != nil {
-		if asymkey_service.IsErrWontSign(err) {
-			wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
-			err = nil
-		} else {
-			wontSignReason = "error"
-		}
+	if asymkey_service.IsErrWontSign(err) {
+		wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
+	} else if err != nil {
+		return nil, err
 	}
 
-	return CanCommitToBranchResults{
-		CanCommitToBranch: canCommit,
-		EditorEnabled:     r.CanEnableEditor(ctx, doer),
-		UserCanPush:       userCanPush,
-		RequireSigned:     requireSigned,
-		WillSign:          sign,
-		SigningKey:        keyID,
+	canCommitToBranch := !submitToForkedRepo /* same repo */ && targetRepo.CanEnableEditor() && canPushWithProtection
+	if protectionRequireSigned {
+		canCommitToBranch = canCommitToBranch && willSign
+	}
+
+	canCreateBasePullRequest := targetRepo.BaseRepo != nil && targetRepo.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests)
+	canCreatePullRequest := targetRepo.UnitEnabled(ctx, unit_model.TypePullRequests) || canCreateBasePullRequest
+
+	opts := &CommitFormOptions{
+		TargetRepo:        targetRepo,
+		WillSubmitToFork:  submitToForkedRepo,
+		CanCommitToBranch: canCommitToBranch,
+		UserCanPush:       canPushWithProtection,
+		RequireSigned:     protectionRequireSigned,
+		WillSign:          willSign,
+		SigningKey:        signKeyID,
 		WontSignReason:    wontSignReason,
-	}, err
+
+		CanCreatePullRequest:     canCreatePullRequest,
+		CanCreateBasePullRequest: canCreateBasePullRequest,
+	}
+	editorAction := ctx.PathParam("editor_action")
+	editorPathParamRemaining := util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+	if submitToForkedRepo {
+		// there is only "default branch" in forked repo, we will use "from_base_branch" to get a new branch from base repo
+		editorPathParamRemaining = util.PathEscapeSegments(targetRepo.DefaultBranch) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath) + "?from_base_branch=" + url.QueryEscape(branchName)
+	}
+	if editorAction == "_cherrypick" {
+		opts.TargetFormAction = targetRepo.Link() + "/" + editorAction + "/" + ctx.PathParam("sha") + "/" + editorPathParamRemaining
+	} else {
+		opts.TargetFormAction = targetRepo.Link() + "/" + editorAction + "/" + editorPathParamRemaining
+	}
+	if ctx.Req.URL.RawQuery != "" {
+		opts.TargetFormAction += util.Iif(strings.Contains(opts.TargetFormAction, "?"), "&", "?") + ctx.Req.URL.RawQuery
+	}
+	return opts, nil
 }
 
-// CanUseTimetracker returns whether or not a user can use the timetracker.
+// CanUseTimetracker returns whether a user can use the timetracker.
 func (r *Repository) CanUseTimetracker(ctx context.Context, issue *issues_model.Issue, user *user_model.User) bool {
 	// Checking for following:
 	// 1. Is timetracker enabled
@@ -171,15 +205,9 @@ func (r *Repository) GetCommitsCount() (int64, error) {
 	if r.Commit == nil {
 		return 0, nil
 	}
-	var contextName string
-	if r.IsViewBranch {
-		contextName = r.BranchName
-	} else if r.IsViewTag {
-		contextName = r.TagName
-	} else {
-		contextName = r.CommitID
-	}
-	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, r.IsViewBranch || r.IsViewTag), func() (int64, error) {
+	contextName := r.RefFullName.ShortName()
+	isRef := r.RefFullName.IsBranch() || r.RefFullName.IsTag()
+	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, isRef), func() (int64, error) {
 		return r.Commit.CommitsCount()
 	})
 }
@@ -201,33 +229,13 @@ func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, 
 	})
 }
 
-// BranchNameSubURL sub-URL for the BranchName field
-func (r *Repository) BranchNameSubURL() string {
-	switch {
-	case r.IsViewBranch:
-		return "branch/" + util.PathEscapeSegments(r.BranchName)
-	case r.IsViewTag:
-		return "tag/" + util.PathEscapeSegments(r.TagName)
-	case r.IsViewCommit:
-		return "commit/" + util.PathEscapeSegments(r.CommitID)
-	}
-	log.Error("Unknown view type for repo: %v", r)
-	return ""
-}
-
-// FileExists returns true if a file exists in the given repo branch
-func (r *Repository) FileExists(path, branch string) (bool, error) {
-	if branch == "" {
-		branch = r.Repository.DefaultBranch
-	}
-	commit, err := r.GitRepo.GetBranchCommit(branch)
-	if err != nil {
-		return false, err
-	}
-	if _, err := commit.GetTreeEntryByPath(path); err != nil {
-		return false, err
-	}
-	return true, nil
+// RefTypeNameSubURL makes a sub-url for the current ref (branch/tag/commit) field, for example:
+// * "branch/master"
+// * "tag/v1.0.0"
+// * "commit/123456"
+// It is usually used to construct a link like ".../src/{{RefTypeNameSubURL}}/{{PathEscapeSegments TreePath}}"
+func (r *Repository) RefTypeNameSubURL() string {
+	return r.RefFullName.RefWebLinkPath()
 }
 
 // GetEditorconfig returns the .editorconfig definition if found in the
@@ -318,8 +326,8 @@ func ComposeGoGetImport(ctx context.Context, owner, repo string) string {
 // This is particular a workaround for "go get" command which does not respect
 // .netrc file.
 func EarlyResponseForGoGetMeta(ctx *Context) {
-	username := ctx.PathParam(":username")
-	reponame := strings.TrimSuffix(ctx.PathParam(":reponame"), ".git")
+	username := ctx.PathParam("username")
+	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
 	if username == "" || reponame == "" {
 		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
@@ -327,9 +335,9 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 
 	var cloneURL string
 	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(username, reponame)
+		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame)
 	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(username, reponame)
+		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame)
 	}
 	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(ctx, username, reponame), cloneURL)
 	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
@@ -338,13 +346,13 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 
 // RedirectToRepo redirect to a differently-named repository
 func RedirectToRepo(ctx *Base, redirectRepoID int64) {
-	ownerName := ctx.PathParam(":username")
-	previousRepoName := ctx.PathParam(":reponame")
+	ownerName := ctx.PathParam("username")
+	previousRepoName := ctx.PathParam("reponame")
 
 	repo, err := repo_model.GetRepositoryByID(ctx, redirectRepoID)
 	if err != nil {
 		log.Error("GetRepositoryByID: %v", err)
-		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID")
+		ctx.HTTPError(http.StatusInternalServerError, "GetRepositoryByID")
 		return
 	}
 
@@ -357,7 +365,9 @@ func RedirectToRepo(ctx *Base, redirectRepoID int64) {
 	if ctx.Req.URL.RawQuery != "" {
 		redirectPath += "?" + ctx.Req.URL.RawQuery
 	}
-	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusTemporaryRedirect)
+	// Git client needs a 301 redirect by default to follow the new location
+	// It's not documentated in git documentation, but it's the behavior of git client
+	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusMovedPermanently)
 }
 
 func repoAssignment(ctx *Context, repo *repo_model.Repository) {
@@ -367,18 +377,22 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
-		return
+	if ctx.DoerNeedTwoFactorAuth() {
+		ctx.Repo.Permission = access_model.PermissionNoAccess()
+	} else {
+		ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
 	}
 
-	if !ctx.Repo.Permission.HasAnyUnitAccessOrEveryoneAccess() && !canWriteAsMaintainer(ctx) {
+	if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() && !canWriteAsMaintainer(ctx) {
 		if ctx.FormString("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
 		}
-		ctx.NotFound("no access right", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	ctx.Data["Permission"] = &ctx.Repo.Permission
@@ -396,73 +410,59 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Repo.Repository = repo
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
-
-	repoLicenses, err := repo_model.GetRepoLicenses(ctx, ctx.Repo.Repository)
-	if err != nil {
-		ctx.ServerError("GetRepoLicenses", err)
-		return
-	}
-	ctx.Data["DetectedRepoLicenses"] = repoLicenses.StringList()
 }
 
 // RepoAssignment returns a middleware to handle repository assignment
-func RepoAssignment(ctx *Context) context.CancelFunc {
-	if _, repoAssignmentOnce := ctx.Data["repoAssignmentExecuted"]; repoAssignmentOnce {
-		log.Trace("RepoAssignment was exec already, skipping second call ...")
-		return nil
+func RepoAssignment(ctx *Context) {
+	if ctx.Data["Repository"] != nil {
+		setting.PanicInDevOrTesting("RepoAssignment should not be executed twice")
 	}
-	ctx.Data["repoAssignmentExecuted"] = true
 
-	var (
-		owner *user_model.User
-		err   error
-	)
-
-	userName := ctx.PathParam(":username")
-	repoName := ctx.PathParam(":reponame")
+	var err error
+	userName := ctx.PathParam("username")
+	repoName := ctx.PathParam("reponame")
 	repoName = strings.TrimSuffix(repoName, ".git")
 	if setting.Other.EnableFeed {
+		ctx.Data["EnableFeed"] = true
 		repoName = strings.TrimSuffix(repoName, ".rss")
 		repoName = strings.TrimSuffix(repoName, ".atom")
 	}
 
 	// Check if the user is the same as the repository owner
-	if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
-		owner = ctx.Doer
+	if ctx.IsSigned && strings.EqualFold(ctx.Doer.LowerName, userName) {
+		ctx.Repo.Owner = ctx.Doer
 	} else {
-		owner, err = user_model.GetUserByName(ctx, userName)
+		ctx.Repo.Owner, err = user_model.GetUserByName(ctx, userName)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				// go-get does not support redirects
 				// https://github.com/golang/go/issues/19760
 				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
-					return nil
+					return
 				}
 
 				if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
 					RedirectToUser(ctx.Base, userName, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
-					ctx.NotFound("GetUserByName", nil)
+					ctx.NotFound(nil)
 				} else {
 					ctx.ServerError("LookupUserRedirect", err)
 				}
 			} else {
 				ctx.ServerError("GetUserByName", err)
 			}
-			return nil
+			return
 		}
 	}
-	ctx.Repo.Owner = owner
-	ctx.ContextUser = owner
+	ctx.ContextUser = ctx.Repo.Owner
 	ctx.Data["ContextUser"] = ctx.ContextUser
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
 
 	// redirect link to wiki
 	if strings.HasSuffix(repoName, ".wiki") {
 		// ctx.Req.URL.Path does not have the preceding appSubURL - any redirect must have this added
 		// Now we happen to know that all of our paths are: /:username/:reponame/whatever_else
-		originalRepoName := ctx.PathParam(":reponame")
+		originalRepoName := ctx.PathParam("reponame")
 		redirectRepoName := strings.TrimSuffix(repoName, ".wiki")
 		redirectRepoName += originalRepoName[len(redirectRepoName)+5:]
 		redirectPath := strings.Replace(
@@ -475,45 +475,40 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 			redirectPath += "?" + ctx.Req.URL.RawQuery
 		}
 		ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
-		return nil
+		return
 	}
 
 	// Get repository.
-	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
+	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Repo.Owner.ID, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
-			redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, repoName)
+			redirectRepoID, err := repo_model.LookupRedirect(ctx, ctx.Repo.Owner.ID, repoName)
 			if err == nil {
 				RedirectToRepo(ctx.Base, redirectRepoID)
 			} else if repo_model.IsErrRedirectNotExist(err) {
 				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
-					return nil
+					return
 				}
-				ctx.NotFound("GetRepositoryByName", nil)
+				ctx.NotFound(nil)
 			} else {
 				ctx.ServerError("LookupRepoRedirect", err)
 			}
 		} else {
 			ctx.ServerError("GetRepositoryByName", err)
 		}
-		return nil
+		return
 	}
-	repo.Owner = owner
+	repo.Owner = ctx.Repo.Owner
 
 	repoAssignment(ctx, repo)
 	if ctx.Written() {
-		return nil
+		return
 	}
 
 	ctx.Repo.RepoLink = repo.Link()
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
-	ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
-
-	if setting.Other.EnableFeed {
-		ctx.Data["EnableFeed"] = true
-		ctx.Data["FeedURL"] = ctx.Repo.RepoLink
-	}
+	ctx.Data["FeedURL"] = ctx.Repo.RepoLink
 
 	unit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeExternalTracker)
 	if err == nil {
@@ -528,7 +523,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
-		return nil
+		return
 	}
 	ctx.Data["NumReleases"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
@@ -537,15 +532,12 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
-		return nil
+		return
 	}
 
-	ctx.Data["Title"] = owner.Name + "/" + repo.Name
+	ctx.Data["Title"] = repo.Owner.Name + "/" + repo.Name
 	ctx.Data["Repository"] = repo
 	ctx.Data["Owner"] = ctx.Repo.Repository.Owner
-	ctx.Data["IsRepositoryOwner"] = ctx.Repo.IsOwner()
-	ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
-	ctx.Data["RepoOwnerIsOrganization"] = repo.Owner.IsOrganization()
 	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
@@ -554,14 +546,14 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	canSignedUserFork, err := repo_module.CanUserForkRepo(ctx, ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("CanUserForkRepo", err)
-		return nil
+		return
 	}
 	ctx.Data["CanSignedUserFork"] = canSignedUserFork
 
 	userAndOrgForks, err := repo_model.GetForksByUserAndOrgs(ctx, ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetForksByUserAndOrgs", err)
-		return nil
+		return
 	}
 	ctx.Data["UserAndOrgForks"] = userAndOrgForks
 
@@ -570,7 +562,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	// If multiple forks are available or if the user can fork to another account, but there is already a fork: open selection dialog
 	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
 
-	ctx.Data["RepoCloneLink"] = repo.CloneLink()
+	ctx.Data["RepoCloneLink"] = repo.CloneLink(ctx, ctx.Doer)
 
 	cloneButtonShowHTTPS := !setting.Repository.DisableHTTPGit
 	cloneButtonShowSSH := !setting.SSH.Disabled && (ctx.IsSigned || setting.SSH.ExposeAnonymous)
@@ -595,14 +587,14 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	if repo.IsFork {
 		RetrieveBaseRepo(ctx, repo)
 		if ctx.Written() {
-			return nil
+			return
 		}
 	}
 
 	if repo.IsGenerated() {
 		RetrieveTemplateRepo(ctx, repo)
 		if ctx.Written() {
-			return nil
+			return
 		}
 	}
 
@@ -613,45 +605,36 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 
 	// Disable everything when the repo is being created
 	if ctx.Repo.Repository.IsBeingCreated() || ctx.Repo.Repository.IsBroken() {
-		ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 		if !isHomeOrSettings {
 			ctx.Redirect(ctx.Repo.RepoLink)
 		}
-		return nil
+		return
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	if ctx.Repo.GitRepo != nil {
+		setting.PanicInDevOrTesting("RepoAssignment: GitRepo should be nil")
+		_ = ctx.Repo.GitRepo.Close()
+		ctx.Repo.GitRepo = nil
+	}
+
+	ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
 			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
 			ctx.Repo.Repository.MarkAsBrokenEmpty()
-			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 			// Only allow access to base of repo or settings
 			if !isHomeOrSettings {
 				ctx.Redirect(ctx.Repo.RepoLink)
 			}
-			return nil
+			return
 		}
 		ctx.ServerError("RepoAssignment Invalid repo "+repo.FullName(), err)
-		return nil
-	}
-	if ctx.Repo.GitRepo != nil {
-		ctx.Repo.GitRepo.Close()
-	}
-	ctx.Repo.GitRepo = gitRepo
-
-	// We opened it, we should close it
-	cancel := func() {
-		// If it's been set to nil then assume someone else has closed it.
-		if ctx.Repo.GitRepo != nil {
-			ctx.Repo.GitRepo.Close()
-		}
+		return
 	}
 
 	// Stop at this point when the repo is empty.
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
-		return cancel
+		return
 	}
 
 	branchOpts := git_model.FindBranchOptions{
@@ -662,7 +645,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	branchesTotal, err := db.Count[git_model.Branch](ctx, branchOpts)
 	if err != nil {
 		ctx.ServerError("CountBranches", err)
-		return cancel
+		return
 	}
 
 	// non-empty repo should have at least 1 branch, so this repository's branches haven't been synced yet
@@ -670,27 +653,11 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		branchesTotal, err = repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0)
 		if err != nil {
 			ctx.ServerError("SyncRepoBranches", err)
-			return cancel
+			return
 		}
 	}
 
 	ctx.Data["BranchesCount"] = branchesTotal
-
-	// If no branch is set in the request URL, try to guess a default one.
-	if len(ctx.Repo.BranchName) == 0 {
-		if len(ctx.Repo.Repository.DefaultBranch) > 0 && gitRepo.IsBranchExist(ctx.Repo.Repository.DefaultBranch) {
-			ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
-		} else {
-			ctx.Repo.BranchName, _ = gitrepo.GetDefaultBranch(ctx, ctx.Repo.Repository)
-			if ctx.Repo.BranchName == "" {
-				// If it still can't get a default branch, fall back to default branch from setting.
-				// Something might be wrong. Either site admin should fix the repo sync or Gitea should fix a potential bug.
-				ctx.Repo.BranchName = setting.Repository.DefaultBranch
-			}
-		}
-		ctx.Repo.RefName = ctx.Repo.BranchName
-	}
-	ctx.Data["BranchName"] = ctx.Repo.BranchName
 
 	// People who have push access or have forked repository can propose a new pull request.
 	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) ||
@@ -704,7 +671,6 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.Data["BaseRepo"] = repo.BaseRepo
 		ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
 		ctx.Repo.PullRequest.Allowed = canPush
-		ctx.Repo.PullRequest.HeadInfoSubURL = url.PathEscape(ctx.Repo.Owner.Name) + ":" + util.PathEscapeSegments(ctx.Repo.BranchName)
 	} else if repo.AllowsPulls(ctx) {
 		// Or, this is repository accepts pull requests between branches.
 		canCompare = true
@@ -712,58 +678,37 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.Repo.PullRequest.BaseRepo = repo
 		ctx.Repo.PullRequest.Allowed = canPush
 		ctx.Repo.PullRequest.SameRepo = true
-		ctx.Repo.PullRequest.HeadInfoSubURL = util.PathEscapeSegments(ctx.Repo.BranchName)
 	}
 	ctx.Data["CanCompareOrPull"] = canCompare
 	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
-		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
+		repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("GetPendingRepositoryTransfer", err)
-			return cancel
+			return
 		}
 
 		if err := repoTransfer.LoadAttributes(ctx); err != nil {
 			ctx.ServerError("LoadRecipient", err)
-			return cancel
+			return
 		}
 
 		ctx.Data["RepoTransfer"] = repoTransfer
 		if ctx.Doer != nil {
-			ctx.Data["CanUserAcceptTransfer"] = repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer)
+			ctx.Data["CanUserAcceptOrRejectTransfer"] = repoTransfer.CanUserAcceptOrRejectTransfer(ctx, ctx.Doer)
 		}
 	}
 
 	if ctx.FormString("go-get") == "1" {
-		ctx.Data["GoGetImport"] = ComposeGoGetImport(ctx, owner.Name, repo.Name)
+		ctx.Data["GoGetImport"] = ComposeGoGetImport(ctx, repo.Owner.Name, repo.Name)
 		fullURLPrefix := repo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
 		ctx.Data["GoDocDirectory"] = fullURLPrefix + "{/dir}"
 		ctx.Data["GoDocFile"] = fullURLPrefix + "{/dir}/{file}#L{line}"
 	}
-	return cancel
 }
-
-// RepoRefType type of repo reference
-type RepoRefType int
-
-const (
-	// RepoRefUnknown is for legacy support, makes the code to "guess" the ref type
-	RepoRefUnknown RepoRefType = iota
-	RepoRefBranch
-	RepoRefTag
-	RepoRefCommit
-	RepoRefBlob
-)
 
 const headRefName = "HEAD"
-
-// RepoRef handles repository reference names when the ref name is not
-// explicitly given
-func RepoRef() func(*Context) context.CancelFunc {
-	// since no ref name is explicitly specified, ok to just use branch
-	return RepoRefByType(RepoRefBranch)
-}
 
 func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool) string {
 	refName := ""
@@ -778,51 +723,29 @@ func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool
 	return ""
 }
 
-func isStringLikelyCommitID(objFmt git.ObjectFormat, s string, minLength ...int) bool {
-	minLen := util.OptionalArg(minLength, objFmt.FullLength())
-	if len(s) < minLen || len(s) > objFmt.FullLength() {
-		return false
+func getRefNameLegacy(ctx *Base, repo *Repository, reqPath, extraRef string) (refName string, refType git.RefType, fallbackDefaultBranch bool) {
+	reqRefPath := path.Join(extraRef, reqPath)
+	reqRefPathParts := strings.Split(reqRefPath, "/")
+	if refName := getRefName(ctx, repo, reqRefPath, git.RefTypeBranch); refName != "" {
+		return refName, git.RefTypeBranch, false
 	}
-	for _, c := range s {
-		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
-		if !isHex {
-			return false
-		}
+	if refName := getRefName(ctx, repo, reqRefPath, git.RefTypeTag); refName != "" {
+		return refName, git.RefTypeTag, false
 	}
-	return true
-}
-
-func getRefNameLegacy(ctx *Base, repo *Repository, optionalExtraRef ...string) (string, RepoRefType) {
-	extraRef := util.OptionalArg(optionalExtraRef)
-	reqPath := ctx.PathParam("*")
-	reqPath = path.Join(extraRef, reqPath)
-
-	if refName := getRefName(ctx, repo, RepoRefBranch); refName != "" {
-		return refName, RepoRefBranch
-	}
-	if refName := getRefName(ctx, repo, RepoRefTag); refName != "" {
-		return refName, RepoRefTag
-	}
-
-	// For legacy support only full commit sha
-	parts := strings.Split(reqPath, "/")
-	if isStringLikelyCommitID(git.ObjectFormatFromName(repo.Repository.ObjectFormatName), parts[0]) {
+	if git.IsStringLikelyCommitID(git.ObjectFormatFromName(repo.Repository.ObjectFormatName), reqRefPathParts[0]) {
 		// FIXME: this logic is different from other types. Ideally, it should also try to GetCommit to check if it exists
-		repo.TreePath = strings.Join(parts[1:], "/")
-		return parts[0], RepoRefCommit
+		repo.TreePath = strings.Join(reqRefPathParts[1:], "/")
+		return reqRefPathParts[0], git.RefTypeCommit, false
 	}
-
-	if refName := getRefName(ctx, repo, RepoRefBlob); len(refName) > 0 {
-		return refName, RepoRefBlob
-	}
+	// FIXME: the old code falls back to default branch if "ref" doesn't exist, there could be an edge case:
+	// "README?ref=no-such" would read the README file from the default branch, but the user might expect a 404
 	repo.TreePath = reqPath
-	return repo.Repository.DefaultBranch, RepoRefBranch
+	return repo.Repository.DefaultBranch, git.RefTypeBranch, true
 }
 
-func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
-	path := ctx.PathParam("*")
-	switch pathType {
-	case RepoRefBranch:
+func getRefName(ctx *Base, repo *Repository, path string, refType git.RefType) string {
+	switch refType {
+	case git.RefTypeBranch:
 		ref := getRefNameFromPath(repo, path, repo.GitRepo.IsBranchExist)
 		if len(ref) == 0 {
 			// check if ref is HEAD
@@ -852,11 +775,11 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 		}
 
 		return ref
-	case RepoRefTag:
+	case git.RefTypeTag:
 		return getRefNameFromPath(repo, path, repo.GitRepo.IsTagExist)
-	case RepoRefCommit:
+	case git.RefTypeCommit:
 		parts := strings.Split(path, "/")
-		if isStringLikelyCommitID(repo.GetObjectFormat(), parts[0], 7) {
+		if git.IsStringLikelyCommitID(repo.GetObjectFormat(), parts[0], 7) {
 			// FIXME: this logic is different from other types. Ideally, it should also try to GetCommit to check if it exists
 			repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
@@ -871,182 +794,196 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 			repo.TreePath = strings.Join(parts[1:], "/")
 			return commit.ID.String()
 		}
-	case RepoRefBlob:
-		_, err := repo.GitRepo.GetBlob(path)
-		if err != nil {
-			return ""
-		}
-		return path
 	default:
-		panic(fmt.Sprintf("Unrecognized path type: %v", pathType))
+		panic(fmt.Sprintf("Unrecognized ref type: %v", refType))
 	}
 	return ""
 }
 
-type RepoRefByTypeOptions struct {
-	IgnoreNotExistErr bool
+func repoRefFullName(typ git.RefType, shortName string) git.RefName {
+	switch typ {
+	case git.RefTypeBranch:
+		return git.RefNameFromBranch(shortName)
+	case git.RefTypeTag:
+		return git.RefNameFromTag(shortName)
+	case git.RefTypeCommit:
+		return git.RefNameFromCommit(shortName)
+	default:
+		setting.PanicInDevOrTesting("Unknown RepoRefType: %v", typ)
+		return git.RefNameFromBranch("main") // just a dummy result, it shouldn't happen
+	}
+}
+
+func RepoRefByDefaultBranch() func(*Context) {
+	return func(ctx *Context) {
+		ctx.Repo.RefFullName = git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch)
+		ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
+		ctx.Repo.Commit, _ = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
+		ctx.Repo.CommitsCount, _ = ctx.Repo.GetCommitsCount()
+		ctx.Data["RefFullName"] = ctx.Repo.RefFullName
+		ctx.Data["BranchName"] = ctx.Repo.BranchName
+		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+	}
 }
 
 // RepoRefByType handles repository reference name for a specific type
 // of repository reference
-func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func(*Context) context.CancelFunc {
-	opt := util.OptionalArg(opts)
-	return func(ctx *Context) (cancel context.CancelFunc) {
+func RepoRefByType(detectRefType git.RefType) func(*Context) {
+	return func(ctx *Context) {
+		var err error
 		refType := detectRefType
+		if ctx.Repo.Repository.IsBeingCreated() || ctx.Repo.Repository.IsBroken() {
+			return // no git repo, so do nothing, users will see a "migrating" UI provided by "migrate/migrating.tmpl", or empty repo guide
+		}
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
 			// assume the user is viewing the (non-existent) default branch
-			ctx.Repo.IsViewBranch = true
 			ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
+			ctx.Repo.RefFullName = git.RefNameFromBranch(ctx.Repo.BranchName)
+			// these variables are used by the template to "add/upload" new files
+			ctx.Data["BranchName"] = ctx.Repo.BranchName
 			ctx.Data["TreePath"] = ""
-			return nil
-		}
-
-		var (
-			refName string
-			err     error
-		)
-
-		if ctx.Repo.GitRepo == nil {
-			ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
-			if err != nil {
-				ctx.ServerError(fmt.Sprintf("Open Repository %v failed", ctx.Repo.Repository.FullName()), err)
-				return nil
-			}
-			// We opened it, we should close it
-			cancel = func() {
-				// If it's been set to nil then assume someone else has closed it.
-				if ctx.Repo.GitRepo != nil {
-					ctx.Repo.GitRepo.Close()
-				}
-			}
+			return
 		}
 
 		// Get default branch.
-		if len(ctx.PathParam("*")) == 0 {
-			refName = ctx.Repo.Repository.DefaultBranch
-			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
-				brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 1)
+		var refShortName string
+		reqPath := ctx.PathParam("*")
+		if reqPath == "" {
+			refShortName = ctx.Repo.Repository.DefaultBranch
+			if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refShortName) {
+				brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 1)
 				if err == nil && len(brs) != 0 {
-					refName = brs[0].Name
+					refShortName = brs[0]
 				} else if len(brs) == 0 {
 					log.Error("No branches in non-empty repository %s", ctx.Repo.GitRepo.Path)
-					ctx.Repo.Repository.MarkAsBrokenEmpty()
 				} else {
 					log.Error("GetBranches error: %v", err)
-					ctx.Repo.Repository.MarkAsBrokenEmpty()
 				}
 			}
-			ctx.Repo.RefName = refName
-			ctx.Repo.BranchName = refName
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
+			ctx.Repo.RefFullName = git.RefNameFromBranch(refShortName)
+			ctx.Repo.BranchName = refShortName
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refShortName)
 			if err == nil {
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 			} else if strings.Contains(err.Error(), "fatal: not a git repository") || strings.Contains(err.Error(), "object does not exist") {
 				// if the repository is broken, we can continue to the handler code, to show "Settings -> Delete Repository" for end users
 				log.Error("GetBranchCommit: %v", err)
-				ctx.Repo.Repository.MarkAsBrokenEmpty()
 			} else {
 				ctx.ServerError("GetBranchCommit", err)
-				return cancel
+				return
 			}
-			ctx.Repo.IsViewBranch = true
-		} else {
-			guessLegacyPath := refType == RepoRefUnknown
+		} else { // there is a path in request
+			guessLegacyPath := refType == ""
+			fallbackDefaultBranch := false
 			if guessLegacyPath {
-				refName, refType = getRefNameLegacy(ctx.Base, ctx.Repo)
+				refShortName, refType, fallbackDefaultBranch = getRefNameLegacy(ctx.Base, ctx.Repo, reqPath, "")
 			} else {
-				refName = getRefName(ctx.Base, ctx.Repo, refType)
+				refShortName = getRefName(ctx.Base, ctx.Repo, reqPath, refType)
 			}
-			ctx.Repo.RefName = refName
+			ctx.Repo.RefFullName = repoRefFullName(refType, refShortName)
 			isRenamedBranch, has := ctx.Data["IsRenamedBranch"].(bool)
 			if isRenamedBranch && has {
 				renamedBranchName := ctx.Data["RenamedBranchName"].(string)
-				ctx.Flash.Info(ctx.Tr("repo.branch.renamed", refName, renamedBranchName))
-				link := setting.AppSubURL + strings.Replace(ctx.Req.URL.EscapedPath(), util.PathEscapeSegments(refName), util.PathEscapeSegments(renamedBranchName), 1)
+				ctx.Flash.Info(ctx.Tr("repo.branch.renamed", refShortName, renamedBranchName))
+				link := setting.AppSubURL + strings.Replace(ctx.Req.URL.EscapedPath(), util.PathEscapeSegments(refShortName), util.PathEscapeSegments(renamedBranchName), 1)
 				ctx.Redirect(link)
-				return cancel
+				return
 			}
 
-			if refType == RepoRefBranch && ctx.Repo.GitRepo.IsBranchExist(refName) {
-				ctx.Repo.IsViewBranch = true
-				ctx.Repo.BranchName = refName
+			if refType == git.RefTypeBranch && gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refShortName) {
+				ctx.Repo.BranchName = refShortName
+				ctx.Repo.RefFullName = git.RefNameFromBranch(refShortName)
 
-				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
+				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refShortName)
 				if err != nil {
 					ctx.ServerError("GetBranchCommit", err)
-					return cancel
+					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if refType == RepoRefTag && ctx.Repo.GitRepo.IsTagExist(refName) {
-				ctx.Repo.IsViewTag = true
-				ctx.Repo.TagName = refName
+			} else if refType == git.RefTypeTag && gitrepo.IsTagExist(ctx, ctx.Repo.Repository, refShortName) {
+				ctx.Repo.RefFullName = git.RefNameFromTag(refShortName)
 
-				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
+				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refShortName)
 				if err != nil {
 					if git.IsErrNotExist(err) {
-						ctx.NotFound("GetTagCommit", err)
-						return cancel
+						ctx.NotFound(err)
+						return
 					}
 					ctx.ServerError("GetTagCommit", err)
-					return cancel
+					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if isStringLikelyCommitID(ctx.Repo.GetObjectFormat(), refName, 7) {
-				ctx.Repo.IsViewCommit = true
-				ctx.Repo.CommitID = refName
+			} else if git.IsStringLikelyCommitID(ctx.Repo.GetObjectFormat(), refShortName, 7) {
+				ctx.Repo.RefFullName = git.RefNameFromCommit(refShortName)
+				ctx.Repo.CommitID = refShortName
 
-				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
+				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refShortName)
 				if err != nil {
-					ctx.NotFound("GetCommit", err)
-					return cancel
+					ctx.NotFound(err)
+					return
 				}
 				// If short commit ID add canonical link header
-				if len(refName) < ctx.Repo.GetObjectFormat().FullLength() {
-					canonicalURL := util.URLJoin(httplib.GuessCurrentAppURL(ctx), strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1))
+				if len(refShortName) < ctx.Repo.GetObjectFormat().FullLength() {
+					canonicalURL := util.URLJoin(httplib.GuessCurrentAppURL(ctx), strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refShortName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1))
 					ctx.RespHeader().Set("Link", fmt.Sprintf(`<%s>; rel="canonical"`, canonicalURL))
 				}
 			} else {
-				if opt.IgnoreNotExistErr {
-					return cancel
-				}
-				ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))
-				return cancel
+				ctx.NotFound(fmt.Errorf("branch or tag not exist: %s", refShortName))
+				return
 			}
 
 			if guessLegacyPath {
 				// redirect from old URL scheme to new URL scheme
-				prefix := strings.TrimPrefix(setting.AppSubURL+strings.ToLower(strings.TrimSuffix(ctx.Req.URL.Path, ctx.PathParam("*"))), strings.ToLower(ctx.Repo.RepoLink))
-				redirect := path.Join(
-					ctx.Repo.RepoLink,
-					util.PathEscapeSegments(prefix),
-					ctx.Repo.BranchNameSubURL(),
-					util.PathEscapeSegments(ctx.Repo.TreePath))
+				// * /user2/repo1/commits/master => /user2/repo1/commits/branch/master
+				// * /user2/repo1/src/master => /user2/repo1/src/branch/master
+				// * /user2/repo1/src/README.md => /user2/repo1/src/branch/master/README.md (fallback to default branch)
+				var redirect string
+				refSubPath := "src"
+				// remove the "/subpath/owner/repo/" prefix, the names are case-insensitive
+				remainingLowerPath, cut := strings.CutPrefix(setting.AppSubURL+strings.ToLower(ctx.Req.URL.Path), strings.ToLower(ctx.Repo.RepoLink)+"/")
+				if cut {
+					refSubPath, _, _ = strings.Cut(remainingLowerPath, "/") // it could be "src" or "commits"
+				}
+				if fallbackDefaultBranch {
+					redirect = fmt.Sprintf("%s/%s/%s/%s/%s", ctx.Repo.RepoLink, refSubPath, refType, util.PathEscapeSegments(refShortName), ctx.PathParamRaw("*"))
+				} else {
+					redirect = fmt.Sprintf("%s/%s/%s/%s", ctx.Repo.RepoLink, refSubPath, refType, ctx.PathParamRaw("*"))
+				}
+				if ctx.Req.URL.RawQuery != "" {
+					redirect += "?" + ctx.Req.URL.RawQuery
+				}
 				ctx.Redirect(redirect)
-				return cancel
+				return
 			}
 		}
 
-		ctx.Data["BranchName"] = ctx.Repo.BranchName
-		ctx.Data["RefName"] = ctx.Repo.RefName
-		ctx.Data["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
-		ctx.Data["TagName"] = ctx.Repo.TagName
-		ctx.Data["CommitID"] = ctx.Repo.CommitID
+		ctx.Data["RefFullName"] = ctx.Repo.RefFullName
+		ctx.Data["RefTypeNameSubURL"] = ctx.Repo.RefTypeNameSubURL()
 		ctx.Data["TreePath"] = ctx.Repo.TreePath
-		ctx.Data["IsViewBranch"] = ctx.Repo.IsViewBranch
-		ctx.Data["IsViewTag"] = ctx.Repo.IsViewTag
-		ctx.Data["IsViewCommit"] = ctx.Repo.IsViewCommit
-		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch()
+
+		ctx.Data["BranchName"] = ctx.Repo.BranchName
+
+		ctx.Data["CommitID"] = ctx.Repo.CommitID
+
+		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch() // only used by the branch selector dropdown: AllowCreateNewRef
 
 		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
 		if err != nil {
 			ctx.ServerError("GetCommitsCount", err)
-			return cancel
+			return
+		}
+		if ctx.Repo.RefFullName.IsTag() {
+			rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, ctx.Repo.RefFullName.TagName())
+			if err == nil && rel.NumCommits <= 0 {
+				rel.NumCommits = ctx.Repo.CommitsCount
+				if err := repo_model.UpdateReleaseNumCommits(ctx, rel); err != nil {
+					log.Error("UpdateReleaseNumCommits", err)
+				}
+			}
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
-
-		return cancel
 	}
 }
 
@@ -1054,7 +991,7 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 func GitHookService() func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Doer.CanEditGitHook() {
-			ctx.NotFound("GitHookService", nil)
+			ctx.NotFound(nil)
 			return
 		}
 	}

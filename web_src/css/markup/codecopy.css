@@ -1,8 +1,3 @@
-.markup .code-block,
-.markup .mermaid-block {
-  position: relative;
-}
-
 .markup .code-copy {
   position: absolute;
   top: 8px;
@@ -28,8 +23,8 @@
   background: var(--color-secondary-dark-1) !important;
 }
 
-.markup .code-block:hover .code-copy,
-.markup .mermaid-block:hover .code-copy {
+.markup .code-block-container:hover .code-copy,
+.markup .code-block:hover .code-copy {
   visibility: visible;
   animation: fadein 0.2s both;
 }

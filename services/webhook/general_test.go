@@ -319,8 +319,8 @@ func packageTestPayload() *api.PackagePayload {
 			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 		Repository: nil,
-		Organization: &api.User{
-			UserName:  "org1",
+		Organization: &api.Organization{
+			Name:      "org1",
 			AvatarURL: "http://localhost:3000/org1/avatar",
 		},
 		Package: &api.Package{

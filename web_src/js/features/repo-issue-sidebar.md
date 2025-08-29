@@ -22,10 +22,13 @@ A sidebar combo (dropdown+list) is like this:
 When the selected items change, the `combo-value` input will be updated.
 If there is `data-update-url`, it also calls backend to attach/detach the changed items.
 
-Also, the changed items will be syncronized to the `ui list` items.
+Also, the changed items will be synchronized to the `ui list` items.
 
 The items with the same data-scope only allow one selected at a time.
 
 The dropdown selection could work in 2 modes:
 * single: only one item could be selected, it updates immediately when the item is selected.
 * multiple: multiple items could be selected, it defers the update until the dropdown is hidden.
+
+When using "scrolling menu", the items must be in the same level,
+otherwise keyboard (ArrowUp/ArrowDown/Enter) won't work.

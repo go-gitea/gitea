@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/migrations/v1_10"
@@ -22,6 +23,8 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_22"
 	"code.gitea.io/gitea/models/migrations/v1_23"
+	"code.gitea.io/gitea/models/migrations/v1_24"
+	"code.gitea.io/gitea/models/migrations/v1_25"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -39,17 +42,24 @@ const minDBVersion = 70 // Gitea 1.5.3
 type migration struct {
 	idNumber    int64 // DB version is "the last migration's idNumber" + 1
 	description string
-	migrate     func(*xorm.Engine) error
+	migrate     func(context.Context, *xorm.Engine) error
 }
 
 // newMigration creates a new migration
-func newMigration(idNumber int64, desc string, fn func(*xorm.Engine) error) *migration {
-	return &migration{idNumber, desc, fn}
+func newMigration[T func(*xorm.Engine) error | func(context.Context, *xorm.Engine) error](idNumber int64, desc string, fn T) *migration {
+	m := &migration{idNumber: idNumber, description: desc}
+	var ok bool
+	if m.migrate, ok = any(fn).(func(context.Context, *xorm.Engine) error); !ok {
+		m.migrate = func(ctx context.Context, x *xorm.Engine) error {
+			return any(fn).(func(*xorm.Engine) error)(x)
+		}
+	}
+	return m
 }
 
 // Migrate executes the migration
-func (m *migration) Migrate(x *xorm.Engine) error {
-	return m.migrate(x)
+func (m *migration) Migrate(ctx context.Context, x *xorm.Engine) error {
+	return m.migrate(ctx, x)
 }
 
 // Version describes the version table. Should have only one row with id==1
@@ -368,6 +378,21 @@ func prepareMigrationTasks() []*migration {
 		newMigration(308, "Add index(user_id, is_deleted) for action table", v1_23.AddNewIndexForUserDashboard),
 		newMigration(309, "Improve Notification table indices", v1_23.ImproveNotificationTableIndices),
 		newMigration(310, "Add Priority to ProtectedBranch", v1_23.AddPriorityToProtectedBranch),
+		newMigration(311, "Add TimeEstimate to Issue table", v1_23.AddTimeEstimateColumnToIssueTable),
+
+		// Gitea 1.23.0-rc0 ends at migration ID number 311 (database version 312)
+		newMigration(312, "Add DeleteBranchAfterMerge to AutoMerge", v1_24.AddDeleteBranchAfterMergeForAutoMerge),
+		newMigration(313, "Move PinOrder from issue table to a new table issue_pin", v1_24.MovePinOrderToTableIssuePin),
+		newMigration(314, "Update OwnerID as zero for repository level action tables", v1_24.UpdateOwnerIDOfRepoLevelActionsTables),
+		newMigration(315, "Add Ephemeral to ActionRunner", v1_24.AddEphemeralToActionRunner),
+		newMigration(316, "Add description for secrets and variables", v1_24.AddDescriptionForSecretsAndVariables),
+		newMigration(317, "Add new index for action for heatmap", v1_24.AddNewIndexForUserDashboard),
+		newMigration(318, "Add anonymous_access_mode for repo_unit", v1_24.AddRepoUnitAnonymousAccessMode),
+		newMigration(319, "Add ExclusiveOrder to Label table", v1_24.AddExclusiveOrderColumnToLabelTable),
+		newMigration(320, "Migrate two_factor_policy to login_source table", v1_24.MigrateSkipTwoFactor),
+
+		// Gitea 1.24.0 ends at database version 321
+		newMigration(321, "Use LONGTEXT for some columns and fix review_state.updated_files column", v1_25.UseLongTextInSomeColumnsAndFixBugs),
 	}
 	return preparedMigrations
 }
@@ -406,14 +431,14 @@ func ExpectedDBVersion() int64 {
 }
 
 // EnsureUpToDate will check if the db is at the correct version
-func EnsureUpToDate(x *xorm.Engine) error {
+func EnsureUpToDate(ctx context.Context, x *xorm.Engine) error {
 	currentDB, err := GetCurrentDBVersion(x)
 	if err != nil {
 		return err
 	}
 
 	if currentDB < 0 {
-		return fmt.Errorf("database has not been initialized")
+		return errors.New("database has not been initialized")
 	}
 
 	if minDBVersion > currentDB {
@@ -438,7 +463,7 @@ func migrationIDNumberToDBVersion(idNumber int64) int64 {
 }
 
 // Migrate database to current version
-func Migrate(x *xorm.Engine) error {
+func Migrate(ctx context.Context, x *xorm.Engine) error {
 	migrations := prepareMigrationTasks()
 	maxDBVer := calcDBVersion(migrations)
 
@@ -482,10 +507,8 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 	}
 
 	// Some migration tasks depend on the git command
-	if git.DefaultContext == nil {
-		if err = git.InitSimple(context.Background()); err != nil {
-			return err
-		}
+	if err = git.InitSimple(); err != nil {
+		return err
 	}
 
 	// Migrate
@@ -493,7 +516,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		log.Info("Migration[%d]: %s", m.idNumber, m.description)
 		// Reset the mapper between each migration - migrations are not supposed to depend on each other
 		x.SetMapper(names.GonicMapper{})
-		if err = m.Migrate(x); err != nil {
+		if err = m.Migrate(ctx, x); err != nil {
 			return fmt.Errorf("migration[%d]: %s failed: %w", m.idNumber, m.description, err)
 		}
 		currentVersion.Version = migrationIDNumberToDBVersion(m.idNumber)

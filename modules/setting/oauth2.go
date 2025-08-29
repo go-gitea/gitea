@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// OAuth2UsernameType is enum describing the way gitea 'name' should be generated from oauth2 data
+// OAuth2UsernameType is enum describing the way gitea generates its 'username' from oauth2 data
 type OAuth2UsernameType string
 
 const (

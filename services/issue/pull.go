@@ -6,6 +6,7 @@ package issue
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -40,20 +41,27 @@ type ReviewRequestNotifier struct {
 	ReviewTeam *org_model.Team
 }
 
-func PullRequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
-	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
+var codeOwnerFiles = []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
 
+func IsCodeOwnerFile(f string) bool {
+	return slices.Contains(codeOwnerFiles, f)
+}
+
+func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
+	if err := pr.LoadIssue(ctx); err != nil {
+		return nil, err
+	}
+	issue := pr.Issue
 	if pr.IsWorkInProgress(ctx) {
 		return nil, nil
 	}
-
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return nil, err
 	}
-
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
+	pr.Issue.Repo = pr.BaseRepo
 
 	if pr.BaseRepo.IsFork {
 		return nil, nil
@@ -71,7 +79,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue,
 	}
 
 	var data string
-	for _, file := range files {
+	for _, file := range codeOwnerFiles {
 		if blob, err := commit.GetBlobByPath(file); err == nil {
 			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
 			if err == nil {
@@ -79,18 +87,24 @@ func PullRequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue,
 			}
 		}
 	}
+	if data == "" {
+		return nil, nil
+	}
 
 	rules, _ := issues_model.GetCodeOwnersFromContent(ctx, data)
+	if len(rules) == 0 {
+		return nil, nil
+	}
 
 	// get the mergebase
-	mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
+	mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
 	if err != nil {
 		return nil, err
 	}
 
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitRefName())
+	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitHeadRefName())
 	if err != nil {
 		return nil, err
 	}
@@ -116,12 +130,30 @@ func PullRequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue,
 		return nil, err
 	}
 
+	// load all reviews from database
+	latestReivews, _, err := issues_model.GetReviewsByIssueID(ctx, pr.IssueID)
+	if err != nil {
+		return nil, err
+	}
+
+	contain := func(list issues_model.ReviewList, u *user_model.User) bool {
+		for _, review := range list {
+			if review.ReviewerTeamID == 0 && review.ReviewerID == u.ID {
+				return true
+			}
+		}
+		return false
+	}
+
 	for _, u := range uniqUsers {
-		if u.ID != issue.Poster.ID {
+		if u.ID != issue.Poster.ID && !contain(latestReivews, u) {
 			comment, err := issues_model.AddReviewRequest(ctx, issue, u, issue.Poster)
 			if err != nil {
 				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
 				return nil, err
+			}
+			if comment == nil { // comment maybe nil if review type is ReviewTypeRequest
+				continue
 			}
 			notifiers = append(notifiers, &ReviewRequestNotifier{
 				Comment:  comment,
@@ -130,11 +162,15 @@ func PullRequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue,
 			})
 		}
 	}
+
 	for _, t := range uniqTeams {
 		comment, err := issues_model.AddTeamReviewRequest(ctx, issue, t, issue.Poster)
 		if err != nil {
 			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
 			return nil, err
+		}
+		if comment == nil { // comment maybe nil if review type is ReviewTypeRequest
+			continue
 		}
 		notifiers = append(notifiers, &ReviewRequestNotifier{
 			Comment:    comment,

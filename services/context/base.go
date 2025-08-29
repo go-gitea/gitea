@@ -4,84 +4,42 @@
 package context
 
 import (
-	"context"
 	"fmt"
 	"html/template"
 	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
-
-	"github.com/go-chi/chi/v5"
 )
-
-type contextValuePair struct {
-	key     any
-	valueFn func() any
-}
 
 type BaseContextKeyType struct{}
 
 var BaseContextKey BaseContextKeyType
 
+// Base is the base context for all web handlers
+// ATTENTION: This struct should never be manually constructed in routes/services,
+// it has many internal details which should be carefully prepared by the framework.
+// If it is abused, it would cause strange bugs like panic/resource-leak.
 type Base struct {
-	originCtx     context.Context
-	contextValues []contextValuePair
+	reqctx.RequestContext
 
 	Resp ResponseWriter
 	Req  *http.Request
 
 	// Data is prepared by ContextDataStore middleware, this field only refers to the pre-created/prepared ContextData.
 	// Although it's mainly used for MVC templates, sometimes it's also used to pass data between middlewares/handler
-	Data middleware.ContextData
+	Data reqctx.ContextData
 
 	// Locale is mainly for Web context, although the API context also uses it in some cases: message response, form validation
 	Locale translation.Locale
-}
-
-func (b *Base) Deadline() (deadline time.Time, ok bool) {
-	return b.originCtx.Deadline()
-}
-
-func (b *Base) Done() <-chan struct{} {
-	return b.originCtx.Done()
-}
-
-func (b *Base) Err() error {
-	return b.originCtx.Err()
-}
-
-func (b *Base) Value(key any) any {
-	for _, pair := range b.contextValues {
-		if pair.key == key {
-			return pair.valueFn()
-		}
-	}
-	return b.originCtx.Value(key)
-}
-
-func (b *Base) AppendContextValueFunc(key any, valueFn func() any) any {
-	b.contextValues = append(b.contextValues, contextValuePair{key, valueFn})
-	return b
-}
-
-func (b *Base) AppendContextValue(key, value any) any {
-	b.contextValues = append(b.contextValues, contextValuePair{key, func() any { return value }})
-	return b
-}
-
-func (b *Base) GetData() middleware.ContextData {
-	return b.Data
 }
 
 // AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
@@ -96,7 +54,7 @@ func (b *Base) AppendAccessControlExposeHeaders(names ...string) {
 
 // SetTotalCountHeader set "X-Total-Count" header
 func (b *Base) SetTotalCountHeader(total int64) {
-	b.RespHeader().Set("X-Total-Count", fmt.Sprint(total))
+	b.RespHeader().Set("X-Total-Count", strconv.FormatInt(total, 10))
 	b.AppendAccessControlExposeHeaders("X-Total-Count")
 }
 
@@ -124,8 +82,9 @@ func (b *Base) RespHeader() http.Header {
 	return b.Resp.Header()
 }
 
-// Error returned an error to web browser
-func (b *Base) Error(status int, contents ...string) {
+// HTTPError returned an error to web browser
+// FIXME: many calls to this HTTPError are not right: it shouldn't expose err.Error() directly, it doesn't accept more than one content
+func (b *Base) HTTPError(status int, contents ...string) {
 	v := http.StatusText(status)
 	if len(contents) > 0 {
 		v = contents[0]
@@ -145,93 +104,6 @@ func (b *Base) JSON(status int, content any) {
 // RemoteAddr returns the client machine ip address
 func (b *Base) RemoteAddr() string {
 	return b.Req.RemoteAddr
-}
-
-// PathParam returns the param in request path, eg: "/{var}" => "/a%2fb", then `var == "a/b"`
-func (b *Base) PathParam(name string) string {
-	s, err := url.PathUnescape(b.PathParamRaw(name))
-	if err != nil && !setting.IsProd {
-		panic("Failed to unescape path param: " + err.Error() + ", there seems to be a double-unescaping bug")
-	}
-	return s
-}
-
-// PathParamRaw returns the raw param in request path, eg: "/{var}" => "/a%2fb", then `var == "a%2fb"`
-func (b *Base) PathParamRaw(name string) string {
-	return chi.URLParam(b.Req, strings.TrimPrefix(name, ":"))
-}
-
-// PathParamInt64 returns the param in request path as int64
-func (b *Base) PathParamInt64(p string) int64 {
-	v, _ := strconv.ParseInt(b.PathParam(p), 10, 64)
-	return v
-}
-
-// SetPathParam set request path params into routes
-func (b *Base) SetPathParam(k, v string) {
-	chiCtx := chi.RouteContext(b)
-	chiCtx.URLParams.Add(strings.TrimPrefix(k, ":"), url.PathEscape(v))
-}
-
-// FormString returns the first value matching the provided key in the form as a string
-func (b *Base) FormString(key string) string {
-	return b.Req.FormValue(key)
-}
-
-// FormStrings returns a string slice for the provided key from the form
-func (b *Base) FormStrings(key string) []string {
-	if b.Req.Form == nil {
-		if err := b.Req.ParseMultipartForm(32 << 20); err != nil {
-			return nil
-		}
-	}
-	if v, ok := b.Req.Form[key]; ok {
-		return v
-	}
-	return nil
-}
-
-// FormTrim returns the first value for the provided key in the form as a space trimmed string
-func (b *Base) FormTrim(key string) string {
-	return strings.TrimSpace(b.Req.FormValue(key))
-}
-
-// FormInt returns the first value for the provided key in the form as an int
-func (b *Base) FormInt(key string) int {
-	v, _ := strconv.Atoi(b.Req.FormValue(key))
-	return v
-}
-
-// FormInt64 returns the first value for the provided key in the form as an int64
-func (b *Base) FormInt64(key string) int64 {
-	v, _ := strconv.ParseInt(b.Req.FormValue(key), 10, 64)
-	return v
-}
-
-// FormBool returns true if the value for the provided key in the form is "1", "true" or "on"
-func (b *Base) FormBool(key string) bool {
-	s := b.Req.FormValue(key)
-	v, _ := strconv.ParseBool(s)
-	v = v || strings.EqualFold(s, "on")
-	return v
-}
-
-// FormOptionalBool returns an optional.Some(true) or optional.Some(false) if the value
-// for the provided key exists in the form else it returns optional.None[bool]()
-func (b *Base) FormOptionalBool(key string) optional.Option[bool] {
-	value := b.Req.FormValue(key)
-	if len(value) == 0 {
-		return optional.None[bool]()
-	}
-	s := b.Req.FormValue(key)
-	v, _ := strconv.ParseBool(s)
-	v = v || strings.EqualFold(s, "on")
-	return optional.Some(v)
-}
-
-func (b *Base) SetFormString(key, value string) {
-	_ = b.Req.FormValue(key) // force parse form
-	b.Req.Form.Set(key, value)
 }
 
 // PlainTextBytes renders bytes as plain text
@@ -295,13 +167,6 @@ func (b *Base) ServeContent(r io.ReadSeeker, opts *ServeHeaderOptions) {
 	http.ServeContent(b.Resp, b.Req, opts.Filename, opts.LastModified, r)
 }
 
-// Close frees all resources hold by Context
-func (b *Base) cleanUp() {
-	if b.Req != nil && b.Req.MultipartForm != nil {
-		_ = b.Req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
-	}
-}
-
 func (b *Base) Tr(msg string, args ...any) template.HTML {
 	return b.Locale.Tr(msg, args...)
 }
@@ -310,17 +175,28 @@ func (b *Base) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 	return b.Locale.TrN(cnt, key1, keyN, args...)
 }
 
-func NewBaseContext(resp http.ResponseWriter, req *http.Request) (b *Base, closeFunc func()) {
-	b = &Base{
-		originCtx: req.Context(),
-		Req:       req,
-		Resp:      WrapResponseWriter(resp),
-		Locale:    middleware.Locale(resp, req),
-		Data:      middleware.GetContextData(req.Context()),
+func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
+	reqCtx := reqctx.FromContext(req.Context())
+	b := &Base{
+		RequestContext: reqCtx,
+
+		Req:    req,
+		Resp:   WrapResponseWriter(resp),
+		Locale: middleware.Locale(resp, req),
+		Data:   reqCtx.GetData(),
 	}
 	b.Req = b.Req.WithContext(b)
-	b.AppendContextValue(BaseContextKey, b)
-	b.AppendContextValue(translation.ContextKey, b.Locale)
-	b.AppendContextValue(httplib.RequestContextKey, b.Req)
-	return b, b.cleanUp
+	reqCtx.SetContextValue(BaseContextKey, b)
+	reqCtx.SetContextValue(translation.ContextKey, b.Locale)
+	reqCtx.SetContextValue(httplib.RequestContextKey, b.Req)
+	return b
+}
+
+func NewBaseContextForTest(resp http.ResponseWriter, req *http.Request) *Base {
+	if !setting.IsInTesting {
+		panic("This function is only for testing")
+	}
+	ctx := reqctx.NewRequestContextForTest(req.Context())
+	*req = *req.WithContext(ctx)
+	return NewBaseContext(resp, req)
 }

@@ -8,6 +8,8 @@ import {
   PointElement,
   LineElement,
   Filler,
+  type ChartOptions,
+  type ChartData,
 } from 'chart.js';
 import {GET} from '../modules/fetch.ts';
 import {Line as ChartLine} from 'vue-chartjs';
@@ -16,11 +18,12 @@ import {
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
   type DayData,
+  type DayDataObject,
 } from '../utils/time.ts';
 import {chartJsColors} from '../utils/color.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
-import {onMounted, ref} from 'vue';
+import {onMounted, shallowRef} from 'vue';
 
 const {pageData} = window.config;
 
@@ -44,10 +47,10 @@ defineProps<{
   };
 }>();
 
-const isLoading = ref(false);
-const errorText = ref('');
-const repoLink = ref(pageData.repoLink || []);
-const data = ref<DayData[]>([]);
+const isLoading = shallowRef(false);
+const errorText = shallowRef('');
+const repoLink = pageData.repoLink;
+const data = shallowRef<DayData[]>([]);
 
 onMounted(() => {
   fetchGraphData();
@@ -58,18 +61,18 @@ async function fetchGraphData() {
   try {
     let response: Response;
     do {
-      response = await GET(`${repoLink.value}/activity/code-frequency/data`);
+      response = await GET(`${repoLink}/activity/code-frequency/data`);
       if (response.status === 202) {
         await sleep(1000); // wait for 1 second before retrying
       }
     } while (response.status === 202);
     if (response.ok) {
-      data.value = await response.json();
-      const weekValues = Object.values(data.value);
+      const dayDataObject: DayDataObject = await response.json();
+      const weekValues = Object.values(dayDataObject);
       const start = weekValues[0].week;
       const end = firstStartDateAfterDate(new Date());
       const startDays = startDaysBetween(start, end);
-      data.value = fillEmptyStartDaysWithZeroes(startDays, data.value);
+      data.value = fillEmptyStartDaysWithZeroes(startDays, dayDataObject);
       errorText.value = '';
     } else {
       errorText.value = response.statusText;
@@ -81,7 +84,7 @@ async function fetchGraphData() {
   }
 }
 
-function toGraphData(data) {
+function toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
   return {
     datasets: [
       {
@@ -108,10 +111,9 @@ function toGraphData(data) {
   };
 }
 
-const options = {
+const options: ChartOptions<'line'> = {
   responsive: true,
   maintainAspectRatio: false,
-  animation: true,
   plugins: {
     legend: {
       display: true,
@@ -148,7 +150,7 @@ const options = {
     <div class="tw-flex ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+          <SvgIcon name="octicon-sync" class="tw-mr-2 circular-spin"/>
           {{ locale.loadingInfo }}
         </div>
         <div v-else class="text red">

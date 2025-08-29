@@ -35,11 +35,12 @@
 					</tr>
 				</thead>
 				<tbody>
+					{{$tooltipSearchInNuget := ctx.Locale.Tr "packages.search_in_external_registry" "nuget.org"}}
 					{{range $framework, $dependencies := .PackageDescriptor.Metadata.Dependencies}}
 						{{range $dependencies}}
 						<tr>
-							<td>{{.ID}}</td>
-							<td>{{.Version}}</td>
+							<td>{{.ID}} <a target="_blank" rel="noreferrer" href="https://www.nuget.org/packages/{{.ID}}" data-tooltip-content="{{$tooltipSearchInNuget}}">{{svg "octicon-link-external"}}</a></td>
+							<td>{{.Version}} <a target="_blank" rel="noreferrer" href="https://www.nuget.org/packages/{{.ID}}/{{.Version}}" data-tooltip-content="{{$tooltipSearchInNuget}}">{{svg "octicon-link-external"}}</a></td>
 							<td>{{$framework}}</td>
 						</tr>
 						{{end}}

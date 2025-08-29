@@ -30,11 +30,12 @@ func TestAPIExposedSettings(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &apiSettings)
-	assert.EqualValues(t, &api.GeneralAPISettings{
+	assert.Equal(t, &api.GeneralAPISettings{
 		MaxResponseItems:       setting.API.MaxResponseItems,
 		DefaultPagingNum:       setting.API.DefaultPagingNum,
 		DefaultGitTreesPerPage: setting.API.DefaultGitTreesPerPage,
 		DefaultMaxBlobSize:     setting.API.DefaultMaxBlobSize,
+		DefaultMaxResponseSize: setting.API.DefaultMaxResponseSize,
 	}, apiSettings)
 
 	repo := new(api.GeneralRepoSettings)
@@ -42,7 +43,7 @@ func TestAPIExposedSettings(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &repo)
-	assert.EqualValues(t, &api.GeneralRepoSettings{
+	assert.Equal(t, &api.GeneralRepoSettings{
 		MirrorsDisabled:      !setting.Mirror.Enabled,
 		HTTPGitDisabled:      setting.Repository.DisableHTTPGit,
 		MigrationsDisabled:   setting.Repository.DisableMigrations,
@@ -55,7 +56,7 @@ func TestAPIExposedSettings(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &attachment)
-	assert.EqualValues(t, &api.GeneralAttachmentSettings{
+	assert.Equal(t, &api.GeneralAttachmentSettings{
 		Enabled:      setting.Attachment.Enabled,
 		AllowedTypes: setting.Attachment.AllowedTypes,
 		MaxFiles:     setting.Attachment.MaxFiles,

@@ -6,18 +6,21 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -30,6 +33,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -58,7 +62,7 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 		issueReference = "!"
 	}
 
-	reviewedOn := fmt.Sprintf("Reviewed-on: %s", httplib.MakeAbsoluteURL(ctx, pr.Issue.Link()))
+	reviewedOn := "Reviewed-on: " + httplib.MakeAbsoluteURL(ctx, pr.Issue.Link())
 	reviewedBy := pr.GetApprovers(ctx)
 
 	if mergeStyle != "" {
@@ -92,9 +96,7 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 				vars["HeadRepoOwnerName"] = pr.HeadRepo.OwnerName
 				vars["HeadRepoName"] = pr.HeadRepo.Name
 			}
-			for extraKey, extraValue := range extraVars {
-				vars[extraKey] = extraValue
-			}
+			maps.Copy(vars, extraVars)
 			refs, err := pr.ResolveCrossReferences(ctx)
 			if err == nil {
 				closeIssueIndexes := make([]string, 0, len(refs))
@@ -159,6 +161,62 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 	return getMergeMessage(ctx, baseGitRepo, pr, mergeStyle, nil)
 }
 
+func AddCommitMessageTailer(message, tailerKey, tailerValue string) string {
+	tailerLine := tailerKey + ": " + tailerValue
+	message = strings.ReplaceAll(message, "\r\n", "\n")
+	message = strings.ReplaceAll(message, "\r", "\n")
+	if strings.Contains(message, "\n"+tailerLine+"\n") || strings.HasSuffix(message, "\n"+tailerLine) {
+		return message
+	}
+
+	if !strings.HasSuffix(message, "\n") {
+		message += "\n"
+	}
+	pos1 := strings.LastIndexByte(message[:len(message)-1], '\n')
+	pos2 := -1
+	if pos1 != -1 {
+		pos2 = strings.IndexByte(message[pos1:], ':')
+		if pos2 != -1 {
+			pos2 += pos1
+		}
+	}
+	var lastLineKey string
+	if pos1 != -1 && pos2 != -1 {
+		lastLineKey = message[pos1+1 : pos2]
+	}
+
+	isLikelyTailerLine := lastLineKey != "" && unicode.IsUpper(rune(lastLineKey[0])) && strings.Contains(message, "-")
+	for i := 0; isLikelyTailerLine && i < len(lastLineKey); i++ {
+		r := rune(lastLineKey[i])
+		isLikelyTailerLine = unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-'
+	}
+	if !strings.HasSuffix(message, "\n\n") && !isLikelyTailerLine {
+		message += "\n"
+	}
+	return message + tailerLine
+}
+
+// ErrInvalidMergeStyle represents an error if merging with disabled merge strategy
+type ErrInvalidMergeStyle struct {
+	ID    int64
+	Style repo_model.MergeStyle
+}
+
+// IsErrInvalidMergeStyle checks if an error is a ErrInvalidMergeStyle.
+func IsErrInvalidMergeStyle(err error) bool {
+	_, ok := err.(ErrInvalidMergeStyle)
+	return ok
+}
+
+func (err ErrInvalidMergeStyle) Error() string {
+	return fmt.Sprintf("merge strategy is not allowed or is invalid [repo_id: %d, strategy: %s]",
+		err.ID, err.Style)
+}
+
+func (err ErrInvalidMergeStyle) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
 func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
@@ -179,7 +237,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 
 	// Check if merge style is correct and allowed
 	if !prConfig.IsMergeStyleAllowed(mergeStyle) {
-		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
+		return ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
 
 	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
@@ -189,7 +247,15 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	}
 	defer releaser()
 	defer func() {
-		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
+		go AddTestPullRequestTask(TestPullRequestOptions{
+			RepoID:      pr.BaseRepo.ID,
+			Doer:        doer,
+			Branch:      pr.BaseBranch,
+			IsSync:      false,
+			IsForcePush: false,
+			OldCommitID: "",
+			NewCommitID: "",
+		})
 	}()
 
 	_, err = doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message, repo_module.PushTriggerPRMergeToBase)
@@ -242,13 +308,16 @@ func handleCloseCrossReferences(ctx context.Context, pr *issues_model.PullReques
 		if err = ref.Issue.LoadRepo(ctx); err != nil {
 			return err
 		}
-		isClosed := ref.RefAction == references.XRefActionCloses
-		if isClosed != ref.Issue.IsClosed {
-			if err = issue_service.ChangeStatus(ctx, ref.Issue, doer, pr.MergedCommitID, isClosed); err != nil {
+		if ref.RefAction == references.XRefActionCloses && !ref.Issue.IsClosed {
+			if err = issue_service.CloseIssue(ctx, ref.Issue, doer, pr.MergedCommitID); err != nil {
 				// Allow ErrDependenciesLeft
 				if !issues_model.IsErrDependenciesLeft(err) {
 					return err
 				}
+			}
+		} else if ref.RefAction == references.XRefActionReopens && ref.Issue.IsClosed {
+			if err = issue_service.ReopenIssue(ctx, ref.Issue, doer, pr.MergedCommitID); err != nil {
+				return err
 			}
 		}
 	}
@@ -256,7 +325,7 @@ func handleCloseCrossReferences(ctx context.Context, pr *issues_model.PullReques
 }
 
 // doMergeAndPush performs the merge operation without changing any pull information in database and pushes it up to the base repository
-func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, pushTrigger repo_module.PushTrigger) (string, error) { //nolint:unparam
+func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, pushTrigger repo_module.PushTrigger) (string, error) { //nolint:unparam // non-error result is never used
 	// Clone base repo.
 	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, expectedHeadCommitID)
 	if err != nil {
@@ -283,7 +352,7 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 			return "", err
 		}
 	default:
-		return "", models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
+		return "", ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
 
 	// OK we should cache our current head and origin/headbranch
@@ -331,12 +400,12 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	)
 
 	mergeCtx.env = append(mergeCtx.env, repo_module.EnvPushTrigger+"="+string(pushTrigger))
-	pushCmd := git.NewCommand(ctx, "push", "origin").AddDynamicArguments(baseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
+	pushCmd := git.NewCommand("push", "origin").AddDynamicArguments(baseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 
 	// Push back to upstream.
 	// This cause an api call to "/api/internal/hook/post-receive/...",
 	// If it's merge, all db transaction and operations should be there but not here to prevent deadlock.
-	if err := pushCmd.Run(mergeCtx.RunOpts()); err != nil {
+	if err := pushCmd.Run(ctx, mergeCtx.RunOpts()); err != nil {
 		if strings.Contains(mergeCtx.errbuf.String(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{
 				StdOut: mergeCtx.outbuf.String(),
@@ -361,26 +430,82 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 }
 
 func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
-	cmdCommit := git.NewCommand(ctx, "commit").AddOptionFormat("--message=%s", message)
-	if ctx.signKeyID == "" {
+	cmdCommit := git.NewCommand("commit").AddOptionFormat("--message=%s", message)
+	if ctx.signKey == nil {
 		cmdCommit.AddArguments("--no-gpg-sign")
 	} else {
-		cmdCommit.AddOptionFormat("-S%s", ctx.signKeyID)
+		if ctx.signKey.Format != "" {
+			cmdCommit.AddConfig("gpg.format", ctx.signKey.Format)
+		}
+		cmdCommit.AddOptionFormat("-S%s", ctx.signKey.KeyID)
 	}
-	if err := cmdCommit.Run(ctx.RunOpts()); err != nil {
+	if err := cmdCommit.Run(ctx, ctx.RunOpts()); err != nil {
 		log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 		return fmt.Errorf("git commit %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 	}
 	return nil
 }
 
+// ErrMergeConflicts represents an error if merging fails with a conflict
+type ErrMergeConflicts struct {
+	Style  repo_model.MergeStyle
+	StdOut string
+	StdErr string
+	Err    error
+}
+
+// IsErrMergeConflicts checks if an error is a ErrMergeConflicts.
+func IsErrMergeConflicts(err error) bool {
+	_, ok := err.(ErrMergeConflicts)
+	return ok
+}
+
+func (err ErrMergeConflicts) Error() string {
+	return fmt.Sprintf("Merge Conflict Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// ErrMergeUnrelatedHistories represents an error if merging fails due to unrelated histories
+type ErrMergeUnrelatedHistories struct {
+	Style  repo_model.MergeStyle
+	StdOut string
+	StdErr string
+	Err    error
+}
+
+// IsErrMergeUnrelatedHistories checks if an error is a ErrMergeUnrelatedHistories.
+func IsErrMergeUnrelatedHistories(err error) bool {
+	_, ok := err.(ErrMergeUnrelatedHistories)
+	return ok
+}
+
+func (err ErrMergeUnrelatedHistories) Error() string {
+	return fmt.Sprintf("Merge UnrelatedHistories Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// ErrMergeDivergingFastForwardOnly represents an error if a fast-forward-only merge fails because the branches diverge
+type ErrMergeDivergingFastForwardOnly struct {
+	StdOut string
+	StdErr string
+	Err    error
+}
+
+// IsErrMergeDivergingFastForwardOnly checks if an error is a ErrMergeDivergingFastForwardOnly.
+func IsErrMergeDivergingFastForwardOnly(err error) bool {
+	_, ok := err.(ErrMergeDivergingFastForwardOnly)
+	return ok
+}
+
+func (err ErrMergeDivergingFastForwardOnly) Error() string {
+	return fmt.Sprintf("Merge DivergingFastForwardOnly Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
 func runMergeCommand(ctx *mergeContext, mergeStyle repo_model.MergeStyle, cmd *git.Command) error {
-	if err := cmd.Run(ctx.RunOpts()); err != nil {
+	if err := cmd.Run(ctx, ctx.RunOpts()); err != nil {
 		// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
 		if _, statErr := os.Stat(filepath.Join(ctx.tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
 			// We have a merge conflict error
 			log.Debug("MergeConflict %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
-			return models.ErrMergeConflicts{
+			return ErrMergeConflicts{
 				Style:  mergeStyle,
 				StdOut: ctx.outbuf.String(),
 				StdErr: ctx.errbuf.String(),
@@ -388,7 +513,7 @@ func runMergeCommand(ctx *mergeContext, mergeStyle repo_model.MergeStyle, cmd *g
 			}
 		} else if strings.Contains(ctx.errbuf.String(), "refusing to merge unrelated histories") {
 			log.Debug("MergeUnrelatedHistories %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
-			return models.ErrMergeUnrelatedHistories{
+			return ErrMergeUnrelatedHistories{
 				Style:  mergeStyle,
 				StdOut: ctx.outbuf.String(),
 				StdErr: ctx.errbuf.String(),
@@ -396,7 +521,7 @@ func runMergeCommand(ctx *mergeContext, mergeStyle repo_model.MergeStyle, cmd *g
 			}
 		} else if mergeStyle == repo_model.MergeStyleFastForwardOnly && strings.Contains(ctx.errbuf.String(), "Not possible to fast-forward, aborting") {
 			log.Debug("MergeDivergingFastForwardOnly %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
-			return models.ErrMergeDivergingFastForwardOnly{
+			return ErrMergeDivergingFastForwardOnly{
 				StdOut: ctx.outbuf.String(),
 				StdErr: ctx.errbuf.String(),
 				Err:    err,
@@ -450,31 +575,21 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		return err
 	}
 	if !isPass {
-		return models.ErrDisallowedToMerge{
-			Reason: "Not all required status checks successful",
-		}
+		return util.ErrorWrap(ErrNotReadyToMerge, "Not all required status checks successful")
 	}
 
 	if !issues_model.HasEnoughApprovals(ctx, pb, pr) {
-		return models.ErrDisallowedToMerge{
-			Reason: "Does not have enough approvals",
-		}
+		return util.ErrorWrap(ErrNotReadyToMerge, "Does not have enough approvals")
 	}
 	if issues_model.MergeBlockedByRejectedReview(ctx, pb, pr) {
-		return models.ErrDisallowedToMerge{
-			Reason: "There are requested changes",
-		}
+		return util.ErrorWrap(ErrNotReadyToMerge, "There are requested changes")
 	}
 	if issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pr) {
-		return models.ErrDisallowedToMerge{
-			Reason: "There are official review requests",
-		}
+		return util.ErrorWrap(ErrNotReadyToMerge, "There are official review requests")
 	}
 
 	if issues_model.MergeBlockedByOutdatedBranch(pb, pr) {
-		return models.ErrDisallowedToMerge{
-			Reason: "The head branch is behind the base branch",
-		}
+		return util.ErrorWrap(ErrNotReadyToMerge, "The head branch is behind the base branch")
 	}
 
 	if skipProtectedFilesCheck {
@@ -482,9 +597,7 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 	}
 
 	if pb.MergeBlockedByProtectedFiles(pr.ChangedProtectedFiles) {
-		return models.ErrDisallowedToMerge{
-			Reason: "Changed protected files",
-		}
+		return util.ErrorWrap(ErrNotReadyToMerge, "Changed protected files")
 	}
 
 	return nil
@@ -511,18 +624,18 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 
 		// Check if merge style is correct and allowed
 		if !prConfig.IsMergeStyleAllowed(repo_model.MergeStyleManuallyMerged) {
-			return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: repo_model.MergeStyleManuallyMerged}
+			return ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: repo_model.MergeStyleManuallyMerged}
 		}
 
 		objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 		if len(commitID) != objectFormat.FullLength() {
-			return fmt.Errorf("Wrong commit ID")
+			return errors.New("Wrong commit ID")
 		}
 
 		commit, err := baseGitRepo.GetCommit(commitID)
 		if err != nil {
 			if git.IsErrNotExist(err) {
-				return fmt.Errorf("Wrong commit ID")
+				return errors.New("Wrong commit ID")
 			}
 			return err
 		}
@@ -533,20 +646,14 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 			return err
 		}
 		if !ok {
-			return fmt.Errorf("Wrong commit ID")
+			return errors.New("Wrong commit ID")
 		}
 
-		pr.MergedCommitID = commitID
-		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
-		pr.Status = issues_model.PullRequestStatusManuallyMerged
-		pr.Merger = doer
-		pr.MergerID = doer.ID
-
 		var merged bool
-		if merged, err = pr.SetMerged(ctx); err != nil {
+		if merged, err = SetMerged(ctx, pr, commitID, timeutil.TimeStamp(commit.Author.When.Unix()), doer, issues_model.PullRequestStatusManuallyMerged); err != nil {
 			return err
 		} else if !merged {
-			return fmt.Errorf("SetMerged failed")
+			return errors.New("SetMerged failed")
 		}
 		return nil
 	})
@@ -559,4 +666,61 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
 
 	return handleCloseCrossReferences(ctx, pr, doer)
+}
+
+// SetMerged sets a pull request to merged and closes the corresponding issue
+func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID string, mergedTimeStamp timeutil.TimeStamp, merger *user_model.User, mergeStatus issues_model.PullRequestStatus) (bool, error) {
+	if pr.HasMerged {
+		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
+	}
+
+	pr.HasMerged = true
+	pr.MergedCommitID = mergedCommitID
+	pr.MergedUnix = mergedTimeStamp
+	pr.Merger = merger
+	pr.MergerID = merger.ID
+	pr.Status = mergeStatus
+	// reset the conflicted files as there cannot be any if we're merged
+	pr.ConflictedFiles = []string{}
+
+	if pr.MergedCommitID == "" || pr.MergedUnix == 0 || pr.Merger == nil {
+		return false, fmt.Errorf("unable to merge PullRequest[%d], some required fields are empty", pr.Index)
+	}
+
+	return db.WithTx2(ctx, func(ctx context.Context) (bool, error) {
+		pr.Issue = nil
+		if err := pr.LoadIssue(ctx); err != nil {
+			return false, err
+		}
+
+		if err := pr.Issue.LoadRepo(ctx); err != nil {
+			return false, err
+		}
+
+		if err := pr.Issue.Repo.LoadOwner(ctx); err != nil {
+			return false, err
+		}
+
+		// Removing an auto merge pull and ignore if not exist
+		if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
+			return false, fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", pr.ID, err)
+		}
+
+		// Set issue as closed
+		if _, err := issues_model.SetIssueAsClosed(ctx, pr.Issue, pr.Merger, true); err != nil {
+			return false, fmt.Errorf("ChangeIssueStatus: %w", err)
+		}
+
+		// We need to save all of the data used to compute this merge as it may have already been changed by testPullRequestBranchMergeable. FIXME: need to set some state to prevent testPullRequestBranchMergeable from running whilst we are merging.
+		if cnt, err := db.GetEngine(ctx).Where("id = ?", pr.ID).
+			And("has_merged = ?", false).
+			Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix, conflicted_files").
+			Update(pr); err != nil {
+			return false, fmt.Errorf("failed to update pr[%d]: %w", pr.ID, err)
+		} else if cnt != 1 {
+			return false, issues_model.ErrIssueAlreadyChanged
+		}
+
+		return true, nil
+	})
 }

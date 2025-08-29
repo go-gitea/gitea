@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -28,7 +27,7 @@ func TestPackageNpm(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	token := fmt.Sprintf("Bearer %s", getTokenForLoggedInUser(t, loginUser(t, user.Name), auth_model.AccessTokenScopeWritePackage))
+	token := "Bearer " + getTokenForLoggedInUser(t, loginUser(t, user.Name), auth_model.AccessTokenScopeWritePackage)
 
 	packageName := "@scope/test-package"
 	packageVersion := "1.0.1-pre"
@@ -52,24 +51,33 @@ func TestPackageNpm(t *testing.T) {
 			  "` + packageTag + `": "` + version + `"
 			},
 			"versions": {
-			  "` + version + `": {
-				"name": "` + packageName + `",
-				"version": "` + version + `",
-				"description": "` + packageDescription + `",
-				"author": {
-				  "name": "` + packageAuthor + `"
-				},
-        "bin": {
-          "` + packageBinName + `": "` + packageBinPath + `"
-        },
-				"dist": {
-				  "integrity": "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==",
-				  "shasum": "aaa7eaf852a948b0aa05afeda35b1badca155d90"
-				},
-				"repository": {
-					"type": "` + repoType + `",
-					"url": "` + repoURL + `"
-				}
+			  	"` + version + `": {
+					"name": "` + packageName + `",
+					"version": "` + version + `",
+					"description": "` + packageDescription + `",
+					"author": {
+				  	"name": "` + packageAuthor + `"
+					},
+        	"bin": {
+        	  "` + packageBinName + `": "` + packageBinPath + `"
+      	  },
+					"dist": {
+					  "integrity": "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==",
+					  "shasum": "aaa7eaf852a948b0aa05afeda35b1badca155d90"
+					},
+					"repository": {
+						"type": "` + repoType + `",
+						"url": "` + repoURL + `"
+					},
+					"peerDependencies": {
+						"tea": "2.x",
+						"soy-milk": "1.2"
+					},
+					"peerDependenciesMeta": {
+						"soy-milk": {
+							"optional": true
+						}
+					}
 			  }
 			},
 			"_attachments": {
@@ -91,11 +99,11 @@ func TestPackageNpm(t *testing.T) {
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		assert.NoError(t, err)
 		assert.NotNil(t, pd.SemVer)
 		assert.IsType(t, &npm.Metadata{}, pd.Metadata)
@@ -105,13 +113,13 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, npm.TagProperty, pd.VersionProperties[0].Name)
 		assert.Equal(t, packageTag, pd.VersionProperties[0].Value)
 
-		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 		assert.Equal(t, filename, pfs[0].Name)
 		assert.True(t, pfs[0].IsLead)
 
-		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+		pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(192), pb.Size)
 	})
@@ -140,7 +148,7 @@ func TestPackageNpm(t *testing.T) {
 
 		assert.Equal(t, b, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(2), pvs[0].DownloadCount)
@@ -178,6 +186,8 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, fmt.Sprintf("%s%s/-/%s/%s", setting.AppURL, root[1:], packageVersion, filename), pmv.Dist.Tarball)
 		assert.Equal(t, repoType, result.Repository.Type)
 		assert.Equal(t, repoURL, result.Repository.URL)
+		assert.Equal(t, map[string]string{"tea": "2.x", "soy-milk": "1.2"}, pmv.PeerDependencies)
+		assert.Equal(t, map[string]any{"soy-milk": map[string]any{"optional": true}}, pmv.PeerDependenciesMeta)
 	})
 
 	t.Run("AddTag", func(t *testing.T) {
@@ -293,7 +303,7 @@ func TestPackageNpm(t *testing.T) {
 		t.Run("Version", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 2)
 
@@ -304,7 +314,7 @@ func TestPackageNpm(t *testing.T) {
 				AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
 
-			pvs, err = packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
+			pvs, err = packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 		})
@@ -312,7 +322,7 @@ func TestPackageNpm(t *testing.T) {
 		t.Run("Full", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 
@@ -323,9 +333,9 @@ func TestPackageNpm(t *testing.T) {
 				AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
 
-			pvs, err = packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
+			pvs, err = packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 			assert.NoError(t, err)
-			assert.Len(t, pvs, 0)
+			assert.Empty(t, pvs)
 		})
 	})
 }

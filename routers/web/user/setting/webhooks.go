@@ -9,13 +9,13 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplSettingsHooks base.TplName = "user/settings/hooks"
+	tplSettingsHooks templates.TplName = "user/settings/hooks"
 )
 
 // Webhooks render webhook list page

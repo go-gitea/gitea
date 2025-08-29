@@ -8,13 +8,13 @@ import (
 	"strconv"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplWatching base.TplName = "repo/issue/view_content/watching"
+	tplWatching templates.TplName = "repo/issue/view_content/watching"
 )
 
 // IssueWatch sets issue watching
@@ -42,11 +42,11 @@ func IssueWatch(ctx *context.Context) {
 				log.Trace("Permission Denied: Not logged in")
 			}
 		}
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
-	watch, err := strconv.ParseBool(ctx.Req.PostForm.Get("watch"))
+	watch, err := strconv.ParseBool(ctx.Req.PostFormValue("watch"))
 	if err != nil {
 		ctx.ServerError("watch is not bool", err)
 		return

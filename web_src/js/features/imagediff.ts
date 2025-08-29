@@ -3,7 +3,7 @@ import {hideElem, loadElem, queryElemChildren, queryElems} from '../utils/dom.ts
 import {parseDom} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 
-function getDefaultSvgBoundsIfUndefined(text, src) {
+function getDefaultSvgBoundsIfUndefined(text: string, src: string) {
   const defaultSize = 300;
   const maxSize = 99999;
 
@@ -38,7 +38,7 @@ function getDefaultSvgBoundsIfUndefined(text, src) {
   return null;
 }
 
-function createContext(imageAfter, imageBefore) {
+function createContext(imageAfter: HTMLImageElement, imageBefore: HTMLImageElement) {
   const sizeAfter = {
     width: imageAfter?.width || 0,
     height: imageAfter?.height || 0,
@@ -75,7 +75,7 @@ class ImageDiff {
     this.containerEl = containerEl;
     containerEl.setAttribute('data-image-diff-loaded', 'true');
 
-    fomanticQuery(containerEl).find('.ui.menu.tabular .item').tab({autoTabActivation: false});
+    fomanticQuery(containerEl).find('.ui.menu.tabular .item').tab();
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
     this.diffContainerWidth = Math.max(containerEl.closest('.diff-file-box').clientWidth - 300, 100);
@@ -123,7 +123,7 @@ class ImageDiff {
     queryElemChildren(containerEl, '.image-diff-tabs', (el) => el.classList.remove('is-loading'));
   }
 
-  initSideBySide(sizes) {
+  initSideBySide(sizes: Record<string, any>) {
     let factor = 1;
     if (sizes.maxSize.width > (this.diffContainerWidth - 24) / 2) {
       factor = (this.diffContainerWidth - 24) / 2 / sizes.maxSize.width;
@@ -176,7 +176,7 @@ class ImageDiff {
     }
   }
 
-  initSwipe(sizes) {
+  initSwipe(sizes: Record<string, any>) {
     let factor = 1;
     if (sizes.maxSize.width > this.diffContainerWidth - 12) {
       factor = (this.diffContainerWidth - 12) / sizes.maxSize.width;
@@ -215,14 +215,14 @@ class ImageDiff {
 
     this.containerEl.querySelector('.swipe-bar').addEventListener('mousedown', (e) => {
       e.preventDefault();
-      this.initSwipeEventListeners(e.currentTarget);
+      this.initSwipeEventListeners(e.currentTarget as HTMLElement);
     });
   }
 
-  initSwipeEventListeners(swipeBar) {
-    const swipeFrame = swipeBar.parentNode;
+  initSwipeEventListeners(swipeBar: HTMLElement) {
+    const swipeFrame = swipeBar.parentNode as HTMLElement;
     const width = swipeFrame.clientWidth;
-    const onSwipeMouseMove = (e) => {
+    const onSwipeMouseMove = (e: MouseEvent) => {
       e.preventDefault();
       const rect = swipeFrame.getBoundingClientRect();
       const value = Math.max(0, Math.min(e.clientX - rect.left, width));
@@ -237,7 +237,7 @@ class ImageDiff {
     document.addEventListener('mouseup', removeEventListeners);
   }
 
-  initOverlay(sizes) {
+  initOverlay(sizes: Record<string, any>) {
     let factor = 1;
     if (sizes.maxSize.width > this.diffContainerWidth - 12) {
       factor = (this.diffContainerWidth - 12) / sizes.maxSize.width;

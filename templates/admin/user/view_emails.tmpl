@@ -3,7 +3,7 @@
 		<div class="flex-item">
 			<div class="flex-item-main">
 				<div class="flex-text-block">
-					{{.Email}}
+					<a href="mailto:{{.Email}}">{{.Email}}</a>
 					{{if .IsPrimary}}
 						<div class="ui primary label">{{ctx.Locale.Tr "settings.primary"}}</div>
 					{{end}}

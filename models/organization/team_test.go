@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -27,14 +28,14 @@ func TestTeam_IsMember(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
-	assert.True(t, team.IsMember(db.DefaultContext, 2))
-	assert.False(t, team.IsMember(db.DefaultContext, 4))
-	assert.False(t, team.IsMember(db.DefaultContext, unittest.NonexistentID))
+	assert.True(t, team.IsMember(t.Context(), 2))
+	assert.False(t, team.IsMember(t.Context(), 4))
+	assert.False(t, team.IsMember(t.Context(), unittest.NonexistentID))
 
 	team = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	assert.True(t, team.IsMember(db.DefaultContext, 2))
-	assert.True(t, team.IsMember(db.DefaultContext, 4))
-	assert.False(t, team.IsMember(db.DefaultContext, unittest.NonexistentID))
+	assert.True(t, team.IsMember(t.Context(), 2))
+	assert.True(t, team.IsMember(t.Context(), 4))
+	assert.False(t, team.IsMember(t.Context(), unittest.NonexistentID))
 }
 
 func TestTeam_GetRepositories(t *testing.T) {
@@ -42,9 +43,12 @@ func TestTeam_GetRepositories(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, team.LoadRepositories(db.DefaultContext))
-		assert.Len(t, team.Repos, team.NumRepos)
-		for _, repo := range team.Repos {
+		repos, err := repo_model.GetTeamRepositories(t.Context(), &repo_model.SearchTeamRepoOptions{
+			TeamID: team.ID,
+		})
+		assert.NoError(t, err)
+		assert.Len(t, repos, team.NumRepos)
+		for _, repo := range repos {
 			unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: teamID, RepoID: repo.ID})
 		}
 	}
@@ -57,7 +61,7 @@ func TestTeam_GetMembers(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, team.LoadMembers(db.DefaultContext))
+		assert.NoError(t, team.LoadMembers(t.Context()))
 		assert.Len(t, team.Members, team.NumMembers)
 		for _, member := range team.Members {
 			unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{UID: member.ID, TeamID: teamID})
@@ -71,17 +75,17 @@ func TestGetTeam(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(orgID int64, name string) {
-		team, err := organization.GetTeam(db.DefaultContext, orgID, name)
+		team, err := organization.GetTeam(t.Context(), orgID, name)
 		assert.NoError(t, err)
-		assert.EqualValues(t, orgID, team.OrgID)
+		assert.Equal(t, orgID, team.OrgID)
 		assert.Equal(t, name, team.Name)
 	}
 	testSuccess(3, "Owners")
 	testSuccess(3, "team1")
 
-	_, err := organization.GetTeam(db.DefaultContext, 3, "nonexistent")
+	_, err := organization.GetTeam(t.Context(), 3, "nonexistent")
 	assert.Error(t, err)
-	_, err = organization.GetTeam(db.DefaultContext, unittest.NonexistentID, "Owners")
+	_, err = organization.GetTeam(t.Context(), unittest.NonexistentID, "Owners")
 	assert.Error(t, err)
 }
 
@@ -89,23 +93,23 @@ func TestGetTeamByID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(teamID int64) {
-		team, err := organization.GetTeamByID(db.DefaultContext, teamID)
+		team, err := organization.GetTeamByID(t.Context(), teamID)
 		assert.NoError(t, err)
-		assert.EqualValues(t, teamID, team.ID)
+		assert.Equal(t, teamID, team.ID)
 	}
 	testSuccess(1)
 	testSuccess(2)
 	testSuccess(3)
 	testSuccess(4)
 
-	_, err := organization.GetTeamByID(db.DefaultContext, unittest.NonexistentID)
+	_, err := organization.GetTeamByID(t.Context(), unittest.NonexistentID)
 	assert.Error(t, err)
 }
 
 func TestIsTeamMember(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(orgID, teamID, userID int64, expected bool) {
-		isMember, err := organization.IsTeamMember(db.DefaultContext, orgID, teamID, userID)
+		isMember, err := organization.IsTeamMember(t.Context(), orgID, teamID, userID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, isMember)
 	}
@@ -126,7 +130,7 @@ func TestGetTeamMembers(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		members, err := organization.GetTeamMembers(db.DefaultContext, &organization.SearchMembersOptions{
+		members, err := organization.GetTeamMembers(t.Context(), &organization.SearchMembersOptions{
 			TeamID: teamID,
 		})
 		assert.NoError(t, err)
@@ -142,7 +146,7 @@ func TestGetTeamMembers(t *testing.T) {
 func TestGetUserTeams(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(userID int64) {
-		teams, _, err := organization.SearchTeam(db.DefaultContext, &organization.SearchTeamOptions{UserID: userID})
+		teams, _, err := organization.SearchTeam(t.Context(), &organization.SearchTeamOptions{UserID: userID})
 		assert.NoError(t, err)
 		for _, team := range teams {
 			unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{TeamID: team.ID, UID: userID})
@@ -156,10 +160,10 @@ func TestGetUserTeams(t *testing.T) {
 func TestGetUserOrgTeams(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(orgID, userID int64) {
-		teams, err := organization.GetUserOrgTeams(db.DefaultContext, orgID, userID)
+		teams, err := organization.GetUserOrgTeams(t.Context(), orgID, userID)
 		assert.NoError(t, err)
 		for _, team := range teams {
-			assert.EqualValues(t, orgID, team.OrgID)
+			assert.Equal(t, orgID, team.OrgID)
 			unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{TeamID: team.ID, UID: userID})
 		}
 	}
@@ -173,7 +177,7 @@ func TestHasTeamRepo(t *testing.T) {
 
 	test := func(teamID, repoID int64, expected bool) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.Equal(t, expected, organization.HasTeamRepo(db.DefaultContext, team.OrgID, teamID, repoID))
+		assert.Equal(t, expected, organization.HasTeamRepo(t.Context(), team.OrgID, teamID, repoID))
 	}
 	test(1, 1, false)
 	test(1, 3, true)
@@ -188,7 +192,7 @@ func TestUsersInTeamsCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamIDs, userIDs []int64, expected int64) {
-		count, err := organization.UsersInTeamsCount(db.DefaultContext, teamIDs, userIDs)
+		count, err := organization.UsersInTeamsCount(t.Context(), teamIDs, userIDs)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, count)
 	}

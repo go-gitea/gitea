@@ -1,14 +1,19 @@
+{{$canReadCode := $.Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
+
 <div class="ui fluid vertical menu">
+	{{/* the default activity page "pulse" could work with any permission: code, issue, pr, release*/}}
 	<a class="{{if .PageIsPulse}}active {{end}}item" href="{{.RepoLink}}/activity">
 		{{ctx.Locale.Tr "repo.activity.navbar.pulse"}}
 	</a>
-	<a class="{{if .PageIsContributors}}active {{end}}item" href="{{.RepoLink}}/activity/contributors">
-		{{ctx.Locale.Tr "repo.activity.navbar.contributors"}}
-	</a>
-	<a class="{{if .PageIsCodeFrequency}}active{{end}} item" href="{{.RepoLink}}/activity/code-frequency">
-		{{ctx.Locale.Tr "repo.activity.navbar.code_frequency"}}
-	</a>
-	<a class="{{if .PageIsRecentCommits}}active{{end}} item" href="{{.RepoLink}}/activity/recent-commits">
-		{{ctx.Locale.Tr "repo.activity.navbar.recent_commits"}}
-	</a>
+	{{if $canReadCode}}
+		<a class="{{if .PageIsContributors}}active {{end}}item" href="{{.RepoLink}}/activity/contributors">
+			{{ctx.Locale.Tr "repo.activity.navbar.contributors"}}
+		</a>
+		<a class="{{if .PageIsCodeFrequency}}active{{end}} item" href="{{.RepoLink}}/activity/code-frequency">
+			{{ctx.Locale.Tr "repo.activity.navbar.code_frequency"}}
+		</a>
+		<a class="{{if .PageIsRecentCommits}}active{{end}} item" href="{{.RepoLink}}/activity/recent-commits">
+			{{ctx.Locale.Tr "repo.activity.navbar.recent_commits"}}
+		</a>
+	{{end}}
 </div>

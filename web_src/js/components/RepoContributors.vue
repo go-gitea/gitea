@@ -1,5 +1,7 @@
 <script lang="ts">
+import {defineComponent, type PropType} from 'vue';
 import {SvgIcon} from '../svg.ts';
+import dayjs from 'dayjs';
 import {
   Chart,
   Title,
@@ -9,6 +11,9 @@ import {
   PointElement,
   LineElement,
   Filler,
+  type ChartOptions,
+  type ChartData,
+  type Plugin,
 } from 'chart.js';
 import {GET} from '../modules/fetch.ts';
 import zoomPlugin from 'chartjs-plugin-zoom';
@@ -22,8 +27,10 @@ import {chartJsColors} from '../utils/color.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import type {Entries} from 'type-fest';
+import {pathEscapeSegments} from '../utils/url.ts';
 
-const customEventListener = {
+const customEventListener: Plugin = {
   id: 'customEventListener',
   afterEvent: (chart, args, opts) => {
     // event will be replayed from chart.update when reset zoom,
@@ -50,14 +57,18 @@ Chart.register(
   customEventListener,
 );
 
-export default {
+export default defineComponent({
   components: {ChartLine, SvgIcon},
   props: {
     locale: {
-      type: Object,
+      type: Object as PropType<Record<string, any>>,
       required: true,
     },
     repoLink: {
+      type: String,
+      required: true,
+    },
+    repoDefaultBranchName: {
       type: String,
       required: true,
     },
@@ -65,20 +76,20 @@ export default {
   data: () => ({
     isLoading: false,
     errorText: '',
-    totalStats: {},
-    sortedContributors: {},
+    totalStats: {} as Record<string, any>,
+    sortedContributors: {} as Record<string, any>,
     type: 'commits',
-    contributorsStats: [],
-    xAxisStart: null,
-    xAxisEnd: null,
-    xAxisMin: null,
-    xAxisMax: null,
+    contributorsStats: {} as Record<string, any>,
+    xAxisStart: null as number | null,
+    xAxisEnd: null as number | null,
+    xAxisMin: null as number | null,
+    xAxisMax: null as number | null,
   }),
   mounted() {
     this.fetchGraphData();
 
     fomanticQuery('#repo-contributors').dropdown({
-      onChange: (val) => {
+      onChange: (val: string) => {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;
         this.type = val;
@@ -88,7 +99,7 @@ export default {
   },
   methods: {
     sortContributors() {
-      const contributors = this.filterContributorWeeksByDateRange();
+      const contributors: Record<string, any> = this.filterContributorWeeksByDateRange();
       const criteria = `total_${this.type}`;
       this.sortedContributors = Object.values(contributors)
         .filter((contributor) => contributor[criteria] !== 0)
@@ -96,10 +107,19 @@ export default {
         .slice(0, 100);
     },
 
+    getContributorSearchQuery(contributorEmail: string) {
+      const min = dayjs(this.xAxisMin).format('YYYY-MM-DD');
+      const max = dayjs(this.xAxisMax).format('YYYY-MM-DD');
+      const params = new URLSearchParams({
+        'q': `after:${min}, before:${max}, author:${contributorEmail}`,
+      });
+      return `${this.repoLink}/commits/branch/${pathEscapeSegments(this.repoDefaultBranchName)}/search?${params.toString()}`;
+    },
+
     async fetchGraphData() {
       this.isLoading = true;
       try {
-        let response;
+        let response: Response;
         do {
           response = await GET(`${this.repoLink}/activity/contributors/data`);
           if (response.status === 202) {
@@ -112,7 +132,7 @@ export default {
           // below line might be deleted if we are sure go produces map always sorted by keys
           total.weeks = Object.fromEntries(Object.entries(total.weeks).sort());
 
-          const weekValues = Object.values(total.weeks);
+          const weekValues = Object.values(total.weeks) as any;
           this.xAxisStart = weekValues[0].week;
           this.xAxisEnd = firstStartDateAfterDate(new Date());
           const startDays = startDaysBetween(this.xAxisStart, this.xAxisEnd);
@@ -120,7 +140,7 @@ export default {
           this.xAxisMin = this.xAxisStart;
           this.xAxisMax = this.xAxisEnd;
           this.contributorsStats = {};
-          for (const [email, user] of Object.entries(rest)) {
+          for (const [email, user] of Object.entries(rest) as Entries<Record<string, Record<string, any>>>) {
             user.weeks = fillEmptyStartDaysWithZeroes(startDays, user.weeks);
             this.contributorsStats[email] = user;
           }
@@ -138,7 +158,7 @@ export default {
     },
 
     filterContributorWeeksByDateRange() {
-      const filteredData = {};
+      const filteredData: Record<string, any> = {};
       const data = this.contributorsStats;
       for (const key of Object.keys(data)) {
         const user = data[key];
@@ -146,7 +166,7 @@ export default {
         user.total_additions = 0;
         user.total_deletions = 0;
         user.max_contribution_type = 0;
-        const filteredWeeks = user.weeks.filter((week) => {
+        const filteredWeeks = user.weeks.filter((week: Record<string, number>) => {
           const oneWeek = 7 * 24 * 60 * 60 * 1000;
           if (week.week >= this.xAxisMin - oneWeek && week.week <= this.xAxisMax + oneWeek) {
             user.total_commits += week.commits;
@@ -163,7 +183,7 @@ export default {
         // for details.
         user.max_contribution_type += 1;
 
-        filteredData[key] = {...user, weeks: filteredWeeks};
+        filteredData[key] = {...user, weeks: filteredWeeks, email: key};
       }
 
       return filteredData;
@@ -176,7 +196,7 @@ export default {
       // Normally, chartjs handles this automatically, but it will resize the graph when you
       // zoom, pan etc. I think resizing the graph makes it harder to compare things visually.
       const maxValue = Math.max(
-        ...this.totalStats.weeks.map((o) => o[this.type]),
+        ...this.totalStats.weeks.map((o: Record<string, any>) => o[this.type]),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -188,14 +208,14 @@ export default {
       // for contributors' graph. If I let chartjs do this for me, it will choose different
       // maxY value for each contributors' graph which again makes it harder to compare.
       const maxValue = Math.max(
-        ...this.sortedContributors.map((c) => c.max_contribution_type),
+        ...this.sortedContributors.map((c: Record<string, any>) => c.max_contribution_type),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
       return (1 - (coefficient % 1)) * 10 ** exp + maxValue;
     },
 
-    toGraphData(data) {
+    toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
       return {
         datasets: [
           {
@@ -211,9 +231,9 @@ export default {
       };
     },
 
-    updateOtherCharts(event, reset) {
-      const minVal = event.chart.options.scales.x.min;
-      const maxVal = event.chart.options.scales.x.max;
+    updateOtherCharts({chart}: {chart: Chart}, reset: boolean = false) {
+      const minVal = Number(chart.options.scales.x.min);
+      const maxVal = Number(chart.options.scales.x.max);
       if (reset) {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;
@@ -225,7 +245,7 @@ export default {
       }
     },
 
-    getOptions(type) {
+    getOptions(type: string): ChartOptions<'line'> {
       return {
         responsive: true,
         maintainAspectRatio: false,
@@ -238,6 +258,7 @@ export default {
             position: 'top',
             align: 'center',
           },
+          // @ts-expect-error: bug in chart.js types
           customEventListener: {
             chartType: type,
             instance: this,
@@ -300,7 +321,7 @@ export default {
       };
     },
   },
-};
+});
 </script>
 <template>
   <div>
@@ -332,12 +353,12 @@ export default {
       </div>
       <div>
         <!-- Contribution type -->
-        <div class="ui dropdown jump" id="repo-contributors">
+        <div class="ui floating dropdown jump" id="repo-contributors">
           <div class="ui basic compact button">
             <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
             <svg-icon name="octicon-triangle-down" :size="14"/>
           </div>
-          <div class="menu">
+          <div class="left menu">
             <div :class="['item', {'selected': type === 'commits'}]" data-value="commits">
               {{ locale.contributionType.commits }}
             </div>
@@ -354,7 +375,7 @@ export default {
     <div class="tw-flex ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+          <SvgIcon name="octicon-sync" class="tw-mr-2 circular-spin"/>
           {{ locale.loadingInfo }}
         </div>
         <div v-else class="text red">
@@ -376,7 +397,7 @@ export default {
         <div class="ui top attached header tw-flex tw-flex-1">
           <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
-            <img class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link">
+            <img loading="lazy" class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link" alt="">
           </a>
           <div class="tw-ml-2">
             <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
@@ -384,7 +405,11 @@ export default {
               {{ contributor.name }}
             </h4>
             <p class="tw-text-12 tw-flex tw-gap-1">
-              <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
+              <strong v-if="contributor.total_commits">
+                <a class="silenced" :href="getContributorSearchQuery(contributor.email)">
+                  {{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}
+                </a>
+              </strong>
               <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
               <strong v-if="contributor.total_deletions" class="text red">
                 {{ contributor.total_deletions.toLocaleString() }}--</strong>

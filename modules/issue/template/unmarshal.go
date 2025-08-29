@@ -109,7 +109,7 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 
 			it.Content = string(content)
 			it.Name = path.Base(it.FileName) // paths in Git are always '/' separated - do not use filepath!
-			it.About, _ = util.SplitStringAtByteN(it.Content, 80)
+			it.About = util.EllipsisDisplayString(it.Content, 80)
 		} else {
 			it.Content = templateBody
 			if it.About == "" {

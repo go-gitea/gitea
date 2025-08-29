@@ -24,7 +24,7 @@ func TestCreateComment(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	now := time.Now().Unix()
-	comment, err := issues_model.CreateComment(db.DefaultContext, &issues_model.CreateCommentOptions{
+	comment, err := issues_model.CreateComment(t.Context(), &issues_model.CreateCommentOptions{
 		Type:    issues_model.CommentTypeComment,
 		Doer:    doer,
 		Repo:    repo,
@@ -34,10 +34,10 @@ func TestCreateComment(t *testing.T) {
 	assert.NoError(t, err)
 	then := time.Now().Unix()
 
-	assert.EqualValues(t, issues_model.CommentTypeComment, comment.Type)
-	assert.EqualValues(t, "Hello", comment.Content)
-	assert.EqualValues(t, issue.ID, comment.IssueID)
-	assert.EqualValues(t, doer.ID, comment.PosterID)
+	assert.Equal(t, issues_model.CommentTypeComment, comment.Type)
+	assert.Equal(t, "Hello", comment.Content)
+	assert.Equal(t, issue.ID, comment.IssueID)
+	assert.Equal(t, doer.ID, comment.PosterID)
 	unittest.AssertInt64InRange(t, now, then, int64(comment.CreatedUnix))
 	unittest.AssertExistsAndLoadBean(t, comment) // assert actually added to DB
 
@@ -45,12 +45,30 @@ func TestCreateComment(t *testing.T) {
 	unittest.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
 }
 
+func Test_UpdateCommentAttachment(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 1})
+	attachment := repo_model.Attachment{
+		Name: "test.txt",
+	}
+	assert.NoError(t, db.Insert(t.Context(), &attachment))
+
+	err := issues_model.UpdateCommentAttachments(t.Context(), comment, []string{attachment.UUID})
+	assert.NoError(t, err)
+
+	attachment2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: attachment.ID})
+	assert.Equal(t, attachment.Name, attachment2.Name)
+	assert.Equal(t, comment.ID, attachment2.CommentID)
+	assert.Equal(t, comment.IssueID, attachment2.IssueID)
+}
+
 func TestFetchCodeComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	res, err := issues_model.FetchCodeComments(db.DefaultContext, issue, user, false)
+	res, err := issues_model.FetchCodeComments(t.Context(), issue, user, false)
 	assert.NoError(t, err)
 	assert.Contains(t, res, "README.md")
 	assert.Contains(t, res["README.md"], int64(4))
@@ -58,13 +76,13 @@ func TestFetchCodeComments(t *testing.T) {
 	assert.Equal(t, int64(4), res["README.md"][4][0].ID)
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	res, err = issues_model.FetchCodeComments(db.DefaultContext, issue, user2, false)
+	res, err = issues_model.FetchCodeComments(t.Context(), issue, user2, false)
 	assert.NoError(t, err)
 	assert.Len(t, res, 1)
 }
 
 func TestAsCommentType(t *testing.T) {
-	assert.Equal(t, issues_model.CommentType(0), issues_model.CommentTypeComment)
+	assert.Equal(t, issues_model.CommentTypeComment, issues_model.CommentType(0))
 	assert.Equal(t, issues_model.CommentTypeUndefined, issues_model.AsCommentType(""))
 	assert.Equal(t, issues_model.CommentTypeUndefined, issues_model.AsCommentType("nonsense"))
 	assert.Equal(t, issues_model.CommentTypeComment, issues_model.AsCommentType("comment"))
@@ -74,7 +92,7 @@ func TestAsCommentType(t *testing.T) {
 func TestMigrate_InsertIssueComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	_ = issue.LoadRepo(db.DefaultContext)
+	_ = issue.LoadRepo(t.Context())
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
 	reaction := &issues_model.Reaction{
 		Type:   "heart",
@@ -89,11 +107,20 @@ func TestMigrate_InsertIssueComments(t *testing.T) {
 		Reactions: []*issues_model.Reaction{reaction},
 	}
 
-	err := issues_model.InsertIssueComments(db.DefaultContext, []*issues_model.Comment{comment})
+	err := issues_model.InsertIssueComments(t.Context(), []*issues_model.Comment{comment})
 	assert.NoError(t, err)
 
 	issueModified := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	assert.EqualValues(t, issue.NumComments+1, issueModified.NumComments)
+	assert.Equal(t, issue.NumComments+1, issueModified.NumComments)
 
 	unittest.CheckConsistencyFor(t, &issues_model.Issue{})
+}
+
+func Test_UpdateIssueNumComments(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+
+	assert.NoError(t, issues_model.UpdateIssueNumComments(t.Context(), issue2.ID))
+	issue2 = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	assert.Equal(t, 1, issue2.NumComments)
 }

@@ -8,18 +8,18 @@ import (
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	chef_module "code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	shared "code.gitea.io/gitea/routers/web/shared/packages"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplSettingsPackages            base.TplName = "user/settings/packages"
-	tplSettingsPackagesRuleEdit    base.TplName = "user/settings/packages_cleanup_rules_edit"
-	tplSettingsPackagesRulePreview base.TplName = "user/settings/packages_cleanup_rules_preview"
+	tplSettingsPackages            templates.TplName = "user/settings/packages"
+	tplSettingsPackagesRuleEdit    templates.TplName = "user/settings/packages_cleanup_rules_edit"
+	tplSettingsPackagesRulePreview templates.TplName = "user/settings/packages_cleanup_rules_preview"
 )
 
 func Packages(ctx *context.Context) {

@@ -6,7 +6,6 @@ package base
 import (
 	"crypto/sha1"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -25,25 +24,6 @@ func TestEncodeSha256(t *testing.T) {
 
 func TestShortSha(t *testing.T) {
 	assert.Equal(t, "veryverylo", ShortSha("veryverylong"))
-}
-
-func TestBasicAuthDecode(t *testing.T) {
-	_, _, err := BasicAuthDecode("?")
-	assert.Equal(t, "illegal base64 data at input byte 0", err.Error())
-
-	user, pass, err := BasicAuthDecode("Zm9vOmJhcg==")
-	assert.NoError(t, err)
-	assert.Equal(t, "foo", user)
-	assert.Equal(t, "bar", pass)
-
-	_, _, err = BasicAuthDecode("aW52YWxpZA==")
-	assert.Error(t, err)
-
-	_, _, err = BasicAuthDecode("invalid")
-	assert.Error(t, err)
-
-	_, _, err = BasicAuthDecode("YWxpY2U=") // "alice", no colon
-	assert.Error(t, err)
 }
 
 func TestVerifyTimeLimitCode(t *testing.T) {
@@ -87,13 +67,10 @@ JWT_SECRET = %s
 		verifyDataCode := func(c string) bool {
 			return VerifyTimeLimitCode(now, "data", 2, c)
 		}
-		code1 := CreateTimeLimitCode("data", 2, now, sha1.New())
-		code2 := CreateTimeLimitCode("data", 2, now, nil)
-		assert.True(t, verifyDataCode(code1))
-		assert.True(t, verifyDataCode(code2))
+		code := CreateTimeLimitCode("data", 2, now, nil)
+		assert.True(t, verifyDataCode(code))
 		initGeneralSecret("000_QLUd4fYVyxetjxC4eZkrBgWM2SndOOWDNtgUUko")
-		assert.False(t, verifyDataCode(code1))
-		assert.False(t, verifyDataCode(code2))
+		assert.False(t, verifyDataCode(code))
 	})
 }
 
@@ -114,36 +91,6 @@ func TestFileSize(t *testing.T) {
 	assert.Equal(t, "2.0 EiB", FileSize(size))
 }
 
-func TestEllipsisString(t *testing.T) {
-	assert.Equal(t, "...", EllipsisString("foobar", 0))
-	assert.Equal(t, "...", EllipsisString("foobar", 1))
-	assert.Equal(t, "...", EllipsisString("foobar", 2))
-	assert.Equal(t, "...", EllipsisString("foobar", 3))
-	assert.Equal(t, "f...", EllipsisString("foobar", 4))
-	assert.Equal(t, "fo...", EllipsisString("foobar", 5))
-	assert.Equal(t, "foobar", EllipsisString("foobar", 6))
-	assert.Equal(t, "foobar", EllipsisString("foobar", 10))
-	assert.Equal(t, "测...", EllipsisString("测试文本一二三四", 4))
-	assert.Equal(t, "测试...", EllipsisString("测试文本一二三四", 5))
-	assert.Equal(t, "测试文...", EllipsisString("测试文本一二三四", 6))
-	assert.Equal(t, "测试文本一二三四", EllipsisString("测试文本一二三四", 10))
-}
-
-func TestTruncateString(t *testing.T) {
-	assert.Equal(t, "", TruncateString("foobar", 0))
-	assert.Equal(t, "f", TruncateString("foobar", 1))
-	assert.Equal(t, "fo", TruncateString("foobar", 2))
-	assert.Equal(t, "foo", TruncateString("foobar", 3))
-	assert.Equal(t, "foob", TruncateString("foobar", 4))
-	assert.Equal(t, "fooba", TruncateString("foobar", 5))
-	assert.Equal(t, "foobar", TruncateString("foobar", 6))
-	assert.Equal(t, "foobar", TruncateString("foobar", 7))
-	assert.Equal(t, "测试文本", TruncateString("测试文本一二三四", 4))
-	assert.Equal(t, "测试文本一", TruncateString("测试文本一二三四", 5))
-	assert.Equal(t, "测试文本一二", TruncateString("测试文本一二三四", 6))
-	assert.Equal(t, "测试文本一二三", TruncateString("测试文本一二三四", 7))
-}
-
 func TestStringsToInt64s(t *testing.T) {
 	testSuccess := func(input []string, expected []int64) {
 		result, err := StringsToInt64s(input)
@@ -157,7 +104,7 @@ func TestStringsToInt64s(t *testing.T) {
 	testSuccess([]string{"1", "4", "16", "64", "256"}, []int64{1, 4, 16, 64, 256})
 
 	ints, err := StringsToInt64s([]string{"-1", "a"})
-	assert.Len(t, ints, 0)
+	assert.Empty(t, ints)
 	assert.Error(t, err)
 }
 
@@ -167,21 +114,4 @@ func TestInt64sToStrings(t *testing.T) {
 		[]string{"1", "4", "16", "64", "256"},
 		Int64sToStrings([]int64{1, 4, 16, 64, 256}),
 	)
-}
-
-// TODO: Test EntryIcon
-
-func TestSetupGiteaRoot(t *testing.T) {
-	_ = os.Setenv("GITEA_ROOT", "test")
-	assert.Equal(t, "test", SetupGiteaRoot())
-	_ = os.Setenv("GITEA_ROOT", "")
-	assert.NotEqual(t, "test", SetupGiteaRoot())
-}
-
-func TestFormatNumberSI(t *testing.T) {
-	assert.Equal(t, "125", FormatNumberSI(int(125)))
-	assert.Equal(t, "1.3k", FormatNumberSI(int64(1317)))
-	assert.Equal(t, "21.3M", FormatNumberSI(21317675))
-	assert.Equal(t, "45.7G", FormatNumberSI(45721317675))
-	assert.Equal(t, "", FormatNumberSI("test"))
 }

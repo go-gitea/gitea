@@ -5,8 +5,6 @@ package setting
 
 import (
 	"time"
-
-	"code.gitea.io/gitea/modules/log"
 )
 
 // CORSConfig defines CORS settings
@@ -28,7 +26,4 @@ var CORSConfig = struct {
 
 func loadCorsFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "cors", &CORSConfig)
-	if CORSConfig.Enabled {
-		log.Info("CORS Service Enabled")
-	}
 }

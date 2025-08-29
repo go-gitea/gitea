@@ -2,6 +2,7 @@
 // Fork of the upstream module. The only changes are:
 // * use export to make it work with ES6 modules.
 // * the addition of `const` to make it strict mode compatible.
+// * ignore forms with "ignore-dirty" class, ignore hidden forms (closest('.tw-hidden'))
 
 /*!
  * jQuery Plugin: Are-You-Sure (Dirty Form Detection)
@@ -161,10 +162,10 @@ export function initAreYouSure($) {
     if (!settings.silent && !window.aysUnloadSet) {
       window.aysUnloadSet = true;
       $(window).bind('beforeunload', function() {
-        const $dirtyForms = $("form").filter('.' + settings.dirtyClass);
-        if ($dirtyForms.length == 0) {
-          return;
-        }
+        const $forms = $("form:not(.ignore-dirty)").filter('.' + settings.dirtyClass);
+        const dirtyFormCount = Array.from($forms).reduce((res, form) => form.closest('.tw-hidden') ? res : res + 1, 0);
+        if (dirtyFormCount === 0) return;
+
         // Prevent multiple prompts - seen on Chrome and IE
         if (navigator.userAgent.toLowerCase().match(/msie|chrome/)) {
           if (window.aysHasPrompted) {
@@ -196,6 +197,16 @@ export function initAreYouSure($) {
   };
 }
 
-export function applyAreYouSure(selector: string) {
-  $(selector).areYouSure();
+export function applyAreYouSure(selectorOrEl: string|Element|$, opts = {}) {
+  $(selectorOrEl).areYouSure(opts);
+}
+
+export function reinitializeAreYouSure(selectorOrEl: string|Element|$) {
+  $(selectorOrEl).trigger('reinitialize.areYouSure');
+}
+
+export function ignoreAreYouSure(selectorOrEl: string|Element|$) {
+  // here we should only add "ignore-dirty" but not remove "dirty".
+  // because when using "enter" to submit a form, the "dirty" class will appear again before reloading.
+  $(selectorOrEl).addClass('ignore-dirty');
 }

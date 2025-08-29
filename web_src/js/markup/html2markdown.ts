@@ -1,7 +1,9 @@
-import {htmlEscape} from 'escape-goat';
+import {html, htmlRaw} from '../utils/html.ts';
+
+type Processor = (el: HTMLElement) => string | HTMLElement | void;
 
 type Processors = {
-  [tagName: string]: (el: HTMLElement) => string | HTMLElement | void;
+  [tagName: string]: Processor;
 }
 
 type ProcessorContext = {
@@ -11,8 +13,8 @@ type ProcessorContext = {
 }
 
 function prepareProcessors(ctx:ProcessorContext): Processors {
-  const processors = {
-    H1(el: HTMLHeadingElement) {
+  const processors: Processors = {
+    H1(el: HTMLElement) {
       const level = parseInt(el.tagName.slice(1));
       el.textContent = `${'#'.repeat(level)} ${el.textContent.trim()}`;
     },
@@ -25,7 +27,7 @@ function prepareProcessors(ctx:ProcessorContext): Processors {
     DEL(el: HTMLElement) {
       return `~~${el.textContent}~~`;
     },
-    A(el: HTMLAnchorElement) {
+    A(el: HTMLElement) {
       const text = el.textContent || 'link';
       const href = el.getAttribute('href');
       if (/^https?:/.test(text) && text === href) {
@@ -33,17 +35,17 @@ function prepareProcessors(ctx:ProcessorContext): Processors {
       }
       return href ? `[${text}](${href})` : text;
     },
-    IMG(el: HTMLImageElement) {
+    IMG(el: HTMLElement) {
       const alt = el.getAttribute('alt') || 'image';
       const src = el.getAttribute('src');
-      const widthAttr = el.hasAttribute('width') ? ` width="${htmlEscape(el.getAttribute('width') || '')}"` : '';
-      const heightAttr = el.hasAttribute('height') ? ` height="${htmlEscape(el.getAttribute('height') || '')}"` : '';
+      const widthAttr = el.hasAttribute('width') ? htmlRaw` width="${el.getAttribute('width') || ''}"` : '';
+      const heightAttr = el.hasAttribute('height') ? htmlRaw` height="${el.getAttribute('height') || ''}"` : '';
       if (widthAttr || heightAttr) {
-        return `<img alt="${htmlEscape(alt)}"${widthAttr}${heightAttr} src="${htmlEscape(src)}">`;
+        return html`<img alt="${alt}"${widthAttr}${heightAttr} src="${src}">`;
       }
       return `![${alt}](${src})`;
     },
-    P(el: HTMLParagraphElement) {
+    P(el: HTMLElement) {
       el.textContent = `${el.textContent}\n`;
     },
     BLOCKQUOTE(el: HTMLElement) {
@@ -54,14 +56,14 @@ function prepareProcessors(ctx:ProcessorContext): Processors {
       el.textContent = `${preNewLine}${el.textContent}\n`;
     },
     LI(el: HTMLElement) {
-      const parent = el.parentNode;
-      const bullet = (parent as HTMLElement).tagName === 'OL' ? `1. ` : '* ';
+      const parent = el.parentNode as HTMLElement;
+      const bullet = parent.tagName === 'OL' ? `1. ` : '* ';
       const nestingIdentLevel = Math.max(0, ctx.listNestingLevel - 1);
       el.textContent = `${' '.repeat(nestingIdentLevel * 4)}${bullet}${el.textContent}${ctx.elementIsLast ? '' : '\n'}`;
       return el;
     },
-    INPUT(el: HTMLInputElement) {
-      return el.checked ? '[x] ' : '[ ] ';
+    INPUT(el: HTMLElement) {
+      return (el as HTMLInputElement).checked ? '[x] ' : '[ ] ';
     },
     CODE(el: HTMLElement) {
       const text = el.textContent;

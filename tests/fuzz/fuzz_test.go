@@ -19,6 +19,7 @@ func newFuzzRenderContext() *markup.RenderContext {
 
 func FuzzMarkdownRenderRaw(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
+		setting.IsInTesting = true
 		setting.AppURL = "http://localhost:3000/"
 		markdown.RenderRaw(newFuzzRenderContext(), bytes.NewReader(data), io.Discard)
 	})
@@ -26,6 +27,7 @@ func FuzzMarkdownRenderRaw(f *testing.F) {
 
 func FuzzMarkupPostProcess(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
+		setting.IsInTesting = true
 		setting.AppURL = "http://localhost:3000/"
 		markup.PostProcessDefault(newFuzzRenderContext(), bytes.NewReader(data), io.Discard)
 	})

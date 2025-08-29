@@ -1,8 +1,3 @@
-{{$notificationUnreadCount := 0}}
-{{if and .IsSigned .NotificationUnreadCount}}
-	{{$notificationUnreadCount = call .NotificationUnreadCount}}
-{{end}}
-
 <nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
 	<div class="navbar-left">
 		<!-- the logo -->
@@ -11,24 +6,9 @@
 		</a>
 
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
-		<div class="ui secondary menu item navbar-mobile-right only-mobile">
-			{{if and .IsSigned EnableTimetracking .ActiveStopwatch}}
-			<a id="mobile-stopwatch-icon" class="active-stopwatch item tw-mx-0" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{.ActiveStopwatch.Seconds}}">
-				<div class="tw-relative">
-					{{svg "octicon-stopwatch"}}
-					<span class="header-stopwatch-dot"></span>
-				</div>
-			</a>
-			{{end}}
-			{{if .IsSigned}}
-			<a id="mobile-notifications-icon" class="item tw-w-auto tw-p-2" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
-				<div class="tw-relative">
-					{{svg "octicon-bell"}}
-					<span class="notification_count{{if not $notificationUnreadCount}} tw-hidden{{end}}">{{$notificationUnreadCount}}</span>
-				</div>
-			</a>
-			{{end}}
-			<button class="item tw-w-auto ui icon mini button tw-p-2 tw-m-0" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
+		<div class="ui secondary menu navbar-mobile-right only-mobile">
+			{{template "base/head_navbar_icons" dict "PageGlobalData" .PageGlobalData}}
+			<button class="item ui icon mini button tw-m-0" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
 		</div>
 
 		<!-- navbar links non-mobile -->
@@ -64,13 +44,13 @@
 	<div class="navbar-right">
 		{{if and .IsSigned .MustChangePassword}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text tw-flex tw-items-center">
+				<span class="text">
 					{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-1"}}
-					<span class="only-mobile tw-ml-2">{{.SignedUser.Name}}</span>
+					<span class="only-mobile">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
-					<div class="ui header">
+					<div class="header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
 
@@ -82,23 +62,8 @@
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		{{else if .IsSigned}}
-			{{if and EnableTimetracking .ActiveStopwatch}}
-			<a class="item not-mobile active-stopwatch tw-mx-0" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{.ActiveStopwatch.Seconds}}">
-				<div class="tw-relative">
-					{{svg "octicon-stopwatch"}}
-					<span class="header-stopwatch-dot"></span>
-				</div>
-			</a>
-			{{end}}
-
-			<a class="item not-mobile tw-mx-0" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
-				<div class="tw-relative">
-					{{svg "octicon-bell"}}
-					<span class="notification_count{{if not $notificationUnreadCount}} tw-hidden{{end}}">{{$notificationUnreadCount}}</span>
-				</div>
-			</a>
-
-			<div class="ui dropdown jump item tw-mx-0 tw-pr-2" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
+			{{template "base/head_navbar_icons" dict "ItemExtraClass" "not-mobile" "PageGlobalData" .PageGlobalData}}
+			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
 				<span class="text">
 					{{svg "octicon-plus"}}
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
@@ -121,14 +86,14 @@
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 
-			<div class="ui dropdown jump item tw-mx-0 tw-pr-2" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text tw-flex tw-items-center">
+			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
+				<span class="text">
 					{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-1"}}
-					<span class="only-mobile tw-ml-2">{{.SignedUser.Name}}</span>
+					<span class="only-mobile">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
-					<div class="ui header">
+					<div class="header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
 
@@ -155,15 +120,6 @@
 						{{svg "octicon-question"}}
 						{{ctx.Locale.Tr "help"}}
 					</a>
-					{{if .IsAdmin}}
-						<div class="divider"></div>
-
-						<a class="{{if .PageIsAdmin}}active {{end}}item" href="{{AppSubUrl}}/-/admin">
-							{{svg "octicon-server"}}
-							{{ctx.Locale.Tr "admin_panel"}}
-						</a>
-					{{end}}
-
 					<div class="divider"></div>
 					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}
@@ -174,24 +130,27 @@
 		{{else}}
 			{{if .ShowRegistrationButton}}
 				<a class="item{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">
-					{{svg "octicon-person"}} {{ctx.Locale.Tr "register"}}
+					{{svg "octicon-person"}}
+					<span class="tw-ml-1">{{ctx.Locale.Tr "register"}}</span>
 				</a>
 			{{end}}
 			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login{{if not .PageIsSignIn}}?redirect_to={{.CurrentURL}}{{end}}">
-				{{svg "octicon-sign-in"}} {{ctx.Locale.Tr "sign_in"}}
+				{{svg "octicon-sign-in"}}
+				<span class="tw-ml-1">{{ctx.Locale.Tr "sign_in"}}</span>
 			</a>
 		{{end}}
 	</div><!-- end full right menu -->
 
-	{{if and .IsSigned EnableTimetracking .ActiveStopwatch}}
+	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
+	{{if $activeStopwatch}}
 		<div class="active-stopwatch-popup tippy-target">
 			<div class="tw-flex tw-items-center tw-gap-2 tw-p-3">
-				<a class="stopwatch-link tw-flex tw-items-center tw-gap-2 muted" href="{{.ActiveStopwatch.IssueLink}}">
+				<a class="stopwatch-link tw-flex tw-items-center tw-gap-2 muted" href="{{$activeStopwatch.IssueLink}}">
 					{{svg "octicon-issue-opened" 16}}
-					<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
+					<span class="stopwatch-issue">{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}</span>
 				</a>
 				<div class="tw-flex tw-gap-1">
-					<form class="stopwatch-commit" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/toggle">
+					<form class="stopwatch-commit form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop">
 						{{.CsrfTokenHtml}}
 						<button
 							type="submit"
@@ -199,7 +158,7 @@
 							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
 						>{{svg "octicon-square-fill"}}</button>
 					</form>
-					<form class="stopwatch-cancel" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/cancel">
+					<form class="stopwatch-cancel form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel">
 						{{.CsrfTokenHtml}}
 						<button
 							type="submit"

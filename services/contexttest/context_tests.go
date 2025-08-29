@@ -20,7 +20,9 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
+	git_module "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
@@ -29,6 +31,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func mockRequest(t *testing.T, reqPath string) *http.Request {
@@ -40,13 +43,13 @@ func mockRequest(t *testing.T, reqPath string) *http.Request {
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
 	req := &http.Request{Method: method, Host: requestURL.Host, URL: requestURL, Form: maps.Clone(requestURL.Query()), Header: http.Header{}}
-	req = req.WithContext(middleware.WithContextData(req.Context()))
+	req = req.WithContext(reqctx.NewRequestContextForTest(req.Context()))
 	return req
 }
 
 type MockContextOption struct {
 	Render       context.Render
-	SessionStore *session.MockStore
+	SessionStore session.Store
 }
 
 // MockContext mock context for unit tests
@@ -60,17 +63,15 @@ func MockContext(t *testing.T, reqPath string, opts ...MockContextOption) (*cont
 	}
 	resp := httptest.NewRecorder()
 	req := mockRequest(t, reqPath)
-	base, baseCleanUp := context.NewBaseContext(resp, req)
-	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
+	base := context.NewBaseContext(resp, req)
 	base.Data = middleware.GetContextData(req.Context())
 	base.Locale = &translation.MockLocale{}
 
 	chiCtx := chi.NewRouteContext()
 	ctx := context.NewWebContext(base, opt.Render, nil)
-	ctx.AppendContextValue(context.WebContextKey, ctx)
-	ctx.AppendContextValue(chi.RouteCtxKey, chiCtx)
+	ctx.SetContextValue(chi.RouteCtxKey, chiCtx)
 	if opt.SessionStore != nil {
-		ctx.AppendContextValue(session.MockStoreContextKey, opt.SessionStore)
+		ctx.SetContextValue(session.MockStoreContextKey, opt.SessionStore)
 		ctx.Session = opt.SessionStore
 	}
 	ctx.Cache = cache.GetCache()
@@ -83,40 +84,37 @@ func MockContext(t *testing.T, reqPath string, opts ...MockContextOption) (*cont
 func MockAPIContext(t *testing.T, reqPath string) (*context.APIContext, *httptest.ResponseRecorder) {
 	resp := httptest.NewRecorder()
 	req := mockRequest(t, reqPath)
-	base, baseCleanUp := context.NewBaseContext(resp, req)
+	base := context.NewBaseContext(resp, req)
 	base.Data = middleware.GetContextData(req.Context())
 	base.Locale = &translation.MockLocale{}
-	ctx := &context.APIContext{Base: base}
-	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
-
+	ctx := &context.APIContext{Base: base, Repo: &context.Repository{}}
 	chiCtx := chi.NewRouteContext()
-	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
+	ctx.SetContextValue(chi.RouteCtxKey, chiCtx)
 	return ctx, resp
 }
 
 func MockPrivateContext(t *testing.T, reqPath string) (*context.PrivateContext, *httptest.ResponseRecorder) {
 	resp := httptest.NewRecorder()
 	req := mockRequest(t, reqPath)
-	base, baseCleanUp := context.NewBaseContext(resp, req)
+	base := context.NewBaseContext(resp, req)
 	base.Data = middleware.GetContextData(req.Context())
 	base.Locale = &translation.MockLocale{}
 	ctx := &context.PrivateContext{Base: base}
-	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
 	chiCtx := chi.NewRouteContext()
-	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
+	ctx.SetContextValue(chi.RouteCtxKey, chiCtx)
 	return ctx, resp
 }
 
 // LoadRepo load a repo into a test context.
 func LoadRepo(t *testing.T, ctx gocontext.Context, repoID int64) {
 	var doer *user_model.User
-	repo := &context.Repository{}
+	var repo *context.Repository
 	switch ctx := ctx.(type) {
 	case *context.Context:
-		ctx.Repo = repo
+		repo = ctx.Repo
 		doer = ctx.Doer
 	case *context.APIContext:
-		ctx.Repo = repo
+		repo = ctx.Repo
 		doer = ctx.Doer
 	default:
 		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
@@ -144,15 +142,17 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 	}
 
 	gitRepo, err := gitrepo.OpenRepository(ctx, repo.Repository)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer gitRepo.Close()
-	branch, err := gitRepo.GetHEADBranch()
-	assert.NoError(t, err)
-	assert.NotNil(t, branch)
-	if branch != nil {
-		repo.Commit, err = gitRepo.GetBranchCommit(branch.Name)
-		assert.NoError(t, err)
+
+	if repo.RefFullName == "" {
+		repo.RefFullName = git_module.RefNameFromBranch(repo.Repository.DefaultBranch)
 	}
+	if repo.RefFullName.IsPull() {
+		repo.BranchName = repo.RefFullName.ShortName()
+	}
+	repo.Commit, err = gitRepo.GetCommit(repo.RefFullName.String())
+	require.NoError(t, err)
 }
 
 // LoadUser load a user into a test context
@@ -170,10 +170,19 @@ func LoadUser(t *testing.T, ctx gocontext.Context, userID int64) {
 
 // LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has
 // already been populated.
-func LoadGitRepo(t *testing.T, ctx *context.Context) {
-	assert.NoError(t, ctx.Repo.Repository.LoadOwner(ctx))
+func LoadGitRepo(t *testing.T, ctx gocontext.Context) {
+	var repo *context.Repository
+	switch ctx := any(ctx).(type) {
+	case *context.Context:
+		repo = ctx.Repo
+	case *context.APIContext:
+		repo = ctx.Repo
+	default:
+		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
+	}
+	assert.NoError(t, repo.Repository.LoadOwner(ctx))
 	var err error
-	ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
+	repo.GitRepo, err = gitrepo.OpenRepository(ctx, repo.Repository)
 	assert.NoError(t, err)
 }
 
@@ -183,7 +192,7 @@ func (tr *MockRender) TemplateLookup(tmpl string, _ gocontext.Context) (template
 	return nil, nil
 }
 
-func (tr *MockRender) HTML(w io.Writer, status int, _ string, _ any, _ gocontext.Context) error {
+func (tr *MockRender) HTML(w io.Writer, status int, _ templates.TplName, _ any, _ gocontext.Context) error {
 	if resp, ok := w.(http.ResponseWriter); ok {
 		resp.WriteHeader(status)
 	}

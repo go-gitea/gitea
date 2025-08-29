@@ -49,8 +49,12 @@ export type DayData = {
   commits: number,
 }
 
-export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayData[]): DayData[] {
-  const result = {};
+export type DayDataObject = {
+  [timestamp: string]: DayData,
+}
+
+export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayDataObject): DayData[] {
+  const result: Record<string, any> = {};
 
   for (const startDay of startDays) {
     result[startDay] = data[startDay] || {'week': startDay, 'additions': 0, 'deletions': 0, 'commits': 0};
@@ -61,8 +65,8 @@ export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayData[
 
 let dateFormat: Intl.DateTimeFormat;
 
-// format a Date object to document's locale, but with 24h format from user's current locale because this
-// option is a personal preference of the user, not something that the document's locale should dictate.
+/** Format a Date object to document's locale, but with 24h format from user's current locale because this
+ *  option is a personal preference of the user, not something that the document's locale should dictate. */
 export function formatDatetime(date: Date | number): string {
   if (!dateFormat) {
     // TODO: replace `hour12` with `Intl.Locale.prototype.getHourCycles` once there is broad browser support

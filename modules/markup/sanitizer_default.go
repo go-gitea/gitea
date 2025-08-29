@@ -4,6 +4,7 @@
 package markup
 
 import (
+	"html/template"
 	"io"
 	"net/url"
 	"regexp"
@@ -48,9 +49,11 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(unchecked|checked|indeterminate)$`)).OnElements("li")
 
 	// Allow 'color' and 'background-color' properties for the style attribute on text elements.
-	policy.AllowStyles("color", "background-color").OnElements("span", "p")
+	policy.AllowStyles("color", "background-color").OnElements("div", "span", "p", "tr", "th", "td")
 
 	policy.AllowAttrs("src", "autoplay", "controls").OnElements("video")
+
+	policy.AllowAttrs("loading").OnElements("img")
 
 	// Allow generally safe attributes (reference: https://github.com/jch/html-pipeline)
 	generalSafeAttrs := []string{
@@ -90,9 +93,9 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	return policy
 }
 
-// Sanitize takes a string that contains a HTML fragment or document and applies policy whitelist.
-func Sanitize(s string) string {
-	return GetDefaultSanitizer().defaultPolicy.Sanitize(s)
+// Sanitize use default sanitizer policy to sanitize a string
+func Sanitize(s string) template.HTML {
+	return template.HTML(GetDefaultSanitizer().defaultPolicy.Sanitize(s))
 }
 
 // SanitizeReader sanitizes a Reader

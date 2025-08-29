@@ -4,7 +4,6 @@
 package org
 
 import (
-	"fmt"
 	"net/http"
 	"path"
 	"strings"
@@ -13,30 +12,29 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 )
 
-const (
-	tplOrgHome base.TplName = "org/home"
-)
+const tplOrgHome templates.TplName = "org/home"
 
 // Home show organization home page
 func Home(ctx *context.Context) {
-	uname := ctx.PathParam(":username")
+	uname := ctx.PathParam("username")
 
 	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
-	ctx.SetPathParam(":org", uname)
-	context.HandleOrgAssignment(ctx)
+	ctx.SetPathParam("org", uname)
+	context.OrgAssignment(context.OrgAssignmentOptions{})(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -88,12 +86,6 @@ func home(ctx *context.Context, viewRepositories bool) {
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
-
 	opts := &organization.FindOrgMembersOpts{
 		Doer:         ctx.Doer,
 		OrgID:        org.ID,
@@ -111,15 +103,19 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
-	if !prepareOrgProfileReadme(ctx, viewRepositories) {
-		ctx.Data["PageIsViewRepositories"] = true
+	prepareResult, err := shared_user.RenderUserOrgHeader(ctx)
+	if err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
 	}
 
-	var (
-		repos []*repo_model.Repository
-		count int64
-	)
-	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	// if no profile readme, it still means "view repositories"
+	isViewOverview := !viewRepositories && prepareOrgProfileReadme(ctx, prepareResult)
+	ctx.Data["PageIsViewRepositories"] = !isViewOverview
+	ctx.Data["PageIsViewOverview"] = isViewOverview
+	ctx.Data["ShowOrgProfileReadmeSelector"] = isViewOverview && prepareResult.ProfilePublicReadmeBlob != nil && prepareResult.ProfilePrivateReadmeBlob != nil
+
+	repos, count, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
@@ -146,50 +142,51 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["Total"] = count
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParamString("language", language)
-	if archived.Has() {
-		pager.AddParamString("archived", fmt.Sprint(archived.Value()))
-	}
-	if fork.Has() {
-		pager.AddParamString("fork", fmt.Sprint(fork.Value()))
-	}
-	if mirror.Has() {
-		pager.AddParamString("mirror", fmt.Sprint(mirror.Value()))
-	}
-	if template.Has() {
-		pager.AddParamString("template", fmt.Sprint(template.Value()))
-	}
-	if private.Has() {
-		pager.AddParamString("private", fmt.Sprint(private.Value()))
-	}
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }
 
-func prepareOrgProfileReadme(ctx *context.Context, viewRepositories bool) bool {
-	profileDbRepo, profileGitRepo, profileReadme, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
-	defer profileClose()
-	ctx.Data["HasProfileReadme"] = profileReadme != nil
+func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.PrepareOwnerHeaderResult) bool {
+	viewAs := ctx.FormString("view_as", util.Iif(ctx.Org.IsMember, "member", "public"))
+	viewAsMember := viewAs == "member"
 
-	if profileGitRepo == nil || profileReadme == nil || viewRepositories {
+	var profileRepo *repo_model.Repository
+	var readmeBlob *git.Blob
+	if viewAsMember {
+		if prepareResult.ProfilePrivateReadmeBlob != nil {
+			profileRepo, readmeBlob = prepareResult.ProfilePrivateRepo, prepareResult.ProfilePrivateReadmeBlob
+		} else {
+			profileRepo, readmeBlob = prepareResult.ProfilePublicRepo, prepareResult.ProfilePublicReadmeBlob
+			viewAsMember = false
+		}
+	} else {
+		if prepareResult.ProfilePublicReadmeBlob != nil {
+			profileRepo, readmeBlob = prepareResult.ProfilePublicRepo, prepareResult.ProfilePublicReadmeBlob
+		} else {
+			profileRepo, readmeBlob = prepareResult.ProfilePrivateRepo, prepareResult.ProfilePrivateReadmeBlob
+			viewAsMember = true
+		}
+	}
+	if readmeBlob == nil {
 		return false
 	}
 
-	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
-		log.Error("failed to GetBlobContent: %v", err)
-	} else {
-		rctx := renderhelper.NewRenderContextRepoFile(ctx, profileDbRepo, renderhelper.RepoFileOptions{
-			CurrentRefPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
-		})
-		if profileContent, err := markdown.RenderString(rctx, bytes); err != nil {
-			log.Error("failed to RenderString: %v", err)
-		} else {
-			ctx.Data["ProfileReadme"] = profileContent
-		}
+	readmeBytes, err := readmeBlob.GetBlobContent(setting.UI.MaxDisplayFileSize)
+	if err != nil {
+		log.Error("failed to GetBlobContent for profile %q (view as %q) readme: %v", profileRepo.FullName(), viewAs, err)
+		return false
 	}
 
-	ctx.Data["PageIsViewOverview"] = true
+	rctx := renderhelper.NewRenderContextRepoFile(ctx, profileRepo, renderhelper.RepoFileOptions{
+		CurrentRefPath: path.Join("branch", util.PathEscapeSegments(profileRepo.DefaultBranch)),
+	})
+	ctx.Data["ProfileReadmeContent"], err = markdown.RenderString(rctx, readmeBytes)
+	if err != nil {
+		log.Error("failed to GetBlobContent for profile %q (view as %q) readme: %v", profileRepo.FullName(), viewAs, err)
+		return false
+	}
+	ctx.Data["IsViewingOrgAsMember"] = viewAsMember
 	return true
 }

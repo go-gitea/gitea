@@ -1,20 +1,23 @@
 <script lang="ts" setup>
+// @ts-expect-error - module exports no types
 import {VueBarGraph} from 'vue-bar-graph';
-import {computed, onMounted, ref} from 'vue';
+import {computed, onMounted, shallowRef, useTemplateRef} from 'vue';
 
-const colors = ref({
+const colors = shallowRef({
   barColor: 'green',
   textColor: 'black',
   textAltColor: 'white',
 });
 
-// possible keys:
-// * avatar_link: (...)
-// * commits: (...)
-// * home_link: (...)
-// * login: (...)
-// * name: (...)
-const activityTopAuthors = window.config.pageData.repoActivityTopAuthors || [];
+type ActivityAuthorData = {
+  avatar_link: string;
+  commits: number;
+  home_link: string;
+  login: string;
+  name: string;
+}
+
+const activityTopAuthors: Array<ActivityAuthorData> = window.config.pageData.repoActivityTopAuthors || [];
 
 const graphPoints = computed(() => {
   return activityTopAuthors.map((item) => {
@@ -26,7 +29,7 @@ const graphPoints = computed(() => {
 });
 
 const graphAuthors = computed(() => {
-  return activityTopAuthors.map((item, idx) => {
+  return activityTopAuthors.map((item, idx: number) => {
     return {
       position: idx + 1,
       ...item,
@@ -38,8 +41,8 @@ const graphWidth = computed(() => {
   return activityTopAuthors.length * 40;
 });
 
-const styleElement = ref<HTMLElement | null>(null);
-const altStyleElement = ref<HTMLElement | null>(null);
+const styleElement = useTemplateRef('styleElement');
+const altStyleElement = useTemplateRef('altStyleElement');
 
 onMounted(() => {
   const refStyle = window.getComputedStyle(styleElement.value);
@@ -55,8 +58,8 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="activity-bar-graph" ref="styleElement" style="width: 0; height: 0;"/>
-    <div class="activity-bar-graph-alt" ref="altStyleElement" style="width: 0; height: 0;"/>
+    <div class="activity-bar-graph tw-w-0 tw-h-0" ref="styleElement"/>
+    <div class="activity-bar-graph-alt tw-w-0 tw-h-0" ref="altStyleElement"/>
     <vue-bar-graph
       :points="graphPoints"
       :show-x-axis="true"

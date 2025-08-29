@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -37,6 +39,7 @@ type ActionRun struct {
 	TriggerUser       *user_model.User       `xorm:"-"`
 	ScheduleID        int64
 	Ref               string `xorm:"index"` // the commit/tag/… that caused the run
+	IsRefDeleted      bool   `xorm:"-"`
 	CommitSHA         string
 	IsForkPullRequest bool                         // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
 	NeedApproval      bool                         // may need approval if it's a fork pull request
@@ -87,7 +90,7 @@ func (run *ActionRun) RefLink() string {
 	if refName.IsPull() {
 		return run.Repo.Link() + "/pulls/" + refName.ShortName()
 	}
-	return git.RefURL(run.Repo.Link(), run.Ref)
+	return run.Repo.Link() + "/src/" + refName.RefWebLinkPath()
 }
 
 // PrettyRef return #id for pull ref or ShortName for others
@@ -153,7 +156,7 @@ func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 }
 
 func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, error) {
-	if run.Event == webhook_module.HookEventPullRequest || run.Event == webhook_module.HookEventPullRequestSync {
+	if run.Event.IsPullRequest() {
 		var payload api.PullRequestPayload
 		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 			return nil, err
@@ -163,12 +166,24 @@ func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, err
 	return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
 }
 
+func (run *ActionRun) GetWorkflowRunEventPayload() (*api.WorkflowRunPayload, error) {
+	if run.Event == webhook_module.HookEventWorkflowRun {
+		var payload api.WorkflowRunPayload
+		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
+			return nil, err
+		}
+		return &payload, nil
+	}
+	return nil, fmt.Errorf("event %s is not a workflow run event", run.Event)
+}
+
 func (run *ActionRun) IsSchedule() bool {
 	return run.ScheduleID > 0
 }
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
 	_, err := db.GetEngine(ctx).ID(repo.ID).
+		NoAutoTime().
 		SetExpr("num_action_runs",
 			builder.Select("count(*)").From("action_run").
 				Where(builder.Eq{"repo_id": repo.ID}),
@@ -193,7 +208,7 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 
 // CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.
 // It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
-func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
+func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) ([]*ActionRunJob, error) {
 	// Find all runs in the specified repository, reference, and workflow with non-final status
 	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
 		RepoID:       repoID,
@@ -203,13 +218,15 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// If there are no runs found, there's no need to proceed with cancellation, so return nil.
 	if total == 0 {
-		return nil
+		return nil, nil
 	}
+
+	cancelledJobs := make([]*ActionRunJob, 0, total)
 
 	// Iterate over each found run and cancel its associated jobs.
 	for _, run := range runs {
@@ -218,7 +235,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 			RunID: run.ID,
 		})
 		if err != nil {
-			return err
+			return cancelledJobs, err
 		}
 
 		// Iterate over each job and attempt to cancel it.
@@ -237,112 +254,109 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 				// Update the job's status and stopped time in the database.
 				n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
 				if err != nil {
-					return err
+					return cancelledJobs, err
 				}
 
 				// If the update affected 0 rows, it means the job has changed in the meantime, so we need to try again.
 				if n == 0 {
-					return fmt.Errorf("job has changed, try again")
+					return cancelledJobs, errors.New("job has changed, try again")
 				}
 
+				cancelledJobs = append(cancelledJobs, job)
 				// Continue with the next job.
 				continue
 			}
 
 			// If the job has an associated task, try to stop the task, effectively cancelling the job.
 			if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
-				return err
+				return cancelledJobs, err
 			}
+			cancelledJobs = append(cancelledJobs, job)
 		}
 	}
 
 	// Return nil to indicate successful cancellation of all running and waiting jobs.
-	return nil
+	return cancelledJobs, nil
 }
 
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
 func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
-	if err != nil {
-		return err
-	}
-	run.Index = index
-	run.Title, _ = util.SplitStringAtByteN(run.Title, 255)
-
-	if err := db.Insert(ctx, run); err != nil {
-		return err
-	}
-
-	if run.Repo == nil {
-		repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
 			return err
 		}
-		run.Repo = repo
-	}
+		run.Index = index
+		run.Title = util.EllipsisDisplayString(run.Title, 255)
 
-	if err := updateRepoRunsNumbers(ctx, run.Repo); err != nil {
-		return err
-	}
-
-	runJobs := make([]*ActionRunJob, 0, len(jobs))
-	var hasWaiting bool
-	for _, v := range jobs {
-		id, job := v.Job()
-		needs := job.Needs()
-		if err := v.SetJob(id, job.EraseNeeds()); err != nil {
+		if err := db.Insert(ctx, run); err != nil {
 			return err
 		}
-		payload, _ := v.Marshal()
-		status := StatusWaiting
-		if len(needs) > 0 || run.NeedApproval {
-			status = StatusBlocked
-		} else {
-			hasWaiting = true
-		}
-		job.Name, _ = util.SplitStringAtByteN(job.Name, 255)
-		runJobs = append(runJobs, &ActionRunJob{
-			RunID:             run.ID,
-			RepoID:            run.RepoID,
-			OwnerID:           run.OwnerID,
-			CommitSHA:         run.CommitSHA,
-			IsForkPullRequest: run.IsForkPullRequest,
-			Name:              job.Name,
-			WorkflowPayload:   payload,
-			JobID:             id,
-			Needs:             needs,
-			RunsOn:            job.RunsOn(),
-			Status:            status,
-		})
-	}
-	if err := db.Insert(ctx, runJobs); err != nil {
-		return err
-	}
 
-	// if there is a job in the waiting status, increase tasks version.
-	if hasWaiting {
-		if err := IncreaseTaskVersion(ctx, run.OwnerID, run.RepoID); err != nil {
+		if run.Repo == nil {
+			repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
+			if err != nil {
+				return err
+			}
+			run.Repo = repo
+		}
+
+		if err := updateRepoRunsNumbers(ctx, run.Repo); err != nil {
 			return err
 		}
-	}
 
-	return committer.Commit()
+		runJobs := make([]*ActionRunJob, 0, len(jobs))
+		var hasWaiting bool
+		for _, v := range jobs {
+			id, job := v.Job()
+			needs := job.Needs()
+			if err := v.SetJob(id, job.EraseNeeds()); err != nil {
+				return err
+			}
+			payload, _ := v.Marshal()
+			status := StatusWaiting
+			if len(needs) > 0 || run.NeedApproval {
+				status = StatusBlocked
+			} else {
+				hasWaiting = true
+			}
+			job.Name = util.EllipsisDisplayString(job.Name, 255)
+			runJobs = append(runJobs, &ActionRunJob{
+				RunID:             run.ID,
+				RepoID:            run.RepoID,
+				OwnerID:           run.OwnerID,
+				CommitSHA:         run.CommitSHA,
+				IsForkPullRequest: run.IsForkPullRequest,
+				Name:              job.Name,
+				WorkflowPayload:   payload,
+				JobID:             id,
+				Needs:             needs,
+				RunsOn:            job.RunsOn(),
+				Status:            status,
+			})
+		}
+		if err := db.Insert(ctx, runJobs); err != nil {
+			return err
+		}
+
+		// if there is a job in the waiting status, increase tasks version.
+		if hasWaiting {
+			if err := IncreaseTaskVersion(ctx, run.OwnerID, run.RepoID); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
-func GetRunByID(ctx context.Context, id int64) (*ActionRun, error) {
+func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, error) {
 	var run ActionRun
-	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&run)
+	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", runID, repoID).Get(&run)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, fmt.Errorf("run with id %d: %w", id, util.ErrNotExist)
+		return nil, fmt.Errorf("run with id %d: %w", runID, util.ErrNotExist)
 	}
 
 	return &run, nil
@@ -401,29 +415,22 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 	if len(cols) > 0 {
 		sess.Cols(cols...)
 	}
-	run.Title, _ = util.SplitStringAtByteN(run.Title, 255)
+	run.Title = util.EllipsisDisplayString(run.Title, 255)
 	affected, err := sess.Update(run)
 	if err != nil {
 		return err
 	}
 	if affected == 0 {
-		return fmt.Errorf("run has changed")
+		return errors.New("run has changed")
 		// It's impossible that the run is not found, since Gitea never deletes runs.
 	}
 
 	if run.Status != 0 || slices.Contains(cols, "status") {
 		if run.RepoID == 0 {
-			run, err = GetRunByID(ctx, run.ID)
-			if err != nil {
-				return err
-			}
+			setting.PanicInDevOrTesting("RepoID should not be 0")
 		}
-		if run.Repo == nil {
-			repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
-			if err != nil {
-				return err
-			}
-			run.Repo = repo
+		if err = run.LoadRepo(ctx); err != nil {
+			return err
 		}
 		if err := updateRepoRunsNumbers(ctx, run.Repo); err != nil {
 			return err

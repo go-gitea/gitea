@@ -11,7 +11,7 @@ function initRepoCreateBranchButton() {
   for (const el of document.querySelectorAll('.show-create-branch-modal')) {
     el.addEventListener('click', () => {
       const modalFormName = el.getAttribute('data-modal-form') || '#create-branch-form';
-      const modalForm = document.querySelector(modalFormName);
+      const modalForm = document.querySelector<HTMLFormElement>(modalFormName);
       if (!modalForm) return;
       modalForm.action = `${modalForm.getAttribute('data-base-action')}${el.getAttribute('data-branch-from-urlcomponent')}`;
 
@@ -29,7 +29,7 @@ function initRepoRenameBranchButton() {
       const target = el.getAttribute('data-modal');
       const modal = document.querySelector(target);
       const oldBranchName = el.getAttribute('data-old-branch-name');
-      modal.querySelector('input[name=from]').value = oldBranchName;
+      modal.querySelector<HTMLInputElement>('input[name=from]').value = oldBranchName;
 
       // display the warning that the branch which is chosen is the default branch
       const warn = modal.querySelector('.default-branch-warning');

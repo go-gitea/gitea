@@ -1,7 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//nolint:forbidigo
+//nolint:forbidigo // use of print functions is allowed in tests
 package integration
 
 import (
@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers"
 	gitea_context "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
@@ -88,13 +89,6 @@ func TestMain(m *testing.M) {
 	tests.InitTest(true)
 	testWebRoutes = routers.NormalRoutes()
 
-	os.Unsetenv("GIT_AUTHOR_NAME")
-	os.Unsetenv("GIT_AUTHOR_EMAIL")
-	os.Unsetenv("GIT_AUTHOR_DATE")
-	os.Unsetenv("GIT_COMMITTER_NAME")
-	os.Unsetenv("GIT_COMMITTER_EMAIL")
-	os.Unsetenv("GIT_COMMITTER_DATE")
-
 	err := unittest.InitFixtures(
 		unittest.FixturesOptions{
 			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
@@ -125,12 +119,11 @@ type TestSession struct {
 	jar http.CookieJar
 }
 
-func (s *TestSession) GetCookie(name string) *http.Cookie {
+func (s *TestSession) GetRawCookie(name string) *http.Cookie {
 	baseURL, err := url.Parse(setting.AppURL)
 	if err != nil {
 		return nil
 	}
-
 	for _, c := range s.jar.Cookies(baseURL) {
 		if c.Name == name {
 			return c
@@ -139,8 +132,25 @@ func (s *TestSession) GetCookie(name string) *http.Cookie {
 	return nil
 }
 
+func (s *TestSession) GetSiteCookie(name string) string {
+	c := s.GetRawCookie(name)
+	if c != nil {
+		v, _ := url.QueryUnescape(c.Value)
+		return v
+	}
+	return ""
+}
+
+func (s *TestSession) GetCookieFlashMessage() *middleware.Flash {
+	cookie := s.GetSiteCookie(gitea_context.CookieNameFlash)
+	return middleware.ParseCookieFlashMessage(cookie)
+}
+
 func (s *TestSession) MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
+	if s == nil {
+		return MakeRequest(t, rw, expectedStatus)
+	}
 	req := rw.Request
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
@@ -242,55 +252,19 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 // token has to be unique this counter take care of
 var tokenCounter int64
 
-// getTokenForLoggedInUser returns a token for a logged in user.
-// The scope is an optional list of snake_case strings like the frontend form fields,
-// but without the "scope_" prefix.
+// getTokenForLoggedInUser returns a token for a logged-in user.
 func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.AccessTokenScope) string {
 	t.Helper()
-	var token string
-	req := NewRequest(t, "GET", "/user/settings/applications")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	var csrf string
-	for _, cookie := range resp.Result().Cookies() {
-		if cookie.Name != "_csrf" {
-			continue
-		}
-		csrf = cookie.Value
-		break
-	}
-	if csrf == "" {
-		doc := NewHTMLParser(t, resp.Body)
-		csrf = doc.GetCSRF()
-	}
-	assert.NotEmpty(t, csrf)
 	urlValues := url.Values{}
-	urlValues.Add("_csrf", csrf)
+	urlValues.Add("_csrf", GetUserCSRFToken(t, session))
 	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)))
 	for _, scope := range scopes {
-		urlValues.Add("scope", string(scope))
+		urlValues.Add("scope-dummy", string(scope)) // it only needs to start with "scope-" to be accepted
 	}
-	req = NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-
-	// Log the flash values on failure
-	if !assert.Equal(t, resp.Result().Header["Location"], []string{"/user/settings/applications"}) {
-		for _, cookie := range resp.Result().Cookies() {
-			if cookie.Name != gitea_context.CookieNameFlash {
-				continue
-			}
-			flash, _ := url.ParseQuery(cookie.Value)
-			for key, value := range flash {
-				t.Logf("Flash %q: %q", key, value)
-			}
-		}
-	}
-
-	req = NewRequest(t, "GET", "/user/settings/applications")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	token = htmlDoc.doc.Find(".ui.info p").Text()
-	assert.NotEmpty(t, token)
-	return token
+	req := NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	flashes := session.GetCookieFlashMessage()
+	return flashes.InfoMsg
 }
 
 type RequestWrapper struct {
@@ -339,7 +313,7 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 
 func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.Values) *RequestWrapper {
 	t.Helper()
-	return NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode())).
+	return NewRequestWithBody(t, method, urlStr, strings.NewReader(urlValues.Encode())).
 		SetHeader("Content-Type", "application/x-www-form-urlencoded")
 }
 
@@ -389,7 +363,7 @@ func MakeRequestNilResponseRecorder(t testing.TB, rw *RequestWrapper, expectedSt
 	recorder := NewNilResponseRecorder()
 	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+		if !assert.Equal(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, &recorder.ResponseRecorder)
 		}
@@ -403,7 +377,7 @@ func MakeRequestNilResponseHashSumRecorder(t testing.TB, rw *RequestWrapper, exp
 	recorder := NewNilResponseHashSumRecorder()
 	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+		if !assert.Equal(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, &recorder.ResponseRecorder)
 		}
@@ -440,7 +414,7 @@ func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 	t.Helper()
 
 	decoder := json.NewDecoder(resp.Body)
-	assert.NoError(t, decoder.Decode(v))
+	require.NoError(t, decoder.Decode(v))
 }
 
 func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile string) {
@@ -448,16 +422,16 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 
 	schemaFilePath := filepath.Join(filepath.Dir(setting.AppPath), "tests", "integration", "schemas", schemaFile)
 	_, schemaFileErr := os.Stat(schemaFilePath)
-	assert.Nil(t, schemaFileErr)
+	assert.NoError(t, schemaFileErr)
 
 	schema, schemaFileReadErr := os.ReadFile(schemaFilePath)
-	assert.Nil(t, schemaFileReadErr)
-	assert.True(t, len(schema) > 0)
+	assert.NoError(t, schemaFileReadErr)
+	assert.NotEmpty(t, schema)
 
 	nodeinfoSchema := gojsonschema.NewStringLoader(string(schema))
 	nodeinfoString := gojsonschema.NewStringLoader(resp.Body.String())
 	result, schemaValidationErr := gojsonschema.Validate(nodeinfoSchema, nodeinfoString)
-	assert.Nil(t, schemaValidationErr)
+	assert.NoError(t, schemaValidationErr)
 	assert.Empty(t, result.Errors())
 	assert.True(t, result.Valid())
 }
@@ -465,9 +439,9 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 // GetUserCSRFToken returns CSRF token for current user
 func GetUserCSRFToken(t testing.TB, session *TestSession) string {
 	t.Helper()
-	cookie := session.GetCookie("_csrf")
+	cookie := session.GetSiteCookie("_csrf")
 	require.NotEmpty(t, cookie)
-	return cookie.Value
+	return cookie
 }
 
 // GetUserCSRFToken returns CSRF token for anonymous user (not logged in)

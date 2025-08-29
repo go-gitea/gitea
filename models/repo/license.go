@@ -54,6 +54,7 @@ func UpdateRepoLicenses(ctx context.Context, repo *Repository, commitID string, 
 		for _, o := range oldLicenses {
 			// Update already existing license
 			if o.License == license {
+				o.CommitID = commitID
 				if _, err := db.GetEngine(ctx).ID(o.ID).Cols("`commit_id`").Update(o); err != nil {
 					return err
 				}

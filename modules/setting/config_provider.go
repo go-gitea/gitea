@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
-	"gopkg.in/ini.v1" //nolint:depguard
+	"gopkg.in/ini.v1" //nolint:depguard // wrapper for this package
 )
 
 type ConfigKey interface {
@@ -26,6 +26,7 @@ type ConfigKey interface {
 	In(defaultVal string, candidates []string) string
 	String() string
 	Strings(delim string) []string
+	Bool() (bool, error)
 
 	MustString(defaultVal string) string
 	MustBool(defaultVal ...bool) bool
@@ -257,7 +258,7 @@ func (p *iniConfigProvider) Save() error {
 	}
 	filename := p.file
 	if filename == "" {
-		return fmt.Errorf("config file path must not be empty")
+		return errors.New("config file path must not be empty")
 	}
 	if p.loadedFromEmpty {
 		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {

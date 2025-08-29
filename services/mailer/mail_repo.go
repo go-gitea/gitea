@@ -12,8 +12,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
+
+const mailRepoTransferNotify templates.TplName = "notify/repo_transfer"
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
 func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
@@ -74,12 +78,12 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		"Destination": destination,
 	}
 
-	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
 		return err
 	}
 
 	for _, to := range emailTos {
-		msg := NewMessageFrom(to.EmailTo(), fromDisplayName(doer), setting.MailService.FromEmail, subject, content.String())
+		msg := sender_service.NewMessageFrom(to.EmailTo(), fromDisplayName(doer), setting.MailService.FromEmail, subject, content.String())
 		msg.Info = fmt.Sprintf("UID: %d, repository pending transfer notification", newOwner.ID)
 
 		SendAsync(msg)

@@ -11,38 +11,35 @@ import (
 )
 
 // GetTreeEntryByPath get the tree entries according the sub dir
-func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
+func (t *Tree) GetTreeEntryByPath(relpath string) (_ *TreeEntry, err error) {
 	if len(relpath) == 0 {
 		return &TreeEntry{
 			ptree:     t,
 			ID:        t.ID,
 			name:      "",
-			fullName:  "",
 			entryMode: EntryModeTree,
 		}, nil
 	}
 
-	// FIXME: This should probably use git cat-file --batch to be a bit more efficient
 	relpath = path.Clean(relpath)
 	parts := strings.Split(relpath, "/")
-	var err error
+
 	tree := t
-	for i, name := range parts {
-		if i == len(parts)-1 {
-			entries, err := tree.ListEntries()
-			if err != nil {
-				return nil, err
-			}
-			for _, v := range entries {
-				if v.Name() == name {
-					return v, nil
-				}
-			}
-		} else {
-			tree, err = tree.SubTree(name)
-			if err != nil {
-				return nil, err
-			}
+	for _, name := range parts[:len(parts)-1] {
+		tree, err = tree.SubTree(name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	name := parts[len(parts)-1]
+	entries, err := tree.ListEntries()
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range entries {
+		if v.Name() == name {
+			return v, nil
 		}
 	}
 	return nil, ErrNotExist{"", relpath}

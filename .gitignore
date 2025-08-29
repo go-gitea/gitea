@@ -9,6 +9,11 @@ _test
 
 # IntelliJ
 .idea
+.run
+
+# IntelliJ Gateway
+.uuid
+
 # Goland's output filename can not be set manually
 /go_build_*
 /gitea_*
@@ -16,6 +21,9 @@ _test
 # MS VSCode
 .vscode
 __debug_bin*
+
+# Visual Studio
+/.vs/
 
 *.cgo1.go
 *.cgo2.c
@@ -28,19 +36,16 @@ _testmain.go
 *.exe
 *.test
 *.prof
+*.tsbuildinfo
 
 *coverage.out
 coverage.all
 cpu.out
 
-/modules/migration/bindata.go
-/modules/migration/bindata.go.hash
-/modules/options/bindata.go
-/modules/options/bindata.go.hash
-/modules/public/bindata.go
-/modules/public/bindata.go.hash
-/modules/templates/bindata.go
-/modules/templates/bindata.go.hash
+/modules/migration/bindata.*
+/modules/options/bindata.*
+/modules/public/bindata.*
+/modules/templates/bindata.*
 
 *.db
 *.log
@@ -78,18 +83,6 @@ cpu.out
 /public/assets/fonts
 /public/assets/licenses.txt
 /vendor
-/web_src/fomantic/node_modules
-/web_src/fomantic/build/*
-!/web_src/fomantic/build/semantic.js
-!/web_src/fomantic/build/semantic.css
-!/web_src/fomantic/build/themes
-/web_src/fomantic/build/themes/*
-!/web_src/fomantic/build/themes/default
-/web_src/fomantic/build/themes/default/assets/*
-!/web_src/fomantic/build/themes/default/assets/fonts
-/web_src/fomantic/build/themes/default/assets/fonts/*
-!/web_src/fomantic/build/themes/default/assets/fonts/icons.woff2
-!/web_src/fomantic/build/themes/default/assets/fonts/outline-icons.woff2
 /VERSION
 /.air
 /.go-licenses
@@ -116,3 +109,15 @@ prime/
 
 # Manpage
 /man
+
+# Ignore AI/LLM instruction files
+/.claude/
+/.cursorrules
+/.cursor/
+/.goosehints
+/.windsurfrules
+/.github/copilot-instructions.md
+/AGENT.md
+/CLAUDE.md
+/llms.txt
+

@@ -4,19 +4,19 @@
 package git
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCommitsCount(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	commitsCount, err := CommitsCount(DefaultContext,
+	commitsCount, err := CommitsCount(t.Context(),
 		CommitsCountOptions{
 			RepoPath: bareRepo1Path,
 			Revision: []string{"8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"},
@@ -29,7 +29,7 @@ func TestCommitsCount(t *testing.T) {
 func TestCommitsCountWithoutBase(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	commitsCount, err := CommitsCount(DefaultContext,
+	commitsCount, err := CommitsCount(t.Context(),
 		CommitsCountOptions{
 			RepoPath: bareRepo1Path,
 			Not:      "master",
@@ -43,7 +43,7 @@ func TestCommitsCountWithoutBase(t *testing.T) {
 func TestGetFullCommitID(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	id, err := GetFullCommitID(DefaultContext, bareRepo1Path, "8006ff9a")
+	id, err := GetFullCommitID(t.Context(), bareRepo1Path, "8006ff9a")
 	assert.NoError(t, err)
 	assert.Equal(t, "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0", id)
 }
@@ -51,7 +51,7 @@ func TestGetFullCommitID(t *testing.T) {
 func TestGetFullCommitIDError(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	id, err := GetFullCommitID(DefaultContext, bareRepo1Path, "unknown")
+	id, err := GetFullCommitID(t.Context(), bareRepo1Path, "unknown")
 	assert.Empty(t, id)
 	if assert.Error(t, err) {
 		assert.EqualError(t, err, "object does not exist [id: unknown, rel_path: ]")
@@ -59,8 +59,7 @@ func TestGetFullCommitIDError(t *testing.T) {
 }
 
 func TestCommitFromReader(t *testing.T) {
-	commitString := `feaf4ba6bc635fec442f46ddd4512416ec43c2c2 commit 1074
-tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
+	commitString := `tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
 parent 37991dec2c8e592043f47155ce4808d4580f9123
 author silverwind <me@silverwind.io> 1563741793 +0200
 committer silverwind <me@silverwind.io> 1563741793 +0200
@@ -84,18 +83,16 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 empty commit`
 
 	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
-	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
+	gitRepo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
 
 	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
-	if !assert.NotNil(t, commitFromReader) {
-		return
-	}
+	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
-	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
+	assert.Equal(t, `-----BEGIN PGP SIGNATURE-----
 
 iQIzBAABCAAdFiEEWPb2jX6FS2mqyJRQLmK0HJOGlEMFAl00zmEACgkQLmK0HJOG
 lEMDFBAAhQKKqLD1VICygJMEB8t1gBmNLgvziOLfpX4KPWdPtBk3v/QJ7OrfMrVK
@@ -110,26 +107,24 @@ sD53z/f0J+We4VZjY+pidvA9BGZPFVdR3wd3xGs8/oH6UWaLJAMGkLG6dDb3qDLm
 mfeFhT57UbE4qukTDIQ0Y0WM40UYRTakRaDY7ubhXgLgx09Cnp9XTVMsHgT6j9/i
 1pxsB104XLWjQHTjr1JtiaBQEwFh9r2OKTcpvaLcbNtYpo7CzOs=
 =FRsO
------END PGP SIGNATURE-----
-`, commitFromReader.Signature.Signature)
-	assert.EqualValues(t, `tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
+-----END PGP SIGNATURE-----`, commitFromReader.Signature.Signature)
+	assert.Equal(t, `tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
 parent 37991dec2c8e592043f47155ce4808d4580f9123
 author silverwind <me@silverwind.io> 1563741793 +0200
 committer silverwind <me@silverwind.io> 1563741793 +0200
 
 empty commit`, commitFromReader.Signature.Payload)
-	assert.EqualValues(t, "silverwind <me@silverwind.io>", commitFromReader.Author.String())
+	assert.Equal(t, "silverwind <me@silverwind.io>", commitFromReader.Author.String())
 
 	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
 	commitFromReader.CommitMessage += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
-	assert.EqualValues(t, commitFromReader, commitFromReader2)
+	assert.Equal(t, commitFromReader, commitFromReader2)
 }
 
 func TestCommitWithEncodingFromReader(t *testing.T) {
-	commitString := `feaf4ba6bc635fec442f46ddd4512416ec43c2c2 commit 1074
-tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
+	commitString := `tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
 parent 47b24e7ab977ed31c5a39989d570847d6d0052af
 author KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 committer KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
@@ -152,18 +147,16 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 ISO-8859-1`
 	commitString = strings.ReplaceAll(commitString, "<SPACE>", " ")
 	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
-	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
+	gitRepo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
 
 	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
-	if !assert.NotNil(t, commitFromReader) {
-		return
-	}
+	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
-	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
+	assert.Equal(t, `-----BEGIN PGP SIGNATURE-----
 
 iQGzBAABCgAdFiEE9HRrbqvYxPT8PXbefPSEkrowAa8FAmYGg7IACgkQfPSEkrow
 Aa9olwv+P0HhtCM6CRvlUmPaqswRsDPNR4i66xyXGiSxdI9V5oJL7HLiQIM7KrFR
@@ -176,28 +169,27 @@ SONRzusmu5n3DgV956REL7x62h7JuqmBz/12HZkr0z0zgXkcZ04q08pSJATX5N1F
 yN+tWxTsWg+zhDk96d5Esdo9JMjcFvPv0eioo30GAERaz1hoD7zCMT4jgUFTQwgz
 jw4YcO5u
 =r3UU
------END PGP SIGNATURE-----
-`, commitFromReader.Signature.Signature)
-	assert.EqualValues(t, `tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
+-----END PGP SIGNATURE-----`, commitFromReader.Signature.Signature)
+	assert.Equal(t, `tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
 parent 47b24e7ab977ed31c5a39989d570847d6d0052af
 author KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 committer KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 encoding ISO-8859-1
 
 ISO-8859-1`, commitFromReader.Signature.Payload)
-	assert.EqualValues(t, "KN4CK3R <admin@oldschoolhack.me>", commitFromReader.Author.String())
+	assert.Equal(t, "KN4CK3R <admin@oldschoolhack.me>", commitFromReader.Author.String())
 
 	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
 	commitFromReader.CommitMessage += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
-	assert.EqualValues(t, commitFromReader, commitFromReader2)
+	assert.Equal(t, commitFromReader, commitFromReader2)
 }
 
 func TestHasPreviousCommit(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	repo, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 
@@ -328,7 +320,7 @@ func TestParseCommitFileStatus(t *testing.T) {
 func TestGetCommitFileStatusMerges(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo6_merge")
 
-	commitFileStatus, err := GetCommitFileStatus(DefaultContext, bareRepo1Path, "022f4ce6214973e018f02bf363bf8a2e3691f699")
+	commitFileStatus, err := GetCommitFileStatus(t.Context(), bareRepo1Path, "022f4ce6214973e018f02bf363bf8a2e3691f699")
 	assert.NoError(t, err)
 
 	expected := CommitFileStatus{
@@ -343,22 +335,22 @@ func TestGetCommitFileStatusMerges(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, commitFileStatus.Added, expected.Added)
-	assert.Equal(t, commitFileStatus.Removed, expected.Removed)
-	assert.Equal(t, commitFileStatus.Modified, expected.Modified)
+	assert.Equal(t, expected.Added, commitFileStatus.Added)
+	assert.Equal(t, expected.Removed, commitFileStatus.Removed)
+	assert.Equal(t, expected.Modified, commitFileStatus.Modified)
 }
 
 func Test_GetCommitBranchStart(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(context.Background(), bareRepo1Path)
+	repo, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 	commit, err := repo.GetBranchCommit("branch1")
 	assert.NoError(t, err)
-	assert.EqualValues(t, "2839944139e0de9737a044f78b0e4b40d989a9e3", commit.ID.String())
+	assert.Equal(t, "2839944139e0de9737a044f78b0e4b40d989a9e3", commit.ID.String())
 
 	startCommitID, err := repo.GetCommitBranchStart(os.Environ(), "branch1", commit.ID.String())
 	assert.NoError(t, err)
 	assert.NotEmpty(t, startCommitID)
-	assert.EqualValues(t, "9c9aef8dd84e02bc7ec12641deb4c930a7c30185", startCommitID)
+	assert.Equal(t, "95bb4d39648ee7e325106df01a621c530863a653", startCommitID)
 }

@@ -1,9 +1,26 @@
 <script lang="ts">
+import {defineComponent} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
-import {generateAriaId} from '../modules/fomantic/base.ts';
+import {generateElemId} from '../utils/dom.ts';
 
-export default {
+type Commit = {
+  id: string,
+  hovered: boolean,
+  selected: boolean,
+  summary: string,
+  committer_or_author_name: string,
+  time: string,
+  short_sha: string,
+}
+
+type CommitListResult = {
+  commits: Array<Commit>,
+  last_review_commit_sha: string,
+  locale: Record<string, string>,
+}
+
+export default defineComponent({
   components: {SvgIcon},
   data: () => {
     const el = document.querySelector('#diff-commit-select');
@@ -14,12 +31,13 @@ export default {
       issueLink: el.getAttribute('data-issuelink'),
       locale: {
         filter_changes_by_commit: el.getAttribute('data-filter_changes_by_commit'),
-      },
-      commits: [],
+      } as Record<string, string>,
+      mergeBase: el.getAttribute('data-merge-base'),
+      commits: [] as Array<Commit>,
       hoverActivated: false,
-      lastReviewCommitSha: null,
-      uniqueIdMenu: generateAriaId(),
-      uniqueIdShowAll: generateAriaId(),
+      lastReviewCommitSha: '',
+      uniqueIdMenu: generateElemId('diff-commit-selector-menu-'),
+      uniqueIdShowAll: generateElemId('diff-commit-selector-show-all-'),
     };
   },
   computed: {
@@ -41,25 +59,25 @@ export default {
     this.$el.removeEventListener('keyup', this.onKeyUp);
   },
   methods: {
-    onBodyClick(event) {
+    onBodyClick(event: MouseEvent) {
       // close this menu on click outside of this element when the dropdown is currently visible opened
       if (this.$el.contains(event.target)) return;
       if (this.menuVisible) {
         this.toggleMenu();
       }
     },
-    onKeyDown(event) {
+    onKeyDown(event: KeyboardEvent) {
       if (!this.menuVisible) return;
-      const item = document.activeElement;
+      const item = document.activeElement as HTMLElement;
       if (!this.$el.contains(item)) return;
       switch (event.key) {
         case 'ArrowDown': // select next element
           event.preventDefault();
-          this.focusElem(item.nextElementSibling, item);
+          this.focusElem(item.nextElementSibling as HTMLElement, item);
           break;
         case 'ArrowUp': // select previous element
           event.preventDefault();
-          this.focusElem(item.previousElementSibling, item);
+          this.focusElem(item.previousElementSibling as HTMLElement, item);
           break;
         case 'Escape': // close menu
           event.preventDefault();
@@ -70,10 +88,10 @@ export default {
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         const item = document.activeElement; // try to highlight the selected commits
         const commitIdx = item?.matches('.item') ? item.getAttribute('data-commit-idx') : null;
-        if (commitIdx) this.highlight(this.commits[commitIdx]);
+        if (commitIdx) this.highlight(this.commits[Number(commitIdx)]);
       }
     },
-    onKeyUp(event) {
+    onKeyUp(event: KeyboardEvent) {
       if (!this.menuVisible) return;
       const item = document.activeElement;
       if (!this.$el.contains(item)) return;
@@ -86,7 +104,7 @@ export default {
         }
       }
     },
-    highlight(commit) {
+    highlight(commit: Commit) {
       if (!this.hoverActivated) return;
       const indexSelected = this.commits.findIndex((x) => x.selected);
       const indexCurrentElem = this.commits.findIndex((x) => x.id === commit.id);
@@ -95,7 +113,7 @@ export default {
       }
     },
     /** Focus given element */
-    focusElem(elem, prevElem) {
+    focusElem(elem: HTMLElement, prevElem: HTMLElement) {
       if (elem) {
         elem.tabIndex = 0;
         if (prevElem) prevElem.tabIndex = -1;
@@ -118,16 +136,17 @@ export default {
       // set correct tabindex to allow easier navigation
       this.$nextTick(() => {
         if (this.menuVisible) {
-          this.focusElem(this.$refs.showAllChanges, this.$refs.expandBtn);
+          this.focusElem(this.$refs.showAllChanges as HTMLElement, this.$refs.expandBtn as HTMLElement);
         } else {
-          this.focusElem(this.$refs.expandBtn, this.$refs.showAllChanges);
+          this.focusElem(this.$refs.expandBtn as HTMLElement, this.$refs.showAllChanges as HTMLElement);
         }
       });
     },
+
     /** Load the commits to show in this dropdown */
     async fetchCommits() {
       const resp = await GET(`${this.issueLink}/commits/list`);
-      const results = await resp.json();
+      const results = await resp.json() as CommitListResult;
       this.commits.push(...results.commits.map((x) => {
         x.hovered = false;
         return x;
@@ -149,7 +168,7 @@ export default {
       window.location.assign(`${this.issueLink}/files/${this.lastReviewCommitSha}..${this.commits.at(-1).id}${this.queryParams}`);
     },
     /** Clicking on a single commit opens this specific commit */
-    commitClicked(commitId, newWindow = false) {
+    commitClicked(commitId: string, newWindow = false) {
       const url = `${this.issueLink}/commits/${commitId}${this.queryParams}`;
       if (newWindow) {
         window.open(url);
@@ -158,43 +177,49 @@ export default {
       }
     },
     /**
-     * When a commit is clicked with shift this enables the range
-     * selection. Second click (with shift) defines the end of the
-     * range. This opens the diff of this range
-     * Exception: first commit is the first commit of this PR. Then
-     * the diff from beginning of PR up to the second clicked commit is
-     * opened
+     * When a commit is clicked while holding Shift, it enables range selection.
+     * - The range selection is a half-open, half-closed range, meaning it excludes the start commit but includes the end commit.
+     * - The start of the commit range is always the previous commit of the first clicked commit.
+     * - If the first commit in the list is clicked, the mergeBase will be used as the start of the range instead.
+     * - The second Shift-click defines the end of the range.
+     * - Once both are selected, the diff view for the selected commit range will open.
      */
-    commitClickedShift(commit) {
+    commitClickedShift(commit: Commit) {
       this.hoverActivated = !this.hoverActivated;
       commit.selected = true;
       // Second click -> determine our range and open links accordingly
       if (!this.hoverActivated) {
+        // since at least one commit is selected, we can determine the range
         // find all selected commits and generate a link
-        if (this.commits[0].selected) {
-          // first commit is selected - generate a short url with only target sha
-          const lastCommitIdx = this.commits.findLastIndex((x) => x.selected);
-          if (lastCommitIdx === this.commits.length - 1) {
-            // user selected all commits - just show the normal diff page
-            window.location.assign(`${this.issueLink}/files${this.queryParams}`);
-          } else {
-            window.location.assign(`${this.issueLink}/files/${this.commits[lastCommitIdx].id}${this.queryParams}`);
-          }
+        const firstSelected = this.commits.findIndex((x) => x.selected);
+        const lastSelected = this.commits.findLastIndex((x) => x.selected);
+        let beforeCommitID: string;
+        if (firstSelected === 0) {
+          beforeCommitID = this.mergeBase;
         } else {
-          const start = this.commits[this.commits.findIndex((x) => x.selected) - 1].id;
-          const end = this.commits.findLast((x) => x.selected).id;
-          window.location.assign(`${this.issueLink}/files/${start}..${end}${this.queryParams}`);
+          beforeCommitID = this.commits[firstSelected - 1].id;
+        }
+        const afterCommitID = this.commits[lastSelected].id;
+
+        if (firstSelected === lastSelected) {
+          // if the start and end are the same, we show this single commit
+          window.location.assign(`${this.issueLink}/commits/${afterCommitID}${this.queryParams}`);
+        } else if (beforeCommitID === this.mergeBase && afterCommitID === this.commits.at(-1).id) {
+          // if the first commit is selected and the last commit is selected, we show all commits
+          window.location.assign(`${this.issueLink}/files${this.queryParams}`);
+        } else {
+          window.location.assign(`${this.issueLink}/files/${beforeCommitID}..${afterCommitID}${this.queryParams}`);
         }
       }
     },
   },
-};
+});
 </script>
 <template>
   <div class="ui scrolling dropdown custom diff-commit-selector">
     <button
       ref="expandBtn"
-      class="ui basic button"
+      class="ui tiny basic button"
       @click.stop="toggleMenu()"
       :data-tooltip-content="locale.filter_changes_by_commit"
       aria-haspopup="true"

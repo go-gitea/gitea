@@ -5,6 +5,7 @@ package backend
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,14 +44,13 @@ func (g *giteaLockBackend) Create(path, refname string) (transfer.Lock, error) {
 		g.logger.Log("json marshal error", err)
 		return nil, err
 	}
-	url := g.server.String()
 	headers := map[string]string{
 		headerAuthorization:     g.authToken,
 		headerGiteaInternalAuth: g.internalAuth,
 		headerAccept:            mimeGitLFS,
 		headerContentType:       mimeGitLFS,
 	}
-	req := newInternalRequest(g.ctx, url, http.MethodPost, headers, bodyBytes)
+	req := newInternalRequestLFS(g.ctx, g.server.String(), http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
 	if err != nil {
 		g.logger.Log("http request error", err)
@@ -75,7 +75,7 @@ func (g *giteaLockBackend) Create(path, refname string) (transfer.Lock, error) {
 
 	if respBody.Lock == nil {
 		g.logger.Log("api returned nil lock")
-		return nil, fmt.Errorf("api returned nil lock")
+		return nil, errors.New("api returned nil lock")
 	}
 	respLock := respBody.Lock
 	owner := userUnknown
@@ -95,14 +95,13 @@ func (g *giteaLockBackend) Unlock(lock transfer.Lock) error {
 		g.logger.Log("json marshal error", err)
 		return err
 	}
-	url := g.server.JoinPath(lock.ID(), "unlock").String()
 	headers := map[string]string{
 		headerAuthorization:     g.authToken,
 		headerGiteaInternalAuth: g.internalAuth,
 		headerAccept:            mimeGitLFS,
 		headerContentType:       mimeGitLFS,
 	}
-	req := newInternalRequest(g.ctx, url, http.MethodPost, headers, bodyBytes)
+	req := newInternalRequestLFS(g.ctx, g.server.JoinPath(lock.ID(), "unlock").String(), http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
 	if err != nil {
 		g.logger.Log("http request error", err)
@@ -176,16 +175,15 @@ func (g *giteaLockBackend) Range(cursor string, limit int, iter func(transfer.Lo
 }
 
 func (g *giteaLockBackend) queryLocks(v url.Values) ([]transfer.Lock, string, error) {
-	urlq := g.server.JoinPath() // get a copy
-	urlq.RawQuery = v.Encode()
-	url := urlq.String()
+	serverURLWithQuery := g.server.JoinPath() // get a copy
+	serverURLWithQuery.RawQuery = v.Encode()
 	headers := map[string]string{
 		headerAuthorization:     g.authToken,
 		headerGiteaInternalAuth: g.internalAuth,
 		headerAccept:            mimeGitLFS,
 		headerContentType:       mimeGitLFS,
 	}
-	req := newInternalRequest(g.ctx, url, http.MethodGet, headers, nil)
+	req := newInternalRequestLFS(g.ctx, serverURLWithQuery.String(), http.MethodGet, headers, nil)
 	resp, err := req.Response()
 	if err != nil {
 		g.logger.Log("http request error", err)
@@ -266,7 +264,7 @@ func (g *giteaLock) CurrentUser() (string, error) {
 // AsLockSpec implements transfer.Lock
 func (g *giteaLock) AsLockSpec(ownerID bool) ([]string, error) {
 	msgs := []string{
-		fmt.Sprintf("lock %s", g.ID()),
+		"lock " + g.ID(),
 		fmt.Sprintf("path %s %s", g.ID(), g.Path()),
 		fmt.Sprintf("locked-at %s %s", g.ID(), g.FormattedTimestamp()),
 		fmt.Sprintf("ownername %s %s", g.ID(), g.OwnerName()),
@@ -288,9 +286,9 @@ func (g *giteaLock) AsLockSpec(ownerID bool) ([]string, error) {
 // AsArguments implements transfer.Lock
 func (g *giteaLock) AsArguments() []string {
 	return []string{
-		fmt.Sprintf("id=%s", g.ID()),
-		fmt.Sprintf("path=%s", g.Path()),
-		fmt.Sprintf("locked-at=%s", g.FormattedTimestamp()),
-		fmt.Sprintf("ownername=%s", g.OwnerName()),
+		"id=" + g.ID(),
+		"path=" + g.Path(),
+		"locked-at=" + g.FormattedTimestamp(),
+		"ownername=" + g.OwnerName(),
 	}
 }

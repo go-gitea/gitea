@@ -86,11 +86,10 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args git.TrustedCmdA
 // GitGcRepo calls 'git gc' to remove unnecessary files and optimize the local repository
 func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args git.TrustedCmdArgs) error {
 	log.Trace("Running git gc on %-v", repo)
-	command := git.NewCommand(ctx, "gc").AddArguments(args...).
-		SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName()))
+	command := git.NewCommand("gc").AddArguments(args...)
 	var stdout string
 	var err error
-	stdout, _, err = command.RunStdString(&git.RunOpts{Timeout: timeout, Dir: repo.RepoPath()})
+	stdout, _, err = command.RunStdString(ctx, &git.RunOpts{Timeout: timeout, Dir: repo.RepoPath()})
 	if err != nil {
 		log.Error("Repository garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)
 		desc := fmt.Sprintf("Repository garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)
@@ -163,7 +162,7 @@ func DeleteMissingRepositories(ctx context.Context, doer *user_model.User) error
 		default:
 		}
 		log.Trace("Deleting %d/%d...", repo.OwnerID, repo.ID)
-		if err := DeleteRepositoryDirectly(ctx, doer, repo.ID); err != nil {
+		if err := DeleteRepositoryDirectly(ctx, repo.ID); err != nil {
 			log.Error("Failed to DeleteRepository %-v: Error: %v", repo, err)
 			if err2 := system_model.CreateRepositoryNotice("Failed to DeleteRepository %s [%d]: Error: %v", repo.FullName(), repo.ID, err); err2 != nil {
 				log.Error("CreateRepositoryNotice: %v", err)

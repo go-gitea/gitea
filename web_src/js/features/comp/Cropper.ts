@@ -1,4 +1,4 @@
-import {showElem} from '../../utils/dom.ts';
+import {showElem, type DOMEvent} from '../../utils/dom.ts';
 
 type CropperOpts = {
   container: HTMLElement,
@@ -6,7 +6,7 @@ type CropperOpts = {
   fileInput: HTMLInputElement,
 }
 
-export async function initCompCropper({container, fileInput, imageSource}: CropperOpts) {
+async function initCompCropper({container, fileInput, imageSource}: CropperOpts) {
   const {default: Cropper} = await import(/* webpackChunkName: "cropperjs" */'cropperjs');
   let currentFileName = '';
   let currentFileLastModified = 0;
@@ -26,7 +26,7 @@ export async function initCompCropper({container, fileInput, imageSource}: Cropp
     },
   });
 
-  fileInput.addEventListener('input', (e: Event & {target: HTMLInputElement}) => {
+  fileInput.addEventListener('input', (e: DOMEvent<Event, HTMLInputElement>) => {
     const files = e.target.files;
     if (files?.length > 0) {
       currentFileName = files[0].name;
@@ -37,4 +37,11 @@ export async function initCompCropper({container, fileInput, imageSource}: Cropp
       showElem(container);
     }
   });
+}
+
+export async function initAvatarUploaderWithCropper(fileInput: HTMLInputElement) {
+  const panel = fileInput.nextElementSibling as HTMLElement;
+  if (!panel?.matches('.cropper-panel')) throw new Error('Missing cropper panel for avatar uploader');
+  const imageSource = panel.querySelector<HTMLImageElement>('.cropper-source');
+  await initCompCropper({container: panel, fileInput, imageSource});
 }

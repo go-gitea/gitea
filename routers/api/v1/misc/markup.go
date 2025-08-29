@@ -38,11 +38,11 @@ func Markup(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.MarkupOption)
 
 	if ctx.HasAPIError() {
-		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.GetErrMsg())
 		return
 	}
 
-	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck
+	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
 	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, form.FilePath)
 }
 
@@ -69,11 +69,11 @@ func Markdown(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.MarkdownOption)
 
 	if ctx.HasAPIError() {
-		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.GetErrMsg())
 		return
 	}
 
-	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck
+	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
 	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, "")
 }
 
@@ -100,7 +100,7 @@ func MarkdownRaw(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	defer ctx.Req.Body.Close()
 	if err := markdown.RenderRaw(markup.NewRenderContext(ctx), ctx.Req.Body, ctx.Resp); err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 }

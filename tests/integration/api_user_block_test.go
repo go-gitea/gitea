@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -23,7 +22,7 @@ func TestBlockUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	countStars := func(t *testing.T, repoOwnerID, starrerID int64) int64 {
-		count, err := db.Count[repo_model.Repository](db.DefaultContext, &repo_model.StarredReposOptions{
+		count, err := db.Count[repo_model.Repository](t.Context(), &repo_model.StarredReposOptions{
 			StarrerID:      starrerID,
 			RepoOwnerID:    repoOwnerID,
 			IncludePrivate: true,
@@ -33,7 +32,7 @@ func TestBlockUser(t *testing.T) {
 	}
 
 	countWatches := func(t *testing.T, repoOwnerID, watcherID int64) int64 {
-		count, err := db.Count[repo_model.Repository](db.DefaultContext, &repo_model.WatchedReposOptions{
+		count, err := db.Count[repo_model.Repository](t.Context(), &repo_model.WatchedReposOptions{
 			WatcherID:   watcherID,
 			RepoOwnerID: repoOwnerID,
 		})
@@ -42,7 +41,7 @@ func TestBlockUser(t *testing.T) {
 	}
 
 	countRepositoryTransfers := func(t *testing.T, senderID, recipientID int64) int64 {
-		transfers, err := models.GetPendingRepositoryTransfers(db.DefaultContext, &models.PendingRepositoryTransferOptions{
+		transfers, err := repo_model.GetPendingRepositoryTransfers(t.Context(), &repo_model.PendingRepositoryTransferOptions{
 			SenderID:    senderID,
 			RecipientID: recipientID,
 		})
@@ -51,7 +50,7 @@ func TestBlockUser(t *testing.T) {
 	}
 
 	countAssignedIssues := func(t *testing.T, repoOwnerID, assigneeID int64) int64 {
-		_, count, err := issues_model.GetAssignedIssues(db.DefaultContext, &issues_model.AssignedIssuesOptions{
+		_, count, err := issues_model.GetAssignedIssues(t.Context(), &issues_model.AssignedIssuesOptions{
 			AssigneeID:  assigneeID,
 			RepoOwnerID: repoOwnerID,
 		})
@@ -60,7 +59,7 @@ func TestBlockUser(t *testing.T) {
 	}
 
 	countCollaborations := func(t *testing.T, repoOwnerID, collaboratorID int64) int64 {
-		count, err := db.Count[repo_model.Collaboration](db.DefaultContext, &repo_model.FindCollaborationOptions{
+		count, err := db.Count[repo_model.Collaboration](t.Context(), &repo_model.FindCollaborationOptions{
 			CollaboratorID: collaboratorID,
 			RepoOwnerID:    repoOwnerID,
 		})
@@ -77,7 +76,7 @@ func TestBlockUser(t *testing.T) {
 		blockeeName := "user10"
 
 		t.Run("Block", func(t *testing.T) {
-			req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName))
+			req := NewRequest(t, "PUT", "/api/v1/user/blocks/"+blockeeName)
 			MakeRequest(t, req, http.StatusUnauthorized)
 
 			assert.EqualValues(t, 1, countStars(t, blockerID, blockeeID))
@@ -85,7 +84,7 @@ func TestBlockUser(t *testing.T) {
 			assert.EqualValues(t, 1, countRepositoryTransfers(t, blockerID, blockeeID))
 			assert.EqualValues(t, 1, countCollaborations(t, blockerID, blockeeID))
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName)).
+			req = NewRequest(t, "GET", "/api/v1/user/blocks/"+blockeeName).
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusNotFound)
 
@@ -98,15 +97,15 @@ func TestBlockUser(t *testing.T) {
 			assert.EqualValues(t, 0, countRepositoryTransfers(t, blockerID, blockeeID))
 			assert.EqualValues(t, 0, countCollaborations(t, blockerID, blockeeID))
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName)).
+			req = NewRequest(t, "GET", "/api/v1/user/blocks/"+blockeeName).
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusNoContent)
 
-			req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName)).
+			req = NewRequest(t, "PUT", "/api/v1/user/blocks/"+blockeeName).
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusBadRequest) // can't block blocked user
 
-			req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/blocks/%s", "org3")).
+			req = NewRequest(t, "PUT", "/api/v1/user/blocks/"+"org3").
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusBadRequest) // can't block organization
 
@@ -125,18 +124,18 @@ func TestBlockUser(t *testing.T) {
 		})
 
 		t.Run("Unblock", func(t *testing.T) {
-			req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName))
+			req := NewRequest(t, "DELETE", "/api/v1/user/blocks/"+blockeeName)
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName)).
+			req = NewRequest(t, "DELETE", "/api/v1/user/blocks/"+blockeeName).
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusNoContent)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/blocks/%s", blockeeName)).
+			req = NewRequest(t, "DELETE", "/api/v1/user/blocks/"+blockeeName).
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/blocks/%s", "org3")).
+			req = NewRequest(t, "DELETE", "/api/v1/user/blocks/"+"org3").
 				AddTokenAuth(blockerToken)
 			MakeRequest(t, req, http.StatusBadRequest)
 

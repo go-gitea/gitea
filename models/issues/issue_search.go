@@ -21,14 +21,16 @@ import (
 	"xorm.io/xorm"
 )
 
+const ScopeSortPrefix = "scope-"
+
 // IssuesOptions represents options of an issue.
-type IssuesOptions struct { //nolint
+type IssuesOptions struct { //nolint:revive // export stutter
 	Paginator          *db.ListOptions
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	AllPublic          bool    // include also all public repositories
 	RepoCond           builder.Cond
-	AssigneeID         int64
-	PosterID           int64
+	AssigneeID         string // "(none)" or "(any)" or a user ID
+	PosterID           string // "(none)" or "(any)" or a user ID
 	MentionedID        int64
 	ReviewRequestedID  int64
 	ReviewedID         int64
@@ -49,9 +51,9 @@ type IssuesOptions struct { //nolint
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	IsArchived     optional.Option[bool]
-	Org            *organization.Organization // issues permission scope
-	Team           *organization.Team         // issues permission scope
-	User           *user_model.User           // issues permission scope
+	Owner          *user_model.User   // issues permission scope, it could be an organization or a user
+	Team           *organization.Team // issues permission scope
+	Doer           *user_model.User   // issues permission scope
 }
 
 // Copy returns a copy of the options.
@@ -70,11 +72,24 @@ func (o *IssuesOptions) Copy(edit ...func(options *IssuesOptions)) *IssuesOption
 // applySorts sort an issues-related session based on the provided
 // sortType string
 func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
+	// Since this sortType is dynamically created, it has to be treated specially.
+	if after, ok := strings.CutPrefix(sortType, ScopeSortPrefix); ok {
+		scope := after
+		sess.Join("LEFT", "issue_label", "issue.id = issue_label.issue_id")
+		// "exclusive_order=0" means "no order is set", so exclude it from the JOIN criteria and then "LEFT JOIN" result is also null
+		sess.Join("LEFT", "label", "label.id = issue_label.label_id AND label.exclusive_order <> 0 AND label.name LIKE ?", scope+"/%")
+		// Use COALESCE to make sure we sort NULL last regardless of backend DB (2147483647 == max int)
+		sess.OrderBy("COALESCE(label.exclusive_order, 2147483647) ASC").Desc("issue.id")
+		return
+	}
+
 	switch sortType {
 	case "oldest":
 		sess.Asc("issue.created_unix").Asc("issue.id")
 	case "recentupdate":
 		sess.Desc("issue.updated_unix").Desc("issue.created_unix").Desc("issue.id")
+	case "recentclose":
+		sess.Desc("issue.closed_unix").Desc("issue.created_unix").Desc("issue.id")
 	case "leastupdate":
 		sess.Asc("issue.updated_unix").Asc("issue.created_unix").Asc("issue.id")
 	case "mostcomment":
@@ -231,15 +246,8 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) {
 		sess.And("issue.is_closed=?", opts.IsClosed.Value())
 	}
 
-	if opts.AssigneeID > 0 {
-		applyAssigneeCondition(sess, opts.AssigneeID)
-	} else if opts.AssigneeID == db.NoConditionID {
-		sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
-	}
-
-	if opts.PosterID > 0 {
-		applyPosterCondition(sess, opts.PosterID)
-	}
+	applyAssigneeCondition(sess, opts.AssigneeID)
+	applyPosterCondition(sess, opts.PosterID)
 
 	if opts.MentionedID > 0 {
 		applyMentionedCondition(sess, opts.MentionedID)
@@ -280,8 +288,12 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) {
 
 	applyLabelsCondition(sess, opts)
 
-	if opts.User != nil {
-		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.Value()))
+	if opts.Owner != nil {
+		sess.And(repo_model.UserOwnedRepoCond(opts.Owner.ID))
+	}
+
+	if opts.Doer != nil && !opts.Doer.IsAdmin {
+		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.Doer.ID, opts.Owner, opts.Team, opts.IsPull.Value()))
 	}
 }
 
@@ -328,20 +340,20 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 }
 
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
-func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organization.Organization, team *organization.Team, isPull bool) builder.Cond {
+func issuePullAccessibleRepoCond(repoIDstr string, userID int64, owner *user_model.User, team *organization.Team, isPull bool) builder.Cond {
 	cond := builder.NewCond()
 	unitType := unit.TypeIssues
 	if isPull {
 		unitType = unit.TypePullRequests
 	}
-	if org != nil {
+	if owner != nil && owner.IsOrganization() {
 		if team != nil {
-			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType)) // special team member repos
+			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, owner.ID, team.ID, unitType)) // special team member repos
 		} else {
 			cond = cond.And(
 				builder.Or(
-					repo_model.UserOrgUnitRepoCond(repoIDstr, userID, org.ID, unitType), // team member repos
-					repo_model.UserOrgPublicUnitRepoCond(userID, org.ID),                // user org public non-member repos, TODO: check repo has issues
+					repo_model.UserOrgUnitRepoCond(repoIDstr, userID, owner.ID, unitType), // team member repos
+					repo_model.UserOrgPublicUnitRepoCond(userID, owner.ID),                // user org public non-member repos, TODO: check repo has issues
 				),
 			)
 		}
@@ -359,13 +371,26 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 	return cond
 }
 
-func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) {
-	sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
-		And("issue_assignees.assignee_id = ?", assigneeID)
+func applyAssigneeCondition(sess *xorm.Session, assigneeID string) {
+	// old logic: 0 is also treated as "not filtering assignee", because the "assignee" was read as FormInt64
+	if assigneeID == "(none)" {
+		sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
+	} else if assigneeID == "(any)" {
+		sess.Where("issue.id IN (SELECT issue_id FROM issue_assignees)")
+	} else if assigneeIDInt64, _ := strconv.ParseInt(assigneeID, 10, 64); assigneeIDInt64 > 0 {
+		sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			And("issue_assignees.assignee_id = ?", assigneeIDInt64)
+	}
 }
 
-func applyPosterCondition(sess *xorm.Session, posterID int64) {
-	sess.And("issue.poster_id=?", posterID)
+func applyPosterCondition(sess *xorm.Session, posterID string) {
+	// Actually every issue has a poster.
+	// The "(none)" is for internal usage only: when doer tries to search non-existing user as poster, use "(none)" to return empty result.
+	if posterID == "(none)" {
+		sess.And("issue.poster_id=0")
+	} else if posterIDInt64, _ := strconv.ParseInt(posterID, 10, 64); posterIDInt64 > 0 {
+		sess.And("issue.poster_id=?", posterIDInt64)
+	}
 }
 
 func applyMentionedCondition(sess *xorm.Session, mentionedID int64) {

@@ -58,7 +58,7 @@
 				{{end}}
 				{{if .ClosedMilestones}}
 					<div class="divider"></div>
-					<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>
+					<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_closed"}}</div>
 					{{range .ClosedMilestones}}
 						<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
 							{{.Name}}

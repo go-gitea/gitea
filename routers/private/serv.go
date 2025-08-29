@@ -25,7 +25,7 @@ import (
 
 // ServNoCommand returns information about the provided keyid
 func ServNoCommand(ctx *context.PrivateContext) {
-	keyID := ctx.PathParamInt64(":keyid")
+	keyID := ctx.PathParamInt64("keyid")
 	if keyID <= 0 {
 		ctx.JSON(http.StatusBadRequest, private.Response{
 			UserMsg: fmt.Sprintf("Bad key id: %d", keyID),
@@ -77,10 +77,11 @@ func ServNoCommand(ctx *context.PrivateContext) {
 
 // ServCommand returns information about the provided keyid
 func ServCommand(ctx *context.PrivateContext) {
-	keyID := ctx.PathParamInt64(":keyid")
-	ownerName := ctx.PathParam(":owner")
-	repoName := ctx.PathParam(":repo")
+	keyID := ctx.PathParamInt64("keyid")
+	ownerName := ctx.PathParam("owner")
+	repoName := ctx.PathParam("repo")
 	mode := perm.AccessMode(ctx.FormInt("mode"))
+	verb := ctx.FormString("verb")
 
 	// Set the basic parts of the results to return
 	results := private.ServCommandResults{
@@ -286,7 +287,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			repo.IsPrivate ||
 			owner.Visibility.IsPrivate() ||
 			(user != nil && user.IsRestricted) || // user will be nil if the key is a deploykey
-			setting.Service.RequireSignInView) {
+			setting.Service.RequireSignInViewStrict) {
 		if key.Type == asymkey_model.KeyTypeDeploy {
 			if deployKey.Mode < mode {
 				ctx.JSON(http.StatusUnauthorized, private.Response{
@@ -295,8 +296,11 @@ func ServCommand(ctx *context.PrivateContext) {
 				return
 			}
 		} else {
-			// Because of the special ref "refs/for" we will need to delay write permission check
-			if git.DefaultFeatures().SupportProcReceive && unitType == unit.TypeCode {
+			// Because of the special ref "refs/for" (AGit) we will need to delay write permission check,
+			// AGit flow needs to write its own ref when the doer has "reader" permission (allowing to create PR).
+			// The real permission check is done in HookPreReceive (routers/private/hook_pre_receive.go).
+			// Here it should relax the permission check for "git push (git-receive-pack)", but not for others like LFS operations.
+			if git.DefaultFeatures().SupportProcReceive && unitType == unit.TypeCode && verb == git.CmdVerbReceivePack {
 				mode = perm.AccessModeRead
 			}
 

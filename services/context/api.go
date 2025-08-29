@@ -5,24 +5,31 @@
 package context
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	web_types "code.gitea.io/gitea/modules/web/types"
 )
 
 // APIContext is a specific context for API service
+// ATTENTION: This struct should never be manually constructed in routes/services,
+// it has many internal details which should be carefully prepared by the framework.
+// If it is abused, it would cause strange bugs like panic/resource-leak.
 type APIContext struct {
 	*Base
 
@@ -104,14 +111,28 @@ type APIRepoArchivedError struct {
 	APIError
 }
 
-// ServerError responds with error message, status is 500
-func (ctx *APIContext) ServerError(title string, err error) {
-	ctx.Error(http.StatusInternalServerError, title, err)
+// APIErrorInternal responds with error message, status is 500
+func (ctx *APIContext) APIErrorInternal(err error) {
+	ctx.apiErrorInternal(1, err)
 }
 
-// Error responds with an error message to client with given obj as the message.
+func (ctx *APIContext) apiErrorInternal(skip int, err error) {
+	log.ErrorWithSkip(skip+1, "InternalServerError: %v", err)
+
+	var message string
+	if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
+		message = err.Error()
+	}
+
+	ctx.JSON(http.StatusInternalServerError, APIError{
+		Message: message,
+		URL:     setting.API.SwaggerURL,
+	})
+}
+
+// APIError responds with an error message to client with given obj as the message.
 // If status is 500, also it prints error to log.
-func (ctx *APIContext) Error(status int, title string, obj any) {
+func (ctx *APIContext) APIError(status int, obj any) {
 	var message string
 	if err, ok := obj.(error); ok {
 		message = err.Error()
@@ -120,7 +141,7 @@ func (ctx *APIContext) Error(status int, title string, obj any) {
 	}
 
 	if status == http.StatusInternalServerError {
-		log.ErrorWithSkip(1, "%s: %s", title, message)
+		log.ErrorWithSkip(1, "APIError: %s", message)
 
 		if setting.IsProd && !(ctx.Doer != nil && ctx.Doer.IsAdmin) {
 			message = ""
@@ -128,22 +149,6 @@ func (ctx *APIContext) Error(status int, title string, obj any) {
 	}
 
 	ctx.JSON(status, APIError{
-		Message: message,
-		URL:     setting.API.SwaggerURL,
-	})
-}
-
-// InternalServerError responds with an error message to the client with the error as a message
-// and the file and line of the caller.
-func (ctx *APIContext) InternalServerError(err error) {
-	log.ErrorWithSkip(1, "InternalServerError: %v", err)
-
-	var message string
-	if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
-		message = err.Error()
-	}
-
-	ctx.JSON(http.StatusInternalServerError, APIError{
 		Message: message,
 		URL:     setting.API.SwaggerURL,
 	})
@@ -166,7 +171,7 @@ func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
 	if paginater.HasNext() {
 		u := *curURL
 		queries := u.Query()
-		queries.Set("page", fmt.Sprintf("%d", paginater.Next()))
+		queries.Set("page", strconv.Itoa(paginater.Next()))
 		u.RawQuery = queries.Encode()
 
 		links = append(links, fmt.Sprintf("<%s%s>; rel=\"next\"", setting.AppURL, u.RequestURI()[1:]))
@@ -174,7 +179,7 @@ func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
 	if !paginater.IsLast() {
 		u := *curURL
 		queries := u.Query()
-		queries.Set("page", fmt.Sprintf("%d", paginater.TotalPages()))
+		queries.Set("page", strconv.Itoa(paginater.TotalPages()))
 		u.RawQuery = queries.Encode()
 
 		links = append(links, fmt.Sprintf("<%s%s>; rel=\"last\"", setting.AppURL, u.RequestURI()[1:]))
@@ -190,7 +195,7 @@ func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
 	if paginater.HasPrevious() {
 		u := *curURL
 		queries := u.Query()
-		queries.Set("page", fmt.Sprintf("%d", paginater.Previous()))
+		queries.Set("page", strconv.Itoa(paginater.Previous()))
 		u.RawQuery = queries.Encode()
 
 		links = append(links, fmt.Sprintf("<%s%s>; rel=\"prev\"", setting.AppURL, u.RequestURI()[1:]))
@@ -208,31 +213,29 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	}
 }
 
-// APIContexter returns apicontext as middleware
+// APIContexter returns APIContext middleware
 func APIContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := NewBaseContext(w, req)
+			base := NewBaseContext(w, req)
 			ctx := &APIContext{
 				Base:  base,
 				Cache: cache.GetCache(),
 				Repo:  &Repository{PullRequest: &PullRequest{}},
 				Org:   &APIOrganization{},
 			}
-			defer baseCleanUp()
 
-			ctx.Base.AppendContextValue(apiContextKey, ctx)
-			ctx.Base.AppendContextValueFunc(gitrepo.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
+			ctx.SetContextValue(apiContextKey, ctx)
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
-			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
+			if ctx.Req.Method == http.MethodPost && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
 				if err := ctx.Req.ParseMultipartForm(setting.Attachment.MaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
-					ctx.InternalServerError(err)
+					ctx.APIErrorInternal(err)
 					return
 				}
 			}
 
-			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
+			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
@@ -240,11 +243,11 @@ func APIContexter() func(http.Handler) http.Handler {
 	}
 }
 
-// NotFound handles 404s for APIContext
+// APIErrorNotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
-func (ctx *APIContext) NotFound(objs ...any) {
-	message := ctx.Locale.TrString("error.not_found")
-	var errors []string
+func (ctx *APIContext) APIErrorNotFound(objs ...any) {
+	var message string
+	var errs []string
 	for _, obj := range objs {
 		// Ignore nil
 		if obj == nil {
@@ -252,46 +255,36 @@ func (ctx *APIContext) NotFound(objs ...any) {
 		}
 
 		if err, ok := obj.(error); ok {
-			errors = append(errors, err.Error())
+			errs = append(errs, err.Error())
 		} else {
 			message = obj.(string)
 		}
 	}
-
 	ctx.JSON(http.StatusNotFound, map[string]any{
-		"message": message,
+		"message": util.IfZero(message, "not found"), // do not use locale in API
 		"url":     setting.API.SwaggerURL,
-		"errors":  errors,
+		"errors":  errs,
 	})
 }
 
 // ReferencesGitRepo injects the GitRepo into the Context
 // you can optional skip the IsEmpty check
-func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context.CancelFunc) {
-	return func(ctx *APIContext) (cancel context.CancelFunc) {
+func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) {
+	return func(ctx *APIContext) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty && !(len(allowEmpty) != 0 && allowEmpty[0]) {
-			return nil
+			return
 		}
 
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
-			gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
+			var err error
+			ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, fmt.Sprintf("Open Repository %v failed", ctx.Repo.Repository.FullName()), err)
-				return cancel
-			}
-			ctx.Repo.GitRepo = gitRepo
-			// We opened it, we should close it
-			return func() {
-				// If it's been set to nil then assume someone else has closed it.
-				if ctx.Repo.GitRepo != nil {
-					_ = ctx.Repo.GitRepo.Close()
-				}
+				ctx.APIErrorInternal(err)
+				return
 			}
 		}
-
-		return cancel
 	}
 }
 
@@ -300,41 +293,33 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx := GetAPIContext(req)
 
+		if ctx.Repo.Repository.IsEmpty {
+			ctx.APIErrorNotFound("repository is empty")
+			return
+		}
+
 		if ctx.Repo.GitRepo == nil {
-			ctx.InternalServerError(fmt.Errorf("no open git repo"))
-			return
+			panic("no GitRepo, forgot to call the middleware?") // it is a programming error
 		}
 
-		// NOTICE: the "ref" here for internal usage only (e.g. woodpecker)
-		refName, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.FormTrim("ref"))
+		refName, refType, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.PathParam("*"), ctx.FormTrim("ref"))
 		var err error
-
-		if ctx.Repo.GitRepo.IsBranchExist(refName) {
+		switch refType {
+		case git.RefTypeBranch:
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
-			if err != nil {
-				ctx.InternalServerError(err)
-				return
-			}
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+		case git.RefTypeTag:
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
-			if err != nil {
-				ctx.InternalServerError(err)
-				return
-			}
-			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if len(refName) == ctx.Repo.GetObjectFormat().FullLength() {
-			ctx.Repo.CommitID = refName
+		case git.RefTypeCommit:
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
-			if err != nil {
-				ctx.NotFound("GetCommit", err)
-				return
-			}
-		} else {
-			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.PathParam("*")))
+		}
+		if ctx.Repo.Commit == nil || errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound("unable to find a git ref")
+			return
+		} else if err != nil {
+			ctx.APIErrorInternal(err)
 			return
 		}
-
+		ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 		next.ServeHTTP(w, req)
 	})
 }
@@ -360,12 +345,12 @@ func (ctx *APIContext) GetErrMsg() string {
 // NotFoundOrServerError use error check function to determine if the error
 // is about not found. It responds with 404 status code for not found error,
 // or error context description for logging purpose of 500 server error.
-func (ctx *APIContext) NotFoundOrServerError(logMsg string, errCheck func(error) bool, logErr error) {
-	if errCheck(logErr) {
+func (ctx *APIContext) NotFoundOrServerError(err error) {
+	if errors.Is(err, util.ErrNotExist) {
 		ctx.JSON(http.StatusNotFound, nil)
 		return
 	}
-	ctx.Error(http.StatusInternalServerError, "NotFoundOrServerError", logMsg)
+	ctx.APIErrorInternal(err)
 }
 
 // IsUserSiteAdmin returns true if current user is a site admin
@@ -378,15 +363,9 @@ func (ctx *APIContext) IsUserRepoAdmin() bool {
 	return ctx.Repo.IsAdmin()
 }
 
-// IsUserRepoWriter returns true if current user has write privilege in current repo
+// IsUserRepoWriter returns true if current user has "write" privilege in current repo
 func (ctx *APIContext) IsUserRepoWriter(unitTypes []unit.Type) bool {
-	for _, unitType := range unitTypes {
-		if ctx.Repo.CanWrite(unitType) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(unitTypes, ctx.Repo.CanWrite)
 }
 
 // IsUserRepoWriter returns true if current user has write commit status privilege in current repo

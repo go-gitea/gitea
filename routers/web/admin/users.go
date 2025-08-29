@@ -11,18 +11,18 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -33,10 +33,10 @@ import (
 )
 
 const (
-	tplUsers    base.TplName = "admin/user/list"
-	tplUserNew  base.TplName = "admin/user/new"
-	tplUserView base.TplName = "admin/user/view"
-	tplUserEdit base.TplName = "admin/user/edit"
+	tplUsers    templates.TplName = "admin/user/list"
+	tplUserNew  templates.TplName = "admin/user/new"
+	tplUserView templates.TplName = "admin/user/view"
+	tplUserEdit templates.TplName = "admin/user/edit"
 )
 
 // UserSearchDefaultAdminSort is the default sort type for admin view
@@ -47,16 +47,12 @@ func Users(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users")
 	ctx.Data["PageIsAdminUsers"] = true
 
-	extraParamStrings := map[string]string{}
 	statusFilterKeys := []string{"is_active", "is_admin", "is_restricted", "is_2fa_enabled", "is_prohibit_login"}
 	statusFilterMap := map[string]string{}
 	for _, filterKey := range statusFilterKeys {
 		paramKey := "status_filter[" + filterKey + "]"
 		paramVal := ctx.FormString(paramKey)
 		statusFilterMap[filterKey] = paramVal
-		if paramVal != "" {
-			extraParamStrings[paramKey] = paramVal
-		}
 	}
 
 	sortType := ctx.FormString("sort")
@@ -69,20 +65,19 @@ func Users(ctx *context.Context) {
 		"SortType":        sortType,
 	}
 
-	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
+	explore.RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor: ctx.Doer,
 		Type:  user_model.UserTypeIndividual,
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 		},
 		SearchByEmail:      true,
-		IsActive:           util.OptionalBoolParse(statusFilterMap["is_active"]),
-		IsAdmin:            util.OptionalBoolParse(statusFilterMap["is_admin"]),
-		IsRestricted:       util.OptionalBoolParse(statusFilterMap["is_restricted"]),
-		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]),
-		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]),
+		IsActive:           optional.ParseBool(statusFilterMap["is_active"]),
+		IsAdmin:            optional.ParseBool(statusFilterMap["is_admin"]),
+		IsRestricted:       optional.ParseBool(statusFilterMap["is_restricted"]),
+		IsTwoFactorEnabled: optional.ParseBool(statusFilterMap["is_2fa_enabled"]),
+		IsProhibitLogin:    optional.ParseBool(statusFilterMap["is_prohibit_login"]),
 		IncludeReserved:    true, // administrator needs to list all accounts include reserved, bot, remote ones
-		ExtraParamStrings:  extraParamStrings,
 	}, tplUsers)
 }
 
@@ -219,7 +214,7 @@ func NewUserPost(ctx *context.Context) {
 }
 
 func prepareUserInfo(ctx *context.Context) *user_model.User {
-	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64(":userid"))
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Redirect(setting.AppSubURL + "/-/admin/users")
@@ -274,7 +269,7 @@ func ViewUser(ctx *context.Context) {
 		return
 	}
 
-	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptionsAll,
 		OwnerID:     u.ID,
 		OrderBy:     db.SearchOrderByAlphabetically,
@@ -298,9 +293,9 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["EmailsTotal"] = len(emails)
 
 	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
-		ListOptions:    db.ListOptionsAll,
-		UserID:         u.ID,
-		IncludePrivate: true,
+		ListOptions:       db.ListOptionsAll,
+		UserID:            u.ID,
+		IncludeVisibility: structs.VisibleTypePrivate,
 	})
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)
@@ -318,6 +313,8 @@ func editUserCommon(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+	ctx.Data["DisableGitHooks"] = setting.DisableGitHooks
+	ctx.Data["DisableImportLocal"] = !setting.ImportLocalPaths
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
 }
@@ -435,7 +432,7 @@ func EditUserPost(ctx *context.Context) {
 		Website:                 optional.Some(form.Website),
 		Location:                optional.Some(form.Location),
 		IsActive:                optional.Some(form.Active),
-		IsAdmin:                 optional.Some(form.Admin),
+		IsAdmin:                 user_service.UpdateOptionFieldFromValue(form.Admin),
 		AllowGitHook:            optional.Some(form.AllowGitHook),
 		AllowImportLocal:        optional.Some(form.AllowImportLocal),
 		MaxRepoCreation:         optional.Some(form.MaxRepoCreation),
@@ -446,7 +443,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if err := user_service.UpdateUser(ctx, u, opts); err != nil {
-		if models.IsErrDeleteLastAdminUser(err) {
+		if user_model.IsErrDeleteLastAdminUser(err) {
 			ctx.RenderWithErr(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
 		} else {
 			ctx.ServerError("UpdateUser", err)
@@ -481,12 +478,12 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
-	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
 }
 
 // DeleteUser response for deleting a user
 func DeleteUser(ctx *context.Context) {
-	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64(":userid"))
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
 		return
@@ -495,24 +492,24 @@ func DeleteUser(ctx *context.Context) {
 	// admin should not delete themself
 	if u.ID == ctx.Doer.ID {
 		ctx.Flash.Error(ctx.Tr("admin.users.cannot_delete_self"))
-		ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
 		return
 	}
 
 	if err = user_service.DeleteUser(ctx, u, ctx.FormBool("purge")); err != nil {
 		switch {
-		case models.IsErrUserOwnRepos(err):
+		case repo_model.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))
-			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
-		case models.IsErrUserHasOrgs(err):
+			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+		case org_model.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_has_org"))
-			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
-		case models.IsErrUserOwnPackages(err):
+			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+		case packages_model.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_packages"))
-			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
-		case models.IsErrDeleteLastAdminUser(err):
+			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+		case user_model.IsErrDeleteLastAdminUser(err):
 			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
-			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam(":userid")))
+			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}

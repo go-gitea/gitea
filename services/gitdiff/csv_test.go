@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -191,24 +190,19 @@ c,d,e`,
 	}
 
 	for n, c := range cases {
-		diff, err := ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.diff), "")
-		if err != nil {
-			t.Errorf("ParsePatch failed: %s", err)
-		}
+		diff, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.diff), "")
+		assert.NoError(t, err)
 
 		var baseReader *csv.Reader
 		if len(c.base) > 0 {
 			baseReader, err = csv_module.CreateReaderAndDetermineDelimiter(nil, strings.NewReader(c.base))
-			if err != nil {
-				t.Errorf("CreateReaderAndDetermineDelimiter failed: %s", err)
-			}
+			assert.NoError(t, err)
 		}
+
 		var headReader *csv.Reader
 		if len(c.head) > 0 {
 			headReader, err = csv_module.CreateReaderAndDetermineDelimiter(nil, strings.NewReader(c.head))
-			if err != nil {
-				t.Errorf("CreateReaderAndDetermineDelimiter failed: %s", err)
-			}
+			assert.NoError(t, err)
 		}
 
 		result, err := CreateCsvDiff(diff.Files[0], baseReader, headReader)

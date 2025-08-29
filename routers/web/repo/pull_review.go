@@ -12,10 +12,10 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	pull_model "code.gitea.io/gitea/models/pull"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
@@ -26,10 +26,10 @@ import (
 )
 
 const (
-	tplDiffConversation     base.TplName = "repo/diff/conversation"
-	tplConversationOutdated base.TplName = "repo/diff/conversation_outdated"
-	tplTimelineConversation base.TplName = "repo/issue/view_content/conversation"
-	tplNewComment           base.TplName = "repo/diff/new_comment"
+	tplDiffConversation     templates.TplName = "repo/diff/conversation"
+	tplConversationOutdated templates.TplName = "repo/diff/conversation_outdated"
+	tplTimelineConversation templates.TplName = "repo/issue/view_content/conversation"
+	tplNewComment           templates.TplName = "repo/diff/new_comment"
 )
 
 // RenderNewCodeCommentForm will render the form for creating a new review comment
@@ -49,7 +49,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	ctx.Data["PageIsPullFiles"] = true
 	ctx.Data["Issue"] = issue
 	ctx.Data["CurrentReview"] = currentReview
-	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(issue.PullRequest.GetGitRefName())
+	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return
@@ -133,7 +133,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("comment's repoID is incorrect", errors.New("comment's repoID is incorrect"))
+		ctx.NotFound(errors.New("comment's repoID is incorrect"))
 		return
 	}
 
@@ -143,12 +143,12 @@ func UpdateResolveConversation(ctx *context.Context) {
 		return
 	}
 	if !permResult {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
 	if !comment.Issue.IsPull {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
@@ -159,7 +159,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 			return
 		}
 	} else {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
@@ -199,7 +199,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.ServerError("comment.Issue.LoadPullRequest", err)
 		return
 	}
-	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(comment.Issue.PullRequest.GetGitRefName())
+	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(comment.Issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return
@@ -209,12 +209,13 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
 
-	if origin == "diff" {
+	switch origin {
+	case "diff":
 		ctx.HTML(http.StatusOK, tplDiffConversation)
-	} else if origin == "timeline" {
+	case "timeline":
 		ctx.HTML(http.StatusOK, tplTimelineConversation)
-	} else {
-		ctx.Error(http.StatusBadRequest, "Unknown origin: "+origin)
+	default:
+		ctx.HTTPError(http.StatusBadRequest, "Unknown origin: "+origin)
 	}
 }
 

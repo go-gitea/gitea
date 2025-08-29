@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/git"
@@ -17,35 +16,34 @@ func DownloadArchive(ctx *context.APIContext) {
 	var tp git.ArchiveType
 	switch ballType := ctx.PathParam("ball_type"); ballType {
 	case "tarball":
-		tp = git.TARGZ
+		tp = git.ArchiveTarGz
 	case "zipball":
-		tp = git.ZIP
+		tp = git.ArchiveZip
 	case "bundle":
-		tp = git.BUNDLE
+		tp = git.ArchiveBundle
 	default:
-		ctx.Error(http.StatusBadRequest, "", fmt.Sprintf("Unknown archive type: %s", ballType))
+		ctx.APIError(http.StatusBadRequest, "Unknown archive type: "+ballType)
 		return
 	}
 
 	if ctx.Repo.GitRepo == nil {
-		gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
+		var err error
+		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
-		ctx.Repo.GitRepo = gitRepo
-		defer gitRepo.Close()
 	}
 
-	r, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"), tp)
+	r, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*")+"."+tp.String())
 	if err != nil {
-		ctx.ServerError("NewRequest", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	archive, err := r.Await(ctx)
 	if err != nil {
-		ctx.ServerError("archive.Await", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

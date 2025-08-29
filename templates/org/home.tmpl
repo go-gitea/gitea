@@ -5,25 +5,47 @@
 	<div class="ui container">
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
-				{{if .ProfileReadme}}
-					<div id="readme_profile" class="markup">{{.ProfileReadme}}</div>
+				{{if .ProfileReadmeContent}}
+					<div id="readme_profile" class="render-content markup" data-profile-view-as-member="{{.IsViewingOrgAsMember}}">{{.ProfileReadmeContent}}</div>
 				{{end}}
-				{{template "shared/repo_search" .}}
-				{{template "explore/repo_list" .}}
+				{{template "shared/repo/search" .}}
+				{{template "shared/repo/list" .}}
 				{{template "base/paginate" .}}
 			</div>
 
 			{{if .ShowMemberAndTeamTab}}
 			<div class="ui five wide column">
 				{{if .CanCreateOrgRepo}}
-					<div class="center aligned tw-mb-4">
-						<a class="ui primary button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{ctx.Locale.Tr "new_repo"}}</a>
+					<div class="tw-flex tw-flex-wrap tw-justify-center tw-gap-x-1 tw-gap-y-2 tw-mb-4">
+						<a class="ui primary button tw-grow" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{ctx.Locale.Tr "new_repo"}}</a>
 						{{if not .DisableNewPullMirrors}}
-							<a class="ui primary button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{ctx.Locale.Tr "new_migrate"}}</a>
+							<a class="ui primary button tw-grow" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{ctx.Locale.Tr "new_migrate"}}</a>
 						{{end}}
 					</div>
 					<div class="divider"></div>
 				{{end}}
+
+				{{if and .ShowMemberAndTeamTab .ShowOrgProfileReadmeSelector}}
+				<div class="tw-my-4">
+					<div id="org-home-view-as-dropdown" class="ui dropdown jump">
+						{{- $viewAsRole := Iif (.IsViewingOrgAsMember) (ctx.Locale.Tr "org.members.member") (ctx.Locale.Tr "settings.visibility.public") -}}
+						<span class="text">{{svg "octicon-eye"}} {{ctx.Locale.Tr "org.view_as_role" $viewAsRole}}</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<a href="?view_as=public" class="item {{if not .IsViewingOrgAsMember}}selected{{end}}">
+								{{svg "octicon-check" 14 (Iif (not .IsViewingOrgAsMember) "" "tw-invisible")}} {{ctx.Locale.Tr "settings.visibility.public"}}
+							</a>
+							<a href="?view_as=member" class="item {{if .IsViewingOrgAsMember}}selected{{end}}">
+								{{svg "octicon-check" 14 (Iif .IsViewingOrgAsMember "" "tw-invisible")}}  {{ctx.Locale.Tr "org.members.member"}}
+							</a>
+						</div>
+					</div>
+					<div class="tw-my-2">
+						{{if .IsViewingOrgAsMember}}{{ctx.Locale.Tr "org.view_as_member_hint"}}{{else}}{{ctx.Locale.Tr "org.view_as_public_hint"}}{{end}}
+					</div>
+				</div>
+				{{end}}
+
 				{{if .NumMembers}}
 					<h4 class="ui top attached header tw-flex">
 						<strong class="tw-flex-1">{{ctx.Locale.Tr "org.members"}}</strong>

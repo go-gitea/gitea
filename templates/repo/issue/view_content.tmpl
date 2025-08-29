@@ -13,8 +13,8 @@
 				</a>
 				{{end}}
 				<div class="content comment-container">
-					<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between" role="heading" aria-level="3">
-						<div class="comment-header-left tw-flex tw-items-center">
+					<div class="comment-header avatar-content-left-arrow" role="heading" aria-level="3">
+						<div class="comment-header-left">
 							{{if .Issue.OriginalAuthor}}
 								<span class="text black tw-font-semibold">
 									{{svg (MigrationIcon .Repository.GetOriginalURLHostname)}}
@@ -36,7 +36,7 @@
 								</span>
 							{{end}}
 						</div>
-						<div class="comment-header-right actions tw-flex tw-items-center">
+						<div class="comment-header-right">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "IgnorePoster" true}}
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
@@ -68,7 +68,7 @@
 			{{template "repo/issue/view_content/comments" .}}
 
 			{{if and .Issue.IsPull (not $.Repository.IsArchived)}}
-				{{template "repo/issue/view_content/pull".}}
+				{{template "repo/issue/view_content/pull_merge_box".}}
 			{{end}}
 
 			{{if .IsSigned}}
@@ -78,12 +78,12 @@
 						{{ctx.AvatarUtils.Avatar .SignedUser 40}}
 					</a>
 					<div class="content">
-						<div class="ui segment">
+						<div class="ui segment avatar-content-left-arrow">
 							<form class="ui form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
 								{{template "repo/issue/comment_tab" .}}
 								{{.CsrfTokenHtml}}
 								<div class="field footer">
-									<div class="text right">
+									<div class="flex-text-block tw-justify-end">
 										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 											{{if .Issue.IsClosed}}
 												<button id="status-button" class="ui primary basic button" data-status="{{ctx.Locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
@@ -139,11 +139,12 @@
 </div>
 
 <template id="issue-comment-editor-template">
-	<div class="ui form comment">
+	<form class="ui form comment">
 		<div class="field">
 			{{template "shared/combomarkdowneditor" (dict
-				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
-				"MarkdownPreviewContext" .RepoLink
+				"CustomInit" true
+				"MarkdownPreviewInRepo" $.Repository
+				"MarkdownPreviewMode" "comment"
 				"TextareaName" "content"
 				"DropzoneParentContainer" ".ui.form"
 			)}}
@@ -156,12 +157,12 @@
 		{{end}}
 
 		<div class="field">
-			<div class="text right edit">
-				<button class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
-				<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
+			<div class="flex-text-block tw-justify-end">
+				<button type="button" class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
 			</div>
 		</div>
-	</div>
+	</form>
 </template>
 
 {{template "repo/issue/view_content/reference_issue_dialog" .}}

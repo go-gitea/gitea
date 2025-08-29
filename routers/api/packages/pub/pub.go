@@ -15,7 +15,6 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	pub_module "code.gitea.io/gitea/modules/packages/pub"
 	"code.gitea.io/gitea/modules/setting"
@@ -29,9 +28,7 @@ func jsonResponse(ctx *context.Context, status int, obj any) {
 	resp := ctx.Resp
 	resp.Header().Set("Content-Type", "application/vnd.pub.v2+json")
 	resp.WriteHeader(status)
-	if err := json.NewEncoder(resp).Encode(obj); err != nil {
-		log.Error("JSON encode: %v", err)
-	}
+	_ = json.NewEncoder(resp).Encode(obj)
 }
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -43,13 +40,12 @@ func apiError(ctx *context.Context, status int, obj any) {
 		Error Error `json:"error"`
 	}
 
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		jsonResponse(ctx, status, ErrorWrapper{
-			Error: Error{
-				Code:    http.StatusText(status),
-				Message: message,
-			},
-		})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	jsonResponse(ctx, status, ErrorWrapper{
+		Error: Error{
+			Code:    http.StatusText(status),
+			Message: message,
+		},
 	})
 }
 
@@ -124,7 +120,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -233,7 +229,7 @@ func FinalizePackage(ctx *context.Context) {
 
 	_, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -258,7 +254,7 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -274,7 +270,7 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pf := pd.Files[0].File
 
-	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf, ctx.Req.Method)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

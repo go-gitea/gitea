@@ -1,15 +1,16 @@
-{{if .Flash}}
 {{template "base/alert" .}}
-{{end}}
 <form class="issue-content ui comment form form-fetch-action" id="new-issue" action="{{.Link}}" method="post">
 	{{.CsrfTokenHtml}}
 	<div class="issue-content-left">
 		<div class="ui comments">
 			<div class="comment">
-				{{ctx.AvatarUtils.Avatar .SignedUser 40}}
-				<div class="ui segment content tw-my-0">
+				<div class=" tw-mr-4 not-mobile">{{ctx.AvatarUtils.Avatar .SignedUser 40}}</div>
+				<div class="ui segment content tw-my-0 avatar-content-left-arrow">
 					<div class="field">
-						<input name="title" class="js-autofocus-end" id="issue_title" placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" required maxlength="255" autocomplete="off">
+						<input name="title" data-global-init="initInputAutoFocusEnd" id="issue_title" required maxlength="255" autocomplete="off"
+								placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}"
+								value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}"
+						>
 						{{if .PageIsComparePull}}
 							<div class="title_wip_desc" data-wip-prefixes="{{JsonUtils.EncodeToString .PullRequestWorkInProgressPrefixes}}">{{ctx.Locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0)}}</div>
 						{{end}}
@@ -32,7 +33,7 @@
 					{{else}}
 						{{template "repo/issue/comment_tab" .}}
 					{{end}}
-					<div class="text right">
+					<div class="flex-text-block tw-justify-end">
 						<button class="ui primary button">
 							{{if .PageIsComparePull}}
 								{{ctx.Locale.Tr "repo.pulls.create"}}
@@ -47,7 +48,8 @@
 	</div>
 
 	<div class="issue-content-right ui segment">
-		{{template "repo/issue/branch_selector_field" $}}
+		{{template "repo/issue/branch_selector_field" $}}{{/* TODO: RemoveIssueRef: template "repo/issue/branch_selector_field" $*/}}
+
 		{{if .PageIsComparePull}}
 			{{template "repo/issue/sidebar/reviewer_list" $.IssuePageMetaData}}
 			<div class="divider"></div>

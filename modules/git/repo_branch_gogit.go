@@ -57,7 +57,7 @@ func (repo *Repository) IsBranchExist(name string) bool {
 
 // GetBranches returns branches from the repository, skipping "skip" initial branches and
 // returning at most "limit" branches, or all branches if "limit" is 0.
-// Branches are returned with sort of `-commiterdate` as the nogogit
+// Branches are returned with sort of `-committerdate` as the nogogit
 // implementation. This requires full fetch, sort and then the
 // skip/limit applies later as gogit returns in undefined order.
 func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {

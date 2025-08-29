@@ -5,6 +5,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -23,7 +24,7 @@ import (
 func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, message string, rebase bool) error {
 	if pr.Flow == issues_model.PullRequestFlowAGit {
 		// TODO: update of agit flow pull request's head branch is unsupported
-		return fmt.Errorf("update of agit flow pull request's head branch is unsupported")
+		return errors.New("update of agit flow pull request's head branch is unsupported")
 	}
 
 	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
@@ -38,14 +39,6 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		return err
 	} else if diffCount.Behind == 0 {
 		return fmt.Errorf("HeadBranch of PR %d is up to date", pr.Index)
-	}
-
-	if rebase {
-		defer func() {
-			go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
-		}()
-
-		return updateHeadByRebaseOnToBase(ctx, pr, doer)
 	}
 
 	if err := pr.LoadBaseRepo(ctx); err != nil {
@@ -65,7 +58,25 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		return fmt.Errorf("unable to load HeadRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
 	}
 
-	// use merge functions but switch repos and branches
+	defer func() {
+		go AddTestPullRequestTask(TestPullRequestOptions{
+			RepoID:      pr.BaseRepo.ID,
+			Doer:        doer,
+			Branch:      pr.BaseBranch,
+			IsSync:      false,
+			IsForcePush: false,
+			OldCommitID: "",
+			NewCommitID: "",
+		})
+	}()
+
+	if rebase {
+		return updateHeadByRebaseOnToBase(ctx, pr, doer)
+	}
+
+	// TODO: FakePR: it is somewhat hacky, but it is the only way to "merge" at the moment
+	// ideally in the future the "merge" functions should be refactored to decouple from the PullRequest
+	// now use a fake reverse PR to switch head&base repos/branches
 	reversePR := &issues_model.PullRequest{
 		ID: pr.ID,
 
@@ -79,11 +90,6 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 	}
 
 	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, "", message, repository.PushTriggerPRUpdateWithBase)
-
-	defer func() {
-		go AddTestPullRequestTask(doer, reversePR.HeadRepo.ID, reversePR.HeadBranch, false, "", "")
-	}()
-
 	return err
 }
 

@@ -11,7 +11,9 @@ import (
 	"regexp"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/context"
 )
@@ -39,7 +41,7 @@ func Verify(buf []byte, fileName, allowedTypesStr string) error {
 	allowedTypesStr = strings.ReplaceAll(allowedTypesStr, "|", ",") // compat for old config format
 
 	allowedTypes := []string{}
-	for _, entry := range strings.Split(allowedTypesStr, ",") {
+	for entry := range strings.SplitSeq(allowedTypesStr, ",") {
 		entry = strings.ToLower(strings.TrimSpace(entry))
 		if entry != "" {
 			allowedTypes = append(allowedTypes, entry)
@@ -87,30 +89,36 @@ func Verify(buf []byte, fileName, allowedTypesStr string) error {
 
 // AddUploadContext renders template values for dropzone
 func AddUploadContext(ctx *context.Context, uploadType string) {
-	if uploadType == "release" {
+	switch uploadType {
+	case "release":
 		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/releases/attachments"
 		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/releases/attachments/remove"
 		ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/releases/attachments"
 		ctx.Data["UploadAccepts"] = strings.ReplaceAll(setting.Repository.Release.AllowedTypes, "|", ",")
 		ctx.Data["UploadMaxFiles"] = setting.Attachment.MaxFiles
 		ctx.Data["UploadMaxSize"] = setting.Attachment.MaxSize
-	} else if uploadType == "comment" {
+	case "comment":
 		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
 		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/issues/attachments/remove"
-		if len(ctx.PathParam(":index")) > 0 {
-			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/" + url.PathEscape(ctx.PathParam(":index")) + "/attachments"
+		if len(ctx.PathParam("index")) > 0 {
+			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/" + url.PathEscape(ctx.PathParam("index")) + "/attachments"
 		} else {
 			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
 		}
 		ctx.Data["UploadAccepts"] = strings.ReplaceAll(setting.Attachment.AllowedTypes, "|", ",")
 		ctx.Data["UploadMaxFiles"] = setting.Attachment.MaxFiles
 		ctx.Data["UploadMaxSize"] = setting.Attachment.MaxSize
-	} else if uploadType == "repo" {
-		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/upload-file"
-		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/upload-remove"
-		ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/upload-file"
-		ctx.Data["UploadAccepts"] = strings.ReplaceAll(setting.Repository.Upload.AllowedTypes, "|", ",")
-		ctx.Data["UploadMaxFiles"] = setting.Repository.Upload.MaxFiles
-		ctx.Data["UploadMaxSize"] = setting.Repository.Upload.FileMaxSize
+	default:
+		setting.PanicInDevOrTesting("Invalid upload type: %s", uploadType)
 	}
+}
+
+func AddUploadContextForRepo(ctx reqctx.RequestContext, repo *repo_model.Repository) {
+	ctxData, repoLink := ctx.GetData(), repo.Link()
+	ctxData["UploadUrl"] = repoLink + "/upload-file"
+	ctxData["UploadRemoveUrl"] = repoLink + "/upload-remove"
+	ctxData["UploadLinkUrl"] = repoLink + "/upload-file"
+	ctxData["UploadAccepts"] = strings.ReplaceAll(setting.Repository.Upload.AllowedTypes, "|", ",")
+	ctxData["UploadMaxFiles"] = setting.Repository.Upload.MaxFiles
+	ctxData["UploadMaxSize"] = setting.Repository.Upload.FileMaxSize
 }

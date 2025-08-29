@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"slices"
 	"strconv"
 	"unicode/utf8"
 
@@ -19,8 +20,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/references"
@@ -112,8 +111,10 @@ const (
 	CommentTypePRScheduledToAutoMerge   // 34 pr was scheduled to auto merge when checks succeed
 	CommentTypePRUnScheduledToAutoMerge // 35 pr was un scheduled to auto merge when checks succeed
 
-	CommentTypePin   // 36 pin Issue
-	CommentTypeUnpin // 37 unpin Issue
+	CommentTypePin   // 36 pin Issue/PullRequest
+	CommentTypeUnpin // 37 unpin Issue/PullRequest
+
+	CommentTypeChangeTimeEstimate // 38 Change time estimate
 )
 
 var commentStrings = []string{
@@ -155,6 +156,7 @@ var commentStrings = []string{
 	"pull_cancel_scheduled_merge",
 	"pin",
 	"unpin",
+	"change_time_estimate",
 }
 
 func (t CommentType) String() string {
@@ -192,6 +194,15 @@ func (t CommentType) HasMailReplySupport() bool {
 		return true
 	}
 	return false
+}
+
+func (t CommentType) CountedAsConversation() bool {
+	return slices.Contains(ConversationCountedCommentType(), t)
+}
+
+// ConversationCountedCommentType returns the comment types that are counted as a conversation
+func ConversationCountedCommentType() []CommentType {
+	return []CommentType{CommentTypeComment, CommentTypeReview}
 }
 
 // RoleInRepo presents the user's participation in the repo
@@ -403,7 +414,7 @@ func (c *Comment) HTMLURL(ctx context.Context) string {
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
-	return c.Issue.HTMLURL() + c.hashLink(ctx)
+	return c.Issue.HTMLURL(ctx) + c.hashLink(ctx)
 }
 
 // Link formats a relative URL-string to the issue-comment
@@ -472,7 +483,7 @@ func (c *Comment) IssueURL(ctx context.Context) string {
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
-	return c.Issue.HTMLURL()
+	return c.Issue.HTMLURL(ctx)
 }
 
 // PRURL formats a URL-string to the pull-request
@@ -492,7 +503,7 @@ func (c *Comment) PRURL(ctx context.Context) string {
 	if !c.Issue.IsPull {
 		return ""
 	}
-	return c.Issue.HTMLURL()
+	return c.Issue.HTMLURL(ctx)
 }
 
 // CommentHashTag returns unique hash tag for comment id.
@@ -589,26 +600,26 @@ func (c *Comment) LoadAttachments(ctx context.Context) error {
 	return nil
 }
 
-// UpdateAttachments update attachments by UUIDs for the comment
-func (c *Comment) UpdateAttachments(ctx context.Context, uuids []string) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
+// UpdateCommentAttachments update attachments by UUIDs for the comment
+func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) error {
+	if len(uuids) == 0 {
+		return nil
 	}
-	defer committer.Close()
-
-	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
-	if err != nil {
-		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
-	}
-	for i := 0; i < len(attachments); i++ {
-		attachments[i].IssueID = c.IssueID
-		attachments[i].CommentID = c.ID
-		if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
-			return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
+		if err != nil {
+			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
-	}
-	return committer.Commit()
+		for i := range attachments {
+			attachments[i].IssueID = c.IssueID
+			attachments[i].CommentID = c.ID
+			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
+				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
+			}
+		}
+		c.Attachments = attachments
+		return nil
+	})
 }
 
 // LoadAssigneeUserAndTeam if comment.Type is CommentTypeAssignees, then load assignees
@@ -704,7 +715,8 @@ func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository
 	return nil
 }
 
-func (c *Comment) loadReview(ctx context.Context) (err error) {
+// LoadReview loads the associated review
+func (c *Comment) LoadReview(ctx context.Context) (err error) {
 	if c.ReviewID == 0 {
 		return nil
 	}
@@ -719,11 +731,6 @@ func (c *Comment) loadReview(ctx context.Context) (err error) {
 	}
 	c.Review.Issue = c.Issue
 	return nil
-}
-
-// LoadReview loads the associated review
-func (c *Comment) LoadReview(ctx context.Context) error {
-	return c.loadReview(ctx)
 }
 
 // DiffSide returns "previous" if Comment.Line is a LOC of the previous changes and "proposed" if it is a LOC of the proposed changes.
@@ -757,130 +764,87 @@ func (c *Comment) CodeCommentLink(ctx context.Context) string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
 }
 
-// LoadPushCommits Load push commits
-func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
-	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullRequestPush {
-		return nil
-	}
-
-	var data PushActionContent
-
-	err = json.Unmarshal([]byte(c.Content), &data)
-	if err != nil {
-		return err
-	}
-
-	c.IsForcePush = data.IsForcePush
-
-	if c.IsForcePush {
-		if len(data.CommitIDs) != 2 {
-			return nil
-		}
-		c.OldCommit = data.CommitIDs[0]
-		c.NewCommit = data.CommitIDs[1]
-	} else {
-		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, c.Issue.Repo)
-		if err != nil {
-			return err
-		}
-		defer closer.Close()
-
-		c.Commits = git_model.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
-		c.CommitsNum = int64(len(c.Commits))
-	}
-
-	return err
-}
-
 // CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-
-	e := db.GetEngine(ctx)
-	var LabelID int64
-	if opts.Label != nil {
-		LabelID = opts.Label.ID
-	}
-
-	var commentMetaData *CommentMetaData
-	if opts.ProjectColumnTitle != "" {
-		commentMetaData = &CommentMetaData{
-			ProjectColumnID:    opts.ProjectColumnID,
-			ProjectColumnTitle: opts.ProjectColumnTitle,
-			ProjectTitle:       opts.ProjectTitle,
+	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
+		var LabelID int64
+		if opts.Label != nil {
+			LabelID = opts.Label.ID
 		}
-	}
 
-	comment := &Comment{
-		Type:             opts.Type,
-		PosterID:         opts.Doer.ID,
-		Poster:           opts.Doer,
-		IssueID:          opts.Issue.ID,
-		LabelID:          LabelID,
-		OldMilestoneID:   opts.OldMilestoneID,
-		MilestoneID:      opts.MilestoneID,
-		OldProjectID:     opts.OldProjectID,
-		ProjectID:        opts.ProjectID,
-		TimeID:           opts.TimeID,
-		RemovedAssignee:  opts.RemovedAssignee,
-		AssigneeID:       opts.AssigneeID,
-		AssigneeTeamID:   opts.AssigneeTeamID,
-		CommitID:         opts.CommitID,
-		CommitSHA:        opts.CommitSHA,
-		Line:             opts.LineNum,
-		Content:          opts.Content,
-		OldTitle:         opts.OldTitle,
-		NewTitle:         opts.NewTitle,
-		OldRef:           opts.OldRef,
-		NewRef:           opts.NewRef,
-		DependentIssueID: opts.DependentIssueID,
-		TreePath:         opts.TreePath,
-		ReviewID:         opts.ReviewID,
-		Patch:            opts.Patch,
-		RefRepoID:        opts.RefRepoID,
-		RefIssueID:       opts.RefIssueID,
-		RefCommentID:     opts.RefCommentID,
-		RefAction:        opts.RefAction,
-		RefIsPull:        opts.RefIsPull,
-		IsForcePush:      opts.IsForcePush,
-		Invalidated:      opts.Invalidated,
-		CommentMetaData:  commentMetaData,
-	}
-	if _, err = e.Insert(comment); err != nil {
-		return nil, err
-	}
+		var commentMetaData *CommentMetaData
+		if opts.ProjectColumnTitle != "" {
+			commentMetaData = &CommentMetaData{
+				ProjectColumnID:    opts.ProjectColumnID,
+				ProjectColumnTitle: opts.ProjectColumnTitle,
+				ProjectTitle:       opts.ProjectTitle,
+			}
+		}
 
-	if err = opts.Repo.LoadOwner(ctx); err != nil {
-		return nil, err
-	}
+		comment := &Comment{
+			Type:             opts.Type,
+			PosterID:         opts.Doer.ID,
+			Poster:           opts.Doer,
+			IssueID:          opts.Issue.ID,
+			LabelID:          LabelID,
+			OldMilestoneID:   opts.OldMilestoneID,
+			MilestoneID:      opts.MilestoneID,
+			OldProjectID:     opts.OldProjectID,
+			ProjectID:        opts.ProjectID,
+			TimeID:           opts.TimeID,
+			RemovedAssignee:  opts.RemovedAssignee,
+			AssigneeID:       opts.AssigneeID,
+			AssigneeTeamID:   opts.AssigneeTeamID,
+			CommitID:         opts.CommitID,
+			CommitSHA:        opts.CommitSHA,
+			Line:             opts.LineNum,
+			Content:          opts.Content,
+			OldTitle:         opts.OldTitle,
+			NewTitle:         opts.NewTitle,
+			OldRef:           opts.OldRef,
+			NewRef:           opts.NewRef,
+			DependentIssueID: opts.DependentIssueID,
+			TreePath:         opts.TreePath,
+			ReviewID:         opts.ReviewID,
+			Patch:            opts.Patch,
+			RefRepoID:        opts.RefRepoID,
+			RefIssueID:       opts.RefIssueID,
+			RefCommentID:     opts.RefCommentID,
+			RefAction:        opts.RefAction,
+			RefIsPull:        opts.RefIsPull,
+			IsForcePush:      opts.IsForcePush,
+			Invalidated:      opts.Invalidated,
+			CommentMetaData:  commentMetaData,
+		}
+		if err = db.Insert(ctx, comment); err != nil {
+			return nil, err
+		}
 
-	if err = updateCommentInfos(ctx, opts, comment); err != nil {
-		return nil, err
-	}
+		if err = opts.Repo.LoadOwner(ctx); err != nil {
+			return nil, err
+		}
 
-	if err = comment.AddCrossReferences(ctx, opts.Doer, false); err != nil {
-		return nil, err
-	}
-	if err = committer.Commit(); err != nil {
-		return nil, err
-	}
-	return comment, nil
+		if err = updateCommentInfos(ctx, opts, comment); err != nil {
+			return nil, err
+		}
+
+		if err = comment.AddCrossReferences(ctx, opts.Doer, false); err != nil {
+			return nil, err
+		}
+		return comment, nil
+	})
 }
 
 func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment *Comment) (err error) {
 	// Check comment type.
 	switch opts.Type {
 	case CommentTypeCode:
-		if err = updateAttachments(ctx, opts, comment); err != nil {
+		if err = UpdateCommentAttachments(ctx, comment, opts.Attachments); err != nil {
 			return err
 		}
 		if comment.ReviewID != 0 {
 			if comment.Review == nil {
-				if err := comment.loadReview(ctx); err != nil {
+				if err := comment.LoadReview(ctx); err != nil {
 					return err
 				}
 			}
@@ -890,12 +854,12 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		fallthrough
 	case CommentTypeComment:
-		if _, err = db.Exec(ctx, "UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
+		if err := UpdateIssueNumComments(ctx, opts.Issue.ID); err != nil {
 			return err
 		}
 		fallthrough
 	case CommentTypeReview:
-		if err = updateAttachments(ctx, opts, comment); err != nil {
+		if err = UpdateCommentAttachments(ctx, comment, opts.Attachments); err != nil {
 			return err
 		}
 	case CommentTypeReopen, CommentTypeClose:
@@ -905,23 +869,6 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 	}
 	// update the issue's updated_unix column
 	return UpdateIssueCols(ctx, opts.Issue, "updated_unix")
-}
-
-func updateAttachments(ctx context.Context, opts *CreateCommentOptions, comment *Comment) error {
-	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
-	if err != nil {
-		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
-	}
-	for i := range attachments {
-		attachments[i].IssueID = opts.Issue.ID
-		attachments[i].CommentID = comment.ID
-		// No assign value could be 0, so ignore AllCols().
-		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
-			return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
-		}
-	}
-	comment.Attachments = attachments
-	return nil
 }
 
 func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
@@ -1137,33 +1084,21 @@ func UpdateCommentInvalidate(ctx context.Context, c *Comment) error {
 
 // UpdateComment updates information of comment.
 func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *user_model.User) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		c.ContentVersion = contentVersion + 1
 
-	c.ContentVersion = contentVersion + 1
-
-	affected, err := sess.ID(c.ID).AllCols().Where("content_version = ?", contentVersion).Update(c)
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return ErrCommentAlreadyChanged
-	}
-	if err := c.LoadIssue(ctx); err != nil {
-		return err
-	}
-	if err := c.AddCrossReferences(ctx, doer, true); err != nil {
-		return err
-	}
-	if err := committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %w", err)
-	}
-
-	return nil
+		affected, err := db.GetEngine(ctx).ID(c.ID).AllCols().Where("content_version = ?", contentVersion).Update(c)
+		if err != nil {
+			return err
+		}
+		if affected == 0 {
+			return ErrCommentAlreadyChanged
+		}
+		if err := c.LoadIssue(ctx); err != nil {
+			return err
+		}
+		return c.AddCrossReferences(ctx, doer, true)
+	})
 }
 
 // DeleteComment deletes the comment
@@ -1179,8 +1114,8 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	if comment.Type == CommentTypeComment {
-		if _, err := e.ID(comment.IssueID).Decr("num_comments").Update(new(Issue)); err != nil {
+	if comment.Type.CountedAsConversation() {
+		if err := UpdateIssueNumComments(ctx, comment.IssueID); err != nil {
 			return err
 		}
 	}
@@ -1297,6 +1232,21 @@ func (c *Comment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
 }
 
+func UpdateIssueNumCommentsBuilder(issueID int64) *builder.Builder {
+	subQuery := builder.Select("COUNT(*)").From("`comment`").Where(
+		builder.Eq{"issue_id": issueID}.And(
+			builder.In("`type`", ConversationCountedCommentType()),
+		))
+
+	return builder.Update(builder.Eq{"num_comments": subQuery}).
+		From("`issue`").Where(builder.Eq{"id": issueID})
+}
+
+func UpdateIssueNumComments(ctx context.Context, issueID int64) error {
+	_, err := db.GetEngine(ctx).Exec(UpdateIssueNumCommentsBuilder(issueID))
+	return err
+}
+
 // InsertIssueComments inserts many comments of issues.
 func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 	if len(comments) == 0 {
@@ -1307,32 +1257,28 @@ func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 		return comment.IssueID, true
 	})
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	for _, comment := range comments {
-		if _, err := db.GetEngine(ctx).NoAutoTime().Insert(comment); err != nil {
-			return err
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, comment := range comments {
+			if _, err := db.GetEngine(ctx).NoAutoTime().Insert(comment); err != nil {
+				return err
+			}
+
+			for _, reaction := range comment.Reactions {
+				reaction.IssueID = comment.IssueID
+				reaction.CommentID = comment.ID
+			}
+			if len(comment.Reactions) > 0 {
+				if err := db.Insert(ctx, comment.Reactions); err != nil {
+					return err
+				}
+			}
 		}
 
-		for _, reaction := range comment.Reactions {
-			reaction.IssueID = comment.IssueID
-			reaction.CommentID = comment.ID
-		}
-		if len(comment.Reactions) > 0 {
-			if err := db.Insert(ctx, comment.Reactions); err != nil {
+		for _, issueID := range issueIDs {
+			if err := UpdateIssueNumComments(ctx, issueID); err != nil {
 				return err
 			}
 		}
-	}
-
-	for _, issueID := range issueIDs {
-		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
-			issueID, CommentTypeComment, issueID); err != nil {
-			return err
-		}
-	}
-	return committer.Commit()
+		return nil
+	})
 }

@@ -14,14 +14,13 @@
 						{{end}}
 					</div>
 				{{end}}
+
 				{{if .Repository.IsBroken}}
-						<div class="ui segment center">
-							{{ctx.Locale.Tr "repo.broken_message"}}
-						</div>
+					<div class="ui segment center">{{ctx.Locale.Tr "repo.broken_message"}}</div>
+				{{else if .RepoHasContentsWithoutBranch}}
+					<div class="ui segment center">{{ctx.Locale.Tr "repo.no_branch"}}</div>
 				{{else if .CanWriteCode}}
-					<h4 class="ui top attached header">
-						{{ctx.Locale.Tr "repo.quick_guide"}}
-					</h4>
+					<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.quick_guide"}}</h4>
 					<div class="ui attached guide table segment empty-repo-guide">
 						<div class="item">
 							<h3>{{ctx.Locale.Tr "repo.clone_this_repo"}} <small>{{ctx.Locale.Tr "repo.clone_helper" "http://git-scm.com/book/en/v2/Git-Basics-Getting-a-Git-Repository"}}</small></h3>
@@ -37,9 +36,7 @@
 									</a>
 									{{end}}
 								{{end}}
-								<div class="clone-panel ui action small input tw-flex-1">
-									{{template "repo/clone_buttons" .}}
-								</div>
+								{{template "repo/clone_buttons" .}}
 							</div>
 						</div>
 
@@ -49,13 +46,14 @@
 							<div class="item">
 								<h3>{{ctx.Locale.Tr "repo.create_new_repo_command"}}</h3>
 								<div class="markup">
+									{{$gitRemoteName := $.SystemConfig.Repository.GitGuideRemoteName.Value ctx}}
 									<pre><code>touch README.md
-git init
+git init{{if ne .Repository.ObjectFormatName "sha1"}} --object-format={{.Repository.ObjectFormatName}}{{end}}{{/* for sha256 repo, it needs to set "object-format" explicitly*/}}
 {{if ne .Repository.DefaultBranch "master"}}git checkout -b {{.Repository.DefaultBranch}}{{end}}
 git add README.md
 git commit -m "first commit"
-git remote add origin <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS}}</span>
-git push -u origin {{.Repository.DefaultBranch}}</code></pre>
+git remote add {{$gitRemoteName}} <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS}}</span>
+git push -u {{$gitRemoteName}} {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
 							<div class="divider"></div>
@@ -63,18 +61,15 @@ git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 							<div class="item">
 								<h3>{{ctx.Locale.Tr "repo.push_exist_repo"}}</h3>
 								<div class="markup">
-									<pre><code>git remote add origin <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS}}</span>
-git push -u origin {{.Repository.DefaultBranch}}</code></pre>
+									<pre><code>git remote add {{$gitRemoteName}} <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS}}</span>
+git push -u {{$gitRemoteName}} {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
 						{{end}}
-					{{else}}
-						<div class="ui segment center">
-							{{ctx.Locale.Tr "repo.empty_message"}}
-						</div>
-					{{end}}
-					{{template "repo/clone_script" .}}
-				</div>
+					</div>
+				{{else}}
+					<div class="ui segment center">{{ctx.Locale.Tr "repo.empty_message"}}</div>
+				{{end}}
 			</div>
 		</div>
 	</div>

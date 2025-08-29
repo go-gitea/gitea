@@ -46,7 +46,7 @@ func (Renderer) Render(ctx *markup.RenderContext, _ io.Reader, output io.Writer)
 		setting.AppSubURL,
 		url.PathEscape(ctx.RenderOptions.Metas["user"]),
 		url.PathEscape(ctx.RenderOptions.Metas["repo"]),
-		ctx.RenderOptions.Metas["BranchNameSubURL"],
+		ctx.RenderOptions.Metas["RefTypeNameSubURL"],
 		url.PathEscape(ctx.RenderOptions.RelativePath),
 	)
 	return ctx.RenderInternal.FormatWithSafeAttrs(output, `<div class="%s" %s="%s"></div>`, playerClassName, playerSrcAttr, rawURL)

@@ -7,6 +7,7 @@ import {
   LinearScale,
   TimeScale,
   type ChartOptions,
+  type ChartData,
 } from 'chart.js';
 import {GET} from '../modules/fetch.ts';
 import {Bar} from 'vue-chartjs';
@@ -15,11 +16,12 @@ import {
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
   type DayData,
+  type DayDataObject,
 } from '../utils/time.ts';
 import {chartJsColors} from '../utils/color.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
-import {onMounted, ref} from 'vue';
+import {onMounted, ref, shallowRef} from 'vue';
 
 const {pageData} = window.config;
 
@@ -41,9 +43,9 @@ defineProps<{
   };
 }>();
 
-const isLoading = ref(false);
-const errorText = ref('');
-const repoLink = ref(pageData.repoLink || []);
+const isLoading = shallowRef(false);
+const errorText = shallowRef('');
+const repoLink = pageData.repoLink;
 const data = ref<DayData[]>([]);
 
 onMounted(() => {
@@ -55,17 +57,17 @@ async function fetchGraphData() {
   try {
     let response: Response;
     do {
-      response = await GET(`${repoLink.value}/activity/recent-commits/data`);
+      response = await GET(`${repoLink}/activity/recent-commits/data`);
       if (response.status === 202) {
         await sleep(1000); // wait for 1 second before retrying
       }
     } while (response.status === 202);
     if (response.ok) {
-      const data = await response.json();
-      const start = Object.values(data)[0].week;
+      const dayDataObj: DayDataObject = await response.json();
+      const start = Object.values(dayDataObj)[0].week;
       const end = firstStartDateAfterDate(new Date());
       const startDays = startDaysBetween(start, end);
-      data.value = fillEmptyStartDaysWithZeroes(startDays, data).slice(-52);
+      data.value = fillEmptyStartDaysWithZeroes(startDays, dayDataObj).slice(-52);
       errorText.value = '';
     } else {
       errorText.value = response.statusText;
@@ -77,10 +79,11 @@ async function fetchGraphData() {
   }
 }
 
-function toGraphData(data) {
+function toGraphData(data: DayData[]): ChartData<'bar'> {
   return {
     datasets: [
       {
+        // @ts-expect-error -- bar chart expects one-dimensional data, but apparently x/y still works
         data: data.map((i) => ({x: i.week, y: i.commits})),
         label: 'Commits',
         backgroundColor: chartJsColors['commits'],
@@ -91,10 +94,9 @@ function toGraphData(data) {
   };
 }
 
-const options = {
+const options: ChartOptions<'bar'> = {
   responsive: true,
   maintainAspectRatio: false,
-  animation: true,
   scales: {
     x: {
       type: 'time',
@@ -126,7 +128,7 @@ const options = {
     <div class="tw-flex ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+          <SvgIcon name="octicon-sync" class="tw-mr-2 circular-spin"/>
           {{ locale.loadingInfo }}
         </div>
         <div v-else class="text red">

@@ -9,9 +9,9 @@ import (
 
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	org_service "code.gitea.io/gitea/services/org"
@@ -19,7 +19,7 @@ import (
 
 const (
 	// tplMembers template for organization members page
-	tplMembers base.TplName = "org/member/members"
+	tplMembers templates.TplName = "org/member/members"
 )
 
 // Members render organization users page
@@ -28,10 +28,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgMembers"] = true
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	opts := &organization.FindOrgMembersOpts{
 		Doer:  ctx.Doer,
@@ -41,7 +38,7 @@ func Members(ctx *context.Context) {
 	if ctx.Doer != nil {
 		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
+			ctx.HTTPError(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
 		opts.IsDoerMember = isMember
@@ -50,13 +47,12 @@ func Members(ctx *context.Context) {
 
 	total, err := organization.CountOrgMembers(ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CountOrgMembers")
+		ctx.HTTPError(http.StatusInternalServerError, "CountOrgMembers")
 		return
 	}
 
-	err = shared_user.RenderOrgHeader(ctx)
-	if err != nil {
-		ctx.ServerError("RenderOrgHeader", err)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 
@@ -90,22 +86,22 @@ func MembersAction(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "private":
 		if ctx.Doer.ID != member.ID && !ctx.Org.IsOwner {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		err = organization.ChangeOrgUserStatus(ctx, org.ID, member.ID, false)
 	case "public":
 		if ctx.Doer.ID != member.ID && !ctx.Org.IsOwner {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		err = organization.ChangeOrgUserStatus(ctx, org.ID, member.ID, true)
 	case "remove":
 		if !ctx.Org.IsOwner {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		err = org_service.RemoveOrgUser(ctx, org, member)
@@ -131,7 +127,7 @@ func MembersAction(ctx *context.Context) {
 	}
 
 	if err != nil {
-		log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
+		log.Error("Action(%s): %v", ctx.PathParam("action"), err)
 		ctx.JSON(http.StatusOK, map[string]any{
 			"ok":  false,
 			"err": err.Error(),
@@ -140,7 +136,7 @@ func MembersAction(ctx *context.Context) {
 	}
 
 	redirect := ctx.Org.OrgLink + "/members"
-	if ctx.PathParam(":action") == "leave" {
+	if ctx.PathParam("action") == "leave" {
 		redirect = setting.AppSubURL + "/"
 	}
 

@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_21 //nolint
+package v1_21
 
 import (
 	"context"
@@ -172,7 +172,7 @@ func getRemoteAddress(ownerName, repoName, remoteName string) (string, error) {
 		return "", fmt.Errorf("get remote %s's address of %s/%s failed: %v", remoteName, ownerName, repoName, err)
 	}
 
-	u, err := giturl.Parse(remoteURL)
+	u, err := giturl.ParseGitURL(remoteURL)
 	if err != nil {
 		return "", err
 	}

@@ -21,10 +21,16 @@ import (
 
 // RenderFile renders a file by repos path
 func RenderFile(ctx *context.Context) {
-	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+	var blob *git.Blob
+	var err error
+	if ctx.Repo.TreePath != "" {
+		blob, err = ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+	} else {
+		blob, err = ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
+	}
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("GetBlobByPath", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetBlobByPath", err)
 		}
@@ -58,7 +64,7 @@ func RenderFile(ctx *context.Context) {
 	}
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-		CurrentRefPath:  ctx.Repo.BranchNameSubURL(),
+		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
 		CurrentTreePath: path.Dir(ctx.Repo.TreePath),
 	}).WithRelativePath(ctx.Repo.TreePath).WithInStandalonePage(true)
 

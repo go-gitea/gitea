@@ -30,11 +30,11 @@ type Features struct {
 	SupportProcReceive     bool           // >= 2.29
 	SupportHashSha256      bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
 	SupportedObjectFormats []ObjectFormat // sha1, sha256
+	SupportCheckAttrOnBare bool           // >= 2.40
 }
 
 var (
-	GitExecutable   = "git"         // the command name of git, will be updated to an absolute path during initialization
-	DefaultContext  context.Context // the default context to run git commands in, must be initialized by git.InitXxx
+	GitExecutable   = "git" // the command name of git, will be updated to an absolute path during initialization
 	defaultFeatures *Features
 )
 
@@ -52,7 +52,7 @@ func DefaultFeatures() *Features {
 		if !setting.IsProd || setting.IsInTesting {
 			log.Warn("git.DefaultFeatures is called before git.InitXxx, initializing with default values")
 		}
-		if err := InitSimple(context.Background()); err != nil {
+		if err := InitSimple(); err != nil {
 			log.Fatal("git.InitSimple failed: %v", err)
 		}
 	}
@@ -60,7 +60,7 @@ func DefaultFeatures() *Features {
 }
 
 func loadGitVersionFeatures() (*Features, error) {
-	stdout, _, runErr := NewCommand(DefaultContext, "version").RunStdString(nil)
+	stdout, _, runErr := NewCommand("version").RunStdString(context.Background(), nil)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -77,6 +77,7 @@ func loadGitVersionFeatures() (*Features, error) {
 	if features.SupportHashSha256 {
 		features.SupportedObjectFormats = append(features.SupportedObjectFormats, Sha256ObjectFormat)
 	}
+	features.SupportCheckAttrOnBare = features.CheckVersionAtLeast("2.40")
 	return features, nil
 }
 
@@ -156,17 +157,14 @@ func HomeDir() string {
 
 // InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
 // This method doesn't change anything to filesystem. At the moment, it is only used by some Gitea sub-commands.
-func InitSimple(ctx context.Context) error {
+func InitSimple() error {
 	if setting.Git.HomePath == "" {
 		return errors.New("unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
 	}
 
-	if DefaultContext != nil && (!setting.IsProd || setting.IsInTesting) {
+	if defaultFeatures != nil && (!setting.IsProd || setting.IsInTesting) {
 		log.Warn("git module has been initialized already, duplicate init may work but it's better to fix it")
 	}
-
-	DefaultContext = ctx
-	globalCommandArgs = nil
 
 	if setting.Git.Timeout.Default > 0 {
 		defaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
@@ -194,27 +192,16 @@ func InitSimple(ctx context.Context) error {
 
 // InitFull initializes git module with version check and change global variables, sync gitconfig.
 // It should only be called once at the beginning of the program initialization (TestMain/GlobalInitInstalled) as this code makes unsynchronized changes to variables.
-func InitFull(ctx context.Context) (err error) {
-	if err = InitSimple(ctx); err != nil {
+func InitFull() (err error) {
+	if err = InitSimple(); err != nil {
 		return err
-	}
-
-	// Since git wire protocol has been released from git v2.18
-	if setting.Git.EnableAutoGitWireProtocol && DefaultFeatures().CheckVersionAtLeast("2.18") {
-		globalCommandArgs = append(globalCommandArgs, "-c", "protocol.version=2")
-	}
-
-	// Explicitly disable credential helper, otherwise Git credentials might leak
-	if DefaultFeatures().CheckVersionAtLeast("2.9") {
-		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
 	}
 
 	if setting.LFS.StartServer {
 		if !DefaultFeatures().CheckVersionAtLeast("2.1.2") {
 			return errors.New("LFS server support requires Git >= 2.1.2")
 		}
-		globalCommandArgs = append(globalCommandArgs, "-c", "filter.lfs.required=", "-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
 	}
 
-	return syncGitConfig()
+	return syncGitConfig(context.Background())
 }

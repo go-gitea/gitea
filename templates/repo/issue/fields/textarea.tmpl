@@ -7,11 +7,12 @@
 
 	{{if $useMarkdownEditor}}
 		{{template "shared/combomarkdowneditor" (dict
+			"CustomInit" true
 			"ContainerClasses" "tw-hidden"
-			"MarkdownPreviewUrl" (print .root.RepoLink "/markup")
-			"MarkdownPreviewContext" .root.RepoLink
+			"MarkdownPreviewInRepo" $.root.Repository
+			"MarkdownPreviewMode" "comment"
 			"TextareaContent" .item.Attributes.value
-			"TextareaPlaceholder"  .item.Attributes.placeholder
+			"TextareaPlaceholder" .item.Attributes.placeholder
 			"DropzoneParentContainer" ".combo-editor-dropzone"
 		)}}
 

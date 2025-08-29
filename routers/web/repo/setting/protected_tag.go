@@ -12,15 +12,17 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
 const (
-	tplTags base.TplName = "repo/settings/tags"
+	tplTags templates.TplName = "repo/settings/tags"
 )
 
 // Tags render the page to protect tags
@@ -155,7 +157,7 @@ func setTagsContext(ctx *context.Context) error {
 	ctx.Data["Users"] = users
 
 	if ctx.Repo.Owner.IsOrganization() {
-		teams, err := organization.OrgFromUser(ctx.Repo.Owner).TeamsWithAccessToRepo(ctx, ctx.Repo.Repository.ID, perm.AccessModeRead)
+		teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, ctx.Repo.Owner.ID, ctx.Repo.Repository.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 		if err != nil {
 			ctx.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return err
@@ -169,7 +171,7 @@ func setTagsContext(ctx *context.Context) error {
 func selectProtectedTagByContext(ctx *context.Context) *git_model.ProtectedTag {
 	id := ctx.FormInt64("id")
 	if id == 0 {
-		id = ctx.PathParamInt64(":id")
+		id = ctx.PathParamInt64("id")
 	}
 
 	tag, err := git_model.GetProtectedTagByID(ctx, id)
@@ -182,7 +184,7 @@ func selectProtectedTagByContext(ctx *context.Context) *git_model.ProtectedTag {
 		return tag
 	}
 
-	ctx.NotFound("", fmt.Errorf("ProtectedTag[%v] not associated to repository %v", id, ctx.Repo.Repository))
+	ctx.NotFound(fmt.Errorf("ProtectedTag[%v] not associated to repository %v", id, ctx.Repo.Repository))
 
 	return nil
 }

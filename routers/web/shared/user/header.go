@@ -20,22 +20,12 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
-// prepareContextForCommonProfile store some common data into context data for user's profile related pages (including the nav menu)
-// It is designed to be fast and safe to be called multiple times in one request
-func prepareContextForCommonProfile(ctx *context.Context) {
-	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
-	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
-}
-
-// PrepareContextForProfileBigAvatar set the context for big avatar view on the profile page
-func PrepareContextForProfileBigAvatar(ctx *context.Context) {
-	prepareContextForCommonProfile(ctx)
-
+// prepareContextForProfileBigAvatar set the context for big avatar view on the profile page
+func prepareContextForProfileBigAvatar(ctx *context.Context) {
 	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
 	if setting.Service.UserLocationMapURL != "" {
@@ -57,14 +47,22 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = content
 	}
 
-	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{
-		UserID:         ctx.ContextUser.ID,
-		IncludePrivate: showPrivate,
+		UserID:            ctx.ContextUser.ID,
+		IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, ctx.ContextUser),
+		ListOptions: db.ListOptions{
+			Page: 1,
+			// query one more result (without a separate counting) to see whether we need to add the "show more orgs" link
+			PageSize: setting.UI.User.OrgPagingNum + 1,
+		},
 	})
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)
 		return
+	}
+	if len(orgs) > setting.UI.User.OrgPagingNum {
+		orgs = orgs[:setting.UI.User.OrgPagingNum]
+		ctx.Data["ShowMoreOrgs"] = true
 	}
 	ctx.Data["Orgs"] = orgs
 	ctx.Data["HasOrgsVisible"] = organization.HasOrgsVisible(ctx, orgs, ctx.Doer)
@@ -93,43 +91,80 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 }
 
-func FindUserProfileReadme(ctx *context.Context, doer *user_model.User) (profileDbRepo *repo_model.Repository, profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
-	profileDbRepo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, ".profile")
-	if err == nil {
-		perm, err := access_model.GetUserRepoPermission(ctx, profileDbRepo, doer)
-		if err == nil && !profileDbRepo.IsEmpty && perm.CanRead(unit.TypeCode) {
-			if profileGitRepo, err = gitrepo.OpenRepository(ctx, profileDbRepo); err != nil {
-				log.Error("FindUserProfileReadme failed to OpenRepository: %v", err)
-			} else {
-				if commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch); err != nil {
-					log.Error("FindUserProfileReadme failed to GetBranchCommit: %v", err)
-				} else {
-					profileReadmeBlob, _ = commit.GetBlobByPath("README.md")
-				}
-			}
+func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProfileRepoName ...string) (profileDbRepo *repo_model.Repository, profileReadmeBlob *git.Blob) {
+	profileRepoName := util.OptionalArg(optProfileRepoName, RepoNameProfile)
+	profileDbRepo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, profileRepoName)
+	if err != nil {
+		if !repo_model.IsErrRepoNotExist(err) {
+			log.Error("FindOwnerProfileReadme failed to GetRepositoryByName: %v", err)
 		}
-	} else if !repo_model.IsErrRepoNotExist(err) {
-		log.Error("FindUserProfileReadme failed to GetRepositoryByName: %v", err)
+		return nil, nil
 	}
-	return profileDbRepo, profileGitRepo, profileReadmeBlob, func() {
-		if profileGitRepo != nil {
-			_ = profileGitRepo.Close()
-		}
+
+	perm, err := access_model.GetUserRepoPermission(ctx, profileDbRepo, doer)
+	if err != nil {
+		log.Error("FindOwnerProfileReadme failed to GetRepositoryByName: %v", err)
+		return nil, nil
 	}
+	if profileDbRepo.IsEmpty || !perm.CanRead(unit.TypeCode) {
+		return nil, nil
+	}
+
+	profileGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, profileDbRepo)
+	if err != nil {
+		log.Error("FindOwnerProfileReadme failed to OpenRepository: %v", err)
+		return nil, nil
+	}
+
+	commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch)
+	if err != nil {
+		log.Error("FindOwnerProfileReadme failed to GetBranchCommit: %v", err)
+		return nil, nil
+	}
+
+	profileReadmeBlob, _ = commit.GetBlobByPath("README.md") // no need to handle this error
+	return profileDbRepo, profileReadmeBlob
 }
 
-func RenderUserHeader(ctx *context.Context) {
-	prepareContextForCommonProfile(ctx)
-
-	_, _, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx, ctx.Doer)
-	defer profileClose()
-	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
+type PrepareOwnerHeaderResult struct {
+	ProfilePublicRepo        *repo_model.Repository
+	ProfilePublicReadmeBlob  *git.Blob
+	ProfilePrivateRepo       *repo_model.Repository
+	ProfilePrivateReadmeBlob *git.Blob
+	HasOrgProfileReadme      bool
 }
 
-func LoadHeaderCount(ctx *context.Context) error {
-	prepareContextForCommonProfile(ctx)
+const (
+	RepoNameProfilePrivate = ".profile-private"
+	RepoNameProfile        = ".profile"
+)
 
-	repoCount, err := repo_model.CountRepository(ctx, &repo_model.SearchRepoOptions{
+func RenderUserOrgHeader(ctx *context.Context) (result *PrepareOwnerHeaderResult, err error) {
+	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
+	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
+
+	if err := loadHeaderCount(ctx); err != nil {
+		return nil, err
+	}
+
+	result = &PrepareOwnerHeaderResult{}
+	if ctx.ContextUser.IsOrganization() {
+		result.ProfilePublicRepo, result.ProfilePublicReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer)
+		result.ProfilePrivateRepo, result.ProfilePrivateReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer, RepoNameProfilePrivate)
+		result.HasOrgProfileReadme = result.ProfilePublicReadmeBlob != nil || result.ProfilePrivateReadmeBlob != nil
+		ctx.Data["HasOrgProfileReadme"] = result.HasOrgProfileReadme // many pages need it to show the "overview" tab
+	} else {
+		_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
+		ctx.Data["HasUserProfileReadme"] = profileReadmeBlob != nil
+		prepareContextForProfileBigAvatar(ctx)
+	}
+	return result, nil
+}
+
+func loadHeaderCount(ctx *context.Context) error {
+	repoCount, err := repo_model.CountRepository(ctx, repo_model.SearchRepoOptions{
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.ContextUser.ID,
 		Private:            ctx.IsSigned,
@@ -156,18 +191,6 @@ func LoadHeaderCount(ctx *context.Context) error {
 		return err
 	}
 	ctx.Data["ProjectCount"] = projectCount
-
-	return nil
-}
-
-func RenderOrgHeader(ctx *context.Context) error {
-	if err := LoadHeaderCount(ctx); err != nil {
-		return err
-	}
-
-	_, _, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx, ctx.Doer)
-	defer profileClose()
-	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
 
 	return nil
 }

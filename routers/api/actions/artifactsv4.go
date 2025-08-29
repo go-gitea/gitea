@@ -25,7 +25,7 @@ package actions
 // 1.3. Continue Upload Zip Content to Blobstorage (unauthenticated request), repeat until everything is uploaded
 // PUT: http://localhost:3000/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact?sig=mO7y35r4GyjN7fwg0DTv3-Fv1NDXD84KLEgLpoPOtDI=&expires=2024-01-23+21%3A48%3A37.20833956+%2B0100+CET&artifactName=test&taskID=75&comp=appendBlock
 // 1.4. BlockList xml payload to Blobstorage (unauthenticated request)
-// Files of about 800MB are parallel in parallel and / or out of order, this file is needed to enshure the correct order
+// Files of about 800MB are parallel in parallel and / or out of order, this file is needed to ensure the correct order
 // PUT: http://localhost:3000/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact?sig=mO7y35r4GyjN7fwg0DTv3-Fv1NDXD84KLEgLpoPOtDI=&expires=2024-01-23+21%3A48%3A37.20833956+%2B0100+CET&artifactName=test&taskID=75&comp=blockList
 // Request
 // <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -126,12 +126,9 @@ type artifactV4Routes struct {
 func ArtifactV4Contexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := context.NewBaseContext(resp, req)
-			defer baseCleanUp()
-
+			base := context.NewBaseContext(resp, req)
 			ctx := &ArtifactContext{Base: base}
-			ctx.AppendContextValue(artifactContextKey, ctx)
-
+			ctx.SetContextValue(artifactContextKey, ctx)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
@@ -165,15 +162,15 @@ func (r artifactV4Routes) buildSignature(endp, expires, artifactName string, tas
 	mac.Write([]byte(endp))
 	mac.Write([]byte(expires))
 	mac.Write([]byte(artifactName))
-	mac.Write([]byte(fmt.Sprint(taskID)))
-	mac.Write([]byte(fmt.Sprint(artifactID)))
+	fmt.Fprint(mac, taskID)
+	fmt.Fprint(mac, artifactID)
 	return mac.Sum(nil)
 }
 
 func (r artifactV4Routes) buildArtifactURL(ctx *ArtifactContext, endp, artifactName string, taskID, artifactID int64) string {
 	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
 	uploadURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") + strings.TrimSuffix(r.prefix, "/") +
-		"/" + endp + "?sig=" + base64.URLEncoding.EncodeToString(r.buildSignature(endp, expires, artifactName, taskID, artifactID)) + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + fmt.Sprint(taskID) + "&artifactID=" + fmt.Sprint(artifactID)
+		"/" + endp + "?sig=" + base64.URLEncoding.EncodeToString(r.buildSignature(endp, expires, artifactName, taskID, artifactID)) + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + strconv.FormatInt(taskID, 10) + "&artifactID=" + strconv.FormatInt(artifactID, 10)
 	return uploadURL
 }
 
@@ -190,29 +187,29 @@ func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*a
 	expecedsig := r.buildSignature(endp, expires, artifactName, taskID, artifactID)
 	if !hmac.Equal(dsig, expecedsig) {
 		log.Error("Error unauthorized")
-		ctx.Error(http.StatusUnauthorized, "Error unauthorized")
+		ctx.HTTPError(http.StatusUnauthorized, "Error unauthorized")
 		return nil, "", false
 	}
 	t, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", expires)
 	if err != nil || t.Before(time.Now()) {
 		log.Error("Error link expired")
-		ctx.Error(http.StatusUnauthorized, "Error link expired")
+		ctx.HTTPError(http.StatusUnauthorized, "Error link expired")
 		return nil, "", false
 	}
 	task, err := actions.GetTaskByID(ctx, taskID)
 	if err != nil {
 		log.Error("Error runner api getting task by ID: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error runner api getting task by ID")
+		ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task by ID")
 		return nil, "", false
 	}
 	if task.Status != actions.StatusRunning {
 		log.Error("Error runner api getting task: task is not running")
-		ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+		ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task: task is not running")
 		return nil, "", false
 	}
 	if err := task.LoadJob(ctx); err != nil {
 		log.Error("Error runner api getting job: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error runner api getting job")
+		ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting job")
 		return nil, "", false
 	}
 	return task, artifactName, true
@@ -233,13 +230,13 @@ func (r *artifactV4Routes) parseProtbufBody(ctx *ArtifactContext, req protorefle
 	body, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
 		log.Error("Error decode request body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+		ctx.HTTPError(http.StatusInternalServerError, "Error decode request body")
 		return false
 	}
 	err = protojson.Unmarshal(body, req)
 	if err != nil {
 		log.Error("Error decode request body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+		ctx.HTTPError(http.StatusInternalServerError, "Error decode request body")
 		return false
 	}
 	return true
@@ -249,7 +246,7 @@ func (r *artifactV4Routes) sendProtbufBody(ctx *ArtifactContext, req protoreflec
 	resp, err := protojson.Marshal(req)
 	if err != nil {
 		log.Error("Error encode response body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error encode response body")
+		ctx.HTTPError(http.StatusInternalServerError, "Error encode response body")
 		return
 	}
 	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
@@ -278,7 +275,7 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 	artifact, err := actions.CreateArtifact(ctx, ctx.ActionTask, artifactName, artifactName+".zip", rententionDays)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error create or get artifact")
+		ctx.HTTPError(http.StatusInternalServerError, "Error create or get artifact")
 		return
 	}
 	artifact.ContentEncoding = ArtifactV4ContentEncoding
@@ -286,7 +283,7 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 	artifact.FileCompressedSize = 0
 	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 		log.Error("Error UpdateArtifactByID: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error UpdateArtifactByID")
+		ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
 		return
 	}
 
@@ -312,28 +309,28 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 			artifact, err := r.getArtifactByName(ctx, task.Job.RunID, artifactName)
 			if err != nil {
 				log.Error("Error artifact not found: %v", err)
-				ctx.Error(http.StatusNotFound, "Error artifact not found")
+				ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 				return
 			}
 
 			_, err = appendUploadChunk(r.fs, ctx, artifact, artifact.FileSize, ctx.Req.ContentLength, artifact.RunID)
 			if err != nil {
 				log.Error("Error runner api getting task: task is not running")
-				ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+				ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task: task is not running")
 				return
 			}
 			artifact.FileCompressedSize += ctx.Req.ContentLength
 			artifact.FileSize += ctx.Req.ContentLength
 			if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 				log.Error("Error UpdateArtifactByID: %v", err)
-				ctx.Error(http.StatusInternalServerError, "Error UpdateArtifactByID")
+				ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
 				return
 			}
 		} else {
 			_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/block-%d-%d-%s", task.Job.RunID, task.Job.RunID, ctx.Req.ContentLength, base64.URLEncoding.EncodeToString([]byte(blockid))), ctx.Req.Body, -1)
 			if err != nil {
 				log.Error("Error runner api getting task: task is not running")
-				ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+				ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task: task is not running")
 				return
 			}
 		}
@@ -344,7 +341,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 		_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/%d-%d-blocklist", task.Job.RunID, task.Job.RunID, artifactID), ctx.Req.Body, -1)
 		if err != nil {
 			log.Error("Error runner api getting task: task is not running")
-			ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+			ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task: task is not running")
 			return
 		}
 		ctx.JSON(http.StatusCreated, "created")
@@ -392,7 +389,7 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 	artifact, err := r.getArtifactByName(ctx, runID, req.Name)
 	if err != nil {
 		log.Error("Error artifact not found: %v", err)
-		ctx.Error(http.StatusNotFound, "Error artifact not found")
+		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
 
@@ -403,20 +400,20 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 		chunkMap, err := listChunksByRunID(r.fs, runID)
 		if err != nil {
 			log.Error("Error merge chunks: %v", err)
-			ctx.Error(http.StatusInternalServerError, "Error merge chunks")
+			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
 			return
 		}
 		chunks, ok = chunkMap[artifact.ID]
 		if !ok {
 			log.Error("Error merge chunks")
-			ctx.Error(http.StatusInternalServerError, "Error merge chunks")
+			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
 			return
 		}
 	} else {
 		chunks, err = listChunksByRunIDV4(r.fs, runID, artifact.ID, blockList)
 		if err != nil {
 			log.Error("Error merge chunks: %v", err)
-			ctx.Error(http.StatusInternalServerError, "Error merge chunks")
+			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
 			return
 		}
 		artifact.FileSize = chunks[len(chunks)-1].End + 1
@@ -429,7 +426,7 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 	}
 	if err := mergeChunksForArtifact(ctx, chunks, r.fs, artifact, checksum); err != nil {
 		log.Error("Error merge chunks: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error merge chunks")
+		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
 		return
 	}
 
@@ -451,15 +448,13 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{RunID: runID})
+	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
+		RunID:  runID,
+		Status: int(actions.ArtifactStatusUploadConfirmed),
+	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
-	if len(artifacts) == 0 {
-		log.Debug("[artifact] handleListArtifacts, no artifacts")
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -510,14 +505,19 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 	artifact, err := r.getArtifactByName(ctx, runID, artifactName)
 	if err != nil {
 		log.Error("Error artifact not found: %v", err)
-		ctx.Error(http.StatusNotFound, "Error artifact not found")
+		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
+		return
+	}
+	if artifact.Status != actions.ArtifactStatusUploadConfirmed {
+		log.Error("Error artifact not found: %s", artifact.Status.ToString())
+		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
 
 	respData := GetSignedArtifactURLResponse{}
 
 	if setting.Actions.ArtifactStorage.ServeDirect() {
-		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath, nil)
+		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath, ctx.Req.Method, nil)
 		if u != nil && err == nil {
 			respData.SignedUrl = u.String()
 		}
@@ -538,7 +538,12 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 	artifact, err := r.getArtifactByName(ctx, task.Job.RunID, artifactName)
 	if err != nil {
 		log.Error("Error artifact not found: %v", err)
-		ctx.Error(http.StatusNotFound, "Error artifact not found")
+		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
+		return
+	}
+	if artifact.Status != actions.ArtifactStatusUploadConfirmed {
+		log.Error("Error artifact not found: %s", artifact.Status.ToString())
+		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
 
@@ -562,14 +567,14 @@ func (r *artifactV4Routes) deleteArtifact(ctx *ArtifactContext) {
 	artifact, err := r.getArtifactByName(ctx, runID, req.Name)
 	if err != nil {
 		log.Error("Error artifact not found: %v", err)
-		ctx.Error(http.StatusNotFound, "Error artifact not found")
+		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
 
 	err = actions.SetArtifactNeedDelete(ctx, runID, req.Name)
 	if err != nil {
 		log.Error("Error deleting artifacts: %v", err)
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return
 	}
 

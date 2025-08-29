@@ -1,6 +1,6 @@
 import {querySingleVisibleElem} from '../../utils/dom.ts';
 
-export function handleGlobalEnterQuickSubmit(target) {
+export function handleGlobalEnterQuickSubmit(target: HTMLElement) {
   let form = target.closest('form');
   if (form) {
     if (!form.checkValidity()) {
