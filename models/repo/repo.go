@@ -312,6 +312,21 @@ func (repo *Repository) IsBroken() bool {
 	return repo.Status == RepositoryBroken
 }
 
+// IsEffectivelyArchived indicates that repository is archived either directly or through its parent organization
+func (repo *Repository) IsEffectivelyArchived(ctx context.Context) bool {
+	if repo.IsArchived {
+		return true
+	}
+
+	// Check if parent organization is archived (if repository belongs to an organization)
+	if repo.Owner != nil && repo.Owner.IsOrganization() {
+		archived, _ := user_model.GetSetting(ctx, repo.Owner.ID, "org_archived")
+		return archived == "true"
+	}
+
+	return false
+}
+
 // MarkAsBrokenEmpty marks the repo as broken and empty
 // FIXME: the status "broken" and "is_empty" were abused,
 // The code always set them together, no way to distinguish whether a repo is really "empty" or "broken"

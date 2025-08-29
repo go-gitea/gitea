@@ -83,7 +83,7 @@ func (r *Repository) GetObjectFormat() git.ObjectFormat {
 // RepoMustNotBeArchived checks if a repo is archived
 func RepoMustNotBeArchived() func(ctx *Context) {
 	return func(ctx *Context) {
-		if ctx.Repo.Repository.IsArchived {
+		if ctx.Repo.Repository.IsEffectivelyArchived(ctx) {
 			ctx.NotFound(errors.New(ctx.Locale.TrString("repo.archive.title")))
 		}
 	}
@@ -410,6 +410,14 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Repo.Repository = repo
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
+
+	// Check if repository is effectively archived (either directly or through its organization)
+	isEffectivelyArchived := repo.IsEffectivelyArchived(ctx)
+	ctx.Data["IsArchived"] = isEffectivelyArchived
+
+	// Override the repository's IsArchived field to reflect the effective archive status
+	// This ensures templates using .Repository.IsArchived will get the correct value
+	ctx.Repo.Repository.IsArchived = isEffectivelyArchived
 }
 
 // RepoAssignment returns a middleware to handle repository assignment

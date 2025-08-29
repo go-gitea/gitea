@@ -386,6 +386,25 @@ func Edit(ctx *context.APIContext) {
 		}
 	}
 
+	// Handle archived field - only allow org owners to modify
+	if form.Archived != nil {
+		// Check if user is owner of the organization
+		isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !isOwner && !ctx.Doer.IsAdmin {
+			ctx.APIError(http.StatusForbidden, "only organization owners and site admins can archive/unarchive organizations")
+			return
+		}
+
+		if err := ctx.Org.Organization.SetArchived(ctx, *form.Archived); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
 	opts := &user_service.UpdateOptions{
 		FullName:                  optional.Some(form.FullName),
 		Description:               optional.Some(form.Description),
