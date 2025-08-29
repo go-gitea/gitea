@@ -5,6 +5,7 @@ package meilisearch
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -106,7 +107,8 @@ func (b *Indexer) Index(_ context.Context, issues ...*internal.IndexerData) erro
 		return nil
 	}
 	for _, issue := range issues {
-		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).AddDocuments(issue)
+		// use default primary key which should be "id"
+		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).AddDocuments(issue, nil)
 		if err != nil {
 			return err
 		}
@@ -299,18 +301,13 @@ func doubleQuoteKeyword(k string) string {
 func convertHits(searchRes *meilisearch.SearchResponse) ([]internal.Match, error) {
 	hits := make([]internal.Match, 0, len(searchRes.Hits))
 	for _, hit := range searchRes.Hits {
-		hit, ok := hit.(map[string]any)
-		if !ok {
-			return nil, ErrMalformedResponse
-		}
-
-		issueID, ok := hit["id"].(float64)
-		if !ok {
+		var issueID int64
+		if err := json.Unmarshal(hit["id"], &issueID); err != nil {
 			return nil, ErrMalformedResponse
 		}
 
 		hits = append(hits, internal.Match{
-			ID: int64(issueID),
+			ID: issueID,
 		})
 	}
 	return hits, nil

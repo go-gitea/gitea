@@ -65,7 +65,7 @@ require (
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v5 v5.3.0
-	github.com/google/go-github/v71 v71.0.0
+	github.com/google/go-github/v74 v74.0.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6
 	github.com/google/uuid v1.6.0
@@ -278,6 +278,8 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace github.com/jaytaylor/html2text => github.com/Necoro/html2text v0.0.0-20250804200300-7bf1ce1c7347
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 
