@@ -99,11 +99,17 @@ func CreateBranchFromIssue(ctx *context.Context) {
 		return
 	}
 
+	branch, err := git_model.GetBranch(ctx, repo.ID, form.NewBranchName)
+	if err != nil {
+		ctx.ServerError("GetBranch", err)
+		return
+	}
+
 	if err := issues_model.CreateIssueDevLink(ctx, &issues_model.IssueDevLink{
 		IssueID:      issue.ID,
 		LinkType:     issues_model.IssueDevLinkTypeBranch,
 		LinkedRepoID: repo.ID,
-		LinkIndex:    form.NewBranchName,
+		LinkID:       branch.ID,
 	}); err != nil {
 		ctx.ServerError("CreateIssueDevLink", err)
 		return

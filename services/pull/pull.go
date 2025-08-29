@@ -11,7 +11,6 @@ import (
 	"io"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -152,7 +151,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 					IssueID:      link.IssueID,
 					LinkType:     issues_model.IssueDevLinkTypePullRequest,
 					LinkedRepoID: pr.HeadRepoID,
-					LinkIndex:    strconv.FormatInt(pr.ID, 10),
+					LinkID:       pr.ID,
 				}); err != nil {
 					return err
 				}

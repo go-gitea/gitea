@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strconv"
 
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -49,11 +48,7 @@ func FindIssueDevLinksByIssue(ctx context.Context, issue *issues_model.Issue) (i
 
 		switch link.LinkType {
 		case issues_model.IssueDevLinkTypePullRequest:
-			pullID, err := strconv.ParseInt(link.LinkIndex, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-			pull, err := issues_model.GetPullRequestByID(ctx, pullID)
+			pull, err := issues_model.GetPullRequestByID(ctx, link.LinkID)
 			if err != nil {
 				return nil, err
 			}
@@ -64,15 +59,15 @@ func FindIssueDevLinksByIssue(ctx context.Context, issue *issues_model.Issue) (i
 			}
 			pull.Issue.Repo = issue.Repo
 			link.PullRequest = pull
-			branchPRExists.Add(fmt.Sprintf("%d-%s", link.LinkedRepoID, pull.HeadBranch))
+			branchPRExists.Add(fmt.Sprintf("%d-%d-%s", link.LinkedRepoID, link.LinkType, pull.HeadBranch))
 		case issues_model.IssueDevLinkTypeBranch:
-			branch, err := git_model.GetBranch(ctx, link.LinkedRepoID, link.LinkIndex)
+			branch, err := git_model.GetBranchByID(ctx, link.LinkID)
 			if err != nil {
 				return nil, err
 			}
 			link.Branch = branch
 			link.Branch.Repo = link.LinkedRepo
-			link.DisplayBranch = !branchPRExists.Contains(fmt.Sprintf("%d-%s", link.LinkedRepoID, link.LinkIndex))
+			link.DisplayBranch = !branchPRExists.Contains(fmt.Sprintf("%d-%d-%d", link.LinkedRepoID, link.LinkType, link.LinkID))
 		}
 	}
 

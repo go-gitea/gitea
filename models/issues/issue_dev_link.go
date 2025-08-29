@@ -25,7 +25,7 @@ type IssueDevLink struct {
 	IssueID       int64 `xorm:"INDEX"`
 	LinkType      IssueDevLinkType
 	LinkedRepoID  int64                  `xorm:"INDEX"` // it can link to self repo or other repo
-	LinkIndex     string                 // branch name, pull request number or commit sha
+	LinkID        int64                  // branch id in branch table or pull request id
 	CreatedUnix   timeutil.TimeStamp     `xorm:"INDEX created"`
 	Repo          *repo_model.Repository `xorm:"-"` // current repo of issue
 	LinkedRepo    *repo_model.Repository `xorm:"-"`

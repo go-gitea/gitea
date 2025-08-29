@@ -156,6 +156,19 @@ func init() {
 	db.RegisterModel(new(RenamedBranch))
 }
 
+func GetBranchByID(ctx context.Context, branchID int64) (*Branch, error) {
+	var branch Branch
+	has, err := db.GetEngine(ctx).ID(branchID).Get(&branch)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrBranchNotExist{
+			RepoID: branch.RepoID,
+		}
+	}
+	return &branch, nil
+}
+
 func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
 	var branch Branch
 	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).Get(&branch)
