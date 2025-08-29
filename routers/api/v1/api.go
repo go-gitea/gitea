@@ -473,13 +473,14 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 // statuses, or write to a repo, or be a site admin
 func reqRepoCommitStatusWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		// TODO
+		// TODO(not7cd)
 		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(http.StatusForbidden, "reqRepoCommitStatusWriter", "user should have a permission to write to a repo")
+			ctx.APIError(http.StatusForbidden, "user should have a permission to write to a repo")
 			return
 		}
 	}
 }
+
 
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
@@ -495,9 +496,9 @@ func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 // repo read permission, or be a repo admin or a site admin
 func reqRepoCommitStatusReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		// TODO
-		if !ctx.Repo.CanRead(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(http.StatusForbidden, "reqRepoCommitStatusReader", "user should have specific read permission or be a repo admin or a site admin")
+		// TODO(not7cd)
+		if !ctx.Repo.Permission.CanRead(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+			ctx.APIError(http.StatusForbidden, "user should have specific read permission or be a repo admin or a site admin")
 			return
 		}
 	}

@@ -337,12 +337,5 @@ func (ctx *APIContext) IsUserRepoWriter(unitTypes []unit.Type) bool {
 
 // IsUserRepoWriter returns true if current user has write commit status privilege in current repo
 func (ctx *APIContext) IsUserCommitStatusWriter(unitTypes []unit.Type) bool {
-	for _, unitType := range unitTypes {
-		// TODO
-		if ctx.Repo.CanWrite(unitType) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(unitTypes, ctx.Repo.Permission.CanWrite)
 }
