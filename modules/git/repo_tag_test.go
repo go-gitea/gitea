@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRepository_GetTags(t *testing.T) {
+func TestRepository_GetTagInfos(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
 	if err != nil {
