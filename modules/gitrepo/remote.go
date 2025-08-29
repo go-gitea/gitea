@@ -62,17 +62,7 @@ func GitRemoteGetURL(ctx context.Context, repo Repository, remoteName string) (*
 	return giturl.ParseGitURL(addr)
 }
 
-func SetRemoteURL(ctx context.Context, repo Repository, remoteName, remoteURL string) error {
-	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
-		cmd := git.NewCommand("remote", "set-url").AddDynamicArguments(remoteName, remoteURL)
-		_, _, err := cmd.RunStdString(ctx, &git.RunOpts{Dir: repoPath(repo)})
-		return err
-	})
-}
-
 // GitRemotePrune prunes the remote branches that no longer exist in the remote repository.
-// No lock is needed because the remote remoteName will be checked before invoking this function.
-// Then it will not update the remote automatically if the remote does not exist.
 func GitRemotePrune(ctx context.Context, repo Repository, remoteName string, timeout time.Duration, stdout, stderr io.Writer) error {
 	return git.NewCommand("remote", "prune").AddDynamicArguments(remoteName).
 		Run(ctx, &git.RunOpts{
@@ -84,8 +74,6 @@ func GitRemotePrune(ctx context.Context, repo Repository, remoteName string, tim
 }
 
 // GitRemoteUpdatePrune updates the remote branches and prunes the ones that no longer exist in the remote repository.
-// No lock is needed because the remote remoteName will be checked before invoking this function.
-// Then it will not update the remote automatically if the remote does not exist.
 func GitRemoteUpdatePrune(ctx context.Context, repo Repository, remoteName string, timeout time.Duration, stdout, stderr io.Writer) error {
 	return git.NewCommand("remote", "update", "--prune").AddDynamicArguments(remoteName).
 		Run(ctx, &git.RunOpts{
