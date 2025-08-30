@@ -25,6 +25,31 @@ const (
 	TemplateTypeBugTriage
 )
 
+func (p TemplateType) ToString() string {
+	switch p {
+	case TemplateTypeBasicKanban:
+		return "BasicKanban"
+	case TemplateTypeBugTriage:
+		return "BugTriage"
+	case TemplateTypeNone:
+		fallthrough
+	default:
+		return ""
+	}
+}
+
+// ToTemplateType converts a string to a TemplateType
+func ToTemplateType(s string) TemplateType {
+	switch s {
+	case "BasicKanban":
+		return TemplateTypeBasicKanban
+	case "BugTriage":
+		return TemplateTypeBugTriage
+	default:
+		return TemplateTypeNone
+	}
+}
+
 // GetTemplateConfigs retrieves the template configs of configurations project columns could have
 func GetTemplateConfigs() []TemplateConfig {
 	return []TemplateConfig{
