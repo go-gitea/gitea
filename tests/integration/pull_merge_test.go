@@ -341,8 +341,10 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout.String())
 
-		_, _, err = git.NewCommand("branch", "unrelated").AddDynamicArguments(commitSha).RunStdString(t.Context(), &git.RunOpts{Dir: path})
+		gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
+		defer gitRepo1.Close()
+		assert.NoError(t, repo_service.CreateNewBranchFromCommit(t.Context(), user1, repo1, gitRepo1, commitSha, "unrelated"))
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
 
