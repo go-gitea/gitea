@@ -17,7 +17,7 @@ type scopeTestNormalize struct {
 }
 
 func TestAccessTokenScope_Normalize(t *testing.T) {
-	assert.Equal(t, []string{"activitypub", "admin", "issue", "misc", "notification", "organization", "package", "repository", "user", "commitstatus"}, GetAccessTokenCategories())
+	assert.Equal(t, []string{"activitypub", "admin", "commitstatus", "issue", "misc", "notification", "organization", "package", "repository", "user"}, GetAccessTokenCategories())
 	tests := []scopeTestNormalize{
 		{"", "", nil},
 		{"write:misc,write:notification,read:package,write:notification,public-only", "public-only,write:misc,write:notification,read:package", nil},
