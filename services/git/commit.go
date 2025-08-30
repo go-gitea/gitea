@@ -5,6 +5,9 @@ package git
 
 import (
 	"context"
+	"errors"
+	"io"
+	"sort"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -13,7 +16,12 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/gitdiff"
+
+	"github.com/google/uuid"
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
@@ -87,4 +95,75 @@ func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.Sig
 		newCommits = append(newCommits, commit)
 	}
 	return newCommits, nil
+}
+
+func CreateCommitComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, opts git_model.CreateCommitCommentOptions) (*git_model.CommitComment, error) {
+	comment, err := git_model.CreateCommitComment(ctx, &opts)
+	if err != nil {
+		return nil, err
+	}
+	return comment, nil
+}
+
+// LoadComments loads comments into each line
+func LoadCommitComments(ctx context.Context, diff *gitdiff.Diff, commitComment *git_model.CommitComment, currentUser *user_model.User) error {
+	opts := git_model.FindCommitCommentOptions{
+		CommitSHA: commitComment.CommitSHA,
+	}
+
+	commitComments, err := git_model.FindCommitCommentsByCommit(ctx, &opts, commitComment)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range diff.Files {
+		for _, cc := range commitComments {
+			if cc.FileName == file.Name {
+				for _, section := range file.Sections {
+					for _, line := range section.Lines {
+						if cc.Line == int64(line.LeftIdx*-1) {
+							line.CommitComments = append(line.CommitComments, cc)
+							cc.Repo = commitComment.Repo
+							cc.Poster = commitComment.Poster
+						}
+						if cc.Line == int64(line.RightIdx) {
+							line.CommitComments = append(line.CommitComments, cc)
+							cc.Repo = commitComment.Repo
+							cc.Poster = commitComment.Poster
+						}
+						sort.SliceStable(line.CommitComments, func(i, j int) bool {
+							return line.CommitComments[i].CreatedUnix < line.CommitComments[j].CreatedUnix
+						})
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// CreateCommentReaction creates a reaction on a comment.
+func CreateCommentReaction(ctx context.Context, doer *user_model.User, commitComment *git_model.CommitComment, reaction string) error {
+	if !setting.UI.ReactionsLookup.Contains(reaction) {
+		return errors.New("reaction not found in reactions list : " + reaction)
+	}
+	err := git_model.CreateCommitCommentReaction(ctx, reaction, doer.ID, commitComment)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeleteCommentReaction(ctx context.Context, doer *user_model.User, commitComment *git_model.CommitComment, reaction string) error {
+	err := git_model.DeleteCommentReaction(ctx, reaction, doer.ID, commitComment)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func SaveTemporaryAttachment(ctx context.Context, file io.Reader, opts *git_model.AttachmentOptions) (string, error) {
+	attachmentUUID := uuid.New().String()
+	_, err := storage.Attachments.Save(attachmentUUID, file, opts.Size)
+	return attachmentUUID, err
 }

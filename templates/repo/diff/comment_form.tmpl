@@ -1,7 +1,18 @@
 {{if and $.root.SignedUserID (not $.Repository.IsArchived)}}
-	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{$.root.Issue.Link}}/files/reviews/comments" method="post">
+	{{- $action := "" -}}
+	{{- $origin := "" -}}
+	{{if $.root.PageIsPullFiles}}
+		{{$action = printf "%s/files/reviews/comments" $.root.Issue.Link -}}
+		{{$origin = "diff"}}
+	{{else if $.root.PageIsDiff}}
+		{{$action = printf "%s/commit/%s/comments/add" $.root.RepoLink $.root.CommitSHA -}}
+		{{$origin = "diff"}}
+	{{else}}
+		{{$origin = "timeline"}}
+	{{end}}
+	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{$action}}" method="post">
 	{{$.root.CsrfTokenHtml}}
-		<input type="hidden" name="origin" value="{{if $.root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
+		<input type="hidden" name="origin" value="{{$origin}}">
 		<input type="hidden" name="latest_commit_id" value="{{$.root.AfterCommitID}}">
 		<input type="hidden" name="side" value="{{if $.Side}}{{$.Side}}{{end}}">
 		<input type="hidden" name="line" value="{{if $.Line}}{{$.Line}}{{end}}">
@@ -36,12 +47,16 @@
 					{{if $.root.CurrentReview}}
 						<button name="pending_review" type="submit" class="ui submit primary tiny button btn-add-comment">{{ctx.Locale.Tr "repo.diff.comment.add_review_comment"}}</button>
 					{{else}}
-						<button name="pending_review" type="submit" class="ui submit primary tiny button btn-start-review">{{ctx.Locale.Tr "repo.diff.comment.start_review"}}</button>
-						<button name="single_review" value="true" type="submit" class="ui submit tiny basic button btn-add-single">{{ctx.Locale.Tr "repo.diff.comment.add_single_comment"}}</button>
+						{{if $.root.PageIsDiff}}
+							<button type="submit" name="type" value="comment" class="ui submit tiny basic button btn-submit">{{ctx.Locale.Tr "repo.diff.review.comment"}}</button>
+						{{else}}
+							<button name="pending_review" type="submit" class="ui submit primary tiny button btn-start-review">{{ctx.Locale.Tr "repo.diff.comment.start_review"}}</button>
+							<button name="single_review" value="true" type="submit" class="ui submit tiny basic button btn-add-single">{{ctx.Locale.Tr "repo.diff.comment.add_single_comment"}}</button>
+						{{end}}
 					{{end}}
 				{{end}}
 				{{if or (not $.HasComments) $.hidden}}
-					<button type="button" class="ui submit tiny basic button btn-cancel cancel-code-comment">{{ctx.Locale.Tr "cancel"}}</button>
+					<button type="button" data-global-click="onCancelCodeCommentButtonClick" class="ui submit tiny basic button btn-cancel cancel-code-comment">{{ctx.Locale.Tr "cancel"}}</button>
 				{{end}}
 			</div>
 		</div>
