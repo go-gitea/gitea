@@ -140,8 +140,8 @@ func (r *Release) TarURL() string {
 }
 
 // HTMLURL the url for a release on the web UI. release must have attributes loaded
-func (r *Release) HTMLURL(ctx context.Context) string {
-	return r.Repo.HTMLURL(ctx) + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
+func (r *Release) HTMLURL() string {
+	return r.Repo.HTMLURL() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
 }
 
 // APIUploadURL the api url to upload assets to a release. release must have attributes loaded
