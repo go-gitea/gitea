@@ -14,6 +14,7 @@ import (
 	"path"
 	"strings"
 
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -99,7 +100,7 @@ type CommitFormOptions struct {
 	UserCanPush              bool
 	RequireSigned            bool
 	WillSign                 bool
-	SigningKey               *git.SigningKey
+	SigningKey               string
 	WontSignReason           string
 	CanCreatePullRequest     bool
 	CanCreateBasePullRequest bool
@@ -139,7 +140,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	willSign, signKeyID, _, err := asymkey_service.SignCRUDAction(ctx, targetRepo.RepoPath(), doer, targetRepo.RepoPath(), refName.String())
+	willSign, signKey, _, err := asymkey_service.SignCRUDAction(ctx, targetRepo.RepoPath(), doer, targetRepo.RepoPath(), refName.String())
 	wontSignReason := ""
 	if asymkey_service.IsErrWontSign(err) {
 		wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
@@ -155,6 +156,11 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 	canCreateBasePullRequest := targetRepo.BaseRepo != nil && targetRepo.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests)
 	canCreatePullRequest := targetRepo.UnitEnabled(ctx, unit_model.TypePullRequests) || canCreateBasePullRequest
 
+	displayKeyID, displayKeyIDErr := asymkey_model.GetDisplaySigningKey(signKey)
+	if displayKeyIDErr != nil {
+		log.Error("Error whilst getting the display keyID: %s", displayKeyIDErr.Error())
+	}
+
 	opts := &CommitFormOptions{
 		TargetRepo:        targetRepo,
 		WillSubmitToFork:  submitToForkedRepo,
@@ -162,7 +168,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		UserCanPush:       canPushWithProtection,
 		RequireSigned:     protectionRequireSigned,
 		WillSign:          willSign,
-		SigningKey:        signKeyID,
+		SigningKey:        displayKeyID,
 		WontSignReason:    wontSignReason,
 
 		CanCreatePullRequest:     canCreatePullRequest,
