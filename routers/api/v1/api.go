@@ -469,6 +469,18 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 	}
 }
 
+// reqRepoCommitStatusWriter user should have a permission to write to commit
+// statuses, or write to a repo, or be a site admin
+func reqRepoCommitStatusWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		// TODO(not7cd)
+		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+			ctx.APIError(http.StatusForbidden, "user should have a permission to write to a repo")
+			return
+		}
+	}
+}
+
 
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
@@ -480,6 +492,17 @@ func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	}
 }
 
+// reqRepoReader user should have specific commit status read permission, or
+// repo read permission, or be a repo admin or a site admin
+func reqRepoCommitStatusReader(unitType unit.Type) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		// TODO(not7cd)
+		if !ctx.Repo.Permission.CanRead(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+			ctx.APIError(http.StatusForbidden, "user should have specific read permission or be a repo admin or a site admin")
+			return
+		}
+	}
+}
 
 // reqAnyRepoReader user should have any permission to read repository or permissions of site admin
 func reqAnyRepoReader() func(ctx *context.APIContext) {
@@ -1537,8 +1560,8 @@ func Routes() *web.Router {
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
 				m.Group("/statuses", func() { // "/statuses/{sha}" only accepts commit ID
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
-						Post(reqToken(), reqRepoWriter(unit.TypeCommitStatus), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
-				}, reqRepoWriter(unit.TypeCommitStatus))
+						Post(reqToken(), reqRepoCommitStatusWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
+				}, reqRepoCommitStatusReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Group("", func() {
 						m.Get("", repo.GetAllCommits)
