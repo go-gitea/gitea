@@ -455,43 +455,9 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 	}
 }
 
-// reqRepoCommitStatusWriter user should have a permission to write to commit
-// statuses, or write to a repo, or be a site admin
-func reqRepoCommitStatusWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
-	return func(ctx *context.APIContext) {
-		// TODO(not7cd)
-		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.APIError(http.StatusForbidden, "user should have a permission to write to a repo")
-			return
-		}
-	}
-}
-
-// TODO(not7cd): do I need this?
-// // reqRepoBranchWriter user should have a permission to write to a branch, or be a site admin
-// func reqRepoBranchWriter(ctx *context.APIContext) {
-// 	options, ok := web.GetForm(ctx).(api.FileOptionInterface)
-// 	if !ok || (!ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, options.Branch()) && !ctx.IsUserSiteAdmin()) {
-// 		ctx.APIError(http.StatusForbidden, "user should have a permission to write to this branch")
-// 		return
-// 	}
-// }
-
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.Repo.CanRead(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.APIError(http.StatusForbidden, "user should have specific read permission or be a repo admin or a site admin")
-			return
-		}
-	}
-}
-
-// reqRepoReader user should have specific commit status read permission, or
-// repo read permission, or be a repo admin or a site admin
-func reqRepoCommitStatusReader(unitType unit.Type) func(ctx *context.APIContext) {
-	return func(ctx *context.APIContext) {
-		// TODO(not7cd)
 		if !ctx.Repo.CanRead(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.APIError(http.StatusForbidden, "user should have specific read permission or be a repo admin or a site admin")
 			return
