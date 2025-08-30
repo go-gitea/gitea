@@ -1433,8 +1433,8 @@ func Routes() *web.Router {
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
 				m.Group("/statuses", func() {
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
-						Post(reqToken(), reqRepoCommitStatusWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
-				}, reqRepoCommitStatusReader(unit.TypeCode))
+						Post(reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryCommitStatus), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
+				})
 				m.Group("/commits", func() {
 					m.Get("", context.ReferencesGitRepo(), repo.GetAllCommits)
 					m.Group("/{ref}", func() {
