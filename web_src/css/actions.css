@@ -74,3 +74,37 @@
     max-width: 110px;
   }
 }
+
+/* Environment tier labels */
+.environment-tier-production {
+  background-color: var(--color-red) !important;
+  color: var(--color-white) !important;
+  border-color: var(--color-red) !important;
+}
+
+.environment-tier-staging {
+  background-color: var(--color-orange) !important;
+  color: var(--color-white) !important;
+  border-color: var(--color-orange) !important;
+}
+
+.environment-tier-testing {
+  background-color: var(--color-blue) !important;
+  color: var(--color-white) !important;
+  border-color: var(--color-blue) !important;
+}
+
+.environment-tier-development {
+  background-color: var(--color-grey) !important;
+  color: var(--color-white) !important;
+  border-color: var(--color-grey) !important;
+}
+
+.environment-list .environment-item {
+  border-bottom: 1px solid var(--color-secondary);
+  padding: 8px 0;
+}
+
+.environment-list .environment-item:last-child {
+  border-bottom: none;
+}

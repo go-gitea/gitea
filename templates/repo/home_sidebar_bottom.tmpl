@@ -57,5 +57,41 @@
 			</div>
 		</div>
 		{{end}}
+
+		{{if and .Environments (not .Repository.IsArchived)}}
+		<div class="flex-item">
+			<div class="flex-item-main">
+				<div class="flex-item-title">
+					<a class="item muted" href="{{.RepoLink}}/settings/actions/environments">
+						{{ctx.Locale.Tr "actions.environments"}}
+						<span class="ui small label">{{.NumEnvironments}}</span>
+					</a>
+				</div>
+				<div class="flex-item-body">
+					<div class="environment-list">
+						{{range .Environments}}
+							<div class="flex-item environment-item">
+								<div class="flex-item-leading">
+									<div class="tw-mt-1">{{svg "octicon-rocket" 16}}</div>
+								</div>
+								<div class="flex-item-main">
+									<div class="flex-item-header">
+										<div class="flex-item-title tw-gap-2">
+											<span class="gt-ellipsis">{{.Name}}</span>
+										</div>
+									</div>
+									{{if .Description}}
+									<div class="flex-item-body">
+										<span class="text small muted gt-ellipsis">{{.Description}}</span>
+									</div>
+									{{end}}
+								</div>
+							</div>
+						{{end}}
+					</div>
+				</div>
+			</div>
+		</div>
+		{{end}}
 	</div>
 </div>

@@ -7910,6 +7910,204 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/environments": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List environments for a repository",
+        "operationId": "listEnvironments",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/EnvironmentList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/environments/{environment_name}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a specific environment",
+        "operationId": "getEnvironment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the environment",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Environment"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create or update a deployment environment",
+        "operationId": "createOrUpdateEnvironment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the environment",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateEnvironmentOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Environment"
+          },
+          "201": {
+            "$ref": "#/responses/Environment"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a deployment environment",
+        "operationId": "deleteEnvironment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the environment",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/file-contents": {
       "get": {
         "description": "See the POST method. This GET method supports using JSON encoded request body in query parameter.",
@@ -24622,6 +24820,73 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "Environment": {
+      "description": "Environment represents a deployment environment",
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "created_by": {
+          "$ref": "#/definitions/User"
+        },
+        "description": {
+          "description": "Description of the environment  ",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "external_url": {
+          "description": "External URL associated with the environment",
+          "type": "string",
+          "x-go-name": "ExternalURL"
+        },
+        "id": {
+          "description": "ID of the environment",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "description": "Name of the environment",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "protection_rules": {
+          "description": "Protection rules as JSON string",
+          "type": "string",
+          "x-go-name": "ProtectionRules"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "UpdatedAt"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "EnvironmentListResponse": {
+      "description": "EnvironmentListResponse returns environments list",
+      "type": "object",
+      "properties": {
+        "environments": {
+          "description": "List of environments",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Environment"
+          },
+          "x-go-name": "Environments"
+        },
+        "total_count": {
+          "description": "Total number of environments",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ExternalTracker": {
       "description": "ExternalTracker represents settings for external tracker",
       "type": "object",
@@ -28886,6 +29151,18 @@
       "description": "EmptyRepository",
       "schema": {
         "$ref": "#/definitions/APIError"
+      }
+    },
+    "Environment": {
+      "description": "Environment",
+      "schema": {
+        "$ref": "#/definitions/Environment"
+      }
+    },
+    "EnvironmentList": {
+      "description": "EnvironmentList",
+      "schema": {
+        "$ref": "#/definitions/EnvironmentListResponse"
       }
     },
     "FileDeleteResponse": {

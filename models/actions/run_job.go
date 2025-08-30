@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -159,6 +160,12 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		}
 		if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
 			return 0, fmt.Errorf("update run %d: %w", run.ID, err)
+		}
+		
+		// Update deployment status for any deployments associated with this run
+		if err := UpdateDeploymentStatusForRun(ctx, run); err != nil {
+			// Don't fail the job update if deployment status update fails
+			log.Error("Failed to update deployment status for run %d: %v", run.ID, err)
 		}
 	}
 

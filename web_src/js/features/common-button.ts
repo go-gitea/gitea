@@ -27,7 +27,12 @@ export function initGlobalDeleteButton(): void {
       const dataObj = btn.dataset;
 
       const modalId = btn.getAttribute('data-modal-id');
-      const modal = document.querySelector(`.delete.modal${modalId ? `#${modalId}` : ''}`);
+      const modal = modalId ? document.querySelector(`#${modalId}`) : document.querySelector('.delete.modal');
+
+      if (!modal) {
+        console.error(`Modal not found for modalId: ${modalId}`);
+        return;
+      }
 
       // set the modal "display name" by `data-name`
       const modalNameEl = modal.querySelector('.name');
@@ -57,6 +62,10 @@ export function initGlobalDeleteButton(): void {
 
           // prepare an AJAX form by data attributes
           const postData = new FormData();
+
+          // Add the action parameter to indicate this is a remove operation
+          postData.append('action', 'remove');
+
           for (const [key, value] of Object.entries(dataObj)) {
             if (key.startsWith('data')) { // for data-data-xxx (HTML) -> dataXxx (form)
               postData.append(key.slice(4), value);
@@ -64,12 +73,32 @@ export function initGlobalDeleteButton(): void {
             if (key === 'id') { // for data-id="..."
               postData.append('id', value);
             }
+            if (key === 'name') { // for data-name="..."
+              postData.append('name', value);
+            }
           }
           (async () => {
-            const response = await POST(btn.getAttribute('data-url'), {data: postData});
-            if (response.ok) {
-              const data = await response.json();
-              window.location.href = data.redirect;
+            try {
+              const response = await POST(btn.getAttribute('data-url'), {data: postData});
+              if (response.ok) {
+                const text = await response.text();
+                if (text) {
+                  const data = JSON.parse(text);
+                  if (data.redirect) {
+                    window.location.href = data.redirect;
+                  } else {
+                    // Fallback: reload the page if no redirect URL
+                    window.location.reload();
+                  }
+                } else {
+                  // Empty response, reload the page
+                  window.location.reload();
+                }
+              } else {
+                console.error('Delete request failed:', response.status, response.statusText);
+              }
+            } catch (error) {
+              console.error('Error during delete operation:', error);
             }
           })();
           modal.classList.add('is-loading'); // the request is in progress, so also add loading indicator to the modal
