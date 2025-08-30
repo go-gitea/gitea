@@ -122,11 +122,12 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 				nil,
 				issue,
 				comment.Line,
+				"", // no special commit ID, so we use the merge base of the pull request
+				"", // no special commit ID, so we use the current HEAD of the pull request
 				content.Content,
 				comment.TreePath,
 				false, // not pending review but a single review
 				comment.ReviewID,
-				"",
 				attachmentIDs,
 			)
 			if err != nil {

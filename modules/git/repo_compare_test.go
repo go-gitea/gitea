@@ -45,36 +45,6 @@ func TestGetFormatPatch(t *testing.T) {
 	assert.Contains(t, patch, "Subject: [PATCH] Add file2.txt")
 }
 
-func TestReadPatch(t *testing.T) {
-	// Ensure we can read the patch files
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(t.Context(), bareRepo1Path)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
-	defer repo.Close()
-	// This patch doesn't exist
-	noFile, err := repo.ReadPatchCommit(0)
-	assert.Error(t, err)
-
-	// This patch is an empty one (sometimes it's a 404)
-	noCommit, err := repo.ReadPatchCommit(1)
-	assert.Error(t, err)
-
-	// This patch is legit and should return a commit
-	oldCommit, err := repo.ReadPatchCommit(2)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
-
-	assert.Empty(t, noFile)
-	assert.Empty(t, noCommit)
-	assert.Len(t, oldCommit, 40)
-	assert.Equal(t, "6e8e2a6f9efd71dbe6917816343ed8415ad696c3", oldCommit)
-}
-
 func TestReadWritePullHead(t *testing.T) {
 	// Ensure we can write SHA1 head corresponding to PR and open them
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
@@ -99,7 +69,7 @@ func TestReadWritePullHead(t *testing.T) {
 
 	// Write a fake sha1 with only 40 zeros
 	newCommit := "feaf4ba6bc635fec442f46ddd4512416ec43c2c2"
-	err = repo.SetReference(PullPrefix+"1/head", newCommit)
+	err = UpdateRef(t.Context(), repo.Path, PullPrefix+"1/head", newCommit)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -116,7 +86,7 @@ func TestReadWritePullHead(t *testing.T) {
 	assert.Equal(t, headContents, newCommit)
 
 	// Remove file after the test
-	err = repo.RemoveReference(PullPrefix + "1/head")
+	err = RemoveRef(t.Context(), repo.Path, PullPrefix+"1/head")
 	assert.NoError(t, err)
 }
 
