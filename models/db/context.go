@@ -21,28 +21,8 @@ type engineContextKeyType struct{}
 
 var engineContextKey = engineContextKeyType{}
 
-type xormContextType struct {
-	context.Context
-	engine Engine
-}
-
-var xormContext *xormContextType
-
-func newContext(ctx context.Context, e Engine) *xormContextType {
-	return &xormContextType{Context: ctx, engine: e}
-}
-
-// Value shadows Value for context.Context but allows us to get ourselves and an Engined object
-func (ctx *xormContextType) Value(key any) any {
-	if key == engineContextKey {
-		return ctx
-	}
-	return ctx.Context.Value(key)
-}
-
-// WithContext returns this engine tied to this context
-func (ctx *xormContextType) WithContext(other context.Context) *xormContextType {
-	return newContext(ctx, ctx.engine.Context(other))
+func withContextEngine(ctx context.Context, e Engine) context.Context {
+	return context.WithValue(ctx, engineContextKey, e)
 }
 
 var (
@@ -81,33 +61,24 @@ func contextSafetyCheck(e Engine) {
 	callerNum := runtime.Callers(3, callers) // skip 3: runtime.Callers, contextSafetyCheck, GetEngine
 	for i := range callerNum {
 		if slices.Contains(contextSafetyDeniedFuncPCs, callers[i]) {
-			panic(errors.New("using database context in an iterator would cause corrupted results"))
+			panic(errors.New("using session context in an iterator would cause corrupted results"))
 		}
 	}
 }
 
 // GetEngine gets an existing db Engine/Statement or creates a new Session
-func GetEngine(ctx context.Context) (e Engine) {
-	defer func() { contextSafetyCheck(e) }()
-	if e := getExistingEngine(ctx); e != nil {
-		return e
+func GetEngine(ctx context.Context) Engine {
+	if engine, ok := ctx.Value(engineContextKey).(Engine); ok {
+		// if reusing the existing session, need to do "contextSafetyCheck" because the Iterate creates a "autoResetStatement=false" session
+		contextSafetyCheck(engine)
+		return engine
 	}
+	// no need to do "contextSafetyCheck" because it's a new Session
 	return xormEngine.Context(ctx)
 }
 
 func GetXORMEngineForTesting() *xorm.Engine {
 	return xormEngine
-}
-
-// getExistingEngine gets an existing db Engine/Statement from this context or returns nil
-func getExistingEngine(ctx context.Context) (e Engine) {
-	if engined, ok := ctx.(*xormContextType); ok {
-		return engined.engine
-	}
-	if engined, ok := ctx.Value(engineContextKey).(*xormContextType); ok {
-		return engined.engine
-	}
-	return nil
 }
 
 // Committer represents an interface to Commit or Close the Context
@@ -152,8 +123,8 @@ func (c *halfCommitter) Close() error {
 //	     And all operations submitted by the caller stack will be rollbacked as well, not only the operations in the current function.
 //	  d. It doesn't mean rollback is forbidden, but always do it only when there is an error, and you do want to rollback.
 func TxContext(parentCtx context.Context) (context.Context, Committer, error) {
-	if sess, ok := inTransaction(parentCtx); ok {
-		return newContext(parentCtx, sess), &halfCommitter{committer: sess}, nil
+	if sess := getTransactionSession(parentCtx); sess != nil {
+		return withContextEngine(parentCtx, sess), &halfCommitter{committer: sess}, nil
 	}
 
 	sess := xormEngine.NewSession()
@@ -161,15 +132,14 @@ func TxContext(parentCtx context.Context) (context.Context, Committer, error) {
 		_ = sess.Close()
 		return nil, nil, err
 	}
-
-	return newContext(xormContext, sess), sess, nil
+	return withContextEngine(parentCtx, sess), sess, nil
 }
 
 // WithTx represents executing database operations on a transaction, if the transaction exist,
 // this function will reuse it otherwise will create a new one and close it when finished.
 func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error {
-	if sess, ok := inTransaction(parentCtx); ok {
-		err := f(newContext(parentCtx, sess))
+	if sess := getTransactionSession(parentCtx); sess != nil {
+		err := f(withContextEngine(parentCtx, sess))
 		if err != nil {
 			// rollback immediately, in case the caller ignores returned error and tries to commit the transaction.
 			_ = sess.Close()
@@ -195,7 +165,7 @@ func txWithNoCheck(parentCtx context.Context, f func(ctx context.Context) error)
 		return err
 	}
 
-	if err := f(newContext(parentCtx, sess)); err != nil {
+	if err := f(withContextEngine(parentCtx, sess)); err != nil {
 		return err
 	}
 
@@ -333,32 +303,15 @@ func CountByBean(ctx context.Context, bean any) (int64, error) {
 	return GetEngine(ctx).Count(bean)
 }
 
-// TableName returns the table name according a bean object
-func TableName(bean any) string {
-	return xormEngine.TableName(bean)
-}
-
 // InTransaction returns true if the engine is in a transaction otherwise return false
 func InTransaction(ctx context.Context) bool {
-	_, ok := inTransaction(ctx)
-	return ok
+	return getTransactionSession(ctx) != nil
 }
 
-func inTransaction(ctx context.Context) (*xorm.Session, bool) {
-	e := getExistingEngine(ctx)
-	if e == nil {
-		return nil, false
+func getTransactionSession(ctx context.Context) *xorm.Session {
+	e, _ := ctx.Value(engineContextKey).(Engine)
+	if sess, ok := e.(*xorm.Session); ok && sess.IsInTx() {
+		return sess
 	}
-
-	switch t := e.(type) {
-	case *xorm.Engine:
-		return nil, false
-	case *xorm.Session:
-		if t.IsInTx() {
-			return t, true
-		}
-		return nil, false
-	default:
-		return nil, false
-	}
+	return nil
 }

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 
@@ -40,7 +39,7 @@ func (source *TestSource) ToDB() ([]byte, error) {
 func TestDumpAuthSource(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	authSourceSchema, err := db.TableInfo(new(auth_model.Source))
+	authSourceSchema, err := unittest.GetXORMEngine().TableInfo(new(auth_model.Source))
 	assert.NoError(t, err)
 
 	auth_model.RegisterTypeConfig(auth_model.OAuth2, new(TestSource))

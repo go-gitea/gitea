@@ -100,31 +100,36 @@ func TestContextSafety(t *testing.T) {
 		assert.NoError(t, db.Insert(t.Context(), &TestModel2{ID: int64(-i)}))
 	}
 
-	actualCount := 0
-	// here: db.GetEngine(t.Context()) is a new *Session created from *Engine
-	_ = db.WithTx(t.Context(), func(ctx context.Context) error {
-		_ = db.GetEngine(ctx).Iterate(&TestModel1{}, func(i int, bean any) error {
-			// here: db.GetEngine(ctx) is always the unclosed "Iterate" *Session with autoResetStatement=false,
-			// and the internal states (including "cond" and others) are always there and not be reset in this callback.
-			m1 := bean.(*TestModel1)
-			assert.EqualValues(t, i+1, m1.ID)
+	t.Run("Show-XORM-Bug", func(t *testing.T) {
+		actualCount := 0
+		// here: db.GetEngine(t.Context()) is a new *Session created from *Engine
+		_ = db.WithTx(t.Context(), func(ctx context.Context) error {
+			_ = db.GetEngine(ctx).Iterate(&TestModel1{}, func(i int, bean any) error {
+				// here: db.GetEngine(ctx) is always the unclosed "Iterate" *Session with autoResetStatement=false,
+				// and the internal states (including "cond" and others) are always there and not be reset in this callback.
+				m1 := bean.(*TestModel1)
+				assert.EqualValues(t, i+1, m1.ID)
 
-			// here: XORM bug, it fails because the SQL becomes "WHERE id=-1", "WHERE id=-1 AND id=-2", "WHERE id=-1 AND id=-2 AND id=-3" ...
-			// and it conflicts with the "Iterate"'s internal states.
-			// has, err := db.GetEngine(ctx).Get(&TestModel2{ID: -m1.ID})
+				// here: XORM bug, it fails because the SQL becomes "WHERE id=-1", "WHERE id=-1 AND id=-2", "WHERE id=-1 AND id=-2 AND id=-3" ...
+				// and it conflicts with the "Iterate"'s internal states.
+				// has, err := db.GetEngine(ctx).Get(&TestModel2{ID: -m1.ID})
 
-			actualCount++
+				actualCount++
+				return nil
+			})
 			return nil
 		})
-		return nil
+		assert.Equal(t, testCount, actualCount)
 	})
-	assert.Equal(t, testCount, actualCount)
 
-	// deny the bad usages
-	assert.PanicsWithError(t, "using database context in an iterator would cause corrupted results", func() {
-		_ = unittest.GetXORMEngine().Iterate(&TestModel1{}, func(i int, bean any) error {
-			_ = db.GetEngine(t.Context())
-			return nil
+	t.Run("DenyBadUsage", func(t *testing.T) {
+		assert.PanicsWithError(t, "using session context in an iterator would cause corrupted results", func() {
+			_ = db.WithTx(t.Context(), func(ctx context.Context) error {
+				return db.GetEngine(ctx).Iterate(&TestModel1{}, func(i int, bean any) error {
+					_ = db.GetEngine(ctx)
+					return nil
+				})
+			})
 		})
 	})
 }

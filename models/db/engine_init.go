@@ -86,7 +86,6 @@ func InitEngine(ctx context.Context) error {
 func SetDefaultEngine(ctx context.Context, eng *xorm.Engine) {
 	xormEngine = eng
 	xormEngine.SetDefaultContext(ctx)
-	xormContext = &xormContextType{Context: ctx, engine: xormEngine}
 }
 
 // UnsetDefaultEngine closes and unsets the default engine
@@ -98,7 +97,6 @@ func UnsetDefaultEngine() {
 		_ = xormEngine.Close()
 		xormEngine = nil
 	}
-	xormContext = nil
 }
 
 // InitEngineWithMigration initializes a new xorm.Engine and sets it as the XORM's default context

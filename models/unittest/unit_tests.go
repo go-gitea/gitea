@@ -159,7 +159,7 @@ func DumpQueryResult(t require.TestingT, sqlOrBean any, sqlArgs ...any) {
 	goDB := x.DB().DB
 	sql, ok := sqlOrBean.(string)
 	if !ok {
-		sql = "SELECT * FROM " + db.TableName(sqlOrBean)
+		sql = "SELECT * FROM " + x.TableName(sqlOrBean)
 	} else if !strings.Contains(sql, " ") {
 		sql = "SELECT * FROM " + sql
 	}
