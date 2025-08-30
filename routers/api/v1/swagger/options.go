@@ -90,7 +90,7 @@ type swaggerParameterBodies struct {
 	// in:body
 	EditRepoOption api.EditRepoOption
 	// in:body
-	UpdateBranchRepoOption api.UpdateBranchRepoOption
+	RenameBranchRepoOption api.RenameBranchRepoOption
 	// in:body
 	TransferRepoOption api.TransferRepoOption
 	// in:body
