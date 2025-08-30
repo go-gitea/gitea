@@ -218,7 +218,7 @@ func NewFixturesLoader(x *xorm.Engine, opts FixturesOptions) (FixturesLoader, er
 	xormBeans, _ := db.NamesToBean()
 	f.xormTableNames = map[string]bool{}
 	for _, bean := range xormBeans {
-		f.xormTableNames[db.TableName(bean)] = true
+		f.xormTableNames[x.TableName(bean)] = true
 	}
 
 	return f, nil
