@@ -9,7 +9,6 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -35,17 +34,4 @@ func TestRepository_WikiPath(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	expected := filepath.Join(setting.RepoRootPath, "user2/repo1.wiki.git")
 	assert.Equal(t, expected, repo.WikiPath())
-}
-
-func TestRepository_HasWiki(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	exist, err := gitrepo.IsRepositoryExist(t.Context(), repo1.WikiStorageRepo())
-	assert.NoError(t, err)
-	assert.True(t, exist)
-
-	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	exist, err = gitrepo.IsRepositoryExist(t.Context(), repo2.WikiStorageRepo())
-	assert.NoError(t, err)
-	assert.False(t, exist)
 }

@@ -36,6 +36,7 @@ func getWikiWorkingLockKey(repoID int64) string {
 // InitWiki initializes a wiki for repository,
 // it does nothing when repository already has wiki.
 func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
+	// don't use HasWiki because the error should not be ignored.
 	if exist, err := gitrepo.IsRepositoryExist(ctx, repo.WikiStorageRepo()); err != nil {
 		return err
 	} else if exist {
