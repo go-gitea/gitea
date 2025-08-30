@@ -109,7 +109,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
-	github.com/ulikunitz/xz v0.5.12
+	github.com/ulikunitz/xz v0.5.15
 	github.com/urfave/cli/v2 v2.27.6
 	github.com/wneessen/go-mail v0.6.2
 	github.com/xeipuuv/gojsonschema v1.2.0
