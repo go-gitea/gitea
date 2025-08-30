@@ -136,12 +136,29 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 	return nil
 }
 
-// DeleteComment deletes the comment
-func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		return issues_model.DeleteComment(ctx, comment)
+// deleteComment deletes the comment
+func deleteComment(ctx context.Context, comment *issues_model.Comment, removeAttachments bool) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if removeAttachments {
+			// load attachments before deleting the comment
+			if err := comment.LoadAttachments(ctx); err != nil {
+				return err
+			}
+		}
+
+		if err := issues_model.DeleteComment(ctx, comment); err != nil {
+			return err
+		}
+
+		if removeAttachments {
+			return repo_model.DeleteAttachments(ctx, comment.Attachments)
+		}
+		return nil
 	})
-	if err != nil {
+}
+
+func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
+	if err := deleteComment(ctx, comment, true); err != nil {
 		return err
 	}
 
