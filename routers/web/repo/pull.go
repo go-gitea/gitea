@@ -430,7 +430,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return nil
 		}
-		ctx.Data["GetCommitMessages"] = pull_service.GetSquashMergeCommitMessages(ctx, pull)
+		ctx.Data["GetCommitMessages"], _ = pull_service.GetSquashMergeCommitMessages(ctx, pull)
 	} else {
 		ctx.Data["GetCommitMessages"] = ""
 	}
