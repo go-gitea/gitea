@@ -17,7 +17,7 @@ import (
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository, oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType) ([]*asymkey_model.SignCommit, error) {
+func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType) ([]*asymkey_model.SignCommit, error) {
 	newCommits := make([]*asymkey_model.SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
@@ -37,7 +37,7 @@ func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository,
 		committerUser := emailUsers.GetByEmail(c.Committer.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
 		signCommit := &asymkey_model.SignCommit{
 			UserCommit:   c,
-			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.Commit, committerUser),
+			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, gitRepo, c.Commit, committerUser),
 		}
 
 		isOwnerMemberCollaborator := func(user *user_model.User) (bool, error) {
@@ -52,7 +52,7 @@ func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository,
 }
 
 // ConvertFromGitCommit converts git commits into SignCommitWithStatuses
-func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository) ([]*git_model.SignCommitWithStatuses, error) {
+func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository, gitRepo *git.Repository) ([]*git_model.SignCommitWithStatuses, error) {
 	validatedCommits, err := user_model.ValidateCommitsWithEmails(ctx, commits)
 	if err != nil {
 		return nil, err
@@ -60,6 +60,7 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 	signedCommits, err := ParseCommitsWithSignature(
 		ctx,
 		repo,
+		gitRepo,
 		validatedCommits,
 		repo.GetTrustModel(),
 	)

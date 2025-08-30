@@ -78,9 +78,10 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		return nil, err
 	}
 
+	tree := git.NewTree(repo, commit.TreeID)
 	var data string
 	for _, file := range codeOwnerFiles {
-		if blob, err := commit.GetBlobByPath(file); err == nil {
+		if blob, err := tree.GetBlobByPath(file); err == nil {
 			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
 			if err == nil {
 				break

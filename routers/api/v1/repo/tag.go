@@ -114,7 +114,7 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 		if err != nil {
 			ctx.APIError(http.StatusBadRequest, err)
 		}
-		ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx, ctx.Repo.Repository, tag, commit))
+		ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, tag, commit))
 	}
 }
 

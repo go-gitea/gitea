@@ -415,7 +415,7 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
-		lastCommit, _ := gitRepo.GetCommitByPath("new/file.txt")
+		lastCommit, _ := gitRepo.GetCommitByPathDefaultBranch("new/file.txt")
 		expectedFileResponse := getExpectedFileResponseForRepoFilesCreate(commitID, lastCommit)
 		assert.NotNil(t, expectedFileResponse)
 		if expectedFileResponse != nil {
@@ -452,7 +452,7 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
-		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
+		lastCommit, _ := gitRepo.GetCommitByPath(commit.ID, opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String(), lastCommit.Committer.When, lastCommit.Author.When)
 		assert.Equal(t, expectedFileResponse.Content, filesResponse.Files[0])
 		assert.Equal(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
@@ -488,17 +488,18 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
-		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
+		lastCommit, _ := gitRepo.GetCommitByPath(commit.ID, opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String(), lastCommit.Committer.When, lastCommit.Author.When)
 		// assert that the old file no longer exists in the last commit of the branch
-		fromEntry, err := commit.GetTreeEntryByPath(opts.Files[0].FromTreePath)
+		tree := git.NewTree(gitRepo, commit.TreeID)
+		fromEntry, err := tree.GetTreeEntryByPath(opts.Files[0].FromTreePath)
 		switch err.(type) {
 		case git.ErrNotExist:
 			// correct, continue
 		default:
 			t.Fatalf("expected git.ErrNotExist, got:%v", err)
 		}
-		toEntry, err := commit.GetTreeEntryByPath(opts.Files[0].TreePath)
+		toEntry, err := tree.GetTreeEntryByPath(opts.Files[0].TreePath)
 		assert.NoError(t, err)
 		assert.Nil(t, fromEntry)  // Should no longer exist here
 		assert.NotNil(t, toEntry) // Should exist here
@@ -534,7 +535,7 @@ func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
-		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
+		lastCommit, _ := gitRepo.GetCommitByPath(commit.ID, opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdateRename(commit.ID.String(), lastCommit.ID.String())
 		for _, file := range filesResponse.Files {
 			file.LastCommitterDate, file.LastAuthorDate = nil, nil // there might be different time in one operation, so we ignore them
@@ -571,7 +572,7 @@ func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
-		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
+		lastCommit, _ := gitRepo.GetCommitByPath(commit.ID, opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String(), lastCommit.Committer.When, lastCommit.Author.When)
 		assert.Equal(t, expectedFileResponse.Content, filesResponse.Files[0])
 	})
