@@ -33,7 +33,6 @@ const (
 	TypeProjects        // 8 Projects
 	TypePackages        // 9 Packages
 	TypeActions         // 10 Actions
-	TypeCommitStatus    // 11 Commit Status
 
 	// FIXME: TEAM-UNIT-PERMISSION: the team unit "admin" permission's design is not right, when a new unit is added in the future,
 	// admin team won't inherit the correct admin permission for the new unit, need to have a complete fix before adding any new unit.
@@ -66,7 +65,6 @@ var (
 		TypeProjects,
 		TypePackages,
 		TypeActions,
-		TypeCommitStatus,
 	}
 
 	// DefaultRepoUnits contains the default unit types
@@ -79,10 +77,8 @@ var (
 		TypeProjects,
 		TypePackages,
 		TypeActions,
-		TypeCommitStatus,
 	}
 
-	// TODO(not7cd): Defaults that need TypeCommitStatus
 	// ForkRepoUnits contains the default unit types for forks
 	DefaultForkRepoUnits = []Type{
 		TypeCode,
@@ -241,7 +237,6 @@ func (u Unit) MaxPerm() perm.AccessMode {
 }
 
 // Enumerate all the units
-// TODO(not7cd): Add TypeCommitStatus
 var (
 	UnitCode = Unit{
 		TypeCode,
@@ -333,16 +328,6 @@ var (
 		perm.AccessModeOwner,
 	}
 
-	// TODO(not7cd): Just copied this
-	UnitCommitStatus = Unit{
-		TypeCommitStatus,
-		"repo.commitstatus",
-		"/statuses",
-		"commitstatus.unit.desc",
-		8,
-		perm.AccessModeOwner,
-	}
-
 	// Units contains all the units
 	Units = map[Type]Unit{
 		TypeCode:            UnitCode,
@@ -355,7 +340,6 @@ var (
 		TypeProjects:        UnitProjects,
 		TypePackages:        UnitPackages,
 		TypeActions:         UnitActions,
-		TypeCommitStatus:    UnitCommitStatus,
 	}
 )
 
