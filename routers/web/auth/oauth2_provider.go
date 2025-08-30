@@ -58,8 +58,6 @@ const (
 	ErrorCodeServerError AuthorizeErrorCode = "server_error"
 	// ErrorCodeTemporaryUnavailable represents the according error in RFC 6749
 	ErrorCodeTemporaryUnavailable AuthorizeErrorCode = "temporarily_unavailable"
-	// ErrorDeviceFlowDisabled represents the according error like github
-	ErrorDeviceFlowDisabled AuthorizeErrorCode = "device_flow_disabled"
 )
 
 // AuthorizeError represents an error type specified in RFC 6749

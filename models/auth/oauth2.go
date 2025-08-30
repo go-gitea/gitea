@@ -469,13 +469,6 @@ func GetOAuth2AuthorizationByCode(ctx context.Context, code string) (auth *OAuth
 
 //////////////////////////////////////////////////////
 
-type OAuth2GrantType int64
-
-const (
-	OAuth2GrantTypeNormal OAuth2GrantType = iota
-	OAuth2GrantTypeDevice
-)
-
 // OAuth2Grant represents the permission of an user for a specific application to access resources
 type OAuth2Grant struct {
 	ID            int64              `xorm:"pk autoincr"`
