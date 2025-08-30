@@ -292,7 +292,11 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 	}
 
 	if issue.IsPull {
-		if err := issues_model.DeleteIssueDevLinkByPullRequestID(ctx, issue.ID); err != nil {
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			return nil, err
+		}
+		if _, err := db.GetEngine(ctx).Where("link_type = ? AND link_id = ?", issues_model.IssueDevLinkTypePullRequest, issue.PullRequest.ID).
+			Delete(new(issues_model.IssueDevLink)); err != nil {
 			return nil, err
 		}
 	}

@@ -142,10 +142,21 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		if pr.Flow == issues_model.PullRequestFlowGithub {
-			devLinks, err := issues_model.FindDevLinksByBranch(ctx, issue.RepoID, pr.HeadRepoID, pr.HeadBranch)
+			branch, err := git_model.GetBranch(ctx, pr.HeadRepoID, pr.HeadBranch)
 			if err != nil {
 				return err
 			}
+
+			devLinks := make(issues_model.IssueDevLinks, 0, 5)
+			if err := db.GetEngine(ctx).
+				Join("INNER", "issue", "issue_dev_link.issue_id = issue.id").
+				Where("link_type = ? AND link_id = ? AND linked_repo_id = ?",
+					issues_model.IssueDevLinkTypeBranch, branch.ID, issue.RepoID).
+				And("issue.repo_id=?", pr.HeadRepoID).
+				Find(&devLinks); err != nil {
+				return err
+			}
+
 			for _, link := range devLinks {
 				if err := issues_model.CreateIssueDevLink(ctx, &issues_model.IssueDevLink{
 					IssueID:      link.IssueID,

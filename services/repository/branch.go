@@ -513,6 +513,22 @@ func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchNam
 	return nil
 }
 
+func DeleteIssueDevLinkByBranchName(ctx context.Context, repoID int64, branchName string) error {
+	awBranch, err := git_model.GetBranch(ctx, repoID, branchName)
+	if err != nil && !git_model.IsErrBranchNotExist(err) {
+		return fmt.Errorf("GetBranch: %vc", err)
+	}
+	if awBranch == nil {
+		return nil
+	}
+
+	_, err = db.GetEngine(ctx).
+		Where("linked_repo_id = ? AND link_type = ? AND link_id = ?",
+			repoID, issues_model.IssueDevLinkTypeBranch, awBranch.ID).
+		Delete(new(issues_model.IssueDevLink))
+	return err
+}
+
 // DeleteBranch delete branch
 func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string, pr *issues_model.PullRequest) error {
 	err := repo.MustNotBeArchived()
@@ -544,7 +560,7 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 			}
 		}
 
-		if err := issues_model.DeleteIssueDevLinkByBranchName(ctx, repo.ID, branchName); err != nil {
+		if err := DeleteIssueDevLinkByBranchName(ctx, repo.ID, branchName); err != nil {
 			return err
 		}
 		if pr != nil {
