@@ -1,7 +1,9 @@
 {
   "type": "module",
+  "packageManager": "pnpm@10.0.0",
   "engines": {
-    "node": ">= 20.0.0"
+    "node": ">= 20.0.0",
+    "pnpm": ">=10.0.0"
   },
   "dependencies": {
     "@citation-js/core": "0.7.18",
@@ -14,6 +16,7 @@
     "@mcaptcha/vanilla-glue": "0.1.0-alpha-3",
     "@primer/octicons": "19.15.5",
     "@silverwind/vue3-calendar-heatmap": "2.0.6",
+    "@techknowlogick/license-checker-webpack-plugin": "0.3.0",
     "add-asset-webpack-plugin": "3.0.0",
     "ansi_up": "6.0.6",
     "asciinema-player": "3.10.0",
@@ -32,7 +35,6 @@
     "idiomorph": "0.7.3",
     "jquery": "3.7.1",
     "katex": "0.16.22",
-    "license-checker-webpack-plugin": "0.2.1",
     "mermaid": "11.10.0",
     "mini-css-extract-plugin": "2.9.2",
     "minimatch": "10.0.3",
@@ -69,6 +71,7 @@
     "@stoplight/spectral-cli": "6.15.0",
     "@stylistic/eslint-plugin-js": "3.1.0",
     "@stylistic/stylelint-plugin": "4.0.0",
+    "@types/codemirror": "5.60.16",
     "@types/dropzone": "5.7.9",
     "@types/jquery": "3.5.32",
     "@types/katex": "0.16.7",
