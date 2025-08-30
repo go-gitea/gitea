@@ -79,12 +79,6 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 	return err
 }
 
-// RemoveRemote removes a remote from repository.
-func (repo *Repository) RemoveRemote(name string) error {
-	_, _, err := NewCommand("remote", "rm").AddDynamicArguments(name).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
-	return err
-}
-
 // RenameBranch rename a branch
 func (repo *Repository) RenameBranch(from, to string) error {
 	_, _, err := NewCommand("branch", "-m").AddDynamicArguments(from, to).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
