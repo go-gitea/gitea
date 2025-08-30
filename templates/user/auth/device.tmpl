@@ -1,0 +1,20 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content oauth2-authorize-application-box">
+	<div class="ui container tw-max-w-[500px]">
+		{{template "base/alert" .}}
+		<h3 class="ui top attached header">
+			{{ctx.Locale.Tr "auth.authorize_device_title"}}
+		</h3>
+		<div class="ui attached segment">
+			<form class="ui form" id="grant-device-find" method="post" action="{{$.Link}}">
+				{{.CsrfTokenHtml}}
+				<div class="required field {{if .Err_UserCode}}error{{end}}">
+					<label for="user_code">{{ctx.Locale.Tr "auth.authorize_device_description"}}</label>
+					<input id="user_code" name="user_code" type="text" value="{{.UserCode}}" autofocus required tabindex="1">
+				</div>
+				<button type="submit" class="ui primary button tw-w-full" tabindex="2">{{ctx.Locale.Tr "continue"}}</button>
+			</form>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

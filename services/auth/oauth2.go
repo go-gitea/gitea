@@ -43,8 +43,13 @@ func GetOAuthAccessTokenScopeAndUserID(ctx context.Context, accessToken string) 
 		log.Trace("oauth2.ParseToken: %v", err)
 		return accessTokenScope, 0
 	}
-	var grant *auth_model.OAuth2Grant
-	if grant, err = auth_model.GetOAuth2GrantByID(ctx, token.GrantID); err != nil || grant == nil {
+	var grant auth_model.IOAuth2Grant
+	if token.GrantID < 0 {
+		grant, err = auth_model.GetOAuth2DeviceGrantByID(ctx, -token.GrantID)
+	} else {
+		grant, err = auth_model.GetOAuth2GrantByID(ctx, token.GrantID)
+	}
+	if err != nil || grant == nil {
 		return accessTokenScope, 0
 	}
 	if token.Kind != oauth2_provider.KindAccessToken {
@@ -53,8 +58,8 @@ func GetOAuthAccessTokenScopeAndUserID(ctx context.Context, accessToken string) 
 	if token.ExpiresAt.Before(time.Now()) || token.IssuedAt.After(time.Now()) {
 		return accessTokenScope, 0
 	}
-	accessTokenScope = oauth2_provider.GrantAdditionalScopes(grant.Scope)
-	return accessTokenScope, grant.UserID
+	accessTokenScope = oauth2_provider.GrantAdditionalScopes(grant.GetScope())
+	return accessTokenScope, grant.GetUserID()
 }
 
 // CheckTaskIsRunning verifies that the TaskID corresponds to a running task

@@ -40,6 +40,14 @@ const (
 	AccessTokenErrorCodeUnsupportedGrantType = "unsupported_grant_type"
 	// AccessTokenErrorCodeInvalidScope represents an error code specified in RFC 6749
 	AccessTokenErrorCodeInvalidScope = "invalid_scope"
+	// AccessTokenErrorCodeAuthorizationPending represents an error code specified in RFC 8628
+	AccessTokenErrorCodeAuthorizationPending = "authorization_pending"
+	// AccessTokenErrorCodeAccessDenied represents an error code specified in RFC 8628
+	AccessTokenErrorAccessDenied = "access_denied"
+	// AccessTokenErrorCodeExpiredToken represents an error code specified in RFC 8628
+	AccessTokenErrorExpiredToken = "expired_token"
+	// AccessTokenErrorCodeDeviceFlowDisabled represents an error code like github
+	AccessTokenErrorDeviceFlowDisabled = "device_flow_disabled"
 )
 
 // AccessTokenError represents an error response specified in RFC 6749
@@ -120,7 +128,7 @@ func NewJwtRegisteredClaimsFromUser(clientID string, grantUserID int64, exp *jwt
 	}
 }
 
-func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, serverKey, clientKey JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
+func NewAccessTokenResponse(ctx context.Context, grant auth.IOAuth2Grant, serverKey, clientKey JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
 	if setting.OAuth2.InvalidateRefreshTokens {
 		if err := grant.IncreaseCounter(ctx); err != nil {
 			return nil, &AccessTokenError{
@@ -132,7 +140,7 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 	// generate access token to access the API
 	expirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.AccessTokenExpirationTime)
 	accessToken := &Token{
-		GrantID: grant.ID,
+		GrantID: grant.GetID(),
 		Kind:    KindAccessToken,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
@@ -149,8 +157,8 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 	// generate refresh token to request an access token after it expired later
 	refreshExpirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime()
 	refreshToken := &Token{
-		GrantID: grant.ID,
-		Counter: grant.Counter,
+		GrantID: grant.GetID(),
+		Counter: grant.GetCounter(),
 		Kind:    KindRefreshToken,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(refreshExpirationDate),
@@ -167,14 +175,14 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 	// generate OpenID Connect id_token
 	signedIDToken := ""
 	if grant.ScopeContains("openid") {
-		app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
+		app, err := auth.GetOAuth2ApplicationByID(ctx, grant.GetApplicationID())
 		if err != nil {
 			return nil, &AccessTokenError{
 				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
 				ErrorDescription: "cannot find application",
 			}
 		}
-		user, err := user_model.GetUserByID(ctx, grant.UserID)
+		user, err := user_model.GetUserByID(ctx, grant.GetUserID())
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				return nil, &AccessTokenError{
@@ -190,8 +198,8 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 		}
 
 		idToken := &OIDCToken{
-			RegisteredClaims: NewJwtRegisteredClaimsFromUser(app.ClientID, grant.UserID, jwt.NewNumericDate(expirationDate.AsTime())),
-			Nonce:            grant.Nonce,
+			RegisteredClaims: NewJwtRegisteredClaimsFromUser(app.ClientID, grant.GetUserID(), jwt.NewNumericDate(expirationDate.AsTime())),
+			Nonce:            grant.GetNonce(),
 		}
 		if grant.ScopeContains("profile") {
 			idToken.Name = user.DisplayName()
@@ -207,7 +215,7 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 			idToken.EmailVerified = user.IsActive
 		}
 		if grant.ScopeContains("groups") {
-			accessTokenScope := GrantAdditionalScopes(grant.Scope)
+			accessTokenScope := GrantAdditionalScopes(grant.GetScope())
 
 			// since version 1.22 does not verify if groups should be public-only,
 			// onlyPublicGroups will be set only if 'public-only' is included in a valid scope
@@ -267,4 +275,14 @@ func GetOAuthGroupsForUser(ctx context.Context, user *user_model.User, onlyPubli
 		}
 	}
 	return groups, nil
+}
+
+// DeviceAuthorizationResponse represents the response for the device authorization grant.
+// https://datatracker.ietf.org/doc/html/rfc8628#section-3.2
+type DeviceAuthorizationResponse struct {
+	DeviceCode      string `json:"device_code"`
+	UserCode        string `json:"user_code"`
+	VerificationURI string `json:"verification_uri"`
+	ExpiresIn       int64  `json:"expires_in"`
+	Interval        int64  `json:"interval"`
 }

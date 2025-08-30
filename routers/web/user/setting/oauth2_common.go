@@ -53,6 +53,7 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 		UserID:                     oa.OwnerID,
 		ConfidentialClient:         form.ConfidentialClient,
 		SkipSecondaryAuthorization: form.SkipSecondaryAuthorization,
+		EnableDeviceFlow:           form.EnableDeviceFlow,
 	})
 	if err != nil {
 		ctx.ServerError("CreateOAuth2Application", err)
@@ -122,6 +123,7 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 		UserID:                     oa.OwnerID,
 		ConfidentialClient:         form.ConfidentialClient,
 		SkipSecondaryAuthorization: form.SkipSecondaryAuthorization,
+		EnableDeviceFlow:           form.EnableDeviceFlow,
 	}); err != nil {
 		ctx.ServerError("UpdateOAuth2Application", err)
 		return
@@ -169,6 +171,17 @@ func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 // RevokeGrant revokes the grant
 func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
 	if err := auth.RevokeOAuth2Grant(ctx, ctx.PathParamInt64("grantId"), oa.OwnerID); err != nil {
+		ctx.ServerError("RevokeOAuth2Grant", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.revoke_oauth2_grant_success"))
+	ctx.JSONRedirect(oa.BasePathList)
+}
+
+// RevokeGrant revokes the grant
+func (oa *OAuth2CommonHandlers) RevokeDeviceGrant(ctx *context.Context) {
+	if err := auth.RevokeOAuth2DeviceGrant(ctx, ctx.PathParamInt64("grantId"), oa.OwnerID); err != nil {
 		ctx.ServerError("RevokeOAuth2Grant", err)
 		return
 	}
