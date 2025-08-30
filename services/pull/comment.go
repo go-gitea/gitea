@@ -14,7 +14,6 @@ import (
 )
 
 // getCommitIDsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
-// isForcePush will be true if oldCommit isn't on the branch
 // Commit on baseBranch will skip
 func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, err error) {
 	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
