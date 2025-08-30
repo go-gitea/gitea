@@ -52,11 +52,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		return err
 	}
 
-	hasWiki, err := gitrepo.IsRepositoryExist(ctx, m.Repo.WikiStorageRepo())
-	if err != nil {
-		return err
-	}
-	if hasWiki {
+	if repo_service.HasWiki(ctx, m.Repo) {
 		wikiPath := m.Repo.WikiPath()
 		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
 		// Remove old remote of wiki
@@ -371,11 +367,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Error("SyncMirrors [repo: %-v]: failed to update size for mirror repository: %v", m.Repo.FullName(), err)
 	}
 
-	hasWiki, err := gitrepo.IsRepositoryExist(ctx, m.Repo.WikiStorageRepo())
-	if err != nil {
-		log.Error("SyncMirrors [repo: %-v]: failed to check if wiki repository exists: %v", m.Repo.FullName(), err)
-	}
-	if hasWiki {
+	if repo_service.HasWiki(ctx, m.Repo) {
 		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()

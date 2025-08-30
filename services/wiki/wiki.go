@@ -379,9 +379,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return fmt.Errorf("unable to update database: %w", err)
 		}
 
-		if exist, err := gitrepo.IsRepositoryExist(ctx, repo.WikiStorageRepo()); err != nil {
-			return err
-		} else if !exist {
+		if !repo_service.HasWiki(ctx, repo) {
 			return nil
 		}
 
