@@ -105,11 +105,6 @@ type MinimalOrg = Organization
 
 // GetUserOrgsList returns all organizations the given user has access to
 func GetUserOrgsList(ctx context.Context, user *user_model.User) ([]*MinimalOrg, error) {
-	schema, err := db.TableInfo(new(user_model.User))
-	if err != nil {
-		return nil, err
-	}
-
 	outputCols := []string{
 		"id",
 		"name",
@@ -122,7 +117,7 @@ func GetUserOrgsList(ctx context.Context, user *user_model.User) ([]*MinimalOrg,
 
 	selectColumns := &strings.Builder{}
 	for i, col := range outputCols {
-		fmt.Fprintf(selectColumns, "`%s`.%s", schema.Name, col)
+		_, _ = fmt.Fprintf(selectColumns, "`user`.%s", col)
 		if i < len(outputCols)-1 {
 			selectColumns.WriteString(", ")
 		}
