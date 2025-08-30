@@ -344,6 +344,13 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 	ctx.PlainText(http.StatusOK, htmlMeta)
 }
 
+// GetGoModuleSubDirConfig retrieves the subdirectory configuration for a Go module.
+func GetGoModuleSubDirConfig(ctx *Context, repo *repo_model.Repository) string {
+	codeCfg := repo.MustGetUnit(ctx, unit_model.TypeCode).CodeConfig()
+
+	return strings.TrimSpace(codeCfg.GoModuleSubDir)
+}
+
 // RedirectToRepo redirect to a differently-named repository
 func RedirectToRepo(ctx *Base, redirectRepoID int64) {
 	ownerName := ctx.PathParam("username")
