@@ -15,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -26,7 +27,7 @@ func getMergeBase(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		return "", fmt.Errorf("GitRemoteAdd: %w", err)
 	}
 	defer func() {
-		if err := gitrepo.GitRemoteRemove(ctx, repo, tmpRemote); err != nil {
+		if err := gitrepo.GitRemoteRemove(graceful.GetManager().ShutdownContext(), repo, tmpRemote); err != nil {
 			log.Error("getMergeBase: GitRemoteRemove: %v", err)
 		}
 	}()

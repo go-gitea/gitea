@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/graceful"
 	logger "code.gitea.io/gitea/modules/log"
 )
 
@@ -39,7 +40,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 			return nil, fmt.Errorf("AddRemote: %w", err)
 		}
 		defer func() {
-			if err := gitrepo.GitRemoteRemove(ctx, headRepo, tmpRemote); err != nil {
+			if err := gitrepo.GitRemoteRemove(graceful.GetManager().ShutdownContext(), headRepo, tmpRemote); err != nil {
 				logger.Error("GetPullRequestInfo: GitRemoteRemove: %v", err)
 			}
 		}()

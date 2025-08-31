@@ -175,14 +175,13 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	}
 
 	if m.Repo.HasWiki() {
-		u, err := gitrepo.GitRemoteGetURL(ctx, m.Repo.WikiStorageRepo(), m.RemoteName)
-		if err == nil && u != nil {
+		if _, err := gitrepo.GitRemoteGetURL(ctx, m.Repo.WikiStorageRepo(), m.RemoteName); err == nil {
 			err := performPush(m.Repo, true)
 			if err != nil {
 				return err
 			}
-		} else {
-			log.Trace("Skipping wiki: No remote configured")
+		} else if !errors.Is(err, util.ErrNotExist) {
+			log.Error("GetRemote of wiki failed: %v", err)
 		}
 	}
 

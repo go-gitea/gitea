@@ -5,6 +5,7 @@ package gitrepo
 
 import (
 	"context"
+	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/globallock"
@@ -17,10 +18,7 @@ func GitConfigGet(ctx context.Context, repo Repository, key string) (string, err
 	if err != nil {
 		return "", err
 	}
-	if len(result) > 0 {
-		result = result[:len(result)-1] // remove trailing newline
-	}
-	return result, nil
+	return strings.TrimSpace(result), nil
 }
 
 func getRepoConfigLockKey(repoStoragePath string) string {
