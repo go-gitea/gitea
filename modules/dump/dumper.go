@@ -64,18 +64,76 @@ func IsSubdir(upper, lower string) (bool, error) {
 type Dumper struct {
 	format  string
 	output  io.Writer
-	files   []archives.FileInfo
+	jobs    chan archives.ArchiveAsyncJob
+	done    chan error
 	Verbose bool
 
 	globalExcludeAbsPaths []string
 }
 
 func NewDumper(format string, output io.Writer) *Dumper {
-	return &Dumper{
+	d := &Dumper{
 		format: format,
 		output: output,
-		files:  make([]archives.FileInfo, 0),
+		jobs:   make(chan archives.ArchiveAsyncJob, 100),
+		done:   make(chan error, 1),
 	}
+	d.startArchiver()
+	return d
+}
+
+func (dumper *Dumper) startArchiver() {
+	go func() {
+		ctx := context.Background()
+		var err error
+
+		switch dumper.format {
+		case "zip":
+			err = archives.Zip{}.ArchiveAsync(ctx, dumper.output, dumper.jobs)
+		case "tar":
+			err = archives.Tar{}.ArchiveAsync(ctx, dumper.output, dumper.jobs)
+		case "tar.gz":
+			comp := archives.CompressedArchive{
+				Compression: archives.Gz{},
+				Archival:    archives.Tar{},
+			}
+			err = comp.ArchiveAsync(ctx, dumper.output, dumper.jobs)
+		case "tar.xz":
+			comp := archives.CompressedArchive{
+				Compression: archives.Xz{},
+				Archival:    archives.Tar{},
+			}
+			err = comp.ArchiveAsync(ctx, dumper.output, dumper.jobs)
+		case "tar.bz2":
+			comp := archives.CompressedArchive{
+				Compression: archives.Bz2{},
+				Archival:    archives.Tar{},
+			}
+			err = comp.ArchiveAsync(ctx, dumper.output, dumper.jobs)
+		case "tar.br":
+			comp := archives.CompressedArchive{
+				Compression: archives.Brotli{},
+				Archival:    archives.Tar{},
+			}
+			err = comp.ArchiveAsync(ctx, dumper.output, dumper.jobs)
+		case "tar.lz4":
+			comp := archives.CompressedArchive{
+				Compression: archives.Lz4{},
+				Archival:    archives.Tar{},
+			}
+			err = comp.ArchiveAsync(ctx, dumper.output, dumper.jobs)
+		case "tar.zst":
+			comp := archives.CompressedArchive{
+				Compression: archives.Zstd{},
+				Archival:    archives.Tar{},
+			}
+			err = comp.ArchiveAsync(ctx, dumper.output, dumper.jobs)
+		default:
+			err = fmt.Errorf("unsupported format: %s", dumper.format)
+		}
+
+		dumper.done <- err
+	}()
 }
 
 // AddFilePath adds a file by its filesystem path
@@ -89,28 +147,37 @@ func (dumper *Dumper) AddFilePath(filePath, absPath string) error {
 		return err
 	}
 
+	var archiveFileInfo archives.FileInfo
 	if fileInfo.IsDir() {
-		archiveFileInfo := archives.FileInfo{
+		archiveFileInfo = archives.FileInfo{
 			FileInfo:      fileInfo,
 			NameInArchive: filePath,
 			Open: func() (fs.File, error) {
 				return &emptyDirFile{info: fileInfo}, nil
 			},
 		}
-		dumper.files = append(dumper.files, archiveFileInfo)
-		return nil
+	} else {
+		archiveFileInfo = archives.FileInfo{
+			FileInfo:      fileInfo,
+			NameInArchive: filePath,
+			Open: func() (fs.File, error) {
+				return os.Open(absPath)
+			},
+		}
 	}
 
-	archiveFileInfo := archives.FileInfo{
-		FileInfo:      fileInfo,
-		NameInArchive: filePath,
-		Open: func() (fs.File, error) {
-			return os.Open(absPath)
-		},
+	resultChan := make(chan error, 1)
+	job := archives.ArchiveAsyncJob{
+		File:   archiveFileInfo,
+		Result: resultChan,
 	}
 
-	dumper.files = append(dumper.files, archiveFileInfo)
-	return nil
+	select {
+	case dumper.jobs <- job:
+		return <-resultChan
+	case err := <-dumper.done:
+		return err
+	}
 }
 
 // AddReader adds a file's contents from a Reader, this uses a pipe to stream files from object store to prevent them from filling up disk
@@ -138,8 +205,18 @@ func (dumper *Dumper) AddReader(r io.ReadCloser, info os.FileInfo, customName st
 		},
 	}
 
-	dumper.files = append(dumper.files, fileInfo)
-	return nil
+	resultChan := make(chan error, 1)
+	job := archives.ArchiveAsyncJob{
+		File:   fileInfo,
+		Result: resultChan,
+	}
+
+	select {
+	case dumper.jobs <- job:
+		return <-resultChan
+	case err := <-dumper.done:
+		return err
+	}
 }
 
 // pipeFile makes io.PipeReader compatible with fs.File interface
@@ -159,52 +236,8 @@ func (f *emptyDirFile) Close() error               { return nil }
 func (f *emptyDirFile) Stat() (fs.FileInfo, error) { return f.info, nil }
 
 func (dumper *Dumper) Close() error {
-	ctx := context.Background()
-
-	switch dumper.format {
-	case "zip":
-		return archives.Zip{}.Archive(ctx, dumper.output, dumper.files)
-	case "tar":
-		return archives.Tar{}.Archive(ctx, dumper.output, dumper.files)
-	case "tar.gz":
-		comp := archives.CompressedArchive{
-			Compression: archives.Gz{},
-			Archival:    archives.Tar{},
-		}
-		return comp.Archive(ctx, dumper.output, dumper.files)
-	case "tar.xz":
-		comp := archives.CompressedArchive{
-			Compression: archives.Xz{},
-			Archival:    archives.Tar{},
-		}
-		return comp.Archive(ctx, dumper.output, dumper.files)
-	case "tar.bz2":
-		comp := archives.CompressedArchive{
-			Compression: archives.Bz2{},
-			Archival:    archives.Tar{},
-		}
-		return comp.Archive(ctx, dumper.output, dumper.files)
-	case "tar.br":
-		comp := archives.CompressedArchive{
-			Compression: archives.Brotli{},
-			Archival:    archives.Tar{},
-		}
-		return comp.Archive(ctx, dumper.output, dumper.files)
-	case "tar.lz4":
-		comp := archives.CompressedArchive{
-			Compression: archives.Lz4{},
-			Archival:    archives.Tar{},
-		}
-		return comp.Archive(ctx, dumper.output, dumper.files)
-	case "tar.zst":
-		comp := archives.CompressedArchive{
-			Compression: archives.Zstd{},
-			Archival:    archives.Tar{},
-		}
-		return comp.Archive(ctx, dumper.output, dumper.files)
-	default:
-		return fmt.Errorf("unsupported format: %s", dumper.format)
-	}
+	close(dumper.jobs)
+	return <-dumper.done
 }
 
 // AddFile kept for backwards compatibility since streaming is more efficient
