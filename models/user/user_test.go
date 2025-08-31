@@ -44,7 +44,7 @@ func TestIsUsableUsername(t *testing.T) {
 func TestOAuth2Application_LoadUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
-	user, err := user_model.GetUserByID(db.DefaultContext, app.UID)
+	user, err := user_model.GetUserByID(t.Context(), app.UID)
 	assert.NoError(t, err)
 	assert.NotNil(t, user)
 }
@@ -53,14 +53,14 @@ func TestUserEmails(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	t.Run("GetUserEmailsByNames", func(t *testing.T) {
 		// ignore none active user email
-		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user9"}))
-		assert.ElementsMatch(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user5"}))
-		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "org7"}))
+		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "user9"}))
+		assert.ElementsMatch(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "user5"}))
+		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "org7"}))
 	})
 	t.Run("GetUsersByEmails", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.gitea.internal")()
 		testGetUserByEmail := func(t *testing.T, email string, uid int64) {
-			m, err := user_model.GetUsersByEmails(db.DefaultContext, []string{email})
+			m, err := user_model.GetUsersByEmails(t.Context(), []string{email})
 			require.NoError(t, err)
 			user := m.GetByEmail(email)
 			if uid == 0 {
@@ -114,7 +114,7 @@ func TestCanCreateOrganization(t *testing.T) {
 func TestSearchUsers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	testSuccess := func(opts user_model.SearchUserOptions, expectedUserOrOrgIDs []int64) {
-		users, _, err := user_model.SearchUsers(db.DefaultContext, opts)
+		users, _, err := user_model.SearchUsers(t.Context(), opts)
 		assert.NoError(t, err)
 		cassText := fmt.Sprintf("ids: %v, opts: %v", expectedUserOrOrgIDs, opts)
 		if assert.Len(t, users, len(expectedUserOrOrgIDs), "case: %s", cassText) {
@@ -243,7 +243,7 @@ func BenchmarkHashPassword(b *testing.B) {
 
 func TestNewGitSig(t *testing.T) {
 	users := make([]*user_model.User, 0, 20)
-	err := db.GetEngine(db.DefaultContext).Find(&users)
+	err := db.GetEngine(t.Context()).Find(&users)
 	assert.NoError(t, err)
 
 	for _, user := range users {
@@ -257,7 +257,7 @@ func TestNewGitSig(t *testing.T) {
 
 func TestDisplayName(t *testing.T) {
 	users := make([]*user_model.User, 0, 20)
-	err := db.GetEngine(db.DefaultContext).Find(&users)
+	err := db.GetEngine(t.Context()).Find(&users)
 	assert.NoError(t, err)
 
 	for _, user := range users {
@@ -280,7 +280,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
+	err := user_model.CreateUser(t.Context(), user, &user_model.Meta{})
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailCharIsNotSupported(err))
 }
@@ -294,7 +294,7 @@ func TestCreateUserEmailAlreadyUsed(t *testing.T) {
 	user.Name = "testuser"
 	user.LowerName = strings.ToLower(user.Name)
 	user.ID = 0
-	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
+	err := user_model.CreateUser(t.Context(), user, &user_model.Meta{})
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }
@@ -311,7 +311,7 @@ func TestCreateUserCustomTimestamps(t *testing.T) {
 	user.ID = 0
 	user.Email = "unique@example.com"
 	user.CreatedUnix = creationTimestamp
-	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
+	err := user_model.CreateUser(t.Context(), user, &user_model.Meta{})
 	assert.NoError(t, err)
 
 	fetched, err := user_model.GetUserByID(t.Context(), user.ID)
@@ -336,7 +336,7 @@ func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 	user.Email = "unique@example.com"
 	user.CreatedUnix = 0
 	user.UpdatedUnix = 0
-	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
+	err := user_model.CreateUser(t.Context(), user, &user_model.Meta{})
 	assert.NoError(t, err)
 
 	timestampEnd := time.Now().Unix()
@@ -355,12 +355,12 @@ func TestGetUserIDsByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// ignore non existing
-	IDs, err := user_model.GetUserIDsByNames(db.DefaultContext, []string{"user1", "user2", "none_existing_user"}, true)
+	IDs, err := user_model.GetUserIDsByNames(t.Context(), []string{"user1", "user2", "none_existing_user"}, true)
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{1, 2}, IDs)
 
 	// ignore non existing
-	IDs, err = user_model.GetUserIDsByNames(db.DefaultContext, []string{"user1", "do_not_exist"}, false)
+	IDs, err = user_model.GetUserIDsByNames(t.Context(), []string{"user1", "do_not_exist"}, false)
 	assert.Error(t, err)
 	assert.Equal(t, []int64(nil), IDs)
 }
@@ -368,14 +368,14 @@ func TestGetUserIDsByNames(t *testing.T) {
 func TestGetMaileableUsersByIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	results, err := user_model.GetMailableUsersByIDs(db.DefaultContext, []int64{1, 4}, false)
+	results, err := user_model.GetMailableUsersByIDs(t.Context(), []int64{1, 4}, false)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	if len(results) > 1 {
 		assert.Equal(t, 1, results[0].ID)
 	}
 
-	results, err = user_model.GetMailableUsersByIDs(db.DefaultContext, []int64{1, 4}, true)
+	results, err = user_model.GetMailableUsersByIDs(t.Context(), []int64{1, 4}, true)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
 	if len(results) > 2 {
@@ -389,7 +389,7 @@ func TestNewUserRedirect(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
+	assert.NoError(t, user_model.NewUserRedirect(t.Context(), user.ID, user.Name, "newusername"))
 
 	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
 		LowerName:      user.LowerName,
@@ -406,7 +406,7 @@ func TestNewUserRedirect2(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "olduser1"))
+	assert.NoError(t, user_model.NewUserRedirect(t.Context(), user.ID, user.Name, "olduser1"))
 
 	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
 		LowerName:      user.LowerName,
@@ -423,7 +423,7 @@ func TestNewUserRedirect3(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
+	assert.NoError(t, user_model.NewUserRedirect(t.Context(), user.ID, user.Name, "newusername"))
 
 	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
 		LowerName:      user.LowerName,
@@ -434,17 +434,17 @@ func TestNewUserRedirect3(t *testing.T) {
 func TestGetUserByOpenID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	_, err := user_model.GetUserByOpenID(db.DefaultContext, "https://unknown")
+	_, err := user_model.GetUserByOpenID(t.Context(), "https://unknown")
 	if assert.Error(t, err) {
 		assert.True(t, user_model.IsErrUserNotExist(err))
 	}
 
-	user, err := user_model.GetUserByOpenID(db.DefaultContext, "https://user1.domain1.tld")
+	user, err := user_model.GetUserByOpenID(t.Context(), "https://user1.domain1.tld")
 	if assert.NoError(t, err) {
 		assert.Equal(t, int64(1), user.ID)
 	}
 
-	user, err = user_model.GetUserByOpenID(db.DefaultContext, "https://domain1.tld/user2/")
+	user, err = user_model.GetUserByOpenID(t.Context(), "https://domain1.tld/user2/")
 	if assert.NoError(t, err) {
 		assert.Equal(t, int64(2), user.ID)
 	}
@@ -454,7 +454,7 @@ func TestFollowUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(follower, followed *user_model.User) {
-		assert.NoError(t, user_model.FollowUser(db.DefaultContext, follower, followed))
+		assert.NoError(t, user_model.FollowUser(t.Context(), follower, followed))
 		unittest.AssertExistsAndLoadBean(t, &user_model.Follow{UserID: follower.ID, FollowID: followed.ID})
 	}
 
@@ -465,7 +465,7 @@ func TestFollowUser(t *testing.T) {
 	testSuccess(user4, user2)
 	testSuccess(user5, user2)
 
-	assert.NoError(t, user_model.FollowUser(db.DefaultContext, user2, user2))
+	assert.NoError(t, user_model.FollowUser(t.Context(), user2, user2))
 
 	unittest.CheckConsistencyFor(t, &user_model.User{})
 }
@@ -474,7 +474,7 @@ func TestUnfollowUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(followerID, followedID int64) {
-		assert.NoError(t, user_model.UnfollowUser(db.DefaultContext, followerID, followedID))
+		assert.NoError(t, user_model.UnfollowUser(t.Context(), followerID, followedID))
 		unittest.AssertNotExistsBean(t, &user_model.Follow{UserID: followerID, FollowID: followedID})
 	}
 	testSuccess(4, 2)
@@ -501,7 +501,7 @@ func TestIsUserVisibleToViewer(t *testing.T) {
 			}
 			return u.Name
 		}
-		assert.Equal(t, expected, user_model.IsUserVisibleToViewer(db.DefaultContext, u, viewer), "user %v should be visible to viewer %v: %v", name(u), name(viewer), expected)
+		assert.Equal(t, expected, user_model.IsUserVisibleToViewer(t.Context(), u, viewer), "user %v should be visible to viewer %v: %v", name(u), name(viewer), expected)
 	}
 
 	// admin viewer
@@ -636,11 +636,11 @@ func TestGetInactiveUsers(t *testing.T) {
 
 	// all inactive users
 	// user1's createdunix is 1730468968
-	users, err := user_model.GetInactiveUsers(db.DefaultContext, 0)
+	users, err := user_model.GetInactiveUsers(t.Context(), 0)
 	assert.NoError(t, err)
 	assert.Len(t, users, 1)
 	interval := time.Now().Unix() - 1730468968 + 3600*24
-	users, err = user_model.GetInactiveUsers(db.DefaultContext, time.Duration(interval*int64(time.Second)))
+	users, err = user_model.GetInactiveUsers(t.Context(), time.Duration(interval*int64(time.Second)))
 	assert.NoError(t, err)
 	assert.Empty(t, users)
 }
