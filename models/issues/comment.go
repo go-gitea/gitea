@@ -280,7 +280,7 @@ type Comment struct {
 
 	CommitID        int64
 	Line            int64         // - previous line / + proposed line
-	TreePath        string        `xorm:"VARCHAR(4096)"` // SQLServer only supports up to 4000
+	TreePath        string        `xorm:"VARCHAR(4000)"` // SQLServer only supports up to 4000
 	Content         string        `xorm:"LONGTEXT"`
 	ContentVersion  int           `xorm:"NOT NULL DEFAULT 0"`
 	RenderedContent template.HTML `xorm:"-"`
