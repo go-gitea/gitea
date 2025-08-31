@@ -123,8 +123,8 @@ const (
 	accessTokenScopeReadIssueBits  accessTokenScopeBitmap = 1 << iota
 	accessTokenScopeWriteIssueBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadIssueBits
 
-	accessTokenScopeReadRepositoryBits  accessTokenScopeBitmap = 1 << iota
-	accessTokenScopeWriteRepositoryBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadRepositoryBits
+	accessTokenScopeReadRepositoryBits  accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadCommitStatusBits
+	accessTokenScopeWriteRepositoryBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadRepositoryBits | accessTokenScopeWriteCommitStatusBits
 
 	accessTokenScopeReadUserBits  accessTokenScopeBitmap = 1 << iota
 	accessTokenScopeWriteUserBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadUserBits
