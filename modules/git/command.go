@@ -29,25 +29,19 @@ import (
 // In most cases, it shouldn't be used. Use AddXxx function instead
 type TrustedCmdArgs []internal.CmdArg
 
-var (
-	// globalCommandArgs global command args for external package setting
-	globalCommandArgs TrustedCmdArgs
-
-	// defaultCommandExecutionTimeout default command execution timeout duration
-	defaultCommandExecutionTimeout = 360 * time.Second
-)
+// defaultCommandExecutionTimeout default command execution timeout duration
+var defaultCommandExecutionTimeout = 360 * time.Second
 
 // DefaultLocale is the default LC_ALL to run git commands in.
 const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
-	prog             string
-	args             []string
-	globalArgsLength int
-	brokenArgs       []string
-	cmd              *exec.Cmd // for debug purpose only
-	configArgs       []string
+	prog       string
+	args       []string
+	brokenArgs []string
+	cmd        *exec.Cmd // for debug purpose only
+	configArgs []string
 }
 
 func logArgSanitize(arg string) string {
@@ -72,10 +66,7 @@ func (c *Command) LogString() string {
 	}
 	a := make([]string, 0, len(c.args)+1)
 	a = append(a, debugQuote(c.prog))
-	if c.globalArgsLength > 0 {
-		a = append(a, "...global...")
-	}
-	for i := c.globalArgsLength; i < len(c.args); i++ {
+	for i := 0; i < len(c.args); i++ {
 		a = append(a, debugQuote(logArgSanitize(c.args[i])))
 	}
 	return strings.Join(a, " ")
@@ -91,24 +82,6 @@ func (c *Command) ProcessState() string {
 // NewCommand creates and returns a new Git Command based on given command and arguments.
 // Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
 func NewCommand(args ...internal.CmdArg) *Command {
-	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
-	cargs := make([]string, 0, len(globalCommandArgs)+len(args))
-	for _, arg := range globalCommandArgs {
-		cargs = append(cargs, string(arg))
-	}
-	for _, arg := range args {
-		cargs = append(cargs, string(arg))
-	}
-	return &Command{
-		prog:             GitExecutable,
-		args:             cargs,
-		globalArgsLength: len(globalCommandArgs),
-	}
-}
-
-// NewCommandNoGlobals creates and returns a new Git Command based on given command and arguments only with the specified args and don't use global command args
-// Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
-func NewCommandNoGlobals(args ...internal.CmdArg) *Command {
 	cargs := make([]string, 0, len(args))
 	for _, arg := range args {
 		cargs = append(cargs, string(arg))
@@ -467,20 +440,4 @@ func (c *Command) runStdBytes(ctx context.Context, opts *RunOpts) (stdout, stder
 	}
 	// even if there is no err, there could still be some stderr output
 	return stdoutBuf.Bytes(), stderr, nil
-}
-
-// AllowLFSFiltersArgs return globalCommandArgs with lfs filter, it should only be used for tests
-func AllowLFSFiltersArgs() TrustedCmdArgs {
-	// Now here we should explicitly allow lfs filters to run
-	filteredLFSGlobalArgs := make(TrustedCmdArgs, len(globalCommandArgs))
-	j := 0
-	for _, arg := range globalCommandArgs {
-		if strings.Contains(string(arg), "lfs") {
-			j--
-		} else {
-			filteredLFSGlobalArgs[j] = arg
-			j++
-		}
-	}
-	return filteredLFSGlobalArgs[:j]
 }

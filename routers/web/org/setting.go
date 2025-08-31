@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -25,7 +26,6 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	org_service "code.gitea.io/gitea/services/org"
-	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -83,36 +83,15 @@ func SettingsPost(ctx *context.Context) {
 		Description:               optional.Some(form.Description),
 		Website:                   optional.Some(form.Website),
 		Location:                  optional.Some(form.Location),
-		Visibility:                optional.Some(form.Visibility),
 		RepoAdminChangeTeamAccess: optional.Some(form.RepoAdminChangeTeamAccess),
 	}
 	if ctx.Doer.IsAdmin {
 		opts.MaxRepoCreation = optional.Some(form.MaxRepoCreation)
 	}
 
-	visibilityChanged := org.Visibility != form.Visibility
-
 	if err := user_service.UpdateUser(ctx, org.AsUser(), opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
-	}
-
-	// update forks visibility
-	if visibilityChanged {
-		repos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
-			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptions{Page: 1, PageSize: org.NumRepos},
-		})
-		if err != nil {
-			ctx.ServerError("GetRepositories", err)
-			return
-		}
-		for _, repo := range repos {
-			repo.OwnerName = org.Name
-			if err := repo_service.UpdateRepository(ctx, repo, true); err != nil {
-				ctx.ServerError("UpdateRepository", err)
-				return
-			}
-		}
 	}
 
 	log.Trace("Organization setting updated: %s", org.Name)
@@ -250,4 +229,29 @@ func SettingsRenamePost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("org.settings.rename_success", oldOrgName, newOrgName))
 	ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(newOrgName) + "/settings")
+}
+
+// SettingsChangeVisibilityPost response for change organization visibility
+func SettingsChangeVisibilityPost(ctx *context.Context) {
+	visibility, ok := structs.VisibilityModes[ctx.FormString("visibility")]
+	if !ok {
+		ctx.Flash.Error(ctx.Tr("invalid_data", visibility))
+		ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(ctx.Org.Organization.Name) + "/settings")
+		return
+	}
+
+	if ctx.Org.Organization.Visibility == visibility {
+		ctx.Flash.Info(ctx.Tr("nothing_has_been_changed"))
+		ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(ctx.Org.Organization.Name) + "/settings")
+		return
+	}
+
+	if err := org_service.ChangeOrganizationVisibility(ctx, ctx.Org.Organization, visibility); err != nil {
+		log.Error("ChangeOrganizationVisibility: %v", err)
+		ctx.JSONError(ctx.Tr("error.occurred"))
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("org.settings.change_visibility_success", ctx.Org.Organization.Name))
+	ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(ctx.Org.Organization.Name) + "/settings")
 }
