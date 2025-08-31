@@ -4,17 +4,19 @@
 package dump
 
 import (
+	"archive/tar"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/mholt/archiver/v3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,47 +69,93 @@ func TestIsSubDir(t *testing.T) {
 	assert.False(t, isSub)
 }
 
-type testWriter struct {
-	added []string
+func TestDumperIntegration(t *testing.T) {
+	var buf bytes.Buffer
+	dumper := NewDumper("zip", &buf)
+
+	testContent := "test content"
+	testReader := io.NopCloser(strings.NewReader(testContent))
+	testInfo := &testFileInfo{name: "test.txt", size: int64(len(testContent))}
+
+	err := dumper.AddReader(testReader, testInfo, "test.txt")
+	assert.NoError(t, err)
+
+	err = dumper.Close()
+	assert.NoError(t, err)
+
+	assert.Greater(t, buf.Len(), 0, "Archive should contain data")
 }
 
-func (t *testWriter) Create(out io.Writer) error {
-	return nil
+type testFileInfo struct {
+	name string
+	size int64
 }
 
-func (t *testWriter) Write(f archiver.File) error {
-	t.added = append(t.added, f.Name())
-	return nil
-}
-
-func (t *testWriter) Close() error {
-	return nil
-}
+func (t *testFileInfo) Name() string       { return t.name }
+func (t *testFileInfo) Size() int64        { return t.size }
+func (t *testFileInfo) Mode() os.FileMode  { return 0o644 }
+func (t *testFileInfo) ModTime() time.Time { return time.Now() }
+func (t *testFileInfo) IsDir() bool        { return false }
+func (t *testFileInfo) Sys() any           { return nil }
 
 func TestDumper(t *testing.T) {
-	sortStrings := func(s []string) []string {
-		sort.Strings(s)
-		return s
-	}
 	tmpDir := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(tmpDir, "include/exclude1"), 0o755)
 	_ = os.MkdirAll(filepath.Join(tmpDir, "include/exclude2"), 0o755)
 	_ = os.MkdirAll(filepath.Join(tmpDir, "include/sub"), 0o755)
-	_ = os.WriteFile(filepath.Join(tmpDir, "include/a"), nil, 0o644)
-	_ = os.WriteFile(filepath.Join(tmpDir, "include/sub/b"), nil, 0o644)
-	_ = os.WriteFile(filepath.Join(tmpDir, "include/exclude1/a-1"), nil, 0o644)
-	_ = os.WriteFile(filepath.Join(tmpDir, "include/exclude2/a-2"), nil, 0o644)
+	_ = os.WriteFile(filepath.Join(tmpDir, "include/a"), []byte("content-a"), 0o644)
+	_ = os.WriteFile(filepath.Join(tmpDir, "include/sub/b"), []byte("content-b"), 0o644)
+	_ = os.WriteFile(filepath.Join(tmpDir, "include/exclude1/a-1"), []byte("content-a-1"), 0o644)
+	_ = os.WriteFile(filepath.Join(tmpDir, "include/exclude2/a-2"), []byte("content-a-2"), 0o644)
 
-	tw := &testWriter{}
-	d := &Dumper{Writer: tw}
-	d.GlobalExcludeAbsPath(filepath.Join(tmpDir, "include/exclude1"))
-	err := d.AddRecursiveExclude("include", filepath.Join(tmpDir, "include"), []string{filepath.Join(tmpDir, "include/exclude2")})
+	var buf1 bytes.Buffer
+	dumper1 := NewDumper("tar", &buf1)
+	dumper1.GlobalExcludeAbsPath(filepath.Join(tmpDir, "include/exclude1"))
+	err := dumper1.AddRecursiveExclude("include", filepath.Join(tmpDir, "include"), []string{filepath.Join(tmpDir, "include/exclude2")})
 	assert.NoError(t, err)
-	assert.Equal(t, sortStrings([]string{"include/a", "include/sub", "include/sub/b"}), sortStrings(tw.added))
+	err = dumper1.Close()
+	assert.NoError(t, err)
 
-	tw = &testWriter{}
-	d = &Dumper{Writer: tw}
-	err = d.AddRecursiveExclude("include", filepath.Join(tmpDir, "include"), nil)
+	files1 := extractTarFileNames(t, &buf1)
+	sortStrings := func(s []string) []string {
+		sort.Strings(s)
+		return s
+	}
+
+	expected1 := []string{"include/a", "include/sub", "include/sub/b"}
+	assert.Equal(t, sortStrings(expected1), sortStrings(files1))
+
+	var buf2 bytes.Buffer
+	dumper2 := NewDumper("tar", &buf2)
+	err = dumper2.AddRecursiveExclude("include", filepath.Join(tmpDir, "include"), nil)
 	assert.NoError(t, err)
-	assert.Equal(t, sortStrings([]string{"include/exclude2", "include/exclude2/a-2", "include/a", "include/sub", "include/sub/b", "include/exclude1", "include/exclude1/a-1"}), sortStrings(tw.added))
+	err = dumper2.Close()
+	assert.NoError(t, err)
+
+	files2 := extractTarFileNames(t, &buf2)
+	expected2 := []string{
+		"include/exclude2", "include/exclude2/a-2",
+		"include/a", "include/sub", "include/sub/b",
+		"include/exclude1", "include/exclude1/a-1",
+	}
+	assert.Equal(t, sortStrings(expected2), sortStrings(files2))
+}
+
+func extractTarFileNames(t *testing.T, buf *bytes.Buffer) []string {
+	var fileNames []string
+
+	tr := tar.NewReader(buf)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		assert.NoError(t, err, "Error reading tar archive")
+
+		if hdr.Typeflag == tar.TypeReg || hdr.Typeflag == tar.TypeDir {
+			fileNames = append(fileNames, hdr.Name)
+		}
+	}
+
+	return fileNames
 }

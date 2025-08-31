@@ -4,8 +4,10 @@
 package dump
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -16,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/mholt/archiver/v3"
+	"github.com/mholt/archives"
 )
 
 var SupportedOutputTypes = []string{"zip", "tar", "tar.sz", "tar.gz", "tar.xz", "tar.bz2", "tar.br", "tar.lz4", "tar.zst"}
@@ -60,37 +62,154 @@ func IsSubdir(upper, lower string) (bool, error) {
 }
 
 type Dumper struct {
-	Writer  archiver.Writer
+	format  string
+	output  io.Writer
+	files   []archives.FileInfo
 	Verbose bool
 
 	globalExcludeAbsPaths []string
 }
 
+func NewDumper(format string, output io.Writer) *Dumper {
+	return &Dumper{
+		format: format,
+		output: output,
+		files:  make([]archives.FileInfo, 0),
+	}
+}
+
+// AddFilePath adds a file by its filesystem path
+func (dumper *Dumper) AddFilePath(filePath, absPath string) error {
+	if dumper.Verbose {
+		log.Info("Adding file path %s", filePath)
+	}
+
+	fileInfo, err := os.Stat(absPath)
+	if err != nil {
+		return err
+	}
+
+	if fileInfo.IsDir() {
+		archiveFileInfo := archives.FileInfo{
+			FileInfo:      fileInfo,
+			NameInArchive: filePath,
+			Open: func() (fs.File, error) {
+				return &emptyDirFile{info: fileInfo}, nil
+			},
+		}
+		dumper.files = append(dumper.files, archiveFileInfo)
+		return nil
+	}
+
+	archiveFileInfo := archives.FileInfo{
+		FileInfo:      fileInfo,
+		NameInArchive: filePath,
+		Open: func() (fs.File, error) {
+			return os.Open(absPath)
+		},
+	}
+
+	dumper.files = append(dumper.files, archiveFileInfo)
+	return nil
+}
+
+// AddReader adds a file's contents from a Reader, this uses a pipe to stream files from object store to prevent them from filling up disk
 func (dumper *Dumper) AddReader(r io.ReadCloser, info os.FileInfo, customName string) error {
 	if dumper.Verbose {
 		log.Info("Adding file %s", customName)
 	}
 
-	return dumper.Writer.Write(archiver.File{
-		FileInfo: archiver.FileInfo{
-			FileInfo:   info,
-			CustomName: customName,
+	pr, pw := io.Pipe()
+
+	fileInfo := archives.FileInfo{
+		FileInfo:      info,
+		NameInArchive: customName,
+		Open: func() (fs.File, error) {
+			go func() {
+				defer pw.Close()
+				_, err := io.Copy(pw, r)
+				r.Close()
+				if err != nil {
+					pw.CloseWithError(err)
+				}
+			}()
+
+			return &pipeFile{PipeReader: pr, info: info}, nil
 		},
-		ReadCloser: r,
-	})
+	}
+
+	dumper.files = append(dumper.files, fileInfo)
+	return nil
 }
 
+// pipeFile makes io.PipeReader compatible with fs.File interface
+type pipeFile struct {
+	*io.PipeReader
+	info os.FileInfo
+}
+
+func (f *pipeFile) Stat() (fs.FileInfo, error) { return f.info, nil }
+
+type emptyDirFile struct {
+	info os.FileInfo
+}
+
+func (f *emptyDirFile) Read([]byte) (int, error)   { return 0, io.EOF }
+func (f *emptyDirFile) Close() error               { return nil }
+func (f *emptyDirFile) Stat() (fs.FileInfo, error) { return f.info, nil }
+
+func (dumper *Dumper) Close() error {
+	ctx := context.Background()
+
+	switch dumper.format {
+	case "zip":
+		return archives.Zip{}.Archive(ctx, dumper.output, dumper.files)
+	case "tar":
+		return archives.Tar{}.Archive(ctx, dumper.output, dumper.files)
+	case "tar.gz":
+		comp := archives.CompressedArchive{
+			Compression: archives.Gz{},
+			Archival:    archives.Tar{},
+		}
+		return comp.Archive(ctx, dumper.output, dumper.files)
+	case "tar.xz":
+		comp := archives.CompressedArchive{
+			Compression: archives.Xz{},
+			Archival:    archives.Tar{},
+		}
+		return comp.Archive(ctx, dumper.output, dumper.files)
+	case "tar.bz2":
+		comp := archives.CompressedArchive{
+			Compression: archives.Bz2{},
+			Archival:    archives.Tar{},
+		}
+		return comp.Archive(ctx, dumper.output, dumper.files)
+	case "tar.br":
+		comp := archives.CompressedArchive{
+			Compression: archives.Brotli{},
+			Archival:    archives.Tar{},
+		}
+		return comp.Archive(ctx, dumper.output, dumper.files)
+	case "tar.lz4":
+		comp := archives.CompressedArchive{
+			Compression: archives.Lz4{},
+			Archival:    archives.Tar{},
+		}
+		return comp.Archive(ctx, dumper.output, dumper.files)
+	case "tar.zst":
+		comp := archives.CompressedArchive{
+			Compression: archives.Zstd{},
+			Archival:    archives.Tar{},
+		}
+		return comp.Archive(ctx, dumper.output, dumper.files)
+	default:
+		return fmt.Errorf("unsupported format: %s", dumper.format)
+	}
+}
+
+// AddFile kept for backwards compatibility since streaming is more efficient
 func (dumper *Dumper) AddFile(filePath, absPath string) error {
-	file, err := os.Open(absPath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return err
-	}
-	return dumper.AddReader(file, fileInfo, filePath)
+	return dumper.AddFilePath(filePath, absPath)
 }
 
 func (dumper *Dumper) normalizeFilePath(absPath string) string {

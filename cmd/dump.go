@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/session"
-	"github.com/mholt/archiver/v3"
 	"github.com/urfave/cli/v3"
 )
 
@@ -146,22 +145,10 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	archiverGeneric, err := archiver.ByExtension("." + outType)
-	if err != nil {
-		fatal("Unable to get archiver for extension: %v", err)
-	}
-
-	archiverWriter := archiverGeneric.(archiver.Writer)
-	if err := archiverWriter.Create(outFile); err != nil {
-		fatal("Creating archiver.Writer failed: %v", err)
-	}
-	defer archiverWriter.Close()
-
-	dumper := &dump.Dumper{
-		Writer:  archiverWriter,
-		Verbose: verbose,
-	}
+	dumper := dump.NewDumper(outType, outFile)
+	dumper.Verbose = verbose
 	dumper.GlobalExcludeAbsPath(outFileName)
+	defer dumper.Close()
 
 	if cmd.IsSet("skip-repository") && cmd.Bool("skip-repository") {
 		log.Info("Skip dumping local repositories")
@@ -322,10 +309,6 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 	if outFileName == "-" {
 		log.Info("Finish dumping to stdout")
 	} else {
-		if err = archiverWriter.Close(); err != nil {
-			_ = os.Remove(outFileName)
-			fatal("Failed to save %q: %v", outFileName, err)
-		}
 		if err = os.Chmod(outFileName, 0o600); err != nil {
 			log.Info("Can't change file access permissions mask to 0600: %v", err)
 		}
