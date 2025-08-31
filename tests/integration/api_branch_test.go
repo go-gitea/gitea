@@ -303,7 +303,7 @@ func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, branches, 6)
+	assert.Len(t, branches, 7)
 
 	// make a broke repository with no branch on database
 	_, err = db.DeleteByBean(t.Context(), git_model.Branch{RepoID: 1})
