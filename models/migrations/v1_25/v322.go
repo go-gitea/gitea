@@ -16,7 +16,7 @@ func ExtendCommentTreePathLength(x *xorm.Engine) error {
 		SQLType: schemas.SQLType{
 			Name: "VARCHAR",
 		},
-		Length:         4096,
+		Length:         4000,
 		Nullable:       true, // To keep compatible as nullable
 		DefaultIsEmpty: true,
 	})
