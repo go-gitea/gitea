@@ -83,7 +83,7 @@ func TestDumperIntegration(t *testing.T) {
 	err = dumper.Close()
 	assert.NoError(t, err)
 
-	assert.Greater(t, buf.Len(), 0, "Archive should contain data")
+	assert.Positive(t, buf.Len(), "Archive should contain data")
 }
 
 type testFileInfo struct {
