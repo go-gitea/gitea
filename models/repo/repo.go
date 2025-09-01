@@ -245,6 +245,8 @@ func (sr StorageRepo) RelativePath() string {
 	return string(sr)
 }
 
+// WikiStorageRepo returns the storage repo for the wiki
+// The wiki repository should have the same object format as the code repository
 func (repo *Repository) WikiStorageRepo() StorageRepo {
 	return StorageRepo(RelativeWikiPath(repo.OwnerName, repo.Name))
 }

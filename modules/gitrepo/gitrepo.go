@@ -82,3 +82,7 @@ func RenameRepository(ctx context.Context, repo, newRepo Repository) error {
 	}
 	return nil
 }
+
+func InitRepository(ctx context.Context, repo Repository, objectFormatName string) error {
+	return git.InitRepository(ctx, repoPath(repo), true, objectFormatName)
+}
