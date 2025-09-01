@@ -207,10 +207,10 @@
 
 -
   id: 22
-  type: 3
+  type: 1
   reviewer_id: 5
   issue_id: 3
-  content: "review request for user5"
+  content: "review accepted of user5 but dismissed"
   original_author_id: 0
   updated_unix: 946684000
   created_unix: 946684000
@@ -231,7 +231,7 @@
   type: 3
   reviewer_id: 5
   issue_id: 3
-  content: "review request for user5"
+  content: "review rejected of user5 but dismissed"
   original_author_id: 0
   updated_unix: 946684827
   created_unix: 946684827
