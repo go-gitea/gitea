@@ -45,19 +45,23 @@ func TestAPIPullReview(t *testing.T) {
 	for _, r := range reviews {
 		assert.Equal(t, pullIssue.HTMLURL(t.Context()), r.HTMLPullURL)
 	}
-	assert.EqualValues(t, 8, reviews[3].ID)
-	assert.EqualValues(t, "APPROVED", reviews[3].State)
-	assert.Equal(t, 0, reviews[3].CodeCommentsCount)
-	assert.True(t, reviews[3].Stale)
-	assert.False(t, reviews[3].Official)
+	if assert.EqualValues(t, 8, reviews[4].ID) {
+		assert.EqualValues(t, "APPROVED", reviews[4].State)
+		assert.Equal(t, 0, reviews[4].CodeCommentsCount)
+		assert.True(t, reviews[4].Stale)
+		assert.False(t, reviews[4].Official)
+	}
 
-	assert.EqualValues(t, 10, reviews[5].ID)
-	assert.EqualValues(t, "REQUEST_CHANGES", reviews[5].State)
-	assert.Equal(t, 1, reviews[5].CodeCommentsCount)
-	assert.EqualValues(t, -1, reviews[5].Reviewer.ID) // ghost user
-	assert.False(t, reviews[5].Stale)
-	assert.True(t, reviews[5].Official)
-	assert.True(t, reviews[10].Dismissed)
+	if assert.EqualValues(t, 10, reviews[6].ID) {
+		assert.EqualValues(t, "REQUEST_CHANGES", reviews[6].State)
+		assert.Equal(t, 1, reviews[6].CodeCommentsCount)
+		assert.EqualValues(t, -1, reviews[6].Reviewer.ID) // ghost user
+		assert.False(t, reviews[6].Stale)
+		assert.True(t, reviews[6].Official)
+	}
+	if assert.EqualValues(t, 1000, reviews[10].ID) {
+		assert.True(t, reviews[10].Dismissed)
+	}
 
 	// test GetPullReview
 	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d", repo.OwnerName, repo.Name, pullIssue.Index, reviews[3].ID).
