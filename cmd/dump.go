@@ -145,7 +145,7 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	dumper := dump.NewDumper(outType, outFile)
+	dumper := dump.NewDumper(ctx, outType, outFile)
 	dumper.Verbose = verbose
 	dumper.GlobalExcludeAbsPath(outFileName)
 	defer dumper.Close()
