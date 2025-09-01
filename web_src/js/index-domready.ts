@@ -66,6 +66,7 @@ import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton}
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
+import {initPackageSettings} from './features/package-setting.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -162,6 +163,8 @@ const initPerformanceTracer = callInitFunctions([
   initColorPickers,
 
   initOAuth2SettingsDisableCheckbox,
+
+  initPackageSettings,
 
   initRepoFileView,
 ]);

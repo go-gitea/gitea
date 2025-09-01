@@ -16,29 +16,15 @@
 		</h4>
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "packages.settings.link.description"}}</p>
-			<form class="ui form" action="{{.Link}}" method="post">
-				{{template "base/disable_form_autofill"}}
+			<form class="ui form form-fetch-action ignore-dirty tw-flex-1 tw-flex" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="link">
-				<div class="field">
-					<div class="ui clearable selection dropdown">
-						{{$repoID := 0}}
-						{{if .PackageDescriptor.Repository}}
-							{{$repoID = .PackageDescriptor.Repository.ID}}
-						{{end}}
-						<input type="hidden" name="repo_id" value="{{$repoID}}">
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="default text">{{ctx.Locale.Tr "packages.settings.link.select"}}</div>
-						<div class="menu">
-							{{range .Repos}}
-								<div class="item" data-value="{{.ID}}">{{.Name}}</div>
-							{{end}}
-						</div>
+				<div id="search-repo-box" class="ui search" data-full-name="true" data-uid="{{.OwnerID}}">
+					<div class="ui input">
+						<input class="prompt" name="repo_full_name" value="{{.LinkedRepoFullName}}" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off">
 					</div>
 				</div>
-				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "packages.settings.link.button"}}</button>
-				</div>
+				<button class="ui primary button tw-ml-2">{{ctx.Locale.Tr "packages.settings.link.button"}}</button>
 			</form>
 		</div>
 		<h4 class="ui top attached error header">

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -431,13 +432,17 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
-
-	repos, _, _ := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
-		Actor:   pd.Owner,
-		Private: true,
-	})
-	ctx.Data["Repos"] = repos
+	ctx.Data["OwnerID"] = pd.Owner.ID
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
+
+	if pd.Package.RepoID > 0 {
+		repo, err := repo_model.GetRepositoryByID(ctx, pd.Package.RepoID)
+		if err != nil {
+			ctx.ServerError("GetRepositoryByID", err)
+			return
+		}
+		ctx.Data["LinkedRepoFullName"] = repo.FullName()
+	}
 
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }
@@ -449,37 +454,42 @@ func PackageSettingsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.PackageSettingForm)
 	switch form.Action {
 	case "link":
-		success := func() bool {
-			repoID := int64(0)
-			if form.RepoID != 0 {
-				repo, err := repo_model.GetRepositoryByID(ctx, form.RepoID)
-				if err != nil {
-					log.Error("Error getting repository: %v", err)
-					return false
-				}
-
-				if repo.OwnerID != pd.Owner.ID {
-					return false
-				}
-
-				repoID = repo.ID
+		if form.RepoFullName == "" { // remove the link
+			if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, 0); err != nil {
+				ctx.Flash.Error(ctx.Tr("packages.settings.unlink.error"))
+			} else {
+				ctx.Flash.Success(ctx.Tr("packages.settings.unlink.success"))
 			}
-
-			if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, repoID); err != nil {
-				log.Error("Error updating package: %v", err)
-				return false
-			}
-
-			return true
-		}()
-
-		if success {
-			ctx.Flash.Success(ctx.Tr("packages.settings.link.success"))
-		} else {
-			ctx.Flash.Error(ctx.Tr("packages.settings.link.error"))
+			ctx.JSONRedirect("")
+			return
 		}
 
-		ctx.Redirect(ctx.Link)
+		owner, name, _ := strings.Cut(form.RepoFullName, "/")
+		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner, name)
+		if err != nil {
+			if repo_model.IsErrRepoNotExist(err) {
+				ctx.Flash.Error(ctx.Tr("packages.settings.link.repo_not_found", form.RepoFullName))
+				ctx.JSONRedirect("")
+			} else {
+				ctx.ServerError("GetRepositoryByOwnerAndName", err)
+			}
+			return
+		}
+
+		if repo.OwnerID != pd.Owner.ID {
+			ctx.Flash.Error(ctx.Tr("packages.settings.link.repo_not_found", form.RepoFullName))
+			ctx.JSONRedirect("")
+			return
+		}
+
+		if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, repo.ID); err != nil {
+			ctx.Flash.Error(ctx.Tr("packages.settings.link.error"))
+			ctx.JSONRedirect("")
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("packages.settings.link.success"))
+		ctx.JSONRedirect("")
 		return
 	case "delete":
 		err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
