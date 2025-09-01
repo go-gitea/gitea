@@ -86,7 +86,7 @@ func RegenerateSession(ctx context.Context, oldKey, newKey string) (*Session, er
 			}
 		}
 
-		if _, err := db.Exec(ctx, "UPDATE "+db.TableName(&Session{})+" SET `key` = ? WHERE `key`=?", newKey, oldKey); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE `session` SET `key` = ? WHERE `key`=?", newKey, oldKey); err != nil {
 			return nil, err
 		}
 

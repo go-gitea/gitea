@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -476,7 +475,7 @@ func runErr(t *testing.T, stdin []byte, args ...string) {
 
 func Test_PublicKeysAreExternallyManaged(t *testing.T) {
 	key1 := unittest.AssertExistsAndLoadBean(t, &PublicKey{ID: 1})
-	externals, err := PublicKeysAreExternallyManaged(db.DefaultContext, []*PublicKey{key1})
+	externals, err := PublicKeysAreExternallyManaged(t.Context(), []*PublicKey{key1})
 	assert.NoError(t, err)
 	assert.Len(t, externals, 1)
 	assert.False(t, externals[0])

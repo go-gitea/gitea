@@ -159,8 +159,8 @@ func (org *Organization) AvatarLink(ctx context.Context) string {
 }
 
 // HTMLURL returns the organization's full link.
-func (org *Organization) HTMLURL() string {
-	return org.AsUser().HTMLURL()
+func (org *Organization) HTMLURL(ctx context.Context) string {
+	return org.AsUser().HTMLURL(ctx)
 }
 
 // OrganisationLink returns the organization sub page link.

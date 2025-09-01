@@ -19,9 +19,9 @@ import (
 
 func TestAdminUserCreate(t *testing.T) {
 	reset := func() {
-		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.User{}))
-		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.EmailAddress{}))
-		require.NoError(t, db.TruncateBeans(db.DefaultContext, &auth_model.AccessToken{}))
+		require.NoError(t, db.TruncateBeans(t.Context(), &user_model.User{}))
+		require.NoError(t, db.TruncateBeans(t.Context(), &user_model.EmailAddress{}))
+		require.NoError(t, db.TruncateBeans(t.Context(), &auth_model.AccessToken{}))
 	}
 
 	t.Run("MustChangePassword", func(t *testing.T) {
