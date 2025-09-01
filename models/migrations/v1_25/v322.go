@@ -11,6 +11,11 @@ import (
 )
 
 func ExtendCommentTreePathLength(x *xorm.Engine) error {
+	dbType := x.Dialect().URI().DBType
+	if dbType == schemas.SQLITE { // For SQLITE, varchar or char will always be represented as TEXT
+		return nil
+	}
+
 	return base.ModifyColumn(x, "comment", &schemas.Column{
 		Name: "tree_path",
 		SQLType: schemas.SQLType{
