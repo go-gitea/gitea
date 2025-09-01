@@ -79,6 +79,9 @@ func NewDumper(ctx context.Context, format string, output io.Writer) (*Dumper, e
 		errArchiveJob:   make(chan error, 1),
 	}
 
+	// TODO: in the future, we could completely drop the "mholt/archives" dependency.
+	// Then we only need to support "zip" and ".tar.gz" natively, and let users provide custom command line tools
+	// like "zstd" or "xz" with compression-level arguments.
 	var comp archives.ArchiverAsync
 	switch format {
 	case "zip":
