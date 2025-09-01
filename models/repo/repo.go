@@ -363,10 +363,8 @@ func (repo *Repository) FullName() string {
 
 // HTMLURL returns the repository HTML URL
 func (repo *Repository) HTMLURL(ctxs ...context.Context) string {
-	ctx := context.TODO()
-	if len(ctxs) > 0 {
-		ctx = ctxs[0]
-	}
+	// FIXME: this HTMLURL is still used in mail templates, so the "ctx" is not provided.
+	ctx := util.OptionalArg(ctxs, context.TODO())
 	return httplib.MakeAbsoluteURL(ctx, repo.Link())
 }
 

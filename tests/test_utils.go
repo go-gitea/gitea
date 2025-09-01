@@ -4,7 +4,6 @@
 package tests
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -68,7 +67,7 @@ func InitTest(requireGitea bool) {
 	unittest.InitSettingsForTesting()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 
-	if err := git.InitFull(context.Background()); err != nil {
+	if err := git.InitFull(); err != nil {
 		log.Fatal("git.InitOnceWithSync: %v", err)
 	}
 
@@ -217,7 +216,7 @@ func PrepareLFSStorage(t testing.TB) {
 
 func PrepareCleanPackageData(t testing.TB) {
 	// clear all package data
-	assert.NoError(t, db.TruncateBeans(db.DefaultContext,
+	assert.NoError(t, db.TruncateBeans(t.Context(),
 		&packages_model.Package{},
 		&packages_model.PackageVersion{},
 		&packages_model.PackageFile{},

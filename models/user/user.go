@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -303,8 +304,8 @@ func (u *User) HomeLink() string {
 }
 
 // HTMLURL returns the user or organization's full link.
-func (u *User) HTMLURL() string {
-	return setting.AppURL + url.PathEscape(u.Name)
+func (u *User) HTMLURL(ctx context.Context) string {
+	return httplib.MakeAbsoluteURL(ctx, u.HomeLink())
 }
 
 // OrganisationLink returns the organization sub page link.
@@ -952,6 +953,16 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 	}
 
 	_, err := db.GetEngine(ctx).ID(u.ID).Cols(cols...).Update(u)
+	return err
+}
+
+// UpdateUserColsNoAutoTime update user according special columns
+func UpdateUserColsNoAutoTime(ctx context.Context, u *User, cols ...string) error {
+	if err := ValidateUser(u, cols...); err != nil {
+		return err
+	}
+
+	_, err := db.GetEngine(ctx).ID(u.ID).Cols(cols...).NoAutoTime().Update(u)
 	return err
 }
 
