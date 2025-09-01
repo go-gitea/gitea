@@ -236,6 +236,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	//
 	fromRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	baseRef := "master"
+	// this is very different from the real situation. It should be a bare repository for all the Gitea managed repositories
 	assert.NoError(t, git.InitRepository(t.Context(), fromRepo.RepoPath(), false, fromRepo.ObjectFormatName))
 	err := git.NewCommand("symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef).Run(t.Context(), &git.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
