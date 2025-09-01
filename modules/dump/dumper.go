@@ -88,6 +88,8 @@ func NewDumper(ctx context.Context, format string, output io.Writer) (*Dumper, e
 		comp = archives.Zip{}
 	case "tar":
 		comp = archives.Tar{}
+	case "tar.sz":
+		comp = archives.CompressedArchive{Compression: archives.Sz{}, Archival: archives.Tar{}}
 	case "tar.gz":
 		comp = archives.CompressedArchive{Compression: archives.Gz{}, Archival: archives.Tar{}}
 	case "tar.xz":
