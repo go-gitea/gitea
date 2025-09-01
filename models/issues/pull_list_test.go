@@ -52,12 +52,12 @@ func TestPullRequestList_LoadReviews(t *testing.T) {
 	}
 	reviewList, err := prs.LoadReviews(t.Context())
 	assert.NoError(t, err)
-	// 1, 7, 8, 9, 10, 22
+	// 1, 7, 8, 9, 10, 23
 	assert.Len(t, reviewList, 6)
 	assert.EqualValues(t, 1, reviewList[0].ID)
 	assert.EqualValues(t, 7, reviewList[1].ID)
 	assert.EqualValues(t, 8, reviewList[2].ID)
 	assert.EqualValues(t, 9, reviewList[3].ID)
 	assert.EqualValues(t, 10, reviewList[4].ID)
-	assert.EqualValues(t, 22, reviewList[5].ID)
+	assert.EqualValues(t, 23, reviewList[5].ID)
 }
