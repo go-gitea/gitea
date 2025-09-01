@@ -70,7 +70,7 @@ func TestPrimaryKeys(t *testing.T) {
 	}
 
 	for _, bean := range beans {
-		table, err := db.TableInfo(bean)
+		table, err := db.GetXORMEngineForTesting().TableInfo(bean)
 		if err != nil {
 			t.Fatal(err)
 		}
