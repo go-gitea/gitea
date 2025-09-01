@@ -107,10 +107,23 @@ func NewDumper(ctx context.Context, format string, output io.Writer) (*Dumper, e
 	return d, nil
 }
 
-// AddFilePath adds a file by its filesystem path
-func (dumper *Dumper) AddFilePath(filePath, absPath string) error {
+func (dumper *Dumper) runArchiveJob(job archives.ArchiveAsyncJob) error {
+	dumper.jobs <- job
+	select {
+	case err := <-dumper.errArchiveAsync:
+		if err == nil {
+			return errors.New("archiver has been closed")
+		}
+		return err
+	case err := <-dumper.errArchiveJob:
+		return err
+	}
+}
+
+// AddFileByPath adds a file by its filesystem path
+func (dumper *Dumper) AddFileByPath(filePath, absPath string) error {
 	if dumper.Verbose {
-		log.Info("Adding file path %s", filePath)
+		log.Info("Adding local file %s", filePath)
 	}
 
 	fileInfo, err := os.Stat(absPath)
@@ -121,24 +134,13 @@ func (dumper *Dumper) AddFilePath(filePath, absPath string) error {
 	archiveFileInfo := archives.FileInfo{
 		FileInfo:      fileInfo,
 		NameInArchive: filePath,
-		Open: func() (fs.File, error) {
-			return os.Open(absPath)
-		},
+		Open:          func() (fs.File, error) { return os.Open(absPath) },
 	}
 
-	dumper.jobs <- archives.ArchiveAsyncJob{
+	return dumper.runArchiveJob(archives.ArchiveAsyncJob{
 		File:   archiveFileInfo,
 		Result: dumper.errArchiveJob,
-	}
-	select {
-	case err = <-dumper.errArchiveAsync:
-		if err == nil {
-			return errors.New("archiver has been closed")
-		}
-		return err
-	case err = <-dumper.errArchiveJob:
-		return err
-	}
+	})
 }
 
 type readerFile struct {
@@ -152,10 +154,10 @@ func (f *readerFile) Stat() (fs.FileInfo, error)     { return f.info, nil }
 func (f *readerFile) Read(bytes []byte) (int, error) { return f.r.Read(bytes) }
 func (f *readerFile) Close() error                   { return nil }
 
-// AddReader adds a file's contents from a Reader, this uses a pipe to stream files from object store to prevent them from filling up disk
-func (dumper *Dumper) AddReader(r io.Reader, info os.FileInfo, customName string) error {
+// AddFileByReader adds a file's contents from a Reader
+func (dumper *Dumper) AddFileByReader(r io.Reader, info os.FileInfo, customName string) error {
 	if dumper.Verbose {
-		log.Info("Adding file %s", customName)
+		log.Info("Adding storage file %s", customName)
 	}
 
 	fileInfo := archives.FileInfo{
@@ -163,22 +165,15 @@ func (dumper *Dumper) AddReader(r io.Reader, info os.FileInfo, customName string
 		NameInArchive: customName,
 		Open:          func() (fs.File, error) { return &readerFile{r, info}, nil },
 	}
-
-	dumper.jobs <- archives.ArchiveAsyncJob{
+	return dumper.runArchiveJob(archives.ArchiveAsyncJob{
 		File:   fileInfo,
 		Result: dumper.errArchiveJob,
-	}
-	return <-dumper.errArchiveJob
+	})
 }
 
 func (dumper *Dumper) Close() error {
 	close(dumper.jobs)
 	return <-dumper.errArchiveAsync
-}
-
-// AddFile kept for backwards compatibility since streaming is more efficient
-func (dumper *Dumper) AddFile(filePath, absPath string) error {
-	return dumper.AddFilePath(filePath, absPath)
 }
 
 func (dumper *Dumper) normalizeFilePath(absPath string) string {
@@ -231,7 +226,7 @@ func (dumper *Dumper) addFileOrDir(insidePath, absPath string, excludes []string
 
 		currentInsidePath := path.Join(insidePath, file.Name())
 		if file.IsDir() {
-			if err := dumper.AddFile(currentInsidePath, currentAbsPath); err != nil {
+			if err := dumper.AddFileByPath(currentInsidePath, currentAbsPath); err != nil {
 				return err
 			}
 			if err = dumper.addFileOrDir(currentInsidePath, currentAbsPath, excludes); err != nil {
@@ -252,7 +247,7 @@ func (dumper *Dumper) addFileOrDir(insidePath, absPath string, excludes []string
 				shouldAdd = targetStat.Mode().IsRegular()
 			}
 			if shouldAdd {
-				if err = dumper.AddFile(currentInsidePath, currentAbsPath); err != nil {
+				if err = dumper.AddFileByPath(currentInsidePath, currentAbsPath); err != nil {
 					return err
 				}
 			}

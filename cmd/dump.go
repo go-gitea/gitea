@@ -145,10 +145,18 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	dumper := dump.NewDumper(ctx, outType, outFile)
+	dumper, err := dump.NewDumper(ctx, outType, outFile)
+	if err != nil {
+		fatal("Failed to create archive %q: %v", outFile, err)
+		return err
+	}
 	dumper.Verbose = verbose
 	dumper.GlobalExcludeAbsPath(outFileName)
-	defer dumper.Close()
+	defer func() {
+		if err := dumper.Close(); err != nil {
+			fatal("Failed to save archive %q: %v", outFileName, err)
+		}
+	}()
 
 	if cmd.IsSet("skip-repository") && cmd.Bool("skip-repository") {
 		log.Info("Skip dumping local repositories")
@@ -167,7 +175,7 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 			if err != nil {
 				return err
 			}
-			return dumper.AddReader(object, info, path.Join("data", "lfs", objPath))
+			return dumper.AddFileByReader(object, info, path.Join("data", "lfs", objPath))
 		}); err != nil {
 			fatal("Failed to dump LFS objects: %v", err)
 		}
@@ -205,13 +213,13 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 			fatal("Failed to dump database: %v", err)
 		}
 
-		if err = dumper.AddFile("gitea-db.sql", dbDump.Name()); err != nil {
+		if err = dumper.AddFileByPath("gitea-db.sql", dbDump.Name()); err != nil {
 			fatal("Failed to include gitea-db.sql: %v", err)
 		}
 	}
 
 	log.Info("Adding custom configuration file from %s", setting.CustomConf)
-	if err = dumper.AddFile("app.ini", setting.CustomConf); err != nil {
+	if err = dumper.AddFileByPath("app.ini", setting.CustomConf); err != nil {
 		fatal("Failed to include specified app.ini: %v", err)
 	}
 
@@ -270,7 +278,7 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 		if err != nil {
 			return err
 		}
-		return dumper.AddReader(object, info, path.Join("data", "attachments", objPath))
+		return dumper.AddFileByReader(object, info, path.Join("data", "attachments", objPath))
 	}); err != nil {
 		fatal("Failed to dump attachments: %v", err)
 	}
@@ -284,7 +292,7 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 		if err != nil {
 			return err
 		}
-		return dumper.AddReader(object, info, path.Join("data", "packages", objPath))
+		return dumper.AddFileByReader(object, info, path.Join("data", "packages", objPath))
 	}); err != nil {
 		fatal("Failed to dump packages: %v", err)
 	}
