@@ -137,21 +137,15 @@ func TestDumper(t *testing.T) {
 	})
 }
 
-func extractTarFileNames(t *testing.T, buf *bytes.Buffer) []string {
-	var fileNames []string
-
+func extractTarFileNames(t *testing.T, buf *bytes.Buffer) (fileNames []string) {
 	tr := tar.NewReader(buf)
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {
 			break
 		}
-		assert.NoError(t, err, "Error reading tar archive")
-
-		if hdr.Typeflag == tar.TypeReg || hdr.Typeflag == tar.TypeDir {
-			fileNames = append(fileNames, hdr.Name)
-		}
+		require.NoError(t, err, "Error reading tar archive")
+		fileNames = append(fileNames, hdr.Name)
 	}
-
 	return fileNames
 }
