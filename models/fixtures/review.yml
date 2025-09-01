@@ -229,6 +229,17 @@
 -
   id: 24
   type: 3
+  reviewer_id: 5
+  issue_id: 3
+  content: "review request for user5"
+  original_author_id: 0
+  updated_unix: 946684827
+  created_unix: 946684827
+  dismissed: true
+
+-
+  id: 25
+  type: 3
   reviewer_id: 15
   reviewer_team_id: 0
   issue_id: 3
