@@ -39,9 +39,9 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 	files_service "code.gitea.io/gitea/services/repository/files"
-	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle repo_model.MergeStyle, deleteBranch bool) *httptest.ResponseRecorder {
@@ -263,7 +263,7 @@ func TestPullSquash(t *testing.T) {
 		require.Len(t, pullCommitList.Commits, 4)
 
 		for _, commit := range pullCommitList.Commits {
-			assert.Contains(t, commitBody, fmt.Sprintf("* %s", commit.Summary))
+			assert.Contains(t, commitBody, "* "+commit.Summary)
 		}
 
 		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
