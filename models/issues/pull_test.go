@@ -349,7 +349,7 @@ func TestGetApprovers(t *testing.T) {
 	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: Org Six <org6@example.com>\n"
 	assert.Equal(t, expected, approvers)
 
-	// dismissed reviews should be ignored
+	// dismissed, comment-type and pending reviews should be ignored
 	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.EqualValues(t, 3, pr.IssueID)
 	setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly = false
