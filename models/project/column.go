@@ -34,6 +34,28 @@ const (
 	CardTypeImagesAndText
 )
 
+func (p CardType) ToString() string {
+	switch p {
+	case CardTypeImagesAndText:
+		return "ImagesAndText"
+	case CardTypeTextOnly:
+		fallthrough
+	default:
+		return "TextOnly"
+	}
+}
+
+func ToCardType(s string) CardType {
+	switch s {
+	case "ImagesAndText":
+		return CardTypeImagesAndText
+	case "TextOnly":
+		fallthrough
+	default:
+		return CardTypeTextOnly
+	}
+}
+
 // ColumnColorPattern is a regexp witch can validate ColumnColor
 var ColumnColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
 
