@@ -59,7 +59,7 @@ func TestAPIPullReview(t *testing.T) {
 		assert.False(t, reviews[6].Stale)
 		assert.True(t, reviews[6].Official)
 	}
-	if assert.EqualValues(t, 1000, reviews[10].ID) {
+	if assert.EqualValues(t, 25, reviews[10].ID) {
 		assert.True(t, reviews[10].Dismissed)
 	}
 
