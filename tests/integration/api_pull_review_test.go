@@ -40,7 +40,7 @@ func TestAPIPullReview(t *testing.T) {
 
 	var reviews []*api.PullReview
 	DecodeJSON(t, resp, &reviews)
-	require.Len(t, reviews, 8)
+	require.Len(t, reviews, 11)
 
 	for _, r := range reviews {
 		assert.Equal(t, pullIssue.HTMLURL(t.Context()), r.HTMLPullURL)
@@ -57,6 +57,7 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, -1, reviews[5].Reviewer.ID) // ghost user
 	assert.False(t, reviews[5].Stale)
 	assert.True(t, reviews[5].Official)
+	assert.True(t, reviews[10].Dismissed)
 
 	// test GetPullReview
 	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d", repo.OwnerName, repo.Name, pullIssue.Index, reviews[3].ID).
