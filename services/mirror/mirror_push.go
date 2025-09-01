@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
@@ -43,7 +44,7 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 		return err
 	}
 
-	if m.Repo.HasWiki() {
+	if repo_service.HasWiki(ctx, m.Repo) {
 		wikiRemoteURL := repository.WikiRemoteURL(ctx, addr)
 		if len(wikiRemoteURL) > 0 {
 			if err := addRemoteAndConfig(m.Repo.WikiStorageRepo(), wikiRemoteURL); err != nil {
@@ -62,7 +63,7 @@ func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error
 		return err
 	}
 
-	if m.Repo.HasWiki() {
+	if repo_service.HasWiki(ctx, m.Repo) {
 		if err := gitrepo.GitRemoteRemove(ctx, m.Repo.WikiStorageRepo(), m.RemoteName); err != nil {
 			// The wiki remote may not exist
 			log.Warn("Wiki Remote[%d] could not be removed: %v", m.ID, err)
@@ -174,7 +175,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return err
 	}
 
-	if m.Repo.HasWiki() {
+	if repo_service.HasWiki(ctx, m.Repo) {
 		if _, err := gitrepo.GitRemoteGetURL(ctx, m.Repo.WikiStorageRepo(), m.RemoteName); err == nil {
 			err := performPush(m.Repo, true)
 			if err != nil {

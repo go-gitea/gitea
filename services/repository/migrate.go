@@ -266,7 +266,9 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 	if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 		return repo, fmt.Errorf("createDelegateHooks: %w", err)
 	}
-	if repo.HasWiki() {
+
+	hasWiki := HasWiki(ctx, repo)
+	if hasWiki {
 		if err := gitrepo.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 			return repo, fmt.Errorf("createDelegateHooks.(wiki): %w", err)
 		}
@@ -277,7 +279,7 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}
 
-	if repo.HasWiki() {
+	if hasWiki {
 		err = gitrepo.GitRemoteRemove(ctx, repo.WikiStorageRepo(), "origin")
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %w", err)

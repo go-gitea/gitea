@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -85,13 +84,4 @@ func WikiPath(userName, repoName string) string {
 // WikiPath returns wiki data path for given repository.
 func (repo *Repository) WikiPath() string {
 	return WikiPath(repo.OwnerName, repo.Name)
-}
-
-// HasWiki returns true if repository has wiki.
-func (repo *Repository) HasWiki() bool {
-	isDir, err := util.IsDir(repo.WikiPath())
-	if err != nil {
-		log.Error("Unable to check if %s is a directory: %v", repo.WikiPath(), err)
-	}
-	return isDir
 }

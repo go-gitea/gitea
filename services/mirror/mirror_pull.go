@@ -51,7 +51,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		return err
 	}
 
-	if m.Repo.HasWiki() {
+	if repo_service.HasWiki(ctx, m.Repo) {
 		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
 		// Remove old remote of wiki
 		err = gitrepo.GitRemoteRemove(ctx, repo.WikiStorageRepo(), remoteName)
@@ -340,7 +340,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		endpoint := lfs.DetermineEndpoint(remoteURL.String(), m.LFSEndpoint)
 		lfsClient := lfs.NewClient(endpoint, nil)
 		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
-			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo, err)
+			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo.FullName(), err)
 		}
 	}
 
@@ -357,10 +357,10 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
 	if err := repo_module.UpdateRepoSize(ctx, m.Repo); err != nil {
-		log.Error("SyncMirrors [repo: %-v]: failed to update size for mirror repository: %v", m.Repo, err)
+		log.Error("SyncMirrors [repo: %-v]: failed to update size for mirror repository: %v", m.Repo.FullName(), err)
 	}
 
-	if m.Repo.HasWiki() {
+	if repo_service.HasWiki(ctx, m.Repo) {
 		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
