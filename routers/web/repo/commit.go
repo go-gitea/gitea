@@ -15,6 +15,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -311,7 +312,7 @@ func Diff(ctx *context.Context) {
 		maxLines, maxFiles = -1, -1
 	}
 
-	diff, err := gitdiff.GetDiffForRender(ctx, gitRepo, &gitdiff.DiffOptions{
+	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, &gitdiff.DiffOptions{
 		AfterCommitID:      commitID,
 		SkipTo:             ctx.FormString("skip-to"),
 		MaxLines:           maxLines,
@@ -409,6 +410,11 @@ func Diff(ctx *context.Context) {
 			ctx.ServerError("PostProcessCommitMessage", err)
 			return
 		}
+	}
+
+	pr, _ := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, commitID)
+	if pr != nil {
+		ctx.Data["MergedPRIssueNumber"] = pr.Index
 	}
 
 	ctx.HTML(http.StatusOK, tplCommitPage)

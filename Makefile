@@ -23,12 +23,12 @@ SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
-XGO_VERSION := go-1.24.x
+XGO_VERSION := go-1.25.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.8.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4.0
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.12
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.32.3
@@ -36,8 +36,8 @@ XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
-GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.19.1
-GOPLS_MODERNIZE_PACKAGE ?= golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.19.1
+GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.20.0
+GOPLS_MODERNIZE_PACKAGE ?= golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.20.0
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -46,6 +46,17 @@ DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 ifeq ($(HAS_GO), yes)
 	CGO_EXTRA_CFLAGS := -DSQLITE_MAX_VARIABLE_NUMBER=32766
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
+endif
+
+CGO_ENABLED ?= 0
+ifneq (,$(findstring sqlite,$(TAGS))$(findstring pam,$(TAGS)))
+	CGO_ENABLED = 1
+endif
+
+STATIC ?=
+EXTLDFLAGS ?=
+ifneq ($(STATIC),)
+	EXTLDFLAGS = -extldflags "-static"
 endif
 
 ifeq ($(GOOS),windows)
@@ -393,11 +404,11 @@ lint-actions: ## lint action workflow files
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
 	@node tools/lint-templates-svg.js
-	@poetry run djlint $(shell find templates -type f -iname '*.tmpl')
+	@uv run --frozen djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: lint-yaml
 lint-yaml: .venv ## lint yaml files
-	@poetry run yamllint -s .
+	@uv run --frozen yamllint -s .
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
@@ -746,7 +757,10 @@ security-check:
 	go run $(GOVULNCHECK_PACKAGE) -show color ./...
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)
+  $(error pam support set via TAGS doesn't support static builds)
+endif
+	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
 
 .PHONY: release
 release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-check
@@ -829,8 +843,8 @@ node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
 
-.venv: poetry.lock
-	poetry install
+.venv: uv.lock
+	uv sync
 	@touch .venv
 
 .PHONY: update
@@ -848,8 +862,8 @@ update-js: node-check | node_modules ## update js dependencies
 .PHONY: update-py
 update-py: node-check | node_modules ## update py dependencies
 	npx updates -u -f pyproject.toml
-	rm -rf .venv poetry.lock
-	poetry install
+	rm -rf .venv uv.lock
+	uv sync
 	@touch .venv
 
 .PHONY: webpack

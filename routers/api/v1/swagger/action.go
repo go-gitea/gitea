@@ -44,5 +44,5 @@ type swaggerResponseActionWorkflow struct {
 // swagger:response ActionWorkflowList
 type swaggerResponseActionWorkflowList struct {
 	// in:body
-	Body []api.ActionWorkflow `json:"body"`
+	Body api.ActionWorkflowResponse `json:"body"`
 }

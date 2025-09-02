@@ -179,7 +179,7 @@ func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
 }
 
 func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int) *DiffLineSectionInfo {
-	leftLine, leftHunk, rightLine, righHunk := git.ParseDiffHunkString(line)
+	leftLine, leftHunk, rightLine, rightHunk := git.ParseDiffHunkString(line)
 
 	return &DiffLineSectionInfo{
 		Path:          treePath,
@@ -188,7 +188,7 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 		LeftIdx:       leftLine,
 		RightIdx:      rightLine,
 		LeftHunkSize:  leftHunk,
-		RightHunkSize: righHunk,
+		RightHunkSize: rightHunk,
 	}
 }
 
@@ -290,7 +290,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
-		return getLineContent(diffLine.Content[1:], locale)
+		return getLineContent(diffLine.Content, locale)
 	case DiffLineAdd:
 		compareDiffLine := diffSection.GetLine(diffLine.Match)
 		return diffSection.getDiffLineForRender(DiffLineAdd, compareDiffLine, diffLine, locale)
@@ -856,6 +856,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			lastLeftIdx = -1
 			curFile.Sections = append(curFile.Sections, curSection)
 
+			// FIXME: the "-1" can't be right, these "line idx" are all 1-based, maybe there are other bugs that covers this bug.
 			lineSectionInfo := getDiffLineSectionInfo(curFile.Name, line, leftLine-1, rightLine-1)
 			diffLine := &DiffLine{
 				Type:        DiffLineSection,
@@ -1184,13 +1185,13 @@ func GetDiffForAPI(ctx context.Context, gitRepo *git.Repository, opts *DiffOptio
 	return diff, err
 }
 
-func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
+func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
 	diff, beforeCommit, afterCommit, err := getDiffBasic(ctx, gitRepo, opts, files...)
 	if err != nil {
 		return nil, err
 	}
 
-	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage})
+	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage, attribute.Diff})
 	if err != nil {
 		return nil, err
 	}
@@ -1199,6 +1200,7 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 	for _, diffFile := range diff.Files {
 		isVendored := optional.None[bool]()
 		isGenerated := optional.None[bool]()
+		attrDiff := optional.None[string]()
 		attrs, err := checker.CheckPath(diffFile.Name)
 		if err == nil {
 			isVendored, isGenerated = attrs.GetVendored(), attrs.GetGenerated()
@@ -1206,11 +1208,12 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 			if language.Has() {
 				diffFile.Language = language.Value()
 			}
+			attrDiff = attrs.Get(attribute.Diff).ToString()
 		}
 
 		// Populate Submodule URLs
 		if diffFile.SubmoduleDiffInfo != nil {
-			diffFile.SubmoduleDiffInfo.PopulateURL(diffFile, beforeCommit, afterCommit)
+			diffFile.SubmoduleDiffInfo.PopulateURL(repoLink, diffFile, beforeCommit, afterCommit)
 		}
 
 		if !isVendored.Has() {
@@ -1227,7 +1230,8 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
 
-		if !setting.Git.DisableDiffHighlight {
+		shouldFullFileHighlight := !setting.Git.DisableDiffHighlight && attrDiff.Value() == ""
+		if shouldFullFileHighlight {
 			if limitedContent.LeftContent != nil && limitedContent.LeftContent.buf.Len() < MaxDiffHighlightEntireFileSize {
 				diffFile.highlightedLeftLines = highlightCodeLines(diffFile, true /* left */, limitedContent.LeftContent.buf.String())
 			}

@@ -29,29 +29,6 @@
 				<input id="location" name="location"  value="{{.Org.Location}}" maxlength="50">
 			</div>
 
-			<div class="divider"></div>
-			<div class="field" id="visibility_box">
-				<label for="visibility">{{ctx.Locale.Tr "org.settings.visibility"}}</label>
-				<div class="field">
-					<div class="ui radio checkbox">
-						<input class="enable-system-radio" name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 0}}checked{{end}}>
-						<label>{{ctx.Locale.Tr "org.settings.visibility.public"}}</label>
-					</div>
-				</div>
-				<div class="field">
-					<div class="ui radio checkbox">
-						<input class="enable-system-radio" name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}>
-						<label>{{ctx.Locale.Tr "org.settings.visibility.limited"}}</label>
-					</div>
-				</div>
-				<div class="field">
-					<div class="ui radio checkbox">
-						<input class="enable-system-radio" name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}>
-						<label>{{ctx.Locale.Tr "org.settings.visibility.private"}}</label>
-					</div>
-				</div>
-			</div>
-
 			<div class="field" id="permission_box">
 				<label>{{ctx.Locale.Tr "org.settings.permission"}}</label>
 				<div class="field">

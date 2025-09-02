@@ -41,6 +41,7 @@ var CmdServ = &cli.Command{
 	Name:        "serv",
 	Usage:       "(internal) Should only be called by SSH shell",
 	Description: "Serv provides access auth for repositories",
+	Hidden:      true, // Internal commands shouldn't be visible in help
 	Before:      PrepareConsoleLoggerLevel(log.FATAL),
 	Action:      runServ,
 	Flags: []cli.Flag{
@@ -64,7 +65,7 @@ func setup(ctx context.Context, debug bool) {
 		_ = fail(ctx, "Unable to access repository path", "Unable to access repository path %q, err: %v", setting.RepoRootPath, err)
 		return
 	}
-	if err := git.InitSimple(context.Background()); err != nil {
+	if err := git.InitSimple(); err != nil {
 		_ = fail(ctx, "Failed to init git", "Failed to init git, err: %v", err)
 	}
 }

@@ -99,7 +99,7 @@ func verifyAuth(r *web.Router, authMethods []auth.Method) {
 		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if err != nil {
 			log.Error("Failed to verify user: %v", err)
-			ctx.HTTPError(http.StatusUnauthorized, "authGroup.Verify")
+			ctx.HTTPError(http.StatusUnauthorized, "Failed to authenticate user")
 			return
 		}
 		ctx.IsSigned = ctx.Doer != nil
@@ -339,7 +339,7 @@ func CommonRoutes() *web.Router {
 			r.Group("/{packagename}/{packageversion}", func() {
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
 				r.Group("/{filename}", func() {
-					r.Get("", generic.DownloadPackageFile)
+					r.Methods("HEAD,GET", "", generic.DownloadPackageFile)
 					r.Group("", func() {
 						r.Put("", generic.UploadPackage)
 						r.Delete("", generic.DeletePackageFile)

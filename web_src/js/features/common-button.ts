@@ -109,18 +109,26 @@ function onHidePanelClick(el: HTMLElement, e: MouseEvent) {
   throw new Error('no panel to hide'); // should never happen, otherwise there is a bug in code
 }
 
-export function assignElementProperty(el: any, name: string, val: string) {
-  name = camelize(name);
-  const old = el[name];
+export type ElementWithAssignableProperties = {
+  getAttribute: (name: string) => string | null;
+  setAttribute: (name: string, value: string) => void;
+} & Record<string, any>
+
+export function assignElementProperty(el: ElementWithAssignableProperties, kebabName: string, val: string) {
+  const camelizedName = camelize(kebabName);
+  const old = el[camelizedName];
   if (typeof old === 'boolean') {
-    el[name] = val === 'true';
+    el[camelizedName] = val === 'true';
   } else if (typeof old === 'number') {
-    el[name] = parseFloat(val);
+    el[camelizedName] = parseFloat(val);
   } else if (typeof old === 'string') {
-    el[name] = val;
+    el[camelizedName] = val;
+  } else if (old?.nodeName) {
+    // "form" has an edge case: its "<input name=action>" element overwrites the "action" property, we can only set attribute
+    el.setAttribute(kebabName, val);
   } else {
     // in the future, we could introduce a better typing system like `data-modal-form.action:string="..."`
-    throw new Error(`cannot assign element property ${name} by value ${val}`);
+    throw new Error(`cannot assign element property "${camelizedName}" by value "${val}"`);
   }
 }
 

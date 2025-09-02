@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/hostmatcher"
@@ -105,7 +104,7 @@ func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 	}
 	err := hook.SetHeaderAuthorization("Bearer s3cr3t-t0ken")
 	assert.NoError(t, err)
-	assert.NoError(t, webhook_model.CreateWebhook(db.DefaultContext, hook))
+	assert.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
 
 	hookTask := &webhook_model.HookTask{
 		HookID:         hook.ID,
@@ -113,7 +112,7 @@ func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 		PayloadVersion: 2,
 	}
 
-	hookTask, err = webhook_model.CreateHookTask(db.DefaultContext, hookTask)
+	hookTask, err = webhook_model.CreateHookTask(t.Context(), hookTask)
 	assert.NoError(t, err)
 	assert.NotNil(t, hookTask)
 
@@ -170,7 +169,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 		ContentType: webhook_model.ContentTypeJSON,
 		Meta:        `{"message_type":0}`, // text
 	}
-	assert.NoError(t, webhook_model.CreateWebhook(db.DefaultContext, hook))
+	assert.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
 
 	t.Run("Version 1", func(t *testing.T) {
 		hookTask := &webhook_model.HookTask{
@@ -180,7 +179,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 			PayloadVersion: 1,
 		}
 
-		hookTask, err := webhook_model.CreateHookTask(db.DefaultContext, hookTask)
+		hookTask, err := webhook_model.CreateHookTask(t.Context(), hookTask)
 		assert.NoError(t, err)
 		assert.NotNil(t, hookTask)
 
@@ -206,7 +205,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 			PayloadVersion: 2,
 		}
 
-		hookTask, err = webhook_model.CreateHookTask(db.DefaultContext, hookTask)
+		hookTask, err = webhook_model.CreateHookTask(t.Context(), hookTask)
 		assert.NoError(t, err)
 		assert.NotNil(t, hookTask)
 
@@ -266,7 +265,7 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 				URL:      s.URL + "/" + typ,
 				Meta:     "{}",
 			}
-			assert.NoError(t, webhook_model.CreateWebhook(db.DefaultContext, hook))
+			assert.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
 
 			hookTask := &webhook_model.HookTask{
 				HookID:         hook.ID,
@@ -275,7 +274,7 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 				PayloadVersion: 2,
 			}
 
-			hookTask, err := webhook_model.CreateHookTask(db.DefaultContext, hookTask)
+			hookTask, err := webhook_model.CreateHookTask(t.Context(), hookTask)
 			assert.NoError(t, err)
 			assert.NotNil(t, hookTask)
 

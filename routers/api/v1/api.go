@@ -72,13 +72,13 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -145,7 +145,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		)
 
 		// Check if the user is the same as the repository owner.
-		if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
+		if ctx.IsSigned && strings.EqualFold(ctx.Doer.LowerName, userName) {
 			owner = ctx.Doer
 		} else {
 			owner, err = user_model.GetUserByName(ctx, userName)
@@ -780,7 +780,7 @@ func buildAuthGroup() *auth.Group {
 		group.Add(&auth.ReverseProxy{})
 	}
 
-	if setting.IsWindows && auth_model.IsSSPIEnabled(db.DefaultContext) {
+	if setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext()) {
 		group.Add(&auth.SSPI{}) // it MUST be the last, see the comment of SSPI
 	}
 
@@ -1256,7 +1256,7 @@ func Routes() *web.Router {
 					m.Get("/*", repo.GetBranch)
 					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.DeleteBranch)
 					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
-					m.Patch("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.UpdateBranchRepoOption{}), repo.UpdateBranch)
+					m.Patch("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.RenameBranchRepoOption{}), repo.RenameBranch)
 				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode))
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)

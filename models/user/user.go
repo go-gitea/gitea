@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -303,8 +304,8 @@ func (u *User) HomeLink() string {
 }
 
 // HTMLURL returns the user or organization's full link.
-func (u *User) HTMLURL() string {
-	return setting.AppURL + url.PathEscape(u.Name)
+func (u *User) HTMLURL(ctx context.Context) string {
+	return httplib.MakeAbsoluteURL(ctx, u.HomeLink())
 }
 
 // OrganisationLink returns the organization sub page link.
@@ -955,6 +956,16 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 	return err
 }
 
+// UpdateUserColsNoAutoTime update user according special columns
+func UpdateUserColsNoAutoTime(ctx context.Context, u *User, cols ...string) error {
+	if err := ValidateUser(u, cols...); err != nil {
+		return err
+	}
+
+	_, err := db.GetEngine(ctx).ID(u.ID).Cols(cols...).NoAutoTime().Update(u)
+	return err
+}
+
 // GetInactiveUsers gets all inactive users
 func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, error) {
 	cond := builder.And(
@@ -1166,12 +1177,6 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([
 
 	for _, c := range oldCommits {
 		user := emailUserMap.GetByEmail(c.Author.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
-		if user == nil {
-			user = &User{
-				Name:  c.Author.Name,
-				Email: c.Author.Email,
-			}
-		}
 		newCommits = append(newCommits, &UserCommit{
 			User:   user,
 			Commit: c,
@@ -1195,12 +1200,14 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 
 	needCheckEmails := make(container.Set[string])
 	needCheckUserNames := make(container.Set[string])
+	noReplyAddressSuffix := "@" + strings.ToLower(setting.Service.NoReplyAddress)
 	for _, email := range emails {
-		if strings.HasSuffix(email, "@"+setting.Service.NoReplyAddress) {
-			username := strings.TrimSuffix(email, "@"+setting.Service.NoReplyAddress)
-			needCheckUserNames.Add(strings.ToLower(username))
+		emailLower := strings.ToLower(email)
+		if noReplyUserNameLower, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
+			needCheckUserNames.Add(noReplyUserNameLower)
+			needCheckEmails.Add(emailLower)
 		} else {
-			needCheckEmails.Add(strings.ToLower(email))
+			needCheckEmails.Add(emailLower)
 		}
 	}
 

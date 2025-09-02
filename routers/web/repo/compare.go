@@ -41,6 +41,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/gitdiff"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 const (
@@ -550,7 +551,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		headBranchRef = git.TagPrefix + ci.HeadBranch
 	}
 
-	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranchRef, headBranchRef, ci.DirectComparison, fileOnly)
+	ci.CompareInfo, err = pull_service.GetCompareInfo(ctx, baseRepo, ci.HeadRepo, ci.HeadGitRepo, baseBranchRef, headBranchRef, ci.DirectComparison, fileOnly)
 	if err != nil {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
@@ -614,7 +615,7 @@ func PrepareCompareDiff(
 
 	fileOnly := ctx.FormBool("file-only")
 
-	diff, err := gitdiff.GetDiffForRender(ctx, ci.HeadGitRepo,
+	diff, err := gitdiff.GetDiffForRender(ctx, ci.HeadRepo.Link(), ci.HeadGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     beforeCommitID,
 			AfterCommitID:      headCommitID,
@@ -707,12 +708,6 @@ func PrepareCompareDiff(
 }
 
 func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repository) (branches, tags []string, err error) {
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer gitRepo.Close()
-
 	branches, err = git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
 		RepoID:          repo.ID,
 		ListOptions:     db.ListOptionsAll,
@@ -721,7 +716,7 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 	if err != nil {
 		return nil, nil, err
 	}
-	tags, err = gitRepo.GetTags(0, 0)
+	tags, err = repo_model.GetTagNamesByRepoID(ctx, repo.ID)
 	if err != nil {
 		return nil, nil, err
 	}
