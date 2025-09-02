@@ -377,14 +377,20 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 	fs := gitrepo.GetRepoFS(h.getStorageRepo())
 	f, err := fs.Open(file)
 	if err != nil {
-		log.Error("Failed to open file: %v", err)
+		if os.IsNotExist(err) {
+			ctx.Resp.WriteHeader(http.StatusNotFound)
+		} else {
+			log.Error("Unable to open file %s: %v", file, err)
+			ctx.Resp.WriteHeader(http.StatusInternalServerError)
+		}
 		return
 	}
-	defer f.Close()
 
 	fi, err := f.Stat()
-	if os.IsNotExist(err) {
-		ctx.Resp.WriteHeader(http.StatusNotFound)
+	f.Close()
+	if err != nil {
+		log.Error("Unable to stat file %s: %v", file, err)
+		ctx.Resp.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 

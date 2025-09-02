@@ -14,10 +14,10 @@ import (
 
 func serviceCmd(service string) *git.Command {
 	switch service {
-	case "git-receive-pack":
-		return git.NewCommand("git-receive-pack")
-	case "git-upload-pack":
-		return git.NewCommand("git-upload-pack")
+	case "receive-pack":
+		return git.NewCommand("receive-pack")
+	case "upload-pack":
+		return git.NewCommand("upload-pack")
 	default:
 		// the service should be checked before invoking this function
 		panic("unknown service: " + service)
