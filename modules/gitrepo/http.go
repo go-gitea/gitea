@@ -13,10 +13,15 @@ import (
 )
 
 func serviceCmd(service string) *git.Command {
-	if service == "git-receive-pack" {
+	switch service {
+	case "git-receive-pack":
 		return git.NewCommand("git-receive-pack")
+	case "git-upload-pack":
+		return git.NewCommand("git-upload-pack")
+	default:
+		// the service should be checked before invoking this function
+		panic("unknown service: " + service)
 	}
-	return git.NewCommand("git-upload-pack")
 }
 
 func StatelessRPC(ctx context.Context, storageRepo Repository, service string, extraEnvs []string, input io.Reader, output io.Writer) (string, error) {
