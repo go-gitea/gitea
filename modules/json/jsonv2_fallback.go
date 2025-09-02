@@ -3,6 +3,7 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//go:build goexperiment.jsonv2
 package json
 
 import "io"
