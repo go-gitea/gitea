@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 //go:build goexperiment.jsonv2
+
 package json
 
 import (
