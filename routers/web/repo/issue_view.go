@@ -1024,8 +1024,7 @@ func getPullViewSquashMergeCommits(ctx *context.Context, issue *issues_model.Iss
 
 	baseCommit := GetMergedBaseCommitID(ctx, issue)
 
-	compareInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
-		baseCommit, pull.GetGitHeadRefName(), false, false)
+	compareInfo, err := pull_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo, baseCommit, pull.GetGitHeadRefName(), false, false)
 	if err != nil {
 		return "", err
 	}
