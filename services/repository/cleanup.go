@@ -10,6 +10,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+
+	"xorm.io/builder"
 )
 
 func CleanupRepo(ctx context.Context) error {
@@ -17,7 +19,7 @@ func CleanupRepo(ctx context.Context) error {
 
 	if err := db.Iterate(
 		ctx,
-		nil,
+		builder.Eq{"is_empty": false},
 		func(ctx context.Context, repo *repo_model.Repository) error {
 			select {
 			case <-ctx.Done():
