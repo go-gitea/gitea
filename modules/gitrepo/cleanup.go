@@ -17,7 +17,7 @@ var lockFiles = []string{
 
 // CleanupRepo cleans up the repository by removing unnecessary lock files.
 func CleanupRepo(ctx context.Context, repo Repository) error {
-	return CleanFixedFileLocks(ctx, repo, time.Now())
+	return CleanFixedFileLocks(ctx, repo, time.Now().Add(-24*time.Hour))
 }
 
 // CleanFixedFileLocks removes lock files that haven't been modified since the last update.

@@ -224,6 +224,16 @@ func registerRebuildIssueIndexer() {
 	})
 }
 
+func registerCleanupRepoLockFiles() {
+	RegisterTaskFatal("cleanup_repo_lock_files", &BaseConfig{
+		Enabled:    false,
+		RunAtStart: false,
+		Schedule:   "@every 24h",
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		return repo_service.CleanupRepo(ctx)
+	})
+}
+
 func initExtendedTasks() {
 	registerDeleteInactiveUsers()
 	registerDeleteRepositoryArchives()
@@ -239,4 +249,5 @@ func initExtendedTasks() {
 	registerDeleteOldSystemNotices()
 	registerGCLFS()
 	registerRebuildIssueIndexer()
+	registerCleanupRepoLockFiles()
 }
