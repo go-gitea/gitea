@@ -40,7 +40,12 @@
 					{{svg "octicon-kebab-horizontal"}}
 					<div class="menu flex-items-menu">
 						<a class="item" href="{{$run.Link}}/workflow">{{svg "octicon-play"}}{{ctx.Locale.Tr "actions.runs.view_workflow_file"}}</a>
-						{{if and $.AllowDeleteWorkflowRuns $run.Status.IsDone}}
+						{{if and $.CanWriteRepoUnitActions (not $run.Status.IsDone)}}
+							<a class="item link-action" data-url="{{$run.Link}}/cancel">
+								{{svg "octicon-x"}}{{ctx.Locale.Tr "actions.runs.cancel"}}
+							</a>
+						{{end}}
+						{{if and $.CanWriteRepoUnitActions $run.Status.IsDone}}
 							<a class="item link-action"
 								data-url="{{$run.Link}}/delete"
 								data-modal-confirm="{{ctx.Locale.Tr "actions.runs.delete.description"}}"

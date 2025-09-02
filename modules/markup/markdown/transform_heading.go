@@ -19,7 +19,7 @@ func (g *ASTTransformer) transformHeading(_ *markup.RenderContext, v *ast.Headin
 			v.SetAttribute(attr.Name, fmt.Appendf(nil, "%v", attr.Value))
 		}
 	}
-	txt := v.Text(reader.Source()) //nolint:staticcheck
+	txt := v.Text(reader.Source()) //nolint:staticcheck // Text is deprecated
 	header := Header{
 		Text:  util.UnsafeBytesToString(txt),
 		Level: v.Level,

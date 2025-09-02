@@ -19,7 +19,7 @@ func IsLikelyEllipsisLeftPart(s string) bool {
 	return strings.HasSuffix(s, utf8Ellipsis) || strings.HasSuffix(s, asciiEllipsis)
 }
 
-func ellipsisGuessDisplayWidth(r rune) int {
+func ellipsisDisplayGuessWidth(r rune) int {
 	// To make the truncated string as long as possible,
 	// CJK/emoji chars are considered as 2-ASCII width but not 3-4 bytes width.
 	// Here we only make the best guess (better than counting them in bytes),
@@ -48,13 +48,17 @@ func ellipsisGuessDisplayWidth(r rune) int {
 // It appends "…" or "..." at the end of truncated string.
 // It guarantees the length of the returned runes doesn't exceed the limit.
 func EllipsisDisplayString(str string, limit int) string {
-	s, _, _, _ := ellipsisDisplayString(str, limit)
+	s, _, _, _ := ellipsisDisplayString(str, limit, ellipsisDisplayGuessWidth)
 	return s
 }
 
 // EllipsisDisplayStringX works like EllipsisDisplayString while it also returns the right part
 func EllipsisDisplayStringX(str string, limit int) (left, right string) {
-	left, offset, truncated, encounterInvalid := ellipsisDisplayString(str, limit)
+	return ellipsisDisplayStringX(str, limit, ellipsisDisplayGuessWidth)
+}
+
+func ellipsisDisplayStringX(str string, limit int, widthGuess func(rune) int) (left, right string) {
+	left, offset, truncated, encounterInvalid := ellipsisDisplayString(str, limit, widthGuess)
 	if truncated {
 		right = str[offset:]
 		r, _ := utf8.DecodeRune(UnsafeStringToBytes(right))
@@ -68,7 +72,7 @@ func EllipsisDisplayStringX(str string, limit int) (left, right string) {
 	return left, right
 }
 
-func ellipsisDisplayString(str string, limit int) (res string, offset int, truncated, encounterInvalid bool) {
+func ellipsisDisplayString(str string, limit int, widthGuess func(rune) int) (res string, offset int, truncated, encounterInvalid bool) {
 	if len(str) <= limit {
 		return str, len(str), false, false
 	}
@@ -81,7 +85,7 @@ func ellipsisDisplayString(str string, limit int) (res string, offset int, trunc
 	for i, r := range str {
 		encounterInvalid = encounterInvalid || r == utf8.RuneError
 		pos = i
-		runeWidth := ellipsisGuessDisplayWidth(r)
+		runeWidth := widthGuess(r)
 		if used+runeWidth+3 > limit {
 			break
 		}
@@ -96,7 +100,7 @@ func ellipsisDisplayString(str string, limit int) (res string, offset int, trunc
 			if nextCnt >= 4 {
 				break
 			}
-			nextWidth += ellipsisGuessDisplayWidth(r)
+			nextWidth += widthGuess(r)
 			nextCnt++
 		}
 		if nextCnt <= 3 && used+nextWidth <= limit {
@@ -112,6 +116,10 @@ func ellipsisDisplayString(str string, limit int) (res string, offset int, trunc
 		ellipsis = asciiEllipsis
 	}
 	return str[:offset] + ellipsis, offset, true, encounterInvalid
+}
+
+func EllipsisTruncateRunes(str string, limit int) (left, right string) {
+	return ellipsisDisplayStringX(str, limit, func(r rune) int { return 1 })
 }
 
 // TruncateRunes returns a truncated string with given rune limit,

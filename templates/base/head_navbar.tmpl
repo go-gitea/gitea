@@ -1,11 +1,3 @@
-{{$notificationUnreadCount := 0}}
-{{if and .IsSigned .NotificationUnreadCount}}
-	{{$notificationUnreadCount = call .NotificationUnreadCount ctx}}
-{{end}}
-{{$activeStopwatch := NIL}}
-{{if and .IsSigned EnableTimetracking .GetActiveStopwatch}}
-	{{$activeStopwatch = call .GetActiveStopwatch ctx}}
-{{end}}
 <nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
 	<div class="navbar-left">
 		<!-- the logo -->
@@ -15,22 +7,7 @@
 
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
 		<div class="ui secondary menu navbar-mobile-right only-mobile">
-			{{if $activeStopwatch}}
-			<a id="mobile-stopwatch-icon" class="active-stopwatch item" href="{{$activeStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{$activeStopwatch.Seconds}}">
-				<div class="tw-relative">
-					{{svg "octicon-stopwatch"}}
-					<span class="header-stopwatch-dot"></span>
-				</div>
-			</a>
-			{{end}}
-			{{if .IsSigned}}
-			<a id="mobile-notifications-icon" class="item" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
-				<div class="tw-relative">
-					{{svg "octicon-bell"}}
-					<span class="notification_count{{if not $notificationUnreadCount}} tw-hidden{{end}}">{{$notificationUnreadCount}}</span>
-				</div>
-			</a>
-			{{end}}
+			{{template "base/head_navbar_icons" dict "PageGlobalData" .PageGlobalData}}
 			<button class="item ui icon mini button tw-m-0" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
 		</div>
 
@@ -85,22 +62,7 @@
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		{{else if .IsSigned}}
-			{{if $activeStopwatch}}
-			<a class="item not-mobile active-stopwatch" href="{{$activeStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{$activeStopwatch.Seconds}}">
-				<div class="tw-relative">
-					{{svg "octicon-stopwatch"}}
-					<span class="header-stopwatch-dot"></span>
-				</div>
-			</a>
-			{{end}}
-
-			<a class="item not-mobile" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
-				<div class="tw-relative">
-					{{svg "octicon-bell"}}
-					<span class="notification_count{{if not $notificationUnreadCount}} tw-hidden{{end}}">{{$notificationUnreadCount}}</span>
-				</div>
-			</a>
-
+			{{template "base/head_navbar_icons" dict "ItemExtraClass" "not-mobile" "PageGlobalData" .PageGlobalData}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
 				<span class="text">
 					{{svg "octicon-plus"}}
@@ -130,8 +92,6 @@
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
-				{{/* do not localize it, here it needs the fixed length (width) to make UI comfortable */}}
-				{{if .IsAdmin}}<span class="navbar-profile-admin">admin</span>{{end}}
 				<div class="menu user-menu">
 					<div class="header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
@@ -160,14 +120,6 @@
 						{{svg "octicon-question"}}
 						{{ctx.Locale.Tr "help"}}
 					</a>
-					{{if .IsAdmin}}
-						<div class="divider"></div>
-						<a class="{{if .PageIsAdmin}}active {{end}}item" href="{{AppSubUrl}}/-/admin">
-							{{svg "octicon-server"}}
-							{{ctx.Locale.Tr "admin_panel"}}
-						</a>
-					{{end}}
-
 					<div class="divider"></div>
 					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}
@@ -189,6 +141,7 @@
 		{{end}}
 	</div><!-- end full right menu -->
 
+	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
 	{{if $activeStopwatch}}
 		<div class="active-stopwatch-popup tippy-target">
 			<div class="tw-flex tw-items-center tw-gap-2 tw-p-3">
@@ -197,7 +150,7 @@
 					<span class="stopwatch-issue">{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}</span>
 				</a>
 				<div class="tw-flex tw-gap-1">
-					<form class="stopwatch-commit form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/toggle">
+					<form class="stopwatch-commit form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop">
 						{{.CsrfTokenHtml}}
 						<button
 							type="submit"

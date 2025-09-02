@@ -197,7 +197,7 @@ func (b *footnoteBlockParser) Open(parent ast.Node, reader text.Reader, pc parse
 		return nil, parser.NoChildren
 	}
 	open := pos + 1
-	closure := util.FindClosure(line[pos+1:], '[', ']', false, false) //nolint
+	closure := util.FindClosure(line[pos+1:], '[', ']', false, false) //nolint:staticcheck // deprecated function
 	closes := pos + 1 + closure
 	next := closes + 1
 	if closure > -1 {
@@ -287,7 +287,7 @@ func (s *footnoteParser) Parse(parent ast.Node, block text.Reader, pc parser.Con
 		return nil
 	}
 	open := pos
-	closure := util.FindClosure(line[pos:], '[', ']', false, false) //nolint
+	closure := util.FindClosure(line[pos:], '[', ']', false, false) //nolint:staticcheck // deprecated function
 	if closure < 0 {
 		return nil
 	}

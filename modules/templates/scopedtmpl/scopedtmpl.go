@@ -102,31 +102,28 @@ func escapeTemplate(t *template.Template) error {
 	return nil
 }
 
-//nolint:unused
 type htmlTemplate struct {
-	escapeErr error
-	text      *texttemplate.Template
+	_/*escapeErr*/ error
+	text *texttemplate.Template
 }
 
-//nolint:unused
 type textTemplateCommon struct {
-	tmpl   map[string]*template.Template // Map from name to defined templates.
-	muTmpl sync.RWMutex                  // protects tmpl
-	option struct {
+	_/*tmpl*/ map[string]*template.Template
+	_/*muTmpl*/ sync.RWMutex
+	_/*option*/ struct {
 		missingKey int
 	}
-	muFuncs    sync.RWMutex // protects parseFuncs and execFuncs
-	parseFuncs texttemplate.FuncMap
-	execFuncs  map[string]reflect.Value
+	muFuncs sync.RWMutex
+	_/*parseFuncs*/ texttemplate.FuncMap
+	execFuncs map[string]reflect.Value
 }
 
-//nolint:unused
 type textTemplate struct {
-	name string
+	_/*name*/ string
 	*parse.Tree
 	*textTemplateCommon
-	leftDelim  string
-	rightDelim string
+	_/*leftDelim*/ string
+	_/*rightDelim*/ string
 }
 
 func ptr[T, P any](ptr *P) *T {

@@ -1,0 +1,6 @@
+{{if .CommitFormOptions.WillSubmitToFork}}
+<div class="ui blue message">
+	{{$repoLinkHTML := HTMLFormat `<a href="%s">%s</a>` .CommitFormOptions.TargetRepo.Link .CommitFormOptions.TargetRepo.FullName}}
+	{{ctx.Locale.Tr "repo.editor.fork_edit_description" $repoLinkHTML}}
+</div>
+{{end}}

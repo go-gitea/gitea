@@ -402,16 +402,11 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		}
 
 		rel, has := relMap[lowerTag]
-
-		parts := strings.SplitN(tag.Message, "\n", 2)
-		note := ""
-		if len(parts) > 1 {
-			note = parts[1]
-		}
+		title, note := git.SplitCommitTitleBody(tag.Message, 255)
 		if !has {
 			rel = &repo_model.Release{
 				RepoID:       repo.ID,
-				Title:        parts[0],
+				Title:        title,
 				TagName:      tags[i],
 				LowerTagName: lowerTag,
 				Target:       "",
@@ -430,7 +425,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			rel.Sha1 = commit.ID.String()
 			rel.CreatedUnix = timeutil.TimeStamp(createdAt.Unix())
 			if rel.IsTag {
-				rel.Title = parts[0]
+				rel.Title = title
 				rel.Note = note
 			} else {
 				rel.IsDraft = false

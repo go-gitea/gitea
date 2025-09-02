@@ -14,6 +14,7 @@
 			<label for="icon_url">{{ctx.Locale.Tr "repo.settings.discord_icon_url"}}</label>
 			<input id="icon_url" name="icon_url" value="{{.DiscordHook.IconURL}}" placeholder="https://example.com/assets/img/logo.svg">
 		</div>
-		{{template "repo/settings/webhook/settings" .}}
+		{{/* FIXME: support authorization header or not? */}}
+		{{template "repo/settings/webhook/settings" dict "BaseLink" .BaseLink "Webhook" .Webhook "UseAuthorizationHeader" "optional"}}
 	</form>
 {{end}}

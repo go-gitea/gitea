@@ -249,7 +249,7 @@ func ViewPost(ctx *context_module.Context) {
 			ID:       v.ID,
 			Name:     v.Name,
 			Status:   v.Status.String(),
-			CanRerun: v.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions),
+			CanRerun: resp.State.Run.CanRerun,
 			Duration: v.Duration().String(),
 		})
 	}
@@ -304,7 +304,7 @@ func ViewPost(ctx *context_module.Context) {
 	if task != nil {
 		steps, logs, err := convertToViewModel(ctx, req.LogCursors, task)
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, err.Error())
+			ctx.ServerError("convertToViewModel", err)
 			return
 		}
 		resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, steps...)
@@ -408,7 +408,7 @@ func Rerun(ctx *context_module.Context) {
 
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("GetRunByIndex", err)
 		return
 	}
 
@@ -426,9 +426,15 @@ func Rerun(ctx *context_module.Context) {
 		run.Started = 0
 		run.Stopped = 0
 		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration"); err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, err.Error())
+			ctx.ServerError("UpdateRun", err)
 			return
 		}
+
+		if err := run.LoadAttributes(ctx); err != nil {
+			ctx.ServerError("run.LoadAttributes", err)
+			return
+		}
+		notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 	}
 
 	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
@@ -441,11 +447,11 @@ func Rerun(ctx *context_module.Context) {
 			// if the job has needs, it should be set to "blocked" status to wait for other jobs
 			shouldBlock := len(j.Needs) > 0
 			if err := rerunJob(ctx, j, shouldBlock); err != nil {
-				ctx.HTTPError(http.StatusInternalServerError, err.Error())
+				ctx.ServerError("RerunJob", err)
 				return
 			}
 		}
-		ctx.JSON(http.StatusOK, struct{}{})
+		ctx.JSONOK()
 		return
 	}
 
@@ -455,17 +461,17 @@ func Rerun(ctx *context_module.Context) {
 		// jobs other than the specified one should be set to "blocked" status
 		shouldBlock := j.JobID != job.JobID
 		if err := rerunJob(ctx, j, shouldBlock); err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, err.Error())
+			ctx.ServerError("RerunJob", err)
 			return
 		}
 	}
 
-	ctx.JSON(http.StatusOK, struct{}{})
+	ctx.JSONOK()
 }
 
 func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shouldBlock bool) error {
 	status := job.Status
-	if !status.IsDone() {
+	if !status.IsDone() || !job.Run.Status.IsDone() {
 		return nil
 	}
 
@@ -485,7 +491,6 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	}
 
 	actions_service.CreateCommitStatus(ctx, job)
-	_ = job.LoadAttributes(ctx)
 	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 
 	return nil
@@ -547,7 +552,7 @@ func Cancel(ctx *context_module.Context) {
 		}
 		return nil
 	}); err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("StopTask", err)
 		return
 	}
 
@@ -557,8 +562,11 @@ func Cancel(ctx *context_module.Context) {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
-
-	ctx.JSON(http.StatusOK, struct{}{})
+	if len(updatedjobs) > 0 {
+		job := updatedjobs[0]
+		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
+	}
+	ctx.JSONOK()
 }
 
 func Approve(ctx *context_module.Context) {
@@ -593,18 +601,23 @@ func Approve(ctx *context_module.Context) {
 		}
 		return nil
 	}); err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("UpdateRunJob", err)
 		return
 	}
 
 	actions_service.CreateCommitStatus(ctx, jobs...)
+
+	if len(updatedjobs) > 0 {
+		job := updatedjobs[0]
+		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
+	}
 
 	for _, job := range updatedjobs {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
 
-	ctx.JSON(http.StatusOK, struct{}{})
+	ctx.JSONOK()
 }
 
 func Delete(ctx *context_module.Context) {
@@ -680,7 +693,7 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 		return
 	}
 	if err = actions_model.SetArtifactNeedDelete(ctx, run.ID, artifactName); err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("SetArtifactNeedDelete", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, struct{}{})
@@ -696,7 +709,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 			ctx.HTTPError(http.StatusNotFound, err.Error())
 			return
 		}
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("GetRunByIndex", err)
 		return
 	}
 
@@ -705,7 +718,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		ArtifactName: artifactName,
 	})
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("FindArtifacts", err)
 		return
 	}
 	if len(artifacts) == 0 {
@@ -726,7 +739,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
 		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, err.Error())
+			ctx.ServerError("DownloadArtifactV4", err)
 			return
 		}
 		return
@@ -739,7 +752,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	for _, art := range artifacts {
 		f, err := storage.ActionsArtifacts.Open(art.StoragePath)
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, err.Error())
+			ctx.ServerError("ActionsArtifacts.Open", err)
 			return
 		}
 
@@ -747,7 +760,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		if art.ContentEncoding == "gzip" {
 			r, err = gzip.NewReader(f)
 			if err != nil {
-				ctx.HTTPError(http.StatusInternalServerError, err.Error())
+				ctx.ServerError("gzip.NewReader", err)
 				return
 			}
 		} else {
@@ -757,11 +770,11 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 
 		w, err := writer.Create(art.ArtifactPath)
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, err.Error())
+			ctx.ServerError("writer.Create", err)
 			return
 		}
 		if _, err := io.Copy(w, r); err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, err.Error())
+			ctx.ServerError("io.Copy", err)
 			return
 		}
 	}

@@ -101,19 +101,6 @@
   }
 }
 
-#navbar .ui.dropdown .navbar-profile-admin {
-  display: block;
-  position: absolute;
-  font-size: 9px;
-  font-weight: var(--font-weight-bold);
-  color: var(--color-nav-bg);
-  background: var(--color-primary);
-  padding: 2px 3px;
-  border-radius: 10px;
-  top: -1px;
-  left: 18px;
-}
-
 #navbar a.item:hover .notification_count,
 #navbar a.item:hover .header-stopwatch-dot {
   border-color: var(--color-nav-hover-bg);

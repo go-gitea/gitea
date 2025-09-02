@@ -70,8 +70,12 @@
   flex-wrap: wrap;
 }
 
+#release-list .release-entry .attachment-list > .item a {
+  min-width: 300px;
+}
+
 #release-list .release-entry .attachment-list .attachment-right-info {
-  flex-grow: 1;
+  flex-shrink: 0;
   min-width: 300px;
 }
 
@@ -85,10 +89,6 @@
 
 #release-list .release-entry .detail .download .list li:last-child {
   border-bottom: none;
-}
-
-#tags-table .tag-list-row {
-  padding: 8px 12px;
 }
 
 #tags-table .tag-list-row-title {

@@ -19,7 +19,7 @@ type RequestContextKeyStruct struct{}
 var RequestContextKey = RequestContextKeyStruct{}
 
 func urlIsRelative(s string, u *url.URL) bool {
-	// Unfortunately browsers consider a redirect Location with preceding "//", "\\", "/\" and "\/" as meaning redirect to "http(s)://REST_OF_PATH"
+	// Unfortunately, browsers consider a redirect Location with preceding "//", "\\", "/\" and "\/" as meaning redirect to "http(s)://REST_OF_PATH"
 	// Therefore we should ignore these redirect locations to prevent open redirects
 	if len(s) > 1 && (s[0] == '/' || s[0] == '\\') && (s[1] == '/' || s[1] == '\\') {
 		return false

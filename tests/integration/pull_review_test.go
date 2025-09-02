@@ -39,7 +39,7 @@ func TestPullView_ReviewerMissed(t *testing.T) {
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 
 	// if some reviews are missing, the page shouldn't fail
-	err := db.TruncateBeans(db.DefaultContext, &issues_model.Review{})
+	err := db.TruncateBeans(t.Context(), &issues_model.Review{})
 	assert.NoError(t, err)
 	req = NewRequest(t, "GET", "/user2/repo1/pulls/2")
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -51,7 +51,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// Create the repo.
-		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
+		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user2, user2, repo_service.CreateRepoOptions{
 			Name:             "test_codeowner",
 			Readme:           "Default",
 			AutoInit:         true,
@@ -61,7 +61,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 		assert.NoError(t, err)
 
 		// add CODEOWNERS to default branch
-		_, err = files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		_, err = files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			OldBranch: repo.DefaultBranch,
 			Files: []*files_service.ChangeRepoFile{
 				{
@@ -75,7 +75,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 		t.Run("First Pull Request", func(t *testing.T) {
 			// create a new branch to prepare for pull request
-			_, err := files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			_, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 				NewBranch: "codeowner-basebranch",
 				Files: []*files_service.ChangeRepoFile{
 					{
@@ -93,10 +93,10 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadRepoID: repo.ID, HeadBranch: "codeowner-basebranch"})
 			unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 5})
-			assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+			assert.NoError(t, pr.LoadIssue(t.Context()))
 
 			// update the file on the pr branch
-			_, err = files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			_, err = files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 				OldBranch: "codeowner-basebranch",
 				Files: []*files_service.ChangeRepoFile{
 					{
@@ -108,26 +108,26 @@ func TestPullView_CodeOwner(t *testing.T) {
 			})
 			assert.NoError(t, err)
 
-			reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(db.DefaultContext, pr)
+			reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(t.Context(), pr)
 			assert.NoError(t, err)
 			assert.Len(t, reviewNotifiers, 1)
 			assert.EqualValues(t, 8, reviewNotifiers[0].Reviewer.ID)
 
-			err = issue_service.ChangeTitle(db.DefaultContext, pr.Issue, user2, "[WIP] Test Pull Request")
+			err = issue_service.ChangeTitle(t.Context(), pr.Issue, user2, "[WIP] Test Pull Request")
 			assert.NoError(t, err)
 			prUpdated1 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
-			assert.NoError(t, prUpdated1.LoadIssue(db.DefaultContext))
+			assert.NoError(t, prUpdated1.LoadIssue(t.Context()))
 			assert.Equal(t, "[WIP] Test Pull Request", prUpdated1.Issue.Title)
 
-			err = issue_service.ChangeTitle(db.DefaultContext, prUpdated1.Issue, user2, "Test Pull Request2")
+			err = issue_service.ChangeTitle(t.Context(), prUpdated1.Issue, user2, "Test Pull Request2")
 			assert.NoError(t, err)
 			prUpdated2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
-			assert.NoError(t, prUpdated2.LoadIssue(db.DefaultContext))
+			assert.NoError(t, prUpdated2.LoadIssue(t.Context()))
 			assert.Equal(t, "Test Pull Request2", prUpdated2.Issue.Title)
 		})
 
 		// change the default branch CODEOWNERS file to change README.md's codeowner
-		_, err = files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+		_, err = files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "update",
@@ -140,7 +140,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 		t.Run("Second Pull Request", func(t *testing.T) {
 			// create a new branch to prepare for pull request
-			_, err = files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			_, err = files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 				NewBranch: "codeowner-basebranch2",
 				Files: []*files_service.ChangeRepoFile{
 					{
@@ -162,14 +162,14 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 		t.Run("Forked Repo Pull Request", func(t *testing.T) {
 			user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-			forkedRepo, err := repo_service.ForkRepository(db.DefaultContext, user2, user5, repo_service.ForkRepoOptions{
+			forkedRepo, err := repo_service.ForkRepository(t.Context(), user2, user5, repo_service.ForkRepoOptions{
 				BaseRepo: repo,
 				Name:     "test_codeowner",
 			})
 			assert.NoError(t, err)
 
 			// create a new branch to prepare for pull request
-			_, err = files_service.ChangeRepoFiles(db.DefaultContext, forkedRepo, user5, &files_service.ChangeRepoFilesOptions{
+			_, err = files_service.ChangeRepoFiles(t.Context(), forkedRepo, user5, &files_service.ChangeRepoFilesOptions{
 				NewBranch: "codeowner-basebranch-forked",
 				Files: []*files_service.ChangeRepoFile{
 					{

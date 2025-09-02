@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 // @ts-expect-error - module exports no types
 import {VueBarGraph} from 'vue-bar-graph';
-import {computed, onMounted, ref} from 'vue';
+import {computed, onMounted, shallowRef, useTemplateRef} from 'vue';
 
-const colors = ref({
+const colors = shallowRef({
   barColor: 'green',
   textColor: 'black',
   textAltColor: 'white',
@@ -41,8 +41,8 @@ const graphWidth = computed(() => {
   return activityTopAuthors.length * 40;
 });
 
-const styleElement = ref<HTMLElement | null>(null);
-const altStyleElement = ref<HTMLElement | null>(null);
+const styleElement = useTemplateRef('styleElement');
+const altStyleElement = useTemplateRef('altStyleElement');
 
 onMounted(() => {
   const refStyle = window.getComputedStyle(styleElement.value);
@@ -58,8 +58,8 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="activity-bar-graph" ref="styleElement" style="width: 0; height: 0;"/>
-    <div class="activity-bar-graph-alt" ref="altStyleElement" style="width: 0; height: 0;"/>
+    <div class="activity-bar-graph tw-w-0 tw-h-0" ref="styleElement"/>
+    <div class="activity-bar-graph-alt tw-w-0 tw-h-0" ref="altStyleElement"/>
     <vue-bar-graph
       :points="graphPoints"
       :show-x-axis="true"

@@ -2,6 +2,7 @@ import tippy, {followCursor} from 'tippy.js';
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
 import type {Content, Instance, Placement, Props} from 'tippy.js';
+import {html} from '../utils/html.ts';
 
 type TippyOpts = {
   role?: string,
@@ -9,7 +10,7 @@ type TippyOpts = {
 } & Partial<Props>;
 
 const visibleInstances = new Set<Instance>();
-const arrowSvg = `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
+const arrowSvg = html`<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,

@@ -358,14 +358,9 @@ func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newR
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 
-	wikiPath := repo.WikiPath()
-	isExist, err := util.IsExist(wikiPath)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
-		return err
-	}
-	if isExist {
-		if err = util.Rename(wikiPath, repo_model.WikiPath(repo.Owner.Name, newRepoName)); err != nil {
+	if HasWiki(ctx, repo) {
+		if err = gitrepo.RenameRepository(ctx, repo.WikiStorageRepo(), repo_model.StorageRepo(
+			repo_model.RelativeWikiPath(repo.OwnerName, newRepoName))); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 	}

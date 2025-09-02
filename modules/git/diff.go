@@ -99,9 +99,9 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	return nil
 }
 
-// ParseDiffHunkString parse the diffhunk content and return
-func ParseDiffHunkString(diffhunk string) (leftLine, leftHunk, rightLine, righHunk int) {
-	ss := strings.Split(diffhunk, "@@")
+// ParseDiffHunkString parse the diff hunk content and return
+func ParseDiffHunkString(diffHunk string) (leftLine, leftHunk, rightLine, rightHunk int) {
+	ss := strings.Split(diffHunk, "@@")
 	ranges := strings.Split(ss[1][1:], " ")
 	leftRange := strings.Split(ranges[0], ",")
 	leftLine, _ = strconv.Atoi(leftRange[0][1:])
@@ -112,14 +112,19 @@ func ParseDiffHunkString(diffhunk string) (leftLine, leftHunk, rightLine, righHu
 		rightRange := strings.Split(ranges[1], ",")
 		rightLine, _ = strconv.Atoi(rightRange[0])
 		if len(rightRange) > 1 {
-			righHunk, _ = strconv.Atoi(rightRange[1])
+			rightHunk, _ = strconv.Atoi(rightRange[1])
 		}
 	} else {
-		log.Debug("Parse line number failed: %v", diffhunk)
+		log.Debug("Parse line number failed: %v", diffHunk)
 		rightLine = leftLine
-		righHunk = leftHunk
+		rightHunk = leftHunk
 	}
-	return leftLine, leftHunk, rightLine, righHunk
+	if rightLine == 0 {
+		// FIXME: GIT-DIFF-CUT-BUG search this tag to see details
+		// this is only a hacky patch, the rightLine&rightHunk might still be incorrect in some cases.
+		rightLine++
+	}
+	return leftLine, leftHunk, rightLine, rightHunk
 }
 
 // Example: @@ -1,8 +1,9 @@ => [..., 1, 8, 1, 9]
@@ -270,6 +275,12 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 			oldNumOfLines++
 		}
 	}
+
+	// "git diff" outputs "@@ -1 +1,3 @@" for "OLD" => "A\nB\nC"
+	// FIXME: GIT-DIFF-CUT-BUG But there is a bug in CutDiffAroundLine, then the "Patch" stored in the comment model becomes "@@ -1,1 +0,4 @@"
+	// It may generate incorrect results for difference cases, for example: delete 2 line add 1 line, delete 2 line add 2 line etc, need to double check.
+	// For example: "L1\nL2" => "A\nB", then the patch shows "L2" as line 1 on the left (deleted part)
+
 	// construct the new hunk header
 	newHunk[headerLines] = fmt.Sprintf("@@ -%d,%d +%d,%d @@",
 		oldBegin, oldNumOfLines, newBegin, newNumOfLines)

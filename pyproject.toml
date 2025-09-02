@@ -1,12 +1,13 @@
-[tool.poetry]
-package-mode = false
+[project]
+name = "gitea"
+version = "0.0.0"
+requires-python = ">=3.10"
 
-[tool.poetry.dependencies]
-python = "^3.10"
-
-[tool.poetry.group.dev.dependencies]
-djlint = "1.36.4"
-yamllint = "1.37.1"
+[dependency-groups]
+dev = [
+  "djlint==1.36.4",
+  "yamllint==1.37.1",
+]
 
 [tool.djlint]
 profile="golang"

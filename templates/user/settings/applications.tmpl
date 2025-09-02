@@ -68,7 +68,7 @@
 						</label>
 					</div>
 					<div>
-						<div class="tw-my-2">{{ctx.Locale.Tr "settings.access_token_desc" (HTMLFormat `href="%s/api/swagger" target="_blank"` AppSubUrl) (`href="https://docs.gitea.com/development/oauth2-provider#scopes" target="_blank"`|SafeHTML)}}</div>
+						<div class="tw-my-2">{{ctx.Locale.Tr "settings.access_token_desc" (HTMLFormat `href="%s/api/swagger" target="_blank"` AppSubUrl) (HTMLFormat `href="%s" target="_blank"` "https://docs.gitea.com/development/oauth2-provider#scopes")}}</div>
 						<table class="ui table unstackable tw-my-2">
 						{{range $category := .TokenCategories}}
 							<tr>

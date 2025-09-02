@@ -197,6 +197,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		total = int(count)
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
+		ctx.Data["ShowRepoOwnerOnList"] = true
 		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: pagingNum,

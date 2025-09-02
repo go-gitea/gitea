@@ -136,6 +136,7 @@ type UpdateBranchProtectionPriories struct {
 
 type MergeUpstreamRequest struct {
 	Branch string `json:"branch"`
+	FfOnly bool   `json:"ff_only"`
 }
 
 type MergeUpstreamResponse struct {

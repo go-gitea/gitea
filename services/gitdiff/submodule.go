@@ -20,7 +20,7 @@ type SubmoduleDiffInfo struct {
 	PreviousRefID string
 }
 
-func (si *SubmoduleDiffInfo) PopulateURL(diffFile *DiffFile, leftCommit, rightCommit *git.Commit) {
+func (si *SubmoduleDiffInfo) PopulateURL(repoLink string, diffFile *DiffFile, leftCommit, rightCommit *git.Commit) {
 	si.SubmoduleName = diffFile.Name
 	submoduleCommit := rightCommit // If the submodule is added or updated, check at the right commit
 	if diffFile.IsDeleted {
@@ -30,18 +30,19 @@ func (si *SubmoduleDiffInfo) PopulateURL(diffFile *DiffFile, leftCommit, rightCo
 		return
 	}
 
-	submodule, err := submoduleCommit.GetSubModule(diffFile.GetDiffFileName())
+	submoduleFullPath := diffFile.GetDiffFileName()
+	submodule, err := submoduleCommit.GetSubModule(submoduleFullPath)
 	if err != nil {
-		log.Error("Unable to PopulateURL for submodule %q: GetSubModule: %v", diffFile.GetDiffFileName(), err)
+		log.Error("Unable to PopulateURL for submodule %q: GetSubModule: %v", submoduleFullPath, err)
 		return // ignore the error, do not cause 500 errors for end users
 	}
 	if submodule != nil {
-		si.SubmoduleFile = git.NewCommitSubmoduleFile(submodule.URL, submoduleCommit.ID.String())
+		si.SubmoduleFile = git.NewCommitSubmoduleFile(repoLink, submoduleFullPath, submodule.URL, submoduleCommit.ID.String())
 	}
 }
 
 func (si *SubmoduleDiffInfo) CommitRefIDLinkHTML(ctx context.Context, commitID string) template.HTML {
-	webLink := si.SubmoduleFile.SubmoduleWebLink(ctx, commitID)
+	webLink := si.SubmoduleFile.SubmoduleWebLinkTree(ctx, commitID)
 	if webLink == nil {
 		return htmlutil.HTMLFormat("%s", base.ShortSha(commitID))
 	}
@@ -49,7 +50,7 @@ func (si *SubmoduleDiffInfo) CommitRefIDLinkHTML(ctx context.Context, commitID s
 }
 
 func (si *SubmoduleDiffInfo) CompareRefIDLinkHTML(ctx context.Context) template.HTML {
-	webLink := si.SubmoduleFile.SubmoduleWebLink(ctx, si.PreviousRefID, si.NewRefID)
+	webLink := si.SubmoduleFile.SubmoduleWebLinkCompare(ctx, si.PreviousRefID, si.NewRefID)
 	if webLink == nil {
 		return htmlutil.HTMLFormat("%s...%s", base.ShortSha(si.PreviousRefID), base.ShortSha(si.NewRefID))
 	}
@@ -57,7 +58,7 @@ func (si *SubmoduleDiffInfo) CompareRefIDLinkHTML(ctx context.Context) template.
 }
 
 func (si *SubmoduleDiffInfo) SubmoduleRepoLinkHTML(ctx context.Context) template.HTML {
-	webLink := si.SubmoduleFile.SubmoduleWebLink(ctx)
+	webLink := si.SubmoduleFile.SubmoduleWebLinkTree(ctx)
 	if webLink == nil {
 		return htmlutil.HTMLFormat("%s", si.SubmoduleName)
 	}

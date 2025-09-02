@@ -68,7 +68,7 @@ func cssColorHandler(value string) bool {
 }
 
 func (g *ASTTransformer) transformCodeSpan(_ *markup.RenderContext, v *ast.CodeSpan, reader text.Reader) {
-	colorContent := v.Text(reader.Source()) //nolint:staticcheck
+	colorContent := v.Text(reader.Source()) //nolint:staticcheck // Text is deprecated
 	if cssColorHandler(string(colorContent)) {
 		v.AppendChild(v, NewColorPreview(colorContent))
 	}

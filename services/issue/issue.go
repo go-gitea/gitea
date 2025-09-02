@@ -200,7 +200,7 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 
 	// delete pull request related git data
 	if issue.IsPull && gitRepo != nil {
-		if err := gitRepo.RemoveReference(fmt.Sprintf("%s%d/head", git.PullPrefix, issue.PullRequest.Index)); err != nil {
+		if err := gitRepo.RemoveReference(issue.PullRequest.GetGitHeadRefName()); err != nil {
 			return err
 		}
 	}

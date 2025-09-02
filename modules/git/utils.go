@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ObjectCache provides thread-safe cache operations.
@@ -105,4 +107,17 @@ func HashFilePathForWebUI(s string) string {
 	h := sha1.New()
 	_, _ = h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+func SplitCommitTitleBody(commitMessage string, titleRuneLimit int) (title, body string) {
+	title, body, _ = strings.Cut(commitMessage, "\n")
+	title, title2 := util.EllipsisTruncateRunes(title, titleRuneLimit)
+	if title2 != "" {
+		if body == "" {
+			body = title2
+		} else {
+			body = title2 + "\n" + body
+		}
+	}
+	return title, body
 }

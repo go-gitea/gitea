@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -127,7 +128,7 @@ func (m *mailNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model
 
 func (m *mailNotifier) PullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
-		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL())
+		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL(ctx))
 		if err := SendIssueAssignedMail(ctx, issue, doer, ct, comment, []*user_model.User{reviewer}); err != nil {
 			log.Error("Error in SendIssueAssignedMail for issue[%d] to reviewer[%d]: %v", issue.ID, reviewer.ID, err)
 		}
@@ -203,5 +204,11 @@ func (m *mailNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) 
 func (m *mailNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
 	if err := SendRepoTransferNotifyMail(ctx, doer, newOwner, repo); err != nil {
 		log.Error("SendRepoTransferNotifyMail: %v", err)
+	}
+}
+
+func (m *mailNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
+	if err := MailActionsTrigger(ctx, sender, repo, run); err != nil {
+		log.Error("MailActionsTrigger: %v", err)
 	}
 }

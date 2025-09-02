@@ -11,7 +11,9 @@ import (
 	"regexp"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/context"
 )
@@ -106,12 +108,17 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 		ctx.Data["UploadAccepts"] = strings.ReplaceAll(setting.Attachment.AllowedTypes, "|", ",")
 		ctx.Data["UploadMaxFiles"] = setting.Attachment.MaxFiles
 		ctx.Data["UploadMaxSize"] = setting.Attachment.MaxSize
-	case "repo":
-		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/upload-file"
-		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/upload-remove"
-		ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/upload-file"
-		ctx.Data["UploadAccepts"] = strings.ReplaceAll(setting.Repository.Upload.AllowedTypes, "|", ",")
-		ctx.Data["UploadMaxFiles"] = setting.Repository.Upload.MaxFiles
-		ctx.Data["UploadMaxSize"] = setting.Repository.Upload.FileMaxSize
+	default:
+		setting.PanicInDevOrTesting("Invalid upload type: %s", uploadType)
 	}
+}
+
+func AddUploadContextForRepo(ctx reqctx.RequestContext, repo *repo_model.Repository) {
+	ctxData, repoLink := ctx.GetData(), repo.Link()
+	ctxData["UploadUrl"] = repoLink + "/upload-file"
+	ctxData["UploadRemoveUrl"] = repoLink + "/upload-remove"
+	ctxData["UploadLinkUrl"] = repoLink + "/upload-file"
+	ctxData["UploadAccepts"] = strings.ReplaceAll(setting.Repository.Upload.AllowedTypes, "|", ",")
+	ctxData["UploadMaxFiles"] = setting.Repository.Upload.MaxFiles
+	ctxData["UploadMaxSize"] = setting.Repository.Upload.FileMaxSize
 }

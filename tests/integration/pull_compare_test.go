@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -77,7 +76,7 @@ func TestPullCompare(t *testing.T) {
 		repoForked := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
 
 		// delete the head repository and revisit the PR diff view
-		err := repo_service.DeleteRepositoryDirectly(db.DefaultContext, repoForked.ID)
+		err := repo_service.DeleteRepositoryDirectly(t.Context(), repoForked.ID)
 		assert.NoError(t, err)
 
 		req = NewRequest(t, "GET", prFilesURL)
@@ -159,7 +158,8 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 					"commit_summary": "user2 updated the file",
 					"commit_choice":  "direct",
 				})
-				user2Session.MakeRequest(t, req, http.StatusSeeOther)
+				resp = user2Session.MakeRequest(t, req, http.StatusOK)
+				assert.NotEmpty(t, test.RedirectURL(resp))
 			}
 		}
 	})

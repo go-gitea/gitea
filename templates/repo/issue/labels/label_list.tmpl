@@ -26,7 +26,7 @@
 		<div class="divider"></div>
 	{{end}}
 
-	<ul class="issue-label-list">
+	<ul class="issue-label-list muted-links">
 		{{$canEditLabel := and (not $.PageIsOrgSettingsLabels) (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
 		{{$canEditLabel = or $canEditLabel $.PageIsOrgSettingsLabels}}
 		{{range .Labels}}
@@ -42,9 +42,8 @@
 					<a class="open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 				{{end}}
 			</div>
-			<div class="label-operation tw-flex">
+			<div class="label-operation">
 				{{template "repo/issue/labels/label_archived" .}}
-				<div class="tw-flex tw-ml-auto">
 					{{if $canEditLabel}}
 						<a class="edit-label-button" href="#"
 							data-label-id="{{.ID}}" data-label-name="{{.Name}}" data-label-color="{{.Color}}"
@@ -57,7 +56,6 @@
 							data-modal-confirm-content="{{ctx.Locale.Tr "repo.issues.label_deletion_desc"}}"
 						>{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
 					{{end}}
-				</div>
 			</div>
 		</li>
 		{{end}}

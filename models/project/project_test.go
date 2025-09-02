@@ -34,13 +34,13 @@ func TestIsProjectTypeValid(t *testing.T) {
 func TestGetProjects(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	projects, err := db.Find[Project](db.DefaultContext, SearchOptions{RepoID: 1})
+	projects, err := db.Find[Project](t.Context(), SearchOptions{RepoID: 1})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
 	assert.Len(t, projects, 1)
 
-	projects, err = db.Find[Project](db.DefaultContext, SearchOptions{RepoID: 3})
+	projects, err = db.Find[Project](t.Context(), SearchOptions{RepoID: 3})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
@@ -60,24 +60,24 @@ func TestProject(t *testing.T) {
 		CreatorID:    2,
 	}
 
-	assert.NoError(t, NewProject(db.DefaultContext, project))
+	assert.NoError(t, NewProject(t.Context(), project))
 
-	_, err := GetProjectByID(db.DefaultContext, project.ID)
+	_, err := GetProjectByID(t.Context(), project.ID)
 	assert.NoError(t, err)
 
 	// Update project
 	project.Title = "Updated title"
-	assert.NoError(t, UpdateProject(db.DefaultContext, project))
+	assert.NoError(t, UpdateProject(t.Context(), project))
 
-	projectFromDB, err := GetProjectByID(db.DefaultContext, project.ID)
+	projectFromDB, err := GetProjectByID(t.Context(), project.ID)
 	assert.NoError(t, err)
 
 	assert.Equal(t, project.Title, projectFromDB.Title)
 
-	assert.NoError(t, ChangeProjectStatus(db.DefaultContext, project, true))
+	assert.NoError(t, ChangeProjectStatus(t.Context(), project, true))
 
 	// Retrieve from DB afresh to check if it is truly closed
-	projectFromDB, err = GetProjectByID(db.DefaultContext, project.ID)
+	projectFromDB, err = GetProjectByID(t.Context(), project.ID)
 	assert.NoError(t, err)
 
 	assert.True(t, projectFromDB.IsClosed)
@@ -109,7 +109,7 @@ func TestProjectsSort(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		projects, count, err := db.FindAndCount[Project](db.DefaultContext, SearchOptions{
+		projects, count, err := db.FindAndCount[Project](t.Context(), SearchOptions{
 			OrderBy: GetSearchOrderByBySortType(tt.sortType),
 		})
 		assert.NoError(t, err)

@@ -5,10 +5,12 @@ package agit
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
 
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -17,17 +19,30 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
+
+func parseAgitPushOptionValue(s string) string {
+	if base64Value, ok := strings.CutPrefix(s, "{base64}"); ok {
+		decoded, err := base64.StdEncoding.DecodeString(base64Value)
+		return util.Iif(err == nil, string(decoded), s)
+	}
+	return s
+}
 
 // ProcReceive handle proc receive work
 func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *private.HookOptions) ([]private.HookProcReceiveRefResult, error) {
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
 	forcePush := opts.GitPushOptions.Bool(private.GitPushOptionForcePush)
 	topicBranch := opts.GitPushOptions["topic"]
-	title := strings.TrimSpace(opts.GitPushOptions["title"])
-	description := strings.TrimSpace(opts.GitPushOptions["description"])
+
+	// some options are base64-encoded with "{base64}" prefix if they contain new lines
+	// other agit push options like "issue", "reviewer" and "cc" are not supported
+	title := parseAgitPushOptionValue(opts.GitPushOptions["title"])
+	description := parseAgitPushOptionValue(opts.GitPushOptions["description"])
+
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 	userName := strings.ToLower(opts.UserName)
 
@@ -150,7 +165,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 
 			results = append(results, private.HookProcReceiveRefResult{
-				Ref:               pr.GetGitRefName(),
+				Ref:               pr.GetGitHeadRefName(),
 				OriginalRef:       opts.RefFullNames[i],
 				OldOID:            objectFormat.EmptyObjectID().String(),
 				NewOID:            opts.NewCommitIDs[i],
@@ -167,7 +182,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			return nil, fmt.Errorf("unable to load base repository for PR[%d] Error: %w", pr.ID, err)
 		}
 
-		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, fmt.Errorf("unable to get ref commit id in base repository for PR[%d] Error: %w", pr.ID, err)
 		}
@@ -199,9 +214,35 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			}
 		}
 
+		// Store old commit ID for review staleness checking
+		oldHeadCommitID := pr.HeadCommitID
+
 		pr.HeadCommitID = opts.NewCommitIDs[i]
 		if err = pull_service.UpdateRef(ctx, pr); err != nil {
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
+		}
+
+		// Mark existing reviews as stale when PR content changes (same as regular GitHub flow)
+		if oldHeadCommitID != opts.NewCommitIDs[i] {
+			if err := issues_model.MarkReviewsAsStale(ctx, pr.IssueID); err != nil {
+				log.Error("MarkReviewsAsStale: %v", err)
+			}
+
+			// Dismiss all approval reviews if protected branch rule item enabled
+			pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+			if err != nil {
+				log.Error("GetFirstMatchProtectedBranchRule: %v", err)
+			}
+			if pb != nil && pb.DismissStaleApprovals {
+				if err := pull_service.DismissApprovalReviews(ctx, pusher, pr); err != nil {
+					log.Error("DismissApprovalReviews: %v", err)
+				}
+			}
+
+			// Mark reviews for the new commit as not stale
+			if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitIDs[i]); err != nil {
+				log.Error("MarkReviewsAsNotStale: %v", err)
+			}
 		}
 
 		pull_service.StartPullRequestCheckImmediately(ctx, pr)
@@ -219,7 +260,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		results = append(results, private.HookProcReceiveRefResult{
 			OldOID:            oldCommitID,
 			NewOID:            opts.NewCommitIDs[i],
-			Ref:               pr.GetGitRefName(),
+			Ref:               pr.GetGitHeadRefName(),
 			OriginalRef:       opts.RefFullNames[i],
 			IsForcePush:       isForcePush,
 			IsCreatePR:        false,

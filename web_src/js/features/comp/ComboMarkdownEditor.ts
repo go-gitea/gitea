@@ -1,7 +1,7 @@
 import '@github/markdown-toolbar-element';
 import '@github/text-expander-element';
 import {attachTribute} from '../tribute.ts';
-import {hideElem, showElem, autosize, isElemVisible} from '../../utils/dom.ts';
+import {hideElem, showElem, autosize, isElemVisible, generateElemId} from '../../utils/dom.ts';
 import {
   EventUploadStateChanged,
   initEasyMDEPaste,
@@ -24,8 +24,6 @@ import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
 import {createTippy} from '../../modules/tippy.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
 import type EasyMDE from 'easymde';
-
-let elementIdCounter = 0;
 
 /**
  * validate if the given textarea is non-empty.
@@ -125,7 +123,7 @@ export class ComboMarkdownEditor {
   setupTextarea() {
     this.textarea = this.container.querySelector('.markdown-text-editor');
     this.textarea._giteaComboMarkdownEditor = this;
-    this.textarea.id = `_combo_markdown_editor_${String(elementIdCounter++)}`;
+    this.textarea.id = generateElemId(`_combo_markdown_editor_`);
     this.textarea.addEventListener('input', () => triggerEditorContentChanged(this.container));
     this.applyEditorHeights(this.textarea, this.options.editorHeights);
 
@@ -213,16 +211,16 @@ export class ComboMarkdownEditor {
 
     // Fomantic Tab requires the "data-tab" to be globally unique.
     // So here it uses our defined "data-tab-for" and "data-tab-panel" to generate the "data-tab" attribute for Fomantic.
+    const tabIdSuffix = generateElemId();
     this.tabEditor = Array.from(tabs).find((tab) => tab.getAttribute('data-tab-for') === 'markdown-writer');
     this.tabPreviewer = Array.from(tabs).find((tab) => tab.getAttribute('data-tab-for') === 'markdown-previewer');
-    this.tabEditor.setAttribute('data-tab', `markdown-writer-${elementIdCounter}`);
-    this.tabPreviewer.setAttribute('data-tab', `markdown-previewer-${elementIdCounter}`);
+    this.tabEditor.setAttribute('data-tab', `markdown-writer-${tabIdSuffix}`);
+    this.tabPreviewer.setAttribute('data-tab', `markdown-previewer-${tabIdSuffix}`);
 
     const panelEditor = this.container.querySelector('.ui.tab[data-tab-panel="markdown-writer"]');
     const panelPreviewer = this.container.querySelector('.ui.tab[data-tab-panel="markdown-previewer"]');
-    panelEditor.setAttribute('data-tab', `markdown-writer-${elementIdCounter}`);
-    panelPreviewer.setAttribute('data-tab', `markdown-previewer-${elementIdCounter}`);
-    elementIdCounter++;
+    panelEditor.setAttribute('data-tab', `markdown-writer-${tabIdSuffix}`);
+    panelPreviewer.setAttribute('data-tab', `markdown-previewer-${tabIdSuffix}`);
 
     this.tabEditor.addEventListener('click', () => {
       requestAnimationFrame(() => {

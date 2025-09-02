@@ -15,6 +15,7 @@ type Organization struct {
 	Location                  string `json:"location"`
 	Visibility                string `json:"visibility"`
 	RepoAdminChangeTeamAccess bool   `json:"repo_admin_change_team_access"`
+	// username of the organization
 	// deprecated
 	UserName string `json:"username"`
 }
@@ -30,6 +31,7 @@ type OrganizationPermissions struct {
 
 // CreateOrgOption options for creating an organization
 type CreateOrgOption struct {
+	// username of the organization
 	// required: true
 	UserName    string `json:"username" binding:"Required;Username;MaxSize(40)"`
 	FullName    string `json:"full_name" binding:"MaxSize(100)"`

@@ -49,28 +49,21 @@ func deleteDeployKeyFromDB(ctx context.Context, key *asymkey_model.DeployKey) er
 // DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
 // Permissions check should be done outside.
 func DeleteDeployKey(ctx context.Context, repo *repo_model.Repository, id int64) error {
-	dbCtx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	key, err := asymkey_model.GetDeployKeyByID(ctx, id)
-	if err != nil {
-		if asymkey_model.IsErrDeployKeyNotExist(err) {
-			return nil
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		key, err := asymkey_model.GetDeployKeyByID(ctx, id)
+		if err != nil {
+			if asymkey_model.IsErrDeployKeyNotExist(err) {
+				return nil
+			}
+			return fmt.Errorf("GetDeployKeyByID: %w", err)
 		}
-		return fmt.Errorf("GetDeployKeyByID: %w", err)
-	}
 
-	if key.RepoID != repo.ID {
-		return fmt.Errorf("deploy key %d does not belong to repository %d", id, repo.ID)
-	}
+		if key.RepoID != repo.ID {
+			return fmt.Errorf("deploy key %d does not belong to repository %d", id, repo.ID)
+		}
 
-	if err := deleteDeployKeyFromDB(dbCtx, key); err != nil {
-		return err
-	}
-	if err := committer.Commit(); err != nil {
+		return deleteDeployKeyFromDB(ctx, key)
+	}); err != nil {
 		return err
 	}
 

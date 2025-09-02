@@ -320,7 +320,7 @@ func (a *Action) GetCommentHTMLURL(ctx context.Context) string {
 		return "#"
 	}
 
-	return a.Issue.HTMLURL()
+	return a.Issue.HTMLURL(ctx)
 }
 
 // GetCommentLink returns link to action comment.

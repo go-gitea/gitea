@@ -17,8 +17,8 @@ var (
 	ErrNotExist         = errors.New("resource does not exist") // also implies HTTP 404
 	ErrAlreadyExist     = errors.New("resource already exists") // also implies HTTP 409
 
-	// ErrUnprocessableContent implies HTTP 422, syntax of the request content was correct,
-	// but server was unable to process the contained instructions
+	// ErrUnprocessableContent implies HTTP 422, the syntax of the request content is correct,
+	// but the server is unable to process the contained instructions
 	ErrUnprocessableContent = errors.New("unprocessable content")
 )
 

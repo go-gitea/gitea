@@ -381,7 +381,7 @@ func NewRelease(ctx *context.Context) {
 
 			ctx.Data["ShowCreateTagOnlyButton"] = false
 			ctx.Data["tag_name"] = rel.TagName
-			ctx.Data["tag_target"] = rel.Target
+			ctx.Data["tag_target"] = util.IfZero(rel.Target, ctx.Repo.Repository.DefaultBranch)
 			ctx.Data["title"] = rel.Title
 			ctx.Data["content"] = rel.Note
 			ctx.Data["attachments"] = rel.Attachments
@@ -537,7 +537,7 @@ func EditRelease(ctx *context.Context) {
 	}
 	ctx.Data["ID"] = rel.ID
 	ctx.Data["tag_name"] = rel.TagName
-	ctx.Data["tag_target"] = rel.Target
+	ctx.Data["tag_target"] = util.IfZero(rel.Target, ctx.Repo.Repository.DefaultBranch)
 	ctx.Data["title"] = rel.Title
 	ctx.Data["content"] = rel.Note
 	ctx.Data["prerelease"] = rel.IsPrerelease
@@ -583,7 +583,7 @@ func EditReleasePost(ctx *context.Context) {
 		return
 	}
 	ctx.Data["tag_name"] = rel.TagName
-	ctx.Data["tag_target"] = rel.Target
+	ctx.Data["tag_target"] = util.IfZero(rel.Target, ctx.Repo.Repository.DefaultBranch)
 	ctx.Data["title"] = rel.Title
 	ctx.Data["content"] = rel.Note
 	ctx.Data["prerelease"] = rel.IsPrerelease

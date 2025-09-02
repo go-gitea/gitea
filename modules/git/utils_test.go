@@ -15,3 +15,17 @@ func TestHashFilePathForWebUI(t *testing.T) {
 		HashFilePathForWebUI("foobar"),
 	)
 }
+
+func TestSplitCommitTitleBody(t *testing.T) {
+	title, body := SplitCommitTitleBody("啊bcdefg", 4)
+	assert.Equal(t, "啊…", title)
+	assert.Equal(t, "…bcdefg", body)
+
+	title, body = SplitCommitTitleBody("abcdefg\n1234567", 4)
+	assert.Equal(t, "a…", title)
+	assert.Equal(t, "…bcdefg\n1234567", body)
+
+	title, body = SplitCommitTitleBody("abcdefg\n1234567", 100)
+	assert.Equal(t, "abcdefg", title)
+	assert.Equal(t, "1234567", body)
+}

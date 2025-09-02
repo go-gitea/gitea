@@ -8,8 +8,11 @@ import "time"
 
 // CreateUserOption create user options
 type CreateUserOption struct {
-	SourceID  int64  `json:"source_id"`
+	SourceID int64 `json:"source_id"`
+	// identifier of the user, provided by the external authenticator (if configured)
+	// default: empty
 	LoginName string `json:"login_name"`
+	// username of the user
 	// required: true
 	Username string `json:"username" binding:"Required;Username;MaxSize(40)"`
 	FullName string `json:"full_name" binding:"MaxSize(100)"`
@@ -32,6 +35,8 @@ type CreateUserOption struct {
 type EditUserOption struct {
 	// required: true
 	SourceID int64 `json:"source_id"`
+	// identifier of the user, provided by the external authenticator (if configured)
+	// default: empty
 	// required: true
 	LoginName string `json:"login_name" binding:"Required"`
 	// swagger:strfmt email
