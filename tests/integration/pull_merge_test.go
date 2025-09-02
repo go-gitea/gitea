@@ -44,16 +44,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle repo_model.MergeStyle, deleteBranch bool) *httptest.ResponseRecorder {
+func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle repo_model.MergeStyle, deleteBranch bool, messages ...string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link := path.Join(user, repo, "pulls", pullnum, "merge")
 
+	message := ""
+	if len(messages) > 0 {
+		message = messages[0]
+	}
+
 	options := map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-		"do":    string(mergeStyle),
+		"_csrf":               htmlDoc.GetCSRF(),
+		"do":                  string(mergeStyle),
+		"merge_message_field": message,
 	}
 
 	if deleteBranch {
@@ -167,7 +173,6 @@ func TestPullSquash(t *testing.T) {
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited!)\n")
 
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
-
 		prURL := test.RedirectURL(resp)
 		elem := strings.Split(prURL, "/")
 		assert.Equal(t, "pulls", elem[3])
@@ -232,7 +237,8 @@ func TestPullSquash(t *testing.T) {
 			}
 		}
 
-		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleSquash, false)
+		message := "This a pull description\n--------------------\n* user2 updated the file!\n* user2 updated the file\n* Update README.md\n* Update README.md\n"
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleSquash, false, message)
 
 		req = NewRequest(t, "GET", "/user2/repo1/src/branch/master/")
 		resp = user2Session.MakeRequest(t, req, http.StatusOK)
