@@ -23,12 +23,6 @@ func TestRepository_WikiCloneLink(t *testing.T) {
 	assert.Equal(t, "https://try.gitea.io/user2/repo1.wiki.git", cloneLink.HTTPS)
 }
 
-func TestWikiPath(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	expected := filepath.Join(setting.RepoRootPath, "user2/repo1.wiki.git")
-	assert.Equal(t, expected, repo_model.WikiPath("user2", "repo1"))
-}
-
 func TestRepository_WikiPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})

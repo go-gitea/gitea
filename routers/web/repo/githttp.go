@@ -5,13 +5,10 @@
 package repo
 
 import (
-	"bytes"
 	"compress/gzip"
-	gocontext "context"
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
@@ -26,6 +23,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -339,11 +337,11 @@ type serviceHandler struct {
 	environ []string
 }
 
-func (h *serviceHandler) getRepoDir() string {
+func (h *serviceHandler) getStorageRepo() gitrepo.Repository {
 	if h.isWiki {
-		return h.repo.WikiPath()
+		return h.repo.WikiStorageRepo()
 	}
-	return h.repo.RepoPath()
+	return h.repo
 }
 
 func setHeaderNoCache(ctx *context.Context) {
@@ -375,9 +373,16 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 		ctx.Resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	reqFile := filepath.Join(h.getRepoDir(), file)
 
-	fi, err := os.Stat(reqFile)
+	fs := gitrepo.GetRepoFS(h.getStorageRepo())
+	f, err := fs.Open(file)
+	if err != nil {
+		log.Error("Failed to open file: %v", err)
+		return
+	}
+	defer f.Close()
+
+	fi, err := f.Stat()
 	if os.IsNotExist(err) {
 		ctx.Resp.WriteHeader(http.StatusNotFound)
 		return
@@ -387,22 +392,11 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
 	// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
 	ctx.Resp.Header().Set("Last-Modified", fi.ModTime().UTC().Format(http.TimeFormat))
-	http.ServeFile(ctx.Resp, ctx.Req, reqFile)
+	http.ServeFileFS(ctx.Resp, ctx.Req, fs, file)
 }
 
 // one or more key=value pairs separated by colons
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
-
-func prepareGitCmdWithAllowedService(service string) (*git.Command, error) {
-	if service == "receive-pack" {
-		return git.NewCommand("receive-pack"), nil
-	}
-	if service == "upload-pack" {
-		return git.NewCommand("upload-pack"), nil
-	}
-
-	return nil, fmt.Errorf("service %q is not allowed", service)
-}
 
 func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	defer func() {
@@ -418,9 +412,8 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 		return
 	}
 
-	cmd, err := prepareGitCmdWithAllowedService(service)
-	if err != nil {
-		log.Error("Failed to prepareGitCmdWithService: %v", err)
+	if service != "upload-pack" && service != "receive-pack" {
+		log.Error("Invalid service: %q", service)
 		ctx.Resp.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -428,7 +421,7 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	ctx.Resp.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", service))
 
 	reqBody := ctx.Req.Body
-
+	var err error
 	// Handle GZIP.
 	if ctx.Req.Header.Get("Content-Encoding") == "gzip" {
 		reqBody, err = gzip.NewReader(reqBody)
@@ -446,18 +439,9 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 	}
 
-	var stderr bytes.Buffer
-	cmd.AddArguments("--stateless-rpc").AddDynamicArguments(h.getRepoDir())
-	if err := cmd.Run(ctx, &git.RunOpts{
-		Dir:               h.getRepoDir(),
-		Env:               append(os.Environ(), h.environ...),
-		Stdout:            ctx.Resp,
-		Stdin:             reqBody,
-		Stderr:            &stderr,
-		UseContextTimeout: true,
-	}); err != nil {
+	if stderr, err := gitrepo.StatelessRPC(ctx, h.getStorageRepo(), service, h.environ, reqBody, ctx.Resp); err != nil {
 		if !git.IsErrCanceledOrKilled(err) {
-			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.getRepoDir(), err, stderr.String())
+			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.getStorageRepo().RelativePath(), err, stderr)
 		}
 		return
 	}
@@ -487,14 +471,6 @@ func getServiceType(ctx *context.Context) string {
 	return strings.TrimPrefix(serviceType, "git-")
 }
 
-func updateServerInfo(ctx gocontext.Context, dir string) []byte {
-	out, _, err := git.NewCommand("update-server-info").RunStdBytes(ctx, &git.RunOpts{Dir: dir})
-	if err != nil {
-		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
-	}
-	return out
-}
-
 func packetWrite(str string) []byte {
 	s := strconv.FormatInt(int64(len(str)+4), 16)
 	if len(s)%4 != 0 {
@@ -511,14 +487,12 @@ func GetInfoRefs(ctx *context.Context) {
 	}
 	setHeaderNoCache(ctx)
 	service := getServiceType(ctx)
-	cmd, err := prepareGitCmdWithAllowedService(service)
-	if err == nil {
+	if service == "upload-pack" || service == "receive-pack" {
 		if protocol := ctx.Req.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
 			h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 		}
-		h.environ = append(os.Environ(), h.environ...)
 
-		refs, _, err := cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &git.RunOpts{Env: h.environ, Dir: h.getRepoDir()})
+		refs, err := gitrepo.StatelessRPCAdvertiseRefs(ctx, h.getStorageRepo(), service, h.environ)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -529,7 +503,9 @@ func GetInfoRefs(ctx *context.Context) {
 		_, _ = ctx.Resp.Write([]byte("0000"))
 		_, _ = ctx.Resp.Write(refs)
 	} else {
-		updateServerInfo(ctx, h.getRepoDir())
+		if err := gitrepo.UpdateServerInfo(ctx, h.getStorageRepo()); err != nil {
+			log.Error("Failed to update server info: %v", err)
+		}
 		h.sendFile(ctx, "text/plain; charset=utf-8", "info/refs")
 	}
 }
