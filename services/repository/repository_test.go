@@ -61,3 +61,12 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, act.IsPrivate)
 }
+
+func TestRepository_HasWiki(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.True(t, HasWiki(t.Context(), repo1))
+
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	assert.False(t, HasWiki(t.Context(), repo2))
+}
