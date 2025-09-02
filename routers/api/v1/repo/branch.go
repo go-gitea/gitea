@@ -380,11 +380,11 @@ func ListBranches(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiBranches)
 }
 
-// UpdateBranch updates a repository's branch.
-func UpdateBranch(ctx *context.APIContext) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/branches/{branch} repository repoUpdateBranch
+// RenameBranch renames a repository's branch.
+func RenameBranch(ctx *context.APIContext) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/branches/{branch} repository repoRenameBranch
 	// ---
-	// summary: Update a branch
+	// summary: Rename a branch
 	// consumes:
 	// - application/json
 	// produces:
@@ -408,7 +408,7 @@ func UpdateBranch(ctx *context.APIContext) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/UpdateBranchRepoOption"
+	//     "$ref": "#/definitions/RenameBranchRepoOption"
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
@@ -419,7 +419,7 @@ func UpdateBranch(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opt := web.GetForm(ctx).(*api.UpdateBranchRepoOption)
+	opt := web.GetForm(ctx).(*api.RenameBranchRepoOption)
 
 	oldName := ctx.PathParam("*")
 	repo := ctx.Repo.Repository

@@ -261,38 +261,27 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	return repo, committer.Commit()
 }
 
-// cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
-// This also removes possible user credentials.
-func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
-	cmd := git.NewCommand("remote", "rm", "origin")
-	// if the origin does not exist
-	_, _, err := cmd.RunStdString(ctx, &git.RunOpts{
-		Dir: repoPath,
-	})
-	if err != nil && !git.IsRemoteNotExistError(err) {
-		return err
-	}
-	return nil
-}
-
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
 func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo_model.Repository, error) {
 	if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 		return repo, fmt.Errorf("createDelegateHooks: %w", err)
 	}
-	if repo.HasWiki() {
+
+	hasWiki := HasWiki(ctx, repo)
+	if hasWiki {
 		if err := gitrepo.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 			return repo, fmt.Errorf("createDelegateHooks.(wiki): %w", err)
 		}
 	}
 
-	_, _, err := git.NewCommand("remote", "rm", "origin").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
+	err := gitrepo.GitRemoteRemove(ctx, repo, "origin")
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}
 
-	if repo.HasWiki() {
-		if err := cleanUpMigrateGitConfig(ctx, repo.WikiPath()); err != nil {
+	if hasWiki {
+		err = gitrepo.GitRemoteRemove(ctx, repo.WikiStorageRepo(), "origin")
+		if err != nil && !git.IsRemoteNotExistError(err) {
 			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %w", err)
 		}
 	}
