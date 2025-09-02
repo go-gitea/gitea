@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -40,6 +41,7 @@ import (
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -237,7 +239,18 @@ func TestPullSquash(t *testing.T) {
 			}
 		}
 
-		message := "This a pull description\n--------------------\n* user2 updated the file!\n* user2 updated the file\n* Update README.md\n* Update README.md\n"
+		resp = session.MakeRequest(t, NewRequest(t, "GET", prURL+"/merge_box"), http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		message := ""
+		htmlDoc.doc.Find("script").Each(func(i int, s *goquery.Selection) {
+			scriptContent := s.Text()
+			re := regexp.MustCompile(`const\s+defaultSquashMergeMessage\s*=\s*"(.*?)"\s*;`)
+			matches := re.FindStringSubmatch(scriptContent)
+			if len(matches) > 1 {
+				message = matches[1]
+			}
+		})
+
 		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleSquash, false, message)
 
 		req = NewRequest(t, "GET", "/user2/repo1/src/branch/master/")
