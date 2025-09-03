@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -29,7 +28,7 @@ func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 		testContent := bytes.Repeat([]byte{'a'}, 10000)
-		resp, err := files_service.ChangeRepoFiles(db.DefaultContext, repo, user, &files_service.ChangeRepoFilesOptions{
+		resp, err := files_service.ChangeRepoFiles(t.Context(), repo, user, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -44,7 +43,7 @@ func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 
 		sha := resp.Commit.SHA
 
-		gitRepo, err := gitrepo.OpenRepository(db.DefaultContext, repo)
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 
 		commit, err := gitRepo.GetCommit(sha)
@@ -97,41 +96,41 @@ func TestAgitPullPush(t *testing.T) {
 		doGitCreateBranch(dstPath, "test-agit-push")
 
 		// commit 1
-		_, err = generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+		_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-")
 		assert.NoError(t, err)
 
 		// push to create an agit pull request
 		err = git.NewCommand("push", "origin",
 			"-o", "title=test-title", "-o", "description=test-description",
 			"HEAD:refs/for/master/test-agit-push",
-		).Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		).Run(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		// check pull request exist
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Flow: issues_model.PullRequestFlowAGit, HeadBranch: "user2/test-agit-push"})
-		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+		assert.NoError(t, pr.LoadIssue(t.Context()))
 		assert.Equal(t, "test-title", pr.Issue.Title)
 		assert.Equal(t, "test-description", pr.Issue.Content)
 
 		// commit 2
-		_, err = generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-2-")
+		_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-2-")
 		assert.NoError(t, err)
 
 		// push 2
-		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").Run(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		// reset to first commit
-		err = git.NewCommand("reset", "--hard", "HEAD~1").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		err = git.NewCommand("reset", "--hard", "HEAD~1").Run(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		// test force push without confirm
-		_, stderr, err := git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		_, stderr, err := git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.Error(t, err)
 		assert.Contains(t, stderr, "[remote rejected] HEAD -> refs/for/master/test-agit-push (request `force-push` push option)")
 
 		// test force push with confirm
-		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").Run(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 	})
 }
@@ -153,14 +152,14 @@ func TestAgitReviewStaleness(t *testing.T) {
 		doGitCreateBranch(dstPath, "test-agit-review")
 
 		// Create initial commit
-		_, err = generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "initial-")
+		_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "initial-")
 		assert.NoError(t, err)
 
 		// create PR via agit
 		err = git.NewCommand("push", "origin",
 			"-o", "title=Test agit Review Staleness", "-o", "description=Testing review staleness",
 			"HEAD:refs/for/master/test-agit-review",
-		).Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		).Run(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
@@ -168,7 +167,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 			Flow:       issues_model.PullRequestFlowAGit,
 			HeadBranch: "user2/test-agit-review",
 		})
-		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+		assert.NoError(t, pr.LoadIssue(t.Context()))
 
 		// Get initial commit ID for the review
 		initialCommitID := pr.HeadCommitID
@@ -176,7 +175,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 
 		// Create a review on the PR (as user1 reviewing user2's PR)
 		reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-		review, err := issues_model.CreateReview(db.DefaultContext, issues_model.CreateReviewOptions{
+		review, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
 			Type:     issues_model.ReviewTypeApprove,
 			Reviewer: reviewer,
 			Issue:    pr.Issue,
@@ -188,7 +187,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 		assert.False(t, review.Stale, "New review should not be stale")
 
 		// Verify review exists and is not stale
-		reviews, err := issues_model.FindReviews(db.DefaultContext, issues_model.FindReviewOptions{
+		reviews, err := issues_model.FindReviews(t.Context(), issues_model.FindReviewOptions{
 			IssueID: pr.IssueID,
 		})
 		assert.NoError(t, err)
@@ -197,10 +196,10 @@ func TestAgitReviewStaleness(t *testing.T) {
 		assert.False(t, reviews[0].Stale, "Review should not be stale initially")
 
 		// Create a new commit and update the agit PR
-		_, err = generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "updated-")
+		_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "updated-")
 		assert.NoError(t, err)
 
-		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-review").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-review").Run(t.Context(), &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		// Reload PR to get updated commit ID
@@ -209,11 +208,11 @@ func TestAgitReviewStaleness(t *testing.T) {
 			Flow:       issues_model.PullRequestFlowAGit,
 			HeadBranch: "user2/test-agit-review",
 		})
-		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+		assert.NoError(t, pr.LoadIssue(t.Context()))
 
 		// For AGit PRs, HeadCommitID must be loaded from git references
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		baseGitRepo, err := gitrepo.OpenRepository(db.DefaultContext, baseRepo)
+		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
 		assert.NoError(t, err)
 		defer baseGitRepo.Close()
 
@@ -225,7 +224,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 		assert.NotEqual(t, initialCommitID, updatedCommitID, "PR should have new commit ID after update")
 
 		// Check that the review is now marked as stale
-		reviews, err = issues_model.FindReviews(db.DefaultContext, issues_model.FindReviewOptions{
+		reviews, err = issues_model.FindReviews(t.Context(), issues_model.FindReviewOptions{
 			IssueID: pr.IssueID,
 		})
 		assert.NoError(t, err)

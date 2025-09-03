@@ -405,14 +405,14 @@ func (issue *Issue) APIURL(ctx context.Context) string {
 }
 
 // HTMLURL returns the absolute URL to this issue.
-func (issue *Issue) HTMLURL() string {
+func (issue *Issue) HTMLURL(ctx context.Context) string {
 	var path string
 	if issue.IsPull {
 		path = "pulls"
 	} else {
 		path = "issues"
 	}
-	return fmt.Sprintf("%s/%s/%d", issue.Repo.HTMLURL(), path, issue.Index)
+	return fmt.Sprintf("%s/%s/%d", issue.Repo.HTMLURL(ctx), path, issue.Index)
 }
 
 // Link returns the issue's relative URL.

@@ -34,7 +34,7 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 		Submitted:         r.CreatedUnix.AsTime(),
 		Updated:           r.UpdatedUnix.AsTime(),
 		HTMLURL:           r.HTMLURL(ctx),
-		HTMLPullURL:       r.Issue.HTMLURL(),
+		HTMLPullURL:       r.Issue.HTMLURL(ctx),
 	}
 
 	if r.ReviewerTeam != nil {
@@ -105,7 +105,7 @@ func ToPullReviewCommentList(ctx context.Context, review *issues_model.Review, d
 					OrigCommitID: comment.OldRef,
 					DiffHunk:     patch2diff(comment.Patch),
 					HTMLURL:      comment.HTMLURL(ctx),
-					HTMLPullURL:  review.Issue.HTMLURL(),
+					HTMLPullURL:  review.Issue.HTMLURL(ctx),
 				}
 
 				if comment.Line < 0 {

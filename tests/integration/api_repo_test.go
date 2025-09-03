@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -223,7 +222,7 @@ func TestAPISearchRepo(t *testing.T) {
 					assert.Len(t, repoNames, expected.count)
 					for _, repo := range body.Data {
 						r := getRepo(t, repo.ID)
-						hasAccess, err := access_model.HasAnyUnitAccess(db.DefaultContext, userID, r)
+						hasAccess, err := access_model.HasAnyUnitAccess(t.Context(), userID, r)
 						assert.NoError(t, err, "Error when checking if User: %d has access to %s: %v", userID, repo.FullName, err)
 						assert.True(t, hasAccess, "User: %d does not have access to %s", userID, repo.FullName)
 
@@ -337,10 +336,10 @@ func TestAPIOrgReposWithCodeUnitDisabled(t *testing.T) {
 	var units []unit_model.Type
 	units = append(units, unit_model.TypeCode)
 
-	err := repo_service.UpdateRepositoryUnits(db.DefaultContext, repo21, nil, units)
+	err := repo_service.UpdateRepositoryUnits(t.Context(), repo21, nil, units)
 	assert.NoError(t, err, "should have been able to delete code repository unit")
 
-	assert.False(t, repo21.UnitEnabled(db.DefaultContext, unit_model.TypeCode))
+	assert.False(t, repo21.UnitEnabled(t.Context(), unit_model.TypeCode))
 
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
@@ -429,7 +428,7 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		httpContext.Reponame = "repo-tmp-17"
 		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
 
-		user, err := user_model.GetUserByName(db.DefaultContext, httpContext.Username)
+		user, err := user_model.GetUserByName(t.Context(), httpContext.Username)
 		assert.NoError(t, err)
 		userID := user.ID
 
@@ -586,7 +585,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 
 	// cleanup
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-	_ = repo_service.DeleteRepositoryDirectly(db.DefaultContext, repo.ID)
+	_ = repo_service.DeleteRepositoryDirectly(t.Context(), repo.ID)
 }
 
 func transfer(t *testing.T) *repo_model.Repository {
