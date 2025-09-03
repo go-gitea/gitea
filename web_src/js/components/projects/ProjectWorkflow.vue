@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {onMounted, useTemplateRef, computed, ref} from 'vue';
+import {onMounted, useTemplateRef, computed} from 'vue';
 import {createWorkflowStore} from './WorkflowStore.ts';
 import {svg} from '../../svg.ts';
 
@@ -42,10 +42,10 @@ const isWorkflowConfigured = (event) => {
 
 // Get flat list of all workflows - directly use backend data
 const workflowList = computed(() => {
-  return store.workflowEvents.map(workflow => ({
+  return store.workflowEvents.map((workflow) => ({
     ...workflow,
     isConfigured: isWorkflowConfigured(workflow),
-    base_event_type: workflow.event_id.includes('-') ? workflow.event_id : workflow.event_id
+    base_event_type: workflow.event_id,
   }));
 });
 
@@ -55,7 +55,7 @@ const createNewWorkflow = (baseEventType, capabilities, displayName) => {
     id: 0,
     event_id: tempId,
     display_name: displayName,
-    capabilities: capabilities,
+    capabilities,
     filters: [],
     actions: [],
     filter_summary: '',
@@ -74,8 +74,8 @@ const cloneWorkflow = (sourceWorkflow) => {
     event_id: tempId,
     display_name: sourceWorkflow.display_name.split(' (')[0], // Remove filter suffix
     capabilities: sourceWorkflow.capabilities,
-    filters: [...(sourceWorkflow.filters || [])],
-    actions: [...(sourceWorkflow.actions || [])],
+    filters: Array.from(sourceWorkflow.filters || []),
+    actions: Array.from(sourceWorkflow.actions || []),
     filter_summary: '',
     base_event_type: sourceWorkflow.base_event_type || sourceWorkflow.workflow_event,
   };
@@ -109,7 +109,7 @@ const hasAction = (actionType) => {
   return store.selectedWorkflow?.capabilities?.available_actions?.includes(actionType);
 };
 
-const getActionsSummary = (workflow) => {
+const _getActionsSummary = (workflow) => {
   if (!workflow.actions || workflow.actions.length === 0) {
     return '';
   }
@@ -148,14 +148,13 @@ onMounted(async () => {
       store.selectedItem = props.eventID;
       store.selectedWorkflow = selectedEvent;
       await store.loadWorkflowData(props.eventID);
-
     }
   } else {
     // Auto-select first configured workflow, or first item if none configured
     const items = workflowList.value;
     if (items.length > 0) {
       // Find first configured workflow
-      let firstConfigured = items.find(item => item.isConfigured);
+      const firstConfigured = items.find((item) => item.isConfigured);
 
       if (firstConfigured) {
         // Select first configured workflow
@@ -201,8 +200,10 @@ onMounted(async () => {
             <div class="workflow-content">
               <div class="workflow-info">
                 <span class="status-indicator">
-                  <span v-html="svg('octicon-dot-fill')"
-                        :class="item.isConfigured ? 'status-active' : 'status-inactive'"/>
+                  <span
+                    v-html="svg('octicon-dot-fill')"
+                    :class="item.isConfigured ? 'status-active' : 'status-inactive'"
+                  />
                 </span>
                 <div class="workflow-title">{{ item.display_name }}</div>
               </div>
@@ -306,14 +307,15 @@ onMounted(async () => {
                 </div>
               </div>
             </div>
-
-            <div class="editor-actions">
-              <button class="ui primary button" @click="saveWorkflow" :class="{ loading: store.saving }">
-                <i class="save icon"/>
-                Save Workflow
-              </button>
-            </div>
           </div>
+        </div>
+
+        <!-- Fixed bottom actions -->
+        <div class="editor-actions">
+          <button class="ui primary button" @click="saveWorkflow" :class="{ loading: store.saving }">
+            <i class="save icon"/>
+            Save Workflow
+          </button>
         </div>
       </div>
     </div>
@@ -415,25 +417,6 @@ onMounted(async () => {
   line-height: 1.3;
 }
 
-.workflow-actions {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.clone-btn {
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  flex-shrink: 0;
-  padding: 0.25rem 0.5rem !important;
-  font-size: 0.75rem;
-  border: none !important;
-  background: transparent !important;
-}
-
-.workflow-item:hover .clone-btn {
-  opacity: 1;
-}
-
 .status-indicator .status-active {
   color: #28a745;
   font-size: 0.75rem;
@@ -443,7 +426,6 @@ onMounted(async () => {
   color: #d1d5da;
   font-size: 0.75rem;
 }
-
 
 /* Main Content Area */
 .workflow-placeholder {
@@ -544,11 +526,11 @@ onMounted(async () => {
 .editor-actions {
   display: flex;
   gap: 0.5rem;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
+  padding: 1.5rem;
   border-top: 1px solid #e1e4e8;
+  background: white;
+  flex-shrink: 0;
 }
-
 
 /* Responsive */
 @media (max-width: 768px) {

@@ -105,14 +105,14 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
         // Convert frontend data format to backend form format
         const formData = new FormData();
         formData.append('event_id', eventId);
-        
+
         // Add filters as form fields
         for (const [key, value] of Object.entries(store.workflowFilters)) {
           if (value !== '') {
             formData.append(`filters[${key}]`, value);
           }
         }
-        
+
         // Add actions as form fields
         for (const [key, value] of Object.entries(store.workflowActions)) {
           if (key === 'labels' && Array.isArray(value)) {
@@ -154,7 +154,6 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
 
         const result = await response.json();
         console.log('Response result:', result);
-        
         if (result.success && result.workflow) {
           // For new workflows, add to the store
           if (store.selectedWorkflow.id === 0 || store.selectedWorkflow.event_id.startsWith('new-')) {
