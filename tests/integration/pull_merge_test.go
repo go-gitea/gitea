@@ -174,7 +174,7 @@ func TestPullSquash(t *testing.T) {
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited!)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title", "This is a pull content")
 		prURL := test.RedirectURL(resp)
 		elem := strings.Split(prURL, "/")
 		assert.Equal(t, "pulls", elem[3])
