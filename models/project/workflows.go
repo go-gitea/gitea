@@ -43,26 +43,26 @@ func GetWorkflowEvents() []WorkflowEvent {
 	return workflowEvents
 }
 
-func (we WorkflowEvent) ToString() string {
+func (we WorkflowEvent) LangKey() string {
 	switch we {
 	case WorkflowEventItemAddedToProject:
-		return "Item added to project"
+		return "projects.workflows.event.item_added_to_project"
 	case WorkflowEventItemReopened:
-		return "Item reopened"
+		return "projects.workflows.event.item_reopened"
 	case WorkflowEventItemClosed:
-		return "Item closed"
+		return "projects.workflows.event.item_closed"
 	case WorkflowEventCodeChangesRequested:
-		return "Code changes requested"
+		return "projects.workflows.event.code_changes_requested"
 	case WorkflowEventCodeReviewApproved:
-		return "Code review approved"
+		return "projects.workflows.event.code_review_approved"
 	case WorkflowEventPullRequestMerged:
-		return "Pull request merged"
+		return "projects.workflows.event.pull_request_merged"
 	case WorkflowEventAutoArchiveItems:
-		return "Auto archive items"
+		return "projects.workflows.event.auto_archive_items"
 	case WorkflowEventAutoAddToProject:
-		return "Auto add to project"
+		return "projects.workflows.event.auto_add_to_project"
 	case WorkflowEventAutoCloseIssue:
-		return "Auto close issue"
+		return "projects.workflows.event.auto_close_issue"
 	default:
 		return string(we)
 	}
@@ -178,4 +178,13 @@ func GetWorkflowByID(ctx context.Context, id int64) (*Workflow, error) {
 		return nil, util.ErrNotExist
 	}
 	return p, nil
+}
+
+func CreateWorkflow(ctx context.Context, wf *Workflow) error {
+	return db.Insert(ctx, wf)
+}
+
+func UpdateWorkflow(ctx context.Context, wf *Workflow) error {
+	_, err := db.GetEngine(ctx).ID(wf.ID).Update(wf)
+	return err
 }

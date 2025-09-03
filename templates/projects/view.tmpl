@@ -19,6 +19,10 @@
 		</div>
 		{{if $canWriteProject}}
 			<div class="ui compact mini menu">
+				<a class="item" href="{{.Link}}/workflows">
+					{{svg "octicon-workflow"}}
+					{{ctx.Locale.Tr "projects.workflows"}}
+				</a>
 				<a class="item screen-full">
 					{{svg "octicon-screen-full"}}
 					{{ctx.Locale.Tr "projects.enter_fullscreen"}}
