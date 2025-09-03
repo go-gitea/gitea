@@ -16,27 +16,25 @@ import (
 type WorkflowEvent string
 
 const (
+	WorkflowEventItemOpened           WorkflowEvent = "item_opened"
 	WorkflowEventItemAddedToProject   WorkflowEvent = "item_added_to_project"
 	WorkflowEventItemReopened         WorkflowEvent = "item_reopened"
 	WorkflowEventItemClosed           WorkflowEvent = "item_closed"
+	WorkflowEventItemColumnChanged    WorkflowEvent = "item_column_changed"
 	WorkflowEventCodeChangesRequested WorkflowEvent = "code_changes_requested"
 	WorkflowEventCodeReviewApproved   WorkflowEvent = "code_review_approved"
 	WorkflowEventPullRequestMerged    WorkflowEvent = "pull_request_merged"
-	WorkflowEventAutoArchiveItems     WorkflowEvent = "auto_archive_items"
-	WorkflowEventAutoAddToProject     WorkflowEvent = "auto_add_to_project"
-	WorkflowEventAutoCloseIssue       WorkflowEvent = "auto_close_issue"
 )
 
 var workflowEvents = []WorkflowEvent{
+	WorkflowEventItemOpened,
 	WorkflowEventItemAddedToProject,
 	WorkflowEventItemReopened,
 	WorkflowEventItemClosed,
+	WorkflowEventItemColumnChanged,
 	WorkflowEventCodeChangesRequested,
 	WorkflowEventCodeReviewApproved,
 	WorkflowEventPullRequestMerged,
-	WorkflowEventAutoArchiveItems,
-	WorkflowEventAutoAddToProject,
-	WorkflowEventAutoCloseIssue,
 }
 
 func GetWorkflowEvents() []WorkflowEvent {
@@ -45,24 +43,22 @@ func GetWorkflowEvents() []WorkflowEvent {
 
 func (we WorkflowEvent) LangKey() string {
 	switch we {
+	case WorkflowEventItemOpened:
+		return "projects.workflows.event.item_opened"
 	case WorkflowEventItemAddedToProject:
 		return "projects.workflows.event.item_added_to_project"
 	case WorkflowEventItemReopened:
 		return "projects.workflows.event.item_reopened"
 	case WorkflowEventItemClosed:
 		return "projects.workflows.event.item_closed"
+	case WorkflowEventItemColumnChanged:
+		return "projects.workflows.event.item_column_changed"
 	case WorkflowEventCodeChangesRequested:
 		return "projects.workflows.event.code_changes_requested"
 	case WorkflowEventCodeReviewApproved:
 		return "projects.workflows.event.code_review_approved"
 	case WorkflowEventPullRequestMerged:
 		return "projects.workflows.event.pull_request_merged"
-	case WorkflowEventAutoArchiveItems:
-		return "projects.workflows.event.auto_archive_items"
-	case WorkflowEventAutoAddToProject:
-		return "projects.workflows.event.auto_add_to_project"
-	case WorkflowEventAutoCloseIssue:
-		return "projects.workflows.event.auto_close_issue"
 	default:
 		return string(we)
 	}
@@ -70,24 +66,22 @@ func (we WorkflowEvent) LangKey() string {
 
 func (we WorkflowEvent) UUID() string {
 	switch we {
+	case WorkflowEventItemOpened:
+		return "item_opened"
 	case WorkflowEventItemAddedToProject:
 		return "item_added_to_project"
 	case WorkflowEventItemReopened:
 		return "item_reopened"
 	case WorkflowEventItemClosed:
 		return "item_closed"
+	case WorkflowEventItemColumnChanged:
+		return "item_column_changed"
 	case WorkflowEventCodeChangesRequested:
 		return "code_changes_requested"
 	case WorkflowEventCodeReviewApproved:
 		return "code_review_approved"
 	case WorkflowEventPullRequestMerged:
 		return "pull_request_merged"
-	case WorkflowEventAutoArchiveItems:
-		return "auto_archive_items"
-	case WorkflowEventAutoAddToProject:
-		return "auto_add_to_project"
-	case WorkflowEventAutoCloseIssue:
-		return "auto_close_issue"
 	default:
 		return string(we)
 	}
@@ -96,20 +90,21 @@ func (we WorkflowEvent) UUID() string {
 type WorkflowFilterType string
 
 const (
-	WorkflowFilterTypeScope WorkflowFilterType = "scope" // issue, pull_request, etc.
+	WorkflowFilterTypeIssueType WorkflowFilterType = "issue_type" // issue, pull_request, etc.
 )
 
 type WorkflowFilter struct {
 	Type  WorkflowFilterType
-	Value string // e.g., "issue", "pull_request", etc.
+	Value string // e.g., "issue", "pull_request", etc. depends on the filter type definition
 }
 
 type WorkflowActionType string
 
 const (
-	WorkflowActionTypeColumn WorkflowActionType = "column" // add the item to the project's column
-	WorkflowActionTypeLabel  WorkflowActionType = "label"  // choose one or more labels
-	WorkflowActionTypeClose  WorkflowActionType = "close"  // close the issue
+	WorkflowActionTypeColumn       WorkflowActionType = "column"        // add the item to the project's column
+	WorkflowActionTypeAddLabels    WorkflowActionType = "add_labels"    // choose one or more labels
+	WorkflowActionTypeRemoveLabels WorkflowActionType = "remove_labels" // choose one or more labels
+	WorkflowActionTypeClose        WorkflowActionType = "close"         // close the issue
 )
 
 type WorkflowAction struct {
@@ -119,48 +114,44 @@ type WorkflowAction struct {
 
 // WorkflowEventCapabilities defines what filters and actions are available for each event
 type WorkflowEventCapabilities struct {
-	AvailableFilters []string             `json:"available_filters"`
+	AvailableFilters []WorkflowFilterType `json:"available_filters"`
 	AvailableActions []WorkflowActionType `json:"available_actions"`
 }
 
 // GetWorkflowEventCapabilities returns the capabilities for each workflow event
 func GetWorkflowEventCapabilities() map[WorkflowEvent]WorkflowEventCapabilities {
 	return map[WorkflowEvent]WorkflowEventCapabilities{
+		WorkflowEventItemOpened: {
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType}, // issue, pull_request
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels},
+		},
 		WorkflowEventItemAddedToProject: {
-			AvailableFilters: []string{"scope"}, // issue, pull_request
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel},
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType}, // issue, pull_request
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
 		},
 		WorkflowEventItemReopened: {
-			AvailableFilters: []string{"scope"},
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel},
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType},
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
 		},
 		WorkflowEventItemClosed: {
-			AvailableFilters: []string{"scope"},
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel},
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType},
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
+		},
+		WorkflowEventItemColumnChanged: {
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType},
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeClose},
 		},
 		WorkflowEventCodeChangesRequested: {
-			AvailableFilters: []string{}, // only applies to pull requests
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel},
+			AvailableFilters: []WorkflowFilterType{}, // only applies to pull requests
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
 		},
 		WorkflowEventCodeReviewApproved: {
-			AvailableFilters: []string{}, // only applies to pull requests
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel},
+			AvailableFilters: []WorkflowFilterType{}, // only applies to pull requests
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
 		},
 		WorkflowEventPullRequestMerged: {
-			AvailableFilters: []string{}, // only applies to pull requests
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel, WorkflowActionTypeClose},
-		},
-		WorkflowEventAutoArchiveItems: {
-			AvailableFilters: []string{"scope"},
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn},
-		},
-		WorkflowEventAutoAddToProject: {
-			AvailableFilters: []string{"scope"},
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel},
-		},
-		WorkflowEventAutoCloseIssue: {
-			AvailableFilters: []string{}, // only applies to issues
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeClose, WorkflowActionTypeLabel},
+			AvailableFilters: []WorkflowFilterType{}, // only applies to pull requests
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
 		},
 	}
 }

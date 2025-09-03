@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {onMounted, useTemplateRef, computed} from 'vue';
+import {onMounted, useTemplateRef, computed, ref} from 'vue';
 import {createWorkflowStore} from './WorkflowStore.ts';
 import {svg} from '../../svg.ts';
 
@@ -11,6 +11,49 @@ const props = defineProps({
 });
 
 const store = createWorkflowStore(props);
+
+const editMode = ref(false);
+
+const toggleEditMode = () => {
+  editMode.value = !editMode.value;
+};
+
+const toggleWorkflowStatus = async () => {
+  if (store.selectedWorkflow) {
+    // Toggle the enabled status
+    store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
+    await store.saveWorkflowStatus();
+  }
+};
+
+const deleteWorkflow = async () => {
+  if (!store.selectedWorkflow || !confirm('Are you sure you want to delete this workflow?')) {
+    return;
+  }
+
+  await store.deleteWorkflow();
+
+  // Refresh workflow list
+  store.workflowEvents = await store.loadEvents();
+
+  // Find workflows for the same base event type
+  const sameEventWorkflows = store.workflowEvents.filter(w =>
+    w.base_event_type === store.selectedWorkflow.base_event_type ||
+    w.workflow_event === store.selectedWorkflow.base_event_type
+  );
+
+  if (sameEventWorkflows.length === 0) {
+    // No workflows left for this event type, create an empty one
+    const baseEventType = store.selectedWorkflow.base_event_type;
+    const displayName = store.selectedWorkflow.display_name.split(' (')[0]; // Remove filter suffix
+    createNewWorkflow(baseEventType, store.selectedWorkflow.capabilities, displayName);
+  } else {
+    // Select the first remaining workflow of the same type
+    selectWorkflowItem(sameEventWorkflows[0]);
+  }
+
+  editMode.value = false;
+};
 
 const selectWorkflowEvent = (event) => {
   // Toggle selection - if already selected, deselect
@@ -60,11 +103,13 @@ const createNewWorkflow = (baseEventType, capabilities, displayName) => {
     actions: [],
     filter_summary: '',
     base_event_type: baseEventType,
+    enabled: true,
   };
 
   store.selectedWorkflow = newWorkflow;
   store.selectedItem = tempId;
   store.resetWorkflowData();
+  editMode.value = true; // Auto-enter edit mode for new workflows
 };
 
 const cloneWorkflow = (sourceWorkflow) => {
@@ -78,6 +123,7 @@ const cloneWorkflow = (sourceWorkflow) => {
     actions: Array.from(sourceWorkflow.actions || []),
     filter_summary: '',
     base_event_type: sourceWorkflow.base_event_type || sourceWorkflow.workflow_event,
+    enabled: true,
   };
 
   store.selectedWorkflow = clonedWorkflow;
@@ -85,9 +131,11 @@ const cloneWorkflow = (sourceWorkflow) => {
 
   // Load the source workflow's data into the form
   store.loadWorkflowData(sourceWorkflow.event_id);
+  editMode.value = true; // Auto-enter edit mode for cloned workflows
 };
 
 const selectWorkflowItem = (item) => {
+  editMode.value = false; // Reset edit mode when switching workflows
   if (item.isConfigured) {
     // This is a configured workflow, select it
     selectWorkflowEvent(item);
@@ -121,10 +169,15 @@ const _getActionsSummary = (workflow) => {
       if (column) {
         actions.push(`Move to "${column.title}"`);
       }
-    } else if (action.action_type === 'label') {
+    } else if (action.action_type === 'add_labels') {
       const label = store.projectLabels.find((l) => l.id === action.action_value);
       if (label) {
         actions.push(`Add label "${label.name}"`);
+      }
+    } else if (action.action_type === 'remove_labels') {
+      const label = store.projectLabels.find((l) => l.id === action.action_value);
+      if (label) {
+        actions.push(`Remove label "${label.name}"`);
       }
     } else if (action.action_type === 'close') {
       actions.push('Close issue');
@@ -233,12 +286,41 @@ onMounted(async () => {
             <h2>
               <i class="settings icon"/>
               {{ store.selectedWorkflow.display_name }}
+              <span v-if="store.selectedWorkflow.id > 0 && !editMode"
+                    class="workflow-status"
+                    :class="store.selectedWorkflow.enabled ? 'status-enabled' : 'status-disabled'">
+                {{ store.selectedWorkflow.enabled ? 'Enabled' : 'Disabled' }}
+              </span>
             </h2>
-            <p>Configure automated actions for this workflow</p>
+            <p v-if="editMode">Configure automated actions for this workflow</p>
+            <p v-else>View workflow configuration</p>
           </div>
           <div class="editor-actions-header">
+            <!-- Edit/Cancel Button -->
             <button
-              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0"
+              class="ui button"
+              :class="editMode ? 'basic' : 'primary'"
+              @click="toggleEditMode"
+            >
+              <i :class="editMode ? 'times icon' : 'edit icon'"/>
+              {{ editMode ? 'Cancel' : 'Edit' }}
+            </button>
+
+            <!-- Enable/Disable Button (only for configured workflows) -->
+            <button
+              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0 && !editMode"
+              class="ui button"
+              :class="store.selectedWorkflow.enabled ? 'red basic' : 'green'"
+              @click="toggleWorkflowStatus"
+              :title="store.selectedWorkflow.enabled ? 'Disable workflow' : 'Enable workflow'"
+            >
+              <i :class="store.selectedWorkflow.enabled ? 'pause icon' : 'play icon'"/>
+              {{ store.selectedWorkflow.enabled ? 'Disable' : 'Enable' }}
+            </button>
+
+            <!-- Clone Button (only for configured workflows) -->
+            <button
+              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0 && !editMode"
               class="ui basic button"
               @click="cloneWorkflow(store.selectedWorkflow)"
               title="Clone this workflow"
@@ -250,7 +332,7 @@ onMounted(async () => {
         </div>
 
         <div class="editor-content">
-          <div class="ui form">
+          <div class="ui form" :class="{ 'readonly': !editMode }">
             <div class="field">
               <label>When</label>
               <div class="ui segment">
@@ -264,13 +346,22 @@ onMounted(async () => {
             <div class="field" v-if="hasAvailableFilters">
               <label>Filters</label>
               <div class="ui segment">
-                <div class="field" v-if="hasFilter('scope')">
+                <div class="field" v-if="hasFilter('issue_type')">
                   <label>Apply to</label>
-                  <select class="ui dropdown" v-model="store.workflowFilters.scope">
+                  <select
+                    v-if="editMode"
+                    class="ui dropdown"
+                    v-model="store.workflowFilters.issue_type"
+                  >
                     <option value="">Issues And Pull Requests</option>
                     <option value="issue">Issues</option>
                     <option value="pull_request">Pull requests</option>
                   </select>
+                  <div v-else class="readonly-value">
+                    {{ store.workflowFilters.issue_type === 'issue' ? 'Issues' :
+                       store.workflowFilters.issue_type === 'pull_request' ? 'Pull requests' :
+                       'Issues And Pull Requests' }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -281,28 +372,47 @@ onMounted(async () => {
               <div class="ui segment">
                 <div class="field" v-if="hasAction('column')">
                   <label>Move to column</label>
-                  <select class="ui dropdown" v-model="store.workflowActions.column">
+                  <select
+                    v-if="editMode"
+                    class="ui dropdown"
+                    v-model="store.workflowActions.column"
+                  >
                     <option value="">Select column...</option>
                     <option v-for="column in store.projectColumns" :key="column.id" :value="column.id">
                       {{ column.title }}
                     </option>
                   </select>
+                  <div v-else class="readonly-value">
+                    {{ store.projectColumns.find(c => c.id === store.workflowActions.column)?.title || 'None' }}
+                  </div>
                 </div>
 
                 <div class="field" v-if="hasAction('label')">
                   <label>Add labels</label>
-                  <select class="ui multiple dropdown" v-model="store.workflowActions.labels">
+                  <select
+                    v-if="editMode"
+                    class="ui multiple dropdown"
+                    v-model="store.workflowActions.labels"
+                  >
                     <option value="">Select labels...</option>
                     <option v-for="label in store.projectLabels" :key="label.id" :value="label.id">
                       {{ label.name }}
                     </option>
                   </select>
+                  <div v-else class="readonly-value">
+                    {{ store.workflowActions.labels?.map(id =>
+                       store.projectLabels.find(l => l.id === id)?.name).join(', ') || 'None' }}
+                  </div>
                 </div>
 
                 <div class="field" v-if="hasAction('close')">
-                  <div class="ui checkbox">
+                  <div v-if="editMode" class="ui checkbox">
                     <input type="checkbox" v-model="store.workflowActions.closeIssue" id="close-issue">
                     <label for="close-issue">Close issue</label>
+                  </div>
+                  <div v-else class="readonly-value">
+                    <label>Close issue</label>
+                    <div>{{ store.workflowActions.closeIssue ? 'Yes' : 'No' }}</div>
                   </div>
                 </div>
               </div>
@@ -310,11 +420,19 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- Fixed bottom actions -->
-        <div class="editor-actions">
+        <!-- Fixed bottom actions (only show in edit mode) -->
+        <div v-if="editMode" class="editor-actions">
           <button class="ui primary button" @click="saveWorkflow" :class="{ loading: store.saving }">
             <i class="save icon"/>
             Save Workflow
+          </button>
+          <button
+            v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0"
+            class="ui red button"
+            @click="deleteWorkflow"
+          >
+            <i class="trash icon"/>
+            Delete
           </button>
         </div>
       </div>
@@ -492,6 +610,9 @@ onMounted(async () => {
 
 .editor-actions-header {
   flex-shrink: 0;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .editor-content {
@@ -575,5 +696,52 @@ onMounted(async () => {
   .editor-actions button {
     width: 100%;
   }
+}
+
+/* Workflow status styles */
+.workflow-status {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+
+.workflow-status.status-enabled {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.workflow-status.status-disabled {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Readonly form styles */
+.ui.form.readonly {
+  pointer-events: none;
+}
+
+.readonly-value {
+  background: #f6f8fa;
+  padding: 0.5rem;
+  border: 1px solid #e1e4e8;
+  border-radius: 4px;
+  color: #24292e;
+  font-weight: 500;
+}
+
+.readonly-value label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.readonly-value div {
+  color: #586069;
+  font-weight: normal;
 }
 </style>

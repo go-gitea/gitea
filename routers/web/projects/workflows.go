@@ -68,12 +68,23 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 					ActionValue: strValue,
 				})
 			}
-		case "labels":
+		case "add_labels":
 			if labels, ok := value.([]string); ok && len(labels) > 0 {
 				for _, label := range labels {
 					if label != "" {
 						actions = append(actions, project_model.WorkflowAction{
-							ActionType:  project_model.WorkflowActionTypeLabel,
+							ActionType:  project_model.WorkflowActionTypeAddLabels,
+							ActionValue: label,
+						})
+					}
+				}
+			}
+		case "remove_labels":
+			if labels, ok := value.([]string); ok && len(labels) > 0 {
+				for _, label := range labels {
+					if label != "" {
+						actions = append(actions, project_model.WorkflowAction{
+							ActionType:  project_model.WorkflowActionTypeRemoveLabels,
 							ActionValue: label,
 						})
 					}

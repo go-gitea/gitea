@@ -13,7 +13,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
     selectedEventType: null, // For workflow creation
 
     workflowFilters: {
-      scope: '', // 'issue', 'pull_request', or ''
+      issue_type: '', // 'issue', 'pull_request', or ''
     },
 
     workflowActions: {
@@ -48,22 +48,22 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
       if (workflow && workflow.filters && workflow.actions) {
         // Load existing configuration from the workflow data
         // Convert backend filter format to frontend format
-        const frontendFilters = {scope: ''};
+        const frontendFilters = {issue_type: ''};
         if (workflow.filters && Array.isArray(workflow.filters)) {
           for (const filter of workflow.filters) {
-            if (filter.type === 'scope') {
-              frontendFilters.scope = filter.value;
+            if (filter.type === 'issue_type') {
+              frontendFilters.issue_type = filter.value;
             }
           }
         }
 
         // Convert backend action format to frontend format
-        const frontendActions = {column: '', labels: [], closeIssue: false};
+        const frontendActions = {column: '', add_labels: [], closeIssue: false};
         if (workflow.actions && Array.isArray(workflow.actions)) {
           for (const action of workflow.actions) {
             if (action.action_type === 'column') {
               frontendActions.column = action.action_value;
-            } else if (action.action_type === 'label') {
+            } else if (action.action_type === 'add_labels') {
               frontendActions.labels.push(action.action_value);
             } else if (action.action_type === 'close') {
               frontendActions.closeIssue = action.action_value === 'true';
@@ -90,8 +90,8 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
     },
 
     resetWorkflowData() {
-      store.workflowFilters = {scope: ''};
-      store.workflowActions = {column: '', labels: [], closeIssue: false};
+      store.workflowFilters = {issue_type: ''};
+      store.workflowActions = {column: '', add_labels: [], closeIssue: false};
     },
 
     async saveWorkflow() {
@@ -186,6 +186,67 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
         alert(`Error saving workflow: ${error.message}`);
       } finally {
         store.saving = false;
+      }
+    },
+
+    async saveWorkflowStatus() {
+      if (!store.selectedWorkflow || store.selectedWorkflow.id === 0) return;
+
+      try {
+        const formData = new FormData();
+        formData.append('enabled', store.selectedWorkflow.enabled.toString());
+
+        const response = await POST(`${props.projectLink}/workflows/${store.selectedWorkflow.event_id}/status`, {
+          data: formData,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Failed to update workflow status:', errorText);
+          alert(`Failed to update workflow status: ${response.status} ${response.statusText}`);
+          return;
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          // Update workflow in the list
+          const existingIndex = store.workflowEvents.findIndex((e) => e.event_id === store.selectedWorkflow.event_id);
+          if (existingIndex >= 0) {
+            store.workflowEvents[existingIndex].enabled = store.selectedWorkflow.enabled;
+          }
+        }
+      } catch (error) {
+        console.error('Error updating workflow status:', error);
+        alert(`Error updating workflow status: ${error.message}`);
+      }
+    },
+
+    async deleteWorkflow() {
+      if (!store.selectedWorkflow || store.selectedWorkflow.id === 0) return;
+
+      try {
+        const response = await POST(`${props.projectLink}/workflows/${store.selectedWorkflow.event_id}/delete`, {
+          data: new FormData(),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Failed to delete workflow:', errorText);
+          alert(`Failed to delete workflow: ${response.status} ${response.statusText}`);
+          return;
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          // Remove workflow from the list
+          const existingIndex = store.workflowEvents.findIndex((e) => e.event_id === store.selectedWorkflow.event_id);
+          if (existingIndex >= 0) {
+            store.workflowEvents.splice(existingIndex, 1);
+          }
+        }
+      } catch (error) {
+        console.error('Error deleting workflow:', error);
+        alert(`Error deleting workflow: ${error.message}`);
       }
     },
 
