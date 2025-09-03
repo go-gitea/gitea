@@ -1433,6 +1433,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Group("/{id}/workflows", func() {
 			m.Get("", projects.Workflows)
 			m.Get("/{workflow_id}", projects.Workflows)
+			m.Post("/{workflow_id}", web.Bind(projects.WorkflowsPostForm{}), projects.WorkflowsPost)
 		})
 		m.Group("", func() { //nolint:dupl // duplicates lines 1034-1054
 			m.Get("/new", repo.RenderNewProject)

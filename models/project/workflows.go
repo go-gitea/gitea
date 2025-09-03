@@ -117,11 +117,59 @@ type WorkflowAction struct {
 	ActionValue string
 }
 
+// WorkflowEventCapabilities defines what filters and actions are available for each event
+type WorkflowEventCapabilities struct {
+	AvailableFilters []string             `json:"available_filters"`
+	AvailableActions []WorkflowActionType `json:"available_actions"`
+}
+
+// GetWorkflowEventCapabilities returns the capabilities for each workflow event
+func GetWorkflowEventCapabilities() map[WorkflowEvent]WorkflowEventCapabilities {
+	return map[WorkflowEvent]WorkflowEventCapabilities{
+		WorkflowEventItemAddedToProject: {
+			AvailableFilters: []string{"scope"}, // issue, pull_request
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel},
+		},
+		WorkflowEventItemReopened: {
+			AvailableFilters: []string{"scope"},
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel},
+		},
+		WorkflowEventItemClosed: {
+			AvailableFilters: []string{"scope"},
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel},
+		},
+		WorkflowEventCodeChangesRequested: {
+			AvailableFilters: []string{}, // only applies to pull requests
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel},
+		},
+		WorkflowEventCodeReviewApproved: {
+			AvailableFilters: []string{}, // only applies to pull requests
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel},
+		},
+		WorkflowEventPullRequestMerged: {
+			AvailableFilters: []string{}, // only applies to pull requests
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel, WorkflowActionTypeClose},
+		},
+		WorkflowEventAutoArchiveItems: {
+			AvailableFilters: []string{"scope"},
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn},
+		},
+		WorkflowEventAutoAddToProject: {
+			AvailableFilters: []string{"scope"},
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeLabel},
+		},
+		WorkflowEventAutoCloseIssue: {
+			AvailableFilters: []string{}, // only applies to issues
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeClose, WorkflowActionTypeLabel},
+		},
+	}
+}
+
 type Workflow struct {
 	ID              int64
-	ProjectID       int64              `xorm:"unique(s)"`
+	ProjectID       int64              `xorm:"INDEX"`
 	Project         *Project           `xorm:"-"`
-	WorkflowEvent   WorkflowEvent      `xorm:"unique(s)"`
+	WorkflowEvent   WorkflowEvent      `xorm:"INDEX"`
 	WorkflowFilters []WorkflowFilter   `xorm:"TEXT json"`
 	WorkflowActions []WorkflowAction   `xorm:"TEXT json"`
 	CreatedUnix     timeutil.TimeStamp `xorm:"created"`
@@ -157,16 +205,12 @@ func init() {
 	db.RegisterModel(new(Workflow))
 }
 
-func FindWorkflowEvents(ctx context.Context, projectID int64) (map[WorkflowEvent]*Workflow, error) {
-	events := make(map[WorkflowEvent]*Workflow)
-	if err := db.GetEngine(ctx).Where("project_id=?", projectID).Find(&events); err != nil {
+func FindWorkflowsByProjectID(ctx context.Context, projectID int64) ([]*Workflow, error) {
+	workflows := make([]*Workflow, 0)
+	if err := db.GetEngine(ctx).Where("project_id=?", projectID).Find(&workflows); err != nil {
 		return nil, err
 	}
-	res := make(map[WorkflowEvent]*Workflow, len(events))
-	for _, event := range events {
-		res[event.WorkflowEvent] = event
-	}
-	return res, nil
+	return workflows, nil
 }
 
 func GetWorkflowByID(ctx context.Context, id int64) (*Workflow, error) {

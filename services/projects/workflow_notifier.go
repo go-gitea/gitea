@@ -44,18 +44,18 @@ func (m *workflowNotifier) NewIssue(ctx context.Context, issue *issues_model.Iss
 		return
 	}
 
-	eventWorkflows, err := project_model.FindWorkflowEvents(ctx, issue.Project.ID)
+	workflows, err := project_model.FindWorkflowsByProjectID(ctx, issue.Project.ID)
 	if err != nil {
-		log.Error("NewIssue: FindWorkflowEvents: %v", err)
+		log.Error("NewIssue: FindWorkflowsByProjectID: %v", err)
 		return
 	}
 
-	workflow := eventWorkflows[project_model.WorkflowEventItemAddedToProject]
-	if workflow == nil {
-		return
+	// Find workflows for the ItemAddedToProject event
+	for _, workflow := range workflows {
+		if workflow.WorkflowEvent == project_model.WorkflowEventItemAddedToProject {
+			fireIssueWorkflow(ctx, workflow, issue)
+		}
 	}
-
-	fireIssueWorkflow(ctx, workflow, issue)
 }
 
 func (m *workflowNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
@@ -71,19 +71,19 @@ func (m *workflowNotifier) IssueChangeStatus(ctx context.Context, doer *user_mod
 		return
 	}
 
-	eventWorkflows, err := project_model.FindWorkflowEvents(ctx, issue.Project.ID)
+	workflows, err := project_model.FindWorkflowsByProjectID(ctx, issue.Project.ID)
 	if err != nil {
-		log.Error("NewIssue: FindWorkflowEvents: %v", err)
+		log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
 		return
 	}
 
 	workflowEvent := util.Iif(isClosed, project_model.WorkflowEventItemClosed, project_model.WorkflowEventItemReopened)
-	workflow := eventWorkflows[workflowEvent]
-	if workflow == nil {
-		return
+	// Find workflows for the specific event
+	for _, workflow := range workflows {
+		if workflow.WorkflowEvent == workflowEvent {
+			fireIssueWorkflow(ctx, workflow, issue)
+		}
 	}
-
-	fireIssueWorkflow(ctx, workflow, issue)
 }
 
 func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue) {
