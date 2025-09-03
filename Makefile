@@ -230,7 +230,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean ## delete backend, frontend and integration files
-	rm -rf $(WEBPACK_DEST_ENTRIES) node_modules
+	rm -rf $(WEBPACK_DEST_ENTRIES) node_modules tools/node_modules
 
 .PHONY: clean
 clean: ## delete backend and integration files
@@ -847,6 +847,10 @@ node_modules: pnpm-lock.yaml
 	pnpm install --frozen-lockfile
 	@touch node_modules
 
+tools/node_modules: tools/package.json
+	cd tools && pnpm install
+	@touch tools/node_modules
+
 .venv: uv.lock
 	uv sync
 	@touch .venv
@@ -921,9 +925,8 @@ generate-gitignore: ## update gitignore files
 	$(GO) run build/generate-gitignores.go
 
 .PHONY: generate-images
-generate-images: | node_modules
-	pnpm install --no-save fabric@6 imagemin-zopfli@7
-	node tools/generate-images.js $(TAGS)
+generate-images: | node_modules tools/node_modules ## generate images (requires cairo development packages)
+	cd tools && node generate-images.js $(TAGS)
 
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage

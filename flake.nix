@@ -45,6 +45,9 @@
                 # frontend
                 nodejs
                 pnpm
+                cairo
+                pixman
+                pkg-config
 
                 # linting
                 python3
