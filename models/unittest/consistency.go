@@ -45,7 +45,7 @@ func CheckConsistencyFor(t TestingT, beansToCheck ...any) {
 }
 
 func checkForConsistency(t TestingT, bean any) {
-	tb, err := db.TableInfo(bean)
+	tb, err := GetXORMEngine().TableInfo(bean)
 	assert.NoError(t, err)
 	f := consistencyCheckMap[tb.Name]
 	require.NotNil(t, f, "unknown bean type: %#v", bean)

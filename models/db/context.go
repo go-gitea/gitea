@@ -61,17 +61,19 @@ func contextSafetyCheck(e Engine) {
 	callerNum := runtime.Callers(3, callers) // skip 3: runtime.Callers, contextSafetyCheck, GetEngine
 	for i := range callerNum {
 		if slices.Contains(contextSafetyDeniedFuncPCs, callers[i]) {
-			panic(errors.New("using database context in an iterator would cause corrupted results"))
+			panic(errors.New("using session context in an iterator would cause corrupted results"))
 		}
 	}
 }
 
 // GetEngine gets an existing db Engine/Statement or creates a new Session
-func GetEngine(ctx context.Context) (e Engine) {
-	defer func() { contextSafetyCheck(e) }()
+func GetEngine(ctx context.Context) Engine {
 	if engine, ok := ctx.Value(engineContextKey).(Engine); ok {
+		// if reusing the existing session, need to do "contextSafetyCheck" because the Iterate creates a "autoResetStatement=false" session
+		contextSafetyCheck(engine)
 		return engine
 	}
+	// no need to do "contextSafetyCheck" because it's a new Session
 	return xormEngine.Context(ctx)
 }
 
@@ -299,11 +301,6 @@ func TruncateBeans(ctx context.Context, beans ...any) (err error) {
 // CountByBean counts the number of database records according non-empty fields of the bean as conditions.
 func CountByBean(ctx context.Context, bean any) (int64, error) {
 	return GetEngine(ctx).Count(bean)
-}
-
-// TableName returns the table name according a bean object
-func TableName(bean any) string {
-	return xormEngine.TableName(bean)
 }
 
 // InTransaction returns true if the engine is in a transaction otherwise return false
