@@ -1,6 +1,6 @@
 {
   "name": "Gitea DevContainer",
-  "image": "mcr.microsoft.com/devcontainers/go:1.24-bookworm",
+  "image": "mcr.microsoft.com/devcontainers/go:1.25-trixie",
   "containerEnv": {
     // override "local" from packaged version
     "GOTOOLCHAIN": "auto"
