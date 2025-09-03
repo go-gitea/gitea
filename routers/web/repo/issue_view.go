@@ -949,6 +949,9 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 
 	ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
 	ctx.Data["DefaultSquashMergeBody"] = fmt.Sprintf("--------------------\n%s%s", commitsBuilder.String(), defaultSquashMergeBody)
+	if len(pull.Issue.Content) == 0 {
+		ctx.Data["DefaultSquashMergeBody"] = fmt.Sprintf("%s%s", commitsBuilder.String(), defaultSquashMergeBody)
+	}
 
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
 	if err != nil {
