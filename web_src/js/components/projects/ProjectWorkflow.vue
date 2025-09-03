@@ -82,7 +82,7 @@ const cloneWorkflow = (sourceWorkflow) => {
 
   store.selectedWorkflow = clonedWorkflow;
   store.selectedItem = tempId;
-  
+
   // Load the source workflow's data into the form
   store.loadWorkflowData(sourceWorkflow.event_id);
 };
@@ -148,7 +148,7 @@ onMounted(async () => {
       store.selectedItem = props.eventID;
       store.selectedWorkflow = selectedEvent;
       await store.loadWorkflowData(props.eventID);
-      
+
     }
   } else {
     // Auto-select first configured workflow, or first item if none configured
@@ -156,7 +156,7 @@ onMounted(async () => {
     if (items.length > 0) {
       // Find first configured workflow
       let firstConfigured = items.find(item => item.isConfigured);
-      
+
       if (firstConfigured) {
         // Select first configured workflow
         selectWorkflowItem(firstConfigured);
@@ -201,27 +201,10 @@ onMounted(async () => {
             <div class="workflow-content">
               <div class="workflow-info">
                 <span class="status-indicator">
-                  <span v-html="svg('octicon-dot-fill')" 
+                  <span v-html="svg('octicon-dot-fill')"
                         :class="item.isConfigured ? 'status-active' : 'status-inactive'"/>
                 </span>
                 <div class="workflow-title">{{ item.display_name }}</div>
-              </div>
-              <div class="workflow-actions">
-                <button 
-                  class="ui tiny basic button"
-                  @click.stop="createNewWorkflow(item.base_event_type, item.capabilities, item.display_name.split('(')[0])"
-                  :title="item.isConfigured ? 'Create another workflow' : 'Create workflow'"
-                >
-                  <i class="plus icon"/>
-                </button>
-                <button 
-                  v-if="item.isConfigured"
-                  class="ui tiny basic button clone-btn"
-                  @click.stop="cloneWorkflow(item)"
-                  title="Clone this workflow"
-                >
-                  <i class="copy icon"/>
-                </button>
               </div>
             </div>
           </div>
@@ -253,9 +236,14 @@ onMounted(async () => {
             <p>Configure automated actions for this workflow</p>
           </div>
           <div class="editor-actions-header">
-            <button class="ui basic button" @click="store.selectedWorkflow = null; store.selectedItem = null;">
-              <i class="times icon"/>
-              Close
+            <button
+              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0"
+              class="ui basic button"
+              @click="cloneWorkflow(store.selectedWorkflow)"
+              title="Clone this workflow"
+            >
+              <i class="copy icon"/>
+              Clone
             </button>
           </div>
         </div>
@@ -323,10 +311,6 @@ onMounted(async () => {
               <button class="ui primary button" @click="saveWorkflow" :class="{ loading: store.saving }">
                 <i class="save icon"/>
                 Save Workflow
-              </button>
-              <button class="ui basic button" @click="store.selectedWorkflow = null; store.selectedItem = null;">
-                <i class="times icon"/>
-                Cancel
               </button>
             </div>
           </div>
