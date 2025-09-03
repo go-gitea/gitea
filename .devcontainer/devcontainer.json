@@ -10,7 +10,7 @@
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts"
     },
-    "ghcr.io/devcontainers/features/git-lfs:1.2.2": {},
+    "ghcr.io/devcontainers/features/git-lfs:1.2.5": {},
     "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {},
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.12"
