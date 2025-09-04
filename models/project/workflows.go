@@ -221,7 +221,7 @@ func CreateWorkflow(ctx context.Context, wf *Workflow) error {
 }
 
 func UpdateWorkflow(ctx context.Context, wf *Workflow) error {
-	_, err := db.GetEngine(ctx).ID(wf.ID).Update(wf)
+	_, err := db.GetEngine(ctx).ID(wf.ID).Cols("workflow_filters", "workflow_actions").Update(wf)
 	return err
 }
 

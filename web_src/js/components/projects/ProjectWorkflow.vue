@@ -12,11 +12,37 @@ const props = defineProps({
 
 const store = createWorkflowStore(props);
 
-const editMode = ref(false);
-const previousSelection = ref(null); // Store previous selection for cancel functionality
+// Track edit state directly on workflow objects
+const previousSelection = ref(null);
+
+// Helper to check if current workflow is in edit mode
+const isInEditMode = computed(() => {
+  if (!store.selectedWorkflow) return false;
+  
+  // Unconfigured workflows (id === 0) are always in edit mode
+  if (store.selectedWorkflow.id === 0) {
+    return true;
+  }
+  
+  // Configured workflows use the _isEditing flag
+  return store.selectedWorkflow._isEditing || false;
+});
+
+// Helper to set edit mode for current workflow
+const setEditMode = (enabled) => {
+  if (store.selectedWorkflow) {
+    if (enabled) {
+      store.selectedWorkflow._isEditing = true;
+    } else {
+      delete store.selectedWorkflow._isEditing;
+    }
+  }
+};
+
+ // Store previous selection for cancel functionality
 
 const toggleEditMode = () => {
-  if (editMode.value) {
+  if (isInEditMode.value) {
     // Canceling edit mode
     if (previousSelection.value) {
       // If there was a previous selection, return to it
@@ -38,15 +64,15 @@ const toggleEditMode = () => {
       }
       previousSelection.value = null;
     }
+    setEditMode(false);
   } else {
     // Entering edit mode - store current selection
     previousSelection.value = {
       selectedItem: store.selectedItem,
       selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : null
     };
+    setEditMode(true);
   }
-  
-  editMode.value = !editMode.value;
 };
 
 const toggleWorkflowStatus = async () => {
@@ -101,7 +127,7 @@ const deleteWorkflow = async () => {
 
   // Clear previous selection and exit edit mode
   previousSelection.value = null;
-  editMode.value = false;
+  setEditMode(false);
 };
 
 const selectWorkflowEvent = async (event) => {
@@ -141,7 +167,7 @@ const saveWorkflow = async () => {
   
   // Clear previous selection after successful save
   previousSelection.value = null;
-  editMode.value = false;
+  setEditMode(false);
 };
 
 const isWorkflowConfigured = (event) => {
@@ -197,7 +223,7 @@ const workflowList = computed(() => {
 
 const createNewWorkflow = (baseEventType, capabilities, displayName) => {
   // Store current selection before creating new workflow
-  if (!editMode.value) {
+  if (!isInEditMode.value) {
     previousSelection.value = {
       selectedItem: store.selectedItem,
       selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : null
@@ -222,7 +248,7 @@ const createNewWorkflow = (baseEventType, capabilities, displayName) => {
   // For unconfigured events, use the base event type as selected item for UI consistency
   store.selectedItem = baseEventType;
   store.resetWorkflowData();
-  editMode.value = true; // Auto-enter edit mode for new workflows
+  // Unconfigured workflows are always in edit mode by default
 };
 
 const cloneWorkflow = (sourceWorkflow) => {
@@ -263,7 +289,7 @@ const cloneWorkflow = (sourceWorkflow) => {
 
   // Load the source workflow's data into the form
   store.loadWorkflowData(sourceWorkflow.event_id);
-  editMode.value = true; // Auto-enter edit mode for cloned workflows
+  // Cloned workflows (id: 0) are always in edit mode by default
   
   // Update URL for cloned workflow
   const newUrl = `${props.projectLink}/workflows/${tempId}`;
@@ -281,8 +307,8 @@ const selectWorkflowItem = async (item) => {
     selectTimeout = null;
   }, 300);
   
-  editMode.value = false; // Reset edit mode when switching workflows
   previousSelection.value = null; // Clear previous selection when manually selecting
+  // Don't reset edit mode when switching - each workflow keeps its own state
   
   // Wait for DOM update to prevent conflicts
   await nextTick();
@@ -291,9 +317,21 @@ const selectWorkflowItem = async (item) => {
     // This is a configured workflow, select it
     await selectWorkflowEvent(item);
   } else {
-    // This is an unconfigured event, create new workflow
-    createNewWorkflow(item.base_event_type, item.capabilities, item.display_name);
-    // Update URL for new workflow
+    // This is an unconfigured event - check if we already have a workflow object for it
+    const existingWorkflow = store.workflowEvents.find(w => 
+      w.id === 0 && 
+      (w.base_event_type === item.base_event_type || w.workflow_event === item.base_event_type)
+    );
+    
+    if (existingWorkflow) {
+      // We already have an unconfigured workflow for this event type, select it
+      await selectWorkflowEvent(existingWorkflow);
+    } else {
+      // This is truly a new unconfigured event, create new workflow
+      createNewWorkflow(item.base_event_type, item.capabilities, item.display_name);
+    }
+    
+    // Update URL for workflow
     const newUrl = `${props.projectLink}/workflows/${item.base_event_type}`;
     window.history.pushState({eventId: item.base_event_type}, '', newUrl);
   }
@@ -404,7 +442,6 @@ onMounted(async () => {
       store.selectedItem = props.eventID;
       store.selectedWorkflow = selectedEvent;
       await store.loadWorkflowData(props.eventID);
-      editMode.value = false;
     } else {
       // Check if eventID matches a base event type (unconfigured workflow)
       const items = workflowList.value;
@@ -541,29 +578,31 @@ onUnmounted(() => {
             <h2>
               <i class="settings icon"/>
               {{ store.selectedWorkflow.display_name }}
-              <span v-if="store.selectedWorkflow.id > 0 && !editMode"
+              <span v-if="store.selectedWorkflow.id > 0 && !isInEditMode"
                     class="workflow-status"
                     :class="store.selectedWorkflow.enabled ? 'status-enabled' : 'status-disabled'">
                 {{ store.selectedWorkflow.enabled ? 'Enabled' : 'Disabled' }}
               </span>
             </h2>
-            <p v-if="editMode">Configure automated actions for this workflow</p>
+            <p v-if="store.selectedWorkflow.id === 0">Configure automated actions for this workflow</p>
+            <p v-else-if="isInEditMode">Configure automated actions for this workflow</p>
             <p v-else>View workflow configuration</p>
           </div>
           <div class="editor-actions-header">
-            <!-- Edit/Cancel Button -->
+            <!-- Edit/Cancel Button (only for configured workflows) -->
             <button
+              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0"
               class="btn"
-              :class="editMode ? 'btn-outline-secondary' : 'btn-primary'"
+              :class="isInEditMode ? 'btn-outline-secondary' : 'btn-primary'"
               @click="toggleEditMode"
             >
-              <i :class="editMode ? 'times icon' : 'edit icon'"/>
-              {{ editMode ? 'Cancel' : 'Edit' }}
+              <i :class="isInEditMode ? 'times icon' : 'edit icon'"/>
+              {{ isInEditMode ? 'Cancel' : 'Edit' }}
             </button>
 
             <!-- Enable/Disable Button (only for configured workflows) -->
             <button
-              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0 && !editMode"
+              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0 && !isInEditMode"
               class="btn"
               :class="store.selectedWorkflow.enabled ? 'btn-outline-danger' : 'btn-success'"
               @click="toggleWorkflowStatus"
@@ -575,7 +614,7 @@ onUnmounted(() => {
 
             <!-- Clone Button (only for configured workflows) -->
             <button
-              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0 && !editMode"
+              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0 && !isInEditMode"
               class="btn btn-outline-secondary"
               @click="cloneWorkflow(store.selectedWorkflow)"
               title="Clone this workflow"
@@ -587,7 +626,7 @@ onUnmounted(() => {
         </div>
 
         <div class="editor-content">
-          <div class="form" :class="{ 'readonly': !editMode }">
+          <div class="form" :class="{ 'readonly': !isInEditMode }">
             <div class="field">
               <label>When</label>
               <div class="segment">
@@ -604,7 +643,7 @@ onUnmounted(() => {
                 <div class="field" v-if="hasFilter('issue_type')">
                   <label>Apply to</label>
                   <select
-                    v-if="editMode"
+                    v-if="isInEditMode"
                     class="form-select"
                     v-model="store.workflowFilters.issue_type"
                   >
@@ -628,7 +667,7 @@ onUnmounted(() => {
                 <div class="field" v-if="hasAction('column')">
                   <label>Move to column</label>
                   <select
-                    v-if="editMode"
+                    v-if="isInEditMode"
                     class="form-select"
                     v-model="store.workflowActions.column"
                   >
@@ -645,7 +684,7 @@ onUnmounted(() => {
                 <div class="field" v-if="hasAction('label')">
                   <label>Add labels</label>
                   <select
-                    v-if="editMode"
+                    v-if="isInEditMode"
                     class="form-select"
                     v-model="store.workflowActions.labels"
                     multiple
@@ -662,7 +701,7 @@ onUnmounted(() => {
                 </div>
 
                 <div class="field" v-if="hasAction('close')">
-                  <div v-if="editMode" class="form-check">
+                  <div v-if="isInEditMode" class="form-check">
                     <input type="checkbox" v-model="store.workflowActions.closeIssue" id="close-issue">
                     <label for="close-issue">Close issue</label>
                   </div>
@@ -677,7 +716,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Fixed bottom actions (only show in edit mode) -->
-        <div v-if="editMode" class="editor-actions">
+        <div v-if="isInEditMode" class="editor-actions">
           <button class="btn btn-primary" @click="saveWorkflow" :disabled="store.saving">
             <i class="save icon"/>
             Save Workflow
