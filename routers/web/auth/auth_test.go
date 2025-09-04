@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
@@ -24,7 +23,7 @@ import (
 
 func addOAuth2Source(t *testing.T, authName string, cfg oauth2.Source) {
 	cfg.Provider = util.IfZero(cfg.Provider, "gitea")
-	err := auth_model.CreateSource(db.DefaultContext, &auth_model.Source{
+	err := auth_model.CreateSource(t.Context(), &auth_model.Source{
 		Type:     auth_model.OAuth2,
 		Name:     authName,
 		IsActive: true,
