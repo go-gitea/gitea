@@ -161,27 +161,25 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
         const result = await response.json();
         console.log('Response result:', result);
         if (result.success && result.workflow) {
-          // For new workflows, add to the store
-          if (store.selectedWorkflow.id === 0 || store.selectedWorkflow.event_id.startsWith('new-')) {
-            store.workflowEvents.push(result.workflow);
+          // Always reload the events list to get the updated structure
+          // This ensures we have both the base event and the new filtered event
+          const wasNewWorkflow = store.selectedWorkflow.id === 0 || 
+                                 store.selectedWorkflow.event_id.startsWith('new-') || 
+                                 store.selectedWorkflow.event_id.startsWith('clone-');
 
-            // Update URL to use the new workflow ID
-            const newUrl = `${props.projectLink}/workflows/${result.workflow.event_id}`;
-            window.history.replaceState({eventId: result.workflow.event_id}, '', newUrl);
-          } else {
-            // Update existing workflow
-            const existingIndex = store.workflowEvents.findIndex((e) => e.event_id === store.selectedWorkflow.event_id);
-            if (existingIndex >= 0) {
-              store.workflowEvents[existingIndex] = {
-                ...store.workflowEvents[existingIndex],
-                ...result.workflow,
-              };
-            }
-          }
+          // Reload events from server to get the correct event structure
+          await store.loadEvents();
 
           // Update selected workflow and selectedItem
           store.selectedWorkflow = result.workflow;
           store.selectedItem = result.workflow.event_id;
+
+          // Update URL to use the new workflow ID
+          if (wasNewWorkflow) {
+            const newUrl = `${props.projectLink}/workflows/${result.workflow.event_id}`;
+            window.history.replaceState({eventId: result.workflow.event_id}, '', newUrl);
+          }
+
           alert('Workflow saved successfully!');
         } else {
           console.error('Unexpected response format:', result);

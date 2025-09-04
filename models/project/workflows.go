@@ -163,6 +163,7 @@ type Workflow struct {
 	WorkflowEvent   WorkflowEvent      `xorm:"INDEX"`
 	WorkflowFilters []WorkflowFilter   `xorm:"TEXT json"`
 	WorkflowActions []WorkflowAction   `xorm:"TEXT json"`
+	Enabled         bool               `xorm:"DEFAULT true"`
 	CreatedUnix     timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
 }
@@ -221,5 +222,10 @@ func CreateWorkflow(ctx context.Context, wf *Workflow) error {
 
 func UpdateWorkflow(ctx context.Context, wf *Workflow) error {
 	_, err := db.GetEngine(ctx).ID(wf.ID).Update(wf)
+	return err
+}
+
+func DeleteWorkflow(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).ID(id).Delete(&Workflow{})
 	return err
 }

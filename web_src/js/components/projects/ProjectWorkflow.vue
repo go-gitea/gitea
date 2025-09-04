@@ -62,9 +62,11 @@ const deleteWorkflow = async () => {
     return;
   }
 
-  const currentBaseEventType = store.selectedWorkflow.base_event_type;
+  const currentBaseEventType = store.selectedWorkflow.base_event_type || store.selectedWorkflow.workflow_event || store.selectedWorkflow.event_id;
   const currentCapabilities = store.selectedWorkflow.capabilities;
-  const currentDisplayName = store.selectedWorkflow.display_name.split(' (')[0]; // Remove filter suffix
+  // Extract base name without any parenthetical descriptions
+  const currentDisplayName = (store.selectedWorkflow.display_name || store.selectedWorkflow.workflow_event || store.selectedWorkflow.event_id)
+    .replace(/\s*\([^)]*\)\s*/g, '');
 
   // If deleting a temporary workflow (clone/new), just remove from list
   if (store.selectedWorkflow.id === 0) {
@@ -135,8 +137,7 @@ const selectWorkflowEvent = async (event) => {
 
 const saveWorkflow = async () => {
   await store.saveWorkflow();
-  // After saving, refresh the list to show the new workflow
-  store.workflowEvents = await store.loadEvents();
+  // The store.saveWorkflow already handles reloading events
   
   // Clear previous selection after successful save
   previousSelection.value = null;
@@ -146,6 +147,36 @@ const saveWorkflow = async () => {
 const isWorkflowConfigured = (event) => {
   // Check if the event_id is a number (saved workflow ID) or if it has id > 0
   return !Number.isNaN(parseInt(event.event_id)) || (event.id !== undefined && event.id > 0);
+};
+
+// Generate filter description for display name
+const getFilterDescription = (workflow) => {
+  if (!workflow.filters || !Array.isArray(workflow.filters) || workflow.filters.length === 0) {
+    return '';
+  }
+  
+  const descriptions = [];
+  for (const filter of workflow.filters) {
+    if (filter.type === 'issue_type' && filter.value) {
+      if (filter.value === 'issue') {
+        descriptions.push('Issues');
+      } else if (filter.value === 'pull_request') {
+        descriptions.push('Pull Requests');
+      }
+    }
+    // Add more filter types here as needed
+  }
+  
+  return descriptions.length > 0 ? ` (${descriptions.join(', ')})` : '';
+};
+
+// Get display name with filters
+const getWorkflowDisplayName = (workflow) => {
+  const baseName = workflow.display_name || workflow.workflow_event || workflow.event_id;
+  if (isWorkflowConfigured(workflow)) {
+    return baseName + getFilterDescription(workflow);
+  }
+  return baseName;
 };
 
 // Get flat list of all workflows - use cached data to prevent frequent recomputation
@@ -159,7 +190,8 @@ const workflowList = computed(() => {
   return workflows.map((workflow) => ({
     ...workflow,
     isConfigured: isWorkflowConfigured(workflow),
-    base_event_type: workflow.event_id,
+    base_event_type: workflow.base_event_type || workflow.workflow_event || workflow.event_id,
+    display_name: getWorkflowDisplayName(workflow),
   }));
 });
 
@@ -200,15 +232,19 @@ const cloneWorkflow = (sourceWorkflow) => {
   };
 
   const tempId = `clone-${sourceWorkflow.base_event_type || sourceWorkflow.workflow_event}-${Date.now()}`;
+  // Extract base name without filter descriptions
+  const baseName = (sourceWorkflow.display_name || sourceWorkflow.workflow_event || sourceWorkflow.event_id)
+    .replace(/\s*\([^)]*\)\s*/g, ''); // Remove any parenthetical descriptions
+  
   const clonedWorkflow = {
     id: 0,
     event_id: tempId,
-    display_name: `${sourceWorkflow.display_name.split(' (')[0]} (Copy)`, // Add copy suffix
+    display_name: `${baseName} (Copy)`, // Add copy suffix
     capabilities: sourceWorkflow.capabilities,
     filters: Array.from(sourceWorkflow.filters || []),
     actions: Array.from(sourceWorkflow.actions || []),
     filter_summary: '',
-    base_event_type: sourceWorkflow.base_event_type || sourceWorkflow.workflow_event,
+    base_event_type: sourceWorkflow.base_event_type || sourceWorkflow.workflow_event || sourceWorkflow.event_id,
     enabled: true,
   };
 

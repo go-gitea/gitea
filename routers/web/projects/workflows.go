@@ -137,6 +137,7 @@ func WorkflowsEvents(ctx *context.Context) {
 		Filters       []project_model.WorkflowFilter          `json:"filters"`
 		Actions       []project_model.WorkflowAction          `json:"actions"`
 		FilterSummary string                                  `json:"filter_summary"` // Human readable filter description
+		Enabled       bool                                    `json:"enabled"`
 	}
 
 	outputWorkflows := make([]*WorkflowConfig, 0)
@@ -163,6 +164,7 @@ func WorkflowsEvents(ctx *context.Context) {
 					Filters:       wf.WorkflowFilters,
 					Actions:       wf.WorkflowActions,
 					FilterSummary: filterSummary,
+					Enabled:       wf.Enabled,
 				})
 			}
 		} else {
@@ -175,6 +177,7 @@ func WorkflowsEvents(ctx *context.Context) {
 				Filters:       []project_model.WorkflowFilter{},
 				Actions:       []project_model.WorkflowAction{},
 				FilterSummary: "",
+				Enabled:       true, // Default to enabled for new workflows
 			})
 		}
 	}
@@ -392,6 +395,7 @@ func WorkflowsPost(ctx *context.Context) {
 			WorkflowEvent:   project_model.WorkflowEvent(form.EventID),
 			WorkflowFilters: filters,
 			WorkflowActions: actions,
+			Enabled:         true, // New workflows are enabled by default
 		}
 		if err := project_model.CreateWorkflow(ctx, wf); err != nil {
 			ctx.ServerError("CreateWorkflow", err)
@@ -409,6 +413,7 @@ func WorkflowsPost(ctx *context.Context) {
 				"filters":        wf.WorkflowFilters,
 				"actions":        wf.WorkflowActions,
 				"filter_summary": filterSummary,
+				"enabled":        wf.Enabled,
 			},
 		})
 	} else {
@@ -441,7 +446,98 @@ func WorkflowsPost(ctx *context.Context) {
 				"filters":        wf.WorkflowFilters,
 				"actions":        wf.WorkflowActions,
 				"filter_summary": filterSummary,
+				"enabled":        wf.Enabled,
 			},
 		})
 	}
+}
+
+func WorkflowsStatus(ctx *context.Context) {
+	projectID := ctx.PathParamInt64("id")
+	workflowID, _ := strconv.ParseInt(ctx.PathParam("workflow_id"), 10, 64)
+
+	p, err := project_model.GetProjectByID(ctx, projectID)
+	if err != nil {
+		if project_model.IsErrProjectNotExist(err) {
+			ctx.NotFound(nil)
+		} else {
+			ctx.ServerError("GetProjectByID", err)
+		}
+		return
+	}
+	if p.Type == project_model.TypeRepository && p.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound(nil)
+		return
+	}
+	if (p.Type == project_model.TypeOrganization || p.Type == project_model.TypeIndividual) && p.OwnerID != ctx.ContextUser.ID {
+		ctx.NotFound(nil)
+		return
+	}
+
+	wf, err := project_model.GetWorkflowByID(ctx, workflowID)
+	if err != nil {
+		ctx.ServerError("GetWorkflowByID", err)
+		return
+	}
+	if wf.ProjectID != projectID {
+		ctx.NotFound(nil)
+		return
+	}
+
+	// Get enabled status from form
+	enabledStr := ctx.Req.FormValue("enabled")
+	enabled := enabledStr == "true"
+
+	wf.Enabled = enabled
+	if err := project_model.UpdateWorkflow(ctx, wf); err != nil {
+		ctx.ServerError("UpdateWorkflow", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]any{
+		"success": true,
+		"enabled": wf.Enabled,
+	})
+}
+
+func WorkflowsDelete(ctx *context.Context) {
+	projectID := ctx.PathParamInt64("id")
+	workflowID, _ := strconv.ParseInt(ctx.PathParam("workflow_id"), 10, 64)
+
+	p, err := project_model.GetProjectByID(ctx, projectID)
+	if err != nil {
+		if project_model.IsErrProjectNotExist(err) {
+			ctx.NotFound(nil)
+		} else {
+			ctx.ServerError("GetProjectByID", err)
+		}
+		return
+	}
+	if p.Type == project_model.TypeRepository && p.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound(nil)
+		return
+	}
+	if (p.Type == project_model.TypeOrganization || p.Type == project_model.TypeIndividual) && p.OwnerID != ctx.ContextUser.ID {
+		ctx.NotFound(nil)
+		return
+	}
+
+	wf, err := project_model.GetWorkflowByID(ctx, workflowID)
+	if err != nil {
+		ctx.ServerError("GetWorkflowByID", err)
+		return
+	}
+	if wf.ProjectID != projectID {
+		ctx.NotFound(nil)
+		return
+	}
+
+	if err := project_model.DeleteWorkflow(ctx, workflowID); err != nil {
+		ctx.ServerError("DeleteWorkflow", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]any{
+		"success": true,
+	})
 }

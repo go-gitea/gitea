@@ -1042,6 +1042,8 @@ func registerWebRoutes(m *web.Router) {
 				m.Get("", projects.Workflows)
 				m.Get("/{workflow_id}", projects.Workflows)
 				m.Post("/{workflow_id}", web.Bind(projects.WorkflowsPostForm{}), projects.WorkflowsPost)
+				m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
+				m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
 			})
 			m.Group("", func() { //nolint:dupl // duplicates lines 1421-1441
 				m.Get("/new", org.RenderNewProject)
@@ -1434,6 +1436,8 @@ func registerWebRoutes(m *web.Router) {
 			m.Get("", projects.Workflows)
 			m.Get("/{workflow_id}", projects.Workflows)
 			m.Post("/{workflow_id}", web.Bind(projects.WorkflowsPostForm{}), projects.WorkflowsPost)
+			m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
+			m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
 		})
 		m.Group("", func() { //nolint:dupl // duplicates lines 1034-1054
 			m.Get("/new", repo.RenderNewProject)
