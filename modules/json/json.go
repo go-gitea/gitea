@@ -200,7 +200,7 @@ func UnmarshalHandleDoubleEncode(bs []byte, v any) error {
 		// To be consistent, we should treat all empty inputs as success
 		return nil
 	}
-	err := json.Unmarshal(bs, v)
+	err := DefaultJSONHandler.Unmarshal(bs, v)
 	if err != nil {
 		ok := true
 		rs := []byte{}
@@ -217,11 +217,11 @@ func UnmarshalHandleDoubleEncode(bs []byte, v any) error {
 			if len(rs) > 1 && rs[0] == 0xff && rs[1] == 0xfe {
 				rs = rs[2:]
 			}
-			err = json.Unmarshal(rs, v)
+			err = DefaultJSONHandler.Unmarshal(rs, v)
 		}
 	}
 	if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
-		err = json.Unmarshal(bs[2:], v)
+		err = DefaultJSONHandler.Unmarshal(bs[2:], v)
 	}
 	return err
 }
