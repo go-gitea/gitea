@@ -31,6 +31,10 @@ const deleteWorkflow = async () => {
     return;
   }
 
+  const currentBaseEventType = store.selectedWorkflow.base_event_type;
+  const currentCapabilities = store.selectedWorkflow.capabilities;
+  const currentDisplayName = store.selectedWorkflow.display_name.split(' (')[0]; // Remove filter suffix
+
   await store.deleteWorkflow();
 
   // Refresh workflow list
@@ -38,18 +42,18 @@ const deleteWorkflow = async () => {
 
   // Find workflows for the same base event type
   const sameEventWorkflows = store.workflowEvents.filter(w =>
-    w.base_event_type === store.selectedWorkflow.base_event_type ||
-    w.workflow_event === store.selectedWorkflow.base_event_type
+    w.base_event_type === currentBaseEventType ||
+    w.workflow_event === currentBaseEventType
   );
 
   if (sameEventWorkflows.length === 0) {
     // No workflows left for this event type, create an empty one
-    const baseEventType = store.selectedWorkflow.base_event_type;
-    const displayName = store.selectedWorkflow.display_name.split(' (')[0]; // Remove filter suffix
-    createNewWorkflow(baseEventType, store.selectedWorkflow.capabilities, displayName);
+    createNewWorkflow(currentBaseEventType, currentCapabilities, currentDisplayName);
+    // URL already updated in createNewWorkflow
   } else {
     // Select the first remaining workflow of the same type
     selectWorkflowItem(sameEventWorkflows[0]);
+    // URL already updated in selectWorkflowItem
   }
 
   editMode.value = false;
@@ -132,6 +136,10 @@ const cloneWorkflow = (sourceWorkflow) => {
   // Load the source workflow's data into the form
   store.loadWorkflowData(sourceWorkflow.event_id);
   editMode.value = true; // Auto-enter edit mode for cloned workflows
+  
+  // Update URL for cloned workflow
+  const newUrl = `${props.projectLink}/workflows/${tempId}`;
+  window.history.pushState({eventId: tempId}, '', newUrl);
 };
 
 const selectWorkflowItem = (item) => {
@@ -142,6 +150,9 @@ const selectWorkflowItem = (item) => {
   } else {
     // This is an unconfigured event, create new workflow
     createNewWorkflow(item.base_event_type, item.capabilities, item.display_name);
+    // Update URL for new workflow
+    const newUrl = `${props.projectLink}/workflows/${item.base_event_type}`;
+    window.history.pushState({eventId: item.base_event_type}, '', newUrl);
   }
 };
 
@@ -195,12 +206,34 @@ onMounted(async () => {
 
   // Auto-select logic
   if (props.eventID) {
-    // If eventID is provided in URL, select that specific workflow
+    // If eventID is provided in URL, try to find and select it
     const selectedEvent = store.workflowEvents.find((e) => e.event_id === props.eventID);
     if (selectedEvent) {
+      // Found existing configured workflow
       store.selectedItem = props.eventID;
       store.selectedWorkflow = selectedEvent;
       await store.loadWorkflowData(props.eventID);
+      editMode.value = false;
+    } else {
+      // Check if eventID matches a base event type (unconfigured workflow)
+      const items = workflowList.value;
+      const matchingUnconfigured = items.find((item) => 
+        !item.isConfigured && (item.base_event_type === props.eventID || item.event_id === props.eventID)
+      );
+      if (matchingUnconfigured) {
+        // Create new workflow for this base event type
+        createNewWorkflow(matchingUnconfigured.base_event_type, matchingUnconfigured.capabilities, matchingUnconfigured.display_name);
+      } else {
+        // Fallback: select first available item
+        if (items.length > 0) {
+          const firstConfigured = items.find((item) => item.isConfigured);
+          if (firstConfigured) {
+            selectWorkflowItem(firstConfigured);
+          } else {
+            selectWorkflowItem(items[0]);
+          }
+        }
+      }
     }
   } else {
     // Auto-select first configured workflow, or first item if none configured
@@ -223,9 +256,19 @@ onMounted(async () => {
 
   window.addEventListener('popstate', (e) => {
     if (e.state?.eventId) {
+      // Handle browser back/forward navigation
       const event = store.workflowEvents.find((ev) => ev.event_id === e.state.eventId);
       if (event) {
         selectWorkflowEvent(event);
+      } else {
+        // Check if it's a base event type
+        const items = workflowList.value;
+        const matchingUnconfigured = items.find((item) => 
+          !item.isConfigured && (item.base_event_type === e.state.eventId || item.event_id === e.state.eventId)
+        );
+        if (matchingUnconfigured) {
+          createNewWorkflow(matchingUnconfigured.base_event_type, matchingUnconfigured.capabilities, matchingUnconfigured.display_name);
+        }
       }
     }
   });
