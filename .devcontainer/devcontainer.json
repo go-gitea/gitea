@@ -8,7 +8,7 @@
   "features": {
     // installs nodejs into container
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "24"
+      "version": "latest"
     },
     "ghcr.io/devcontainers/features/git-lfs:1.2.5": {},
     "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {},
