@@ -311,6 +311,19 @@ const hasAction = (actionType) => {
   return store.selectedWorkflow?.capabilities?.available_actions?.includes(actionType);
 };
 
+const getStatusClass = (item) => {
+  if (!item.isConfigured) {
+    return 'status-inactive'; // Gray dot for unconfigured
+  }
+  
+  // For configured workflows, check enabled status
+  if (item.enabled === false) {
+    return 'status-disabled'; // Red dot for disabled
+  }
+  
+  return 'status-active'; // Green dot for enabled
+};
+
 const isItemSelected = (item) => {
   if (!store.selectedItem) return false;
   
@@ -497,7 +510,7 @@ onUnmounted(() => {
                 <span class="status-indicator">
                   <span
                     v-html="svg('octicon-dot-fill')"
-                    :class="item.isConfigured ? 'status-active' : 'status-inactive'"
+                    :class="getStatusClass(item)"
                   />
                 </span>
                 <div class="workflow-title">{{ item.display_name }}</div>
@@ -785,6 +798,11 @@ onUnmounted(() => {
 
 .status-indicator .status-inactive {
   color: #d1d5da;
+  font-size: 0.75rem;
+}
+
+.status-indicator .status-disabled {
+  color: #dc3545;
   font-size: 0.75rem;
 }
 
