@@ -9,6 +9,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
     projectColumns: [],
     projectLabels: [], // Add labels data
     saving: false,
+    loading: false, // Add loading state to prevent rapid clicks
     showCreateDialog: false, // For create workflow dialog
     selectedEventType: null, // For workflow creation
 
@@ -39,43 +40,48 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
     },
 
     async loadWorkflowData(eventId: string) {
-      // Load project columns and labels for the dropdowns
-      await store.loadProjectColumns();
-      await store.loadProjectLabels();
+      store.loading = true;
+      try {
+        // Load project columns and labels for the dropdowns
+        await store.loadProjectColumns();
+        await store.loadProjectLabels();
 
-      // Find the workflow from existing workflowEvents
-      const workflow = store.workflowEvents.find((e) => e.event_id === eventId);
-      if (workflow && workflow.filters && workflow.actions) {
-        // Load existing configuration from the workflow data
-        // Convert backend filter format to frontend format
-        const frontendFilters = {issue_type: ''};
-        if (workflow.filters && Array.isArray(workflow.filters)) {
-          for (const filter of workflow.filters) {
-            if (filter.type === 'issue_type') {
-              frontendFilters.issue_type = filter.value;
+        // Find the workflow from existing workflowEvents
+        const workflow = store.workflowEvents.find((e) => e.event_id === eventId);
+        if (workflow && workflow.filters && workflow.actions) {
+          // Load existing configuration from the workflow data
+          // Convert backend filter format to frontend format
+          const frontendFilters = {issue_type: ''};
+          if (workflow.filters && Array.isArray(workflow.filters)) {
+            for (const filter of workflow.filters) {
+              if (filter.type === 'issue_type') {
+                frontendFilters.issue_type = filter.value;
+              }
             }
           }
-        }
 
-        // Convert backend action format to frontend format
-        const frontendActions = {column: '', add_labels: [], closeIssue: false};
-        if (workflow.actions && Array.isArray(workflow.actions)) {
-          for (const action of workflow.actions) {
-            if (action.action_type === 'column') {
-              frontendActions.column = action.action_value;
-            } else if (action.action_type === 'add_labels') {
-              frontendActions.labels.push(action.action_value);
-            } else if (action.action_type === 'close') {
-              frontendActions.closeIssue = action.action_value === 'true';
+          // Convert backend action format to frontend format
+          const frontendActions = {column: '', add_labels: [], closeIssue: false};
+          if (workflow.actions && Array.isArray(workflow.actions)) {
+            for (const action of workflow.actions) {
+              if (action.action_type === 'column') {
+                frontendActions.column = action.action_value;
+              } else if (action.action_type === 'add_labels') {
+                frontendActions.labels.push(action.action_value);
+              } else if (action.action_type === 'close') {
+                frontendActions.closeIssue = action.action_value === 'true';
+              }
             }
           }
-        }
 
-        store.workflowFilters = frontendFilters;
-        store.workflowActions = frontendActions;
-      } else {
-        // Reset to defaults for new workflow
-        store.resetWorkflowData();
+          store.workflowFilters = frontendFilters;
+          store.workflowActions = frontendActions;
+        } else {
+          // Reset to defaults for new workflow
+          store.resetWorkflowData();
+        }
+      } finally {
+        store.loading = false;
       }
     },
 

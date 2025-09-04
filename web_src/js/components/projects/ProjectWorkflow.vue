@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {onMounted, useTemplateRef, computed, ref} from 'vue';
+import {onMounted, onUnmounted, useTemplateRef, computed, ref, nextTick} from 'vue';
 import {createWorkflowStore} from './WorkflowStore.ts';
 import {svg} from '../../svg.ts';
 
@@ -59,7 +59,10 @@ const deleteWorkflow = async () => {
   editMode.value = false;
 };
 
-const selectWorkflowEvent = (event) => {
+const selectWorkflowEvent = async (event) => {
+  // Prevent rapid successive clicks
+  if (store.loading) return;
+  
   // Toggle selection - if already selected, deselect
   if (store.selectedItem === event.event_id) {
     store.selectedItem = null;
@@ -67,13 +70,24 @@ const selectWorkflowEvent = (event) => {
     return;
   }
 
-  store.selectedItem = event.event_id;
-  store.selectedWorkflow = event;
-  store.loadWorkflowData(event.event_id);
+  try {
+    store.selectedItem = event.event_id;
+    store.selectedWorkflow = event;
+    
+    // Wait for DOM update before proceeding
+    await nextTick();
+    
+    await store.loadWorkflowData(event.event_id);
 
-  // Update URL without page reload
-  const newUrl = `${props.projectLink}/workflows/${event.event_id}`;
-  window.history.pushState({eventId: event.event_id}, '', newUrl);
+    // Update URL without page reload
+    const newUrl = `${props.projectLink}/workflows/${event.event_id}`;
+    window.history.pushState({eventId: event.event_id}, '', newUrl);
+  } catch (error) {
+    console.error('Error selecting workflow event:', error);
+    // Reset state on error
+    store.selectedItem = null;
+    store.selectedWorkflow = null;
+  }
 };
 
 const saveWorkflow = async () => {
@@ -87,9 +101,15 @@ const isWorkflowConfigured = (event) => {
   return !Number.isNaN(parseInt(event.event_id));
 };
 
-// Get flat list of all workflows - directly use backend data
+// Get flat list of all workflows - use cached data to prevent frequent recomputation
 const workflowList = computed(() => {
-  return store.workflowEvents.map((workflow) => ({
+  // Use a stable reference to prevent unnecessary DOM updates
+  const workflows = store.workflowEvents;
+  if (!workflows || workflows.length === 0) {
+    return [];
+  }
+  
+  return workflows.map((workflow) => ({
     ...workflow,
     isConfigured: isWorkflowConfigured(workflow),
     base_event_type: workflow.event_id,
@@ -111,7 +131,8 @@ const createNewWorkflow = (baseEventType, capabilities, displayName) => {
   };
 
   store.selectedWorkflow = newWorkflow;
-  store.selectedItem = tempId;
+  // For unconfigured events, use the base event type as selected item for UI consistency
+  store.selectedItem = baseEventType;
   store.resetWorkflowData();
   editMode.value = true; // Auto-enter edit mode for new workflows
 };
@@ -142,11 +163,25 @@ const cloneWorkflow = (sourceWorkflow) => {
   window.history.pushState({eventId: tempId}, '', newUrl);
 };
 
-const selectWorkflowItem = (item) => {
+// Add debounce mechanism
+let selectTimeout = null;
+
+const selectWorkflowItem = async (item) => {
+  // Prevent rapid successive clicks with debounce
+  if (store.loading || selectTimeout) return;
+  
+  selectTimeout = setTimeout(() => {
+    selectTimeout = null;
+  }, 300);
+  
   editMode.value = false; // Reset edit mode when switching workflows
+  
+  // Wait for DOM update to prevent conflicts
+  await nextTick();
+  
   if (item.isConfigured) {
     // This is a configured workflow, select it
-    selectWorkflowEvent(item);
+    await selectWorkflowEvent(item);
   } else {
     // This is an unconfigured event, create new workflow
     createNewWorkflow(item.base_event_type, item.capabilities, item.display_name);
@@ -166,6 +201,18 @@ const hasFilter = (filterType) => {
 
 const hasAction = (actionType) => {
   return store.selectedWorkflow?.capabilities?.available_actions?.includes(actionType);
+};
+
+const isItemSelected = (item) => {
+  if (!store.selectedItem) return false;
+  
+  if (item.isConfigured) {
+    // For configured workflows, match by event_id
+    return store.selectedItem === item.event_id;
+  } else {
+    // For unconfigured events, match by base_event_type
+    return store.selectedItem === item.base_event_type;
+  }
 };
 
 const _getActionsSummary = (workflow) => {
@@ -203,6 +250,29 @@ onMounted(async () => {
   store.workflowEvents = await store.loadEvents();
   await store.loadProjectColumns();
   await store.loadProjectLabels();
+  
+  // Add native event listener to prevent conflicts with Gitea
+  await nextTick();
+  const workflowItemsContainer = elRoot.value.querySelector('.workflow-items');
+  if (workflowItemsContainer) {
+    workflowClickHandler = (e) => {
+      const workflowItem = e.target.closest('.workflow-item');
+      if (workflowItem) {
+        e.preventDefault();
+        e.stopPropagation();
+        const itemData = workflowItem.getAttribute('data-workflow-item');
+        if (itemData) {
+          try {
+            const item = JSON.parse(itemData);
+            selectWorkflowItem(item);
+          } catch (error) {
+            console.error('Error parsing workflow item data:', error);
+          }
+        }
+      }
+    };
+    workflowItemsContainer.addEventListener('click', workflowClickHandler);
+  }
 
   // Auto-select logic
   if (props.eventID) {
@@ -254,24 +324,45 @@ onMounted(async () => {
 
   elRoot.value.closest('.is-loading')?.classList?.remove('is-loading');
 
-  window.addEventListener('popstate', (e) => {
-    if (e.state?.eventId) {
-      // Handle browser back/forward navigation
-      const event = store.workflowEvents.find((ev) => ev.event_id === e.state.eventId);
-      if (event) {
-        selectWorkflowEvent(event);
-      } else {
-        // Check if it's a base event type
-        const items = workflowList.value;
-        const matchingUnconfigured = items.find((item) => 
-          !item.isConfigured && (item.base_event_type === e.state.eventId || item.event_id === e.state.eventId)
-        );
-        if (matchingUnconfigured) {
-          createNewWorkflow(matchingUnconfigured.base_event_type, matchingUnconfigured.capabilities, matchingUnconfigured.display_name);
-        }
+  window.addEventListener('popstate', popstateHandler);
+});
+
+// Define popstateHandler at component level
+const popstateHandler = (e) => {
+  if (e.state?.eventId) {
+    // Handle browser back/forward navigation
+    const event = store.workflowEvents.find((ev) => ev.event_id === e.state.eventId);
+    if (event) {
+      selectWorkflowEvent(event);
+    } else {
+      // Check if it's a base event type
+      const items = workflowList.value;
+      const matchingUnconfigured = items.find((item) => 
+        !item.isConfigured && (item.base_event_type === e.state.eventId || item.event_id === e.state.eventId)
+      );
+      if (matchingUnconfigured) {
+        createNewWorkflow(matchingUnconfigured.base_event_type, matchingUnconfigured.capabilities, matchingUnconfigured.display_name);
       }
     }
-  });
+  }
+};
+
+// Store reference to cleanup event listener
+let workflowClickHandler = null;
+
+onUnmounted(() => {
+  // Clean up resources
+  if (selectTimeout) {
+    clearTimeout(selectTimeout);
+    selectTimeout = null;
+  }
+  window.removeEventListener('popstate', popstateHandler);
+  
+  // Remove native click event listener
+  const workflowItemsContainer = elRoot.value?.querySelector('.workflow-items');
+  if (workflowItemsContainer && workflowClickHandler) {
+    workflowItemsContainer.removeEventListener('click', workflowClickHandler);
+  }
 });
 </script>
 
@@ -288,10 +379,10 @@ onMounted(async () => {
         <div class="workflow-items">
           <div
             v-for="item in workflowList"
-            :key="item.event_id"
+            :key="`workflow-${item.event_id}-${item.isConfigured ? 'configured' : 'unconfigured'}`"
             class="workflow-item"
-            :class="{ active: store.selectedItem === item.event_id }"
-            @click="selectWorkflowItem(item)"
+            :class="{ active: isItemSelected(item) }"
+            :data-workflow-item="JSON.stringify(item)"
           >
             <div class="workflow-content">
               <div class="workflow-info">
@@ -341,8 +432,8 @@ onMounted(async () => {
           <div class="editor-actions-header">
             <!-- Edit/Cancel Button -->
             <button
-              class="ui button"
-              :class="editMode ? 'basic' : 'primary'"
+              class="btn"
+              :class="editMode ? 'btn-outline-secondary' : 'btn-primary'"
               @click="toggleEditMode"
             >
               <i :class="editMode ? 'times icon' : 'edit icon'"/>
@@ -352,8 +443,8 @@ onMounted(async () => {
             <!-- Enable/Disable Button (only for configured workflows) -->
             <button
               v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0 && !editMode"
-              class="ui button"
-              :class="store.selectedWorkflow.enabled ? 'red basic' : 'green'"
+              class="btn"
+              :class="store.selectedWorkflow.enabled ? 'btn-outline-danger' : 'btn-success'"
               @click="toggleWorkflowStatus"
               :title="store.selectedWorkflow.enabled ? 'Disable workflow' : 'Enable workflow'"
             >
@@ -364,7 +455,7 @@ onMounted(async () => {
             <!-- Clone Button (only for configured workflows) -->
             <button
               v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0 && !editMode"
-              class="ui basic button"
+              class="btn btn-outline-secondary"
               @click="cloneWorkflow(store.selectedWorkflow)"
               title="Clone this workflow"
             >
@@ -375,10 +466,10 @@ onMounted(async () => {
         </div>
 
         <div class="editor-content">
-          <div class="ui form" :class="{ 'readonly': !editMode }">
+          <div class="form" :class="{ 'readonly': !editMode }">
             <div class="field">
               <label>When</label>
-              <div class="ui segment">
+              <div class="segment">
                 <div class="description">
                   This workflow will run when: <strong>{{ store.selectedWorkflow.display_name }}</strong>
                 </div>
@@ -388,12 +479,12 @@ onMounted(async () => {
             <!-- Filters Section -->
             <div class="field" v-if="hasAvailableFilters">
               <label>Filters</label>
-              <div class="ui segment">
+              <div class="segment">
                 <div class="field" v-if="hasFilter('issue_type')">
                   <label>Apply to</label>
                   <select
                     v-if="editMode"
-                    class="ui dropdown"
+                    class="form-select"
                     v-model="store.workflowFilters.issue_type"
                   >
                     <option value="">Issues And Pull Requests</option>
@@ -412,12 +503,12 @@ onMounted(async () => {
             <!-- Actions Section -->
             <div class="field">
               <label>Actions</label>
-              <div class="ui segment">
+              <div class="segment">
                 <div class="field" v-if="hasAction('column')">
                   <label>Move to column</label>
                   <select
                     v-if="editMode"
-                    class="ui dropdown"
+                    class="form-select"
                     v-model="store.workflowActions.column"
                   >
                     <option value="">Select column...</option>
@@ -434,8 +525,9 @@ onMounted(async () => {
                   <label>Add labels</label>
                   <select
                     v-if="editMode"
-                    class="ui multiple dropdown"
+                    class="form-select"
                     v-model="store.workflowActions.labels"
+                    multiple
                   >
                     <option value="">Select labels...</option>
                     <option v-for="label in store.projectLabels" :key="label.id" :value="label.id">
@@ -449,7 +541,7 @@ onMounted(async () => {
                 </div>
 
                 <div class="field" v-if="hasAction('close')">
-                  <div v-if="editMode" class="ui checkbox">
+                  <div v-if="editMode" class="form-check">
                     <input type="checkbox" v-model="store.workflowActions.closeIssue" id="close-issue">
                     <label for="close-issue">Close issue</label>
                   </div>
@@ -465,13 +557,13 @@ onMounted(async () => {
 
         <!-- Fixed bottom actions (only show in edit mode) -->
         <div v-if="editMode" class="editor-actions">
-          <button class="ui primary button" @click="saveWorkflow" :class="{ loading: store.saving }">
+          <button class="btn btn-primary" @click="saveWorkflow" :disabled="store.saving">
             <i class="save icon"/>
             Save Workflow
           </button>
           <button
             v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0"
-            class="ui red button"
+            class="btn btn-danger"
             @click="deleteWorkflow"
           >
             <i class="trash icon"/>
@@ -786,5 +878,169 @@ onMounted(async () => {
 .readonly-value div {
   color: #586069;
   font-weight: normal;
+}
+
+/* Custom form styles to replace Semantic UI */
+.form {
+  font-family: inherit;
+}
+
+.form .field {
+  margin-bottom: 1rem;
+}
+
+.form .field label {
+  font-weight: 600;
+  color: #24292e;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.segment {
+  background: #fafbfc;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.form-select {
+  display: block;
+  width: 100%;
+  padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #212529;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+.form-select:focus {
+  border-color: #86b7fe;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.form-select[multiple] {
+  background-image: none;
+  height: auto;
+}
+
+.form-check {
+  display: block;
+  min-height: 1.5rem;
+  padding-left: 1.5em;
+  margin-bottom: 0.125rem;
+}
+
+.form-check input[type="checkbox"] {
+  float: left;
+  margin-left: -1.5em;
+}
+
+/* Button styles to replace Semantic UI */
+.btn {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  margin-bottom: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #212529;
+  text-align: center;
+  text-decoration: none;
+  vertical-align: middle;
+  cursor: pointer;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+.btn:hover {
+  color: #212529;
+  text-decoration: none;
+}
+
+.btn:focus {
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.btn:disabled {
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.btn-primary:hover {
+  color: #fff;
+  background-color: #0b5ed7;
+  border-color: #0a58ca;
+}
+
+.btn-primary:focus {
+  color: #fff;
+  background-color: #0b5ed7;
+  border-color: #0a58ca;
+  box-shadow: 0 0 0 0.25rem rgba(49, 132, 253, 0.5);
+}
+
+.btn-outline-secondary {
+  color: #6c757d;
+  border-color: #6c757d;
+}
+
+.btn-outline-secondary:hover {
+  color: #fff;
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.btn-success {
+  color: #fff;
+  background-color: #198754;
+  border-color: #198754;
+}
+
+.btn-success:hover {
+  color: #fff;
+  background-color: #157347;
+  border-color: #146c43;
+}
+
+.btn-outline-danger {
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.btn-outline-danger:hover {
+  color: #fff;
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.btn-danger {
+  color: #fff;
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.btn-danger:hover {
+  color: #fff;
+  background-color: #c82333;
+  border-color: #bd2130;
 }
 </style>
