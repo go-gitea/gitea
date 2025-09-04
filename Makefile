@@ -18,8 +18,9 @@ DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
 IMPORT := code.gitea.io/gitea
 
-# No experiment set by default, but you can set jsonv2 to use go 1.25.0 json v2 experimental changes
-export GOEXPERIMENT ?=
+# By default use go's 1.25 experimental json v2 library when building
+# TODO: remove when no longer experimental
+export GOEXPERIMENT ?= jsonv2
 
 GO ?= go
 SHASUM ?= shasum -a 256
