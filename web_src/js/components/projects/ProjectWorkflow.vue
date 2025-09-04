@@ -18,12 +18,12 @@ const previousSelection = ref(null);
 // Helper to check if current workflow is in edit mode
 const isInEditMode = computed(() => {
   if (!store.selectedWorkflow) return false;
-  
+
   // Unconfigured workflows (id === 0) are always in edit mode
   if (store.selectedWorkflow.id === 0) {
     return true;
   }
-  
+
   // Configured workflows use the _isEditing flag
   return store.selectedWorkflow._isEditing || false;
 });
@@ -48,14 +48,14 @@ const toggleEditMode = () => {
       // If there was a previous selection, return to it
       if (store.selectedWorkflow && store.selectedWorkflow.id === 0) {
         // Remove temporary cloned workflow from list
-        const tempIndex = store.workflowEvents.findIndex(w => 
+        const tempIndex = store.workflowEvents.findIndex(w =>
           w.event_id === store.selectedWorkflow.event_id
         );
         if (tempIndex >= 0) {
           store.workflowEvents.splice(tempIndex, 1);
         }
       }
-      
+
       // Restore previous selection
       store.selectedItem = previousSelection.value.selectedItem;
       store.selectedWorkflow = previousSelection.value.selectedWorkflow;
@@ -96,7 +96,7 @@ const deleteWorkflow = async () => {
 
   // If deleting a temporary workflow (clone/new), just remove from list
   if (store.selectedWorkflow.id === 0) {
-    const tempIndex = store.workflowEvents.findIndex(w => 
+    const tempIndex = store.workflowEvents.findIndex(w =>
       w.event_id === store.selectedWorkflow.event_id
     );
     if (tempIndex >= 0) {
@@ -133,7 +133,7 @@ const deleteWorkflow = async () => {
 const selectWorkflowEvent = async (event) => {
   // Prevent rapid successive clicks
   if (store.loading) return;
-  
+
   // Toggle selection - if already selected, deselect
   if (store.selectedItem === event.event_id) {
     store.selectedItem = null;
@@ -144,10 +144,10 @@ const selectWorkflowEvent = async (event) => {
   try {
     store.selectedItem = event.event_id;
     store.selectedWorkflow = event;
-    
+
     // Wait for DOM update before proceeding
     await nextTick();
-    
+
     await store.loadWorkflowData(event.event_id);
 
     // Update URL without page reload
@@ -164,7 +164,7 @@ const selectWorkflowEvent = async (event) => {
 const saveWorkflow = async () => {
   await store.saveWorkflow();
   // The store.saveWorkflow already handles reloading events
-  
+
   // Clear previous selection after successful save
   previousSelection.value = null;
   setEditMode(false);
@@ -180,7 +180,7 @@ const getFilterDescription = (workflow) => {
   if (!workflow.filters || !Array.isArray(workflow.filters) || workflow.filters.length === 0) {
     return '';
   }
-  
+
   const descriptions = [];
   for (const filter of workflow.filters) {
     if (filter.type === 'issue_type' && filter.value) {
@@ -192,7 +192,7 @@ const getFilterDescription = (workflow) => {
     }
     // Add more filter types here as needed
   }
-  
+
   return descriptions.length > 0 ? ` (${descriptions.join(', ')})` : '';
 };
 
@@ -212,7 +212,7 @@ const workflowList = computed(() => {
   if (!workflows || workflows.length === 0) {
     return [];
   }
-  
+
   return workflows.map((workflow) => ({
     ...workflow,
     isConfigured: isWorkflowConfigured(workflow),
@@ -262,7 +262,7 @@ const cloneWorkflow = (sourceWorkflow) => {
   // Extract base name without filter descriptions
   const baseName = (sourceWorkflow.display_name || sourceWorkflow.workflow_event || sourceWorkflow.event_id)
     .replace(/\s*\([^)]*\)\s*/g, ''); // Remove any parenthetical descriptions
-  
+
   const clonedWorkflow = {
     id: 0,
     event_id: tempId,
@@ -290,7 +290,7 @@ const cloneWorkflow = (sourceWorkflow) => {
   // Load the source workflow's data into the form
   store.loadWorkflowData(sourceWorkflow.event_id);
   // Cloned workflows (id: 0) are always in edit mode by default
-  
+
   // Update URL for cloned workflow
   const newUrl = `${props.projectLink}/workflows/${tempId}`;
   window.history.pushState({eventId: tempId}, '', newUrl);
@@ -302,27 +302,27 @@ let selectTimeout = null;
 const selectWorkflowItem = async (item) => {
   // Prevent rapid successive clicks with debounce
   if (store.loading || selectTimeout) return;
-  
+
   selectTimeout = setTimeout(() => {
     selectTimeout = null;
   }, 300);
-  
+
   previousSelection.value = null; // Clear previous selection when manually selecting
   // Don't reset edit mode when switching - each workflow keeps its own state
-  
+
   // Wait for DOM update to prevent conflicts
   await nextTick();
-  
+
   if (item.isConfigured) {
     // This is a configured workflow, select it
     await selectWorkflowEvent(item);
   } else {
     // This is an unconfigured event - check if we already have a workflow object for it
-    const existingWorkflow = store.workflowEvents.find(w => 
-      w.id === 0 && 
+    const existingWorkflow = store.workflowEvents.find(w =>
+      w.id === 0 &&
       (w.base_event_type === item.base_event_type || w.workflow_event === item.base_event_type)
     );
-    
+
     if (existingWorkflow) {
       // We already have an unconfigured workflow for this event type, select it
       await selectWorkflowEvent(existingWorkflow);
@@ -330,7 +330,7 @@ const selectWorkflowItem = async (item) => {
       // This is truly a new unconfigured event, create new workflow
       createNewWorkflow(item.base_event_type, item.capabilities, item.display_name);
     }
-    
+
     // Update URL for workflow
     const newUrl = `${props.projectLink}/workflows/${item.base_event_type}`;
     window.history.pushState({eventId: item.base_event_type}, '', newUrl);
@@ -353,18 +353,18 @@ const getStatusClass = (item) => {
   if (!item.isConfigured) {
     return 'status-inactive'; // Gray dot for unconfigured
   }
-  
+
   // For configured workflows, check enabled status
   if (item.enabled === false) {
     return 'status-disabled'; // Red dot for disabled
   }
-  
+
   return 'status-active'; // Green dot for enabled
 };
 
 const isItemSelected = (item) => {
   if (!store.selectedItem) return false;
-  
+
   if (item.isConfigured || item.id === 0) {
     // For configured workflows or temporary workflows (clones/new), match by event_id
     return store.selectedItem === item.event_id;
@@ -409,7 +409,7 @@ onMounted(async () => {
   store.workflowEvents = await store.loadEvents();
   await store.loadProjectColumns();
   await store.loadProjectLabels();
-  
+
   // Add native event listener to prevent conflicts with Gitea
   await nextTick();
   const workflowItemsContainer = elRoot.value.querySelector('.workflow-items');
@@ -445,7 +445,7 @@ onMounted(async () => {
     } else {
       // Check if eventID matches a base event type (unconfigured workflow)
       const items = workflowList.value;
-      const matchingUnconfigured = items.find((item) => 
+      const matchingUnconfigured = items.find((item) =>
         !item.isConfigured && (item.base_event_type === props.eventID || item.event_id === props.eventID)
       );
       if (matchingUnconfigured) {
@@ -495,7 +495,7 @@ const popstateHandler = (e) => {
     } else {
       // Check if it's a base event type
       const items = workflowList.value;
-      const matchingUnconfigured = items.find((item) => 
+      const matchingUnconfigured = items.find((item) =>
         !item.isConfigured && (item.base_event_type === e.state.eventId || item.event_id === e.state.eventId)
       );
       if (matchingUnconfigured) {
@@ -515,7 +515,7 @@ onUnmounted(() => {
     selectTimeout = null;
   }
   window.removeEventListener('popstate', popstateHandler);
-  
+
   // Remove native click event listener
   const workflowItemsContainer = elRoot.value?.querySelector('.workflow-items');
   if (workflowItemsContainer && workflowClickHandler) {
@@ -529,7 +529,7 @@ onUnmounted(() => {
     <!-- Left Sidebar - Workflow List -->
     <div class="workflow-sidebar">
       <div class="sidebar-header">
-        <h3>Project Workflows</h3>
+        <h3>Default Workflows</h3>
       </div>
 
       <div class="sidebar-content">

@@ -310,9 +310,7 @@ func Workflows(ctx *context.Context) {
 	}
 
 	ctx.Data["Title"] = ctx.Tr("projects.workflows")
-	ctx.Data["PageIsWorkflows"] = true
-	ctx.Data["PageIsProjects"] = true
-	ctx.Data["PageIsProjectsWorkflows"] = true
+	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["Project"] = p
 
 	workflows, err := project_model.FindWorkflowsByProjectID(ctx, projectID)

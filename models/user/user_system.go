@@ -66,12 +66,46 @@ func (u *User) IsGiteaActions() bool {
 	return u != nil && u.ID == ActionsUserID
 }
 
+const (
+	WorkflowsUserID    int64 = -3
+	WorkflowsUserName        = "gitea-workflows"
+	WorkflowsUserEmail       = "workflows@gitea.io"
+)
+
+func IsGiteaWorkflowsUserName(name string) bool {
+	return strings.EqualFold(name, WorkflowsUserName)
+}
+
+// NewWorkflowsUser creates and returns a fake user for running the workflows.
+func NewWorkflowsUser() *User {
+	return &User{
+		ID:                      WorkflowsUserID,
+		Name:                    WorkflowsUserName,
+		LowerName:               WorkflowsUserName,
+		IsActive:                true,
+		FullName:                "Gitea Workflows",
+		Email:                   WorkflowsUserEmail,
+		KeepEmailPrivate:        true,
+		LoginName:               WorkflowsUserName,
+		Type:                    UserTypeBot,
+		AllowCreateOrganization: true,
+		Visibility:              structs.VisibleTypePublic,
+	}
+}
+
+func (u *User) IsGiteaWorkflows() bool {
+	return u != nil && u.ID == WorkflowsUserID
+}
+
 func GetSystemUserByName(name string) *User {
 	if IsGhostUserName(name) {
 		return NewGhostUser()
 	}
 	if IsGiteaActionsUserName(name) {
 		return NewActionsUser()
+	}
+	if IsGiteaWorkflowsUserName(name) {
+		return NewWorkflowsUser()
 	}
 	return nil
 }

@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -41,6 +42,7 @@ func (m *workflowNotifier) NewIssue(ctx context.Context, issue *issues_model.Iss
 		return
 	}
 	if issue.Project == nil {
+		// TODO: handle item opened
 		return
 	}
 
@@ -95,7 +97,7 @@ func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, is
 				return
 			}
 		default:
-			log.Error("NewIssue: Unsupported filter type: %s", filter.Type)
+			log.Error("Unsupported filter type: %s", filter.Type)
 			return
 		}
 	}
@@ -105,15 +107,22 @@ func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, is
 		case project_model.WorkflowActionTypeColumn:
 			column, err := project_model.GetColumnByProjectIDAndColumnName(ctx, issue.Project.ID, action.ActionValue)
 			if err != nil {
-				log.Error("NewIssue: GetColumnByProjectIDAndColumnName: %v", err)
+				log.Error("GetColumnByProjectIDAndColumnName: %v", err)
 				continue
 			}
 			if err := project_model.AddIssueToColumn(ctx, issue.ID, column); err != nil {
-				log.Error("NewIssue: AddIssueToColumn: %v", err)
+				log.Error("AddIssueToColumn: %v", err)
+				continue
+			}
+		case project_model.WorkflowActionTypeAddLabels:
+		case project_model.WorkflowActionTypeRemoveLabels:
+		case project_model.WorkflowActionTypeClose:
+			if err := issue_service.CloseIssue(ctx, issue, user_model.NewWorkflowsUser(), ""); err != nil {
+				log.Error("CloseIssue: %v", err)
 				continue
 			}
 		default:
-			log.Error("NewIssue: Unsupported action type: %s", action.ActionType)
+			log.Error("Unsupported action type: %s", action.ActionType)
 		}
 	}
 }
