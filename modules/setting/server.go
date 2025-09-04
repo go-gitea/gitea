@@ -275,7 +275,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 			HTTPAddr = filepath.Join(AppWorkPath, HTTPAddr)
 		}
 	default:
-		log.Fatal("Invalid PROTOCOL %q", Protocol)
+		log.Fatal("Invalid PROTOCOL %q", protocolCfg)
 	}
 	UseProxyProtocol = sec.Key("USE_PROXY_PROTOCOL").MustBool(false)
 	ProxyProtocolTLSBridging = sec.Key("PROXY_PROTOCOL_TLS_BRIDGING").MustBool(false)

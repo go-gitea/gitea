@@ -1,4 +1,4 @@
-import {htmlEscape} from 'escape-goat';
+import {html, htmlRaw} from '../utils/html.ts';
 
 type Processor = (el: HTMLElement) => string | HTMLElement | void;
 
@@ -38,10 +38,10 @@ function prepareProcessors(ctx:ProcessorContext): Processors {
     IMG(el: HTMLElement) {
       const alt = el.getAttribute('alt') || 'image';
       const src = el.getAttribute('src');
-      const widthAttr = el.hasAttribute('width') ? ` width="${htmlEscape(el.getAttribute('width') || '')}"` : '';
-      const heightAttr = el.hasAttribute('height') ? ` height="${htmlEscape(el.getAttribute('height') || '')}"` : '';
+      const widthAttr = el.hasAttribute('width') ? htmlRaw` width="${el.getAttribute('width') || ''}"` : '';
+      const heightAttr = el.hasAttribute('height') ? htmlRaw` height="${el.getAttribute('height') || ''}"` : '';
       if (widthAttr || heightAttr) {
-        return `<img alt="${htmlEscape(alt)}"${widthAttr}${heightAttr} src="${htmlEscape(src)}">`;
+        return html`<img alt="${alt}"${widthAttr}${heightAttr} src="${src}">`;
       }
       return `![${alt}](${src})`;
     },

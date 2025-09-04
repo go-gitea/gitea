@@ -1,7 +1,7 @@
 import fastGlob from 'fast-glob';
 import wrapAnsi from 'wrap-ansi';
 import AddAssetPlugin from 'add-asset-webpack-plugin';
-import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
+import LicenseCheckerWebpackPlugin from '@techknowlogick/license-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import {VueLoaderPlugin} from 'vue-loader';
@@ -76,15 +76,9 @@ export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
-      fileURLToPath(new URL('web_src/js/globals.ts', import.meta.url)),
-      fileURLToPath(new URL('web_src/fomantic/build/fomantic.js', import.meta.url)),
       fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
-      fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/fomantic.css', import.meta.url)),
       fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
-    ],
-    webcomponents: [
-      fileURLToPath(new URL('web_src/js/webcomponents/index.ts', import.meta.url)),
     ],
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.ts', import.meta.url)),
@@ -260,7 +254,8 @@ export default {
     maxAssetSize: Infinity,
   },
   resolve: {
-    symlinks: false,
+    symlinks: true,
+    modules: ['node_modules'],
   },
   watchOptions: {
     ignored: [

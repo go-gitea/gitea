@@ -38,20 +38,23 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 	}
 
 	requiredCommitStatuses := make([]*git_model.CommitStatus, 0, len(commitStatuses))
+	allRequiredContextsMatched := true
 	for _, gp := range requiredContextsGlob {
+		requiredContextMatched := false
 		for _, commitStatus := range commitStatuses {
 			if gp.Match(commitStatus.Context) {
 				requiredCommitStatuses = append(requiredCommitStatuses, commitStatus)
-				break
+				requiredContextMatched = true
 			}
 		}
+		allRequiredContextsMatched = allRequiredContextsMatched && requiredContextMatched
 	}
 	if len(requiredCommitStatuses) == 0 {
 		return commitstatus.CommitStatusPending
 	}
 
 	returnedStatus := git_model.CalcCommitStatus(requiredCommitStatuses).State
-	if len(requiredCommitStatuses) == len(requiredContexts) {
+	if allRequiredContextsMatched {
 		return returnedStatus
 	}
 
@@ -96,7 +99,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	if pr.Flow == issues_model.PullRequestFlowGithub && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
-	if pr.Flow == issues_model.PullRequestFlowAGit && !gitrepo.IsReferenceExist(ctx, pr.HeadRepo, pr.GetGitRefName()) {
+	if pr.Flow == issues_model.PullRequestFlowAGit && !gitrepo.IsReferenceExist(ctx, pr.HeadRepo, pr.GetGitHeadRefName()) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
 
@@ -104,7 +107,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		sha, err = headGitRepo.GetBranchCommitID(pr.HeadBranch)
 	} else {
-		sha, err = headGitRepo.GetRefCommitID(pr.GetGitRefName())
+		sha, err = headGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	}
 	if err != nil {
 		return "", err

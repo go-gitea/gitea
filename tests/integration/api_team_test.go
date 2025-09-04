@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/repo"
@@ -42,7 +41,7 @@ func TestAPITeam(t *testing.T) {
 	DecodeJSON(t, resp, &apiTeam)
 	assert.Equal(t, team.ID, apiTeam.ID)
 	assert.Equal(t, team.Name, apiTeam.Name)
-	assert.Equal(t, convert.ToOrganization(db.DefaultContext, org), apiTeam.Organization)
+	assert.Equal(t, convert.ToOrganization(t.Context(), org), apiTeam.Organization)
 
 	// non team member user will not access the teams details
 	teamUser2 := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 3})
@@ -119,7 +118,7 @@ func TestAPITeam(t *testing.T) {
 
 	// Read team.
 	teamRead := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-	assert.NoError(t, teamRead.LoadUnits(db.DefaultContext))
+	assert.NoError(t, teamRead.LoadUnits(t.Context()))
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamID).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
@@ -195,7 +194,7 @@ func TestAPITeam(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
-	assert.NoError(t, teamRead.LoadUnits(db.DefaultContext))
+	assert.NoError(t, teamRead.LoadUnits(t.Context()))
 	checkTeamResponse(t, "ReadTeam2", &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
 		teamRead.AccessMode.ToString(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
 
@@ -257,8 +256,8 @@ func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, d
 
 func checkTeamBean(t *testing.T, id int64, name, description string, includesAllRepositories bool, permission string, units []string, unitsMap map[string]string) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: id})
-	assert.NoError(t, team.LoadUnits(db.DefaultContext), "LoadUnits")
-	apiTeam, err := convert.ToTeam(db.DefaultContext, team)
+	assert.NoError(t, team.LoadUnits(t.Context()), "LoadUnits")
+	apiTeam, err := convert.ToTeam(t.Context(), team)
 	assert.NoError(t, err)
 	checkTeamResponse(t, fmt.Sprintf("checkTeamBean/%s_%s", name, description), apiTeam, name, description, includesAllRepositories, permission, units, unitsMap)
 }

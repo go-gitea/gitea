@@ -6,7 +6,6 @@ package repo_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 
@@ -17,17 +16,17 @@ func TestGetUserFork(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// User13 has repo 11 forked from repo10
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 10)
+	repo, err := repo_model.GetRepositoryByID(t.Context(), 10)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
-	repo, err = repo_model.GetUserFork(db.DefaultContext, repo.ID, 13)
+	repo, err = repo_model.GetUserFork(t.Context(), repo.ID, 13)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
 
-	repo, err = repo_model.GetRepositoryByID(db.DefaultContext, 9)
+	repo, err = repo_model.GetRepositoryByID(t.Context(), 9)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
-	repo, err = repo_model.GetUserFork(db.DefaultContext, repo.ID, 13)
+	repo, err = repo_model.GetUserFork(t.Context(), repo.ID, 13)
 	assert.NoError(t, err)
 	assert.Nil(t, repo)
 }

@@ -136,7 +136,7 @@ func ListPublicKeys(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose public keys are to be listed
 	//   type: string
 	//   required: true
 	// - name: fingerprint

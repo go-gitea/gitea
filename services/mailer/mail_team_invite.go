@@ -62,7 +62,7 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 	}
 
 	var mailBody bytes.Buffer
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplTeamInviteMail), mailMeta); err != nil {
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplTeamInviteMail), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplTeamInviteMail)+"/body", err)
 		return err
 	}

@@ -39,7 +39,7 @@ func sendUserMail(language string, u *user_model.User, tpl templates.TplName, co
 
 	var content bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&content, string(tpl), data); err != nil {
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&content, string(tpl), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -90,7 +90,7 @@ func SendActivateEmailMail(u *user_model.User, email string) {
 
 	var content bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -118,7 +118,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 
 	var content bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -149,7 +149,7 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 
 	var content bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}

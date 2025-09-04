@@ -61,7 +61,7 @@ func UserAssignmentAPI() func(ctx *APIContext) {
 func userAssignment(ctx *Base, doer *user_model.User, errCb func(int, any)) (contextUser *user_model.User) {
 	username := ctx.PathParam("username")
 
-	if doer != nil && doer.LowerName == strings.ToLower(username) {
+	if doer != nil && strings.EqualFold(doer.LowerName, username) {
 		contextUser = doer
 	} else {
 		var err error

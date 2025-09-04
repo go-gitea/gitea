@@ -14,11 +14,11 @@ import (
 	"net/http/httptest"
 	neturl "net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -100,6 +100,7 @@ func TestPackageNuGet(t *testing.T) {
 	packageVersion := "1.0.3"
 	packageAuthors := "KN4CK3R"
 	packageDescription := "Gitea Test Package"
+	isPrerelease := strings.Contains(packageVersion, "-")
 
 	symbolFilename := "test.pdb"
 	symbolID := "d910bb6948bd4c6cb40155bcf52c3c94"
@@ -112,10 +113,16 @@ func TestPackageNuGet(t *testing.T) {
 	packageOwners := "Package Owners"
 	packageProjectURL := "https://gitea.io"
 	packageReleaseNotes := "Package Release Notes"
+	summary := "This is a test package."
 	packageTags := "tag_1 tag_2 tag_3"
 	packageTitle := "Package Title"
 	packageDevelopmentDependency := true
 	packageRequireLicenseAcceptance := true
+
+	dependencyCount := 1
+	dependencyTargetFramework := ".NETStandard2.0"
+	dependencyID := "Microsoft.CSharp"
+	dependencyVersion := "4.5.0"
 
 	createNuspec := func(id, version string) string {
 		return `<?xml version="1.0" encoding="utf-8"?>
@@ -133,12 +140,13 @@ func TestPackageNuGet(t *testing.T) {
 				<projectUrl>` + packageProjectURL + `</projectUrl>
 				<releaseNotes>` + packageReleaseNotes + `</releaseNotes>
 				<requireLicenseAcceptance>true</requireLicenseAcceptance>
+				<summary>` + summary + `</summary>
 				<tags>` + packageTags + `</tags>
 				<title>` + packageTitle + `</title>
 				<version>` + version + `</version>
 				<dependencies>
-					<group targetFramework=".NETStandard2.0">
-						<dependency id="Microsoft.CSharp" version="4.5.0" />
+					<group targetFramework="` + dependencyTargetFramework + `">
+						<dependency id="` + dependencyID + `" version="` + dependencyVersion + `" />
 					</group>
 				</dependencies>
 			</metadata>
@@ -286,18 +294,18 @@ func TestPackageNuGet(t *testing.T) {
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1, "Should have one version")
 
-			pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+			pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 			assert.NoError(t, err)
 			assert.NotNil(t, pd.SemVer)
 			assert.IsType(t, &nuget_module.Metadata{}, pd.Metadata)
 			assert.Equal(t, packageName, pd.Package.Name)
 			assert.Equal(t, packageVersion, pd.Version.Version)
 
-			pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+			pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 			assert.NoError(t, err)
 			assert.Len(t, pfs, 2, "Should have 2 files: nuget and nuspec")
 			for _, pf := range pfs {
@@ -305,7 +313,7 @@ func TestPackageNuGet(t *testing.T) {
 				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
 					assert.True(t, pf.IsLead)
 
-					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(len(content)), pb.Size)
 				case packageName + ".nuspec":
@@ -320,7 +328,7 @@ func TestPackageNuGet(t *testing.T) {
 			MakeRequest(t, req, http.StatusConflict)
 
 			// delete the package
-			assert.NoError(t, packageService.DeletePackageVersionAndReferences(db.DefaultContext, pvs[0]))
+			assert.NoError(t, packageService.DeletePackageVersionAndReferences(t.Context(), pvs[0]))
 
 			// create failure with token without write access
 			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
@@ -332,18 +340,18 @@ func TestPackageNuGet(t *testing.T) {
 				AddTokenAuth(writeToken)
 			MakeRequest(t, req, http.StatusCreated)
 
-			pvs, err = packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
+			pvs, err = packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1, "Should have one version")
 
-			pd, err = packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+			pd, err = packages.GetPackageDescriptor(t.Context(), pvs[0])
 			assert.NoError(t, err)
 			assert.NotNil(t, pd.SemVer)
 			assert.IsType(t, &nuget_module.Metadata{}, pd.Metadata)
 			assert.Equal(t, packageName, pd.Package.Name)
 			assert.Equal(t, packageVersion, pd.Version.Version)
 
-			pfs, err = packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+			pfs, err = packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 			assert.NoError(t, err)
 			assert.Len(t, pfs, 2, "Should have 2 files: nuget and nuspec")
 			for _, pf := range pfs {
@@ -351,7 +359,7 @@ func TestPackageNuGet(t *testing.T) {
 				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
 					assert.True(t, pf.IsLead)
 
-					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(len(content)), pb.Size)
 				case packageName + ".nuspec":
@@ -407,18 +415,18 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 
-			pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+			pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 			assert.NoError(t, err)
 			assert.NotNil(t, pd.SemVer)
 			assert.IsType(t, &nuget_module.Metadata{}, pd.Metadata)
 			assert.Equal(t, packageName, pd.Package.Name)
 			assert.Equal(t, packageVersion, pd.Version.Version)
 
-			pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+			pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 			assert.NoError(t, err)
 			assert.Len(t, pfs, 4, "Should have 4 files: nupkg, snupkg, nuspec and pdb")
 			for _, pf := range pfs {
@@ -426,29 +434,29 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
 					assert.True(t, pf.IsLead)
 
-					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
-					assert.Equal(t, int64(610), pb.Size)
+					assert.Equal(t, int64(633), pb.Size)
 				case fmt.Sprintf("%s.%s.snupkg", packageName, packageVersion):
 					assert.False(t, pf.IsLead)
 
-					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(616), pb.Size)
 				case packageName + ".nuspec":
 					assert.False(t, pf.IsLead)
 
-					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
-					assert.Equal(t, int64(996), pb.Size)
+					assert.Equal(t, int64(1043), pb.Size)
 				case symbolFilename:
 					assert.False(t, pf.IsLead)
 
-					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(160), pb.Size)
 
-					pps, err := packages.GetProperties(db.DefaultContext, packages.PropertyTypeFile, pf.ID)
+					pps, err := packages.GetProperties(t.Context(), packages.PropertyTypeFile, pf.ID)
 					assert.NoError(t, err)
 					assert.Len(t, pps, 1)
 					assert.Equal(t, nuget_module.PropertySymbolID, pps[0].Name)
@@ -468,7 +476,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		defer tests.PrintCurrentTest(t)()
 
 		checkDownloadCount := func(count int64) {
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 			assert.Equal(t, count, pvs[0].DownloadCount)
@@ -747,17 +755,39 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			assert.Equal(t, indexURL, result.RegistrationIndexURL)
 			assert.Equal(t, 1, result.Count)
 			assert.Len(t, result.Pages, 1)
-			assert.Equal(t, indexURL, result.Pages[0].RegistrationPageURL)
-			assert.Equal(t, packageVersion, result.Pages[0].Lower)
-			assert.Equal(t, packageVersion, result.Pages[0].Upper)
-			assert.Equal(t, 1, result.Pages[0].Count)
-			assert.Len(t, result.Pages[0].Items, 1)
-			assert.Equal(t, packageName, result.Pages[0].Items[0].CatalogEntry.ID)
-			assert.Equal(t, packageVersion, result.Pages[0].Items[0].CatalogEntry.Version)
-			assert.Equal(t, packageAuthors, result.Pages[0].Items[0].CatalogEntry.Authors)
-			assert.Equal(t, packageDescription, result.Pages[0].Items[0].CatalogEntry.Description)
-			assert.Equal(t, leafURL, result.Pages[0].Items[0].CatalogEntry.CatalogLeafURL)
-			assert.Equal(t, contentURL, result.Pages[0].Items[0].CatalogEntry.PackageContentURL)
+
+			page := result.Pages[0]
+			assert.Equal(t, indexURL, page.RegistrationPageURL)
+			assert.Equal(t, packageVersion, page.Lower)
+			assert.Equal(t, packageVersion, page.Upper)
+			assert.Equal(t, 1, page.Count)
+			assert.Len(t, page.Items, 1)
+
+			item := page.Items[0]
+			assert.Equal(t, packageName, item.CatalogEntry.ID)
+			assert.Equal(t, packageVersion, item.CatalogEntry.Version)
+			assert.Equal(t, packageAuthors, item.CatalogEntry.Authors)
+			assert.Equal(t, packageDescription, item.CatalogEntry.Description)
+			assert.Equal(t, leafURL, item.CatalogEntry.CatalogLeafURL)
+			assert.Equal(t, contentURL, item.CatalogEntry.PackageContentURL)
+			assert.Equal(t, packageIconURL, item.CatalogEntry.IconURL)
+			assert.Equal(t, packageLanguage, item.CatalogEntry.Language)
+			assert.Equal(t, packageLicenseURL, item.CatalogEntry.LicenseURL)
+			assert.Equal(t, packageProjectURL, item.CatalogEntry.ProjectURL)
+			assert.Equal(t, packageReleaseNotes, item.CatalogEntry.ReleaseNotes)
+			assert.Equal(t, packageRequireLicenseAcceptance, item.CatalogEntry.RequireLicenseAcceptance)
+			assert.Equal(t, packageTags, item.CatalogEntry.Tags)
+			assert.Equal(t, summary, item.CatalogEntry.Summary)
+			assert.Equal(t, isPrerelease, item.CatalogEntry.IsPrerelease)
+			assert.Len(t, item.CatalogEntry.DependencyGroups, dependencyCount)
+
+			dependencyGroup := item.CatalogEntry.DependencyGroups[0]
+			assert.Equal(t, dependencyTargetFramework, dependencyGroup.TargetFramework)
+			assert.Len(t, dependencyGroup.Dependencies, dependencyCount)
+
+			dependency := dependencyGroup.Dependencies[0]
+			assert.Equal(t, dependencyID, dependency.ID)
+			assert.Equal(t, dependencyVersion, dependency.Range)
 		})
 
 		t.Run("RegistrationLeaf", func(t *testing.T) {
@@ -789,7 +819,8 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				assert.Equal(t, packageTags, result.Properties.Tags)
 				assert.Equal(t, packageTitle, result.Properties.Title)
 
-				assert.Equal(t, "Microsoft.CSharp:4.5.0:.NETStandard2.0", result.Properties.Dependencies)
+				packageVersion := strings.Join([]string{dependencyID, dependencyVersion, dependencyTargetFramework}, ":")
+				assert.Equal(t, packageVersion, result.Properties.Dependencies)
 			})
 
 			t.Run("v3", func(t *testing.T) {
@@ -803,8 +834,30 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				DecodeJSON(t, resp, &result)
 
 				assert.Equal(t, leafURL, result.RegistrationLeafURL)
-				assert.Equal(t, contentURL, result.PackageContentURL)
 				assert.Equal(t, indexURL, result.RegistrationIndexURL)
+				assert.Equal(t, packageAuthors, result.CatalogEntry.Authors)
+				assert.Equal(t, packageCopyright, result.CatalogEntry.Copyright)
+
+				dependencyGroup := result.CatalogEntry.DependencyGroups[0]
+				assert.Equal(t, dependencyTargetFramework, dependencyGroup.TargetFramework)
+				assert.Len(t, dependencyGroup.Dependencies, dependencyCount)
+
+				dependency := dependencyGroup.Dependencies[0]
+				assert.Equal(t, dependencyID, dependency.ID)
+				assert.Equal(t, dependencyVersion, dependency.Range)
+
+				assert.Equal(t, packageDescription, result.CatalogEntry.Description)
+				assert.Equal(t, packageID, result.CatalogEntry.ID)
+				assert.Equal(t, packageIconURL, result.CatalogEntry.IconURL)
+				assert.Equal(t, isPrerelease, result.CatalogEntry.IsPrerelease)
+				assert.Equal(t, packageLanguage, result.CatalogEntry.Language)
+				assert.Equal(t, packageLicenseURL, result.CatalogEntry.LicenseURL)
+				assert.Equal(t, contentURL, result.PackageContentURL)
+				assert.Equal(t, packageProjectURL, result.CatalogEntry.ProjectURL)
+				assert.Equal(t, packageRequireLicenseAcceptance, result.CatalogEntry.RequireLicenseAcceptance)
+				assert.Equal(t, summary, result.CatalogEntry.Summary)
+				assert.Equal(t, packageTags, result.CatalogEntry.Tags)
+				assert.Equal(t, packageVersion, result.CatalogEntry.Version)
 			})
 		})
 	})
@@ -853,7 +906,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
 		assert.NoError(t, err)
 		assert.Empty(t, pvs)
 	})

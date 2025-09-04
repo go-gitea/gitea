@@ -227,32 +227,26 @@ func GetRepoTopicByName(ctx context.Context, repoID int64, topicName string) (*T
 
 // AddTopic adds a topic name to a repository (if it does not already have it)
 func AddTopic(ctx context.Context, repoID int64, topicName string) (*Topic, error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
+	return db.WithTx2(ctx, func(ctx context.Context) (*Topic, error) {
+		topic, err := GetRepoTopicByName(ctx, repoID, topicName)
+		if err != nil {
+			return nil, err
+		}
+		if topic != nil {
+			// Repo already have topic
+			return topic, nil
+		}
 
-	topic, err := GetRepoTopicByName(ctx, repoID, topicName)
-	if err != nil {
-		return nil, err
-	}
-	if topic != nil {
-		// Repo already have topic
+		topic, err = addTopicByNameToRepo(ctx, repoID, topicName)
+		if err != nil {
+			return nil, err
+		}
+
+		if err = syncTopicsInRepository(ctx, repoID); err != nil {
+			return nil, err
+		}
 		return topic, nil
-	}
-
-	topic, err = addTopicByNameToRepo(ctx, repoID, topicName)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = syncTopicsInRepository(sess, repoID); err != nil {
-		return nil, err
-	}
-
-	return topic, committer.Commit()
+	})
 }
 
 // DeleteTopic removes a topic name from a repository (if it has it)
@@ -266,14 +260,15 @@ func DeleteTopic(ctx context.Context, repoID int64, topicName string) (*Topic, e
 		return nil, nil
 	}
 
-	err = removeTopicFromRepo(ctx, repoID, topic)
-	if err != nil {
-		return nil, err
-	}
-
-	err = syncTopicsInRepository(db.GetEngine(ctx), repoID)
-
-	return topic, err
+	return db.WithTx2(ctx, func(ctx context.Context) (*Topic, error) {
+		if err = removeTopicFromRepo(ctx, repoID, topic); err != nil {
+			return nil, err
+		}
+		if err = syncTopicsInRepository(ctx, repoID); err != nil {
+			return nil, err
+		}
+		return topic, nil
+	})
 }
 
 // SaveTopics save topics to a repository
@@ -285,64 +280,55 @@ func SaveTopics(ctx context.Context, repoID int64, topicNames ...string) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
-
-	var addedTopicNames []string
-	for _, topicName := range topicNames {
-		if strings.TrimSpace(topicName) == "" {
-			continue
-		}
-
-		var found bool
-		for _, t := range topics {
-			if strings.EqualFold(topicName, t.Name) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			addedTopicNames = append(addedTopicNames, topicName)
-		}
-	}
-
-	var removeTopics []*Topic
-	for _, t := range topics {
-		var found bool
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		var addedTopicNames []string
 		for _, topicName := range topicNames {
-			if strings.EqualFold(topicName, t.Name) {
-				found = true
-				break
+			if strings.TrimSpace(topicName) == "" {
+				continue
+			}
+
+			var found bool
+			for _, t := range topics {
+				if strings.EqualFold(topicName, t.Name) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				addedTopicNames = append(addedTopicNames, topicName)
 			}
 		}
-		if !found {
-			removeTopics = append(removeTopics, t)
+
+		var removeTopics []*Topic
+		for _, t := range topics {
+			var found bool
+			for _, topicName := range topicNames {
+				if strings.EqualFold(topicName, t.Name) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				removeTopics = append(removeTopics, t)
+			}
 		}
-	}
 
-	for _, topicName := range addedTopicNames {
-		_, err := addTopicByNameToRepo(ctx, repoID, topicName)
-		if err != nil {
-			return err
+		for _, topicName := range addedTopicNames {
+			_, err := addTopicByNameToRepo(ctx, repoID, topicName)
+			if err != nil {
+				return err
+			}
 		}
-	}
 
-	for _, topic := range removeTopics {
-		err := removeTopicFromRepo(ctx, repoID, topic)
-		if err != nil {
-			return err
+		for _, topic := range removeTopics {
+			err := removeTopicFromRepo(ctx, repoID, topic)
+			if err != nil {
+				return err
+			}
 		}
-	}
 
-	if err := syncTopicsInRepository(sess, repoID); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+		return syncTopicsInRepository(ctx, repoID)
+	})
 }
 
 // GenerateTopics generates topics from a template repository
@@ -353,19 +339,19 @@ func GenerateTopics(ctx context.Context, templateRepo, generateRepo *Repository)
 		}
 	}
 
-	return syncTopicsInRepository(db.GetEngine(ctx), generateRepo.ID)
+	return syncTopicsInRepository(ctx, generateRepo.ID)
 }
 
 // syncTopicsInRepository makes sure topics in the topics table are copied into the topics field of the repository
-func syncTopicsInRepository(sess db.Engine, repoID int64) error {
+func syncTopicsInRepository(ctx context.Context, repoID int64) error {
 	topicNames := make([]string, 0, 25)
-	if err := sess.Table("topic").Cols("name").
+	if err := db.GetEngine(ctx).Table("topic").Cols("name").
 		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
 		Where("repo_topic.repo_id = ?", repoID).Asc("topic.name").Find(&topicNames); err != nil {
 		return err
 	}
 
-	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
+	if _, err := db.GetEngine(ctx).ID(repoID).Cols("topics").Update(&Repository{
 		Topics: topicNames,
 	}); err != nil {
 		return err

@@ -22,8 +22,8 @@ type VirtualSessionProvider struct {
 	provider session.Provider
 }
 
-// Init initializes the cookie session provider with given root path.
-func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
+// Init initializes the cookie session provider with the given config.
+func (o *VirtualSessionProvider) Init(gcLifetime int64, config string) error {
 	var opts session.Options
 	if err := json.Unmarshal([]byte(config), &opts); err != nil {
 		return err
@@ -52,7 +52,7 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 	default:
 		return fmt.Errorf("VirtualSessionProvider: Unknown Provider: %s", opts.Provider)
 	}
-	return o.provider.Init(gclifetime, opts.ProviderConfig)
+	return o.provider.Init(gcLifetime, opts.ProviderConfig)
 }
 
 // Read returns raw session store by session ID.

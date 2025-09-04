@@ -24,9 +24,8 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, message)
-	})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.PlainText(status, message)
 }
 
 func GetRepositoryKey(ctx *context.Context) {
@@ -66,6 +65,7 @@ func GetRepositoryFile(ctx *context.Context) {
 			Filename:     ctx.PathParam("filename"),
 			CompositeKey: key,
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
@@ -106,7 +106,7 @@ func GetRepositoryFileByHash(ctx *context.Context) {
 		return
 	}
 
-	s, u, pf, err := packages_service.OpenFileForDownload(ctx, pfs[0])
+	s, u, pf, err := packages_service.OpenFileForDownload(ctx, pfs[0], ctx.Req.Method)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -222,6 +222,7 @@ func DownloadPackageFile(ctx *context.Context) {
 			Filename:     fmt.Sprintf("%s_%s_%s.deb", name, version, ctx.PathParam("architecture")),
 			CompositeKey: fmt.Sprintf("%s|%s", ctx.PathParam("distribution"), ctx.PathParam("component")),
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {

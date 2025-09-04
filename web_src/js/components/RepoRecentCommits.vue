@@ -21,7 +21,7 @@ import {
 import {chartJsColors} from '../utils/color.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
-import {onMounted, ref} from 'vue';
+import {onMounted, ref, shallowRef} from 'vue';
 
 const {pageData} = window.config;
 
@@ -43,9 +43,9 @@ defineProps<{
   };
 }>();
 
-const isLoading = ref(false);
-const errorText = ref('');
-const repoLink = ref(pageData.repoLink || []);
+const isLoading = shallowRef(false);
+const errorText = shallowRef('');
+const repoLink = pageData.repoLink;
 const data = ref<DayData[]>([]);
 
 onMounted(() => {
@@ -57,7 +57,7 @@ async function fetchGraphData() {
   try {
     let response: Response;
     do {
-      response = await GET(`${repoLink.value}/activity/recent-commits/data`);
+      response = await GET(`${repoLink}/activity/recent-commits/data`);
       if (response.status === 202) {
         await sleep(1000); // wait for 1 second before retrying
       }

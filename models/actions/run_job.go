@@ -185,12 +185,12 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 		return StatusSuccess
 	case hasCancelled:
 		return StatusCancelled
-	case hasFailure:
-		return StatusFailure
 	case hasRunning:
 		return StatusRunning
 	case hasWaiting:
 		return StatusWaiting
+	case hasFailure:
+		return StatusFailure
 	case hasBlocked:
 		return StatusBlocked
 	default:

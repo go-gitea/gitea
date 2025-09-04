@@ -35,11 +35,3 @@ func TestRepository_WikiPath(t *testing.T) {
 	expected := filepath.Join(setting.RepoRootPath, "user2/repo1.wiki.git")
 	assert.Equal(t, expected, repo.WikiPath())
 }
-
-func TestRepository_HasWiki(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	assert.True(t, repo1.HasWiki())
-	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	assert.False(t, repo2.HasWiki())
-}

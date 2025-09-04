@@ -23,6 +23,7 @@
 			<label for="color">{{ctx.Locale.Tr "repo.settings.slack_color"}}</label>
 			<input id="color" name="color" value="{{.SlackHook.Color}}" placeholder="#dd4b39, good, warning, danger">
 		</div>
-		{{template "repo/settings/webhook/settings" .}}
+		{{/* FIXME: support authorization header or not? */}}
+		{{template "repo/settings/webhook/settings" dict "BaseLink" .BaseLink "Webhook" .Webhook "UseAuthorizationHeader" "optional"}}
 	</form>
 {{end}}

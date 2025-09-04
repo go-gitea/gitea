@@ -42,7 +42,7 @@ func (doc *HTMLDoc) GetCSRF() string {
 	return doc.GetInputValueByName("_csrf")
 }
 
-// AssertHTMLElement check if element by selector exists or does not exist depending on checkExists
+// AssertHTMLElement check if the element by selector exists or does not exist depending on checkExists
 func AssertHTMLElement[T int | bool](t testing.TB, doc *HTMLDoc, selector string, checkExists T) {
 	sel := doc.doc.Find(selector)
 	switch v := any(checkExists).(type) {

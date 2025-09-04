@@ -50,7 +50,7 @@ func (f *GitlabDownloaderFactory) New(ctx context.Context, opts base.MigrateOpti
 
 	log.Trace("Create gitlab downloader. BaseURL: %s RepoName: %s", baseURL, repoNameSpace)
 
-	return NewGitlabDownloader(ctx, baseURL, repoNameSpace, opts.AuthUsername, opts.AuthPassword, opts.AuthToken)
+	return NewGitlabDownloader(ctx, baseURL, repoNameSpace, opts.AuthToken)
 }
 
 // GitServiceType returns the type of git service
@@ -93,14 +93,8 @@ type GitlabDownloader struct {
 //
 //	Use either a username/password, personal token entered into the username field, or anonymous/public access
 //	Note: Public access only allows very basic access
-func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GitlabDownloader, error) {
+func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, token string) (*GitlabDownloader, error) {
 	gitlabClient, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(NewMigrationHTTPClient()))
-	// Only use basic auth if token is blank and password is NOT
-	// Basic auth will fail with empty strings, but empty token will allow anonymous public API usage
-	if token == "" && password != "" {
-		gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(NewMigrationHTTPClient()))
-	}
-
 	if err != nil {
 		log.Trace("Error logging into gitlab: %v", err)
 		return nil, err
@@ -206,7 +200,7 @@ func (g *GitlabDownloader) GetTopics(ctx context.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return gr.TagList, err
+	return gr.Topics, err
 }
 
 // GetMilestones returns milestones

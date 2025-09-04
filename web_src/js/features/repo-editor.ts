@@ -1,4 +1,4 @@
-import {htmlEscape} from 'escape-goat';
+import {html, htmlRaw} from '../utils/html.ts';
 import {createCodeEditor} from './codeeditor.ts';
 import {hideElem, queryElems, showElem, createElementFromHTML} from '../utils/dom.ts';
 import {attachRefIssueContextPopup} from './contextpopup.ts';
@@ -87,10 +87,10 @@ export function initRepoEditor() {
         if (i < parts.length - 1) {
           if (trimValue.length) {
             const linkElement = createElementFromHTML(
-              `<span class="section"><a href="#">${htmlEscape(value)}</a></span>`,
+              html`<span class="section"><a href="#">${value}</a></span>`,
             );
             const dividerElement = createElementFromHTML(
-              `<div class="breadcrumb-divider">/</div>`,
+              html`<div class="breadcrumb-divider">/</div>`,
             );
             links.push(linkElement);
             dividers.push(dividerElement);
@@ -113,7 +113,7 @@ export function initRepoEditor() {
       if (!warningDiv) {
         warningDiv = document.createElement('div');
         warningDiv.classList.add('ui', 'warning', 'message', 'flash-message', 'flash-warning', 'space-related');
-        warningDiv.innerHTML = '<p>File path contains leading or trailing whitespace.</p>';
+        warningDiv.innerHTML = html`<p>File path contains leading or trailing whitespace.</p>`;
         // Add display 'block' because display is set to 'none' in formantic\build\semantic.css
         warningDiv.style.display = 'block';
         const inputContainer = document.querySelector('.repo-editor-header');
@@ -196,7 +196,8 @@ export function initRepoEditor() {
   })();
 }
 
-export function renderPreviewPanelContent(previewPanel: Element, content: string) {
-  previewPanel.innerHTML = `<div class="render-content markup">${content}</div>`;
+export function renderPreviewPanelContent(previewPanel: Element, htmlContent: string) {
+  // the content is from the server, so it is safe to use innerHTML
+  previewPanel.innerHTML = html`<div class="render-content markup">${htmlRaw(htmlContent)}</div>`;
   attachRefIssueContextPopup(previewPanel.querySelectorAll('p .ref-issue'));
 }

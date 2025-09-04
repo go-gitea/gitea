@@ -15,7 +15,7 @@
 			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_milestone"}}">
 		</div>
 		<div class="divider"></div>
-		<a class="{{if not $.MilestoneID}}active selected {{end}}item" href="{{QueryBuild $queryLink "milestone" 0}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_all"}}</a>
+		<a class="{{if not $.MilestoneID}}active selected {{end}}item" href="{{QueryBuild $queryLink "milestone" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_all"}}</a>
 		<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID -1}}active selected {{end}}{{end}}item" href="{{QueryBuild $queryLink "milestone" -1}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_none"}}</a>
 		{{if .OpenMilestones}}
 			<div class="divider"></div>

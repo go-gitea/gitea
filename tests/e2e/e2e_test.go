@@ -4,7 +4,7 @@
 // This is primarily coped from /tests/integration/integration_test.go
 //   TODO: Move common functions to shared file
 
-//nolint:forbidigo
+//nolint:forbidigo // use of print functions is allowed in tests
 package e2e
 
 import (

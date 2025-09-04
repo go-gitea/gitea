@@ -133,7 +133,7 @@ func IsMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user
+	//   description: username of the user to check for an organization membership
 	//   type: string
 	//   required: true
 	// responses:
@@ -186,7 +186,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user
+	//   description: username of the user to check for a public organization membership
 	//   type: string
 	//   required: true
 	// responses:
@@ -240,7 +240,7 @@ func PublicizeMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user
+	//   description: username of the user whose membership is to be publicized
 	//   type: string
 	//   required: true
 	// responses:
@@ -282,7 +282,7 @@ func ConcealMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user
+	//   description: username of the user whose membership is to be concealed
 	//   type: string
 	//   required: true
 	// responses:
@@ -324,7 +324,7 @@ func DeleteMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user
+	//   description: username of the user to remove from the organization
 	//   type: string
 	//   required: true
 	// responses:

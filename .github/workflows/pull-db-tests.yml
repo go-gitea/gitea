@@ -31,7 +31,7 @@ jobs:
       minio:
         # as github actions doesn't support "entrypoint", we need to use a non-official image
         # that has a custom entrypoint set to "minio server /data"
-        image: bitnami/minio:2023.8.31
+        image: bitnamilegacy/minio:2023.8.31
         env:
           MINIO_ROOT_USER: 123456
           MINIO_ROOT_PASSWORD: 12345678
@@ -113,7 +113,7 @@ jobs:
         ports:
           - 6379:6379
       minio:
-        image: bitnami/minio:2021.3.17
+        image: bitnamilegacy/minio:2021.3.17
         env:
           MINIO_ACCESS_KEY: 123456
           MINIO_SECRET_KEY: 12345678
@@ -155,7 +155,7 @@ jobs:
     services:
       mysql:
         # the bitnami mysql image has more options than the official one, it's easier to customize
-        image: bitnami/mysql:8.0
+        image: bitnamilegacy/mysql:8.0
         env:
           ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea

@@ -13,9 +13,9 @@ import (
 	"xorm.io/builder"
 )
 
-// The database is used in checkKeyFingerprint however most of these functions probably belong in a module
+// The database is used in checkKeyFingerprint. However, most of these functions probably belong in a module
 
-// checkKeyFingerprint only checks if key fingerprint has been used as public key,
+// checkKeyFingerprint only checks if key fingerprint has been used as a public key,
 // it is OK to use same key as deploy key for multiple repositories/users.
 func checkKeyFingerprint(ctx context.Context, fingerprint string) error {
 	has, err := db.Exist[PublicKey](ctx, builder.Eq{"fingerprint": fingerprint})

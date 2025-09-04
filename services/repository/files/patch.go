@@ -44,7 +44,6 @@ type ApplyDiffPatchOptions struct {
 	NewBranch    string
 	Message      string
 	Content      string
-	SHA          string
 	Author       *IdentityOptions
 	Committer    *IdentityOptions
 	Dates        *CommitDateOptions

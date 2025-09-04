@@ -167,6 +167,11 @@
   text-overflow: ellipsis;
 }
 
+.ui.selectable.table > tbody > tr:hover,
+.ui.table tbody tr td.selectable:hover {
+  background: var(--color-hover);
+}
+
 .ui.attached.table {
   top: 0;
   bottom: 0;
@@ -288,6 +293,9 @@
 }
 .ui.basic.striped.table > tbody > tr:nth-child(2n) {
   background: var(--color-light);
+}
+.ui.basic.striped.selectable.table > tbody > tr:nth-child(2n):hover {
+  background: var(--color-hover);
 }
 
 .ui[class*="very basic"].table {

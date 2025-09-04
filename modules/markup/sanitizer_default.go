@@ -4,6 +4,7 @@
 package markup
 
 import (
+	"html/template"
 	"io"
 	"net/url"
 	"regexp"
@@ -92,9 +93,9 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	return policy
 }
 
-// Sanitize takes a string that contains a HTML fragment or document and applies policy whitelist.
-func Sanitize(s string) string {
-	return GetDefaultSanitizer().defaultPolicy.Sanitize(s)
+// Sanitize use default sanitizer policy to sanitize a string
+func Sanitize(s string) template.HTML {
+	return template.HTML(GetDefaultSanitizer().defaultPolicy.Sanitize(s))
 }
 
 // SanitizeReader sanitizes a Reader

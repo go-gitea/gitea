@@ -45,14 +45,16 @@
 					</div>
 				</li>
 			</ul>
-			<script type="module">
-				const $buttons = $('#devtest-button-samples').find('button.ui');
+			<script>
+				document.addEventListener('gitea:index-ready', () => {
+					const $buttons = $('#devtest-button-samples').find('button.ui');
 
-				const $buttonStyles = $('input[name*="button-style"]');
-				$buttonStyles.on('click', () => $buttonStyles.map((_ ,el) => $buttons.toggleClass(el.value, el.checked)));
+					const $buttonStyles = $('input[name*="button-style"]');
+					$buttonStyles.on('click', () => $buttonStyles.map((_, el) => $buttons.toggleClass(el.value, el.checked)));
 
-				const $buttonStates = $('input[name*="button-state"]');
-				$buttonStates.on('click', () => $buttonStates.map((_ ,el) => $buttons.prop(el.value, el.checked)));
+					const $buttonStates = $('input[name*="button-state"]');
+					$buttonStates.on('click', () => $buttonStates.map((_, el) => $buttons.prop(el.value, el.checked)));
+				});
 			</script>
 		</div>
 	</div>

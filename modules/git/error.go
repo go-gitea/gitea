@@ -32,22 +32,6 @@ func (err ErrNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrSymlinkUnresolved entry.FollowLink error
-type ErrSymlinkUnresolved struct {
-	Name    string
-	Message string
-}
-
-func (err ErrSymlinkUnresolved) Error() string {
-	return fmt.Sprintf("%s: %s", err.Name, err.Message)
-}
-
-// IsErrSymlinkUnresolved if some error is ErrSymlinkUnresolved
-func IsErrSymlinkUnresolved(err error) bool {
-	_, ok := err.(ErrSymlinkUnresolved)
-	return ok
-}
-
 // ErrBranchNotExist represents a "BranchNotExist" kind of error.
 type ErrBranchNotExist struct {
 	Name string

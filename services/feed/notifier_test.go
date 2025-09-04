@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -46,7 +45,7 @@ func TestRenameRepoAction(t *testing.T) {
 	}
 	unittest.AssertNotExistsBean(t, actionBean)
 
-	NewNotifier().RenameRepository(db.DefaultContext, user, repo, oldRepoName)
+	NewNotifier().RenameRepository(t.Context(), user, repo, oldRepoName)
 
 	unittest.AssertExistsAndLoadBean(t, actionBean)
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})

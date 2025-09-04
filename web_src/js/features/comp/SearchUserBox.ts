@@ -1,4 +1,4 @@
-import {htmlEscape} from 'escape-goat';
+import {htmlEscape} from '../../utils/html.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
 
 const {appSubUrl} = window.config;

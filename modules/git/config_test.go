@@ -21,35 +21,36 @@ func gitConfigContains(sub string) bool {
 }
 
 func TestGitConfig(t *testing.T) {
+	ctx := t.Context()
 	assert.False(t, gitConfigContains("key-a"))
 
-	assert.NoError(t, configSetNonExist("test.key-a", "val-a"))
+	assert.NoError(t, configSetNonExist(ctx, "test.key-a", "val-a"))
 	assert.True(t, gitConfigContains("key-a = val-a"))
 
-	assert.NoError(t, configSetNonExist("test.key-a", "val-a-changed"))
+	assert.NoError(t, configSetNonExist(ctx, "test.key-a", "val-a-changed"))
 	assert.False(t, gitConfigContains("key-a = val-a-changed"))
 
-	assert.NoError(t, configSet("test.key-a", "val-a-changed"))
+	assert.NoError(t, configSet(ctx, "test.key-a", "val-a-changed"))
 	assert.True(t, gitConfigContains("key-a = val-a-changed"))
 
-	assert.NoError(t, configAddNonExist("test.key-b", "val-b"))
+	assert.NoError(t, configAddNonExist(ctx, "test.key-b", "val-b"))
 	assert.True(t, gitConfigContains("key-b = val-b"))
 
-	assert.NoError(t, configAddNonExist("test.key-b", "val-2b"))
+	assert.NoError(t, configAddNonExist(ctx, "test.key-b", "val-2b"))
 	assert.True(t, gitConfigContains("key-b = val-b"))
 	assert.True(t, gitConfigContains("key-b = val-2b"))
 
-	assert.NoError(t, configUnsetAll("test.key-b", "val-b"))
+	assert.NoError(t, configUnsetAll(ctx, "test.key-b", "val-b"))
 	assert.False(t, gitConfigContains("key-b = val-b"))
 	assert.True(t, gitConfigContains("key-b = val-2b"))
 
-	assert.NoError(t, configUnsetAll("test.key-b", "val-2b"))
+	assert.NoError(t, configUnsetAll(ctx, "test.key-b", "val-2b"))
 	assert.False(t, gitConfigContains("key-b = val-2b"))
 
-	assert.NoError(t, configSet("test.key-x", "*"))
+	assert.NoError(t, configSet(ctx, "test.key-x", "*"))
 	assert.True(t, gitConfigContains("key-x = *"))
-	assert.NoError(t, configSetNonExist("test.key-x", "*"))
-	assert.NoError(t, configUnsetAll("test.key-x", "*"))
+	assert.NoError(t, configSetNonExist(ctx, "test.key-x", "*"))
+	assert.NoError(t, configUnsetAll(ctx, "test.key-x", "*"))
 	assert.False(t, gitConfigContains("key-x = *"))
 }
 
@@ -60,7 +61,7 @@ func TestSyncConfig(t *testing.T) {
 	}()
 
 	setting.GitConfig.Options["sync-test.cfg-key-a"] = "CfgValA"
-	assert.NoError(t, syncGitConfig())
+	assert.NoError(t, syncGitConfig(t.Context()))
 	assert.True(t, gitConfigContains("[sync-test]"))
 	assert.True(t, gitConfigContains("cfg-key-a = CfgValA"))
 }

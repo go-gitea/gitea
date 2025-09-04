@@ -105,7 +105,7 @@
 							<a class="ui small button" href="{{.RepoLink}}/releases">
 								{{ctx.Locale.Tr "repo.release.cancel"}}
 							</a>
-							<a class="ui small red button delete-button" data-url="{{$.RepoLink}}/releases/delete" data-id="{{.ID}}">
+							<a class="ui small red button link-action" data-modal-confirm="#repo-release-delete-modal" data-url="{{$.RepoLink}}/releases/delete?id={{.ID}}">
 								{{ctx.Locale.Tr "repo.release.delete_release"}}
 							</a>
 							{{if .IsDraft}}
@@ -129,15 +129,11 @@
 </div>
 
 {{if .PageIsEditRelease}}
-	<div class="ui g-modal-confirm delete modal">
-		<div class="header">
-			{{svg "octicon-trash"}}
-			{{ctx.Locale.Tr "repo.release.deletion"}}
-		</div>
-		<div class="content">
-			<p>{{ctx.Locale.Tr "repo.release.deletion_desc"}}</p>
-		</div>
+	<div class="ui small modal" id="repo-release-delete-modal">
+		<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.release.deletion"}}</div>
+		<div class="content"><p>{{ctx.Locale.Tr "repo.release.deletion_desc"}}</p></div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>
 {{end}}
+
 {{template "base/footer" .}}

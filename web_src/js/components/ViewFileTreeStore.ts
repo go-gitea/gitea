@@ -2,6 +2,7 @@ import {reactive} from 'vue';
 import {GET} from '../modules/fetch.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
+import {html} from '../utils/html.ts';
 
 export function createViewFileTreeStore(props: { repoLink: string, treePath: string, currentRefNameSubURL: string}) {
   const store = reactive({
@@ -16,7 +17,7 @@ export function createViewFileTreeStore(props: { repoLink: string, treePath: str
         if (!document.querySelector(`.global-svg-icon-pool #${svgId}`)) poolSvgs.push(svgContent);
       }
       if (poolSvgs.length) {
-        const svgContainer = createElementFromHTML('<div class="global-svg-icon-pool tw-hidden"></div>');
+        const svgContainer = createElementFromHTML(html`<div class="global-svg-icon-pool tw-hidden"></div>`);
         svgContainer.innerHTML = poolSvgs.join('');
         document.body.append(svgContainer);
       }

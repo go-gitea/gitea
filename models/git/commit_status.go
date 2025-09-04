@@ -470,35 +470,31 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", opts.Repo.FullName(), opts.SHA)
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", opts.Repo.ID, opts.Creator.ID, opts.SHA, err)
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// Get the next Status Index
+		idx, err := GetNextCommitStatusIndex(ctx, opts.Repo.ID, opts.SHA.String())
+		if err != nil {
+			return fmt.Errorf("generate commit status index failed: %w", err)
+		}
 
-	// Get the next Status Index
-	idx, err := GetNextCommitStatusIndex(ctx, opts.Repo.ID, opts.SHA.String())
-	if err != nil {
-		return fmt.Errorf("generate commit status index failed: %w", err)
-	}
+		opts.CommitStatus.Description = strings.TrimSpace(opts.CommitStatus.Description)
+		opts.CommitStatus.Context = strings.TrimSpace(opts.CommitStatus.Context)
+		opts.CommitStatus.TargetURL = strings.TrimSpace(opts.CommitStatus.TargetURL)
+		opts.CommitStatus.SHA = opts.SHA.String()
+		opts.CommitStatus.CreatorID = opts.Creator.ID
+		opts.CommitStatus.RepoID = opts.Repo.ID
+		opts.CommitStatus.Index = idx
+		log.Debug("NewCommitStatus[%s, %s]: %d", opts.Repo.FullName(), opts.SHA, opts.CommitStatus.Index)
 
-	opts.CommitStatus.Description = strings.TrimSpace(opts.CommitStatus.Description)
-	opts.CommitStatus.Context = strings.TrimSpace(opts.CommitStatus.Context)
-	opts.CommitStatus.TargetURL = strings.TrimSpace(opts.CommitStatus.TargetURL)
-	opts.CommitStatus.SHA = opts.SHA.String()
-	opts.CommitStatus.CreatorID = opts.Creator.ID
-	opts.CommitStatus.RepoID = opts.Repo.ID
-	opts.CommitStatus.Index = idx
-	log.Debug("NewCommitStatus[%s, %s]: %d", opts.Repo.FullName(), opts.SHA, opts.CommitStatus.Index)
+		opts.CommitStatus.ContextHash = hashCommitStatusContext(opts.CommitStatus.Context)
 
-	opts.CommitStatus.ContextHash = hashCommitStatusContext(opts.CommitStatus.Context)
+		// Insert new CommitStatus
+		if err = db.Insert(ctx, opts.CommitStatus); err != nil {
+			return fmt.Errorf("insert CommitStatus[%s, %s]: %w", opts.Repo.FullName(), opts.SHA, err)
+		}
 
-	// Insert new CommitStatus
-	if _, err = db.GetEngine(ctx).Insert(opts.CommitStatus); err != nil {
-		return fmt.Errorf("insert CommitStatus[%s, %s]: %w", opts.Repo.FullName(), opts.SHA, err)
-	}
-
-	return committer.Commit()
+		return nil
+	})
 }
 
 // SignCommitWithStatuses represents a commit with validation of signature and status state.

@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import ViewFileTreeItem from './ViewFileTreeItem.vue';
-import {onMounted, ref} from 'vue';
+import {onMounted, useTemplateRef} from 'vue';
 import {createViewFileTreeStore} from './ViewFileTreeStore.ts';
 
-const elRoot = ref<HTMLElement | null>(null);
+const elRoot = useTemplateRef('elRoot');
 
 const props = defineProps({
   repoLink: {type: String, required: true},

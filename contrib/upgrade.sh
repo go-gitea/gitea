@@ -85,7 +85,7 @@ fi
 # confirm update
 echo "Checking currently installed version..."
 current=$(giteacmd --version | cut -d ' ' -f 3)
-[[ "$current" == "$giteaversion" ]] && echo "$current is already installed, stopping." && exit 1
+[[ "$current" == "$giteaversion" ]] && echo "$current is already installed, stopping." && exit 0
 if [[ -z "${no_confirm:-}"  ]]; then
   echo "Make sure to read the changelog first: https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md"
   echo "Are you ready to update Gitea from ${current} to ${giteaversion}? (y/N)"

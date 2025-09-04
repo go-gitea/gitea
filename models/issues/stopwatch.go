@@ -5,7 +5,6 @@ package issues
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -14,20 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
-
-// ErrIssueStopwatchNotExist represents an error that stopwatch is not exist
-type ErrIssueStopwatchNotExist struct {
-	UserID  int64
-	IssueID int64
-}
-
-func (err ErrIssueStopwatchNotExist) Error() string {
-	return fmt.Sprintf("issue stopwatch doesn't exist[uid: %d, issue_id: %d", err.UserID, err.IssueID)
-}
-
-func (err ErrIssueStopwatchNotExist) Unwrap() error {
-	return util.ErrNotExist
-}
 
 // Stopwatch represents a stopwatch for time tracking.
 type Stopwatch struct {
@@ -55,13 +40,11 @@ func getStopwatch(ctx context.Context, userID, issueID int64) (sw *Stopwatch, ex
 	return sw, exists, err
 }
 
-// UserIDCount is a simple coalition of UserID and Count
 type UserStopwatch struct {
 	UserID      int64
 	StopWatches []*Stopwatch
 }
 
-// GetUIDsAndNotificationCounts between the two provided times
 func GetUIDsAndStopwatch(ctx context.Context) ([]*UserStopwatch, error) {
 	sws := []*Stopwatch{}
 	if err := db.GetEngine(ctx).Where("issue_id != 0").Find(&sws); err != nil {
@@ -87,7 +70,7 @@ func GetUIDsAndStopwatch(ctx context.Context) ([]*UserStopwatch, error) {
 	return res, nil
 }
 
-// GetUserStopwatches return list of all stopwatches of a user
+// GetUserStopwatches return list of the user's all stopwatches
 func GetUserStopwatches(ctx context.Context, userID int64, listOptions db.ListOptions) ([]*Stopwatch, error) {
 	sws := make([]*Stopwatch, 0, 8)
 	sess := db.GetEngine(ctx).Where("stopwatch.user_id = ?", userID)
@@ -102,7 +85,7 @@ func GetUserStopwatches(ctx context.Context, userID int64, listOptions db.ListOp
 	return sws, nil
 }
 
-// CountUserStopwatches return count of all stopwatches of a user
+// CountUserStopwatches return count of the user's all stopwatches
 func CountUserStopwatches(ctx context.Context, userID int64) (int64, error) {
 	return db.GetEngine(ctx).Where("user_id = ?", userID).Count(&Stopwatch{})
 }
@@ -136,43 +119,21 @@ func HasUserStopwatch(ctx context.Context, userID int64) (exists bool, sw *Stopw
 	return exists, sw, issue, err
 }
 
-// FinishIssueStopwatchIfPossible if stopwatch exist then finish it otherwise ignore
-func FinishIssueStopwatchIfPossible(ctx context.Context, user *user_model.User, issue *Issue) error {
-	_, exists, err := getStopwatch(ctx, user.ID, issue.ID)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return nil
-	}
-	return FinishIssueStopwatch(ctx, user, issue)
-}
-
-// CreateOrStopIssueStopwatch create an issue stopwatch if it's not exist, otherwise finish it
-func CreateOrStopIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
-	_, exists, err := getStopwatch(ctx, user.ID, issue.ID)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return FinishIssueStopwatch(ctx, user, issue)
-	}
-	return CreateIssueStopwatch(ctx, user, issue)
-}
-
-// FinishIssueStopwatch if stopwatch exist then finish it otherwise return an error
-func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
+// FinishIssueStopwatch if stopwatch exists, then finish it.
+func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue) (ok bool, err error) {
 	sw, exists, err := getStopwatch(ctx, user.ID, issue.ID)
 	if err != nil {
-		return err
+		return false, err
+	} else if !exists {
+		return false, nil
 	}
-	if !exists {
-		return ErrIssueStopwatchNotExist{
-			UserID:  user.ID,
-			IssueID: issue.ID,
-		}
+	if err = finishIssueStopwatch(ctx, user, issue, sw); err != nil {
+		return false, err
 	}
+	return true, nil
+}
 
+func finishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue, sw *Stopwatch) error {
 	// Create tracked time out of the time difference between start date and actual date
 	timediff := time.Now().Unix() - int64(sw.CreatedUnix)
 
@@ -184,14 +145,12 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		Time:    timediff,
 	}
 
-	if err := db.Insert(ctx, tt); err != nil {
-		return err
-	}
-
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
-
+	if err := db.Insert(ctx, tt); err != nil {
+		return err
+	}
 	if _, err := CreateComment(ctx, &CreateCommentOptions{
 		Doer:    user,
 		Issue:   issue,
@@ -202,83 +161,65 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 	}); err != nil {
 		return err
 	}
-	_, err = db.DeleteByBean(ctx, sw)
+	_, err := db.DeleteByBean(ctx, sw)
 	return err
 }
 
-// CreateIssueStopwatch creates a stopwatch if not exist, otherwise return an error
-func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
-	if err := issue.LoadRepo(ctx); err != nil {
-		return err
-	}
-
-	// if another stopwatch is running: stop it
-	exists, _, otherIssue, err := HasUserStopwatch(ctx, user.ID)
-	if err != nil {
-		return err
-	}
-	if exists {
-		if err := FinishIssueStopwatch(ctx, user, otherIssue); err != nil {
-			return err
+// CreateIssueStopwatch creates a stopwatch if the issue doesn't have the user's stopwatch.
+// It also stops any other stopwatch that might be running for the user.
+func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue) (ok bool, err error) {
+	{ // if another issue's stopwatch is running: stop it; if this issue has a stopwatch: return an error.
+		exists, otherStopWatch, otherIssue, err := HasUserStopwatch(ctx, user.ID)
+		if err != nil {
+			return false, err
+		}
+		if exists {
+			if otherStopWatch.IssueID == issue.ID {
+				// don't allow starting stopwatch for the same issue
+				return false, nil
+			}
+			// stop the other issue's stopwatch
+			if err = finishIssueStopwatch(ctx, user, otherIssue, otherStopWatch); err != nil {
+				return false, err
+			}
 		}
 	}
 
-	// Create stopwatch
-	sw := &Stopwatch{
-		UserID:  user.ID,
-		IssueID: issue.ID,
+	if err = issue.LoadRepo(ctx); err != nil {
+		return false, err
 	}
-
-	if err := db.Insert(ctx, sw); err != nil {
-		return err
+	if err = db.Insert(ctx, &Stopwatch{UserID: user.ID, IssueID: issue.ID}); err != nil {
+		return false, err
 	}
-
-	if err := issue.LoadRepo(ctx); err != nil {
-		return err
-	}
-
-	if _, err := CreateComment(ctx, &CreateCommentOptions{
+	if _, err = CreateComment(ctx, &CreateCommentOptions{
 		Doer:  user,
 		Issue: issue,
 		Repo:  issue.Repo,
 		Type:  CommentTypeStartTracking,
 	}); err != nil {
-		return err
+		return false, err
 	}
-
-	return nil
+	return true, nil
 }
 
 // CancelStopwatch removes the given stopwatch and logs it into issue's timeline.
-func CancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	if err := cancelStopwatch(ctx, user, issue); err != nil {
-		return err
-	}
-	return committer.Commit()
-}
-
-func cancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
-	e := db.GetEngine(ctx)
-	sw, exists, err := getStopwatch(ctx, user.ID, issue.ID)
-	if err != nil {
-		return err
-	}
-
-	if exists {
-		if _, err := e.Delete(sw); err != nil {
+func CancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) (ok bool, err error) {
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		e := db.GetEngine(ctx)
+		sw, exists, err := getStopwatch(ctx, user.ID, issue.ID)
+		if err != nil {
 			return err
+		} else if !exists {
+			return nil
 		}
 
-		if err := issue.LoadRepo(ctx); err != nil {
+		if err = issue.LoadRepo(ctx); err != nil {
 			return err
 		}
-
-		if _, err := CreateComment(ctx, &CreateCommentOptions{
+		if _, err = e.Delete(sw); err != nil {
+			return err
+		}
+		if _, err = CreateComment(ctx, &CreateCommentOptions{
 			Doer:  user,
 			Issue: issue,
 			Repo:  issue.Repo,
@@ -286,6 +227,8 @@ func cancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) e
 		}); err != nil {
 			return err
 		}
-	}
-	return nil
+		ok = true
+		return nil
+	})
+	return ok, err
 }

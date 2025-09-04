@@ -117,22 +117,12 @@ func DeleteUploads(ctx context.Context, uploads ...*Upload) (err error) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
 	ids := make([]int64, len(uploads))
 	for i := range uploads {
 		ids[i] = uploads[i].ID
 	}
 	if err = db.DeleteByIDs[Upload](ctx, ids...); err != nil {
 		return fmt.Errorf("delete uploads: %w", err)
-	}
-
-	if err = committer.Commit(); err != nil {
-		return err
 	}
 
 	for _, upload := range uploads {

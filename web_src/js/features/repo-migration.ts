@@ -34,8 +34,12 @@ export function initRepoMigration() {
     elCloneAddr.addEventListener('input', () => {
       if (repoNameChanged) return;
       let repoNameFromUrl = elCloneAddr.value.split(/[?#]/)[0];
-      repoNameFromUrl = /^(.*\/)?((.+?)\/?)$/.exec(repoNameFromUrl)[3];
-      repoNameFromUrl = repoNameFromUrl.split(/[?#]/)[0];
+      const parts = /^(.*\/)?((.+?)\/?)$/.exec(repoNameFromUrl);
+      if (!parts || parts.length < 4) {
+        elRepoName.value = '';
+        return;
+      }
+      repoNameFromUrl = parts[3].split(/[?#]/)[0];
       elRepoName.value = sanitizeRepoName(repoNameFromUrl);
     });
   }

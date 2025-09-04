@@ -41,8 +41,8 @@
 		<a href="{{.Repository.Link}}/find/{{.RefTypeNameSubURL}}" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_file.go_to_file"}}</a>
 	{{end}}
 
-	{{if and .CanWriteCode .RefFullName.IsBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
-		<button class="ui dropdown basic compact jump button"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+	{{if and .RefFullName.IsBranch (not .IsViewFile)}}
+		<button class="ui dropdown basic compact jump button repo-add-file" {{if not .Repository.CanEnableEditor}}disabled{{end}}>
 			{{ctx.Locale.Tr "repo.editor.add_file"}}
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
