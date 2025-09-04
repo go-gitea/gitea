@@ -60,6 +60,9 @@ type PullRequest struct {
 	Closed *time.Time `json:"closed_at"`
 
 	PinOrder int `json:"pin_order"`
+
+	// swagger:enum["agit","github"]
+	Flow string `json:"flow"`
 }
 
 // PRBranchInfo information about a branch
@@ -107,6 +110,7 @@ type EditPullRequestOption struct {
 	Deadline            *time.Time `json:"due_date"`
 	RemoveDeadline      *bool      `json:"unset_due_date"`
 	AllowMaintainerEdit *bool      `json:"allow_maintainer_edit"`
+	FlowType            string     `json:"flow_type"`
 }
 
 // ChangedFile store information about files affected by the pull request
