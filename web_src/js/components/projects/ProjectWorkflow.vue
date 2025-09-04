@@ -13,8 +13,39 @@ const props = defineProps({
 const store = createWorkflowStore(props);
 
 const editMode = ref(false);
+const previousSelection = ref(null); // Store previous selection for cancel functionality
 
 const toggleEditMode = () => {
+  if (editMode.value) {
+    // Canceling edit mode
+    if (previousSelection.value) {
+      // If there was a previous selection, return to it
+      if (store.selectedWorkflow && store.selectedWorkflow.id === 0) {
+        // Remove temporary cloned workflow from list
+        const tempIndex = store.workflowEvents.findIndex(w => 
+          w.event_id === store.selectedWorkflow.event_id
+        );
+        if (tempIndex >= 0) {
+          store.workflowEvents.splice(tempIndex, 1);
+        }
+      }
+      
+      // Restore previous selection
+      store.selectedItem = previousSelection.value.selectedItem;
+      store.selectedWorkflow = previousSelection.value.selectedWorkflow;
+      if (previousSelection.value.selectedWorkflow) {
+        store.loadWorkflowData(previousSelection.value.selectedWorkflow.event_id);
+      }
+      previousSelection.value = null;
+    }
+  } else {
+    // Entering edit mode - store current selection
+    previousSelection.value = {
+      selectedItem: store.selectedItem,
+      selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : null
+    };
+  }
+  
   editMode.value = !editMode.value;
 };
 
@@ -35,10 +66,20 @@ const deleteWorkflow = async () => {
   const currentCapabilities = store.selectedWorkflow.capabilities;
   const currentDisplayName = store.selectedWorkflow.display_name.split(' (')[0]; // Remove filter suffix
 
-  await store.deleteWorkflow();
-
-  // Refresh workflow list
-  store.workflowEvents = await store.loadEvents();
+  // If deleting a temporary workflow (clone/new), just remove from list
+  if (store.selectedWorkflow.id === 0) {
+    const tempIndex = store.workflowEvents.findIndex(w => 
+      w.event_id === store.selectedWorkflow.event_id
+    );
+    if (tempIndex >= 0) {
+      store.workflowEvents.splice(tempIndex, 1);
+    }
+  } else {
+    // Delete from backend
+    await store.deleteWorkflow();
+    // Refresh workflow list
+    store.workflowEvents = await store.loadEvents();
+  }
 
   // Find workflows for the same base event type
   const sameEventWorkflows = store.workflowEvents.filter(w =>
@@ -56,6 +97,8 @@ const deleteWorkflow = async () => {
     // URL already updated in selectWorkflowItem
   }
 
+  // Clear previous selection and exit edit mode
+  previousSelection.value = null;
   editMode.value = false;
 };
 
@@ -94,11 +137,15 @@ const saveWorkflow = async () => {
   await store.saveWorkflow();
   // After saving, refresh the list to show the new workflow
   store.workflowEvents = await store.loadEvents();
+  
+  // Clear previous selection after successful save
+  previousSelection.value = null;
+  editMode.value = false;
 };
 
 const isWorkflowConfigured = (event) => {
-  // Check if the event_id is a number (saved workflow ID) vs UUID (unconfigured)
-  return !Number.isNaN(parseInt(event.event_id));
+  // Check if the event_id is a number (saved workflow ID) or if it has id > 0
+  return !Number.isNaN(parseInt(event.event_id)) || (event.id !== undefined && event.id > 0);
 };
 
 // Get flat list of all workflows - use cached data to prevent frequent recomputation
@@ -117,6 +164,14 @@ const workflowList = computed(() => {
 });
 
 const createNewWorkflow = (baseEventType, capabilities, displayName) => {
+  // Store current selection before creating new workflow
+  if (!editMode.value) {
+    previousSelection.value = {
+      selectedItem: store.selectedItem,
+      selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : null
+    };
+  }
+
   const tempId = `new-${baseEventType}-${Date.now()}`;
   const newWorkflow = {
     id: 0,
@@ -138,11 +193,17 @@ const createNewWorkflow = (baseEventType, capabilities, displayName) => {
 };
 
 const cloneWorkflow = (sourceWorkflow) => {
+  // Store current selection before cloning
+  previousSelection.value = {
+    selectedItem: store.selectedItem,
+    selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : null
+  };
+
   const tempId = `clone-${sourceWorkflow.base_event_type || sourceWorkflow.workflow_event}-${Date.now()}`;
   const clonedWorkflow = {
     id: 0,
     event_id: tempId,
-    display_name: sourceWorkflow.display_name.split(' (')[0], // Remove filter suffix
+    display_name: `${sourceWorkflow.display_name.split(' (')[0]} (Copy)`, // Add copy suffix
     capabilities: sourceWorkflow.capabilities,
     filters: Array.from(sourceWorkflow.filters || []),
     actions: Array.from(sourceWorkflow.actions || []),
@@ -151,6 +212,15 @@ const cloneWorkflow = (sourceWorkflow) => {
     enabled: true,
   };
 
+  // Find the position of source workflow and insert cloned workflow after it
+  const sourceIndex = store.workflowEvents.findIndex(w => w.event_id === sourceWorkflow.event_id);
+  if (sourceIndex >= 0) {
+    store.workflowEvents.splice(sourceIndex + 1, 0, clonedWorkflow);
+  } else {
+    store.workflowEvents.push(clonedWorkflow);
+  }
+
+  // Select the cloned workflow
   store.selectedWorkflow = clonedWorkflow;
   store.selectedItem = tempId;
 
@@ -175,6 +245,7 @@ const selectWorkflowItem = async (item) => {
   }, 300);
   
   editMode.value = false; // Reset edit mode when switching workflows
+  previousSelection.value = null; // Clear previous selection when manually selecting
   
   // Wait for DOM update to prevent conflicts
   await nextTick();
@@ -206,8 +277,8 @@ const hasAction = (actionType) => {
 const isItemSelected = (item) => {
   if (!store.selectedItem) return false;
   
-  if (item.isConfigured) {
-    // For configured workflows, match by event_id
+  if (item.isConfigured || item.id === 0) {
+    // For configured workflows or temporary workflows (clones/new), match by event_id
     return store.selectedItem === item.event_id;
   } else {
     // For unconfigured events, match by base_event_type
