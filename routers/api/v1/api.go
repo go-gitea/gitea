@@ -1161,6 +1161,11 @@ func Routes() *web.Router {
 					m.Delete("", user.UnblockUser)
 				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
 			})
+
+			m.Group("/mirror-ssh-key", func() {
+				m.Get("", user.GetMirrorSSHKey)
+				m.Post("/regenerate", user.RegenerateMirrorSSHKey)
+			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Repositories (requires repo scope, org scope)
@@ -1687,6 +1692,11 @@ func Routes() *web.Router {
 					m.Delete("", org.UnblockUser)
 				})
 			}, reqToken(), reqOrgOwnership())
+
+			m.Group("/mirror-ssh-key", func() {
+				m.Get("", reqToken(), reqOrgMembership(), org.GetMirrorSSHKey)
+				m.Post("/regenerate", reqToken(), reqOrgOwnership(), org.RegenerateMirrorSSHKey)
+			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(reqToken(), org.GetTeam).

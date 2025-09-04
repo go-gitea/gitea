@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	ssh_module "code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -92,7 +93,10 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		return false
 	}
 
-	_ = m.GetRepository(ctx)
+	if m.GetRepository(ctx) == nil {
+		log.Error("GetRepository [%d]: repository not found", mirrorID)
+		return false
+	}
 
 	m.LastError = ""
 
@@ -135,7 +139,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			return errors.New("Unexpected error")
 		}
 
-		if setting.LFS.StartServer {
+		if setting.LFS.StartServer && !IsSSHURL(remoteURL.String()) {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
 			gitRepo, err := gitrepo.OpenRepository(ctx, storageRepo)
@@ -155,13 +159,48 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		log.Trace("Pushing %s mirror[%d] remote %s", path, m.ID, m.RemoteName)
 
 		envs := proxy.EnvWithProxy(remoteURL.URL)
-		if err := git.Push(ctx, path, git.PushOptions{
+
+		pushOpts := git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
 			Mirror:  true,
 			Timeout: timeout,
 			Env:     envs,
-		}); err != nil {
+		}
+
+		// Setup SSH authentication
+		if IsSSHURL(remoteURL.String()) {
+			if repo.Owner == nil {
+				if err := repo.LoadOwner(ctx); err != nil {
+					log.Error("Failed to load repository owner for %s: %v", repo.FullName(), err)
+					return util.SanitizeErrorCredentialURLs(err)
+				}
+			}
+			keypair, err := GetSSHKeypairForRepository(ctx, repo)
+			if err != nil {
+				log.Error("Failed to get SSH keypair for repository %s: %v", repo.FullName(), err)
+				return util.SanitizeErrorCredentialURLs(err)
+			}
+			if keypair != nil {
+				privateKey, err := keypair.GetDecryptedPrivateKey()
+				if err != nil {
+					log.Error("Failed to decrypt private key for repository %s: %v", repo.FullName(), err)
+					return util.SanitizeErrorCredentialURLs(err)
+				}
+
+				socketPath, cleanup, err := ssh_module.CreateTemporaryAgent(privateKey)
+				if err != nil {
+					log.Error("Failed to create SSH agent for repository %s: %v", repo.FullName(), err)
+					return util.SanitizeErrorCredentialURLs(err)
+				}
+				defer cleanup()
+
+				pushOpts.SSHAuthSock = socketPath
+				log.Debug("SSH agent created for push mirror %s with socket: %s", repo.FullName(), socketPath)
+			}
+		}
+
+		if err := git.Push(ctx, path, pushOpts); err != nil {
 			log.Error("Error pushing %s mirror[%d] remote %s: %v", path, m.ID, m.RemoteName, err)
 
 			return util.SanitizeErrorCredentialURLs(err)
