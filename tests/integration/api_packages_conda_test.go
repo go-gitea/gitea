@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -74,11 +73,11 @@ func TestPackageConda(t *testing.T) {
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeConda)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeConda)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 
-			pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+			pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 			assert.NoError(t, err)
 			assert.Nil(t, pd.SemVer)
 			assert.IsType(t, &conda_module.VersionMetadata{}, pd.Metadata)
@@ -115,11 +114,11 @@ func TestPackageConda(t *testing.T) {
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeConda)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeConda)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 2)
 
-			pds, err := packages.GetPackageDescriptors(db.DefaultContext, pvs)
+			pds, err := packages.GetPackageDescriptors(t.Context(), pvs)
 			assert.NoError(t, err)
 
 			assert.Condition(t, func() bool {
@@ -212,10 +211,10 @@ func TestPackageConda(t *testing.T) {
 		t.Run(".tar.bz2", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages.TypeConda, packageName, packageVersion)
+			pv, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeConda, packageName, packageVersion)
 			assert.NoError(t, err)
 
-			pd, err := packages.GetPackageDescriptor(db.DefaultContext, pv)
+			pd, err := packages.GetPackageDescriptor(t.Context(), pv)
 			assert.NoError(t, err)
 
 			req := NewRequest(t, "GET", root+"/noarch/repodata.json")
@@ -243,10 +242,10 @@ func TestPackageConda(t *testing.T) {
 		t.Run(".conda", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages.TypeConda, channel+"/"+packageName, packageVersion)
+			pv, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeConda, channel+"/"+packageName, packageVersion)
 			assert.NoError(t, err)
 
-			pd, err := packages.GetPackageDescriptor(db.DefaultContext, pv)
+			pd, err := packages.GetPackageDescriptor(t.Context(), pv)
 			assert.NoError(t, err)
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/noarch/repodata.json", root, channel))

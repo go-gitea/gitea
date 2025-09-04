@@ -12,7 +12,7 @@ import (
 
 func TestGetLatestCommitTime(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	lct, err := GetLatestCommitTime(DefaultContext, bareRepo1Path)
+	lct, err := GetLatestCommitTime(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	// Time is Sun Nov 13 16:40:14 2022 +0100
 	// which is the time of commit
@@ -22,7 +22,7 @@ func TestGetLatestCommitTime(t *testing.T) {
 
 func TestRepoIsEmpty(t *testing.T) {
 	emptyRepo2Path := filepath.Join(testReposDir, "repo2_empty")
-	repo, err := openRepositoryWithDefaultContext(emptyRepo2Path)
+	repo, err := OpenRepository(t.Context(), emptyRepo2Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 	isEmpty, err := repo.IsEmpty()
