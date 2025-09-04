@@ -25,11 +25,12 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       - run: make deps-frontend deps-backend
       # xgo build
       - run: make release
