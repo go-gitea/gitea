@@ -488,10 +488,16 @@ func WorkflowsStatus(ctx *context.Context) {
 	enabledStr := ctx.Req.FormValue("enabled")
 	enabled := enabledStr == "true"
 
-	wf.Enabled = enabled
-	if err := project_model.UpdateWorkflow(ctx, wf); err != nil {
-		ctx.ServerError("UpdateWorkflow", err)
-		return
+	if enabled {
+		if err := project_model.EnableWorkflow(ctx, workflowID); err != nil {
+			ctx.ServerError("EnableWorkflow", err)
+			return
+		}
+	} else {
+		if err := project_model.DisableWorkflow(ctx, workflowID); err != nil {
+			ctx.ServerError("DisableWorkflow", err)
+			return
+		}
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{

@@ -229,3 +229,13 @@ func DeleteWorkflow(ctx context.Context, id int64) error {
 	_, err := db.GetEngine(ctx).ID(id).Delete(&Workflow{})
 	return err
 }
+
+func EnableWorkflow(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).ID(id).Cols("enabled").Update(&Workflow{Enabled: true})
+	return err
+}
+
+func DisableWorkflow(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).ID(id).Cols("enabled").Update(&Workflow{Enabled: false})
+	return err
+}

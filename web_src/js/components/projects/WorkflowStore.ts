@@ -200,7 +200,9 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
         const formData = new FormData();
         formData.append('enabled', store.selectedWorkflow.enabled.toString());
 
-        const response = await POST(`${props.projectLink}/workflows/${store.selectedWorkflow.event_id}/status`, {
+        // Use workflow ID for status update
+        const workflowId = store.selectedWorkflow.id;
+        const response = await POST(`${props.projectLink}/workflows/${workflowId}/status`, {
           data: formData,
         });
 
@@ -208,6 +210,8 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
           const errorText = await response.text();
           console.error('Failed to update workflow status:', errorText);
           alert(`Failed to update workflow status: ${response.status} ${response.statusText}`);
+          // Revert the status change on error
+          store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
           return;
         }
 
@@ -218,9 +222,16 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
           if (existingIndex >= 0) {
             store.workflowEvents[existingIndex].enabled = store.selectedWorkflow.enabled;
           }
+          console.log(`Workflow status updated to: ${store.selectedWorkflow.enabled ? 'enabled' : 'disabled'}`);
+        } else {
+          // Revert the status change on failure
+          store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
+          alert('Failed to update workflow status');
         }
       } catch (error) {
         console.error('Error updating workflow status:', error);
+        // Revert the status change on error
+        store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
         alert(`Error updating workflow status: ${error.message}`);
       }
     },
@@ -229,7 +240,9 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
       if (!store.selectedWorkflow || store.selectedWorkflow.id === 0) return;
 
       try {
-        const response = await POST(`${props.projectLink}/workflows/${store.selectedWorkflow.event_id}/delete`, {
+        // Use workflow ID for deletion
+        const workflowId = store.selectedWorkflow.id;
+        const response = await POST(`${props.projectLink}/workflows/${workflowId}/delete`, {
           data: new FormData(),
         });
 
@@ -247,6 +260,9 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
           if (existingIndex >= 0) {
             store.workflowEvents.splice(existingIndex, 1);
           }
+          console.log('Workflow deleted successfully');
+        } else {
+          alert('Failed to delete workflow');
         }
       } catch (error) {
         console.error('Error deleting workflow:', error);

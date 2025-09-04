@@ -214,7 +214,8 @@ const createNewWorkflow = (baseEventType, capabilities, displayName) => {
     actions: [],
     filter_summary: '',
     base_event_type: baseEventType,
-    enabled: true,
+    workflow_event: baseEventType,
+    enabled: true, // Ensure new workflows are enabled by default
   };
 
   store.selectedWorkflow = newWorkflow;
