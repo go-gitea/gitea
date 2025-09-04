@@ -60,6 +60,8 @@ modifies/dependencies:
       - any-glob-to-any-file:
           - "package.json"
           - "pnpm-lock.yaml"
+          - "tools/package.json"
+          - "tools/pnpm-lock.yaml"
           - "pyproject.toml"
           - "uv.lock"
           - "go.mod"
