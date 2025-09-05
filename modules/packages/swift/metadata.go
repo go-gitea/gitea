@@ -82,7 +82,7 @@ type ProgrammingLanguage struct {
 // https://schema.org/Person
 type Person struct {
 	Type       string `json:"@type,omitempty"`
-	Name       string `json:"name,omitempty"`       // inherited from https://schema.org/Thing
+	Name       string `json:"name,omitempty"` // inherited from https://schema.org/Thing
 	GivenName  string `json:"givenName,omitempty"`
 	MiddleName string `json:"middleName,omitempty"`
 	FamilyName string `json:"familyName,omitempty"`
