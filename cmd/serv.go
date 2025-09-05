@@ -20,6 +20,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfstransfer"
@@ -227,12 +228,49 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	}
 
 	username := repoPathFields[0]
+	var uid int64
+
+	if err := initDB(ctx); err != nil {
+		return fail(ctx, "DB initialization error", "Error while initializing Gitea database")
+	}
+
+	real_uid, err := user_model.LookupUserRedirect(ctx, username)
+	if err == nil {
+		uid = real_uid
+	} else {
+		user, err := user_model.GetUserByName(ctx, username)
+		if err == nil {
+			uid = user.ID
+		} else {
+			return fail(ctx, "Invalid username", "Could not find user or org: %s", username)
+		}
+	}
+
+	//We need the uid for repo redirect lookup
+	real_user, err := user_model.GetUserByID(ctx, uid)
+	if err == nil {
+		username = real_user.Name
+	} else {
+		return fail(ctx, "User ID lookup failed", "Could not find user with ID: %d", uid)
+	}
+
 	reponame := strings.TrimSuffix(repoPathFields[1], ".git") // “the-repo-name" or "the-repo-name.wiki"
+
+	real_rid, err := repo.LookupRedirect(ctx, uid, reponame)
+	if err == nil {
+		real_repo, err := repo.GetRepositoryByID(ctx, real_rid)
+		if err == nil {
+			reponame = real_repo.Name
+			username = real_repo.OwnerName
+		} else {
+			return fail(ctx, "Repo ID lookup failed", "Could not find repo with ID: %d", real_rid)
+		}
+	}
 
 	// LowerCase and trim the repoPath as that's how they are stored.
 	// This should be done after splitting the repoPath into username and reponame
 	// so that username and reponame are not affected.
-	repoPath = strings.ToLower(strings.TrimSpace(repoPath))
+	repoPath = strings.ToLower(username + "/" + reponame)
 
 	if !repo.IsValidSSHAccessRepoName(reponame) {
 		return fail(ctx, "Invalid repo name", "Invalid repo name: %s", reponame)
