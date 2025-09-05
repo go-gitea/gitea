@@ -11,7 +11,6 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	"code.gitea.io/gitea/models/repo"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -146,7 +145,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	redirectedRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, results.RepoName)
 	if err == nil {
-		redirectedRepo, err := repo.GetRepositoryByID(ctx, redirectedRepoID)
+		redirectedRepo, err := repo_model.GetRepositoryByID(ctx, redirectedRepoID)
 		if err == nil {
 			log.Info("Repository %s/%s has been redirected to %s/%s", results.OwnerName, results.RepoName, redirectedRepo.OwnerName, redirectedRepo.Name)
 			results.RepoName = redirectedRepo.Name
