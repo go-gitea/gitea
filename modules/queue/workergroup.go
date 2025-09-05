@@ -153,9 +153,7 @@ func resetIdleTicker(t *time.Ticker, dur time.Duration) {
 
 // doStartNewWorker starts a new worker for the queue, the worker reads from worker's channel and handles the items.
 func (q *WorkerPoolQueue[T]) doStartNewWorker(wp *workerGroup[T]) {
-
-	&{wp wg}.Go(func() {
-
+	wp.wg.Go(func() {
 		log.Debug("Queue %q starts new worker", q.GetName())
 		defer log.Debug("Queue %q stops idle worker", q.GetName())
 
