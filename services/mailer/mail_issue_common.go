@@ -260,18 +260,18 @@ func actionToTemplate(issue *issues_model.Issue, actionType activities_model.Act
 		}
 	}
 
-	template = typeName + "/" + name
+	template = "repo/" + typeName + "/" + name
 	ok := LoadedTemplates().BodyTemplates.Lookup(template) != nil
 	if !ok && typeName != "issue" {
-		template = "issue/" + name
+		template = "repo/issue/" + name
 		ok = LoadedTemplates().BodyTemplates.Lookup(template) != nil
 	}
 	if !ok {
-		template = typeName + "/default"
+		template = "repo/" + typeName + "/default"
 		ok = LoadedTemplates().BodyTemplates.Lookup(template) != nil
 	}
 	if !ok {
-		template = "issue/default"
+		template = "repo/issue/default"
 	}
 	return typeName, name, template
 }
