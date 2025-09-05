@@ -40,10 +40,10 @@ async function generate(svg, path, {size, bg}) {
 }
 
 async function main() {
-  await initWasm(await readFile(new URL(import.meta.resolve('@resvg/resvg-wasm/index_bg.wasm'))));
   const gitea = argv.slice(2).includes('gitea');
   const logoSvg = await readFile(new URL('../assets/logo.svg', import.meta.url), 'utf8');
   const faviconSvg = await readFile(new URL('../assets/favicon.svg', import.meta.url), 'utf8');
+  await initWasm(await readFile(new URL(import.meta.resolve('@resvg/resvg-wasm/index_bg.wasm'))));
 
   await Promise.all([
     generate(logoSvg, '../public/assets/img/logo.svg', {size: 32}),
