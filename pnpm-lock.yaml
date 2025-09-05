@@ -35,6 +35,9 @@ importers:
       '@primer/octicons':
         specifier: 19.15.5
         version: 19.15.5
+      '@resvg/resvg-wasm':
+        specifier: 2.6.2
+        version: 2.6.2
       '@silverwind/vue3-calendar-heatmap':
         specifier: 2.0.6
         version: 2.0.6(tippy.js@6.3.7)(vue@3.5.18(typescript@5.8.3))
@@ -189,9 +192,6 @@ importers:
       '@playwright/test':
         specifier: 1.54.1
         version: 1.54.1
-      '@resvg/resvg-wasm':
-        specifier: 2.6.2
-        version: 2.6.2
       '@stoplight/spectral-cli':
         specifier: 6.15.0
         version: 6.15.0
