@@ -79,6 +79,7 @@ cpu.out
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*
+/.pnpm-store
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
