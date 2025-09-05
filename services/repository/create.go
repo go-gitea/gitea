@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -141,7 +142,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
 	// Init git bare new repository.
-	if err = git.InitRepository(ctx, repo.RepoPath(), true, repo.ObjectFormatName); err != nil {
+	if err = gitrepo.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
 		return fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
@@ -459,7 +460,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 }
 
 func cleanupRepository(repoID int64) {
-	if errDelete := DeleteRepositoryDirectly(db.DefaultContext, repoID); errDelete != nil {
+	if errDelete := DeleteRepositoryDirectly(graceful.GetManager().ShutdownContext(), repoID); errDelete != nil {
 		log.Error("cleanupRepository failed: %v", errDelete)
 		// add system notice
 		if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when cleanup repository: %v", errDelete); err != nil {
@@ -469,7 +470,7 @@ func cleanupRepository(repoID int64) {
 }
 
 func updateGitRepoAfterCreate(ctx context.Context, repo *repo_model.Repository) error {
-	if err := checkDaemonExportOK(ctx, repo); err != nil {
+	if err := CheckDaemonExportOK(ctx, repo); err != nil {
 		return fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 

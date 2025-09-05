@@ -18,7 +18,7 @@ const (
 
 func cloneRepo(tb testing.TB, url string) (string, error) {
 	repoDir := tb.TempDir()
-	if err := Clone(DefaultContext, url, repoDir, CloneRepoOptions{
+	if err := Clone(tb.Context(), url, repoDir, CloneRepoOptions{
 		Mirror:  false,
 		Bare:    false,
 		Quiet:   true,
@@ -104,7 +104,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 
 func TestEntries_GetCommitsInfo(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -114,7 +114,7 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	if err != nil {
 		assert.NoError(t, err)
 	}
-	clonedRepo1, err := openRepositoryWithDefaultContext(clonedPath)
+	clonedRepo1, err := OpenRepository(t.Context(), clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 	}
@@ -163,7 +163,7 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		if repo, err = openRepositoryWithDefaultContext(repoPath); err != nil {
+		if repo, err = OpenRepository(b.Context(), repoPath); err != nil {
 			b.Fatal(err)
 		}
 		defer repo.Close()

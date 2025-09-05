@@ -6807,8 +6807,8 @@
         "tags": [
           "repository"
         ],
-        "summary": "Update a branch",
-        "operationId": "repoUpdateBranch",
+        "summary": "Rename a branch",
+        "operationId": "repoRenameBranch",
         "parameters": [
           {
             "type": "string",
@@ -6835,7 +6835,7 @@
             "name": "body",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/UpdateBranchRepoOption"
+              "$ref": "#/definitions/RenameBranchRepoOption"
             }
           }
         ],
@@ -24333,6 +24333,11 @@
           "type": "boolean",
           "x-go-name": "HasActions"
         },
+        "has_code": {
+          "description": "either `true` to enable code for this repository or `false` to disable it.",
+          "type": "boolean",
+          "x-go-name": "HasCode"
+        },
         "has_issues": {
           "description": "either `true` to enable issues for this repository or `false` to disable them.",
           "type": "boolean",
@@ -27158,6 +27163,22 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "RenameBranchRepoOption": {
+      "description": "RenameBranchRepoOption options when renaming a branch in a repository",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "New branch name",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "RenameOrgOption": {
       "description": "RenameOrgOption options when renaming an organization",
       "type": "object",
@@ -27374,6 +27395,10 @@
         "has_actions": {
           "type": "boolean",
           "x-go-name": "HasActions"
+        },
+        "has_code": {
+          "type": "boolean",
+          "x-go-name": "HasCode"
         },
         "has_issues": {
           "type": "boolean",
@@ -28080,22 +28105,6 @@
             "format": "int64"
           },
           "x-go-name": "IDs"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "UpdateBranchRepoOption": {
-      "description": "UpdateBranchRepoOption options when updating a branch in a repository",
-      "type": "object",
-      "required": [
-        "name"
-      ],
-      "properties": {
-        "name": {
-          "description": "New branch name",
-          "type": "string",
-          "uniqueItems": true,
-          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

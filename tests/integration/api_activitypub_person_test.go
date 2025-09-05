@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/setting"
@@ -73,7 +72,7 @@ func TestActivityPubPerson(t *testing.T) {
 		user1, err := user_model.GetUserByName(ctx, username1)
 		assert.NoError(t, err)
 		user1url := srv.URL + "/api/v1/activitypub/user-id/1#main-key"
-		c, err := activitypub.NewClient(db.DefaultContext, user1, user1url)
+		c, err := activitypub.NewClient(t.Context(), user1, user1url)
 		assert.NoError(t, err)
 		user2inboxurl := srv.URL + "/api/v1/activitypub/user-id/2/inbox"
 
