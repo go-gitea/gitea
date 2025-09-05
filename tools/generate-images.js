@@ -32,7 +32,7 @@ async function generate(svg, path, {size, bg}) {
       mode: 'width',
       value: size,
     },
-    ...(bg === true && {background: 'white'}),
+    ...(bg && {background: 'white'}),
   });
   const renderedImage = resvgJS.render();
   const pngBytes = renderedImage.asPng();
