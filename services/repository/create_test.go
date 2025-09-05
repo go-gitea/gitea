@@ -7,7 +7,6 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -34,14 +33,14 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: createdRepo.Name})
 
-	err = DeleteRepositoryDirectly(db.DefaultContext, createdRepo.ID)
+	err = DeleteRepositoryDirectly(t.Context(), createdRepo.ID)
 	assert.NoError(t, err)
 
 	// a failed creating because some mock data
 	// create the repository directory so that the creation will fail after database record created.
 	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, createdRepo.Name), os.ModePerm))
 
-	createdRepo2, err := CreateRepositoryDirectly(db.DefaultContext, user2, user2, CreateRepoOptions{
+	createdRepo2, err := CreateRepositoryDirectly(t.Context(), user2, user2, CreateRepoOptions{
 		Name: "created-repo",
 	}, true)
 	assert.Nil(t, createdRepo2)

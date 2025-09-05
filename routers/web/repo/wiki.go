@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
+	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
@@ -479,7 +480,7 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
 		ctx.HTML(http.StatusOK, tplWikiStart)
 		return
@@ -515,7 +516,7 @@ func Wiki(ctx *context.Context) {
 func WikiRevision(ctx *context.Context) {
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
 		ctx.HTML(http.StatusOK, tplWikiStart)
 		return
@@ -545,7 +546,7 @@ func WikiRevision(ctx *context.Context) {
 
 // WikiPages render wiki pages list page
 func WikiPages(ctx *context.Context) {
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
 		return
 	}
@@ -655,7 +656,7 @@ func WikiRaw(ctx *context.Context) {
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Data["title"] = "Home"
 	}
 	if ctx.FormString("title") != "" {
@@ -708,7 +709,7 @@ func NewWikiPost(ctx *context.Context) {
 func EditWiki(ctx *context.Context) {
 	ctx.Data["PageIsWikiEdit"] = true
 
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
 		return
 	}

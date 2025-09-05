@@ -526,7 +526,7 @@ func TestOAuth_GrantScopesReadUserFailRepos(t *testing.T) {
 		Scope:         "openid read:user",
 	}
 
-	err := db.Insert(db.DefaultContext, grant)
+	err := db.Insert(t.Context(), grant)
 	require.NoError(t, err)
 
 	assert.Contains(t, grant.Scope, "openid read:user")
@@ -607,7 +607,7 @@ func TestOAuth_GrantScopesReadRepositoryFailOrganization(t *testing.T) {
 		Scope:         "openid read:user read:repository",
 	}
 
-	err := db.Insert(db.DefaultContext, grant)
+	err := db.Insert(t.Context(), grant)
 	require.NoError(t, err)
 
 	assert.Contains(t, grant.Scope, "openid read:user read:repository")
@@ -747,7 +747,7 @@ func TestOAuth_GrantScopesClaimPublicOnlyGroups(t *testing.T) {
 		Scope:         "openid groups read:user public-only",
 	}
 
-	err := db.Insert(db.DefaultContext, grant)
+	err := db.Insert(t.Context(), grant)
 	require.NoError(t, err)
 
 	assert.ElementsMatch(t, []string{"openid", "groups", "read:user", "public-only"}, strings.Split(grant.Scope, " "))
@@ -848,7 +848,7 @@ func TestOAuth_GrantScopesClaimAllGroups(t *testing.T) {
 		Scope:         "openid groups",
 	}
 
-	err := db.Insert(db.DefaultContext, grant)
+	err := db.Insert(t.Context(), grant)
 	require.NoError(t, err)
 
 	assert.ElementsMatch(t, []string{"openid", "groups"}, strings.Split(grant.Scope, " "))
@@ -940,7 +940,7 @@ func testOAuth2WellKnown(t *testing.T) {
 
 func addOAuth2Source(t *testing.T, authName string, cfg oauth2.Source) {
 	cfg.Provider = util.IfZero(cfg.Provider, "gitea")
-	err := auth_model.CreateSource(db.DefaultContext, &auth_model.Source{
+	err := auth_model.CreateSource(t.Context(), &auth_model.Source{
 		Type:     auth_model.OAuth2,
 		Name:     authName,
 		IsActive: true,
