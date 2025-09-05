@@ -105,18 +105,18 @@ type ApplyDiffPatchFileOptions struct {
 // FileLinksResponse contains the links for a repo's file
 type FileLinksResponse struct {
 	// Self is the API URL for this file
-	Self    *string `json:"self"`
+	Self *string `json:"self"`
 	// GitURL is the Git API URL for this file
-	GitURL  *string `json:"git"`
+	GitURL *string `json:"git"`
 	// HTMLURL is the web URL for this file
 	HTMLURL *string `json:"html"`
 }
 
 type ContentsExtResponse struct {
 	// FileContents contains file information when the path represents a file
-	FileContents *ContentsResponse   `json:"file_contents,omitempty"`
+	FileContents *ContentsResponse `json:"file_contents,omitempty"`
 	// DirContents contains directory listing when the path represents a directory
-	DirContents  []*ContentsResponse `json:"dir_contents,omitempty"`
+	DirContents []*ContentsResponse `json:"dir_contents,omitempty"`
 }
 
 // ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content
@@ -126,69 +126,69 @@ type ContentsResponse struct {
 	// Path is the full path to the file or directory
 	Path string `json:"path"`
 	// SHA is the Git blob or tree SHA
-	SHA  string `json:"sha"`
+	SHA string `json:"sha"`
 
 	// LastCommitSHA is the SHA of the last commit that affected this file
 	LastCommitSHA *string `json:"last_commit_sha,omitempty"`
 	// swagger:strfmt date-time
 	LastCommitterDate *time.Time `json:"last_committer_date,omitempty"`
 	// swagger:strfmt date-time
-	LastAuthorDate    *time.Time `json:"last_author_date,omitempty"`
+	LastAuthorDate *time.Time `json:"last_author_date,omitempty"`
 	// LastCommitMessage is the message of the last commit that affected this file
-	LastCommitMessage *string    `json:"last_commit_message,omitempty"`
+	LastCommitMessage *string `json:"last_commit_message,omitempty"`
 
 	// `type` will be `file`, `dir`, `symlink`, or `submodule`
 	Type string `json:"type"`
 	// Size is the file size in bytes
-	Size int64  `json:"size"`
+	Size int64 `json:"size"`
 	// `encoding` is populated when `type` is `file`, otherwise null
 	Encoding *string `json:"encoding"`
 	// `content` is populated when `type` is `file`, otherwise null
 	Content *string `json:"content"`
 	// `target` is populated when `type` is `symlink`, otherwise null
-	Target      *string `json:"target"`
+	Target *string `json:"target"`
 	// URL is the API URL for this file or directory
-	URL         *string `json:"url"`
+	URL *string `json:"url"`
 	// HTMLURL is the web URL for this file or directory
-	HTMLURL     *string `json:"html_url"`
+	HTMLURL *string `json:"html_url"`
 	// GitURL is the Git API URL for this blob or tree
-	GitURL      *string `json:"git_url"`
+	GitURL *string `json:"git_url"`
 	// DownloadURL is the direct download URL for this file
 	DownloadURL *string `json:"download_url"`
 	// `submodule_git_url` is populated when `type` is `submodule`, otherwise null
-	SubmoduleGitURL *string            `json:"submodule_git_url"`
+	SubmoduleGitURL *string `json:"submodule_git_url"`
 	// Links contains related URLs for this file or directory
-	Links           *FileLinksResponse `json:"_links"`
+	Links *FileLinksResponse `json:"_links"`
 
 	// LfsOid is the Git LFS object ID if this file is stored in LFS
-	LfsOid  *string `json:"lfs_oid,omitempty"`
+	LfsOid *string `json:"lfs_oid,omitempty"`
 	// LfsSize is the file size if this file is stored in LFS
-	LfsSize *int64  `json:"lfs_size,omitempty"`
+	LfsSize *int64 `json:"lfs_size,omitempty"`
 }
 
 // FileCommitResponse contains information generated from a Git commit for a repo's file.
 type FileCommitResponse struct {
 	CommitMeta
 	// HTMLURL is the web URL for viewing this commit
-	HTMLURL   string        `json:"html_url"`
+	HTMLURL string `json:"html_url"`
 	// Author is the commit author information
-	Author    *CommitUser   `json:"author"`
+	Author *CommitUser `json:"author"`
 	// Committer is the commit committer information
-	Committer *CommitUser   `json:"committer"`
+	Committer *CommitUser `json:"committer"`
 	// Parents contains parent commit metadata
-	Parents   []*CommitMeta `json:"parents"`
+	Parents []*CommitMeta `json:"parents"`
 	// Message is the commit message
-	Message   string        `json:"message"`
+	Message string `json:"message"`
 	// Tree contains the tree metadata for this commit
-	Tree      *CommitMeta   `json:"tree"`
+	Tree *CommitMeta `json:"tree"`
 }
 
 // FileResponse contains information about a repo's file
 type FileResponse struct {
 	// Content contains the file content and metadata
-	Content      *ContentsResponse          `json:"content"`
+	Content *ContentsResponse `json:"content"`
 	// Commit contains the commit information for this file operation
-	Commit       *FileCommitResponse        `json:"commit"`
+	Commit *FileCommitResponse `json:"commit"`
 	// Verification contains the commit signature verification information
 	Verification *PayloadCommitVerification `json:"verification"`
 }
@@ -196,9 +196,9 @@ type FileResponse struct {
 // FilesResponse contains information about multiple files from a repo
 type FilesResponse struct {
 	// Files contains the list of file contents and metadata
-	Files        []*ContentsResponse        `json:"files"`
+	Files []*ContentsResponse `json:"files"`
 	// Commit contains the commit information for this file operation
-	Commit       *FileCommitResponse        `json:"commit"`
+	Commit *FileCommitResponse `json:"commit"`
 	// Verification contains the commit signature verification information
 	Verification *PayloadCommitVerification `json:"verification"`
 }
@@ -206,9 +206,9 @@ type FilesResponse struct {
 // FileDeleteResponse contains information about a repo's file that was deleted
 type FileDeleteResponse struct {
 	// Content is always null for delete operations
-	Content      any                        `json:"content"` // to be set to nil
+	Content any `json:"content"` // to be set to nil
 	// Commit contains the commit information for this delete operation
-	Commit       *FileCommitResponse        `json:"commit"`
+	Commit *FileCommitResponse `json:"commit"`
 	// Verification contains the commit signature verification information
 	Verification *PayloadCommitVerification `json:"verification"`
 }

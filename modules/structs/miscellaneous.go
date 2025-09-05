@@ -6,7 +6,7 @@ package structs
 // SearchResults results of a successful search
 type SearchResults struct {
 	// OK indicates if the search was successful
-	OK   bool          `json:"ok"`
+	OK bool `json:"ok"`
 	// Data contains the repository search results
 	Data []*Repository `json:"data"`
 }
@@ -14,7 +14,7 @@ type SearchResults struct {
 // SearchError error of a failed search
 type SearchError struct {
 	// OK indicates the search status (always false for errors)
-	OK    bool   `json:"ok"`
+	OK bool `json:"ok"`
 	// Error contains the error message
 	Error string `json:"error"`
 }
@@ -84,7 +84,7 @@ type ServerVersion struct {
 // GitignoreTemplateInfo name and text of a gitignore template
 type GitignoreTemplateInfo struct {
 	// Name is the name of the gitignore template
-	Name   string `json:"name"`
+	Name string `json:"name"`
 	// Source contains the content of the gitignore template
 	Source string `json:"source"`
 }
@@ -92,25 +92,25 @@ type GitignoreTemplateInfo struct {
 // LicensesListEntry is used for the API
 type LicensesTemplateListEntry struct {
 	// Key is the unique identifier for the license template
-	Key  string `json:"key"`
+	Key string `json:"key"`
 	// Name is the display name of the license
 	Name string `json:"name"`
 	// URL is the reference URL for the license
-	URL  string `json:"url"`
+	URL string `json:"url"`
 }
 
 // LicensesInfo contains information about a License
 type LicenseTemplateInfo struct {
 	// Key is the unique identifier for the license template
-	Key            string `json:"key"`
+	Key string `json:"key"`
 	// Name is the display name of the license
-	Name           string `json:"name"`
+	Name string `json:"name"`
 	// URL is the reference URL for the license
-	URL            string `json:"url"`
+	URL string `json:"url"`
 	// Implementation contains license implementation details
 	Implementation string `json:"implementation"`
 	// Body contains the full text of the license
-	Body           string `json:"body"`
+	Body string `json:"body"`
 }
 
 // APIError is an api error with a message
@@ -118,5 +118,5 @@ type APIError struct {
 	// Message contains the error description
 	Message string `json:"message"`
 	// URL contains the documentation URL for this error
-	URL     string `json:"url"`
+	URL string `json:"url"`
 }

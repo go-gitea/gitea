@@ -43,7 +43,7 @@ type PullReview struct {
 	Updated time.Time `json:"updated_at"`
 
 	// HTMLURL is the web URL for viewing the review
-	HTMLURL     string `json:"html_url"`
+	HTMLURL string `json:"html_url"`
 	// HTMLPullURL is the web URL for the pull request
 	HTMLPullURL string `json:"pull_request_url"`
 }

@@ -10,17 +10,17 @@ import (
 // Milestone milestone is a collection of issues on one repository
 type Milestone struct {
 	// ID is the unique identifier for the milestone
-	ID           int64     `json:"id"`
+	ID int64 `json:"id"`
 	// Title is the title of the milestone
-	Title        string    `json:"title"`
+	Title string `json:"title"`
 	// Description provides details about the milestone
-	Description  string    `json:"description"`
+	Description string `json:"description"`
 	// State indicates if the milestone is open or closed
-	State        StateType `json:"state"`
+	State StateType `json:"state"`
 	// OpenIssues is the number of open issues in this milestone
-	OpenIssues   int       `json:"open_issues"`
+	OpenIssues int `json:"open_issues"`
 	// ClosedIssues is the number of closed issues in this milestone
-	ClosedIssues int       `json:"closed_issues"`
+	ClosedIssues int `json:"closed_issues"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -34,7 +34,7 @@ type Milestone struct {
 // CreateMilestoneOption options for creating a milestone
 type CreateMilestoneOption struct {
 	// Title is the title of the new milestone
-	Title       string `json:"title"`
+	Title string `json:"title"`
 	// Description provides details about the milestone
 	Description string `json:"description"`
 	// swagger:strfmt date-time
@@ -48,11 +48,11 @@ type CreateMilestoneOption struct {
 // EditMilestoneOption options for editing a milestone
 type EditMilestoneOption struct {
 	// Title is the updated title of the milestone
-	Title       string     `json:"title"`
+	Title string `json:"title"`
 	// Description provides updated details about the milestone
-	Description *string    `json:"description"`
+	Description *string `json:"description"`
 	// State indicates the updated state of the milestone
-	State       *string    `json:"state"`
+	State *string `json:"state"`
 	// Deadline is the updated due date for the milestone
-	Deadline    *time.Time `json:"due_on"`
+	Deadline *time.Time `json:"due_on"`
 }

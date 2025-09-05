@@ -31,9 +31,9 @@ type TrackedTime struct {
 	// username of the user
 	UserName string `json:"user_name"`
 	// deprecated (only for backwards compatibility)
-	IssueID int64  `json:"issue_id"`
+	IssueID int64 `json:"issue_id"`
 	// Issue contains the associated issue information
-	Issue   *Issue `json:"issue"`
+	Issue *Issue `json:"issue"`
 }
 
 // TrackedTimeList represents a list of tracked times

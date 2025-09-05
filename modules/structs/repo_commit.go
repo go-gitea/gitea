@@ -38,15 +38,15 @@ type CommitUser struct {
 // RepoCommit contains information of a commit in the context of a repository.
 type RepoCommit struct {
 	// URL is the API URL for the commit
-	URL          string                     `json:"url"`
+	URL string `json:"url"`
 	// Author contains the commit author information
-	Author       *CommitUser                `json:"author"`
+	Author *CommitUser `json:"author"`
 	// Committer contains the commit committer information
-	Committer    *CommitUser                `json:"committer"`
+	Committer *CommitUser `json:"committer"`
 	// Message is the commit message
-	Message      string                     `json:"message"`
+	Message string `json:"message"`
 	// Tree contains the tree information for the commit
-	Tree         *CommitMeta                `json:"tree"`
+	Tree *CommitMeta `json:"tree"`
 	// Verification contains commit signature verification information
 	Verification *PayloadCommitVerification `json:"verification"`
 }
@@ -54,7 +54,7 @@ type RepoCommit struct {
 // CommitStats is statistics for a RepoCommit
 type CommitStats struct {
 	// Total is the total number of lines changed
-	Total     int `json:"total"`
+	Total int `json:"total"`
 	// Additions is the number of lines added
 	Additions int `json:"additions"`
 	// Deletions is the number of lines deleted
@@ -65,19 +65,19 @@ type CommitStats struct {
 type Commit struct {
 	*CommitMeta
 	// HTMLURL is the web URL for viewing the commit
-	HTMLURL    string                 `json:"html_url"`
+	HTMLURL string `json:"html_url"`
 	// RepoCommit contains the commit information
-	RepoCommit *RepoCommit            `json:"commit"`
+	RepoCommit *RepoCommit `json:"commit"`
 	// Author is the GitHub/Gitea user who authored the commit
-	Author     *User                  `json:"author"`
+	Author *User `json:"author"`
 	// Committer is the GitHub/Gitea user who committed the commit
-	Committer  *User                  `json:"committer"`
+	Committer *User `json:"committer"`
 	// Parents contains the parent commit information
-	Parents    []*CommitMeta          `json:"parents"`
+	Parents []*CommitMeta `json:"parents"`
 	// Files contains information about files affected by the commit
-	Files      []*CommitAffectedFiles `json:"files"`
+	Files []*CommitAffectedFiles `json:"files"`
 	// Stats contains statistics about the commit changes
-	Stats      *CommitStats           `json:"stats"`
+	Stats *CommitStats `json:"stats"`
 }
 
 // CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE
@@ -95,5 +95,5 @@ type CommitAffectedFiles struct {
 	// Filename is the path of the affected file
 	Filename string `json:"filename"`
 	// Status indicates how the file was affected (added, modified, deleted)
-	Status   string `json:"status"`
+	Status string `json:"status"`
 }

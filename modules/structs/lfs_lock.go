@@ -11,13 +11,13 @@ import (
 // for use with the locks API.
 type LFSLock struct {
 	// The unique identifier of the lock
-	ID       string        `json:"id"`
+	ID string `json:"id"`
 	// The file path that is locked
-	Path     string        `json:"path"`
+	Path string `json:"path"`
 	// The timestamp when the lock was created
-	LockedAt time.Time     `json:"locked_at"`
+	LockedAt time.Time `json:"locked_at"`
 	// The owner of the lock
-	Owner    *LFSLockOwner `json:"owner"`
+	Owner *LFSLockOwner `json:"owner"`
 }
 
 // LFSLockOwner represent a lock owner
@@ -47,30 +47,30 @@ type LFSLockList struct {
 	// The list of locks
 	Locks []*LFSLock `json:"locks"`
 	// The cursor for pagination to the next set of results
-	Next  string     `json:"next_cursor,omitempty"`
+	Next string `json:"next_cursor,omitempty"`
 }
 
 // LFSLockListVerify represent a list of lock verification requested
 // https://github.com/git-lfs/git-lfs/blob/master/docs/api/locking.md#list-locks-for-verification
 type LFSLockListVerify struct {
 	// Locks owned by the requesting user
-	Ours   []*LFSLock `json:"ours"`
+	Ours []*LFSLock `json:"ours"`
 	// Locks owned by other users
 	Theirs []*LFSLock `json:"theirs"`
 	// The cursor for pagination to the next set of results
-	Next   string     `json:"next_cursor,omitempty"`
+	Next string `json:"next_cursor,omitempty"`
 }
 
 // LFSLockError contains information on the error that occurs
 type LFSLockError struct {
 	// The error message
-	Message       string   `json:"message"`
+	Message string `json:"message"`
 	// The lock related to the error, if any
-	Lock          *LFSLock `json:"lock,omitempty"`
+	Lock *LFSLock `json:"lock,omitempty"`
 	// URL to documentation about the error
-	Documentation string   `json:"documentation_url,omitempty"`
+	Documentation string `json:"documentation_url,omitempty"`
 	// The request ID for debugging purposes
-	RequestID     string   `json:"request_id,omitempty"`
+	RequestID string `json:"request_id,omitempty"`
 }
 
 // LFSLockDeleteRequest contains params of a delete request

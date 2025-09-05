@@ -15,7 +15,7 @@ type RepoCollaboratorPermission struct {
 	// Permission level of the collaborator
 	Permission string `json:"permission"`
 	// RoleName is the name of the permission role
-	RoleName   string `json:"role_name"`
+	RoleName string `json:"role_name"`
 	// User information of the collaborator
-	User       *User  `json:"user"`
+	User *User `json:"user"`
 }

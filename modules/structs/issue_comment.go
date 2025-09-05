@@ -10,23 +10,23 @@ import (
 // Comment represents a comment on a commit or issue
 type Comment struct {
 	// ID is the unique identifier for the comment
-	ID               int64         `json:"id"`
+	ID int64 `json:"id"`
 	// HTMLURL is the web URL for viewing the comment
-	HTMLURL          string        `json:"html_url"`
+	HTMLURL string `json:"html_url"`
 	// PRURL is the API URL for the pull request (if applicable)
-	PRURL            string        `json:"pull_request_url"`
+	PRURL string `json:"pull_request_url"`
 	// IssueURL is the API URL for the issue
-	IssueURL         string        `json:"issue_url"`
+	IssueURL string `json:"issue_url"`
 	// Poster is the user who posted the comment
-	Poster           *User         `json:"user"`
+	Poster *User `json:"user"`
 	// OriginalAuthor is the original author name (for imported comments)
-	OriginalAuthor   string        `json:"original_author"`
+	OriginalAuthor string `json:"original_author"`
 	// OriginalAuthorID is the original author ID (for imported comments)
-	OriginalAuthorID int64         `json:"original_author_id"`
+	OriginalAuthorID int64 `json:"original_author_id"`
 	// Body contains the comment text content
-	Body             string        `json:"body"`
+	Body string `json:"body"`
 	// Attachments contains files attached to the comment
-	Attachments      []*Attachment `json:"assets"`
+	Attachments []*Attachment `json:"assets"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -50,20 +50,20 @@ type EditIssueCommentOption struct {
 // TimelineComment represents a timeline comment (comment of any type) on a commit or issue
 type TimelineComment struct {
 	// ID is the unique identifier for the timeline comment
-	ID   int64  `json:"id"`
+	ID int64 `json:"id"`
 	// Type indicates the type of timeline event
 	Type string `json:"type"`
 
 	// HTMLURL is the web URL for viewing the comment
-	HTMLURL  string `json:"html_url"`
+	HTMLURL string `json:"html_url"`
 	// PRURL is the API URL for the pull request (if applicable)
-	PRURL    string `json:"pull_request_url"`
+	PRURL string `json:"pull_request_url"`
 	// IssueURL is the API URL for the issue
 	IssueURL string `json:"issue_url"`
 	// Poster is the user who created the timeline event
-	Poster   *User  `json:"user"`
+	Poster *User `json:"user"`
 	// Body contains the timeline event content
-	Body     string `json:"body"`
+	Body string `json:"body"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time

@@ -10,25 +10,25 @@ import (
 // ActionTask represents a ActionTask
 type ActionTask struct {
 	// ID is the unique identifier for the action task
-	ID           int64  `json:"id"`
+	ID int64 `json:"id"`
 	// Name is the name of the workflow
-	Name         string `json:"name"`
+	Name string `json:"name"`
 	// HeadBranch is the branch that triggered the workflow
-	HeadBranch   string `json:"head_branch"`
+	HeadBranch string `json:"head_branch"`
 	// HeadSHA is the commit SHA that triggered the workflow
-	HeadSHA      string `json:"head_sha"`
+	HeadSHA string `json:"head_sha"`
 	// RunNumber is the sequential number of the workflow run
-	RunNumber    int64  `json:"run_number"`
+	RunNumber int64 `json:"run_number"`
 	// Event is the type of event that triggered the workflow
-	Event        string `json:"event"`
+	Event string `json:"event"`
 	// DisplayTitle is the display title for the workflow run
 	DisplayTitle string `json:"display_title"`
 	// Status indicates the current status of the workflow run
-	Status       string `json:"status"`
+	Status string `json:"status"`
 	// WorkflowID is the identifier of the workflow
-	WorkflowID   string `json:"workflow_id"`
+	WorkflowID string `json:"workflow_id"`
 	// URL is the API URL for this workflow run
-	URL          string `json:"url"`
+	URL string `json:"url"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -40,9 +40,9 @@ type ActionTask struct {
 // ActionTaskResponse returns a ActionTask
 type ActionTaskResponse struct {
 	// Entries contains the list of workflow runs
-	Entries    []*ActionTask `json:"workflow_runs"`
+	Entries []*ActionTask `json:"workflow_runs"`
 	// TotalCount is the total number of workflow runs
-	TotalCount int64         `json:"total_count"`
+	TotalCount int64 `json:"total_count"`
 }
 
 // CreateActionWorkflowDispatch represents the payload for triggering a workflow dispatch event
@@ -58,11 +58,11 @@ type CreateActionWorkflowDispatch struct {
 // ActionWorkflow represents a ActionWorkflow
 type ActionWorkflow struct {
 	// ID is the unique identifier for the workflow
-	ID    string `json:"id"`
+	ID string `json:"id"`
 	// Name is the name of the workflow
-	Name  string `json:"name"`
+	Name string `json:"name"`
 	// Path is the file path of the workflow
-	Path  string `json:"path"`
+	Path string `json:"path"`
 	// State indicates if the workflow is active or disabled
 	State string `json:"state"`
 	// swagger:strfmt date-time
@@ -70,11 +70,11 @@ type ActionWorkflow struct {
 	// swagger:strfmt date-time
 	UpdatedAt time.Time `json:"updated_at"`
 	// URL is the API URL for this workflow
-	URL       string    `json:"url"`
+	URL string `json:"url"`
 	// HTMLURL is the web URL for viewing the workflow
-	HTMLURL   string    `json:"html_url"`
+	HTMLURL string `json:"html_url"`
 	// BadgeURL is the URL for the workflow badge
-	BadgeURL  string    `json:"badge_url"`
+	BadgeURL string `json:"badge_url"`
 	// swagger:strfmt date-time
 	DeletedAt time.Time `json:"deleted_at"`
 }

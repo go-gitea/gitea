@@ -16,7 +16,7 @@ type EditReactionOption struct {
 // Reaction contain one reaction
 type Reaction struct {
 	// The user who created the reaction
-	User     *User  `json:"user"`
+	User *User `json:"user"`
 	// The reaction content (e.g., emoji or reaction type)
 	Reaction string `json:"content"`
 	// swagger:strfmt date-time

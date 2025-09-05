@@ -6,11 +6,11 @@ package structs
 // GitHook represents a Git repository hook
 type GitHook struct {
 	// Name is the name of the Git hook
-	Name     string `json:"name"`
+	Name string `json:"name"`
 	// IsActive indicates if the hook is active
-	IsActive bool   `json:"is_active"`
+	IsActive bool `json:"is_active"`
 	// Content contains the script content of the hook
-	Content  string `json:"content,omitempty"`
+	Content string `json:"content,omitempty"`
 }
 
 // GitHookList represents a list of Git hooks

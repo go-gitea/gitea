@@ -8,7 +8,7 @@ package structs
 // swagger:model
 type Label struct {
 	// ID is the unique identifier for the label
-	ID   int64  `json:"id"`
+	ID int64 `json:"id"`
 	// Name is the display name of the label
 	Name string `json:"name"`
 	// example: false
@@ -16,11 +16,11 @@ type Label struct {
 	// example: false
 	IsArchived bool `json:"is_archived"`
 	// example: 00aabb
-	Color       string `json:"color"`
+	Color string `json:"color"`
 	// Description provides additional context about the label's purpose
 	Description string `json:"description"`
 	// URL is the API endpoint for accessing this label
-	URL         string `json:"url"`
+	URL string `json:"url"`
 }
 
 // CreateLabelOption options for creating a label
@@ -32,7 +32,7 @@ type CreateLabelOption struct {
 	Exclusive bool `json:"exclusive"`
 	// required:true
 	// example: #00aabb
-	Color       string `json:"color" binding:"Required"`
+	Color string `json:"color" binding:"Required"`
 	// Description provides additional context about the label's purpose
 	Description string `json:"description"`
 	// example: false
@@ -46,7 +46,7 @@ type EditLabelOption struct {
 	// example: false
 	Exclusive *bool `json:"exclusive"`
 	// example: #00aabb
-	Color       *string `json:"color"`
+	Color *string `json:"color"`
 	// Description provides additional context about the label's purpose
 	Description *string `json:"description"`
 	// example: false
@@ -67,7 +67,7 @@ type LabelTemplate struct {
 	// example: false
 	Exclusive bool `json:"exclusive"`
 	// example: 00aabb
-	Color       string `json:"color"`
+	Color string `json:"color"`
 	// Description provides additional context about the label template's purpose
 	Description string `json:"description"`
 }
