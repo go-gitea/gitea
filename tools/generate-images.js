@@ -36,7 +36,7 @@ async function generate(svg, path, {size, bg}) {
   });
   const renderedImage = resvgJS.render();
   const pngBytes = renderedImage.asPng();
-  await writeFile(outputFile, pngBytes);
+  await writeFile(outputFile, Buffer.from(pngBytes));
 }
 
 async function main() {
