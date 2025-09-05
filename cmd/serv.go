@@ -228,42 +228,42 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	}
 
 	username := repoPathFields[0]
-	var uid int64
+	var userID int64
 
 	if err := initDB(ctx); err != nil {
 		return fail(ctx, "DB initialization error", "Error while initializing Gitea database")
 	}
 
-	real_uid, err := user_model.LookupUserRedirect(ctx, username)
+	redirectedUserID, err := user_model.LookupUserRedirect(ctx, username)
 	if err == nil {
-		uid = real_uid
+		userID = redirectedUserID
 	} else {
 		user, err := user_model.GetUserByName(ctx, username)
 		if err == nil {
-			uid = user.ID
+			userID = user.ID
 		} else {
 			return fail(ctx, "Invalid username", "Could not find user or org: %s", username)
 		}
 	}
 
 	// We need the uid for repo redirect lookup
-	real_user, err := user_model.GetUserByID(ctx, uid)
+	real_user, err := user_model.GetUserByID(ctx, userID)
 	if err == nil {
 		username = real_user.Name
 	} else {
-		return fail(ctx, "User ID lookup failed", "Could not find user with ID: %d", uid)
+		return fail(ctx, "User ID lookup failed", "Could not find user with ID: %d", userID)
 	}
 
 	reponame := strings.TrimSuffix(repoPathFields[1], ".git") // “the-repo-name" or "the-repo-name.wiki"
 
-	real_rid, err := repo.LookupRedirect(ctx, uid, reponame)
+	redirectedRepoID, err := repo.LookupRedirect(ctx, userID, reponame)
 	if err == nil {
-		real_repo, err := repo.GetRepositoryByID(ctx, real_rid)
+		redirectedRepo, err := repo.GetRepositoryByID(ctx, redirectedRepoID)
 		if err == nil {
-			reponame = real_repo.Name
-			username = real_repo.OwnerName
+			reponame = redirectedRepo.Name
+			username = redirectedRepo.OwnerName
 		} else {
-			return fail(ctx, "Repo ID lookup failed", "Could not find repo with ID: %d", real_rid)
+			return fail(ctx, "Repo ID lookup failed", "Could not find repo with ID: %d", redirectedRepoID)
 		}
 	}
 
