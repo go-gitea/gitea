@@ -1227,7 +1227,7 @@ func registerWebRoutes(m *web.Router) {
 	m.Group("/{username}/{reponame}/{type:issues}", func() {
 		m.Get("", repo.Issues)
 		m.Get("/{index}", repo.ViewIssue)
-	}, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypeExternalTracker))
+	}, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests, unit.TypeExternalTracker))
 	// end "/{username}/{reponame}": issue/pull list, issue/pull view, external tracker
 
 	m.Group("/{username}/{reponame}", func() { // edit issues, pulls, labels, milestones, etc
