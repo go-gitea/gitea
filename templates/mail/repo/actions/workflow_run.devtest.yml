@@ -1,10 +1,10 @@
-RunStatusText: run status text ....
+RunStatusText: Jobs status aggregation
 
 Repo:
-  FullName: RepoName
+  FullName: Repo/Name
 
 Run:
-  WorkflowID: WorkflowID
+  WorkflowID: workflow.yml
   HTMLURL: http://localhost/run/1
 
 Jobs:
@@ -12,7 +12,9 @@ Jobs:
     Status: success
     Attempt: 1
     HTMLURL: http://localhost/job/1
+    Duration: 1h2m3s
   - Name: Job-Name-2
-    Status: failed
+    Status: failure
     Attempt: 2
     HTMLURL: http://localhost/job/2
+    Duration: 1h2m3s

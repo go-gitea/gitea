@@ -6,7 +6,6 @@
 
 	<style>
 		blockquote { padding-left: 1em; margin: 1em 0; border-left: 1px solid grey; color: #777}
-		.footer { font-size:small; color:#666;}
 	</style>
 
 </head>
@@ -50,12 +49,12 @@
 			{{end}}
 		</ul>
 	</p>
-	<div class="footer">
-	<p>
-		---
-		<br>
-		<a href="{{.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
-	</p>
+	<div style="font-size:small; color:#666;">
+		<p>
+			---
+			<br>
+			<a href="{{.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
+		</p>
 	</div>
 </body>
 </html>

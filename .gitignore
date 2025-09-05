@@ -74,6 +74,7 @@ cpu.out
 /tests/*.ini
 /tests/**/*.git/**/*.sample
 /node_modules
+/tools/node_modules
 /.venv
 /yarn.lock
 /yarn-error.log

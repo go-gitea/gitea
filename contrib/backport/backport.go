@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v71/github"
+	"github.com/google/go-github/v74/github"
 	"github.com/urfave/cli/v3"
 	"gopkg.in/yaml.v3"
 )
