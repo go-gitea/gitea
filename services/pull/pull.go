@@ -1062,7 +1062,7 @@ func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user
 	if pull.HasMerged {
 		baseBranch = pull.MergeBase
 	}
-	prInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(), baseBranch, pull.GetGitHeadRefName(), true, false)
+	prInfo, err := GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, baseBranch, pull.GetGitHeadRefName(), true, false)
 	if err != nil {
 		return nil, "", err
 	}

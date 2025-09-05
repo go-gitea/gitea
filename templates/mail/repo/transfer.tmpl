@@ -10,10 +10,12 @@
 	<p>{{.Subject}}.
 		{{.locale.Tr "mail.repo.transfer.body" $url}}
 	</p>
-	<p>
-		---
-		<br>
-		<a href="{{.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
-	</p>
+	<div style="font-size:small; color:#666;">
+		<p>
+			---
+			<br>
+			<a href="{{.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
+		</p>
+	</div>
 </body>
 </html>

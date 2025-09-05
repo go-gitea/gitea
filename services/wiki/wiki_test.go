@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	_ "code.gitea.io/gitea/models/actions"
 
@@ -149,7 +150,7 @@ func TestRepository_InitWiki(t *testing.T) {
 	// repo2 does not already have a wiki
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	assert.NoError(t, InitWiki(t.Context(), repo2))
-	assert.True(t, repo2.HasWiki())
+	assert.True(t, repo_service.HasWiki(t.Context(), repo2))
 }
 
 func TestRepository_AddWikiPage(t *testing.T) {
