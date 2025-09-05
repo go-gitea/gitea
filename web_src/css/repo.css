@@ -150,34 +150,34 @@ td .commit-summary {
   }
 }
 
-.repository.file.list .non-diff-file-content .header .icon {
+.repository .non-diff-file-content .header .icon {
   font-size: 1em;
 }
 
-.repository.file.list .non-diff-file-content .header .small.icon {
+.repository .non-diff-file-content .header .small.icon {
   font-size: 0.75em;
 }
 
-.repository.file.list .non-diff-file-content .header .tiny.icon {
+.repository .non-diff-file-content .header .tiny.icon {
   font-size: 0.5em;
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon {
+.repository .non-diff-file-content .header .file-actions .btn-octicon {
   line-height: var(--line-height-default);
   padding: 8px;
   vertical-align: middle;
   color: var(--color-text);
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon:hover {
+.repository .non-diff-file-content .header .file-actions .btn-octicon:hover {
   color: var(--color-primary);
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon-danger:hover {
+.repository .non-diff-file-content .header .file-actions .btn-octicon-danger:hover {
   color: var(--color-red);
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon.disabled {
+.repository .non-diff-file-content .header .file-actions .btn-octicon.disabled {
   color: inherit;
   opacity: var(--opacity-disabled);
   cursor: default;

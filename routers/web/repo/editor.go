@@ -280,6 +280,8 @@ func EditFile(ctx *context.Context) {
 		return
 	}
 
+	prepareTreeSideBarSwitch(ctx)
+
 	// on the "New File" page, we should add an empty path field to make end users could input a new name
 	prepareTreePathFieldsAndPaths(ctx, util.Iif(isNewFile, ctx.Repo.TreePath+"/", ctx.Repo.TreePath))
 
@@ -320,6 +322,7 @@ func EditFile(ctx *context.Context) {
 		}
 	}
 
+	ctx.Data["PageIsEdit"] = true
 	ctx.Data["EditorconfigJson"] = getContextRepoEditorConfig(ctx, ctx.Repo.TreePath)
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
@@ -376,6 +379,8 @@ func EditFilePost(ctx *context.Context) {
 
 // DeleteFile render delete file page
 func DeleteFile(ctx *context.Context) {
+	prepareTreePathFieldsAndPaths(ctx, ctx.Repo.TreePath)
+	prepareTreeSideBarSwitch(ctx)
 	prepareEditorCommitFormOptions(ctx, "_delete")
 	if ctx.Written() {
 		return

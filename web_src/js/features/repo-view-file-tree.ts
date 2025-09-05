@@ -33,5 +33,6 @@ export async function initRepoViewFileTree() {
     repoLink: fileTree.getAttribute('data-repo-link'),
     treePath: fileTree.getAttribute('data-tree-path'),
     currentRefNameSubURL: fileTree.getAttribute('data-current-ref-name-sub-url'),
+    pageIsEdit: fileTree.getAttribute('data-page-is-edit') === 'true',
   }).mount(fileTree);
 }

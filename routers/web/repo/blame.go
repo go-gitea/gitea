@@ -74,7 +74,7 @@ func RefBlame(ctx *context.Context) {
 
 	tplName := tplRepoViewContent
 	if !ctx.FormBool("only_content") {
-		prepareHomeTreeSideBarSwitch(ctx)
+		prepareTreeSideBarSwitch(ctx)
 		tplName = tplRepoView
 	}
 
