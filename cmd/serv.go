@@ -20,7 +20,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfstransfer"
@@ -228,49 +227,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	}
 
 	username := repoPathFields[0]
-	var userID int64
-
-	if err := initDB(ctx); err != nil {
-		return fail(ctx, "DB initialization error", "Error while initializing Gitea database")
-	}
-
-	redirectedUserID, err := user_model.LookupUserRedirect(ctx, username)
-	if err == nil {
-		userID = redirectedUserID
-	} else {
-		user, err := user_model.GetUserByName(ctx, username)
-		if err == nil {
-			userID = user.ID
-		} else {
-			return fail(ctx, "Invalid username", "Could not find user or org: %s", username)
-		}
-	}
-
-	// We need the uid for repo redirect lookup
-	real_user, err := user_model.GetUserByID(ctx, userID)
-	if err == nil {
-		username = real_user.Name
-	} else {
-		return fail(ctx, "User ID lookup failed", "Could not find user with ID: %d", userID)
-	}
-
 	reponame := strings.TrimSuffix(repoPathFields[1], ".git") // “the-repo-name" or "the-repo-name.wiki"
-
-	redirectedRepoID, err := repo.LookupRedirect(ctx, userID, reponame)
-	if err == nil {
-		redirectedRepo, err := repo.GetRepositoryByID(ctx, redirectedRepoID)
-		if err == nil {
-			reponame = redirectedRepo.Name
-			username = redirectedRepo.OwnerName
-		} else {
-			return fail(ctx, "Repo ID lookup failed", "Could not find repo with ID: %d", redirectedRepoID)
-		}
-	}
-
-	// LowerCase and trim the repoPath as that's how they are stored.
-	// This should be done after splitting the repoPath into username and reponame
-	// so that username and reponame are not affected.
-	repoPath = strings.ToLower(username + "/" + reponame)
 
 	if !repo.IsValidSSHAccessRepoName(reponame) {
 		return fail(ctx, "Invalid repo name", "Invalid repo name: %s", reponame)
@@ -317,6 +274,11 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	if extra.HasError() {
 		return fail(ctx, extra.UserMsg, "ServCommand failed: %s", extra.Error)
 	}
+
+	// LowerCase and trim the repoPath as that's how they are stored.
+	// This should be done after splitting the repoPath into username and reponame
+	// so that username and reponame are not affected.
+	repoPath = strings.ToLower(results.OwnerName + "/" + results.RepoName)
 
 	// LFS SSH protocol
 	if verb == git.CmdVerbLfsTransfer {
