@@ -189,6 +189,9 @@ importers:
       '@playwright/test':
         specifier: 1.54.1
         version: 1.54.1
+      '@resvg/resvg-wasm':
+        specifier: 2.6.2
+        version: 2.6.2
       '@stoplight/spectral-cli':
         specifier: 6.15.0
         version: 6.15.0
@@ -796,6 +799,10 @@ packages:
 
   '@primer/octicons@19.15.5':
     resolution: {integrity: sha512-FCXPTlXlHvAS3rRBd1C/xVBYSYzPPwS8tNcUxnvUYK6L4/d+zUy2KExLtzW+L9xKo2z8J9uY+c1VCsNRf+b4MQ==}
+
+  '@resvg/resvg-wasm@2.6.2':
+    resolution: {integrity: sha512-FqALmHI8D4o6lk/LRWDnhw95z5eO+eAa6ORjVg09YRR7BkcM6oPHU9uyC0gtQG5vpFLvgpeU4+zEAz2H8APHNw==}
+    engines: {node: '>= 10'}
 
   '@rolldown/pluginutils@1.0.0-beta.29':
     resolution: {integrity: sha512-NIJgOsMjbxAXvoGq/X0gD7VPMQ8j9g0BiDaNjVNVjvl+iKXxL3Jre0v31RmBYeLEmkbj2s02v8vFTbUXi5XS2Q==}
@@ -5480,6 +5487,8 @@ snapshots:
   '@primer/octicons@19.15.5':
     dependencies:
       object-assign: 4.1.1
+
+  '@resvg/resvg-wasm@2.6.2': {}
 
   '@rolldown/pluginutils@1.0.0-beta.29': {}
 
