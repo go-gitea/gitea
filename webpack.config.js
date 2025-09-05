@@ -1,7 +1,7 @@
 import fastGlob from 'fast-glob';
 import wrapAnsi from 'wrap-ansi';
 import AddAssetPlugin from 'add-asset-webpack-plugin';
-import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
+import LicenseCheckerWebpackPlugin from '@techknowlogick/license-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import {VueLoaderPlugin} from 'vue-loader';
@@ -254,7 +254,8 @@ export default {
     maxAssetSize: Infinity,
   },
   resolve: {
-    symlinks: false,
+    symlinks: true,
+    modules: ['node_modules'],
   },
   watchOptions: {
     ignored: [
