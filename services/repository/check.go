@@ -14,6 +14,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
@@ -47,10 +48,9 @@ func GitFsckRepos(ctx context.Context, timeout time.Duration, args git.TrustedCm
 
 // GitFsckRepo calls 'git fsck' to check an individual repository's health.
 func GitFsckRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args git.TrustedCmdArgs) error {
-	log.Trace("Running health check on repository %-v", repo)
-	repoPath := repo.RepoPath()
-	if err := git.Fsck(ctx, repoPath, timeout, args); err != nil {
-		log.Warn("Failed to health check repository (%-v): %v", repo, err)
+	log.Trace("Running health check on repository %-v", repo.FullName())
+	if err := gitrepo.Fsck(ctx, repo, timeout, args); err != nil {
+		log.Warn("Failed to health check repository (%-v): %v", repo.FullName(), err)
 		if err = system_model.CreateRepositoryNotice("Failed to health check repository (%s): %v", repo.FullName(), err); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
@@ -190,7 +190,7 @@ func ReinitMissingRepositories(ctx context.Context) error {
 		default:
 		}
 		log.Trace("Initializing %d/%d...", repo.OwnerID, repo.ID)
-		if err := git.InitRepository(ctx, repo.RepoPath(), true, repo.ObjectFormatName); err != nil {
+		if err := gitrepo.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
 			log.Error("Unable (re)initialize repository %d at %s. Error: %v", repo.ID, repo.RepoPath(), err)
 			if err2 := system_model.CreateRepositoryNotice("InitRepository [%d]: %v", repo.ID, err); err2 != nil {
 				log.Error("CreateRepositoryNotice: %v", err2)
