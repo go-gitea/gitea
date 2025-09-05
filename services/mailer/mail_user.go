@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -18,11 +17,10 @@ import (
 )
 
 const (
-	mailAuthActivate       templates.TplName = "auth/activate"
-	mailAuthActivateEmail  templates.TplName = "auth/activate_email"
-	mailAuthResetPassword  templates.TplName = "auth/reset_passwd"
-	mailAuthRegisterNotify templates.TplName = "auth/register_notify"
-	mailNotifyCollaborator templates.TplName = "notify/collaborator"
+	mailAuthActivate       templates.TplName = "user/auth/activate"
+	mailAuthActivateEmail  templates.TplName = "user/auth/activate_email"
+	mailAuthResetPassword  templates.TplName = "user/auth/reset_passwd"
+	mailAuthRegisterNotify templates.TplName = "user/auth/register_notify"
 )
 
 // sendUserMail sends a mail to the user
@@ -125,37 +123,6 @@ func SendRegisterNotifyMail(u *user_model.User) {
 
 	msg := sender_service.NewMessage(u.EmailTo(), locale.TrString("mail.register_notify", setting.AppName), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
-
-	SendAsync(msg)
-}
-
-// SendCollaboratorMail sends mail notification to new collaborator.
-func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository) {
-	if setting.MailService == nil || !u.IsActive {
-		// No mail service configured OR the user is inactive
-		return
-	}
-	locale := translation.NewLocale(u.Language)
-	repoName := repo.FullName()
-
-	subject := locale.TrString("mail.repo.collaborator.added.subject", doer.DisplayName(), repoName)
-	data := map[string]any{
-		"locale":   locale,
-		"Subject":  subject,
-		"RepoName": repoName,
-		"Link":     repo.HTMLURL(),
-		"Language": locale.Language(),
-	}
-
-	var content bytes.Buffer
-
-	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
-		log.Error("Template: %v", err)
-		return
-	}
-
-	msg := sender_service.NewMessage(u.EmailTo(), subject, content.String())
-	msg.Info = fmt.Sprintf("UID: %d, add collaborator", u.ID)
 
 	SendAsync(msg)
 }
