@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"strings"
 
-	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -31,15 +30,6 @@ func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (string,
 		result = result[:len(result)-1]
 	}
 	return result, nil
-}
-
-// GetRemoteURL returns the url of a specific remote of the repository.
-func GetRemoteURL(ctx context.Context, repoPath, remoteName string) (*giturl.GitURL, error) {
-	addr, err := GetRemoteAddress(ctx, repoPath, remoteName)
-	if err != nil {
-		return nil, err
-	}
-	return giturl.ParseGitURL(addr)
 }
 
 // ErrInvalidCloneAddr represents a "InvalidCloneAddr" kind of error.

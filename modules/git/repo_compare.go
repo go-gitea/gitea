@@ -16,19 +16,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
-
-	logger "code.gitea.io/gitea/modules/log"
 )
-
-// CompareInfo represents needed information for comparing references.
-type CompareInfo struct {
-	MergeBase    string
-	BaseCommitID string
-	HeadCommitID string
-	Commits      []*Commit
-	NumFiles     int
-}
 
 // GetMergeBase checks and returns merge base of two branches and the reference used as base.
 func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, string, error) {
@@ -47,83 +35,6 @@ func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, stri
 
 	stdout, _, err := NewCommand("merge-base").AddDashesAndList(base, head).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	return strings.TrimSpace(stdout), base, err
-}
-
-// GetCompareInfo generates and returns compare information between base and head branches of repositories.
-func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
-	var (
-		remoteBranch string
-		tmpRemote    string
-	)
-
-	// We don't need a temporary remote for same repository.
-	if repo.Path != basePath {
-		// Add a temporary remote
-		tmpRemote = strconv.FormatInt(time.Now().UnixNano(), 10)
-		if err = repo.AddRemote(tmpRemote, basePath, false); err != nil {
-			return nil, fmt.Errorf("AddRemote: %w", err)
-		}
-		defer func() {
-			if err := repo.RemoveRemote(tmpRemote); err != nil {
-				logger.Error("GetPullRequestInfo: RemoveRemote: %v", err)
-			}
-		}()
-	}
-
-	compareInfo := new(CompareInfo)
-
-	compareInfo.HeadCommitID, err = GetFullCommitID(repo.Ctx, repo.Path, headBranch)
-	if err != nil {
-		compareInfo.HeadCommitID = headBranch
-	}
-
-	compareInfo.MergeBase, remoteBranch, err = repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
-	if err == nil {
-		compareInfo.BaseCommitID, err = GetFullCommitID(repo.Ctx, repo.Path, remoteBranch)
-		if err != nil {
-			compareInfo.BaseCommitID = remoteBranch
-		}
-		separator := "..."
-		baseCommitID := compareInfo.MergeBase
-		if directComparison {
-			separator = ".."
-			baseCommitID = compareInfo.BaseCommitID
-		}
-
-		// We have a common base - therefore we know that ... should work
-		if !fileOnly {
-			// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
-			var logs []byte
-			logs, _, err = NewCommand("log").AddArguments(prettyLogFormat).
-				AddDynamicArguments(baseCommitID+separator+headBranch).AddArguments("--").
-				RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
-			if err != nil {
-				return nil, err
-			}
-			compareInfo.Commits, err = repo.parsePrettyFormatLogToList(logs)
-			if err != nil {
-				return nil, fmt.Errorf("parsePrettyFormatLogToList: %w", err)
-			}
-		} else {
-			compareInfo.Commits = []*Commit{}
-		}
-	} else {
-		compareInfo.Commits = []*Commit{}
-		compareInfo.MergeBase, err = GetFullCommitID(repo.Ctx, repo.Path, remoteBranch)
-		if err != nil {
-			compareInfo.MergeBase = remoteBranch
-		}
-		compareInfo.BaseCommitID = compareInfo.MergeBase
-	}
-
-	// Count number of changed files.
-	// This probably should be removed as we need to use shortstat elsewhere
-	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
-	compareInfo.NumFiles, err = repo.GetDiffNumChangedFiles(remoteBranch, headBranch, directComparison)
-	if err != nil {
-		return nil, err
-	}
-	return compareInfo, nil
 }
 
 type lineCountWriter struct {
