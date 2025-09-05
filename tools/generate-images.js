@@ -3,8 +3,6 @@ import {initWasm, Resvg} from '@resvg/resvg-wasm';
 import {optimize} from 'svgo';
 import {readFile, writeFile} from 'node:fs/promises';
 import {argv, exit} from 'node:process';
-import {join, dirname} from 'node:path';
-import {fileURLToPath} from 'node:url';
 
 function doExit(err) {
   if (err) console.error(err);
@@ -42,7 +40,7 @@ async function generate(svg, path, {size, bg}) {
 }
 
 async function main() {
-  await initWasm(readFile(fileURLToPath(import.meta.resolve('@resvg/resvg-wasm/index_bg.wasm'))));
+  await initWasm(readFile(new URL(import.meta.resolve('@resvg/resvg-wasm/index_bg.wasm'))));
   const gitea = argv.slice(2).includes('gitea');
   const logoSvg = await readFile(new URL('../assets/logo.svg', import.meta.url), 'utf8');
   const faviconSvg = await readFile(new URL('../assets/favicon.svg', import.meta.url), 'utf8');
