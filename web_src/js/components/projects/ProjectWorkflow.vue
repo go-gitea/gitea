@@ -48,8 +48,8 @@ const toggleEditMode = () => {
       // If there was a previous selection, return to it
       if (store.selectedWorkflow && store.selectedWorkflow.id === 0) {
         // Remove temporary cloned workflow from list
-        const tempIndex = store.workflowEvents.findIndex(w =>
-          w.event_id === store.selectedWorkflow.event_id
+        const tempIndex = store.workflowEvents.findIndex((w) =>
+          w.event_id === store.selectedWorkflow.event_id,
         );
         if (tempIndex >= 0) {
           store.workflowEvents.splice(tempIndex, 1);
@@ -69,7 +69,7 @@ const toggleEditMode = () => {
     // Entering edit mode - store current selection
     previousSelection.value = {
       selectedItem: store.selectedItem,
-      selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : null
+      selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : null,
     };
     setEditMode(true);
   }
@@ -84,7 +84,7 @@ const toggleWorkflowStatus = async () => {
 };
 
 const deleteWorkflow = async () => {
-  if (!store.selectedWorkflow || !confirm('Are you sure you want to delete this workflow?')) {
+  if (!store.selectedWorkflow || !window.confirm('Are you sure you want to delete this workflow?')) {
     return;
   }
 
@@ -96,8 +96,8 @@ const deleteWorkflow = async () => {
 
   // If deleting a temporary workflow (clone/new), just remove from list
   if (store.selectedWorkflow.id === 0) {
-    const tempIndex = store.workflowEvents.findIndex(w =>
-      w.event_id === store.selectedWorkflow.event_id
+    const tempIndex = store.workflowEvents.findIndex((w) =>
+      w.event_id === store.selectedWorkflow.event_id,
     );
     if (tempIndex >= 0) {
       store.workflowEvents.splice(tempIndex, 1);
@@ -110,9 +110,9 @@ const deleteWorkflow = async () => {
   }
 
   // Find workflows for the same base event type
-  const sameEventWorkflows = store.workflowEvents.filter(w =>
+  const sameEventWorkflows = store.workflowEvents.filter((w) =>
     w.base_event_type === currentBaseEventType ||
-    w.workflow_event === currentBaseEventType
+    w.workflow_event === currentBaseEventType,
   );
 
   if (sameEventWorkflows.length === 0) {
@@ -226,7 +226,7 @@ const createNewWorkflow = (baseEventType, capabilities, displayName) => {
   if (!isInEditMode.value) {
     previousSelection.value = {
       selectedItem: store.selectedItem,
-      selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : null
+      selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : null,
     };
   }
 
@@ -255,7 +255,7 @@ const cloneWorkflow = (sourceWorkflow) => {
   // Store current selection before cloning
   previousSelection.value = {
     selectedItem: store.selectedItem,
-    selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : null
+    selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : null,
   };
 
   const tempId = `clone-${sourceWorkflow.base_event_type || sourceWorkflow.workflow_event}-${Date.now()}`;
@@ -276,7 +276,7 @@ const cloneWorkflow = (sourceWorkflow) => {
   };
 
   // Find the position of source workflow and insert cloned workflow after it
-  const sourceIndex = store.workflowEvents.findIndex(w => w.event_id === sourceWorkflow.event_id);
+  const sourceIndex = store.workflowEvents.findIndex((w) => w.event_id === sourceWorkflow.event_id);
   if (sourceIndex >= 0) {
     store.workflowEvents.splice(sourceIndex + 1, 0, clonedWorkflow);
   } else {
@@ -318,9 +318,9 @@ const selectWorkflowItem = async (item) => {
     await selectWorkflowEvent(item);
   } else {
     // This is an unconfigured event - check if we already have a workflow object for it
-    const existingWorkflow = store.workflowEvents.find(w =>
+    const existingWorkflow = store.workflowEvents.find((w) =>
       w.id === 0 &&
-      (w.base_event_type === item.base_event_type || w.workflow_event === item.base_event_type)
+      (w.base_event_type === item.base_event_type || w.workflow_event === item.base_event_type),
     );
 
     if (existingWorkflow) {
@@ -368,10 +368,9 @@ const isItemSelected = (item) => {
   if (item.isConfigured || item.id === 0) {
     // For configured workflows or temporary workflows (clones/new), match by event_id
     return store.selectedItem === item.event_id;
-  } else {
-    // For unconfigured events, match by base_event_type
-    return store.selectedItem === item.base_event_type;
   }
+    // For unconfigured events, match by base_event_type
+  return store.selectedItem === item.base_event_type;
 };
 
 const _getActionsSummary = (workflow) => {
@@ -446,7 +445,7 @@ onMounted(async () => {
       // Check if eventID matches a base event type (unconfigured workflow)
       const items = workflowList.value;
       const matchingUnconfigured = items.find((item) =>
-        !item.isConfigured && (item.base_event_type === props.eventID || item.event_id === props.eventID)
+        !item.isConfigured && (item.base_event_type === props.eventID || item.event_id === props.eventID),
       );
       if (matchingUnconfigured) {
         // Create new workflow for this base event type
@@ -496,7 +495,7 @@ const popstateHandler = (e) => {
       // Check if it's a base event type
       const items = workflowList.value;
       const matchingUnconfigured = items.find((item) =>
-        !item.isConfigured && (item.base_event_type === e.state.eventId || item.event_id === e.state.eventId)
+        !item.isConfigured && (item.base_event_type === e.state.eventId || item.event_id === e.state.eventId),
       );
       if (matchingUnconfigured) {
         createNewWorkflow(matchingUnconfigured.base_event_type, matchingUnconfigured.capabilities, matchingUnconfigured.display_name);
@@ -578,9 +577,11 @@ onUnmounted(() => {
             <h2>
               <i class="settings icon"/>
               {{ store.selectedWorkflow.display_name }}
-              <span v-if="store.selectedWorkflow.id > 0 && !isInEditMode"
-                    class="workflow-status"
-                    :class="store.selectedWorkflow.enabled ? 'status-enabled' : 'status-disabled'">
+              <span
+                v-if="store.selectedWorkflow.id > 0 && !isInEditMode"
+                class="workflow-status"
+                :class="store.selectedWorkflow.enabled ? 'status-enabled' : 'status-disabled'"
+              >
                 {{ store.selectedWorkflow.enabled ? 'Enabled' : 'Disabled' }}
               </span>
             </h2>
@@ -625,114 +626,115 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="editor-content">
-          <div class="form" :class="{ 'readonly': !isInEditMode }">
-            <div class="field">
-              <label>When</label>
-              <div class="segment">
-                <div class="description">
-                  This workflow will run when: <strong>{{ store.selectedWorkflow.display_name }}</strong>
-                </div>
-              </div>
-            </div>
-
-            <!-- Filters Section -->
-            <div class="field" v-if="hasAvailableFilters">
-              <label>Filters</label>
-              <div class="segment">
-                <div class="field" v-if="hasFilter('issue_type')">
-                  <label>Apply to</label>
-                  <select
-                    v-if="isInEditMode"
-                    class="form-select"
-                    v-model="store.workflowFilters.issue_type"
-                  >
-                    <option value="">Issues And Pull Requests</option>
-                    <option value="issue">Issues</option>
-                    <option value="pull_request">Pull requests</option>
-                  </select>
-                  <div v-else class="readonly-value">
-                    {{ store.workflowFilters.issue_type === 'issue' ? 'Issues' :
-                       store.workflowFilters.issue_type === 'pull_request' ? 'Pull requests' :
-                       'Issues And Pull Requests' }}
+        <!--<form class="ui form form-fetch-action" :action="props.projectLink+'/workflows/'+store.selectedWorkflow.id" method="post">-->
+          <div class="editor-content">
+            <div class="form" :class="{ 'readonly': !isInEditMode }">
+              <div class="field">
+                <label>When</label>
+                <div class="segment">
+                  <div class="description">
+                    This workflow will run when: <strong>{{ store.selectedWorkflow.display_name }}</strong>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Actions Section -->
-            <div class="field">
-              <label>Actions</label>
-              <div class="segment">
-                <div class="field" v-if="hasAction('column')">
-                  <label>Move to column</label>
-                  <select
-                    v-if="isInEditMode"
-                    class="form-select"
-                    v-model="store.workflowActions.column"
-                  >
-                    <option value="">Select column...</option>
-                    <option v-for="column in store.projectColumns" :key="column.id" :value="column.id">
-                      {{ column.title }}
-                    </option>
-                  </select>
-                  <div v-else class="readonly-value">
-                    {{ store.projectColumns.find(c => c.id === store.workflowActions.column)?.title || 'None' }}
+              <!-- Filters Section -->
+              <div class="field" v-if="hasAvailableFilters">
+                <label>Filters</label>
+                <div class="segment">
+                  <div class="field" v-if="hasFilter('issue_type')">
+                    <label>Apply to</label>
+                    <select
+                      v-if="isInEditMode"
+                      class="form-select"
+                      v-model="store.workflowFilters.issue_type"
+                    >
+                      <option value="">Issues And Pull Requests</option>
+                      <option value="issue">Issues</option>
+                      <option value="pull_request">Pull requests</option>
+                    </select>
+                    <div v-else class="readonly-value">
+                      {{ store.workflowFilters.issue_type === 'issue' ? 'Issues' :
+                        store.workflowFilters.issue_type === 'pull_request' ? 'Pull requests' :
+                        'Issues And Pull Requests' }}
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div class="field" v-if="hasAction('label')">
-                  <label>Add labels</label>
-                  <select
-                    v-if="isInEditMode"
-                    class="form-select"
-                    v-model="store.workflowActions.labels"
-                    multiple
-                  >
-                    <option value="">Select labels...</option>
-                    <option v-for="label in store.projectLabels" :key="label.id" :value="label.id">
-                      {{ label.name }}
-                    </option>
-                  </select>
-                  <div v-else class="readonly-value">
-                    {{ store.workflowActions.labels?.map(id =>
-                       store.projectLabels.find(l => l.id === id)?.name).join(', ') || 'None' }}
+              <!-- Actions Section -->
+              <div class="field">
+                <label>Actions</label>
+                <div class="segment">
+                  <div class="field" v-if="hasAction('column')">
+                    <label>Move to column</label>
+                    <select
+                      v-if="isInEditMode"
+                      class="form-select"
+                      v-model="store.workflowActions.column"
+                    >
+                      <option value="">Select column...</option>
+                      <option v-for="column in store.projectColumns" :key="column.id" :value="column.id">
+                        {{ column.title }}
+                      </option>
+                    </select>
+                    <div v-else class="readonly-value">
+                      {{ store.projectColumns.find(c => c.id === store.workflowActions.column)?.title || 'None' }}
+                    </div>
                   </div>
-                </div>
 
-                <div class="field" v-if="hasAction('close')">
-                  <div v-if="isInEditMode" class="form-check">
-                    <input type="checkbox" v-model="store.workflowActions.closeIssue" id="close-issue">
-                    <label for="close-issue">Close issue</label>
+                  <div class="field" v-if="hasAction('label')">
+                    <label>Add labels</label>
+                    <select
+                      v-if="isInEditMode"
+                      class="form-select"
+                      v-model="store.workflowActions.add_labels"
+                      multiple
+                    >
+                      <option value="">Select labels...</option>
+                      <option v-for="label in store.projectLabels" :key="label.id" :value="label.id">
+                        {{ label.name }}
+                      </option>
+                    </select>
+                    <div v-else class="readonly-value">
+                      {{ store.workflowActions.add_labels?.map(id =>
+                        store.projectLabels.find(l => l.id === id)?.name).join(', ') || 'None' }}
+                    </div>
                   </div>
-                  <div v-else class="readonly-value">
-                    <label>Close issue</label>
-                    <div>{{ store.workflowActions.closeIssue ? 'Yes' : 'No' }}</div>
+
+                  <div class="field" v-if="hasAction('close')">
+                    <div v-if="isInEditMode" class="form-check">
+                      <input type="checkbox" v-model="store.workflowActions.closeIssue" id="close-issue">
+                      <label for="close-issue">Close issue</label>
+                    </div>
+                    <div v-else class="readonly-value">
+                      <label>Close issue</label>
+                      <div>{{ store.workflowActions.closeIssue ? 'Yes' : 'No' }}</div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Fixed bottom actions (only show in edit mode) -->
-        <div v-if="isInEditMode" class="editor-actions">
-          <button class="btn btn-primary" @click="saveWorkflow" :disabled="store.saving">
-            <i class="save icon"/>
-            Save Workflow
-          </button>
-          <button
-            v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0"
-            class="btn btn-danger"
-            @click="deleteWorkflow"
-          >
-            <i class="trash icon"/>
-            Delete
-          </button>
-        </div>
+          <!-- Fixed bottom actions (only show in edit mode) -->
+          <div v-if="isInEditMode" class="editor-actions">
+            <button class="btn btn-primary" @click="saveWorkflow" :disabled="store.saving">
+              <i class="save icon"/>
+              Save Workflow
+            </button>
+            <button
+              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0"
+              class="btn btn-danger"
+              @click="deleteWorkflow"
+            >
+              <i class="trash icon"/>
+              Delete
+            </button>
+          </div>
+        <!--</form>-->
       </div>
     </div>
-
   </div>
 </template>
 

@@ -19,7 +19,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
 
     workflowActions: {
       column: '', // column ID to move to
-      labels: [], // selected label IDs
+      add_labels: [], // selected label IDs
       closeIssue: false,
     },
 
@@ -67,7 +67,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
               if (action.action_type === 'column') {
                 frontendActions.column = action.action_value;
               } else if (action.action_type === 'add_labels') {
-                frontendActions.labels.push(action.action_value);
+                frontendActions.add_labels.push(action.action_value);
               } else if (action.action_type === 'close') {
                 frontendActions.closeIssue = action.action_value === 'true';
               }
@@ -108,48 +108,22 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
         // For new workflows, use the base event type
         const eventId = store.selectedWorkflow.base_event_type || store.selectedWorkflow.event_id;
 
-        // Convert frontend data format to backend form format
-        const formData = new FormData();
-        formData.append('event_id', eventId);
+        // Convert frontend data format to backend JSON format
+        const postData = {
+          event_id: eventId,
+          filters: store.workflowFilters,
+          actions: store.workflowActions,
+        };
 
-        // Add filters as form fields
-        for (const [key, value] of Object.entries(store.workflowFilters)) {
-          if (value !== '') {
-            formData.append(`filters[${key}]`, value);
-          }
-        }
-
-        // Add actions as form fields
-        for (const [key, value] of Object.entries(store.workflowActions)) {
-          if (key === 'labels' && Array.isArray(value)) {
-            // Handle label array
-            for (const labelId of value) {
-              if (labelId !== '') {
-                formData.append(`actions[labels][]`, labelId);
-              }
-            }
-          } else if (key === 'closeIssue') {
-            // Handle boolean
-            formData.append(`actions[${key}]`, value.toString());
-          } else if (value !== '') {
-            // Handle string fields
-            formData.append(`actions[${key}]`, value);
-          }
-        }
-
-        console.log('Saving workflow with FormData');
-        console.log('URL:', `${props.projectLink}/workflows/${eventId}`);
-        // Log form data entries
-        for (const [key, value] of formData.entries()) {
-          console.log(`${key}: ${value}`);
-        }
+        // Send workflow data
+        console.info('Sending workflow data:', postData);
 
         const response = await POST(`${props.projectLink}/workflows/${eventId}`, {
-          data: formData,
+          data: postData,
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
-
-        console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -163,8 +137,8 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
         if (result.success && result.workflow) {
           // Always reload the events list to get the updated structure
           // This ensures we have both the base event and the new filtered event
-          const wasNewWorkflow = store.selectedWorkflow.id === 0 || 
-                                 store.selectedWorkflow.event_id.startsWith('new-') || 
+          const wasNewWorkflow = store.selectedWorkflow.id === 0 ||
+                                 store.selectedWorkflow.event_id.startsWith('new-') ||
                                  store.selectedWorkflow.event_id.startsWith('clone-');
 
           // Reload events from server to get the correct event structure
@@ -222,7 +196,6 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
           if (existingIndex >= 0) {
             store.workflowEvents[existingIndex].enabled = store.selectedWorkflow.enabled;
           }
-          console.log(`Workflow status updated to: ${store.selectedWorkflow.enabled ? 'enabled' : 'disabled'}`);
         } else {
           // Revert the status change on failure
           store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
@@ -260,7 +233,6 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
           if (existingIndex >= 0) {
             store.workflowEvents.splice(existingIndex, 1);
           }
-          console.log('Workflow deleted successfully');
         } else {
           alert('Failed to delete workflow');
         }

@@ -4,14 +4,17 @@
 package projects
 
 import (
+	"errors"
+	"io"
 	"net/http"
 	"strconv"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -55,6 +58,14 @@ func convertFormToFilters(formFilters map[string]string) []project_model.Workflo
 	return filters
 }
 
+func convertFiltersToMap(filters []project_model.WorkflowFilter) map[string]string {
+	filterMap := make(map[string]string)
+	for _, filter := range filters {
+		filterMap[string(filter.Type)] = filter.Value
+	}
+	return filterMap
+}
+
 // convertFormToActions converts form actions to WorkflowAction objects
 func convertFormToActions(formActions map[string]any) []project_model.WorkflowAction {
 	actions := make([]project_model.WorkflowAction, 0)
@@ -62,11 +73,14 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 	for key, value := range formActions {
 		switch key {
 		case "column":
-			if strValue, ok := value.(string); ok && strValue != "" {
-				actions = append(actions, project_model.WorkflowAction{
-					ActionType:  project_model.WorkflowActionTypeColumn,
-					ActionValue: strValue,
-				})
+			if floatValue, ok := value.(float64); ok {
+				floatValueInt := int64(floatValue)
+				if floatValueInt > 0 {
+					actions = append(actions, project_model.WorkflowAction{
+						ActionType:  project_model.WorkflowActionTypeColumn,
+						ActionValue: strconv.FormatInt(floatValueInt, 10),
+					})
+				}
 			}
 		case "add_labels":
 			if labels, ok := value.([]string); ok && len(labels) > 0 {
@@ -103,6 +117,14 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 	return actions
 }
 
+func convertActionsToMap(actions []project_model.WorkflowAction) map[string]any {
+	actionMap := make(map[string]any)
+	for _, action := range actions {
+		actionMap[string(action.ActionType)] = action.ActionValue
+	}
+	return actionMap
+}
+
 func WorkflowsEvents(ctx *context.Context) {
 	projectID := ctx.PathParamInt64("id")
 	p, err := project_model.GetProjectByID(ctx, projectID)
@@ -134,8 +156,8 @@ func WorkflowsEvents(ctx *context.Context) {
 		EventID       string                                  `json:"event_id"`
 		DisplayName   string                                  `json:"display_name"`
 		Capabilities  project_model.WorkflowEventCapabilities `json:"capabilities"`
-		Filters       []project_model.WorkflowFilter          `json:"filters"`
-		Actions       []project_model.WorkflowAction          `json:"actions"`
+		Filters       map[string]string                       `json:"filters"`
+		Actions       map[string]any                          `json:"actions"`
 		FilterSummary string                                  `json:"filter_summary"` // Human readable filter description
 		Enabled       bool                                    `json:"enabled"`
 	}
@@ -161,8 +183,8 @@ func WorkflowsEvents(ctx *context.Context) {
 					EventID:       strconv.FormatInt(wf.ID, 10),
 					DisplayName:   string(ctx.Tr(wf.WorkflowEvent.LangKey())) + filterSummary,
 					Capabilities:  capabilities[event],
-					Filters:       wf.WorkflowFilters,
-					Actions:       wf.WorkflowActions,
+					Filters:       convertFiltersToMap(wf.WorkflowFilters),
+					Actions:       convertActionsToMap(wf.WorkflowActions),
 					FilterSummary: filterSummary,
 					Enabled:       wf.Enabled,
 				})
@@ -174,8 +196,6 @@ func WorkflowsEvents(ctx *context.Context) {
 				EventID:       event.UUID(),
 				DisplayName:   string(ctx.Tr(event.LangKey())),
 				Capabilities:  capabilities[event],
-				Filters:       []project_model.WorkflowFilter{},
-				Actions:       []project_model.WorkflowAction{},
 				FilterSummary: "",
 				Enabled:       true, // Default to enabled for new workflows
 			})
@@ -354,9 +374,9 @@ func Workflows(ctx *context.Context) {
 }
 
 type WorkflowsPostForm struct {
-	EventID string            `form:"event_id" binding:"Required"`
-	Filters map[string]string `form:"filters"`
-	Actions map[string]any    `form:"actions"`
+	EventID string            `json:"event_id"`
+	Filters map[string]string `json:"filters"`
+	Actions map[string]any    `json:"actions"`
 }
 
 func WorkflowsPost(ctx *context.Context) {
@@ -379,7 +399,24 @@ func WorkflowsPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*WorkflowsPostForm)
+	// Handle both form data and JSON data
+	// Handle JSON data
+	form := &WorkflowsPostForm{}
+	content, err := io.ReadAll(ctx.Req.Body)
+	if err != nil {
+		ctx.ServerError("ReadRequestBody", err)
+		return
+	}
+	defer ctx.Req.Body.Close()
+	log.Trace("get " + string(content))
+	if err := json.Unmarshal(content, &form); err != nil {
+		ctx.ServerError("DecodeWorkflowsPostForm", err)
+		return
+	}
+	if form.EventID == "" {
+		ctx.ServerError("InvalidEventID", errors.New("EventID is required"))
+		return
+	}
 
 	// Convert form data to filters and actions
 	filters := convertFormToFilters(form.Filters)

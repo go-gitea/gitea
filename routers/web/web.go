@@ -1041,10 +1041,10 @@ func registerWebRoutes(m *web.Router) {
 			m.Group("/{id}/workflows", func() {
 				m.Get("", projects.Workflows)
 				m.Get("/{workflow_id}", projects.Workflows)
-				m.Post("/{workflow_id}", web.Bind(projects.WorkflowsPostForm{}), projects.WorkflowsPost)
+				m.Post("/{workflow_id}", projects.WorkflowsPost)
 				m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
 				m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
-			})
+			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 			m.Group("", func() { //nolint:dupl // duplicates lines 1421-1441
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
@@ -1435,7 +1435,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Group("/{id}/workflows", func() {
 			m.Get("", projects.Workflows)
 			m.Get("/{workflow_id}", projects.Workflows)
-			m.Post("/{workflow_id}", web.Bind(projects.WorkflowsPostForm{}), projects.WorkflowsPost)
+			m.Post("/{workflow_id}", projects.WorkflowsPost)
 			m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
 			m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
 		})
