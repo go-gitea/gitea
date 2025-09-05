@@ -246,7 +246,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		}
 	}
 
-	//We need the uid for repo redirect lookup
+	// We need the uid for repo redirect lookup
 	real_user, err := user_model.GetUserByID(ctx, uid)
 	if err == nil {
 		username = real_user.Name
