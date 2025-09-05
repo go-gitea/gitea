@@ -29,7 +29,7 @@ AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.8.0
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4.0
-GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.12
+GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.32.3
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
@@ -218,15 +218,19 @@ node-check:
 	$(eval MIN_NODE_VERSION_STR := $(shell grep -Eo '"node":.*[0-9.]+"' package.json | sed -n 's/.*[^0-9.]\([0-9.]*\)"/\1/p'))
 	$(eval MIN_NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(MIN_NODE_VERSION_STR)' | tr '.' ' ')))
 	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | cut -c2- | tr '.' ' ');))
-	$(eval NPM_MISSING := $(shell hash npm > /dev/null 2>&1 || echo 1))
-	@if [ "$(NODE_VERSION)" -lt "$(MIN_NODE_VERSION)" -o "$(NPM_MISSING)" = "1" ]; then \
-		echo "Gitea requires Node.js $(MIN_NODE_VERSION_STR) or greater and npm to build. You can get it at https://nodejs.org/en/download/"; \
+	$(eval PNPM_MISSING := $(shell hash pnpm > /dev/null 2>&1 || echo 1))
+	@if [ "$(NODE_VERSION)" -lt "$(MIN_NODE_VERSION)" ]; then \
+		echo "Gitea requires Node.js $(MIN_NODE_VERSION_STR) or greater to build. You can get it at https://nodejs.org/en/download/"; \
+		exit 1; \
+	fi
+	@if [ "$(PNPM_MISSING)" = "1" ]; then \
+		echo "Gitea requires pnpm to build. You can install it at https://pnpm.io/installation"; \
 		exit 1; \
 	fi
 
 .PHONY: clean-all
 clean-all: clean ## delete backend, frontend and integration files
-	rm -rf $(WEBPACK_DEST_ENTRIES) node_modules
+	rm -rf $(WEBPACK_DEST_ENTRIES) node_modules tools/node_modules
 
 .PHONY: clean
 clean: ## delete backend and integration files
@@ -334,29 +338,29 @@ lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backen
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js files
-	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
-	npx vue-tsc
+	pnpm exec eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
+	pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js files and fix issues
-	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
-	npx vue-tsc
+	pnpm exec eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
+	pnpm exec vue-tsc
 
 .PHONY: lint-css
 lint-css: node_modules ## lint css files
-	npx stylelint --color --max-warnings=0 $(STYLELINT_FILES)
+	pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES)
 
 .PHONY: lint-css-fix
 lint-css-fix: node_modules ## lint css files and fix issues
-	npx stylelint --color --max-warnings=0 $(STYLELINT_FILES) --fix
+	pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES) --fix
 
 .PHONY: lint-swagger
 lint-swagger: node_modules ## lint swagger files
-	npx spectral lint -q -F hint $(SWAGGER_SPEC)
+	pnpm exec spectral lint -q -F hint $(SWAGGER_SPEC)
 
 .PHONY: lint-md
 lint-md: node_modules ## lint markdown files
-	npx markdownlint *.md
+	pnpm exec markdownlint *.md
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
@@ -417,7 +421,7 @@ watch: ## watch everything and continuously rebuild
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules ## watch frontend files and continuously rebuild
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development npx webpack --watch --progress
+	NODE_ENV=development pnpm exec webpack --watch --progress
 
 .PHONY: watch-backend
 watch-backend: go-check ## watch backend files and continuously rebuild
@@ -433,7 +437,7 @@ test-backend: ## test backend files
 
 .PHONY: test-frontend
 test-frontend: node_modules ## test frontend files
-	npx vitest
+	pnpm exec vitest
 
 .PHONY: test-check
 test-check:
@@ -576,7 +580,7 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
 playwright: deps-frontend
-	npx playwright install $(PLAYWRIGHT_FLAGS)
+	pnpm exec playwright install $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e%
 test-e2e%: TEST_TYPE ?= e2e
@@ -839,9 +843,13 @@ deps-tools: ## install tool dependencies
 	$(GO) install $(GOPLS_MODERNIZE_PACKAGE) & \
 	wait
 
-node_modules: package-lock.json
-	npm install --no-save
+node_modules: pnpm-lock.yaml
+	pnpm install --frozen-lockfile
 	@touch node_modules
+
+tools/node_modules: tools/package.json
+	cd tools && pnpm install
+	@touch tools/node_modules
 
 .venv: uv.lock
 	uv sync
@@ -852,16 +860,16 @@ update: update-js update-py ## update js and py dependencies
 
 .PHONY: update-js
 update-js: node-check | node_modules ## update js dependencies
-	npx updates -u -f package.json
-	rm -rf node_modules package-lock.json
-	npm install --package-lock
-	npx nolyfill install
-	npm install --package-lock
+	pnpm exec updates -u -f package.json
+	rm -rf node_modules pnpm-lock.yaml
+	pnpm install
+	pnpm exec nolyfill install
+	pnpm install
 	@touch node_modules
 
 .PHONY: update-py
 update-py: node-check | node_modules ## update py dependencies
-	npx updates -u -f pyproject.toml
+	pnpm exec updates -u -f pyproject.toml
 	rm -rf .venv uv.lock
 	uv sync
 	@touch .venv
@@ -869,11 +877,11 @@ update-py: node-check | node_modules ## update py dependencies
 .PHONY: webpack
 webpack: $(WEBPACK_DEST) ## build webpack files
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
 	@$(MAKE) -s node-check node_modules
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	@echo "Running webpack..."
-	@BROWSERSLIST_IGNORE_OLD_DATA=true npx webpack
+	@BROWSERSLIST_IGNORE_OLD_DATA=true pnpm exec webpack
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
@@ -893,11 +901,11 @@ svg-check: svg
 
 .PHONY: lockfile-check
 lockfile-check:
-	npm install --package-lock-only
-	@diff=$$(git diff --color=always package-lock.json); \
+	pnpm install --frozen-lockfile
+	@diff=$$(git diff --color=always pnpm-lock.yaml); \
 	if [ -n "$$diff" ]; then \
-		echo "package-lock.json is inconsistent with package.json"; \
-		echo "Please run 'npm install --package-lock-only' and commit the result:"; \
+		echo "pnpm-lock.yaml is inconsistent with package.json"; \
+		echo "Please run 'pnpm install --frozen-lockfile' and commit the result:"; \
 		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
@@ -917,9 +925,8 @@ generate-gitignore: ## update gitignore files
 	$(GO) run build/generate-gitignores.go
 
 .PHONY: generate-images
-generate-images: | node_modules
-	npm install --no-save fabric@6 imagemin-zopfli@7
-	node tools/generate-images.js $(TAGS)
+generate-images: | node_modules tools/node_modules ## generate images (requires cairo development packages)
+	cd tools && node generate-images.js $(TAGS)
 
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage

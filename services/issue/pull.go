@@ -11,26 +11,28 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func getMergeBase(repo *git.Repository, pr *issues_model.PullRequest, baseBranch, headBranch string) (string, error) {
+func getMergeBase(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pr *issues_model.PullRequest, baseBranch, headBranch string) (string, error) {
 	// Add a temporary remote
 	tmpRemote := fmt.Sprintf("mergebase-%d-%d", pr.ID, time.Now().UnixNano())
-	if err := repo.AddRemote(tmpRemote, repo.Path, false); err != nil {
-		return "", fmt.Errorf("AddRemote: %w", err)
+	if err := gitrepo.GitRemoteAdd(ctx, repo, tmpRemote, gitRepo.Path); err != nil {
+		return "", fmt.Errorf("GitRemoteAdd: %w", err)
 	}
 	defer func() {
-		if err := repo.RemoveRemote(tmpRemote); err != nil {
-			log.Error("getMergeBase: RemoveRemote: %v", err)
+		if err := gitrepo.GitRemoteRemove(graceful.GetManager().ShutdownContext(), repo, tmpRemote); err != nil {
+			log.Error("getMergeBase: GitRemoteRemove: %v", err)
 		}
 	}()
 
-	mergeBase, _, err := repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
+	mergeBase, _, err := gitRepo.GetMergeBase(tmpRemote, baseBranch, headBranch)
 	return mergeBase, err
 }
 
@@ -97,7 +99,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	// get the mergebase
-	mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
+	mergeBase, err := getMergeBase(ctx, pr.BaseRepo, repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
 	if err != nil {
 		return nil, err
 	}
