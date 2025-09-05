@@ -6807,8 +6807,8 @@
         "tags": [
           "repository"
         ],
-        "summary": "Update a branch",
-        "operationId": "repoUpdateBranch",
+        "summary": "Rename a branch",
+        "operationId": "repoRenameBranch",
         "parameters": [
           {
             "type": "string",
@@ -6835,7 +6835,7 @@
             "name": "body",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/UpdateBranchRepoOption"
+              "$ref": "#/definitions/RenameBranchRepoOption"
             }
           }
         ],
@@ -27163,6 +27163,22 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "RenameBranchRepoOption": {
+      "description": "RenameBranchRepoOption options when renaming a branch in a repository",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "New branch name",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "RenameOrgOption": {
       "description": "RenameOrgOption options when renaming an organization",
       "type": "object",
@@ -28089,22 +28105,6 @@
             "format": "int64"
           },
           "x-go-name": "IDs"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "UpdateBranchRepoOption": {
-      "description": "UpdateBranchRepoOption options when updating a branch in a repository",
-      "type": "object",
-      "required": [
-        "name"
-      ],
-      "properties": {
-        "name": {
-          "description": "New branch name",
-          "type": "string",
-          "uniqueItems": true,
-          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
