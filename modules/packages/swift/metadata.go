@@ -185,11 +185,17 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 		p.Metadata.Description = ssc.Description
 		p.Metadata.Keywords = ssc.Keywords
 		p.Metadata.License = ssc.License
-		p.Metadata.Author = Person{
+		author := Person{
+			Name:       ssc.Author.Name,
 			GivenName:  ssc.Author.GivenName,
 			MiddleName: ssc.Author.MiddleName,
 			FamilyName: ssc.Author.FamilyName,
 		}
+		// If Name is not provided but individual name components are, generate it
+		if author.Name == "" && (author.GivenName != "" || author.MiddleName != "" || author.FamilyName != "") {
+			author.Name = author.String()
+		}
+		p.Metadata.Author = author
 
 		p.Metadata.RepositoryURL = ssc.CodeRepository
 		if !validation.IsValidURL(p.Metadata.RepositoryURL) {
