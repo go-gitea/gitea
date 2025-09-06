@@ -22818,6 +22818,12 @@
           },
           "x-go-name": "Events"
         },
+        "meta_settings": {
+          "description": "Webhook metadata settings including payload optimization",
+          "type": "object",
+          "additionalProperties": {},
+          "x-go-name": "MetaSettings"
+        },
         "type": {
           "type": "string",
           "enum": [
@@ -23979,6 +23985,12 @@
             "type": "string"
           },
           "x-go-name": "Events"
+        },
+        "meta_settings": {
+          "description": "Webhook metadata settings including payload optimization",
+          "type": "object",
+          "additionalProperties": {},
+          "x-go-name": "MetaSettings"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -25254,6 +25266,12 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "meta_settings": {
+          "description": "MetaSettings webhook metadata settings including payload optimization",
+          "type": "object",
+          "additionalProperties": {},
+          "x-go-name": "MetaSettings"
         },
         "type": {
           "type": "string",
