@@ -487,6 +487,8 @@ func TestIssueRedirect(t *testing.T) {
 	req = NewRequest(t, "GET", path.Join("org26", "repo_external_tracker_alpha", "issues", "1"))
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "/"+path.Join("org26", "repo_external_tracker_alpha", "pulls", "1"), test.RedirectURL(resp))
+
+	// FIXME: add a test to check that the PR redirection works if the issue unit is disabled
 }
 
 func TestSearchIssues(t *testing.T) {
