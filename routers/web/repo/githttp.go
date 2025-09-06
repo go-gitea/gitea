@@ -118,9 +118,9 @@ func httpBase(ctx *context.Context) *serviceHandler {
 		repoExist = false
 	}
 
-	// Don't allow pushing if the repo is archived
-	if repoExist && repo.IsArchived && !isPull {
-		ctx.PlainText(http.StatusForbidden, "This repo is archived. You can view files and clone it, but cannot push or open issues/pull-requests.")
+	// Don't allow pushing if the repo or its organization is archived
+	if repoExist && repo.IsEffectivelyArchived(ctx) && !isPull {
+		ctx.PlainText(http.StatusForbidden, "This repository is archived. You can view files and clone it, but cannot push or open issues/pull-requests.")
 		return nil
 	}
 

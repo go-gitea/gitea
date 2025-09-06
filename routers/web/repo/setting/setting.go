@@ -226,7 +226,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 func handleSettingsPostMirror(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
-	if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsArchived {
+	if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsEffectivelyArchived(ctx) {
 		ctx.NotFound(nil)
 		return
 	}
@@ -322,7 +322,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 
 func handleSettingsPostMirrorSync(ctx *context.Context) {
 	repo := ctx.Repo.Repository
-	if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsArchived {
+	if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsEffectivelyArchived(ctx) {
 		ctx.NotFound(nil)
 		return
 	}

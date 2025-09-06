@@ -15,6 +15,7 @@ type Organization struct {
 	Location                  string `json:"location"`
 	Visibility                string `json:"visibility"`
 	RepoAdminChangeTeamAccess bool   `json:"repo_admin_change_team_access"`
+	Archived                  bool   `json:"archived"`
 	// username of the organization
 	// deprecated
 	UserName string `json:"username"`
@@ -58,6 +59,7 @@ type EditOrgOption struct {
 	// enum: public,limited,private
 	Visibility                string `json:"visibility" binding:"In(,public,limited,private)"`
 	RepoAdminChangeTeamAccess *bool  `json:"repo_admin_change_team_access"`
+	Archived                  *bool  `json:"archived"`
 }
 
 // RenameOrgOption options when renaming an organization
