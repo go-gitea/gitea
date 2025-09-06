@@ -2,8 +2,8 @@
   "type": "module",
   "packageManager": "pnpm@10.0.0",
   "engines": {
-    "node": ">=22.18.0",
-    "pnpm": ">=10.0.0"
+    "node": ">= 22.18.0",
+    "pnpm": ">= 10.0.0"
   },
   "dependencies": {
     "@citation-js/core": "0.7.18",
