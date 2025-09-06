@@ -1,0 +1,11 @@
+{{/* Delete environment dialog */}}
+<div class="ui g-modal-confirm modal" id="delete-environment">
+	<div class="header">
+		{{ctx.Locale.Tr "actions.delete_environment"}}
+	</div>
+	<div class="content">
+		<p>{{ctx.Locale.Tr "actions.delete_environment_desc"}}</p>
+		<p>{{ctx.Locale.Tr "actions.delete_environment_confirm"}}</p>
+	</div>
+	{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+</div>

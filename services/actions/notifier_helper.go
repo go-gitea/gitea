@@ -383,8 +383,8 @@ func handleWorkflows(
 			}
 		}
 
-		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
-			log.Error("InsertRun: %v", err)
+		if err := actions_model.InsertRunWithDeployments(ctx, run, jobs, dwf.Content); err != nil {
+			log.Error("InsertRunWithDeployments: %v", err)
 			continue
 		}
 

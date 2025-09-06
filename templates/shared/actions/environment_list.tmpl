@@ -1,0 +1,56 @@
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "actions.environments"}}
+	<div class="ui right">
+		<button class="ui primary tiny button show-modal"
+			data-modal="#add-environment-modal"
+			data-modal-form.action="{{.Link}}"
+			data-modal-header="{{ctx.Locale.Tr "actions.add_environment"}}"
+			data-modal-environment-name.value=""
+			data-modal-environment-name.read-only="false"
+			data-modal-environment-description=""
+		>
+			{{ctx.Locale.Tr "actions.add_environment"}}
+		</button>
+	</div>
+</h4>
+<div class="ui attached segment">
+	{{if .Environments}}
+	<div class="flex-list">
+		{{range .Environments}}
+		<div class="flex-item tw-items-center">
+			<div class="flex-item-main">
+				<div class="flex-item-title">
+					{{.Name}}
+				</div>
+				<div class="flex-item-body">
+					{{if .Description}}{{.Description}}{{else}}-{{end}}
+				</div>
+				{{if .ExternalURL}}
+				<div class="flex-item-body">
+					<a href="{{.ExternalURL}}" target="_blank" rel="noopener noreferrer">{{.ExternalURL}}</a>
+				</div>
+				{{end}}
+			</div>
+			<div class="flex-item-trailing">
+				<button class="ui red tiny button delete-button"
+					data-modal-id="delete-environment"
+					data-url="{{$.Link}}"
+					data-id="{{.ID}}"
+					data-name="{{.Name}}"
+				>
+					{{ctx.Locale.Tr "remove"}}
+				</button>
+			</div>
+		</div>
+		{{end}}
+	</div>
+	{{else}}
+		<div class="ui divider"></div>
+		<div class="center">
+			{{ctx.Locale.Tr "actions.no_environments"}}
+		</div>
+	{{end}}
+</div>
+
+{{template "shared/actions/environment_modal" .}}
+{{template "shared/actions/environment_delete_modal" .}}

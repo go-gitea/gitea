@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -178,6 +179,25 @@ func prepareHomeSidebarLatestRelease(ctx *context.Context) {
 			return
 		}
 		ctx.Data["LatestRelease"] = release
+	}
+}
+
+func prepareHomeSidebarEnvironments(ctx *context.Context) {
+	if !setting.Actions.Enabled || !ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeActions) {
+		return
+	}
+
+	environments, err := actions_model.FindEnvironments(ctx, actions_model.FindEnvironmentsOptions{
+		RepoID: ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.ServerError("FindEnvironments", err)
+		return
+	}
+
+	if len(environments) > 0 {
+		ctx.Data["Environments"] = environments
+		ctx.Data["NumEnvironments"] = len(environments)
 	}
 }
 
@@ -437,6 +457,7 @@ func Home(ctx *context.Context) {
 			prepareHomeSidebarCitationFile(entry),
 			prepareHomeSidebarLanguageStats,
 			prepareHomeSidebarLatestRelease,
+			prepareHomeSidebarEnvironments,
 		)
 	}
 
