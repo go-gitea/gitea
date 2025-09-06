@@ -17,7 +17,7 @@ make clean build
 ### 运行所有任务
 
 ```
-act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" --var ACT_EXEC=true -i catthehacker/ubuntu:runner-latest
 ```
 
 警告:由于在此文件中定义了许多任务，因此此操作将花费太多的CPU和内存来运行。所以不建议这样做。
@@ -25,12 +25,12 @@ act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --
 ### 运行单个任务
 
 ```SHELL
-act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -j <job_name>
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" --var ACT_EXEC=true -i catthehacker/ubuntu:runner-latest -j <job_name>
 ```
 
 您可以通过以下方式列出所有任务名称:
 ```SHELL
-act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -l
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" --var ACT_EXEC=true -i catthehacker/ubuntu:runner-latest -l
 ```
 
 ## 如何使用 sqlite 数据库进行集成测试

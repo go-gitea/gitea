@@ -23,7 +23,7 @@ npx playwright install-deps
 
 ## Run all tests via local act_runner
 ```
-act_runner exec -W ./.github/workflows/pull-e2e-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest
+act_runner exec -W ./.github/workflows/pull-e2e-tests.yml --event=pull_request --default-actions-url="https://github.com" --var ACT_EXEC=true -i catthehacker/ubuntu:runner-latest
 ```
 
 ## Run sqlite e2e tests
