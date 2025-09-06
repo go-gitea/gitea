@@ -96,7 +96,7 @@ func validateGitDiffTreeArguments(gitRepo *git.Repository, useMergeBase bool, ba
 			return false, objectFormat.EmptyTree().String(), headCommitID, nil
 		}
 
-		baseCommit, err := headCommit.Parent(0)
+		baseCommit, err := gitRepo.ParentCommit(headCommit, 0)
 		if err != nil {
 			return false, "", "", fmt.Errorf("baseSha is '', attempted to use parent of commit %s, got error: %v", headCommit.ID.String(), err)
 		}

@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/languagestats"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code"
@@ -62,7 +63,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 	}
 
 	language, _ := languagestats.GetFileLanguage(ctx, gitRepo, opts.CommitID, opts.FilePath)
-	blob, err := commit.GetBlobByPath(opts.FilePath)
+	blob, err := git.NewTree(gitRepo, commit.TreeID).GetBlobByPath(opts.FilePath)
 	if err != nil {
 		return "", err
 	}

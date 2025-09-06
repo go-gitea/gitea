@@ -71,7 +71,7 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 		if err != nil {
 			return "", "", err
 		}
-		templateContent, err := commit.GetFileContent(templateFilepath, setting.Repository.PullRequest.DefaultMergeMessageSize)
+		templateContent, err := git.NewTree(baseGitRepo, commit.TreeID).GetFileContent(templateFilepath, setting.Repository.PullRequest.DefaultMergeMessageSize)
 		if err != nil {
 			if !git.IsErrNotExist(err) {
 				return "", "", err

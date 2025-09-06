@@ -91,7 +91,8 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 
 	// get workflow entry from runTargetCommit
-	_, entries, err := actions.ListWorkflows(runTargetCommit)
+	tree := git.NewTree(gitRepo, runTargetCommit.TreeID)
+	_, entries, err := actions.ListWorkflows(tree)
 	if err != nil {
 		return err
 	}

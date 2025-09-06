@@ -91,11 +91,11 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 			Stdout: stdoutWriter,
 			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stdoutWriter.Close()
-				commit, err := git.CommitFromReader(repo, commitID, stdoutReader)
+				commit, err := git.CommitFromReader(commitID, stdoutReader)
 				if err != nil {
 					return err
 				}
-				verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
+				verification := asymkey_service.ParseCommitWithSignature(ctx, repo, commit)
 				if !verification.Verified {
 					cancel()
 					return &errUnverifiedCommit{
