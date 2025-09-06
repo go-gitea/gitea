@@ -2,7 +2,7 @@
   "type": "module",
   "packageManager": "pnpm@10.0.0",
   "engines": {
-    "node": ">= 20.0.0",
+    "node": ">=22.18.0",
     "pnpm": ">=10.0.0"
   },
   "dependencies": {
@@ -31,7 +31,6 @@
     "dropzone": "6.0.0-beta.2",
     "easymde": "2.20.0",
     "esbuild-loader": "4.3.0",
-    "fast-glob": "3.3.3",
     "htmx.org": "2.0.6",
     "idiomorph": "0.7.3",
     "jquery": "3.7.1",
@@ -110,7 +109,6 @@
     "stylelint-config-recommended": "17.0.0",
     "stylelint-declaration-block-no-ignored-properties": "2.8.0",
     "stylelint-declaration-strict-value": "1.10.11",
-    "stylelint-define-config": "16.22.0",
     "stylelint-value-no-unknown-custom-properties": "6.0.1",
     "svgo": "4.0.0",
     "type-fest": "4.41.0",
