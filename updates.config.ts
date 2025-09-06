@@ -1,3 +1,5 @@
+import type {Config} from 'updates';
+
 export default {
   exclude: [
     '@mcaptcha/vanilla-glue', // breaking changes in rc versions need to be handled
@@ -11,4 +13,4 @@ export default {
     'eslint-plugin-vitest', // need to migrate to eslint flat config first
     'tailwindcss', // need to migrate
   ],
-};
+} satisfies Config;
