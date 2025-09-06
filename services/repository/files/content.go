@@ -126,7 +126,6 @@ func GetFileContents(ctx context.Context, repo *repo_model.Repository, gitRepo *
 }
 
 func getFileContentsByEntryInternal(_ context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, entry *git.TreeEntry, opts GetContentsOrListOptions) (*api.ContentsResponse, error) {
-	refType := refCommit.RefName.RefType()
 	commit := refCommit.Commit
 	selfURL, err := url.Parse(repo.APIURL() + "/contents/" + util.PathEscapeSegments(opts.TreePath) + "?ref=" + url.QueryEscape(refCommit.InputRef))
 	if err != nil {
@@ -147,11 +146,6 @@ func getFileContentsByEntryInternal(_ context.Context, repo *repo_model.Reposito
 	}
 
 	if opts.IncludeCommitMetadata || opts.IncludeCommitMessage {
-		err = gitRepo.AddLastCommitCache(repo.GetCommitsCountCacheKey(refCommit.InputRef, refType != git.RefTypeCommit), repo.FullName(), refCommit.CommitID)
-		if err != nil {
-			return nil, err
-		}
-
 		lastCommit, err := refCommit.Commit.GetCommitByPath(opts.TreePath)
 		if err != nil {
 			return nil, err
