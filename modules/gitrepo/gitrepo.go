@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
+	"os"
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/git"
@@ -85,4 +87,13 @@ func RenameRepository(ctx context.Context, repo, newRepo Repository) error {
 
 func InitRepository(ctx context.Context, repo Repository, objectFormatName string) error {
 	return git.InitRepository(ctx, repoPath(repo), true, objectFormatName)
+}
+
+func UpdateServerInfo(ctx context.Context, repo Repository) error {
+	_, _, err := git.NewCommand("update-server-info").RunStdBytes(ctx, &git.RunOpts{Dir: repoPath(repo)})
+	return err
+}
+
+func GetRepoFS(repo Repository) fs.FS {
+	return os.DirFS(repoPath(repo))
 }

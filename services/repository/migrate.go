@@ -27,22 +27,23 @@ import (
 )
 
 func cloneWiki(ctx context.Context, u *user_model.User, opts migration.MigrateOptions, migrateTimeout time.Duration) (string, error) {
-	wikiPath := repo_model.WikiPath(u.Name, opts.RepoName)
 	wikiRemotePath := repo_module.WikiRemoteURL(ctx, opts.CloneAddr)
 	if wikiRemotePath == "" {
 		return "", nil
 	}
 
-	if err := util.RemoveAll(wikiPath); err != nil {
-		return "", fmt.Errorf("failed to remove existing wiki dir %q, err: %w", wikiPath, err)
+	storageRepo := repo_model.StorageRepo(repo_model.RelativeWikiPath(u.Name, opts.RepoName))
+
+	if err := gitrepo.DeleteRepository(ctx, storageRepo); err != nil {
+		return "", fmt.Errorf("failed to remove existing wiki dir %q, err: %w", storageRepo.RelativePath(), err)
 	}
 
 	cleanIncompleteWikiPath := func() {
-		if err := util.RemoveAll(wikiPath); err != nil {
-			log.Error("Failed to remove incomplete wiki dir %q, err: %v", wikiPath, err)
+		if err := gitrepo.DeleteRepository(ctx, storageRepo); err != nil {
+			log.Error("Failed to remove incomplete wiki dir %q, err: %v", storageRepo.RelativePath(), err)
 		}
 	}
-	if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
+	if err := gitrepo.CloneIn(ctx, storageRepo, wikiRemotePath, git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
@@ -53,15 +54,15 @@ func cloneWiki(ctx context.Context, u *user_model.User, opts migration.MigrateOp
 		return "", err
 	}
 
-	if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
+	if err := gitrepo.WriteCommitGraph(ctx, storageRepo); err != nil {
 		cleanIncompleteWikiPath()
 		return "", err
 	}
 
-	defaultBranch, err := git.GetDefaultBranch(ctx, wikiPath)
+	defaultBranch, err := gitrepo.GetDefaultBranch(ctx, storageRepo)
 	if err != nil {
 		cleanIncompleteWikiPath()
-		return "", fmt.Errorf("failed to get wiki repo default branch for %q, err: %w", wikiPath, err)
+		return "", fmt.Errorf("failed to get wiki repo default branch for %q, err: %w", storageRepo.RelativePath(), err)
 	}
 
 	return defaultBranch, nil
