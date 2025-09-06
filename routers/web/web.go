@@ -1225,10 +1225,11 @@ func registerWebRoutes(m *web.Router) {
 	// end "/{username}/{reponame}": view milestone, label, issue, pull, etc
 
 	m.Group("/{username}/{reponame}/{type:issues}", func() {
+		// these handlers also check unit permissions internally
 		m.Get("", repo.Issues)
-		m.Get("/{index}", repo.ViewIssue)
+		m.Get("/{index}", repo.ViewIssue) // also do pull-request redirection (".../issues/{PR-number}" -> ".../pulls/{PR-number}")
 	}, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests, unit.TypeExternalTracker))
-	// end "/{username}/{reponame}": issue/pull list, issue/pull view, external tracker
+	// end "/{username}/{reponame}": issue list, issue  view, external tracker
 
 	m.Group("/{username}/{reponame}", func() { // edit issues, pulls, labels, milestones, etc
 		m.Group("/issues", func() {
