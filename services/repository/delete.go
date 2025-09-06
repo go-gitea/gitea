@@ -51,15 +51,8 @@ func deleteDBRepository(ctx context.Context, repoID int64) error {
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
 func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams ...bool) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
-
 	repo := &repo_model.Repository{}
-	has, err := sess.ID(repoID).Get(repo)
+	has, err := db.GetEngine(ctx).ID(repoID).Get(repo)
 	if err != nil {
 		return err
 	} else if !has {
@@ -82,221 +75,215 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		return fmt.Errorf("list actions artifacts of repo %v: %w", repoID, err)
 	}
 
-	// In case owner is a organization, we have to change repo specific teams
-	// if ignoreOrgTeams is not true
-	var org *user_model.User
-	if len(ignoreOrgTeams) == 0 || !ignoreOrgTeams[0] {
-		if org, err = user_model.GetUserByID(ctx, repo.OwnerID); err != nil {
-			return err
-		}
-	}
+	var needRewriteKeysFile bool
+	var archivePaths []string
+	var lfsPaths []string
 
-	// Delete Deploy Keys
-	deleted, err := asymkey_service.DeleteRepoDeployKeys(ctx, repoID)
-	if err != nil {
-		return err
-	}
-	needRewriteKeysFile := deleted > 0
-
-	if err := deleteDBRepository(ctx, repoID); err != nil {
-		return err
-	}
-
-	if org != nil && org.IsOrganization() {
-		teams, err := organization.FindOrgTeams(ctx, org.ID)
-		if err != nil {
-			return err
-		}
-		for _, t := range teams {
-			if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repoID) {
-				continue
-			} else if err = removeRepositoryFromTeam(ctx, t, repo, false); err != nil {
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		// In case owner is a organization, we have to change repo specific teams
+		// if ignoreOrgTeams is not true
+		var org *user_model.User
+		if len(ignoreOrgTeams) == 0 || !ignoreOrgTeams[0] {
+			if org, err = user_model.GetUserByID(ctx, repo.OwnerID); err != nil {
 				return err
 			}
 		}
-	}
 
-	attachments := make([]*repo_model.Attachment, 0, 20)
-	if err = sess.Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
-		Where("`release`.repo_id = ?", repoID).
-		Find(&attachments); err != nil {
-		return err
-	}
-	releaseAttachments := make([]string, 0, len(attachments))
-	for i := 0; i < len(attachments); i++ {
-		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
-	}
-
-	if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
-		return err
-	}
-
-	if _, err := db.GetEngine(ctx).In("hook_id", builder.Select("id").From("webhook").Where(builder.Eq{"webhook.repo_id": repo.ID})).
-		Delete(&webhook.HookTask{}); err != nil {
-		return err
-	}
-
-	// CleanupEphemeralRunnersByPickedTaskOfRepo deletes ephemeral global/org/user that have started any task of this repo
-	// The cannot pick a second task hardening for ephemeral runners expect that task objects remain available until runner deletion
-	// This method will delete affected ephemeral global/org/user runners
-	// &actions_model.ActionRunner{RepoID: repoID} does only handle ephemeral repository runners
-	if err := actions_service.CleanupEphemeralRunnersByPickedTaskOfRepo(ctx, repoID); err != nil {
-		return fmt.Errorf("cleanupEphemeralRunners: %w", err)
-	}
-
-	if err := db.DeleteBeans(ctx,
-		&access_model.Access{RepoID: repo.ID},
-		&activities_model.Action{RepoID: repo.ID},
-		&repo_model.Collaboration{RepoID: repoID},
-		&issues_model.Comment{RefRepoID: repoID},
-		&git_model.CommitStatus{RepoID: repoID},
-		&git_model.Branch{RepoID: repoID},
-		&git_model.LFSLock{RepoID: repoID},
-		&repo_model.LanguageStat{RepoID: repoID},
-		&repo_model.RepoLicense{RepoID: repoID},
-		&issues_model.Milestone{RepoID: repoID},
-		&repo_model.Mirror{RepoID: repoID},
-		&activities_model.Notification{RepoID: repoID},
-		&git_model.ProtectedBranch{RepoID: repoID},
-		&git_model.ProtectedTag{RepoID: repoID},
-		&repo_model.PushMirror{RepoID: repoID},
-		&repo_model.Release{RepoID: repoID},
-		&repo_model.RepoIndexerStatus{RepoID: repoID},
-		&repo_model.Redirect{RedirectRepoID: repoID},
-		&repo_model.RepoUnit{RepoID: repoID},
-		&repo_model.Star{RepoID: repoID},
-		&admin_model.Task{RepoID: repoID},
-		&repo_model.Watch{RepoID: repoID},
-		&webhook.Webhook{RepoID: repoID},
-		&secret_model.Secret{RepoID: repoID},
-		&actions_model.ActionTaskStep{RepoID: repoID},
-		&actions_model.ActionTask{RepoID: repoID},
-		&actions_model.ActionRunJob{RepoID: repoID},
-		&actions_model.ActionRun{RepoID: repoID},
-		&actions_model.ActionRunner{RepoID: repoID},
-		&actions_model.ActionScheduleSpec{RepoID: repoID},
-		&actions_model.ActionSchedule{RepoID: repoID},
-		&actions_model.ActionArtifact{RepoID: repoID},
-		&actions_model.ActionRunnerToken{RepoID: repoID},
-		&issues_model.IssuePin{RepoID: repoID},
-	); err != nil {
-		return fmt.Errorf("deleteBeans: %w", err)
-	}
-
-	// Delete Labels and related objects
-	if err := issues_model.DeleteLabelsByRepoID(ctx, repoID); err != nil {
-		return err
-	}
-
-	// Delete Pulls and related objects
-	if err := issues_model.DeletePullsByBaseRepoID(ctx, repoID); err != nil {
-		return err
-	}
-
-	// Delete Issues and related objects
-	var attachmentPaths []string
-	if attachmentPaths, err = issue_service.DeleteIssuesByRepoID(ctx, repoID); err != nil {
-		return err
-	}
-
-	// Delete issue index
-	if err := db.DeleteResourceIndex(ctx, "issue_index", repoID); err != nil {
-		return err
-	}
-
-	if repo.IsFork {
-		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
-			return fmt.Errorf("decrease fork count: %w", err)
-		}
-	}
-
-	if _, err := db.Exec(ctx, "UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", repo.OwnerID); err != nil {
-		return err
-	}
-
-	if len(repo.Topics) > 0 {
-		if err := repo_model.RemoveTopicsFromRepo(ctx, repo.ID); err != nil {
-			return err
-		}
-	}
-
-	if err := project_model.DeleteProjectByRepoID(ctx, repoID); err != nil {
-		return fmt.Errorf("unable to delete projects for repo[%d]: %w", repoID, err)
-	}
-
-	// Remove LFS objects
-	var lfsObjects []*git_model.LFSMetaObject
-	if err = sess.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
-		return err
-	}
-
-	lfsPaths := make([]string, 0, len(lfsObjects))
-	for _, v := range lfsObjects {
-		count, err := db.CountByBean(ctx, &git_model.LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
+		// Delete Deploy Keys
+		deleted, err := asymkey_service.DeleteRepoDeployKeys(ctx, repoID)
 		if err != nil {
 			return err
 		}
-		if count > 1 {
-			continue
+		needRewriteKeysFile = deleted > 0
+
+		if err := deleteDBRepository(ctx, repoID); err != nil {
+			return err
 		}
 
-		lfsPaths = append(lfsPaths, v.RelativePath())
-	}
-
-	if _, err := db.DeleteByBean(ctx, &git_model.LFSMetaObject{RepositoryID: repoID}); err != nil {
-		return err
-	}
-
-	// Remove archives
-	var archives []*repo_model.RepoArchiver
-	if err = sess.Where("repo_id=?", repoID).Find(&archives); err != nil {
-		return err
-	}
-
-	archivePaths := make([]string, 0, len(archives))
-	for _, v := range archives {
-		archivePaths = append(archivePaths, v.RelativePath())
-	}
-
-	if _, err := db.DeleteByBean(ctx, &repo_model.RepoArchiver{RepoID: repoID}); err != nil {
-		return err
-	}
-
-	if repo.NumForks > 0 {
-		if _, err = sess.Exec("UPDATE `repository` SET fork_id=0,is_fork=? WHERE fork_id=?", false, repo.ID); err != nil {
-			log.Error("reset 'fork_id' and 'is_fork': %v", err)
+		if org != nil && org.IsOrganization() {
+			teams, err := organization.FindOrgTeams(ctx, org.ID)
+			if err != nil {
+				return err
+			}
+			for _, t := range teams {
+				if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repoID) {
+					continue
+				} else if err = removeRepositoryFromTeam(ctx, t, repo, false); err != nil {
+					return err
+				}
+			}
 		}
-	}
 
-	// Get all attachments with both issue_id and release_id are zero
-	var newAttachments []*repo_model.Attachment
-	if err := sess.Where(builder.Eq{
-		"repo_id":    repo.ID,
-		"issue_id":   0,
-		"release_id": 0,
-	}).Find(&newAttachments); err != nil {
+		releaseAttachments := make([]*repo_model.Attachment, 0, 20)
+		// some attachments have release_id but repo_id = 0
+		if err = db.GetEngine(ctx).Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
+			Where("`release`.repo_id = ?", repoID).
+			Find(&releaseAttachments); err != nil {
+			return err
+		}
+
+		if err := repo_model.DeleteAttachments(ctx, releaseAttachments); err != nil {
+			return fmt.Errorf("delete release attachments: %w", err)
+		}
+
+		if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
+			return err
+		}
+
+		if _, err := db.GetEngine(ctx).In("hook_id", builder.Select("id").From("webhook").Where(builder.Eq{"webhook.repo_id": repo.ID})).
+			Delete(&webhook.HookTask{}); err != nil {
+			return err
+		}
+
+		// CleanupEphemeralRunnersByPickedTaskOfRepo deletes ephemeral global/org/user that have started any task of this repo
+		// The cannot pick a second task hardening for ephemeral runners expect that task objects remain available until runner deletion
+		// This method will delete affected ephemeral global/org/user runners
+		// &actions_model.ActionRunner{RepoID: repoID} does only handle ephemeral repository runners
+		if err := actions_service.CleanupEphemeralRunnersByPickedTaskOfRepo(ctx, repoID); err != nil {
+			return fmt.Errorf("cleanupEphemeralRunners: %w", err)
+		}
+
+		if err := db.DeleteBeans(ctx,
+			&access_model.Access{RepoID: repo.ID},
+			&activities_model.Action{RepoID: repo.ID},
+			&repo_model.Collaboration{RepoID: repoID},
+			&issues_model.Comment{RefRepoID: repoID},
+			&git_model.CommitStatus{RepoID: repoID},
+			&git_model.Branch{RepoID: repoID},
+			&git_model.LFSLock{RepoID: repoID},
+			&repo_model.LanguageStat{RepoID: repoID},
+			&repo_model.RepoLicense{RepoID: repoID},
+			&issues_model.Milestone{RepoID: repoID},
+			&repo_model.Mirror{RepoID: repoID},
+			&activities_model.Notification{RepoID: repoID},
+			&git_model.ProtectedBranch{RepoID: repoID},
+			&git_model.ProtectedTag{RepoID: repoID},
+			&repo_model.PushMirror{RepoID: repoID},
+			&repo_model.Release{RepoID: repoID},
+			&repo_model.RepoIndexerStatus{RepoID: repoID},
+			&repo_model.Redirect{RedirectRepoID: repoID},
+			&repo_model.RepoUnit{RepoID: repoID},
+			&repo_model.Star{RepoID: repoID},
+			&admin_model.Task{RepoID: repoID},
+			&repo_model.Watch{RepoID: repoID},
+			&webhook.Webhook{RepoID: repoID},
+			&secret_model.Secret{RepoID: repoID},
+			&actions_model.ActionTaskStep{RepoID: repoID},
+			&actions_model.ActionTask{RepoID: repoID},
+			&actions_model.ActionRunJob{RepoID: repoID},
+			&actions_model.ActionRun{RepoID: repoID},
+			&actions_model.ActionRunner{RepoID: repoID},
+			&actions_model.ActionScheduleSpec{RepoID: repoID},
+			&actions_model.ActionSchedule{RepoID: repoID},
+			&actions_model.ActionArtifact{RepoID: repoID},
+			&actions_model.ActionRunnerToken{RepoID: repoID},
+			&issues_model.IssuePin{RepoID: repoID},
+		); err != nil {
+			return fmt.Errorf("deleteBeans: %w", err)
+		}
+
+		// Delete Labels and related objects
+		if err := issues_model.DeleteLabelsByRepoID(ctx, repoID); err != nil {
+			return err
+		}
+
+		// Delete Pulls and related objects
+		if err := issues_model.DeletePullsByBaseRepoID(ctx, repoID); err != nil {
+			return err
+		}
+
+		// Delete Issues and related objects
+		// attachments will be deleted later with repo_id, so we don't need to delete them here
+		if err := issue_service.DeleteIssuesByRepoID(ctx, repoID, false); err != nil {
+			return err
+		}
+
+		// Delete issue index
+		if err := db.DeleteResourceIndex(ctx, "issue_index", repoID); err != nil {
+			return err
+		}
+
+		if repo.IsFork {
+			if _, err := db.Exec(ctx, "UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
+				return fmt.Errorf("decrease fork count: %w", err)
+			}
+		}
+
+		if _, err := db.Exec(ctx, "UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", repo.OwnerID); err != nil {
+			return err
+		}
+
+		if len(repo.Topics) > 0 {
+			if err := repo_model.RemoveTopicsFromRepo(ctx, repo.ID); err != nil {
+				return err
+			}
+		}
+
+		if err := project_model.DeleteProjectByRepoID(ctx, repoID); err != nil {
+			return fmt.Errorf("unable to delete projects for repo[%d]: %w", repoID, err)
+		}
+
+		// Remove LFS objects
+		var lfsObjects []*git_model.LFSMetaObject
+		if err = db.GetEngine(ctx).Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
+			return err
+		}
+
+		lfsPaths = make([]string, 0, len(lfsObjects))
+		for _, v := range lfsObjects {
+			count, err := db.CountByBean(ctx, &git_model.LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
+			if err != nil {
+				return err
+			}
+			if count > 1 {
+				continue
+			}
+
+			lfsPaths = append(lfsPaths, v.RelativePath())
+		}
+
+		if _, err := db.DeleteByBean(ctx, &git_model.LFSMetaObject{RepositoryID: repoID}); err != nil {
+			return err
+		}
+
+		// Remove archives
+		var archives []*repo_model.RepoArchiver
+		if err = db.GetEngine(ctx).Where("repo_id=?", repoID).Find(&archives); err != nil {
+			return err
+		}
+
+		archivePaths = make([]string, 0, len(archives))
+		for _, v := range archives {
+			archivePaths = append(archivePaths, v.RelativePath())
+		}
+
+		if _, err := db.DeleteByBean(ctx, &repo_model.RepoArchiver{RepoID: repoID}); err != nil {
+			return err
+		}
+
+		if repo.NumForks > 0 {
+			if _, err = db.GetEngine(ctx).Exec("UPDATE `repository` SET fork_id=0,is_fork=? WHERE fork_id=?", false, repo.ID); err != nil {
+				log.Error("reset 'fork_id' and 'is_fork': %v", err)
+			}
+		}
+
+		var repoAttachments []*repo_model.Attachment
+		// Get all attachments with repo_id = repo.ID. some release attachments have repo_id = 0 should be deleted before
+		if err := db.GetEngine(ctx).Where(builder.Eq{
+			"repo_id": repo.ID,
+		}).Find(&repoAttachments); err != nil {
+			return err
+		}
+		if err = repo_model.DeleteAttachments(ctx, repoAttachments); err != nil {
+			return err
+		}
+
+		// unlink packages linked to this repository
+		return packages_model.UnlinkRepositoryFromAllPackages(ctx, repoID)
+	})
+	if err != nil {
 		return err
 	}
-
-	newAttachmentPaths := make([]string, 0, len(newAttachments))
-	for _, attach := range newAttachments {
-		newAttachmentPaths = append(newAttachmentPaths, attach.RelativePath())
-	}
-
-	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(repo_model.Attachment)); err != nil {
-		return err
-	}
-
-	// unlink packages linked to this repository
-	if err = packages_model.UnlinkRepositoryFromAllPackages(ctx, repoID); err != nil {
-		return err
-	}
-
-	if err = committer.Commit(); err != nil {
-		return err
-	}
-
-	committer.Close()
 
 	if needRewriteKeysFile {
 		if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
@@ -332,21 +319,6 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	// Remove lfs objects
 	for _, lfsObj := range lfsPaths {
 		system_model.RemoveStorageWithNotice(ctx, storage.LFS, "Delete orphaned LFS file", lfsObj)
-	}
-
-	// Remove issue attachment files.
-	for _, attachment := range attachmentPaths {
-		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", attachment)
-	}
-
-	// Remove release attachment files.
-	for _, releaseAttachment := range releaseAttachments {
-		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete release attachment", releaseAttachment)
-	}
-
-	// Remove attachment with no issue_id and release_id.
-	for _, newAttachment := range newAttachmentPaths {
-		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", newAttachment)
 	}
 
 	if len(repo.Avatar) > 0 {

@@ -318,7 +318,7 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_model.DeleteAttachment(ctx, attachment, true); err != nil {
+	if err := attachment_service.DeleteAttachment(ctx, attachment); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
