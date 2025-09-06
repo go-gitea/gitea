@@ -278,7 +278,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	// LowerCase and trim the repoPath as that's how they are stored.
 	// This should be done after splitting the repoPath into username and reponame
 	// so that username and reponame are not affected.
-	repoPath = strings.ToLower(results.OwnerName + "/" + results.RepoName)
+	repoPath = strings.ToLower(results.OwnerName + "/" + results.RepoName + ".git")
 
 	// LFS SSH protocol
 	if verb == git.CmdVerbLfsTransfer {
