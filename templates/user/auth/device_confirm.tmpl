@@ -1,0 +1,28 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content oauth2-authorize-application-box">
+	<div class="ui container tw-max-w-[500px]">
+		{{template "base/alert" .}}
+		<h3 class="ui top attached header">
+			{{ctx.Locale.Tr "auth.authorize_device_title"}}
+		</h3>
+		<div class="ui attached segment">
+			{{template "base/alert" .}}
+			<p>
+				{{if not .AdditionalScopes}}
+				<b>{{ctx.Locale.Tr "auth.authorize_application_description"}}</b><br>
+				{{end}}
+				{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML}}<br>
+				{{ctx.Locale.Tr "auth.authorize_application_with_scopes" (HTMLFormat "<b>%s</b>" .Scope)}}
+			</p>
+		</div>
+		<div class="ui attached segment">
+			<form class="ui form" id="grant-device-confirmation" method="post" action="{{$.Link}}/confirmation">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="device_id" value="{{.DeviceID}}">
+				<button type="submit" name="granted" value="true" class="ui red inline button">{{ctx.Locale.Tr "auth.authorize_application"}}</button>
+				<button type="submit" name="granted" value="false" class="ui basic primary inline button">{{ctx.Locale.Tr "cancel"}}</button>
+			</form>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}
