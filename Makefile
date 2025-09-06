@@ -18,6 +18,10 @@ DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
 IMPORT := code.gitea.io/gitea
 
+# By default use go's 1.25 experimental json v2 library when building
+# TODO: remove when no longer experimental
+export GOEXPERIMENT ?= jsonv2
+
 GO ?= go
 SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
@@ -31,7 +35,7 @@ GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.8.0
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4.0
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.32.3
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@717e3cb29becaaf00e56953556c6d80f8a01b286
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1

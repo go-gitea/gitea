@@ -32,12 +32,21 @@ type Interface interface {
 }
 
 var (
-	// DefaultJSONHandler default json handler
-	DefaultJSONHandler Interface = JSONiter{jsoniter.ConfigCompatibleWithStandardLibrary}
+	// DefaultJSONHandler default json handler - uses JSON v2 if available, otherwise JSONiter
+	DefaultJSONHandler = getDefaultHandler()
 
 	_ Interface = StdJSON{}
 	_ Interface = JSONiter{}
+	_ Interface = JSONv2{}
 )
+
+// getDefaultHandler returns the expected JSON implementation
+func getDefaultHandler() Interface {
+	if isJSONv2Available() {
+		return JSONv2{}
+	}
+	return JSONiter{jsoniter.ConfigCompatibleWithStandardLibrary}
+}
 
 // StdJSON implements Interface via encoding/json
 type StdJSON struct{}
@@ -97,6 +106,47 @@ func (j JSONiter) Indent(dst *bytes.Buffer, src []byte, prefix, indent string) e
 	return json.Indent(dst, src, prefix, indent)
 }
 
+// JSONv2 implements Interface via encoding/json/v2
+// Requires GOEXPERIMENT=jsonv2 to be set at build time
+type JSONv2 struct{}
+
+// Marshal implements Interface using JSON v2 - fallback if v2 is not available
+func (JSONv2) Marshal(v any) ([]byte, error) {
+	if !isJSONv2Available() {
+		return json.Marshal(v)
+	}
+	return marshalV2(v)
+}
+
+// Unmarshal implements Interface using JSON v2 - fallback if v2 is not available
+func (JSONv2) Unmarshal(data []byte, v any) error {
+	if !isJSONv2Available() {
+		return json.Unmarshal(data, v)
+	}
+	return unmarshalV2(data, v)
+}
+
+// NewEncoder implements Interface using JSON v2 - fallback if v2 is not available
+func (JSONv2) NewEncoder(writer io.Writer) Encoder {
+	if !isJSONv2Available() {
+		return json.NewEncoder(writer)
+	}
+	return newEncoderV2(writer)
+}
+
+// NewDecoder implements Interface using JSON v2 - fallback if v2 is not available
+func (JSONv2) NewDecoder(reader io.Reader) Decoder {
+	if !isJSONv2Available() {
+		return json.NewDecoder(reader)
+	}
+	return newDecoderV2(reader)
+}
+
+// Indent implements Interface using standard library (JSON v2 doesn't have Indent yet)
+func (JSONv2) Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
+	return json.Indent(dst, src, prefix, indent)
+}
+
 // Marshal converts object as bytes
 func Marshal(v any) ([]byte, error) {
 	return DefaultJSONHandler.Marshal(v)
@@ -150,7 +200,7 @@ func UnmarshalHandleDoubleEncode(bs []byte, v any) error {
 		// To be consistent, we should treat all empty inputs as success
 		return nil
 	}
-	err := json.Unmarshal(bs, v)
+	err := DefaultJSONHandler.Unmarshal(bs, v)
 	if err != nil {
 		ok := true
 		rs := []byte{}
@@ -167,11 +217,11 @@ func UnmarshalHandleDoubleEncode(bs []byte, v any) error {
 			if len(rs) > 1 && rs[0] == 0xff && rs[1] == 0xfe {
 				rs = rs[2:]
 			}
-			err = json.Unmarshal(rs, v)
+			err = DefaultJSONHandler.Unmarshal(rs, v)
 		}
 	}
 	if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
-		err = json.Unmarshal(bs[2:], v)
+		err = DefaultJSONHandler.Unmarshal(bs[2:], v)
 	}
 	return err
 }
