@@ -1,3 +1,6 @@
+# workaround for node >= 22.18.0 on alpine 3.22. Remove when upgrading to alpine 3.23
+FROM docker.io/node:22-alpine3.22 AS node
+
 # Build stage
 FROM docker.io/library/golang:1.25-alpine3.22 AS build-env
 
@@ -17,6 +20,9 @@ RUN apk --no-cache add \
     npm \
     && npm install -g pnpm@10 \
     && rm -rf /var/cache/apk/*
+
+# workaround for node >= 22.18.0 on alpine 3.22. Remove when upgrading to alpine 3.23
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
 
 # Setup repo
 COPY . ${GOPATH}/src/code.gitea.io/gitea
