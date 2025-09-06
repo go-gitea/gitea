@@ -6,7 +6,7 @@ import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import {VueLoaderPlugin} from 'vue-loader';
 import EsBuildLoader from 'esbuild-loader';
 import {parse} from 'node:path';
-import webpack, {type Configuration} from 'webpack';
+import webpack, {type Configuration, type EntryObject} from 'webpack';
 import {fileURLToPath} from 'node:url';
 import {readFileSync, globSync} from 'node:fs';
 import {env} from 'node:process';
@@ -19,7 +19,7 @@ const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin, EnvironmentPlugin} = webpack;
 const formatLicenseText = (licenseText: string) => wrapAnsi(licenseText || '', 80).trim();
 
-const themes: Record<string, Array<string>> = {};
+const themes: EntryObject = {};
 for (const path of globSync('web_src/css/themes/*.css', {cwd: import.meta.dirname})) {
   themes[parse(path).name] = [`./${path}`];
 }
