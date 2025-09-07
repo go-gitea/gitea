@@ -96,6 +96,15 @@ STORED_VERSION_FILE := VERSION
 GITHUB_REF_TYPE ?= branch
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 
+# Enable typescript support in Node.js before 22.18
+# TODO: Remove this once we can raise the minimum Node.js version to 22.18 (alpine >= 3.23)
+NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v 2>/dev/null | cut -c2- | tr '.' ' '))
+ifeq ($(shell test "$(NODE_VERSION)" -lt "022018000"; echo $$?),0)
+	NODE_VARS := NODE_OPTIONS="--experimental-strip-types"
+else
+	NODE_VARS :=
+endif
+
 ifneq ($(GITHUB_REF_TYPE),branch)
 	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
 	GITEA_VERSION ?= $(VERSION)
@@ -217,7 +226,6 @@ git-check:
 node-check:
 	$(eval MIN_NODE_VERSION_STR := $(shell grep -Eo '"node":.*[0-9.]+"' package.json | sed -n 's/.*[^0-9.]\([0-9.]*\)"/\1/p'))
 	$(eval MIN_NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(MIN_NODE_VERSION_STR)' | tr '.' ' ')))
-	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | cut -c2- | tr '.' ' ');))
 	$(eval PNPM_MISSING := $(shell hash pnpm > /dev/null 2>&1 || echo 1))
 	@if [ "$(NODE_VERSION)" -lt "$(MIN_NODE_VERSION)" ]; then \
 		echo "Gitea requires Node.js $(MIN_NODE_VERSION_STR) or greater to build. You can get it at https://nodejs.org/en/download/"; \
@@ -338,29 +346,29 @@ lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backen
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js files
-	pnpm exec eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
-	pnpm exec vue-tsc
+	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
+	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js files and fix issues
-	pnpm exec eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
-	pnpm exec vue-tsc
+	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
+	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-css
 lint-css: node_modules ## lint css files
-	pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES)
+	$(NODE_VARS) pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES)
 
 .PHONY: lint-css-fix
 lint-css-fix: node_modules ## lint css files and fix issues
-	pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES) --fix
+	$(NODE_VARS) pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES) --fix
 
 .PHONY: lint-swagger
 lint-swagger: node_modules ## lint swagger files
-	pnpm exec spectral lint -q -F hint $(SWAGGER_SPEC)
+	$(NODE_VARS) pnpm exec spectral lint -q -F hint $(SWAGGER_SPEC)
 
 .PHONY: lint-md
 lint-md: node_modules ## lint markdown files
-	pnpm exec markdownlint *.md
+	$(NODE_VARS) pnpm exec markdownlint *.md
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
@@ -421,7 +429,7 @@ watch: ## watch everything and continuously rebuild
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules ## watch frontend files and continuously rebuild
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development pnpm exec webpack --watch --progress --disable-interpret
+	NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress --disable-interpret
 
 .PHONY: watch-backend
 watch-backend: go-check ## watch backend files and continuously rebuild
@@ -437,7 +445,7 @@ test-backend: ## test backend files
 
 .PHONY: test-frontend
 test-frontend: node_modules ## test frontend files
-	pnpm exec vitest
+	$(NODE_VARS) pnpm exec vitest
 
 .PHONY: test-check
 test-check:
@@ -580,7 +588,7 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
 playwright: deps-frontend
-	pnpm exec playwright install $(PLAYWRIGHT_FLAGS)
+	$(NODE_VARS) pnpm exec playwright install $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e%
 test-e2e%: TEST_TYPE ?= e2e
@@ -844,7 +852,7 @@ deps-tools: ## install tool dependencies
 	wait
 
 node_modules: pnpm-lock.yaml
-	pnpm install --frozen-lockfile
+	$(NODE_VARS) pnpm install --frozen-lockfile
 	@touch node_modules
 
 .venv: uv.lock
@@ -856,16 +864,16 @@ update: update-js update-py ## update js and py dependencies
 
 .PHONY: update-js
 update-js: node-check | node_modules ## update js dependencies
-	pnpm exec updates -u -f package.json
+	$(NODE_VARS) pnpm exec updates -u -f package.json
 	rm -rf node_modules pnpm-lock.yaml
-	pnpm install
-	pnpm exec nolyfill install
-	pnpm install
+	$(NODE_VARS) pnpm install
+	$(NODE_VARS) pnpm exec nolyfill install
+	$(NODE_VARS) pnpm install
 	@touch node_modules
 
 .PHONY: update-py
 update-py: node-check | node_modules ## update py dependencies
-	pnpm exec updates -u -f pyproject.toml
+	$(NODE_VARS) pnpm exec updates -u -f pyproject.toml
 	rm -rf .venv uv.lock
 	uv sync
 	@touch .venv
@@ -877,7 +885,7 @@ $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
 	@$(MAKE) -s node-check node_modules
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	@echo "Running webpack..."
-	@BROWSERSLIST_IGNORE_OLD_DATA=true pnpm exec webpack --disable-interpret
+	@BROWSERSLIST_IGNORE_OLD_DATA=true $(NODE_VARS) pnpm exec webpack --disable-interpret
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
@@ -897,7 +905,7 @@ svg-check: svg
 
 .PHONY: lockfile-check
 lockfile-check:
-	pnpm install --frozen-lockfile
+	$(NODE_VARS) pnpm install --frozen-lockfile
 	@diff=$$(git diff --color=always pnpm-lock.yaml); \
 	if [ -n "$$diff" ]; then \
 		echo "pnpm-lock.yaml is inconsistent with package.json"; \

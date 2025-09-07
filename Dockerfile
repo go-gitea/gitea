@@ -18,9 +18,6 @@ RUN apk --no-cache add \
     && npm install -g pnpm@10 \
     && rm -rf /var/cache/apk/*
 
-# workaround for node >= 22.18.0 on alpine 3.22. Remove when upgrading to alpine 3.23
-COPY --from=docker.io/node:22-alpine3.22 /usr/local/bin/node /usr/local/bin/node
-
 # Setup repo
 COPY . ${GOPATH}/src/code.gitea.io/gitea
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
