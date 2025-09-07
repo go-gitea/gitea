@@ -14,8 +14,10 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/indexer/issues"
@@ -24,6 +26,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
+	"xorm.io/builder"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -488,7 +491,35 @@ func TestIssueRedirect(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "/"+path.Join("org26", "repo_external_tracker_alpha", "pulls", "1"), test.RedirectURL(resp))
 
-	// FIXME: add a test to check that the PR redirection works if the issue unit is disabled
+	// test to check that the PR redirection works if the issue unit is disabled
+	// repo1 is a normal repository with issue unit enabled, visit issue 2(which is a pull request)
+	// will redirect to pulls
+	req = NewRequest(t, "GET", path.Join("user2", "repo1", "issues", "2"))
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, "/"+path.Join("user2", "repo1", "pulls", "2"), test.RedirectURL(resp))
+
+	// disable issue unit
+	repoUnit, exist, err := db.Get[repo_model.RepoUnit](t.Context(), builder.Eq{
+		"repo_id": 1,
+		"type":    unit.TypeIssues,
+	})
+	assert.NoError(t, err)
+	assert.True(t, exist)
+	assert.NotNil(t, repoUnit)
+
+	_, err = db.DeleteByID[repo_model.RepoUnit](t.Context(), repoUnit.ID)
+	assert.NoError(t, err)
+
+	defer func() {
+		repoUnit.ID = 0
+		assert.NoError(t, db.Insert(t.Context(), repoUnit))
+	}()
+
+	// even if the issue unit is disabled, visiting an issue which is a pull request
+	// will still redirect to pull request
+	req = NewRequest(t, "GET", path.Join("user2", "repo1", "issues", "2"))
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, "/"+path.Join("user2", "repo1", "pulls", "2"), test.RedirectURL(resp))
 }
 
 func TestSearchIssues(t *testing.T) {
