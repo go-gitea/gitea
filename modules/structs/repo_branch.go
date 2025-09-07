@@ -9,22 +9,33 @@ import (
 
 // Branch represents a repository branch
 type Branch struct {
-	Name                          string         `json:"name"`
-	Commit                        *PayloadCommit `json:"commit"`
-	Protected                     bool           `json:"protected"`
-	RequiredApprovals             int64          `json:"required_approvals"`
-	EnableStatusCheck             bool           `json:"enable_status_check"`
-	StatusCheckContexts           []string       `json:"status_check_contexts"`
-	UserCanPush                   bool           `json:"user_can_push"`
-	UserCanMerge                  bool           `json:"user_can_merge"`
-	EffectiveBranchProtectionName string         `json:"effective_branch_protection_name"`
+	// Name is the branch name
+	Name string `json:"name"`
+	// Commit contains the latest commit information for this branch
+	Commit *PayloadCommit `json:"commit"`
+	// Protected indicates if the branch is protected
+	Protected bool `json:"protected"`
+	// RequiredApprovals is the number of required approvals for pull requests
+	RequiredApprovals int64 `json:"required_approvals"`
+	// EnableStatusCheck indicates if status checks are enabled
+	EnableStatusCheck bool `json:"enable_status_check"`
+	// StatusCheckContexts contains the list of required status check contexts
+	StatusCheckContexts []string `json:"status_check_contexts"`
+	// UserCanPush indicates if the current user can push to this branch
+	UserCanPush bool `json:"user_can_push"`
+	// UserCanMerge indicates if the current user can merge to this branch
+	UserCanMerge bool `json:"user_can_merge"`
+	// EffectiveBranchProtectionName is the name of the effective branch protection rule
+	EffectiveBranchProtectionName string `json:"effective_branch_protection_name"`
 }
 
 // BranchProtection represents a branch protection for a repository
 type BranchProtection struct {
 	// Deprecated: true
-	BranchName                    string   `json:"branch_name"`
-	RuleName                      string   `json:"rule_name"`
+	BranchName string `json:"branch_name"`
+	// RuleName is the name of the branch protection rule
+	RuleName string `json:"rule_name"`
+	// Priority is the priority of this branch protection rule
 	Priority                      int64    `json:"priority"`
 	EnablePush                    bool     `json:"enable_push"`
 	EnablePushWhitelist           bool     `json:"enable_push_whitelist"`
