@@ -852,7 +852,7 @@ deps-tools: ## install tool dependencies
 	wait
 
 node_modules: pnpm-lock.yaml
-	pnpm install --frozen-lockfile
+	$(NODE_VARS) pnpm install --frozen-lockfile
 	@touch node_modules
 
 .venv: uv.lock
@@ -866,9 +866,9 @@ update: update-js update-py ## update js and py dependencies
 update-js: node-check | node_modules ## update js dependencies
 	$(NODE_VARS) pnpm exec updates -u -f package.json
 	rm -rf node_modules pnpm-lock.yaml
-	pnpm install
+	$(NODE_VARS) pnpm install
 	$(NODE_VARS) pnpm exec nolyfill install
-	pnpm install
+	$(NODE_VARS) pnpm install
 	@touch node_modules
 
 .PHONY: update-py
@@ -905,7 +905,7 @@ svg-check: svg
 
 .PHONY: lockfile-check
 lockfile-check:
-	pnpm install --frozen-lockfile
+	$(NODE_VARS) pnpm install --frozen-lockfile
 	@diff=$$(git diff --color=always pnpm-lock.yaml); \
 	if [ -n "$$diff" ]; then \
 		echo "pnpm-lock.yaml is inconsistent with package.json"; \
