@@ -2,7 +2,7 @@
   "type": "module",
   "packageManager": "pnpm@10.0.0",
   "engines": {
-    "node": ">= 22.18.0",
+    "node": ">= 22.6.0",
     "pnpm": ">= 10.0.0"
   },
   "dependencies": {
