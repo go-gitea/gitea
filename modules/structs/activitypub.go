@@ -5,5 +5,6 @@ package structs
 
 // ActivityPub type
 type ActivityPub struct {
+	// Context defines the JSON-LD context for ActivityPub
 	Context string `json:"@context"`
 }
