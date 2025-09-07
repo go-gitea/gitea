@@ -4,12 +4,7 @@ import {optimize} from 'svgo';
 import {readFile, writeFile} from 'node:fs/promises';
 import {argv, exit} from 'node:process';
 
-function doExit(err) {
-  if (err) console.error(err);
-  exit(err ? 1 : 0);
-}
-
-async function generate(svg, path, {size, bg}) {
+async function generate(svg: string, path: string, {size, bg}: {size: number, bg?: boolean}) {
   const outputFile = new URL(path, import.meta.url);
 
   if (String(outputFile).endsWith('.svg')) {
@@ -19,7 +14,9 @@ async function generate(svg, path, {size, bg}) {
         'removeDimensions',
         {
           name: 'addAttributesToSVGElement',
-          params: {attributes: [{width: size}, {height: size}]},
+          params: {
+            attributes: [{width: String(size)}, {height: String(size)}],
+          },
         },
       ],
     });
@@ -57,7 +54,8 @@ async function main() {
 }
 
 try {
-  doExit(await main());
+  await main();
 } catch (err) {
-  doExit(err);
+  console.error(err);
+  exit(1);
 }

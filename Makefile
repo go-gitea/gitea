@@ -31,7 +31,7 @@ GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.8.0
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4.0
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.32.3
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@717e3cb29becaaf00e56953556c6d80f8a01b286
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
@@ -127,7 +127,7 @@ GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/m
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
-WEBPACK_CONFIGS := webpack.config.js tailwind.config.js
+WEBPACK_CONFIGS := webpack.config.ts tailwind.config.ts
 WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
 WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts
 
@@ -153,9 +153,9 @@ TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST)
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
-ESLINT_FILES := web_src/js tools *.js *.ts *.cjs tests/e2e
+ESLINT_FILES := web_src/js tools *.ts *.cjs tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
-SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.js *.md *.yml *.yaml *.toml)) $(filter-out tools/misspellings.csv, $(wildcard tools/*))
+SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml)) $(filter-out tools/misspellings.csv, $(wildcard tools/*))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
 
 GO_SOURCES := $(wildcard *.go)
@@ -407,7 +407,7 @@ lint-actions: ## lint action workflow files
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
-	@node tools/lint-templates-svg.js
+	@node tools/lint-templates-svg.ts
 	@uv run --frozen djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: lint-yaml
@@ -421,7 +421,7 @@ watch: ## watch everything and continuously rebuild
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules ## watch frontend files and continuously rebuild
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development pnpm exec webpack --watch --progress
+	NODE_ENV=development pnpm exec webpack --watch --progress --disable-interpret
 
 .PHONY: watch-backend
 watch-backend: go-check ## watch backend files and continuously rebuild
@@ -877,13 +877,13 @@ $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
 	@$(MAKE) -s node-check node_modules
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	@echo "Running webpack..."
-	@BROWSERSLIST_IGNORE_OLD_DATA=true pnpm exec webpack
+	@BROWSERSLIST_IGNORE_OLD_DATA=true pnpm exec webpack --disable-interpret
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
 svg: node-check | node_modules ## build svg files
 	rm -rf $(SVG_DEST_DIR)
-	node tools/generate-svg.js
+	node tools/generate-svg.ts
 
 .PHONY: svg-check
 svg-check: svg
@@ -922,7 +922,7 @@ generate-gitignore: ## update gitignore files
 
 .PHONY: generate-images
 generate-images: | node_modules ## generate images
-	cd tools && node generate-images.js $(TAGS)
+	cd tools && node generate-images.ts $(TAGS)
 
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage
