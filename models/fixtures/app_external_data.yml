@@ -1,0 +1,8 @@
+-
+  id: 1
+  uid: 43
+  owner_id: 1
+  setup_url: https://example.com/setup_url
+  home_page_url: https://example.com/home_page_url
+  permission: "repository.issues:read,repository.pull_requests:write"
+  client_id: "b4732d48-a71d-4f80-9d9d-82dcfd77049c"

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/models/application"
 	user_model "code.gitea.io/gitea/models/user"
 )
 
@@ -27,6 +28,10 @@ func UserAssignmentWeb() func(ctx *Context) {
 		}
 		ctx.ContextUser = userAssignment(ctx.Base, ctx.Doer, errorFn)
 		ctx.Data["ContextUser"] = ctx.ContextUser
+
+		if ctx.ContextUser != nil && ctx.ContextUser.IsTypeBot() {
+			ctx.Redirect(application.AppFromUser(ctx.ContextUser).HomeLink())
+		}
 	}
 }
 

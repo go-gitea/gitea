@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	application_model "code.gitea.io/gitea/models/application"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -135,4 +136,44 @@ func loadApplicationsData(ctx *context.Context) {
 			return
 		}
 	}
+
+	ctx.Data["GiteaAppPerms"] = application_model.NewEmptyAppPermMap()
+	ctx.Data["GiteaApps"], err = application_model.ListAppsByOwnerID(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("ListAppsByOwnerID", err)
+		return
+	}
+}
+
+func GiteaAppPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewGiteaAppForm)
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsApplications"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
+
+	if ctx.HasError() {
+		loadApplicationsData(ctx)
+		ctx.HTML(http.StatusOK, tplSettingsApplications)
+		return
+	}
+
+	t := &application_model.Application{
+		Name: form.Name,
+	}
+
+	if err := application_model.CreateApplication(ctx, t, &application_model.CreateApplicationOptions{
+		Owner:                      ctx.Doer,
+		Private:                    form.Private,
+		Permission:                 application_model.AppPermList(form.PermList).ValidOrDefault(),
+		Readme:                     form.Readme,
+		SetupURL:                   form.SetupURL,
+		RedirectToSetupURLOnUpdate: form.RedirectOnUpdate,
+		HomePageURL:                form.HomePageURL,
+	}); err != nil {
+		ctx.ServerError("CreateApplication", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.create_gitea_application_success"))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 }

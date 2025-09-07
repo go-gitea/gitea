@@ -1556,3 +1556,40 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+
+-
+  id: 43
+  lower_name: app1
+  name: App1
+  full_name: test app one
+  email: app1@example.com
+  keep_email_private: false
+  email_notifications_preference: onmention
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
+  must_change_password: false
+  login_source: 0
+  login_name: app1
+  type: 4
+  salt: ZogKvWdyEx
+  max_repo_creation: 0
+  is_active: true
+  is_admin: false
+  is_restricted: false
+  allow_git_hook: false
+  allow_import_local: false
+  allow_create_organization: true
+  prohibit_login: false
+  avatar: ""
+  avatar_email: app1@example.com
+  use_custom_avatar: true
+  num_followers: 0
+  num_following: 0
+  num_stars: 0
+  num_repos: 1
+  num_teams: 0
+  num_members: 0
+  visibility: 0
+  repo_admin_change_team_access: false
+  theme: ""
+  keep_activity_private: false
