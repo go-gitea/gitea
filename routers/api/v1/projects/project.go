@@ -56,7 +56,7 @@ func innerCreateProject(ctx *context.APIContext, projectType project_model.Type)
 }
 
 func CreateUserProject(ctx *context.APIContext) {
-	// swagger:operation POST /user/projects project projectCreateUserProject
+	// swagger:operation POST /users/{username}/projects project projectCreateUserProject
 	// ---
 	// summary: Create a user project
 	// produces:
@@ -64,10 +64,16 @@ func CreateUserProject(ctx *context.APIContext) {
 	// consumes:
 	// - application/json
 	// parameters:
-	//   - name: project
+	//   - name: username
+	//     in: path
+	//     description: owner of the projects
+	//     type: string
+	//     required: true
+	//   - name: body
 	//     in: body
 	//     required: true
-	//     schema: { "$ref": "#/definitions/NewProjectOption" }
+	//     schema:
+	//       "$ref": "#/definitions/NewProjectOption"
 	// responses:
 	//  "201":
 	//    "$ref": "#/responses/Project"
@@ -92,10 +98,11 @@ func CreateOrgProject(ctx *context.APIContext) {
 	//     description: owner of repo
 	//     type: string
 	//     required: true
-	//   - name: project
+	//   - name: body
 	//     in: body
 	//     required: true
-	//     schema: { "$ref": "#/definitions/NewProjectOption" }
+	//     schema:
+	//       "$ref": "#/definitions/NewProjectOption"
 	// responses:
 	//  "201":
 	//    "$ref": "#/responses/Project"
@@ -125,10 +132,11 @@ func CreateRepoProject(ctx *context.APIContext) {
 	//     description: repo
 	//     type: string
 	//     required: true
-	//   - name: project
+	//   - name: body
 	//     in: body
 	//     required: true
-	//     schema: { "$ref": "#/definitions/NewProjectOption" }
+	//     schema:
+	//       "$ref": "#/definitions/NewProjectOption"
 	// responses:
 	//  "201":
 	//    "$ref": "#/responses/Project"
@@ -146,7 +154,7 @@ func GetProject(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	//   - name: id
+	//   - name: project_id
 	//     in: path
 	//     description: id of the project
 	//     type: string
@@ -158,7 +166,7 @@ func GetProject(ctx *context.APIContext) {
 	//    "$ref": "#/responses/forbidden"
 	//  "404":
 	//    "$ref": "#/responses/notFound"
-	project, err := project_model.GetProjectByID(ctx, ctx.FormInt64("project_id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64("project_id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err)
@@ -167,6 +175,8 @@ func GetProject(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	// TODO: permission check
 
 	projectResponse, err := convert.ToAPIProject(ctx, project)
 	if err != nil {
@@ -185,7 +195,7 @@ func UpdateProject(ctx *context.APIContext) {
 	// consumes:
 	// - application/json
 	// parameters:
-	//   - name: id
+	//   - name: project_id
 	//     in: path
 	//     description: id of the project
 	//     type: string
@@ -193,7 +203,8 @@ func UpdateProject(ctx *context.APIContext) {
 	//   - name: project
 	//     in: body
 	//     required: true
-	//     schema: { "$ref": "#/definitions/UpdateProjectOption" }
+	//     schema:
+	//       "$ref": "#/definitions/UpdateProjectOption"
 	// responses:
 	//  "200":
 	//    "$ref": "#/responses/Project"
@@ -202,7 +213,7 @@ func UpdateProject(ctx *context.APIContext) {
 	//  "404":
 	//    "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.UpdateProjectOption)
-	project, err := project_model.GetProjectByID(ctx, ctx.FormInt64("project_id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64("project_id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err)
@@ -217,6 +228,8 @@ func UpdateProject(ctx *context.APIContext) {
 	if project.Description != form.Body {
 		project.Description = form.Body
 	}
+
+	// TODO: permission check
 
 	err = project_model.UpdateProject(ctx, project)
 	if err != nil {
@@ -236,7 +249,7 @@ func DeleteProject(ctx *context.APIContext) {
 	// ---
 	// summary: Delete project
 	// parameters:
-	//   - name: id
+	//   - name: project_id
 	//     in: path
 	//     description: id of the project
 	//     type: string
@@ -249,7 +262,9 @@ func DeleteProject(ctx *context.APIContext) {
 	//  "404":
 	//    "$ref": "#/responses/notFound"
 
-	if err := project_model.DeleteProjectByID(ctx, ctx.FormInt64("project_id")); err != nil {
+	// TODO: permission check
+
+	if err := project_model.DeleteProjectByID(ctx, ctx.PathParamInt64("project_id")); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -258,12 +273,17 @@ func DeleteProject(ctx *context.APIContext) {
 }
 
 func ListUserProjects(ctx *context.APIContext) {
-	// swagger:operation GET /users/{user}/projects project projectListUserProjects
+	// swagger:operation GET /users/{username}/projects project projectListUserProjects
 	// ---
 	// summary: List user projects
 	// produces:
 	// - application/json
 	// parameters:
+	//   - name: username
+	//     in: path
+	//     description: owner of the projects
+	//     type: string
+	//     required: true
 	//   - name: closed
 	//     in: query
 	//     description: include closed projects or not
@@ -288,7 +308,7 @@ func ListUserProjects(ctx *context.APIContext) {
 	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		Type:        project_model.TypeIndividual,
 		IsClosed:    ctx.FormOptionalBool("closed"),
-		OwnerID:     ctx.Doer.ID,
+		OwnerID:     ctx.ContextUser.ID,
 		ListOptions: listOptions,
 	})
 	if err != nil {
