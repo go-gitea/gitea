@@ -2,17 +2,18 @@ import {readFileSync} from 'node:fs';
 import {env} from 'node:process';
 import {parse} from 'postcss';
 import plugin from 'tailwindcss/plugin.js';
+import type {Config} from 'tailwindcss';
 
 const isProduction = env.NODE_ENV !== 'development';
 
-function extractRootVars(css) {
+function extractRootVars(css: string) {
   const root = parse(css);
-  const vars = new Set();
+  const vars = new Set<string>();
   root.walkRules((rule) => {
     if (rule.selector !== ':root') return;
-    rule.each((decl) => {
-      if (decl.value && decl.prop.startsWith('--')) {
-        vars.add(decl.prop.substring(2));
+    rule.each((node) => {
+      if (node.type === 'decl' && node.value && node.prop.startsWith('--')) {
+        vars.add(node.prop.substring(2));
       }
     });
   });
@@ -120,4 +121,4 @@ export default {
       });
     }),
   ],
-};
+} satisfies Config;
