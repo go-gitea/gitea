@@ -191,8 +191,8 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 			MiddleName: ssc.Author.MiddleName,
 			FamilyName: ssc.Author.FamilyName,
 		}
-		// If Name is not provided but individual name components are, generate it
-		if author.Name == "" && (author.GivenName != "" || author.MiddleName != "" || author.FamilyName != "") {
+		// If Name is not provided, generate it from individual name components
+		if author.Name == "" {
 			author.Name = author.String()
 		}
 		p.Metadata.Author = author
