@@ -1,6 +1,5 @@
-// @ts-check
-import {defineConfig} from 'stylelint-define-config';
 import {fileURLToPath} from 'node:url';
+import type {Config} from 'stylelint';
 
 const cssVarFiles = [
   fileURLToPath(new URL('web_src/css/base.css', import.meta.url)),
@@ -8,7 +7,7 @@ const cssVarFiles = [
   fileURLToPath(new URL('web_src/css/themes/theme-gitea-dark.css', import.meta.url)),
 ];
 
-export default defineConfig({
+export default {
   extends: 'stylelint-config-recommended',
   reportUnscopedDisables: true,
   reportNeedlessDisables: true,
@@ -124,7 +123,6 @@ export default defineConfig({
     'csstools/value-no-unknown-custom-properties': [true, {importFrom: cssVarFiles}],
     'declaration-block-no-duplicate-properties': [true, {ignore: ['consecutive-duplicates-with-different-values']}],
     'declaration-block-no-redundant-longhand-properties': [true, {ignoreShorthands: ['flex-flow', 'overflow', 'grid-template']}],
-    // @ts-expect-error - https://github.com/stylelint-types/stylelint-define-config/issues/1
     'declaration-property-unit-disallowed-list': {'line-height': ['em']},
     'declaration-property-value-disallowed-list': {'word-break': ['break-word']},
     'font-family-name-quotes': 'always-where-recommended',
@@ -148,4 +146,4 @@ export default defineConfig({
     'shorthand-property-no-redundant-values': true,
     'value-no-vendor-prefix': [true, {ignoreValues: ['box', 'inline-box']}],
   },
-});
+} satisfies Config;

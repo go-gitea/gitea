@@ -1,4 +1,3 @@
-import fastGlob from 'fast-glob';
 import wrapAnsi from 'wrap-ansi';
 import AddAssetPlugin from 'add-asset-webpack-plugin';
 import LicenseCheckerWebpackPlugin from '@techknowlogick/license-checker-webpack-plugin';
@@ -6,28 +5,23 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import {VueLoaderPlugin} from 'vue-loader';
 import EsBuildLoader from 'esbuild-loader';
-import {parse, dirname} from 'node:path';
-import webpack from 'webpack';
+import {parse} from 'node:path';
+import webpack, {type Configuration, type EntryObject} from 'webpack';
 import {fileURLToPath} from 'node:url';
-import {readFileSync} from 'node:fs';
+import {readFileSync, globSync} from 'node:fs';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
-import tailwindConfig from './tailwind.config.js';
+import tailwindConfig from './tailwind.config.ts';
 import tailwindcssNesting from 'tailwindcss/nesting/index.js';
 import postcssNesting from 'postcss-nesting';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin, EnvironmentPlugin} = webpack;
-const formatLicenseText = (licenseText) => wrapAnsi(licenseText || '', 80).trim();
+const formatLicenseText = (licenseText: string) => wrapAnsi(licenseText || '', 80).trim();
 
-const glob = (pattern) => fastGlob.sync(pattern, {
-  cwd: dirname(fileURLToPath(new URL(import.meta.url))),
-  absolute: true,
-});
-
-const themes = {};
-for (const path of glob('web_src/css/themes/*.css')) {
-  themes[parse(path).name] = [path];
+const themes: EntryObject = {};
+for (const path of globSync('web_src/css/themes/*.css', {cwd: import.meta.dirname})) {
+  themes[parse(path).name] = [`./${path}`];
 }
 
 const isProduction = env.NODE_ENV !== 'development';
@@ -55,12 +49,12 @@ const webComponents = new Set([
   'text-expander',
 ]);
 
-const filterCssImport = (url, ...args) => {
+const filterCssImport = (url: string, ...args: Array<any>) => {
   const cssFile = args[1] || args[0]; // resourcePath is 2nd argument for url and 3rd for import
   const importedFile = url.replace(/[?#].+/, '').toLowerCase();
 
   if (cssFile.includes('fomantic')) {
-    if (/brand-icons/.test(importedFile)) return false;
+    if (importedFile.includes('brand-icons')) return false;
     if (/(eot|ttf|otf|woff|svg)$/i.test(importedFile)) return false;
   }
 
@@ -71,7 +65,6 @@ const filterCssImport = (url, ...args) => {
   return true;
 };
 
-/** @type {import("webpack").Configuration} */
 export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
@@ -100,7 +93,7 @@ export default {
     path: fileURLToPath(new URL('public/assets', import.meta.url)),
     filename: () => 'js/[name].js',
     chunkFilename: ({chunk}) => {
-      const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
+      const language = (/monaco.*languages?_.+?_(.+?)_/.exec(String(chunk.id)) || [])[1];
       return `js/${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
     },
   },
@@ -129,7 +122,7 @@ export default {
         loader: 'vue-loader',
         options: {
           compilerOptions: {
-            isCustomElement: (tag) => webComponents.has(tag),
+            isCustomElement: (tag: string) => webComponents.has(tag),
           },
         },
       },
@@ -225,10 +218,10 @@ export default {
     }),
     isProduction ? new LicenseCheckerWebpackPlugin({
       outputFilename: 'licenses.txt',
-      outputWriter: ({dependencies}) => {
+      outputWriter: ({dependencies}: {dependencies: Array<Record<string, string>>}) => {
         const line = '-'.repeat(80);
         const goJson = readFileSync('assets/go-licenses.json', 'utf8');
-        const goModules = JSON.parse(goJson).map(({name, licenseText}) => {
+        const goModules = JSON.parse(goJson).map(({name, licenseText}: Record<string, string>) => {
           return {name, body: formatLicenseText(licenseText)};
         });
         const jsModules = dependencies.map(({name, version, licenseName, licenseText}) => {
@@ -285,4 +278,4 @@ export default {
     reasons: false,
     runtimeModules: false,
   },
-};
+} satisfies Configuration;
