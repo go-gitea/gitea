@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path"
 	"strconv"
 	"testing"
 
+	"code.gitea.io/gitea/models/auth"
 	org_model "code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
@@ -128,4 +131,67 @@ func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 		htmlDoc = NewHTMLParser(t, resp.Body)
 		assert.Equal(t, 2, htmlDoc.Find(forkItemSelector).Length())
 	})
+}
+
+func TestAPICreateForkWithReparent(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	source := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
+
+	session := loginUser(t, u.Name)
+	token := getTokenForLoggedInUser(t, session, auth.AccessTokenScopeWriteRepository)
+
+	urlPath := path.Join("/api/v1/repos", source.OwnerName, source.Name, "forks")
+	name := "reparented"
+	req := NewRequestWithJSON(t, "POST", urlPath, &structs.CreateForkOption{
+		Reparent: true,
+		Name:     &name,
+	})
+	req.Header.Add("Authorization", "token "+token)
+	resp := session.MakeRequest(t, req, http.StatusAccepted)
+
+	var result structs.Repository
+	DecodeJSON(t, resp, &result)
+
+	assert.Equal(t, "reparented", result.Name)
+
+	orig := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: source.ID})
+	forked := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: result.ID})
+
+	assert.Equal(t, int64(0), forked.ForkID)
+	assert.False(t, forked.IsFork)
+	assert.Equal(t, forked.ID, orig.ForkID)
+	assert.True(t, orig.IsFork)
+}
+
+func TestAPICreateForkWithoutReparent(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	source := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
+
+	session := loginUser(t, u.Name)
+	token := getTokenForLoggedInUser(t, session, auth.AccessTokenScopeWriteRepository)
+
+	urlPath := path.Join("/api/v1/repos", source.OwnerName, source.Name, "forks")
+	name := "standard"
+	req := NewRequestWithJSON(t, "POST", urlPath, &structs.CreateForkOption{
+		Name: &name,
+	})
+	req.Header.Add("Authorization", "token "+token)
+	resp := session.MakeRequest(t, req, http.StatusAccepted)
+
+	var result structs.Repository
+	DecodeJSON(t, resp, &result)
+
+	assert.Equal(t, "standard", result.Name)
+
+	orig := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: source.ID})
+	forked := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: result.ID})
+
+	assert.Equal(t, source.ID, forked.ForkID)
+	assert.True(t, forked.IsFork)
+	assert.Equal(t, int64(0), orig.ForkID)
+	assert.False(t, orig.IsFork)
 }

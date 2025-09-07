@@ -52,6 +52,7 @@ type ForkRepoOptions struct {
 	Name         string
 	Description  string
 	SingleBranch string
+	Reparent     bool
 }
 
 // ForkRepository forks a repository
@@ -108,8 +109,19 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		if err = createRepositoryInDB(ctx, doer, owner, repo, true); err != nil {
 			return err
 		}
-		if err = repo_model.IncrementRepoForkNum(ctx, opts.BaseRepo.ID); err != nil {
-			return err
+
+		// swap fork_id, if we reparent
+		if opts.Reparent {
+			if err = repo_model.ReparentFork(ctx, repo.ID, opts.BaseRepo.ID); err != nil {
+				return err
+			}
+			if err = repo_model.IncrementRepoForkNum(ctx, repo.ID); err != nil {
+				return err
+			}
+		} else {
+			if err = repo_model.IncrementRepoForkNum(ctx, opts.BaseRepo.ID); err != nil {
+				return err
+			}
 		}
 
 		// copy lfs files failure should not be ignored
