@@ -35,30 +35,30 @@ func TestSyncMaxResourceIndex(t *testing.T) {
 	xe := unittest.GetXORMEngine()
 	assert.NoError(t, xe.Sync(&TestIndex{}))
 
-	err := db.SyncMaxResourceIndex(db.DefaultContext, "test_index", 10, 51)
+	err := db.SyncMaxResourceIndex(t.Context(), "test_index", 10, 51)
 	assert.NoError(t, err)
 
 	// sync new max index
-	maxIndex, err := getCurrentResourceIndex(db.DefaultContext, "test_index", 10)
+	maxIndex, err := getCurrentResourceIndex(t.Context(), "test_index", 10)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 51, maxIndex)
 
 	// smaller index doesn't change
-	err = db.SyncMaxResourceIndex(db.DefaultContext, "test_index", 10, 30)
+	err = db.SyncMaxResourceIndex(t.Context(), "test_index", 10, 30)
 	assert.NoError(t, err)
-	maxIndex, err = getCurrentResourceIndex(db.DefaultContext, "test_index", 10)
+	maxIndex, err = getCurrentResourceIndex(t.Context(), "test_index", 10)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 51, maxIndex)
 
 	// larger index changes
-	err = db.SyncMaxResourceIndex(db.DefaultContext, "test_index", 10, 62)
+	err = db.SyncMaxResourceIndex(t.Context(), "test_index", 10, 62)
 	assert.NoError(t, err)
-	maxIndex, err = getCurrentResourceIndex(db.DefaultContext, "test_index", 10)
+	maxIndex, err = getCurrentResourceIndex(t.Context(), "test_index", 10)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 62, maxIndex)
 
 	// commit transaction
-	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	err = db.WithTx(t.Context(), func(ctx context.Context) error {
 		err = db.SyncMaxResourceIndex(ctx, "test_index", 10, 73)
 		assert.NoError(t, err)
 		maxIndex, err = getCurrentResourceIndex(ctx, "test_index", 10)
@@ -67,12 +67,12 @@ func TestSyncMaxResourceIndex(t *testing.T) {
 		return nil
 	})
 	assert.NoError(t, err)
-	maxIndex, err = getCurrentResourceIndex(db.DefaultContext, "test_index", 10)
+	maxIndex, err = getCurrentResourceIndex(t.Context(), "test_index", 10)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 73, maxIndex)
 
 	// rollback transaction
-	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	err = db.WithTx(t.Context(), func(ctx context.Context) error {
 		err = db.SyncMaxResourceIndex(ctx, "test_index", 10, 84)
 		maxIndex, err = getCurrentResourceIndex(ctx, "test_index", 10)
 		assert.NoError(t, err)
@@ -80,7 +80,7 @@ func TestSyncMaxResourceIndex(t *testing.T) {
 		return errors.New("test rollback")
 	})
 	assert.Error(t, err)
-	maxIndex, err = getCurrentResourceIndex(db.DefaultContext, "test_index", 10)
+	maxIndex, err = getCurrentResourceIndex(t.Context(), "test_index", 10)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 73, maxIndex) // the max index doesn't change because the transaction was rolled back
 }
@@ -91,36 +91,36 @@ func TestGetNextResourceIndex(t *testing.T) {
 	assert.NoError(t, xe.Sync(&TestIndex{}))
 
 	// create a new record
-	maxIndex, err := db.GetNextResourceIndex(db.DefaultContext, "test_index", 20)
+	maxIndex, err := db.GetNextResourceIndex(t.Context(), "test_index", 20)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, maxIndex)
 
 	// increase the existing record
-	maxIndex, err = db.GetNextResourceIndex(db.DefaultContext, "test_index", 20)
+	maxIndex, err = db.GetNextResourceIndex(t.Context(), "test_index", 20)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, maxIndex)
 
 	// commit transaction
-	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	err = db.WithTx(t.Context(), func(ctx context.Context) error {
 		maxIndex, err = db.GetNextResourceIndex(ctx, "test_index", 20)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 3, maxIndex)
 		return nil
 	})
 	assert.NoError(t, err)
-	maxIndex, err = getCurrentResourceIndex(db.DefaultContext, "test_index", 20)
+	maxIndex, err = getCurrentResourceIndex(t.Context(), "test_index", 20)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, maxIndex)
 
 	// rollback transaction
-	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	err = db.WithTx(t.Context(), func(ctx context.Context) error {
 		maxIndex, err = db.GetNextResourceIndex(ctx, "test_index", 20)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 4, maxIndex)
 		return errors.New("test rollback")
 	})
 	assert.Error(t, err)
-	maxIndex, err = getCurrentResourceIndex(db.DefaultContext, "test_index", 20)
+	maxIndex, err = getCurrentResourceIndex(t.Context(), "test_index", 20)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, maxIndex) // the max index doesn't change because the transaction was rolled back
 }

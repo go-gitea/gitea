@@ -69,7 +69,8 @@ func IsRepositoryExist(ctx context.Context, repo Repository) (bool, error) {
 	return util.IsExist(repoPath(repo))
 }
 
-// DeleteRepository deletes the repository directory from the disk
+// DeleteRepository deletes the repository directory from the disk, it will return
+// nil if the repository does not exist.
 func DeleteRepository(ctx context.Context, repo Repository) error {
 	return util.RemoveAll(repoPath(repo))
 }
@@ -80,4 +81,8 @@ func RenameRepository(ctx context.Context, repo, newRepo Repository) error {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	return nil
+}
+
+func InitRepository(ctx context.Context, repo Repository, objectFormatName string) error {
+	return git.InitRepository(ctx, repoPath(repo), true, objectFormatName)
 }

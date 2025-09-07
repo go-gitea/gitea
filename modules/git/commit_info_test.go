@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -17,7 +18,7 @@ const (
 
 func cloneRepo(tb testing.TB, url string) (string, error) {
 	repoDir := tb.TempDir()
-	if err := Clone(DefaultContext, url, repoDir, CloneRepoOptions{
+	if err := Clone(tb.Context(), url, repoDir, CloneRepoOptions{
 		Mirror:  false,
 		Bare:    false,
 		Quiet:   true,
@@ -103,7 +104,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 
 func TestEntries_GetCommitsInfo(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -113,13 +114,30 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	if err != nil {
 		assert.NoError(t, err)
 	}
-	clonedRepo1, err := openRepositoryWithDefaultContext(clonedPath)
+	clonedRepo1, err := OpenRepository(t.Context(), clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 	}
 	defer clonedRepo1.Close()
 
 	testGetCommitsInfo(t, clonedRepo1)
+
+	t.Run("NonExistingSubmoduleAsNil", func(t *testing.T) {
+		commit, err := bareRepo1.GetCommit("HEAD")
+		require.NoError(t, err)
+		treeEntry, err := commit.GetTreeEntryByPath("file1.txt")
+		require.NoError(t, err)
+		cisf, err := GetCommitInfoSubmoduleFile("/any/repo-link", "file1.txt", commit, treeEntry.ID)
+		require.NoError(t, err)
+		assert.Equal(t, &CommitSubmoduleFile{
+			repoLink: "/any/repo-link",
+			fullPath: "file1.txt",
+			refURL:   "",
+			refID:    "e2129701f1a4d54dc44f03c93bca0a2aec7c5449",
+		}, cisf)
+		// since there is no refURL, it means that the submodule info doesn't exist, so it won't have a web link
+		assert.Nil(t, cisf.SubmoduleWebLinkTree(t.Context()))
+	})
 }
 
 func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
@@ -145,7 +163,7 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		if repo, err = openRepositoryWithDefaultContext(repoPath); err != nil {
+		if repo, err = OpenRepository(b.Context(), repoPath); err != nil {
 			b.Fatal(err)
 		}
 		defer repo.Close()

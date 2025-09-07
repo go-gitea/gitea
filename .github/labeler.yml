@@ -59,9 +59,9 @@ modifies/dependencies:
   - changed-files:
       - any-glob-to-any-file:
           - "package.json"
-          - "package-lock.json"
+          - "pnpm-lock.yaml"
           - "pyproject.toml"
-          - "poetry.lock"
+          - "uv.lock"
           - "go.mod"
           - "go.sum"
 

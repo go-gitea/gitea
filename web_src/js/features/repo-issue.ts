@@ -542,7 +542,12 @@ function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
       // deactivate all markdown editors
       showElem(commentForm.querySelectorAll('.combo-editor-dropzone .form-field-real'));
       hideElem(commentForm.querySelectorAll('.combo-editor-dropzone .combo-markdown-editor'));
-      hideElem(commentForm.querySelectorAll('.combo-editor-dropzone .form-field-dropzone'));
+      queryElems(commentForm, '.combo-editor-dropzone .form-field-dropzone', (dropzoneContainer) => {
+        // if "form-field-dropzone" exists, then "dropzone" must also exist
+        const dropzone = dropzoneContainer.querySelector<HTMLElement>('.dropzone').dropzone;
+        const hasUploadedFiles = dropzone.files.length !== 0;
+        toggleElem(dropzoneContainer, hasUploadedFiles);
+      });
 
       // activate this markdown editor
       hideElem(fieldTextarea);

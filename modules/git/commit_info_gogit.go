@@ -73,7 +73,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 
 		// If the entry is a submodule, add a submodule file for this
 		if entry.IsSubModule() {
-			commitsInfo[i].SubmoduleFile, err = getCommitInfoSubmoduleFile(repoLink, entry, commit, treePath)
+			commitsInfo[i].SubmoduleFile, err = GetCommitInfoSubmoduleFile(repoLink, path.Join(treePath, entry.Name()), commit, entry.ID)
 			if err != nil {
 				return nil, nil, err
 			}

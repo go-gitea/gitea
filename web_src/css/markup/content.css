@@ -1,6 +1,6 @@
 .markup {
   overflow: hidden;
-  font-size: 16px;
+  font-size: 14px; /* 14px for comments, overridden to 16px for .file-view below. */
   line-height: 1.5 !important;
   overflow-wrap: break-word;
 }
@@ -318,6 +318,7 @@ In markup content, we always use bottom margin for all elements */
 
 .file-view.markup {
   padding: 1em 2em;
+  font-size: 16px;
 }
 
 .file-view.markup:has(.file-not-rendered-prompt) {

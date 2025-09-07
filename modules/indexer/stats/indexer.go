@@ -30,7 +30,7 @@ func Init() error {
 		return err
 	}
 
-	go populateRepoIndexer(db.DefaultContext)
+	go populateRepoIndexer(graceful.GetManager().ShutdownContext())
 
 	return nil
 }

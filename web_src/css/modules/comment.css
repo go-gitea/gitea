@@ -83,6 +83,6 @@
 .ui.comments .comment .text {
   margin: 0.25em 0 0.5em;
   font-size: 1em;
-  word-wrap: break-word;
+  overflow-wrap: break-word;
   line-height: 1.3;
 }

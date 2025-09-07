@@ -18,9 +18,14 @@ import (
 	"github.com/markbates/goth"
 )
 
-func oauth2SignInSync(ctx *context.Context, authSource *auth.Source, u *user_model.User, gothUser goth.User) {
+func oauth2SignInSync(ctx *context.Context, authSourceID int64, u *user_model.User, gothUser goth.User) {
 	oauth2UpdateAvatarIfNeed(ctx, gothUser.AvatarURL, u)
 
+	authSource, err := auth.GetSourceByID(ctx, authSourceID)
+	if err != nil {
+		ctx.ServerError("GetSourceByID", err)
+		return
+	}
 	oauth2Source, _ := authSource.Cfg.(*oauth2.Source)
 	if !authSource.IsOAuth2() || oauth2Source == nil {
 		ctx.ServerError("oauth2SignInSync", fmt.Errorf("source %s is not an OAuth2 source", gothUser.Provider))
@@ -45,7 +50,7 @@ func oauth2SignInSync(ctx *context.Context, authSource *auth.Source, u *user_mod
 		}
 	}
 
-	err := oauth2UpdateSSHPubIfNeed(ctx, authSource, &gothUser, u)
+	err = oauth2UpdateSSHPubIfNeed(ctx, authSource, &gothUser, u)
 	if err != nil {
 		log.Error("Unable to sync OAuth2 SSH public key %s: %v", gothUser.Provider, err)
 	}

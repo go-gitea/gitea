@@ -30,6 +30,10 @@ type Parser struct {
 func NewParser(r io.Reader, format Format) *Parser {
 	scanner := bufio.NewScanner(r)
 
+	// default MaxScanTokenSize = 64 kiB may be too small for some references,
+	// so allow the buffer to grow up to 4x if needed
+	scanner.Buffer(nil, 4*bufio.MaxScanTokenSize)
+
 	// in addition to the reference delimiter we specified in the --format,
 	// `git for-each-ref` will always add a newline after every reference.
 	refDelim := make([]byte, 0, len(format.refDelim)+1)
@@ -70,6 +74,9 @@ func NewParser(r io.Reader, format Format) *Parser {
 //	{ "objecttype": "tag", "refname:short": "v1.16.4", "object": "f460b7543ed500e49c133c2cd85c8c55ee9dbe27" }
 func (p *Parser) Next() map[string]string {
 	if !p.scanner.Scan() {
+		if err := p.scanner.Err(); err != nil {
+			p.err = err
+		}
 		return nil
 	}
 	fields, err := p.parseRef(p.scanner.Text())

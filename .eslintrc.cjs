@@ -484,7 +484,7 @@ module.exports = {
     'max-nested-callbacks': [0],
     'max-params': [0],
     'max-statements': [0],
-    'multiline-comment-style': [2, 'separate-lines'],
+    'multiline-comment-style': [0],
     'new-cap': [0],
     'no-alert': [0],
     'no-array-constructor': [0], // handled by @typescript-eslint/no-array-constructor
@@ -831,7 +831,6 @@ module.exports = {
     'sonarjs/no-inverted-boolean-check': [2],
     'sonarjs/no-nested-switch': [0],
     'sonarjs/no-nested-template-literals': [0],
-    'sonarjs/no-one-iteration-loop': [2],
     'sonarjs/no-redundant-boolean': [2],
     'sonarjs/no-redundant-jump': [2],
     'sonarjs/no-same-line-conditional': [2],

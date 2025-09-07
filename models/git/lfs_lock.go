@@ -70,32 +70,28 @@ func (l *LFSLock) LoadOwner(ctx context.Context) error {
 
 // CreateLFSLock creates a new lock.
 func CreateLFSLock(ctx context.Context, repo *repo_model.Repository, lock *LFSLock) (*LFSLock, error) {
-	dbCtx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
+	return db.WithTx2(ctx, func(ctx context.Context) (*LFSLock, error) {
+		if err := CheckLFSAccessForRepo(ctx, lock.OwnerID, repo, perm.AccessModeWrite); err != nil {
+			return nil, err
+		}
 
-	if err := CheckLFSAccessForRepo(dbCtx, lock.OwnerID, repo, perm.AccessModeWrite); err != nil {
-		return nil, err
-	}
+		lock.Path = util.PathJoinRel(lock.Path)
+		lock.RepoID = repo.ID
 
-	lock.Path = util.PathJoinRel(lock.Path)
-	lock.RepoID = repo.ID
+		l, err := GetLFSLock(ctx, repo, lock.Path)
+		if err == nil {
+			return l, ErrLFSLockAlreadyExist{lock.RepoID, lock.Path}
+		}
+		if !IsErrLFSLockNotExist(err) {
+			return nil, err
+		}
 
-	l, err := GetLFSLock(dbCtx, repo, lock.Path)
-	if err == nil {
-		return l, ErrLFSLockAlreadyExist{lock.RepoID, lock.Path}
-	}
-	if !IsErrLFSLockNotExist(err) {
-		return nil, err
-	}
+		if err := db.Insert(ctx, lock); err != nil {
+			return nil, err
+		}
 
-	if err := db.Insert(dbCtx, lock); err != nil {
-		return nil, err
-	}
-
-	return lock, committer.Commit()
+		return lock, nil
+	})
 }
 
 // GetLFSLock returns release by given path.
@@ -163,30 +159,26 @@ func CountLFSLockByRepoID(ctx context.Context, repoID int64) (int64, error) {
 
 // DeleteLFSLockByID deletes a lock by given ID.
 func DeleteLFSLockByID(ctx context.Context, id int64, repo *repo_model.Repository, u *user_model.User, force bool) (*LFSLock, error) {
-	dbCtx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
+	return db.WithTx2(ctx, func(ctx context.Context) (*LFSLock, error) {
+		lock, err := GetLFSLockByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
 
-	lock, err := GetLFSLockByID(dbCtx, id)
-	if err != nil {
-		return nil, err
-	}
+		if err := CheckLFSAccessForRepo(ctx, u.ID, repo, perm.AccessModeWrite); err != nil {
+			return nil, err
+		}
 
-	if err := CheckLFSAccessForRepo(dbCtx, u.ID, repo, perm.AccessModeWrite); err != nil {
-		return nil, err
-	}
+		if !force && u.ID != lock.OwnerID {
+			return nil, errors.New("user doesn't own lock and force flag is not set")
+		}
 
-	if !force && u.ID != lock.OwnerID {
-		return nil, errors.New("user doesn't own lock and force flag is not set")
-	}
+		if _, err := db.GetEngine(ctx).ID(id).Delete(new(LFSLock)); err != nil {
+			return nil, err
+		}
 
-	if _, err := db.GetEngine(dbCtx).ID(id).Delete(new(LFSLock)); err != nil {
-		return nil, err
-	}
-
-	return lock, committer.Commit()
+		return lock, nil
+	})
 }
 
 // CheckLFSAccessForRepo check needed access mode base on action

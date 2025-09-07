@@ -78,6 +78,7 @@ cpu.out
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*
+/.pnpm-store
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
@@ -109,3 +110,15 @@ prime/
 
 # Manpage
 /man
+
+# Ignore AI/LLM instruction files
+/.claude/
+/.cursorrules
+/.cursor/
+/.goosehints
+/.windsurfrules
+/.github/copilot-instructions.md
+/AGENT.md
+/CLAUDE.md
+/llms.txt
+
