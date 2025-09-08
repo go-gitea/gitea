@@ -398,11 +398,8 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 			}
 
 			for _, val := range vals {
-				for _, action := range actions {
-					if glob.MustCompile(val, '/').Match(action) {
-						matchTimes++
-						break
-					}
+				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+					matchTimes++
 				}
 				// Once a match is found for this value, we can move to the next one
 				if matchTimes > 0 {
