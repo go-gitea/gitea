@@ -287,6 +287,11 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
+ignore (
+	./.venv
+	./node_modules
+)
+
 replace github.com/jaytaylor/html2text => github.com/Necoro/html2text v0.0.0-20250804200300-7bf1ce1c7347
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
