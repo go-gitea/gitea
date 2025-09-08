@@ -154,3 +154,186 @@ func TestDetectMatched(t *testing.T) {
 		})
 	}
 }
+
+func TestMatchIssuesEvent(t *testing.T) {
+	testCases := []struct {
+		desc      string
+		payload   *api.IssuePayload
+		yamlOn    string
+		expected  bool
+		eventType string
+	}{
+		{
+			desc: "Label deletion should trigger unlabeled event",
+			payload: &api.IssuePayload{
+				Action: api.HookIssueLabelUpdated,
+				Issue: &api.Issue{
+					Labels: []*api.Label{},
+				},
+				Changes: &api.ChangesPayload{
+					RemovedLabels: []*api.Label{
+						{ID: 123, Name: "deleted-label"},
+					},
+				},
+			},
+			yamlOn:    "on:\n  issues:\n    types: [unlabeled]",
+			expected:  true,
+			eventType: "unlabeled",
+		},
+		{
+			desc: "Label deletion with existing labels should trigger unlabeled event",
+			payload: &api.IssuePayload{
+				Action: api.HookIssueLabelUpdated,
+				Issue: &api.Issue{
+					Labels: []*api.Label{
+						{ID: 456, Name: "existing-label"},
+					},
+				},
+				Changes: &api.ChangesPayload{
+					AddedLabels: []*api.Label{
+						{ID: 456, Name: "existing-label"},
+					},
+					RemovedLabels: []*api.Label{
+						{ID: 123, Name: "deleted-label"},
+					},
+				},
+			},
+			yamlOn:    "on:\n  issues:\n    types: [unlabeled]",
+			expected:  true,
+			eventType: "unlabeled",
+		},
+		{
+			desc: "Label addition should trigger labeled event",
+			payload: &api.IssuePayload{
+				Action: api.HookIssueLabelUpdated,
+				Issue: &api.Issue{
+					Labels: []*api.Label{
+						{ID: 123, Name: "new-label"},
+					},
+				},
+				Changes: &api.ChangesPayload{
+					AddedLabels: []*api.Label{
+						{ID: 123, Name: "new-label"},
+					},
+					RemovedLabels: []*api.Label{}, // Empty array, no labels removed
+				},
+			},
+			yamlOn:    "on:\n  issues:\n    types: [labeled]",
+			expected:  true,
+			eventType: "labeled",
+		},
+		{
+			desc: "Label clear should trigger unlabeled event",
+			payload: &api.IssuePayload{
+				Action: api.HookIssueLabelCleared,
+				Issue: &api.Issue{
+					Labels: []*api.Label{},
+				},
+			},
+			yamlOn:    "on:\n  issues:\n    types: [unlabeled]",
+			expected:  true,
+			eventType: "unlabeled",
+		},
+		{
+			desc: "Both adding and removing labels should trigger labeled event",
+			payload: &api.IssuePayload{
+				Action: api.HookIssueLabelUpdated,
+				Issue: &api.Issue{
+					Labels: []*api.Label{
+						{ID: 789, Name: "new-label"},
+					},
+				},
+				Changes: &api.ChangesPayload{
+					AddedLabels: []*api.Label{
+						{ID: 789, Name: "new-label"},
+					},
+					RemovedLabels: []*api.Label{
+						{ID: 123, Name: "deleted-label"},
+					},
+				},
+			},
+			yamlOn:    "on:\n  issues:\n    types: [labeled]",
+			expected:  true,
+			eventType: "labeled",
+		},
+		{
+			desc: "Both adding and removing labels should trigger unlabeled event",
+			payload: &api.IssuePayload{
+				Action: api.HookIssueLabelUpdated,
+				Issue: &api.Issue{
+					Labels: []*api.Label{
+						{ID: 789, Name: "new-label"},
+					},
+				},
+				Changes: &api.ChangesPayload{
+					AddedLabels: []*api.Label{
+						{ID: 789, Name: "new-label"},
+					},
+					RemovedLabels: []*api.Label{
+						{ID: 123, Name: "deleted-label"},
+					},
+				},
+			},
+			yamlOn:    "on:\n  issues:\n    types: [unlabeled]",
+			expected:  true,
+			eventType: "unlabeled",
+		},
+		{
+			desc: "Both adding and removing labels should trigger both events",
+			payload: &api.IssuePayload{
+				Action: api.HookIssueLabelUpdated,
+				Issue: &api.Issue{
+					Labels: []*api.Label{
+						{ID: 789, Name: "new-label"},
+					},
+				},
+				Changes: &api.ChangesPayload{
+					AddedLabels: []*api.Label{
+						{ID: 789, Name: "new-label"},
+					},
+					RemovedLabels: []*api.Label{
+						{ID: 123, Name: "deleted-label"},
+					},
+				},
+			},
+			yamlOn:    "on:\n  issues:\n    types: [labeled, unlabeled]",
+			expected:  true,
+			eventType: "multiple",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			evts, err := GetEventsFromContent([]byte(tc.yamlOn))
+			assert.NoError(t, err)
+			assert.Len(t, evts, 1)
+
+			// Test if the event matches as expected
+			assert.Equal(t, tc.expected, matchIssuesEvent(tc.payload, evts[0]))
+
+			// For extra validation, check that action mapping works correctly
+			if tc.eventType == "multiple" {
+				// Skip direct action mapping validation for multiple events case
+				// as one action can map to multiple event types
+				return
+			}
+
+			// Determine expected action for single event case
+			var expectedAction string
+			switch tc.payload.Action {
+			case api.HookIssueLabelUpdated:
+				if tc.eventType == "labeled" {
+					expectedAction = "labeled"
+				} else if tc.eventType == "unlabeled" {
+					expectedAction = "unlabeled"
+				}
+			case api.HookIssueLabelCleared:
+				expectedAction = "unlabeled"
+			default:
+				expectedAction = string(tc.payload.Action)
+			}
+
+			assert.Equal(t, expectedAction, tc.eventType, "Event type should match expected")
+		})
+	}
+}

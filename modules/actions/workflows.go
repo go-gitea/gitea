@@ -377,21 +377,35 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 			// Actions with the same name:
 			// opened, edited, closed, reopened, assigned, unassigned, milestoned, demilestoned
 			// Actions need to be converted:
-			// label_updated -> labeled
+			// label_updated -> labeled (when adding) or unlabeled (when removing)
 			// label_cleared -> unlabeled
 			// Unsupported activity types:
 			// deleted, transferred, pinned, unpinned, locked, unlocked
 
-			action := issuePayload.Action
-			switch action {
+			actions := []string{}
+			switch issuePayload.Action {
 			case api.HookIssueLabelUpdated:
-				action = "labeled"
+				if len(issuePayload.Changes.AddedLabels) > 0 {
+					actions = append(actions, "labeled")
+				}
+				if len(issuePayload.Changes.RemovedLabels) > 0 {
+					actions = append(actions, "unlabeled")
+				}
 			case api.HookIssueLabelCleared:
-				action = "unlabeled"
+				actions = append(actions, "unlabeled")
+			default:
+				actions = append(actions, string(issuePayload.Action))
 			}
+
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(action)) {
-					matchTimes++
+				for _, action := range actions {
+					if glob.MustCompile(val, '/').Match(action) {
+						matchTimes++
+						break
+					}
+				}
+				// Once a match is found for this value, we can move to the next one
+				if matchTimes > 0 {
 					break
 				}
 			}
