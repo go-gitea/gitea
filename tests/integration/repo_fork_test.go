@@ -163,6 +163,8 @@ func TestAPICreateForkWithReparent(t *testing.T) {
 	assert.False(t, forked.IsFork)
 	assert.Equal(t, forked.ID, orig.ForkID)
 	assert.True(t, orig.IsFork)
+	assert.Equal(t, 1, forked.NumForks)
+	assert.Equal(t, 0, orig.NumForks)
 }
 
 func TestAPICreateForkWithoutReparent(t *testing.T) {
@@ -194,4 +196,6 @@ func TestAPICreateForkWithoutReparent(t *testing.T) {
 	assert.True(t, forked.IsFork)
 	assert.Equal(t, int64(0), orig.ForkID)
 	assert.False(t, orig.IsFork)
+	assert.Equal(t, 0, forked.NumForks)
+	assert.Equal(t, 1, orig.NumForks)
 }
