@@ -190,9 +190,7 @@ func TestMatchIssuesEvent(t *testing.T) {
 					},
 				},
 				Changes: &api.ChangesPayload{
-					AddedLabels: []*api.Label{
-						{ID: 456, Name: "existing-label"},
-					},
+					AddedLabels: nil,
 					RemovedLabels: []*api.Label{
 						{ID: 123, Name: "deleted-label"},
 					},
