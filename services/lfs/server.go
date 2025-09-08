@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"path"
@@ -21,11 +22,12 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/perm"
+	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/httpauth"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -41,6 +43,7 @@ type requestContext struct {
 	User          string
 	Repo          string
 	Authorization string
+	Method        string
 }
 
 // Claims is a JWT Token Claims
@@ -77,7 +80,7 @@ func CheckAcceptMediaType(ctx *context.Context) {
 	}
 }
 
-var rangeHeaderRegexp = regexp.MustCompile(`bytes=(\d+)\-(\d*).*`)
+var rangeHeaderRegexp = regexp.MustCompile(`bytes=(\d+)-(\d*).*`)
 
 // DownloadHandler gets the content from the content store
 func DownloadHandler(ctx *context.Context) {
@@ -111,7 +114,7 @@ func DownloadHandler(ctx *context.Context) {
 				}
 			}
 
-			ctx.Resp.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", fromByte, toByte, meta.Size-fromByte))
+			ctx.Resp.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", fromByte, toByte, meta.Size))
 			ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Range")
 		}
 	}
@@ -134,7 +137,9 @@ func DownloadHandler(ctx *context.Context) {
 	}
 
 	contentLength := toByte + 1 - fromByte
-	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(contentLength, 10))
+	contentLengthStr := strconv.FormatInt(contentLength, 10)
+	ctx.Resp.Header().Set("Content-Length", contentLengthStr)
+	ctx.Resp.Header().Set("X-Gitea-LFS-Content-Length", contentLengthStr) // we need this header to make sure it won't be affected by reverse proxy or compression
 	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
 
 	filename := ctx.PathParam("filename")
@@ -162,11 +167,12 @@ func BatchHandler(ctx *context.Context) {
 	}
 
 	var isUpload bool
-	if br.Operation == "upload" {
+	switch br.Operation {
+	case "upload":
 		isUpload = true
-	} else if br.Operation == "download" {
+	case "download":
 		isUpload = false
-	} else {
+	default:
 		log.Trace("Attempt to BATCH with invalid operation: %s", br.Operation)
 		writeStatus(ctx, http.StatusBadRequest)
 		return
@@ -176,6 +182,11 @@ func BatchHandler(ctx *context.Context) {
 
 	repository := getAuthenticatedRepository(ctx, rc, isUpload)
 	if repository == nil {
+		return
+	}
+
+	if setting.LFS.MaxBatchSize != 0 && len(br.Objects) > setting.LFS.MaxBatchSize {
+		writeStatus(ctx, http.StatusRequestEntityTooLarge)
 		return
 	}
 
@@ -194,7 +205,7 @@ func BatchHandler(ctx *context.Context) {
 
 		exists, err := contentStore.Exists(p)
 		if err != nil {
-			log.Error("Unable to check if LFS OID[%s] exist. Error: %v", p.Oid, rc.User, rc.Repo, err)
+			log.Error("Unable to check if LFS object with ID '%s' exists for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
 		}
@@ -387,6 +398,7 @@ func getRequestContext(ctx *context.Context) *requestContext {
 		User:          ctx.PathParam("username"),
 		Repo:          strings.TrimSuffix(ctx.PathParam("reponame"), ".git"),
 		Authorization: ctx.Req.Header.Get("Authorization"),
+		Method:        ctx.Req.Method,
 	}
 }
 
@@ -455,7 +467,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			var link *lfs_module.Link
 			if setting.LFS.Storage.ServeDirect() {
 				// If we have a signed url (S3, object storage), redirect to this directly.
-				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
+				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid, rc.Method, nil)
 				if u != nil && err == nil {
 					// Presigned url does not need the Authorization header
 					// https://github.com/go-gitea/gitea/issues/21525
@@ -472,9 +484,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			rep.Actions["upload"] = &lfs_module.Link{Href: rc.UploadLink(pointer), Header: header}
 
 			verifyHeader := make(map[string]string)
-			for key, value := range header {
-				verifyHeader[key] = value
-			}
+			maps.Copy(verifyHeader, header)
 
 			// This is only needed to workaround https://github.com/git-lfs/git-lfs/issues/3662
 			verifyHeader["Accept"] = lfs_module.AcceptHeader
@@ -502,11 +512,11 @@ func writeStatusMessage(ctx *context.Context, status int, message string) {
 }
 
 // authenticate uses the authorization string to determine whether
-// or not to proceed. This server assumes an HTTP Basic auth format.
+// to proceed. This server assumes an HTTP Basic auth format.
 func authenticate(ctx *context.Context, repository *repo_model.Repository, authorization string, requireSigned, requireWrite bool) bool {
-	accessMode := perm.AccessModeRead
+	accessMode := perm_model.AccessModeRead
 	if requireWrite {
-		accessMode = perm.AccessModeWrite
+		accessMode = perm_model.AccessModeWrite
 	}
 
 	if ctx.Data["IsActionsToken"] == true {
@@ -521,9 +531,9 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		}
 
 		if task.IsForkPullRequest {
-			return accessMode <= perm.AccessModeRead
+			return accessMode <= perm_model.AccessModeRead
 		}
-		return accessMode <= perm.AccessModeWrite
+		return accessMode <= perm_model.AccessModeWrite
 	}
 
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
@@ -548,7 +558,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	return true
 }
 
-func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
+func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repository, mode perm_model.AccessMode) (*user_model.User, error) {
 	if !strings.Contains(tokenSHA, ".") {
 		return nil, nil
 	}
@@ -564,15 +574,15 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 
 	claims, claimsOk := token.Claims.(*Claims)
 	if !token.Valid || !claimsOk {
-		return nil, fmt.Errorf("invalid token claim")
+		return nil, errors.New("invalid token claim")
 	}
 
 	if claims.RepoID != target.ID {
-		return nil, fmt.Errorf("invalid token claim")
+		return nil, errors.New("invalid token claim")
 	}
 
-	if mode == perm.AccessModeWrite && claims.Op != "upload" {
-		return nil, fmt.Errorf("invalid token claim")
+	if mode == perm_model.AccessModeWrite && claims.Op != "upload" {
+		return nil, errors.New("invalid token claim")
 	}
 
 	u, err := user_model.GetUserByID(ctx, claims.UserID)
@@ -583,26 +593,18 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 	return u, nil
 }
 
-func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
+func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Repository, mode perm_model.AccessMode) (*user_model.User, error) {
 	if authorization == "" {
-		return nil, fmt.Errorf("no token")
+		return nil, errors.New("no token")
 	}
-
-	parts := strings.SplitN(authorization, " ", 2)
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("no token")
+	parsed, ok := httpauth.ParseAuthorizationHeader(authorization)
+	if !ok || parsed.BearerToken == nil {
+		return nil, errors.New("token not found")
 	}
-	tokenSHA := parts[1]
-	switch strings.ToLower(parts[0]) {
-	case "bearer":
-		fallthrough
-	case "token":
-		return handleLFSToken(ctx, tokenSHA, target, mode)
-	}
-	return nil, fmt.Errorf("token not found")
+	return handleLFSToken(ctx, parsed.BearerToken.Token, target, mode)
 }
 
 func requireAuth(ctx *context.Context) {
-	ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
+	ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)
 	writeStatus(ctx, http.StatusUnauthorized)
 }

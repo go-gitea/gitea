@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       pgsql:
-        image: postgres:12
+        image: postgres:14
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -31,7 +31,7 @@ jobs:
       minio:
         # as github actions doesn't support "entrypoint", we need to use a non-official image
         # that has a custom entrypoint set to "minio server /data"
-        image: bitnami/minio:2023.8.31
+        image: bitnamilegacy/minio:2023.8.31
         env:
           MINIO_ROOT_USER: 123456
           MINIO_ROOT_PASSWORD: 12345678
@@ -98,7 +98,7 @@ jobs:
         ports:
           - "9200:9200"
       meilisearch:
-        image: getmeili/meilisearch:v1.2.0
+        image: getmeili/meilisearch:v1
         env:
           MEILI_ENV: development # disable auth
         ports:
@@ -113,7 +113,7 @@ jobs:
         ports:
           - 6379:6379
       minio:
-        image: bitnami/minio:2021.3.17
+        image: bitnamilegacy/minio:2021.3.17
         env:
           MINIO_ACCESS_KEY: 123456
           MINIO_SECRET_KEY: 12345678
@@ -154,12 +154,15 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:8.0
+        # the bitnami mysql image has more options than the official one, it's easier to customize
+        image: bitnamilegacy/mysql:8.0
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
         ports:
           - "3306:3306"
+        options: >-
+          --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
         image: elasticsearch:7.5.0
         env:
@@ -188,7 +191,8 @@ jobs:
       - name: run migration tests
         run: make test-mysql-migration
       - name: run tests
-        run: make integration-test-coverage
+        # run: make integration-test-coverage (at the moment, no coverage is really handled)
+        run: make test-mysql
         env:
           TAGS: bindata
           RACE_ENABLED: true
@@ -198,12 +202,10 @@ jobs:
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
-    # specifying the version of ubuntu in use as mssql fails on newer kernels
-    # pending resolution from vendor
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2017-latest
+        image: mcr.microsoft.com/mssql/server:2019-latest
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard

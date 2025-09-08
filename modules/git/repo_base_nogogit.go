@@ -21,7 +21,7 @@ const isGogit = false
 type Repository struct {
 	Path string
 
-	tagCache *ObjectCache
+	tagCache *ObjectCache[*Tag]
 
 	gpgSettings *GPGSettings
 
@@ -37,23 +37,23 @@ type Repository struct {
 	objectFormat ObjectFormat
 }
 
-// openRepositoryWithDefaultContext opens the repository at the given path with DefaultContext.
-func openRepositoryWithDefaultContext(repoPath string) (*Repository, error) {
-	return OpenRepository(DefaultContext, repoPath)
-}
-
 // OpenRepository opens the repository at the given path with the provided context.
 func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	repoPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, err
-	} else if !isDir(repoPath) {
+	}
+	exist, err := util.IsDir(repoPath)
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
 		return nil, util.NewNotExistErrorf("no such file or directory")
 	}
 
 	return &Repository{
 		Path:     repoPath,
-		tagCache: newObjectCache(),
+		tagCache: newObjectCache[*Tag](),
 		Ctx:      ctx,
 	}, nil
 }
@@ -62,7 +62,7 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 func (repo *Repository) CatFileBatch(ctx context.Context) (WriteCloserError, *bufio.Reader, func(), error) {
 	if repo.batch == nil {
 		var err error
-		repo.batch, err = repo.NewBatch(ctx)
+		repo.batch, err = NewBatch(ctx, repo.Path)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -76,7 +76,7 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (WriteCloserError, *bu
 	}
 
 	log.Debug("Opening temporary cat file batch for: %s", repo.Path)
-	tempBatch, err := repo.NewBatch(ctx)
+	tempBatch, err := NewBatch(ctx, repo.Path)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -87,7 +87,7 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (WriteCloserError, *bu
 func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError, *bufio.Reader, func(), error) {
 	if repo.check == nil {
 		var err error
-		repo.check, err = repo.NewBatchCheck(ctx)
+		repo.check, err = NewBatchCheck(ctx, repo.Path)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -101,7 +101,7 @@ func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError
 	}
 
 	log.Debug("Opening temporary cat file batch-check for: %s", repo.Path)
-	tempBatchCheck, err := repo.NewBatchCheck(ctx)
+	tempBatchCheck, err := NewBatchCheck(ctx, repo.Path)
 	if err != nil {
 		return nil, nil, nil, err
 	}

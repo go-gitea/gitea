@@ -11,12 +11,12 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sitemap"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/web/auth"
 	"code.gitea.io/gitea/routers/web/user"
@@ -25,7 +25,7 @@ import (
 
 const (
 	// tplHome home page template
-	tplHome base.TplName = "home"
+	tplHome templates.TplName = "home"
 )
 
 // Home render home page
@@ -68,7 +68,7 @@ func Home(ctx *context.Context) {
 func HomeSitemap(ctx *context.Context) {
 	m := sitemap.NewSitemapIndex()
 	if !setting.Service.Explore.DisableUsersPage {
-		_, cnt, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
+		_, cnt, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
 			Type:        user_model.UserTypeIndividual,
 			ListOptions: db.ListOptions{PageSize: 1},
 			IsActive:    optional.Some(true),
@@ -86,7 +86,7 @@ func HomeSitemap(ctx *context.Context) {
 		}
 	}
 
-	_, cnt, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	_, cnt, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 1,
 		},
@@ -113,5 +113,5 @@ func HomeSitemap(ctx *context.Context) {
 // NotFound render 404 page
 func NotFound(ctx *context.Context) {
 	ctx.Data["Title"] = "Page Not Found"
-	ctx.NotFound("home.NotFound", nil)
+	ctx.NotFound(nil)
 }

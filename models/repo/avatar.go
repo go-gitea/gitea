@@ -9,6 +9,7 @@ import (
 	"image/png"
 	"io"
 	"net/url"
+	"strconv"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/avatar"
@@ -37,7 +38,7 @@ func (repo *Repository) RelAvatarLink(ctx context.Context) string {
 
 // generateRandomAvatar generates a random avatar for repository.
 func generateRandomAvatar(ctx context.Context, repo *Repository) error {
-	idToString := fmt.Sprintf("%d", repo.ID)
+	idToString := strconv.FormatInt(repo.ID, 10)
 
 	seed := idToString
 	img, err := avatar.RandomImage([]byte(seed))

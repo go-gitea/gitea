@@ -1,10 +1,10 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
 
 import (
-	"fmt"
+	"strconv"
 	"testing"
 
 	"code.gitea.io/gitea/models/migrations/base"
@@ -50,7 +50,7 @@ func Test_UpdateBadgeColName(t *testing.T) {
 	for i, e := range oldBadges {
 		got := got[i+1] // 1 is in the badge.yml
 		assert.Equal(t, e.ID, got.ID)
-		assert.Equal(t, fmt.Sprintf("%d", e.ID), got.Slug)
+		assert.Equal(t, strconv.FormatInt(e.ID, 10), got.Slug)
 	}
 
 	// TODO: check if badges have been updated

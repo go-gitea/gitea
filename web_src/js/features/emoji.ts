@@ -1,4 +1,5 @@
-import emojis from '../../../assets/emoji.json';
+import emojis from '../../../assets/emoji.json' with {type: 'json'};
+import {html} from '../utils/html.ts';
 
 const {assetUrlPrefix, customEmojis} = window.config;
 
@@ -15,24 +16,23 @@ export const emojiKeys = Object.keys(tempMap).sort((a, b) => {
   return a.localeCompare(b);
 });
 
-const emojiMap = {};
+const emojiMap: Record<string, string> = {};
 for (const key of emojiKeys) {
   emojiMap[key] = tempMap[key];
 }
 
 // retrieve HTML for given emoji name
-export function emojiHTML(name) {
+export function emojiHTML(name: string) {
   let inner;
   if (Object.hasOwn(customEmojis, name)) {
-    inner = `<img alt=":${name}:" src="${assetUrlPrefix}/img/emoji/${name}.png">`;
+    inner = html`<img alt=":${name}:" src="${assetUrlPrefix}/img/emoji/${name}.png">`;
   } else {
     inner = emojiString(name);
   }
-
-  return `<span class="emoji" title=":${name}:">${inner}</span>`;
+  return html`<span class="emoji" title=":${name}:">${inner}</span>`;
 }
 
 // retrieve string for given emoji name
-export function emojiString(name) {
+export function emojiString(name: string) {
   return emojiMap[name] || `:${name}:`;
 }

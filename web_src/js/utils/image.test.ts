@@ -4,7 +4,7 @@ const pngNoPhys = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA
 const pngPhys = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAEElEQVQI12OQNZcAIgYIBQAL8gGxdzzM0A==';
 const pngEmpty = 'data:image/png;base64,';
 
-async function dataUriToBlob(datauri) {
+async function dataUriToBlob(datauri: string) {
   return await (await globalThis.fetch(datauri)).blob();
 }
 

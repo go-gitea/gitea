@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -28,8 +27,8 @@ func TestAPIGetCommentAttachment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2})
-	assert.NoError(t, comment.LoadIssue(db.DefaultContext))
-	assert.NoError(t, comment.LoadAttachments(db.DefaultContext))
+	assert.NoError(t, comment.LoadIssue(t.Context()))
+	assert.NoError(t, comment.LoadAttachments(t.Context()))
 	attachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: comment.Attachments[0].ID})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: comment.Issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -151,7 +150,7 @@ func TestAPICreateCommentAttachmentWithUnallowedFile(t *testing.T) {
 func TestAPIEditCommentAttachment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	const newAttachmentName = "newAttachmentName"
+	const newAttachmentName = "newAttachmentName.txt"
 
 	attachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 6})
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: attachment.CommentID})
@@ -171,6 +170,27 @@ func TestAPIEditCommentAttachment(t *testing.T) {
 	DecodeJSON(t, resp, &apiAttachment)
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, CommentID: comment.ID, Name: apiAttachment.Name})
+}
+
+func TestAPIEditCommentAttachmentWithUnallowedFile(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	attachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 6})
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: attachment.CommentID})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: comment.IssueID})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, repoOwner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+
+	filename := "file.bad"
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/assets/%d",
+		repoOwner.Name, repo.Name, comment.ID, attachment.ID)
+	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
+		"name": filename,
+	}).AddTokenAuth(token)
+
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 }
 
 func TestAPIDeleteCommentAttachment(t *testing.T) {

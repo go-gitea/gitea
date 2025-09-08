@@ -5,6 +5,10 @@ const data = {
 	isMirrorsEnabled: {{.MirrorsEnabled}},
 	isStarsEnabled: {{not .IsDisableStars}},
 
+	canCreateMigrations: {{not .DisableMigrations}},
+
+	textNoOrg: {{ctx.Locale.Tr "home.empty_org"}},
+	textNoRepo: {{ctx.Locale.Tr "home.empty_repo"}},
 	textRepository: {{ctx.Locale.Tr "repository"}},
 	textOrganization: {{ctx.Locale.Tr "organization"}},
 	textMyRepos: {{ctx.Locale.Tr "home.my_repos"}},
@@ -45,7 +49,7 @@ data.teamId = {{.Team.ID}};
 {{end}}
 
 {{if not .ContextUser.IsOrganization}}
-data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'num_repos': {{.NumRepos}}, 'org_visibility': {{.Visibility}}},{{end}}];
+data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'full_name': {{.FullName}}, 'num_repos': {{.NumRepos}}, 'org_visibility': {{.Visibility}}},{{end}}];
 data.isOrganization = false;
 data.organizationsTotalCount = {{.UserOrgsCount}};
 data.canCreateOrganization = {{.SignedUser.CanCreateOrganization}};

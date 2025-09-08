@@ -6,6 +6,7 @@ package context
 import (
 	"fmt"
 	"html/template"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -20,33 +21,35 @@ type Pagination struct {
 
 // NewPagination creates a new instance of the Pagination struct.
 // "pagingNum" is "page size" or "limit", "current" is "page"
+// total=-1 means only showing prev/next
 func NewPagination(total, pagingNum, current, numPages int) *Pagination {
 	p := &Pagination{}
 	p.Paginater = paginator.New(total, pagingNum, current, numPages)
 	return p
 }
 
-// AddParamString adds a string parameter directly
-func (p *Pagination) AddParamString(key, value string) {
-	urlParam := fmt.Sprintf("%s=%v", url.QueryEscape(key), url.QueryEscape(value))
-	p.urlParams = append(p.urlParams, urlParam)
+func (p *Pagination) WithCurRows(n int) *Pagination {
+	p.Paginater.SetCurRows(n)
+	return p
+}
+
+func (p *Pagination) AddParamFromQuery(q url.Values) {
+	for key, values := range q {
+		if key == "page" || len(values) == 0 || (len(values) == 1 && values[0] == "") {
+			continue
+		}
+		for _, value := range values {
+			urlParam := fmt.Sprintf("%s=%v", url.QueryEscape(key), url.QueryEscape(value))
+			p.urlParams = append(p.urlParams, urlParam)
+		}
+	}
+}
+
+func (p *Pagination) AddParamFromRequest(req *http.Request) {
+	p.AddParamFromQuery(req.URL.Query())
 }
 
 // GetParams returns the configured URL params
 func (p *Pagination) GetParams() template.URL {
 	return template.URL(strings.Join(p.urlParams, "&"))
-}
-
-// SetDefaultParams sets common pagination params that are often used
-func (p *Pagination) SetDefaultParams(ctx *Context) {
-	if v, ok := ctx.Data["SortType"].(string); ok {
-		p.AddParamString("sort", v)
-	}
-	if v, ok := ctx.Data["Keyword"].(string); ok {
-		p.AddParamString("q", v)
-	}
-	if v, ok := ctx.Data["IsFuzzy"].(bool); ok {
-		p.AddParamString("fuzzy", fmt.Sprint(v))
-	}
-	// do not add any more uncommon params here!
 }

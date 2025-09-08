@@ -92,8 +92,12 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 
 	var reviewNotifiers []*ReviewRequestNotifier
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(title) {
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			return err
+		}
+
 		var err error
-		reviewNotifiers, err = PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest)
+		reviewNotifiers, err = PullRequestCodeOwnersReview(ctx, issue.PullRequest)
 		if err != nil {
 			log.Error("PullRequestCodeOwnersReview: %v", err)
 		}
@@ -103,6 +107,13 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 	ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
 	return nil
+}
+
+// ChangeTimeEstimate changes the time estimate of this issue, as the given user.
+func ChangeTimeEstimate(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, timeEstimate int64) (err error) {
+	issue.TimeEstimate = timeEstimate
+
+	return issues_model.ChangeIssueTimeEstimate(ctx, issue, doer, timeEstimate)
 }
 
 // ChangeIssueRef changes the branch of this issue, as the given user.
@@ -179,20 +190,17 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 	}
 
 	// delete entries in database
-	if err := deleteIssue(ctx, issue); err != nil {
+	attachmentPaths, err := deleteIssue(ctx, issue)
+	if err != nil {
 		return err
+	}
+	for _, attachmentPath := range attachmentPaths {
+		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", attachmentPath)
 	}
 
 	// delete pull request related git data
 	if issue.IsPull && gitRepo != nil {
-		if err := gitRepo.RemoveReference(fmt.Sprintf("%s%d/head", git.PullPrefix, issue.PullRequest.Index)); err != nil {
-			return err
-		}
-	}
-
-	// If the Issue is pinned, we should unpin it before deletion to avoid problems with other pinned Issues
-	if issue.IsPinned() {
-		if err := issue.Unpin(ctx, doer); err != nil {
+		if err := gitRepo.RemoveReference(issue.PullRequest.GetGitHeadRefName()); err != nil {
 			return err
 		}
 	}
@@ -243,53 +251,54 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 	issueRefURLs := make(map[int64]string, len(issues))
 	for _, issue := range issues {
 		if issue.Ref != "" {
-			issueRefEndNames[issue.ID] = git.RefName(issue.Ref).ShortName()
-			issueRefURLs[issue.ID] = git.RefURL(repoLink, issue.Ref)
+			ref := git.RefName(issue.Ref)
+			issueRefEndNames[issue.ID] = ref.ShortName()
+			issueRefURLs[issue.ID] = repoLink + "/src/" + ref.RefWebLinkPath()
 		}
 	}
 	return issueRefEndNames, issueRefURLs
 }
 
 // deleteIssue deletes the issue
-func deleteIssue(ctx context.Context, issue *issues_model.Issue) error {
+func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer committer.Close()
 
-	e := db.GetEngine(ctx)
-	if _, err := e.ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
-		return err
+	if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
+		return nil, err
 	}
 
 	// update the total issue numbers
 	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
-		return err
+		return nil, err
 	}
 	// if the issue is closed, update the closed issue numbers
 	if issue.IsClosed {
 		if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
-		return fmt.Errorf("error updating counters for milestone id %d: %w",
+		return nil, fmt.Errorf("error updating counters for milestone id %d: %w",
 			issue.MilestoneID, err)
 	}
 
 	if err := activities_model.DeleteIssueActions(ctx, issue.RepoID, issue.ID, issue.Index); err != nil {
-		return err
+		return nil, err
 	}
 
 	// find attachments related to this issue and remove them
-	if err := issue.LoadAttributes(ctx); err != nil {
-		return err
+	if err := issue.LoadAttachments(ctx); err != nil {
+		return nil, err
 	}
 
+	var attachmentPaths []string
 	for i := range issue.Attachments {
-		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", issue.Attachments[i].RelativePath())
+		attachmentPaths = append(attachmentPaths, issue.Attachments[i].RelativePath())
 	}
 
 	// delete all database data still assigned to this issue
@@ -311,9 +320,70 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) error {
 		&issues_model.Comment{RefIssueID: issue.ID},
 		&issues_model.IssueDependency{DependencyID: issue.ID},
 		&issues_model.Comment{DependentIssueID: issue.ID},
+		&issues_model.IssuePin{IssueID: issue.ID},
 	); err != nil {
+		return nil, err
+	}
+
+	if err := committer.Commit(); err != nil {
+		return nil, err
+	}
+	return attachmentPaths, nil
+}
+
+// DeleteOrphanedIssues delete issues without a repo
+func DeleteOrphanedIssues(ctx context.Context) error {
+	var attachmentPaths []string
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		repoIDs, err := issues_model.GetOrphanedIssueRepoIDs(ctx)
+		if err != nil {
+			return err
+		}
+		for i := range repoIDs {
+			paths, err := DeleteIssuesByRepoID(ctx, repoIDs[i])
+			if err != nil {
+				return err
+			}
+			attachmentPaths = append(attachmentPaths, paths...)
+		}
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 
-	return committer.Commit()
+	// Remove issue attachment files.
+	for i := range attachmentPaths {
+		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+	}
+	return nil
+}
+
+// DeleteIssuesByRepoID deletes issues by repositories id
+func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []string, err error) {
+	for {
+		issues := make([]*issues_model.Issue, 0, db.DefaultMaxInSize)
+		if err := db.GetEngine(ctx).
+			Where("repo_id = ?", repoID).
+			OrderBy("id").
+			Limit(db.DefaultMaxInSize).
+			Find(&issues); err != nil {
+			return nil, err
+		}
+
+		if len(issues) == 0 {
+			break
+		}
+
+		for _, issue := range issues {
+			issueAttachPaths, err := deleteIssue(ctx, issue)
+			if err != nil {
+				return nil, fmt.Errorf("deleteIssue [issue_id: %d]: %w", issue.ID, err)
+			}
+
+			attachmentPaths = append(attachmentPaths, issueAttachPaths...)
+		}
+	}
+
+	return attachmentPaths, err
 }

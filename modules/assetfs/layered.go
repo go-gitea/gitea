@@ -52,8 +52,8 @@ func Local(name, base string, sub ...string) *Layer {
 }
 
 // Bindata returns a new Layer with the given name, it serves files from the given bindata asset.
-func Bindata(name string, fs http.FileSystem) *Layer {
-	return &Layer{name: name, fs: fs}
+func Bindata(name string, fs fs.FS) *Layer {
+	return &Layer{name: name, fs: http.FS(fs)}
 }
 
 // LayeredFS is a layered asset file-system. It works like http.FileSystem, but it can have multiple layers.
@@ -103,7 +103,7 @@ func (l *LayeredFS) ReadLayeredFile(elems ...string) ([]byte, string, error) {
 }
 
 func shouldInclude(info fs.FileInfo, fileMode ...bool) bool {
-	if util.CommonSkip(info.Name()) {
+	if util.IsCommonHiddenFileName(info.Name()) {
 		return false
 	}
 	if len(fileMode) == 0 {

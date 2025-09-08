@@ -13,7 +13,6 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -144,6 +143,18 @@ func TestAPICreateIssue(t *testing.T) {
 
 func TestAPICreateIssueParallel(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	// FIXME: There seems to be a bug in github.com/mattn/go-sqlite3 with sqlite_unlock_notify, when doing concurrent writes to the same database,
+	// some requests may get stuck in "go-sqlite3.(*SQLiteRows).Next", "go-sqlite3.(*SQLiteStmt).exec" and "go-sqlite3.unlock_notify_wait",
+	// because the "unlock_notify_wait" never returns and the internal lock never gets releases.
+	//
+	// The trigger is: a previous test created issues and made the real issue indexer queue start processing, then this test does concurrent writing.
+	// Adding this "Sleep" makes go-sqlite3 "finish" some internal operations before concurrent writes and then won't get stuck.
+	// To reproduce: make a new test run these 2 tests enough times:
+	// > func TestBug() { for i := 0; i < 100; i++ { testAPICreateIssue(t); testAPICreateIssueParallel(t) } }
+	// Usually the test gets stuck in fewer than 10 iterations without this "sleep".
+	time.Sleep(time.Second)
+
 	const body, title = "apiTestBody", "apiTestTitle"
 
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -154,7 +165,7 @@ func TestAPICreateIssueParallel(t *testing.T) {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repoBefore.Name)
 
 	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		wg.Add(1)
 		go func(parentT *testing.T, i int) {
 			parentT.Run(fmt.Sprintf("ParallelCreateIssue_%d", i), func(t *testing.T) {
@@ -191,7 +202,7 @@ func TestAPIEditIssue(t *testing.T) {
 	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
-	assert.NoError(t, issueBefore.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, issueBefore.LoadAttributes(t.Context()))
 	assert.Equal(t, int64(1019307200), int64(issueBefore.DeadlineUnix))
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 
@@ -228,7 +239,7 @@ func TestAPIEditIssue(t *testing.T) {
 
 	// check deleted user
 	assert.Equal(t, int64(500), issueAfter.PosterID)
-	assert.NoError(t, issueAfter.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, issueAfter.LoadAttributes(t.Context()))
 	assert.Equal(t, int64(-1), issueAfter.PosterID)
 	assert.Equal(t, int64(-1), issueBefore.PosterID)
 	assert.Equal(t, int64(-1), apiIssue.Poster.ID)
@@ -240,7 +251,7 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, api.StateClosed, apiIssue.State)
 	assert.Equal(t, milestone, apiIssue.Milestone.ID)
 	assert.Equal(t, body, apiIssue.Body)
-	assert.True(t, apiIssue.Deadline == nil)
+	assert.Nil(t, apiIssue.Deadline)
 	assert.Equal(t, title, apiIssue.Title)
 
 	// in database
@@ -255,10 +266,7 @@ func TestAPISearchIssues(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// as this API was used in the frontend, it uses UI page size
-	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
-	}
+	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)
@@ -301,7 +309,7 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "22", resp.Header().Get("X-Total-Count"))
+	assert.Equal(t, "22", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 20)
 
 	query.Add("limit", "10")
@@ -309,7 +317,7 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "22", resp.Header().Get("X-Total-Count"))
+	assert.Equal(t, "22", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 10)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}}
@@ -359,10 +367,7 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// as this API was used in the frontend, it uses UI page size
-	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
-	}
+	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)

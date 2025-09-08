@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -23,13 +24,13 @@ func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, NoExpectedStatus)
 	if !exists {
-		assert.EqualValues(t, http.StatusNotFound, resp.Code)
+		assert.Equal(t, http.StatusNotFound, resp.Code)
 		return
 	}
-	assert.EqualValues(t, http.StatusOK, resp.Code)
+	assert.Equal(t, http.StatusOK, resp.Code)
 	var branch api.Branch
 	DecodeJSON(t, resp, &branch)
-	assert.EqualValues(t, branchName, branch.Name)
+	assert.Equal(t, branchName, branch.Name)
 	assert.True(t, branch.UserCanPush)
 	assert.True(t, branch.UserCanMerge)
 }
@@ -43,13 +44,13 @@ func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPSta
 	if resp.Code == http.StatusOK {
 		var branchProtection api.BranchProtection
 		DecodeJSON(t, resp, &branchProtection)
-		assert.EqualValues(t, branchName, branchProtection.RuleName)
+		assert.Equal(t, branchName, branchProtection.RuleName)
 		return &branchProtection
 	}
 	return nil
 }
 
-func testAPICreateBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) {
+func testAPICreateBranchProtection(t *testing.T, branchName string, expectedPriority, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
 		RuleName: branchName,
@@ -59,7 +60,8 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedHTTP
 	if resp.Code == http.StatusCreated {
 		var branchProtection api.BranchProtection
 		DecodeJSON(t, resp, &branchProtection)
-		assert.EqualValues(t, branchName, branchProtection.RuleName)
+		assert.Equal(t, branchName, branchProtection.RuleName)
+		assert.EqualValues(t, expectedPriority, branchProtection.Priority)
 	}
 }
 
@@ -72,7 +74,7 @@ func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.Bran
 	if resp.Code == http.StatusOK {
 		var branchProtection api.BranchProtection
 		DecodeJSON(t, resp, &branchProtection)
-		assert.EqualValues(t, branchName, branchProtection.RuleName)
+		assert.Equal(t, branchName, branchProtection.RuleName)
 	}
 }
 
@@ -179,23 +181,87 @@ func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBran
 	DecodeJSON(t, resp, &branch)
 
 	if resp.Result().StatusCode == http.StatusCreated {
-		assert.EqualValues(t, newBranch, branch.Name)
+		assert.Equal(t, newBranch, branch.Name)
 	}
 
 	return resp.Result().StatusCode == status
+}
+
+func TestAPIRenameBranch(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		t.Run("RenameBranchWithEmptyRepo", func(t *testing.T) {
+			testAPIRenameBranch(t, "user10", "user10", "repo6", "master", "test", http.StatusNotFound)
+		})
+		t.Run("RenameBranchWithSameBranchNames", func(t *testing.T) {
+			resp := testAPIRenameBranch(t, "user2", "user2", "repo1", "master", "master", http.StatusUnprocessableEntity)
+			assert.Contains(t, resp.Body.String(), "Cannot rename a branch using the same name or rename to a branch that already exists.")
+		})
+		t.Run("RenameBranchThatAlreadyExists", func(t *testing.T) {
+			resp := testAPIRenameBranch(t, "user2", "user2", "repo1", "master", "branch2", http.StatusUnprocessableEntity)
+			assert.Contains(t, resp.Body.String(), "Cannot rename a branch using the same name or rename to a branch that already exists.")
+		})
+		t.Run("RenameBranchWithNonExistentBranch", func(t *testing.T) {
+			resp := testAPIRenameBranch(t, "user2", "user2", "repo1", "i-dont-exist", "new-branch-name", http.StatusNotFound)
+			assert.Contains(t, resp.Body.String(), "Branch doesn't exist.")
+		})
+		t.Run("RenameBranchWithNonAdminDoer", func(t *testing.T) {
+			// don't allow default branch renaming
+			resp := testAPIRenameBranch(t, "user40", "user2", "repo1", "master", "new-branch-name", http.StatusForbidden)
+			assert.Contains(t, resp.Body.String(), "User must be a repo or site admin to rename default or protected branches.")
+
+			// don't allow protected branch renaming
+			token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+			req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branches", &api.CreateBranchRepoOption{
+				BranchName: "protected-branch",
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusCreated)
+			testAPICreateBranchProtection(t, "protected-branch", 1, http.StatusCreated)
+			resp = testAPIRenameBranch(t, "user40", "user2", "repo1", "protected-branch", "new-branch-name", http.StatusForbidden)
+			assert.Contains(t, resp.Body.String(), "User must be a repo or site admin to rename default or protected branches.")
+		})
+		t.Run("RenameBranchWithGlobedBasedProtectionRulesAndAdminAccess", func(t *testing.T) {
+			// don't allow branch that falls under glob-based protection rules to be renamed
+			token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+			req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
+				RuleName:   "protected/**",
+				EnablePush: true,
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusCreated)
+
+			from := "protected/1"
+			req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branches", &api.CreateBranchRepoOption{
+				BranchName: from,
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusCreated)
+
+			resp := testAPIRenameBranch(t, "user2", "user2", "repo1", from, "new-branch-name", http.StatusForbidden)
+			assert.Contains(t, resp.Body.String(), "Branch is protected by glob-based protection rules.")
+		})
+		t.Run("RenameBranchNormalScenario", func(t *testing.T) {
+			testAPIRenameBranch(t, "user2", "user2", "repo1", "branch2", "new-branch-name", http.StatusNoContent)
+		})
+	})
+}
+
+func testAPIRenameBranch(t *testing.T, doerName, ownerName, repoName, from, to string, expectedHTTPStatus int) *httptest.ResponseRecorder {
+	token := getUserToken(t, doerName, auth_model.AccessTokenScopeWriteRepository)
+	req := NewRequestWithJSON(t, "PATCH", "api/v1/repos/"+ownerName+"/"+repoName+"/branches/"+from, &api.RenameBranchRepoOption{
+		Name: to,
+	}).AddTokenAuth(token)
+	return MakeRequest(t, req, expectedHTTPStatus)
 }
 
 func TestAPIBranchProtection(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// Branch protection  on branch that not exist
-	testAPICreateBranchProtection(t, "master/doesnotexist", http.StatusCreated)
+	testAPICreateBranchProtection(t, "master/doesnotexist", 1, http.StatusCreated)
 	// Get branch protection on branch that exist but not branch protection
 	testAPIGetBranchProtection(t, "master", http.StatusNotFound)
 
-	testAPICreateBranchProtection(t, "master", http.StatusCreated)
+	testAPICreateBranchProtection(t, "master", 2, http.StatusCreated)
 	// Can only create once
-	testAPICreateBranchProtection(t, "master", http.StatusForbidden)
+	testAPICreateBranchProtection(t, "master", 0, http.StatusForbidden)
 
 	// Can't delete a protected branch
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
@@ -211,7 +277,7 @@ func TestAPIBranchProtection(t *testing.T) {
 		StatusCheckContexts: []string{"test1"},
 	}, http.StatusOK)
 	bp := testAPIGetBranchProtection(t, "master", http.StatusOK)
-	assert.Equal(t, true, bp.EnableStatusCheck)
+	assert.True(t, bp.EnableStatusCheck)
 	assert.Equal(t, []string{"test1"}, bp.StatusCheckContexts)
 
 	// disable status checks, clear the list of required checks
@@ -220,7 +286,7 @@ func TestAPIBranchProtection(t *testing.T) {
 		StatusCheckContexts: []string{},
 	}, http.StatusOK)
 	bp = testAPIGetBranchProtection(t, "master", http.StatusOK)
-	assert.Equal(t, false, bp.EnableStatusCheck)
+	assert.False(t, bp.EnableStatusCheck)
 	assert.Equal(t, []string{}, bp.StatusCheckContexts)
 
 	testAPIDeleteBranchProtection(t, "master", http.StatusNoContent)
@@ -233,14 +299,14 @@ func TestAPIBranchProtection(t *testing.T) {
 func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	branches, err := db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+	branches, err := db.Find[git_model.Branch](t.Context(), git_model.FindBranchOptions{
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, branches, 4)
+	assert.Len(t, branches, 6)
 
 	// make a broke repository with no branch on database
-	_, err = db.DeleteByBean(db.DefaultContext, git_model.Branch{RepoID: 1})
+	_, err = db.DeleteByBean(t.Context(), git_model.Branch{RepoID: 1})
 	assert.NoError(t, err)
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
@@ -250,13 +316,13 @@ func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 		testAPICreateBranch(t, ctx.Session, "user2", "repo1", "", "new_branch", http.StatusCreated)
 	})
 
-	branches, err = db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+	branches, err = db.Find[git_model.Branch](t.Context(), git_model.FindBranchOptions{
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, branches, 5)
+	assert.Len(t, branches, 7)
 
-	branches, err = db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+	branches, err = db.Find[git_model.Branch](t.Context(), git_model.FindBranchOptions{
 		RepoID:  1,
 		Keyword: "new_branch",
 	})

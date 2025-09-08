@@ -11,33 +11,32 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
-	tplBranch base.TplName = "repo/branch/list"
+	tplBranch templates.TplName = "repo/branch/list"
 )
 
 // Branches render repository branch page
 func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
-	ctx.Data["IsRepoToolbarBranches"] = true
 	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls(ctx)
 	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(unit.TypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
@@ -46,10 +45,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	pageSize := setting.Git.BranchesRangeSize
 
 	kw := ctx.FormString("q")
@@ -87,18 +83,17 @@ func Branches(ctx *context.Context) {
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["DefaultBranchBranch"] = defaultBranch
 	pager := context.NewPagination(int(branchesCount), pageSize, page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
-	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
 	ctx.HTML(http.StatusOK, tplBranch)
 }
 
 // DeleteBranchPost responses for delete merged branch
 func DeleteBranchPost(ctx *context.Context) {
-	defer redirect(ctx)
+	defer jsonRedirectBranches(ctx)
 	branchName := ctx.FormString("name")
 
-	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
+	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName, nil); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			log.Debug("DeleteBranch: Can't delete non existing branch '%s'", branchName)
@@ -122,7 +117,7 @@ func DeleteBranchPost(ctx *context.Context) {
 
 // RestoreBranchPost responses for delete merged branch
 func RestoreBranchPost(ctx *context.Context) {
-	defer redirect(ctx)
+	defer jsonRedirectBranches(ctx)
 
 	branchID := ctx.FormInt64("branch_id")
 	branchName := ctx.FormString("name")
@@ -172,7 +167,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	ctx.Flash.Success(ctx.Tr("repo.branch.restore_success", deletedBranch.Name))
 }
 
-func redirect(ctx *context.Context) {
+func jsonRedirectBranches(ctx *context.Context) {
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/branches?page=" + url.QueryEscape(ctx.FormString("page")))
 }
 
@@ -180,13 +175,13 @@ func redirect(ctx *context.Context) {
 func CreateBranch(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewBranchForm)
 	if !ctx.Repo.CanCreateBranch() {
-		ctx.NotFound("CreateBranch", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.GetErrMsg())
-		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 		return
 	}
 
@@ -194,37 +189,37 @@ func CreateBranch(ctx *context.Context) {
 
 	if form.CreateTag {
 		target := ctx.Repo.CommitID
-		if ctx.Repo.IsViewBranch {
+		if ctx.Repo.RefFullName.IsBranch() {
 			target = ctx.Repo.BranchName
 		}
 		err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, target, form.NewBranchName, "")
-	} else if ctx.Repo.IsViewBranch {
+	} else if ctx.Repo.RefFullName.IsBranch() {
 		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
 		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
-		if models.IsErrProtectedTagName(err) {
+		if release_service.IsErrProtectedTagName(err) {
 			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 			return
 		}
 
-		if models.IsErrTagAlreadyExists(err) {
-			e := err.(models.ErrTagAlreadyExists)
+		if release_service.IsErrTagAlreadyExists(err) {
+			e := err.(release_service.ErrTagAlreadyExists)
 			ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
-			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 			return
 		}
 		if git_model.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", form.NewBranchName))
-			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 			return
 		}
 		if git_model.IsErrBranchNameConflict(err) {
 			e := err.(git_model.ErrBranchNameConflict)
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, e.BranchName))
-			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 			return
 		}
 		if git.IsErrPushRejected(err) {
@@ -243,7 +238,7 @@ func CreateBranch(ctx *context.Context) {
 				}
 				ctx.Flash.Error(flashError)
 			}
-			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 			return
 		}
 
@@ -259,4 +254,21 @@ func CreateBranch(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.create_success", form.NewBranchName))
 	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(form.NewBranchName) + "/" + util.PathEscapeSegments(form.CurrentPath))
+}
+
+func MergeUpstream(ctx *context.Context) {
+	branchName := ctx.FormString("branch")
+	_, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, branchName, false)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.JSONErrorNotFound()
+			return
+		} else if pull_service.IsErrMergeConflicts(err) {
+			ctx.JSONError(ctx.Tr("repo.pulls.merge_conflict"))
+			return
+		}
+		ctx.ServerError("MergeUpstream", err)
+		return
+	}
+	ctx.JSONRedirect("")
 }

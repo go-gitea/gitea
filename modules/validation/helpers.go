@@ -7,14 +7,28 @@ import (
 	"net"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/gobwas/glob"
 )
 
-var externalTrackerRegex = regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`)
+type globalVarsStruct struct {
+	externalTrackerRegex   *regexp.Regexp
+	validUsernamePattern   *regexp.Regexp
+	invalidUsernamePattern *regexp.Regexp
+}
+
+var globalVars = sync.OnceValue(func() *globalVarsStruct {
+	return &globalVarsStruct{
+		externalTrackerRegex:   regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`),
+		validUsernamePattern:   regexp.MustCompile(`^[\da-zA-Z][-.\w]*$`),
+		invalidUsernamePattern: regexp.MustCompile(`[-._]{2,}|[-._]$`), // No consecutive or trailing non-alphanumeric chars
+	}
+})
 
 func isLoopbackIP(ip string) bool {
 	return net.ParseIP(ip).IsLoopback()
@@ -42,12 +56,7 @@ func IsValidSiteURL(uri string) bool {
 		return false
 	}
 
-	for _, scheme := range setting.Service.ValidSiteURLSchemes {
-		if scheme == u.Scheme {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(setting.Service.ValidSiteURLSchemes, u.Scheme)
 }
 
 // IsEmailDomainListed checks whether the domain of an email address
@@ -105,9 +114,9 @@ func IsValidExternalTrackerURLFormat(uri string) bool {
 	if !IsValidExternalURL(uri) {
 		return false
 	}
-
+	vars := globalVars()
 	// check for typoed variables like /{index/ or /[repo}
-	for _, match := range externalTrackerRegex.FindAllStringSubmatch(uri, -1) {
+	for _, match := range vars.externalTrackerRegex.FindAllStringSubmatch(uri, -1) {
 		if (match[1] == "{" || match[2] == "}") && (match[1] != "{" || match[2] != "}") {
 			return false
 		}
@@ -116,14 +125,10 @@ func IsValidExternalTrackerURLFormat(uri string) bool {
 	return true
 }
 
-var (
-	validUsernamePattern   = regexp.MustCompile(`^[\da-zA-Z][-.\w]*$`)
-	invalidUsernamePattern = regexp.MustCompile(`[-._]{2,}|[-._]$`) // No consecutive or trailing non-alphanumeric chars
-)
-
 // IsValidUsername checks if username is valid
 func IsValidUsername(name string) bool {
 	// It is difficult to find a single pattern that is both readable and effective,
 	// but it's easier to use positive and negative checks.
-	return validUsernamePattern.MatchString(name) && !invalidUsernamePattern.MatchString(name)
+	vars := globalVars()
+	return vars.validUsernamePattern.MatchString(name) && !vars.invalidUsernamePattern.MatchString(name)
 }

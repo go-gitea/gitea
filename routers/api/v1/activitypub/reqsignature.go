@@ -7,6 +7,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -34,7 +35,7 @@ func getPublicKeyFromResponse(b []byte, keyID *url.URL) (p crypto.PublicKey, err
 	pubKeyPem := pubKey.PublicKeyPem
 	block, _ := pem.Decode([]byte(pubKeyPem))
 	if block == nil || block.Type != "PUBLIC KEY" {
-		return nil, fmt.Errorf("could not decode publicKeyPem to PUBLIC KEY pem block type")
+		return nil, errors.New("could not decode publicKeyPem to PUBLIC KEY pem block type")
 	}
 	p, err = x509.ParsePKIXPublicKey(block.Bytes)
 	return p, err
@@ -89,9 +90,9 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 func ReqHTTPSignature() func(ctx *gitea_context.APIContext) {
 	return func(ctx *gitea_context.APIContext) {
 		if authenticated, err := verifyHTTPSignatures(ctx); err != nil {
-			ctx.ServerError("verifyHttpSignatures", err)
+			ctx.APIErrorInternal(err)
 		} else if !authenticated {
-			ctx.Error(http.StatusForbidden, "reqSignature", "request signature verification failed")
+			ctx.APIError(http.StatusForbidden, "request signature verification failed")
 		}
 	}
 }

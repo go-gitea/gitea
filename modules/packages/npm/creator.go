@@ -58,7 +58,7 @@ type PackageMetadata struct {
 	Time           map[string]time.Time               `json:"time,omitempty"`
 	Homepage       string                             `json:"homepage,omitempty"`
 	Keywords       []string                           `json:"keywords,omitempty"`
-	Repository     Repository                         `json:"repository,omitempty"`
+	Repository     Repository                         `json:"repository"`
 	Author         User                               `json:"author"`
 	ReadmeFilename string                             `json:"readmeFilename,omitempty"`
 	Users          map[string]bool                    `json:"users,omitempty"`
@@ -75,12 +75,13 @@ type PackageMetadataVersion struct {
 	Author               User                `json:"author"`
 	Homepage             string              `json:"homepage,omitempty"`
 	License              string              `json:"license,omitempty"`
-	Repository           Repository          `json:"repository,omitempty"`
+	Repository           Repository          `json:"repository"`
 	Keywords             []string            `json:"keywords,omitempty"`
 	Dependencies         map[string]string   `json:"dependencies,omitempty"`
 	BundleDependencies   []string            `json:"bundleDependencies,omitempty"`
 	DevDependencies      map[string]string   `json:"devDependencies,omitempty"`
 	PeerDependencies     map[string]string   `json:"peerDependencies,omitempty"`
+	PeerDependenciesMeta map[string]any      `json:"peerDependenciesMeta,omitempty"`
 	Bin                  map[string]string   `json:"bin,omitempty"`
 	OptionalDependencies map[string]string   `json:"optionalDependencies,omitempty"`
 	Readme               string              `json:"readme,omitempty"`
@@ -222,6 +223,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				BundleDependencies:      meta.BundleDependencies,
 				DevelopmentDependencies: meta.DevDependencies,
 				PeerDependencies:        meta.PeerDependencies,
+				PeerDependenciesMeta:    meta.PeerDependenciesMeta,
 				OptionalDependencies:    meta.OptionalDependencies,
 				Bin:                     meta.Bin,
 				Readme:                  meta.Readme,

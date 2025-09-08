@@ -18,7 +18,7 @@ func GetLevel() Level {
 }
 
 func Log(skip int, level Level, format string, v ...any) {
-	GetLogger(DEFAULT).Log(skip+1, level, format, v...)
+	GetLogger(DEFAULT).Log(skip+1, &Event{Level: level}, format, v...)
 }
 
 func Trace(format string, v ...any) {

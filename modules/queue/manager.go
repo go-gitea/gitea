@@ -5,6 +5,8 @@ package queue
 
 import (
 	"context"
+	"errors"
+	"maps"
 	"sync"
 	"time"
 
@@ -32,6 +34,7 @@ type ManagedWorkerPoolQueue interface {
 
 	// FlushWithContext tries to make the handler process all items in the queue synchronously.
 	// It is for testing purpose only. It's not designed to be used in a cluster.
+	// Negative timeout means discarding all items in the queue.
 	FlushWithContext(ctx context.Context, timeout time.Duration) error
 
 	// RemoveAllItems removes all items in the base queue (on-the-fly items are not affected)
@@ -68,23 +71,22 @@ func (m *Manager) ManagedQueues() map[int64]ManagedWorkerPoolQueue {
 	defer m.mu.Unlock()
 
 	queues := make(map[int64]ManagedWorkerPoolQueue, len(m.Queues))
-	for k, v := range m.Queues {
-		queues[k] = v
-	}
+	maps.Copy(queues, m.Queues)
 	return queues
 }
 
 // FlushAll tries to make all managed queues process all items synchronously, until timeout or the queue is empty.
 // It is for testing purpose only. It's not designed to be used in a cluster.
+// Negative timeout means discarding all items in the queue.
 func (m *Manager) FlushAll(ctx context.Context, timeout time.Duration) error {
-	var finalErr error
+	var finalErrors []error
 	qs := m.ManagedQueues()
 	for _, q := range qs {
 		if err := q.FlushWithContext(ctx, timeout); err != nil {
-			finalErr = err // TODO: in Go 1.20: errors.Join
+			finalErrors = append(finalErrors, err)
 		}
 	}
-	return finalErr
+	return errors.Join(finalErrors...)
 }
 
 // CreateSimpleQueue creates a simple queue from global setting config provider by name

@@ -1,14 +1,14 @@
-import $ from 'jquery';
 import {GET} from '../modules/fetch.ts';
 import {hideElem, loadElem, queryElemChildren, queryElems} from '../utils/dom.ts';
 import {parseDom} from '../utils.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
-function getDefaultSvgBoundsIfUndefined(text, src) {
+function getDefaultSvgBoundsIfUndefined(text: string, src: string) {
   const defaultSize = 300;
   const maxSize = 99999;
 
   const svgDoc = parseDom(text, 'image/svg+xml');
-  const svg = svgDoc.documentElement;
+  const svg = (svgDoc.documentElement as unknown) as SVGSVGElement;
   const width = svg?.width?.baseVal;
   const height = svg?.height?.baseVal;
   if (width === undefined || height === undefined) {
@@ -38,7 +38,7 @@ function getDefaultSvgBoundsIfUndefined(text, src) {
   return null;
 }
 
-function createContext(imageAfter, imageBefore) {
+function createContext(imageAfter: HTMLImageElement, imageBefore: HTMLImageElement) {
   const sizeAfter = {
     width: imageAfter?.width || 0,
     height: imageAfter?.height || 0,
@@ -68,12 +68,14 @@ function createContext(imageAfter, imageBefore) {
 }
 
 class ImageDiff {
-  async init(containerEl) {
+  containerEl: HTMLElement;
+  diffContainerWidth: number;
+
+  async init(containerEl: HTMLElement) {
     this.containerEl = containerEl;
     containerEl.setAttribute('data-image-diff-loaded', 'true');
 
-    // the only jQuery usage in this file
-    $(containerEl).find('.ui.menu.tabular .item').tab({autoTabActivation: false});
+    fomanticQuery(containerEl).find('.ui.menu.tabular .item').tab();
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
     this.diffContainerWidth = Math.max(containerEl.closest('.diff-file-box').clientWidth - 300, 100);
@@ -81,12 +83,12 @@ class ImageDiff {
     const imageInfos = [{
       path: containerEl.getAttribute('data-path-after'),
       mime: containerEl.getAttribute('data-mime-after'),
-      images: containerEl.querySelectorAll('img.image-after'), // matches 3 <img>
+      images: containerEl.querySelectorAll<HTMLImageElement>('img.image-after'), // matches 3 <img>
       boundsInfo: containerEl.querySelector('.bounds-info-after'),
     }, {
       path: containerEl.getAttribute('data-path-before'),
       mime: containerEl.getAttribute('data-mime-before'),
-      images: containerEl.querySelectorAll('img.image-before'), // matches 3 <img>
+      images: containerEl.querySelectorAll<HTMLImageElement>('img.image-before'), // matches 3 <img>
       boundsInfo: containerEl.querySelector('.bounds-info-before'),
     }];
 
@@ -102,8 +104,8 @@ class ImageDiff {
         const bounds = getDefaultSvgBoundsIfUndefined(text, info.path);
         if (bounds) {
           for (const el of info.images) {
-            el.setAttribute('width', bounds.width);
-            el.setAttribute('height', bounds.height);
+            el.setAttribute('width', String(bounds.width));
+            el.setAttribute('height', String(bounds.height));
           }
           hideElem(info.boundsInfo);
         }
@@ -121,7 +123,7 @@ class ImageDiff {
     queryElemChildren(containerEl, '.image-diff-tabs', (el) => el.classList.remove('is-loading'));
   }
 
-  initSideBySide(sizes) {
+  initSideBySide(sizes: Record<string, any>) {
     let factor = 1;
     if (sizes.maxSize.width > (this.diffContainerWidth - 24) / 2) {
       factor = (this.diffContainerWidth - 24) / 2 / sizes.maxSize.width;
@@ -151,7 +153,7 @@ class ImageDiff {
       const boundsInfoBeforeHeight = this.containerEl.querySelector('.bounds-info-before .bounds-info-height');
       if (boundsInfoBeforeHeight) {
         boundsInfoBeforeHeight.textContent = `${sizes.imageBefore.naturalHeight}px`;
-        boundsInfoBeforeHeight.classList.add('red', heightChanged);
+        boundsInfoBeforeHeight.classList.toggle('red', heightChanged);
       }
     }
 
@@ -174,7 +176,7 @@ class ImageDiff {
     }
   }
 
-  initSwipe(sizes) {
+  initSwipe(sizes: Record<string, any>) {
     let factor = 1;
     if (sizes.maxSize.width > this.diffContainerWidth - 12) {
       factor = (this.diffContainerWidth - 12) / sizes.maxSize.width;
@@ -205,7 +207,7 @@ class ImageDiff {
     }
 
     // extra height for inner "position: absolute" elements
-    const swipe = this.containerEl.querySelector('.diff-swipe');
+    const swipe = this.containerEl.querySelector<HTMLElement>('.diff-swipe');
     if (swipe) {
       swipe.style.width = `${sizes.maxSize.width * factor + 2}px`;
       swipe.style.height = `${sizes.maxSize.height * factor + 30}px`;
@@ -213,19 +215,19 @@ class ImageDiff {
 
     this.containerEl.querySelector('.swipe-bar').addEventListener('mousedown', (e) => {
       e.preventDefault();
-      this.initSwipeEventListeners(e.currentTarget);
+      this.initSwipeEventListeners(e.currentTarget as HTMLElement);
     });
   }
 
-  initSwipeEventListeners(swipeBar) {
-    const swipeFrame = swipeBar.parentNode;
+  initSwipeEventListeners(swipeBar: HTMLElement) {
+    const swipeFrame = swipeBar.parentNode as HTMLElement;
     const width = swipeFrame.clientWidth;
-    const onSwipeMouseMove = (e) => {
+    const onSwipeMouseMove = (e: MouseEvent) => {
       e.preventDefault();
       const rect = swipeFrame.getBoundingClientRect();
       const value = Math.max(0, Math.min(e.clientX - rect.left, width));
       swipeBar.style.left = `${value}px`;
-      this.containerEl.querySelector('.swipe-container').style.width = `${swipeFrame.clientWidth - value}px`;
+      this.containerEl.querySelector<HTMLElement>('.swipe-container').style.width = `${swipeFrame.clientWidth - value}px`;
     };
     const removeEventListeners = () => {
       document.removeEventListener('mousemove', onSwipeMouseMove);
@@ -235,7 +237,7 @@ class ImageDiff {
     document.addEventListener('mouseup', removeEventListeners);
   }
 
-  initOverlay(sizes) {
+  initOverlay(sizes: Record<string, any>) {
     let factor = 1;
     if (sizes.maxSize.width > this.diffContainerWidth - 12) {
       factor = (this.diffContainerWidth - 12) / sizes.maxSize.width;
@@ -264,11 +266,11 @@ class ImageDiff {
       overlayFrame.style.height = `${sizes.maxSize.height * factor + 2}px`;
     }
 
-    const rangeInput = this.containerEl.querySelector('input[type="range"]');
+    const rangeInput = this.containerEl.querySelector<HTMLInputElement>('input[type="range"]');
 
     function updateOpacity() {
       if (sizes.imageAfter) {
-        sizes.imageAfter.parentNode.style.opacity = `${rangeInput.value / 100}`;
+        sizes.imageAfter.parentNode.style.opacity = `${Number(rangeInput.value) / 100}`;
       }
     }
 
@@ -278,7 +280,7 @@ class ImageDiff {
 }
 
 export function initImageDiff() {
-  for (const el of queryElems('.image-diff:not([data-image-diff-loaded])')) {
+  for (const el of queryElems<HTMLImageElement>(document, '.image-diff:not([data-image-diff-loaded])')) {
     (new ImageDiff()).init(el); // it is async, but we don't need to await for it
   }
 }

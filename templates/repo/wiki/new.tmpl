@@ -18,24 +18,24 @@
 				{{ctx.Locale.Tr "repo.wiki.page_name_desc"}}
 			</div>
 
-			{{$content := .content}}
+			{{$content := .WikiEditContent}}
 			{{if not .PageIsWikiEdit}}
 				{{$content = ctx.Locale.Tr "repo.wiki.welcome"}}
 			{{end}}
 			{{template "shared/combomarkdowneditor" (dict
-				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
-				"MarkdownPreviewContext" .RepoLink
+				"CustomInit" true
+				"MarkdownPreviewInRepo" $.Repository
+				"MarkdownPreviewMode" "wiki"
 				"TextareaName" "content"
-				"TextareaPlaceholder" (ctx.Locale.Tr "repo.wiki.page_content")
-				"TextareaAriaLabel" (ctx.Locale.Tr "repo.wiki.page_content")
 				"TextareaContent" $content
+				"TextareaPlaceholder" (ctx.Locale.Tr "repo.wiki.page_content")
 			)}}
 
 			<div class="field tw-mt-4">
 				<input name="message" aria-label="{{ctx.Locale.Tr "repo.wiki.default_commit_message"}}" placeholder="{{ctx.Locale.Tr "repo.wiki.default_commit_message"}}">
 			</div>
 			<div class="divider"></div>
-			<div class="text right">
+			<div class="flex-text-block tw-justify-end">
 				<a class="ui basic cancel button" href="{{.Link}}">{{ctx.Locale.Tr "cancel"}}</a>
 				<button class="ui primary button">{{ctx.Locale.Tr "repo.wiki.save_page"}}</button>
 			</div>

@@ -11,10 +11,7 @@ import (
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/label"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -81,7 +78,7 @@ func LoadRepoConfig() error {
 		if isDir, err := util.IsDir(customPath); err != nil {
 			return fmt.Errorf("failed to check custom %s dir: %w", t, err)
 		} else if isDir {
-			if typeFiles[i].custom, err = util.StatDir(customPath); err != nil {
+			if typeFiles[i].custom, err = util.ListDirRecursively(customPath, &util.ListDirOptions{SkipCommonHiddenNames: true}); err != nil {
 				return fmt.Errorf("failed to list custom %s files: %w", t, err)
 			}
 		}
@@ -120,30 +117,6 @@ func LoadRepoConfig() error {
 	return nil
 }
 
-func CheckInitRepository(ctx context.Context, owner, name, objectFormatName string) (err error) {
-	// Somehow the directory could exist.
-	repoPath := repo_model.RepoPath(owner, name)
-	isExist, err := util.IsExist(repoPath)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
-		return err
-	}
-	if isExist {
-		return repo_model.ErrRepoFilesAlreadyExist{
-			Uname: owner,
-			Name:  name,
-		}
-	}
-
-	// Init git bare new repository.
-	if err = git.InitRepository(ctx, repoPath, true, objectFormatName); err != nil {
-		return fmt.Errorf("git.InitRepository: %w", err)
-	} else if err = CreateDelegateHooks(repoPath); err != nil {
-		return fmt.Errorf("createDelegateHooks: %w", err)
-	}
-	return nil
-}
-
 // InitializeLabels adds a label set to a repository using a template
 func InitializeLabels(ctx context.Context, id int64, labelTemplate string, isOrg bool) error {
 	list, err := LoadTemplateLabelsByDisplayName(labelTemplate)
@@ -152,12 +125,13 @@ func InitializeLabels(ctx context.Context, id int64, labelTemplate string, isOrg
 	}
 
 	labels := make([]*issues_model.Label, len(list))
-	for i := 0; i < len(list); i++ {
+	for i := range list {
 		labels[i] = &issues_model.Label{
-			Name:        list[i].Name,
-			Exclusive:   list[i].Exclusive,
-			Description: list[i].Description,
-			Color:       list[i].Color,
+			Name:           list[i].Name,
+			Exclusive:      list[i].Exclusive,
+			ExclusiveOrder: list[i].ExclusiveOrder,
+			Description:    list[i].Description,
+			Color:          list[i].Color,
 		}
 		if isOrg {
 			labels[i].OrgID = id

@@ -16,10 +16,8 @@ import (
 func TestBlob_Data(t *testing.T) {
 	output := "file2\n"
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
+	repo, err := OpenRepository(t.Context(), bareRepo1Path)
+	require.NoError(t, err)
 	defer repo.Close()
 
 	testBlob, err := repo.GetBlob("6c493ff740f9380390d5c9ddef4af18697ac9375")
@@ -38,7 +36,7 @@ func TestBlob_Data(t *testing.T) {
 
 func Benchmark_Blob_Data(b *testing.B) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	repo, err := OpenRepository(b.Context(), bareRepo1Path)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -49,7 +47,7 @@ func Benchmark_Blob_Data(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		r, err := testBlob.DataAsync()
 		if err != nil {
 			b.Fatal(err)

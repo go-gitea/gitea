@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -33,7 +32,7 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
-	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.False(t, isMember)
 
@@ -51,14 +50,14 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(db.DefaultContext, team.ID)
+	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
 	assert.NoError(t, err)
 	assert.Len(t, invites, 1)
 
 	session = loginUser(t, user.Name)
 
 	// join the team
-	inviteURL := fmt.Sprintf("/org/invite/%s", invites[0].Token)
+	inviteURL := "/org/invite/" + invites[0].Token
 	csrf = GetUserCSRFToken(t, session)
 	req = NewRequestWithValues(t, "POST", inviteURL, map[string]string{
 		"_csrf": csrf,
@@ -67,7 +66,7 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)
 
-	isMember, err = organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err = organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember)
 }
@@ -85,7 +84,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
-	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.False(t, isMember)
 
@@ -103,13 +102,13 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(db.DefaultContext, team.ID)
+	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
 	assert.NoError(t, err)
 	assert.Len(t, invites, 1)
 
 	// accept the invite
-	inviteURL := fmt.Sprintf("/org/invite/%s", invites[0].Token)
-	req = NewRequest(t, "GET", fmt.Sprintf("/user/login?redirect_to=%s", url.QueryEscape(inviteURL)))
+	inviteURL := "/org/invite/" + invites[0].Token
+	req = NewRequest(t, "GET", "/user/login?redirect_to="+url.QueryEscape(inviteURL))
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
@@ -143,7 +142,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)
 
-	isMember, err = organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err = organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember)
 }
@@ -174,13 +173,13 @@ func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(db.DefaultContext, team.ID)
+	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
 	assert.NoError(t, err)
 	assert.Len(t, invites, 1)
 
 	// accept the invite
-	inviteURL := fmt.Sprintf("/org/invite/%s", invites[0].Token)
-	req = NewRequest(t, "GET", fmt.Sprintf("/user/sign_up?redirect_to=%s", url.QueryEscape(inviteURL)))
+	inviteURL := "/org/invite/" + invites[0].Token
+	req = NewRequest(t, "GET", "/user/sign_up?redirect_to="+url.QueryEscape(inviteURL))
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
@@ -217,10 +216,10 @@ func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// get the new user
-	newUser, err := user_model.GetUserByName(db.DefaultContext, "doesnotexist")
+	newUser, err := user_model.GetUserByName(t.Context(), "doesnotexist")
 	assert.NoError(t, err)
 
-	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, newUser.ID)
+	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, newUser.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember)
 }
@@ -253,15 +252,15 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(db.DefaultContext, team.ID)
+	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
 	assert.NoError(t, err)
 	assert.Len(t, invites, 1)
 
 	// new user: accept the invite
 	session = emptyTestSession(t)
 
-	inviteURL := fmt.Sprintf("/org/invite/%s", invites[0].Token)
-	req = NewRequest(t, "GET", fmt.Sprintf("/user/sign_up?redirect_to=%s", url.QueryEscape(inviteURL)))
+	inviteURL := "/org/invite/" + invites[0].Token
+	req = NewRequest(t, "GET", "/user/sign_up?redirect_to="+url.QueryEscape(inviteURL))
 	session.MakeRequest(t, req, http.StatusOK)
 	req = NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
 		"user_name": "doesnotexist",
@@ -271,10 +270,11 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 
-	user, err := user_model.GetUserByName(db.DefaultContext, "doesnotexist")
+	user, err := user_model.GetUserByName(t.Context(), "doesnotexist")
 	assert.NoError(t, err)
 
-	activateURL := fmt.Sprintf("/user/activate?code=%s", user.GenerateEmailActivateCode("doesnotexist@example.com"))
+	activationCode := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}, user)
+	activateURL := "/user/activate?code=" + activationCode
 	req = NewRequestWithValues(t, "POST", activateURL, map[string]string{
 		"password": "examplePassword!1",
 	})
@@ -290,7 +290,7 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)
 
-	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember)
 }
@@ -310,7 +310,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
-	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.False(t, isMember)
 
@@ -328,7 +328,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(db.DefaultContext, team.ID)
+	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
 	assert.NoError(t, err)
 	assert.Len(t, invites, 1)
 
@@ -336,8 +336,8 @@ func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
 	session = loginUser(t, "user5")
 
 	// accept the invite (note: this uses the sign_up url)
-	inviteURL := fmt.Sprintf("/org/invite/%s", invites[0].Token)
-	req = NewRequest(t, "GET", fmt.Sprintf("/user/sign_up?redirect_to=%s", url.QueryEscape(inviteURL)))
+	inviteURL := "/org/invite/" + invites[0].Token
+	req = NewRequest(t, "GET", "/user/sign_up?redirect_to="+url.QueryEscape(inviteURL))
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, inviteURL, test.RedirectURL(resp))
 
@@ -349,7 +349,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)
 
-	isMember, err = organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err = organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember)
 }

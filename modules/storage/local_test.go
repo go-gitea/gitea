@@ -4,8 +4,6 @@
 package storage
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -50,12 +48,11 @@ func TestBuildLocalPath(t *testing.T) {
 		t.Run(k.path, func(t *testing.T) {
 			l := LocalStorage{dir: k.localDir}
 
-			assert.EqualValues(t, k.expected, l.buildLocalPath(k.path))
+			assert.Equal(t, k.expected, l.buildLocalPath(k.path))
 		})
 	}
 }
 
 func TestLocalStorageIterator(t *testing.T) {
-	dir := filepath.Join(os.TempDir(), "TestLocalStorageIteratorTestDir")
-	testStorageIterator(t, setting.LocalStorageType, &setting.Storage{Path: dir})
+	testStorageIterator(t, setting.LocalStorageType, &setting.Storage{Path: t.TempDir()})
 }

@@ -7,16 +7,16 @@ export async function initAdminSelfCheck() {
   const elCheckByFrontend = document.querySelector('#self-check-by-frontend');
   if (!elCheckByFrontend) return;
 
-  const elContent = document.querySelector('.page-content.admin .admin-setting-content');
+  const elContent = document.querySelector<HTMLDivElement>('.page-content.admin .admin-setting-content');
 
   // send frontend self-check request
   const resp = await POST(`${appSubUrl}/-/admin/self_check`, {
     data: new URLSearchParams({
       location_origin: window.location.origin,
-      now: Date.now(), // TODO: check time difference between server and client
+      now: String(Date.now()), // TODO: check time difference between server and client
     }),
   });
-  const json = await resp.json();
+  const json: Record<string, any> = await resp.json();
   toggleElem(elCheckByFrontend, Boolean(json.problems?.length));
   for (const problem of json.problems ?? []) {
     const elProblem = document.createElement('div');

@@ -1,5 +1,5 @@
 # Build stage
-FROM docker.io/library/golang:1.23-alpine3.20 AS build-env
+FROM docker.io/library/golang:1.25-alpine3.22 AS build-env
 
 ARG GOPROXY
 ENV GOPROXY=${GOPROXY:-direct}
@@ -15,6 +15,7 @@ RUN apk --no-cache add \
     git \
     nodejs \
     npm \
+    && npm install -g pnpm@10 \
     && rm -rf /var/cache/apk/*
 
 # Setup repo
@@ -39,9 +40,8 @@ RUN chmod 755 /tmp/local/usr/bin/entrypoint \
               /tmp/local/etc/s6/.s6-svscan/* \
               /go/src/code.gitea.io/gitea/gitea \
               /go/src/code.gitea.io/gitea/environment-to-ini
-RUN chmod 644 /go/src/code.gitea.io/gitea/contrib/autocompletion/bash_autocomplete
 
-FROM docker.io/library/alpine:3.20
+FROM docker.io/library/alpine:3.22
 LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 22 3000
@@ -78,9 +78,8 @@ ENV GITEA_CUSTOM=/data/gitea
 VOLUME ["/data"]
 
 ENTRYPOINT ["/usr/bin/entrypoint"]
-CMD ["/bin/s6-svscan", "/etc/s6"]
+CMD ["/usr/bin/s6-svscan", "/etc/s6"]
 
 COPY --from=build-env /tmp/local /
 COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
 COPY --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
-COPY --from=build-env /go/src/code.gitea.io/gitea/contrib/autocompletion/bash_autocomplete /etc/profile.d/gitea_bash_autocomplete.sh

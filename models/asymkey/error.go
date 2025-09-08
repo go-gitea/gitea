@@ -25,7 +25,7 @@ func (err ErrKeyUnableVerify) Error() string {
 }
 
 // ErrKeyIsPrivate is returned when the provided key is a private key not a public key
-var ErrKeyIsPrivate = util.NewSilentWrapErrorf(util.ErrInvalidArgument, "the provided key is a private key")
+var ErrKeyIsPrivate = util.ErrorWrap(util.ErrInvalidArgument, "the provided key is a private key")
 
 // ErrKeyNotExist represents a "KeyNotExist" kind of error.
 type ErrKeyNotExist struct {
@@ -132,7 +132,7 @@ func IsErrGPGKeyParsing(err error) bool {
 }
 
 func (err ErrGPGKeyParsing) Error() string {
-	return fmt.Sprintf("failed to parse gpg key %s", err.ParseError.Error())
+	return "failed to parse gpg key " + err.ParseError.Error()
 }
 
 // ErrGPGKeyNotExist represents a "GPGKeyNotExist" kind of error.
@@ -217,6 +217,7 @@ func (err ErrGPGKeyAccessDenied) Unwrap() error {
 // ErrKeyAccessDenied represents a "KeyAccessDenied" kind of error.
 type ErrKeyAccessDenied struct {
 	UserID int64
+	RepoID int64
 	KeyID  int64
 	Note   string
 }
@@ -228,8 +229,8 @@ func IsErrKeyAccessDenied(err error) bool {
 }
 
 func (err ErrKeyAccessDenied) Error() string {
-	return fmt.Sprintf("user does not have access to the key [user_id: %d, key_id: %d, note: %s]",
-		err.UserID, err.KeyID, err.Note)
+	return fmt.Sprintf("user does not have access to the key [user_id: %d, repo_id: %d, key_id: %d, note: %s]",
+		err.UserID, err.RepoID, err.KeyID, err.Note)
 }
 
 func (err ErrKeyAccessDenied) Unwrap() error {

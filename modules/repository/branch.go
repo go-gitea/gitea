@@ -41,11 +41,12 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 	if err != nil {
 		return 0, fmt.Errorf("GetObjectFormat: %w", err)
 	}
-	_, err = db.GetEngine(ctx).ID(repo.ID).Update(&repo_model.Repository{ObjectFormatName: objFmt.Name()})
-	if err != nil {
-		return 0, fmt.Errorf("UpdateRepository: %w", err)
+	if objFmt.Name() != repo.ObjectFormatName {
+		repo.ObjectFormatName = objFmt.Name()
+		if err = repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "object_format_name"); err != nil {
+			return 0, fmt.Errorf("UpdateRepositoryColsWithAutoTime: %w", err)
+		}
 	}
-	repo.ObjectFormatName = objFmt.Name() // keep consistent with db
 
 	allBranches := container.Set[string]{}
 	{

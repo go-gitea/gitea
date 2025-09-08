@@ -904,7 +904,7 @@ Option 1 of dropdown, Option 2 of dropdown
 				t.Fatal(err)
 			}
 			if got := RenderToMarkdown(template, tt.args.values); got != tt.want {
-				assert.EqualValues(t, tt.want, got)
+				assert.Equal(t, tt.want, got)
 			}
 		})
 	}
@@ -957,9 +957,8 @@ func Test_minQuotes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := minQuotes(tt.args.value); got != tt.want {
-				t.Errorf("minQuotes() = %v, want %v", got, tt.want)
-			}
+			got := minQuotes(tt.args.value)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

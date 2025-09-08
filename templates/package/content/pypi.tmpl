@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.pypi.install"}}</label>
-				<div class="markup"><pre class="code-block"><code>pip install --index-url <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/pypi/simple/"></origin-url> {{.PackageDescriptor.Package.Name}}</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>pip install --index-url <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/pypi/simple/"></origin-url> --extra-index-url https://pypi.org/ {{.PackageDescriptor.Package.Name}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{ctx.Locale.Tr "packages.registry.documentation" "PyPI" "https://docs.gitea.com/usage/packages/pypi/"}}</label>
@@ -16,9 +16,9 @@
 		<div class="ui attached segment">
 			<p>{{if .PackageDescriptor.Metadata.Summary}}{{.PackageDescriptor.Metadata.Summary}}{{end}}</p>
 			{{if .PackageDescriptor.Metadata.LongDescription}}
-				{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.LongDescription}}
+				{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.LongDescription}}
 			{{else if .PackageDescriptor.Metadata.Description}}
-				{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.Description}}
+				{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.Description}}
 			{{end}}
 		</div>
 	{{end}}

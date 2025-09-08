@@ -26,10 +26,10 @@
 							{{else}}
 								<span class="text red">{{svg "octicon-alert"}}</span>
 							{{end}}
-							<a class="ui primary sha label toggle button show-panel" data-panel="#info-{{.ID}}">{{.UUID}}</a>
+							<button class="btn interact-bg tw-p-2 toggle show-panel" data-panel="#info-{{.ID}}">{{.UUID}}</button>
 						</div>
 						<span class="text grey">
-							{{TimeSince .Delivered.AsTime ctx.Locale}}
+							{{DateUtils.TimeSince .Delivered}}
 						</span>
 					</div>
 					<div class="info tw-hidden" id="info-{{.ID}}">

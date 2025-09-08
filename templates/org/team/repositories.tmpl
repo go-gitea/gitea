@@ -9,7 +9,7 @@
 				{{template "org/team/navbar" .}}
 				{{$canAddRemove := and $.IsOrganizationOwner (not $.Team.IncludesAllRepositories)}}
 				{{if $canAddRemove}}
-					<div class="ui attached segment tw-flex tw-flex-wrap tw-gap-2">
+					<div class="ui top attached segment tw-flex tw-flex-wrap tw-gap-2">
 						<form class="ui form ignore-dirty tw-flex-1 tw-flex" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
 							{{.CsrfTokenHtml}}
 							<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
@@ -27,7 +27,7 @@
 				{{end}}
 				<div class="ui{{if not $canAddRemove}} top{{end}} attached segment">
 					<div class="flex-list">
-						{{range .Team.Repos}}
+						{{range $.TeamRepos}}
 							<div class="flex-item tw-items-center">
 								<div class="flex-item-leading">
 									{{template "repo/icon" .}}

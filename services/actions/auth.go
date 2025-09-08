@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -52,7 +53,7 @@ func CreateAuthorizationToken(taskID, runID, jobID int64) (string, error) {
 
 	claims := actionsClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(1*time.Hour + setting.Actions.EndlessTaskTimeout)),
 			NotBefore: jwt.NewNumericDate(now),
 		},
 		Scp:    fmt.Sprintf("Actions.Results:%d:%d", runID, jobID),
@@ -80,10 +81,15 @@ func ParseAuthorizationToken(req *http.Request) (int64, error) {
 	parts := strings.SplitN(h, " ", 2)
 	if len(parts) != 2 {
 		log.Error("split token failed: %s", h)
-		return 0, fmt.Errorf("split token failed")
+		return 0, errors.New("split token failed")
 	}
 
-	token, err := jwt.ParseWithClaims(parts[1], &actionsClaims{}, func(t *jwt.Token) (any, error) {
+	return TokenToTaskID(parts[1])
+}
+
+// TokenToTaskID returns the TaskID associated with the provided JWT token
+func TokenToTaskID(token string) (int64, error) {
+	parsedToken, err := jwt.ParseWithClaims(token, &actionsClaims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
@@ -93,9 +99,9 @@ func ParseAuthorizationToken(req *http.Request) (int64, error) {
 		return 0, err
 	}
 
-	c, ok := token.Claims.(*actionsClaims)
-	if !token.Valid || !ok {
-		return 0, fmt.Errorf("invalid token claim")
+	c, ok := parsedToken.Claims.(*actionsClaims)
+	if !parsedToken.Valid || !ok {
+		return 0, errors.New("invalid token claim")
 	}
 
 	return c.TaskID, nil

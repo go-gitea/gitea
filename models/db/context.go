@@ -6,87 +6,79 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"runtime"
+	"slices"
+	"sync"
+
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
-// DefaultContext is the default context to run xorm queries in
-// will be overwritten by Init with HammerContext
-var DefaultContext context.Context
+type engineContextKeyType struct{}
 
-// contextKey is a value for use with context.WithValue.
-type contextKey struct {
-	name string
+var engineContextKey = engineContextKeyType{}
+
+func withContextEngine(ctx context.Context, e Engine) context.Context {
+	return context.WithValue(ctx, engineContextKey, e)
 }
 
-// enginedContextKey is a context key. It is used with context.Value() to get the current Engined for the context
 var (
-	enginedContextKey         = &contextKey{"engined"}
-	_                 Engined = &Context{}
+	contextSafetyOnce          sync.Once
+	contextSafetyDeniedFuncPCs []uintptr
 )
 
-// Context represents a db context
-type Context struct {
-	context.Context
-	e           Engine
-	transaction bool
-}
+func contextSafetyCheck(e Engine) {
+	if setting.IsProd && !setting.IsInTesting {
+		return
+	}
+	if e == nil {
+		return
+	}
+	// Only do this check for non-end-users. If the problem could be fixed in the future, this code could be removed.
+	contextSafetyOnce.Do(func() {
+		// try to figure out the bad functions to deny
+		type m struct{}
+		_ = e.SQL("SELECT 1").Iterate(&m{}, func(int, any) error {
+			callers := make([]uintptr, 32)
+			callerNum := runtime.Callers(1, callers)
+			for i := range callerNum {
+				if funcName := runtime.FuncForPC(callers[i]).Name(); funcName == "xorm.io/xorm.(*Session).Iterate" {
+					contextSafetyDeniedFuncPCs = append(contextSafetyDeniedFuncPCs, callers[i])
+				}
+			}
+			return nil
+		})
+		if len(contextSafetyDeniedFuncPCs) != 1 {
+			panic(errors.New("unable to determine the functions to deny"))
+		}
+	})
 
-func newContext(ctx context.Context, e Engine, transaction bool) *Context {
-	return &Context{
-		Context:     ctx,
-		e:           e,
-		transaction: transaction,
+	// it should be very fast: xxxx ns/op
+	callers := make([]uintptr, 32)
+	callerNum := runtime.Callers(3, callers) // skip 3: runtime.Callers, contextSafetyCheck, GetEngine
+	for i := range callerNum {
+		if slices.Contains(contextSafetyDeniedFuncPCs, callers[i]) {
+			panic(errors.New("using session context in an iterator would cause corrupted results"))
+		}
 	}
 }
 
-// InTransaction if context is in a transaction
-func (ctx *Context) InTransaction() bool {
-	return ctx.transaction
-}
-
-// Engine returns db engine
-func (ctx *Context) Engine() Engine {
-	return ctx.e
-}
-
-// Value shadows Value for context.Context but allows us to get ourselves and an Engined object
-func (ctx *Context) Value(key any) any {
-	if key == enginedContextKey {
-		return ctx
-	}
-	return ctx.Context.Value(key)
-}
-
-// WithContext returns this engine tied to this context
-func (ctx *Context) WithContext(other context.Context) *Context {
-	return newContext(ctx, ctx.e.Context(other), ctx.transaction)
-}
-
-// Engined structs provide an Engine
-type Engined interface {
-	Engine() Engine
-}
-
-// GetEngine will get a db Engine from this context or return an Engine restricted to this context
+// GetEngine gets an existing db Engine/Statement or creates a new Session
 func GetEngine(ctx context.Context) Engine {
-	if e := getEngine(ctx); e != nil {
-		return e
+	if engine, ok := ctx.Value(engineContextKey).(Engine); ok {
+		// if reusing the existing session, need to do "contextSafetyCheck" because the Iterate creates a "autoResetStatement=false" session
+		contextSafetyCheck(engine)
+		return engine
 	}
-	return x.Context(ctx)
+	// no need to do "contextSafetyCheck" because it's a new Session
+	return xormEngine.Context(ctx)
 }
 
-// getEngine will get a db Engine from this context or return nil
-func getEngine(ctx context.Context) Engine {
-	if engined, ok := ctx.(Engined); ok {
-		return engined.Engine()
-	}
-	enginedInterface := ctx.Value(enginedContextKey)
-	if enginedInterface != nil {
-		return enginedInterface.(Engined).Engine()
-	}
-	return nil
+func GetXORMEngineForTesting() *xorm.Engine {
+	return xormEngine
 }
 
 // Committer represents an interface to Commit or Close the Context
@@ -130,25 +122,24 @@ func (c *halfCommitter) Close() error {
 //	     So calling `Commit()` will do nothing, but calling `Close()` without calling `Commit()` will rollback the transaction.
 //	     And all operations submitted by the caller stack will be rollbacked as well, not only the operations in the current function.
 //	  d. It doesn't mean rollback is forbidden, but always do it only when there is an error, and you do want to rollback.
-func TxContext(parentCtx context.Context) (*Context, Committer, error) {
-	if sess, ok := inTransaction(parentCtx); ok {
-		return newContext(parentCtx, sess, true), &halfCommitter{committer: sess}, nil
+func TxContext(parentCtx context.Context) (context.Context, Committer, error) {
+	if sess := getTransactionSession(parentCtx); sess != nil {
+		return withContextEngine(parentCtx, sess), &halfCommitter{committer: sess}, nil
 	}
 
-	sess := x.NewSession()
+	sess := xormEngine.NewSession()
 	if err := sess.Begin(); err != nil {
-		sess.Close()
+		_ = sess.Close()
 		return nil, nil, err
 	}
-
-	return newContext(DefaultContext, sess, true), sess, nil
+	return withContextEngine(parentCtx, sess), sess, nil
 }
 
 // WithTx represents executing database operations on a transaction, if the transaction exist,
 // this function will reuse it otherwise will create a new one and close it when finished.
 func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error {
-	if sess, ok := inTransaction(parentCtx); ok {
-		err := f(newContext(parentCtx, sess, true))
+	if sess := getTransactionSession(parentCtx); sess != nil {
+		err := f(withContextEngine(parentCtx, sess))
 		if err != nil {
 			// rollback immediately, in case the caller ignores returned error and tries to commit the transaction.
 			_ = sess.Close()
@@ -158,14 +149,23 @@ func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error 
 	return txWithNoCheck(parentCtx, f)
 }
 
+// WithTx2 is similar to WithTx, but it has two return values: result and error.
+func WithTx2[T any](parentCtx context.Context, f func(ctx context.Context) (T, error)) (ret T, errRet error) {
+	errRet = WithTx(parentCtx, func(ctx context.Context) (errInner error) {
+		ret, errInner = f(ctx)
+		return errInner
+	})
+	return ret, errRet
+}
+
 func txWithNoCheck(parentCtx context.Context, f func(ctx context.Context) error) error {
-	sess := x.NewSession()
+	sess := xormEngine.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err := f(newContext(parentCtx, sess, true)); err != nil {
+	if err := f(withContextEngine(parentCtx, sess)); err != nil {
 		return err
 	}
 
@@ -269,6 +269,9 @@ func FindIDs(ctx context.Context, tableName, idCol string, cond builder.Cond) ([
 // DecrByIDs decreases the given column for entities of the "bean" type with one of the given ids by one
 // Timestamps of the entities won't be updated
 func DecrByIDs(ctx context.Context, ids []int64, decrCol string, bean any) error {
+	if len(ids) == 0 {
+		return nil
+	}
 	_, err := GetEngine(ctx).Decr(decrCol).In("id", ids).NoAutoCondition().NoAutoTime().Update(bean)
 	return err
 }
@@ -300,32 +303,15 @@ func CountByBean(ctx context.Context, bean any) (int64, error) {
 	return GetEngine(ctx).Count(bean)
 }
 
-// TableName returns the table name according a bean object
-func TableName(bean any) string {
-	return x.TableName(bean)
-}
-
 // InTransaction returns true if the engine is in a transaction otherwise return false
 func InTransaction(ctx context.Context) bool {
-	_, ok := inTransaction(ctx)
-	return ok
+	return getTransactionSession(ctx) != nil
 }
 
-func inTransaction(ctx context.Context) (*xorm.Session, bool) {
-	e := getEngine(ctx)
-	if e == nil {
-		return nil, false
+func getTransactionSession(ctx context.Context) *xorm.Session {
+	e, _ := ctx.Value(engineContextKey).(Engine)
+	if sess, ok := e.(*xorm.Session); ok && sess.IsInTx() {
+		return sess
 	}
-
-	switch t := e.(type) {
-	case *xorm.Engine:
-		return nil, false
-	case *xorm.Session:
-		if t.IsInTx() {
-			return t, true
-		}
-		return nil, false
-	default:
-		return nil, false
-	}
+	return nil
 }

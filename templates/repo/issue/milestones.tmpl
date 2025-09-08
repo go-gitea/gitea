@@ -41,25 +41,25 @@
 							{{if .TotalTrackedTime}}
 								<div class="flex-text-block">
 									{{svg "octicon-clock"}}
-									{{.TotalTrackedTime|Sec2Time}}
+									{{.TotalTrackedTime|Sec2Hour}}
 								</div>
 							{{end}}
 							{{if .UpdatedUnix}}
 								<div class="flex-text-block">
 									{{svg "octicon-clock"}}
-									{{ctx.Locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix ctx.Locale)}}
+									{{ctx.Locale.Tr "repo.milestones.update_ago" (DateUtils.TimeSince .UpdatedUnix)}}
 								</div>
 							{{end}}
 							<div class="flex-text-block">
 								{{if .IsClosed}}
-									{{$closedDate:= TimeSinceUnix .ClosedDateUnix ctx.Locale}}
+									{{$closedDate:= DateUtils.TimeSince .ClosedDateUnix}}
 									{{svg "octicon-clock" 14}}
 									{{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 								{{else}}
 									{{if .DeadlineString}}
 										<span class="flex-text-inline {{if .IsOverdue}}text red{{end}}">
 											{{svg "octicon-calendar" 14}}
-											{{DateTime "short" .DeadlineString}}
+											{{DateUtils.AbsoluteShort (.DeadlineString|DateUtils.ParseLegacy)}}
 										</span>
 									{{else}}
 										{{svg "octicon-calendar" 14}}
@@ -76,14 +76,12 @@
 								{{else}}
 									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x" 14}}{{ctx.Locale.Tr "repo.milestones.close"}}</a>
 								{{end}}
-								<a class="delete-button flex-text-inline" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
+								<a class="link-action flex-text-inline text red" href data-modal-confirm="#repo-milestone-delete-modal" data-url="{{$.RepoLink}}/milestones/delete?id={{.ID}}">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
 							</div>
 						{{end}}
 					</div>
 					{{if .Content}}
-						<div class="markup content">
-							{{.RenderedContent}}
-						</div>
+						<div class="render-content markup">{{.RenderedContent}}</div>
 					{{end}}
 				</li>
 			{{end}}
@@ -94,15 +92,11 @@
 </div>
 
 {{if or .CanWriteIssues .CanWritePulls}}
-	<div class="ui g-modal-confirm delete modal">
-		<div class="header">
-			{{svg "octicon-trash"}}
-			{{ctx.Locale.Tr "repo.milestones.deletion"}}
-		</div>
-		<div class="content">
-			<p>{{ctx.Locale.Tr "repo.milestones.deletion_desc"}}</p>
-		</div>
+	<div class="ui small modal" id="repo-milestone-delete-modal">
+		<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.milestones.deletion"}}</div>
+		<div class="content"><p>{{ctx.Locale.Tr "repo.milestones.deletion_desc"}}</p></div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>
 {{end}}
+
 {{template "base/footer" .}}

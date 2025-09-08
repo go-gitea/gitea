@@ -11,15 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/gitrepo"
-	api "code.gitea.io/gitea/modules/structs"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 
 	"github.com/stretchr/testify/assert"
@@ -48,7 +47,7 @@ func TestAPIPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		})
 
 		// add protected branch for commit status
-		csrf := GetCSRF(t, session, "/user2/repo1/settings/branches")
+		csrf := GetUserCSRFToken(t, session)
 		// Change master branch to protected
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
 			"_csrf":                 csrf,
@@ -74,9 +73,9 @@ func TestAPIPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update commit status to success, then it should be merged automatically
-		baseGitRepo, err := gitrepo.OpenRepository(db.DefaultContext, baseRepo)
+		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
 		assert.NoError(t, err)
-		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		masterCommitID, err := baseGitRepo.GetBranchCommitID("master")
 		assert.NoError(t, err)
@@ -89,8 +88,8 @@ func TestAPIPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 			testResetRepo(t, baseRepo.RepoPath(), "master", masterCommitID)
 		}()
 
-		err = commitstatus_service.CreateCommitStatus(db.DefaultContext, baseRepo, user1, sha, &git_model.CommitStatus{
-			State:     api.CommitStatusSuccess,
+		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
+			State:     commitstatus.CommitStatusSuccess,
 			TargetURL: "https://gitea.com",
 			Context:   "gitea/actions",
 		})

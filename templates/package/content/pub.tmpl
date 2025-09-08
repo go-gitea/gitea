@@ -14,6 +14,6 @@
 	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.Readme}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>{{end}}
-		{{if .PackageDescriptor.Metadata.Readme}}<div class="ui attached segment">{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.Readme}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.Readme}}<div class="ui attached segment">{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.Readme}}</div>{{end}}
 	{{end}}
 {{end}}

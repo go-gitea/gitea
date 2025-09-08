@@ -5,18 +5,17 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/auth/httpauth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // Ensure the struct implements the interface.
@@ -47,22 +46,22 @@ func (b *Basic) Name() string {
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
 func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	// Basic authentication should only fire on API, Download or on Git or LFSPaths
-	if !middleware.IsAPIPath(req) && !isContainerPath(req) && !isAttachmentDownload(req) && !isGitRawOrAttachOrLFSPath(req) {
+	// Basic authentication should only fire on API, Feed, Download, Archives or on Git or LFSPaths
+	// Not all feed (rss/atom) clients feature the ability to add cookies or headers, so we need to allow basic auth for feeds
+	detector := newAuthPathDetector(req)
+	if !detector.isAPIPath() && !detector.isFeedRequest(req) && !detector.isContainerPath() && !detector.isAttachmentDownload() && !detector.isArchivePath() && !detector.isGitRawOrAttachOrLFSPath() {
 		return nil, nil
 	}
 
-	baHead := req.Header.Get("Authorization")
-	if len(baHead) == 0 {
+	authHeader := req.Header.Get("Authorization")
+	if authHeader == "" {
 		return nil, nil
 	}
-
-	auths := strings.SplitN(baHead, " ", 2)
-	if len(auths) != 2 || (strings.ToLower(auths[0]) != "basic") {
+	parsed, ok := httpauth.ParseAuthorizationHeader(authHeader)
+	if !ok || parsed.BasicAuth == nil {
 		return nil, nil
 	}
-
-	uname, passwd, _ := base.BasicAuthDecode(auths[1])
+	uname, passwd := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 
 	// Check if username or password is a token
 	isUsernameToken := len(passwd) == 0 || passwd == "x-oauth-basic"
@@ -76,8 +75,8 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		log.Trace("Basic Authorization: Attempting login with username as token")
 	}
 
-	// check oauth2 token
-	uid := CheckOAuthAccessToken(req.Context(), authToken)
+	// get oauth2 token's user's ID
+	_, uid := GetOAuthAccessTokenScopeAndUserID(req.Context(), authToken)
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 
@@ -140,7 +139,16 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		return nil, err
 	}
 
-	if skipper, ok := source.Cfg.(LocalTwoFASkipper); !ok || !skipper.IsSkipLocalTwoFA() {
+	if !source.TwoFactorShouldSkip() {
+		// Check if the user has WebAuthn registration
+		hasWebAuthn, err := auth_model.HasWebAuthnRegistrationsByUID(req.Context(), u.ID)
+		if err != nil {
+			return nil, err
+		}
+		if hasWebAuthn {
+			return nil, errors.New("basic authorization is not allowed while WebAuthn enrolled")
+		}
+
 		if err := validateTOTP(req, u); err != nil {
 			return nil, err
 		}

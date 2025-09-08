@@ -6,11 +6,11 @@ package ldap
 // composeFullName composes a firstname surname or username
 func composeFullName(firstname, surname, username string) string {
 	switch {
-	case len(firstname) == 0 && len(surname) == 0:
+	case firstname == "" && surname == "":
 		return username
-	case len(firstname) == 0:
+	case firstname == "":
 		return surname
-	case len(surname) == 0:
+	case surname == "":
 		return firstname
 	default:
 		return firstname + " " + surname

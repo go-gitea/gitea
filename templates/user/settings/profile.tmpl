@@ -12,7 +12,7 @@
 						<span class="text red tw-hidden" id="name-change-prompt"> {{ctx.Locale.Tr "settings.change_username_prompt"}}</span>
 						<span class="text red tw-hidden" id="name-change-redirect-prompt"> {{ctx.Locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
-					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) ($.UserDisabledFeatures.Contains "change_username") .IsReverseProxy}}disabled{{end}} maxlength="40">
+					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" required {{if or (not .SignedUser.IsLocal) ($.UserDisabledFeatures.Contains "change_username") .IsReverseProxy}}disabled{{end}} maxlength="40">
 					{{if or (not .SignedUser.IsLocal) ($.UserDisabledFeatures.Contains "change_username") .IsReverseProxy}}
 					<p class="help text blue">{{ctx.Locale.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
@@ -29,6 +29,7 @@
 					<p id="signed-user-email">{{.SignedUser.Email}}</p>
 				</div>
 				<div class="field {{if .Err_Description}}error{{end}}">
+					{{/* it is rendered as markdown, but the length is limited, so at the moment we do not use the markdown editor here */}}
 					<label for="description">{{ctx.Locale.Tr "user.user_bio"}}</label>
 					<textarea id="description" name="description" rows="2" placeholder="{{ctx.Locale.Tr "settings.biography_placeholder"}}" maxlength="255">{{.SignedUser.Description}}</textarea>
 				</div>
@@ -123,8 +124,7 @@
 				</div>
 
 				<div class="inline field tw-pl-4">
-					<label for="new-avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
-					<input id="new-avatar" name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+					{{template "shared/avatar_upload_crop" dict "LabelText" (ctx.Locale.Tr "settings.choose_new_avatar")}}
 				</div>
 
 				<div class="field">

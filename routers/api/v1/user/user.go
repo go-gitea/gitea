@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	feed_service "code.gitea.io/gitea/services/feed"
 )
 
 // Search search users
@@ -72,7 +73,7 @@ func Search(ctx *context.APIContext) {
 		if ctx.PublicOnly {
 			visible = []structs.VisibleType{structs.VisibleTypePublic}
 		}
-		users, maxResults, err = user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
+		users, maxResults, err = user_model.SearchUsers(ctx, user_model.SearchUserOptions{
 			Actor:         ctx.Doer,
 			Keyword:       ctx.FormTrim("q"),
 			UID:           uid,
@@ -109,7 +110,7 @@ func GetInfo(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user to get
+	//   description: username of the user whose data is to be listed
 	//   type: string
 	//   required: true
 	// responses:
@@ -120,7 +121,7 @@ func GetInfo(ctx *context.APIContext) {
 
 	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 		// fake ErrUserNotExist error message to not leak information about existence
-		ctx.NotFound("GetUserByName", user_model.ErrUserNotExist{Name: ctx.PathParam(":username")})
+		ctx.APIErrorNotFound("GetUserByName", user_model.ErrUserNotExist{Name: ctx.PathParam("username")})
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToUser(ctx, ctx.ContextUser, ctx.Doer))
@@ -150,7 +151,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user to get
+	//   description: username of the user whose heatmap is to be obtained
 	//   type: string
 	//   required: true
 	// responses:
@@ -161,7 +162,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 
 	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserHeatmapDataByUser", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, heatmap)
@@ -176,7 +177,7 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose activity feeds are to be listed
 	//   type: string
 	//   required: true
 	// - name: only-performed-by
@@ -214,9 +215,9 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 		ListOptions:     listOptions,
 	}
 
-	feeds, count, err := activities_model.GetFeeds(ctx, opts)
+	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetFeeds", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.SetTotalCountHeader(count)

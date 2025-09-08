@@ -1,27 +1,26 @@
 import {createTippy} from '../modules/tippy.ts';
 import {toggleElem} from '../utils/dom.ts';
+import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 
 export function initRepoEllipsisButton() {
-  for (const button of document.querySelectorAll('.js-toggle-commit-body')) {
-    button.addEventListener('click', function (e) {
-      e.preventDefault();
-      const expanded = this.getAttribute('aria-expanded') === 'true';
-      toggleElem(this.parentElement.querySelector('.commit-body'));
-      this.setAttribute('aria-expanded', String(!expanded));
-    });
-  }
+  registerGlobalEventFunc('click', 'onRepoEllipsisButtonClick', async (el: HTMLInputElement, e: Event) => {
+    e.preventDefault();
+    const expanded = el.getAttribute('aria-expanded') === 'true';
+    toggleElem(el.parentElement.querySelector('.commit-body'));
+    el.setAttribute('aria-expanded', String(!expanded));
+  });
 }
 
 export function initCommitStatuses() {
-  for (const element of document.querySelectorAll('[data-tippy="commit-statuses"]')) {
-    const top = document.querySelector('.repository.file.list') || document.querySelector('.repository.diff');
-
-    createTippy(element, {
-      content: element.nextElementSibling,
-      placement: top ? 'top-start' : 'bottom-start',
+  registerGlobalInitFunc('initCommitStatuses', (el: HTMLElement) => {
+    const nextEl = el.nextElementSibling;
+    if (!nextEl.matches('.tippy-target')) throw new Error('Expected next element to be a tippy target');
+    createTippy(el, {
+      content: nextEl,
+      placement: 'bottom-start',
       interactive: true,
       role: 'dialog',
       theme: 'box-with-header',
     });
-  }
+  });
 }

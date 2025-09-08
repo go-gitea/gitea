@@ -7,13 +7,13 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	contributors_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
-	tplContributors base.TplName = "repo/activity"
+	tplContributors templates.TplName = "repo/activity"
 )
 
 // Contributors render the page to show repository contributors graph
@@ -26,7 +26,7 @@ func Contributors(ctx *context.Context) {
 
 // ContributorsData renders JSON of contributors along with their weekly commit statistics
 func ContributorsData(ctx *context.Context) {
-	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.CommitID); err != nil {
+	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch); err != nil {
 		if errors.Is(err, contributors_service.ErrAwaitGeneration) {
 			ctx.Status(http.StatusAccepted)
 			return

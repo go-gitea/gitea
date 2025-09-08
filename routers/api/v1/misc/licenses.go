@@ -37,7 +37,6 @@ func ListLicenseTemplates(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// Returns information about a gitignore template
 func GetLicenseTemplateInfo(ctx *context.APIContext) {
 	// swagger:operation GET /licenses/{name} miscellaneous getLicenseTemplateInfo
 	// ---
@@ -59,7 +58,7 @@ func GetLicenseTemplateInfo(ctx *context.APIContext) {
 
 	text, err := options.License(name)
 	if err != nil {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 

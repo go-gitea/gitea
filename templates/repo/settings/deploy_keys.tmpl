@@ -55,11 +55,11 @@
 									{{.Fingerprint}}
 								</div>
 								<div class="flex-item-body">
-									<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix)}} —  {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}} - <span>{{ctx.Locale.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{ctx.Locale.Tr "settings.can_write_info"}} {{end}}</span></i>
+									<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} —  {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}} - <span>{{ctx.Locale.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{ctx.Locale.Tr "settings.can_write_info"}} {{end}}</span></i>
 								</div>
 							</div>
 							<div class="flex-item-trailing">
-								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+								<button class="ui red tiny button link-action" data-modal-confirm="#repo-deploy-key-delete-modal" data-url="{{$.Link}}/delete?id={{.ID}}">
 									{{ctx.Locale.Tr "settings.delete_key"}}
 								</button>
 							</div>
@@ -72,14 +72,9 @@
 		</div>
 	</div>
 
-<div class="ui g-modal-confirm delete modal">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{ctx.Locale.Tr "repo.settings.deploy_key_deletion"}}
-	</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "repo.settings.deploy_key_deletion_desc"}}</p>
-	</div>
+<div class="ui small modal" id="repo-deploy-key-delete-modal">
+	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.settings.deploy_key_deletion"}}</div>
+	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.deploy_key_deletion_desc"}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
 

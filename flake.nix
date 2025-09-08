@@ -11,29 +11,63 @@
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            # generic
-            git
-            git-lfs
-            gnumake
-            gnused
-            gnutar
-            gzip
+        devShells.default =
+          with pkgs;
+          let
+            # only bump toolchain versions here
+            go = go_1_25;
+            nodejs = nodejs_24;
+            python3 = python312;
+            pnpm = pnpm_10;
 
-            # frontend
-            nodejs_20
+            # Platform-specific dependencies
+            linuxOnlyInputs = lib.optionals pkgs.stdenv.isLinux [
+              glibc.static
+            ];
 
-            # linting
-            python312
-            poetry
+            linuxOnlyEnv = lib.optionalAttrs pkgs.stdenv.isLinux {
+              CFLAGS = "-I${glibc.static.dev}/include";
+              LDFLAGS = "-L ${glibc.static}/lib";
+            };
+          in
+          pkgs.mkShell (
+            {
+              buildInputs = [
+                # generic
+                git
+                git-lfs
+                gnumake
+                gnused
+                gnutar
+                gzip
+                zip
 
-            # backend
-            go_1_22
-            gofumpt
-            sqlite
-          ];
-        };
+                # frontend
+                nodejs
+                pnpm
+                cairo
+                pixman
+                pkg-config
+
+                # linting
+                python3
+                uv
+
+                # backend
+                go
+                gofumpt
+                sqlite
+              ]
+              ++ linuxOnlyInputs;
+
+              GO = "${go}/bin/go";
+              GOROOT = "${go}/share/go";
+
+              TAGS = "sqlite sqlite_unlock_notify";
+              STATIC = "true";
+            }
+            // linuxOnlyEnv
+          );
       }
     );
 }

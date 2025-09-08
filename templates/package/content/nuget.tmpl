@@ -18,9 +18,9 @@
 
 	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.ReleaseNotes .PackageDescriptor.Metadata.Readme}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
-		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.Description}}</div>{{end}}
-		{{if .PackageDescriptor.Metadata.Readme}}<div class="ui attached segment markup markdown">{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.Readme}}</div>{{end}}
-		{{if .PackageDescriptor.Metadata.ReleaseNotes}}<div class="ui attached segment">{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.ReleaseNotes}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.Description}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.Readme}}<div class="ui attached segment markup markdown">{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.Readme}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.ReleaseNotes}}<div class="ui attached segment">{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.ReleaseNotes}}</div>{{end}}
 	{{end}}
 
 	{{if .PackageDescriptor.Metadata.Dependencies}}
@@ -35,11 +35,12 @@
 					</tr>
 				</thead>
 				<tbody>
+					{{$tooltipSearchInNuget := ctx.Locale.Tr "packages.search_in_external_registry" "nuget.org"}}
 					{{range $framework, $dependencies := .PackageDescriptor.Metadata.Dependencies}}
 						{{range $dependencies}}
 						<tr>
-							<td>{{.ID}}</td>
-							<td>{{.Version}}</td>
+							<td>{{.ID}} <a target="_blank" rel="noreferrer" href="https://www.nuget.org/packages/{{.ID}}" data-tooltip-content="{{$tooltipSearchInNuget}}">{{svg "octicon-link-external"}}</a></td>
+							<td>{{.Version}} <a target="_blank" rel="noreferrer" href="https://www.nuget.org/packages/{{.ID}}/{{.Version}}" data-tooltip-content="{{$tooltipSearchInNuget}}">{{svg "octicon-link-external"}}</a></td>
 							<td>{{$framework}}</td>
 						</tr>
 						{{end}}

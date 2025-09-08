@@ -10,15 +10,17 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/indexer"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_meilisearch "code.gitea.io/gitea/modules/indexer/internal/meilisearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/json"
 
 	"github.com/meilisearch/meilisearch-go"
 )
 
 const (
-	issueIndexerLatestVersion = 3
+	issueIndexerLatestVersion = 4
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
@@ -33,6 +35,10 @@ var _ internal.Indexer = &Indexer{}
 type Indexer struct {
 	inner                    *inner_meilisearch.Indexer
 	indexer_internal.Indexer // do not composite inner_meilisearch.Indexer directly to avoid exposing too much
+}
+
+func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
+	return indexer.SearchModesExactWords()
 }
 
 // NewIndexer creates a new meilisearch indexer
@@ -61,6 +67,7 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"is_public",
 			"is_pull",
 			"is_closed",
+			"is_archived",
 			"label_ids",
 			"no_label",
 			"milestone_id",
@@ -100,7 +107,8 @@ func (b *Indexer) Index(_ context.Context, issues ...*internal.IndexerData) erro
 		return nil
 	}
 	for _, issue := range issues {
-		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).AddDocuments(issue)
+		// use default primary key which should be "id"
+		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).AddDocuments(issue, nil)
 		if err != nil {
 			return err
 		}
@@ -145,6 +153,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.IsClosed.Has() {
 		query.And(inner_meilisearch.NewFilterEq("is_closed", options.IsClosed.Value()))
 	}
+	if options.IsArchived.Has() {
+		query.And(inner_meilisearch.NewFilterEq("is_archived", options.IsArchived.Value()))
+	}
 
 	if options.NoLabelOnly {
 		query.And(inner_meilisearch.NewFilterEq("no_label", true))
@@ -178,12 +189,20 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(inner_meilisearch.NewFilterEq("project_board_id", options.ProjectColumnID.Value()))
 	}
 
-	if options.PosterID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("poster_id", options.PosterID.Value()))
+	if options.PosterID != "" {
+		// "(none)" becomes 0, it means no poster
+		posterIDInt64, _ := strconv.ParseInt(options.PosterID, 10, 64)
+		query.And(inner_meilisearch.NewFilterEq("poster_id", posterIDInt64))
 	}
 
-	if options.AssigneeID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("assignee_id", options.AssigneeID.Value()))
+	if options.AssigneeID != "" {
+		if options.AssigneeID == "(any)" {
+			query.And(inner_meilisearch.NewFilterGte("assignee_id", 1))
+		} else {
+			// "(none)" becomes 0, it means no assignee
+			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
+			query.And(inner_meilisearch.NewFilterEq("assignee_id", assigneeIDInt64))
+		}
 	}
 
 	if options.MentionID.Has() {
@@ -226,9 +245,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		limit = 1
 	}
 
-	keyword := options.Keyword
-	if !options.IsFuzzyKeyword {
-		// to make it non fuzzy ("typo tolerance" in meilisearch terms), we have to quote the keyword(s)
+	keyword := options.Keyword // default to match "words"
+	if options.SearchMode == indexer.SearchModeExact {
 		// https://www.meilisearch.com/docs/reference/api/search#phrase-search
 		keyword = doubleQuoteKeyword(keyword)
 	}
@@ -283,18 +301,13 @@ func doubleQuoteKeyword(k string) string {
 func convertHits(searchRes *meilisearch.SearchResponse) ([]internal.Match, error) {
 	hits := make([]internal.Match, 0, len(searchRes.Hits))
 	for _, hit := range searchRes.Hits {
-		hit, ok := hit.(map[string]any)
-		if !ok {
-			return nil, ErrMalformedResponse
-		}
-
-		issueID, ok := hit["id"].(float64)
-		if !ok {
+		var issueID int64
+		if err := json.Unmarshal(hit["id"], &issueID); err != nil {
 			return nil, ErrMalformedResponse
 		}
 
 		hits = append(hits, internal.Match{
-			ID: int64(issueID),
+			ID: issueID,
 		})
 	}
 	return hits, nil

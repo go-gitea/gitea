@@ -6,7 +6,7 @@ export function initCompWebHookEditor() {
     return;
   }
 
-  for (const input of document.querySelectorAll('.events.checkbox input')) {
+  for (const input of document.querySelectorAll<HTMLInputElement>('.events.checkbox input')) {
     input.addEventListener('change', function () {
       if (this.checked) {
         showElem('.events.fields');
@@ -14,7 +14,7 @@ export function initCompWebHookEditor() {
     });
   }
 
-  for (const input of document.querySelectorAll('.non-events.checkbox input')) {
+  for (const input of document.querySelectorAll<HTMLInputElement>('.non-events.checkbox input')) {
     input.addEventListener('change', function () {
       if (this.checked) {
         hideElem('.events.fields');
@@ -23,7 +23,7 @@ export function initCompWebHookEditor() {
   }
 
   // some webhooks (like Gitea) allow to set the request method (GET/POST), and it would toggle the "Content Type" field
-  const httpMethodInput = document.querySelector('#http_method');
+  const httpMethodInput = document.querySelector<HTMLInputElement>('#http_method');
   if (httpMethodInput) {
     const updateContentType = function () {
       const visible = httpMethodInput.value === 'POST';
@@ -34,7 +34,7 @@ export function initCompWebHookEditor() {
   }
 
   // Test delivery
-  document.querySelector('#test-delivery')?.addEventListener('click', async function () {
+  document.querySelector<HTMLButtonElement>('#test-delivery')?.addEventListener('click', async function () {
     this.classList.add('is-loading', 'disabled');
     await POST(this.getAttribute('data-link'));
     setTimeout(() => {

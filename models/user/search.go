@@ -39,21 +39,20 @@ type SearchUserOptions struct {
 	IsTwoFactorEnabled optional.Option[bool]
 	IsProhibitLogin    optional.Option[bool]
 	IncludeReserved    bool
-
-	ExtraParamStrings map[string]string
 }
 
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Session {
 	var cond builder.Cond
 	cond = builder.Eq{"type": opts.Type}
 	if opts.IncludeReserved {
-		if opts.Type == UserTypeIndividual {
+		switch opts.Type {
+		case UserTypeIndividual:
 			cond = cond.Or(builder.Eq{"type": UserTypeUserReserved}).Or(
 				builder.Eq{"type": UserTypeBot},
 			).Or(
 				builder.Eq{"type": UserTypeRemoteUser},
 			)
-		} else if opts.Type == UserTypeOrganization {
+		case UserTypeOrganization:
 			cond = cond.Or(builder.Eq{"type": UserTypeOrganizationReserved})
 		}
 	}
@@ -138,7 +137,7 @@ func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Sess
 
 // SearchUsers takes options i.e. keyword and part of user name to search,
 // it returns results in given range and number of total results.
-func SearchUsers(ctx context.Context, opts *SearchUserOptions) (users []*User, _ int64, _ error) {
+func SearchUsers(ctx context.Context, opts SearchUserOptions) (users []*User, _ int64, _ error) {
 	sessCount := opts.toSearchQueryBase(ctx)
 	defer sessCount.Close()
 	count, err := sessCount.Count(new(User))
@@ -152,8 +151,8 @@ func SearchUsers(ctx context.Context, opts *SearchUserOptions) (users []*User, _
 
 	sessQuery := opts.toSearchQueryBase(ctx).OrderBy(opts.OrderBy.String())
 	defer sessQuery.Close()
-	if opts.Page != 0 {
-		sessQuery = db.SetSessionPagination(sessQuery, opts)
+	if opts.Page > 0 {
+		sessQuery = db.SetSessionPagination(sessQuery, &opts)
 	}
 
 	// the sql may contain JOIN, so we must only select User related columns

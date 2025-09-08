@@ -19,8 +19,8 @@ func BaseLoggerToGeneralLogger(b BaseLogger) Logger {
 
 var _ Logger = (*baseToLogger)(nil)
 
-func (s *baseToLogger) Log(skip int, level Level, format string, v ...any) {
-	s.base.Log(skip+1, level, format, v...)
+func (s *baseToLogger) Log(skip int, event *Event, format string, v ...any) {
+	s.base.Log(skip+1, event, format, v...)
 }
 
 func (s *baseToLogger) GetLevel() Level {
@@ -32,27 +32,27 @@ func (s *baseToLogger) LevelEnabled(level Level) bool {
 }
 
 func (s *baseToLogger) Trace(format string, v ...any) {
-	s.base.Log(1, TRACE, format, v...)
+	s.base.Log(1, &Event{Level: TRACE}, format, v...)
 }
 
 func (s *baseToLogger) Debug(format string, v ...any) {
-	s.base.Log(1, DEBUG, format, v...)
+	s.base.Log(1, &Event{Level: DEBUG}, format, v...)
 }
 
 func (s *baseToLogger) Info(format string, v ...any) {
-	s.base.Log(1, INFO, format, v...)
+	s.base.Log(1, &Event{Level: INFO}, format, v...)
 }
 
 func (s *baseToLogger) Warn(format string, v ...any) {
-	s.base.Log(1, WARN, format, v...)
+	s.base.Log(1, &Event{Level: WARN}, format, v...)
 }
 
 func (s *baseToLogger) Error(format string, v ...any) {
-	s.base.Log(1, ERROR, format, v...)
+	s.base.Log(1, &Event{Level: ERROR}, format, v...)
 }
 
 func (s *baseToLogger) Critical(format string, v ...any) {
-	s.base.Log(1, CRITICAL, format, v...)
+	s.base.Log(1, &Event{Level: CRITICAL}, format, v...)
 }
 
 type PrintfLogger struct {
