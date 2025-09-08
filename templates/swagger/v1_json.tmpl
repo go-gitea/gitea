@@ -7617,7 +7617,13 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/ContentsResponse"
+            "description": "A list of directory entries",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ContentsResponse"
+              }
+            }
           },
           "404": {
             "$ref": "#/responses/notFound"
