@@ -289,7 +289,7 @@ require (
 
 ignore (
 	./node_modules
-	./venv
+	./.venv
 )
 
 replace github.com/jaytaylor/html2text => github.com/Necoro/html2text v0.0.0-20250804200300-7bf1ce1c7347
