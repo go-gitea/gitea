@@ -153,7 +153,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		return nil
 	}); err != nil {
 		// cleanup: this will only remove the reference, the real commit will be clean up when next GC
-		if err1 := baseGitRepo.RemoveReference(pr.GetGitHeadRefName()); err1 != nil {
+		if err1 := git.RemoveRef(ctx, baseGitRepo.Path, pr.GetGitHeadRefName()); err1 != nil {
 			log.Error("RemoveReference: %v", err1)
 		}
 		return err
@@ -635,7 +635,7 @@ func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 		return err
 	}
 
-	_, _, err = git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.HeadCommitID).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+	err = git.UpdateRef(ctx, pr.BaseRepo.RepoPath(), pr.GetGitHeadRefName(), pr.HeadCommitID)
 	if err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}
