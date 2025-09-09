@@ -8,8 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -31,7 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/uri"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/pull"
+	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/google/uuid"
@@ -554,164 +552,65 @@ func (g *GiteaLocalUploader) CreatePullRequests(ctx context.Context, prs ...*bas
 	if err := issues_model.InsertPullRequests(ctx, gprs...); err != nil {
 		return err
 	}
-	for _, pr := range gprs {
+	for i, pr := range gprs {
 		g.issues[pr.Issue.Index] = pr.Issue
-		pull.StartPullRequestCheckImmediately(ctx, pr)
+		// create head commit ref immediately, return error if failed.
+		if err := pull_service.UpdateRef(ctx, pr, prs[i].Head.SHA); err != nil {
+			return err
+		}
+
+		pull_service.StartPullRequestCheckImmediately(ctx, pr)
 	}
 	return nil
 }
 
-func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *base.PullRequest) (head string, err error) {
-	// SECURITY: this pr must have been must have been ensured safe
+func (g *GiteaLocalUploader) updateHeadBranchForPullRequest(pr *base.PullRequest) (head string, err error) {
+	// SECURITY: this pr must have been ensured safe
 	if !pr.EnsuredSafe {
 		log.Error("PR #%d in %s/%s has not been checked for safety.", pr.Number, g.repoOwner, g.repoName)
 		return "", fmt.Errorf("the PR[%d] was not checked for safety", pr.Number)
 	}
 
-	// Anonymous function to download the patch file (allows us to use defer)
-	err = func() error {
-		// if the patchURL is empty there is nothing to download
-		if pr.PatchURL == "" {
-			return nil
+	if pr.IsForkPullRequest() {
+		if pr.Head.SHA == "" {
+			return "", fmt.Errorf("the PR[%d] does not have a head commit SHA", pr.Number)
 		}
-
-		// SECURITY: We will assume that the pr.PatchURL has been checked
-		// pr.PatchURL maybe a local file - but note EnsureSafe should be asserting that this safe
-		ret, err := uri.Open(pr.PatchURL) // TODO: This probably needs to use the downloader as there may be rate limiting issues here
-		if err != nil {
-			return err
+		// ignore the original branch name because it belongs to the head repository
+		headBranch := fmt.Sprintf("branch_for_pr_%d", pr.Number)
+		if pr.State != "closed" {
+			// create the head branch
+			if err := g.gitRepo.CreateBranch(headBranch, pr.Head.SHA); err != nil {
+				return "", fmt.Errorf("failed to create head branch[%s] for PR[%d]: %w", headBranch, pr.Number, err)
+			}
 		}
-		defer ret.Close()
-
-		pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
-		if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
-			return err
-		}
-
-		f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		// TODO: Should there be limits on the size of this file?
-		_, err = io.Copy(f, ret)
-
-		return err
-	}()
-	if err != nil {
-		return "", err
+		return headBranch, nil // assign a non-exist branch
 	}
 
-	head = "unknown repository"
-	if pr.IsForkPullRequest() && pr.State != "closed" {
-		// OK we want to fetch the current head as a branch from its CloneURL
-
-		// 1. Is there a head clone URL available?
-		// 2. Is there a head ref available?
-		if pr.Head.CloneURL == "" || pr.Head.Ref == "" {
-			return head, nil
-		}
-
-		// 3. We need to create a remote for this clone url
-		// ... maybe we already have a name for this remote
-		remote, ok := g.prHeadCache[pr.Head.CloneURL+":"]
-		if !ok {
-			// ... let's try ownername as a reasonable name
-			remote = pr.Head.OwnerName
-			if !git.IsValidRefPattern(remote) {
-				// ... let's try something less nice
-				remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
-			}
-			// ... now add the remote
-			err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
-			if err != nil {
-				log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
-			} else {
-				g.prHeadCache[pr.Head.CloneURL+":"] = remote
-				ok = true
-			}
-		}
-		if !ok {
-			return head, nil
-		}
-
-		// 4. Check if we already have this ref?
-		localRef, ok := g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref]
-		if !ok {
-			// ... We would normally name this migrated branch as <OwnerName>/<HeadRef> but we need to ensure that is safe
-			localRef = git.SanitizeRefPattern(pr.Head.OwnerName + "/" + pr.Head.Ref)
-
-			// ... Now we must assert that this does not exist
-			if g.gitRepo.IsBranchExist(localRef) {
-				localRef = "head-pr-" + strconv.FormatInt(pr.Number, 10) + "/" + localRef
-				i := 0
-				for g.gitRepo.IsBranchExist(localRef) {
-					if i > 5 {
-						// ... We tried, we really tried but this is just a seriously unfriendly repo
-						return head, nil
-					}
-					// OK just try some uuids!
-					localRef = git.SanitizeRefPattern("head-pr-" + strconv.FormatInt(pr.Number, 10) + uuid.New().String())
-					i++
+	if pr.Head.SHA != "" {
+		if pr.Head.Ref == "" {
+			headBranch := fmt.Sprintf("branch_for_pr_%d", pr.Number)
+			if pr.State != "closed" {
+				// create the head branch
+				if err := g.gitRepo.CreateBranch(headBranch, pr.Head.SHA); err != nil {
+					return "", fmt.Errorf("failed to create head branch[%s] for PR[%d]: %w", headBranch, pr.Number, err)
 				}
 			}
-
-			fetchArg := pr.Head.Ref + ":" + git.BranchPrefix + localRef
-			if strings.HasPrefix(fetchArg, "-") {
-				fetchArg = git.BranchPrefix + fetchArg
-			}
-
-			_, _, err = git.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(ctx, &git.RunOpts{Dir: g.repo.RepoPath()})
-			if err != nil {
-				log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
-				return head, nil
-			}
-			g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref] = localRef
-			head = localRef
+			return headBranch, nil // assign a non-exist branch
 		}
-
-		// 5. Now if pr.Head.SHA == "" we should recover this to the head of this branch
-		if pr.Head.SHA == "" {
-			headSha, err := g.gitRepo.GetBranchCommitID(localRef)
-			if err != nil {
-				log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %v", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
-				return head, nil
-			}
-			pr.Head.SHA = headSha
-		}
-
-		_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.repo.RepoPath()})
-		if err != nil {
-			return "", err
-		}
-
-		return head, nil
+		// it's unnecessary to check whether the ref exists because the git repository will be mirrored cloned.
+		return pr.Head.Ref, nil
 	}
 
-	if pr.Head.Ref != "" {
-		head = pr.Head.Ref
+	if pr.Head.Ref == "" {
+		return "", fmt.Errorf("the PR[%d] does not have a head commit SHA or ref", pr.Number)
 	}
 
-	// Ensure the closed PR SHA still points to an existing ref
-	if pr.Head.SHA == "" {
-		// The SHA is empty
-		log.Warn("Empty reference, no pull head for PR #%d in %s/%s", pr.Number, g.repoOwner, g.repoName)
-	} else {
-		_, _, err = git.NewCommand("rev-list", "--quiet", "-1").AddDynamicArguments(pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.repo.RepoPath()})
-		if err != nil {
-			// Git update-ref remove bad references with a relative path
-			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitHeadRefName())
-		} else {
-			// set head information
-			_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.repo.RepoPath()})
-			if err != nil {
-				log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
-			}
-		}
+	// if there is no sha, we need to get the sha from the head branch
+	pr.Head.SHA, err = g.gitRepo.GetRefCommitID(pr.Head.Ref)
+	if err != nil {
+		return "", fmt.Errorf("the PR[%d] head ref[%s] is invalid: %w", pr.Number, pr.Head.Ref, err)
 	}
-
-	return head, nil
+	return pr.Head.Ref, nil
 }
 
 func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRequest) (*issues_model.PullRequest, error) {
@@ -725,9 +624,10 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 
 	milestoneID := g.milestones[pr.Milestone]
 
-	head, err := g.updateGitForPullRequest(ctx, pr)
+	// recalculate and create head branch when necessary
+	headBranch, err := g.updateHeadBranchForPullRequest(pr)
 	if err != nil {
-		return nil, fmt.Errorf("updateGitForPullRequest: %w", err)
+		return nil, fmt.Errorf("updateHeadBranchForPullRequest: %w", err)
 	}
 
 	// Now we may need to fix the mergebase
@@ -795,14 +695,13 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 
 	pullRequest := issues_model.PullRequest{
 		HeadRepoID: g.repo.ID,
-		HeadBranch: head,
+		HeadBranch: headBranch,
 		BaseRepoID: g.repo.ID,
 		BaseBranch: pr.Base.Ref,
 		MergeBase:  pr.Base.SHA,
 		Index:      pr.Number,
 		HasMerged:  pr.Merged,
-
-		Issue: &issue,
+		Issue:      &issue,
 	}
 
 	if pullRequest.Issue.IsClosed && pr.Closed != nil {

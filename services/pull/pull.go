@@ -47,6 +47,7 @@ type NewPullRequestOptions struct {
 	LabelIDs        []int64
 	AttachmentUUIDs []string
 	PullRequest     *issues_model.PullRequest
+	HeadCommitID    string // only for agit flow. For github flow, it will use head branch directly
 	AssigneeIDs     []int64
 	Reviewers       []*user_model.User
 	TeamReviewers   []*organization.Team
@@ -132,10 +133,11 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		pr.Issue = issue
 		issue.PullRequest = pr
 
+		// update head commit ID
 		if pr.Flow == issues_model.PullRequestFlowGithub {
 			err = PushToBaseRepo(ctx, pr)
 		} else {
-			err = UpdateRef(ctx, pr)
+			err = UpdateRef(ctx, pr, opts.HeadCommitID)
 		}
 		if err != nil {
 			return err
@@ -639,15 +641,15 @@ func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *r
 	}
 }
 
-// UpdateRef update refs/pull/id/head directly for agit flow pull request
-func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
+// UpdateRef update refs/pull/id/head directly for agit flow pull request or the github pull request with the same base/head repository
+func UpdateRef(ctx context.Context, pr *issues_model.PullRequest, headCommitID string) (err error) {
 	log.Trace("UpdateRef[%d]: upgate pull request ref in base repo '%s'", pr.ID, pr.GetGitHeadRefName())
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
 
-	_, _, err = git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.HeadCommitID).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+	_, _, err = git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), headCommitID).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
 	if err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}
@@ -811,19 +813,14 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	}
 	defer closer.Close()
 
-	var headCommit *git.Commit
-	if pr.Flow == issues_model.PullRequestFlowGithub {
-		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
-	} else {
-		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
-		if err != nil {
-			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitHeadRefName(), err)
-			return ""
-		}
-		headCommit, err = gitRepo.GetCommit(pr.HeadCommitID)
-	}
+	headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	if err != nil {
-		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
+		log.Error("Unable to get head commit id: %s Error: %v", pr.GetGitHeadRefName(), err)
+		return ""
+	}
+	headCommit, err := gitRepo.GetCommit(headCommitID)
+	if err != nil {
+		log.Error("Unable to get head commit: %s Error: %v", pr.GetGitHeadRefName(), err)
 		return ""
 	}
 
@@ -1042,11 +1039,11 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 			return false, err
 		}
 	} else {
-		pr.HeadCommitID, err = baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
 			return false, err
 		}
-		if headCommit, err = baseGitRepo.GetCommit(pr.HeadCommitID); err != nil {
+		if headCommit, err = baseGitRepo.GetCommit(headCommitID); err != nil {
 			return false, err
 		}
 	}

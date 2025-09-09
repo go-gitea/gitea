@@ -100,11 +100,12 @@ func testPullRequestTmpRepoBranchMergeable(ctx context.Context, prCtx *prTmpRepo
 		}
 	}
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
-	if pr.HeadCommitID, err = gitRepo.GetRefCommitID(git.BranchPrefix + "tracking"); err != nil {
+	headCommitID, err := gitRepo.GetRefCommitID(git.BranchPrefix + "tracking")
+	if err != nil {
 		return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
 	}
 
-	if pr.HeadCommitID == pr.MergeBase {
+	if headCommitID == pr.MergeBase {
 		pr.Status = issues_model.PullRequestStatusAncestor
 		return nil
 	}
