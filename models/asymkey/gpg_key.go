@@ -164,13 +164,17 @@ func parseGPGKey(ctx context.Context, ownerID int64, e *openpgp.Entity, verified
 		if ident.Revoked(time.Now()) {
 			continue
 		}
-		email := strings.ToLower(strings.TrimSpace(ident.UserId.Email))
+		emailAddr := &user_model.EmailAddress{
+			Email:       ident.UserId.Email,
+			LowerEmail:  strings.ToLower(strings.TrimSpace(ident.UserId.Email)),
+			IsActivated: false,
+		}
 		for _, e := range userEmails {
-			if e.IsActivated && e.LowerEmail == email {
-				emails = append(emails, e)
-				break
+			if e.LowerEmail == emailAddr.LowerEmail {
+				emailAddr.IsActivated = true
 			}
 		}
+		emails = append(emails, emailAddr)
 	}
 
 	if !verified {
