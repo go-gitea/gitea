@@ -8,7 +8,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -432,7 +431,6 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
-	ctx.Data["OwnerID"] = pd.Owner.ID
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
 	if pd.Package.RepoID > 0 {
@@ -441,7 +439,7 @@ func PackageSettings(ctx *context.Context) {
 			ctx.ServerError("GetRepositoryByID", err)
 			return
 		}
-		ctx.Data["LinkedRepoFullName"] = repo.FullName()
+		ctx.Data["LinkedRepoName"] = repo.Name
 	}
 
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
@@ -454,37 +452,29 @@ func PackageSettingsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.PackageSettingForm)
 	switch form.Action {
 	case "link":
-		if form.RepoFullName == "" { // remove the link
+		if form.RepoName == "" { // remove the link
 			if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, 0); err != nil {
-				ctx.Flash.Error(ctx.Tr("packages.settings.unlink.error"))
-			} else {
-				ctx.Flash.Success(ctx.Tr("packages.settings.unlink.success"))
+				ctx.JSONError(ctx.Tr("packages.settings.unlink.error"))
+				return
 			}
+
+			ctx.Flash.Success(ctx.Tr("packages.settings.unlink.success"))
 			ctx.JSONRedirect("")
 			return
 		}
 
-		owner, name, _ := strings.Cut(form.RepoFullName, "/")
-		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner, name)
+		repo, err := repo_model.GetRepositoryByName(ctx, pd.Owner.ID, form.RepoName)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
-				ctx.Flash.Error(ctx.Tr("packages.settings.link.repo_not_found", form.RepoFullName))
-				ctx.JSONRedirect("")
+				ctx.JSONError(ctx.Tr("packages.settings.link.repo_not_found", form.RepoName))
 			} else {
 				ctx.ServerError("GetRepositoryByOwnerAndName", err)
 			}
 			return
 		}
 
-		if repo.OwnerID != pd.Owner.ID {
-			ctx.Flash.Error(ctx.Tr("packages.settings.link.repo_not_found", form.RepoFullName))
-			ctx.JSONRedirect("")
-			return
-		}
-
 		if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, repo.ID); err != nil {
-			ctx.Flash.Error(ctx.Tr("packages.settings.link.error"))
-			ctx.JSONRedirect("")
+			ctx.JSONError(ctx.Tr("packages.settings.link.error"))
 			return
 		}
 
