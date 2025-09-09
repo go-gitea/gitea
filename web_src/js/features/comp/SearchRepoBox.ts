@@ -1,4 +1,5 @@
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {htmlEscape} from '../../utils/html.ts';
 
 const {appSubUrl} = window.config;
 
@@ -18,8 +19,8 @@ export function initCompSearchRepoBox() {
         const items = [];
         for (const item of response.data) {
           items.push({
-            title: item.repository.full_name.split('/')[1],
-            description: item.repository.full_name,
+            title: htmlEscape(item.repository.full_name.split('/')[1]),
+            description: htmlEscape(item.repository.full_name),
           });
         }
         return {results: items};
