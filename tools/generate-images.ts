@@ -1,15 +1,10 @@
 #!/usr/bin/env node
-import {loadSVGFromString, Canvas, Rect, util} from 'fabric/node'; // eslint-disable-line import-x/no-unresolved
+import {initWasm, Resvg} from '@resvg/resvg-wasm';
 import {optimize} from 'svgo';
 import {readFile, writeFile} from 'node:fs/promises';
 import {argv, exit} from 'node:process';
 
-function doExit(err) {
-  if (err) console.error(err);
-  exit(err ? 1 : 0);
-}
-
-async function generate(svg, path, {size, bg}) {
+async function generate(svg: string, path: string, {size, bg}: {size: number, bg?: boolean}) {
   const outputFile = new URL(path, import.meta.url);
 
   if (String(outputFile).endsWith('.svg')) {
@@ -19,7 +14,9 @@ async function generate(svg, path, {size, bg}) {
         'removeDimensions',
         {
           name: 'addAttributesToSVGElement',
-          params: {attributes: [{width: size}, {height: size}]},
+          params: {
+            attributes: [{width: String(size)}, {height: String(size)}],
+          },
         },
       ],
     });
@@ -27,37 +24,23 @@ async function generate(svg, path, {size, bg}) {
     return;
   }
 
-  const {objects, options} = await loadSVGFromString(svg);
-  const canvas = new Canvas();
-  canvas.setDimensions({width: size, height: size});
-  const ctx = canvas.getContext('2d');
-  ctx.scale(options.width ? (size / options.width) : 1, options.height ? (size / options.height) : 1);
-
-  if (bg) {
-    canvas.add(new Rect({
-      left: 0,
-      top: 0,
-      height: size * (1 / (size / options.height)),
-      width: size * (1 / (size / options.width)),
-      fill: 'white',
-    }));
-  }
-
-  canvas.add(util.groupSVGElements(objects, options));
-  canvas.renderAll();
-
-  let png = Buffer.from([]);
-  for await (const chunk of canvas.createPNGStream()) {
-    png = Buffer.concat([png, chunk]);
-  }
-
-  await writeFile(outputFile, png);
+  const resvgJS = new Resvg(svg, {
+    fitTo: {
+      mode: 'width',
+      value: size,
+    },
+    ...(bg && {background: 'white'}),
+  });
+  const renderedImage = resvgJS.render();
+  const pngBytes = renderedImage.asPng();
+  await writeFile(outputFile, Buffer.from(pngBytes));
 }
 
 async function main() {
   const gitea = argv.slice(2).includes('gitea');
   const logoSvg = await readFile(new URL('../assets/logo.svg', import.meta.url), 'utf8');
   const faviconSvg = await readFile(new URL('../assets/favicon.svg', import.meta.url), 'utf8');
+  await initWasm(await readFile(new URL(import.meta.resolve('@resvg/resvg-wasm/index_bg.wasm'))));
 
   await Promise.all([
     generate(logoSvg, '../public/assets/img/logo.svg', {size: 32}),
@@ -71,7 +54,8 @@ async function main() {
 }
 
 try {
-  doExit(await main());
+  await main();
 } catch (err) {
-  doExit(err);
+  console.error(err);
+  exit(1);
 }

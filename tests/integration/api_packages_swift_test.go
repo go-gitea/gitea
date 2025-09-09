@@ -354,6 +354,7 @@ func TestPackageSwift(t *testing.T) {
 		assert.Equal(t, packageVersion, result.Metadata.Version)
 		assert.Equal(t, packageDescription, result.Metadata.Description)
 		assert.Equal(t, "Swift", result.Metadata.ProgrammingLanguage.Name)
+		assert.Equal(t, packageAuthor, result.Metadata.Author.Name)
 		assert.Equal(t, packageAuthor, result.Metadata.Author.GivenName)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s/%s.json", url, packageScope, packageName, packageVersion)).
