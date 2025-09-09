@@ -8,11 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"os"
 	"path"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -166,16 +165,10 @@ func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, file
 	return attach, nil
 }
 
-// DeleteAttachment deletes the given attachment and optionally the associated file.
-func DeleteAttachment(ctx context.Context, a *Attachment, remove bool) error {
-	_, err := DeleteAttachments(ctx, []*Attachment{a}, remove)
-	return err
-}
-
-// DeleteAttachments deletes the given attachments and optionally the associated files.
-func DeleteAttachments(ctx context.Context, attachments []*Attachment, remove bool) (int, error) {
+// DeleteAttachments delete the given attachments and add disk files to pending deletion
+func DeleteAttachments(ctx context.Context, attachments []*Attachment) error {
 	if len(attachments) == 0 {
-		return 0, nil
+		return nil
 	}
 
 	ids := make([]int64, 0, len(attachments))
@@ -183,42 +176,25 @@ func DeleteAttachments(ctx context.Context, attachments []*Attachment, remove bo
 		ids = append(ids, a.ID)
 	}
 
-	cnt, err := db.GetEngine(ctx).In("id", ids).NoAutoCondition().Delete(attachments[0])
-	if err != nil {
-		return 0, err
-	}
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// delete attachments from database
+		if _, err := db.GetEngine(ctx).Table("attachment").In("id", ids).Delete(); err != nil {
+			return err
+		}
 
-	if remove {
-		for i, a := range attachments {
-			if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
-				if !errors.Is(err, os.ErrNotExist) {
-					return i, err
-				}
-				log.Warn("Attachment file not found when deleting: %s", a.RelativePath())
+		// add disk files to pending deletion table as well
+		for _, a := range attachments {
+			pendingDeletion := &system_model.StoragePathDeletion{
+				StorageName:  storage.AttachmentStorageName,
+				PathType:     system_model.PathFile,
+				RelativePath: a.RelativePath(),
+			}
+			if err := db.Insert(ctx, pendingDeletion); err != nil {
+				return fmt.Errorf("insert pending deletion: %w", err)
 			}
 		}
-	}
-	return int(cnt), nil
-}
-
-// DeleteAttachmentsByIssue deletes all attachments associated with the given issue.
-func DeleteAttachmentsByIssue(ctx context.Context, issueID int64, remove bool) (int, error) {
-	attachments, err := GetAttachmentsByIssueID(ctx, issueID)
-	if err != nil {
-		return 0, err
-	}
-
-	return DeleteAttachments(ctx, attachments, remove)
-}
-
-// DeleteAttachmentsByComment deletes all attachments associated with the given comment.
-func DeleteAttachmentsByComment(ctx context.Context, commentID int64, remove bool) (int, error) {
-	attachments, err := GetAttachmentsByCommentID(ctx, commentID)
-	if err != nil {
-		return 0, err
-	}
-
-	return DeleteAttachments(ctx, attachments, remove)
+		return nil
+	})
 }
 
 // UpdateAttachmentByUUID Updates attachment via uuid
@@ -240,12 +216,6 @@ func UpdateAttachment(ctx context.Context, atta *Attachment) error {
 		sess = sess.Where("uuid = ?", atta.UUID)
 	}
 	_, err := sess.Update(atta)
-	return err
-}
-
-// DeleteAttachmentsByRelease deletes all attachments associated with the given release.
-func DeleteAttachmentsByRelease(ctx context.Context, releaseID int64) error {
-	_, err := db.GetEngine(ctx).Where("release_id = ?", releaseID).Delete(&Attachment{})
 	return err
 }
 

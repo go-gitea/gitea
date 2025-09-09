@@ -29,8 +29,6 @@ import (
 
 // deleteUser deletes models associated to an user.
 func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error) {
-	e := db.GetEngine(ctx)
-
 	// ***** START: Watch *****
 	watchedRepoIDs, err := db.FindIDs(ctx, "watch", "watch.repo_id",
 		builder.Eq{"watch.user_id": u.ID}.
@@ -109,7 +107,7 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 		const batchSize = 50
 		for {
 			comments := make([]*issues_model.Comment, 0, batchSize)
-			if err = e.Where("type=? AND poster_id=?", issues_model.CommentTypeComment, u.ID).Limit(batchSize, 0).Find(&comments); err != nil {
+			if err = db.GetEngine(ctx).Where("type=? AND poster_id=?", issues_model.CommentTypeComment, u.ID).Limit(batchSize, 0).Find(&comments); err != nil {
 				return err
 			}
 			if len(comments) == 0 {
@@ -117,7 +115,16 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 			}
 
 			for _, comment := range comments {
+				// Delete attachments of the comments
+				if err := comment.LoadAttachments(ctx); err != nil {
+					return err
+				}
+
 				if err = issues_model.DeleteComment(ctx, comment); err != nil {
+					return err
+				}
+
+				if err := repo_model.DeleteAttachments(ctx, comment.Attachments); err != nil {
 					return err
 				}
 			}
@@ -139,7 +146,7 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 			//   though that query will be quite complex and tricky to maintain (compare `getRepoAssignees()`).
 			// Also, as we didn't update branch protections when removing entries from `access` table,
 			//   it's safer to iterate all protected branches.
-			if err = e.Limit(batchSize, start).Find(&protections); err != nil {
+			if err = db.GetEngine(ctx).Limit(batchSize, start).Find(&protections); err != nil {
 				return fmt.Errorf("findProtectedBranches: %w", err)
 			}
 			if len(protections) == 0 {

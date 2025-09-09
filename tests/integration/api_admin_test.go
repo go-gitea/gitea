@@ -304,11 +304,11 @@ func TestAPICron(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		assert.Equal(t, "29", resp.Header().Get("X-Total-Count"))
+		assert.Equal(t, "30", resp.Header().Get("X-Total-Count"))
 
 		var crons []api.Cron
 		DecodeJSON(t, resp, &crons)
-		assert.Len(t, crons, 29)
+		assert.Len(t, crons, 30)
 	})
 
 	t.Run("Execute", func(t *testing.T) {

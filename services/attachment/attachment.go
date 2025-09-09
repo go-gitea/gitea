@@ -59,3 +59,19 @@ func UpdateAttachment(ctx context.Context, allowedTypes string, attach *repo_mod
 
 	return repo_model.UpdateAttachment(ctx, attach)
 }
+
+// DeleteAttachment deletes the given attachment and optionally the associated file.
+func DeleteAttachment(ctx context.Context, a *repo_model.Attachment) error {
+	_, err := DeleteAttachments(ctx, []*repo_model.Attachment{a})
+	return err
+}
+
+// DeleteAttachments deletes the given attachments and optionally the associated files.
+func DeleteAttachments(ctx context.Context, attachments []*repo_model.Attachment) (int, error) {
+	err := repo_model.DeleteAttachments(ctx, attachments)
+	if err != nil {
+		return 0, err
+	}
+
+	return len(attachments), nil
+}

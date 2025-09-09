@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
+	attachment_service "code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
@@ -605,7 +606,7 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 		if util.SliceContainsString(files, attachments[i].UUID) {
 			continue
 		}
-		if err := repo_model.DeleteAttachment(ctx, attachments[i], true); err != nil {
+		if err := attachment_service.DeleteAttachment(ctx, attachments[i]); err != nil {
 			return err
 		}
 	}
