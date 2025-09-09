@@ -507,7 +507,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 
 			testCase.pr.EnsuredSafe = true
 
-			head, err := uploader.updateHeadBranchForPullRequest(&testCase.pr)
+			head, err := uploader.updateHeadBranchForPullRequest(t.Context(), &testCase.pr)
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.head, head)
 

@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -564,7 +565,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(ctx context.Context, prs ...*bas
 	return nil
 }
 
-func (g *GiteaLocalUploader) updateHeadBranchForPullRequest(pr *base.PullRequest) (head string, err error) {
+func (g *GiteaLocalUploader) updateHeadBranchForPullRequest(ctx context.Context, pr *base.PullRequest) (head string, err error) {
 	// SECURITY: this pr must have been ensured safe
 	if !pr.EnsuredSafe {
 		log.Error("PR #%d in %s/%s has not been checked for safety.", pr.Number, g.repoOwner, g.repoName)
@@ -576,14 +577,21 @@ func (g *GiteaLocalUploader) updateHeadBranchForPullRequest(pr *base.PullRequest
 			return "", fmt.Errorf("the PR[%d] does not have a head commit SHA", pr.Number)
 		}
 		// ignore the original branch name because it belongs to the head repository
-		headBranch := fmt.Sprintf("branch_for_pr_%d", pr.Number)
+		headBranch := fmt.Sprintf("%s-%s", pr.Head.OwnerName, pr.Head.Ref)
 		if pr.State != "closed" {
+			exist, err := git_model.IsBranchExist(ctx, g.repo.ID, headBranch)
+			if err != nil {
+				return "", fmt.Errorf("failed to check if head branch[%s] exists for PR[%d]: %w", headBranch, pr.Number, err)
+			}
+			if exist {
+				headBranch = fmt.Sprintf("%s-%s-%d", pr.Head.OwnerName, pr.Head.Ref, pr.Number)
+			}
 			// create the head branch
-			if err := g.gitRepo.CreateBranch(headBranch, pr.Head.SHA); err != nil {
+			if err := repo_service.CreateNewBranchFromCommit(ctx, g.doer, g.repo, g.gitRepo, pr.Head.SHA, headBranch); err != nil {
 				return "", fmt.Errorf("failed to create head branch[%s] for PR[%d]: %w", headBranch, pr.Number, err)
 			}
 		}
-		return headBranch, nil // assign a non-exist branch
+		return headBranch, nil
 	}
 
 	if pr.Head.SHA != "" {
@@ -591,7 +599,7 @@ func (g *GiteaLocalUploader) updateHeadBranchForPullRequest(pr *base.PullRequest
 			headBranch := fmt.Sprintf("branch_for_pr_%d", pr.Number)
 			if pr.State != "closed" {
 				// create the head branch
-				if err := g.gitRepo.CreateBranch(headBranch, pr.Head.SHA); err != nil {
+				if err := repo_service.CreateNewBranchFromCommit(ctx, g.doer, g.repo, g.gitRepo, pr.Head.SHA, headBranch); err != nil {
 					return "", fmt.Errorf("failed to create head branch[%s] for PR[%d]: %w", headBranch, pr.Number, err)
 				}
 			}
@@ -601,7 +609,7 @@ func (g *GiteaLocalUploader) updateHeadBranchForPullRequest(pr *base.PullRequest
 		return pr.Head.Ref, nil
 	}
 
-	if pr.Head.Ref == "" {
+	if pr.Head.Ref == "" { // both sha and ref are empty
 		return "", fmt.Errorf("the PR[%d] does not have a head commit SHA or ref", pr.Number)
 	}
 
@@ -625,7 +633,7 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 	milestoneID := g.milestones[pr.Milestone]
 
 	// recalculate and create head branch when necessary
-	headBranch, err := g.updateHeadBranchForPullRequest(pr)
+	headBranch, err := g.updateHeadBranchForPullRequest(ctx, pr)
 	if err != nil {
 		return nil, fmt.Errorf("updateHeadBranchForPullRequest: %w", err)
 	}
