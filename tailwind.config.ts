@@ -37,6 +37,7 @@ export default {
     './{build,models,modules,routers,services}/**/*.go',
     './templates/**/*.tmpl',
     './web_src/js/**/*.{ts,js,vue}',
+    './custom/templates/**/*.tmpl',
   ].filter(Boolean),
   blocklist: [
     // classes that don't work without CSS variables from "@tailwind base" which we don't use
