@@ -17,9 +17,8 @@ export function initCompSearchRepoBox() {
       onResponse(response: any) {
         const items = [];
         for (const item of response.data) {
-          let title = item.repository.full_name.split('/')[1];
           items.push({
-            title,
+            title: item.repository.full_name.split('/')[1],
             description: item.repository.full_name,
           });
         }
