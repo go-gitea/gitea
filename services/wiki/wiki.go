@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
@@ -35,11 +36,15 @@ func getWikiWorkingLockKey(repoID int64) string {
 // InitWiki initializes a wiki for repository,
 // it does nothing when repository already has wiki.
 func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
-	if repo.HasWiki() {
+	// don't use HasWiki because the error should not be ignored.
+	if exist, err := gitrepo.IsRepositoryExist(ctx, repo.WikiStorageRepo()); err != nil {
+		return err
+	} else if exist {
 		return nil
 	}
 
-	if err := git.InitRepository(ctx, repo.WikiPath(), true, repo.ObjectFormatName); err != nil {
+	// wiki's object format should be the same as repository's
+	if err := gitrepo.InitRepository(ctx, repo.WikiStorageRepo(), repo.ObjectFormatName); err != nil {
 		return fmt.Errorf("InitRepository: %w", err)
 	} else if err = gitrepo.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
@@ -355,7 +360,14 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 		return err
 	}
 
-	system_model.RemoveAllWithNotice(ctx, "Delete repository wiki", repo.WikiPath())
+	if err := gitrepo.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
+		desc := fmt.Sprintf("Delete wiki repository files [%s]: %v", repo.FullName(), err)
+		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
+		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
+		}
+	}
+
 	return nil
 }
 
@@ -369,7 +381,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return fmt.Errorf("unable to update database: %w", err)
 		}
 
-		if !repo.HasWiki() {
+		if !repo_service.HasWiki(ctx, repo) {
 			return nil
 		}
 
