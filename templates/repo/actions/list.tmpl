@@ -8,7 +8,10 @@
 		<div class="ui stackable grid">
 			<div class="four wide column">
 				<div class="ui fluid vertical menu">
-					<a class="item{{if not $.CurWorkflow}} active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
+					<div class="item header">
+						{{ctx.Locale.Tr "actions.workflows"}}
+					</div>
+					<a class="item{{if and (not $.CurWorkflow) (not $.CurEnvironment)}} active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
 						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">{{.Entry.Name}}
 							{{if .ErrMsg}}
@@ -23,6 +26,18 @@
 						</a>
 					{{end}}
 				</div>
+				{{if .Environments}}
+				<div class="ui fluid vertical menu" style="margin-top: 16px;">
+					<div class="item header">
+						{{svg "octicon-rocket" 16}} {{ctx.Locale.Tr "actions.deployments"}}
+					</div>
+					{{range .Environments}}
+						<a class="item{{if eq .Name $.CurEnvironment}} active{{end}}" href="?environment={{.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
+							{{.Name}}
+						</a>
+					{{end}}
+				</div>
+				{{end}}
 			</div>
 			<div class="twelve wide column content">
 				<div class="ui secondary filter menu tw-justify-end tw-flex tw-items-center">
@@ -35,11 +50,11 @@
 								<i class="icon">{{svg "octicon-search"}}</i>
 								<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.actor"}}">
 							</div>
-							<a class="item{{if not $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&status={{$.CurStatus}}&actor=0">
+							<a class="item{{if not $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&status={{$.CurStatus}}&environment={{$.CurEnvironment}}&actor=0">
 								{{ctx.Locale.Tr "actions.runs.actors_no_select"}}
 							</a>
 							{{range .Actors}}
-								<a class="item{{if eq .ID $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{.ID}}&status={{$.CurStatus}}">
+								<a class="item{{if eq .ID $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{.ID}}&status={{$.CurStatus}}&environment={{$.CurEnvironment}}">
 									{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
 								</a>
 							{{end}}
@@ -54,11 +69,11 @@
 								<i class="icon">{{svg "octicon-search"}}</i>
 								<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.status"}}">
 							</div>
-							<a class="item{{if not $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status=0">
+							<a class="item{{if not $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&environment={{$.CurEnvironment}}&status=0">
 								{{ctx.Locale.Tr "actions.runs.status_no_select"}}
 							</a>
 							{{range .StatusInfoList}}
-								<a class="item{{if eq .Status $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}">
+								<a class="item{{if eq .Status $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&environment={{$.CurEnvironment}}&status={{.Status}}">
 									{{.DisplayedStatus}}
 								</a>
 							{{end}}
@@ -69,7 +84,7 @@
 						<button class="ui jump dropdown btn interact-bg tw-p-2">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
-								<a class="item link-action" data-url="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}">
+								<a class="item link-action" data-url="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}&environment={{$.CurEnvironment}}">
 									{{if .CurWorkflowDisabled}}{{ctx.Locale.Tr "actions.workflow.enable"}}{{else}}{{ctx.Locale.Tr "actions.workflow.disable"}}{{end}}
 								</a>
 							</div>

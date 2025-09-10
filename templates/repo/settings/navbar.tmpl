@@ -39,7 +39,7 @@
 			{{end}}
 		{{end}}
 		{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
-		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
+		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables .PageIsSharedSettingsEnvironments}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/actions/runners">
@@ -50,6 +50,9 @@
 				</a>
 				<a class="{{if .PageIsSharedSettingsVariables}}active {{end}}item" href="{{.RepoLink}}/settings/actions/variables">
 					{{ctx.Locale.Tr "actions.variables"}}
+				</a>
+				<a class="{{if .PageIsSharedSettingsEnvironments}}active {{end}}item" href="{{.RepoLink}}/settings/actions/environments">
+					{{ctx.Locale.Tr "actions.environments"}}
 				</a>
 			</div>
 		</details>

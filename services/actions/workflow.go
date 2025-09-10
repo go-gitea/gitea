@@ -194,8 +194,8 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 
 	// Insert the action run and its associated jobs into the database
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
-		return fmt.Errorf("InsertRun: %w", err)
+	if err := actions_model.InsertRunWithDeployments(ctx, run, workflows, content); err != nil {
+		return fmt.Errorf("InsertRunWithDeployments: %w", err)
 	}
 
 	allJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})

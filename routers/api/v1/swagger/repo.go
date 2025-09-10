@@ -522,3 +522,17 @@ type swaggerMergeUpstreamResponse struct {
 	// in:body
 	Body api.MergeUpstreamResponse `json:"body"`
 }
+
+// Environment
+// swagger:response Environment
+type swaggerEnvironment struct {
+	// in:body
+	Body api.Environment `json:"body"`
+}
+
+// EnvironmentList
+// swagger:response EnvironmentList
+type swaggerEnvironmentList struct {
+	// in:body
+	Body api.EnvironmentListResponse `json:"body"`
+}

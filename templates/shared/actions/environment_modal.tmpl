@@ -1,0 +1,32 @@
+{{/* Add environment dialog */}}
+<div class="ui small modal" id="add-environment-modal">
+	<div class="header"></div>
+	<form class="ui form form-fetch-action" method="post">
+		<div class="content">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="action" value="add">
+			<div class="field">
+				{{ctx.Locale.Tr "actions.environment_description"}}
+			</div>
+			<div class="field">
+				<label for="environment-name">{{ctx.Locale.Tr "name"}}</label>
+				<input autofocus required
+					id="environment-name"
+					name="name"
+					pattern="^[a-zA-Z0-9_]+$"
+					placeholder="{{ctx.Locale.Tr "actions.environment_name_placeholder"}}"
+				>
+			</div>
+			<div class="field">
+				<label for="environment-description">{{ctx.Locale.Tr "description"}}</label>
+				<textarea
+					id="environment-description"
+					name="data"
+					rows="2"
+					placeholder="{{ctx.Locale.Tr "actions.environment_description_placeholder"}}"
+				></textarea>
+			</div>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+	</form>
+</div>
