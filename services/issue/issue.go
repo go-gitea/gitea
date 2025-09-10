@@ -246,74 +246,67 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 
 // deleteIssue deletes the issue
 func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-
-	if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
-		return nil, err
-	}
-
-	// update the total issue numbers
-	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
-		return nil, err
-	}
-	// if the issue is closed, update the closed issue numbers
-	if issue.IsClosed {
-		if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
+	return db.WithTx2(ctx, func(ctx context.Context) ([]string, error) {
+		if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
 			return nil, err
 		}
-	}
 
-	if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
-		return nil, fmt.Errorf("error updating counters for milestone id %d: %w",
-			issue.MilestoneID, err)
-	}
+		// update the total issue numbers
+		if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
+			return nil, err
+		}
+		// if the issue is closed, update the closed issue numbers
+		if issue.IsClosed {
+			if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
+				return nil, err
+			}
+		}
 
-	if err := activities_model.DeleteIssueActions(ctx, issue.RepoID, issue.ID, issue.Index); err != nil {
-		return nil, err
-	}
+		if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
+			return nil, fmt.Errorf("error updating counters for milestone id %d: %w",
+				issue.MilestoneID, err)
+		}
 
-	// find attachments related to this issue and remove them
-	if err := issue.LoadAttachments(ctx); err != nil {
-		return nil, err
-	}
+		if err := activities_model.DeleteIssueActions(ctx, issue.RepoID, issue.ID, issue.Index); err != nil {
+			return nil, err
+		}
 
-	var attachmentPaths []string
-	for i := range issue.Attachments {
-		attachmentPaths = append(attachmentPaths, issue.Attachments[i].RelativePath())
-	}
+		// find attachments related to this issue and remove them
+		if err := issue.LoadAttachments(ctx); err != nil {
+			return nil, err
+		}
 
-	// delete all database data still assigned to this issue
-	if err := db.DeleteBeans(ctx,
-		&issues_model.ContentHistory{IssueID: issue.ID},
-		&issues_model.Comment{IssueID: issue.ID},
-		&issues_model.IssueLabel{IssueID: issue.ID},
-		&issues_model.IssueDependency{IssueID: issue.ID},
-		&issues_model.IssueAssignees{IssueID: issue.ID},
-		&issues_model.IssueUser{IssueID: issue.ID},
-		&activities_model.Notification{IssueID: issue.ID},
-		&issues_model.Reaction{IssueID: issue.ID},
-		&issues_model.IssueWatch{IssueID: issue.ID},
-		&issues_model.Stopwatch{IssueID: issue.ID},
-		&issues_model.TrackedTime{IssueID: issue.ID},
-		&project_model.ProjectIssue{IssueID: issue.ID},
-		&repo_model.Attachment{IssueID: issue.ID},
-		&issues_model.PullRequest{IssueID: issue.ID},
-		&issues_model.Comment{RefIssueID: issue.ID},
-		&issues_model.IssueDependency{DependencyID: issue.ID},
-		&issues_model.Comment{DependentIssueID: issue.ID},
-		&issues_model.IssuePin{IssueID: issue.ID},
-	); err != nil {
-		return nil, err
-	}
+		var attachmentPaths []string
+		for i := range issue.Attachments {
+			attachmentPaths = append(attachmentPaths, issue.Attachments[i].RelativePath())
+		}
 
-	if err := committer.Commit(); err != nil {
-		return nil, err
-	}
-	return attachmentPaths, nil
+		// delete all database data still assigned to this issue
+		if err := db.DeleteBeans(ctx,
+			&issues_model.ContentHistory{IssueID: issue.ID},
+			&issues_model.Comment{IssueID: issue.ID},
+			&issues_model.IssueLabel{IssueID: issue.ID},
+			&issues_model.IssueDependency{IssueID: issue.ID},
+			&issues_model.IssueAssignees{IssueID: issue.ID},
+			&issues_model.IssueUser{IssueID: issue.ID},
+			&activities_model.Notification{IssueID: issue.ID},
+			&issues_model.Reaction{IssueID: issue.ID},
+			&issues_model.IssueWatch{IssueID: issue.ID},
+			&issues_model.Stopwatch{IssueID: issue.ID},
+			&issues_model.TrackedTime{IssueID: issue.ID},
+			&project_model.ProjectIssue{IssueID: issue.ID},
+			&repo_model.Attachment{IssueID: issue.ID},
+			&issues_model.PullRequest{IssueID: issue.ID},
+			&issues_model.Comment{RefIssueID: issue.ID},
+			&issues_model.IssueDependency{DependencyID: issue.ID},
+			&issues_model.Comment{DependentIssueID: issue.ID},
+			&issues_model.IssuePin{IssueID: issue.ID},
+		); err != nil {
+			return nil, err
+		}
+
+		return attachmentPaths, nil
+	})
 }
 
 // DeleteOrphanedIssues delete issues without a repo
