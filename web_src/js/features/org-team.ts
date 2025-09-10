@@ -1,6 +1,4 @@
 import {queryElems, toggleElem} from '../utils/dom.ts';
-import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
-import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 function initOrgTeamSettings() {
   // on the page "page-content organization new team"
@@ -16,5 +14,4 @@ function initOrgTeamSettings() {
 export function initOrgTeam() {
   if (!document.querySelector('.page-content.organization')) return;
   initOrgTeamSettings();
-  registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
 }

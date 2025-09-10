@@ -447,58 +447,65 @@ func PackageSettings(ctx *context.Context) {
 
 // PackageSettingsPost updates the package settings
 func PackageSettingsPost(ctx *context.Context) {
-	pd := ctx.Package.Descriptor
-
 	form := web.GetForm(ctx).(*forms.PackageSettingForm)
 	switch form.Action {
 	case "link":
-		if form.RepoName == "" { // remove the link
-			if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, 0); err != nil {
-				ctx.JSONError(ctx.Tr("packages.settings.unlink.error"))
-				return
-			}
+		packageSettingsPostActionLink(ctx, form)
+	case "delete":
+		packageSettingsPostActionDelete(ctx)
+	default:
+		ctx.NotFound(nil)
+	}
+}
 
-			ctx.Flash.Success(ctx.Tr("packages.settings.unlink.success"))
-			ctx.JSONRedirect("")
+func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSettingForm) {
+	pd := ctx.Package.Descriptor
+	if form.RepoName == "" { // remove the link
+		if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, 0); err != nil {
+			ctx.JSONError(ctx.Tr("packages.settings.unlink.error"))
 			return
 		}
 
-		repo, err := repo_model.GetRepositoryByName(ctx, pd.Owner.ID, form.RepoName)
-		if err != nil {
-			if repo_model.IsErrRepoNotExist(err) {
-				ctx.JSONError(ctx.Tr("packages.settings.link.repo_not_found", form.RepoName))
-			} else {
-				ctx.ServerError("GetRepositoryByOwnerAndName", err)
-			}
-			return
-		}
-
-		if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, repo.ID); err != nil {
-			ctx.JSONError(ctx.Tr("packages.settings.link.error"))
-			return
-		}
-
-		ctx.Flash.Success(ctx.Tr("packages.settings.link.success"))
+		ctx.Flash.Success(ctx.Tr("packages.settings.unlink.success"))
 		ctx.JSONRedirect("")
 		return
-	case "delete":
-		err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
-		if err != nil {
-			log.Error("Error deleting package: %v", err)
-			ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
+	}
+
+	repo, err := repo_model.GetRepositoryByName(ctx, pd.Owner.ID, form.RepoName)
+	if err != nil {
+		if repo_model.IsErrRepoNotExist(err) {
+			ctx.JSONError(ctx.Tr("packages.settings.link.repo_not_found", form.RepoName))
 		} else {
-			ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
+			ctx.ServerError("GetRepositoryByOwnerAndName", err)
 		}
-
-		redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
-		// redirect to the package if there are still versions available
-		if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID, IsInternal: optional.Some(false)}); has {
-			redirectURL = ctx.Package.Descriptor.PackageWebLink()
-		}
-
-		ctx.Redirect(redirectURL)
 		return
 	}
+
+	if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, repo.ID); err != nil {
+		ctx.JSONError(ctx.Tr("packages.settings.link.error"))
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("packages.settings.link.success"))
+	ctx.JSONRedirect("")
+}
+
+func packageSettingsPostActionDelete(ctx *context.Context) {
+	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
+	if err != nil {
+		log.Error("Error deleting package: %v", err)
+		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
+	} else {
+		ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
+	}
+
+	redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
+	// redirect to the package if there are still versions available
+	if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID, IsInternal: optional.Some(false)}); has {
+		redirectURL = ctx.Package.Descriptor.PackageWebLink()
+	}
+
+	ctx.Redirect(redirectURL)
 }
 
 // DownloadPackageFile serves the content of a package file
