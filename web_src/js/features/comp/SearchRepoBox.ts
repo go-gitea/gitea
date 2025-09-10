@@ -3,11 +3,9 @@ import {htmlEscape} from '../../utils/html.ts';
 
 const {appSubUrl} = window.config;
 
-export function initCompSearchRepoBox(elSearchRepoBox: HTMLElement) {
-  const uid = elSearchRepoBox.getAttribute('data-uid');
-
-  const $searchRepoBox = fomanticQuery(elSearchRepoBox);
-  $searchRepoBox.search({
+export function initCompSearchRepoBox(el: HTMLElement) {
+  const uid = el.getAttribute('data-uid');
+  fomanticQuery(el).search({
     minCharacters: 2,
     apiSettings: {
       url: `${appSubUrl}/repo/search?q={query}&uid=${uid}`,
