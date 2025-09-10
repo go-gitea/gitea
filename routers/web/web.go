@@ -575,6 +575,13 @@ func registerWebRoutes(m *web.Router) {
 		m.Methods("POST, OPTIONS", "/introspect", optionsCorsHandler(), web.Bind(forms.IntrospectTokenForm{}), optSignInIgnoreCsrf, auth.IntrospectOAuth)
 	}, oauth2Enabled)
 
+	m.Post("/login/device/code", oauth2Enabled, optionsCorsHandler(), web.Bind(forms.AuthorizationDeviceForm{}), optSignInIgnoreCsrf, auth.AuthorizeDeviceOAuth)
+	m.Group("/login/device", func() {
+		m.Get("", auth.AuthorizeOAuthDevice)
+		m.Post("", web.Bind(forms.Oauth2DeviceActivationForm{}), auth.AuthorizeOAuthDevicePost)
+		m.Post("/confirmation", web.Bind(forms.Oauth2DeviceConfirmationForm{}), auth.AuthorizeOAuthDeviceConfirm)
+	}, reqSignIn, oauth2Enabled)
+
 	m.Group("/user/settings", func() {
 		m.Get("", user_setting.Profile)
 		m.Post("", web.Bind(forms.UpdateProfileForm{}), user_setting.ProfilePost)
@@ -630,6 +637,7 @@ func registerWebRoutes(m *web.Router) {
 				m.Post("", web.Bind(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsPost)
 				m.Post("/{id}/delete", user_setting.DeleteOAuth2Application)
 				m.Post("/{id}/revoke/{grantId}", user_setting.RevokeOAuth2Grant)
+				m.Post("/{id}/revoke_device/{grantId}", user_setting.RevokeOAuth2DeviceGrant)
 			}, oauth2Enabled)
 
 			// access token applications

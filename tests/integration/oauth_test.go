@@ -1041,3 +1041,135 @@ func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 		})
 	}
 }
+
+func testOAuth2DeviceFlowGetToken(t *testing.T, clientID, deviceCode string, expectedStatus int) *httptest.ResponseRecorder {
+	t.Helper()
+
+	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"client_id":   clientID,
+		"grant_type":  "urn:ietf:params:oauth:grant-type:device_code",
+		"device_code": deviceCode,
+	})
+
+	return MakeRequest(t, req, expectedStatus)
+}
+
+func testOAuth2DeviceFlowGrantDeviceFind(t *testing.T, session *TestSession, userCode string) *httptest.ResponseRecorder {
+	t.Helper()
+
+	req := NewRequest(t, "GET", "/login/device")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	link, exists := htmlDoc.doc.Find("form#grant-device-find").Attr("action")
+	assert.True(t, exists, "The template has changed")
+	assert.Equal(t, "/login/device", link)
+
+	postData := map[string]string{
+		"_csrf":     htmlDoc.GetCSRF(),
+		"user_code": userCode,
+	}
+
+	req = NewRequestWithValues(t, "POST", link, postData)
+	return session.MakeRequest(t, req, http.StatusOK)
+}
+
+func testOAuth2DeviceFlowGrantDeviceConfirm(t *testing.T, findResp *httptest.ResponseRecorder, session *TestSession, granted bool) *httptest.ResponseRecorder {
+	t.Helper()
+
+	htmlDoc := NewHTMLParser(t, findResp.Body)
+	link, exists := htmlDoc.doc.Find("form#grant-device-confirmation").Attr("action")
+	assert.True(t, exists, "The template has changed")
+
+	deviceID, exists := htmlDoc.Find("input[name=device_id]").Attr("value")
+	assert.True(t, exists, "The template has changed")
+
+	postData := map[string]string{
+		"_csrf":     htmlDoc.GetCSRF(),
+		"device_id": deviceID,
+		"granted":   util.Iif(granted, "true", "false"),
+	}
+
+	req := NewRequestWithValues(t, "POST", link, postData)
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
+
+	req = NewRequest(t, "GET", test.RedirectURL(resp))
+	return session.MakeRequest(t, req, http.StatusOK)
+}
+
+func testOAuth2DeviceFlowGrantDeviceSuccess(t *testing.T, userCode string) {
+	t.Helper()
+
+	session := loginUser(t, "user1")
+
+	resp := testOAuth2DeviceFlowGrantDeviceFind(t, session, userCode)
+	resp = testOAuth2DeviceFlowGrantDeviceConfirm(t, resp, session, true)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	msg := htmlDoc.doc.Find(".flash-success p").Text()
+	assert.Equal(t, fmt.Sprintf("Device Activation Successful (user code: %s)", userCode), msg)
+}
+
+func TestOAuth2DeviceFlow(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ClientID: "da7da3ba-9a13-4167-856f-3899de0b0138"})
+	app.EnableDeviceFlow = true
+	db.GetEngine(t.Context()).ID(app.ID).UseBool("enable_device_flow").Update(app)
+
+	req := NewRequestWithValues(t, "POST", "/login/device/code", map[string]string{
+		"client_id": "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"scope":     "read:user",
+	})
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	parsed := &oauth2_provider.DeviceAuthorizationResponse{}
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
+
+	rsp := testOAuth2DeviceFlowGetToken(t, "da7da3ba-9a13-4167-856f-3899de0b0138", parsed.DeviceCode, http.StatusBadRequest)
+	type errorResponse struct {
+		Error            string `json:"error"`
+		ErrorDescription string `json:"error_description"`
+	}
+	var errResp errorResponse
+	assert.NoError(t, json.Unmarshal(rsp.Body.Bytes(), &errResp))
+	assert.Equal(t, "authorization_pending", errResp.Error)
+
+	testOAuth2DeviceFlowGrantDeviceSuccess(t, parsed.UserCode)
+
+	rsp = testOAuth2DeviceFlowGetToken(t, "da7da3ba-9a13-4167-856f-3899de0b0138", parsed.DeviceCode, http.StatusOK)
+	type tokenResponse struct {
+		AccessToken  string `json:"access_token"`
+		TokenType    string `json:"token_type"`
+		ExpiresIn    int64  `json:"expires_in"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	parsedToken := new(tokenResponse)
+	assert.NoError(t, json.Unmarshal(rsp.Body.Bytes(), parsedToken))
+	assert.Greater(t, len(parsedToken.AccessToken), 10)
+	assert.Greater(t, len(parsedToken.RefreshToken), 10)
+
+	userReq := NewRequest(t, "GET", "/api/v1/user")
+	userReq.SetHeader("Authorization", "Bearer "+parsedToken.AccessToken)
+	userResp := MakeRequest(t, userReq, http.StatusOK)
+
+	type userResponse struct {
+		Login string `json:"login"`
+		Email string `json:"email"`
+	}
+
+	userParsed := new(userResponse)
+	require.NoError(t, json.Unmarshal(userResp.Body.Bytes(), userParsed))
+	assert.Contains(t, userParsed.Email, "user1@example.com")
+}
+
+func TestOAuth2DeviceFlow_UnknownUserCode(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user1")
+
+	rsp := testOAuth2DeviceFlowGrantDeviceFind(t, session, "unknow")
+	HTMLDoc := NewHTMLParser(t, rsp.Body)
+	msg := HTMLDoc.doc.Find(".flash-error p").Text()
+	assert.Equal(t, "Device not found", msg)
+}
