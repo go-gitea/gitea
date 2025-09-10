@@ -174,7 +174,7 @@ func Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
 
 // MarshalIndent copied from encoding/json
 func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
-	b, err := Marshal(v)
+	b, err := DefaultJSONHandler.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +200,12 @@ func UnmarshalHandleDoubleEncode(bs []byte, v any) error {
 		// To be consistent, we should treat all empty inputs as success
 		return nil
 	}
+
+	trimmed := bytes.TrimSpace(bs)
+	if len(trimmed) == 0 {
+		return nil
+	}
+
 	err := DefaultJSONHandler.Unmarshal(bs, v)
 	if err != nil {
 		ok := true

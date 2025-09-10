@@ -142,13 +142,13 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, `{"data": 42}`, string(body))
 
-		case "/webhook/6db5dc1e282529a8c162c7fe93dd2667494eeb51":
+		case "/webhook/4ddf3b1533e54f082ae6eadfc1b5530be36c8893":
 			// Version 2
 			assert.Equal(t, "push", r.Header.Get("X-GitHub-Event"))
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 			body, err := io.ReadAll(r.Body)
 			assert.NoError(t, err)
-			assert.Len(t, body, 2147)
+			assert.Len(t, body, 2047)
 
 		default:
 			w.WriteHeader(http.StatusNotFound)

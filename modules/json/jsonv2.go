@@ -6,6 +6,7 @@
 package json
 
 import (
+	"bytes"
 	jsonv2 "encoding/json/v2" //nolint:depguard // this package wraps it
 	"io"
 )
@@ -15,18 +16,38 @@ func isJSONv2Available() bool {
 	return true
 }
 
-// marshalV2 uses JSON v2 marshal with v1 compatibility options
-func marshalV2(v any) ([]byte, error) {
+// marshalV2Internal uses JSON v2 marshal with v1 compatibility options (no trailing newline)
+func marshalV2Internal(v any) ([]byte, error) {
 	opts := jsonv2.JoinOptions(
 		jsonv2.MatchCaseInsensitiveNames(true),
 		jsonv2.FormatNilSliceAsNull(true),
 		jsonv2.FormatNilMapAsNull(true),
+		jsonv2.Deterministic(true),
 	)
 	return jsonv2.Marshal(v, opts)
 }
 
+// marshalV2 uses JSON v2 marshal with v1 compatibility options (with trailing newline for compatibility with standard library)
+func marshalV2(v any) ([]byte, error) {
+	result, err := marshalV2Internal(v)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(result, '\n'), nil
+}
+
 // unmarshalV2 uses JSON v2 unmarshal with v1 compatibility options
 func unmarshalV2(data []byte, v any) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	data = bytes.TrimSpace(data)
+	if len(data) == 0 {
+		return nil
+	}
+
 	opts := jsonv2.JoinOptions(
 		jsonv2.MatchCaseInsensitiveNames(true),
 	)
@@ -40,7 +61,13 @@ type encoderV2 struct {
 }
 
 func (e *encoderV2) Encode(v any) error {
-	return jsonv2.MarshalWrite(e.writer, v, e.opts)
+	err := jsonv2.MarshalWrite(e.writer, v, e.opts)
+	if err != nil {
+		return err
+	}
+
+	_, err = e.writer.Write([]byte{'\n'})
+	return err
 }
 
 // newEncoderV2 creates a new JSON v2 streaming encoder
@@ -49,6 +76,7 @@ func newEncoderV2(writer io.Writer) Encoder {
 		jsonv2.MatchCaseInsensitiveNames(true),
 		jsonv2.FormatNilSliceAsNull(true),
 		jsonv2.FormatNilMapAsNull(true),
+		jsonv2.Deterministic(true),
 	)
 	return &encoderV2{writer: writer, opts: opts}
 }
@@ -60,7 +88,12 @@ type decoderV2 struct {
 }
 
 func (d *decoderV2) Decode(v any) error {
-	return jsonv2.UnmarshalRead(d.reader, v, d.opts)
+	err := jsonv2.UnmarshalRead(d.reader, v, d.opts)
+	// Handle EOF more gracefully to match standard library behavior
+	if err != nil && err.Error() == "unexpected EOF" {
+		return io.EOF
+	}
+	return err
 }
 
 // newDecoderV2 creates a new JSON v2 streaming decoder
