@@ -3,14 +3,10 @@ import {htmlEscape} from '../../utils/html.ts';
 
 const {appSubUrl} = window.config;
 
-export function initCompSearchRepoBox() {
-  // on the page "page-content organization teams" and "page-content package settings"
-  const searchRepobox = document.querySelector('#search-repo-box');
-  if (!searchRepobox) return;
+export function initCompSearchRepoBox(elSearchRepoBox: HTMLElement) {
+  const uid = elSearchRepoBox.getAttribute('data-uid');
 
-  const uid = searchRepobox.getAttribute('data-uid');
-
-  const $searchRepoBox = fomanticQuery('#search-repo-box');
+  const $searchRepoBox = fomanticQuery(elSearchRepoBox);
   $searchRepoBox.search({
     minCharacters: 2,
     apiSettings: {

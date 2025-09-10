@@ -19,7 +19,7 @@
 			<form class="ui form form-fetch-action ignore-dirty tw-flex-1 tw-flex" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="link">
-				<div id="search-repo-box" class="ui search" data-uid="{{.PackageDescriptor.Owner.ID}}">
+				<div data-global-init="initSearchRepoBox" class="ui search" data-uid="{{.PackageDescriptor.Owner.ID}}">
 					<div class="ui input">
 						<input class="prompt" name="repo_name" value="{{.LinkedRepoName}}" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off">
 					</div>
