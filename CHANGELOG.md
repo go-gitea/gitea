@@ -22,7 +22,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix GitHub release assets URL validation (#35287) (#35290)
   * Fix token lifetime, closes #35230 (#35271) (#35281)
   * Fix push commits comments when changing the pull request target branch (#35386) (#35443)
-* MISC
   * Upgrade mermaid to 11.10.0 (#35333)
   * Fix some overflows in test (#35315) (#35321)
 
