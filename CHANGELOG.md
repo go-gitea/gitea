@@ -17,7 +17,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Allow deleting comment with content via API like web did (#35346) (#35354)
   * Fix atom/rss mixed error (#35345) (#35347)
   * Fix review request webhook bug (#35339)
-  * fix: remove duplicate IDs (#35210) (#35325)
+  * Remove duplicate html IDs (#35210) (#35325)
   * Fix LFS range size header response (#35277) (#35293)
   * Fix GitHub release assets URL validation (#35287) (#35290)
   * Fix token lifetime, closes #35230 (#35271) (#35281)
