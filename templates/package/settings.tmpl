@@ -16,7 +16,7 @@
 		</h4>
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "packages.settings.link.description"}}</p>
-			<form class="ui form form-fetch-action ignore-dirty tw-flex-1 tw-flex" action="{{.Link}}" method="post">
+			<form class="ui form form-fetch-action ignore-dirty flex-text-block" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="link">
 				<div data-global-init="initSearchRepoBox" class="ui search" data-uid="{{.PackageDescriptor.Owner.ID}}">
@@ -24,7 +24,7 @@
 						<input class="prompt" name="repo_name" value="{{.LinkedRepoName}}" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off">
 					</div>
 				</div>
-				<button class="ui primary button tw-ml-2">{{ctx.Locale.Tr "packages.settings.link.button"}}</button>
+				<button class="ui primary button">{{ctx.Locale.Tr "packages.settings.link.button"}}</button>
 			</form>
 		</div>
 		<h4 class="ui top attached error header">
