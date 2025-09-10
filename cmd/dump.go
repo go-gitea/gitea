@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/session"
-	"github.com/mholt/archiver/v3"
 	"github.com/urfave/cli/v3"
 )
 
@@ -146,22 +145,18 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	archiverGeneric, err := archiver.ByExtension("." + outType)
+	dumper, err := dump.NewDumper(ctx, outType, outFile)
 	if err != nil {
-		fatal("Unable to get archiver for extension: %v", err)
+		fatal("Failed to create archive %q: %v", outFile, err)
+		return err
 	}
-
-	archiverWriter := archiverGeneric.(archiver.Writer)
-	if err := archiverWriter.Create(outFile); err != nil {
-		fatal("Creating archiver.Writer failed: %v", err)
-	}
-	defer archiverWriter.Close()
-
-	dumper := &dump.Dumper{
-		Writer:  archiverWriter,
-		Verbose: verbose,
-	}
+	dumper.Verbose = verbose
 	dumper.GlobalExcludeAbsPath(outFileName)
+	defer func() {
+		if err := dumper.Close(); err != nil {
+			fatal("Failed to save archive %q: %v", outFileName, err)
+		}
+	}()
 
 	if cmd.IsSet("skip-repository") && cmd.Bool("skip-repository") {
 		log.Info("Skip dumping local repositories")
@@ -180,7 +175,7 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 			if err != nil {
 				return err
 			}
-			return dumper.AddReader(object, info, path.Join("data", "lfs", objPath))
+			return dumper.AddFileByReader(object, info, path.Join("data", "lfs", objPath))
 		}); err != nil {
 			fatal("Failed to dump LFS objects: %v", err)
 		}
@@ -218,13 +213,13 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 			fatal("Failed to dump database: %v", err)
 		}
 
-		if err = dumper.AddFile("gitea-db.sql", dbDump.Name()); err != nil {
+		if err = dumper.AddFileByPath("gitea-db.sql", dbDump.Name()); err != nil {
 			fatal("Failed to include gitea-db.sql: %v", err)
 		}
 	}
 
 	log.Info("Adding custom configuration file from %s", setting.CustomConf)
-	if err = dumper.AddFile("app.ini", setting.CustomConf); err != nil {
+	if err = dumper.AddFileByPath("app.ini", setting.CustomConf); err != nil {
 		fatal("Failed to include specified app.ini: %v", err)
 	}
 
@@ -283,7 +278,7 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 		if err != nil {
 			return err
 		}
-		return dumper.AddReader(object, info, path.Join("data", "attachments", objPath))
+		return dumper.AddFileByReader(object, info, path.Join("data", "attachments", objPath))
 	}); err != nil {
 		fatal("Failed to dump attachments: %v", err)
 	}
@@ -297,7 +292,7 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 		if err != nil {
 			return err
 		}
-		return dumper.AddReader(object, info, path.Join("data", "packages", objPath))
+		return dumper.AddFileByReader(object, info, path.Join("data", "packages", objPath))
 	}); err != nil {
 		fatal("Failed to dump packages: %v", err)
 	}
@@ -322,10 +317,6 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 	if outFileName == "-" {
 		log.Info("Finish dumping to stdout")
 	} else {
-		if err = archiverWriter.Close(); err != nil {
-			_ = os.Remove(outFileName)
-			fatal("Failed to save %q: %v", outFileName, err)
-		}
 		if err = os.Chmod(outFileName, 0o600); err != nil {
 			log.Info("Can't change file access permissions mask to 0600: %v", err)
 		}

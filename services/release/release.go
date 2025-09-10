@@ -267,74 +267,69 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
 	oldRelease, err := repo_model.GetReleaseByID(ctx, rel.ID)
 	if err != nil {
 		return err
 	}
 	isConvertedFromTag := oldRelease.IsTag && !rel.IsTag
 
-	if err = repo_model.UpdateRelease(ctx, rel); err != nil {
-		return err
-	}
-
-	if err = repo_model.AddReleaseAttachments(ctx, rel.ID, addAttachmentUUIDs); err != nil {
-		return fmt.Errorf("AddReleaseAttachments: %w", err)
-	}
-
-	deletedUUIDs := make(container.Set[string])
-	if len(delAttachmentUUIDs) > 0 {
-		// Check attachments
-		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, delAttachmentUUIDs)
-		if err != nil {
-			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %w", delAttachmentUUIDs, err)
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err = repo_model.UpdateRelease(ctx, rel); err != nil {
+			return err
 		}
-		for _, attach := range attachments {
-			if attach.ReleaseID != rel.ID {
-				return util.NewPermissionDeniedErrorf("delete attachment of release permission denied")
+
+		if err = repo_model.AddReleaseAttachments(ctx, rel.ID, addAttachmentUUIDs); err != nil {
+			return fmt.Errorf("AddReleaseAttachments: %w", err)
+		}
+
+		deletedUUIDs := make(container.Set[string])
+		if len(delAttachmentUUIDs) > 0 {
+			// Check attachments
+			attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, delAttachmentUUIDs)
+			if err != nil {
+				return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %w", delAttachmentUUIDs, err)
 			}
-			deletedUUIDs.Add(attach.UUID)
-		}
+			for _, attach := range attachments {
+				if attach.ReleaseID != rel.ID {
+					return util.NewPermissionDeniedErrorf("delete attachment of release permission denied")
+				}
+				deletedUUIDs.Add(attach.UUID)
+			}
 
-		if _, err := repo_model.DeleteAttachments(ctx, attachments, true); err != nil {
-			return fmt.Errorf("DeleteAttachments [uuids: %v]: %w", delAttachmentUUIDs, err)
-		}
-	}
-
-	if len(editAttachments) > 0 {
-		updateAttachmentsList := make([]string, 0, len(editAttachments))
-		for k := range editAttachments {
-			updateAttachmentsList = append(updateAttachmentsList, k)
-		}
-		// Check attachments
-		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, updateAttachmentsList)
-		if err != nil {
-			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %w", updateAttachmentsList, err)
-		}
-		for _, attach := range attachments {
-			if attach.ReleaseID != rel.ID {
-				return util.NewPermissionDeniedErrorf("update attachment of release permission denied")
+			if _, err := repo_model.DeleteAttachments(ctx, attachments, true); err != nil {
+				return fmt.Errorf("DeleteAttachments [uuids: %v]: %w", delAttachmentUUIDs, err)
 			}
 		}
 
-		for uuid, newName := range editAttachments {
-			if !deletedUUIDs.Contains(uuid) {
-				if err = repo_model.UpdateAttachmentByUUID(ctx, &repo_model.Attachment{
-					UUID: uuid,
-					Name: newName,
-				}, "name"); err != nil {
-					return err
+		if len(editAttachments) > 0 {
+			updateAttachmentsList := make([]string, 0, len(editAttachments))
+			for k := range editAttachments {
+				updateAttachmentsList = append(updateAttachmentsList, k)
+			}
+			// Check attachments
+			attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, updateAttachmentsList)
+			if err != nil {
+				return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %w", updateAttachmentsList, err)
+			}
+			for _, attach := range attachments {
+				if attach.ReleaseID != rel.ID {
+					return util.NewPermissionDeniedErrorf("update attachment of release permission denied")
+				}
+			}
+
+			for uuid, newName := range editAttachments {
+				if !deletedUUIDs.Contains(uuid) {
+					if err = repo_model.UpdateAttachmentByUUID(ctx, &repo_model.Attachment{
+						UUID: uuid,
+						Name: newName,
+					}, "name"); err != nil {
+						return err
+					}
 				}
 			}
 		}
-	}
-
-	if err := committer.Commit(); err != nil {
+		return nil
+	}); err != nil {
 		return err
 	}
 
