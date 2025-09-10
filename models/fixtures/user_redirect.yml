@@ -2,3 +2,7 @@
   id: 1
   lower_name: olduser1
   redirect_user_id: 1
+-
+  id: 2
+  lower_name: olduser2
+  redirect_user_id: 2
