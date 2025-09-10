@@ -415,7 +415,7 @@ a.label,
 }
 
 .ui.dropdown > .text {
-  min-height: 16px;
+  min-height: 16px; /* avoid resize on page load when text is empty */
 }
 
 /* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
