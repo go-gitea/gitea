@@ -10,7 +10,7 @@
 	{{template "shared/search/input" dict "Value" .Value "Disabled" .Disabled "Placeholder" .Placeholder}}
 	{{if .SearchModes}}
 	<div class="ui small dropdown selection {{if .Disabled}}disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "search.type_tooltip"}}">
-		<div class="text"></div> {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		<div class="text">&nbsp;</div> {{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<input name="search_mode" type="hidden" value="
 			{{- if .SelectedSearchMode -}}
 				{{- .SelectedSearchMode -}}
