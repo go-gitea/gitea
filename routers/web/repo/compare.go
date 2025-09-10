@@ -524,7 +524,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 
 	// Treat as pull request if both references are branches
 	if ctx.Data["PageIsComparePull"] == nil {
-		ctx.Data["PageIsComparePull"] = headIsBranch && baseIsBranch
+		ctx.Data["PageIsComparePull"] = headIsBranch && baseIsBranch && permBase.CanReadIssuesOrPulls(true)
 	}
 
 	if ctx.Data["PageIsComparePull"] == true && !permBase.CanReadIssuesOrPulls(true) {
@@ -730,6 +730,7 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["DirectComparison"] = ci.DirectComparison
 	ctx.Data["OtherCompareSeparator"] = ".."
