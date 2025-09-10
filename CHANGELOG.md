@@ -12,7 +12,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix a compare page 404 bug when the pull request disabled (#35441) (#35453)
   * Fix bug when issue disabled, pull request number in the commit message cannot be redirected (#35420) (#35442)
   * Add author.name field to Swift Package Registry API response (#35410) (#35431)
-  * fix(webhook/discord): fixed username cannot be empty error (#35412) (#35417)
+  * Remove usernames when empty in discord webhook (#35412) (#35417)
   * Allow foreachref parser to grow its buffer (#35365) (#35376)
   * Allow deleting comment with content via API like web did (#35346) (#35354)
   * Fix atom/rss mixed error (#35345) (#35347)
