@@ -137,7 +137,6 @@ export default {
       },
       {
         test: /\.css$/i,
-        type: 'javascript/auto',
         use: [
           {
             loader: CssExtractRspackPlugin.loader,
