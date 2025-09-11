@@ -102,12 +102,29 @@ func NewEmbeddedFS(data []byte) fs.ReadDirFS {
 	efs := &embeddedFS{data: data, files: make(map[string]*embeddedFileInfo)}
 	efs.meta = sync.OnceValue(func() *EmbeddedMeta {
 		var meta EmbeddedMeta
+
+		// look for the separator newline between binary data and JSON metadata
+		// jsonv2 may end with an extra newline
 		p := bytes.LastIndexByte(data, '\n')
 		if p < 0 {
 			return &meta
 		}
-		if err := json.Unmarshal(data[p+1:], &meta); err != nil {
-			panic("embedded file is not valid")
+
+		// if the data ends with a newline, look for the previous newline
+		// to find the real separator
+		if p == len(data)-1 {
+			p = bytes.LastIndexByte(data[:p], '\n')
+			if p < 0 {
+				return &meta
+			}
+		}
+
+		jsonData := data[p+1:]
+		if err := json.Unmarshal(jsonData, &meta); err != nil {
+			panic("embedded file is not valid: " + err.Error())
+		}
+		if meta.Root == nil {
+			panic("embedded file metadata has nil root")
 		}
 		return &meta
 	})
@@ -150,9 +167,15 @@ func (e *embeddedFS) getFileInfo(fullName string) (*embeddedFileInfo, error) {
 
 	fields := strings.Split(fullName, "/")
 	fi = e.meta().Root
+	if fi == nil {
+		return nil, fs.ErrNotExist
+	}
 	if fullName != "." {
 		found := true
 		for _, field := range fields {
+			if fi.Children == nil {
+				return nil, fs.ErrNotExist
+			}
 			for _, child := range fi.Children {
 				if found = child.BaseName == field; found {
 					fi = child
