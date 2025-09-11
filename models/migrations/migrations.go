@@ -393,7 +393,8 @@ func prepareMigrationTasks() []*migration {
 
 		// Gitea 1.24.0 ends at database version 321
 		newMigration(321, "Use LONGTEXT for some columns and fix review_state.updated_files column", v1_25.UseLongTextInSomeColumnsAndFixBugs),
-		newMigration(322, "Add Index to action_task table", v1_25.AddReleaseNotification),
+		newMigration(322, "Extend comment tree_path length limit", v1_25.ExtendCommentTreePathLength),
+		newMigration(323, "Add Index to action_task table", v1_25.AddReleaseNotification),
 	}
 	return preparedMigrations
 }

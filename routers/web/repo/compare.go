@@ -41,6 +41,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/gitdiff"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 const (
@@ -523,7 +524,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 
 	// Treat as pull request if both references are branches
 	if ctx.Data["PageIsComparePull"] == nil {
-		ctx.Data["PageIsComparePull"] = headIsBranch && baseIsBranch
+		ctx.Data["PageIsComparePull"] = headIsBranch && baseIsBranch && permBase.CanReadIssuesOrPulls(true)
 	}
 
 	if ctx.Data["PageIsComparePull"] == true && !permBase.CanReadIssuesOrPulls(true) {
@@ -550,7 +551,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		headBranchRef = git.TagPrefix + ci.HeadBranch
 	}
 
-	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranchRef, headBranchRef, ci.DirectComparison, fileOnly)
+	ci.CompareInfo, err = pull_service.GetCompareInfo(ctx, baseRepo, ci.HeadRepo, ci.HeadGitRepo, baseBranchRef, headBranchRef, ci.DirectComparison, fileOnly)
 	if err != nil {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
@@ -729,6 +730,7 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["DirectComparison"] = ci.DirectComparison
 	ctx.Data["OtherCompareSeparator"] = ".."

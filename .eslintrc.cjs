@@ -831,7 +831,6 @@ module.exports = {
     'sonarjs/no-inverted-boolean-check': [2],
     'sonarjs/no-nested-switch': [0],
     'sonarjs/no-nested-template-literals': [0],
-    'sonarjs/no-one-iteration-loop': [2],
     'sonarjs/no-redundant-boolean': [2],
     'sonarjs/no-redundant-jump': [2],
     'sonarjs/no-same-line-conditional': [2],
