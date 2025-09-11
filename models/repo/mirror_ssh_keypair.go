@@ -158,7 +158,7 @@ func DeleteUserSSHKeypair(ctx context.Context, ownerID int64) error {
 // RegenerateUserSSHKeypair regenerates an SSH keypair for the given owner
 func RegenerateUserSSHKeypair(ctx context.Context, ownerID int64) (*UserSSHKeypair, error) {
 	var keypair *UserSSHKeypair
-	err := db.WithTx(ctx, func(ctx context.Context) error {
+	err := db.WithTx2(ctx, func(ctx context.Context) error {
 		_ = DeleteUserSSHKeypair(ctx, ownerID)
 
 		newKeypair, err := CreateUserSSHKeypair(ctx, ownerID)
