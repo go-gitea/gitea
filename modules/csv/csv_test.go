@@ -94,6 +94,24 @@ j, ,\x20
 			},
 			expectedDelimiter: ',',
 		},
+		// case 3 - every delimiter used, default to comma and handle differing number of fields per record
+		{
+			csv: `col1,col2
+a;b
+c@e
+f	g
+h|i
+jkl`,
+			expectedRows: [][]string{
+				{"col1", "col2"},
+				{"a;b"},
+				{"c@e"},
+				{"f	g"},
+				{"h|i"},
+				{"jkl"},
+			},
+			expectedDelimiter: ',',
+		},
 	}
 
 	for n, c := range cases {
@@ -117,21 +135,6 @@ func TestDetermineDelimiterShortBufferError(t *testing.T) {
 	assert.Error(t, err, "CreateReaderAndDetermineDelimiter() should throw an error")
 	assert.ErrorIs(t, err, io.ErrShortBuffer)
 	assert.Nil(t, rd, "CSV reader should be mnil")
-}
-
-func TestDetermineDelimiterReadAllError(t *testing.T) {
-	rd, err := CreateReaderAndDetermineDelimiter(nil, strings.NewReader(`col1,col2
-	a;b
-	c@e
-	f	g
-	h|i
-	jkl`))
-	assert.NoError(t, err, "CreateReaderAndDetermineDelimiter() shouldn't throw error")
-	assert.NotNil(t, rd, "CSV reader should not be mnil")
-	rows, err := rd.ReadAll()
-	assert.Error(t, err, "RaadAll() should throw error")
-	assert.ErrorIs(t, err, csv.ErrFieldCount)
-	assert.Empty(t, rows, "rows should be empty")
 }
 
 func TestDetermineDelimiter(t *testing.T) {

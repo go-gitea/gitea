@@ -84,6 +84,7 @@ type Repository struct {
 	Updated                       time.Time        `json:"updated_at"`
 	ArchivedAt                    time.Time        `json:"archived_at"`
 	Permissions                   *Permission      `json:"permissions,omitempty"`
+	HasCode                       bool             `json:"has_code"`
 	HasIssues                     bool             `json:"has_issues"`
 	InternalTracker               *InternalTracker `json:"internal_tracker,omitempty"`
 	ExternalTracker               *ExternalTracker `json:"external_tracker,omitempty"`
@@ -170,6 +171,8 @@ type EditRepoOption struct {
 	Private *bool `json:"private,omitempty"`
 	// either `true` to make this repository a template or `false` to make it a normal repository
 	Template *bool `json:"template,omitempty"`
+	// either `true` to enable code for this repository or `false` to disable it.
+	HasCode *bool `json:"has_code,omitempty"`
 	// either `true` to enable issues for this repository or `false` to disable them.
 	HasIssues *bool `json:"has_issues,omitempty"`
 	// set this structure to configure internal issue tracker
@@ -279,9 +282,9 @@ type CreateBranchRepoOption struct {
 	OldRefName string `json:"old_ref_name" binding:"GitRefName;MaxSize(100)"`
 }
 
-// UpdateBranchRepoOption options when updating a branch in a repository
+// RenameBranchRepoOption options when renaming a branch in a repository
 // swagger:model
-type UpdateBranchRepoOption struct {
+type RenameBranchRepoOption struct {
 	// New branch name
 	//
 	// required: true

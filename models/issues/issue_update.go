@@ -415,37 +415,28 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 // NewIssue creates new issue with labels for repository.
 // The title will be cut off at 255 characters if it's longer than 255 characters.
 func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
-	if err != nil {
-		return fmt.Errorf("generate issue index failed: %w", err)
-	}
-
-	issue.Index = idx
-	issue.Title = util.EllipsisDisplayString(issue.Title, 255)
-
-	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
-		Repo:        repo,
-		Issue:       issue,
-		LabelIDs:    labelIDs,
-		Attachments: uuids,
-	}); err != nil {
-		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
-			return err
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
+		if err != nil {
+			return fmt.Errorf("generate issue index failed: %w", err)
 		}
-		return fmt.Errorf("newIssue: %w", err)
-	}
 
-	if err = committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %w", err)
-	}
+		issue.Index = idx
+		issue.Title = util.EllipsisDisplayString(issue.Title, 255)
 
-	return nil
+		if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
+			Repo:        repo,
+			Issue:       issue,
+			LabelIDs:    labelIDs,
+			Attachments: uuids,
+		}); err != nil {
+			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
+				return err
+			}
+			return fmt.Errorf("newIssue: %w", err)
+		}
+		return nil
+	})
 }
 
 // UpdateIssueMentions updates issue-user relations for mentioned users.

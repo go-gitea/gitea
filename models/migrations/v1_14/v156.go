@@ -4,6 +4,7 @@
 package v1_14
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -24,7 +25,7 @@ func userPath(userName string) string {
 	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
 }
 
-func FixPublisherIDforTagReleases(x *xorm.Engine) error {
+func FixPublisherIDforTagReleases(ctx context.Context, x *xorm.Engine) error {
 	type Release struct {
 		ID          int64
 		RepoID      int64
@@ -108,7 +109,7 @@ func FixPublisherIDforTagReleases(x *xorm.Engine) error {
 						return err
 					}
 				}
-				gitRepo, err = git.OpenRepository(git.DefaultContext, repoPath(repo.OwnerName, repo.Name))
+				gitRepo, err = git.OpenRepository(ctx, repoPath(repo.OwnerName, repo.Name))
 				if err != nil {
 					log.Error("Error whilst opening git repo for [%d]%s/%s. Error: %v", repo.ID, repo.OwnerName, repo.Name, err)
 					return err

@@ -38,6 +38,17 @@ func (repo *Repository) GetAllCommitsCount() (int64, error) {
 	return AllCommitsCount(repo.Ctx, repo.Path, false)
 }
 
+func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
+	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
+	logs, _, err := NewCommand("log").AddArguments(prettyLogFormat).
+		AddDynamicArguments(revisionRange).AddArguments("--").
+		RunStdBytes(ctx, &RunOpts{Dir: repo.Path})
+	if err != nil {
+		return nil, err
+	}
+	return repo.parsePrettyFormatLogToList(logs)
+}
+
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, error) {
 	var commits []*Commit
 	if len(logs) == 0 {
@@ -122,17 +133,12 @@ type CloneRepoOptions struct {
 
 // Clone clones original repository to target path.
 func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
-	return CloneWithArgs(ctx, globalCommandArgs, from, to, opts)
-}
-
-// CloneWithArgs original repository to target path.
-func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
-	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
 	}
 
-	cmd := NewCommandNoGlobals(args...).AddArguments("clone")
+	cmd := NewCommand().AddArguments("clone")
 	if opts.SkipTLSVerify {
 		cmd.AddArguments("-c", "http.sslVerify=false")
 	}
