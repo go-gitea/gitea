@@ -100,7 +100,7 @@ type CommitFormOptions struct {
 	UserCanPush              bool
 	RequireSigned            bool
 	WillSign                 bool
-	SigningKey               string
+	SigningKeyFormDisplay    string
 	WontSignReason           string
 	CanCreatePullRequest     bool
 	CanCreateBasePullRequest bool
@@ -156,20 +156,15 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 	canCreateBasePullRequest := targetRepo.BaseRepo != nil && targetRepo.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests)
 	canCreatePullRequest := targetRepo.UnitEnabled(ctx, unit_model.TypePullRequests) || canCreateBasePullRequest
 
-	displayKeyID, displayKeyIDErr := asymkey_model.GetDisplaySigningKey(signKey)
-	if displayKeyIDErr != nil {
-		log.Error("Error whilst getting the display keyID: %s", displayKeyIDErr.Error())
-	}
-
 	opts := &CommitFormOptions{
-		TargetRepo:        targetRepo,
-		WillSubmitToFork:  submitToForkedRepo,
-		CanCommitToBranch: canCommitToBranch,
-		UserCanPush:       canPushWithProtection,
-		RequireSigned:     protectionRequireSigned,
-		WillSign:          willSign,
-		SigningKey:        displayKeyID,
-		WontSignReason:    wontSignReason,
+		TargetRepo:            targetRepo,
+		WillSubmitToFork:      submitToForkedRepo,
+		CanCommitToBranch:     canCommitToBranch,
+		UserCanPush:           canPushWithProtection,
+		RequireSigned:         protectionRequireSigned,
+		WillSign:              willSign,
+		SigningKeyFormDisplay: asymkey_model.GetDisplaySigningKey(signKey),
+		WontSignReason:        wontSignReason,
 
 		CanCreatePullRequest:     canCreatePullRequest,
 		CanCreateBasePullRequest: canCreateBasePullRequest,
