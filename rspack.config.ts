@@ -122,7 +122,7 @@ export default {
         },
       },
       {
-        test: /\.(j|t)s$/,
+        test: /\.(j|t)s$/i,
         exclude: [/[\\/]node_modules[\\/]/],
         loader: 'builtin:swc-loader',
         options: {
