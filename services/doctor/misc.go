@@ -91,18 +91,12 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 
 	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
-		r, err := gitrepo.OpenRepository(ctx, repo)
-		if err != nil {
-			return err
-		}
-		defer r.Close()
 
 		if autofix {
-			_, _, err := git.NewCommand("config", "receive.advertisePushOptions", "true").RunStdString(ctx, &git.RunOpts{Dir: r.Path})
-			return err
+			return gitrepo.GitConfigSet(ctx, repo, "receive.advertisePushOptions", "true")
 		}
 
-		value, _, err := git.NewCommand("config", "receive.advertisePushOptions").RunStdString(ctx, &git.RunOpts{Dir: r.Path})
+		value, err := gitrepo.GitConfigGet(ctx, repo, "receive.advertisePushOptions")
 		if err != nil {
 			return err
 		}

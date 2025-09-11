@@ -30,6 +30,8 @@ func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
 		// thus would change `\t\t` to just `\t` or `  ` (two spaces) to just ` ` (single space)
 		rd.TrimLeadingSpace = true
 	}
+	// Don't force validation of every row to have the same number of entries as the first row.
+	rd.FieldsPerRecord = -1
 	return rd
 }
 
