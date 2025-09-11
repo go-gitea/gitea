@@ -69,8 +69,8 @@ importers:
         specifier: 0.3.0
         version: 0.3.0(webpack@5.101.3)
       add-asset-webpack-plugin:
-        specifier: 3.0.0
-        version: 3.0.0(webpack@5.101.3)
+        specifier: 3.1.0
+        version: 3.1.0(webpack@5.101.3)
       ansi_up:
         specifier: 6.0.6
         version: 6.0.6
@@ -1879,8 +1879,8 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
-  add-asset-webpack-plugin@3.0.0:
-    resolution: {integrity: sha512-mg6nL4E+dNZPQfTc/A4xcOYsIxCN7Cuy9OScZsjI9qOYPiJeFZfsYcdoYlqcNNQEC4w8yNwArhD1Gm+G1iWrNg==}
+  add-asset-webpack-plugin@3.1.0:
+    resolution: {integrity: sha512-OuFVVwRrLVPOn9OgeqsXGoqcZfonKOZJd2iZPxpq4LnYRXB3UwAibNW2eidGOZQV+KoLHmYqnbc0Y2LGOTDFHw==}
     engines: {node: '>=18'}
     peerDependencies:
       webpack: '>=5'
@@ -7150,7 +7150,7 @@ snapshots:
 
   acorn@8.15.0: {}
 
-  add-asset-webpack-plugin@3.0.0(webpack@5.101.3):
+  add-asset-webpack-plugin@3.1.0(webpack@5.101.3):
     dependencies:
       webpack: 5.101.3
 
