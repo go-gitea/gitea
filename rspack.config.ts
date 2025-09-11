@@ -113,7 +113,7 @@ export default {
     rules: [
       {
         test: /\.vue$/i,
-        exclude: /node_modules/,
+        exclude: /[\\/]node_modules[\\/]/,
         loader: 'vue-loader',
         options: {
           compilerOptions: {
@@ -124,7 +124,7 @@ export default {
       },
       {
         test: /\.(j|t)s$/i,
-        exclude: [/[\\/]node_modules[\\/]/],
+        exclude: /[\\/]node_modules[\\/]/,
         loader: 'builtin:swc-loader',
         options: {
           jsc: {
