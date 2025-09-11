@@ -1694,7 +1694,7 @@ func Routes() *web.Router {
 			}, reqToken(), reqOrgOwnership())
 
 			m.Group("/mirror-ssh-key", func() {
-				m.Get("", reqToken(), reqOrgMembership(), org.GetMirrorSSHKey)
+				m.Get("", reqToken(), reqOrgOwnership(), org.GetMirrorSSHKey)
 				m.Post("/regenerate", reqToken(), reqOrgOwnership(), org.RegenerateMirrorSSHKey)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
