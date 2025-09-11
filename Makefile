@@ -885,7 +885,7 @@ $(RSPACK_DEST): $(RSPACK_SOURCES) $(RSPACK_CONFIGS) pnpm-lock.yaml
 	@$(MAKE) -s node-check node_modules
 	@rm -rf $(RSPACK_DEST_ENTRIES)
 	@echo "Running rspack..."
-	@BROWSERSLIST_IGNORE_OLD_DATA=true $(NODE_VARS) pnpm exec rspack
+	@$(NODE_VARS) pnpm exec rspack
 	@touch $(RSPACK_DEST)
 
 .PHONY: svg
