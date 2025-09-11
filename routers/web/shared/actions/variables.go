@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	tplRepoVariables  templates.TplName = "repo/settings/actions"
+	tplRepoVariables  templates.TplName = "repo/settings/actions/actions"
 	tplOrgVariables   templates.TplName = "org/settings/actions"
 	tplUserVariables  templates.TplName = "user/settings/actions"
 	tplAdminVariables templates.TplName = "admin/actions"
