@@ -303,20 +303,17 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		pr.Status = issues_model.PullRequestStatusMergeable
 	}
 
-	// Update Commit Divergence
-	divergence, err := GetDiverging(ctx, pr)
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return err
+	}
+
+	// update commits ahead and behind
+	divergence, err := git.GetDivergingCommits(ctx, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitHeadRefName())
 	if err != nil {
 		return err
 	}
 	pr.CommitsAhead = divergence.Ahead
 	pr.CommitsBehind = divergence.Behind
-
-	// add first push codes comment
-	baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
-	if err != nil {
-		return err
-	}
-	defer baseGitRepo.Close()
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
@@ -448,9 +445,10 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
-						divergence, err := GetDiverging(ctx, pr)
+
+						divergence, err := git.GetDivergingCommits(ctx, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitHeadRefName())
 						if err != nil {
-							log.Error("GetDiverging: %v", err)
+							log.Error("GetDivergingCommits: %v", err)
 						} else {
 							err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
 							if err != nil {
@@ -480,8 +478,13 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", opts.RepoID, opts.Branch, err)
 			return
 		}
+		baseRepo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
+		if err != nil {
+			log.Error("GetRepositoryByID: %v", err)
+			return
+		}
 		for _, pr := range prs {
-			divergence, err := GetDiverging(ctx, pr)
+			divergence, err := git.GetDivergingCommits(ctx, baseRepo.RepoPath(), pr.BaseBranch, pr.GetGitHeadRefName())
 			if err != nil {
 				if git_model.IsErrBranchNotExist(err) && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
 					log.Warn("Cannot test PR %s/%d: head_branch %s no longer exists", pr.BaseRepo.Name, pr.IssueID, pr.HeadBranch)
@@ -767,9 +770,9 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
 	} else {
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
-		if err != nil {
-			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitHeadRefName(), err)
+		headCommitID, err1 := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		if err1 != nil {
+			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitHeadRefName(), err1)
 			return ""
 		}
 		headCommit, err = gitRepo.GetCommit(headCommitID)

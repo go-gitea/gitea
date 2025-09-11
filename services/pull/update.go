@@ -34,7 +34,12 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 	}
 	defer releaser()
 
-	diffCount, err := GetDiverging(ctx, pr)
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		log.Error("unable to load BaseRepo for PR %-v during update-by-merge: %v", pr, err)
+		return fmt.Errorf("unable to load BaseRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
+	}
+
+	diffCount, err := git.GetDivergingCommits(ctx, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitHeadRefName())
 	if err != nil {
 		return err
 	} else if diffCount.Behind == 0 {
