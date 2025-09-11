@@ -13,8 +13,34 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-// CloseIssue close an issue.
-func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID, commentContent string, attachments []string) (*issues_model.Comment, error) {
+// CloseIssue closes an issue
+func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string) error {
+	var comment *issues_model.Comment
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		var err error
+		comment, err = issues_model.CloseIssue(ctx, issue, doer)
+		if err != nil {
+			if issues_model.IsErrDependenciesLeft(err) {
+				if _, err := issues_model.FinishIssueStopwatch(ctx, doer, issue); err != nil {
+					log.Error("Unable to stop stopwatch for issue[%d]#%d: %v", issue.ID, issue.Index, err)
+				}
+			}
+			return err
+		}
+
+		_, err = issues_model.FinishIssueStopwatch(ctx, doer, issue)
+		return err
+	}); err != nil {
+		return err
+	}
+
+	notify_service.IssueChangeStatus(ctx, doer, commitID, issue, comment, true)
+
+	return nil
+}
+
+// CloseIssueWithComment close an issue with comment
+func CloseIssueWithComment(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID, commentContent string, attachments []string) (*issues_model.Comment, error) {
 	var refComment, createdComment *issues_model.Comment
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		var err error
@@ -59,9 +85,22 @@ func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model
 	return createdComment, nil
 }
 
-// ReopenIssue reopen an issue with or without a comment.
+// ReopenIssue reopen an issue
 // FIXME: If some issues dependent this one are closed, should we also reopen them?
-func ReopenIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID, commentContent string, attachments []string) (*issues_model.Comment, error) {
+func ReopenIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string) error {
+	comment, err := issues_model.ReopenIssue(ctx, issue, doer)
+	if err != nil {
+		return err
+	}
+
+	notify_service.IssueChangeStatus(ctx, doer, commitID, issue, comment, false)
+
+	return nil
+}
+
+// ReopenIssue reopen an issue with a comment.
+// FIXME: If some issues dependent this one are closed, should we also reopen them?
+func ReopenIssueWithComment(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID, commentContent string, attachments []string) (*issues_model.Comment, error) {
 	var createdComment *issues_model.Comment
 	refComment, err := db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
 		var err error

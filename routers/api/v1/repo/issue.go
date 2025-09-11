@@ -733,7 +733,7 @@ func CreateIssue(ctx *context.APIContext) {
 	}
 
 	if form.Closed {
-		if _, err := issue_service.CloseIssue(ctx, issue, ctx.Doer, "", "", nil); err != nil {
+		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 			if issues_model.IsErrDependenciesLeft(err) {
 				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue because it still has open dependencies")
 				return
@@ -1056,7 +1056,7 @@ func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, stat
 	}
 
 	if state == api.StateClosed && !issue.IsClosed {
-		if _, err := issue_service.CloseIssue(ctx, issue, ctx.Doer, "", "", nil); err != nil {
+		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 			if issues_model.IsErrDependenciesLeft(err) {
 				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue or pull request because it still has open dependencies")
 				return
@@ -1065,7 +1065,7 @@ func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, stat
 			return
 		}
 	} else if state == api.StateOpen && issue.IsClosed {
-		if _, err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, "", "", nil); err != nil {
+		if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}

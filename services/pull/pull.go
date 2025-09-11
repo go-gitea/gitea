@@ -700,7 +700,7 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 
 	var errs []error
 	for _, pr := range prs {
-		if _, err = issue_service.CloseIssue(ctx, pr.Issue, doer, "", "", nil); err != nil && !issues_model.IsErrIssueIsClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
+		if err = issue_service.CloseIssue(ctx, pr.Issue, doer, ""); err != nil && !issues_model.IsErrIssueIsClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
 			errs = append(errs, err)
 		}
 		if err == nil {
@@ -740,7 +740,7 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 			errs = append(errs, err)
 		}
 		if err == nil {
-			if _, err = issue_service.CloseIssue(ctx, pr.Issue, doer, "", "", nil); err != nil && !issues_model.IsErrIssueIsClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
+			if err = issue_service.CloseIssue(ctx, pr.Issue, doer, ""); err != nil && !issues_model.IsErrIssueIsClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
 				errs = append(errs, err)
 			}
 		}
@@ -772,7 +772,7 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 			if pr.BaseRepoID == repo.ID {
 				continue
 			}
-			if _, err = issue_service.CloseIssue(ctx, pr.Issue, doer, "", "", nil); err != nil && !issues_model.IsErrIssueIsClosed(err) {
+			if err = issue_service.CloseIssue(ctx, pr.Issue, doer, ""); err != nil && !issues_model.IsErrIssueIsClosed(err) {
 				errs = append(errs, err)
 			}
 		}

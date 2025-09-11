@@ -565,12 +565,12 @@ jobs:
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// closed
-		_, err = issue_service.CloseIssue(t.Context(), pullIssue, user2, "", "", nil)
+		err = issue_service.CloseIssue(t.Context(), pullIssue, user2, "")
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// reopened
-		_, err = issue_service.ReopenIssue(t.Context(), pullIssue, user2, "", "", nil)
+		err = issue_service.ReopenIssue(t.Context(), pullIssue, user2, "")
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
