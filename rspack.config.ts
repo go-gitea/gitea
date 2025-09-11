@@ -119,6 +119,7 @@ export default {
           compilerOptions: {
             isCustomElement: (tag: string) => webComponents.has(tag),
           },
+          experimentalInlineMatchResource: true,
         },
       },
       {
