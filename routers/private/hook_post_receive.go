@@ -321,7 +321,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 }
 
 func loadContextCacheUser(ctx context.Context, id int64) (*user_model.User, error) {
-	return cache.GetWithContextCache(ctx, cachegroup.User, id, user_model.GetUserByID)
+	return cache.GetWithContextCache(ctx, cachegroup.User, id, user_model.GetPossibleUserByID)
 }
 
 // handlePullRequestMerging handle pull request merging, a pull request action should push at least 1 commit

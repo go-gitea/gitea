@@ -31,7 +31,7 @@ func (n *automergeNotifier) PullRequestReview(ctx context.Context, pr *issues_mo
 	// as a missing / blocking reviews could have blocked a pending automerge let's recheck
 	if review.Type == issues_model.ReviewTypeApprove {
 		if err := StartPRCheckAndAutoMergeBySHA(ctx, review.CommitID, pr.BaseRepo); err != nil {
-			log.Error("StartPullRequestAutoMergeCheckBySHA: %v", err)
+			log.Error("StartPRCheckAndAutoMergeBySHA: %v", err)
 		}
 	}
 }
@@ -52,7 +52,7 @@ func (n *automergeNotifier) PullReviewDismiss(ctx context.Context, doer *user_mo
 func (n *automergeNotifier) CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, sender *user_model.User, status *git_model.CommitStatus) {
 	if status.State.IsSuccess() {
 		if err := StartPRCheckAndAutoMergeBySHA(ctx, commit.Sha1, repo); err != nil {
-			log.Error("MergeScheduledPullRequest[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, sender.ID, commit.Sha1, err)
+			log.Error("StartPRCheckAndAutoMergeBySHA[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, sender.ID, commit.Sha1, err)
 		}
 	}
 }
