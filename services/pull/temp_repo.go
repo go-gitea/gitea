@@ -166,13 +166,10 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	}
 
 	trackingBranch := "tracking"
-	objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 	// Fetch head branch
 	var headBranch string
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		headBranch = git.BranchPrefix + pr.HeadBranch
-	} else if len(pr.HeadCommitID) == objectFormat.FullLength() { // for not created pull request
-		headBranch = pr.HeadCommitID
 	} else {
 		headBranch = pr.GetGitHeadRefName()
 	}
