@@ -348,7 +348,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 		defer baseGitRepo.Close()
 	}
 
-	if !gitrepo.IsBranchExist(ctx, pull.BaseRepo, pull.BaseBranch) {
+	if exist, _ := git_model.IsBranchExist(ctx, pull.BaseRepo.ID, pull.BaseBranch); !exist {
 		ctx.Data["BaseBranchNotExist"] = true
 		ctx.Data["IsPullRequestBroken"] = true
 		ctx.Data["BaseTarget"] = pull.BaseBranch
@@ -405,7 +405,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 		defer closer.Close()
 
 		if pull.Flow == issues_model.PullRequestFlowGithub {
-			headBranchExist = gitrepo.IsBranchExist(ctx, pull.HeadRepo, pull.HeadBranch)
+			headBranchExist, _ = git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.HeadBranch)
 		} else {
 			headBranchExist = gitrepo.IsReferenceExist(ctx, pull.BaseRepo, pull.GetGitHeadRefName())
 		}

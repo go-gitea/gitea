@@ -303,7 +303,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 
 	// Check if base branch is valid.
 	baseIsCommit := ctx.Repo.GitRepo.IsCommitExist(ci.BaseBranch)
-	baseIsBranch := gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, ci.BaseBranch)
+	baseIsBranch, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, ci.BaseBranch)
 	baseIsTag := gitrepo.IsTagExist(ctx, ctx.Repo.Repository, ci.BaseBranch)
 
 	if !baseIsCommit && !baseIsBranch && !baseIsTag {
@@ -505,7 +505,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 
 	// Check if head branch is valid.
 	headIsCommit := ci.HeadGitRepo.IsCommitExist(ci.HeadBranch)
-	headIsBranch := gitrepo.IsBranchExist(ctx, ci.HeadRepo, ci.HeadBranch)
+	headIsBranch, _ := git_model.IsBranchExist(ctx, ci.HeadRepo.ID, ci.HeadBranch)
 	headIsTag := gitrepo.IsTagExist(ctx, ci.HeadRepo, ci.HeadBranch)
 	if !headIsCommit && !headIsBranch && !headIsTag {
 		// Check if headBranch is short sha commit hash
