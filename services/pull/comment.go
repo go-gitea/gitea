@@ -5,6 +5,7 @@ package pull
 
 import (
 	"context"
+	"fmt"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -50,6 +51,10 @@ func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldC
 func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *issues_model.PullRequest, oldCommitID, newCommitID string, isForcePush bool) (comment *issues_model.Comment, err error) {
 	if pr.HasMerged || oldCommitID == "" || newCommitID == "" {
 		return nil, nil
+	}
+
+	if err := pr.LoadIssue(ctx); err != nil {
+		return nil, fmt.Errorf("unable to load issue for PR[%d]: %w", pr.ID, err)
 	}
 
 	opts := &issues_model.CreateCommentOptions{
