@@ -76,6 +76,8 @@ type Issue struct {
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
 
+	TimeEstimate int64 `json:"time_estimate"`
+
 	PullRequest *PullRequestMeta `json:"pull_request"`
 	Repo        *RepositoryMeta  `json:"repository"`
 
