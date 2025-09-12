@@ -59,7 +59,8 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		Created:     issue.CreatedUnix.AsTime(),
 		Updated:     issue.UpdatedUnix.AsTime(),
 		PinOrder:    util.Iif(issue.PinOrder == -1, 0, issue.PinOrder), // -1 means loaded with no pin order
-		TimeEstimate: issue.TimeEstimate, 
+
+		TimeEstimate: issue.TimeEstimate,
 	}
 
 	if issue.Repo != nil {
