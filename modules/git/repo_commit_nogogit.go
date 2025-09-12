@@ -56,8 +56,8 @@ func (repo *Repository) SetReference(name, commitID string) error {
 	return err
 }
 
-// RemoveReference removes the given reference (e.g. branch or tag).
-func (repo *Repository) RemoveReference(name string) error {
+// removeReference removes the given reference (e.g. branch or tag).
+func (repo *Repository) removeReference(name string) error {
 	_, _, err := NewCommand("update-ref", "--no-deref", "-d").AddDynamicArguments(name).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	return err
 }

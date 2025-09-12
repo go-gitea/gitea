@@ -104,13 +104,6 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 
-	// add first push codes comment
-	baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
-	if err != nil {
-		return err
-	}
-	defer baseGitRepo.Close()
-
 	var reviewNotifiers []*issue_service.ReviewRequestNotifier
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
@@ -162,12 +155,11 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		return nil
 	}); err != nil {
 		// cleanup: this will only remove the reference, the real commit will be clean up when next GC
-		if err1 := baseGitRepo.RemoveReference(pr.GetGitHeadRefName()); err1 != nil {
+		if err1 := gitrepo.RemoveReference(ctx, pr.BaseRepo, pr.GetGitHeadRefName()); err1 != nil {
 			log.Error("RemoveReference: %v", err1)
 		}
 		return err
 	}
-	baseGitRepo.Close() // close immediately to avoid notifications will open the repository again
 
 	issue_service.ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
