@@ -37,7 +37,6 @@
     "katex": "0.16.22",
     "mermaid": "11.11.0",
     "mini-css-extract-plugin": "2.9.4",
-    "minimatch": "10.0.3",
     "monaco-editor": "0.53.0",
     "monaco-editor-webpack-plugin": "7.1.0",
     "online-3d-viewer": "0.16.0",
