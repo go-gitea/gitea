@@ -7,7 +7,6 @@ import (
 	"crypto/ed25519"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
@@ -22,7 +21,7 @@ func TestUserSSHKeypair(t *testing.T) {
 
 	t.Run("CreateUserSSHKeypair", func(t *testing.T) {
 		// Test creating a new SSH keypair for a user
-		keypair, err := repo_model.CreateUserSSHKeypair(db.DefaultContext, 1)
+		keypair, err := repo_model.CreateUserSSHKeypair(t.Context(), 1)
 		require.NoError(t, err)
 		assert.NotNil(t, keypair)
 		assert.Equal(t, int64(1), keypair.OwnerID)
@@ -34,7 +33,7 @@ func TestUserSSHKeypair(t *testing.T) {
 		assert.Contains(t, keypair.PublicKey, "ssh-ed25519")
 
 		// Test creating a keypair for an organization
-		orgKeypair, err := repo_model.CreateUserSSHKeypair(db.DefaultContext, 2)
+		orgKeypair, err := repo_model.CreateUserSSHKeypair(t.Context(), 2)
 		require.NoError(t, err)
 		assert.NotNil(t, orgKeypair)
 		assert.Equal(t, int64(2), orgKeypair.OwnerID)
@@ -46,18 +45,18 @@ func TestUserSSHKeypair(t *testing.T) {
 
 	t.Run("GetUserSSHKeypairByOwner", func(t *testing.T) {
 		// Create a keypair first
-		created, err := repo_model.CreateUserSSHKeypair(db.DefaultContext, 3)
+		created, err := repo_model.CreateUserSSHKeypair(t.Context(), 3)
 		require.NoError(t, err)
 
 		// Test retrieving the keypair
-		retrieved, err := repo_model.GetUserSSHKeypairByOwner(db.DefaultContext, 3)
+		retrieved, err := repo_model.GetUserSSHKeypairByOwner(t.Context(), 3)
 		require.NoError(t, err)
 		assert.Equal(t, created.OwnerID, retrieved.OwnerID)
 		assert.Equal(t, created.PublicKey, retrieved.PublicKey)
 		assert.Equal(t, created.Fingerprint, retrieved.Fingerprint)
 
 		// Test retrieving non-existent keypair
-		_, err = repo_model.GetUserSSHKeypairByOwner(db.DefaultContext, 999)
+		_, err = repo_model.GetUserSSHKeypairByOwner(t.Context(), 999)
 		assert.ErrorIs(t, err, util.ErrNotExist)
 	})
 
@@ -68,7 +67,7 @@ func TestUserSSHKeypair(t *testing.T) {
 		}
 
 		// Create a keypair
-		keypair, err := repo_model.CreateUserSSHKeypair(db.DefaultContext, 4)
+		keypair, err := repo_model.CreateUserSSHKeypair(t.Context(), 4)
 		require.NoError(t, err)
 
 		// Test decrypting the private key
@@ -84,29 +83,29 @@ func TestUserSSHKeypair(t *testing.T) {
 
 	t.Run("DeleteUserSSHKeypair", func(t *testing.T) {
 		// Create a keypair
-		_, err := repo_model.CreateUserSSHKeypair(db.DefaultContext, 5)
+		_, err := repo_model.CreateUserSSHKeypair(t.Context(), 5)
 		require.NoError(t, err)
 
 		// Verify it exists
-		_, err = repo_model.GetUserSSHKeypairByOwner(db.DefaultContext, 5)
+		_, err = repo_model.GetUserSSHKeypairByOwner(t.Context(), 5)
 		require.NoError(t, err)
 
 		// Delete it
-		err = repo_model.DeleteUserSSHKeypair(db.DefaultContext, 5)
+		err = repo_model.DeleteUserSSHKeypair(t.Context(), 5)
 		require.NoError(t, err)
 
 		// Verify it's gone
-		_, err = repo_model.GetUserSSHKeypairByOwner(db.DefaultContext, 5)
+		_, err = repo_model.GetUserSSHKeypairByOwner(t.Context(), 5)
 		assert.ErrorIs(t, err, util.ErrNotExist)
 	})
 
 	t.Run("RegenerateUserSSHKeypair", func(t *testing.T) {
 		// Create initial keypair
-		original, err := repo_model.CreateUserSSHKeypair(db.DefaultContext, 6)
+		original, err := repo_model.CreateUserSSHKeypair(t.Context(), 6)
 		require.NoError(t, err)
 
 		// Regenerate it
-		regenerated, err := repo_model.RegenerateUserSSHKeypair(db.DefaultContext, 6)
+		regenerated, err := repo_model.RegenerateUserSSHKeypair(t.Context(), 6)
 		require.NoError(t, err)
 
 		// Verify it's different
@@ -126,7 +125,7 @@ func TestUserSSHKeypairConcurrency(t *testing.T) {
 
 	// Test concurrent creation of keypairs to ensure no race conditions
 	t.Run("ConcurrentCreation", func(t *testing.T) {
-		ctx := db.DefaultContext
+		ctx := t.Context()
 		results := make(chan error, 10)
 
 		// Start multiple goroutines creating keypairs for different owners
