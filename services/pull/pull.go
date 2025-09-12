@@ -597,7 +597,8 @@ func UpdatePullRequestGithubFlowHead(ctx context.Context, pr *issues_model.PullR
 
 	_, _, err := git.NewCommand("fetch", "--no-tags", "--refmap=").
 		AddDynamicArguments(pr.HeadRepo.RepoPath()).
-		AddDynamicArguments(fmt.Sprintf("refs/heads/%s:%s", pr.HeadBranch, pr.GetGitHeadRefName())).
+		// + means force fetch
+		AddDynamicArguments(fmt.Sprintf("+refs/heads/%s:%s", pr.HeadBranch, pr.GetGitHeadRefName())).
 		RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
 	return err
 }
