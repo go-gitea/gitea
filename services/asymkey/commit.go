@@ -23,7 +23,7 @@ import (
 )
 
 // ParseCommitWithSignature check if signature is good against keystore.
-func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *asymkey_model.CommitVerification {
+func ParseCommitWithSignature(ctx context.Context, gitRepo *git.Repository, c *git.Commit) *asymkey_model.CommitVerification {
 	committer, err := user_model.GetUserByEmail(ctx, c.Committer.Email)
 	if err != nil && !user_model.IsErrUserNotExist(err) {
 		log.Error("GetUserByEmail: %v", err)
@@ -32,14 +32,14 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *asymkey_model
 			Reason:   "gpg.error.no_committer_account", // this error is not right, but such error should seldom happen
 		}
 	}
-	return ParseCommitWithSignatureCommitter(ctx, c, committer)
+	return ParseCommitWithSignatureCommitter(ctx, gitRepo, c, committer)
 }
 
 // ParseCommitWithSignatureCommitter parses a commit's GPG or SSH signature.
 // The caller guarantees that the committer user is related to the commit by checking its activated email addresses or no-reply address.
 // If the commit is singed by an instance key, then committer can be nil.
 // If the signature exists, even if committer is nil, the returned CommittingUser will be a non-nil fake user (e.g.: instance key)
-func ParseCommitWithSignatureCommitter(ctx context.Context, c *git.Commit, committer *user_model.User) *asymkey_model.CommitVerification {
+func ParseCommitWithSignatureCommitter(ctx context.Context, gitRepo *git.Repository, c *git.Commit, committer *user_model.User) *asymkey_model.CommitVerification {
 	// If no signature, just report the committer
 	if c.Signature == nil {
 		return &asymkey_model.CommitVerification{
@@ -58,10 +58,10 @@ func ParseCommitWithSignatureCommitter(ctx context.Context, c *git.Commit, commi
 	if strings.HasPrefix(c.Signature.Signature, "-----BEGIN SSH SIGNATURE-----") {
 		return parseCommitWithSSHSignature(ctx, c, committer)
 	}
-	return parseCommitWithGPGSignature(ctx, c, committer)
+	return parseCommitWithGPGSignature(ctx, gitRepo, c, committer)
 }
 
-func parseCommitWithGPGSignature(ctx context.Context, c *git.Commit, committer *user_model.User) *asymkey_model.CommitVerification {
+func parseCommitWithGPGSignature(ctx context.Context, gitRepo *git.Repository, c *git.Commit, committer *user_model.User) *asymkey_model.CommitVerification {
 	// Parsing signature
 	sig, err := asymkey_model.ExtractSignature(c.Signature.Signature)
 	if err != nil { // Skipping failed to extract sign
@@ -162,7 +162,7 @@ func parseCommitWithGPGSignature(ctx context.Context, c *git.Commit, committer *
 		}
 	}
 
-	defaultGPGSettings, err := c.GetRepositoryDefaultPublicGPGKey(false)
+	defaultGPGSettings, err := gitRepo.GetDefaultPublicGPGKey(false)
 	if err != nil {
 		log.Error("Error getting default public gpg key: %v", err)
 	} else if defaultGPGSettings == nil {

@@ -140,8 +140,8 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 		return nil, err
 	}
 
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
-	verification := GetPayloadCommitVerification(ctx, commit)
+	fileCommitResponse, _ := GetFileCommitResponse(repo, t.gitRepo, commit) // ok if fails, then will be nil
+	verification := GetPayloadCommitVerification(ctx, t.gitRepo, commit)
 	fileResponse := &structs.FileResponse{
 		Commit:       fileCommitResponse,
 		Verification: verification,

@@ -43,18 +43,20 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		if err != nil {
 			return nil, err
 		}
-		commit.Tree.ResolvedID = resolvedID
-		return &commit.Tree, nil
+		tree := NewTree(repo, commit.TreeID)
+		tree.ResolvedID = resolvedID
+		return tree, nil
 	case "commit":
-		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, size))
+		commit, err := CommitFromReader(id, io.LimitReader(rd, size))
 		if err != nil {
 			return nil, err
 		}
 		if _, err := rd.Discard(1); err != nil {
 			return nil, err
 		}
-		commit.Tree.ResolvedID = commit.ID
-		return &commit.Tree, nil
+		tree := NewTree(repo, commit.TreeID)
+		tree.ResolvedID = commit.ID
+		return tree, nil
 	case "tree":
 		tree := NewTree(repo, id)
 		tree.ResolvedID = id
