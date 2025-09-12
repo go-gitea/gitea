@@ -171,7 +171,6 @@ func TestAgitReviewStaleness(t *testing.T) {
 
 		// Get initial commit ID for the review
 		initialCommitID := pr.HeadCommitID
-		assert.NoError(t, err)
 		t.Logf("Initial commit ID: %s", initialCommitID)
 
 		// Create a review on the PR (as user1 reviewing user2's PR)
