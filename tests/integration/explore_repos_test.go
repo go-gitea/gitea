@@ -15,7 +15,7 @@ import (
 func TestExploreRepos(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/explore/repos?q=TheKeyword&topic=1&language=TheLang")
+	req := NewRequest(t, "GET", "/explore/articles?q=TheKeyword&topic=1&language=TheLang")
 	resp := MakeRequest(t, req, http.StatusOK)
 	respStr := resp.Body.String()
 

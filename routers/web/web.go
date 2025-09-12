@@ -495,10 +495,10 @@ func registerWebRoutes(m *web.Router) {
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
-			ctx.Redirect(setting.AppSubURL + "/explore/repos")
+			ctx.Redirect(setting.AppSubURL + "/explore/articles")
 		})
-		m.Get("/repos", explore.Repos)
-		m.Get("/repos/sitemap-{idx}.xml", sitemapEnabled, explore.Repos)
+		m.Get("/articles", explore.Repos)
+		m.Get("/articles/sitemap-{idx}.xml", sitemapEnabled, explore.Repos)
 		m.Get("/users", explore.Users)
 		m.Get("/users/sitemap-{idx}.xml", sitemapEnabled, explore.Users)
 		m.Get("/organizations", explore.Organizations)
@@ -1030,7 +1030,7 @@ func registerWebRoutes(m *web.Router) {
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 
-		m.Get("/repositories", org.Repositories)
+		m.Get("/articles", org.Repositories)
 
 		m.Group("/projects", func() {
 			m.Group("", func() {
