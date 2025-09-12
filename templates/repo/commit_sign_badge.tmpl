@@ -8,7 +8,7 @@ so this template should be kept as small as possbile, DO NOT put large component
 */}}
 {{- $commit := $.Commit -}}
 {{- $commitBaseLink := $.CommitBaseLink -}}
-{{- $verification := $.CommitSignVerification -}}
+{{- $verification := $.CommitSignVerification -}}{{- /* asymkey.CommitVerification */ -}}
 
 {{- $extraClass := "" -}}
 {{- $verified := false -}}
@@ -50,7 +50,7 @@ so this template should be kept as small as possbile, DO NOT put large component
 
 	{{- if $verification.SigningSSHKey -}}
 		{{- $msgSigningKey = print (ctx.Locale.Tr "repo.commits.ssh_key_fingerprint") ": " $verification.SigningSSHKey.Fingerprint -}}
-	{{- else if $verification.SigningKey -}}
+	{{- else if $verification.SigningKey -}}{{- /* asymkey.GPGKey */ -}}
 		{{- $msgSigningKey = print (ctx.Locale.Tr "repo.commits.gpg_key_id") ": " $verification.SigningKey.PaddedKeyID -}}
 	{{- end -}}
 {{- end -}}

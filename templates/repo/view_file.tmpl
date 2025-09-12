@@ -17,7 +17,7 @@
 			{{template "repo/latest_commit" .}}
 			{{if .LatestCommit}}
 				{{if .LatestCommit.Committer}}
-					<div class="text grey age">
+					<div class="text grey age flex-text-block">
 						{{DateUtils.TimeSince .LatestCommit.Committer.When}}
 					</div>
 				{{end}}
