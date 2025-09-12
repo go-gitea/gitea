@@ -1,0 +1,94 @@
+{{template "base/head" .}}
+<main class="tw-flex tw-h-full tw-items-start sm:tw-items-center tw-justify-center">
+	<section class="tw-w-full tw-max-w-[720px] tw-px-6 sm:tw-px-8 tw-pt-16 sm:tw-pt-0 tw-text-center">
+		<!-- Logo -->
+		<div class="tw-mx-auto tw-mb-10 tw-rounded-full tw-bg-transparent">
+			<img class="logo" width="124" height="122" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}">
+		</div>
+
+		<!-- Heading -->
+		<h1 class="tw-text-3xl sm:tw-text-5xl tw-font-semibold tw-tracking-tight tw-mb-10">
+			What’s on your mind?
+		</h1>
+
+		<!-- Search + Dropdown -->
+		<div class="tw-mx-auto dropdown-anchor tw-max-w-[560px]">
+			<form class="tw-relative" action="{{AppSubUrl}}/explore/repos" method="get">
+				<span class="tw-pointer-events-none tw-absolute tw-inset-y-0 tw-left-3 tw-flex tw-items-center">
+					<svg xmlns="http://www.w3.org/2000/svg" class="tw-h-5 tw-w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+									d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z"/>
+					</svg>
+				</span>
+				<input
+					id="search"
+					name="q"
+					type="text"
+					placeholder="Moon"
+					autocomplete="off"
+					class="tw-w-full tw-rounded-md tw-border tw-border-neutral-200 focus:tw-ring-2 focus:tw-ring-indigo-500 tw-outline-none tw-pl-10 tw-pr-4 tw-py-3 tw-text-[17px] tw-leading-6 placeholder:tw-text-neutral-400 tw-shadow-sm"
+				/>
+				<input type="hidden" name="only_show_relevant" value="false">
+				<input type="hidden" name="sort" value="recentupdate">
+			</form>
+
+			<!-- Dropdown -->
+			<div id="results"
+						class="tw-mt-3 tw-hidden tw-text-left tw-rounded-xl tw-border tw-border-neutral-200 tw-bg-white tw-shadow-xl tw-ring-1 tw-ring-black/5 tw-overflow-hidden">
+				<!-- Items injected via JS -->
+			</div>
+		</div>
+	</section>
+</main>
+<!--
+<div role="main" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home"}}{{end}}" class="page-content home">
+	<div class="tw-mb-8 tw-px-8">
+		<div class="center">
+			<img class="logo" width="220" height="220" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}">
+			<div class="hero">
+				<h1 class="ui icon header title tw-text-balance">
+					{{AppName}}
+				</h1>
+				<h2 class="tw-text-balance">{{ctx.Locale.Tr "startpage.app_desc"}}</h2>
+			</div>
+		</div>
+	</div>
+	<div class="ui stackable middle very relaxed page grid">
+		<div class="eight wide center column">
+			<h1 class="hero ui icon header">
+				{{svg "octicon-flame"}} {{ctx.Locale.Tr "startpage.install"}}
+			</h1>
+			<p class="large tw-text-balance">
+				{{ctx.Locale.Tr "startpage.install_desc" "https://docs.gitea.com/installation/install-from-binary" "https://github.com/go-gitea/gitea/tree/master/docker" "https://docs.gitea.com/installation/install-from-package"}}
+			</p>
+		</div>
+		<div class="eight wide center column">
+			<h1 class="hero ui icon header">
+				{{svg "octicon-device-desktop"}} {{ctx.Locale.Tr "startpage.platform"}}
+			</h1>
+			<p class="large tw-text-balance">
+				{{ctx.Locale.Tr "startpage.platform_desc" "https://go.dev/"}}
+			</p>
+		</div>
+	</div>
+	<div class="ui stackable middle very relaxed page grid">
+		<div class="eight wide center column">
+			<h1 class="hero ui icon header">
+				{{svg "octicon-rocket"}} {{ctx.Locale.Tr "startpage.lightweight"}}
+			</h1>
+			<p class="large tw-text-balance">
+				{{ctx.Locale.Tr "startpage.lightweight_desc"}}
+			</p>
+		</div>
+		<div class="eight wide center column">
+			<h1 class="hero ui icon header">
+				{{svg "octicon-code"}} {{ctx.Locale.Tr "startpage.license"}}
+			</h1>
+			<p class="large tw-text-balance">
+				{{ctx.Locale.Tr "startpage.license_desc" "https://code.gitea.io/gitea" "code.gitea.io/gitea" "https://github.com/go-gitea/gitea"}}
+			</p>
+		</div>
+	</div>
+</div>
+-->
+{{template "base/footer" .}}

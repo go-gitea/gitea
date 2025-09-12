@@ -1,0 +1,59 @@
+<footer class="tw-w-full">
+  <div class="tw-mx-auto tw-max-w-6xl tw-px-4 sm:tw-px-6 tw-border-t tw-border-neutral-100/10">
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-center tw-gap-3 tw-py-10">
+      
+      <!-- Left: logo + copyright -->
+      <div class="tw-flex tw-items-center tw-gap-3 tw-mr-4">
+        <img src="{{AssetUrlPrefix}}/img/logo.svg" alt="Forkana" class="tw-h-6 tw-w-6 tw-shrink-0" />
+        <p class="tw-text-sm tw-text-neutral-600">
+          &copy; <span id="year">2025</span> Forkana.
+        </p>
+      </div>
+
+      <!-- Right: links -->
+      <nav aria-label="Footer" class="tw-flex tw-flex-wrap tw-items-center tw-gap-x-10 tw-gap-y-2">
+        <a href="/terms" class="tw-text-sm tw-text-indigo-600 hover:tw-underline focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-500 tw-rounded">Terms</a>
+        <a href="/privacy" class="tw-text-sm tw-text-indigo-600 hover:tw-underline focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-500 tw-rounded">Privacy</a>
+        <a href="/security" class="tw-text-sm tw-text-indigo-600 hover:tw-underline focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-500 tw-rounded">Security</a>
+        <a href="/community-notes" class="tw-text-sm tw-text-indigo-600 hover:tw-underline focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-500 tw-rounded">Community notes</a>
+        <a href="/contact" class="tw-text-sm tw-text-indigo-600 hover:tw-underline focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-500 tw-rounded">Contact Forkana</a>
+        <a href="/about" class="tw-text-sm tw-text-indigo-600 hover:tw-underline focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-500 tw-rounded">About</a>
+      </nav>
+
+    </div>
+  </div>
+</footer>
+<!--
+<footer class="page-footer" role="group" aria-label="{{ctx.Locale.Tr "aria.footer"}}">
+	<div class="left-links" role="contentinfo" aria-label="{{ctx.Locale.Tr "aria.footer.software"}}">
+		{{if ShowFooterPoweredBy}}
+			<a target="_blank" rel="noopener noreferrer" href="https://about.gitea.com">{{ctx.Locale.Tr "powered_by" "Gitea"}}</a>
+		{{end}}
+		{{if (or .ShowFooterVersion .PageIsAdmin)}}
+			{{ctx.Locale.Tr "version"}}:
+			{{if .IsAdmin}}
+				<a href="{{AppSubUrl}}/-/admin/config">{{AppVer}}</a>
+			{{else}}
+				{{AppVer}}
+			{{end}}
+		{{end}}
+		{{if and .TemplateLoadTimes ShowFooterTemplateLoadTime}}
+			{{ctx.Locale.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong>
+			{{ctx.Locale.Tr "template"}}{{if .TemplateName}} {{.TemplateName}}{{end}}: <strong>{{call .TemplateLoadTimes}}</strong>
+		{{end}}
+	</div>
+	<div class="right-links" role="group" aria-label="{{ctx.Locale.Tr "aria.footer.links"}}">
+		<div class="ui dropdown upward">
+			<span class="flex-text-inline">{{svg "octicon-globe" 14}} {{ctx.Locale.LangName}}</span>
+			<div class="menu language-menu">
+				{{range .AllLangs -}}
+				<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq ctx.Locale.Lang .Lang}}selected{{end}}">{{.Name}}</a>
+				{{end -}}
+			</div>
+		</div>
+		<a href="{{AssetUrlPrefix}}/licenses.txt">{{ctx.Locale.Tr "licenses"}}</a>
+		{{if .EnableSwagger}}<a href="{{AppSubUrl}}/api/swagger">API</a>{{end}}
+		{{template "custom/extra_links_footer" .}}
+	</div>
+</footer>
+-->

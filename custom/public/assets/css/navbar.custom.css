@@ -1,0 +1,9 @@
+/* overrides for the top navbar */
+/* keep selectors specific enough to win without !important where possible */
+
+#navbar {
+  background: var(--color-body);
+  border-bottom: none;
+}
+
+
