@@ -318,12 +318,7 @@ func UpdateViewedFiles(ctx *context.Context) {
 
 	// Expect the review to have been now if no head commit was supplied
 	if data.HeadCommitSHA == "" {
-		data.HeadCommitSHA, err = ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
-		if err != nil {
-			log.Warn("Attempted to get ref commit id: %v", err)
-			ctx.Resp.WriteHeader(http.StatusBadRequest)
-			return
-		}
+		data.HeadCommitSHA = pull.HeadCommitID
 	}
 
 	updatedFiles := make(map[string]pull_model.ViewedState, len(data.Files))

@@ -142,21 +142,21 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			}
 
 			pr := &issues_model.PullRequest{
-				HeadRepoID: repo.ID,
-				BaseRepoID: repo.ID,
-				HeadBranch: headBranch,
-				BaseBranch: baseBranchName,
-				HeadRepo:   repo,
-				BaseRepo:   repo,
-				MergeBase:  "",
-				Type:       issues_model.PullRequestGitea,
-				Flow:       issues_model.PullRequestFlowAGit,
+				HeadRepoID:   repo.ID,
+				BaseRepoID:   repo.ID,
+				HeadBranch:   headBranch,
+				HeadCommitID: opts.NewCommitIDs[i],
+				BaseBranch:   baseBranchName,
+				HeadRepo:     repo,
+				BaseRepo:     repo,
+				MergeBase:    "",
+				Type:         issues_model.PullRequestGitea,
+				Flow:         issues_model.PullRequestFlowAGit,
 			}
 			prOpts := &pull_service.NewPullRequestOptions{
-				Repo:         repo,
-				Issue:        prIssue,
-				PullRequest:  pr,
-				HeadCommitID: opts.NewCommitIDs[i],
+				Repo:        repo,
+				Issue:       prIssue,
+				PullRequest: pr,
 			}
 			if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 				return nil, err
@@ -214,7 +214,8 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			}
 		}
 
-		if err = pull_service.UpdatePullRequestAgitFlowHead(ctx, pr, opts.NewCommitIDs[i]); err != nil {
+		pr.HeadCommitID = opts.NewCommitIDs[i]
+		if err = pull_service.UpdatePullRequestAgitFlowHead(ctx, pr, pr.HeadCommitID); err != nil {
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
 		}
 

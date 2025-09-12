@@ -43,7 +43,6 @@ func getPullWorkingLockKey(prID int64) string {
 type NewPullRequestOptions struct {
 	Repo            *repo_model.Repository
 	Issue           *issues_model.Issue
-	HeadCommitID    string
 	LabelIDs        []int64
 	AttachmentUUIDs []string
 	PullRequest     *issues_model.PullRequest
@@ -54,7 +53,7 @@ type NewPullRequestOptions struct {
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
-	if opts.PullRequest.Flow == issues_model.PullRequestFlowAGit && opts.HeadCommitID == "" {
+	if opts.PullRequest.Flow == issues_model.PullRequestFlowAGit && opts.PullRequest.HeadCommitID == "" {
 		return errors.New("head commit ID cannot be empty for agit flow")
 	}
 
@@ -131,7 +130,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 
 		// update head commit id into git repository
 		if pr.Flow == issues_model.PullRequestFlowAGit {
-			err = UpdatePullRequestAgitFlowHead(ctx, pr, opts.HeadCommitID)
+			err = UpdatePullRequestAgitFlowHead(ctx, pr, pr.HeadCommitID)
 		} else {
 			err = UpdatePullRequestGithubFlowHead(ctx, pr)
 		}
@@ -771,12 +770,12 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
 	} else {
-		headCommitID, err1 := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
-		if err1 != nil {
-			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitHeadRefName(), err1)
+		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		if err != nil {
+			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitHeadRefName(), err)
 			return ""
 		}
-		headCommit, err = gitRepo.GetCommit(headCommitID)
+		headCommit, err = gitRepo.GetCommit(pr.HeadCommitID)
 	}
 	if err != nil {
 		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
@@ -998,11 +997,11 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 			return false, err
 		}
 	} else {
-		headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		pr.HeadCommitID, err = baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
 			return false, err
 		}
-		if headCommit, err = baseGitRepo.GetCommit(headCommitID); err != nil {
+		if headCommit, err = baseGitRepo.GetCommit(pr.HeadCommitID); err != nil {
 			return false, err
 		}
 	}

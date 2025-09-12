@@ -96,6 +96,7 @@ func NewComment(ctx *context.Context) {
 
 				// Regenerate patch and test conflict.
 				if pr == nil {
+					issue.PullRequest.HeadCommitID = ""
 					pull_service.StartPullRequestCheckImmediately(ctx, issue.PullRequest)
 				}
 

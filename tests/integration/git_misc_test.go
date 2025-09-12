@@ -170,7 +170,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 		assert.NoError(t, pr.LoadIssue(t.Context()))
 
 		// Get initial commit ID for the review
-		initialCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		initialCommitID := pr.HeadCommitID
 		assert.NoError(t, err)
 		t.Logf("Initial commit ID: %s", initialCommitID)
 
