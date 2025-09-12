@@ -27,6 +27,7 @@ type Source struct {
 	GroupTeamMap        string
 	GroupTeamMapRemoval bool
 	RestrictedGroup     string
+	SkipLocalTwoFA      bool
 
 	SSHPublicKeyClaimName string
 	FullNameClaimName     string
