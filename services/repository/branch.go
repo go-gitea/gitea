@@ -33,7 +33,6 @@ import (
 	actions_service "code.gitea.io/gitea/services/actions"
 	notify_service "code.gitea.io/gitea/services/notify"
 	release_service "code.gitea.io/gitea/services/release"
-	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"xorm.io/builder"
 )
@@ -125,18 +124,18 @@ func getDivergenceCacheKey(repoID int64, branchName string) string {
 // getDivergenceFromCache gets the divergence from cache
 func getDivergenceFromCache(repoID int64, branchName string) (*gitrepo.DivergeObject, bool) {
 	data, ok := cache.GetCache().Get(getDivergenceCacheKey(repoID, branchName))
-	res := &gitrepo.DivergeObject{
+	res := gitrepo.DivergeObject{
 		Ahead:  -1,
 		Behind: -1,
 	}
 	if !ok || data == "" {
-		return res, false
+		return &res, false
 	}
 	if err := json.Unmarshal(util.UnsafeStringToBytes(data), &res); err != nil {
 		log.Error("json.UnMarshal failed: %v", err)
-		return res, false
+		return &res, false
 	}
-	return res, true
+	return &res, true
 }
 
 func putDivergenceFromCache(repoID int64, branchName string, divergence *gitrepo.DivergeObject) error {
@@ -186,9 +185,9 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 		divergence, cached = getDivergenceFromCache(repo.ID, dbBranch.Name)
 		if !cached {
 			var err error
-			divergence, err = files_service.CountDivergingCommits(ctx, repo, git.BranchPrefix+branchName)
+			divergence, err = gitrepo.GetDivergingCommits(ctx, repo, repo.DefaultBranch, git.BranchPrefix+branchName)
 			if err != nil {
-				log.Error("CountDivergingCommits: %v", err)
+				log.Error("GetDivergingCommits: %v", err)
 			} else {
 				if err = putDivergenceFromCache(repo.ID, dbBranch.Name, divergence); err != nil {
 					log.Error("putDivergenceFromCache: %v", err)
