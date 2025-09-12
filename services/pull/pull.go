@@ -140,7 +140,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		// update commits ahead and behind
-		divergence, err := git.GetDivergingCommits(ctx, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitHeadRefName())
+		divergence, err := GetDiverging(ctx, pr)
 		if err != nil {
 			return err
 		}
@@ -308,7 +308,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	}
 
 	// update commits ahead and behind
-	divergence, err := git.GetDivergingCommits(ctx, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitHeadRefName())
+	divergence, err := GetDiverging(ctx, pr)
 	if err != nil {
 		return err
 	}
@@ -446,9 +446,9 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
 
-						divergence, err := git.GetDivergingCommits(ctx, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitHeadRefName())
+						divergence, err := GetDiverging(ctx, pr)
 						if err != nil {
-							log.Error("GetDivergingCommits: %v", err)
+							log.Error("GetDiverging: %v", err)
 						} else {
 							err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
 							if err != nil {
@@ -484,7 +484,8 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			return
 		}
 		for _, pr := range prs {
-			divergence, err := git.GetDivergingCommits(ctx, baseRepo.RepoPath(), pr.BaseBranch, pr.GetGitHeadRefName())
+			pr.BaseRepo = baseRepo
+			divergence, err := GetDiverging(ctx, pr)
 			if err != nil {
 				if git_model.IsErrBranchNotExist(err) && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
 					log.Warn("Cannot test PR %s/%d: head_branch %s no longer exists", pr.BaseRepo.Name, pr.IssueID, pr.HeadBranch)

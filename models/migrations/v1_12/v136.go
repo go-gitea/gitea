@@ -6,11 +6,10 @@ package v1_12
 import (
 	"fmt"
 	"math"
-	"path/filepath"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -18,15 +17,19 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddCommitDivergenceToPulls(x *xorm.Engine) error {
-	type Repository struct {
-		ID        int64 `xorm:"pk autoincr"`
-		OwnerID   int64 `xorm:"UNIQUE(s) index"`
-		OwnerName string
-		LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Name      string `xorm:"INDEX NOT NULL"`
-	}
+type Repository struct {
+	ID        int64 `xorm:"pk autoincr"`
+	OwnerID   int64 `xorm:"UNIQUE(s) index"`
+	OwnerName string
+	LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name      string `xorm:"INDEX NOT NULL"`
+}
 
+func (r *Repository) RelativePath() string {
+	return fmt.Sprintf("%s/%s.git", strings.ToLower(r.OwnerName), strings.ToLower(r.Name))
+}
+
+func AddCommitDivergenceToPulls(x *xorm.Engine) error {
 	type PullRequest struct {
 		ID      int64 `xorm:"pk autoincr"`
 		IssueID int64 `xorm:"INDEX"`
@@ -85,12 +88,10 @@ func AddCommitDivergenceToPulls(x *xorm.Engine) error {
 				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
 				continue
 			}
-			userPath := filepath.Join(setting.RepoRootPath, strings.ToLower(baseRepo.OwnerName))
-			repoPath := filepath.Join(userPath, strings.ToLower(baseRepo.Name)+".git")
 
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
 
-			divergence, err := git.GetDivergingCommits(graceful.GetManager().HammerContext(), repoPath, pr.BaseBranch, gitRefName)
+			divergence, err := gitrepo.GetDivergingCommits(graceful.GetManager().HammerContext(), baseRepo, pr.BaseBranch, gitRefName)
 			if err != nil {
 				log.Warn("Could not recalculate Divergence for pull: %d", pr.ID)
 				pr.CommitsAhead = 0

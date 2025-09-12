@@ -14,7 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
@@ -39,7 +39,7 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		return fmt.Errorf("unable to load BaseRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
 	}
 
-	diffCount, err := git.GetDivergingCommits(ctx, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitHeadRefName())
+	diffCount, err := GetDiverging(ctx, pr)
 	if err != nil {
 		return err
 	} else if diffCount.Behind == 0 {
@@ -178,17 +178,9 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 }
 
 // GetDiverging determines how many commits a PR is ahead or behind the PR base branch
-func GetDiverging(ctx context.Context, pr *issues_model.PullRequest) (*git.DivergeObject, error) {
-	log.Trace("GetDiverging[%-v]: compare commits", pr)
-	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
-	if err != nil {
-		if !git_model.IsErrBranchNotExist(err) {
-			log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
-		}
+func GetDiverging(ctx context.Context, pr *issues_model.PullRequest) (*gitrepo.DivergeObject, error) {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
-	defer cancel()
-
-	diff, err := git.GetDivergingCommits(ctx, prCtx.tmpBasePath, baseBranch, trackingBranch)
-	return &diff, err
+	return gitrepo.GetDivergingCommits(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 }
