@@ -188,7 +188,7 @@
 					{{if .WillSign}}
 						<div class="item">
 							{{svg "octicon-lock" 16 "text green"}}
-							{{ctx.Locale.Tr "repo.signing.will_sign" .SigningKey}}
+							{{ctx.Locale.Tr "repo.signing.will_sign" .SigningKeyMergeDisplay}}
 						</div>
 					{{else if .IsSigned}}
 						<div class="item">
