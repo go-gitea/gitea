@@ -538,35 +538,71 @@ func TestConflictChecking(t *testing.T) {
 
 func TestPullRetargetChildOnBranchDelete(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		session := loginUser(t, "user1")
-		testEditFileToNewBranch(t, session, "user2", "repo1", "master", "base-pr", "README.md", "Hello, World\n(Edited - TestPullRetargetOnCleanup - base PR)\n")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "base-pr", "child-pr", "README.md", "Hello, World\n(Edited - TestPullRetargetOnCleanup - base PR)\n(Edited - TestPullRetargetOnCleanup - child PR)")
+		session := loginUser(t, "user2")
+		testEditFileToNewBranch(t, session, "user2", "repo1", "master", "branch-1", "README.md", "1")
+		testEditFileToNewBranch(t, session, "user2", "repo1", "branch-1", "branch-2", "README.md", "2")
+		testEditFileToNewBranch(t, session, "user2", "repo1", "branch-2", "branch-3", "README.md", "3")
+		testEditFileToNewBranch(t, session, "user2", "repo1", "branch-3", "branch-4", "README.md", "4")
 
-		respBasePR := testPullCreate(t, session, "user2", "repo1", true, "master", "base-pr", "Base Pull Request")
-		elemBasePR := strings.Split(test.RedirectURL(respBasePR), "/")
-		assert.Equal(t, "pulls", elemBasePR[3])
+		respPR1 := testPullCreate(t, session, "user2", "repo1", false, "master", "branch-1", "PR branch-1 > master")
+		respPR2 := testPullCreate(t, session, "user2", "repo1", false, "branch-1", "branch-2", "PR branch-2 > branch-1")
+		respPR3 := testPullCreate(t, session, "user2", "repo1", false, "branch-2", "branch-3", "PR branch-3 > branch-2")
+		respPR4 := testPullCreate(t, session, "user2", "repo1", false, "branch-3", "branch-4", "PR branch-4 > branch-3")
 
-		respChildPR := testPullCreate(t, session, "user1", "repo1", false, "base-pr", "child-pr", "Child Pull Request")
-		elemChildPR := strings.Split(test.RedirectURL(respChildPR), "/")
-		assert.Equal(t, "pulls", elemChildPR[3])
-
-		testPullMerge(t, session, elemBasePR[1], elemBasePR[2], elemBasePR[4], repo_model.MergeStyleMerge, true)
+		elemPR2 := strings.Split(test.RedirectURL(respPR2), "/")
+		testPullMerge(t, session, elemPR2[1], elemPR2[2], elemPR2[4], repo_model.MergeStyleMerge, true)
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
-		branchBasePR := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo1.ID, Name: "base-pr"})
-		assert.True(t, branchBasePR.IsDeleted)
+		mergedPR := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo1.ID, Name: "branch-2"})
+		assert.True(t, mergedPR.IsDeleted)
+		{
+			// Check PR branch-1 > master is unchanged
+			req := NewRequest(t, "GET", test.RedirectURL(respPR1))
+			resp := session.MakeRequest(t, req, http.StatusOK)
 
-		// Check child PR
-		req := NewRequest(t, "GET", test.RedirectURL(respChildPR))
-		resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			targetBranch := htmlDoc.doc.Find("#branch_target>a").Text()
+			prStatus := strings.TrimSpace(htmlDoc.doc.Find(".issue-title-meta>.issue-state-label").Text())
 
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		targetBranch := htmlDoc.doc.Find("#branch_target>a").Text()
-		prStatus := strings.TrimSpace(htmlDoc.doc.Find(".issue-title-meta>.issue-state-label").Text())
+			assert.Equal(t, "master", targetBranch)
+			assert.Equal(t, "Open", prStatus)
+		}
+		{
+			// Check PR branch-2 > branch-1 is merged
+			req := NewRequest(t, "GET", test.RedirectURL(respPR2))
+			resp := session.MakeRequest(t, req, http.StatusOK)
 
-		assert.Equal(t, "master", targetBranch)
-		assert.Equal(t, "Open", prStatus)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			targetBranch := htmlDoc.doc.Find("#branch_target>a").Text()
+			prStatus := strings.TrimSpace(htmlDoc.doc.Find(".issue-title-meta>.issue-state-label").Text())
+
+			assert.Empty(t, targetBranch)
+			assert.Equal(t, "Merged", prStatus)
+		}
+		{
+			// Check PR branch-3 > branch-2 is rerouted to branch-1
+			req := NewRequest(t, "GET", test.RedirectURL(respPR3))
+			resp := session.MakeRequest(t, req, http.StatusOK)
+
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			targetBranch := htmlDoc.doc.Find("#branch_target>a").Text()
+			prStatus := strings.TrimSpace(htmlDoc.doc.Find(".issue-title-meta>.issue-state-label").Text())
+
+			assert.Equal(t, "branch-1", targetBranch)
+			assert.Equal(t, "Open", prStatus)
+		}
+		{
+			// Check PR branch-4 > branch-3 is unchanged
+			req := NewRequest(t, "GET", test.RedirectURL(respPR4))
+			resp := session.MakeRequest(t, req, http.StatusOK)
+
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			targetBranch := htmlDoc.doc.Find("#branch_target>a").Text()
+			prStatus := strings.TrimSpace(htmlDoc.doc.Find(".issue-title-meta>.issue-state-label").Text())
+
+			assert.Equal(t, "branch-3", targetBranch)
+			assert.Equal(t, "Open", prStatus)
+		}
 	})
 }
 
