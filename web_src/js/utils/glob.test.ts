@@ -16,7 +16,7 @@ async function loadGlobTestData(): Promise<{caseNames: string[], caseDataMap: Re
     const key = parts[0].trim();
     let value = parts[1].trim();
     value = value.substring(1, value.length - 1); // remove quotes
-    value = value.replace(/\\\\/g, '\\').replaceAll(/\\\//g, '/');
+    value = value.replace(/\\\//g, '/').replace(/\\\\/g, '\\');
     caseDataMap[key] = value;
     if (key.startsWith('pattern_')) caseNameMap[key.substring('pattern_'.length)] = true;
   }
