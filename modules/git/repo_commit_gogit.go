@@ -41,8 +41,8 @@ func (repo *Repository) SetReference(name, commitID string) error {
 	return repo.gogitRepo.Storer.SetReference(plumbing.NewReferenceFromStrings(name, commitID))
 }
 
-// RemoveReference removes the given reference (e.g. branch or tag).
-func (repo *Repository) RemoveReference(name string) error {
+// removeReference removes the given reference (e.g. branch or tag).
+func (repo *Repository) removeReference(name string) error {
 	return repo.gogitRepo.Storer.RemoveReference(plumbing.ReferenceName(name))
 }
 

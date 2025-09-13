@@ -116,7 +116,7 @@ func TestReadWritePullHead(t *testing.T) {
 	assert.Equal(t, headContents, newCommit)
 
 	// Remove file after the test
-	err = repo.RemoveReference(PullPrefix + "1/head")
+	err = repo.removeReference(PullPrefix + "1/head")
 	assert.NoError(t, err)
 }
 
