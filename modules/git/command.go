@@ -216,6 +216,10 @@ type RunOpts struct {
 	// In the future, ideally the git module itself should have full control of the stdin, to avoid such problems and make it easier to refactor to a better architecture.
 	Stdin io.Reader
 
+	// SSHAuthSock is the path to an SSH agent socket for authentication
+	// If provided, SSH_AUTH_SOCK environment variable will be set
+	SSHAuthSock string
+
 	PipelineFunc func(context.Context, context.CancelFunc) error
 }
 
@@ -315,6 +319,11 @@ func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 
 	process.SetSysProcAttribute(cmd)
 	cmd.Env = append(cmd.Env, CommonGitCmdEnvs()...)
+
+	if opts.SSHAuthSock != "" {
+		cmd.Env = append(cmd.Env, "SSH_AUTH_SOCK="+opts.SSHAuthSock)
+	}
+
 	cmd.Dir = opts.Dir
 	cmd.Stdout = opts.Stdout
 	cmd.Stderr = opts.Stderr
@@ -430,6 +439,7 @@ func (c *Command) runStdBytes(ctx context.Context, opts *RunOpts) (stdout, stder
 		Stdout:            stdoutBuf,
 		Stderr:            stderrBuf,
 		Stdin:             opts.Stdin,
+		SSHAuthSock:       opts.SSHAuthSock,
 		PipelineFunc:      opts.PipelineFunc,
 	}
 

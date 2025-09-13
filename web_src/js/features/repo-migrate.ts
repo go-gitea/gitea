@@ -59,3 +59,44 @@ async function doMigrationRetry(e: DOMEvent<MouseEvent>) {
   await POST(e.target.getAttribute('data-migrating-task-retry-url'));
   window.location.reload();
 }
+
+export function initRepoMigrationForm() {
+  const cloneAddrInput = document.querySelector<HTMLInputElement>('#clone_addr');
+  const authUsernameInput = document.querySelector<HTMLInputElement>('#auth_username');
+  const authPasswordInput = document.querySelector<HTMLInputElement>('#auth_password');
+  const sshHelpText = document.querySelector('.help.ssh-help');
+
+  if (!cloneAddrInput || !authUsernameInput || !authPasswordInput || !sshHelpText) return;
+
+  function isSSHURL(url: string): boolean {
+    return url.startsWith('ssh://') ||
+           url.startsWith('git@') ||
+           (url.includes('@') && url.includes(':') && !url.includes('://'));
+  }
+
+  function updateAuthFields() {
+    const url = cloneAddrInput.value.trim();
+    const isSSH = isSSHURL(url);
+
+    if (isSSH) {
+      // Disable auth fields for SSH URLs
+      authUsernameInput.disabled = true;
+      authPasswordInput.disabled = true;
+      authUsernameInput.value = '';
+      authPasswordInput.value = '';
+      authUsernameInput.parentElement?.classList.add('disabled');
+      authPasswordInput.parentElement?.classList.add('disabled');
+      showElem(sshHelpText);
+    } else {
+      authUsernameInput.disabled = false;
+      authPasswordInput.disabled = false;
+      authUsernameInput.parentElement?.classList.remove('disabled');
+      authPasswordInput.parentElement?.classList.remove('disabled');
+      hideElem(sshHelpText);
+    }
+  }
+
+  updateAuthFields();
+  cloneAddrInput.addEventListener('input', updateAuthFields);
+  cloneAddrInput.addEventListener('blur', updateAuthFields);
+}
