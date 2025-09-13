@@ -135,10 +135,10 @@ LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/r
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration code.gitea.io/gitea/tests/e2e,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
 
-WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
-WEBPACK_CONFIGS := webpack.config.ts tailwind.config.ts
-WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
-WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts
+RSPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
+RSPACK_CONFIGS := rspack.config.ts tailwind.config.ts
+RSPACK_DEST := public/assets/js/index.js public/assets/css/index.css
+RSPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts
 
 BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* modules/options/bindata.* modules/templates/bindata.*
 
@@ -238,7 +238,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean ## delete backend, frontend and integration files
-	rm -rf $(WEBPACK_DEST_ENTRIES) node_modules
+	rm -rf $(RSPACK_DEST_ENTRIES) node_modules
 
 .PHONY: clean
 clean: ## delete backend and integration files
@@ -428,8 +428,8 @@ watch: ## watch everything and continuously rebuild
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules ## watch frontend files and continuously rebuild
-	@rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress --disable-interpret
+	@rm -rf $(RSPACK_DEST_ENTRIES)
+	NODE_ENV=development $(NODE_VARS) pnpm exec rspack --watch
 
 .PHONY: watch-backend
 watch-backend: go-check ## watch backend files and continuously rebuild
@@ -747,7 +747,7 @@ install: $(wildcard *.go)
 build: frontend backend ## build everything
 
 .PHONY: frontend
-frontend: $(WEBPACK_DEST) ## build frontend files
+frontend: $(RSPACK_DEST) ## build frontend files
 
 .PHONY: backend
 backend: go-check generate-backend $(EXECUTABLE) ## build backend files
@@ -878,15 +878,15 @@ update-py: node-check | node_modules ## update py dependencies
 	uv sync
 	@touch .venv
 
-.PHONY: webpack
-webpack: $(WEBPACK_DEST) ## build webpack files
+.PHONY: rspack
+rspack: $(RSPACK_DEST) ## build rspack files
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
+$(RSPACK_DEST): $(RSPACK_SOURCES) $(RSPACK_CONFIGS) pnpm-lock.yaml
 	@$(MAKE) -s node-check node_modules
-	@rm -rf $(WEBPACK_DEST_ENTRIES)
-	@echo "Running webpack..."
-	@BROWSERSLIST_IGNORE_OLD_DATA=true $(NODE_VARS) pnpm exec webpack --disable-interpret
-	@touch $(WEBPACK_DEST)
+	@rm -rf $(RSPACK_DEST_ENTRIES)
+	@echo "Running rspack..."
+	@$(NODE_VARS) pnpm exec rspack
+	@touch $(RSPACK_DEST)
 
 .PHONY: svg
 svg: node-check | node_modules ## build svg files
