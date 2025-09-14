@@ -70,6 +70,7 @@ export default defineConfig([
       github,
       // @ts-expect-error
       wc,
+      // @ts-expect-error
       'no-jquery': fixupPluginRules(noJquery),
     },
     settings: {
