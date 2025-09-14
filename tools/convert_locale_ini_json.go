@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func convertIniToJson(data []byte) ([]byte, error) {
+func convertIniToJSON(data []byte) ([]byte, error) {
 	iniFile, err := setting.NewConfigProviderForLocale(data)
 	if err != nil {
 		return nil, err
@@ -25,15 +25,16 @@ func convertIniToJson(data []byte) ([]byte, error) {
 		for j, key := range section.Keys() {
 			keyName := key.Name()
 			if isDefault { // rename conflicted keys
-				if keyName == "home" {
+				switch keyName {
+				case "home":
 					keyName = "_home"
-				} else if keyName == "explore" {
+				case "explore":
 					keyName = "_explore"
-				} else if keyName == "settings" {
+				case "settings":
 					keyName = "_settings"
-				} else if keyName == "error" {
+				case "error":
 					keyName = "_error"
-				} else if keyName == "filter" {
+				case "filter":
 					keyName = "_filter"
 				}
 			}
@@ -87,7 +88,7 @@ func main() {
 			panic(err)
 		}
 		// Convert INI to JSON
-		jsonData, err := convertIniToJson(data)
+		jsonData, err := convertIniToJSON(data)
 		if err != nil {
 			panic(err)
 		}

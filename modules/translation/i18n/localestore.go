@@ -4,12 +4,12 @@
 package i18n
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"slices"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -52,7 +52,7 @@ func (store *localeStore) AddLocaleByJSON(langName, langDesc string, source, mor
 	store.localeMap[l.langName] = l
 
 	addFunc := func(source []byte) error {
-		if len(source) <= 0 {
+		if len(source) == 0 {
 			return nil
 		}
 
