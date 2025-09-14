@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -60,7 +61,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	 2^@repo: go-gitea/gitea
 	*/
 	var results []*GrepResult
-	cmd := NewCommand("grep", "--null", "--break", "--heading", "--line-number", "--full-name")
+	cmd := gitcmd.NewCommand("grep", "--null", "--break", "--heading", "--line-number", "--full-name")
 	cmd.AddOptionValues("--context", strconv.Itoa(opts.ContextLineNumber))
 	switch opts.GrepMode {
 	case GrepModeExact:
@@ -83,7 +84,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	cmd.AddDashesAndList(opts.PathspecList...)
 	opts.MaxResultLimit = util.IfZero(opts.MaxResultLimit, 50)
 	stderr := bytes.Buffer{}
-	err = cmd.Run(ctx, &RunOpts{
+	err = cmd.Run(ctx, &gitcmd.RunOpts{
 		Dir:    repo.Path,
 		Stdout: stdoutWriter,
 		Stderr: &stderr,

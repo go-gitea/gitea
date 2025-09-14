@@ -2175,7 +2175,7 @@ This changelog (archived) contains changes for old releases.
   * Don't send notification on pending reviews (#8943)
   * Fix Notify Create Ref Error on tag creation (#8936)
   * Convert EOL to UNIX-style to render MD properly (#8925)
-  * Migrate temp_repo.go to use git.NewCommand  (#8918)
+  * Migrate temp_repo.go to use gitcmd.NewCommand  (#8918)
   * Fix issue with user.fullname (#8902)
   * Add Close() method to gogitRepository (#8901)
   * Enable punctuations ending mentions (#8889)
