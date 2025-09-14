@@ -134,7 +134,7 @@ export default defineComponent({
         } while (response.status === 202);
         if (response.ok) {
           const data = await response.json();
-          const {total, ...rest} = data as ContributorsData;
+          const {total, ...other} = data as ContributorsData;
           // below line might be deleted if we are sure go produces map always sorted by keys
           total.weeks = Object.fromEntries(Object.entries(total.weeks).sort());
 
@@ -146,7 +146,7 @@ export default defineComponent({
           this.xAxisMin = this.xAxisStart;
           this.xAxisMax = this.xAxisEnd;
           this.contributorsStats = {};
-          for (const [email, user] of Object.entries(rest)) {
+          for (const [email, user] of Object.entries(other)) {
             user.weeks = fillEmptyStartDaysWithZeroes(startDays, user.weeks);
             this.contributorsStats[email] = user;
           }
