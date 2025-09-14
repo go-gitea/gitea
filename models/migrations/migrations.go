@@ -391,9 +391,10 @@ func prepareMigrationTasks() []*migration {
 		newMigration(319, "Add ExclusiveOrder to Label table", v1_24.AddExclusiveOrderColumnToLabelTable),
 		newMigration(320, "Migrate two_factor_policy to login_source table", v1_24.MigrateSkipTwoFactor),
 
-		// Gitea 1.24.0 ends at database version 321
+		// Gitea 1.24.0 ends at database version 321 (database version 322)
 		newMigration(321, "Use LONGTEXT for some columns and fix review_state.updated_files column", v1_25.UseLongTextInSomeColumnsAndFixBugs),
 		newMigration(322, "Extend comment tree_path length limit", v1_25.ExtendCommentTreePathLength),
+		newMigration(323, "Add unique constraint for user badge", v1_25.AddUniqueIndexForUserBadge),
 	}
 	return preparedMigrations
 }
