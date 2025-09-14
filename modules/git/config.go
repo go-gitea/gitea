@@ -5,10 +5,8 @@ package git
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"regexp"
 	"runtime"
 	"strings"
@@ -119,17 +117,9 @@ func syncGitConfig(ctx context.Context) (err error) {
 	return err
 }
 
-func IsErrorExitCode(err error, code int) bool {
-	var exitError *exec.ExitError
-	if errors.As(err, &exitError) {
-		return exitError.ExitCode() == code
-	}
-	return false
-}
-
 func configSet(ctx context.Context, key, value string) error {
 	stdout, _, err := gitcmd.NewCommand("config", "--global", "--get").AddDynamicArguments(key).RunStdString(ctx, nil)
-	if err != nil && !IsErrorExitCode(err, 1) {
+	if err != nil && !gitcmd.IsErrorExitCode(err, 1) {
 		return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 	}
 
@@ -152,7 +142,7 @@ func configSetNonExist(ctx context.Context, key, value string) error {
 		// already exist
 		return nil
 	}
-	if IsErrorExitCode(err, 1) {
+	if gitcmd.IsErrorExitCode(err, 1) {
 		// not exist, set new config
 		_, _, err = gitcmd.NewCommand("config", "--global").AddDynamicArguments(key, value).RunStdString(ctx, nil)
 		if err != nil {
@@ -170,7 +160,7 @@ func configAddNonExist(ctx context.Context, key, value string) error {
 		// already exist
 		return nil
 	}
-	if IsErrorExitCode(err, 1) {
+	if gitcmd.IsErrorExitCode(err, 1) {
 		// not exist, add new config
 		_, _, err = gitcmd.NewCommand("config", "--global", "--add").AddDynamicArguments(key, value).RunStdString(ctx, nil)
 		if err != nil {
@@ -191,7 +181,7 @@ func configUnsetAll(ctx context.Context, key, value string) error {
 		}
 		return nil
 	}
-	if IsErrorExitCode(err, 1) {
+	if gitcmd.IsErrorExitCode(err, 1) {
 		// not exist
 		return nil
 	}

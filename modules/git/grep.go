@@ -136,11 +136,11 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 		},
 	})
 	// git grep exits by cancel (killed), usually it is caused by the limit of results
-	if IsErrorExitCode(err, -1) && stderr.Len() == 0 {
+	if gitcmd.IsErrorExitCode(err, -1) && stderr.Len() == 0 {
 		return results, nil
 	}
 	// git grep exits with 1 if no results are found
-	if IsErrorExitCode(err, 1) && stderr.Len() == 0 {
+	if gitcmd.IsErrorExitCode(err, 1) && stderr.Len() == 0 {
 		return nil, nil
 	}
 	if err != nil && !errors.Is(err, context.Canceled) {

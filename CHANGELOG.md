@@ -4170,7 +4170,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Add number in queue status to monitor page (#18712)
   * Change git.cmd to RunWithContext (#18693)
   * Refactor i18n, use Locale to provide i18n/translation related functions (#18648)
-  * Delete old gitcmd.NewCommand() and use it as gitcmd.NewCommandContext() (#18552)
+  * Delete old git.NewCommand() and use it as git.NewCommandContext() (#18552)
   * Move organization related structs into sub package (#18518)
   * Warn at startup if the provided `SCRIPT_TYPE` is not on the PATH (#18467)
   * Use `CryptoRandomBytes` instead of `CryptoRandomString` (#18439)

@@ -185,7 +185,7 @@ func (c *Command) AddConfig(key, value string) *Command {
 }
 
 // ToTrustedCmdArgs converts a list of strings (trusted as argument) to TrustedCmdArgs
-// In most cases, it shouldn't be used. Use cmd.NewCommand().AddXxx() function instead
+// In most cases, it shouldn't be used. Use NewCommand().AddXxx() function instead
 func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
 	ret := make(TrustedCmdArgs, len(args))
 	for i, arg := range args {
@@ -387,6 +387,14 @@ func (r *runStdError) Unwrap() error {
 
 func (r *runStdError) Stderr() string {
 	return r.stderr
+}
+
+func IsErrorExitCode(err error, code int) bool {
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
+		return exitError.ExitCode() == code
+	}
+	return false
 }
 
 // RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
