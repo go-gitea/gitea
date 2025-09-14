@@ -22,14 +22,14 @@ func TestGetBadgeUsers(t *testing.T) {
 		Description: "Test Badge",
 		ImageURL:    "test.png",
 	}
-	assert.NoError(t, user_model.CreateBadge(db.DefaultContext, badge))
+	assert.NoError(t, user_model.CreateBadge(t.Context(), badge))
 
 	// Create test users and assign badges
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	assert.NoError(t, user_model.AddUserBadge(db.DefaultContext, user1, badge))
-	assert.NoError(t, user_model.AddUserBadge(db.DefaultContext, user2, badge))
+	assert.NoError(t, user_model.AddUserBadge(t.Context(), user1, badge))
+	assert.NoError(t, user_model.AddUserBadge(t.Context(), user2, badge))
 
 	// Test getting users with pagination
 	opts := &user_model.GetBadgeUsersOptions{
@@ -40,21 +40,21 @@ func TestGetBadgeUsers(t *testing.T) {
 		},
 	}
 
-	users, count, err := user_model.GetBadgeUsers(db.DefaultContext, opts)
+	users, count, err := user_model.GetBadgeUsers(t.Context(), opts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, count)
 	assert.Len(t, users, 1)
 
 	// Test second page
 	opts.Page = 2
-	users, count, err = user_model.GetBadgeUsers(db.DefaultContext, opts)
+	users, count, err = user_model.GetBadgeUsers(t.Context(), opts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, count)
 	assert.Len(t, users, 1)
 
 	// Test with non-existent badge
 	opts.BadgeSlug = "non-existent"
-	users, count, err = user_model.GetBadgeUsers(db.DefaultContext, opts)
+	users, count, err = user_model.GetBadgeUsers(t.Context(), opts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 	assert.Empty(t, users)
@@ -66,24 +66,24 @@ func TestAddAndRemoveUserBadges(t *testing.T) {
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	// Add a badge to user and verify that it is returned in the list
-	assert.NoError(t, user_model.AddUserBadge(db.DefaultContext, user1, badge1))
-	badges, count, err := user_model.GetUserBadges(db.DefaultContext, user1)
+	assert.NoError(t, user_model.AddUserBadge(t.Context(), user1, badge1))
+	badges, count, err := user_model.GetUserBadges(t.Context(), user1)
 	assert.Equal(t, int64(1), count)
 	assert.Equal(t, badge1.Slug, badges[0].Slug)
 	assert.NoError(t, err)
 
 	// Confirm that it is impossible to duplicate the same badge
-	assert.Error(t, user_model.AddUserBadge(db.DefaultContext, user1, badge1))
+	assert.Error(t, user_model.AddUserBadge(t.Context(), user1, badge1))
 
 	// Nothing happened to the existing badge
-	badges, count, err = user_model.GetUserBadges(db.DefaultContext, user1)
+	badges, count, err = user_model.GetUserBadges(t.Context(), user1)
 	assert.Equal(t, int64(1), count)
 	assert.Equal(t, badge1.Slug, badges[0].Slug)
 	assert.NoError(t, err)
 
 	// Remove a badge from user and verify that it is no longer in the list
-	assert.NoError(t, user_model.RemoveUserBadge(db.DefaultContext, user1, badge1))
-	_, count, err = user_model.GetUserBadges(db.DefaultContext, user1)
+	assert.NoError(t, user_model.RemoveUserBadge(t.Context(), user1, badge1))
+	_, count, err = user_model.GetUserBadges(t.Context(), user1)
 	assert.Equal(t, int64(0), count)
 	assert.NoError(t, err)
 }
