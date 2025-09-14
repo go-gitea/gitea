@@ -308,7 +308,6 @@ func archiveDownload(ctx *context.APIContext) {
 	}
 
 	if setting.Repository.StreamArchives {
-
 		downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
 
 		// Add nix format link header so tarballs lock correctly:
