@@ -27,7 +27,3 @@ declare module '@eslint-community/eslint-plugin-eslint-comments' {
   const plugin: Eslint.Plugin;
   export = plugin;
 }
-declare module '@eslint/compat' {
-  const value: any;
-  export const fixupPluginRules = value;
-}
