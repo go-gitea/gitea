@@ -4,10 +4,26 @@
 package gitcmd
 
 import (
+	"fmt"
+	"os"
 	"testing"
+
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/tempdir"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMain(m *testing.M) {
+	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "unable to create temp dir: %v", err)
+		os.Exit(1)
+	}
+	defer cleanup()
+
+	setting.Git.HomePath = gitHomePath
+}
 
 func TestRunWithContextStd(t *testing.T) {
 	cmd := NewCommand("--version")
