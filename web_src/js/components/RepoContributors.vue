@@ -133,8 +133,8 @@ export default defineComponent({
           }
         } while (response.status === 202);
         if (response.ok) {
-          const data = await response.json();
-          const {total, ...other} = data as ContributorsData;
+          const data = await response.json() as ContributorsData;
+          const {total, ...other} = data;
           // below line might be deleted if we are sure go produces map always sorted by keys
           total.weeks = Object.fromEntries(Object.entries(total.weeks).sort());
 
