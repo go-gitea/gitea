@@ -111,7 +111,6 @@
     "stylelint-declaration-strict-value": "1.10.11",
     "stylelint-value-no-unknown-custom-properties": "6.0.1",
     "svgo": "4.0.0",
-    "type-fest": "4.41.0",
     "updates": "16.7.0",
     "vite-string-plugin": "1.4.6",
     "vitest": "3.2.4",

@@ -27,7 +27,6 @@ import {chartJsColors} from '../utils/color.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import type {Entries} from 'type-fest';
 import {pathEscapeSegments} from '../utils/url.ts';
 
 const customEventListener: Plugin = {
@@ -56,6 +55,13 @@ Chart.register(
   zoomPlugin,
   customEventListener,
 );
+
+type ContributorsData = {
+  total: {
+    weeks: Record<string, any>,
+  },
+  [other: string]: Record<string, Record<string, any>>,
+}
 
 export default defineComponent({
   components: {ChartLine, SvgIcon},
@@ -128,11 +134,11 @@ export default defineComponent({
         } while (response.status === 202);
         if (response.ok) {
           const data = await response.json();
-          const {total, ...rest} = data;
+          const {total, ...rest} = data as ContributorsData;
           // below line might be deleted if we are sure go produces map always sorted by keys
           total.weeks = Object.fromEntries(Object.entries(total.weeks).sort());
 
-          const weekValues = Object.values(total.weeks) as any;
+          const weekValues = Object.values(total.weeks);
           this.xAxisStart = weekValues[0].week;
           this.xAxisEnd = firstStartDateAfterDate(new Date());
           const startDays = startDaysBetween(this.xAxisStart, this.xAxisEnd);
@@ -140,7 +146,7 @@ export default defineComponent({
           this.xAxisMin = this.xAxisStart;
           this.xAxisMax = this.xAxisEnd;
           this.contributorsStats = {};
-          for (const [email, user] of Object.entries(rest) as Entries<Record<string, Record<string, any>>>) {
+          for (const [email, user] of Object.entries(rest)) {
             user.weeks = fillEmptyStartDaysWithZeroes(startDays, user.weeks);
             this.contributorsStats[email] = user;
           }
