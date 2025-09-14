@@ -138,6 +138,42 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 	}
 }
 
+// Stream satisfies the ArchiveRequest being passed in.  Processing
+// will occur directly in this routine.
+func (aReq *ArchiveRequest) Stream(ctx context.Context, w io.Writer) error {
+	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("ArchiveRequest[%d]: %s", aReq.RepoID, aReq.GetArchiveName()))
+	defer finished()
+
+	repo, err := repo_model.GetRepositoryByID(ctx, aReq.RepoID)
+	if err != nil {
+		return fmt.Errorf("archiver.LoadRepo failed: %w", err)
+	}
+
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	if err != nil {
+		return err
+	}
+	defer gitRepo.Close()
+
+	if aReq.Type == git.ArchiveBundle {
+		err = gitRepo.CreateBundle(
+			ctx,
+			aReq.CommitID,
+			w,
+		)
+	} else {
+		err = gitRepo.CreateArchive(
+			ctx,
+			aReq.Type,
+			w,
+			setting.Repository.PrefixArchiveFiles,
+			aReq.CommitID,
+		)
+	}
+
+	return err
+}
+
 // doArchive satisfies the ArchiveRequest being passed in.  Processing
 // will occur in a separate goroutine, as this phase may take a while to
 // complete.  If the archive already exists, doArchive will not do

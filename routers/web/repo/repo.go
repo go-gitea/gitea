@@ -377,6 +377,28 @@ func Download(ctx *context.Context) {
 		return
 	}
 
+	if setting.Repository.StreamArchives {
+		downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
+
+		// Add nix format link header so tarballs lock correctly:
+		// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
+		ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.%s?rev=%s>; rel="immutable"`,
+			ctx.Repo.Repository.APIURL(),
+			aReq.CommitID,
+			aReq.Type.String(),
+			aReq.CommitID,
+		))
+
+		ctx.SetServeHeaders(&context.ServeHeaderOptions{
+			Filename: downloadName,
+		})
+
+		if err := aReq.Stream(ctx, ctx.Resp); err != nil && !ctx.Written() {
+			ctx.ServerError("archiver.StreamArchive", err)
+		}
+		return
+	}
+
 	archiver, err := aReq.Await(ctx)
 	if err != nil {
 		ctx.ServerError("archiver.Await", err)
@@ -423,6 +445,12 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 // a request that's already in-progress, but the archiver service will just
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
+	if setting.Repository.StreamArchives {
+		ctx.JSON(http.StatusOK, map[string]any{
+			"complete": true,
+		})
+		return
+	}
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
 	if err != nil {
 		ctx.HTTPError(http.StatusBadRequest, "invalid archive request")

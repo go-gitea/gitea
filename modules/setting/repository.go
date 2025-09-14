@@ -53,6 +53,7 @@ var (
 		DisableDownloadSourceArchives           bool
 		AllowForkWithoutMaximumLimit            bool
 		AllowForkIntoSameOwner                  bool
+		StreamArchives                          bool
 
 		// Repository editor settings
 		Editor struct {
@@ -167,6 +168,7 @@ var (
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
 		AllowForkWithoutMaximumLimit:            true,
+		StreamArchives:                          true,
 
 		// Repository editor settings
 		Editor: struct {

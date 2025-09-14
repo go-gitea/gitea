@@ -307,6 +307,29 @@ func archiveDownload(ctx *context.APIContext) {
 		return
 	}
 
+	if setting.Repository.StreamArchives {
+
+		downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
+
+		// Add nix format link header so tarballs lock correctly:
+		// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
+		ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.%s?rev=%s>; rel="immutable"`,
+			ctx.Repo.Repository.APIURL(),
+			aReq.CommitID,
+			aReq.Type.String(),
+			aReq.CommitID,
+		))
+
+		ctx.SetServeHeaders(&context.ServeHeaderOptions{
+			Filename: downloadName,
+		})
+
+		if err := aReq.Stream(ctx, ctx.Resp); err != nil && !ctx.Written() {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
 	archiver, err := aReq.Await(ctx)
 	if err != nil {
 		ctx.APIErrorInternal(err)
