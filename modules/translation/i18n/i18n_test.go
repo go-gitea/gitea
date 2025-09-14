@@ -13,24 +13,23 @@ import (
 
 func TestLocaleStore(t *testing.T) {
 	testData1 := []byte(`
-.dot.name = Dot Name
-fmt = %[1]s %[2]s
+{
+".dot.name": "Dot Name",
+"fmt": "%[1]s %[2]s",
 
-[section]
-sub = Sub String
-mixed = test value; <span style="color: red\; background: none;">%s</span>
-`)
+"section.sub": "Sub String",
+"section.mixed": "test value; <span style=\"color: red; background: none;\">%s</span>"
+}`)
 
 	testData2 := []byte(`
-fmt = %[2]s %[1]s
-
-[section]
-sub = Changed Sub String
-`)
+{
+	"fmt": "%[2]s %[1]s",
+	"section.sub": "Changed Sub String"
+}`)
 
 	ls := NewLocaleStore()
-	assert.NoError(t, ls.AddLocaleByIni("lang1", "Lang1", testData1, nil))
-	assert.NoError(t, ls.AddLocaleByIni("lang2", "Lang2", testData2, nil))
+	assert.NoError(t, ls.AddLocaleByJSON("lang1", "Lang1", testData1, nil))
+	assert.NoError(t, ls.AddLocaleByJSON("lang2", "Lang2", testData2, nil))
 	ls.SetDefaultLang("lang1")
 
 	lang1, _ := ls.Locale("lang1")
@@ -66,17 +65,21 @@ sub = Changed Sub String
 
 func TestLocaleStoreMoreSource(t *testing.T) {
 	testData1 := []byte(`
-a=11
-b=12
+{
+	"a": "11",
+	"b": "12"
+}
 `)
 
 	testData2 := []byte(`
-b=21
-c=22
+{
+	"b": "21",
+	"c": "22"
+}
 `)
 
 	ls := NewLocaleStore()
-	assert.NoError(t, ls.AddLocaleByIni("lang1", "Lang1", testData1, testData2))
+	assert.NoError(t, ls.AddLocaleByJSON("lang1", "Lang1", testData1, testData2))
 	lang1, _ := ls.Locale("lang1")
 	assert.Equal(t, "11", lang1.TrString("a"))
 	assert.Equal(t, "21", lang1.TrString("b"))
@@ -117,7 +120,7 @@ func (e *errorPointerReceiver) Error() string {
 
 func TestLocaleWithTemplate(t *testing.T) {
 	ls := NewLocaleStore()
-	assert.NoError(t, ls.AddLocaleByIni("lang1", "Lang1", []byte(`key=<a>%s</a>`), nil))
+	assert.NoError(t, ls.AddLocaleByJSON("lang1", "Lang1", []byte(`{"key":"<a>%s</a>"}`), nil))
 	lang1, _ := ls.Locale("lang1")
 
 	tmpl := template.New("test").Funcs(template.FuncMap{"tr": lang1.TrHTML})
@@ -180,7 +183,7 @@ func TestLocaleStoreQuirks(t *testing.T) {
 
 	for _, testData := range testDataList {
 		ls := NewLocaleStore()
-		err := ls.AddLocaleByIni("lang1", "Lang1", []byte("a="+testData.in), nil)
+		err := ls.AddLocaleByJSON("lang1", "Lang1", []byte(`{"a":"`+testData.in+`"}`), nil)
 		lang1, _ := ls.Locale("lang1")
 		assert.NoError(t, err, testData.hint)
 		assert.Equal(t, testData.out, lang1.TrString("a"), testData.hint)

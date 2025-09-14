@@ -56,7 +56,7 @@ func Profile(ctx *context.Context) {
 
 // ProfilePost response for change user's profile
 func ProfilePost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("_settings")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
@@ -360,7 +360,7 @@ func Appearance(ctx *context.Context) {
 // UpdateUIThemePost is used to update users' specific theme
 func UpdateUIThemePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateThemeForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("_settings")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if ctx.HasError() {
@@ -390,7 +390,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 // UpdateUserLang update a user's language
 func UpdateUserLang(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateLanguageForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("_settings")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if form.Language != "" {

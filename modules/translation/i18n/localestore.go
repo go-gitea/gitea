@@ -4,13 +4,13 @@
 package i18n
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"slices"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 // This file implements the static LocaleStore that will not watch for changes
@@ -39,8 +39,8 @@ func NewLocaleStore() LocaleStore {
 	return &localeStore{localeMap: make(map[string]*locale), trKeyToIdxMap: make(map[string]int)}
 }
 
-// AddLocaleByIni adds locale by ini into the store
-func (store *localeStore) AddLocaleByIni(langName, langDesc string, source, moreSource []byte) error {
+// AddLocaleByJSON adds locale by JSON into the store
+func (store *localeStore) AddLocaleByJSON(langName, langDesc string, source, moreSource []byte) error {
 	if _, ok := store.localeMap[langName]; ok {
 		return errors.New("lang has already been added")
 	}
@@ -51,28 +51,46 @@ func (store *localeStore) AddLocaleByIni(langName, langDesc string, source, more
 	l := &locale{store: store, langName: langName, idxToMsgMap: make(map[int]string)}
 	store.localeMap[l.langName] = l
 
-	iniFile, err := setting.NewConfigProviderForLocale(source, moreSource)
-	if err != nil {
-		return fmt.Errorf("unable to load ini: %w", err)
-	}
-
-	for _, section := range iniFile.Sections() {
-		for _, key := range section.Keys() {
-			var trKey string
-			if section.Name() == "" || section.Name() == "DEFAULT" {
-				trKey = key.Name()
-			} else {
-				trKey = section.Name() + "." + key.Name()
-			}
-			idx, ok := store.trKeyToIdxMap[trKey]
-			if !ok {
-				idx = len(store.trKeyToIdxMap)
-				store.trKeyToIdxMap[trKey] = idx
-			}
-			l.idxToMsgMap[idx] = key.Value()
+	addFunc := func(source []byte) error {
+		if len(source) <= 0 {
+			return nil
 		}
+
+		values := make(map[string]any)
+		if err := json.Unmarshal(source, &values); err != nil {
+			return fmt.Errorf("unable to load json: %w", err)
+		}
+		for trKey, value := range values {
+			switch v := value.(type) {
+			case string:
+				idx, ok := store.trKeyToIdxMap[trKey]
+				if !ok {
+					idx = len(store.trKeyToIdxMap)
+					store.trKeyToIdxMap[trKey] = idx
+				}
+				l.idxToMsgMap[idx] = v
+			case map[string]any:
+				for key, val := range v {
+					idx, ok := store.trKeyToIdxMap[trKey+"."+key]
+					if !ok {
+						idx = len(store.trKeyToIdxMap)
+						store.trKeyToIdxMap[trKey+"."+key] = idx
+					}
+					l.idxToMsgMap[idx] = val.(string)
+				}
+			default:
+				return fmt.Errorf("unsupported value type %T for key %q", v, trKey)
+			}
+		}
+		return nil
 	}
 
+	if err := addFunc(source); err != nil {
+		return fmt.Errorf("unable to load json: %w", err)
+	}
+	if err := addFunc(moreSource); err != nil {
+		return fmt.Errorf("unable to load json: %w", err)
+	}
 	return nil
 }
 

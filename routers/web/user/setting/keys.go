@@ -45,7 +45,7 @@ func Keys(ctx *context.Context) {
 // KeysPost response for change user's SSH/GPG keys
 func KeysPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("_settings")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
