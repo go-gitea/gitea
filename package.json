@@ -101,7 +101,6 @@
     "eslint-plugin-wc": "3.0.1",
     "globals": "16.4.0",
     "happy-dom": "18.0.1",
-    "jiti": "2.5.1",
     "markdownlint-cli": "0.45.0",
     "material-icon-theme": "5.27.0",
     "nolyfill": "1.0.44",
