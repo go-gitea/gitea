@@ -67,7 +67,6 @@
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "4.5.0",
-    "@eslint/compat": "1.3.2",
     "@playwright/test": "1.55.0",
     "@stoplight/spectral-cli": "6.15.0",
     "@stylistic/eslint-plugin": "5.3.1",
