@@ -914,14 +914,32 @@ lockfile-check:
 		exit 1; \
 	fi
 
+LOCALE_DIR := options/locale
+LOCALE_FILES := $(wildcard $(LOCALE_DIR)/*.json)
+
+.PHONY: translation-check
+translation-check:
+	npm install -g jsonlint find-duplicated-property-keys
+	@echo "Checking JSON files in $(LOCALE_DIR)"
+	@for f in $(LOCALE_FILES); do \
+		echo "==> $$f"; \
+		if ! jsonlint -q $$f > /dev/null 2>&1; then \
+			echo "❌ Invalid JSON syntax: $$f"; \
+			exit 1; \
+		fi; \
+		if ! find-duplicated-property-keys -s $$f > /dev/null 2>&1; then \
+			echo "❌ Duplicate key found in: $$f"; \
+			exit 1; \
+		fi; \
+	done
+	@echo "✅ All JSON files passed"
+
 .PHONY: update-translations
 update-translations:
 	mkdir -p ./translations
 	cd ./translations && curl -L https://crowdin.com/download/project/gitea.zip > gitea.zip && unzip gitea.zip
 	rm ./translations/gitea.zip
-	$(SED_INPLACE) -e 's/="/=/g' -e 's/"$$//g' ./translations/*.ini
-	$(SED_INPLACE) -e 's/\\"/"/g' ./translations/*.ini
-	mv ./translations/*.ini ./options/locale/
+	mv ./translations/*.json ./options/locale/
 	rmdir ./translations
 
 .PHONY: generate-gitignore
