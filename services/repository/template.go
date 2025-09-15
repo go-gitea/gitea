@@ -78,6 +78,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		Owner:            owner,
 		OwnerName:        owner.Name,
 		Name:             opts.Name,
+		Subject:          opts.Subject,
 		LowerName:        strings.ToLower(opts.Name),
 		Description:      opts.Description,
 		DefaultBranch:    opts.DefaultBranch,

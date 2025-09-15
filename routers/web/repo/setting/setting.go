@@ -204,6 +204,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	// In case it's just a case change.
 	repo.Name = newRepoName
 	repo.LowerName = strings.ToLower(newRepoName)
+	repo.Subject = form.Subject
 	repo.Description = form.Description
 	repo.Website = form.Website
 	repo.IsTemplate = form.Template

@@ -192,6 +192,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		ID:                            repo.ID,
 		Owner:                         ToUserWithAccessMode(ctx, repo.Owner, permissionInRepo.AccessMode),
 		Name:                          repo.Name,
+		Subject:                       repo.GetSubject(),
 		FullName:                      repo.FullName(),
 		Description:                   repo.Description,
 		Private:                       repo.IsPrivate,

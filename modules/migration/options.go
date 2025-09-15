@@ -21,6 +21,7 @@ type MigrateOptions struct {
 	UID int `json:"uid" binding:"Required"`
 	// required: true
 	RepoName        string `json:"repo_name" binding:"Required"`
+	Subject         string `json:"subject"`
 	Mirror          bool   `json:"mirror"`
 	LFS             bool   `json:"lfs"`
 	LFSEndpoint     string `json:"lfs_endpoint"`

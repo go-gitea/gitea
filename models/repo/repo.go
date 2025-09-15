@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unicode"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
@@ -158,6 +159,7 @@ type Repository struct {
 	Owner               *user_model.User   `xorm:"-"`
 	LowerName           string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name                string             `xorm:"INDEX NOT NULL"`
+	Subject             string             `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	Description         string             `xorm:"TEXT"`
 	Website             string             `xorm:"VARCHAR(2048)"`
 	OriginalServiceType api.GitServiceType `xorm:"index"`
@@ -336,6 +338,19 @@ func (repo *Repository) AfterLoad() {
 	if repo.DefaultWikiBranch == "" {
 		repo.DefaultWikiBranch = setting.Repository.DefaultBranch
 	}
+	// Initialize DisplayName if empty (for backward compatibility)
+	if repo.Subject == "" {
+		repo.Subject = repo.Name
+	}
+}
+
+// GetSubject returns the subject for the repository.
+// If Subject is empty, it falls back to Name for backward compatibility.
+func (repo *Repository) GetSubject() string {
+	if repo.Subject != "" {
+		return repo.Subject
+	}
+	return repo.Name
 }
 
 // LoadAttributes loads attributes of the repository.
@@ -1001,4 +1016,45 @@ func UpdateRepositoryOwnerName(ctx context.Context, oldUserName, newUserName str
 		return fmt.Errorf("change repo owner name: %w", err)
 	}
 	return nil
+}
+
+// GenerateRepoNameFromSubject generates a URL-safe repository name from a subject
+// It converts spaces to hyphens, removes special characters, and ensures the result is valid
+func GenerateRepoNameFromSubject(subject string) string {
+	if subject == "" {
+		return ""
+	}
+
+	// Convert to lowercase and replace spaces with hyphens
+	name := strings.ToLower(subject)
+	name = strings.ReplaceAll(name, " ", "-")
+
+	// Remove or replace special characters, keeping only alphanumeric, hyphens, dots, and underscores
+	var result strings.Builder
+	for _, r := range name {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' || r == '.' || r == '_' {
+			result.WriteRune(r)
+		}
+	}
+
+	name = result.String()
+
+	// Remove leading/trailing hyphens and dots
+	name = strings.Trim(name, "-.")
+
+	// Collapse multiple consecutive hyphens
+	for strings.Contains(name, "--") {
+		name = strings.ReplaceAll(name, "--", "-")
+	}
+
+	// Ensure it's not empty and not too long
+	if name == "" {
+		name = "repository"
+	}
+	if len(name) > 100 {
+		name = name[:100]
+		name = strings.TrimRight(name, "-.")
+	}
+
+	return name
 }

@@ -249,8 +249,18 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		return
 	}
 
+	// Auto-generate repository name from subject if subject is provided
+	// and repository name is empty or matches the generated name
+	if opt.Subject != "" {
+		generatedName := repo_model.GenerateRepoNameFromSubject(opt.Subject)
+		if opt.Name == "" || opt.Name == generatedName {
+			opt.Name = generatedName
+		}
+	}
+
 	repo, err := repo_service.CreateRepository(ctx, ctx.Doer, owner, repo_service.CreateRepoOptions{
 		Name:             opt.Name,
+		Subject:          opt.Subject,
 		Description:      opt.Description,
 		IssueLabels:      opt.IssueLabels,
 		Gitignores:       opt.Gitignores,
@@ -364,8 +374,18 @@ func Generate(ctx *context.APIContext) {
 		return
 	}
 
+	// Auto-generate repository name from subject if subject is provided
+	// and repository name is empty or matches the generated name
+	if form.Subject != "" {
+		generatedName := repo_model.GenerateRepoNameFromSubject(form.Subject)
+		if form.Name == "" || form.Name == generatedName {
+			form.Name = generatedName
+		}
+	}
+
 	opts := repo_service.GenerateRepoOptions{
 		Name:            form.Name,
+		Subject:         form.Subject,
 		DefaultBranch:   form.DefaultBranch,
 		Description:     form.Description,
 		Private:         form.Private || setting.Repository.ForcePrivate,
@@ -689,6 +709,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	// Update the name in the repo object for the response
 	repo.Name = newRepoName
 	repo.LowerName = strings.ToLower(newRepoName)
+
+	if opts.Subject != nil {
+		repo.Subject = *opts.Subject
+	}
 
 	if opts.Description != nil {
 		repo.Description = *opts.Description
