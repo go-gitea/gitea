@@ -1,7 +1,7 @@
 {
-  "_home": "Főoldal",
+  "home_title": "Főoldal",
   "dashboard": "Műszerfal",
-  "_explore": "Felfedezés",
+  "explore_title": "Felfedezés",
   "help": "Súgó",
   "sign_in": "Bejelentkezés",
   "sign_in_or": "vagy",
@@ -41,7 +41,7 @@
   "manage_org": "Szervezetek kezelése",
   "admin_panel": "Rendszergazdai felület",
   "account_settings": "Fiók beállítások",
-  "_settings": "Beállítások",
+  "settings_title": "Beállítások",
   "your_profile": "Profil",
   "your_starred": "Csillagozott",
   "your_settings": "Beállítások",

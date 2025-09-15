@@ -1,7 +1,7 @@
 {
-  "_home": "홈",
+  "home_title": "홈",
   "dashboard": "대시보드",
-  "_explore": "탐색",
+  "explore_title": "탐색",
   "help": "도움말",
   "sign_in": "로그인",
   "sign_in_or": "혹은",
@@ -38,7 +38,7 @@
   "manage_org": "조직 관리",
   "admin_panel": "사이트 관리",
   "account_settings": "계정 설정",
-  "_settings": "설정",
+  "settings_title": "설정",
   "your_profile": "프로필",
   "your_starred": "즐겨찾기",
   "your_settings": "설정",

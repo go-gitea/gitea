@@ -1,7 +1,7 @@
 {
-  "_home": "Startsida",
+  "home_title": "Startsida",
   "dashboard": "Instrumentpanel",
-  "_explore": "Utforska",
+  "explore_title": "Utforska",
   "help": "Hjälp",
   "sign_in": "Logga in",
   "sign_in_or": "eller",
@@ -42,7 +42,7 @@
   "manage_org": "Hantera organisationer",
   "admin_panel": "Sidadministration",
   "account_settings": "Kontoinställningar",
-  "_settings": "inställningar",
+  "settings_title": "inställningar",
   "your_profile": "Profil",
   "your_starred": "Stjärnmärkt",
   "your_settings": "Inställningar",

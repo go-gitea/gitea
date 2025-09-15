@@ -1,7 +1,7 @@
 {
-  "_home": "首頁",
+  "home_title": "首頁",
   "dashboard": "控制面版",
-  "_explore": "探索",
+  "explore_title": "探索",
   "help": "說明",
   "sign_in": "登入",
   "sign_in_or": "或",
@@ -26,7 +26,7 @@
   "new_org": "新增組織",
   "manage_org": "管理組織",
   "account_settings": "帳號設定",
-  "_settings": "設定",
+  "settings_title": "設定",
   "your_settings": "組織設定",
   "all": "所有",
   "sources": "來源",
