@@ -131,7 +131,7 @@ type CreateRepoOption struct {
 	// unique: true
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	// Subject of the repository to create
-	Subject     string `json:"subject" binding:"MaxSize(255)"`
+	Subject string `json:"subject" binding:"MaxSize(255)"`
 	// Description of the repository to create
 	Description string `json:"description" binding:"MaxSize(2048)"`
 	// Whether the repository is private
@@ -165,7 +165,7 @@ type EditRepoOption struct {
 	// unique: true
 	Name *string `json:"name,omitempty" binding:"OmitEmpty;AlphaDashDot;MaxSize(100);"`
 	// subject of the repository
-	Subject     *string `json:"subject,omitempty" binding:"MaxSize(255)"`
+	Subject *string `json:"subject,omitempty" binding:"MaxSize(255)"`
 	// a short description of the repository.
 	Description *string `json:"description,omitempty" binding:"MaxSize(2048)"`
 	// a URL with more information about the repository.
@@ -245,7 +245,7 @@ type GenerateRepoOption struct {
 	// unique: true
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	// Subject of the repository to create
-	Subject     string `json:"subject" binding:"MaxSize(255)"`
+	Subject string `json:"subject" binding:"MaxSize(255)"`
 	// Default branch of the new repository
 	DefaultBranch string `json:"default_branch"`
 	// Description of the repository to create
@@ -368,7 +368,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	// Subject of the repository to migrate
-	Subject  string `json:"subject" binding:"MaxSize(255)"`
+	Subject string `json:"subject" binding:"MaxSize(255)"`
 
 	// enum: git,github,gitea,gitlab,gogs,onedev,gitbucket,codebase,codecommit
 	Service      string `json:"service"`

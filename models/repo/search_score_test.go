@@ -68,14 +68,10 @@ func TestBuildRelevanceScoreSQL(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// We can't directly test the private function, but we can test the behavior
-			// by checking that the SQL contains the expected patterns
-			if tc.keyword == "" {
-				// For empty keywords, relevance scoring should not be applied
-				assert.True(t, true, "Empty keyword test passed")
-			} else {
-				// For non-empty keywords, relevance scoring should be applied
-				assert.True(t, true, "Non-empty keyword test passed")
-			}
+			// by checking that the SQL contains the expected patterns.
+			// For empty keywords, relevance scoring should not be applied.
+			// For non-empty keywords, relevance scoring should be applied.
+			// Test passes by reaching this point without error for both cases.
 		})
 	}
 }
@@ -226,7 +222,7 @@ func TestScoreSortingIntegration(t *testing.T) {
 
 	repos, count, err := repo_model.SearchRepository(context.Background(), opts)
 	require.NoError(t, err, "SearchRepository should not return an error")
-	assert.Greater(t, count, int64(0), "Should find some repositories")
+	assert.Positive(t, count, "Should find some repositories")
 	assert.NotEmpty(t, repos, "Should return some repositories")
 
 	// Test reverse score sorting
@@ -236,7 +232,7 @@ func TestScoreSortingIntegration(t *testing.T) {
 	reposReverse, countReverse, err := repo_model.SearchRepository(context.Background(), optsReverse)
 	require.NoError(t, err, "SearchRepository with reversescore should not return an error")
 	assert.Equal(t, count, countReverse, "Both sorting orders should return same count")
-	assert.Equal(t, len(repos), len(reposReverse), "Both sorting orders should return same number of repos")
+	assert.Len(t, reposReverse, len(repos), "Both sorting orders should return same number of repos")
 }
 
 func TestFallbackBehaviorWithoutKeyword(t *testing.T) {
@@ -257,7 +253,7 @@ func TestFallbackBehaviorWithoutKeyword(t *testing.T) {
 
 	repos, count, err := repo_model.SearchRepository(context.Background(), opts)
 	require.NoError(t, err, "SearchRepository without keyword should not return an error")
-	assert.Greater(t, count, int64(0), "Should find some repositories")
+	assert.Positive(t, count, "Should find some repositories")
 	assert.NotEmpty(t, repos, "Should return some repositories")
 
 	// Verify that repositories are sorted (we can't easily verify the exact order without

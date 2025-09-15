@@ -151,14 +151,14 @@ func TestKeywordSearchConditions(t *testing.T) {
 				Private:     true,
 			}
 
-			repos, count, err := repo_model.SearchRepository(context.Background(), opts)
+			_, count, err := repo_model.SearchRepository(context.Background(), opts)
 			require.NoError(t, err, "SearchRepository should not return an error for %s", tc.description)
 
 			// For non-empty keywords, we expect the search to complete successfully
 			// (results may be empty if no matches, but no errors should occur)
 			if tc.keyword != "" {
 				assert.GreaterOrEqual(t, count, int64(0), "Count should be non-negative")
-				assert.GreaterOrEqual(t, len(repos), 0, "Repository list should be non-negative length")
+				// Repository list length is always non-negative by definition, no need to assert
 			}
 		})
 	}
@@ -196,7 +196,7 @@ func TestDefaultOrderingWithKeywords(t *testing.T) {
 
 	reposNoKeyword, countNoKeyword, err := repo_model.SearchRepository(context.Background(), optsWithoutKeyword)
 	require.NoError(t, err, "SearchRepository without keyword should not return an error")
-	assert.Greater(t, countNoKeyword, int64(0), "Should find repositories without keyword")
+	assert.Positive(t, countNoKeyword, "Should find repositories without keyword")
 	assert.NotEmpty(t, reposNoKeyword, "Should return repositories without keyword")
 }
 
@@ -270,12 +270,12 @@ func TestSearchWithOrgRepoPattern(t *testing.T) {
 		Private:     true,
 	}
 
-	repos, count, err := repo_model.SearchRepository(context.Background(), opts)
+	_, count, err := repo_model.SearchRepository(context.Background(), opts)
 	require.NoError(t, err, "SearchRepository with org/repo pattern should not return an error")
 
 	// The search should complete successfully regardless of whether matches are found
 	assert.GreaterOrEqual(t, count, int64(0), "Count should be non-negative")
-	assert.GreaterOrEqual(t, len(repos), 0, "Repository list should be non-negative length")
+	// Repository list length is always non-negative by definition, no need to assert
 }
 
 func TestSearchWithIncludeDescription(t *testing.T) {
@@ -293,10 +293,10 @@ func TestSearchWithIncludeDescription(t *testing.T) {
 		Private:            true,
 	}
 
-	repos, count, err := repo_model.SearchRepository(context.Background(), opts)
+	_, count, err := repo_model.SearchRepository(context.Background(), opts)
 	require.NoError(t, err, "SearchRepository with description inclusion should not return an error")
 
 	// Verify that search completes successfully
 	assert.GreaterOrEqual(t, count, int64(0), "Count should be non-negative")
-	assert.GreaterOrEqual(t, len(repos), 0, "Repository list should be non-negative length")
+	// Repository list length is always non-negative by definition, no need to assert
 }

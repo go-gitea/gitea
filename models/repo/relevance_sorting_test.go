@@ -60,16 +60,16 @@ func TestRelevanceSortingOrder(t *testing.T) {
 		for i := 1; i < len(scoreRepos) && scoreRepos[i].Score == 2; i++ {
 			prefixCount++
 		}
-		assert.Greater(t, prefixCount, 0, "Should have prefix matches after exact matches")
+		assert.Positive(t, prefixCount, "Should have prefix matches after exact matches")
 
 		// Verify substring matches come third
 		substringCount := 0
-		for i := 0; i < len(scoreRepos); i++ {
+		for i := range scoreRepos {
 			if scoreRepos[i].Score == 3 {
 				substringCount++
 			}
 		}
-		assert.Greater(t, substringCount, 0, "Should have substring matches")
+		assert.Positive(t, substringCount, "Should have substring matches")
 
 		// Verify no matches come last
 		lastRepo := scoreRepos[len(scoreRepos)-1]
@@ -250,7 +250,7 @@ func TestSearchOptionsWithScoreSorting(t *testing.T) {
 			require.NoError(t, err, "SearchRepository should not return an error")
 
 			if tc.opts.Keyword != "" {
-				assert.Greater(t, count, int64(0), "Should find repositories with keyword search")
+				assert.Positive(t, count, "Should find repositories with keyword search")
 			}
 
 			// Verify that we get valid repository results
@@ -279,21 +279,20 @@ func sortByScore(repos []MockRepository, ascending bool) {
 				return strings.ToLower(displayI) < strings.ToLower(displayJ)
 			}
 			return repos[i].Score < repos[j].Score
-		} else {
-			if repos[i].Score == repos[j].Score {
-				// Secondary sort by display name alphabetically
-				displayI := repos[i].Subject
-				if displayI == "" {
-					displayI = repos[i].Name
-				}
-				displayJ := repos[j].Subject
-				if displayJ == "" {
-					displayJ = repos[j].Name
-				}
-				return strings.ToLower(displayI) < strings.ToLower(displayJ)
-			}
-			return repos[i].Score > repos[j].Score
 		}
+		if repos[i].Score == repos[j].Score {
+			// Secondary sort by display name alphabetically
+			displayI := repos[i].Subject
+			if displayI == "" {
+				displayI = repos[i].Name
+			}
+			displayJ := repos[j].Subject
+			if displayJ == "" {
+				displayJ = repos[j].Name
+			}
+			return strings.ToLower(displayI) < strings.ToLower(displayJ)
+		}
+		return repos[i].Score > repos[j].Score
 	})
 }
 

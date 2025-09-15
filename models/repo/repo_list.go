@@ -616,11 +616,11 @@ func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 	if opts.Keyword != "" && strings.Contains(string(orderBy), "relevance_score") {
 		// Create relevance scoring SQL for both subject and name fields
 		relevanceSQL := buildRelevanceScoreSQL(opts.Keyword)
-		orderBy = db.SearchOrderBy(strings.Replace(string(orderBy), "relevance_score", relevanceSQL, -1))
+		orderBy = db.SearchOrderBy(strings.ReplaceAll(string(orderBy), "relevance_score", relevanceSQL))
 
 		// Add keyword arguments for relevance scoring
-		keywords := strings.Split(opts.Keyword, ",")
-		for _, keyword := range keywords {
+		keywords := strings.SplitSeq(opts.Keyword, ",")
+		for keyword := range keywords {
 			keyword = strings.TrimSpace(strings.ToLower(keyword))
 			if keyword != "" {
 				// Add arguments for exact match, prefix match, and substring match
