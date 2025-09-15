@@ -10,6 +10,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/context"
@@ -46,10 +47,58 @@ type CreateRepoForm struct {
 	ObjectFormatName string
 }
 
+// ValidateGlobalUniqueness validates global uniqueness for repository name and subject
+func (f *CreateRepoForm) ValidateGlobalUniqueness(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+
+	// Check global name uniqueness
+	if f.RepoName != "" {
+		isNameUnique, err := repo_model.IsRepositoryNameGloballyUnique(ctx, f.RepoName)
+		if err != nil {
+			errs = append(errs, binding.Error{
+				FieldNames:     []string{"RepoName"},
+				Classification: "GlobalUniquenessError",
+				Message:        "Failed to validate repository name uniqueness",
+			})
+		} else if !isNameUnique {
+			errs = append(errs, binding.Error{
+				FieldNames:     []string{"RepoName"},
+				Classification: "GlobalUniquenessError",
+				Message:        ctx.Locale.TrString("repo.form.name_globally_taken"),
+			})
+		}
+	}
+
+	// Check global subject uniqueness
+	if f.Subject != "" {
+		isSubjectUnique, err := repo_model.IsRepositorySubjectGloballyUnique(ctx, f.Subject)
+		if err != nil {
+			errs = append(errs, binding.Error{
+				FieldNames:     []string{"Subject"},
+				Classification: "GlobalUniquenessError",
+				Message:        "Failed to validate repository subject uniqueness",
+			})
+		} else if !isSubjectUnique {
+			errs = append(errs, binding.Error{
+				FieldNames:     []string{"Subject"},
+				Classification: "GlobalUniquenessError",
+				Message:        ctx.Locale.TrString("repo.form.subject_globally_taken"),
+			})
+		}
+	}
+
+	return errs
+}
+
 // Validate validates the fields
 func (f *CreateRepoForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	errs = middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+
+	// Add global uniqueness validation
+	errs = f.ValidateGlobalUniqueness(req, errs)
+
+	return errs
 }
 
 // MigrateRepoForm form for migrating repository

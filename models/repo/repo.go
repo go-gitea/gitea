@@ -911,6 +911,30 @@ func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName st
 	})
 }
 
+// IsRepositoryNameGloballyUnique checks if a repository name is unique across all users
+func IsRepositoryNameGloballyUnique(ctx context.Context, name string) (bool, error) {
+	name = strings.ToLower(name)
+	count, err := db.GetEngine(ctx).Where("lower_name = ?", name).Count(&Repository{})
+	if err != nil {
+		return false, err
+	}
+	return count == 0, nil
+}
+
+// IsRepositorySubjectGloballyUnique checks if a repository subject is unique across all users (case-insensitive)
+func IsRepositorySubjectGloballyUnique(ctx context.Context, subject string) (bool, error) {
+	if subject == "" {
+		return true, nil // Empty subjects are allowed
+	}
+
+	subject = strings.ToLower(strings.TrimSpace(subject))
+	count, err := db.GetEngine(ctx).Where("LOWER(subject) = ?", subject).Count(&Repository{})
+	if err != nil {
+		return false, err
+	}
+	return count == 0, nil
+}
+
 // GetTemplateRepo populates repo.TemplateRepo for a generated repository and
 // returns an error on failure (NOTE: no error is returned for
 // non-generated repositories, and TemplateRepo will be left untouched)

@@ -183,6 +183,12 @@ func Create(ctx *context.Context) {
 
 func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl templates.TplName, form any) {
 	switch {
+	case repo_model.IsErrRepoNameGloballyTaken(err):
+		ctx.Data["Err_RepoName"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.form.name_globally_taken"), tpl, form)
+	case repo_model.IsErrRepoSubjectGloballyTaken(err):
+		ctx.Data["Err_Subject"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.form.subject_globally_taken"), tpl, form)
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
@@ -244,6 +250,12 @@ func CreatePost(ctx *context.Context) {
 		if form.RepoName == "" || form.RepoName == generatedName {
 			form.RepoName = generatedName
 		}
+	}
+
+	// Check global uniqueness for repository name and subject
+	if err := repo_model.CheckCreateRepositoryGlobalUnique(ctx, ctx.Doer, ctxUser, form.RepoName, form.Subject, false); err != nil {
+		handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
+		return
 	}
 
 	var repo *repo_model.Repository
