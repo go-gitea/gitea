@@ -12,6 +12,10 @@ func (s SearchOrderBy) String() string {
 
 // Strings for sorting result
 const (
+	SearchOrderBySubjectAlphabetically SearchOrderBy = "CASE WHEN subject != '' THEN subject ELSE name END ASC"
+	SearchOrderBySubjectReverse        SearchOrderBy = "CASE WHEN subject != '' THEN subject ELSE name END DESC"
+	SearchOrderByScore                 SearchOrderBy = "relevance_score ASC, CASE WHEN subject != '' THEN subject ELSE name END ASC"
+	SearchOrderByScoreReverse          SearchOrderBy = "relevance_score DESC, CASE WHEN subject != '' THEN subject ELSE name END ASC"
 	SearchOrderByAlphabetically        SearchOrderBy = "name ASC"
 	SearchOrderByAlphabeticallyReverse SearchOrderBy = "name DESC"
 	SearchOrderByLeastUpdated          SearchOrderBy = "updated_unix ASC"

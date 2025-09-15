@@ -466,6 +466,8 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 			likes := builder.NewCond()
 			for v := range strings.SplitSeq(opts.Keyword, ",") {
 				likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
+				// Also search in subject field
+				likes = likes.Or(builder.Like{"LOWER(subject)", strings.ToLower(v)})
 
 				// If the string looks like "org/repo", match against that pattern too
 				if opts.TeamID == 0 && strings.Count(opts.Keyword, "/") == 1 {
@@ -473,6 +475,8 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 					ownerName := pieces[0]
 					repoName := pieces[1]
 					likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Like{"lower_name", strings.ToLower(repoName)}))
+					// Also check subject field for repo name part
+					likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Like{"LOWER(subject)", strings.ToLower(repoName)}))
 				}
 
 				if opts.IncludeDescription {
@@ -598,10 +602,34 @@ func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 
 	orderBy := opts.OrderBy
 	if len(orderBy) == 0 {
-		orderBy = db.SearchOrderByAlphabetically
+		// Use score ordering when keyword search is provided, otherwise alphabetical
+		if opts.Keyword != "" {
+			orderBy = OrderByMap["desc"]["score"]
+		} else {
+			orderBy = db.SearchOrderByAlphabetically
+		}
 	}
 
 	args := make([]any, 0)
+
+	// Add relevance scoring when keyword search is used and relevance ordering is requested
+	if opts.Keyword != "" && strings.Contains(string(orderBy), "relevance_score") {
+		// Create relevance scoring SQL for both subject and name fields
+		relevanceSQL := buildRelevanceScoreSQL(opts.Keyword)
+		orderBy = db.SearchOrderBy(strings.Replace(string(orderBy), "relevance_score", relevanceSQL, -1))
+
+		// Add keyword arguments for relevance scoring
+		keywords := strings.Split(opts.Keyword, ",")
+		for _, keyword := range keywords {
+			keyword = strings.TrimSpace(strings.ToLower(keyword))
+			if keyword != "" {
+				// Add arguments for exact match, prefix match, and substring match
+				args = append(args, keyword, keyword+"%", "%"+keyword+"%")
+				args = append(args, keyword, keyword+"%", "%"+keyword+"%")
+			}
+		}
+	}
+
 	if opts.PriorityOwnerID > 0 {
 		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = ? THEN 0 ELSE owner_id END, %s", orderBy))
 		args = append(args, opts.PriorityOwnerID)
@@ -720,6 +748,37 @@ func SearchRepositoryIDs(ctx context.Context, opts SearchRepoOptions) ([]int64, 
 	}
 
 	return ids, count, err
+}
+
+// buildRelevanceScoreSQL creates a SQL expression for relevance scoring
+// It prioritizes exact matches, then prefix matches, then substring matches
+func buildRelevanceScoreSQL(keyword string) string {
+	keywords := strings.Split(keyword, ",")
+	if len(keywords) == 0 {
+		return "0"
+	}
+
+	var scoreParts []string
+
+	for range keywords {
+		// For each keyword, create scoring logic that considers both subject and name
+		// Priority: 1=exact, 2=prefix, 3=substring, 4=no match
+		scoreSQL := `(
+			CASE
+				WHEN LOWER(CASE WHEN subject != '' THEN subject ELSE name END) = ? THEN 1
+				WHEN LOWER(CASE WHEN subject != '' THEN subject ELSE name END) LIKE ? THEN 2
+				WHEN LOWER(CASE WHEN subject != '' THEN subject ELSE name END) LIKE ? THEN 3
+				WHEN LOWER(name) = ? THEN 1
+				WHEN LOWER(name) LIKE ? THEN 2
+				WHEN LOWER(name) LIKE ? THEN 3
+				ELSE 4
+			END
+		)`
+		scoreParts = append(scoreParts, scoreSQL)
+	}
+
+	// Sum all keyword scores and return the minimum (best) score
+	return fmt.Sprintf("(%s)", strings.Join(scoreParts, " + "))
 }
 
 // AccessibleRepoIDsQuery queries accessible repository ids. Usable as a subquery wherever repo ids need to be filtered.

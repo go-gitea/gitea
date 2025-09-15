@@ -40,6 +40,8 @@
 				<label class="{{if eq .SortType "oldest"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "oldest"}}checked{{end}} value="oldest"> {{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</label>
 				<label class="{{if eq .SortType "alphabetically"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "alphabetically"}}checked{{end}} value="alphabetically"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</label>
 				<label class="{{if eq .SortType "reversealphabetically"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "reversealphabetically"}}checked{{end}} value="reversealphabetically"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</label>
+				<label class="{{if eq .SortType "score"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "score"}}checked{{end}} value="score"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.score"}}</label>
+				<label class="{{if eq .SortType "reversescore"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "reversescore"}}checked{{end}} value="reversescore"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_score"}}</label>
 				<label class="{{if eq .SortType "recentupdate"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "recentupdate"}}checked{{end}} value="recentupdate"> {{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</label>
 				<label class="{{if eq .SortType "leastupdate"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "leastupdate"}}checked{{end}} value="leastupdate"> {{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</label>
 				{{if not .DisableStars}}
