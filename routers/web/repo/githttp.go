@@ -316,7 +316,7 @@ func dummyInfoRefs(ctx *context.Context) {
 			return
 		}
 
-		refs, _, err := gitcmd.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &gitcmd.RunOpts{Dir: tmpDir})
+		refs, _, err := gitcmd.New("receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &gitcmd.RunOpts{Dir: tmpDir})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -396,10 +396,10 @@ var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9
 
 func prepareGitCmdWithAllowedService(service string) (*gitcmd.Command, error) {
 	if service == "receive-pack" {
-		return gitcmd.NewCommand("receive-pack"), nil
+		return gitcmd.New("receive-pack"), nil
 	}
 	if service == "upload-pack" {
-		return gitcmd.NewCommand("upload-pack"), nil
+		return gitcmd.New("upload-pack"), nil
 	}
 
 	return nil, fmt.Errorf("service %q is not allowed", service)
@@ -489,7 +489,7 @@ func getServiceType(ctx *context.Context) string {
 }
 
 func updateServerInfo(ctx gocontext.Context, dir string) []byte {
-	out, _, err := gitcmd.NewCommand("update-server-info").RunStdBytes(ctx, &gitcmd.RunOpts{Dir: dir})
+	out, _, err := gitcmd.New("update-server-info").RunStdBytes(ctx, &gitcmd.RunOpts{Dir: dir})
 	if err != nil {
 		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
 	}

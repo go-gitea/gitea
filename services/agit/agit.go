@@ -199,7 +199,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		if !forcePush.Value() {
-			output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
+			output, _, err := gitcmd.New("rev-list", "--max-count=1").
 				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
 				RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
 			if err != nil {

@@ -23,7 +23,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 		page = 1
 	}
 
-	graphCmd := gitcmd.NewCommand("log", "--graph", "--date-order", "--decorate=full")
+	graphCmd := gitcmd.New("log", "--graph", "--date-order", "--decorate=full")
 
 	if hidePRRefs {
 		graphCmd.AddArguments("--exclude=" + git.PullPrefix + "*")

@@ -142,7 +142,7 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 		}
 	}()
 
-	cmd := gitcmd.NewCommand("blame", "--porcelain")
+	cmd := gitcmd.New("blame", "--porcelain")
 
 	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
 		ignoreRevsFileName, ignoreRevsFileCleanup, err = tryCreateBlameIgnoreRevsFile(commit)

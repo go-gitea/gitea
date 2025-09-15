@@ -295,12 +295,12 @@ func TestCantMergeUnrelated(t *testing.T) {
 		})
 		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
-		err := gitcmd.NewCommand("read-tree", "--empty").Run(t.Context(), &gitcmd.RunOpts{Dir: path})
+		err := gitcmd.New("read-tree", "--empty").Run(t.Context(), &gitcmd.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
 		stdin := strings.NewReader("Unrelated File")
 		var stdout strings.Builder
-		err = gitcmd.NewCommand("hash-object", "-w", "--stdin").Run(t.Context(), &gitcmd.RunOpts{
+		err = gitcmd.New("hash-object", "-w", "--stdin").Run(t.Context(), &gitcmd.RunOpts{
 			Dir:    path,
 			Stdin:  stdin,
 			Stdout: &stdout,
@@ -309,10 +309,10 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		sha := strings.TrimSpace(stdout.String())
 
-		_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments("100644", sha, "somewher-over-the-rainbow").RunStdString(t.Context(), &gitcmd.RunOpts{Dir: path})
+		_, _, err = gitcmd.New("update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments("100644", sha, "somewher-over-the-rainbow").RunStdString(t.Context(), &gitcmd.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
-		treeSha, _, err := gitcmd.NewCommand("write-tree").RunStdString(t.Context(), &gitcmd.RunOpts{Dir: path})
+		treeSha, _, err := gitcmd.New("write-tree").RunStdString(t.Context(), &gitcmd.RunOpts{Dir: path})
 		assert.NoError(t, err)
 		treeSha = strings.TrimSpace(treeSha)
 
@@ -332,7 +332,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		_, _ = messageBytes.WriteString("\n")
 
 		stdout.Reset()
-		err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSha).
+		err = gitcmd.New("commit-tree").AddDynamicArguments(treeSha).
 			Run(t.Context(), &gitcmd.RunOpts{
 				Env:    env,
 				Dir:    path,
@@ -342,7 +342,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout.String())
 
-		_, _, err = gitcmd.NewCommand("branch", "unrelated").AddDynamicArguments(commitSha).RunStdString(t.Context(), &gitcmd.RunOpts{Dir: path})
+		_, _, err = gitcmd.New("branch", "unrelated").AddDynamicArguments(commitSha).RunStdString(t.Context(), &gitcmd.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
@@ -926,7 +926,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 
 		stderrBuf := &bytes.Buffer{}
 
-		err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
+		err = gitcmd.New("push", "origin", "HEAD:refs/for/master", "-o").
 			AddDynamicArguments(`topic=test/head2`).
 			AddArguments("-o").
 			AddDynamicArguments(`title="create a test pull request with agit"`).

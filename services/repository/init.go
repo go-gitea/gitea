@@ -33,13 +33,13 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	committerName := sig.Name
 	committerEmail := sig.Email
 
-	if stdout, _, err := gitcmd.NewCommand("add", "--all").
+	if stdout, _, err := gitcmd.New("add", "--all").
 		RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpPath}); err != nil {
 		log.Error("git add --all failed: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git add --all: %w", err)
 	}
 
-	cmd := gitcmd.NewCommand("commit", "--message=Initial commit").
+	cmd := gitcmd.New("commit", "--message=Initial commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email)
 
 	sign, key, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
@@ -73,7 +73,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		defaultBranch = setting.Repository.DefaultBranch
 	}
 
-	if stdout, _, err := gitcmd.NewCommand("push", "origin").AddDynamicArguments("HEAD:"+defaultBranch).
+	if stdout, _, err := gitcmd.New("push", "origin").AddDynamicArguments("HEAD:"+defaultBranch).
 		RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpPath, Env: repo_module.InternalPushingEnvironment(u, repo)}); err != nil {
 		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git push: %w", err)

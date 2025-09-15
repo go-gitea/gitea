@@ -1132,7 +1132,7 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 		return nil, nil, nil, err
 	}
 
-	cmdDiff := gitcmd.NewCommand().
+	cmdDiff := gitcmd.New().
 		AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
 		AddArguments(opts.WhitespaceBehavior...)
 

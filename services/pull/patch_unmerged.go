@@ -72,7 +72,7 @@ func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan
 	}()
 
 	stderr := &strings.Builder{}
-	err = gitcmd.NewCommand("ls-files", "-u", "-z").
+	err = gitcmd.New("ls-files", "-u", "-z").
 		Run(ctx, &gitcmd.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: lsFilesWriter,

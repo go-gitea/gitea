@@ -70,9 +70,9 @@ func (repo *Repository) HashObject(reader io.Reader) (ObjectID, error) {
 func (repo *Repository) hashObject(reader io.Reader, save bool) (string, error) {
 	var cmd *gitcmd.Command
 	if save {
-		cmd = gitcmd.NewCommand("hash-object", "-w", "--stdin")
+		cmd = gitcmd.New("hash-object", "-w", "--stdin")
 	} else {
-		cmd = gitcmd.NewCommand("hash-object", "--stdin")
+		cmd = gitcmd.New("hash-object", "--stdin")
 	}
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)

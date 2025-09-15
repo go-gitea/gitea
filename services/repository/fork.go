@@ -147,7 +147,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 
 	// 3 - Clone the repository
-	cloneCmd := gitcmd.NewCommand("clone", "--bare")
+	cloneCmd := gitcmd.New("clone", "--bare")
 	if opts.SingleBranch != "" {
 		cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(opts.SingleBranch)
 	}

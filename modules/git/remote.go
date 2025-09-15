@@ -17,9 +17,9 @@ import (
 func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (string, error) {
 	var cmd *gitcmd.Command
 	if DefaultFeatures().CheckVersionAtLeast("2.7") {
-		cmd = gitcmd.NewCommand("remote", "get-url").AddDynamicArguments(remoteName)
+		cmd = gitcmd.New("remote", "get-url").AddDynamicArguments(remoteName)
 	} else {
-		cmd = gitcmd.NewCommand("config", "--get").AddDynamicArguments("remote." + remoteName + ".url")
+		cmd = gitcmd.New("config", "--get").AddDynamicArguments("remote." + remoteName + ".url")
 	}
 
 	result, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})

@@ -23,7 +23,7 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		err := gitcmd.NewCommand("for-each-ref").Run(repo.Ctx, &gitcmd.RunOpts{
+		err := gitcmd.New("for-each-ref").Run(repo.Ctx, &gitcmd.RunOpts{
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,
 			Stderr: stderrBuilder,

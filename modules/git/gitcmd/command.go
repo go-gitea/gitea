@@ -83,9 +83,9 @@ func (c *Command) ProcessState() string {
 	return c.cmd.ProcessState.String()
 }
 
-// NewCommand creates and returns a new Git Command based on given command and arguments.
+// New creates and returns a new Git Command based on given command and arguments.
 // Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
-func NewCommand(args ...internal.CmdArg) *Command {
+func New(args ...internal.CmdArg) *Command {
 	cargs := make([]string, 0, len(args))
 	for _, arg := range args {
 		cargs = append(cargs, string(arg))
@@ -185,7 +185,7 @@ func (c *Command) AddConfig(key, value string) *Command {
 }
 
 // ToTrustedCmdArgs converts a list of strings (trusted as argument) to TrustedCmdArgs
-// In most cases, it shouldn't be used. Use NewCommand().AddXxx() function instead
+// In most cases, it shouldn't be used. Use New().AddXxx() function instead
 func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
 	ret := make(TrustedCmdArgs, len(args))
 	for i, arg := range args {

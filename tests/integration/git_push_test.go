@@ -205,7 +205,7 @@ func TestPushPullRefs(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		cmd := gitcmd.NewCommand("push", "--delete", "origin", "refs/pull/2/head")
+		cmd := gitcmd.New("push", "--delete", "origin", "refs/pull/2/head")
 		stdout, stderr, err := cmd.RunStdString(t.Context(), &gitcmd.RunOpts{
 			Dir: dstPath,
 		})

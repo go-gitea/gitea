@@ -14,7 +14,7 @@ import (
 // this requires git v2.18 to be installed
 func WriteCommitGraph(ctx context.Context, repoPath string) error {
 	if DefaultFeatures().CheckVersionAtLeast("2.18") {
-		if _, _, err := gitcmd.NewCommand("commit-graph", "write").RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath}); err != nil {
+		if _, _, err := gitcmd.New("commit-graph", "write").RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath}); err != nil {
 			return fmt.Errorf("unable to write commit-graph for '%s' : %w", repoPath, err)
 		}
 	}

@@ -35,7 +35,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		"GIT_COMMITTER_EMAIL="+committer.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
-	cmd := gitcmd.NewCommand("commit-tree").AddDynamicArguments(tree.ID.String())
+	cmd := gitcmd.New("commit-tree").AddDynamicArguments(tree.ID.String())
 
 	for _, parent := range opts.Parents {
 		cmd.AddArguments("-p").AddDynamicArguments(parent)

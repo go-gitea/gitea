@@ -17,7 +17,7 @@ const BranchPrefix = "refs/heads/"
 
 // IsReferenceExist returns true if given reference exists in the repository.
 func IsReferenceExist(ctx context.Context, repoPath, name string) bool {
-	_, _, err := gitcmd.NewCommand("show-ref", "--verify").AddDashesAndList(name).RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
+	_, _, err := gitcmd.New("show-ref", "--verify").AddDashesAndList(name).RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
 	return err == nil
 }
 
@@ -27,7 +27,7 @@ func IsBranchExist(ctx context.Context, repoPath, name string) bool {
 }
 
 func GetDefaultBranch(ctx context.Context, repoPath string) (string, error) {
-	stdout, _, err := gitcmd.NewCommand("symbolic-ref", "HEAD").RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
+	stdout, _, err := gitcmd.New("symbolic-ref", "HEAD").RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
 	if err != nil {
 		return "", err
 	}
@@ -45,7 +45,7 @@ type DeleteBranchOptions struct {
 
 // DeleteBranch delete a branch by name on repository.
 func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) error {
-	cmd := gitcmd.NewCommand("branch")
+	cmd := gitcmd.New("branch")
 
 	if opts.Force {
 		cmd.AddArguments("-D")
@@ -61,7 +61,7 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 
 // CreateBranch create a new branch
 func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
-	cmd := gitcmd.NewCommand("branch")
+	cmd := gitcmd.New("branch")
 	cmd.AddDashesAndList(branch, oldbranchOrCommit)
 
 	_, _, err := cmd.RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
@@ -71,7 +71,7 @@ func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
 
 // AddRemote adds a new remote to repository.
 func (repo *Repository) AddRemote(name, url string, fetch bool) error {
-	cmd := gitcmd.NewCommand("remote", "add")
+	cmd := gitcmd.New("remote", "add")
 	if fetch {
 		cmd.AddArguments("-f")
 	}
@@ -83,6 +83,6 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 
 // RenameBranch rename a branch
 func (repo *Repository) RenameBranch(from, to string) error {
-	_, _, err := gitcmd.NewCommand("branch", "-m").AddDynamicArguments(from, to).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	_, _, err := gitcmd.New("branch", "-m").AddDynamicArguments(from, to).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	return err
 }

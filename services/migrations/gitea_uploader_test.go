@@ -239,7 +239,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	baseRef := "master"
 	// this is very different from the real situation. It should be a bare repository for all the Gitea managed repositories
 	assert.NoError(t, git.InitRepository(t.Context(), fromRepo.RepoPath(), false, fromRepo.ObjectFormatName))
-	err := gitcmd.NewCommand("symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef).Run(t.Context(), &gitcmd.RunOpts{Dir: fromRepo.RepoPath()})
+	err := gitcmd.New("symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef).Run(t.Context(), &gitcmd.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("# Testing Repository\n\nOriginally created in: "+fromRepo.RepoPath()), 0o644))
 	assert.NoError(t, git.AddChanges(t.Context(), fromRepo.RepoPath(), true))
@@ -263,7 +263,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	// fromRepo branch1
 	//
 	headRef := "branch1"
-	_, _, err = gitcmd.NewCommand("checkout", "-b").AddDynamicArguments(headRef).RunStdString(t.Context(), &gitcmd.RunOpts{Dir: fromRepo.RepoPath()})
+	_, _, err = gitcmd.New("checkout", "-b").AddDynamicArguments(headRef).RunStdString(t.Context(), &gitcmd.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("SOMETHING"), 0o644))
 	assert.NoError(t, git.AddChanges(t.Context(), fromRepo.RepoPath(), true))
@@ -287,7 +287,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	assert.NoError(t, git.Clone(t.Context(), fromRepo.RepoPath(), forkRepo.RepoPath(), git.CloneRepoOptions{
 		Branch: headRef,
 	}))
-	_, _, err = gitcmd.NewCommand("checkout", "-b").AddDynamicArguments(forkHeadRef).RunStdString(t.Context(), &gitcmd.RunOpts{Dir: forkRepo.RepoPath()})
+	_, _, err = gitcmd.New("checkout", "-b").AddDynamicArguments(forkHeadRef).RunStdString(t.Context(), &gitcmd.RunOpts{Dir: forkRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(forkRepo.RepoPath(), "README.md"), []byte("# branch2 "+forkRepo.RepoPath()), 0o644))
 	assert.NoError(t, git.AddChanges(t.Context(), forkRepo.RepoPath(), true))

@@ -23,7 +23,7 @@ func RevListAllObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sy
 
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	cmd := gitcmd.NewCommand("rev-list", "--objects", "--all")
+	cmd := gitcmd.New("rev-list", "--objects", "--all")
 	if err := cmd.Run(ctx, &gitcmd.RunOpts{
 		Dir:    basePath,
 		Stdout: revListWriter,
@@ -42,7 +42,7 @@ func RevListObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sync.
 	defer revListWriter.Close()
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	cmd := gitcmd.NewCommand("rev-list", "--objects").AddDynamicArguments(headSHA)
+	cmd := gitcmd.New("rev-list", "--objects").AddDynamicArguments(headSHA)
 	if baseSHA != "" {
 		cmd = cmd.AddArguments("--not").AddDynamicArguments(baseSHA)
 	}

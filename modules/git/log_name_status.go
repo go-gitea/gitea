@@ -35,7 +35,7 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 		_ = stdoutWriter.Close()
 	}
 
-	cmd := gitcmd.NewCommand()
+	cmd := gitcmd.New()
 	cmd.AddArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z").AddDynamicArguments(head)
 
 	var files []string

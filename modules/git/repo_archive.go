@@ -55,7 +55,7 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 		return fmt.Errorf("unknown format: %v", format)
 	}
 
-	cmd := gitcmd.NewCommand("archive")
+	cmd := gitcmd.New("archive")
 	if usePrefix {
 		cmd.AddOptionFormat("--prefix=%s", filepath.Base(strings.TrimSuffix(repo.Path, ".git"))+"/")
 	}
