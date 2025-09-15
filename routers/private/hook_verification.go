@@ -34,9 +34,9 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 		// When creating a new branch, the oldCommitID is empty, by using "newCommitID --not --all":
 		// List commits that are reachable by following the newCommitID, exclude "all" existing heads/tags commits
 		// So, it only lists the new commits received, doesn't list the commits already present in the receiving repository
-		command = gitcmd.New("rev-list").AddDynamicArguments(newCommitID).AddArguments("--not", "--all")
+		command = gitcmd.NewCommand("rev-list").AddDynamicArguments(newCommitID).AddArguments("--not", "--all")
 	} else {
-		command = gitcmd.New("rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID)
+		command = gitcmd.NewCommand("rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID)
 	}
 	// This is safe as force pushes are already forbidden
 	err = command.Run(repo.Ctx, &gitcmd.RunOpts{
@@ -85,7 +85,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 
 	commitID := git.MustIDFromString(sha)
 
-	return gitcmd.New("cat-file", "commit").AddDynamicArguments(sha).
+	return gitcmd.NewCommand("cat-file", "commit").AddDynamicArguments(sha).
 		Run(repo.Ctx, &gitcmd.RunOpts{
 			Env:    env,
 			Dir:    repo.Path,

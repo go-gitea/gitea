@@ -41,7 +41,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	since := fromTime.Format(time.RFC3339)
 
-	stdout, _, runErr := gitcmd.New("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
+	stdout, _, runErr := gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
 		AddOptionFormat("--since=%s", since).
 		RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	if runErr != nil {
@@ -63,7 +63,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		_ = stdoutWriter.Close()
 	}()
 
-	gitCmd := gitcmd.New("log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso").
+	gitCmd := gitcmd.NewCommand("log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso").
 		AddOptionFormat("--since=%s", since)
 	if len(branch) == 0 {
 		gitCmd.AddArguments("--branches=*")

@@ -32,7 +32,7 @@ func HomeDir() string {
 	if setting.Git.HomePath == "" {
 		// strict check, make sure the git module is initialized correctly.
 		// attention: when the git module is called in gitea sub-command (serv/hook), the log module might not obviously show messages to users/developers.
-		// for example: if there is gitea git hook code calling New before git.InitXxx, the integration test won't show the real failure reasons.
+		// for example: if there is gitea git hook code calling NewCommand before git.InitXxx, the integration test won't show the real failure reasons.
 		log.Fatal("Unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
 		return ""
 	}

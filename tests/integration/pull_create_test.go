@@ -265,7 +265,7 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 		t.Run("add commit", doGitAddSomeCommits(dstPath, "master"))
 
 		t.Run("do agit pull create", func(t *testing.T) {
-			err := gitcmd.New("push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic="+"test-topic").Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+			err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic="+"test-topic").Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
 			assert.NoError(t, err)
 		})
 	})

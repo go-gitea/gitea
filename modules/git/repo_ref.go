@@ -19,7 +19,7 @@ func (repo *Repository) GetRefs() ([]*Reference, error) {
 // ListOccurrences lists all refs of the given refType the given commit appears in sorted by creation date DESC
 // refType should only be a literal "branch" or "tag" and nothing else
 func (repo *Repository) ListOccurrences(ctx context.Context, refType, commitSHA string) ([]string, error) {
-	cmd := gitcmd.New()
+	cmd := gitcmd.NewCommand()
 	switch refType {
 	case "branch":
 		cmd.AddArguments("branch")

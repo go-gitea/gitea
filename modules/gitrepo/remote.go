@@ -25,7 +25,7 @@ const (
 
 func GitRemoteAdd(ctx context.Context, repo Repository, remoteName, remoteURL string, options ...RemoteOption) error {
 	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
-		cmd := gitcmd.New("remote", "add")
+		cmd := gitcmd.NewCommand("remote", "add")
 		if len(options) > 0 {
 			switch options[0] {
 			case RemoteOptionMirrorPush:
@@ -45,7 +45,7 @@ func GitRemoteAdd(ctx context.Context, repo Repository, remoteName, remoteURL st
 
 func GitRemoteRemove(ctx context.Context, repo Repository, remoteName string) error {
 	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
-		cmd := gitcmd.New("remote", "rm").AddDynamicArguments(remoteName)
+		cmd := gitcmd.NewCommand("remote", "rm").AddDynamicArguments(remoteName)
 		_, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
 		return err
 	})
@@ -65,7 +65,7 @@ func GitRemoteGetURL(ctx context.Context, repo Repository, remoteName string) (*
 
 // GitRemotePrune prunes the remote branches that no longer exist in the remote repository.
 func GitRemotePrune(ctx context.Context, repo Repository, remoteName string, timeout time.Duration, stdout, stderr io.Writer) error {
-	return gitcmd.New("remote", "prune").AddDynamicArguments(remoteName).
+	return gitcmd.NewCommand("remote", "prune").AddDynamicArguments(remoteName).
 		Run(ctx, &gitcmd.RunOpts{
 			Timeout: timeout,
 			Dir:     repoPath(repo),
@@ -76,7 +76,7 @@ func GitRemotePrune(ctx context.Context, repo Repository, remoteName string, tim
 
 // GitRemoteUpdatePrune updates the remote branches and prunes the ones that no longer exist in the remote repository.
 func GitRemoteUpdatePrune(ctx context.Context, repo Repository, remoteName string, timeout time.Duration, stdout, stderr io.Writer) error {
-	return gitcmd.New("remote", "update", "--prune").AddDynamicArguments(remoteName).
+	return gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(remoteName).
 		Run(ctx, &gitcmd.RunOpts{
 			Timeout: timeout,
 			Dir:     repoPath(repo),

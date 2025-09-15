@@ -17,7 +17,7 @@ import (
 
 // ResolveReference resolves a name to a reference
 func (repo *Repository) ResolveReference(name string) (string, error) {
-	stdout, _, err := gitcmd.New("show-ref", "--hash").AddDynamicArguments(name).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	stdout, _, err := gitcmd.NewCommand("show-ref", "--hash").AddDynamicArguments(name).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {
 			return "", ErrNotExist{name, ""}
@@ -53,13 +53,13 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 
 // SetReference sets the commit ID string of given reference (e.g. branch or tag).
 func (repo *Repository) SetReference(name, commitID string) error {
-	_, _, err := gitcmd.New("update-ref").AddDynamicArguments(name, commitID).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	_, _, err := gitcmd.NewCommand("update-ref").AddDynamicArguments(name, commitID).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	return err
 }
 
 // RemoveReference removes the given reference (e.g. branch or tag).
 func (repo *Repository) RemoveReference(name string) error {
-	_, _, err := gitcmd.New("update-ref", "--no-deref", "-d").AddDynamicArguments(name).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	_, _, err := gitcmd.NewCommand("update-ref", "--no-deref", "-d").AddDynamicArguments(name).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	return err
 }
 
@@ -69,7 +69,7 @@ func (repo *Repository) IsCommitExist(name string) bool {
 		log.Error("IsCommitExist: %v", err)
 		return false
 	}
-	_, _, err := gitcmd.New("cat-file", "-e").AddDynamicArguments(name).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	_, _, err := gitcmd.NewCommand("cat-file", "-e").AddDynamicArguments(name).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	return err == nil
 }
 

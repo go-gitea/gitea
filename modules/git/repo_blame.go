@@ -11,7 +11,7 @@ import (
 
 // LineBlame returns the latest commit at the given line
 func (repo *Repository) LineBlame(revision, path, file string, line uint) (*Commit, error) {
-	res, _, err := gitcmd.New("blame").
+	res, _, err := gitcmd.NewCommand("blame").
 		AddOptionFormat("-L %d,%d", line, line).
 		AddOptionValues("-p", revision).
 		AddDashesAndList(file).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: path})

@@ -86,7 +86,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args gitcmd.TrustedC
 // GitGcRepo calls 'git gc' to remove unnecessary files and optimize the local repository
 func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args gitcmd.TrustedCmdArgs) error {
 	log.Trace("Running git gc on %-v", repo)
-	command := gitcmd.New("gc").AddArguments(args...)
+	command := gitcmd.NewCommand("gc").AddArguments(args...)
 	var stdout string
 	var err error
 	stdout, _, err = command.RunStdString(ctx, &gitcmd.RunOpts{Timeout: timeout, Dir: repo.RepoPath()})

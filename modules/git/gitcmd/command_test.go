@@ -26,13 +26,13 @@ func TestMain(m *testing.M) {
 }
 
 func TestRunWithContextStd(t *testing.T) {
-	cmd := New("--version")
+	cmd := NewCommand("--version")
 	stdout, stderr, err := cmd.RunStdString(t.Context(), &RunOpts{})
 	assert.NoError(t, err)
 	assert.Empty(t, stderr)
 	assert.Contains(t, stdout, "git version")
 
-	cmd = New("--no-such-arg")
+	cmd = NewCommand("--no-such-arg")
 	stdout, stderr, err = cmd.RunStdString(t.Context(), &RunOpts{})
 	if assert.Error(t, err) {
 		assert.Equal(t, stderr, err.Stderr())
@@ -41,16 +41,16 @@ func TestRunWithContextStd(t *testing.T) {
 		assert.Empty(t, stdout)
 	}
 
-	cmd = New()
+	cmd = NewCommand()
 	cmd.AddDynamicArguments("-test")
 	assert.ErrorIs(t, cmd.Run(t.Context(), &RunOpts{}), ErrBrokenCommand)
 
-	cmd = New()
+	cmd = NewCommand()
 	cmd.AddDynamicArguments("--test")
 	assert.ErrorIs(t, cmd.Run(t.Context(), &RunOpts{}), ErrBrokenCommand)
 
 	subCmd := "version"
-	cmd = New().AddDynamicArguments(subCmd) // for test purpose only, the sub-command should never be dynamic for production
+	cmd = NewCommand().AddDynamicArguments(subCmd) // for test purpose only, the sub-command should never be dynamic for production
 	stdout, stderr, err = cmd.RunStdString(t.Context(), &RunOpts{})
 	assert.NoError(t, err)
 	assert.Empty(t, stderr)
@@ -69,9 +69,9 @@ func TestGitArgument(t *testing.T) {
 }
 
 func TestCommandString(t *testing.T) {
-	cmd := New("a", "-m msg", "it's a test", `say "hello"`)
+	cmd := NewCommand("a", "-m msg", "it's a test", `say "hello"`)
 	assert.Equal(t, cmd.prog+` a "-m msg" "it's a test" "say \"hello\""`, cmd.LogString())
 
-	cmd = New("url: https://a:b@c/", "/root/dir-a/dir-b")
+	cmd = NewCommand("url: https://a:b@c/", "/root/dir-a/dir-b")
 	assert.Equal(t, cmd.prog+` "url: https://sanitized-credential@c/" .../dir-a/dir-b`, cmd.LogString())
 }

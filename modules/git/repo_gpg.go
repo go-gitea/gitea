@@ -43,7 +43,7 @@ func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, 
 		Sign: true,
 	}
 
-	value, _, _ := gitcmd.New("config", "--get", "commit.gpgsign").RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	value, _, _ := gitcmd.NewCommand("config", "--get", "commit.gpgsign").RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	sign, valid := ParseBool(strings.TrimSpace(value))
 	if !sign || !valid {
 		gpgSettings.Sign = false
@@ -51,16 +51,16 @@ func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, 
 		return gpgSettings, nil
 	}
 
-	signingKey, _, _ := gitcmd.New("config", "--get", "user.signingkey").RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	signingKey, _, _ := gitcmd.NewCommand("config", "--get", "user.signingkey").RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	gpgSettings.KeyID = strings.TrimSpace(signingKey)
 
-	format, _, _ := gitcmd.New("config", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	format, _, _ := gitcmd.NewCommand("config", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	gpgSettings.Format = strings.TrimSpace(format)
 
-	defaultEmail, _, _ := gitcmd.New("config", "--get", "user.email").RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	defaultEmail, _, _ := gitcmd.NewCommand("config", "--get", "user.email").RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	gpgSettings.Email = strings.TrimSpace(defaultEmail)
 
-	defaultName, _, _ := gitcmd.New("config", "--get", "user.name").RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	defaultName, _, _ := gitcmd.NewCommand("config", "--get", "user.name").RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	gpgSettings.Name = strings.TrimSpace(defaultName)
 
 	if err := gpgSettings.LoadPublicKeyContent(); err != nil {

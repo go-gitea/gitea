@@ -41,7 +41,7 @@ func (repo *Repository) GetAllCommitsCount() (int64, error) {
 
 func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
 	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
-	logs, _, err := gitcmd.New("log").AddArguments(prettyLogFormat).
+	logs, _, err := gitcmd.NewCommand("log").AddArguments(prettyLogFormat).
 		AddDynamicArguments(revisionRange).AddArguments("--").
 		RunStdBytes(ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	if err != nil {
@@ -71,7 +71,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(ctx context.Context, url string) bool {
-	_, _, err := gitcmd.New("ls-remote", "-q", "-h").AddDynamicArguments(url, "HEAD").RunStdString(ctx, nil)
+	_, _, err := gitcmd.NewCommand("ls-remote", "-q", "-h").AddDynamicArguments(url, "HEAD").RunStdString(ctx, nil)
 	return err == nil
 }
 
@@ -82,7 +82,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 		return err
 	}
 
-	cmd := gitcmd.New("init")
+	cmd := gitcmd.NewCommand("init")
 
 	if !IsValidObjectFormat(objectFormatName) {
 		return fmt.Errorf("invalid object format: %s", objectFormatName)
@@ -101,7 +101,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
-	if err := gitcmd.New().AddOptionFormat("--git-dir=%s", repo.Path).AddArguments("rev-list", "-n", "1", "--all").
+	if err := gitcmd.NewCommand().AddOptionFormat("--git-dir=%s", repo.Path).AddArguments("rev-list", "-n", "1", "--all").
 		Run(repo.Ctx, &gitcmd.RunOpts{
 			Dir:    repo.Path,
 			Stdout: &output,
@@ -138,7 +138,7 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 		return err
 	}
 
-	cmd := gitcmd.New().AddArguments("clone")
+	cmd := gitcmd.NewCommand().AddArguments("clone")
 	if opts.SkipTLSVerify {
 		cmd.AddArguments("-c", "http.sslVerify=false")
 	}
@@ -202,7 +202,7 @@ type PushOptions struct {
 
 // Push pushs local commits to given remote branch.
 func Push(ctx context.Context, repoPath string, opts PushOptions) error {
-	cmd := gitcmd.New("push")
+	cmd := gitcmd.NewCommand("push")
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
@@ -234,7 +234,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
 func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error) {
-	cmd := gitcmd.New("for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
+	cmd := gitcmd.NewCommand("for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
 	stdout, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
 	if err != nil {
 		return time.Time{}, err
@@ -251,7 +251,7 @@ type DivergeObject struct {
 
 // GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
 func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (do DivergeObject, err error) {
-	cmd := gitcmd.New("rev-list", "--count", "--left-right").
+	cmd := gitcmd.NewCommand("rev-list", "--count", "--left-right").
 		AddDynamicArguments(baseBranch + "..." + targetBranch).AddArguments("--")
 	stdout, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
 	if err != nil {
@@ -282,23 +282,23 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 	defer cleanup()
 
 	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repo.Path, "objects"))
-	_, _, err = gitcmd.New("init", "--bare").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
+	_, _, err = gitcmd.NewCommand("init", "--bare").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}
 
-	_, _, err = gitcmd.New("reset", "--soft").AddDynamicArguments(commit).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
+	_, _, err = gitcmd.NewCommand("reset", "--soft").AddDynamicArguments(commit).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}
 
-	_, _, err = gitcmd.New("branch", "-m", "bundle").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
+	_, _, err = gitcmd.NewCommand("branch", "-m", "bundle").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}
 
 	tmpFile := filepath.Join(tmp, "bundle")
-	_, _, err = gitcmd.New("bundle", "create").AddDynamicArguments(tmpFile, "bundle", "HEAD").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
+	_, _, err = gitcmd.NewCommand("bundle", "create").AddDynamicArguments(tmpFile, "bundle", "HEAD").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}

@@ -74,7 +74,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	if expectedHeadCommitID != "" {
-		trackingCommitID, _, err := gitcmd.New("show-ref", "--hash").AddDynamicArguments(git.BranchPrefix+trackingBranch).RunStdString(ctx, &gitcmd.RunOpts{Dir: mergeCtx.tmpBasePath})
+		trackingCommitID, _, err := gitcmd.NewCommand("show-ref", "--hash").AddDynamicArguments(git.BranchPrefix+trackingBranch).RunStdString(ctx, &gitcmd.RunOpts{Dir: mergeCtx.tmpBasePath})
 		if err != nil {
 			defer cancel()
 			log.Error("failed to get sha of head branch in %-v: show-ref[%s] --hash refs/heads/tracking: %v", mergeCtx.pr, mergeCtx.tmpBasePath, err)
@@ -152,7 +152,7 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 	}
 
 	setConfig := func(key, value string) error {
-		if err := gitcmd.New("config", "--local").AddDynamicArguments(key, value).
+		if err := gitcmd.NewCommand("config", "--local").AddDynamicArguments(key, value).
 			Run(ctx, ctx.RunOpts()); err != nil {
 			log.Error("git config [%s -> %q]: %v\n%s\n%s", key, value, err, ctx.outbuf.String(), ctx.errbuf.String())
 			return fmt.Errorf("git config [%s -> %q]: %w\n%s\n%s", key, value, err, ctx.outbuf.String(), ctx.errbuf.String())
@@ -185,7 +185,7 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 	}
 
 	// Read base branch index
-	if err := gitcmd.New("read-tree", "HEAD").
+	if err := gitcmd.NewCommand("read-tree", "HEAD").
 		Run(ctx, ctx.RunOpts()); err != nil {
 		log.Error("git read-tree HEAD: %v\n%s\n%s", err, ctx.outbuf.String(), ctx.errbuf.String())
 		return fmt.Errorf("Unable to read base branch in to the index: %w\n%s\n%s", err, ctx.outbuf.String(), ctx.errbuf.String())
@@ -222,7 +222,7 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, o
 		return 0, nil, nil
 	}
 
-	err = gitcmd.New("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root").AddDynamicArguments(baseBranch, headBranch).
+	err = gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root").AddDynamicArguments(baseBranch, headBranch).
 		Run(ctx, &gitcmd.RunOpts{
 			Dir:    repoPath,
 			Stdout: diffOutWriter,
@@ -273,7 +273,7 @@ func (err ErrRebaseConflicts) Error() string {
 // if there is a conflict it will return an ErrRebaseConflicts
 func rebaseTrackingOnToBase(ctx *mergeContext, mergeStyle repo_model.MergeStyle) error {
 	// Checkout head branch
-	if err := gitcmd.New("checkout", "-b").AddDynamicArguments(stagingBranch, trackingBranch).
+	if err := gitcmd.NewCommand("checkout", "-b").AddDynamicArguments(stagingBranch, trackingBranch).
 		Run(ctx, ctx.RunOpts()); err != nil {
 		return fmt.Errorf("unable to git checkout tracking as staging in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 	}
@@ -281,7 +281,7 @@ func rebaseTrackingOnToBase(ctx *mergeContext, mergeStyle repo_model.MergeStyle)
 	ctx.errbuf.Reset()
 
 	// Rebase before merging
-	if err := gitcmd.New("rebase").AddDynamicArguments(baseBranch).
+	if err := gitcmd.NewCommand("rebase").AddDynamicArguments(baseBranch).
 		Run(ctx, ctx.RunOpts()); err != nil {
 		// Rebase will leave a REBASE_HEAD file in .git if there is a conflict
 		if _, statErr := os.Stat(filepath.Join(ctx.tmpBasePath, ".git", "REBASE_HEAD")); statErr == nil {

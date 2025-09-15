@@ -17,7 +17,7 @@ import (
 func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attributes []string) (*gitcmd.Command, []string, func(), error) {
 	cancel := func() {}
 	envs := []string{"GIT_FLUSH=1"}
-	cmd := gitcmd.New("check-attr", "-z")
+	cmd := gitcmd.NewCommand("check-attr", "-z")
 	if len(attributes) == 0 {
 		cmd.AddArguments("--all")
 	}
