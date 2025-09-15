@@ -8,7 +8,7 @@ import "code.gitea.io/gitea/models/db"
 // OrderByMap represents all possible search order
 var OrderByMap = map[string]map[string]db.SearchOrderBy{
 	"asc": {
-		"alpha":    "owner_name ASC, name ASC",
+		"alpha":    "subject ASC, name ASC",
 		"created":  db.SearchOrderByOldest,
 		"updated":  db.SearchOrderByLeastUpdated,
 		"size":     "size ASC",
@@ -19,7 +19,7 @@ var OrderByMap = map[string]map[string]db.SearchOrderBy{
 		"forks":    db.SearchOrderByForks,
 	},
 	"desc": {
-		"alpha":    "owner_name DESC, name DESC",
+		"alpha":    "subject DESC, name DESC",
 		"created":  db.SearchOrderByNewest,
 		"updated":  db.SearchOrderByRecentUpdated,
 		"size":     "size DESC",
