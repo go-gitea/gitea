@@ -19,6 +19,8 @@ on:
         value: ${{ jobs.detect.outputs.swagger }}
       yaml:
         value: ${{ jobs.detect.outputs.yaml }}
+      locale:
+        value: ${{ jobs.detect.outputs.locale }}
 
 jobs:
   detect:
