@@ -38,16 +38,16 @@
 
 				<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input id="repo_name" name="repo_name" value="{{.repo_name}}" autofocus required maxlength="100">
+					<input id="repo_name" name="repo_name" value="{{.repo_name}}" required maxlength="100">
 					<span class="help" data-help-for-repo-name>{{ctx.Locale.Tr "repo.repo_name_helper"}}</span>
 					<span class="help tw-hidden" data-help-for-repo-name=".profile">{{ctx.Locale.Tr "repo.repo_name_profile_public_hint"}}</span>
 					<span class="help tw-hidden" data-help-for-repo-name=".profile-private">{{ctx.Locale.Tr "repo.repo_name_profile_private_hint"}}</span>
 				</div>
 
-				<div class="inline field {{if .Err_Subject}}error{{end}}">
-					<label for="subject">{{ctx.Locale.Tr "repo.subject"}}</label>
-					<input id="subject" name="subject" value="{{.subject}}" maxlength="255">
-					<span class="help">{{ctx.Locale.Tr "repo.subject_helper"}}</span>
+				<div class="inline required field {{if .Err_Subject}}error{{end}}">
+					<label for="subject">{{ctx.Locale.Tr "repo.repo_subject"}}</label>
+					<input id="subject" name="subject" value="{{.subject}}" autofocus required maxlength="255" placeholder="{{ctx.Locale.Tr "repo.repo_subject_placeholder"}}">
+					<span class="help">{{ctx.Locale.Tr "repo.repo_subject_helper"}}</span>
 				</div>
 
 				<div class="inline field">
