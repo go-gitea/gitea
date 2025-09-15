@@ -1,3 +1,6 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package main
 
 import (
@@ -27,15 +30,15 @@ func convertIniToJSON(data []byte) ([]byte, error) {
 			if isDefault { // rename conflicted keys
 				switch keyName {
 				case "home":
-					keyName = "_home"
+					keyName = "home_title"
 				case "explore":
-					keyName = "_explore"
+					keyName = "explore_title"
 				case "settings":
-					keyName = "_settings"
+					keyName = "settings_title"
 				case "error":
-					keyName = "_error"
+					keyName = "error_title"
 				case "filter":
-					keyName = "_filter"
+					keyName = "filter_title"
 				}
 			}
 			v := key.Value()
