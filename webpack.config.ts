@@ -1,17 +1,12 @@
 import wrapAnsi from 'wrap-ansi';
 import AddAssetPlugin from 'add-asset-webpack-plugin';
 import LicenseCheckerWebpackPlugin from '@techknowlogick/license-checker-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import {VueLoaderPlugin} from 'vue-loader';
+import EsBuildLoader from 'esbuild-loader';
 import {parse} from 'node:path';
-import {
-  SourceMapDevToolPlugin,
-  DefinePlugin,
-  EnvironmentPlugin,
-  CssExtractRspackPlugin,
-  type Configuration,
-  type EntryObject,
-} from '@rspack/core';
+import webpack, {type Configuration, type EntryObject} from 'webpack';
 import {fileURLToPath} from 'node:url';
 import {readFileSync, globSync} from 'node:fs';
 import {env} from 'node:process';
@@ -20,6 +15,8 @@ import tailwindConfig from './tailwind.config.ts';
 import tailwindcssNesting from 'tailwindcss/nesting/index.js';
 import postcssNesting from 'postcss-nesting';
 
+const {EsbuildPlugin} = EsBuildLoader;
+const {SourceMapDevToolPlugin, DefinePlugin, EnvironmentPlugin} = webpack;
 const formatLicenseText = (licenseText: string) => wrapAnsi(licenseText || '', 80).trim();
 
 const themes: EntryObject = {};
@@ -33,7 +30,7 @@ const isProduction = env.NODE_ENV !== 'development';
 // true - all enabled, the default in development
 // reduced - minimal sourcemaps, the default in production
 // false - all disabled
-let sourceMaps: string;
+let sourceMaps;
 if ('ENABLE_SOURCEMAP' in env) {
   sourceMaps = ['true', 'false'].includes(env.ENABLE_SOURCEMAP) ? env.ENABLE_SOURCEMAP : 'reduced';
 } else {
@@ -96,12 +93,20 @@ export default {
     path: fileURLToPath(new URL('public/assets', import.meta.url)),
     filename: () => 'js/[name].js',
     chunkFilename: ({chunk}) => {
-      const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
+      const language = (/monaco.*languages?_.+?_(.+?)_/.exec(String(chunk.id)) || [])[1];
       return `js/${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
     },
   },
   optimization: {
     minimize: isProduction,
+    minimizer: [
+      new EsbuildPlugin({
+        target: 'es2020',
+        minify: true,
+        css: true,
+        legalComments: 'none',
+      }),
+    ],
     splitChunks: {
       chunks: 'async',
       name: (_, chunks) => chunks.map((item) => item.name).join('-'),
@@ -113,34 +118,45 @@ export default {
     rules: [
       {
         test: /\.vue$/i,
-        exclude: /[\\/]node_modules[\\/]/,
+        exclude: /node_modules/,
         loader: 'vue-loader',
         options: {
           compilerOptions: {
             isCustomElement: (tag: string) => webComponents.has(tag),
           },
-          experimentalInlineMatchResource: true,
         },
       },
       {
-        test: /\.(j|t)s$/i,
-        exclude: /[\\/]node_modules[\\/]/,
-        loader: 'builtin:swc-loader',
-        options: {
-          jsc: {
-            parser: {
-              syntax: 'typescript',
+        test: /\.js$/i,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'esbuild-loader',
+            options: {
+              loader: 'js',
+              target: 'es2020',
             },
-            externalHelpers: false,
-            target: 'es2020',
           },
-        },
+        ],
+      },
+      {
+        test: /\.ts$/i,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'esbuild-loader',
+            options: {
+              loader: 'ts',
+              target: 'es2020',
+            },
+          },
+        ],
       },
       {
         test: /\.css$/i,
         use: [
           {
-            loader: CssExtractRspackPlugin.loader,
+            loader: MiniCssExtractPlugin.loader,
           },
           {
             loader: 'css-loader',
@@ -189,7 +205,7 @@ export default {
       TEST: 'false',
     }),
     new VueLoaderPlugin(),
-    new CssExtractRspackPlugin({
+    new MiniCssExtractPlugin({
       filename: 'css/[name].css',
       chunkFilename: 'css/[name].[contenthash:8].css',
     }),
@@ -241,7 +257,7 @@ export default {
   },
   stats: {
     assetsSort: 'name',
-    assetsSpace: Number.MAX_SAFE_INTEGER,
+    assetsSpace: Infinity,
     cached: false,
     cachedModules: false,
     children: false,

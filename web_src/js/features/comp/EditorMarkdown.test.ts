@@ -169,7 +169,7 @@ test('EditorMarkdown', () => {
   type ValueWithCursor = string | {
     value: string;
     pos: number;
-  }
+  };
   const testInput = (input: ValueWithCursor, result: ValueWithCursor) => {
     const intputValue = typeof input === 'string' ? input : input.value;
     const inputPos = typeof input === 'string' ? intputValue.length : input.pos;
