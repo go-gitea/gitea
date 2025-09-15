@@ -68,3 +68,5 @@ export type FomanticInitFunction = {
 };
 
 export type GitRefType = 'branch' | 'tag';
+
+export type Promisable<T> = T | Promise<T>; // stricter than type-fest which uses PromiseLike
