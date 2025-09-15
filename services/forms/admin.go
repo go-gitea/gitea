@@ -29,7 +29,7 @@ type AdminCreateUserForm struct {
 type AdminCreateBadgeForm struct {
 	Slug        string `binding:"Required;Slug"`
 	Description string `binding:"Required"`
-	ImageURL    string `binding:"ValidImageUrl"`
+	ImageURL    string `binding:"ValidUrl"`
 }
 
 // Validate validates form fields
