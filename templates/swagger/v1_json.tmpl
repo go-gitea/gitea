@@ -23503,6 +23503,11 @@
           "type": "string",
           "x-go-name": "Readme"
         },
+        "subject": {
+          "description": "Subject of the repository to create",
+          "type": "string",
+          "x-go-name": "Subject"
+        },
         "template": {
           "description": "Whether the repository is template",
           "type": "boolean",
@@ -24619,6 +24624,11 @@
           "type": "string",
           "x-go-name": "ProjectsMode"
         },
+        "subject": {
+          "description": "subject of the repository",
+          "type": "string",
+          "x-go-name": "Subject"
+        },
         "template": {
           "description": "either `true` to make this repository a template or `false` to make it a normal repository",
           "type": "boolean",
@@ -25316,6 +25326,11 @@
           "description": "include protected branches in template repo",
           "type": "boolean",
           "x-go-name": "ProtectedBranch"
+        },
+        "subject": {
+          "description": "Subject of the repository to create",
+          "type": "string",
+          "x-go-name": "Subject"
         },
         "topics": {
           "description": "include topics in template repo",
@@ -26294,6 +26309,11 @@
             "codecommit"
           ],
           "x-go-name": "Service"
+        },
+        "subject": {
+          "description": "Subject of the repository to migrate",
+          "type": "string",
+          "x-go-name": "Subject"
         },
         "uid": {
           "description": "deprecated (only for backwards compatibility, use repo_owner instead)",
@@ -28023,6 +28043,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Stars"
+        },
+        "subject": {
+          "type": "string",
+          "x-go-name": "Subject"
         },
         "template": {
           "type": "boolean",
