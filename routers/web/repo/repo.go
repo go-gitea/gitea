@@ -544,6 +544,7 @@ func SearchRepo(ctx *context.Context) {
 		results[i] = &repo_service.WebSearchRepository{
 			Repository: &api.Repository{
 				ID:       repo.ID,
+				Subject:  repo.GetSubject(),
 				FullName: repo.FullName(),
 				Fork:     repo.IsFork,
 				Private:  repo.IsPrivate,

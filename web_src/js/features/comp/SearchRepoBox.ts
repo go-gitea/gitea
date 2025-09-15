@@ -12,8 +12,9 @@ export function initCompSearchRepoBox(el: HTMLElement) {
       onResponse(response: any) {
         const items = [];
         for (const item of response.data) {
+          const repoSubject = item.repository.subject || item.repository.full_name.split('/')[1];
           items.push({
-            title: htmlEscape(item.repository.full_name.split('/')[1]),
+            title: htmlEscape(repoSubject),
             description: htmlEscape(item.repository.full_name),
           });
         }

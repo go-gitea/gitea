@@ -429,7 +429,7 @@ export default defineComponent({
           <li class="tw-flex tw-items-center tw-py-2" v-for="(repo, index) in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="16" class="repo-list-icon"/>
-              <div class="text truncate">{{ repo.full_name }}</div>
+              <div class="text truncate">{{ repo.subject || repo.full_name }}</div>
               <div v-if="repo.archived">
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
