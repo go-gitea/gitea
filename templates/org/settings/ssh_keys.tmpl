@@ -1,0 +1,46 @@
+{{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings ssh-keys")}}
+
+<div class="ui segments org-setting-content">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "settings.mirror_ssh_title"}}
+	</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{ctx.Locale.Tr "settings.mirror_ssh_description"}}</label>
+			</div>
+			{{if .SSHKeypair}}
+			<div class="field">
+				<label>{{ctx.Locale.Tr "settings.mirror_ssh_current_key"}}</label>
+				<div class="ui action input">
+					<input id="ssh-public-key-content" class="js-ssh-key-content" value="{{.SSHKeypair.PublicKeyWithComment}}" readonly>
+					<button class="ui compact button" data-clipboard-target="#ssh-public-key-content" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">
+						{{svg "octicon-copy" 14}}
+					</button>
+				</div>
+				<small class="text grey">{{ctx.Locale.Tr "settings.mirror_ssh_fingerprint"}}: {{.SSHKeypair.Fingerprint}}</small>
+			</div>
+			{{end}}
+			<div class="field">
+				<form action="{{.OrgLink}}/settings/ssh_keys/regenerate" method="post">
+					{{.CsrfTokenHtml}}
+					<button class="ui primary button" type="submit">
+						{{if .SSHKeypair}}
+							{{ctx.Locale.Tr "settings.mirror_ssh_regenerate"}}
+						{{else}}
+							{{ctx.Locale.Tr "settings.mirror_ssh_generate"}}
+						{{end}}
+					</button>
+				</form>
+			</div>
+			<div class="field">
+				<div class="ui info message">
+					<i class="info icon"></i>
+					{{ctx.Locale.Tr "settings.mirror_ssh_documentation"}}
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+{{template "org/settings/layout_footer" .}}
