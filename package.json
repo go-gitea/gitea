@@ -11,6 +11,7 @@
     "@citation-js/plugin-csl": "0.7.18",
     "@citation-js/plugin-software-formats": "0.6.1",
     "@github/markdown-toolbar-element": "2.2.3",
+    "@github/paste-markdown": "1.5.3",
     "@github/relative-time-element": "4.4.8",
     "@github/text-expander-element": "2.9.2",
     "@mcaptcha/vanilla-glue": "0.1.0-alpha-3",

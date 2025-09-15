@@ -41,6 +41,9 @@ importers:
       '@github/markdown-toolbar-element':
         specifier: 2.2.3
         version: 2.2.3
+      '@github/paste-markdown':
+        specifier: 1.5.3
+        version: 1.5.3
       '@github/relative-time-element':
         specifier: 4.4.8
         version: 4.4.8
@@ -723,6 +726,9 @@ packages:
 
   '@github/markdown-toolbar-element@2.2.3':
     resolution: {integrity: sha512-AlquKGee+IWiAMYVB0xyHFZRMnu4n3X4HTvJHu79GiVJ1ojTukCWyxMlF5NMsecoLcBKsuBhx3QPv2vkE/zQ0A==}
+
+  '@github/paste-markdown@1.5.3':
+    resolution: {integrity: sha512-PzZ1b3PaqBzYqbT4fwKEhiORf38h2OcGp2+JdXNNM7inZ7egaSmfmhyNkQILpqWfS0AYtRS3CDq6z03eZ8yOMQ==}
 
   '@github/relative-time-element@4.4.8':
     resolution: {integrity: sha512-FSLYm6F3TSQnqHE1EMQUVVgi2XjbCvsESwwXfugHFpBnhyF1uhJOtu0Psp/BB/qqazfdkk7f5fVcu7WuXl3t8Q==}
@@ -5051,6 +5057,8 @@ snapshots:
   '@github/combobox-nav@2.3.1': {}
 
   '@github/markdown-toolbar-element@2.2.3': {}
+
+  '@github/paste-markdown@1.5.3': {}
 
   '@github/relative-time-element@4.4.8': {}
 
