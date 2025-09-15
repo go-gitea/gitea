@@ -1,5 +1,4 @@
 import {imageInfo} from '../../utils/image.ts';
-import {isUrl} from '../../utils/url.ts';
 import {textareaInsertText, triggerEditorContentChanged} from './EditorMarkdown.ts';
 import {
   DropzoneCustomEventRemovedFile,
