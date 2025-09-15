@@ -118,17 +118,6 @@ export function removeAttachmentLinksFromMarkdown(text: string, fileUuid: string
   return text;
 }
 
-export function pasteAsMarkdownLink(textarea: {value: string, selectionStart: number, selectionEnd: number}, pastedText: string): string | null {
-  const {value, selectionStart, selectionEnd} = textarea;
-  const selectedText = value.substring(selectionStart, selectionEnd);
-  const trimmedText = pastedText.trim();
-  const beforeSelection = value.substring(0, selectionStart);
-  const afterSelection = value.substring(selectionEnd);
-  const isInMarkdownLink = beforeSelection.endsWith('](') && afterSelection.startsWith(')');
-  const asMarkdownLink = selectedText && isUrl(trimmedText) && !isUrl(selectedText) && !isInMarkdownLink;
-  return asMarkdownLink ? `[${selectedText}](${trimmedText})` : null;
-}
-
 function getPastedImages(e: ClipboardEvent) {
   const images: Array<File> = [];
   for (const item of e.clipboardData?.items ?? []) {
