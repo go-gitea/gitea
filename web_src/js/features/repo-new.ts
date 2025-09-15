@@ -1,7 +1,7 @@
 import {hideElem, querySingleVisibleElem, showElem, toggleElem} from '../utils/dom.ts';
 import {htmlEscape} from '../utils/html.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {sanitizeRepoName} from './repo-common.ts';
+import {sanitizeRepoName, generateRepoNameFromSubject} from './repo-common.ts';
 
 const {appSubUrl} = window.config;
 
@@ -74,7 +74,12 @@ export function initRepoNew() {
   updateUiAutoInit();
 
   const inputRepoName = form.querySelector<HTMLInputElement>('input[name="repo_name"]');
+  const inputSubject = form.querySelector<HTMLInputElement>('input[name="subject"]');
   const inputPrivate = form.querySelector<HTMLInputElement>('input[name="private"]');
+
+  // Track whether the user has manually edited the repo name
+  let userHasEditedRepoName = false;
+
   const updateUiRepoName = () => {
     const helps = form.querySelectorAll(`.help[data-help-for-repo-name]`);
     hideElem(helps);
@@ -88,11 +93,38 @@ export function initRepoNew() {
       inputPrivate.checked = preferPrivate;
     }
   };
-  inputRepoName.addEventListener('input', updateUiRepoName);
+
+  // Auto-generate repo name from subject
+  const updateRepoNameFromSubject = () => {
+    if (!userHasEditedRepoName && inputSubject.value) {
+      const generatedName = generateRepoNameFromSubject(inputSubject.value);
+      inputRepoName.value = generatedName;
+      updateUiRepoName();
+    }
+  };
+
+  // Handle subject input changes
+  inputSubject.addEventListener('input', updateRepoNameFromSubject);
+
+  // Handle manual repo name changes
+  inputRepoName.addEventListener('input', () => {
+    userHasEditedRepoName = true;
+    updateUiRepoName();
+  });
+
   inputRepoName.addEventListener('change', () => {
     inputRepoName.value = sanitizeRepoName(inputRepoName.value);
     updateUiRepoName();
   });
+
+  // Reset auto-generation if repo name is cleared
+  inputRepoName.addEventListener('blur', () => {
+    if (!inputRepoName.value.trim()) {
+      userHasEditedRepoName = false;
+      updateRepoNameFromSubject();
+    }
+  });
+
   updateUiRepoName();
 
   initRepoNewTemplateSearch(form);

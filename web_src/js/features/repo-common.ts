@@ -175,3 +175,34 @@ export function sanitizeRepoName(name: string): string {
   if (['.', '..', '-'].includes(name)) name = '';
   return name;
 }
+
+export function generateRepoNameFromSubject(subject: string): string {
+  if (!subject || !subject.trim()) {
+    return '';
+  }
+
+  // Convert to lowercase and replace spaces with hyphens
+  let name = subject.toLowerCase().replace(/\s+/g, '-');
+
+  // Remove or replace special characters, keeping only alphanumeric, hyphens, dots, and underscores
+  name = name.replace(/[^a-z0-9\-._]/g, '');
+
+  // Collapse multiple consecutive hyphens
+  while (name.includes('--')) {
+    name = name.replace(/--/g, '-');
+  }
+
+  // Remove leading/trailing hyphens and dots
+  name = name.replace(/^[-.]*/g, '').replace(/[-.*]*$/g, '');
+
+  // Ensure it's not empty and not too long
+  if (!name) {
+    name = 'repository';
+  }
+  if (name.length > 100) {
+    name = name.substring(0, 100);
+    name = name.replace(/[-.]$/, '');
+  }
+
+  return name;
+}
