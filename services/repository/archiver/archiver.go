@@ -140,38 +140,21 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 
 // Stream satisfies the ArchiveRequest being passed in.  Processing
 // will occur directly in this routine.
-func (aReq *ArchiveRequest) Stream(ctx context.Context, w io.Writer) error {
-	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("ArchiveRequest[%d]: %s", aReq.RepoID, aReq.GetArchiveName()))
-	defer finished()
-
-	repo, err := repo_model.GetRepositoryByID(ctx, aReq.RepoID)
-	if err != nil {
-		return fmt.Errorf("archiver.LoadRepo failed: %w", err)
-	}
-
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
-	if err != nil {
-		return err
-	}
-	defer gitRepo.Close()
-
+func (aReq *ArchiveRequest) Stream(ctx context.Context, gitRepo *git.Repository, w io.Writer) error {
 	if aReq.Type == git.ArchiveBundle {
-		err = gitRepo.CreateBundle(
+		return gitRepo.CreateBundle(
 			ctx,
 			aReq.CommitID,
 			w,
-		)
-	} else {
-		err = gitRepo.CreateArchive(
-			ctx,
-			aReq.Type,
-			w,
-			setting.Repository.PrefixArchiveFiles,
-			aReq.CommitID,
 		)
 	}
-
-	return err
+	return gitRepo.CreateArchive(
+		ctx,
+		aReq.Type,
+		w,
+		setting.Repository.PrefixArchiveFiles,
+		aReq.CommitID,
+	)
 }
 
 // doArchive satisfies the ArchiveRequest being passed in.  Processing
@@ -247,21 +230,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 			}
 		}()
 
-		if archiver.Type == git.ArchiveBundle {
-			err = gitRepo.CreateBundle(
-				ctx,
-				archiver.CommitID,
-				w,
-			)
-		} else {
-			err = gitRepo.CreateArchive(
-				ctx,
-				archiver.Type,
-				w,
-				setting.Repository.PrefixArchiveFiles,
-				archiver.CommitID,
-			)
-		}
+		err = r.Stream(ctx, gitRepo, w)
 		_ = w.CloseWithError(err)
 		done <- err
 	}(done, w, archiver, gitRepo)
