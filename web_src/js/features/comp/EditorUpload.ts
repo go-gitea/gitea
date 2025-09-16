@@ -146,7 +146,7 @@ export function initEasyMDEPaste(easyMDE: EasyMDE, dropzoneEl: HTMLElement) {
 }
 
 export function initTextareaEvents(textarea: HTMLTextAreaElement, dropzoneEl: HTMLElement) {
-  subscribe(textarea); // enable paste-related features
+  subscribe(textarea); // enable paste features
   textarea.addEventListener('paste', (e: ClipboardEvent) => {
     const images = getPastedImages(e);
     if (images.length && dropzoneEl) {
