@@ -316,9 +316,9 @@ func archiveDownload(ctx *context.APIContext) {
 		aReq.CommitID,
 	))
 
-	if setting.Repository.StreamArchives {
-		downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
+	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
 
+	if setting.Repository.StreamArchives {
 		ctx.SetServeHeaders(&context.ServeHeaderOptions{
 			Filename: downloadName,
 		})
@@ -335,12 +335,10 @@ func archiveDownload(ctx *context.APIContext) {
 		return
 	}
 
-	download(ctx, aReq.GetArchiveName(), archiver)
+	download(ctx, downloadName, archiver)
 }
 
-func download(ctx *context.APIContext, archiveName string, archiver *repo_model.RepoArchiver) {
-	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
-
+func download(ctx *context.APIContext, downloadName string, archiver *repo_model.RepoArchiver) {
 	rPath := archiver.RelativePath()
 	if setting.RepoArchive.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
