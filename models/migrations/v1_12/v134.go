@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -80,7 +80,7 @@ func RefixMergeBase(ctx context.Context, x *xorm.Engine) error {
 
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
 
-			parentsString, _, err := git.NewCommand("rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID).RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+			parentsString, _, err := gitcmd.NewCommand("rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID).RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
 			if err != nil {
 				log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 				continue
@@ -93,9 +93,9 @@ func RefixMergeBase(ctx context.Context, x *xorm.Engine) error {
 			// we should recalculate
 			refs := append([]string{}, parents[1:]...)
 			refs = append(refs, gitRefName)
-			cmd := git.NewCommand("merge-base").AddDashesAndList(refs...)
+			cmd := gitcmd.NewCommand("merge-base").AddDashesAndList(refs...)
 
-			pr.MergeBase, _, err = cmd.RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+			pr.MergeBase, _, err = cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
 			if err != nil {
 				log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 				continue

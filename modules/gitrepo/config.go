@@ -7,14 +7,14 @@ import (
 	"context"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/globallock"
 )
 
 func GitConfigGet(ctx context.Context, repo Repository, key string) (string, error) {
-	result, _, err := git.NewCommand("config", "--get").
+	result, _, err := gitcmd.NewCommand("config", "--get").
 		AddDynamicArguments(key).
-		RunStdString(ctx, &git.RunOpts{Dir: repoPath(repo)})
+		RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
 	if err != nil {
 		return "", err
 	}
@@ -28,9 +28,9 @@ func getRepoConfigLockKey(repoStoragePath string) string {
 // GitConfigAdd add a git configuration key to a specific value for the given repository.
 func GitConfigAdd(ctx context.Context, repo Repository, key, value string) error {
 	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
-		_, _, err := git.NewCommand("config", "--add").
+		_, _, err := gitcmd.NewCommand("config", "--add").
 			AddDynamicArguments(key, value).
-			RunStdString(ctx, &git.RunOpts{Dir: repoPath(repo)})
+			RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
 		return err
 	})
 }
@@ -40,9 +40,9 @@ func GitConfigAdd(ctx context.Context, repo Repository, key, value string) error
 // If the key exists, it will be updated to the new value.
 func GitConfigSet(ctx context.Context, repo Repository, key, value string) error {
 	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
-		_, _, err := git.NewCommand("config").
+		_, _, err := gitcmd.NewCommand("config").
 			AddDynamicArguments(key, value).
-			RunStdString(ctx, &git.RunOpts{Dir: repoPath(repo)})
+			RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
 		return err
 	})
 }

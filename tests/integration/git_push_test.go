@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -204,8 +205,8 @@ func TestPushPullRefs(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		cmd := git.NewCommand("push", "--delete", "origin", "refs/pull/2/head")
-		stdout, stderr, err := cmd.RunStdString(t.Context(), &git.RunOpts{
+		cmd := gitcmd.NewCommand("push", "--delete", "origin", "refs/pull/2/head")
+		stdout, stderr, err := cmd.RunStdString(t.Context(), &gitcmd.RunOpts{
 			Dir: dstPath,
 		})
 		assert.Error(t, err)
