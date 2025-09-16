@@ -881,7 +881,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 
 		time.Sleep(2 * time.Second)
 
-		// realod pr again
+		// reload pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
 		assert.True(t, pr.HasMerged)
 		assert.NotEmpty(t, pr.MergedCommitID)
@@ -1006,7 +1006,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		testSubmitReview(t, approveSession, htmlDoc.GetCSRF(), "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
 
-		// realod pr again
+		// reload pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
 		assert.True(t, pr.HasMerged)
 		assert.NotEmpty(t, pr.MergedCommitID)
