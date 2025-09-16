@@ -1,4 +1,4 @@
-import type {Config} from "./types.ts";
+import type {Config} from './types.ts';
 
 window.__webpack_public_path__ = '';
 
