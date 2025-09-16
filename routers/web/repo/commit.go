@@ -324,7 +324,7 @@ func Diff(ctx *context.Context) {
 		ctx.NotFound(err)
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(gitRepo, "", commitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.Repository, gitRepo, "", commitID)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return

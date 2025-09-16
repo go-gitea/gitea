@@ -12,9 +12,8 @@ import (
 )
 
 func GitConfigGet(ctx context.Context, repo Repository, key string) (string, error) {
-	result, _, err := gitcmd.NewCommand("config", "--get").
-		AddDynamicArguments(key).
-		RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
+	result, _, err := runCmdString(ctx, repo, gitcmd.NewCommand("config", "--get").
+		AddDynamicArguments(key))
 	if err != nil {
 		return "", err
 	}
@@ -28,9 +27,8 @@ func getRepoConfigLockKey(repoStoragePath string) string {
 // GitConfigAdd add a git configuration key to a specific value for the given repository.
 func GitConfigAdd(ctx context.Context, repo Repository, key, value string) error {
 	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
-		_, _, err := gitcmd.NewCommand("config", "--add").
-			AddDynamicArguments(key, value).
-			RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
+		_, _, err := runCmdString(ctx, repo, gitcmd.NewCommand("config", "--add").
+			AddDynamicArguments(key, value))
 		return err
 	})
 }
@@ -40,9 +38,8 @@ func GitConfigAdd(ctx context.Context, repo Repository, key, value string) error
 // If the key exists, it will be updated to the new value.
 func GitConfigSet(ctx context.Context, repo Repository, key, value string) error {
 	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
-		_, _, err := gitcmd.NewCommand("config").
-			AddDynamicArguments(key, value).
-			RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
+		_, _, err := runCmdString(ctx, repo, gitcmd.NewCommand("config").
+			AddDynamicArguments(key, value))
 		return err
 	})
 }
