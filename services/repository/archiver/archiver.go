@@ -223,7 +223,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 	}
 	defer gitRepo.Close()
 
-	go func(done chan error, w *io.PipeWriter, archiver *repo_model.RepoArchiver, gitRepo *git.Repository) {
+	go func(done chan error, w *io.PipeWriter, r *ArchiveRequest, gitRepo *git.Repository) {
 		defer func() {
 			if r := recover(); r != nil {
 				done <- fmt.Errorf("%v", r)
@@ -233,7 +233,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 		err = r.Stream(ctx, gitRepo, w)
 		_ = w.CloseWithError(err)
 		done <- err
-	}(done, w, archiver, gitRepo)
+	}(done, w, r, gitRepo)
 
 	// TODO: add lfs data to zip
 	// TODO: add submodule data to zip
