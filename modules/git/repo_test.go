@@ -29,27 +29,3 @@ func TestRepoIsEmpty(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, isEmpty)
 }
-
-func TestRepoGetDivergingCommits(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	do, err := GetDivergingCommits(t.Context(), bareRepo1Path, "master", "branch2")
-	assert.NoError(t, err)
-	assert.Equal(t, DivergeObject{
-		Ahead:  1,
-		Behind: 5,
-	}, do)
-
-	do, err = GetDivergingCommits(t.Context(), bareRepo1Path, "master", "master")
-	assert.NoError(t, err)
-	assert.Equal(t, DivergeObject{
-		Ahead:  0,
-		Behind: 0,
-	}, do)
-
-	do, err = GetDivergingCommits(t.Context(), bareRepo1Path, "master", "test")
-	assert.NoError(t, err)
-	assert.Equal(t, DivergeObject{
-		Ahead:  0,
-		Behind: 2,
-	}, do)
-}

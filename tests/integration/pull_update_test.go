@@ -71,6 +71,9 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 			AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusOK)
 
+		// reload pr
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+
 		// Test GetDiverging after update
 		diffCount, err = pull_service.GetDiverging(t.Context(), pr)
 		assert.NoError(t, err)

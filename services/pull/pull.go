@@ -53,6 +53,10 @@ type NewPullRequestOptions struct {
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
+	if opts.PullRequest.Flow == issues_model.PullRequestFlowAGit && opts.PullRequest.HeadCommitID == "" {
+		return errors.New("head commit ID cannot be empty for agit flow")
+	}
+
 	repo, issue, labelIDs, uuids, pr, assigneeIDs := opts.Repo, opts.Issue, opts.LabelIDs, opts.AttachmentUUIDs, opts.PullRequest, opts.AssigneeIDs
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
@@ -98,21 +102,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		return err
 	}
 
-	divergence, err := git.GetDivergingCommits(ctx, prCtx.tmpBasePath, baseBranch, trackingBranch)
-	if err != nil {
-		return err
-	}
-	pr.CommitsAhead = divergence.Ahead
-	pr.CommitsBehind = divergence.Behind
-
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
-
-	// add first push codes comment
-	baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
-	if err != nil {
-		return err
-	}
-	defer baseGitRepo.Close()
 
 	var reviewNotifiers []*issue_service.ReviewRequestNotifier
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
@@ -131,12 +121,24 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		pr.Issue = issue
 		issue.PullRequest = pr
 
-		if pr.Flow == issues_model.PullRequestFlowGithub {
-			err = PushToBaseRepo(ctx, pr)
+		// update head commit id into git repository
+		if pr.Flow == issues_model.PullRequestFlowAGit {
+			err = UpdatePullRequestAgitFlowHead(ctx, pr, pr.HeadCommitID)
 		} else {
-			err = UpdateRef(ctx, pr)
+			err = UpdatePullRequestGithubFlowHead(ctx, pr)
 		}
 		if err != nil {
+			return err
+		}
+
+		// update commits ahead and behind
+		divergence, err := GetDiverging(ctx, pr)
+		if err != nil {
+			return err
+		}
+		pr.CommitsAhead = divergence.Ahead
+		pr.CommitsBehind = divergence.Behind
+		if _, err := db.GetEngine(ctx).ID(pr.ID).Cols("commits_ahead", "commits_behind").NoAutoTime().Update(pr); err != nil {
 			return err
 		}
 
@@ -153,12 +155,11 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		return nil
 	}); err != nil {
 		// cleanup: this will only remove the reference, the real commit will be clean up when next GC
-		if err1 := baseGitRepo.RemoveReference(pr.GetGitHeadRefName()); err1 != nil {
+		if err1 := gitrepo.RemoveReference(ctx, pr.BaseRepo, pr.GetGitHeadRefName()); err1 != nil {
 			log.Error("RemoveReference: %v", err1)
 		}
 		return err
 	}
-	baseGitRepo.Close() // close immediately to avoid notifications will open the repository again
 
 	issue_service.ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
@@ -293,20 +294,17 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		pr.Status = issues_model.PullRequestStatusMergeable
 	}
 
-	// Update Commit Divergence
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return err
+	}
+
+	// update commits ahead and behind
 	divergence, err := GetDiverging(ctx, pr)
 	if err != nil {
 		return err
 	}
 	pr.CommitsAhead = divergence.Ahead
 	pr.CommitsBehind = divergence.Behind
-
-	// add first push codes comment
-	baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
-	if err != nil {
-		return err
-	}
-	defer baseGitRepo.Close()
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
@@ -388,7 +386,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		for _, pr := range prs {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
 			if pr.Flow == issues_model.PullRequestFlowGithub {
-				if err := PushToBaseRepo(ctx, pr); err != nil {
+				if err := UpdatePullRequestGithubFlowHead(ctx, pr); err != nil {
 					log.Error("PushToBaseRepo: %v", err)
 					continue
 				}
@@ -438,6 +436,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
+
 						divergence, err := GetDiverging(ctx, pr)
 						if err != nil {
 							log.Error("GetDiverging: %v", err)
@@ -470,7 +469,13 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", opts.RepoID, opts.Branch, err)
 			return
 		}
+		baseRepo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
+		if err != nil {
+			log.Error("GetRepositoryByID: %v", err)
+			return
+		}
 		for _, pr := range prs {
+			pr.BaseRepo = baseRepo
 			divergence, err := GetDiverging(ctx, pr)
 			if err != nil {
 				if git_model.IsErrBranchNotExist(err) && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
@@ -546,68 +551,6 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	return false, nil
 }
 
-// PushToBaseRepo pushes commits from branches of head repository to
-// corresponding branches of base repository.
-// FIXME: Only push branches that are actually updates?
-func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) (err error) {
-	return pushToBaseRepoHelper(ctx, pr, "")
-}
-
-func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, prefixHeadBranch string) (err error) {
-	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitHeadRefName())
-
-	if err := pr.LoadHeadRepo(ctx); err != nil {
-		log.Error("Unable to load head repository for PR[%d] Error: %v", pr.ID, err)
-		return err
-	}
-	headRepoPath := pr.HeadRepo.RepoPath()
-
-	if err := pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
-		return err
-	}
-	baseRepoPath := pr.BaseRepo.RepoPath()
-
-	if err = pr.LoadIssue(ctx); err != nil {
-		return fmt.Errorf("unable to load issue %d for pr %d: %w", pr.IssueID, pr.ID, err)
-	}
-	if err = pr.Issue.LoadPoster(ctx); err != nil {
-		return fmt.Errorf("unable to load poster %d for pr %d: %w", pr.Issue.PosterID, pr.ID, err)
-	}
-
-	gitRefName := pr.GetGitHeadRefName()
-
-	if err := git.Push(ctx, headRepoPath, git.PushOptions{
-		Remote: baseRepoPath,
-		Branch: prefixHeadBranch + pr.HeadBranch + ":" + gitRefName,
-		Force:  true,
-		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
-		Env: repo_module.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
-	}); err != nil {
-		if git.IsErrPushOutOfDate(err) {
-			// This should not happen as we're using force!
-			log.Error("Unable to push PR head for %s#%d (%-v:%s) due to ErrPushOfDate: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
-			return err
-		} else if git.IsErrPushRejected(err) {
-			rejectErr := err.(*git.ErrPushRejected)
-			log.Info("Unable to push PR head for %s#%d (%-v:%s) due to rejection:\nStdout: %s\nStderr: %s\nError: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
-			return err
-		} else if git.IsErrMoreThanOne(err) {
-			if prefixHeadBranch != "" {
-				log.Info("Can't push with %s%s", prefixHeadBranch, pr.HeadBranch)
-				return err
-			}
-			log.Info("Retrying to push with %s%s", git.BranchPrefix, pr.HeadBranch)
-			err = pushToBaseRepoHelper(ctx, pr, git.BranchPrefix)
-			return err
-		}
-		log.Error("Unable to push PR head for %s#%d (%-v:%s) due to Error: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
-		return fmt.Errorf("Push: %s:%s %s:%s %w", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), gitRefName, err)
-	}
-
-	return nil
-}
-
 // UpdatePullsRefs update all the PRs head file pointers like /refs/pull/1/head so that it will be dependent by other operations
 func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *repo_module.PushUpdateOptions) {
 	branch := update.RefFullName.BranchName()
@@ -619,27 +562,44 @@ func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *r
 		for _, pr := range prs {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
 			if pr.Flow == issues_model.PullRequestFlowGithub {
-				if err := PushToBaseRepo(ctx, pr); err != nil {
-					log.Error("PushToBaseRepo: %v", err)
+				if err := UpdatePullRequestGithubFlowHead(ctx, pr); err != nil {
+					log.Error("UpdatePullRequestHead: %v", err)
 				}
 			}
 		}
 	}
 }
 
-// UpdateRef update refs/pull/id/head directly for agit flow pull request
-func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
-	log.Trace("UpdateRef[%d]: upgate pull request ref in base repo '%s'", pr.ID, pr.GetGitHeadRefName())
+func UpdatePullRequestAgitFlowHead(ctx context.Context, pr *issues_model.PullRequest, commitID string) error {
+	log.Trace("UpdateAgitPullRequestHead[%d]: update pull request head in base repo '%s'", pr.ID, pr.GetGitHeadRefName())
+
+	_, _, err := git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), commitID).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+	return err
+}
+
+// UpdatePullRequestHeadRef updates the head reference of a pull request
+func UpdatePullRequestGithubFlowHead(ctx context.Context, pr *issues_model.PullRequest) error {
+	log.Trace("UpdatePullRequestHeadRef[%d]: update pull request ref in base repo '%s'", pr.ID, pr.GetGitHeadRefName())
+
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
 
-	_, _, err = git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.HeadCommitID).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
-	if err != nil {
-		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
+	if pr.IsSameRepo() { // for agit flow or github flow in the same repository
+		_, _, err := git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.HeadBranch).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+		return err
 	}
 
+	// for cross repository pull request
+	if err := pr.LoadHeadRepo(ctx); err != nil {
+		return err
+	}
+
+	_, _, err := git.NewCommand("fetch", "--no-tags", "--refmap=").
+		AddDynamicArguments(pr.HeadRepo.RepoPath()).
+		// + means force fetch
+		AddDynamicArguments(fmt.Sprintf("+refs/heads/%s:%s", pr.HeadBranch, pr.GetGitHeadRefName())).
+		RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
 	return err
 }
 
