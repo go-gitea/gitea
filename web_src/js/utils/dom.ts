@@ -1,5 +1,5 @@
 import {debounce} from 'throttle-debounce';
-import type {Promisable} from 'type-fest';
+import type {Promisable} from '../types.ts';
 import type $ from 'jquery';
 import {isInFrontendUnitTest} from './testhelper.ts';
 
