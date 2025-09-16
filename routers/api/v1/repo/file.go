@@ -307,25 +307,10 @@ func archiveDownload(ctx *context.APIContext) {
 		return
 	}
 
-	// Add nix format link header so tarballs lock correctly:
-	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
-	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.%s?rev=%s>; rel="immutable"`,
-		ctx.Repo.Repository.APIURL(),
-		aReq.CommitID,
-		aReq.Type.String(),
-		aReq.CommitID,
-	))
-
-	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
+	downloadName := prepareDownload(ctx, aReq)
 
 	if setting.Repository.StreamArchives {
-		ctx.SetServeHeaders(&context.ServeHeaderOptions{
-			Filename: downloadName,
-		})
-
-		if err := aReq.Stream(ctx, ctx.Repo.GitRepo, ctx.Resp); err != nil && !ctx.Written() {
-			ctx.APIErrorInternal(err)
-		}
+		streamDownload(ctx, downloadName, aReq)
 		return
 	}
 
@@ -336,6 +321,29 @@ func archiveDownload(ctx *context.APIContext) {
 	}
 
 	download(ctx, downloadName, archiver)
+}
+
+func prepareDownload(ctx *context.APIContext, aReq *archiver_service.ArchiveRequest) (downloadName string) {
+	// Add nix format link header so tarballs lock correctly:
+	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
+	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.%s?rev=%s>; rel="immutable"`,
+		ctx.Repo.Repository.APIURL(),
+		aReq.CommitID,
+		aReq.Type.String(),
+		aReq.CommitID,
+	))
+
+	return ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
+}
+
+func streamDownload(ctx *context.APIContext, downloadName string, r *archiver_service.ArchiveRequest) {
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename: downloadName,
+	})
+
+	if err := r.Stream(ctx, ctx.Repo.GitRepo, ctx.Resp); err != nil && !ctx.Written() {
+		ctx.APIErrorInternal(err)
+	}
 }
 
 func download(ctx *context.APIContext, downloadName string, archiver *repo_model.RepoArchiver) {

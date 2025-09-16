@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/context"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 )
@@ -41,11 +42,18 @@ func DownloadArchive(ctx *context.APIContext) {
 		return
 	}
 
+	downloadName := prepareDownload(ctx, r)
+
+	if setting.Repository.StreamArchives {
+		streamDownload(ctx, downloadName, r)
+		return
+	}
+
 	archive, err := r.Await(ctx)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	download(ctx, r.GetArchiveName(), archive)
+	download(ctx, downloadName, archive)
 }
