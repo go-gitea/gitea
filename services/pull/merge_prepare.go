@@ -18,6 +18,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
@@ -31,10 +32,10 @@ type mergeContext struct {
 	env       []string
 }
 
-func (ctx *mergeContext) RunOpts() *git.RunOpts {
+func (ctx *mergeContext) RunOpts() *gitcmd.RunOpts {
 	ctx.outbuf.Reset()
 	ctx.errbuf.Reset()
-	return &git.RunOpts{
+	return &gitcmd.RunOpts{
 		Env:    ctx.env,
 		Dir:    ctx.tmpBasePath,
 		Stdout: ctx.outbuf,
@@ -73,7 +74,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	if expectedHeadCommitID != "" {
-		trackingCommitID, _, err := git.NewCommand("show-ref", "--hash").AddDynamicArguments(git.BranchPrefix+trackingBranch).RunStdString(ctx, &git.RunOpts{Dir: mergeCtx.tmpBasePath})
+		trackingCommitID, _, err := gitcmd.NewCommand("show-ref", "--hash").AddDynamicArguments(git.BranchPrefix+trackingBranch).RunStdString(ctx, &gitcmd.RunOpts{Dir: mergeCtx.tmpBasePath})
 		if err != nil {
 			defer cancel()
 			log.Error("failed to get sha of head branch in %-v: show-ref[%s] --hash refs/heads/tracking: %v", mergeCtx.pr, mergeCtx.tmpBasePath, err)
@@ -151,7 +152,7 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 	}
 
 	setConfig := func(key, value string) error {
-		if err := git.NewCommand("config", "--local").AddDynamicArguments(key, value).
+		if err := gitcmd.NewCommand("config", "--local").AddDynamicArguments(key, value).
 			Run(ctx, ctx.RunOpts()); err != nil {
 			log.Error("git config [%s -> %q]: %v\n%s\n%s", key, value, err, ctx.outbuf.String(), ctx.errbuf.String())
 			return fmt.Errorf("git config [%s -> %q]: %w\n%s\n%s", key, value, err, ctx.outbuf.String(), ctx.errbuf.String())
@@ -184,7 +185,7 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 	}
 
 	// Read base branch index
-	if err := git.NewCommand("read-tree", "HEAD").
+	if err := gitcmd.NewCommand("read-tree", "HEAD").
 		Run(ctx, ctx.RunOpts()); err != nil {
 		log.Error("git read-tree HEAD: %v\n%s\n%s", err, ctx.outbuf.String(), ctx.errbuf.String())
 		return fmt.Errorf("Unable to read base branch in to the index: %w\n%s\n%s", err, ctx.outbuf.String(), ctx.errbuf.String())
@@ -221,8 +222,8 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, o
 		return 0, nil, nil
 	}
 
-	err = git.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root").AddDynamicArguments(baseBranch, headBranch).
-		Run(ctx, &git.RunOpts{
+	err = gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root").AddDynamicArguments(baseBranch, headBranch).
+		Run(ctx, &gitcmd.RunOpts{
 			Dir:    repoPath,
 			Stdout: diffOutWriter,
 			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
@@ -272,7 +273,7 @@ func (err ErrRebaseConflicts) Error() string {
 // if there is a conflict it will return an ErrRebaseConflicts
 func rebaseTrackingOnToBase(ctx *mergeContext, mergeStyle repo_model.MergeStyle) error {
 	// Checkout head branch
-	if err := git.NewCommand("checkout", "-b").AddDynamicArguments(stagingBranch, trackingBranch).
+	if err := gitcmd.NewCommand("checkout", "-b").AddDynamicArguments(stagingBranch, trackingBranch).
 		Run(ctx, ctx.RunOpts()); err != nil {
 		return fmt.Errorf("unable to git checkout tracking as staging in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 	}
@@ -280,7 +281,7 @@ func rebaseTrackingOnToBase(ctx *mergeContext, mergeStyle repo_model.MergeStyle)
 	ctx.errbuf.Reset()
 
 	// Rebase before merging
-	if err := git.NewCommand("rebase").AddDynamicArguments(baseBranch).
+	if err := gitcmd.NewCommand("rebase").AddDynamicArguments(baseBranch).
 		Run(ctx, ctx.RunOpts()); err != nil {
 		// Rebase will leave a REBASE_HEAD file in .git if there is a conflict
 		if _, statErr := os.Stat(filepath.Join(ctx.tmpBasePath, ".git", "REBASE_HEAD")); statErr == nil {
