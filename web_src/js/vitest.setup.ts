@@ -1,3 +1,5 @@
+import type {Config} from "./types.ts";
+
 window.__webpack_public_path__ = '';
 
 window.config = {
@@ -22,4 +24,5 @@ window.config = {
   ],
   mermaidMaxSourceCharacters: 5000,
   i18n: {},
-};
+  streamArchives: true,
+} satisfies Config;

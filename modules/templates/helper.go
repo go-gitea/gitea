@@ -127,6 +127,9 @@ func NewFuncMap() template.FuncMap {
 		"EnableTimetracking": func() bool {
 			return setting.Service.EnableTimetracking
 		},
+		"StreamArchives": func() bool {
+			return setting.Repository.StreamArchives
+		},
 		"DisableWebhooks": func() bool {
 			return setting.DisableWebhooks
 		},

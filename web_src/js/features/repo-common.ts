@@ -32,7 +32,10 @@ async function onDownloadArchive(e: DOMEvent<MouseEvent>) {
 }
 
 export function initRepoArchiveLinks() {
-  queryElems(document, 'a.archive-link[href]', (el) => el.addEventListener('click', onDownloadArchive));
+  // when streaming is enabled, the links will work as-is without the need to wait until the archive is ready
+  if (!window.config.streamArchives) {
+    queryElems(document, 'a.archive-link[href]', (el) => el.addEventListener('click', onDownloadArchive));
+  }
 }
 
 export function initRepoActivityTopAuthorsChart() {
