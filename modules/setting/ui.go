@@ -36,6 +36,7 @@ var UI = struct {
 	SearchRepoDescription   bool
 	OnlyShowRelevantRepos   bool
 	ExploreDefaultSort      string `ini:"EXPLORE_PAGING_DEFAULT_SORT"`
+	ExcludeForksDefault     bool
 	PreferredTimestampTense string
 
 	AmbiguousUnicodeDetection bool
@@ -90,6 +91,7 @@ var UI = struct {
 	CustomEmojis:            []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
 	CustomEmojisMap:         map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
 	ExploreDefaultSort:      "recentupdate",
+	ExcludeForksDefault:     true,
 	PreferredTimestampTense: "mixed",
 
 	AmbiguousUnicodeDetection: true,
@@ -152,6 +154,7 @@ func loadUIFrom(rootCfg ConfigProvider) {
 	UI.ShowUserEmail = sec.Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = sec.Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = sec.Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
+	UI.ExcludeForksDefault = sec.Key("EXCLUDE_FORKS_DEFAULT").MustBool(true)
 
 	if UI.PreferredTimestampTense != "mixed" && UI.PreferredTimestampTense != "absolute" {
 		log.Fatal("ui.PREFERRED_TIMESTAMP_TENSE must be either 'mixed' or 'absolute'")
