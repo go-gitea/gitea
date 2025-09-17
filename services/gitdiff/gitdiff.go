@@ -13,6 +13,7 @@ import (
 	"html/template"
 	"io"
 	"net/url"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -312,6 +313,7 @@ type DiffFile struct {
 
 	// basic fields (parsed from diff result)
 	Name        string
+	ShortName   string
 	NameHash    string
 	OldName     string
 	Addition    int
@@ -399,6 +401,14 @@ func (diffFile *DiffFile) GetDiffFileName() string {
 		return diffFile.OldName
 	}
 	return diffFile.Name
+}
+
+// GetDiffFileName returns the short name of the diff file, or its short old name in case it was deleted
+func (diffFile *DiffFile) GetDiffFileShortName() string {
+	if diffFile.Name == "" {
+		return filepath.Base(diffFile.OldName)
+	}
+	return filepath.Base(diffFile.Name)
 }
 
 func (diffFile *DiffFile) ShouldBeHidden() bool {
@@ -1027,6 +1037,7 @@ func createDiffFile(line string) *DiffFile {
 
 	curFile.OldName, oldNameAmbiguity = readFileName(rd)
 	curFile.Name, newNameAmbiguity = readFileName(rd)
+	curFile.ShortName = curFile.GetDiffFileShortName()
 	if oldNameAmbiguity && newNameAmbiguity {
 		curFile.isAmbiguous = true
 		// OK we should bet that the oldName and the newName are the same if they can be made to be same
