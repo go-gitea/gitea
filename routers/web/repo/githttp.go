@@ -23,6 +23,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -313,7 +314,7 @@ func dummyInfoRefs(ctx *context.Context) {
 			return
 		}
 
-		refs, _, err := git.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &git.RunOpts{Dir: tmpDir})
+		refs, _, err := gitcmd.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &gitcmd.RunOpts{Dir: tmpDir})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}

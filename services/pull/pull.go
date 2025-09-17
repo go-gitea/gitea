@@ -25,10 +25,10 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -141,36 +141,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			return err
 		}
 
-		compareInfo, err := GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo,
-			git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false, false)
-		if err != nil {
-			return err
-		}
-		if len(compareInfo.Commits) == 0 {
-			return nil
-		}
-
-		data := issues_model.PushActionContent{IsForcePush: false}
-		data.CommitIDs = make([]string, 0, len(compareInfo.Commits))
-		for i := len(compareInfo.Commits) - 1; i >= 0; i-- {
-			data.CommitIDs = append(data.CommitIDs, compareInfo.Commits[i].ID.String())
-		}
-
-		dataJSON, err := json.Marshal(data)
-		if err != nil {
-			return err
-		}
-
-		ops := &issues_model.CreateCommentOptions{
-			Type:        issues_model.CommentTypePullRequestPush,
-			Doer:        issue.Poster,
-			Repo:        repo,
-			Issue:       pr.Issue,
-			IsForcePush: false,
-			Content:     string(dataJSON),
-		}
-
-		if _, err = issues_model.CreateComment(ctx, ops); err != nil {
+		if _, err := CreatePushPullComment(ctx, issue.Poster, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false); err != nil {
 			return err
 		}
 
@@ -331,24 +302,42 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	pr.CommitsAhead = divergence.Ahead
 	pr.CommitsBehind = divergence.Behind
 
-	if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
+	// add first push codes comment
+	baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	if err != nil {
 		return err
 	}
+	defer baseGitRepo.Close()
 
-	// Create comment
-	options := &issues_model.CreateCommentOptions{
-		Type:   issues_model.CommentTypeChangeTargetBranch,
-		Doer:   doer,
-		Repo:   pr.Issue.Repo,
-		Issue:  pr.Issue,
-		OldRef: oldBranch,
-		NewRef: targetBranch,
-	}
-	if _, err = issues_model.CreateComment(ctx, options); err != nil {
-		return fmt.Errorf("CreateChangeTargetBranchComment: %w", err)
-	}
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
+			return err
+		}
 
-	return nil
+		// Create comment
+		options := &issues_model.CreateCommentOptions{
+			Type:   issues_model.CommentTypeChangeTargetBranch,
+			Doer:   doer,
+			Repo:   pr.Issue.Repo,
+			Issue:  pr.Issue,
+			OldRef: oldBranch,
+			NewRef: targetBranch,
+		}
+		if _, err = issues_model.CreateComment(ctx, options); err != nil {
+			return fmt.Errorf("CreateChangeTargetBranchComment: %w", err)
+		}
+
+		// Delete all old push comments and insert new push comments
+		if _, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
+			And("type = ?", issues_model.CommentTypePullRequestPush).
+			NoAutoCondition().
+			Delete(new(issues_model.Comment)); err != nil {
+			return err
+		}
+
+		_, err = CreatePushPullComment(ctx, doer, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false)
+		return err
+	})
 }
 
 func checkForInvalidation(ctx context.Context, requests issues_model.PullRequestList, repoID int64, doer *user_model.User, branch string) error {
@@ -409,7 +398,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			}
 
 			StartPullRequestCheckImmediately(ctx, pr)
-			comment, err := CreatePushPullComment(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID)
+			comment, err := CreatePushPullComment(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID, opts.IsForcePush)
 			if err == nil && comment != nil {
 				notify_service.PullRequestPushCommits(ctx, opts.Doer, pr, comment)
 			}
@@ -523,14 +512,14 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		return false, fmt.Errorf("GetMergeBase: %w", err)
 	}
 
-	cmd := git.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, base)
+	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, base)
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return false, fmt.Errorf("unable to open pipe for to run diff: %w", err)
 	}
 
 	stderr := new(bytes.Buffer)
-	if err := cmd.Run(ctx, &git.RunOpts{
+	if err := cmd.Run(ctx, &gitcmd.RunOpts{
 		Dir:    prCtx.tmpBasePath,
 		Stdout: stdoutWriter,
 		Stderr: stderr,
@@ -545,7 +534,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		if err == util.ErrNotEmpty {
 			return true, nil
 		}
-		err = git.ConcatenateError(err, stderr.String())
+		err = gitcmd.ConcatenateError(err, stderr.String())
 
 		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
 			newCommitID, oldCommitID, base,
@@ -647,7 +636,7 @@ func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 		return err
 	}
 
-	_, _, err = git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.HeadCommitID).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+	_, _, err = gitcmd.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.HeadCommitID).RunStdString(ctx, &gitcmd.RunOpts{Dir: pr.BaseRepo.RepoPath()})
 	if err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}

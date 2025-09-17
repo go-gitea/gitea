@@ -6,10 +6,10 @@ package forms
 import (
 	"testing"
 
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
-	"github.com/gobwas/glob"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -9,15 +9,15 @@ import (
 	"io"
 	"os"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
-func serviceCmd(service string) *git.Command {
+func serviceCmd(service string) *gitcmd.Command {
 	switch service {
 	case "receive-pack":
-		return git.NewCommand("receive-pack")
+		return gitcmd.NewCommand("receive-pack")
 	case "upload-pack":
-		return git.NewCommand("upload-pack")
+		return gitcmd.NewCommand("upload-pack")
 	default:
 		// the service should be checked before invoking this function
 		panic("unknown service: " + service)
@@ -29,7 +29,7 @@ func StatelessRPC(ctx context.Context, storageRepo Repository, service string, e
 	if err := serviceCmd(service).
 		AddArguments("--stateless-rpc").
 		AddDynamicArguments(repoPath(storageRepo)).
-		Run(ctx, &git.RunOpts{
+		Run(ctx, &gitcmd.RunOpts{
 			Dir:               repoPath(storageRepo),
 			Env:               append(os.Environ(), extraEnvs...),
 			Stdout:            output,
@@ -44,7 +44,7 @@ func StatelessRPC(ctx context.Context, storageRepo Repository, service string, e
 
 func StatelessRPCAdvertiseRefs(ctx context.Context, storageRepo Repository, service string, extraEnvs []string) ([]byte, error) {
 	refs, _, err := serviceCmd(service).AddArguments("--stateless-rpc", "--advertise-refs", ".").
-		RunStdBytes(ctx, &git.RunOpts{
+		RunStdBytes(ctx, &gitcmd.RunOpts{
 			Dir: repoPath(storageRepo),
 			Env: append(os.Environ(), extraEnvs...),
 		})

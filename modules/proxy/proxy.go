@@ -10,10 +10,9 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/gobwas/glob"
 )
 
 var (

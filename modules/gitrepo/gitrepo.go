@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -90,7 +91,7 @@ func InitRepository(ctx context.Context, repo Repository, objectFormatName strin
 }
 
 func UpdateServerInfo(ctx context.Context, repo Repository) error {
-	_, _, err := git.NewCommand("update-server-info").RunStdBytes(ctx, &git.RunOpts{Dir: repoPath(repo)})
+	_, _, err := gitcmd.NewCommand("update-server-info").RunStdBytes(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
 	return err
 }
 
