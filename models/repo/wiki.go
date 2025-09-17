@@ -7,7 +7,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -84,9 +83,4 @@ func RelativeWikiPath(ownerName, repoName string) string {
 // The wiki repository should have the same object format as the code repository
 func (repo *Repository) WikiStorageRepo() StorageRepo {
 	return StorageRepo(RelativeWikiPath(repo.OwnerName, repo.Name))
-}
-
-// WikiPath returns wiki data path for given repository.
-func (repo *Repository) WikiPath() string {
-	return filepath.Join(user_model.UserPath(repo.OwnerName), strings.ToLower(repo.Name)+".wiki.git")
 }
