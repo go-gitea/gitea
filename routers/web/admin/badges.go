@@ -92,10 +92,7 @@ func NewBadgePost(ctx *context.Context) {
 	}
 
 	if err := user_model.CreateBadge(ctx, b); err != nil {
-		switch {
-		default:
-			ctx.ServerError("CreateBadge", err)
-		}
+		ctx.ServerError("CreateBadge", err)
 		return
 	}
 
