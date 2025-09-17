@@ -5,14 +5,16 @@ package git
 
 import (
 	"fmt"
+
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // LineBlame returns the latest commit at the given line
 func (repo *Repository) LineBlame(revision, path, file string, line uint) (*Commit, error) {
-	res, _, err := NewCommand("blame").
+	res, _, err := gitcmd.NewCommand("blame").
 		AddOptionFormat("-L %d,%d", line, line).
 		AddOptionValues("-p", revision).
-		AddDashesAndList(file).RunStdString(repo.Ctx, &RunOpts{Dir: path})
+		AddDashesAndList(file).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: path})
 	if err != nil {
 		return nil, err
 	}
