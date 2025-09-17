@@ -1,0 +1,9 @@
+.ui.secondary.pointing.menu .active.item {
+  border-color: var(--color-primary);
+}
+
+.ui.tabular.menu .active.item, .ui.tabular.menu .active.item:hover {
+  margin-bottom: 0;
+  box-shadow: 0px 2px 0px var(--color-primary);
+  border: 0;
+}

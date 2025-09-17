@@ -1,9 +1,10 @@
 /* Override primary brand color */
 :root {
   --color-primary: #4E40FA;
-  /* optional: uncomment to align states with the new primary */
-  /* --color-primary-hover: #3C2EED; */
-  /* --color-primary-active: #3328D8; */
-  /* --color-primary-contrast: #ffffff; */
+  --color-primary-hover: #3C2EED;
+  --color-primary-active: #3328D8;
+  --color-primary-contrast: #ffffff;
+
+  --color-secondary-nav-bg: #fff;
 }
 

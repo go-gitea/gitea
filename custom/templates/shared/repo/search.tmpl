@@ -7,12 +7,13 @@
         {{end}}
 		{{if .TabName}}<input type="hidden" name="tab" value="{{.TabName}}">{{end}}
 		{{if .TopicOnly}}<input type="hidden" name="topic" value="{{.TopicOnly}}">{{end}}
-		<div class="ui small fluid action input tw-flex-1">
+		<div class="ui small fluid action input tw-flex-1 tw-my-4">
 			{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.repo_kind")}}
 			{{template "shared/search/button"}}
 		</div>
 		<!-- Filter -->
 		<div class="item ui small dropdown jump">
+			{{svg "octicon-filter" 14 "dropdown icon tw-mr-1"}}
 			<span class="text">{{ctx.Locale.Tr "filter"}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu flex-items-menu">
@@ -36,6 +37,9 @@
 		</div>
 		<!-- Sort -->
 		<div class="item ui small dropdown jump">
+			<div style="transform: rotate(90deg) !important;">
+				{{svg "octicon-arrow-switch" 14 "dropdown icon tw-mt-1 tw-rotate-90"}}
+			</div>
 			<span class="text">{{ctx.Locale.Tr "repo.issues.filter_sort"}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
@@ -66,4 +70,4 @@
 		</span>
 	</div>
 {{end}}
-<div class="divider"></div>
+

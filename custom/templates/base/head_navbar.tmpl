@@ -8,7 +8,7 @@
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
 		<div class="ui secondary menu navbar-mobile-right only-mobile">
 			{{template "base/head_navbar_icons" dict "PageGlobalData" .PageGlobalData}}
-			<button class="item ui icon mini button tw-m-0" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
+			<button class="item ui icon mini button tw-m-0 svg-no-margin" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
 		</div>
 
 		<!-- navbar links non-mobile -->
@@ -128,12 +128,12 @@
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		{{else}}
-			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login{{if not .PageIsSignIn}}?redirect_to={{.CurrentURL}}{{end}}">
+			<a class="item tw-bg-transparent hover:tw-underline{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login{{if not .PageIsSignIn}}?redirect_to={{.CurrentURL}}{{end}}">
 				<span class="tw-ml-1">{{ctx.Locale.Tr "sign_in"}}</span>
 			</a>
 			{{if .ShowRegistrationButton}}
-        <div class="-tw-ml-4 -tw-mr-5">/</div>
-        <a class="item{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">
+        <div class="-tw-ml-4 -tw-mr-5 not-mobile">/</div>
+        <a class="item tw-bg-transparent hover:tw-underline{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">
 					<span class="tw-ml-1">{{ctx.Locale.Tr "sign_up"}}</span>
 				</a>
 			{{end}}

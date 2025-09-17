@@ -1,4 +1,5 @@
 <div class="flex-list">
+	<div class="tw-font-bold tw-text-base tw-mb-4">Search results for Moon</div>
 	{{range .Repos}}
 		<div class="flex-item">
 			<div class="flex-item-leading">
@@ -31,7 +32,8 @@
 							{{end}}
 						</span>
 					</div>
-					<div class="flex-item-trailing muted-links">
+					<!-- Old subject action -->
+					<!-- <div class="flex-item-trailing muted-links">
 						{{if .PrimaryLanguage}}
 							<a class="flex-text-inline" href="?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}{{if $.TabName}}&tab={{$.TabName}}{{end}}">
 								<i class="color-icon tw-mr-2" style="background-color: {{.PrimaryLanguage.Color}}"></i>
@@ -48,7 +50,7 @@
 							<span class="tw-contents" aria-label="{{ctx.Locale.Tr "repo.forks"}}">{{svg "octicon-git-branch" 16}}</span>
 							<span {{if ge .NumForks 1000}}data-tooltip-content="{{.NumForks}}"{{end}}>{{CountFmt .NumForks}}</span>
 						</a>
-					</div>
+					</div> -->
 				</div>
 			</div>
 		</div>

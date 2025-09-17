@@ -3,7 +3,9 @@
 
 #navbar {
   background: var(--color-body);
-  border-bottom: none;
+  padding: 9px 10px;
 }
 
-
+.ui.menu .item.svg-no-margin > svg{
+  margin: 0;
+}
