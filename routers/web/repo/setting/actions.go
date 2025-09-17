@@ -5,7 +5,6 @@ package setting
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -43,7 +42,7 @@ func ActionsGeneralSettings(ctx *context.Context) {
 }
 
 func AddCollaborativeOwner(ctx *context.Context) {
-	redirectURL := fmt.Sprintf("%s/settings/actions/general", ctx.Repo.RepoLink)
+	redirectURL := ctx.Repo.RepoLink + "/settings/actions/general"
 	name := strings.ToLower(ctx.FormString("collaborative_owner"))
 
 	ownerID, err := user_model.GetUserOrOrgIDByName(ctx, name)
@@ -73,7 +72,7 @@ func AddCollaborativeOwner(ctx *context.Context) {
 }
 
 func DeleteCollaborativeOwner(ctx *context.Context) {
-	redirectURL := fmt.Sprintf("%s/settings/actions/general", ctx.Repo.RepoLink)
+	redirectURL := ctx.Repo.RepoLink + "/settings/actions/general"
 	ownerID := ctx.FormInt64("id")
 
 	actionsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeActions)
