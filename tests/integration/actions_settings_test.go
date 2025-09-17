@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -49,12 +50,12 @@ func TestActionsCollaborativeOwner(t *testing.T) {
 		// remove user10 from the list of collaborative owners
 		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/collaborative_owner/delete", actionRepo.OwnerName, actionRepo.Name), map[string]string{
 			"_csrf": user2CSRF,
-			"id":    fmt.Sprintf("%d", user10.ID),
+			"id":    strconv.FormatInt(user10.ID, 10),
 		})
 		resp := user2Session.MakeRequest(t, req, http.StatusOK)
 		res := make(map[string]string)
 		assert.NoError(t, json.NewDecoder(resp.Body).Decode(&res))
-		assert.EqualValues(t, fmt.Sprintf("/%s/%s/settings/actions/general", actionRepo.OwnerName, actionRepo.Name), res["redirect"])
+		assert.Equal(t, fmt.Sprintf("/%s/%s/settings/actions/general", actionRepo.OwnerName, actionRepo.Name), res["redirect"])
 
 		// the git clone will fail
 		doGitCloneFail(u)(t)
