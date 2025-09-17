@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
-func runCmdString(ctx context.Context, repo Repository, cmd *gitcmd.Command) (string, string, error) { //nolint:unparam // the second return parameter maybe used in the future
-	return cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
+func runCmdString(ctx context.Context, repo Repository, cmd *gitcmd.Command) (string, error) {
+	res, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
+	return res, err
 }
