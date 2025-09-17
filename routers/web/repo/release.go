@@ -423,7 +423,7 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
-	if exist, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, form.Target); exist {
+	if exist, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, form.Target); !exist {
 		ctx.RenderWithErr(ctx.Tr("form.target_branch_not_exist"), tplReleaseNew, &form)
 		return
 	}
