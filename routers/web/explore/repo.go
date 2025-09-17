@@ -4,10 +4,14 @@
 package explore
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sitemap"
@@ -174,4 +178,109 @@ func Repos(ctx *context.Context) {
 		TplName:          tplExploreRepos,
 		OnlyShowRelevant: onlyShowRelevant,
 	})
+}
+
+// RepoHistory renders repository history page - an alternative interface to repo home
+func RepoHistory(ctx *context.Context) {
+	// Set page metadata
+	ctx.Data["Title"] = ctx.Repo.Repository.FullName() + " - History View"
+	ctx.Data["PageIsExploreRepositories"] = true
+	ctx.Data["PageIsRepoHistory"] = true
+	ctx.Data["IsRepoHistoryView"] = true
+
+	// Call the main repository home logic
+	// This duplicates the functionality of repo.Home but in the explore context
+	renderRepositoryHistory(ctx)
+}
+
+// renderRepositoryHistory duplicates repo.Home functionality for the history view
+func renderRepositoryHistory(ctx *context.Context) {
+	// Handle feed requests
+	if handleRepoHistoryFeed(ctx) {
+		return
+	}
+
+	// Check repository viewability
+	if !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeCode) {
+		ctx.NotFound(fmt.Errorf("code unit disabled for repository"))
+		return
+	}
+
+	// Set up basic repository data
+	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name + " (History)"
+	if ctx.Repo.Repository.Description != "" {
+		title += ": " + ctx.Repo.Repository.Description
+	}
+	ctx.Data["Title"] = title
+	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["RepositoryUploadEnabled"] = false // Disable uploads in history view
+
+	// Handle empty or broken repositories
+	if ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBroken() {
+		ctx.Data["IsRepoEmpty"] = true
+		ctx.HTML(http.StatusOK, "repo/empty")
+		return
+	}
+
+	// Initialize git repository
+	gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("OpenRepository", err)
+		return
+	}
+	defer gitRepo.Close()
+
+	// Get default branch
+	defaultBranch := ctx.Repo.Repository.DefaultBranch
+
+	// Get commit for default branch
+	commit, err := gitRepo.GetBranchCommit(defaultBranch)
+	if err != nil {
+		ctx.ServerError("GetBranchCommit", err)
+		return
+	}
+
+	// Set up repository context
+	ctx.Repo.GitRepo = gitRepo
+	ctx.Repo.BranchName = defaultBranch
+	ctx.Repo.Commit = commit
+	ctx.Repo.CommitID = commit.ID.String()
+	ctx.Repo.TreePath = ""
+
+	// Get repository tree entries
+	entries, err := commit.ListEntries()
+	if err != nil {
+		ctx.ServerError("Commit.ListEntries", err)
+		return
+	}
+
+	// Set up template data
+	ctx.Data["BranchName"] = defaultBranch
+	ctx.Data["CommitID"] = commit.ID.String()
+	ctx.Data["TreePath"] = ""
+	ctx.Data["Files"] = entries
+	ctx.Data["LastCommit"] = commit
+	ctx.Data["LastCommitUser"] = commit.Committer
+
+	// Repository metadata
+	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
+	ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.CloneLink(ctx, ctx.Doer)
+
+	// Render the history view template
+	ctx.HTML(http.StatusOK, "explore/repo_history")
+}
+
+// handleRepoHistoryFeed handles RSS/Atom feed requests for repository history
+func handleRepoHistoryFeed(ctx *context.Context) bool {
+	if !setting.Other.EnableFeed {
+		return false
+	}
+
+	// Check if this is a feed request
+	repoName := ctx.PathParam("reponame")
+	if strings.HasSuffix(repoName, ".rss") || strings.HasSuffix(repoName, ".atom") {
+		// Handle feed logic here if needed
+		return true
+	}
+	return false
 }

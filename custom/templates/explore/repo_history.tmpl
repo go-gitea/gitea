@@ -1,0 +1,86 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository file list">
+    {{template "repo/header" .}}
+
+    <div class="ui container">
+        <div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
+            <div class="fitted item">
+                <div class="ui breadcrumb">
+                    <a class="section" href="{{AppSubUrl}}/explore/articles">{{ctx.Locale.Tr "explore.repos"}}</a>
+                    <div class="divider"> / </div>
+                    <span class="section">{{ctx.Locale.Tr "repo.history_view"}}</span>
+                    <div class="divider"> / </div>
+                    <span class="active section">{{.Repository.Name}}</span>
+                </div>
+            </div>
+        </div>
+
+        {{if .IsRepoEmpty}}
+            {{template "repo/empty" .}}
+        {{else}}
+            <div class="ui stackable grid">
+                <div class="sixteen wide column">
+                    <div class="ui top attached tabular menu">
+                        <a class="active item">
+                            {{svg "octicon-file"}} {{ctx.Locale.Tr "repo.files"}}
+                        </a>
+                        <div class="right menu">
+                            <span class="item">{{ctx.Locale.Tr "repo.history_view_notice"}}</span>
+                        </div>
+                    </div>
+
+                    <div class="ui bottom attached table segment">
+                        {{if .Files}}
+                            <table class="ui very basic striped fixed table single line" id="repo-files-table">
+                                <thead>
+                                    <tr>
+                                        <th class="four wide">{{ctx.Locale.Tr "repo.file_name"}}</th>
+                                        <th class="two wide">{{ctx.Locale.Tr "repo.file_size"}}</th>
+                                        <th class="three wide">{{ctx.Locale.Tr "repo.last_commit"}}</th>
+                                        <th class="five wide">{{ctx.Locale.Tr "repo.commit_message"}}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{range .Files}}
+                                    <tr>
+                                        <td class="name">
+                                            {{if .IsDir}}
+                                                {{svg "octicon-file-directory-fill"}}
+                                            {{else}}
+                                                {{svg "octicon-file"}}
+                                            {{end}}
+                                            <a href="{{$.RepoLink}}/src/branch/{{$.BranchName}}/{{.Name}}" title="{{.Name}}">{{.Name}}</a>
+                                        </td>
+                                        <td class="text grey">
+                                            {{if .IsDir}}
+                                                -
+                                            {{else}}
+                                                {{FileSize .Size}}
+                                            {{end}}
+                                        </td>
+                                        <td class="text grey">
+                                            {{if $.LastCommit}}
+                                                <span class="time-since" title="{{$.LastCommit.Committer.When}}">{{DateUtils.TimeSince $.LastCommit.Committer.When}}</span>
+                                            {{end}}
+                                        </td>
+                                        <td class="message">
+                                            {{if $.LastCommit}}
+                                                <span class="text truncate">{{$.LastCommit.Summary}}</span>
+                                            {{end}}
+                                        </td>
+                                    </tr>
+                                    {{end}}
+                                </tbody>
+                            </table>
+                        {{else}}
+                            <div class="ui center">
+                                <p>{{ctx.Locale.Tr "repo.no_files"}}</p>
+                            </div>
+                        {{end}}
+                    </div>
+                </div>
+            </div>
+        {{end}}
+    </div>
+</div>
+{{template "base/footer" .}}

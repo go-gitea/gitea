@@ -1005,3 +1005,179 @@ func canWriteAsMaintainer(ctx *Context) bool {
 	})
 	return len(branchName) > 0
 }
+
+// RepoAssignmentByName assigns repository context by repository name only
+// This is used for routes that accept just repo name without username
+func RepoAssignmentByName(ctx *Context) {
+	repoName := ctx.PathParam("reponame")
+	if repoName == "" {
+		ctx.NotFound(fmt.Errorf("repository name is required"))
+		return
+	}
+
+	// Find repository by name (could be multiple matches, take the first public one)
+	repo, err := repo_model.GetPublicRepositoryByName(ctx, repoName)
+	if err != nil {
+		if repo_model.IsErrRepoNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.ServerError("GetPublicRepositoryByName", err)
+		}
+		return
+	}
+
+	// Load repository owner
+	if err = repo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("LoadOwner", err)
+		return
+	}
+
+	// Set up repository context similar to standard RepoAssignment
+	ctx.Repo = &Repository{
+		Repository: repo,
+	}
+
+	// Initialize Git repository
+	ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+	if err != nil {
+		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
+			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
+			ctx.Repo.Repository.MarkAsBrokenEmpty()
+			ctx.NotFound(fmt.Errorf("repository not found or corrupted"))
+		} else {
+			ctx.ServerError("gitrepo.RepositoryFromRequestContextOrOpen", err)
+		}
+		return
+	}
+
+	// Verify repository has a valid default branch
+	if repo.DefaultBranch == "" {
+		log.Warn("Repository %-v has no default branch set", repo)
+		ctx.NotFound(fmt.Errorf("repository has no default branch"))
+		return
+	}
+
+	// Check repository access permissions
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+
+	if !perm.HasAnyUnitAccessOrPublicAccess() && !canWriteAsMaintainer(ctx) {
+		if ctx.FormString("go-get") == "1" {
+			EarlyResponseForGoGetMeta(ctx)
+			return
+		}
+		ctx.NotFound(nil)
+		return
+	}
+
+	ctx.Repo.Permission = perm
+	ctx.Data["Permission"] = &ctx.Repo.Permission
+
+	// Set up basic repository data for templates
+	ctx.Data["Title"] = repo.Owner.Name + "/" + repo.Name
+	ctx.Data["Repository"] = repo
+	ctx.Data["Owner"] = ctx.Repo.Repository.Owner
+	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
+	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
+	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)
+	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
+	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
+	ctx.Data["CanWriteActions"] = ctx.Repo.CanWrite(unit_model.TypeActions)
+
+	// Set up repository link data
+	ctx.Repo.RepoLink = repo.Link()
+	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
+	ctx.Data["FeedURL"] = ctx.Repo.RepoLink
+
+	// Set up release count data
+	ctx.Data["NumTags"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		IncludeTags:   true,
+		HasSha1:       optional.Some(true), // only draft releases which are created with existing tags
+		RepoID:        ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.ServerError("GetReleaseCountByRepoID", err)
+		return
+	}
+	ctx.Data["NumReleases"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
+		IncludeDrafts: ctx.Repo.CanWrite(unit_model.TypeReleases),
+		RepoID:        ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.ServerError("GetReleaseCountByRepoID", err)
+		return
+	}
+
+	// Set up fork-related data for repo header template
+	canSignedUserFork, err := repo_module.CanUserForkRepo(ctx, ctx.Doer, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("CanUserForkRepo", err)
+		return
+	}
+	ctx.Data["CanSignedUserFork"] = canSignedUserFork
+
+	userAndOrgForks, err := repo_model.GetForksByUserAndOrgs(ctx, ctx.Doer, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetForksByUserAndOrgs", err)
+		return
+	}
+	ctx.Data["UserAndOrgForks"] = userAndOrgForks
+
+	// Set up fork modal display logic
+	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
+
+	// Set up clone link data for repo header
+	ctx.Data["RepoCloneLink"] = repo.CloneLink(ctx, ctx.Doer)
+
+	// Set up clone button display options
+	cloneButtonShowHTTPS := !setting.Repository.DisableHTTPGit
+	cloneButtonShowSSH := !setting.SSH.Disabled && (ctx.IsSigned || setting.SSH.ExposeAnonymous)
+	if !cloneButtonShowHTTPS && !cloneButtonShowSSH {
+		// We have to show at least one link, so we just show the HTTPS
+		cloneButtonShowHTTPS = true
+	}
+	ctx.Data["CloneButtonShowHTTPS"] = cloneButtonShowHTTPS
+	ctx.Data["CloneButtonShowSSH"] = cloneButtonShowSSH
+
+	// Set up watch/star data for signed users
+	if ctx.IsSigned {
+		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, repo.ID)
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, repo.ID)
+	}
+
+	// Handle fork relationships
+	if repo.IsFork {
+		RetrieveBaseRepo(ctx, repo)
+		if ctx.Written() {
+			return
+		}
+	}
+
+	// Set up pull request context and base repository data
+	ctx.Repo.PullRequest = &PullRequest{}
+	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) ||
+		(ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID))
+	canCompare := false
+
+	// Pull request is allowed if this is a fork repository
+	// and base repository accepts pull requests.
+	if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls(ctx) {
+		canCompare = true
+		ctx.Data["BaseRepo"] = repo.BaseRepo
+		ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
+		ctx.Repo.PullRequest.Allowed = canPush
+	} else if repo.AllowsPulls(ctx) {
+		// Or, this is repository accepts pull requests between branches.
+		canCompare = true
+		ctx.Data["BaseRepo"] = repo
+		ctx.Repo.PullRequest.BaseRepo = repo
+		ctx.Repo.PullRequest.Allowed = canPush
+		ctx.Repo.PullRequest.SameRepo = true
+	}
+	ctx.Data["CanCompareOrPull"] = canCompare
+	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
+}

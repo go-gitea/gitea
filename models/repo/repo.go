@@ -852,6 +852,25 @@ func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repo
 	return &repo, err
 }
 
+// GetPublicRepositoryByName returns the first public repository with the given name.
+// This function searches across all owners and returns the most recently updated public repository.
+func GetPublicRepositoryByName(ctx context.Context, name string) (*Repository, error) {
+	var repo Repository
+	has, err := db.GetEngine(ctx).
+		Where("`lower_name`=?", strings.ToLower(name)).
+		And("`is_private`=?", false).
+		OrderBy("`updated_unix` DESC"). // Get the most recently updated public repo
+		NoAutoCondition().
+		Get(&repo)
+
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrRepoNotExist{0, 0, "", name}
+	}
+	return &repo, nil
+}
+
 // GetRepositoryByURL returns the repository by given url
 func GetRepositoryByURL(ctx context.Context, repoURL string) (*Repository, error) {
 	ret, err := giturl.ParseRepositoryURL(ctx, repoURL)
