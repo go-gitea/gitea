@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 
 	"github.com/djherbis/buffer"
 	"github.com/djherbis/nio/v3"
@@ -34,7 +35,7 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 		_ = stdoutWriter.Close()
 	}
 
-	cmd := NewCommand()
+	cmd := gitcmd.NewCommand()
 	cmd.AddArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z").AddDynamicArguments(head)
 
 	var files []string
@@ -64,13 +65,13 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 
 	go func() {
 		stderr := strings.Builder{}
-		err := cmd.Run(ctx, &RunOpts{
+		err := cmd.Run(ctx, &gitcmd.RunOpts{
 			Dir:    repository,
 			Stdout: stdoutWriter,
 			Stderr: &stderr,
 		})
 		if err != nil {
-			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
+			_ = stdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
 			return
 		}
 

@@ -281,7 +281,7 @@ func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) 
 				return true
 			}
 		}
-		// skip workflow runs events exceeding the maxiumum of 5 recursive events
+		// skip workflow runs events exceeding the maximum of 5 recursive events
 		log.Debug("repo %s: skipped workflow_run because of recursive event of 5", input.Repo.RepoPath())
 		return true
 	}
