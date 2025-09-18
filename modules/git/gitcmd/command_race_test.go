@@ -3,7 +3,7 @@
 
 //go:build race
 
-package git
+package gitcmd
 
 import (
 	"context"

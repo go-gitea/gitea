@@ -15,7 +15,7 @@ type ToastLevels = {
     background: string,
     duration: number,
   }
-}
+};
 
 const levels: ToastLevels = {
   info: {
@@ -40,7 +40,7 @@ type ToastOpts = {
   preventDuplicates?: boolean | string,
 } & Options;
 
-type ToastifyElement = HTMLElement & {_giteaToastifyInstance?: Toast };
+type ToastifyElement = HTMLElement & {_giteaToastifyInstance?: Toast};
 
 /** See https://github.com/apvarun/toastify-js#api for options */
 function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast {

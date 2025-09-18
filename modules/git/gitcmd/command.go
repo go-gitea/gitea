@@ -2,7 +2,7 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package git
+package gitcmd
 
 import (
 	"bytes"
@@ -31,6 +31,10 @@ type TrustedCmdArgs []internal.CmdArg
 
 // defaultCommandExecutionTimeout default command execution timeout duration
 var defaultCommandExecutionTimeout = 360 * time.Second
+
+func SetDefaultCommandExecutionTimeout(timeout time.Duration) {
+	defaultCommandExecutionTimeout = timeout
+}
 
 // DefaultLocale is the default LC_ALL to run git commands in.
 const DefaultLocale = "C"

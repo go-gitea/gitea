@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfstransfer"
 	"code.gitea.io/gitea/modules/log"
@@ -229,11 +230,6 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	username := repoPathFields[0]
 	reponame := strings.TrimSuffix(repoPathFields[1], ".git") // “the-repo-name" or "the-repo-name.wiki"
 
-	// LowerCase and trim the repoPath as that's how they are stored.
-	// This should be done after splitting the repoPath into username and reponame
-	// so that username and reponame are not affected.
-	repoPath = strings.ToLower(strings.TrimSpace(repoPath))
-
 	if !repo.IsValidSSHAccessRepoName(reponame) {
 		return fail(ctx, "Invalid repo name", "Invalid repo name: %s", reponame)
 	}
@@ -280,6 +276,11 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		return fail(ctx, extra.UserMsg, "ServCommand failed: %s", extra.Error)
 	}
 
+	// LowerCase and trim the repoPath as that's how they are stored.
+	// This should be done after splitting the repoPath into username and reponame
+	// so that username and reponame are not affected.
+	repoPath = strings.ToLower(results.OwnerName + "/" + results.RepoName + ".git")
+
 	// LFS SSH protocol
 	if verb == git.CmdVerbLfsTransfer {
 		token, err := getLFSAuthToken(ctx, lfsVerb, results)
@@ -312,30 +313,30 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		return nil
 	}
 
-	var gitcmd *exec.Cmd
-	gitBinPath := filepath.Dir(git.GitExecutable) // e.g. /usr/bin
-	gitBinVerb := filepath.Join(gitBinPath, verb) // e.g. /usr/bin/git-upload-pack
+	var command *exec.Cmd
+	gitBinPath := filepath.Dir(gitcmd.GitExecutable) // e.g. /usr/bin
+	gitBinVerb := filepath.Join(gitBinPath, verb)    // e.g. /usr/bin/git-upload-pack
 	if _, err := os.Stat(gitBinVerb); err != nil {
 		// if the command "git-upload-pack" doesn't exist, try to split "git-upload-pack" to use the sub-command with git
 		// ps: Windows only has "git.exe" in the bin path, so Windows always uses this way
 		verbFields := strings.SplitN(verb, "-", 2)
 		if len(verbFields) == 2 {
 			// use git binary with the sub-command part: "C:\...\bin\git.exe", "upload-pack", ...
-			gitcmd = exec.CommandContext(ctx, git.GitExecutable, verbFields[1], repoPath)
+			command = exec.CommandContext(ctx, gitcmd.GitExecutable, verbFields[1], repoPath)
 		}
 	}
-	if gitcmd == nil {
+	if command == nil {
 		// by default, use the verb (it has been checked above by allowedCommands)
-		gitcmd = exec.CommandContext(ctx, gitBinVerb, repoPath)
+		command = exec.CommandContext(ctx, gitBinVerb, repoPath)
 	}
 
-	process.SetSysProcAttribute(gitcmd)
-	gitcmd.Dir = setting.RepoRootPath
-	gitcmd.Stdout = os.Stdout
-	gitcmd.Stdin = os.Stdin
-	gitcmd.Stderr = os.Stderr
-	gitcmd.Env = append(gitcmd.Env, os.Environ()...)
-	gitcmd.Env = append(gitcmd.Env,
+	process.SetSysProcAttribute(command)
+	command.Dir = setting.RepoRootPath
+	command.Stdout = os.Stdout
+	command.Stdin = os.Stdin
+	command.Stderr = os.Stderr
+	command.Env = append(command.Env, os.Environ()...)
+	command.Env = append(command.Env,
 		repo_module.EnvRepoIsWiki+"="+strconv.FormatBool(results.IsWiki),
 		repo_module.EnvRepoName+"="+results.RepoName,
 		repo_module.EnvRepoUsername+"="+results.OwnerName,
@@ -350,9 +351,9 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	)
 	// to avoid breaking, here only use the minimal environment variables for the "gitea serv" command.
 	// it could be re-considered whether to use the same git.CommonGitCmdEnvs() as "git" command later.
-	gitcmd.Env = append(gitcmd.Env, git.CommonCmdServEnvs()...)
+	command.Env = append(command.Env, gitcmd.CommonCmdServEnvs()...)
 
-	if err = gitcmd.Run(); err != nil {
+	if err = command.Run(); err != nil {
 		return fail(ctx, "Failed to execute git command", "Failed to execute git command: %v", err)
 	}
 

@@ -16,6 +16,7 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -173,92 +174,88 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-
-	if opts.Mirror {
-		remoteAddress, err := util.SanitizeURL(opts.CloneAddr)
-		if err != nil {
-			return repo, err
-		}
-		mirrorModel := repo_model.Mirror{
-			RepoID:         repo.ID,
-			Interval:       setting.Mirror.DefaultInterval,
-			EnablePrune:    true,
-			NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
-			LFS:            opts.LFS,
-			RemoteAddress:  remoteAddress,
-		}
-		if opts.LFS {
-			mirrorModel.LFSEndpoint = opts.LFSEndpoint
-		}
-
-		if opts.MirrorInterval != "" {
-			parsedInterval, err := time.ParseDuration(opts.MirrorInterval)
+	return db.WithTx2(ctx, func(ctx context.Context) (*repo_model.Repository, error) {
+		if opts.Mirror {
+			remoteAddress, err := util.SanitizeURL(opts.CloneAddr)
 			if err != nil {
-				log.Error("Failed to set Interval: %v", err)
 				return repo, err
 			}
-			if parsedInterval == 0 {
-				mirrorModel.Interval = 0
-				mirrorModel.NextUpdateUnix = 0
-			} else if parsedInterval < setting.Mirror.MinInterval {
-				err := fmt.Errorf("interval %s is set below Minimum Interval of %s", parsedInterval, setting.Mirror.MinInterval)
-				log.Error("Interval: %s is too frequent", opts.MirrorInterval)
-				return repo, err
-			} else {
-				mirrorModel.Interval = parsedInterval
-				mirrorModel.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(parsedInterval)
+			mirrorModel := repo_model.Mirror{
+				RepoID:         repo.ID,
+				Interval:       setting.Mirror.DefaultInterval,
+				EnablePrune:    true,
+				NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
+				LFS:            opts.LFS,
+				RemoteAddress:  remoteAddress,
+			}
+			if opts.LFS {
+				mirrorModel.LFSEndpoint = opts.LFSEndpoint
+			}
+
+			if opts.MirrorInterval != "" {
+				parsedInterval, err := time.ParseDuration(opts.MirrorInterval)
+				if err != nil {
+					log.Error("Failed to set Interval: %v", err)
+					return repo, err
+				}
+				if parsedInterval == 0 {
+					mirrorModel.Interval = 0
+					mirrorModel.NextUpdateUnix = 0
+				} else if parsedInterval < setting.Mirror.MinInterval {
+					err := fmt.Errorf("interval %s is set below Minimum Interval of %s", parsedInterval, setting.Mirror.MinInterval)
+					log.Error("Interval: %s is too frequent", opts.MirrorInterval)
+					return repo, err
+				} else {
+					mirrorModel.Interval = parsedInterval
+					mirrorModel.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(parsedInterval)
+				}
+			}
+
+			if err = repo_model.InsertMirror(ctx, &mirrorModel); err != nil {
+				return repo, fmt.Errorf("InsertOne: %w", err)
+			}
+
+			repo.IsMirror = true
+			if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "num_watches", "is_empty", "default_branch", "default_wiki_branch", "is_mirror"); err != nil {
+				return nil, err
+			}
+
+			if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
+				log.Error("Failed to update size for repository: %v", err)
+			}
+
+			// this is necessary for sync local tags from remote
+			configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
+			if stdout, _, err := gitcmd.NewCommand("config").
+				AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`).
+				RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath}); err != nil {
+				log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+				return repo, fmt.Errorf("error in MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*): %w", err)
+			}
+		} else {
+			if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
+				log.Error("Failed to update size for repository: %v", err)
+			}
+			if repo, err = CleanUpMigrateInfo(ctx, repo); err != nil {
+				return nil, err
 			}
 		}
 
-		if err = repo_model.InsertMirror(ctx, &mirrorModel); err != nil {
-			return repo, fmt.Errorf("InsertOne: %w", err)
+		var enableRepoUnits []repo_model.RepoUnit
+		if opts.Releases && !unit_model.TypeReleases.UnitGlobalDisabled() {
+			enableRepoUnits = append(enableRepoUnits, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeReleases})
 		}
-
-		repo.IsMirror = true
-		if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "num_watches", "is_empty", "default_branch", "default_wiki_branch", "is_mirror"); err != nil {
-			return nil, err
+		if opts.Wiki && !unit_model.TypeWiki.UnitGlobalDisabled() {
+			enableRepoUnits = append(enableRepoUnits, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeWiki})
 		}
-
-		if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
-			log.Error("Failed to update size for repository: %v", err)
+		if len(enableRepoUnits) > 0 {
+			err = UpdateRepositoryUnits(ctx, repo, enableRepoUnits, nil)
+			if err != nil {
+				return nil, err
+			}
 		}
-
-		// this is necessary for sync local tags from remote
-		configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
-		if stdout, _, err := git.NewCommand("config").
-			AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`).
-			RunStdString(ctx, &git.RunOpts{Dir: repoPath}); err != nil {
-			log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-			return repo, fmt.Errorf("error in MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*): %w", err)
-		}
-	} else {
-		if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
-			log.Error("Failed to update size for repository: %v", err)
-		}
-		if repo, err = CleanUpMigrateInfo(ctx, repo); err != nil {
-			return nil, err
-		}
-	}
-
-	var enableRepoUnits []repo_model.RepoUnit
-	if opts.Releases && !unit_model.TypeReleases.UnitGlobalDisabled() {
-		enableRepoUnits = append(enableRepoUnits, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeReleases})
-	}
-	if opts.Wiki && !unit_model.TypeWiki.UnitGlobalDisabled() {
-		enableRepoUnits = append(enableRepoUnits, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeWiki})
-	}
-	if len(enableRepoUnits) > 0 {
-		err = UpdateRepositoryUnits(ctx, repo, enableRepoUnits, nil)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return repo, committer.Commit()
+		return repo, nil
+	})
 }
 
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
