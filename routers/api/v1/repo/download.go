@@ -8,18 +8,11 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/services/context"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 )
 
 func serveRepoArchive(ctx *context.APIContext, reqFileName string) {
-	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, reqFileName)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
@@ -31,7 +24,7 @@ func serveRepoArchive(ctx *context.APIContext, reqFileName string) {
 		}
 		return
 	}
-	archiver_service.ServeRepoArchive(ctx.Base, ctx.Repo.Repository, gitRepo, aReq)
+	archiver_service.ServeRepoArchive(ctx.Base, ctx.Repo.Repository, ctx.Repo.GitRepo, aReq)
 }
 
 func DownloadArchive(ctx *context.APIContext) {
