@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
@@ -147,7 +148,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = git.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
+		stdout, _, err = gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			return nil, err
 		}
