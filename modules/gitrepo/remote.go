@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/util"
@@ -24,7 +25,7 @@ const (
 
 func GitRemoteAdd(ctx context.Context, repo Repository, remoteName, remoteURL string, options ...RemoteOption) error {
 	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
-		cmd := git.NewCommand("remote", "add")
+		cmd := gitcmd.NewCommand("remote", "add")
 		if len(options) > 0 {
 			switch options[0] {
 			case RemoteOptionMirrorPush:
@@ -37,15 +38,15 @@ func GitRemoteAdd(ctx context.Context, repo Repository, remoteName, remoteURL st
 		}
 		_, _, err := cmd.
 			AddDynamicArguments(remoteName, remoteURL).
-			RunStdString(ctx, &git.RunOpts{Dir: repoPath(repo)})
+			RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
 		return err
 	})
 }
 
 func GitRemoteRemove(ctx context.Context, repo Repository, remoteName string) error {
 	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
-		cmd := git.NewCommand("remote", "rm").AddDynamicArguments(remoteName)
-		_, _, err := cmd.RunStdString(ctx, &git.RunOpts{Dir: repoPath(repo)})
+		cmd := gitcmd.NewCommand("remote", "rm").AddDynamicArguments(remoteName)
+		_, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
 		return err
 	})
 }
@@ -64,8 +65,8 @@ func GitRemoteGetURL(ctx context.Context, repo Repository, remoteName string) (*
 
 // GitRemotePrune prunes the remote branches that no longer exist in the remote repository.
 func GitRemotePrune(ctx context.Context, repo Repository, remoteName string, timeout time.Duration, stdout, stderr io.Writer) error {
-	return git.NewCommand("remote", "prune").AddDynamicArguments(remoteName).
-		Run(ctx, &git.RunOpts{
+	return gitcmd.NewCommand("remote", "prune").AddDynamicArguments(remoteName).
+		Run(ctx, &gitcmd.RunOpts{
 			Timeout: timeout,
 			Dir:     repoPath(repo),
 			Stdout:  stdout,
@@ -75,8 +76,8 @@ func GitRemotePrune(ctx context.Context, repo Repository, remoteName string, tim
 
 // GitRemoteUpdatePrune updates the remote branches and prunes the ones that no longer exist in the remote repository.
 func GitRemoteUpdatePrune(ctx context.Context, repo Repository, remoteName string, timeout time.Duration, stdout, stderr io.Writer) error {
-	return git.NewCommand("remote", "update", "--prune").AddDynamicArguments(remoteName).
-		Run(ctx, &git.RunOpts{
+	return gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(remoteName).
+		Run(ctx, &gitcmd.RunOpts{
 			Timeout: timeout,
 			Dir:     repoPath(repo),
 			Stdout:  stdout,
