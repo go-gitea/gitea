@@ -18,6 +18,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -200,24 +201,27 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 	}
 
 	// delete pull request related git data
-	if issue.IsPull && gitRepo != nil {
-		if err := git.RemoveRef(ctx, gitRepo.Path, issue.PullRequest.GetGitHeadRefName()); err != nil {
+	if issue.IsPull {
+		if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
+			return err
+		}
+		if err := gitrepo.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitHeadRefName()); err != nil {
 			log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issue.PullRequest.GetGitHeadRefName(), issue.PullRequest.ID, err)
 		}
 		if issue.PullRequest.HasMerged {
-			if err := git.RemoveRef(ctx, gitRepo.Path, issue.PullRequest.GetGitMergeRefName()); err != nil {
+			if err := gitrepo.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitMergeRefName()); err != nil {
 				log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issue.PullRequest.GetGitMergeRefName(), issue.PullRequest.ID, err)
 			}
 		}
-	}
 
-	for _, comment := range issue.Comments {
-		if comment.Type == issues_model.CommentTypeCode {
-			if err := git.RemoveRef(ctx, issue.Repo.RepoPath(), issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "before")); err != nil {
-				log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "before"), issue.PullRequest.ID, err)
-			}
-			if err := git.RemoveRef(ctx, issue.Repo.RepoPath(), issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "after")); err != nil {
-				log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "after"), issue.PullRequest.ID, err)
+		for _, comment := range issue.Comments {
+			if comment.Type == issues_model.CommentTypeCode {
+				if err := gitrepo.RemoveRef(ctx, issue.PullRequest.BaseRepo, issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "before")); err != nil {
+					log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "before"), issue.PullRequest.ID, err)
+				}
+				if err := gitrepo.RemoveRef(ctx, issue.PullRequest.BaseRepo, issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "after")); err != nil {
+					log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "after"), issue.PullRequest.ID, err)
+				}
 			}
 		}
 	}
@@ -428,10 +432,10 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 
 			for _, comment := range issue.Comments {
 				if comment.Type == issues_model.CommentTypeCode {
-					if err := git.RemoveRef(ctx, issue.Repo.RepoPath(), issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "before")); err != nil {
+					if err := gitrepo.RemoveRef(ctx, issue.Repo, issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "before")); err != nil {
 						log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "before"), issue.PullRequest.ID, err)
 					}
-					if err := git.RemoveRef(ctx, issue.Repo.RepoPath(), issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "after")); err != nil {
+					if err := gitrepo.RemoveRef(ctx, issue.Repo, issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "after")); err != nil {
 						log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "after"), issue.PullRequest.ID, err)
 					}
 				}

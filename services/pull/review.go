@@ -290,11 +290,11 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 		// The line commit ID Must be referenced in the git repository, because the branch maybe rebased or force-pushed.
 		// If the review commit is GC, the position can not be calculated dynamically.
-		if err := git.UpdateRef(ctx, pr.BaseRepo.RepoPath(), issues_model.GetCodeCommentRefName(pr.Index, comment.ID, "before"), beforeCommitID); err != nil {
+		if err := gitrepo.UpdateRef(ctx, pr.BaseRepo, issues_model.GetCodeCommentRefName(pr.Index, comment.ID, "before"), beforeCommitID); err != nil {
 			log.Error("Unable to update ref before_commitid in base repository for PR[%d] Error: %v", pr.ID, err)
 			return nil, err
 		}
-		if err := git.UpdateRef(ctx, pr.BaseRepo.RepoPath(), issues_model.GetCodeCommentRefName(pr.Index, comment.ID, "after"), afterCommitID); err != nil {
+		if err := gitrepo.UpdateRef(ctx, pr.BaseRepo, issues_model.GetCodeCommentRefName(pr.Index, comment.ID, "after"), afterCommitID); err != nil {
 			log.Error("Unable to update ref after_commitid in base repository for PR[%d] Error: %v", pr.ID, err)
 			return nil, err
 		}
