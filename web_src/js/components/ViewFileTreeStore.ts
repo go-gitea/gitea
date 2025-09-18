@@ -4,7 +4,7 @@ import {pathEscapeSegments} from '../utils/url.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 
-export function createViewFileTreeStore(props: { repoLink: string, treePath: string, currentRefNameSubURL: string}) {
+export function createViewFileTreeStore(props: {repoLink: string, treePath: string, currentRefNameSubURL: string}) {
   const store = reactive({
     rootFiles: [],
     selectedItem: props.treePath,

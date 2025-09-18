@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/foreachref"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -18,13 +19,13 @@ const TagPrefix = "refs/tags/"
 
 // CreateTag create one tag in the repository
 func (repo *Repository) CreateTag(name, revision string) error {
-	_, _, err := NewCommand("tag").AddDashesAndList(name, revision).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	_, _, err := gitcmd.NewCommand("tag").AddDashesAndList(name, revision).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	return err
 }
 
 // CreateAnnotatedTag create one annotated tag in the repository
 func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error {
-	_, _, err := NewCommand("tag", "-a", "-m").AddDynamicArguments(message).AddDashesAndList(name, revision).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	_, _, err := gitcmd.NewCommand("tag", "-a", "-m").AddDynamicArguments(message).AddDashesAndList(name, revision).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	return err
 }
 
@@ -34,7 +35,7 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 		return "", fmt.Errorf("SHA is too short: %s", sha)
 	}
 
-	stdout, _, err := NewCommand("show-ref", "--tags", "-d").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	stdout, _, err := gitcmd.NewCommand("show-ref", "--tags", "-d").RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	if err != nil {
 		return "", err
 	}
@@ -57,7 +58,7 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 
 // GetTagID returns the object ID for a tag (annotated tags have both an object SHA AND a commit SHA)
 func (repo *Repository) GetTagID(name string) (string, error) {
-	stdout, _, err := NewCommand("show-ref", "--tags").AddDashesAndList(name).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	stdout, _, err := gitcmd.NewCommand("show-ref", "--tags").AddDashesAndList(name).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	if err != nil {
 		return "", err
 	}
@@ -114,14 +115,14 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	defer stdoutReader.Close()
 	defer stdoutWriter.Close()
 	stderr := strings.Builder{}
-	rc := &RunOpts{Dir: repo.Path, Stdout: stdoutWriter, Stderr: &stderr}
+	rc := &gitcmd.RunOpts{Dir: repo.Path, Stdout: stdoutWriter, Stderr: &stderr}
 
 	go func() {
-		err := NewCommand("for-each-ref").
+		err := gitcmd.NewCommand("for-each-ref").
 			AddOptionFormat("--format=%s", forEachRefFmt.Flag()).
 			AddArguments("--sort", "-*creatordate", "refs/tags").Run(repo.Ctx, rc)
 		if err != nil {
-			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
+			_ = stdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, stderr.String()))
 		} else {
 			_ = stdoutWriter.Close()
 		}

@@ -9,9 +9,9 @@ import (
 	organization_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/gobwas/glob"
 	"github.com/stretchr/testify/assert"
 )
 
