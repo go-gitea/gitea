@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -17,11 +18,13 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	gitea_context "code.gitea.io/gitea/services/context"
 )
 
 // ArchiveRequest defines the parameters of an archive request, which notably
@@ -223,14 +226,14 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 	}
 	defer gitRepo.Close()
 
-	go func(done chan error, w *io.PipeWriter, r *ArchiveRequest, gitRepo *git.Repository) {
+	go func(done chan error, w *io.PipeWriter, archiveReq *ArchiveRequest, gitRepo *git.Repository) {
 		defer func() {
 			if r := recover(); r != nil {
 				done <- fmt.Errorf("%v", r)
 			}
 		}()
 
-		err = r.Stream(ctx, gitRepo, w)
+		err := archiveReq.Stream(ctx, gitRepo, w)
 		_ = w.CloseWithError(err)
 		done <- err
 	}(done, w, r, gitRepo)
@@ -342,4 +345,55 @@ func DeleteRepositoryArchives(ctx context.Context) error {
 		return err
 	}
 	return storage.Clean(storage.RepoArchives)
+}
+
+func ServeRepoArchive(ctx *gitea_context.Base, repo *repo_model.Repository, gitRepo *git.Repository, archiveReq *ArchiveRequest) {
+	// Add nix format link header so tarballs lock correctly:
+	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
+	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.%s?rev=%s>; rel="immutable"`,
+		repo.APIURL(),
+		archiveReq.CommitID,
+		archiveReq.Type.String(),
+		archiveReq.CommitID,
+	))
+	downloadName := repo.Name + "-" + archiveReq.GetArchiveName()
+
+	if setting.Repository.StreamArchives {
+		httplib.ServeSetHeaders(ctx.Resp, &httplib.ServeHeaderOptions{Filename: downloadName})
+		if err := archiveReq.Stream(ctx, gitRepo, ctx.Resp); err != nil && !ctx.Written() {
+			log.Error("Archive %v streaming failed: %v", archiveReq, err)
+			ctx.HTTPError(http.StatusInternalServerError)
+		}
+		return
+	}
+
+	archiver, err := archiveReq.Await(ctx)
+	if err != nil {
+		log.Error("Archive %v await failed: %v", archiveReq, err)
+		ctx.HTTPError(http.StatusInternalServerError)
+		return
+	}
+
+	rPath := archiver.RelativePath()
+	if setting.RepoArchive.Storage.ServeDirect() {
+		// If we have a signed url (S3, object storage), redirect to this directly.
+		u, err := storage.RepoArchives.URL(rPath, downloadName, ctx.Req.Method, nil)
+		if u != nil && err == nil {
+			ctx.Redirect(u.String())
+			return
+		}
+	}
+
+	fr, err := storage.RepoArchives.Open(rPath)
+	if err != nil {
+		log.Error("Archive %v open file failed: %v", archiveReq, err)
+		ctx.HTTPError(http.StatusInternalServerError)
+		return
+	}
+	defer fr.Close()
+
+	ctx.ServeContent(fr, &gitea_context.ServeHeaderOptions{
+		Filename:     downloadName,
+		LastModified: archiver.CreatedUnix.AsLocalTime(),
+	})
 }

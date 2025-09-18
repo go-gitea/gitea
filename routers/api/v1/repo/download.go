@@ -4,14 +4,35 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/context"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 )
+
+func serveRepoArchive(ctx *context.APIContext, reqFileName string) {
+	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, reqFileName)
+	if err != nil {
+		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
+			ctx.APIError(http.StatusBadRequest, err)
+		} else if errors.Is(err, archiver_service.RepoRefNotFoundError{}) {
+			ctx.APIError(http.StatusNotFound, err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+	archiver_service.ServeRepoArchive(ctx.Base, ctx.Repo.Repository, gitRepo, aReq)
+}
 
 func DownloadArchive(ctx *context.APIContext) {
 	var tp git.ArchiveType
@@ -26,34 +47,5 @@ func DownloadArchive(ctx *context.APIContext) {
 		ctx.APIError(http.StatusBadRequest, "Unknown archive type: "+ballType)
 		return
 	}
-
-	if ctx.Repo.GitRepo == nil {
-		var err error
-		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-	}
-
-	r, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*")+"."+tp.String())
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	downloadName := prepareDownload(ctx, r)
-
-	if setting.Repository.StreamArchives {
-		streamDownload(ctx, downloadName, r)
-		return
-	}
-
-	archive, err := r.Await(ctx)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	download(ctx, downloadName, archive)
+	serveRepoArchive(ctx, ctx.PathParam("*")+"."+tp.String())
 }

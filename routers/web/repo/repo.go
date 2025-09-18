@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -376,61 +375,7 @@ func Download(ctx *context.Context) {
 		}
 		return
 	}
-
-	// Add nix format link header so tarballs lock correctly:
-	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
-	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.%s?rev=%s>; rel="immutable"`,
-		ctx.Repo.Repository.APIURL(),
-		aReq.CommitID,
-		aReq.Type.String(),
-		aReq.CommitID,
-	))
-
-	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
-
-	if setting.Repository.StreamArchives {
-		ctx.SetServeHeaders(&context.ServeHeaderOptions{
-			Filename: downloadName,
-		})
-
-		if err := aReq.Stream(ctx, ctx.Repo.GitRepo, ctx.Resp); err != nil && !ctx.Written() {
-			ctx.ServerError("archiver.StreamArchive", err)
-		}
-		return
-	}
-
-	archiver, err := aReq.Await(ctx)
-	if err != nil {
-		ctx.ServerError("archiver.Await", err)
-		return
-	}
-
-	download(ctx, downloadName, archiver)
-}
-
-func download(ctx *context.Context, downloadName string, archiver *repo_model.RepoArchiver) {
-	rPath := archiver.RelativePath()
-	if setting.RepoArchive.Storage.ServeDirect() {
-		// If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.RepoArchives.URL(rPath, downloadName, ctx.Req.Method, nil)
-		if u != nil && err == nil {
-			ctx.Redirect(u.String())
-			return
-		}
-	}
-
-	// If we have matched and access to release or issue
-	fr, err := storage.RepoArchives.Open(rPath)
-	if err != nil {
-		ctx.ServerError("Open", err)
-		return
-	}
-	defer fr.Close()
-
-	ctx.ServeContent(fr, &context.ServeHeaderOptions{
-		Filename:     downloadName,
-		LastModified: archiver.CreatedUnix.AsLocalTime(),
-	})
+	archiver_service.ServeRepoArchive(ctx.Base, ctx.Repo.Repository, ctx.Repo.GitRepo, aReq)
 }
 
 // InitiateDownload will enqueue an archival request, as needed.  It may submit
