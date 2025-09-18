@@ -17,11 +17,6 @@ declare module 'eslint-plugin-github' {
   const plugin: Eslint.Plugin;
   export = plugin;
 }
-declare module 'eslint-plugin-no-jquery' {
-  import type {Eslint} from 'eslint';
-  const plugin: Eslint.Plugin;
-  export = plugin;
-}
 declare module '@eslint-community/eslint-plugin-eslint-comments' {
   import type {Eslint} from 'eslint';
   const plugin: Eslint.Plugin;
