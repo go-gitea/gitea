@@ -20,7 +20,6 @@ export type Config = {
   mentionValues?: MentionValue[],
   mermaidMaxSourceCharacters: number,
   i18n: Record<string, string>,
-  streamArchives: boolean,
 };
 
 export type IntervalId = ReturnType<typeof setInterval>;

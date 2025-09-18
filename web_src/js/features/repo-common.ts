@@ -32,10 +32,7 @@ async function onDownloadArchive(e: DOMEvent<MouseEvent>) {
 }
 
 export function initRepoArchiveLinks() {
-  // when archive streaming is enabled, the links will work natively without JS
-  if (!window.config.streamArchives) {
-    queryElems(document, 'a.archive-link[href]', (el) => el.addEventListener('click', onDownloadArchive));
-  }
+  queryElems(document, 'a.archive-link[href]', (el) => el.addEventListener('click', onDownloadArchive));
 }
 
 export function initRepoActivityTopAuthorsChart() {
