@@ -10,11 +10,11 @@ import (
 	"net/http"
 	"strconv"
 
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -119,7 +119,7 @@ func NewComment(ctx *context.Context) {
 						ctx.ServerError("Unable to load head repo", err)
 						return
 					}
-					if ok := gitrepo.IsBranchExist(ctx, pull.HeadRepo, pull.BaseBranch); !ok {
+					if exist, _ := git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.BaseBranch); !exist {
 						// todo localize
 						ctx.JSONError("The origin branch is delete, cannot reopen.")
 						return
