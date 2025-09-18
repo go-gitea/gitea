@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -141,7 +142,7 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 		}
 	}()
 
-	cmd := NewCommand("blame", "--porcelain")
+	cmd := gitcmd.NewCommand("blame", "--porcelain")
 
 	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
 		ignoreRevsFileName, ignoreRevsFileCleanup, err = tryCreateBlameIgnoreRevsFile(commit)
@@ -165,7 +166,7 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 	go func() {
 		stderr := bytes.Buffer{}
 		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
-		err := cmd.Run(ctx, &RunOpts{
+		err := cmd.Run(ctx, &gitcmd.RunOpts{
 			UseContextTimeout: true,
 			Dir:               repoPath,
 			Stdout:            stdout,

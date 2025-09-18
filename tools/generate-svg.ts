@@ -1,27 +1,29 @@
 #!/usr/bin/env node
-import fastGlob from 'fast-glob';
 import {optimize} from 'svgo';
-import {parse} from 'node:path';
+import {dirname, parse} from 'node:path';
+import {globSync, writeFileSync} from 'node:fs';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {exit} from 'node:process';
-import * as fs from 'node:fs';
+import type {Manifest} from 'material-icon-theme';
 
-const glob = (pattern) => fastGlob.sync(pattern, {
-  cwd: fileURLToPath(new URL('..', import.meta.url)),
-  absolute: true,
-});
+const glob = (pattern: string) => globSync(pattern, {cwd: dirname(import.meta.dirname)});
 
-async function processAssetsSvgFile(file, {prefix, fullName} = {}) {
+type Opts = {
+  prefix?: string,
+  fullName?: string,
+};
+
+async function processAssetsSvgFile(path: string, {prefix, fullName}: Opts = {}) {
   let name = fullName;
   if (!name) {
-    name = parse(file).name;
+    name = parse(path).name;
     if (prefix) name = `${prefix}-${name}`;
     if (prefix === 'octicon') name = name.replace(/-[0-9]+$/, ''); // chop of '-16' on octicons
   }
   // Set the `xmlns` attribute so that the files are displayable in standalone documents
   // The svg backend module will strip the attribute during startup for inline display
-  const {data} = optimize(await readFile(file, 'utf8'), {
+  const {data} = optimize(await readFile(path, 'utf8'), {
     plugins: [
       {name: 'preset-default'},
       {name: 'removeDimensions'},
@@ -41,16 +43,16 @@ async function processAssetsSvgFile(file, {prefix, fullName} = {}) {
   await writeFile(fileURLToPath(new URL(`../public/assets/img/svg/${name}.svg`, import.meta.url)), data);
 }
 
-function processAssetsSvgFiles(pattern, opts) {
-  return glob(pattern).map((file) => processAssetsSvgFile(file, opts));
+function processAssetsSvgFiles(pattern: string, opts: Opts = {}) {
+  return glob(pattern).map((path) => processAssetsSvgFile(path, opts));
 }
 
 async function processMaterialFileIcons() {
-  const files = glob('node_modules/material-icon-theme/icons/*.svg');
-  const svgSymbols = {};
-  for (const file of files) {
+  const paths = glob('node_modules/material-icon-theme/icons/*.svg');
+  const svgSymbols: Record<string, string> = {};
+  for (const path of paths) {
     // remove all unnecessary attributes, only keep "viewBox"
-    const {data} = optimize(await readFile(file, 'utf8'), {
+    const {data} = optimize(await readFile(path, 'utf8'), {
       plugins: [
         {name: 'preset-default'},
         {name: 'removeDimensions'},
@@ -58,16 +60,16 @@ async function processMaterialFileIcons() {
         {name: 'removeAttrs', params: {attrs: 'xml:space', elemSeparator: ','}},
       ],
     });
-    const svgName = parse(file).name;
+    const svgName = parse(path).name;
     // intentionally use single quote here to avoid escaping
     svgSymbols[svgName] = data.replace(/"/g, `'`);
   }
-  fs.writeFileSync(fileURLToPath(new URL(`../options/fileicon/material-icon-svgs.json`, import.meta.url)), JSON.stringify(svgSymbols, null, 2));
+  writeFileSync(fileURLToPath(new URL(`../options/fileicon/material-icon-svgs.json`, import.meta.url)), JSON.stringify(svgSymbols, null, 2));
 
-  const vscodeExtensionsJson = await readFile(fileURLToPath(new URL(`generate-svg-vscode-extensions.json`, import.meta.url)));
-  const vscodeExtensions = JSON.parse(vscodeExtensionsJson);
-  const iconRulesJson = await readFile(fileURLToPath(new URL(`../node_modules/material-icon-theme/dist/material-icons.json`, import.meta.url)));
-  const iconRules = JSON.parse(iconRulesJson);
+  const vscodeExtensionsJson = await readFile(fileURLToPath(new URL(`generate-svg-vscode-extensions.json`, import.meta.url)), 'utf8');
+  const vscodeExtensions = JSON.parse(vscodeExtensionsJson) as Record<string, string>;
+  const iconRulesJson = await readFile(fileURLToPath(new URL(`../node_modules/material-icon-theme/dist/material-icons.json`, import.meta.url)), 'utf8');
+  const iconRules = JSON.parse(iconRulesJson) as Manifest;
   // The rules are from VSCode material-icon-theme, we need to adjust them to our needs
   // 1. We only use lowercase filenames to match (it should be good enough for most cases and more efficient)
   // 2. We do not have a "Language ID" system:
@@ -91,7 +93,7 @@ async function processMaterialFileIcons() {
     }
   }
   const iconRulesPretty = JSON.stringify(iconRules, null, 2);
-  fs.writeFileSync(fileURLToPath(new URL(`../options/fileicon/material-icon-rules.json`, import.meta.url)), iconRulesPretty);
+  writeFileSync(fileURLToPath(new URL(`../options/fileicon/material-icon-rules.json`, import.meta.url)), iconRulesPretty);
 }
 
 async function main() {
