@@ -11,6 +11,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -560,7 +561,7 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 	require.NoError(t, err)
 
 	defer gitRepo.Close()
-	for _, behavior := range []git.TrustedCmdArgs{{"-w"}, {"--ignore-space-at-eol"}, {"-b"}, nil} {
+	for _, behavior := range []gitcmd.TrustedCmdArgs{{"-w"}, {"--ignore-space-at-eol"}, {"-b"}, nil} {
 		diffs, err := GetDiffForAPI(t.Context(), gitRepo,
 			&DiffOptions{
 				AfterCommitID:      "d8e0bbb45f200e67d9a784ce55bd90821af45ebd",

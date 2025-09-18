@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -223,12 +224,12 @@ func (ref RefName) RefWebLinkPath() string {
 }
 
 func UpdateRef(ctx context.Context, repoPath, refName, newCommitID string) error {
-	_, _, err := NewCommand("update-ref").AddDynamicArguments(refName, newCommitID).RunStdString(ctx, &RunOpts{Dir: repoPath})
+	_, _, err := gitcmd.NewCommand("update-ref").AddDynamicArguments(refName, newCommitID).RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
 	return err
 }
 
 func RemoveRef(ctx context.Context, repoPath, refName string) error {
-	_, _, err := NewCommand("update-ref", "--no-deref", "-d").
-		AddDynamicArguments(refName).RunStdString(ctx, &RunOpts{Dir: repoPath})
+	_, _, err := gitcmd.NewCommand("update-ref", "--no-deref", "-d").
+		AddDynamicArguments(refName).RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
 	return err
 }

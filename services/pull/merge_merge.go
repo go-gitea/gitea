@@ -10,12 +10,13 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 )
 
 // doMergeStyleMerge merges the tracking branch into the current HEAD - which is assumed to be the staging branch (equal to the pr.BaseBranch)
 func doMergeStyleMerge(ctx *mergeContext, message string) error {
-	cmd := git.NewCommand("merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch)
+	cmd := gitcmd.NewCommand("merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch)
 	if err := runMergeCommand(ctx, repo_model.MergeStyleMerge, cmd); err != nil {
 		log.Error("%-v Unable to merge tracking into base: %v", ctx.pr, err)
 		return err
@@ -32,17 +33,17 @@ func doMergeStyleMerge(ctx *mergeContext, message string) error {
 func CalcMergeBase(ctx context.Context, pr *issues_model.PullRequest) (string, error) {
 	repoPath := pr.BaseRepo.RepoPath()
 	if pr.HasMerged {
-		mergeBase, _, err := git.NewCommand("merge-base").AddDashesAndList(pr.MergedCommitID+"^", pr.GetGitHeadRefName()).
-			RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+		mergeBase, _, err := gitcmd.NewCommand("merge-base").AddDashesAndList(pr.MergedCommitID+"^", pr.GetGitHeadRefName()).
+			RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
 		return strings.TrimSpace(mergeBase), err
 	}
 
-	mergeBase, _, err := git.NewCommand("merge-base").AddDashesAndList(pr.BaseBranch, pr.GetGitHeadRefName()).
-		RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+	mergeBase, _, err := gitcmd.NewCommand("merge-base").AddDashesAndList(pr.BaseBranch, pr.GetGitHeadRefName()).
+		RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
 	if err != nil {
 		var err2 error
-		mergeBase, _, err2 = git.NewCommand("rev-parse").AddDynamicArguments(git.BranchPrefix+pr.BaseBranch).
-			RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+		mergeBase, _, err2 = gitcmd.NewCommand("rev-parse").AddDynamicArguments(git.BranchPrefix+pr.BaseBranch).
+			RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
 		if err2 != nil {
 			log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err, err2)
 			return "", err2

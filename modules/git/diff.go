@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -34,8 +35,8 @@ func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer 
 // GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
 func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io.Writer) error {
 	stderr := new(bytes.Buffer)
-	cmd := NewCommand("show", "--pretty=format:revert %H%n", "-R").AddDynamicArguments(commitID)
-	if err := cmd.Run(ctx, &RunOpts{
+	cmd := gitcmd.NewCommand("show", "--pretty=format:revert %H%n", "-R").AddDynamicArguments(commitID)
+	if err := cmd.Run(ctx, &gitcmd.RunOpts{
 		Dir:    repoPath,
 		Stdout: writer,
 		Stderr: stderr,
@@ -56,7 +57,7 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 		files = append(files, file)
 	}
 
-	cmd := NewCommand()
+	cmd := gitcmd.NewCommand()
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {
@@ -89,7 +90,7 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	}
 
 	stderr := new(bytes.Buffer)
-	if err = cmd.Run(repo.Ctx, &RunOpts{
+	if err = cmd.Run(repo.Ctx, &gitcmd.RunOpts{
 		Dir:    repo.Path,
 		Stdout: writer,
 		Stderr: stderr,
@@ -316,8 +317,8 @@ func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID str
 	affectedFiles := make([]string, 0, 32)
 
 	// Run `git diff --name-only` to get the names of the changed files
-	err = NewCommand("diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID).
-		Run(repo.Ctx, &RunOpts{
+	err = gitcmd.NewCommand("diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID).
+		Run(repo.Ctx, &gitcmd.RunOpts{
 			Env:    env,
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,
@@ -363,10 +364,10 @@ func GetAffectedHunksForTwoCommitsSpecialFile(ctx context.Context, repoPath, old
 		_ = writer.Close()
 	}()
 	go func() {
-		if err := NewCommand("diff", "--unified=0", "--no-color").
+		if err := gitcmd.NewCommand("diff", "--unified=0", "--no-color").
 			AddDynamicArguments(oldCommitID, newCommitID).
 			AddDashesAndList(filePath).
-			Run(ctx, &RunOpts{
+			Run(ctx, &gitcmd.RunOpts{
 				Dir:    repoPath,
 				Stdout: writer,
 			}); err != nil {

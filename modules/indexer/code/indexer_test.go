@@ -134,7 +134,7 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 				},
 			},
 			// Search for matches on both the contents and the filenames within the repo '62'.
-			// This scenario yields two results: the first result is baed on the file (cucumber.md) while the second is based on the contents
+			// This scenario yields two results: the first result is based on the file (cucumber.md) while the second is based on the contents
 			{
 				RepoIDs: []int64{62},
 				Keyword: "cucumber",

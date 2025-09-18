@@ -182,7 +182,7 @@ func (flow *Flow) AddGlyph(row, column int, glyph byte) {
 	})
 }
 
-// Glyph represents a co-ordinate and glyph
+// Glyph represents a coordinate and glyph
 type Glyph struct {
 	Row    int
 	Column int
@@ -244,7 +244,7 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 	return refs
 }
 
-// Commit represents a commit at co-ordinate X, Y with the data
+// Commit represents a commit at coordinate X, Y with the data
 type Commit struct {
 	Commit       *git.Commit
 	User         *user_model.User

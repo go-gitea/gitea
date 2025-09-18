@@ -4,25 +4,25 @@
 package v1_25
 
 import (
+	"code.gitea.io/gitea/models/migrations/base"
+
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-type comment struct {
-	BeforeCommitID string `xorm:"VARCHAR(64)"`
-}
-
-// TableName return database table name for xorm
-func (comment) TableName() string {
-	return "comment"
-}
-
-func AddBeforeCommitIDForComment(x *xorm.Engine) error {
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains: true,
-		IgnoreIndices:    true,
-	}, new(comment)); err != nil {
-		return err
+func ExtendCommentTreePathLength(x *xorm.Engine) error {
+	dbType := x.Dialect().URI().DBType
+	if dbType == schemas.SQLITE { // For SQLITE, varchar or char will always be represented as TEXT
+		return nil
 	}
-	_, err := x.Exec("UPDATE comment SET before_commit_id = (SELECT merge_base FROM pull_request WHERE pull_request.issue_id = comment.issue_id) WHERE `type`=21 AND before_commit_id IS NULL")
-	return err
+
+	return base.ModifyColumn(x, "comment", &schemas.Column{
+		Name: "tree_path",
+		SQLType: schemas.SQLType{
+			Name: "VARCHAR",
+		},
+		Length:         4000,
+		Nullable:       true, // To keep compatible as nullable
+		DefaultIsEmpty: true,
+	})
 }
