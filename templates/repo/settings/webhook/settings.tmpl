@@ -47,6 +47,41 @@
 	<span class="help">{{ctx.Locale.Tr "repo.settings.branch_filter_desc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}</span>
 </div>
 
+<!-- Payload size optimization options -->
+<div class="field">
+	<h4>{{ctx.Locale.Tr "repo.settings.payload_optimization"}}</h4>
+	<div class="field">
+		<h5>{{ctx.Locale.Tr "repo.settings.payload_optimization_files"}}</h5>
+		<div class="field">
+			<div class="ui checkbox">
+				<input name="payload_optimization_files_enable" type="checkbox" {{if .Webhook.IsFilesConfigEnabled}}checked{{end}}>
+				<label>{{ctx.Locale.Tr "repo.settings.payload_optimization_enable"}}</label>
+				<span class="help">{{ctx.Locale.Tr "repo.settings.payload_optimization_enable_desc"}}</span>
+			</div>
+		</div>
+		<div class="field {{if not .Webhook.IsFilesConfigEnabled}}tw-hidden{{end}}">
+			<label>{{ctx.Locale.Tr "repo.settings.payload_optimization_limit"}}</label>
+			<input name="payload_optimization_files_limit" type="number" value="{{.Webhook.GetFilesConfigLimit}}" placeholder="0" {{if not .Webhook.IsFilesConfigEnabled}}disabled{{end}}>
+			<span class="help">{{ctx.Locale.Tr "repo.settings.payload_optimization_limit_desc"}}</span>
+		</div>
+	</div>
+	<div class="field">
+		<h5>{{ctx.Locale.Tr "repo.settings.payload_optimization_commits"}}</h5>
+		<div class="field">
+			<div class="ui checkbox">
+				<input name="payload_optimization_commits_enable" type="checkbox" {{if .Webhook.IsCommitsConfigEnabled}}checked{{end}}>
+				<label>{{ctx.Locale.Tr "repo.settings.payload_optimization_enable"}}</label>
+				<span class="help">{{ctx.Locale.Tr "repo.settings.payload_optimization_enable_desc"}}</span>
+			</div>
+		</div>
+		<div class="field {{if not .Webhook.IsCommitsConfigEnabled}}tw-hidden{{end}}">
+			<label>{{ctx.Locale.Tr "repo.settings.payload_optimization_limit"}}</label>
+			<input name="payload_optimization_commits_limit" type="number" value="{{.Webhook.GetCommitsConfigLimit}}" placeholder="0" {{if not .Webhook.IsCommitsConfigEnabled}}disabled{{end}}>
+			<span class="help">{{ctx.Locale.Tr "repo.settings.payload_optimization_limit_desc"}}</span>
+		</div>
+	</div>
+</div>
+
 <div class="field">
 	<h4>{{ctx.Locale.Tr "repo.settings.event_desc"}}</h4>
 	<div class="grouped event type fields">

@@ -90,3 +90,171 @@ func TestWebhookUserMail(t *testing.T) {
 	assert.Equal(t, user.GetPlaceholderEmail(), convert.ToUser(t.Context(), user, nil).Email)
 	assert.Equal(t, user.Email, convert.ToUser(t.Context(), user, user).Email)
 }
+
+func TestWebhookPayloadOptimization(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	// Create test webhook
+	webhook := &webhook_model.Webhook{
+		RepoID:      repo.ID,
+		URL:         "http://example.com/webhook",
+		HTTPMethod:  "POST",
+		ContentType: webhook_model.ContentTypeJSON,
+		Secret:      "secret",
+		IsActive:    true,
+		Type:        webhook_module.GITEA,
+		HookEvent: &webhook_module.HookEvent{
+			PushOnly: true,
+		},
+	}
+
+	// Test case 1: No optimization enabled
+	webhook.SetMetaSettings(webhook_model.MetaSettings{
+		PayloadConfig: webhook_model.PayloadConfig{
+			Files:   webhook_model.PayloadConfigItem{Enable: false, Limit: 0},
+			Commits: webhook_model.PayloadConfigItem{Enable: false, Limit: 0},
+		},
+	})
+
+	err := webhook.UpdateEvent()
+	assert.NoError(t, err)
+	err = webhook_model.CreateWebhook(t.Context(), webhook)
+	assert.NoError(t, err)
+
+	apiCommits := []*api.PayloadCommit{
+		{
+			ID:       "abc123",
+			Message:  "Test commit",
+			Added:    []string{"file1.txt", "file2.txt"},
+			Removed:  []string{"oldfile.txt"},
+			Modified: []string{"modified.txt"},
+		},
+		{
+			ID:       "def456",
+			Message:  "Another commit",
+			Added:    []string{"file3.txt"},
+			Removed:  []string{},
+			Modified: []string{"file1.txt"},
+		},
+	}
+	apiHeadCommit := &api.PayloadCommit{
+		ID:       "def456",
+		Message:  "Another commit",
+		Added:    []string{"file3.txt"},
+		Removed:  []string{},
+		Modified: []string{"file1.txt"},
+	}
+
+	// Should not modify anything when optimization is disabled
+	optimizedCommits, optimizedHeadCommit := (&webhookNotifier{}).applyWebhookPayloadOptimizations(t.Context(), repo, apiCommits, apiHeadCommit)
+	if assert.NotNil(t, optimizedCommits) && len(optimizedCommits) == 2 {
+		assert.Equal(t, []string{"file1.txt", "file2.txt"}, optimizedCommits[0].Added)
+		assert.Equal(t, []string{"oldfile.txt"}, optimizedCommits[0].Removed)
+		assert.Equal(t, []string{"modified.txt"}, optimizedCommits[0].Modified)
+		assert.Equal(t, []string{"file3.txt"}, optimizedCommits[1].Added)
+		assert.Equal(t, []string{}, optimizedCommits[1].Removed)
+		assert.Equal(t, []string{"file1.txt"}, optimizedCommits[1].Modified)
+	}
+	if assert.NotNil(t, optimizedHeadCommit) {
+		assert.Equal(t, []string{"file3.txt"}, optimizedHeadCommit.Added)
+		assert.Equal(t, []string{}, optimizedHeadCommit.Removed)
+		assert.Equal(t, []string{"file1.txt"}, optimizedHeadCommit.Modified)
+	}
+
+	// Test case 2: Files optimization enabled, limit = 0 (trim all)
+	webhook.SetMetaSettings(webhook_model.MetaSettings{
+		PayloadConfig: webhook_model.PayloadConfig{
+			Files:   webhook_model.PayloadConfigItem{Enable: true, Limit: 0},
+			Commits: webhook_model.PayloadConfigItem{Enable: false, Limit: 0},
+		},
+	})
+	err = webhook_model.UpdateWebhook(t.Context(), webhook)
+	assert.NoError(t, err)
+
+	apiCommits = []*api.PayloadCommit{
+		{
+			ID:       "abc123",
+			Message:  "Test commit",
+			Added:    []string{"file1.txt", "file2.txt"},
+			Removed:  []string{"oldfile.txt"},
+			Modified: []string{"modified.txt"},
+		},
+		{
+			ID:       "def456",
+			Message:  "Another commit",
+			Added:    []string{"file3.txt"},
+			Removed:  []string{},
+			Modified: []string{"file1.txt"},
+		},
+	}
+	apiHeadCommit = &api.PayloadCommit{
+		ID:       "def456",
+		Message:  "Another commit",
+		Added:    []string{"file3.txt"},
+		Removed:  []string{},
+		Modified: []string{"file1.txt"},
+	}
+
+	optimizedCommits, optimizedHeadCommit = (&webhookNotifier{}).applyWebhookPayloadOptimizations(t.Context(), repo, apiCommits, apiHeadCommit)
+	if assert.NotNil(t, optimizedCommits) && len(optimizedCommits) == 2 {
+		assert.Nil(t, optimizedCommits[0].Added)
+		assert.Nil(t, optimizedCommits[0].Removed)
+		assert.Nil(t, optimizedCommits[0].Modified)
+		assert.Nil(t, optimizedCommits[1].Added)
+		assert.Nil(t, optimizedCommits[1].Removed)
+		assert.Nil(t, optimizedCommits[1].Modified)
+	}
+	if assert.NotNil(t, optimizedHeadCommit) {
+		assert.Nil(t, optimizedHeadCommit.Added)
+		assert.Nil(t, optimizedHeadCommit.Removed)
+		assert.Nil(t, optimizedHeadCommit.Modified)
+	}
+
+	// Test case 3: Commits optimization enabled, limit = 1 (keep first)
+	webhook.SetMetaSettings(webhook_model.MetaSettings{
+		PayloadConfig: webhook_model.PayloadConfig{
+			Files:   webhook_model.PayloadConfigItem{Enable: false, Limit: 0},
+			Commits: webhook_model.PayloadConfigItem{Enable: true, Limit: 1},
+		},
+	})
+	err = webhook_model.UpdateWebhook(t.Context(), webhook)
+	assert.NoError(t, err)
+
+	apiCommits = []*api.PayloadCommit{
+		{
+			ID:       "abc123",
+			Message:  "Test commit",
+			Added:    []string{"file1.txt", "file2.txt"},
+			Removed:  []string{"oldfile.txt"},
+			Modified: []string{"modified.txt"},
+		},
+		{
+			ID:       "def456",
+			Message:  "Another commit",
+			Added:    []string{"file3.txt"},
+			Removed:  []string{},
+			Modified: []string{"file1.txt"},
+		},
+	}
+	apiHeadCommit = &api.PayloadCommit{
+		ID:       "def456",
+		Message:  "Another commit",
+		Added:    []string{"file3.txt"},
+		Removed:  []string{},
+		Modified: []string{"file1.txt"},
+	}
+
+	optimizedCommits, optimizedHeadCommit = (&webhookNotifier{}).applyWebhookPayloadOptimizations(t.Context(), repo, apiCommits, apiHeadCommit)
+	if assert.NotNil(t, optimizedCommits) && len(optimizedCommits) == 1 {
+		assert.Equal(t, []string{"file1.txt", "file2.txt"}, optimizedCommits[0].Added)
+		assert.Equal(t, []string{"oldfile.txt"}, optimizedCommits[0].Removed)
+		assert.Equal(t, []string{"modified.txt"}, optimizedCommits[0].Modified)
+	}
+	if assert.NotNil(t, optimizedHeadCommit) {
+		assert.Equal(t, []string{"file3.txt"}, optimizedHeadCommit.Added)
+		assert.Equal(t, []string{}, optimizedHeadCommit.Removed)
+		assert.Equal(t, []string{"file1.txt"}, optimizedHeadCommit.Modified)
+	}
+}
