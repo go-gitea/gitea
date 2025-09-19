@@ -47,7 +47,7 @@ func TestReview_LoadCodeComments(t *testing.T) {
 	assert.NoError(t, review.LoadAttributes(t.Context()))
 	assert.NoError(t, review.LoadCodeComments(t.Context()))
 	assert.Len(t, review.CodeComments, 1)
-	assert.Equal(t, int64(4), review.CodeComments["README.md"][int64(4)][0].Line)
+	assert.Equal(t, int64(4), review.CodeComments["README.md"][0].Line)
 }
 
 func TestReviewType_Icon(t *testing.T) {
