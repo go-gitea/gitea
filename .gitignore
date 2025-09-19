@@ -82,11 +82,9 @@ cpu.out
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
-/public/assets/licenses.txt
 /vendor
 /VERSION
 /.air
-/.go-licenses
 
 # Files and folders that were previously generated
 /public/assets/img/webpack

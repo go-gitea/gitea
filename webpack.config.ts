@@ -1,6 +1,3 @@
-import wrapAnsi from 'wrap-ansi';
-import AddAssetPlugin from 'add-asset-webpack-plugin';
-import LicenseCheckerWebpackPlugin from '@techknowlogick/license-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import {VueLoaderPlugin} from 'vue-loader';
@@ -8,14 +5,13 @@ import EsBuildLoader from 'esbuild-loader';
 import {parse} from 'node:path';
 import webpack, {type Configuration, type EntryObject} from 'webpack';
 import {fileURLToPath} from 'node:url';
-import {readFileSync, globSync} from 'node:fs';
+import {globSync} from 'node:fs';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin, EnvironmentPlugin} = webpack;
-const formatLicenseText = (licenseText: string) => wrapAnsi(licenseText || '', 80).trim();
 
 const themes: EntryObject = {};
 for (const path of globSync('web_src/css/themes/*.css', {cwd: import.meta.dirname})) {
@@ -213,30 +209,6 @@ export default {
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].[contenthash:8].worker.js',
     }),
-    isProduction ? new LicenseCheckerWebpackPlugin({
-      outputFilename: 'licenses.txt',
-      outputWriter: ({dependencies}: {dependencies: Array<Record<string, string>>}) => {
-        const line = '-'.repeat(80);
-        const goJson = readFileSync('assets/go-licenses.json', 'utf8');
-        const goModules = JSON.parse(goJson).map(({name, licenseText}: Record<string, string>) => {
-          return {name, body: formatLicenseText(licenseText)};
-        });
-        const jsModules = dependencies.map(({name, version, licenseName, licenseText}) => {
-          return {name, version, licenseName, body: formatLicenseText(licenseText)};
-        });
-
-        const modules = [...goModules, ...jsModules].sort((a, b) => a.name.localeCompare(b.name));
-        return modules.map(({name, version, licenseName, body}) => {
-          const title = licenseName ? `${name}@${version} - ${licenseName}` : name;
-          return `${line}\n${title}\n${line}\n${body}`;
-        }).join('\n');
-      },
-      override: {
-        'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
-      },
-      emitError: true,
-      allow: '(Apache-2.0 OR 0BSD OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
-    }) : new AddAssetPlugin('licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {
     hints: false,
@@ -265,7 +237,6 @@ export default {
     entrypoints: false,
     excludeAssets: [
       /^js\/monaco-language-.+\.js$/,
-      !isProduction && /^licenses.txt$/,
     ].filter(Boolean),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,
