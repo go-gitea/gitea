@@ -149,7 +149,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}); err != nil {
 		// cleanup: this will only remove the reference, the real commit will be clean up when next GC
 		if err1 := gitrepo.RemoveRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName()); err1 != nil {
-			log.Error("RemoveReference: %v", err1)
+			log.Error("RemoveRef: %v", err1)
 		}
 		return err
 	}
