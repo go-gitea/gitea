@@ -177,7 +177,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(repo_service.InitLicenseClassifier)
 
 	// Finally start up the cron
-	cron.NewContext(ctx)
+	cron.Init(ctx)
 }
 
 // NormalRoutes represents non install routes
