@@ -235,7 +235,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		// Calculate diff
 		startCommitID = pr.MergeBase
 
-		diffShortStats, err := gitdiff.GetDiffShortStat(gitRepo, startCommitID, endCommitID)
+		diffShortStats, err := gitdiff.GetDiffShortStat(ctx, pr.BaseRepo, gitRepo, startCommitID, endCommitID)
 		if err != nil {
 			log.Error("GetDiffShortStat: %v", err)
 		} else {
