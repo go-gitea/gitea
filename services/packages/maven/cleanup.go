@@ -17,7 +17,8 @@ import (
 // CleanupSnapshotVersions removes outdated files for SNAPHOT versions for all Maven packages.
 func CleanupSnapshotVersions(ctx context.Context) error {
 	retainBuilds := setting.Packages.RetainMavenSnapshotBuilds
-	log.Debug("Starting CleanupSnapshotVersion with retainBuilds: %d", retainBuilds)
+	debugSession := setting.Packages.DebugMavenCleanup
+	log.Debug("Maven Cleanup: starting with retainBuilds: %d, debugSession: %t", retainBuilds, debugSession)
 
 	if retainBuilds < 1 {
 		log.Warn("Maven Cleanup: skipped as value for retainBuilds less than 1: %d. Minimum 1 build should be retained", retainBuilds)
@@ -49,7 +50,7 @@ func CleanupSnapshotVersions(ctx context.Context) error {
 			}
 		}
 
-		if err := cleanSnapshotFiles(ctx, version.ID, retainBuilds); err != nil {
+		if err := cleanSnapshotFiles(ctx, version.ID, retainBuilds, debugSession); err != nil {
 			formattedErr := fmt.Errorf("version '%s' (ID: %d, Group ID: %s, Artifact ID: %s): %w",
 				version.Version, version.ID, groupId, artifactId, err)
 
@@ -80,8 +81,8 @@ func isSnapshotVersion(version string) bool {
 	return strings.HasSuffix(version, "-SNAPSHOT")
 }
 
-func cleanSnapshotFiles(ctx context.Context, versionID int64, retainBuilds int) error {
-	log.Debug("Starting cleanSnapshotFiles for versionID: %d with retainBuilds: %d", versionID, retainBuilds)
+func cleanSnapshotFiles(ctx context.Context, versionID int64, retainBuilds int, debugSession bool) error {
+	log.Debug("Maven Cleanup: starting cleanSnapshotFiles for versionID: %d with retainBuilds: %d, debugSession: %t", versionID, retainBuilds, debugSession)
 
 	metadataFile, err := packages.GetFileForVersionByName(ctx, versionID, "maven-metadata.xml", packages.EmptyFileKey)
 	if err != nil {
@@ -99,9 +100,24 @@ func cleanSnapshotFiles(ctx context.Context, versionID int64, retainBuilds int) 
 		return nil
 	}
 
-	filesToRemove, _, err := packages.GetFilesBelowBuildNumber(ctx, versionID, thresholdBuildNumber, classifiers...)
+	filesToRemove, skippedFiles, err := packages.GetFilesBelowBuildNumber(ctx, versionID, thresholdBuildNumber, classifiers...)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve files for version ID %d: %w", versionID, err)
+		return fmt.Errorf("cleanSnapshotFiles: failed to retrieve files for version: %w", err)
+	}
+
+	if debugSession {
+		var fileNamesToRemove, skippedFileNames []string
+
+		for _, file := range filesToRemove {
+			fileNamesToRemove = append(fileNamesToRemove, file.Name)
+		}
+
+		for _, file := range skippedFiles {
+			skippedFileNames = append(skippedFileNames, file.Name)
+		}
+
+		log.Debug("Maven Cleanup: debug session active. Files to remove: %v, Skipped files: %v", fileNamesToRemove, skippedFileNames)
+		return nil
 	}
 
 	for _, file := range filesToRemove {
