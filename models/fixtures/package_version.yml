@@ -1,0 +1,8 @@
+-
+  id: 1
+  package_id: 1
+  creator_id: 2
+  version: 1.0-SNAPSHOT
+  lower_version: 1.0-snapshot
+  metadata_json: '{"artifact_id":"test-project","group_id":"com.gitea"}'
+  created_unix: 1672531200

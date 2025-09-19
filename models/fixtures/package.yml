@@ -1,0 +1,6 @@
+-
+  id: 1
+  owner_id: 2
+  type: maven
+  name: com.gitea:test-project
+  lower_name: com.gitea:test-project

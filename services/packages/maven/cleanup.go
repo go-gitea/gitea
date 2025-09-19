@@ -1,3 +1,6 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package maven
 
 import (
@@ -38,21 +41,21 @@ func CleanupSnapshotVersions(ctx context.Context) error {
 			continue
 		}
 
-		var artifactId, groupId string
+		var artifactID, groupID string
 		if version.MetadataJSON != "" {
-			var metadata map[string]interface{}
+			var metadata map[string]any
 			if err := json.Unmarshal([]byte(version.MetadataJSON), &metadata); err != nil {
 				log.Warn("Maven Cleanup: error during cleanup: failed to unmarshal metadataJSON for package version ID: %d: %w", version.ID, err)
 			} else {
-				artifactId, _ = metadata["artifact_id"].(string)
-				groupId, _ = metadata["group_id"].(string)
-				log.Debug("Maven Cleanup: processing package version with ID: %s, Group ID: %s, Artifact ID: %s, Version: %s", version.ID, groupId, artifactId, version.Version)
+				artifactID, _ = metadata["artifact_id"].(string)
+				groupID, _ = metadata["group_id"].(string)
+				log.Debug("Maven Cleanup: processing package version with ID: %s, Group ID: %s, Artifact ID: %s, Version: %s", version.ID, groupID, artifactID, version.Version)
 			}
 		}
 
 		if err := cleanSnapshotFiles(ctx, version.ID, retainBuilds, debugSession); err != nil {
 			formattedErr := fmt.Errorf("version '%s' (ID: %d, Group ID: %s, Artifact ID: %s): %w",
-				version.Version, version.ID, groupId, artifactId, err)
+				version.Version, version.ID, groupID, artifactID, err)
 
 			if errors.Is(err, packages.ErrMetadataFile) {
 				metadataErrors = append(metadataErrors, formattedErr)
