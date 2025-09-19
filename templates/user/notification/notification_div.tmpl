@@ -26,11 +26,7 @@
 			{{range $one := .Notifications}}
 				<div class="notifications-item" id="notification_{{$one.ID}}" data-status="{{$one.Status}}">
 					<div class="tw-self-start tw-mt-[2px]">
-						{{if $one.Issue}}
-							{{template "shared/issueicon" $one.Issue}}
-						{{else}}
-							{{svg "octicon-repo" 16 "text grey"}}
-						{{end}}
+						{{$one.IconHTML ctx}}
 					</div>
 					<a class="notifications-link silenced tw-flex-1" href="{{$one.Link ctx}}">
 						<div class="flex-text-block tw-text-[0.95em]">
@@ -42,6 +38,10 @@
 						<div class="tw-text-16 tw-py-0.5">
 							{{if $one.Issue}}
 								{{$one.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}
+							{{else if $one.Release}}
+								{{$one.Release.Title}}
+							{{else if $one.Commit}}
+								{{$one.Commit.Summary}}
 							{{else}}
 								{{$one.Repository.FullName}}
 							{{end}}
@@ -50,6 +50,10 @@
 					<div class="notifications-updated flex-text-inline">
 						{{if $one.Issue}}
 							{{DateUtils.TimeSince $one.Issue.UpdatedUnix}}
+						{{else if $one.Release}}
+							{{DateUtils.TimeSince $one.Release.CreatedUnix}}
+						{{else if $one.Commit}}
+							{{DateUtils.TimeSince $one.Commit.Committer.When}}
 						{{else}}
 							{{DateUtils.TimeSince $one.UpdatedUnix}}
 						{{end}}
