@@ -122,7 +122,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		cloneOpts.Branch = repo.DefaultWikiBranch
 	}
 
-	if err := git.Clone(ctx, repo.WikiPath(), basePath, cloneOpts); err != nil {
+	if err := gitrepo.CloneOut(ctx, repo.WikiStorageRepo(), basePath, cloneOpts); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
 		return fmt.Errorf("failed to clone repository: %s (%w)", repo.FullName(), err)
 	}
@@ -271,7 +271,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	}
 	defer cleanup()
 
-	if err := git.Clone(ctx, repo.WikiPath(), basePath, git.CloneRepoOptions{
+	if err := gitrepo.CloneOut(ctx, repo.WikiStorageRepo(), basePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
 		Branch: repo.DefaultWikiBranch,
