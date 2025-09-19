@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -388,8 +389,10 @@ func ViewIssue(ctx *context.Context) {
 		prepareIssueViewSidebarTimeTracker,
 		prepareIssueViewSidebarDependency,
 		prepareIssueViewSidebarPin,
-		func(ctx *context.Context, issue *issues_model.Issue) { preparePullViewPullInfo(ctx, issue) },
-		preparePullViewReviewAndMerge,
+		func(ctx *context.Context, issue *issues_model.Issue) {
+			compareInfo := preparePullViewPullInfo(ctx, issue)
+			preparePullViewReviewAndMerge(ctx, issue, compareInfo)
+		},
 	}
 
 	for _, prepareFunc := range prepareFuncs {
@@ -441,8 +444,8 @@ func ViewPullMergeBox(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	preparePullViewPullInfo(ctx, issue)
-	preparePullViewReviewAndMerge(ctx, issue)
+	compareInfo := preparePullViewPullInfo(ctx, issue)
+	preparePullViewReviewAndMerge(ctx, issue, compareInfo)
 	ctx.Data["PullMergeBoxReloading"] = issue.PullRequest.IsChecking()
 
 	// TODO: it should use a dedicated struct to render the pull merge box, to make sure all data is prepared correctly
@@ -823,7 +826,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 	ctx.Data["NumParticipants"] = len(participants)
 }
 
-func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Issue) {
+func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Issue, compareInfo *pull_service.CompareInfo) {
 	getBranchData(ctx, issue)
 	if !issue.IsPull {
 		return
@@ -934,8 +937,22 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		ctx.ServerError("GetDefaultSquashMergeMessage", err)
 		return
 	}
+	_, coAuthors := pull_service.GetSquashMergeCommitMessages(ctx, pull)
+
+	defaultSquashMergeBody = fmt.Sprintf("%s%s", defaultSquashMergeBody, coAuthors)
+
+	commitsBuilder := strings.Builder{}
+	for _, c := range compareInfo.Commits {
+		commitsBuilder.WriteString("* ")
+		commitsBuilder.WriteString(c.CommitMessage)
+		commitsBuilder.WriteRune('\n')
+	}
+
 	ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
-	ctx.Data["DefaultSquashMergeBody"] = defaultSquashMergeBody
+	ctx.Data["DefaultSquashMergeBody"] = fmt.Sprintf("--------------------\n%s%s", commitsBuilder.String(), defaultSquashMergeBody)
+	if len(pull.Issue.Content) == 0 {
+		ctx.Data["DefaultSquashMergeBody"] = fmt.Sprintf("%s%s", commitsBuilder.String(), defaultSquashMergeBody)
+	}
 
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
 	if err != nil {

@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testPullCreate(t *testing.T, session *TestSession, user, repo string, toSelf bool, targetBranch, sourceBranch, title string) *httptest.ResponseRecorder {
+func testPullCreate(t *testing.T, session *TestSession, user, repo string, toSelf bool, targetBranch, sourceBranch, title string, contents ...string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -52,9 +52,15 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo string, toSel
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	link, exists = htmlDoc.doc.Find("form.ui.form").Attr("action")
 	assert.True(t, exists, "The template has changed")
+
+	content := ""
+	if len(contents) > 0 {
+		content = contents[0]
+	}
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-		"title": title,
+		"_csrf":   htmlDoc.GetCSRF(),
+		"title":   title,
+		"content": content,
 	})
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	return resp
