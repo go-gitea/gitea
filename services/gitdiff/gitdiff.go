@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/attribute"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -1090,7 +1091,7 @@ type DiffOptions struct {
 	MaxLines           int
 	MaxLineCharacters  int
 	MaxFiles           int
-	WhitespaceBehavior git.TrustedCmdArgs
+	WhitespaceBehavior gitcmd.TrustedCmdArgs
 	DirectComparison   bool
 }
 
@@ -1131,7 +1132,7 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 		return nil, nil, nil, err
 	}
 
-	cmdDiff := git.NewCommand().
+	cmdDiff := gitcmd.NewCommand().
 		AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
 		AddArguments(opts.WhitespaceBehavior...)
 
@@ -1158,7 +1159,7 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 
 	go func() {
 		stderr := &bytes.Buffer{}
-		if err := cmdDiff.Run(cmdCtx, &git.RunOpts{
+		if err := cmdDiff.Run(cmdCtx, &gitcmd.RunOpts{
 			Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,
 			Dir:     repoPath,
 			Stdout:  writer,
@@ -1395,8 +1396,8 @@ func CommentMustAsDiff(ctx context.Context, c *issues_model.Comment) *Diff {
 }
 
 // GetWhitespaceFlag returns git diff flag for treating whitespaces
-func GetWhitespaceFlag(whitespaceBehavior string) git.TrustedCmdArgs {
-	whitespaceFlags := map[string]git.TrustedCmdArgs{
+func GetWhitespaceFlag(whitespaceBehavior string) gitcmd.TrustedCmdArgs {
+	whitespaceFlags := map[string]gitcmd.TrustedCmdArgs{
 		"ignore-all":    {"-w"},
 		"ignore-change": {"-b"},
 		"ignore-eol":    {"--ignore-space-at-eol"},
