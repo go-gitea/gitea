@@ -409,6 +409,21 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		return nil, err
 	}
 
+	// Convert meta settings to map
+	metaSettings := w.GetMetaSettings()
+	metaSettingsMap := map[string]any{
+		"payload_config": map[string]any{
+			"files": map[string]any{
+				"enable": metaSettings.PayloadConfig.Files.Enable,
+				"limit":  metaSettings.PayloadConfig.Files.Limit,
+			},
+			"commits": map[string]any{
+				"enable": metaSettings.PayloadConfig.Commits.Enable,
+				"limit":  metaSettings.PayloadConfig.Commits.Limit,
+			},
+		},
+	}
+
 	return &api.Hook{
 		ID:                  w.ID,
 		Type:                w.Type,
@@ -417,6 +432,7 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		Config:              config,
 		Events:              w.EventsArray(),
 		AuthorizationHeader: authorizationHeader,
+		MetaSettings:        metaSettingsMap,
 		Updated:             w.UpdatedUnix.AsTime(),
 		Created:             w.CreatedUnix.AsTime(),
 		BranchFilter:        w.BranchFilter,

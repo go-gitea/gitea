@@ -21,6 +21,33 @@ import (
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
+// getPayloadConfigEnable extracts the "enable" boolean value from a payload config map
+func getPayloadConfigEnable(m map[string]any) bool {
+	if val, ok := m["enable"]; ok {
+		if boolVal, ok := val.(bool); ok {
+			return boolVal
+		}
+	}
+	return false
+}
+
+// getPayloadConfigLimit extracts the "limit" integer value from a payload config map
+func getPayloadConfigLimit(m map[string]any) int {
+	if val, ok := m["limit"]; ok {
+		switch v := val.(type) {
+		case int:
+			return v
+		case float64:
+			return int(v)
+		case string:
+			if intVal, err := strconv.Atoi(v); err == nil {
+				return intVal
+			}
+		}
+	}
+	return 0
+}
+
 // ListOwnerHooks lists the webhooks of the provided owner
 func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
 	opts := &webhook.ListWebhookOptions{
@@ -227,6 +254,44 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 		IsActive: form.Active,
 		Type:     form.Type,
 	}
+
+	// Set webhook meta settings
+	if form.MetaSettings != nil {
+		metaSettings := webhook.MetaSettings{}
+
+		// Parse payload config
+		if payloadOptMap, ok := form.MetaSettings["payload_config"].(map[string]any); ok {
+			payloadOptConfig := webhook.PayloadConfig{}
+
+			// Parse files config
+			if filesConfig, ok := payloadOptMap["files"].(map[string]any); ok {
+				payloadOptConfig.Files = webhook.PayloadConfigItem{
+					Enable: getPayloadConfigEnable(filesConfig),
+					Limit:  getPayloadConfigLimit(filesConfig),
+				}
+			} else {
+				payloadOptConfig.Files = webhook.PayloadConfigItem{Enable: false, Limit: 0}
+			}
+
+			// Parse commits config
+			if commitsConfig, ok := payloadOptMap["commits"].(map[string]any); ok {
+				payloadOptConfig.Commits = webhook.PayloadConfigItem{
+					Enable: getPayloadConfigEnable(commitsConfig),
+					Limit:  getPayloadConfigLimit(commitsConfig),
+				}
+			} else {
+				payloadOptConfig.Commits = webhook.PayloadConfigItem{Enable: false, Limit: 0}
+			}
+
+			metaSettings.PayloadConfig = payloadOptConfig
+		}
+
+		if err := w.SetMetaSettings(metaSettings); err != nil {
+			ctx.APIErrorInternal(err)
+			return nil, false
+		}
+	}
+
 	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -389,6 +454,43 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 
 	if form.Active != nil {
 		w.IsActive = *form.Active
+	}
+
+	// Update webhook meta settings
+	if form.MetaSettings != nil {
+		metaSettings := webhook.MetaSettings{}
+
+		// Parse payload config
+		if payloadOptMap, ok := (*form.MetaSettings)["payload_config"].(map[string]any); ok {
+			payloadOptConfig := webhook.PayloadConfig{}
+
+			// Parse files config
+			if filesConfig, ok := payloadOptMap["files"].(map[string]any); ok {
+				payloadOptConfig.Files = webhook.PayloadConfigItem{
+					Enable: getPayloadConfigEnable(filesConfig),
+					Limit:  getPayloadConfigLimit(filesConfig),
+				}
+			} else {
+				payloadOptConfig.Files = webhook.PayloadConfigItem{Enable: false, Limit: 0}
+			}
+
+			// Parse commits config
+			if commitsConfig, ok := payloadOptMap["commits"].(map[string]any); ok {
+				payloadOptConfig.Commits = webhook.PayloadConfigItem{
+					Enable: getPayloadConfigEnable(commitsConfig),
+					Limit:  getPayloadConfigLimit(commitsConfig),
+				}
+			} else {
+				payloadOptConfig.Commits = webhook.PayloadConfigItem{Enable: false, Limit: 0}
+			}
+
+			metaSettings.PayloadConfig = payloadOptConfig
+		}
+
+		if err := w.SetMetaSettings(metaSettings); err != nil {
+			ctx.APIErrorInternal(err)
+			return false
+		}
 	}
 
 	if err := webhook.UpdateWebhook(ctx, w); err != nil {
