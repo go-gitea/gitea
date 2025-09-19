@@ -19,6 +19,8 @@ on:
         value: ${{ jobs.detect.outputs.swagger }}
       yaml:
         value: ${{ jobs.detect.outputs.yaml }}
+      locale:
+        value: ${{ jobs.detect.outputs.locale }}
 
 jobs:
   detect:
@@ -33,6 +35,7 @@ jobs:
       docker: ${{ steps.changes.outputs.docker }}
       swagger: ${{ steps.changes.outputs.swagger }}
       yaml: ${{ steps.changes.outputs.yaml }}
+      locale: ${{ steps.changes.outputs.locale }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -48,7 +51,6 @@ jobs:
               - "Makefile"
               - ".golangci.yml"
               - ".editorconfig"
-              - "options/locale/locale_en-US.ini"
 
             frontend:
               - "*.js"
@@ -62,6 +64,9 @@ jobs:
               - "Makefile"
               - ".eslintrc.cjs"
               - ".npmrc"
+
+            locale:
+              - "options/locale/*.json"
 
             docs:
               - "**/*.md"

@@ -110,6 +110,14 @@ jobs:
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
 
+  checks-locale:
+    if: needs.files-changed.outputs.locale == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make translation-check
+
   checks-backend:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
