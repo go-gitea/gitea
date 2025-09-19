@@ -75,7 +75,8 @@ func TestGetTreeViewNodes(t *testing.T) {
 	mockOpenIconForFolder := func(id string) template.HTML {
 		return template.HTML(`<svg class="svg git-entry-icon octicon-file-directory-open-fill" width="16" height="16" aria-hidden="true"><use xlink:href="#` + id + `"></use></svg>`)
 	}
-	treeNodes, err := GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.Commit, "", "")
+	tree := git.NewTree(ctx.Repo.GitRepo, ctx.Repo.Commit.TreeID)
+	treeNodes, err := GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, tree, "", "")
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{
@@ -87,7 +88,7 @@ func TestGetTreeViewNodes(t *testing.T) {
 		},
 	}, treeNodes)
 
-	treeNodes, err = GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.Commit, "", "docs/README.md")
+	treeNodes, err = GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, tree, "", "docs/README.md")
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{
@@ -107,7 +108,7 @@ func TestGetTreeViewNodes(t *testing.T) {
 		},
 	}, treeNodes)
 
-	treeNodes, err = GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.Commit, "docs", "README.md")
+	treeNodes, err = GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, tree, "docs", "README.md")
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{

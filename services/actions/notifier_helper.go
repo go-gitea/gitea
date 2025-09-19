@@ -236,7 +236,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	if shouldDetectSchedules {
-		if err := handleSchedules(ctx, schedules, commit, input, ref.String()); err != nil {
+		if err := handleSchedules(ctx, gitRepo, schedules, commit, input, ref.String()); err != nil {
 			return err
 		}
 	}
@@ -497,12 +497,13 @@ func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *rep
 
 func handleSchedules(
 	ctx context.Context,
+	gitRepo *git.Repository,
 	detectedWorkflows []*actions_module.DetectedWorkflow,
 	commit *git.Commit,
 	input *notifyInput,
 	ref string,
 ) error {
-	branch, err := commit.GetBranchName()
+	branch, err := gitRepo.GetClosestBranchName(commit)
 	if err != nil {
 		return err
 	}
@@ -614,5 +615,5 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	// so we use action user as the Doer of the notifyInput
 	notifyInput := newNotifyInputForSchedules(repo)
 
-	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
+	return handleSchedules(ctx, gitRepo, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
 }

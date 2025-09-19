@@ -711,7 +711,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 			}
 		}
 	} else {
-		beforeCommit, err = afterCommit.Parent(0)
+		beforeCommit, err = gitRepo.ParentCommit(afterCommit, 0)
 		if err != nil {
 			ctx.ServerError("Parent", err)
 			return
