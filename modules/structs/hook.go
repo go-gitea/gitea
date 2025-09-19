@@ -418,6 +418,10 @@ type ChangesPayload struct {
 	Body *ChangesFromPayload `json:"body,omitempty"`
 	// Changes made to the reference
 	Ref *ChangesFromPayload `json:"ref,omitempty"`
+	// Changes made to the labels added
+	AddedLabels []*Label `json:"added_labels"`
+	// Changes made to the labels removed
+	RemovedLabels []*Label `json:"removed_labels"`
 }
 
 // PullRequestPayload represents a payload information of pull request event.
