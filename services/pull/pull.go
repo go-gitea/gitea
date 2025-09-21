@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/graceful"
@@ -107,13 +108,6 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 
-	// add first push codes comment
-	baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
-	if err != nil {
-		return err
-	}
-	defer baseGitRepo.Close()
-
 	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
 	if err != nil {
 		return err
@@ -145,6 +139,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			return err
 		}
 
+		// add first push codes comment
 		if _, err := CreatePushPullComment(ctx, issue.Poster, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false); err != nil {
 			return err
 		}
@@ -198,12 +193,11 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		return nil
 	}); err != nil {
 		// cleanup: this will only remove the reference, the real commit will be clean up when next GC
-		if err1 := baseGitRepo.RemoveReference(pr.GetGitHeadRefName()); err1 != nil {
-			log.Error("RemoveReference: %v", err1)
+		if err1 := gitrepo.RemoveRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName()); err1 != nil {
+			log.Error("RemoveRef: %v", err1)
 		}
 		return err
 	}
-	baseGitRepo.Close() // close immediately to avoid notifications will open the repository again
 
 	reviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
@@ -546,14 +540,14 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		return false, fmt.Errorf("GetMergeBase: %w", err)
 	}
 
-	cmd := git.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, base)
+	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, base)
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return false, fmt.Errorf("unable to open pipe for to run diff: %w", err)
 	}
 
 	stderr := new(bytes.Buffer)
-	if err := cmd.Run(ctx, &git.RunOpts{
+	if err := cmd.Run(ctx, &gitcmd.RunOpts{
 		Dir:    prCtx.tmpBasePath,
 		Stdout: stdoutWriter,
 		Stderr: stderr,
@@ -568,7 +562,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		if err == util.ErrNotEmpty {
 			return true, nil
 		}
-		err = git.ConcatenateError(err, stderr.String())
+		err = gitcmd.ConcatenateError(err, stderr.String())
 
 		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
 			newCommitID, oldCommitID, base,
@@ -670,8 +664,7 @@ func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 		return err
 	}
 
-	_, _, err = git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.HeadCommitID).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
-	if err != nil {
+	if err := gitrepo.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID); err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}
 

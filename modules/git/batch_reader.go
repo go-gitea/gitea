@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/djherbis/buffer"
@@ -29,13 +30,13 @@ type WriteCloserError interface {
 // This is needed otherwise the git cat-file will hang for invalid repositories.
 func ensureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
-	err := NewCommand("rev-parse").
-		Run(ctx, &RunOpts{
+	err := gitcmd.NewCommand("rev-parse").
+		Run(ctx, &gitcmd.RunOpts{
 			Dir:    repoPath,
 			Stderr: &stderr,
 		})
 	if err != nil {
-		return ConcatenateError(err, (&stderr).String())
+		return gitcmd.ConcatenateError(err, (&stderr).String())
 	}
 	return nil
 }
@@ -61,8 +62,8 @@ func catFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand("cat-file", "--batch-check").
-			Run(ctx, &RunOpts{
+		err := gitcmd.NewCommand("cat-file", "--batch-check").
+			Run(ctx, &gitcmd.RunOpts{
 				Dir:    repoPath,
 				Stdin:  batchStdinReader,
 				Stdout: batchStdoutWriter,
@@ -71,8 +72,8 @@ func catFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 				UseContextTimeout: true,
 			})
 		if err != nil {
-			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
-			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
+			_ = batchStdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
+			_ = batchStdinReader.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
 		} else {
 			_ = batchStdoutWriter.Close()
 			_ = batchStdinReader.Close()
@@ -109,8 +110,8 @@ func catFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand("cat-file", "--batch").
-			Run(ctx, &RunOpts{
+		err := gitcmd.NewCommand("cat-file", "--batch").
+			Run(ctx, &gitcmd.RunOpts{
 				Dir:    repoPath,
 				Stdin:  batchStdinReader,
 				Stdout: batchStdoutWriter,
@@ -119,8 +120,8 @@ func catFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 				UseContextTimeout: true,
 			})
 		if err != nil {
-			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
-			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
+			_ = batchStdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
+			_ = batchStdinReader.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
 		} else {
 			_ = batchStdoutWriter.Close()
 			_ = batchStdinReader.Close()
