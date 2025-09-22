@@ -112,7 +112,8 @@ func Sessioner() (middleware func(next http.Handler) http.Handler, err error) {
 	// https://gitea.com/go-chi/session/src/commit/16768d98ec9667722b876d4bed11017ce16d4572/session.go#L237-L240
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("failed to create session middleware: %w", r)
+			rErr := r.(error)
+			err = fmt.Errorf("failed to create session middleware: %w", rErr)
 		}
 	}()
 
