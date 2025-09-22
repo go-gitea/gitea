@@ -54,7 +54,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/go-github/v57 v57.0.0
 	github.com/google/pprof v0.0.0-20240227163752-401108e1b7e7
 	github.com/google/uuid v1.6.0
@@ -89,7 +89,7 @@ require (
 	github.com/pquerna/otp v1.4.0
 	github.com/prometheus/client_golang v1.19.0
 	github.com/quasoft/websspi v1.1.2
-	github.com/redis/go-redis/v9 v9.6.0
+	github.com/redis/go-redis/v9 v9.7.3
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/sassoftware/go-rpmutils v0.3.0
@@ -106,12 +106,12 @@ require (
 	github.com/yuin/goldmark v1.7.0
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
 	github.com/yuin/goldmark-meta v1.1.0
-	golang.org/x/crypto v0.35.0
+	golang.org/x/crypto v0.36.0
 	golang.org/x/image v0.18.0
-	golang.org/x/net v0.33.0
+	golang.org/x/net v0.38.0
 	golang.org/x/oauth2 v0.27.0
-	golang.org/x/sys v0.30.0
-	golang.org/x/text v0.22.0
+	golang.org/x/sys v0.31.0
+	golang.org/x/text v0.23.0
 	golang.org/x/tools v0.24.0
 	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.33.0
@@ -293,7 +293,7 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240314144324-c7f7c6466f7f // indirect
 	golang.org/x/mod v0.20.0 // indirect
-	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240314234333-6e1732d8331c // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
