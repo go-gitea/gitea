@@ -189,7 +189,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		filename = query
 	}
 
-	attachment, err := attachment_service.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
+	attachment, err := attachment_service.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, setting.Attachment.MaxSize<<20, header.Size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
@@ -197,7 +197,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		CommentID:  comment.ID,
 	})
 	if err != nil {
-		if upload.IsErrFileTypeForbidden(err) {
+		if upload.IsErrFileTypeForbidden(err) || attachment_service.IsErrAttachmentSizeExceed(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
 			ctx.APIErrorInternal(err)

@@ -234,14 +234,14 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment_service.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, size, &repo_model.Attachment{
+	attach, err := attachment_service.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, setting.Attachment.MaxSize<<20, size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
 		ReleaseID:  releaseID,
 	})
 	if err != nil {
-		if upload.IsErrFileTypeForbidden(err) {
+		if upload.IsErrFileTypeForbidden(err) || attachment_service.IsErrAttachmentSizeExceed(err) {
 			ctx.APIError(http.StatusBadRequest, err)
 			return
 		}

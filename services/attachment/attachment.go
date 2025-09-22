@@ -38,14 +38,32 @@ func NewAttachment(ctx context.Context, attach *repo_model.Attachment, file io.R
 	return attach, err
 }
 
+type ErrAttachmentSizeExceed struct {
+	MaxSize int64
+	Size    int64
+}
+
+func (e *ErrAttachmentSizeExceed) Error() string {
+	return fmt.Sprintf("attachment size %d exceed limit %d", e.Size, e.MaxSize)
+}
+
+func IsErrAttachmentSizeExceed(err error) bool {
+	_, ok := err.(*ErrAttachmentSizeExceed)
+	return ok
+}
+
 // UploadAttachment upload new attachment into storage and update database
-func UploadAttachment(ctx context.Context, file io.Reader, allowedTypes string, fileSize int64, attach *repo_model.Attachment) (*repo_model.Attachment, error) {
+func UploadAttachment(ctx context.Context, file io.Reader, allowedTypes string, maxFileSize, fileSize int64, attach *repo_model.Attachment) (*repo_model.Attachment, error) {
 	buf := make([]byte, 1024)
 	n, _ := util.ReadAtMost(file, buf)
 	buf = buf[:n]
 
 	if err := upload.Verify(buf, attach.Name, allowedTypes); err != nil {
 		return nil, err
+	}
+
+	if maxFileSize >= 0 && fileSize > (maxFileSize) {
+		return nil, &ErrAttachmentSizeExceed{MaxSize: maxFileSize, Size: fileSize}
 	}
 
 	return NewAttachment(ctx, attach, io.MultiReader(bytes.NewReader(buf), file), fileSize)
