@@ -1112,6 +1112,19 @@ func RepoAssignmentByName(ctx *Context) {
 		return
 	}
 
+	// Set up contributor count data
+	ctx.Data["ContributorCount"] = int64(0) // Default to 0
+	if !repo.IsEmpty && ctx.Repo.GitRepo != nil {
+		// Get contributor count efficiently using git shortlog
+		contributorCount, err := ctx.Repo.GitRepo.GetContributorCount(repo.DefaultBranch)
+		if err != nil {
+			// If contributor count fails, log warning but continue with 0
+			log.Warn("Failed to get contributor count for repository %s: %v", repo.FullName(), err)
+		} else {
+			ctx.Data["ContributorCount"] = contributorCount
+		}
+	}
+
 	// Set up fork-related data for repo header template
 	canSignedUserFork, err := repo_module.CanUserForkRepo(ctx, ctx.Doer, ctx.Repo.Repository)
 	if err != nil {

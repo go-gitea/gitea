@@ -153,3 +153,26 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	return stats, nil
 }
+
+// GetContributorCount returns the number of unique contributors for the given branch
+func (repo *Repository) GetContributorCount(branch string) (int64, error) {
+	if len(branch) == 0 {
+		branch = "HEAD"
+	}
+
+	// Use git shortlog to get unique contributors efficiently
+	stdout, _, err := NewCommand("shortlog", "-sn", "--all").
+		AddDynamicArguments(branch).
+		RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	if err != nil {
+		return 0, err
+	}
+
+	// Count the number of lines (each line represents a unique contributor)
+	lines := strings.Split(strings.TrimSpace(stdout), "\n")
+	if len(lines) == 1 && lines[0] == "" {
+		return 0, nil // No contributors
+	}
+
+	return int64(len(lines)), nil
+}
