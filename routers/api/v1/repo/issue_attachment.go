@@ -154,6 +154,8 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "413":
+	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	//   "423":
@@ -188,8 +190,10 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		IssueID:    issue.ID,
 	})
 	if err != nil {
-		if upload.IsErrFileTypeForbidden(err) || attachment_service.IsErrAttachmentSizeExceed(err) {
+		if upload.IsErrFileTypeForbidden(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
+		} else if attachment_service.IsErrAttachmentSizeExceed(err) {
+			ctx.APIError(http.StatusRequestEntityTooLarge, err)
 		} else {
 			ctx.APIErrorInternal(err)
 		}

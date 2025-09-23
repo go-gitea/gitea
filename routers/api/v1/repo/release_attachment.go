@@ -191,6 +191,8 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "413":
+	//     "$ref": "#/responses/error"
 
 	// Check if attachments are enabled
 	if !setting.Attachment.Enabled {
@@ -241,10 +243,16 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		ReleaseID:  releaseID,
 	})
 	if err != nil {
-		if upload.IsErrFileTypeForbidden(err) || attachment_service.IsErrAttachmentSizeExceed(err) {
+		if upload.IsErrFileTypeForbidden(err) {
 			ctx.APIError(http.StatusBadRequest, err)
 			return
 		}
+
+		if attachment_service.IsErrAttachmentSizeExceed(err) {
+			ctx.APIError(http.StatusRequestEntityTooLarge, err)
+			return
+		}
+
 		ctx.APIErrorInternal(err)
 		return
 	}
