@@ -351,7 +351,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   enum: [closed, open, all]
 	// - name: labels
 	//   in: query
-	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
+	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded. Use label content as string, not labels id.
 	//   type: string
 	// - name: q
 	//   in: query
