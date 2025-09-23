@@ -27,11 +27,13 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/reqctx"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	actions_service "code.gitea.io/gitea/services/actions"
 	notify_service "code.gitea.io/gitea/services/notify"
+	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
@@ -538,6 +540,13 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if pr != nil && setting.Repository.PullRequest.RetargetChildrenOnMerge {
+			if err := pull_service.RetargetBranchPulls(ctx, doer, repo.ID, branchName, pr.BaseBranch); err != nil {
+				log.Error("retargetBranchPulls failed: %v", err)
+				return err
+			}
+		}
+
 		if !notExist {
 			if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, doer.ID); err != nil {
 				return err
