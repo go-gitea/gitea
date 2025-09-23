@@ -181,5 +181,5 @@ func GetDiverging(ctx context.Context, pr *issues_model.PullRequest) (*gitrepo.D
 		return nil, err
 	}
 
-	return gitrepo.GetDivergingCommits(ctx, pr.BaseRepo, baseBranch, pr.GetGitHeadRefName())
+	return gitrepo.GetDivergingCommits(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 }
