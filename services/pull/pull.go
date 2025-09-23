@@ -99,13 +99,6 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		return err
 	}
 
-	divergence, err := git.GetDivergingCommits(ctx, prCtx.tmpBasePath, baseBranch, trackingBranch)
-	if err != nil {
-		return err
-	}
-	pr.CommitsAhead = divergence.Ahead
-	pr.CommitsBehind = divergence.Behind
-
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 
 	var reviewNotifiers []*issue_service.ReviewRequestNotifier
@@ -130,6 +123,19 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		} else {
 			err = UpdateRef(ctx, pr)
 		}
+		if err != nil {
+			return err
+		}
+
+		// Update Commit Divergence
+		divergence, err := GetDiverging(ctx, pr)
+		if err != nil {
+			return err
+		}
+		pr.CommitsAhead = divergence.Ahead
+		pr.CommitsBehind = divergence.Behind
+
+		err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
 		if err != nil {
 			return err
 		}
@@ -295,13 +301,6 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	pr.CommitsAhead = divergence.Ahead
 	pr.CommitsBehind = divergence.Behind
 
-	// add first push codes comment
-	baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
-	if err != nil {
-		return err
-	}
-	defer baseGitRepo.Close()
-
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
 			return err
@@ -464,7 +463,13 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", opts.RepoID, opts.Branch, err)
 			return
 		}
+		baseRepo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
+		if err != nil {
+			log.Error("GetRepositoryByID: %v", err)
+			return
+		}
 		for _, pr := range prs {
+			pr.BaseRepo = baseRepo // avoid loading again
 			divergence, err := GetDiverging(ctx, pr)
 			if err != nil {
 				if git_model.IsErrBranchNotExist(err) && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
