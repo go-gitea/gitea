@@ -43,13 +43,17 @@ type ErrAttachmentSizeExceed struct {
 	Size    int64
 }
 
-func (e *ErrAttachmentSizeExceed) Error() string {
+func (e ErrAttachmentSizeExceed) Error() string {
 	return fmt.Sprintf("attachment size %d exceed limit %d", e.Size, e.MaxSize)
 }
 
 func IsErrAttachmentSizeExceed(err error) bool {
-	_, ok := err.(*ErrAttachmentSizeExceed)
+	_, ok := err.(ErrAttachmentSizeExceed)
 	return ok
+}
+
+func (err ErrAttachmentSizeExceed) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 // UploadAttachment upload new attachment into storage and update database
@@ -63,7 +67,7 @@ func UploadAttachment(ctx context.Context, file io.Reader, allowedTypes string, 
 	}
 
 	if maxFileSize >= 0 && fileSize > (maxFileSize) {
-		return nil, &ErrAttachmentSizeExceed{MaxSize: maxFileSize, Size: fileSize}
+		return nil, ErrAttachmentSizeExceed{MaxSize: maxFileSize, Size: fileSize}
 	}
 
 	return NewAttachment(ctx, attach, io.MultiReader(bytes.NewReader(buf), file), fileSize)
