@@ -8,8 +8,8 @@ export function makeCodeBlockButton(className: string, name: SvgName): HTMLButto
   return button;
 }
 
-const getMarkupCodeWrap = () => (localStorage.getItem('wrap-markup-code') || 'false') === 'true';
-const setMarkupCodeWrap = (value: boolean) => localStorage.setItem('wrap-markup-code', String(value));
+const getWrap = () => (localStorage.getItem('wrap-markup-code') || 'false') === 'true';
+const saveWrap = (value: boolean) => localStorage.setItem('wrap-markup-code', String(value));
 
 function updateWrap(container: Element, wrap: boolean) {
   container.classList.remove(wrap ? 'code-overflow-scroll' : 'code-overflow-wrap');
@@ -30,16 +30,16 @@ export function initMarkupCodeBlocks(elMarkup: HTMLElement): void {
     const container = el.closest('.code-block-container') ?? el.closest('.code-block');
 
     const wrapBtn = makeCodeBlockButton('code-wrap', 'material-wrap-text');
-    const wrap = getMarkupCodeWrap();
+    const wrap = getWrap();
     wrapBtn.setAttribute('data-active', String(wrap));
     updateWrap(container, wrap);
 
     wrapBtn.setAttribute('data-tooltip-content', window.config.i18n.code_toggle_wrap);
     wrapBtn.addEventListener('click', (e) => {
-      const wrap = !getMarkupCodeWrap();
+      const wrap = !getWrap();
       updateWrap(container, wrap);
       (e.currentTarget as HTMLButtonElement).setAttribute('data-active', String(wrap));
-      setMarkupCodeWrap(wrap);
+      saveWrap(wrap);
     });
 
     const btnContainer = document.createElement('div');
