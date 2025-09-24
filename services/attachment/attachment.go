@@ -44,16 +44,11 @@ type ErrAttachmentSizeExceed struct {
 }
 
 func (e ErrAttachmentSizeExceed) Error() string {
-	return fmt.Sprintf("attachment size %d exceed limit %d", e.Size, e.MaxSize)
+	return fmt.Sprintf("attachment size %d exceeds limit %d", e.Size, e.MaxSize)
 }
 
-func IsErrAttachmentSizeExceed(err error) bool {
-	_, ok := err.(ErrAttachmentSizeExceed)
-	return ok
-}
-
-func (err ErrAttachmentSizeExceed) Unwrap() error {
-	return util.ErrInvalidArgument
+func (e ErrAttachmentSizeExceed) Unwrap() error {
+	return util.ErrContentTooLarge
 }
 
 // UploadAttachment upload new attachment into storage and update database

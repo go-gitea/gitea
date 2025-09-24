@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	attachment_service "code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
@@ -248,7 +250,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 			return
 		}
 
-		if attachment_service.IsErrAttachmentSizeExceed(err) {
+		if errors.Is(err, util.ErrContentTooLarge) {
 			ctx.APIError(http.StatusRequestEntityTooLarge, err)
 			return
 		}
