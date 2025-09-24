@@ -6,6 +6,7 @@ package user
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -22,7 +23,7 @@ type SearchUserOptions struct {
 	db.ListOptions
 
 	Keyword       string
-	Type          UserType
+	Types         []UserType
 	UID           int64
 	LoginName     string // this option should be used only for admin user
 	SourceID      int64  // this option should be used only for admin user
@@ -43,16 +44,16 @@ type SearchUserOptions struct {
 
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Session {
 	var cond builder.Cond
-	cond = builder.Eq{"type": opts.Type}
+	cond = builder.In("type", opts.Types)
 	if opts.IncludeReserved {
-		switch opts.Type {
-		case UserTypeIndividual:
+		switch {
+		case slices.Contains(opts.Types, UserTypeIndividual):
 			cond = cond.Or(builder.Eq{"type": UserTypeUserReserved}).Or(
 				builder.Eq{"type": UserTypeBot},
 			).Or(
 				builder.Eq{"type": UserTypeRemoteUser},
 			)
-		case UserTypeOrganization:
+		case slices.Contains(opts.Types, UserTypeOrganization):
 			cond = cond.Or(builder.Eq{"type": UserTypeOrganizationReserved})
 		}
 	}
