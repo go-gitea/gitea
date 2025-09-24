@@ -37,6 +37,129 @@ import (
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
+// ForkNode represents a node in the fork hierarchy tree
+type ForkNode struct {
+	Repository *repo_model.Repository
+	Children   []*ForkNode
+	Level      int
+}
+
+// findRootRepository traverses the fork chain to find the ultimate parent repository
+func findRootRepository(ctx context.Context, repo *repo_model.Repository) (*repo_model.Repository, error) {
+	current := repo
+	for current.IsFork {
+		parent, err := repo_model.GetRepositoryByID(ctx, current.ForkID)
+		if err != nil {
+			return nil, err
+		}
+		if err := parent.LoadOwner(ctx); err != nil {
+			return nil, err
+		}
+		current = parent
+	}
+	return current, nil
+}
+
+// buildForkHierarchy builds a complete fork hierarchy tree starting from the root repository
+func buildForkHierarchy(ctx context.Context, rootRepo *repo_model.Repository, doer *user_model.User) (*ForkNode, error) {
+	rootNode := &ForkNode{
+		Repository: rootRepo,
+		Children:   []*ForkNode{},
+		Level:      0,
+	}
+
+	// Build the hierarchy recursively
+	if err := buildForkHierarchyRecursive(ctx, rootNode, doer); err != nil {
+		return nil, err
+	}
+
+	return rootNode, nil
+}
+
+// buildForkHierarchyRecursive recursively builds the fork hierarchy tree
+func buildForkHierarchyRecursive(ctx context.Context, node *ForkNode, doer *user_model.User) error {
+	// Get all direct forks of this repository
+	forks, err := repo_model.GetRepositoriesByForkID(ctx, node.Repository.ID)
+	if err != nil {
+		return err
+	}
+
+	// Filter forks based on access permissions
+	for _, fork := range forks {
+		// Check if user can access this fork
+		if fork.IsPrivate && doer != nil {
+			perm, err := access_model.GetUserRepoPermission(ctx, fork, doer)
+			if err != nil || !perm.HasAnyUnitAccessOrPublicAccess() {
+				continue
+			}
+		} else if fork.IsPrivate && doer == nil {
+			continue
+		}
+
+		// Load owner information
+		if err := fork.LoadOwner(ctx); err != nil {
+			continue
+		}
+
+		// Create child node
+		childNode := &ForkNode{
+			Repository: fork,
+			Children:   []*ForkNode{},
+			Level:      node.Level + 1,
+		}
+
+		// Recursively build children
+		if err := buildForkHierarchyRecursive(ctx, childNode, doer); err != nil {
+			continue // Skip this fork if we can't build its hierarchy
+		}
+
+		node.Children = append(node.Children, childNode)
+	}
+
+	return nil
+}
+
+// countForksInHierarchy counts the total number of repositories in the fork hierarchy
+func countForksInHierarchy(node *ForkNode) int {
+	if node == nil {
+		return 0
+	}
+
+	count := 1 // Count this node
+	for _, child := range node.Children {
+		count += countForksInHierarchy(child)
+	}
+
+	return count
+}
+
+// flattenForkHierarchy converts the fork hierarchy tree into a flat list (breadth-first order)
+func flattenForkHierarchy(root *ForkNode, limit int) []*repo_model.Repository {
+	if root == nil {
+		return []*repo_model.Repository{}
+	}
+
+	result := []*repo_model.Repository{}
+	queue := []*ForkNode{root}
+
+	for len(queue) > 0 && len(result) < limit {
+		node := queue[0]
+		queue = queue[1:]
+
+		result = append(result, node.Repository)
+
+		// Add children to queue
+		for _, child := range node.Children {
+			if len(result) >= limit {
+				break
+			}
+			queue = append(queue, child)
+		}
+	}
+
+	return result
+}
+
 // PullRequest contains information to make a pull request
 type PullRequest struct {
 	BaseRepo *repo_model.Repository
@@ -1011,7 +1134,7 @@ func canWriteAsMaintainer(ctx *Context) bool {
 func RepoAssignmentByName(ctx *Context) {
 	repoName := ctx.PathParam("reponame")
 	if repoName == "" {
-		ctx.NotFound(fmt.Errorf("repository name is required"))
+		ctx.NotFound(errors.New("repository name is required"))
 		return
 	}
 
@@ -1043,7 +1166,7 @@ func RepoAssignmentByName(ctx *Context) {
 		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
 			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
 			ctx.Repo.Repository.MarkAsBrokenEmpty()
-			ctx.NotFound(fmt.Errorf("repository not found or corrupted"))
+			ctx.NotFound(errors.New("repository not found or corrupted"))
 		} else {
 			ctx.ServerError("gitrepo.RepositoryFromRequestContextOrOpen", err)
 		}
@@ -1053,7 +1176,7 @@ func RepoAssignmentByName(ctx *Context) {
 	// Verify repository has a valid default branch
 	if repo.DefaultBranch == "" {
 		log.Warn("Repository %-v has no default branch set", repo)
-		ctx.NotFound(fmt.Errorf("repository has no default branch"))
+		ctx.NotFound(errors.New("repository has no default branch"))
 		return
 	}
 
@@ -1094,9 +1217,9 @@ func RepoAssignmentByName(ctx *Context) {
 
 	// Set up release count data
 	ctx.Data["NumTags"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
-		IncludeTags:   true,
-		HasSha1:       optional.Some(true), // only draft releases which are created with existing tags
-		RepoID:        ctx.Repo.Repository.ID,
+		IncludeTags: true,
+		HasSha1:     optional.Some(true), // only draft releases which are created with existing tags
+		RepoID:      ctx.Repo.Repository.ID,
 	})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
@@ -1125,7 +1248,124 @@ func RepoAssignmentByName(ctx *Context) {
 		}
 	}
 
-	// Set up fork-related data for repo header template
+	// Set up root repository and fork hierarchy data
+	ctx.Data["CurrentRepository"] = repo
+	ctx.Data["RootRepository"] = repo
+	ctx.Data["ForkHierarchy"] = (*ForkNode)(nil)
+	ctx.Data["AllForks"] = []*repo_model.Repository{}
+	ctx.Data["ForkCount"] = int64(0)
+
+	// Find the root repository (traverse up the fork chain)
+	rootRepo, err := findRootRepository(ctx, repo)
+	if err != nil {
+		log.Warn("Failed to find root repository for %s: %v", repo.FullName(), err)
+		rootRepo = repo // Fallback to current repo
+	}
+	ctx.Data["RootRepository"] = rootRepo
+
+	// If the accessed repository is a fork, replace the main repository context with the root repository
+	if repo.IsFork && rootRepo.ID != repo.ID {
+		log.Info("Repository %s is a fork, switching context to root repository %s", repo.FullName(), rootRepo.FullName())
+
+		// Close the current Git repository
+		if ctx.Repo.GitRepo != nil {
+			ctx.Repo.GitRepo.Close()
+		}
+
+		// Replace the repository context with the root repository
+		ctx.Repo.Repository = rootRepo
+
+		// Initialize Git repository for the root repository
+		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, rootRepo)
+		if err != nil {
+			if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
+				log.Error("Root repository %-v has a broken repository on the file system: %s Error: %v", rootRepo, rootRepo.RepoPath(), err)
+				rootRepo.MarkAsBrokenEmpty()
+				ctx.NotFound(errors.New("root repository not found or corrupted"))
+			} else {
+				ctx.ServerError("gitrepo.RepositoryFromRequestContextOrOpen for root repo", err)
+			}
+			return
+		}
+
+		// Update repository permissions for the root repository
+		perm, err := access_model.GetUserRepoPermission(ctx, rootRepo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission for root repo", err)
+			return
+		}
+		ctx.Repo.Permission = perm
+		ctx.Data["Permission"] = &ctx.Repo.Permission
+
+		// Update template data to use root repository
+		ctx.Data["Title"] = rootRepo.Owner.Name + "/" + rootRepo.Name
+		ctx.Data["Repository"] = rootRepo
+		ctx.Data["Owner"] = rootRepo.Owner
+		ctx.Data["RepoName"] = rootRepo.Name
+		ctx.Data["IsEmptyRepo"] = rootRepo.IsEmpty
+		ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)
+		ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
+		ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
+		ctx.Data["CanWriteActions"] = ctx.Repo.CanWrite(unit_model.TypeActions)
+
+		// Update repository link data to use root repository
+		ctx.Repo.RepoLink = rootRepo.Link()
+		ctx.Data["RepoLink"] = ctx.Repo.RepoLink
+		ctx.Data["FeedURL"] = ctx.Repo.RepoLink
+
+		// Update release count data for root repository
+		ctx.Data["NumTags"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+			IncludeTags: true,
+			HasSha1:     optional.Some(true),
+			RepoID:      rootRepo.ID,
+		})
+		if err != nil {
+			ctx.ServerError("GetReleaseCountByRepoID for root repo", err)
+			return
+		}
+		ctx.Data["NumReleases"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+			IncludeDrafts: ctx.Repo.CanWrite(unit_model.TypeReleases),
+			RepoID:        rootRepo.ID,
+		})
+		if err != nil {
+			ctx.ServerError("GetReleaseCountByRepoID for root repo", err)
+			return
+		}
+
+		// Update contributor count data for root repository
+		ctx.Data["ContributorCount"] = int64(0) // Default to 0
+		if !rootRepo.IsEmpty && ctx.Repo.GitRepo != nil {
+			// Get contributor count efficiently using git shortlog
+			contributorCount, err := ctx.Repo.GitRepo.GetContributorCount(rootRepo.DefaultBranch)
+			if err != nil {
+				// If contributor count fails, log warning but continue with 0
+				log.Warn("Failed to get contributor count for root repository %s: %v", rootRepo.FullName(), err)
+			} else {
+				ctx.Data["ContributorCount"] = contributorCount
+			}
+		}
+	}
+
+	// Build complete fork hierarchy starting from root
+	forkHierarchy, err := buildForkHierarchy(ctx, rootRepo, ctx.Doer)
+	if err != nil {
+		log.Warn("Failed to build fork hierarchy for root repository %s: %v", rootRepo.FullName(), err)
+	} else {
+		ctx.Data["ForkHierarchy"] = forkHierarchy
+
+		// Count total forks in the hierarchy
+		totalForks := countForksInHierarchy(forkHierarchy) - 1 // Subtract 1 for root repo
+		ctx.Data["ForkCount"] = int64(totalForks)
+
+		// Get flattened list of forks for backward compatibility (limit to 20)
+		allForks := flattenForkHierarchy(forkHierarchy, 20)
+		if len(allForks) > 0 {
+			allForks = allForks[1:] // Remove root repository from the list
+		}
+		ctx.Data["AllForks"] = allForks
+	}
+
+	// Set up fork-related data for repo header template (use current repository context)
 	canSignedUserFork, err := repo_module.CanUserForkRepo(ctx, ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("CanUserForkRepo", err)
@@ -1143,8 +1383,8 @@ func RepoAssignmentByName(ctx *Context) {
 	// Set up fork modal display logic
 	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
 
-	// Set up clone link data for repo header
-	ctx.Data["RepoCloneLink"] = repo.CloneLink(ctx, ctx.Doer)
+	// Set up clone link data for repo header (use current repository context)
+	ctx.Data["RepoCloneLink"] = ctx.Repo.Repository.CloneLink(ctx, ctx.Doer)
 
 	// Set up clone button display options
 	cloneButtonShowHTTPS := !setting.Repository.DisableHTTPGit
@@ -1156,15 +1396,16 @@ func RepoAssignmentByName(ctx *Context) {
 	ctx.Data["CloneButtonShowHTTPS"] = cloneButtonShowHTTPS
 	ctx.Data["CloneButtonShowSSH"] = cloneButtonShowSSH
 
-	// Set up watch/star data for signed users
+	// Set up watch/star data for signed users (use current repository context)
 	if ctx.IsSigned {
-		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, repo.ID)
-		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, repo.ID)
+		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	}
 
-	// Handle fork relationships
-	if repo.IsFork {
-		RetrieveBaseRepo(ctx, repo)
+	// Handle fork relationships (use the original accessed repository for base repo detection)
+	originalRepo := ctx.Data["CurrentRepository"].(*repo_model.Repository)
+	if originalRepo.IsFork {
+		RetrieveBaseRepo(ctx, originalRepo)
 		if ctx.Written() {
 			return
 		}
@@ -1176,18 +1417,18 @@ func RepoAssignmentByName(ctx *Context) {
 		(ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID))
 	canCompare := false
 
-	// Pull request is allowed if this is a fork repository
+	// Pull request is allowed if the original accessed repository is a fork
 	// and base repository accepts pull requests.
-	if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls(ctx) {
+	if originalRepo.BaseRepo != nil && originalRepo.BaseRepo.AllowsPulls(ctx) {
 		canCompare = true
-		ctx.Data["BaseRepo"] = repo.BaseRepo
-		ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
+		ctx.Data["BaseRepo"] = originalRepo.BaseRepo
+		ctx.Repo.PullRequest.BaseRepo = originalRepo.BaseRepo
 		ctx.Repo.PullRequest.Allowed = canPush
-	} else if repo.AllowsPulls(ctx) {
-		// Or, this is repository accepts pull requests between branches.
+	} else if ctx.Repo.Repository.AllowsPulls(ctx) {
+		// Or, this repository (now the root repo) accepts pull requests between branches.
 		canCompare = true
-		ctx.Data["BaseRepo"] = repo
-		ctx.Repo.PullRequest.BaseRepo = repo
+		ctx.Data["BaseRepo"] = ctx.Repo.Repository
+		ctx.Repo.PullRequest.BaseRepo = ctx.Repo.Repository
 		ctx.Repo.PullRequest.Allowed = canPush
 		ctx.Repo.PullRequest.SameRepo = true
 	}

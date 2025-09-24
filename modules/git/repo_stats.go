@@ -161,9 +161,9 @@ func (repo *Repository) GetContributorCount(branch string) (int64, error) {
 	}
 
 	// Use git shortlog to get unique contributors efficiently
-	stdout, _, err := NewCommand("shortlog", "-sn", "--all").
+	stdout, _, err := gitcmd.NewCommand("shortlog", "-sn", "--all").
 		AddDynamicArguments(branch).
-		RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+		RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	if err != nil {
 		return 0, err
 	}

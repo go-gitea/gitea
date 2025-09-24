@@ -1,4 +1,136 @@
+{{/* Template for rendering fork hierarchy nodes recursively */}}
+{{define "fork_hierarchy_node"}}
+    {{$node := .Node}}
+    {{$currentRepo := .CurrentRepo}}
+    {{$ctx := .ctx}}
+
+    {{if and $node $node.Repository}}
+
+    <div class="item fork-level-{{$node.Level}}">
+        <div class="ui grid">
+            <div class="two wide column">
+                {{if $node.Repository.Owner}}
+                    {{ctx.AvatarUtils.Avatar $node.Repository.Owner 32}}
+                {{else}}
+                    {{svg "octicon-person" 32}}
+                {{end}}
+            </div>
+            <div class="fourteen wide column">
+                <div class="content">
+                    <div class="header">
+                        {{/* Indentation indicators for hierarchy levels */}}
+                        {{if gt $node.Level 0}}
+                            {{if eq $node.Level 1}}<span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span>{{end}}
+                            {{if eq $node.Level 2}}<span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span><span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span>{{end}}
+                            {{if gt $node.Level 2}}<span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span><span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span><span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span>{{end}}
+                        {{end}}
+
+                        <a class="ui large text" href="/explore/articles/history/{{$node.Repository.Name}}">
+                            <strong>{{if $node.Repository.Owner}}{{$node.Repository.Owner.Name}}{{else}}unknown{{end}}/{{$node.Repository.Name}}</strong>
+                        </a>
+
+                        <span class="ui small labels">
+                            {{if eq $node.Level 0}}
+                                <span class="ui blue label">
+                                    {{svg "octicon-repo" 12 "tw-mr-1"}}
+                                    {{ctx.Locale.Tr "repo.root"}}
+                                </span>
+                            {{else}}
+                                <span class="ui basic label">
+                                    {{svg "octicon-repo-forked" 12 "tw-mr-1"}}
+                                    {{ctx.Locale.Tr "repo.fork"}}
+                                </span>
+                            {{end}}
+
+                            {{if eq $node.Repository.FullName $currentRepo.FullName}}
+                                <span class="ui green label">
+                                    {{svg "octicon-eye" 12 "tw-mr-1"}}
+                                    {{ctx.Locale.Tr "repo.current"}}
+                                </span>
+                            {{end}}
+
+                            {{if $node.Repository.IsPrivate}}
+                                <span class="ui basic label">
+                                    {{svg "octicon-lock" 12 "tw-mr-1"}}
+                                    {{ctx.Locale.Tr "repo.desc.private"}}
+                                </span>
+                            {{end}}
+
+                            {{if $node.Repository.IsArchived}}
+                                <span class="ui basic label">
+                                    {{svg "octicon-archive" 12 "tw-mr-1"}}
+                                    {{ctx.Locale.Tr "repo.desc.archived"}}
+                                </span>
+                            {{end}}
+                        </span>
+                    </div>
+
+                    {{if $node.Repository.Description}}
+                        <div class="description tw-mt-2">
+                            {{$node.Repository.Description}}
+                        </div>
+                    {{end}}
+
+                    <div class="extra tw-mt-3">
+                        <div class="ui horizontal list">
+                            <div class="item">
+                                <i class="clock icon"></i>
+                                {{if $node.Repository.UpdatedUnix}}
+                                    {{ctx.Locale.Tr "repo.last_updated"}} {{DateUtils.TimeSince $node.Repository.UpdatedUnix}}
+                                {{else}}
+                                    {{ctx.Locale.Tr "repo.never_updated"}}
+                                {{end}}
+                            </div>
+                            <div class="item">
+                                <a href="{{$node.Repository.Link}}/stars" class="ui basic mini label">
+                                    {{svg "octicon-star" 12 "tw-mr-1"}}
+                                    {{CountFmt $node.Repository.NumStars}}
+                                </a>
+                            </div>
+                            <div class="item">
+                                <a href="{{$node.Repository.Link}}/forks" class="ui basic mini label">
+                                    {{svg "octicon-repo-forked" 12 "tw-mr-1"}}
+                                    {{CountFmt $node.Repository.NumForks}}
+                                </a>
+                            </div>
+                            <div class="item">
+                                <a href="{{$node.Repository.Link}}/issues" class="ui basic mini label">
+                                    {{svg "octicon-issue-opened" 12 "tw-mr-1"}}
+                                    {{CountFmt $node.Repository.NumIssues}}
+                                </a>
+                            </div>
+                            {{if $node.Repository.PrimaryLanguage}}
+                                <div class="item">
+                                    <span class="ui basic mini label">
+                                        <i class="circle icon" style="color: {{$node.Repository.PrimaryLanguage.Color}}"></i>
+                                        {{$node.Repository.PrimaryLanguage.Language}}
+                                    </span>
+                                </div>
+                            {{end}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{/* Recursively render children */}}
+    {{range $node.Children}}
+        {{template "fork_hierarchy_node" (dict "Node" . "CurrentRepo" $currentRepo "ctx" $ctx)}}
+    {{end}}
+    {{end}}
+{{end}}
+
 {{template "base/head" .}}
+<style>
+/* Fork hierarchy level styling */
+.fork-level-0 { margin-left: 0px !important; }
+.fork-level-1 { margin-left: 20px !important; }
+.fork-level-2 { margin-left: 40px !important; }
+.fork-level-3 { margin-left: 60px !important; }
+.fork-level-4 { margin-left: 80px !important; }
+.fork-level-5 { margin-left: 100px !important; }
+</style>
 <div role="main" aria-label="{{.Title}}" class="page-content repository file list">
     {{template "repo/header" .}}
 
@@ -195,7 +327,7 @@
                                                 {{if .Description}}{{.Description}}{{else}}{{ctx.Locale.Tr "repo.no_desc"}}{{end}}
                                             </div>
                                             <div class="meta">
-                                                {{ctx.Locale.Tr "repo.forked_from"}} {{.Repository.FullName}} •
+                                                {{ctx.Locale.Tr "repo.forked_from"}} {{$.Repository.FullName}} •
                                                 {{ctx.Locale.Tr "repo.updated"}} {{DateUtils.TimeSince .UpdatedUnix}}
                                             </div>
                                         </div>
@@ -358,6 +490,55 @@
                     </div>
                 </div>
             </div>
+
+            {{/* Complete Fork Network Hierarchy Section */}}
+            {{if .ForkHierarchy}}
+            <div class="ui stackable grid">
+                <div class="sixteen wide column">
+                    <div class="ui segment">
+                        <h3 class="ui header">
+                            {{svg "octicon-git-branch" 16 "tw-mr-2"}}
+                            {{ctx.Locale.Tr "repo.fork_network"}} ({{CountFmt .ForkCount}} {{ctx.Locale.Tr "repo.forks"}})
+                            {{if ne .RootRepository.FullName .CurrentRepository.FullName}}
+                                <div class="ui right floated">
+                                    <a class="ui small primary button" href="/explore/articles/history/{{.RootRepository.Name}}">
+                                        {{ctx.Locale.Tr "repo.view_root_repository"}}
+                                    </a>
+                                </div>
+                            {{end}}
+                        </h3>
+
+                        {{if ne .RootRepository.FullName .CurrentRepository.FullName}}
+                            <div class="ui info message">
+                                <div class="header">{{ctx.Locale.Tr "repo.viewing_fork_network"}}</div>
+                                <p>{{ctx.Locale.Tr "repo.fork_network_explanation" .RootRepository.FullName .CurrentRepository.FullName}}</p>
+                            </div>
+                        {{end}}
+
+                        <div class="ui relaxed list">
+                            {{if and .ForkHierarchy .ForkHierarchy.Repository}}
+                                {{template "fork_hierarchy_node" (dict "Node" .ForkHierarchy "CurrentRepo" .CurrentRepository "ctx" .)}}
+                            {{else}}
+                                <div class="ui placeholder segment">
+                                    <div class="ui icon header">
+                                        {{svg "octicon-git-branch" 48}}
+                                        {{ctx.Locale.Tr "repo.no_fork_network"}}
+                                    </div>
+                                </div>
+                            {{end}}
+                        </div>
+
+                        {{if gt .ForkCount 20}}
+                            <div class="ui center aligned basic segment">
+                                <a class="ui basic button" href="{{.RootRepository.Link}}/forks">
+                                    {{ctx.Locale.Tr "repo.forks.view_all_forks" .ForkCount}}
+                                </a>
+                            </div>
+                        {{end}}
+                    </div>
+                </div>
+            </div>
+            {{end}}
 
             <div class="ui stackable grid">
                 <div class="sixteen wide column">

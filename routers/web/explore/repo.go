@@ -4,7 +4,7 @@
 package explore
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -202,7 +202,7 @@ func renderRepositoryHistory(ctx *context.Context) {
 
 	// Check repository viewability
 	if !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeCode) {
-		ctx.NotFound(fmt.Errorf("code unit disabled for repository"))
+		ctx.NotFound(errors.New("code unit disabled for repository"))
 		return
 	}
 
