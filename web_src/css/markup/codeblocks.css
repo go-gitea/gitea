@@ -1,0 +1,35 @@
+.markup .code-block-buttons {
+  position: absolute;
+  top: 8px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  visibility: hidden;
+  animation: fadeout 0.2s both;
+}
+
+/* adjustments for comment content having only 14px font size */
+.repository.view.issue .comment-list .comment .markup .code-copy {
+  right: 5px;
+  padding: 8px;
+}
+
+.markup .code-block-buttons .btn {
+  background: var(--color-button) !important;
+  padding: 9px;
+  border: 1px solid var(--color-light-border);
+}
+
+.markup .code-block-buttons .btn:hover {
+  background: var(--color-hover-opaque) !important;
+}
+
+.markup .code-block-buttons .btn[data-active="false"] {
+  color: var(--color-text-light-3);
+}
+
+.markup .code-block-container:hover .code-block-buttons,
+.markup .code-block:hover .code-block-buttons {
+  visibility: visible;
+  animation: fadein 0.2s both;
+}

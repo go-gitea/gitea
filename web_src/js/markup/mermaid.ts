@@ -1,5 +1,5 @@
 import {isDarkTheme} from '../utils.ts';
-import {makeCodeCopyButton} from './codecopy.ts';
+import {makeCodeBlockButton} from './codeblocks.ts';
 import {displayError} from './common.ts';
 import {queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
@@ -53,7 +53,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       mermaidBlock.classList.add('mermaid-block', 'is-loading', 'tw-hidden');
       mermaidBlock.append(iframe);
 
-      const btn = makeCodeCopyButton();
+      const btn = makeCodeBlockButton('code-copy', 'octicon-copy');
       btn.setAttribute('data-clipboard-text', source);
       mermaidBlock.append(btn);
 
