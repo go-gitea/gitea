@@ -16,13 +16,6 @@ const (
 )
 
 func TestMain(m *testing.M) {
-	originalRepoRootPath := setting.RepoRootPath
-	originalHomePath := setting.Git.HomePath
-	defer func() {
-		setting.RepoRootPath = originalRepoRootPath
-		setting.Git.HomePath = originalHomePath
-	}()
-
 	setting.RepoRootPath, _ = filepath.Abs(testReposDir)
 	setting.Git.HomePath = filepath.Join(setting.RepoRootPath, ".home")
 
