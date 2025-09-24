@@ -1,5 +1,5 @@
 import {svg, type SvgName} from '../svg.ts';
-import {queryElems, type DOMEvent} from '../utils/dom.ts';
+import {queryElems} from '../utils/dom.ts';
 
 export function makeCodeBlockButton(className: string, name: SvgName): HTMLButtonElement {
   const button = document.createElement('button');
