@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/tempdir"
+	"code.gitea.io/gitea/modules/test"
 )
 
 func TestMain(m *testing.M) {
@@ -21,8 +22,9 @@ func TestMain(m *testing.M) {
 	defer cleanup()
 
 	// resolve repository path relative to the test directory
+	testRootDir := test.SetupGiteaRoot()
 	repoPath = func(repo Repository) string {
-		return filepath.Join("../git/tests/repos", repo.RelativePath())
+		return filepath.Join(testRootDir, "/modules/git/tests/repos", repo.RelativePath())
 	}
 
 	setting.Git.HomePath = gitHomePath
