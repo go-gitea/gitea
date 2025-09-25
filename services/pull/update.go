@@ -39,7 +39,8 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		return fmt.Errorf("unable to load BaseRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
 	}
 
-	if pr.ID > 0 { // only a real PR needs to check this FIXME: why it needs this check?
+	// TODO: FakePR: if the PR is a fake PR (for example: from Merge Upstream), then no need to check diverging
+	if pr.ID > 0 {
 		diffCount, err := GetDiverging(ctx, pr)
 		if err != nil {
 			return err
