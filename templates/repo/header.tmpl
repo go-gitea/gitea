@@ -123,7 +123,11 @@
 		{{if $.PullMirror}}
 			<div class="fork-flag">
 				{{ctx.Locale.Tr "repo.mirror_from"}}
-				<a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
+				{{if not (StringUtils.HasPrefix $.PullMirror.RemoteAddress "ssh://")}}
+					<a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
+				{{else}}
+					<span>{{$.PullMirror.RemoteAddress}}</span>
+				{{end}}
 				{{if $.PullMirror.UpdatedUnix}}{{ctx.Locale.Tr "repo.mirror_sync"}} {{DateUtils.TimeSince $.PullMirror.UpdatedUnix}}{{end}}
 			</div>
 		{{end}}
