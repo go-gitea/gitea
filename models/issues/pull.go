@@ -642,9 +642,8 @@ func (pr *PullRequest) UpdateCols(ctx context.Context, cols ...string) error {
 }
 
 // UpdateColsIfNotMerged updates specific fields of a pull request if it has not been merged
-func (pr *PullRequest) UpdateColsIfNotMerged(ctx context.Context, cols ...string) error {
-	_, err := db.GetEngine(ctx).Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
-	return err
+func (pr *PullRequest) UpdateColsIfNotMerged(ctx context.Context, cols ...string) (int64, error) {
+	return db.GetEngine(ctx).Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
 }
 
 // IsWorkInProgress determine if the Pull Request is a Work In Progress by its title

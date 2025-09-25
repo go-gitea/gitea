@@ -288,14 +288,18 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 
 	// add first push codes comment
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch"); err != nil {
+		// The UPDATE acquires the transaction lock, if the UPDATE succeeds, it should have updated one row (the "base_branch" is changed)
+		// If no row is updated, it means the PR has been merged or closed in the meantime
+		updated, err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch")
+		if err != nil {
 			return err
 		}
+		if updated == 0 {
+			return util.ErrorWrap(util.ErrInvalidArgument, "pull request status has changed")
+		}
 
-		if !pr.HasMerged {
-			if err = syncCommitDivergence(ctx, pr); err != nil {
-				return fmt.Errorf("syncCommitDivergence: %w", err)
-			}
+		if err := syncCommitDivergence(ctx, pr); err != nil {
+			return fmt.Errorf("syncCommitDivergence: %w", err)
 		}
 
 		// Create comment
