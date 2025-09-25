@@ -128,14 +128,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		// Update Commit Divergence
-		divergence, err := GetDiverging(ctx, pr)
-		if err != nil {
-			return err
-		}
-		pr.CommitsAhead = divergence.Ahead
-		pr.CommitsBehind = divergence.Behind
-
-		err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
+		err = UpdateCommitDivergence(ctx, pr)
 		if err != nil {
 			return err
 		}
@@ -433,14 +426,8 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
-						divergence, err := GetDiverging(ctx, pr)
-						if err != nil {
-							log.Error("GetDiverging: %v", err)
-						} else {
-							err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
-							if err != nil {
-								log.Error("UpdateCommitDivergence: %v", err)
-							}
+						if err = UpdateCommitDivergence(ctx, pr); err != nil {
+							log.Error("UpdateCommitDivergence: %v", err)
 						}
 					}
 
@@ -474,18 +461,14 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		}
 		for _, pr := range prs {
 			pr.BaseRepo = baseRepo // avoid loading again
-			divergence, err := GetDiverging(ctx, pr)
+			err = UpdateCommitDivergence(ctx, pr)
 			if err != nil {
-				if git_model.IsErrBranchNotExist(err) && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
-					log.Warn("Cannot test PR %s/%d: head_branch %s no longer exists", pr.BaseRepo.Name, pr.IssueID, pr.HeadBranch)
+				if errors.Is(err, util.ErrNotExist) {
+					log.Warn("Cannot test PR %s/%d with base=%s head=%s: no longer exists", pr.BaseRepo.FullName(), pr.IssueID, pr.BaseBranch, pr.HeadBranch)
 				} else {
-					log.Error("GetDiverging: %v", err)
-				}
-			} else {
-				err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
-				if err != nil {
 					log.Error("UpdateCommitDivergence: %v", err)
 				}
+				continue
 			}
 			StartPullRequestCheckDelayable(ctx, pr)
 		}

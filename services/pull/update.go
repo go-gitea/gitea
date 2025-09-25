@@ -41,7 +41,7 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 
 	// TODO: FakePR: if the PR is a fake PR (for example: from Merge Upstream), then no need to check diverging
 	if pr.ID > 0 {
-		diffCount, err := GetDiverging(ctx, pr)
+		diffCount, err := gitrepo.GetDivergingCommits(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		if err != nil {
 			return err
 		} else if diffCount.Behind == 0 {
@@ -185,4 +185,12 @@ func GetDiverging(ctx context.Context, pr *issues_model.PullRequest) (*gitrepo.D
 	}
 
 	return gitrepo.GetDivergingCommits(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+}
+
+func UpdateCommitDivergence(ctx context.Context, pr *issues_model.PullRequest) error {
+	divergence, err := GetDiverging(ctx, pr)
+	if err != nil {
+		return err
+	}
+	return pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
 }
