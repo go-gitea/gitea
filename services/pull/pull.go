@@ -372,6 +372,8 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		// TODO: graceful: AddTestPullRequestTask needs to become a queue!
 
 		// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
+		// TODO: rename the "prs" to a new variable like "headBranchPRs" to distinguish from the "baseBranchPRs" below
+		// The base repositories of headBranchPRs are different
 		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, opts.RepoID, opts.Branch)
 		if err != nil {
 			log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", opts.RepoID, opts.Branch, err)
@@ -458,6 +460,8 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		}
 
 		log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", opts.RepoID, opts.Branch)
+		// TODO: rename the "prs" to a new variable like "baseBranchPRs" to distinguish from the "headBranchPRs" above
+		// The base repositories of baseBranchPRs are the same one (opts.RepoID)
 		prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, opts.RepoID, opts.Branch)
 		if err != nil {
 			log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", opts.RepoID, opts.Branch, err)
@@ -469,7 +473,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			return
 		}
 		for _, pr := range prs {
-			pr.BaseRepo = baseRepo // avoid loading again // FIXME: why only here does so but the code above doesn't do so
+			pr.BaseRepo = baseRepo // avoid loading again
 			divergence, err := GetDiverging(ctx, pr)
 			if err != nil {
 				if git_model.IsErrBranchNotExist(err) && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
