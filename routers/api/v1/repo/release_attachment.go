@@ -26,7 +26,7 @@ func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) bool {
 			ctx.APIErrorNotFound()
 			return false
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return false
 	}
 	if release.RepoID != ctx.Repo.Repository.ID {
@@ -84,7 +84,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 			ctx.APIErrorNotFound()
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if attach.ReleaseID != releaseID {
@@ -133,7 +133,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 			ctx.APIErrorNotFound()
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if release.RepoID != ctx.Repo.Repository.ID {
@@ -141,7 +141,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 		return
 	}
 	if err := release.LoadAttributes(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release).Attachments)
@@ -212,7 +212,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	if strings.HasPrefix(strings.ToLower(ctx.Req.Header.Get("Content-Type")), "multipart/form-data") {
 		file, header, err := ctx.Req.FormFile("attachment")
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		defer file.Close()
@@ -245,7 +245,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 			ctx.APIError(http.StatusBadRequest, err)
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -311,7 +311,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 			ctx.APIErrorNotFound()
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if attach.ReleaseID != releaseID {
@@ -329,7 +329,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, attach)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
@@ -384,7 +384,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 			ctx.APIErrorNotFound()
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if attach.ReleaseID != releaseID {
@@ -395,7 +395,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
 
 	if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

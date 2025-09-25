@@ -45,7 +45,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 
 	err = user_service.UploadAvatar(ctx, ctx.Org.Organization.AsUser(), content)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -72,7 +72,7 @@ func DeleteAvatar(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	err := user_service.DeleteAvatar(ctx, ctx.Org.Organization.AsUser())
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

@@ -50,7 +50,7 @@ func GetStarredRepos(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose starred repos are to be listed
 	//   type: string
 	//   required: true
 	// - name: page
@@ -72,7 +72,7 @@ func GetStarredRepos(ctx *context.APIContext) {
 	private := ctx.ContextUser.ID == ctx.Doer.ID
 	repos, err := getStarredRepos(ctx, ctx.ContextUser, private)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -104,7 +104,7 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 
 	repos, err := getStarredRepos(ctx, ctx.Doer, true)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 	}
 
 	ctx.SetTotalCountHeader(int64(ctx.Doer.NumStars))
@@ -171,7 +171,7 @@ func Star(ctx *context.APIContext) {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -204,7 +204,7 @@ func Unstar(ctx *context.APIContext) {
 
 	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

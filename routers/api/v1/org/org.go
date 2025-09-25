@@ -26,16 +26,14 @@ import (
 
 func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 	listOptions := utils.GetListOptions(ctx)
-	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == u.ID)
-
 	opts := organization.FindOrgOptions{
-		ListOptions:    listOptions,
-		UserID:         u.ID,
-		IncludePrivate: showPrivate,
+		ListOptions:       listOptions,
+		UserID:            u.ID,
+		IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, u),
 	}
 	orgs, maxResults, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -84,7 +82,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose organizations are to be listed
 	//   type: string
 	//   required: true
 	// - name: page
@@ -114,7 +112,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose permissions are to be obtained
 	//   type: string
 	//   required: true
 	// - name: org
@@ -145,7 +143,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	org := organization.OrgFromUser(o)
 	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx, ctx.ContextUser.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -164,7 +162,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 
 	op.CanCreateRepository, err = org.CanCreateOrgRepo(ctx, ctx.ContextUser.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -201,7 +199,7 @@ func GetAll(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
+	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		ListOptions: listOptions,
 		Type:        user_model.UserTypeOrganization,
@@ -209,7 +207,7 @@ func GetAll(ctx *context.APIContext) {
 		Visible:     vMode,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	orgs := make([]*api.Organization, len(publicOrgs))
@@ -273,7 +271,7 @@ func Create(ctx *context.APIContext) {
 			db.IsErrNamePatternNotAllowed(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -383,7 +381,7 @@ func Edit(ctx *context.APIContext) {
 
 	if form.Email != "" {
 		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.Org.Organization.AsUser(), form.Email); err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -393,11 +391,11 @@ func Edit(ctx *context.APIContext) {
 		Description:               optional.Some(form.Description),
 		Website:                   optional.Some(form.Website),
 		Location:                  optional.Some(form.Location),
-		Visibility:                optional.FromNonDefault(api.VisibilityModes[form.Visibility]),
+		Visibility:                optional.FromMapLookup(api.VisibilityModes, form.Visibility),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -424,7 +422,7 @@ func Delete(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if err := org.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -469,7 +467,7 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 			org := organization.OrgFromUser(ctx.ContextUser)
 			isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 			includePrivate = isMember
@@ -488,7 +486,7 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.SetTotalCountHeader(count)

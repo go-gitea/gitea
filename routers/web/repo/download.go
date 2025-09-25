@@ -46,7 +46,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 				log.Error("ServeBlobOrLFS: Close: %v", err)
 			}
 			closed = true
-			return common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified)
+			return common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, lastModified)
 		}
 		if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
 			return nil
@@ -54,7 +54,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 
 		if setting.LFS.Storage.ServeDirect() {
 			// If we have a signed url (S3, object storage, blob storage), redirect to this directly.
-			u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name(), nil)
+			u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name(), ctx.Req.Method, nil)
 			if u != nil && err == nil {
 				ctx.Redirect(u.String())
 				return nil
@@ -78,7 +78,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 	}
 	closed = true
 
-	return common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified)
+	return common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, lastModified)
 }
 
 func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
@@ -114,7 +114,7 @@ func SingleDownload(ctx *context.Context) {
 		return
 	}
 
-	if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
+	if err := common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, lastModified); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }
@@ -142,7 +142,7 @@ func DownloadByID(ctx *context.Context) {
 		}
 		return
 	}
-	if err = common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, nil); err != nil {
+	if err = common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, nil); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }

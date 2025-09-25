@@ -1,7 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package markup
+package orgmode
 
 import (
 	"fmt"
@@ -125,27 +125,13 @@ type orgWriter struct {
 
 var _ org.Writer = (*orgWriter)(nil)
 
-func (r *orgWriter) resolveLink(kind, link string) string {
-	link = strings.TrimPrefix(link, "file:")
-	if !strings.HasPrefix(link, "#") && // not a URL fragment
-		!markup.IsFullURLString(link) {
-		if kind == "regular" {
-			// orgmode reports the link kind as "regular" for "[[ImageLink.svg][The Image Desc]]"
-			// so we need to try to guess the link kind again here
-			kind = org.RegularLink{URL: link}.Kind()
-		}
-		if kind == "image" || kind == "video" {
-			link = r.rctx.RenderHelper.ResolveLink(link, markup.LinkTypeMedia)
-		} else {
-			link = r.rctx.RenderHelper.ResolveLink(link, markup.LinkTypeDefault)
-		}
-	}
-	return link
+func (r *orgWriter) resolveLink(link string) string {
+	return strings.TrimPrefix(link, "file:")
 }
 
 // WriteRegularLink renders images, links or videos
 func (r *orgWriter) WriteRegularLink(l org.RegularLink) {
-	link := r.resolveLink(l.Kind(), l.URL)
+	link := r.resolveLink(l.URL)
 
 	printHTML := func(html template.HTML, a ...any) {
 		_, _ = fmt.Fprint(r, htmlutil.HTMLFormat(html, a...))
@@ -156,14 +142,14 @@ func (r *orgWriter) WriteRegularLink(l org.RegularLink) {
 		if l.Description == nil {
 			printHTML(`<img src="%s" alt="%s">`, link, link)
 		} else {
-			imageSrc := r.resolveLink(l.Kind(), org.String(l.Description...))
+			imageSrc := r.resolveLink(org.String(l.Description...))
 			printHTML(`<a href="%s"><img src="%s" alt="%s"></a>`, link, imageSrc, imageSrc)
 		}
 	case "video":
 		if l.Description == nil {
 			printHTML(`<video src="%s">%s</video>`, link, link)
 		} else {
-			videoSrc := r.resolveLink(l.Kind(), org.String(l.Description...))
+			videoSrc := r.resolveLink(org.String(l.Description...))
 			printHTML(`<a href="%s"><video src="%s">%s</video></a>`, link, videoSrc, videoSrc)
 		}
 	default:

@@ -210,17 +210,15 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	// Get diff stats for commit
 	if opts.Stat {
-		diff, err := gitdiff.GetDiff(ctx, gitRepo, &gitdiff.DiffOptions{
-			AfterCommitID: commit.ID.String(),
-		})
+		diffShortStat, err := gitdiff.GetDiffShortStat(gitRepo, "", commit.ID.String())
 		if err != nil {
 			return nil, err
 		}
 
 		res.Stats = &api.CommitStats{
-			Total:     diff.TotalAddition + diff.TotalDeletion,
-			Additions: diff.TotalAddition,
-			Deletions: diff.TotalDeletion,
+			Total:     diffShortStat.TotalAddition + diffShortStat.TotalDeletion,
+			Additions: diffShortStat.TotalAddition,
+			Deletions: diffShortStat.TotalDeletion,
 		}
 	}
 

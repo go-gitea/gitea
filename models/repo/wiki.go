@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -46,7 +45,7 @@ func IsErrWikiReservedName(err error) bool {
 }
 
 func (err ErrWikiReservedName) Error() string {
-	return fmt.Sprintf("wiki title is reserved: %s", err.Title)
+	return "wiki title is reserved: " + err.Title
 }
 
 func (err ErrWikiReservedName) Unwrap() error {
@@ -65,7 +64,7 @@ func IsErrWikiInvalidFileName(err error) bool {
 }
 
 func (err ErrWikiInvalidFileName) Error() string {
-	return fmt.Sprintf("Invalid wiki filename: %s", err.FileName)
+	return "Invalid wiki filename: " + err.FileName
 }
 
 func (err ErrWikiInvalidFileName) Unwrap() error {
@@ -85,13 +84,4 @@ func WikiPath(userName, repoName string) string {
 // WikiPath returns wiki data path for given repository.
 func (repo *Repository) WikiPath() string {
 	return WikiPath(repo.OwnerName, repo.Name)
-}
-
-// HasWiki returns true if repository has wiki.
-func (repo *Repository) HasWiki() bool {
-	isDir, err := util.IsDir(repo.WikiPath())
-	if err != nil {
-		log.Error("Unable to check if %s is a directory: %v", repo.WikiPath(), err)
-	}
-	return isDir
 }

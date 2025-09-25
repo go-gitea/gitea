@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	actions_service "code.gitea.io/gitea/services/actions"
 	notify_service "code.gitea.io/gitea/services/notify"
 	release_service "code.gitea.io/gitea/services/release"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -232,7 +233,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 				defer baseGitRepo.Close()
 				repoIDToGitRepo[pr.BaseRepoID] = baseGitRepo
 			}
-			pullCommit, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+			pullCommit, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 			if err != nil && !git.IsErrNotExist(err) {
 				return nil, fmt.Errorf("GetBranchCommitID: %v", err)
 			}
@@ -302,7 +303,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 	// For other batches, it will hit optimization 4.
 
 	if len(branchNames) != len(commitIDs) {
-		return fmt.Errorf("branchNames and commitIDs length not match")
+		return errors.New("branchNames and commitIDs length not match")
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
@@ -409,11 +410,11 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "target_exist", nil
 	}
 
-	if gitRepo.IsBranchExist(to) {
+	if gitrepo.IsBranchExist(ctx, repo, to) {
 		return "target_exist", nil
 	}
 
-	if !gitRepo.IsBranchExist(from) {
+	if !gitrepo.IsBranchExist(ctx, repo, from) {
 		return "from_not_exist", nil
 	}
 
@@ -452,7 +453,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 				log.Error("DeleteCronTaskByRepo: %v", err)
 			}
 			// cancel running cron jobs of this repository and delete old schedules
-			if err := actions_model.CancelPreviousJobs(
+			if err := actions_service.CancelPreviousJobs(
 				ctx,
 				repo.ID,
 				from,
@@ -531,8 +532,8 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	// database branch record not exist or it's a deleted branch
 	notExist := git_model.IsErrBranchNotExist(err) || rawBranch.IsDeleted
 
-	commit, err := gitRepo.GetBranchCommit(branchName)
-	if err != nil {
+	branchCommit, err := gitRepo.GetBranchCommit(branchName)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return err
 	}
 
@@ -548,6 +549,9 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 				return fmt.Errorf("DeleteBranch: %v", err)
 			}
 		}
+		if branchCommit == nil {
+			return nil
+		}
 
 		return gitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
 			Force: true,
@@ -556,20 +560,24 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		return err
 	}
 
-	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+	if branchCommit == nil {
+		return nil
+	}
 
 	// Don't return error below this
+
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 	if err := PushUpdate(
 		&repo_module.PushUpdateOptions{
 			RefFullName:  git.RefNameFromBranch(branchName),
-			OldCommitID:  commit.ID.String(),
+			OldCommitID:  branchCommit.ID.String(),
 			NewCommitID:  objectFormat.EmptyObjectID().String(),
 			PusherID:     doer.ID,
 			PusherName:   doer.Name,
 			RepoUserName: repo.OwnerName,
 			RepoName:     repo.Name,
 		}); err != nil {
-		log.Error("Update: %v", err)
+		log.Error("PushUpdateOptions: %v", err)
 	}
 
 	return nil
@@ -617,12 +625,12 @@ func AddAllRepoBranchesToSyncQueue(ctx context.Context) error {
 	return nil
 }
 
-func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, newBranchName string) error {
+func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, newBranchName string) error {
 	if repo.DefaultBranch == newBranchName {
 		return nil
 	}
 
-	if !gitRepo.IsBranchExist(newBranchName) {
+	if !gitrepo.IsBranchExist(ctx, repo, newBranchName) {
 		return git_model.ErrBranchNotExist{
 			BranchName: newBranchName,
 		}
@@ -639,7 +647,7 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 			log.Error("DeleteCronTaskByRepo: %v", err)
 		}
 		// cancel running cron jobs of this repository and delete old schedules
-		if err := actions_model.CancelPreviousJobs(
+		if err := actions_service.CancelPreviousJobs(
 			ctx,
 			repo.ID,
 			oldDefaultBranchName,
@@ -660,6 +668,11 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 		}); err != nil {
 			log.Error("AddRepoToLicenseUpdaterQueue: %v", err)
 		}
+	}
+
+	// clear divergence cache
+	if err := DelRepoDivergenceFromCache(ctx, repo.ID); err != nil {
+		log.Error("DelRepoDivergenceFromCache: %v", err)
 	}
 
 	notify_service.ChangeDefaultBranch(ctx, repo)

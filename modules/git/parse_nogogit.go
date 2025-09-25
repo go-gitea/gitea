@@ -19,7 +19,7 @@ func ParseTreeEntries(data []byte) ([]*TreeEntry, error) {
 	return parseTreeEntries(data, nil)
 }
 
-// parseTreeEntries FIXME this function's design is not right, it should make the caller read all data into memory
+// parseTreeEntries FIXME this function's design is not right, it should not make the caller read all data into memory
 func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	entries := make([]*TreeEntry, 0, bytes.Count(data, []byte{'\n'})+1)
 	for pos := 0; pos < len(data); {

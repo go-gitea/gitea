@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -77,7 +78,7 @@ type SearchResult struct {
 type SearchOptions struct {
 	Keyword string // keyword to search
 
-	IsFuzzyKeyword bool // if false the levenshtein distance is 0
+	SearchMode indexer.SearchModeType
 
 	RepoIDs   []int64 // repository IDs which the issues belong to
 	AllPublic bool    // if include all public repositories
@@ -96,9 +97,8 @@ type SearchOptions struct {
 	ProjectID       optional.Option[int64] // project the issues belong to
 	ProjectColumnID optional.Option[int64] // project column the issues belong to
 
-	PosterID optional.Option[int64] // poster of the issues
-
-	AssigneeID optional.Option[int64] // assignee of the issues, zero means no assignee
+	PosterID   string // poster of the issues, "(none)" or "(any)" or a user ID
+	AssigneeID string // assignee of the issues, "(none)" or "(any)" or a user ID
 
 	MentionID optional.Option[int64] // mentioned user of the issues
 

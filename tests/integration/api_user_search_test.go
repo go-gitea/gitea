@@ -66,7 +66,7 @@ func TestAPIUserSearchNotLoggedIn(t *testing.T) {
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
 		modelUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID})
-		assert.EqualValues(t, modelUser.GetPlaceholderEmail(), user.Email)
+		assert.Equal(t, modelUser.GetPlaceholderEmail(), user.Email)
 	}
 }
 
@@ -85,8 +85,8 @@ func TestAPIUserSearchSystemUsers(t *testing.T) {
 			assert.NotEmpty(t, results.Data)
 			if assert.Len(t, results.Data, 1) {
 				user := results.Data[0]
-				assert.EqualValues(t, user.UserName, systemUser.Name)
-				assert.EqualValues(t, user.ID, systemUser.ID)
+				assert.Equal(t, user.UserName, systemUser.Name)
+				assert.Equal(t, user.ID, systemUser.ID)
 			}
 		})
 	}
@@ -108,7 +108,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
 		assert.NotEmpty(t, user.Email)
-		assert.EqualValues(t, "private", user.Visibility)
+		assert.Equal(t, "private", user.Visibility)
 	}
 }
 

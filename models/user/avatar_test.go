@@ -4,12 +4,10 @@
 package user
 
 import (
-	"context"
 	"io"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -24,12 +22,12 @@ func TestUserAvatarLink(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppSubURL, "")()
 
 	u := &User{ID: 1, Avatar: "avatar.png"}
-	link := u.AvatarLink(db.DefaultContext)
+	link := u.AvatarLink(t.Context())
 	assert.Equal(t, "https://localhost/avatars/avatar.png", link)
 
 	setting.AppURL = "https://localhost/sub-path/"
 	setting.AppSubURL = "/sub-path"
-	link = u.AvatarLink(db.DefaultContext)
+	link = u.AvatarLink(t.Context())
 	assert.Equal(t, "https://localhost/sub-path/avatars/avatar.png", link)
 }
 
@@ -37,14 +35,14 @@ func TestUserAvatarGenerate(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	var err error
 	tmpDir := t.TempDir()
-	storage.Avatars, err = storage.NewLocalStorage(context.Background(), &setting.Storage{Path: tmpDir})
+	storage.Avatars, err = storage.NewLocalStorage(t.Context(), &setting.Storage{Path: tmpDir})
 	require.NoError(t, err)
 
 	u := unittest.AssertExistsAndLoadBean(t, &User{ID: 2})
 
 	// there was no avatar, generate a new one
 	assert.Empty(t, u.Avatar)
-	err = GenerateRandomAvatar(db.DefaultContext, u)
+	err = GenerateRandomAvatar(t.Context(), u)
 	require.NoError(t, err)
 	assert.NotEmpty(t, u.Avatar)
 
@@ -57,7 +55,7 @@ func TestUserAvatarGenerate(t *testing.T) {
 	require.NoError(t, err)
 
 	// try to generate again
-	err = GenerateRandomAvatar(db.DefaultContext, u)
+	err = GenerateRandomAvatar(t.Context(), u)
 	require.NoError(t, err)
 	assert.Equal(t, oldAvatarPath, u.CustomAvatarRelativePath())
 	f, err := storage.Avatars.Open(u.CustomAvatarRelativePath())

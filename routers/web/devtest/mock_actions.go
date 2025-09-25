@@ -4,9 +4,9 @@
 package devtest
 
 import (
-	"fmt"
 	mathRand "math/rand/v2"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,8 +38,8 @@ func generateMockStepsLog(logCur actions.LogCursor) (stepsLog []*actions.ViewSte
 	for i := 0; i < mockCount; i++ {
 		logStr := mockedLogs[int(cur)%len(mockedLogs)]
 		cur++
-		logStr = strings.ReplaceAll(logStr, "{step}", fmt.Sprintf("%d", logCur.Step))
-		logStr = strings.ReplaceAll(logStr, "{cursor}", fmt.Sprintf("%d", cur))
+		logStr = strings.ReplaceAll(logStr, "{step}", strconv.Itoa(logCur.Step))
+		logStr = strings.ReplaceAll(logStr, "{cursor}", strconv.FormatInt(cur, 10))
 		stepsLog = append(stepsLog, &actions.ViewStepLog{
 			Step:    logCur.Step,
 			Cursor:  cur,
@@ -52,13 +52,22 @@ func generateMockStepsLog(logCur actions.LogCursor) (stepsLog []*actions.ViewSte
 	return stepsLog
 }
 
-func MockActionsRunsJobs(ctx *context.Context) {
-	req := web.GetForm(ctx).(*actions.ViewRequest)
+func MockActionsView(ctx *context.Context) {
+	ctx.Data["RunID"] = ctx.PathParam("run")
+	ctx.Data["JobID"] = ctx.PathParam("job")
+	ctx.HTML(http.StatusOK, "devtest/repo-action-view")
+}
 
+func MockActionsRunsJobs(ctx *context.Context) {
+	runID := ctx.PathParamInt64("run")
+
+	req := web.GetForm(ctx).(*actions.ViewRequest)
 	resp := &actions.ViewResponse{}
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
 	resp.State.Run.Status = actions_model.StatusRunning.String()
-	resp.State.Run.CanCancel = true
+	resp.State.Run.CanCancel = runID == 10
+	resp.State.Run.CanApprove = runID == 20
+	resp.State.Run.CanRerun = runID == 30
 	resp.State.Run.CanDeleteArtifact = true
 	resp.State.Run.WorkflowID = "workflow-id"
 	resp.State.Run.WorkflowLink = "./workflow-link"
@@ -85,6 +94,39 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Size:   1024 * 1024,
 		Status: "completed",
 	})
+	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
+		Name:   "artifact-very-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+		Size:   100 * 1024,
+		Status: "expired",
+	})
+	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
+		Name:   "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+		Size:   1024 * 1024,
+		Status: "completed",
+	})
+
+	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
+		ID:       runID * 10,
+		Name:     "job 100",
+		Status:   actions_model.StatusRunning.String(),
+		CanRerun: true,
+		Duration: "1h",
+	})
+	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
+		ID:       runID*10 + 1,
+		Name:     "job 101",
+		Status:   actions_model.StatusWaiting.String(),
+		CanRerun: false,
+		Duration: "2h",
+	})
+	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
+		ID:       runID*10 + 2,
+		Name:     "job 102",
+		Status:   actions_model.StatusFailure.String(),
+		CanRerun: false,
+		Duration: "3h",
+	})
+
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
 		Summary:  "step 0 (mock slow)",
 		Duration: time.Hour.String(),

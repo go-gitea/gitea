@@ -1,8 +1,8 @@
-import {initMarkupContent} from '../markup/content.ts';
 import {validateTextareaNonEmpty, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {fomanticMobileScreen} from '../modules/fomantic.ts';
 import {POST} from '../modules/fetch.ts';
 import type {ComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
+import {html, htmlRaw} from '../utils/html.ts';
 
 async function initRepoWikiFormEditor() {
   const editArea = document.querySelector<HTMLTextAreaElement>('.repository.wiki .combo-markdown-editor textarea');
@@ -31,8 +31,7 @@ async function initRepoWikiFormEditor() {
         const response = await POST(editor.previewUrl, {data: formData});
         const data = await response.text();
         lastContent = newContent;
-        previewTarget.innerHTML = `<div class="markup ui segment">${data}</div>`;
-        initMarkupContent();
+        previewTarget.innerHTML = html`<div class="render-content markup ui segment">${htmlRaw(data)}</div>`;
       } catch (error) {
         console.error('Error rendering preview:', error);
       } finally {

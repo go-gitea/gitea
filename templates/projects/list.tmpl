@@ -1,5 +1,5 @@
 {{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
-	<div class="tw-flex tw-justify-between tw-mb-4">
+	<div class="flex-text-block tw-justify-between tw-mb-4">
 		<div class="small-menu-items ui compact tiny menu list-header-toggle">
 			<a class="item{{if not .IsShowClosed}} active{{end}}" href="?state=open&q={{$.Keyword}}">
 				{{svg "octicon-project-symlink" 16 "tw-mr-2"}}
@@ -10,9 +10,7 @@
 				{{ctx.Locale.PrettyNumber .ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 			</a>
 		</div>
-		<div class="tw-text-right">
-			<a class="ui small primary button" href="{{$.Link}}/new">{{ctx.Locale.Tr "repo.projects.new"}}</a>
-		</div>
+		<a class="ui small primary button" href="{{$.Link}}/new">{{ctx.Locale.Tr "repo.projects.new"}}</a>
 	</div>
 {{end}}
 
@@ -69,14 +67,12 @@
 					{{else}}
 						<a class="link-action flex-text-inline" href data-url="{{.Link ctx}}/close">{{svg "octicon-skip" 14}}{{ctx.Locale.Tr "repo.projects.close"}}</a>
 					{{end}}
-					<a class="delete-button flex-text-inline" href="#" data-url="{{.Link ctx}}/delete">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
+					<a class="link-action flex-text-inline text red" href data-modal-confirm="#repo-project-delete-modal" data-url="{{.Link ctx}}/delete">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
 				</div>
 				{{end}}
 			</div>
 			{{if .Description}}
-			<div class="content">
-				{{.RenderedContent}}
-			</div>
+				<div class="render-content markup">{{.RenderedContent}}</div>
 			{{end}}
 		</li>
 	{{end}}
@@ -85,14 +81,9 @@
 </div>
 
 {{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
-<div class="ui g-modal-confirm delete modal">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{ctx.Locale.Tr "repo.projects.deletion"}}
-	</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "repo.projects.deletion_desc"}}</p>
-	</div>
+<div class="ui small modal" id="repo-project-delete-modal">
+	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.projects.deletion"}}</div>
+	<div class="content"><p>{{ctx.Locale.Tr "repo.projects.deletion_desc"}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
 {{end}}

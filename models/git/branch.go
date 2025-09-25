@@ -173,6 +173,18 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 	return &branch, nil
 }
 
+// IsBranchExist returns true if the branch exists in the repository.
+func IsBranchExist(ctx context.Context, repoID int64, branchName string) (bool, error) {
+	var branch Branch
+	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).Get(&branch)
+	if err != nil {
+		return false, err
+	} else if !has {
+		return false, nil
+	}
+	return !branch.IsDeleted, nil
+}
+
 func GetBranches(ctx context.Context, repoID int64, branchNames []string, includeDeleted bool) ([]*Branch, error) {
 	branches := make([]*Branch, 0, len(branchNames))
 
@@ -221,6 +233,11 @@ func GetDeletedBranchByID(ctx context.Context, repoID, branchID int64) (*Branch,
 		}
 	}
 	return &branch, nil
+}
+
+func DeleteRepoBranches(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Delete(new(Branch))
+	return err
 }
 
 func DeleteBranches(ctx context.Context, repoID, doerID int64, branchIDs []int64) error {
@@ -317,122 +334,111 @@ func FindRenamedBranch(ctx context.Context, repoID int64, from string) (branch *
 
 // RenameBranch rename a branch
 func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to string, gitAction func(ctx context.Context, isDefault bool) error) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
 
-	sess := db.GetEngine(ctx)
-
-	// check whether from branch exist
-	var branch Branch
-	exist, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repo.ID, from).Get(&branch)
-	if err != nil {
-		return err
-	} else if !exist || branch.IsDeleted {
-		return ErrBranchNotExist{
-			RepoID:     repo.ID,
-			BranchName: from,
-		}
-	}
-
-	// check whether to branch exist or is_deleted
-	var dstBranch Branch
-	exist, err = db.GetEngine(ctx).Where("repo_id=? AND name=?", repo.ID, to).Get(&dstBranch)
-	if err != nil {
-		return err
-	}
-	if exist {
-		if !dstBranch.IsDeleted {
-			return ErrBranchAlreadyExists{
-				BranchName: to,
+		// check whether from branch exist
+		var branch Branch
+		exist, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repo.ID, from).Get(&branch)
+		if err != nil {
+			return err
+		} else if !exist || branch.IsDeleted {
+			return ErrBranchNotExist{
+				RepoID:     repo.ID,
+				BranchName: from,
 			}
 		}
 
-		if _, err := db.GetEngine(ctx).ID(dstBranch.ID).NoAutoCondition().Delete(&dstBranch); err != nil {
-			return err
-		}
-	}
-
-	// 1. update branch in database
-	if n, err := sess.Where("repo_id=? AND name=?", repo.ID, from).Update(&Branch{
-		Name: to,
-	}); err != nil {
-		return err
-	} else if n <= 0 {
-		return ErrBranchNotExist{
-			RepoID:     repo.ID,
-			BranchName: from,
-		}
-	}
-
-	// 2. update default branch if needed
-	isDefault := repo.DefaultBranch == from
-	if isDefault {
-		repo.DefaultBranch = to
-		_, err = sess.ID(repo.ID).Cols("default_branch").Update(repo)
+		// check whether to branch exist or is_deleted
+		var dstBranch Branch
+		exist, err = db.GetEngine(ctx).Where("repo_id=? AND name=?", repo.ID, to).Get(&dstBranch)
 		if err != nil {
 			return err
 		}
-	}
+		if exist {
+			if !dstBranch.IsDeleted {
+				return ErrBranchAlreadyExists{
+					BranchName: to,
+				}
+			}
 
-	// 3. Update protected branch if needed
-	protectedBranch, err := GetProtectedBranchRuleByName(ctx, repo.ID, from)
-	if err != nil {
-		return err
-	}
+			if _, err := db.GetEngine(ctx).ID(dstBranch.ID).NoAutoCondition().Delete(&dstBranch); err != nil {
+				return err
+			}
+		}
 
-	if protectedBranch != nil {
-		// there is a protect rule for this branch
-		protectedBranch.RuleName = to
-		_, err = sess.ID(protectedBranch.ID).Cols("branch_name").Update(protectedBranch)
+		// 1. update branch in database
+		if n, err := sess.Where("repo_id=? AND name=?", repo.ID, from).Update(&Branch{
+			Name: to,
+		}); err != nil {
+			return err
+		} else if n <= 0 {
+			return ErrBranchNotExist{
+				RepoID:     repo.ID,
+				BranchName: from,
+			}
+		}
+
+		// 2. update default branch if needed
+		isDefault := repo.DefaultBranch == from
+		if isDefault {
+			repo.DefaultBranch = to
+			_, err = sess.ID(repo.ID).Cols("default_branch").Update(repo)
+			if err != nil {
+				return err
+			}
+		}
+
+		// 3. Update protected branch if needed
+		protectedBranch, err := GetProtectedBranchRuleByName(ctx, repo.ID, from)
 		if err != nil {
 			return err
 		}
-	} else {
-		// some glob protect rules may match this branch
-		protected, err := IsBranchProtected(ctx, repo.ID, from)
+
+		if protectedBranch != nil {
+			// there is a protect rule for this branch
+			protectedBranch.RuleName = to
+			if _, err = sess.ID(protectedBranch.ID).Cols("branch_name").Update(protectedBranch); err != nil {
+				return err
+			}
+		} else {
+			// some glob protect rules may match this branch
+			protected, err := IsBranchProtected(ctx, repo.ID, from)
+			if err != nil {
+				return err
+			}
+			if protected {
+				return ErrBranchIsProtected
+			}
+		}
+
+		// 4. Update all not merged pull request base branch name
+		_, err = sess.Table("pull_request").Where("base_repo_id=? AND base_branch=? AND has_merged=?",
+			repo.ID, from, false).
+			Update(map[string]any{"base_branch": to})
 		if err != nil {
 			return err
 		}
-		if protected {
-			return ErrBranchIsProtected
+
+		// 4.1 Update all not merged pull request head branch name
+		if _, err = sess.Table("pull_request").Where("head_repo_id=? AND head_branch=? AND has_merged=?",
+			repo.ID, from, false).
+			Update(map[string]any{"head_branch": to}); err != nil {
+			return err
 		}
-	}
 
-	// 4. Update all not merged pull request base branch name
-	_, err = sess.Table("pull_request").Where("base_repo_id=? AND base_branch=? AND has_merged=?",
-		repo.ID, from, false).
-		Update(map[string]any{"base_branch": to})
-	if err != nil {
-		return err
-	}
+		// 5. insert renamed branch record
+		if err = db.Insert(ctx, &RenamedBranch{
+			RepoID: repo.ID,
+			From:   from,
+			To:     to,
+		}); err != nil {
+			return err
+		}
 
-	// 4.1 Update all not merged pull request head branch name
-	if _, err = sess.Table("pull_request").Where("head_repo_id=? AND head_branch=? AND has_merged=?",
-		repo.ID, from, false).
-		Update(map[string]any{"head_branch": to}); err != nil {
-		return err
-	}
-
-	// 5. insert renamed branch record
-	renamedBranch := &RenamedBranch{
-		RepoID: repo.ID,
-		From:   from,
-		To:     to,
-	}
-	err = db.Insert(ctx, renamedBranch)
-	if err != nil {
-		return err
-	}
-
-	// 6. do git action
-	if err = gitAction(ctx, isDefault); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+		// 6. do git action
+		return gitAction(ctx, isDefault)
+	})
 }
 
 type FindRecentlyPushedNewBranchesOptions struct {
@@ -455,7 +461,7 @@ type RecentlyPushedNewBranch struct {
 // if opts.CommitAfterUnix is 0, we will find the branches that were committed to in the last 2 hours
 // if opts.ListOptions is not set, we will only display top 2 latest branches.
 // Protected branches will be skipped since they are unlikely to be used to create new PRs.
-func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, opts *FindRecentlyPushedNewBranchesOptions) ([]*RecentlyPushedNewBranch, error) {
+func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, opts FindRecentlyPushedNewBranchesOptions) ([]*RecentlyPushedNewBranch, error) {
 	if doer == nil {
 		return []*RecentlyPushedNewBranch{}, nil
 	}
@@ -470,7 +476,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 		ForkFrom:   opts.BaseRepo.ID,
 		Archived:   optional.Some(false),
 	}
-	repoCond := repo_model.SearchRepositoryCondition(&repoOpts).And(repo_model.AccessibleRepositoryCondition(doer, unit.TypeCode))
+	repoCond := repo_model.SearchRepositoryCondition(repoOpts).And(repo_model.AccessibleRepositoryCondition(doer, unit.TypeCode))
 	if opts.Repo.ID == opts.BaseRepo.ID {
 		// should also include the base repo's branches
 		repoCond = repoCond.Or(builder.Eq{"id": opts.BaseRepo.ID})

@@ -86,13 +86,14 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 	log.Info("Creating Minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
 	var lookup minio.BucketLookupType
-	if config.BucketLookUpType == "auto" || config.BucketLookUpType == "" {
+	switch config.BucketLookUpType {
+	case "auto", "":
 		lookup = minio.BucketLookupAuto
-	} else if config.BucketLookUpType == "dns" {
+	case "dns":
 		lookup = minio.BucketLookupDNS
-	} else if config.BucketLookUpType == "path" {
+	case "path":
 		lookup = minio.BucketLookupPath
-	} else {
+	default:
 		return nil, fmt.Errorf("invalid minio bucket lookup type: %s", config.BucketLookUpType)
 	}
 
@@ -278,7 +279,7 @@ func (m *MinioStorage) Delete(path string) error {
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (m *MinioStorage) URL(path, name string, serveDirectReqParams url.Values) (*url.URL, error) {
+func (m *MinioStorage) URL(path, name, method string, serveDirectReqParams url.Values) (*url.URL, error) {
 	// copy serveDirectReqParams
 	reqParams, err := url.ParseQuery(serveDirectReqParams.Encode())
 	if err != nil {
@@ -286,7 +287,12 @@ func (m *MinioStorage) URL(path, name string, serveDirectReqParams url.Values) (
 	}
 	// TODO it may be good to embed images with 'inline' like ServeData does, but we don't want to have to read the file, do we?
 	reqParams.Set("response-content-disposition", "attachment; filename=\""+quoteEscaper.Replace(name)+"\"")
-	u, err := m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(path), 5*time.Minute, reqParams)
+	expires := 5 * time.Minute
+	if method == http.MethodHead {
+		u, err := m.client.PresignedHeadObject(m.ctx, m.bucket, m.buildMinioPath(path), expires, reqParams)
+		return u, convertMinioErr(err)
+	}
+	u, err := m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(path), expires, reqParams)
 	return u, convertMinioErr(err)
 }
 

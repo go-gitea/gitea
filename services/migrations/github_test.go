@@ -5,7 +5,6 @@
 package migrations
 
 import (
-	"context"
 	"os"
 	"testing"
 	"time"
@@ -13,6 +12,7 @@ import (
 	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGitHubDownloadRepo(t *testing.T) {
@@ -21,7 +21,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	if token == "" {
 		t.Skip("Skipping GitHub migration test because GITHUB_READ_TOKEN is empty")
 	}
-	ctx := context.Background()
+	ctx := t.Context()
 	downloader := NewGithubDownloaderV3(ctx, "https://github.com", "", "", token, "go-gitea", "test_repo")
 	err := downloader.RefreshRate(ctx)
 	assert.NoError(t, err)
@@ -429,4 +429,37 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			},
 		},
 	}, reviews)
+}
+
+func TestGithubMultiToken(t *testing.T) {
+	testCases := []struct {
+		desc             string
+		token            string
+		expectedCloneURL string
+	}{
+		{
+			desc:             "Single Token",
+			token:            "single_token",
+			expectedCloneURL: "https://oauth2:single_token@github.com",
+		},
+		{
+			desc:             "Multi Token",
+			token:            "token1,token2",
+			expectedCloneURL: "https://oauth2:token1@github.com",
+		},
+	}
+	factory := GithubDownloaderV3Factory{}
+
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			opts := base.MigrateOptions{CloneAddr: "https://github.com/go-gitea/gitea", AuthToken: tC.token}
+			client, err := factory.New(t.Context(), opts)
+			require.NoError(t, err)
+
+			cloneURL, err := client.FormatCloneURL(opts, "https://github.com")
+			require.NoError(t, err)
+
+			assert.Equal(t, tC.expectedCloneURL, cloneURL)
+		})
+	}
 }

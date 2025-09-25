@@ -7,6 +7,7 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -59,7 +60,7 @@ func ListCollaborators(ctx *context.APIContext) {
 		RepoID:      ctx.Repo.Repository.ID,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -92,7 +93,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	//   required: true
 	// - name: collaborator
 	//   in: path
-	//   description: username of the collaborator
+	//   description: username of the user to check for being a collaborator
 	//   type: string
 	//   required: true
 	// responses:
@@ -108,13 +109,13 @@ func IsCollaborator(ctx *context.APIContext) {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 	isColab, err := repo_model.IsCollaborator(ctx, ctx.Repo.Repository.ID, user.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if isColab {
@@ -144,7 +145,7 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 	//   required: true
 	// - name: collaborator
 	//   in: path
-	//   description: username of the collaborator to add
+	//   description: username of the user to add or update as a collaborator
 	//   type: string
 	//   required: true
 	// - name: body
@@ -168,26 +169,26 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if !collaborator.IsActive {
-		ctx.APIError(http.StatusInternalServerError, errors.New("collaborator's account is inactive"))
+		ctx.APIErrorInternal(errors.New("collaborator's account is inactive"))
 		return
 	}
 
 	p := perm.AccessModeWrite
 	if form.Permission != nil {
-		p = perm.ParseAccessMode(*form.Permission)
+		p = perm.ParseAccessMode(*form.Permission, perm.AccessModeRead, perm.AccessModeWrite, perm.AccessModeAdmin)
 	}
 
 	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, collaborator, p); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -231,13 +232,13 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, collaborator); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -263,7 +264,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 	//   required: true
 	// - name: collaborator
 	//   in: path
-	//   description: username of the collaborator
+	//   description: username of the collaborator whose permissions are to be obtained
 	//   type: string
 	//   required: true
 	// responses:
@@ -274,24 +275,25 @@ func GetRepoPermissions(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Doer.IsAdmin && ctx.Doer.LoginName != ctx.PathParam("collaborator") && !ctx.IsUserRepoAdmin() {
+	collaboratorUsername := ctx.PathParam("collaborator")
+	if !ctx.Doer.IsAdmin && !strings.EqualFold(ctx.Doer.LowerName, collaboratorUsername) && !ctx.IsUserRepoAdmin() {
 		ctx.APIError(http.StatusForbidden, "Only admins can query all permissions, repo admins can query all repo permissions, collaborators can query only their own")
 		return
 	}
 
-	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, collaboratorUsername)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	permission, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, collaborator)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -330,7 +332,7 @@ func GetReviewers(ctx *context.APIContext) {
 
 	reviewers, err := pull_service.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, 0)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToUsers(ctx, ctx.Doer, reviewers))
@@ -362,7 +364,7 @@ func GetAssignees(ctx *context.APIContext) {
 
 	assignees, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToUsers(ctx, ctx.Doer, assignees))

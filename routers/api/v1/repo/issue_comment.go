@@ -70,7 +70,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	}
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
@@ -89,7 +89,7 @@ func ListIssueComments(ctx *context.APIContext) {
 
 	comments, err := issues_model.FindComments(ctx, opts)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -100,12 +100,12 @@ func ListIssueComments(ctx *context.APIContext) {
 	}
 
 	if err := comments.LoadPosters(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if err := comments.LoadAttachments(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -174,7 +174,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	}
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	issue.Repo = ctx.Repo.Repository
@@ -189,12 +189,12 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 
 	comments, err := issues_model.FindComments(ctx, opts)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if err := comments.LoadPosters(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -303,7 +303,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 
 	comments, err := issues_model.FindComments(ctx, opts)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -314,21 +314,21 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	}
 
 	if err = comments.LoadPosters(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	apiComments := make([]*api.Comment, len(comments))
 	if err := comments.LoadIssues(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if err := comments.LoadAttachments(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if _, err := comments.Issues().LoadRepositories(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	for i := range comments {
@@ -382,7 +382,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateIssueCommentOption)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -401,7 +401,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -450,7 +450,7 @@ func GetIssueComment(ctx *context.APIContext) {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -475,7 +475,7 @@ func GetIssueComment(ctx *context.APIContext) {
 	}
 
 	if err := comment.LoadPoster(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -584,13 +584,13 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -609,15 +609,17 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	oldContent := comment.Content
-	comment.Content = form.Body
-	if err := issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, oldContent); err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
-		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+	if form.Body != comment.Content {
+		oldContent := comment.Content
+		comment.Content = form.Body
+		if err := issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, oldContent); err != nil {
+			if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.APIError(http.StatusForbidden, err)
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
 		}
-		return
 	}
 
 	ctx.JSON(http.StatusOK, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment))
@@ -701,13 +703,13 @@ func deleteIssueComment(ctx *context.APIContext) {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -719,13 +721,13 @@ func deleteIssueComment(ctx *context.APIContext) {
 	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Status(http.StatusForbidden)
 		return
-	} else if comment.Type != issues_model.CommentTypeComment {
-		ctx.Status(http.StatusNoContent)
+	} else if !comment.Type.HasContentSupport() {
+		ctx.Status(http.StatusBadRequest)
 		return
 	}
 
 	if err = issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

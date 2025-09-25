@@ -1,6 +1,6 @@
-<button class="ui primary button js-btn-clone-panel">
+<button class="ui compact primary button js-btn-clone-panel">
 	{{svg "octicon-code" 16}}
-	<span>Code</span>
+	<span>{{ctx.Locale.Tr "repo.code"}}</span>
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 </button>
 <div class="clone-panel-popup tippy-target">
@@ -14,6 +14,7 @@
 		{{if $.CloneButtonShowSSH}}
 			<button class="item repo-clone-ssh" data-link="{{$.CloneButtonOriginLink.SSH}}">SSH</button>
 		{{end}}
+		<button class="item repo-clone-tea" data-link="{{$.CloneButtonOriginLink.Tea}}">Tea CLI</button>
 	</div>
 	<div class="divider"></div>
 

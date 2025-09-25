@@ -7,6 +7,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -34,7 +35,7 @@ func getPublicKeyFromResponse(b []byte, keyID *url.URL) (p crypto.PublicKey, err
 	pubKeyPem := pubKey.PublicKeyPem
 	block, _ := pem.Decode([]byte(pubKeyPem))
 	if block == nil || block.Type != "PUBLIC KEY" {
-		return nil, fmt.Errorf("could not decode publicKeyPem to PUBLIC KEY pem block type")
+		return nil, errors.New("could not decode publicKeyPem to PUBLIC KEY pem block type")
 	}
 	p, err = x509.ParsePKIXPublicKey(block.Bytes)
 	return p, err

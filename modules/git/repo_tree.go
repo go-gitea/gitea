@@ -9,13 +9,15 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // CommitTreeOpts represents the possible options to CommitTree
 type CommitTreeOpts struct {
 	Parents    []string
 	Message    string
-	KeyID      string
+	Key        *SigningKey
 	NoGPGSign  bool
 	AlwaysSign bool
 }
@@ -33,7 +35,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		"GIT_COMMITTER_EMAIL="+committer.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
-	cmd := NewCommand(repo.Ctx, "commit-tree").AddDynamicArguments(tree.ID.String())
+	cmd := gitcmd.NewCommand("commit-tree").AddDynamicArguments(tree.ID.String())
 
 	for _, parent := range opts.Parents {
 		cmd.AddArguments("-p").AddDynamicArguments(parent)
@@ -43,8 +45,13 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 	_, _ = messageBytes.WriteString(opts.Message)
 	_, _ = messageBytes.WriteString("\n")
 
-	if opts.KeyID != "" || opts.AlwaysSign {
-		cmd.AddOptionFormat("-S%s", opts.KeyID)
+	if opts.Key != nil {
+		if opts.Key.Format != "" {
+			cmd.AddConfig("gpg.format", opts.Key.Format)
+		}
+		cmd.AddOptionFormat("-S%s", opts.Key.KeyID)
+	} else if opts.AlwaysSign {
+		cmd.AddOptionFormat("-S")
 	}
 
 	if opts.NoGPGSign {
@@ -53,7 +60,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err := cmd.Run(&RunOpts{
+	err := cmd.Run(repo.Ctx, &gitcmd.RunOpts{
 		Env:    env,
 		Dir:    repo.Path,
 		Stdin:  messageBytes,
@@ -61,7 +68,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		Stderr: stderr,
 	})
 	if err != nil {
-		return nil, ConcatenateError(err, stderr.String())
+		return nil, gitcmd.ConcatenateError(err, stderr.String())
 	}
 	return NewIDFromString(strings.TrimSpace(stdout.String()))
 }

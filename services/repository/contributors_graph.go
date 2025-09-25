@@ -19,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -125,13 +126,13 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 		_ = stdoutWriter.Close()
 	}()
 
-	gitCmd := git.NewCommand(repo.Ctx, "log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%as", "--reverse")
+	gitCmd := gitcmd.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%as", "--reverse")
 	// AddOptionFormat("--max-count=%d", limit)
 	gitCmd.AddDynamicArguments(baseCommit.ID.String())
 
 	var extendedCommitStats []*ExtendedCommitStats
 	stderr := new(strings.Builder)
-	err = gitCmd.Run(&git.RunOpts{
+	err = gitCmd.Run(repo.Ctx, &gitcmd.RunOpts{
 		Dir:    repo.Path,
 		Stdout: stdoutWriter,
 		Stderr: stderr,

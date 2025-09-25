@@ -22,13 +22,6 @@ func (repo *Repository) IsTagExist(name string) bool {
 	return repo.IsReferenceExist(TagPrefix + name)
 }
 
-// GetTags returns all tags of the repository.
-// returning at most limit tags, or all if limit is 0.
-func (repo *Repository) GetTags(skip, limit int) (tags []string, err error) {
-	tags, _, err = callShowRef(repo.Ctx, repo.Path, TagPrefix, TrustedCmdArgs{TagPrefix, "--sort=-taggerdate"}, skip, limit)
-	return tags, err
-}
-
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
 func (repo *Repository) GetTagType(id ObjectID) (string, error) {
 	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
@@ -41,8 +34,11 @@ func (repo *Repository) GetTagType(id ObjectID) (string, error) {
 		return "", err
 	}
 	_, typ, _, err := ReadBatchLine(rd)
-	if IsErrNotExist(err) {
-		return "", ErrNotExist{ID: id.String()}
+	if err != nil {
+		if IsErrNotExist(err) {
+			return "", ErrNotExist{ID: id.String()}
+		}
+		return "", err
 	}
 	return typ, nil
 }

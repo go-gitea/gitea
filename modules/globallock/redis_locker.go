@@ -6,7 +6,6 @@ package globallock
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -78,7 +77,7 @@ func (l *redisLocker) Close() error {
 
 func (l *redisLocker) lock(ctx context.Context, key string, tries int) (ReleaseFunc, error) {
 	if l.closed.Load() {
-		return func() {}, fmt.Errorf("locker is closed")
+		return func() {}, errors.New("locker is closed")
 	}
 
 	options := []redsync.Option{

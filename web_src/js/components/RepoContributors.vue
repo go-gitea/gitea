@@ -27,7 +27,6 @@ import {chartJsColors} from '../utils/color.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import type {Entries} from 'type-fest';
 import {pathEscapeSegments} from '../utils/url.ts';
 
 const customEventListener: Plugin = {
@@ -56,6 +55,13 @@ Chart.register(
   zoomPlugin,
   customEventListener,
 );
+
+type ContributorsData = {
+  total: {
+    weeks: Record<string, any>,
+  },
+  [other: string]: Record<string, Record<string, any>>,
+}
 
 export default defineComponent({
   components: {ChartLine, SvgIcon},
@@ -127,12 +133,12 @@ export default defineComponent({
           }
         } while (response.status === 202);
         if (response.ok) {
-          const data = await response.json();
-          const {total, ...rest} = data;
+          const data = await response.json() as ContributorsData;
+          const {total, ...other} = data;
           // below line might be deleted if we are sure go produces map always sorted by keys
           total.weeks = Object.fromEntries(Object.entries(total.weeks).sort());
 
-          const weekValues = Object.values(total.weeks) as any;
+          const weekValues = Object.values(total.weeks);
           this.xAxisStart = weekValues[0].week;
           this.xAxisEnd = firstStartDateAfterDate(new Date());
           const startDays = startDaysBetween(this.xAxisStart, this.xAxisEnd);
@@ -140,7 +146,7 @@ export default defineComponent({
           this.xAxisMin = this.xAxisStart;
           this.xAxisMax = this.xAxisEnd;
           this.contributorsStats = {};
-          for (const [email, user] of Object.entries(rest) as Entries<Record<string, Record<string, any>>>) {
+          for (const [email, user] of Object.entries(other)) {
             user.weeks = fillEmptyStartDaysWithZeroes(startDays, user.weeks);
             this.contributorsStats[email] = user;
           }
@@ -353,12 +359,12 @@ export default defineComponent({
       </div>
       <div>
         <!-- Contribution type -->
-        <div class="ui dropdown jump" id="repo-contributors">
+        <div class="ui floating dropdown jump" id="repo-contributors">
           <div class="ui basic compact button">
             <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
             <svg-icon name="octicon-triangle-down" :size="14"/>
           </div>
-          <div class="menu">
+          <div class="left menu">
             <div :class="['item', {'selected': type === 'commits'}]" data-value="commits">
               {{ locale.contributionType.commits }}
             </div>
@@ -375,7 +381,7 @@ export default defineComponent({
     <div class="tw-flex ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+          <SvgIcon name="octicon-sync" class="tw-mr-2 circular-spin"/>
           {{ locale.loadingInfo }}
         </div>
         <div v-else class="text red">
@@ -397,7 +403,7 @@ export default defineComponent({
         <div class="ui top attached header tw-flex tw-flex-1">
           <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
-            <img class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link" alt="">
+            <img loading="lazy" class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link" alt="">
           </a>
           <div class="tw-ml-2">
             <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>

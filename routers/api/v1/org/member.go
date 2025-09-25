@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/models/organization"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -82,7 +83,7 @@ func ListMembers(ctx *context.APIContext) {
 	if ctx.Doer != nil {
 		isMember, err = ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -132,7 +133,7 @@ func IsMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user
+	//   description: username of the user to check for an organization membership
 	//   type: string
 	//   required: true
 	// responses:
@@ -150,12 +151,12 @@ func IsMember(ctx *context.APIContext) {
 	if ctx.Doer != nil {
 		userIsMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		} else if userIsMember || ctx.Doer.IsAdmin {
 			userToCheckIsMember, err := ctx.Org.Organization.IsOrgMember(ctx, userToCheck.ID)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			} else if userToCheckIsMember {
 				ctx.Status(http.StatusNoContent)
 			} else {
@@ -185,7 +186,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user
+	//   description: username of the user to check for a public organization membership
 	//   type: string
 	//   required: true
 	// responses:
@@ -200,13 +201,27 @@ func IsPublicMember(ctx *context.APIContext) {
 	}
 	is, err := organization.IsPublicMembership(ctx, ctx.Org.Organization.ID, userToCheck.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if is {
 		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.APIErrorNotFound()
+	}
+}
+
+func checkCanChangeOrgUserStatus(ctx *context.APIContext, targetUser *user_model.User) {
+	// allow user themselves to change their status, and allow admins to change any user
+	if targetUser.ID == ctx.Doer.ID || ctx.Doer.IsAdmin {
+		return
+	}
+	// allow org owners to change status of members
+	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIError(http.StatusInternalServerError, err)
+	} else if !isOwner {
+		ctx.APIError(http.StatusForbidden, "Cannot change member visibility")
 	}
 }
 
@@ -225,7 +240,7 @@ func PublicizeMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user
+	//   description: username of the user whose membership is to be publicized
 	//   type: string
 	//   required: true
 	// responses:
@@ -240,13 +255,13 @@ func PublicizeMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if userToPublicize.ID != ctx.Doer.ID {
-		ctx.APIError(http.StatusForbidden, "Cannot publicize another member")
+	checkCanChangeOrgUserStatus(ctx, userToPublicize)
+	if ctx.Written() {
 		return
 	}
 	err := organization.ChangeOrgUserStatus(ctx, ctx.Org.Organization.ID, userToPublicize.ID, true)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -267,7 +282,7 @@ func ConcealMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user
+	//   description: username of the user whose membership is to be concealed
 	//   type: string
 	//   required: true
 	// responses:
@@ -282,13 +297,13 @@ func ConcealMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if userToConceal.ID != ctx.Doer.ID {
-		ctx.APIError(http.StatusForbidden, "Cannot conceal another member")
+	checkCanChangeOrgUserStatus(ctx, userToConceal)
+	if ctx.Written() {
 		return
 	}
 	err := organization.ChangeOrgUserStatus(ctx, ctx.Org.Organization.ID, userToConceal.ID, false)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -309,7 +324,7 @@ func DeleteMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user
+	//   description: username of the user to remove from the organization
 	//   type: string
 	//   required: true
 	// responses:
@@ -323,7 +338,7 @@ func DeleteMember(ctx *context.APIContext) {
 		return
 	}
 	if err := org_service.RemoveOrgUser(ctx, ctx.Org.Organization, member); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 	}
 	ctx.Status(http.StatusNoContent)
 }

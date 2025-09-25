@@ -74,7 +74,7 @@ func Migrate(ctx *context.APIContext) {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -94,7 +94,7 @@ func Migrate(ctx *context.APIContext) {
 			// Check ownership of organization.
 			isOwner, err := organization.OrgFromUser(repoOwner).IsOwnedBy(ctx, ctx.Doer.ID)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			} else if !isOwner {
 				ctx.APIError(http.StatusForbidden, "Given user is not owner of organization.")
@@ -115,12 +115,12 @@ func Migrate(ctx *context.APIContext) {
 	gitServiceType := convert.ToGitServiceType(form.Service)
 
 	if form.Mirror && setting.Mirror.DisableNewPull {
-		ctx.APIError(http.StatusForbidden, fmt.Errorf("the site administrator has disabled the creation of new pull mirrors"))
+		ctx.APIError(http.StatusForbidden, errors.New("the site administrator has disabled the creation of new pull mirrors"))
 		return
 	}
 
 	if setting.Repository.DisableMigrations {
-		ctx.APIError(http.StatusForbidden, fmt.Errorf("the site administrator has disabled migrations"))
+		ctx.APIError(http.StatusForbidden, errors.New("the site administrator has disabled migrations"))
 		return
 	}
 
@@ -129,7 +129,7 @@ func Migrate(ctx *context.APIContext) {
 	if form.LFS && len(form.LFSEndpoint) > 0 {
 		ep := lfs.DetermineEndpoint("", form.LFSEndpoint)
 		if ep == nil {
-			ctx.APIError(http.StatusInternalServerError, ctx.Tr("repo.migrate.invalid_lfs_endpoint"))
+			ctx.APIErrorInternal(errors.New("the LFS endpoint is not valid"))
 			return
 		}
 		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.Doer)
@@ -181,7 +181,7 @@ func Migrate(ctx *context.APIContext) {
 		IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 		IsMirror:       opts.Mirror,
 		Status:         repo_model.RepositoryBeingMigrated,
-	})
+	}, false)
 	if err != nil {
 		handleMigrateError(ctx, repoOwner, err)
 		return
@@ -203,7 +203,7 @@ func Migrate(ctx *context.APIContext) {
 		}
 
 		if repo != nil {
-			if errDelete := repo_service.DeleteRepositoryDirectly(ctx, ctx.Doer, repo.ID); errDelete != nil {
+			if errDelete := repo_service.DeleteRepositoryDirectly(ctx, repo.ID); errDelete != nil {
 				log.Error("DeleteRepository: %v", errDelete)
 			}
 		}
@@ -249,7 +249,7 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 		} else if strings.Contains(err.Error(), "fatal:") {
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Migration failed: %v.", err))
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 	}
 }
@@ -269,9 +269,9 @@ func handleRemoteAddrError(ctx *context.APIContext, err error) {
 		case addrErr.IsInvalidPath:
 			ctx.APIError(http.StatusUnprocessableEntity, "Invalid local path, it does not exist or not a directory.")
 		default:
-			ctx.APIError(http.StatusInternalServerError, "Unknown error type (ErrInvalidCloneAddr): "+err.Error())
+			ctx.APIErrorInternal(fmt.Errorf("unknown error type (ErrInvalidCloneAddr): %w", err))
 		}
 	} else {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 	}
 }

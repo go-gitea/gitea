@@ -49,7 +49,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 			ctx.APIErrorNotFound()
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -59,7 +59,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 	}
 
 	if err = release.LoadAttributes(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release))
@@ -102,7 +102,7 @@ func DeleteReleaseByTag(ctx *context.APIContext) {
 			ctx.APIErrorNotFound()
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -116,7 +116,7 @@ func DeleteReleaseByTag(ctx *context.APIContext) {
 			ctx.APIError(http.StatusUnprocessableEntity, "user not allowed to delete protected tag")
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

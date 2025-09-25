@@ -31,7 +31,7 @@ func (a *DummyTransferAdapter) Name() string {
 }
 
 func (a *DummyTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCloser, error) {
-	return io.NopCloser(bytes.NewBufferString("dummy")), nil
+	return io.NopCloser(strings.NewReader("dummy")), nil
 }
 
 func (a *DummyTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r io.Reader) error {
@@ -49,7 +49,7 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 	if strings.Contains(url, "status-not-ok") {
 		return &http.Response{StatusCode: http.StatusBadRequest}
 	} else if strings.Contains(url, "invalid-json-response") {
-		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBufferString("invalid json"))}
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("invalid json"))}
 	} else if strings.Contains(url, "valid-batch-request-download") {
 		batchResponse = &BatchResponse{
 			Transfer: "dummy",
@@ -248,7 +248,7 @@ func TestHTTPClientDownload(t *testing.T) {
 				},
 			}
 
-			err := client.Download(context.Background(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
+			err := client.Download(t.Context(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
 				if objectError != nil {
 					return objectError
 				}
@@ -348,7 +348,7 @@ func TestHTTPClientUpload(t *testing.T) {
 				},
 			}
 
-			err := client.Upload(context.Background(), []Pointer{p}, func(p Pointer, objectError error) (io.ReadCloser, error) {
+			err := client.Upload(t.Context(), []Pointer{p}, func(p Pointer, objectError error) (io.ReadCloser, error) {
 				return io.NopCloser(new(bytes.Buffer)), objectError
 			})
 			if c.expectedError != "" {

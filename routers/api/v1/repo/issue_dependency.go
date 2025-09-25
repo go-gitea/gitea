@@ -66,7 +66,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound("IsErrIssueNotExist", err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -77,10 +77,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	limit := ctx.FormInt("limit")
 	if limit == 0 {
 		limit = setting.API.DefaultPagingNum
@@ -98,7 +95,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		PageSize: limit,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -328,10 +325,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	limit := ctx.FormInt("limit")
 	if limit <= 1 {
 		limit = setting.API.DefaultPagingNum
@@ -342,7 +336,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 
 	deps, err := issue.BlockingDependencies(ctx)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -504,7 +498,7 @@ func getParamsIssue(ctx *context.APIContext) *issues_model.Issue {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound("IsErrIssueNotExist", err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil
 	}
@@ -525,7 +519,7 @@ func getFormIssue(ctx *context.APIContext, form *api.IssueMeta) *issues_model.Is
 			if repo_model.IsErrRepoNotExist(err) {
 				ctx.APIErrorNotFound("IsErrRepoNotExist", err)
 			} else {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			}
 			return nil
 		}
@@ -538,7 +532,7 @@ func getFormIssue(ctx *context.APIContext, form *api.IssueMeta) *issues_model.Is
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound("IsErrIssueNotExist", err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil
 	}
@@ -553,7 +547,7 @@ func getPermissionForRepo(ctx *context.APIContext, repo *repo_model.Repository) 
 
 	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return nil
 	}
 
@@ -581,7 +575,7 @@ func createIssueDependency(ctx *context.APIContext, target, dependency *issues_m
 
 	err := issues_model.CreateIssueDependency(ctx, ctx.Doer, target, dependency)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 }
@@ -607,7 +601,7 @@ func removeIssueDependency(ctx *context.APIContext, target, dependency *issues_m
 
 	err := issues_model.RemoveIssueDependency(ctx, ctx.Doer, target, dependency, issues_model.DependencyTypeBlockedBy)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 }

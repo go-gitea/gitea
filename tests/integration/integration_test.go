@@ -1,7 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//nolint:forbidigo
+//nolint:forbidigo // use of print functions is allowed in tests
 package integration
 
 import (
@@ -148,6 +148,9 @@ func (s *TestSession) GetCookieFlashMessage() *middleware.Flash {
 
 func (s *TestSession) MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
+	if s == nil {
+		return MakeRequest(t, rw, expectedStatus)
+	}
 	req := rw.Request
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
@@ -249,55 +252,19 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 // token has to be unique this counter take care of
 var tokenCounter int64
 
-// getTokenForLoggedInUser returns a token for a logged in user.
-// The scope is an optional list of snake_case strings like the frontend form fields,
-// but without the "scope_" prefix.
+// getTokenForLoggedInUser returns a token for a logged-in user.
 func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.AccessTokenScope) string {
 	t.Helper()
-	var token string
-	req := NewRequest(t, "GET", "/user/settings/applications")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	var csrf string
-	for _, cookie := range resp.Result().Cookies() {
-		if cookie.Name != "_csrf" {
-			continue
-		}
-		csrf = cookie.Value
-		break
-	}
-	if csrf == "" {
-		doc := NewHTMLParser(t, resp.Body)
-		csrf = doc.GetCSRF()
-	}
-	assert.NotEmpty(t, csrf)
 	urlValues := url.Values{}
-	urlValues.Add("_csrf", csrf)
+	urlValues.Add("_csrf", GetUserCSRFToken(t, session))
 	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)))
 	for _, scope := range scopes {
-		urlValues.Add("scope", string(scope))
+		urlValues.Add("scope-dummy", string(scope)) // it only needs to start with "scope-" to be accepted
 	}
-	req = NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-
-	// Log the flash values on failure
-	if !assert.Equal(t, []string{"/user/settings/applications"}, resp.Result().Header["Location"]) {
-		for _, cookie := range resp.Result().Cookies() {
-			if cookie.Name != gitea_context.CookieNameFlash {
-				continue
-			}
-			flash, _ := url.ParseQuery(cookie.Value)
-			for key, value := range flash {
-				t.Logf("Flash %q: %q", key, value)
-			}
-		}
-	}
-
-	req = NewRequest(t, "GET", "/user/settings/applications")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	token = htmlDoc.doc.Find(".ui.info p").Text()
-	assert.NotEmpty(t, token)
-	return token
+	req := NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	flashes := session.GetCookieFlashMessage()
+	return flashes.InfoMsg
 }
 
 type RequestWrapper struct {
@@ -346,7 +313,7 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 
 func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.Values) *RequestWrapper {
 	t.Helper()
-	return NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode())).
+	return NewRequestWithBody(t, method, urlStr, strings.NewReader(urlValues.Encode())).
 		SetHeader("Content-Type", "application/x-www-form-urlencoded")
 }
 
@@ -396,7 +363,7 @@ func MakeRequestNilResponseRecorder(t testing.TB, rw *RequestWrapper, expectedSt
 	recorder := NewNilResponseRecorder()
 	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+		if !assert.Equal(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, &recorder.ResponseRecorder)
 		}
@@ -410,7 +377,7 @@ func MakeRequestNilResponseHashSumRecorder(t testing.TB, rw *RequestWrapper, exp
 	recorder := NewNilResponseHashSumRecorder()
 	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+		if !assert.Equal(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, &recorder.ResponseRecorder)
 		}

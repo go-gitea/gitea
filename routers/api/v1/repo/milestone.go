@@ -74,7 +74,7 @@ func ListMilestones(ctx *context.APIContext) {
 		Name:        ctx.FormString("name"),
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -173,7 +173,7 @@ func CreateMilestone(ctx *context.APIContext) {
 	}
 
 	if err := issues_model.NewMilestone(ctx, milestone); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIMilestone(milestone))
@@ -233,7 +233,7 @@ func EditMilestone(ctx *context.APIContext) {
 	}
 
 	if err := issues_model.UpdateMilestone(ctx, milestone, oldIsClosed); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIMilestone(milestone))
@@ -272,7 +272,7 @@ func DeleteMilestone(ctx *context.APIContext) {
 	}
 
 	if err := issues_model.DeleteMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, m.ID); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -288,7 +288,7 @@ func getMilestoneByIDOrName(ctx *context.APIContext) *issues_model.Milestone {
 		if err == nil {
 			return milestone
 		} else if !issues_model.IsErrMilestoneNotExist(err) {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return nil
 		}
 	}
@@ -299,7 +299,7 @@ func getMilestoneByIDOrName(ctx *context.APIContext) *issues_model.Milestone {
 			ctx.APIErrorNotFound()
 			return nil
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return nil
 	}
 

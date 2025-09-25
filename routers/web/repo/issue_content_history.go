@@ -157,15 +157,16 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	diffHTMLBuf := bytes.Buffer{}
 	diffHTMLBuf.WriteString("<pre class='chroma'>")
 	for _, it := range diff {
-		if it.Type == diffmatchpatch.DiffInsert {
+		switch it.Type {
+		case diffmatchpatch.DiffInsert:
 			diffHTMLBuf.WriteString("<span class='gi'>")
 			diffHTMLBuf.WriteString(html.EscapeString(it.Text))
 			diffHTMLBuf.WriteString("</span>")
-		} else if it.Type == diffmatchpatch.DiffDelete {
+		case diffmatchpatch.DiffDelete:
 			diffHTMLBuf.WriteString("<span class='gd'>")
 			diffHTMLBuf.WriteString(html.EscapeString(it.Text))
 			diffHTMLBuf.WriteString("</span>")
-		} else {
+		default:
 			diffHTMLBuf.WriteString(html.EscapeString(it.Text))
 		}
 	}

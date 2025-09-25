@@ -22,49 +22,60 @@ labels:
     description: Breaking change that won't be backward compatible
   - name: "Reviewed/Duplicate"
     exclusive: true
+    exclusive_order: 2
     color: 616161
     description: This issue or pull request already exists
   - name: "Reviewed/Invalid"
     exclusive: true
+    exclusive_order: 3
     color: 546e7a
     description: Invalid issue
   - name: "Reviewed/Confirmed"
     exclusive: true
+    exclusive_order: 1
     color: 795548
     description: Issue has been confirmed
   - name: "Reviewed/Won't Fix"
     exclusive: true
+    exclusive_order: 3
     color: eeeeee
     description: This issue won't be fixed
   - name: "Status/Need More Info"
     exclusive: true
+    exclusive_order: 2
     color: 424242
     description: Feedback is required to reproduce issue or to continue work
   - name: "Status/Blocked"
     exclusive: true
+    exclusive_order: 1
     color: 880e4f
     description: Something is blocking this issue or pull request
   - name: "Status/Abandoned"
     exclusive: true
+    exclusive_order: 3
     color: "222222"
     description: Somebody has started to work on this but abandoned work
   - name: "Priority/Critical"
     exclusive: true
+    exclusive_order: 1
     color: b71c1c
     description: The priority is critical
     priority: critical
   - name: "Priority/High"
     exclusive: true
+    exclusive_order: 2
     color: d32f2f
     description: The priority is high
     priority: high
   - name: "Priority/Medium"
     exclusive: true
+    exclusive_order: 3
     color: e64a19
     description: The priority is medium
     priority: medium
   - name: "Priority/Low"
     exclusive: true
+    exclusive_order: 4
     color: 4caf50
     description: The priority is low
     priority: low

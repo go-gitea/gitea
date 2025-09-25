@@ -28,6 +28,16 @@ func MatchPhraseQuery(matchPhrase, field, analyzer string, fuzziness int) *query
 	return q
 }
 
+// MatchAndQuery generates a match query for the given phrase, field and analyzer
+func MatchAndQuery(matchPhrase, field, analyzer string, fuzziness int) *query.MatchQuery {
+	q := bleve.NewMatchQuery(matchPhrase)
+	q.FieldVal = field
+	q.Analyzer = analyzer
+	q.Fuzziness = fuzziness
+	q.Operator = query.MatchQueryOperatorAnd
+	return q
+}
+
 // BoolFieldQuery generates a bool field query for the given value and field
 func BoolFieldQuery(value bool, field string) *query.BoolFieldQuery {
 	q := bleve.NewBoolFieldQuery(value)

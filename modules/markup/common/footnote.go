@@ -53,7 +53,7 @@ type FootnoteLink struct {
 // Dump implements Node.Dump.
 func (n *FootnoteLink) Dump(source []byte, level int) {
 	m := map[string]string{}
-	m["Index"] = fmt.Sprintf("%v", n.Index)
+	m["Index"] = strconv.Itoa(n.Index)
 	m["Name"] = fmt.Sprintf("%v", n.Name)
 	ast.DumpHelper(n, source, level, m, nil)
 }
@@ -85,7 +85,7 @@ type FootnoteBackLink struct {
 // Dump implements Node.Dump.
 func (n *FootnoteBackLink) Dump(source []byte, level int) {
 	m := map[string]string{}
-	m["Index"] = fmt.Sprintf("%v", n.Index)
+	m["Index"] = strconv.Itoa(n.Index)
 	m["Name"] = fmt.Sprintf("%v", n.Name)
 	ast.DumpHelper(n, source, level, m, nil)
 }
@@ -151,7 +151,7 @@ type FootnoteList struct {
 // Dump implements Node.Dump.
 func (n *FootnoteList) Dump(source []byte, level int) {
 	m := map[string]string{}
-	m["Count"] = fmt.Sprintf("%v", n.Count)
+	m["Count"] = strconv.Itoa(n.Count)
 	ast.DumpHelper(n, source, level, m, nil)
 }
 
@@ -197,7 +197,7 @@ func (b *footnoteBlockParser) Open(parent ast.Node, reader text.Reader, pc parse
 		return nil, parser.NoChildren
 	}
 	open := pos + 1
-	closure := util.FindClosure(line[pos+1:], '[', ']', false, false) //nolint
+	closure := util.FindClosure(line[pos+1:], '[', ']', false, false) //nolint:staticcheck // deprecated function
 	closes := pos + 1 + closure
 	next := closes + 1
 	if closure > -1 {
@@ -287,7 +287,7 @@ func (s *footnoteParser) Parse(parent ast.Node, block text.Reader, pc parser.Con
 		return nil
 	}
 	open := pos
-	closure := util.FindClosure(line[pos:], '[', ']', false, false) //nolint
+	closure := util.FindClosure(line[pos:], '[', ']', false, false) //nolint:staticcheck // deprecated function
 	if closure < 0 {
 		return nil
 	}
@@ -409,9 +409,9 @@ func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byt
 		_, _ = w.Write(n.Name)
 		_, _ = w.WriteString(`"><a href="#fn:`)
 		_, _ = w.Write(n.Name)
-		_, _ = w.WriteString(`" class="footnote-ref" role="doc-noteref">`)
+		_, _ = w.WriteString(`" class="footnote-ref" role="doc-noteref">`) // FIXME: here and below, need to keep the classes
 		_, _ = w.WriteString(is)
-		_, _ = w.WriteString(`</a></sup>`)
+		_, _ = w.WriteString(` </a></sup>`) // the style doesn't work at the moment, so add a space to separate the names
 	}
 	return ast.WalkContinue, nil
 }

@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -23,7 +22,7 @@ import (
 func TestActionsRunnerModify(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	require.NoError(t, db.DeleteAllRecords("action_runner"))
 

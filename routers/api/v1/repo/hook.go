@@ -189,7 +189,7 @@ func TestHook(ctx *context.APIContext) {
 		Pusher:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
 		Sender:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
 	}); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -300,7 +300,7 @@ func DeleteHook(ctx *context.APIContext) {
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

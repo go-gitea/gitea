@@ -9,6 +9,8 @@ package git
 import (
 	"errors"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
+
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
@@ -36,7 +38,7 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	}
 
 	if len(idStr) != objectFormat.FullLength() {
-		res, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify").AddDynamicArguments(idStr).RunStdString(&RunOpts{Dir: repo.Path})
+		res, _, err := gitcmd.NewCommand("rev-parse", "--verify").AddDynamicArguments(idStr).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 		if err != nil {
 			return nil, err
 		}

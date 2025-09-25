@@ -69,7 +69,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		Email:       userName,
 		Passwd:      password,
 		LoginType:   auth_model.SMTP,
-		LoginSource: source.authSource.ID,
+		LoginSource: source.AuthSource.ID,
 		LoginName:   userName,
 	}
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
@@ -81,9 +81,4 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	}
 
 	return user, nil
-}
-
-// IsSkipLocalTwoFA returns if this source should skip local 2fa for password authentication
-func (source *Source) IsSkipLocalTwoFA() bool {
-	return source.SkipLocalTwoFA
 }

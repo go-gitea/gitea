@@ -30,7 +30,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of to user whose access tokens are to be listed
 	//   type: string
 	//   required: true
 	// - name: page
@@ -62,6 +62,8 @@ func ListAccessTokens(ctx *context.APIContext) {
 			Name:           tokens[i].Name,
 			TokenLastEight: tokens[i].TokenLastEight,
 			Scopes:         tokens[i].Scope.StringSlice(),
+			Created:        tokens[i].CreatedUnix.AsTime(),
+			Updated:        tokens[i].UpdatedUnix.AsTime(),
 		}
 	}
 
@@ -81,7 +83,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose token is to be created
 	//   required: true
 	//   type: string
 	// - name: body
@@ -125,7 +127,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	t.Scope = scope
 
 	if err := auth_model.NewAccessToken(ctx, t); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, &api.AccessToken{
@@ -147,7 +149,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose token is to be deleted
 	//   type: string
 	//   required: true
 	// - name: token
@@ -174,7 +176,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 			UserID: ctx.ContextUser.ID,
 		})
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 
@@ -190,7 +192,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		}
 	}
 	if tokenID == 0 {
-		ctx.APIError(http.StatusInternalServerError, nil)
+		ctx.APIErrorInternal(nil)
 		return
 	}
 
@@ -198,7 +200,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		if auth_model.IsErrAccessTokenNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -273,7 +275,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 		OwnerID:     ctx.Doer.ID,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -311,7 +313,7 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 		if auth_model.IsErrOAuthApplicationNotFound(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -344,7 +346,7 @@ func GetOauth2Application(ctx *context.APIContext) {
 		if auth_model.IsErrOauthClientIDInvalid(err) || auth_model.IsErrOAuthApplicationNotFound(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -398,7 +400,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 		if auth_model.IsErrOauthClientIDInvalid(err) || auth_model.IsErrOAuthApplicationNotFound(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

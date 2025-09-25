@@ -100,7 +100,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 	apiKeys := make([]*api.DeployKey, len(keys))
 	for i := range keys {
 		if err := keys[i].GetContent(ctx); err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		apiKeys[i] = convert.ToDeployKey(apiLink, keys[i])
@@ -148,7 +148,7 @@ func GetDeployKey(ctx *context.APIContext) {
 		if asymkey_model.IsErrDeployKeyNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -160,7 +160,7 @@ func GetDeployKey(ctx *context.APIContext) {
 	}
 
 	if err = key.GetContent(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -195,7 +195,7 @@ func HandleAddKeyError(ctx *context.APIContext, err error) {
 	case asymkey_model.IsErrDeployKeyNameAlreadyUsed(err):
 		ctx.APIError(http.StatusUnprocessableEntity, "A key with the same name already exists")
 	default:
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 	}
 }
 
@@ -283,7 +283,7 @@ func DeleteDeploykey(ctx *context.APIContext) {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

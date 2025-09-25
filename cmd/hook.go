@@ -15,16 +15,17 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 const (
-	hookBatchSize = 30
+	hookBatchSize = 500
 )
 
 var (
@@ -32,9 +33,10 @@ var (
 	CmdHook = &cli.Command{
 		Name:        "hook",
 		Usage:       "(internal) Should only be called by Git",
+		Hidden:      true, // internal commands shouldn't be visible
 		Description: "Delegate commands to corresponding Git hooks",
 		Before:      PrepareConsoleLoggerLevel(log.FATAL),
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			subcmdHookPreReceive,
 			subcmdHookUpdate,
 			subcmdHookPostReceive,
@@ -161,12 +163,10 @@ func (n *nilWriter) WriteString(s string) (int, error) {
 	return len(s), nil
 }
 
-func runHookPreReceive(c *cli.Context) error {
+func runHookPreReceive(ctx context.Context, c *cli.Command) error {
 	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
 		return nil
 	}
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	setup(ctx, c.Bool("debug"))
 
@@ -292,7 +292,7 @@ Gitea or set your environment appropriately.`, "")
 
 // runHookUpdate avoid to do heavy operations on update hook because it will be
 // invoked for every ref update which does not like pre-receive and post-receive
-func runHookUpdate(c *cli.Context) error {
+func runHookUpdate(_ context.Context, c *cli.Command) error {
 	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
 		return nil
 	}
@@ -309,15 +309,12 @@ func runHookUpdate(c *cli.Context) error {
 	return nil
 }
 
-func runHookPostReceive(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runHookPostReceive(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 
 	// First of all run update-server-info no matter what
-	if _, _, err := git.NewCommand(ctx, "update-server-info").RunStdString(nil); err != nil {
-		return fmt.Errorf("Failed to call 'git update-server-info': %w", err)
+	if _, _, err := gitcmd.NewCommand("update-server-info").RunStdString(ctx, nil); err != nil {
+		return fmt.Errorf("failed to call 'git update-server-info': %w", err)
 	}
 
 	// Now if we're an internal don't do anything else
@@ -485,7 +482,7 @@ func hookPrintResult(output, isCreate bool, branch, url string) {
 func pushOptions() map[string]string {
 	opts := make(map[string]string)
 	if pushCount, err := strconv.Atoi(os.Getenv(private.GitPushOptionCount)); err == nil {
-		for idx := 0; idx < pushCount; idx++ {
+		for idx := range pushCount {
 			opt := os.Getenv(fmt.Sprintf("GIT_PUSH_OPTION_%d", idx))
 			kv := strings.SplitN(opt, "=", 2)
 			if len(kv) == 2 {
@@ -496,10 +493,7 @@ func pushOptions() map[string]string {
 	return opts
 }
 
-func runHookProcReceive(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runHookProcReceive(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
@@ -740,7 +734,7 @@ func readPktLine(ctx context.Context, in *bufio.Reader, requestType pktLineType)
 
 	// read prefix
 	lengthBytes := make([]byte, 4)
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		lengthBytes[i], err = in.ReadByte()
 		if err != nil {
 			return nil, fail(ctx, "Protocol: stdin error", "Pkt-Line: read stdin failed : %v", err)

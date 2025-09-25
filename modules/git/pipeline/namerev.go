@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // NameRevStdin runs name-rev --stdin
@@ -22,7 +22,7 @@ func NameRevStdin(ctx context.Context, shasToNameReader *io.PipeReader, nameRevS
 
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	if err := git.NewCommand(ctx, "name-rev", "--stdin", "--name-only", "--always").Run(&git.RunOpts{
+	if err := gitcmd.NewCommand("name-rev", "--stdin", "--name-only", "--always").Run(ctx, &gitcmd.RunOpts{
 		Dir:    tmpBasePath,
 		Stdout: nameRevStdinWriter,
 		Stdin:  shasToNameReader,

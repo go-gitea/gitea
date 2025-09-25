@@ -20,20 +20,22 @@ import (
 
 func getDeleteFileOptions() *api.DeleteFileOptions {
 	return &api.DeleteFileOptions{
-		FileOptions: api.FileOptions{
-			BranchName:    "master",
-			NewBranchName: "master",
-			Message:       "Removing the file new/file.txt",
-			Author: api.Identity{
-				Name:  "John Doe",
-				Email: "johndoe@example.com",
+		FileOptionsWithSHA: api.FileOptionsWithSHA{
+			FileOptions: api.FileOptions{
+				BranchName:    "master",
+				NewBranchName: "master",
+				Message:       "Removing the file new/file.txt",
+				Author: api.Identity{
+					Name:  "John Doe",
+					Email: "johndoe@example.com",
+				},
+				Committer: api.Identity{
+					Name:  "Jane Doe",
+					Email: "janedoe@example.com",
+				},
 			},
-			Committer: api.Identity{
-				Name:  "Jane Doe",
-				Email: "janedoe@example.com",
-			},
+			SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
 		},
-		SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
 	}
 }
 
@@ -87,7 +89,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		DecodeJSON(t, resp, &fileResponse)
 		assert.NotNil(t, fileResponse)
 		assert.Nil(t, fileResponse.Content)
-		assert.EqualValues(t, deleteFileOptions.Message+"\n", fileResponse.Commit.Message)
+		assert.Equal(t, deleteFileOptions.Message+"\n", fileResponse.Commit.Message)
 
 		// Test deleting file without a message
 		fileID++
@@ -100,7 +102,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &fileResponse)
 		expectedMessage := "Delete " + treePath + "\n"
-		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
+		assert.Equal(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test deleting a file with the wrong SHA
 		fileID++
@@ -110,7 +112,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		deleteFileOptions.SHA = "badsha"
 		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
 			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusBadRequest)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 		// Test creating a file in repo16 by user4 who does not have write access
 		fileID++

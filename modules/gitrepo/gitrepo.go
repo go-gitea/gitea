@@ -5,9 +5,9 @@ package gitrepo
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"path/filepath"
-	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/reqctx"
@@ -15,26 +15,20 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// Repository represents a git repository which stored in a disk
 type Repository interface {
-	GetName() string
-	GetOwnerName() string
+	RelativePath() string // We don't assume how the directory structure of the repository is, so we only need the relative path
 }
 
+// RelativePath should be an unix style path like username/reponame.git
+// This method should change it according to the current OS.
 func repoPath(repo Repository) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName())+".git")
-}
-
-func wikiPath(repo Repository) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName())+".wiki.git")
+	return filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo.RelativePath()))
 }
 
 // OpenRepository opens the repository at the given relative path with the provided context.
 func OpenRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
 	return git.OpenRepository(ctx, repoPath(repo))
-}
-
-func OpenWikiRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
-	return git.OpenRepository(ctx, wikiPath(repo))
 }
 
 // contextKey is a value for use with context.WithValue.
@@ -68,4 +62,27 @@ func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Reposito
 	ctx.AddCloser(gitRepo)
 	ctx.SetContextValue(ck, gitRepo)
 	return gitRepo, nil
+}
+
+// IsRepositoryExist returns true if the repository directory exists in the disk
+func IsRepositoryExist(ctx context.Context, repo Repository) (bool, error) {
+	return util.IsExist(repoPath(repo))
+}
+
+// DeleteRepository deletes the repository directory from the disk, it will return
+// nil if the repository does not exist.
+func DeleteRepository(ctx context.Context, repo Repository) error {
+	return util.RemoveAll(repoPath(repo))
+}
+
+// RenameRepository renames a repository's name on disk
+func RenameRepository(ctx context.Context, repo, newRepo Repository) error {
+	if err := util.Rename(repoPath(repo), repoPath(newRepo)); err != nil {
+		return fmt.Errorf("rename repository directory: %w", err)
+	}
+	return nil
+}
+
+func InitRepository(ctx context.Context, repo Repository, objectFormatName string) error {
+	return git.InitRepository(ctx, repoPath(repo), true, objectFormatName)
 }

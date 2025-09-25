@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/httplib"
@@ -53,7 +54,7 @@ func (b *Base) AppendAccessControlExposeHeaders(names ...string) {
 
 // SetTotalCountHeader set "X-Total-Count" header
 func (b *Base) SetTotalCountHeader(total int64) {
-	b.RespHeader().Set("X-Total-Count", fmt.Sprint(total))
+	b.RespHeader().Set("X-Total-Count", strconv.FormatInt(total, 10))
 	b.AppendAccessControlExposeHeaders("X-Total-Count")
 }
 
@@ -82,6 +83,7 @@ func (b *Base) RespHeader() http.Header {
 }
 
 // HTTPError returned an error to web browser
+// FIXME: many calls to this HTTPError are not right: it shouldn't expose err.Error() directly, it doesn't accept more than one content
 func (b *Base) HTTPError(status int, contents ...string) {
 	v := http.StatusText(status)
 	if len(contents) > 0 {

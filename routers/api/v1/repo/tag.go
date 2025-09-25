@@ -57,7 +57,7 @@ func ListTags(ctx *context.APIContext) {
 
 	tags, total, err := ctx.Repo.GitRepo.GetTagInfos(listOpts.Page, listOpts.PageSize)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -110,7 +110,7 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 	if tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(sha); err != nil {
 		ctx.APIError(http.StatusBadRequest, err)
 	} else {
-		commit, err := tag.Commit(ctx.Repo.GitRepo)
+		commit, err := ctx.Repo.GitRepo.GetTagCommit(tag.Name)
 		if err != nil {
 			ctx.APIError(http.StatusBadRequest, err)
 		}
@@ -150,7 +150,7 @@ func GetTag(ctx *context.APIContext) {
 
 	tag, err := ctx.Repo.GitRepo.GetTag(tagName)
 	if err != nil {
-		ctx.APIErrorNotFound(tagName)
+		ctx.APIErrorNotFound("tag doesn't exist: " + tagName)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToTag(ctx.Repo.Repository, tag))
@@ -270,7 +270,7 @@ func DeleteTag(ctx *context.APIContext) {
 			ctx.APIErrorNotFound()
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -284,7 +284,7 @@ func DeleteTag(ctx *context.APIContext) {
 			ctx.APIError(http.StatusUnprocessableEntity, "user not allowed to delete protected tag")
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -316,7 +316,7 @@ func ListTagProtection(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
 	pts, err := git_model.GetProtectedTags(ctx, repo.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	apiPts := make([]*api.TagProtection, len(pts))
@@ -360,7 +360,7 @@ func GetTagProtection(ctx *context.APIContext) {
 	id := ctx.PathParamInt64("id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -424,7 +424,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 
 	pt, err := git_model.GetProtectedTagByNamePattern(ctx, repo.ID, namePattern)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	} else if pt != nil {
 		ctx.APIError(http.StatusForbidden, "Tag protection already exist")
@@ -438,7 +438,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -449,7 +449,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 				ctx.APIError(http.StatusUnprocessableEntity, err)
 				return
 			}
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -461,18 +461,18 @@ func CreateTagProtection(ctx *context.APIContext) {
 		AllowlistTeamIDs: whitelistTeams,
 	}
 	if err := git_model.InsertProtectedTag(ctx, protectTag); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	pt, err = git_model.GetProtectedTagByID(ctx, protectTag.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if pt == nil || pt.RepoID != repo.ID {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -524,7 +524,7 @@ func EditTagProtection(ctx *context.APIContext) {
 	id := ctx.PathParamInt64("id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -546,7 +546,7 @@ func EditTagProtection(ctx *context.APIContext) {
 					ctx.APIError(http.StatusUnprocessableEntity, err)
 					return
 				}
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 		}
@@ -560,7 +560,7 @@ func EditTagProtection(ctx *context.APIContext) {
 				ctx.APIError(http.StatusUnprocessableEntity, err)
 				return
 			}
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		pt.AllowlistUserIDs = whitelistUsers
@@ -568,18 +568,18 @@ func EditTagProtection(ctx *context.APIContext) {
 
 	err = git_model.UpdateProtectedTag(ctx, pt)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	pt, err = git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if pt == nil || pt.RepoID != repo.ID {
-		ctx.APIError(http.StatusInternalServerError, "New tag protection not found")
+		ctx.APIErrorInternal(errors.New("new tag protection not found"))
 		return
 	}
 
@@ -619,7 +619,7 @@ func DeleteTagProtection(ctx *context.APIContext) {
 	id := ctx.PathParamInt64("id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -630,7 +630,7 @@ func DeleteTagProtection(ctx *context.APIContext) {
 
 	err = git_model.DeleteProtectedTag(ctx, pt)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

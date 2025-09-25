@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -51,7 +52,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: Owner of the repo
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -59,6 +60,10 @@ func ListPullRequests(ctx *context.APIContext) {
 	//   description: Name of the repo
 	//   type: string
 	//   required: true
+	// - name: base_branch
+	//   in: query
+	//   description: Filter by target base branch of the pull request
+	//   type: string
 	// - name: state
 	//   in: query
 	//   description: State of pull request
@@ -69,7 +74,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	//   in: query
 	//   description: Type of sort
 	//   type: string
-	//   enum: [oldest, recentupdate, leastupdate, mostcomment, leastcomment, priority]
+	//   enum: [oldest, recentupdate, recentclose, leastupdate, mostcomment, leastcomment, priority]
 	// - name: milestone
 	//   in: query
 	//   description: ID of the milestone
@@ -108,7 +113,7 @@ func ListPullRequests(ctx *context.APIContext) {
 
 	labelIDs, err := base.StringsToInt64s(ctx.FormStrings("labels"))
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	var posterID int64
@@ -118,7 +123,7 @@ func ListPullRequests(ctx *context.APIContext) {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.APIError(http.StatusBadRequest, err)
 			} else {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			}
 			return
 		}
@@ -132,15 +137,16 @@ func ListPullRequests(ctx *context.APIContext) {
 		Labels:      labelIDs,
 		MilestoneID: ctx.FormInt64("milestone"),
 		PosterID:    posterID,
+		BaseBranch:  ctx.FormTrim("base_branch"),
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	apiPrs, err := convert.ToAPIPullRequests(ctx, ctx.Repo.Repository, prs, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -184,19 +190,23 @@ func GetPullRequest(ctx *context.APIContext) {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err = pr.LoadBaseRepo(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if err = pr.LoadHeadRepo(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
+
+	// Consider API access a view for delayed checking.
+	pull_service.StartPullRequestCheckOnView(ctx, pr)
+
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
 }
 
@@ -254,7 +264,7 @@ func GetPullRequestByBaseHead(ctx *context.APIContext) {
 			if repo_model.IsErrRepoNotExist(err) {
 				ctx.APIErrorNotFound()
 			} else {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			}
 			return
 		}
@@ -269,19 +279,23 @@ func GetPullRequestByBaseHead(ctx *context.APIContext) {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err = pr.LoadBaseRepo(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if err = pr.LoadHeadRepo(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
+
+	// Consider API access a view for delayed checking.
+	pull_service.StartPullRequestCheckOnView(ctx, pr)
+
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
 }
 
@@ -417,7 +431,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	)
 	if err != nil {
 		if !issues_model.IsErrPullRequestNotExist(err) {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	} else {
@@ -436,7 +450,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	if len(form.Labels) > 0 {
 		labels, err := issues_model.GetLabelsInRepoByIDs(ctx, ctx.Repo.Repository.ID, form.Labels)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 
@@ -448,7 +462,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 		if ctx.Repo.Owner.IsOrganization() {
 			orgLabels, err := issues_model.GetLabelsInOrgByIDs(ctx, ctx.Repo.Owner.ID, form.Labels)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 
@@ -466,7 +480,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 			if issues_model.IsErrMilestoneNotExist(err) {
 				ctx.APIErrorNotFound()
 			} else {
-				ctx.APIError(http.StatusInternalServerError, fmt.Errorf("GetMilestoneByRepoID: %w", err))
+				ctx.APIErrorInternal(fmt.Errorf("GetMilestoneByRepoID: %w", err))
 			}
 			return
 		}
@@ -506,7 +520,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: [name: %s]", err))
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -514,13 +528,13 @@ func CreatePullRequest(ctx *context.APIContext) {
 	for _, aID := range assigneeIDs {
 		assignee, err := user_model.GetUserByID(ctx, aID)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 
 		valid, err := access_model.CanBeAssigned(ctx, assignee, repo, true)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		if !valid {
@@ -549,7 +563,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 		} else if errors.Is(err, issues_model.ErrMustCollaborator) {
 			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -608,21 +622,21 @@ func EditPullRequest(ctx *context.APIContext) {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	err = pr.LoadIssue(ctx)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	issue := pr.Issue
 	issue.Repo = ctx.Repo.Repository
 
 	if err := issue.LoadAttributes(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -634,7 +648,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	if len(form.Title) > 0 {
 		err = issue_service.ChangeTitle(ctx, issue, ctx.Doer, form.Title)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -646,7 +660,7 @@ func EditPullRequest(ctx *context.APIContext) {
 				return
 			}
 
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -661,7 +675,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 
 		if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		issue.DeadlineUnix = deadlineUnix
@@ -683,7 +697,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			} else if errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.APIError(http.StatusForbidden, err)
 			} else {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			}
 			return
 		}
@@ -693,8 +707,13 @@ func EditPullRequest(ctx *context.APIContext) {
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
+		issue.Milestone, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, form.Milestone)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
 		if err = issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -702,14 +721,14 @@ func EditPullRequest(ctx *context.APIContext) {
 	if ctx.Repo.CanWrite(unit.TypePullRequests) && form.Labels != nil {
 		labels, err := issues_model.GetLabelsInRepoByIDs(ctx, ctx.Repo.Repository.ID, form.Labels)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 
 		if ctx.Repo.Owner.IsOrganization() {
 			orgLabels, err := issues_model.GetLabelsInOrgByIDs(ctx, ctx.Repo.Owner.ID, form.Labels)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 
@@ -717,7 +736,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 
 		if err = issues_model.ReplaceIssueLabels(ctx, issue, labels, ctx.Doer); err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -737,7 +756,7 @@ func EditPullRequest(ctx *context.APIContext) {
 
 	// change pull target branch
 	if !pr.HasMerged && len(form.Base) != 0 && form.Base != pr.BaseBranch {
-		if !ctx.Repo.GitRepo.IsBranchExist(form.Base) {
+		if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, form.Base) {
 			ctx.APIError(http.StatusNotFound, fmt.Errorf("new base '%s' not exist", form.Base))
 			return
 		}
@@ -776,7 +795,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -820,7 +839,7 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -878,18 +897,18 @@ func MergePullRequest(ctx *context.APIContext) {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorNotFound("GetPullRequestByIndex", err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err := pr.LoadHeadRepo(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	pr.Issue.Repo = ctx.Repo.Repository
@@ -897,7 +916,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	if ctx.IsSigned {
 		// Update issue-user.
 		if err = activities_model.SetIssueReadBy(ctx, pr.Issue.ID, ctx.Doer.ID); err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -916,7 +935,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, form.ForceMerge); err != nil {
 		if errors.Is(err, pull_service.ErrIsClosed) {
 			ctx.APIErrorNotFound()
-		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
+		} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
 			ctx.APIError(http.StatusMethodNotAllowed, "User not allowed to merge PR")
 		} else if errors.Is(err, pull_service.ErrHasMerged) {
 			ctx.APIError(http.StatusMethodNotAllowed, "")
@@ -924,7 +943,7 @@ func MergePullRequest(ctx *context.APIContext) {
 			ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
 		} else if errors.Is(err, pull_service.ErrNotMergeableState) {
 			ctx.APIError(http.StatusMethodNotAllowed, "Please try again later")
-		} else if pull_service.IsErrDisallowedToMerge(err) {
+		} else if errors.Is(err, pull_service.ErrNotReadyToMerge) {
 			ctx.APIError(http.StatusMethodNotAllowed, err)
 		} else if asymkey_service.IsErrWontSign(err) {
 			ctx.APIError(http.StatusMethodNotAllowed, err)
@@ -945,7 +964,7 @@ func MergePullRequest(ctx *context.APIContext) {
 				ctx.JSON(http.StatusConflict, err)
 				return
 			}
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		ctx.Status(http.StatusOK)
@@ -960,7 +979,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	if len(message) == 0 {
 		message, _, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -977,7 +996,7 @@ func MergePullRequest(ctx *context.APIContext) {
 				ctx.APIError(http.StatusConflict, err)
 				return
 			}
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		} else if scheduled {
 			// nothing more to do ...
@@ -1010,7 +1029,7 @@ func MergePullRequest(ctx *context.APIContext) {
 				ctx.APIError(http.StatusConflict, "PushRejected with remote message: "+errPushRej.Message)
 			}
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -1049,11 +1068,11 @@ func MergePullRequest(ctx *context.APIContext) {
 				case git.IsErrBranchNotExist(err):
 					ctx.APIErrorNotFound(err)
 				case errors.Is(err, repo_service.ErrBranchIsDefault):
-					ctx.APIError(http.StatusForbidden, fmt.Errorf("can not delete default branch"))
+					ctx.APIError(http.StatusForbidden, errors.New("can not delete default branch"))
 				case errors.Is(err, git_model.ErrBranchIsProtected):
-					ctx.APIError(http.StatusForbidden, fmt.Errorf("branch protected"))
+					ctx.APIError(http.StatusForbidden, errors.New("branch protected"))
 				default:
-					ctx.APIError(http.StatusInternalServerError, err)
+					ctx.APIErrorInternal(err)
 				}
 				return
 			}
@@ -1066,7 +1085,7 @@ func MergePullRequest(ctx *context.APIContext) {
 type parseCompareInfoResult struct {
 	headRepo    *repo_model.Repository
 	headGitRepo *git.Repository
-	compareInfo *git.CompareInfo
+	compareInfo *pull_service.CompareInfo
 	baseRef     git.RefName
 	headRef     git.RefName
 }
@@ -1094,7 +1113,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 			if user_model.IsErrUserNotExist(err) {
 				ctx.APIErrorNotFound("GetUserByName")
 			} else {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			}
 			return nil, nil
 		}
@@ -1110,7 +1129,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	if headRepo == nil && !isSameRepo {
 		err = baseRepo.GetBaseRepo(ctx)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return nil, nil
 		}
 
@@ -1132,7 +1151,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	} else {
 		headGitRepo, err = gitrepo.OpenRepository(ctx, headRepo)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return nil, nil
 		}
 		closer = func() { _ = headGitRepo.Close() }
@@ -1146,7 +1165,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
 	permBase, err := access_model.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return nil, nil
 	}
 
@@ -1160,7 +1179,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	// TODO: could the logic be simplified if the headRepo is the same as the baseRepo? Need to think more about it.
 	permHead, err := access_model.GetUserRepoPermission(ctx, headRepo, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return nil, nil
 	}
 	if !permHead.CanRead(unit.TypeCode) {
@@ -1182,9 +1201,9 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	compareInfo, err := headGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseRef.ShortName(), headRef.ShortName(), false, false)
+	compareInfo, err := pull_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef.ShortName(), headRef.ShortName(), false, false)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return nil, nil
 	}
 
@@ -1238,7 +1257,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -1249,7 +1268,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	}
 
 	if err = pr.LoadIssue(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -1259,11 +1278,11 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	}
 
 	if err = pr.LoadBaseRepo(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if err = pr.LoadHeadRepo(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -1271,7 +1290,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 
 	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(ctx, pr, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -1283,7 +1302,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	// default merge commit message
 	message := fmt.Sprintf("Merge branch '%s' into %s", pr.BaseBranch, pr.HeadBranch)
 
-	if err = pull_service.Update(ctx, pr, ctx.Doer, message, rebase); err != nil {
+	if err = pull_service.Update(graceful.GetManager().ShutdownContext(), pr, ctx.Doer, message, rebase); err != nil {
 		if pull_service.IsErrMergeConflicts(err) {
 			ctx.APIError(http.StatusConflict, "merge failed because of conflict")
 			return
@@ -1291,7 +1310,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 			ctx.APIError(http.StatusConflict, "rebase failed because of conflict")
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -1423,7 +1442,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -1433,7 +1452,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		return
 	}
 
-	var prInfo *git.CompareInfo
+	var prInfo *pull_service.CompareInfo
 	baseGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1442,9 +1461,9 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	defer closer.Close()
 
 	if pr.HasMerged {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName(), false, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.MergeBase, pr.GetGitHeadRefName(), false, false)
 	} else {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName(), false, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.BaseBranch, pr.GetGitHeadRefName(), false, false)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1546,7 +1565,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -1563,18 +1582,18 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	baseGitRepo := ctx.Repo.GitRepo
 
-	var prInfo *git.CompareInfo
+	var prInfo *pull_service.CompareInfo
 	if pr.HasMerged {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName(), true, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.MergeBase, pr.GetGitHeadRefName(), true, false)
 	} else {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName(), true, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.BaseBranch, pr.GetGitHeadRefName(), true, false)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1586,7 +1605,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	maxLines := setting.Git.MaxGitDiffLines
 
 	// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
-	diff, err := gitdiff.GetDiff(ctx, baseGitRepo,
+	diff, err := gitdiff.GetDiffForAPI(ctx, baseGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     startCommitID,
 			AfterCommitID:      endCommitID,
@@ -1601,9 +1620,14 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
+	diffShortStat, err := gitdiff.GetDiffShortStat(baseGitRepo, startCommitID, endCommitID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 	listOptions := utils.GetListOptions(ctx)
 
-	totalNumberOfFiles := diff.NumFiles
+	totalNumberOfFiles := diffShortStat.NumFiles
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfFiles) / float64(listOptions.PageSize)))
 
 	start, limit := listOptions.GetSkipTake()
@@ -1614,7 +1638,9 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	apiFiles := make([]*api.ChangedFile, 0, limit)
 	for i := start; i < start+limit; i++ {
-		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID))
+		// refs/pull/1/head stores the HEAD commit ID, allowing all related commits to be found in the base repository.
+		// The head repository might have been deleted, so we should not rely on it here.
+		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.BaseRepo, endCommitID))
 	}
 
 	ctx.SetLinkHeader(totalNumberOfFiles, listOptions.PageSize)

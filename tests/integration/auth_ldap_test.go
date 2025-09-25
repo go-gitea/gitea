@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"net/http"
 	"os"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
@@ -238,12 +238,12 @@ func TestLDAPUserSync(t *testing.T) {
 
 	defer tests.PrepareTestEnv(t)()
 	te.addAuthSource(t)
-	err := auth.SyncExternalUsers(context.Background(), true)
+	err := auth.SyncExternalUsers(t.Context(), true)
 	assert.NoError(t, err)
 
 	// Check if users exists
 	for _, gitLDAPUser := range te.gitLDAPUsers {
-		dbUser, err := user_model.GetUserByName(db.DefaultContext, gitLDAPUser.UserName)
+		dbUser, err := user_model.GetUserByName(t.Context(), gitLDAPUser.UserName)
 		assert.NoError(t, err)
 		assert.Equal(t, gitLDAPUser.UserName, dbUser.Name)
 		assert.Equal(t, gitLDAPUser.Email, dbUser.Email)
@@ -253,7 +253,7 @@ func TestLDAPUserSync(t *testing.T) {
 
 	// Check if no users exist
 	for _, otherLDAPUser := range te.otherLDAPUsers {
-		_, err := user_model.GetUserByName(db.DefaultContext, otherLDAPUser.UserName)
+		_, err := user_model.GetUserByName(t.Context(), otherLDAPUser.UserName)
 		assert.True(t, user_model.IsErrUserNotExist(err))
 	}
 }
@@ -292,7 +292,7 @@ func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
 		MakeRequest(t, req, http.StatusSeeOther)
 	}
 
-	require.NoError(t, auth.SyncExternalUsers(context.Background(), true))
+	require.NoError(t, auth.SyncExternalUsers(t.Context(), true))
 
 	authSource := unittest.AssertExistsAndLoadBean(t, &auth_model.Source{
 		Name: payload["name"],
@@ -328,7 +328,7 @@ func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
 	u := te.otherLDAPUsers[0]
 	testLoginFailed(t, u.UserName, u.Password, translation.NewLocale("en-US").TrString("form.username_password_incorrect"))
 
-	require.NoError(t, auth.SyncExternalUsers(context.Background(), true))
+	require.NoError(t, auth.SyncExternalUsers(t.Context(), true))
 
 	// Assert members of LDAP group "cn=git" are added
 	for _, gitLDAPUser := range te.gitLDAPUsers {
@@ -349,9 +349,9 @@ func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
 	})
 	ldapConfig := ldapSource.Cfg.(*ldap.Source)
 	ldapConfig.GroupFilter = "(cn=ship_crew)"
-	require.NoError(t, auth_model.UpdateSource(db.DefaultContext, ldapSource))
+	require.NoError(t, auth_model.UpdateSource(t.Context(), ldapSource))
 
-	require.NoError(t, auth.SyncExternalUsers(context.Background(), true))
+	require.NoError(t, auth.SyncExternalUsers(t.Context(), true))
 
 	for _, gitLDAPUser := range te.gitLDAPUsers {
 		if gitLDAPUser.UserName == "fry" || gitLDAPUser.UserName == "leela" || gitLDAPUser.UserName == "bender" {
@@ -392,7 +392,7 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	te.addAuthSource(t, ldapAuthOptions{attributeSSHPublicKey: "sshPublicKey"})
 
-	require.NoError(t, auth.SyncExternalUsers(context.Background(), true))
+	require.NoError(t, auth.SyncExternalUsers(t.Context(), true))
 
 	// Check if users has SSH keys synced
 	for _, u := range te.gitLDAPUsers {
@@ -428,37 +428,37 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 		groupTeamMap:        `{"cn=ship_crew,ou=people,dc=planetexpress,dc=com":{"org26": ["team11"]},"cn=admin_staff,ou=people,dc=planetexpress,dc=com": {"non-existent": ["non-existent"]}}`,
 		groupTeamMapRemoval: "on",
 	})
-	org, err := organization.GetOrgByName(db.DefaultContext, "org26")
+	org, err := organization.GetOrgByName(t.Context(), "org26")
 	assert.NoError(t, err)
-	team, err := organization.GetTeam(db.DefaultContext, org.ID, "team11")
+	team, err := organization.GetTeam(t.Context(), org.ID, "team11")
 	assert.NoError(t, err)
-	require.NoError(t, auth.SyncExternalUsers(context.Background(), true))
+	require.NoError(t, auth.SyncExternalUsers(t.Context(), true))
 	for _, gitLDAPUser := range te.gitLDAPUsers {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: gitLDAPUser.UserName,
 		})
-		usersOrgs, err := db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
-			UserID:         user.ID,
-			IncludePrivate: true,
+		usersOrgs, err := db.Find[organization.Organization](t.Context(), organization.FindOrgOptions{
+			UserID:            user.ID,
+			IncludeVisibility: structs.VisibleTypePrivate,
 		})
 		assert.NoError(t, err)
-		allOrgTeams, err := organization.GetUserOrgTeams(db.DefaultContext, org.ID, user.ID)
+		allOrgTeams, err := organization.GetUserOrgTeams(t.Context(), org.ID, user.ID)
 		assert.NoError(t, err)
 		if user.Name == "fry" || user.Name == "leela" || user.Name == "bender" {
 			// assert members of LDAP group "cn=ship_crew" are added to mapped teams
 			assert.Len(t, usersOrgs, 1, "User [%s] should be member of one organization", user.Name)
 			assert.Equal(t, "org26", usersOrgs[0].Name, "Membership should be added to the right organization")
-			isMember, err := organization.IsTeamMember(db.DefaultContext, usersOrgs[0].ID, team.ID, user.ID)
+			isMember, err := organization.IsTeamMember(t.Context(), usersOrgs[0].ID, team.ID, user.ID)
 			assert.NoError(t, err)
 			assert.True(t, isMember, "Membership should be added to the right team")
-			err = org_service.RemoveTeamMember(db.DefaultContext, team, user)
+			err = org_service.RemoveTeamMember(t.Context(), team, user)
 			assert.NoError(t, err)
-			err = org_service.RemoveOrgUser(db.DefaultContext, usersOrgs[0], user)
+			err = org_service.RemoveOrgUser(t.Context(), usersOrgs[0], user)
 			assert.NoError(t, err)
 		} else {
 			// assert members of LDAP group "cn=admin_staff" keep initial team membership since mapped team does not exist
 			assert.Empty(t, usersOrgs, "User should be member of no organization")
-			isMember, err := organization.IsTeamMember(db.DefaultContext, org.ID, team.ID, user.ID)
+			isMember, err := organization.IsTeamMember(t.Context(), org.ID, team.ID, user.ID)
 			assert.NoError(t, err)
 			assert.False(t, isMember, "User should no be added to this team")
 			assert.Empty(t, allOrgTeams, "User should not be added to any team")
@@ -476,30 +476,30 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 		groupTeamMap:        `{"cn=dispatch,ou=people,dc=planetexpress,dc=com": {"org26": ["team11"]}}`,
 		groupTeamMapRemoval: "on",
 	})
-	org, err := organization.GetOrgByName(db.DefaultContext, "org26")
+	org, err := organization.GetOrgByName(t.Context(), "org26")
 	assert.NoError(t, err)
-	team, err := organization.GetTeam(db.DefaultContext, org.ID, "team11")
+	team, err := organization.GetTeam(t.Context(), org.ID, "team11")
 	assert.NoError(t, err)
 	loginUserWithPassword(t, te.gitLDAPUsers[0].UserName, te.gitLDAPUsers[0].Password)
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		Name: te.gitLDAPUsers[0].UserName,
 	})
-	err = organization.AddOrgUser(db.DefaultContext, org.ID, user.ID)
+	err = organization.AddOrgUser(t.Context(), org.ID, user.ID)
 	assert.NoError(t, err)
-	err = org_service.AddTeamMember(db.DefaultContext, team, user)
+	err = org_service.AddTeamMember(t.Context(), team, user)
 	assert.NoError(t, err)
-	isMember, err := organization.IsOrganizationMember(db.DefaultContext, org.ID, user.ID)
+	isMember, err := organization.IsOrganizationMember(t.Context(), org.ID, user.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember, "User should be member of this organization")
-	isMember, err = organization.IsTeamMember(db.DefaultContext, org.ID, team.ID, user.ID)
+	isMember, err = organization.IsTeamMember(t.Context(), org.ID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember, "User should be member of this team")
 	// assert team member "professor" gets removed from org26 team11
 	loginUserWithPassword(t, te.gitLDAPUsers[0].UserName, te.gitLDAPUsers[0].Password)
-	isMember, err = organization.IsOrganizationMember(db.DefaultContext, org.ID, user.ID)
+	isMember, err = organization.IsOrganizationMember(t.Context(), org.ID, user.ID)
 	assert.NoError(t, err)
 	assert.False(t, isMember, "User membership should have been removed from organization")
-	isMember, err = organization.IsTeamMember(db.DefaultContext, org.ID, team.ID, user.ID)
+	isMember, err = organization.IsTeamMember(t.Context(), org.ID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.False(t, isMember, "User membership should have been removed from team")
 }

@@ -10,10 +10,13 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // StopZombieTasks stops the task which have running status, but haven't been updated for a long time
@@ -30,6 +33,30 @@ func StopEndlessTasks(ctx context.Context) error {
 		Status:        actions_model.StatusRunning,
 		StartedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.EndlessTaskTimeout).Unix()),
 	})
+}
+
+func notifyWorkflowJobStatusUpdate(ctx context.Context, jobs []*actions_model.ActionRunJob) {
+	if len(jobs) > 0 {
+		CreateCommitStatus(ctx, jobs...)
+		for _, job := range jobs {
+			_ = job.LoadAttributes(ctx)
+			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+		}
+		job := jobs[0]
+		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
+	}
+}
+
+func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
+	jobs, err := actions_model.CancelPreviousJobs(ctx, repoID, ref, workflowID, event)
+	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	return err
+}
+
+func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) error {
+	jobs, err := actions_model.CleanRepoScheduleTasks(ctx, repo)
+	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	return err
 }
 
 func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
@@ -67,12 +94,12 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 		remove()
 	}
 
-	CreateCommitStatus(ctx, jobs...)
+	notifyWorkflowJobStatusUpdate(ctx, jobs)
 
 	return nil
 }
 
-// CancelAbandonedJobs cancels the jobs which have waiting status, but haven't been picked by a runner for a long time
+// CancelAbandonedJobs cancels jobs that have not been picked by any runner for a long time
 func CancelAbandonedJobs(ctx context.Context) error {
 	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
 		Statuses:      []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked},
@@ -84,17 +111,39 @@ func CancelAbandonedJobs(ctx context.Context) error {
 	}
 
 	now := timeutil.TimeStampNow()
+
+	// Collect one job per run to send workflow run status update
+	updatedRuns := map[int64]*actions_model.ActionRunJob{}
+
 	for _, job := range jobs {
 		job.Status = actions_model.StatusCancelled
 		job.Stopped = now
+		updated := false
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			_, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
-			return err
+			n, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
+			if err != nil {
+				return err
+			}
+			if err := job.LoadAttributes(ctx); err != nil {
+				return err
+			}
+			updated = n > 0
+			if updated && job.Run.Status.IsDone() {
+				updatedRuns[job.RunID] = job
+			}
+			return nil
 		}); err != nil {
 			log.Warn("cancel abandoned job %v: %v", job.ID, err)
 			// go on
 		}
 		CreateCommitStatus(ctx, job)
+		if updated {
+			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+		}
+	}
+
+	for _, job := range updatedRuns {
+		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 	}
 
 	return nil

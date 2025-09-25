@@ -1,5 +1,5 @@
 import {svg} from '../svg.ts';
-import {htmlEscape} from 'escape-goat';
+import {html} from '../utils/html.ts';
 import {clippie} from 'clippie';
 import {showTemporaryTooltip} from '../modules/tippy.ts';
 import {GET, POST} from '../modules/fetch.ts';
@@ -33,14 +33,14 @@ export function generateMarkdownLinkForAttachment(file: Partial<CustomDropzoneFi
       // Scale down images from HiDPI monitors. This uses the <img> tag because it's the only
       // method to change image size in Markdown that is supported by all implementations.
       // Make the image link relative to the repo path, then the final URL is "/sub-path/owner/repo/attachments/{uuid}"
-      fileMarkdown = `<img width="${Math.round(width / dppx)}" alt="${htmlEscape(file.name)}" src="attachments/${htmlEscape(file.uuid)}">`;
+      fileMarkdown = html`<img width="${Math.round(width / dppx)}" alt="${file.name}" src="attachments/${file.uuid}">`;
     } else {
       // Markdown always renders the image with a relative path, so the final URL is "/sub-path/owner/repo/attachments/{uuid}"
       // TODO: it should also use relative path for consistency, because absolute is ambiguous for "/sub-path/attachments" or "/attachments"
       fileMarkdown = `![${file.name}](/attachments/${file.uuid})`;
     }
   } else if (isVideoFile(file)) {
-    fileMarkdown = `<video src="attachments/${htmlEscape(file.uuid)}" title="${htmlEscape(file.name)}" controls></video>`;
+    fileMarkdown = html`<video src="attachments/${file.uuid}" title="${file.name}" controls></video>`;
   }
   return fileMarkdown;
 }

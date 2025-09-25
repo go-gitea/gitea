@@ -38,10 +38,10 @@ func Search(ctx *context.Context) {
 	if setting.Indexer.RepoIndexerEnabled {
 		var err error
 		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
-			RepoIDs:        []int64{ctx.Repo.Repository.ID},
-			Keyword:        prepareSearch.Keyword,
-			IsKeywordFuzzy: prepareSearch.IsFuzzy,
-			Language:       prepareSearch.Language,
+			RepoIDs:    []int64{ctx.Repo.Repository.ID},
+			Keyword:    prepareSearch.Keyword,
+			SearchMode: prepareSearch.SearchMode,
+			Language:   prepareSearch.Language,
 			Paginator: &db.ListOptions{
 				Page:     page,
 				PageSize: setting.UI.RepoSearchPagingNum,
@@ -60,7 +60,7 @@ func Search(ctx *context.Context) {
 		var err error
 		// ref should be default branch or the first existing branch
 		searchRef := git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch)
-		searchResults, total, err = gitgrep.PerformSearch(ctx, page, ctx.Repo.Repository.ID, ctx.Repo.GitRepo, searchRef, prepareSearch.Keyword, prepareSearch.IsFuzzy)
+		searchResults, total, err = gitgrep.PerformSearch(ctx, page, ctx.Repo.Repository.ID, ctx.Repo.GitRepo, searchRef, prepareSearch.Keyword, prepareSearch.SearchMode)
 		if err != nil {
 			ctx.ServerError("gitgrep.PerformSearch", err)
 			return

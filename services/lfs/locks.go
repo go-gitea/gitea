@@ -74,10 +74,7 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
-	cursor := ctx.FormInt("cursor")
-	if cursor < 0 {
-		cursor = 0
-	}
+	cursor := max(ctx.FormInt("cursor"), 0)
 	limit := ctx.FormInt("limit")
 	if limit > setting.LFS.LocksPagingNum && setting.LFS.LocksPagingNum > 0 {
 		limit = setting.LFS.LocksPagingNum
@@ -239,10 +236,7 @@ func VerifyLockHandler(ctx *context.Context) {
 
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
-	cursor := ctx.FormInt("cursor")
-	if cursor < 0 {
-		cursor = 0
-	}
+	cursor := max(ctx.FormInt("cursor"), 0)
 	limit := ctx.FormInt("limit")
 	if limit > setting.LFS.LocksPagingNum && setting.LFS.LocksPagingNum > 0 {
 		limit = setting.LFS.LocksPagingNum

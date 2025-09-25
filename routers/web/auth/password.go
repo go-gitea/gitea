@@ -5,7 +5,6 @@ package auth
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/auth"
@@ -108,14 +107,14 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 	}
 
 	if len(code) == 0 {
-		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", fmt.Sprintf("%s/user/forgot_password", setting.AppSubURL)), true)
+		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", setting.AppSubURL+"/user/forgot_password"), true)
 		return nil, nil
 	}
 
 	// Fail early, don't frustrate the user
 	u := user_model.VerifyUserTimeLimitCode(ctx, &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}, code)
 	if u == nil {
-		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", fmt.Sprintf("%s/user/forgot_password", setting.AppSubURL)), true)
+		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", setting.AppSubURL+"/user/forgot_password"), true)
 		return nil, nil
 	}
 

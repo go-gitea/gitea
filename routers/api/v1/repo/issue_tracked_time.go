@@ -4,7 +4,7 @@
 package repo
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"time"
 
@@ -80,7 +80,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -97,7 +97,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		opts.UserID = user.ID
@@ -116,7 +116,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		if opts.UserID == 0 {
 			opts.UserID = ctx.Doer.ID
 		} else {
-			ctx.APIError(http.StatusForbidden, fmt.Errorf("query by user not allowed; not enough rights"))
+			ctx.APIError(http.StatusForbidden, errors.New("query by user not allowed; not enough rights"))
 			return
 		}
 	}
@@ -129,11 +129,11 @@ func ListTrackedTimes(ctx *context.APIContext) {
 
 	trackedTimes, err := issues_model.GetTrackedTimes(ctx, opts)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if err = trackedTimes.LoadAttributes(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -186,7 +186,7 @@ func AddTime(ctx *context.APIContext) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -206,7 +206,7 @@ func AddTime(ctx *context.APIContext) {
 			// allow only RepoAdmin, Admin and User to add time
 			user, err = user_model.GetUserByName(ctx, form.User)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			}
 		}
 	}
@@ -218,11 +218,11 @@ func AddTime(ctx *context.APIContext) {
 
 	trackedTime, err := issues_model.AddTime(ctx, user, issue, form.Time, created)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if err = trackedTime.LoadAttributes(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToTrackedTime(ctx, user, trackedTime))
@@ -269,7 +269,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -288,7 +288,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		if db.IsErrNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -342,7 +342,7 @@ func DeleteTime(ctx *context.APIContext) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -362,11 +362,11 @@ func DeleteTime(ctx *context.APIContext) {
 			ctx.APIErrorNotFound(err)
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if time.Deleted {
-		ctx.APIErrorNotFound(fmt.Errorf("tracked time [%d] already deleted", time.ID))
+		ctx.APIErrorNotFound("tracked time was already deleted")
 		return
 	}
 
@@ -378,7 +378,7 @@ func DeleteTime(ctx *context.APIContext) {
 
 	err = issues_model.DeleteTime(ctx, time)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -405,7 +405,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	//   required: true
 	// - name: user
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose tracked times are to be listed
 	//   type: string
 	//   required: true
 	// responses:
@@ -427,7 +427,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -437,7 +437,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	}
 
 	if !ctx.IsUserRepoAdmin() && !ctx.Doer.IsAdmin && ctx.Doer.ID != user.ID {
-		ctx.APIError(http.StatusForbidden, fmt.Errorf("query by user not allowed; not enough rights"))
+		ctx.APIError(http.StatusForbidden, errors.New("query by user not allowed; not enough rights"))
 		return
 	}
 
@@ -448,11 +448,11 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 
 	trackedTimes, err := issues_model.GetTrackedTimes(ctx, opts)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if err = trackedTimes.LoadAttributes(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, ctx.Doer, trackedTimes))
@@ -525,7 +525,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		opts.UserID = user.ID
@@ -545,7 +545,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		if opts.UserID == 0 {
 			opts.UserID = ctx.Doer.ID
 		} else {
-			ctx.APIError(http.StatusForbidden, fmt.Errorf("query by user not allowed; not enough rights"))
+			ctx.APIError(http.StatusForbidden, errors.New("query by user not allowed; not enough rights"))
 			return
 		}
 	}
@@ -558,11 +558,11 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 
 	trackedTimes, err := issues_model.GetTrackedTimes(ctx, opts)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if err = trackedTimes.LoadAttributes(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -619,12 +619,12 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 
 	trackedTimes, err := issues_model.GetTrackedTimes(ctx, opts)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if err = trackedTimes.LoadAttributes(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

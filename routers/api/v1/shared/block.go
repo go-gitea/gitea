@@ -21,12 +21,12 @@ func ListBlocks(ctx *context.APIContext, blocker *user_model.User) {
 		BlockerID:   blocker.ID,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if err := user_model.BlockingList(blocks).LoadAttributes(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -49,7 +49,7 @@ func CheckUserBlock(ctx *context.APIContext, blocker *user_model.User) {
 	status := http.StatusNotFound
 	blocking, err := user_model.GetBlocking(ctx, blocker.ID, blockee.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if blocking != nil {
@@ -70,7 +70,7 @@ func BlockUser(ctx *context.APIContext, blocker *user_model.User) {
 		if errors.Is(err, user_model.ErrCanNotBlock) || errors.Is(err, user_model.ErrBlockOrganization) {
 			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -89,7 +89,7 @@ func UnblockUser(ctx *context.APIContext, doer, blocker *user_model.User) {
 		if errors.Is(err, user_model.ErrCanNotUnblock) || errors.Is(err, user_model.ErrBlockOrganization) {
 			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

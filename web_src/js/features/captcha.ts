@@ -34,13 +34,18 @@ export async function initCaptcha() {
       break;
     }
     case 'm-captcha': {
-      const {default: mCaptcha} = await import(/* webpackChunkName: "mcaptcha-vanilla-glue" */'@mcaptcha/vanilla-glue');
-      // @ts-expect-error
+      const mCaptcha = await import(/* webpackChunkName: "mcaptcha-vanilla-glue" */'@mcaptcha/vanilla-glue');
+
+      // FIXME: the mCaptcha code is not right, it's a miracle that the wrong code could run
+      // * the "vanilla-glue" has some problems with es6 module.
+      // * the INPUT_NAME is a "const", it should not be changed.
+      // * the "mCaptcha.default" is actually the "Widget".
+
+      // @ts-expect-error TS2540: Cannot assign to 'INPUT_NAME' because it is a read-only property.
       mCaptcha.INPUT_NAME = 'm-captcha-response';
       const instanceURL = captchaEl.getAttribute('data-instance-url');
 
-      // @ts-expect-error
-      mCaptcha.default({
+      new mCaptcha.default({
         siteKey: {
           instanceUrl: new URL(instanceURL),
           key: siteKey,

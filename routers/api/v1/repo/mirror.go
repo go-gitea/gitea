@@ -5,7 +5,6 @@ package repo
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -66,7 +65,7 @@ func MirrorSync(ctx *context.APIContext) {
 			ctx.APIError(http.StatusBadRequest, "Repository is not a mirror")
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -116,7 +115,7 @@ func PushMirrorSync(ctx *context.APIContext) {
 	for _, mirror := range pushMirrors {
 		ok := mirror_service.SyncPushMirror(ctx, mirror.ID)
 		if !ok {
-			ctx.APIError(http.StatusInternalServerError, "error occurred when syncing push mirror "+mirror.RemoteName)
+			ctx.APIErrorInternal(errors.New("error occurred when syncing push mirror " + mirror.RemoteName))
 			return
 		}
 	}
@@ -230,7 +229,7 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 		RemoteName: mirrorName,
 	}.ToConds())
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	} else if !exist {
 		ctx.APIError(http.StatusNotFound, nil)
@@ -367,7 +366,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 	pushMirror := &repo_model.PushMirror{
 		RepoID:        repo.ID,
 		Repo:          repo,
-		RemoteName:    fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+		RemoteName:    "remote_mirror_" + remoteSuffix,
 		Interval:      interval,
 		SyncOnCommit:  mirrorOption.SyncOnCommit,
 		RemoteAddress: remoteAddress,

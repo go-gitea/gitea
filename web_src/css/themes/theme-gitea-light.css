@@ -1,6 +1,10 @@
 @import "../chroma/light.css";
 @import "../codemirror/light.css";
 
+gitea-theme-meta-info {
+  --theme-display-name: "Light";
+}
+
 :root {
   --is-dark-theme: false;
   --color-primary: #4183c4;
@@ -181,6 +185,7 @@
   --color-orange-badge-bg: #f2711c1a;
   --color-orange-badge-hover-bg: #f2711c4d;
   --color-git: #f05133;
+  --color-logo: #609926;
   /* target-based colors */
   --color-body: #ffffff;
   --color-box-header: #f1f3f5;

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -22,14 +23,14 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 		page = 1
 	}
 
-	graphCmd := git.NewCommand(r.Ctx, "log", "--graph", "--date-order", "--decorate=full")
+	graphCmd := gitcmd.NewCommand("log", "--graph", "--date-order", "--decorate=full")
 
 	if hidePRRefs {
 		graphCmd.AddArguments("--exclude=" + git.PullPrefix + "*")
 	}
 
 	if len(branches) == 0 {
-		graphCmd.AddArguments("--all")
+		graphCmd.AddArguments("--tags", "--branches")
 	}
 
 	graphCmd.AddArguments("-C", "-M", "--date=iso-strict").
@@ -53,7 +54,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 
 	scanner := bufio.NewScanner(stdoutReader)
 
-	if err := graphCmd.Run(&git.RunOpts{
+	if err := graphCmd.Run(r.Ctx, &gitcmd.RunOpts{
 		Dir:    r.Path,
 		Stdout: stdoutWriter,
 		Stderr: stderr,
