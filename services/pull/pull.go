@@ -363,17 +363,21 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		// If you don't let it run all the way then you will lose data
 		// TODO: graceful: AddTestPullRequestTask needs to become a queue!
 
+		repo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
+		if err != nil {
+			log.Error("GetRepositoryByID: %v", err)
+			return
+		}
 		// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
-		// TODO: rename the "prs" to a new variable like "headBranchPRs" to distinguish from the "baseBranchPRs" below
-		// The base repositories of headBranchPRs are different
-		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, opts.RepoID, opts.Branch)
+		headBranchPRs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, opts.RepoID, opts.Branch)
 		if err != nil {
 			log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", opts.RepoID, opts.Branch, err)
 			return
 		}
 
-		for _, pr := range prs {
+		for _, pr := range headBranchPRs {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
+			pr.HeadRepo = repo // avoid loading again
 			if pr.Flow == issues_model.PullRequestFlowGithub {
 				if err := PushToBaseRepo(ctx, pr); err != nil {
 					log.Error("PushToBaseRepo: %v", err)
@@ -391,14 +395,14 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		}
 
 		if opts.IsSync {
-			if err = prs.LoadAttributes(ctx); err != nil {
+			if err = headBranchPRs.LoadAttributes(ctx); err != nil {
 				log.Error("PullRequestList.LoadAttributes: %v", err)
 			}
-			if invalidationErr := checkForInvalidation(ctx, prs, opts.RepoID, opts.Doer, opts.Branch); invalidationErr != nil {
+			if invalidationErr := checkForInvalidation(ctx, headBranchPRs, opts.RepoID, opts.Doer, opts.Branch); invalidationErr != nil {
 				log.Error("checkForInvalidation: %v", invalidationErr)
 			}
 			if err == nil {
-				for _, pr := range prs {
+				for _, pr := range headBranchPRs {
 					objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 					if opts.NewCommitID != "" && opts.NewCommitID != objectFormat.EmptyObjectID().String() {
 						changed, err := checkIfPRContentChanged(ctx, pr, opts.OldCommitID, opts.NewCommitID)
@@ -446,20 +450,14 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		}
 
 		log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", opts.RepoID, opts.Branch)
-		// TODO: rename the "prs" to a new variable like "baseBranchPRs" to distinguish from the "headBranchPRs" above
 		// The base repositories of baseBranchPRs are the same one (opts.RepoID)
-		prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, opts.RepoID, opts.Branch)
+		baseBranchPRs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, opts.RepoID, opts.Branch)
 		if err != nil {
 			log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", opts.RepoID, opts.Branch, err)
 			return
 		}
-		baseRepo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
-		if err != nil {
-			log.Error("GetRepositoryByID: %v", err)
-			return
-		}
-		for _, pr := range prs {
-			pr.BaseRepo = baseRepo // avoid loading again
+		for _, pr := range baseBranchPRs {
+			pr.BaseRepo = repo // avoid loading again
 			err = syncCommitDivergence(ctx, pr)
 			if err != nil {
 				if errors.Is(err, util.ErrNotExist) {
