@@ -292,8 +292,10 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 			return err
 		}
 
-		if err = syncCommitDivergence(ctx, pr); err != nil {
-			return fmt.Errorf("syncCommitDivergence: %w", err)
+		if !pr.HasMerged {
+			if err = syncCommitDivergence(ctx, pr); err != nil {
+				return fmt.Errorf("syncCommitDivergence: %w", err)
+			}
 		}
 
 		// Create comment
