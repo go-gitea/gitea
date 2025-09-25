@@ -187,7 +187,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 			var err error
 			divergence, err = gitrepo.GetDivergingCommits(ctx, repo, repo.DefaultBranch, git.BranchPrefix+branchName)
 			if err != nil {
-				log.Error("CountDivergingCommits: %v", err)
+				log.Error("GetDivergingCommits: %v", err)
 			} else {
 				if err = putDivergenceFromCache(repo.ID, dbBranch.Name, divergence); err != nil {
 					log.Error("putDivergenceFromCache: %v", err)

@@ -469,7 +469,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			return
 		}
 		for _, pr := range prs {
-			pr.BaseRepo = baseRepo // avoid loading again
+			pr.BaseRepo = baseRepo // avoid loading again // FIXME: why only here does so but the code above doesn't do so
 			divergence, err := GetDiverging(ctx, pr)
 			if err != nil {
 				if git_model.IsErrBranchNotExist(err) && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
@@ -491,7 +491,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 // checkIfPRContentChanged checks if diff to target branch has changed by push
 // A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
 func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
-	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
+	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr) // FIXME: why it still needs to create a temp repo, since the alongside calls like GetDiverging doesn't do so anymore
 	if err != nil {
 		log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
 		return false, err
