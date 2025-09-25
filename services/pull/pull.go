@@ -128,7 +128,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		// Update Commit Divergence
-		err = UpdateCommitDivergence(ctx, pr)
+		err = syncCommitDivergence(ctx, pr)
 		if err != nil {
 			return err
 		}
@@ -286,17 +286,16 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		pr.Status = issues_model.PullRequestStatusMergeable
 	}
 
-	// Update Commit Divergence
-	divergence, err := GetDiverging(ctx, pr)
-	if err != nil {
-		return err
-	}
-	pr.CommitsAhead = divergence.Ahead
-	pr.CommitsBehind = divergence.Behind
-
+	// add first push codes comment
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
+		if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch"); err != nil {
 			return err
+		}
+
+		if !pr.HasMerged {
+			if err = syncCommitDivergence(ctx, pr); err != nil {
+				return fmt.Errorf("syncCommitDivergence: %w", err)
+			}
 		}
 
 		// Create comment
@@ -426,8 +425,8 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
-						if err = UpdateCommitDivergence(ctx, pr); err != nil {
-							log.Error("UpdateCommitDivergence: %v", err)
+						if err = syncCommitDivergence(ctx, pr); err != nil {
+							log.Error("syncCommitDivergence: %v", err)
 						}
 					}
 
@@ -461,12 +460,12 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		}
 		for _, pr := range prs {
 			pr.BaseRepo = baseRepo // avoid loading again
-			err = UpdateCommitDivergence(ctx, pr)
+			err = syncCommitDivergence(ctx, pr)
 			if err != nil {
 				if errors.Is(err, util.ErrNotExist) {
 					log.Warn("Cannot test PR %s/%d with base=%s head=%s: no longer exists", pr.BaseRepo.FullName(), pr.IssueID, pr.BaseBranch, pr.HeadBranch)
 				} else {
-					log.Error("UpdateCommitDivergence: %v", err)
+					log.Error("syncCommitDivergence: %v", err)
 				}
 				continue
 			}

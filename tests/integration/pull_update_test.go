@@ -14,6 +14,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -29,10 +30,12 @@ func TestAPIPullUpdate(t *testing.T) {
 		pr := createOutdatedPR(t, user, org26)
 
 		// Test GetDiverging
-		diffCount, err := pull_service.GetDiverging(t.Context(), pr)
+		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
+		assert.Equal(t, diffCount.Behind, pr.CommitsBehind)
+		assert.Equal(t, diffCount.Ahead, pr.CommitsAhead)
 		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 		assert.NoError(t, pr.LoadIssue(t.Context()))
 
@@ -43,10 +46,13 @@ func TestAPIPullUpdate(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
-		diffCount, err = pull_service.GetDiverging(t.Context(), pr)
+		diffCount, err = gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 2, diffCount.Ahead)
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+		assert.Equal(t, diffCount.Behind, pr.CommitsBehind)
+		assert.Equal(t, diffCount.Ahead, pr.CommitsAhead)
 	})
 }
 
@@ -58,7 +64,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		pr := createOutdatedPR(t, user, org26)
 
 		// Test GetDiverging
-		diffCount, err := pull_service.GetDiverging(t.Context(), pr)
+		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
@@ -72,7 +78,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
-		diffCount, err = pull_service.GetDiverging(t.Context(), pr)
+		diffCount, err = gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
