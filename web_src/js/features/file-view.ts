@@ -1,6 +1,7 @@
 import type {FileRenderPlugin} from '../render/plugin.ts';
 import {newRenderPlugin3DViewer} from '../render/plugins/3d-viewer.ts';
 import {newRenderPluginPdfViewer} from '../render/plugins/pdf-viewer.ts';
+import {newRenderPluginExcalidrawViewer} from '../render/plugins/excalidraw-view.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {createElementFromHTML, showElem, toggleElemClass} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
@@ -10,7 +11,7 @@ const plugins: FileRenderPlugin[] = [];
 
 function initPluginsOnce(): void {
   if (plugins.length) return;
-  plugins.push(newRenderPlugin3DViewer(), newRenderPluginPdfViewer());
+  plugins.push(newRenderPlugin3DViewer(), newRenderPluginPdfViewer(), newRenderPluginExcalidrawViewer());
 }
 
 function findFileRenderPlugin(filename: string, mimeType: string): FileRenderPlugin | null {
