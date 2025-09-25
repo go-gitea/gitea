@@ -28,6 +28,7 @@ func TestAPIPullUpdate(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
 		pr := createOutdatedPR(t, user, org26)
+		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 
 		// Test GetDiverging
 		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
@@ -36,7 +37,6 @@ func TestAPIPullUpdate(t *testing.T) {
 		assert.Equal(t, 1, diffCount.Ahead)
 		assert.Equal(t, diffCount.Behind, pr.CommitsBehind)
 		assert.Equal(t, diffCount.Ahead, pr.CommitsAhead)
-		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 		assert.NoError(t, pr.LoadIssue(t.Context()))
 
 		session := loginUser(t, "user2")
@@ -62,13 +62,13 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
 		pr := createOutdatedPR(t, user, org26)
+		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 
 		// Test GetDiverging
 		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
-		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 		assert.NoError(t, pr.LoadIssue(t.Context()))
 
 		session := loginUser(t, "user2")
