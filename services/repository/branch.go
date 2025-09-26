@@ -33,7 +33,6 @@ import (
 	actions_service "code.gitea.io/gitea/services/actions"
 	notify_service "code.gitea.io/gitea/services/notify"
 	release_service "code.gitea.io/gitea/services/release"
-	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"xorm.io/builder"
 )
@@ -123,9 +122,9 @@ func getDivergenceCacheKey(repoID int64, branchName string) string {
 }
 
 // getDivergenceFromCache gets the divergence from cache
-func getDivergenceFromCache(repoID int64, branchName string) (*git.DivergeObject, bool) {
+func getDivergenceFromCache(repoID int64, branchName string) (*gitrepo.DivergeObject, bool) {
 	data, ok := cache.GetCache().Get(getDivergenceCacheKey(repoID, branchName))
-	res := git.DivergeObject{
+	res := gitrepo.DivergeObject{
 		Ahead:  -1,
 		Behind: -1,
 	}
@@ -139,7 +138,7 @@ func getDivergenceFromCache(repoID int64, branchName string) (*git.DivergeObject
 	return &res, true
 }
 
-func putDivergenceFromCache(repoID int64, branchName string, divergence *git.DivergeObject) error {
+func putDivergenceFromCache(repoID int64, branchName string, divergence *gitrepo.DivergeObject) error {
 	bs, err := json.Marshal(divergence)
 	if err != nil {
 		return err
@@ -178,7 +177,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 	p := protectedBranches.GetFirstMatched(branchName)
 	isProtected := p != nil
 
-	var divergence *git.DivergeObject
+	var divergence *gitrepo.DivergeObject
 
 	// it's not default branch
 	if repo.DefaultBranch != dbBranch.Name && !dbBranch.IsDeleted {
@@ -186,9 +185,9 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 		divergence, cached = getDivergenceFromCache(repo.ID, dbBranch.Name)
 		if !cached {
 			var err error
-			divergence, err = files_service.CountDivergingCommits(ctx, repo, git.BranchPrefix+branchName)
+			divergence, err = gitrepo.GetDivergingCommits(ctx, repo, repo.DefaultBranch, git.BranchPrefix+branchName)
 			if err != nil {
-				log.Error("CountDivergingCommits: %v", err)
+				log.Error("GetDivergingCommits: %v", err)
 			} else {
 				if err = putDivergenceFromCache(repo.ID, dbBranch.Name, divergence); err != nil {
 					log.Error("putDivergenceFromCache: %v", err)
@@ -199,7 +198,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 
 	if divergence == nil {
 		// tolerate the error that we cannot get divergence
-		divergence = &git.DivergeObject{Ahead: -1, Behind: -1}
+		divergence = &gitrepo.DivergeObject{Ahead: -1, Behind: -1}
 	}
 
 	pr, err := issues_model.GetLatestPullRequestByHeadInfo(ctx, repo.ID, branchName)
@@ -720,7 +719,7 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 	// if the fork repo has new commits, this call will fail because they are not in the base repo
 	// exit status 128 - fatal: Invalid symmetric difference expression aaaaaaaaaaaa...bbbbbbbbbbbb
 	// so at the moment, we first check the update time, then check whether the fork branch has base's head
-	diff, err := git.GetDivergingCommits(ctx, baseRepo.RepoPath(), baseGitBranch.CommitID, headGitBranch.CommitID)
+	diff, err := gitrepo.GetDivergingCommits(ctx, baseRepo, baseGitBranch.CommitID, headGitBranch.CommitID)
 	if err != nil {
 		info.BaseHasNewCommits = baseGitBranch.UpdatedUnix > headGitBranch.UpdatedUnix
 		if headRepo.IsFork && info.BaseHasNewCommits {
