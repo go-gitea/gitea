@@ -142,6 +142,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadAdminFrom(cfg)
 	loadAPIFrom(cfg)
 	loadMetricsFrom(cfg)
+	loadOpenTelemetryFrom(cfg)
 	loadCamoFrom(cfg)
 	loadI18nFrom(cfg)
 	loadGitFrom(cfg)
