@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"maps"
 	"os"
 	"strings"
 	"time"
@@ -44,9 +45,7 @@ func loadOpenTelemetryFrom(rootCfg ConfigProvider) {
 			OpenTelemetry.Headers = make(map[string]string)
 		}
 		headers := parseOTELHeaders(headersStr)
-		for k, v := range headers {
-			OpenTelemetry.Headers[k] = v
-		}
+		maps.Copy(OpenTelemetry.Headers, headers)
 	}
 
 	// Support standard OpenTelemetry environment variables
@@ -70,9 +69,7 @@ func loadOpenTelemetryFrom(rootCfg ConfigProvider) {
 		if OpenTelemetry.Headers == nil {
 			OpenTelemetry.Headers = make(map[string]string)
 		}
-		for k, v := range headers {
-			OpenTelemetry.Headers[k] = v
-		}
+		maps.Copy(OpenTelemetry.Headers, headers)
 	}
 
 	if envInsecure := getEnvValue("OTEL_EXPORTER_OTLP_INSECURE"); envInsecure == "true" {
@@ -90,9 +87,9 @@ func loadOpenTelemetryFrom(rootCfg ConfigProvider) {
 // Format: "key1=value1,key2=value2"
 func parseOTELHeaders(headersStr string) map[string]string {
 	headers := make(map[string]string)
-	pairs := strings.Split(headersStr, ",")
+	pairs := strings.SplitSeq(headersStr, ",")
 
-	for _, pair := range pairs {
+	for pair := range pairs {
 		kv := strings.Split(strings.TrimSpace(pair), "=")
 		if len(kv) == 2 {
 			headers[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
