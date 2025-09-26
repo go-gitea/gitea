@@ -126,8 +126,8 @@ func NewComment(ctx *context.Context) {
 						ctx.JSONError("The origin branch is delete, cannot reopen.")
 						return
 					}
-					headBranchRef := pull.GetGitHeadBranchRefName()
-					headBranchCommitID, err := git.GetFullCommitID(ctx, pull.HeadRepo.RepoPath(), headBranchRef)
+					headBranchRef := git.RefNameFromBranch(pull.HeadBranch)
+					headBranchCommitID, err := git.GetFullCommitID(ctx, pull.HeadRepo.RepoPath(), headBranchRef.String())
 					if err != nil {
 						ctx.ServerError("Get head commit Id of head branch fail", err)
 						return
