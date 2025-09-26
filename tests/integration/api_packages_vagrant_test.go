@@ -165,6 +165,6 @@ func TestPackageVagrant(t *testing.T) {
 		provider := version.Providers[0]
 		assert.Equal(t, packageProvider, provider.Name)
 		assert.Equal(t, "sha512", provider.ChecksumType)
-		assert.Equal(t, "c9967d88db2888a74778b5c62dbc2508921c8b54aca0e2ba34ab3e95e655cdb182bb2989b28e7ab4cab696f2ac7193d7ba9f57dea5191aad0c6a1082991c1ab8", provider.Checksum)
+		assert.Equal(t, "259bebd6160acad695016d22a45812e26f187aaf78e71a4c23ee3201528346293f991af3468a8c6c5d2a21d7d9e1bdc1bf79b87110b2fddfcc5a0d45963c7c30", provider.Checksum)
 	})
 }

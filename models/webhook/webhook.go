@@ -150,14 +150,7 @@ func init() {
 // AfterLoad updates the webhook object upon setting a column
 func (w *Webhook) AfterLoad() {
 	w.HookEvent = &webhook_module.HookEvent{}
-
-	events := w.Events
-	if events == "" {
-		// jsonv2 is unable to unmarshal an empty string
-		return
-	}
-
-	if err := json.Unmarshal([]byte(events), w.HookEvent); err != nil {
+	if err := json.Unmarshal([]byte(w.Events), w.HookEvent); err != nil {
 		log.Error("Unmarshal[%d]: %v", w.ID, err)
 	}
 }
