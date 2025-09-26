@@ -123,12 +123,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		issue.PullRequest = pr
 
 		// update head commit id into git repository
-		if pr.Flow == issues_model.PullRequestFlowAGit {
-			err = UpdatePullRequestAgitFlowHead(ctx, pr, pr.HeadCommitID)
-		} else {
-			err = UpdatePullRequestGithubFlowHead(ctx, pr)
-		}
-		if err != nil {
+		if err = UpdatePullRequestHeadRef(ctx, pr); err != nil {
 			return err
 		}
 
@@ -388,7 +383,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
 			pr.HeadRepo = repo // avoid loading again
 			if pr.Flow == issues_model.PullRequestFlowGithub {
-				if err := UpdatePullRequestGithubFlowHead(ctx, pr); err != nil {
+				if err := UpdatePullRequestHeadRef(ctx, pr); err != nil {
 					log.Error("PushToBaseRepo: %v", err)
 					continue
 				}
@@ -549,7 +544,7 @@ func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *r
 		for _, pr := range prs {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
 			if pr.Flow == issues_model.PullRequestFlowGithub {
-				if err := UpdatePullRequestGithubFlowHead(ctx, pr); err != nil {
+				if err := UpdatePullRequestHeadRef(ctx, pr); err != nil {
 					log.Error("UpdatePullRequestHead: %v", err)
 				}
 			}
@@ -557,18 +552,19 @@ func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *r
 	}
 }
 
-func UpdatePullRequestAgitFlowHead(ctx context.Context, pr *issues_model.PullRequest, commitID string) error {
-	log.Trace("UpdateAgitPullRequestHead[%d]: update pull request head in base repo '%s'", pr.ID, pr.GetGitHeadRefName())
-
-	return gitrepo.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), commitID)
-}
-
 // UpdatePullRequestHeadRef updates the head reference of a pull request
-func UpdatePullRequestGithubFlowHead(ctx context.Context, pr *issues_model.PullRequest) error {
+func UpdatePullRequestHeadRef(ctx context.Context, pr *issues_model.PullRequest) error {
 	log.Trace("UpdatePullRequestHeadRef[%d]: update pull request ref in base repo '%s'", pr.ID, pr.GetGitHeadRefName())
 
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
+	}
+
+	if pr.Flow == issues_model.PullRequestFlowAGit {
+		if pr.HeadCommitID == "" {
+			return errors.New("head commit ID cannot be empty for agit flow")
+		}
+		return gitrepo.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID)
 	}
 
 	if !pr.IsSameRepo() { // for cross repository pull request
@@ -576,12 +572,10 @@ func UpdatePullRequestGithubFlowHead(ctx context.Context, pr *issues_model.PullR
 			return err
 		}
 
-		if err := gitrepo.FetchRemoteBranch(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadRepo, pr.HeadBranch); err != nil {
-			return err
-		}
+		return gitrepo.FetchRemoteBranch(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadRepo, pr.HeadBranch)
 	}
 
-	return gitrepo.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID)
+	return gitrepo.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadBranch)
 }
 
 // retargetBranchPulls change target branch for all pull requests whose base branch is the branch

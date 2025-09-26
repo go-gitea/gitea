@@ -216,7 +216,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		pr.HeadCommitID = opts.NewCommitIDs[i]
-		if err = pull_service.UpdatePullRequestAgitFlowHead(ctx, pr, pr.HeadCommitID); err != nil {
+		if err = pull_service.UpdatePullRequestHeadRef(ctx, pr); err != nil {
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
 		}
 
