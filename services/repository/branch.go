@@ -441,7 +441,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	}
 
 	if err := git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
-		err2 := gitRepo.RenameBranch(from, to)
+		err2 := gitrepo.RenameBranch(ctx, repo, from, to)
 		if err2 != nil {
 			return err2
 		}
@@ -552,9 +552,7 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 			return nil
 		}
 
-		return gitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
-			Force: true,
-		})
+		return gitrepo.DeleteBranch(ctx, repo, branchName, true)
 	}); err != nil {
 		return err
 	}
