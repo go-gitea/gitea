@@ -209,6 +209,11 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 // CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.
 // It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) ([]*ActionRunJob, error) {
+	// Do not do cancellation if disabled in settings
+	if !setting.Actions.EnableAutoCancellation {
+		return nil, nil
+	}
+
 	// Find all runs in the specified repository, reference, and workflow with non-final status
 	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
 		RepoID:       repoID,
