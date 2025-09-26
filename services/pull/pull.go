@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/graceful"
@@ -131,17 +132,13 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			return err
 		}
 
-		// update commits ahead and behind
-		divergence, err := GetDiverging(ctx, pr)
+		// Update Commit Divergence
+		err = syncCommitDivergence(ctx, pr)
 		if err != nil {
 			return err
 		}
-		pr.CommitsAhead = divergence.Ahead
-		pr.CommitsBehind = divergence.Behind
-		if _, err := db.GetEngine(ctx).ID(pr.ID).Cols("commits_ahead", "commits_behind").NoAutoTime().Update(pr); err != nil {
-			return err
-		}
 
+		// add first push codes comment
 		if _, err := CreatePushPullComment(ctx, issue.Poster, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false); err != nil {
 			return err
 		}
@@ -155,8 +152,8 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		return nil
 	}); err != nil {
 		// cleanup: this will only remove the reference, the real commit will be clean up when next GC
-		if err1 := gitrepo.RemoveReference(ctx, pr.BaseRepo, pr.GetGitHeadRefName()); err1 != nil {
-			log.Error("RemoveReference: %v", err1)
+		if err1 := gitrepo.RemoveRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName()); err1 != nil {
+			log.Error("RemoveRef: %v", err1)
 		}
 		return err
 	}
@@ -294,21 +291,20 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		pr.Status = issues_model.PullRequestStatusMergeable
 	}
 
-	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return err
-	}
-
-	// update commits ahead and behind
-	divergence, err := GetDiverging(ctx, pr)
-	if err != nil {
-		return err
-	}
-	pr.CommitsAhead = divergence.Ahead
-	pr.CommitsBehind = divergence.Behind
-
+	// add first push codes comment
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
+		// The UPDATE acquires the transaction lock, if the UPDATE succeeds, it should have updated one row (the "base_branch" is changed)
+		// If no row is updated, it means the PR has been merged or closed in the meantime
+		updated, err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch")
+		if err != nil {
 			return err
+		}
+		if updated == 0 {
+			return util.ErrorWrap(util.ErrInvalidArgument, "pull request status has changed")
+		}
+
+		if err := syncCommitDivergence(ctx, pr); err != nil {
+			return fmt.Errorf("syncCommitDivergence: %w", err)
 		}
 
 		// Create comment
@@ -376,15 +372,21 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		// If you don't let it run all the way then you will lose data
 		// TODO: graceful: AddTestPullRequestTask needs to become a queue!
 
+		repo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
+		if err != nil {
+			log.Error("GetRepositoryByID: %v", err)
+			return
+		}
 		// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
-		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, opts.RepoID, opts.Branch)
+		headBranchPRs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, opts.RepoID, opts.Branch)
 		if err != nil {
 			log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", opts.RepoID, opts.Branch, err)
 			return
 		}
 
-		for _, pr := range prs {
+		for _, pr := range headBranchPRs {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
+			pr.HeadRepo = repo // avoid loading again
 			if pr.Flow == issues_model.PullRequestFlowGithub {
 				if err := UpdatePullRequestGithubFlowHead(ctx, pr); err != nil {
 					log.Error("PushToBaseRepo: %v", err)
@@ -402,14 +404,14 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		}
 
 		if opts.IsSync {
-			if err = prs.LoadAttributes(ctx); err != nil {
+			if err = headBranchPRs.LoadAttributes(ctx); err != nil {
 				log.Error("PullRequestList.LoadAttributes: %v", err)
 			}
-			if invalidationErr := checkForInvalidation(ctx, prs, opts.RepoID, opts.Doer, opts.Branch); invalidationErr != nil {
+			if invalidationErr := checkForInvalidation(ctx, headBranchPRs, opts.RepoID, opts.Doer, opts.Branch); invalidationErr != nil {
 				log.Error("checkForInvalidation: %v", invalidationErr)
 			}
 			if err == nil {
-				for _, pr := range prs {
+				for _, pr := range headBranchPRs {
 					objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 					if opts.NewCommitID != "" && opts.NewCommitID != objectFormat.EmptyObjectID().String() {
 						changed, err := checkIfPRContentChanged(ctx, pr, opts.OldCommitID, opts.NewCommitID)
@@ -436,15 +438,8 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
-
-						divergence, err := GetDiverging(ctx, pr)
-						if err != nil {
-							log.Error("GetDiverging: %v", err)
-						} else {
-							err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
-							if err != nil {
-								log.Error("UpdateCommitDivergence: %v", err)
-							}
+						if err = syncCommitDivergence(ctx, pr); err != nil {
+							log.Error("syncCommitDivergence: %v", err)
 						}
 					}
 
@@ -464,30 +459,22 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		}
 
 		log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", opts.RepoID, opts.Branch)
-		prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, opts.RepoID, opts.Branch)
+		// The base repositories of baseBranchPRs are the same one (opts.RepoID)
+		baseBranchPRs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, opts.RepoID, opts.Branch)
 		if err != nil {
 			log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", opts.RepoID, opts.Branch, err)
 			return
 		}
-		baseRepo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
-		if err != nil {
-			log.Error("GetRepositoryByID: %v", err)
-			return
-		}
-		for _, pr := range prs {
-			pr.BaseRepo = baseRepo
-			divergence, err := GetDiverging(ctx, pr)
+		for _, pr := range baseBranchPRs {
+			pr.BaseRepo = repo // avoid loading again
+			err = syncCommitDivergence(ctx, pr)
 			if err != nil {
-				if git_model.IsErrBranchNotExist(err) && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
-					log.Warn("Cannot test PR %s/%d: head_branch %s no longer exists", pr.BaseRepo.Name, pr.IssueID, pr.HeadBranch)
+				if errors.Is(err, util.ErrNotExist) {
+					log.Warn("Cannot test PR %s/%d with base=%s head=%s: no longer exists", pr.BaseRepo.FullName(), pr.IssueID, pr.BaseBranch, pr.HeadBranch)
 				} else {
-					log.Error("GetDiverging: %v", err)
+					log.Error("syncCommitDivergence: %v", err)
 				}
-			} else {
-				err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
-				if err != nil {
-					log.Error("UpdateCommitDivergence: %v", err)
-				}
+				continue
 			}
 			StartPullRequestCheckDelayable(ctx, pr)
 		}
@@ -497,7 +484,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 // checkIfPRContentChanged checks if diff to target branch has changed by push
 // A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
 func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
-	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
+	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr) // FIXME: why it still needs to create a temp repo, since the alongside calls like GetDiverging doesn't do so anymore
 	if err != nil {
 		log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
 		return false, err
@@ -516,14 +503,14 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		return false, fmt.Errorf("GetMergeBase: %w", err)
 	}
 
-	cmd := git.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, base)
+	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, base)
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return false, fmt.Errorf("unable to open pipe for to run diff: %w", err)
 	}
 
 	stderr := new(bytes.Buffer)
-	if err := cmd.Run(ctx, &git.RunOpts{
+	if err := cmd.Run(ctx, &gitcmd.RunOpts{
 		Dir:    prCtx.tmpBasePath,
 		Stdout: stdoutWriter,
 		Stderr: stderr,
@@ -538,7 +525,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		if err == util.ErrNotEmpty {
 			return true, nil
 		}
-		err = git.ConcatenateError(err, stderr.String())
+		err = gitcmd.ConcatenateError(err, stderr.String())
 
 		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
 			newCommitID, oldCommitID, base,
@@ -573,7 +560,7 @@ func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *r
 func UpdatePullRequestAgitFlowHead(ctx context.Context, pr *issues_model.PullRequest, commitID string) error {
 	log.Trace("UpdateAgitPullRequestHead[%d]: update pull request head in base repo '%s'", pr.ID, pr.GetGitHeadRefName())
 
-	_, _, err := git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), commitID).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+	_, _, err := gitcmd.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), commitID).RunStdString(ctx, &gitcmd.RunOpts{Dir: pr.BaseRepo.RepoPath()})
 	return err
 }
 
@@ -585,9 +572,8 @@ func UpdatePullRequestGithubFlowHead(ctx context.Context, pr *issues_model.PullR
 		return err
 	}
 
-	if pr.IsSameRepo() { // for agit flow or github flow in the same repository
-		_, _, err := git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.HeadBranch).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
-		return err
+	if err := gitrepo.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID); err != nil {
+		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}
 
 	// for cross repository pull request
@@ -595,11 +581,11 @@ func UpdatePullRequestGithubFlowHead(ctx context.Context, pr *issues_model.PullR
 		return err
 	}
 
-	_, _, err := git.NewCommand("fetch", "--no-tags", "--refmap=").
+	_, _, err := gitcmd.NewCommand("fetch", "--no-tags", "--refmap=").
 		AddDynamicArguments(pr.HeadRepo.RepoPath()).
 		// + means force fetch
 		AddDynamicArguments(fmt.Sprintf("+refs/heads/%s:%s", pr.HeadBranch, pr.GetGitHeadRefName())).
-		RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+		RunStdString(ctx, &gitcmd.RunOpts{Dir: pr.BaseRepo.RepoPath()})
 	return err
 }
 

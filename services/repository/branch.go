@@ -19,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -718,10 +719,10 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 
 	// we need fetch the necessary commits from the head repo first if it's not the same repository
 	if baseRepo.ID != headRepo.ID {
-		if _, _, err := git.NewCommand("fetch", "--no-tags").
+		if _, _, err := gitcmd.NewCommand("fetch", "--no-tags").
 			AddDynamicArguments(headRepo.RepoPath()).
 			AddDynamicArguments(headGitBranch.CommitID).
-			RunStdString(ctx, &git.RunOpts{Dir: baseRepo.RepoPath()}); err != nil {
+			RunStdString(ctx, &gitcmd.RunOpts{Dir: baseRepo.RepoPath()}); err != nil {
 			return nil, err
 		}
 	}

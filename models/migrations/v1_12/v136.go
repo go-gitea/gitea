@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -88,10 +89,9 @@ func AddCommitDivergenceToPulls(x *xorm.Engine) error {
 				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
 				continue
 			}
-
+			repoStore := repo_model.StorageRepo(repo_model.RelativePath(baseRepo.OwnerName, baseRepo.Name))
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
-
-			divergence, err := gitrepo.GetDivergingCommits(graceful.GetManager().HammerContext(), baseRepo, pr.BaseBranch, gitRefName)
+			divergence, err := gitrepo.GetDivergingCommits(graceful.GetManager().HammerContext(), repoStore, pr.BaseBranch, gitRefName)
 			if err != nil {
 				log.Warn("Could not recalculate Divergence for pull: %d", pr.ID)
 				pr.CommitsAhead = 0
