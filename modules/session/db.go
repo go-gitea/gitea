@@ -5,6 +5,7 @@ package session
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"sync"
 
@@ -121,12 +122,12 @@ func (p *DBProvider) Read(sid string) (session.RawStore, error) {
 }
 
 // Exist returns true if session with given ID exists.
-func (p *DBProvider) Exist(sid string) bool {
+func (p *DBProvider) Exist(sid string) (bool, error) {
 	has, err := auth.ExistSession(dbContext(), sid)
 	if err != nil {
-		panic("session/DB: error checking existence: " + err.Error())
+		return false, fmt.Errorf("session/DB: error checking existence: %w", err)
 	}
-	return has
+	return has, nil
 }
 
 // Destroy deletes a session by session ID.
@@ -155,12 +156,12 @@ func (p *DBProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err err
 }
 
 // Count counts and returns number of sessions.
-func (p *DBProvider) Count() int {
+func (p *DBProvider) Count() (int, error) {
 	total, err := auth.CountSessions(dbContext())
 	if err != nil {
-		panic("session/DB: error counting records: " + err.Error())
+		fmt.Errorf("session/DB: error counting records: %w", err)
 	}
-	return int(total)
+	return int(total), nil
 }
 
 // GC calls GC to clean expired sessions.

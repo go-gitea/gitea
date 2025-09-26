@@ -107,17 +107,8 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 	return proxy.ForwardedHeaders(opt)
 }
 
-func Sessioner() (middleware func(next http.Handler) http.Handler, err error) {
-	// Recover from panic if session.Sessioner fails due to invalid config
-	// https://gitea.com/go-chi/session/src/commit/16768d98ec9667722b876d4bed11017ce16d4572/session.go#L237-L240
-	defer func() {
-		if r := recover(); r != nil {
-			rErr := r.(error)
-			err = fmt.Errorf("failed to create session middleware: %w", rErr)
-		}
-	}()
-
-	middleware = session.Sessioner(session.Options{
+func Sessioner() (func(next http.Handler) http.Handler, error) {
+	middleware, err := session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
 		CookieName:     setting.SessionConfig.CookieName,
@@ -128,6 +119,9 @@ func Sessioner() (middleware func(next http.Handler) http.Handler, err error) {
 		SameSite:       setting.SessionConfig.SameSite,
 		Domain:         setting.SessionConfig.Domain,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session middleware: %w", err)
+	}
 
-	return middleware, err
+	return middleware, nil
 }

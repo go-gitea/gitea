@@ -135,10 +135,12 @@ func (p *RedisProvider) Init(maxlifetime int64, configs string) (err error) {
 // Read returns raw session store by session ID.
 func (p *RedisProvider) Read(sid string) (session.RawStore, error) {
 	psid := p.prefix + sid
-	if !p.Exist(sid) {
+	if exist, err := p.Exist(sid); err == nil && !exist {
 		if err := p.c.Set(graceful.GetManager().HammerContext(), psid, "", p.duration).Err(); err != nil {
 			return nil, err
 		}
+	} else if err != nil {
+		return nil, err
 	}
 
 	var kv map[any]any
@@ -159,9 +161,9 @@ func (p *RedisProvider) Read(sid string) (session.RawStore, error) {
 }
 
 // Exist returns true if session with given ID exists.
-func (p *RedisProvider) Exist(sid string) bool {
+func (p *RedisProvider) Exist(sid string) (bool, error) {
 	v, err := p.c.Exists(graceful.GetManager().HammerContext(), p.prefix+sid).Result()
-	return err == nil && v == 1
+	return err == nil && v == 1, err
 }
 
 // Destroy deletes a session by session ID.
@@ -174,11 +176,19 @@ func (p *RedisProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err 
 	poldsid := p.prefix + oldsid
 	psid := p.prefix + sid
 
-	if p.Exist(sid) {
+	exist, err := p.Exist(sid)
+	if err != nil {
+		return nil, err
+	}
+	if exist {
 		return nil, fmt.Errorf("new sid '%s' already exists", sid)
-	} else if !p.Exist(oldsid) {
-		// Make a fake old session.
-		if err = p.c.Set(graceful.GetManager().HammerContext(), poldsid, "", p.duration).Err(); err != nil {
+	} else {
+		if exist, err := p.Exist(oldsid); err == nil && !exist {
+			// Make a fake old session.
+			if err = p.c.Set(graceful.GetManager().HammerContext(), poldsid, "", p.duration).Err(); err != nil {
+				return nil, err
+			}
+		} else if err != nil {
 			return nil, err
 		}
 	}
@@ -211,12 +221,9 @@ func (p *RedisProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err 
 }
 
 // Count counts and returns number of sessions.
-func (p *RedisProvider) Count() int {
+func (p *RedisProvider) Count() (int, error) {
 	size, err := p.c.DBSize(graceful.GetManager().HammerContext()).Result()
-	if err != nil {
-		return 0
-	}
-	return int(size)
+	return int(size), err
 }
 
 // GC calls GC to clean expired sessions.
