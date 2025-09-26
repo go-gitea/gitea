@@ -24,12 +24,12 @@ var jsonV2 JSONv2
 
 func init() {
 	commonMarshalOptions := []jsonv2.Options{
-		jsonv2.MatchCaseInsensitiveNames(true),
 		jsonv2.FormatNilSliceAsNull(true),
 		jsonv2.FormatNilMapAsNull(true),
-		jsonv2.Deterministic(true),
 	}
 	jsonV2.marshalOptions = jsonv2.JoinOptions(commonMarshalOptions...)
+
+	// Some JSON structs like oci.ImageConfig uses case-insensitive matching
 	jsonV2.unmarshalOptions = jsonv2.JoinOptions(jsonv2.MatchCaseInsensitiveNames(true))
 
 	// by default, "json/v2" omitempty removes all `""` empty strings, no matter where it comes from.
@@ -38,7 +38,7 @@ func init() {
 }
 
 func getDefaultJSONHandler() Interface {
-	return jsonV2
+	return &jsonV2
 }
 
 func MarshalKeepOptionalEmpty(v any) ([]byte, error) {

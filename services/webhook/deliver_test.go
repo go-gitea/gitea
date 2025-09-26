@@ -179,19 +179,21 @@ func TestWebhookDeliverHookTask(t *testing.T) {
     }
   ]
 }`
+
+	testVersion := 0
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "PUT", r.Method)
-		switch r.URL.Path {
-		case "/webhook/66d222a5d6349e1311f551e50722d837e30fce98":
-			// Version 1
+		assert.True(t, strings.HasPrefix(r.URL.Path, "/webhook/"))
+		assert.Len(t, r.URL.Path, len("/webhook/")+40) // +40 for txnID, a unique ID from payload's sha1 hash
+		switch testVersion {
+		case 1: // Version 1
 			assert.Equal(t, "push", r.Header.Get("X-GitHub-Event"))
 			assert.Empty(t, r.Header.Get("Content-Type"))
 			body, err := io.ReadAll(r.Body)
 			assert.NoError(t, err)
 			assert.Equal(t, `{"data": 42}`, string(body))
 
-		case "/webhook/4ddf3b1533e54f082ae6eadfc1b5530be36c8893":
-			// Version 2
+		case 2: // Version 2
 			assert.Equal(t, "push", r.Header.Get("X-GitHub-Event"))
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 			body, err := io.ReadAll(r.Body)
@@ -220,6 +222,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 	assert.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
 
 	t.Run("Version 1", func(t *testing.T) {
+		testVersion = 1
 		hookTask := &webhook_model.HookTask{
 			HookID:         hook.ID,
 			EventType:      webhook_module.HookEventPush,
@@ -246,6 +249,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 		data, err := p.JSONPayload()
 		assert.NoError(t, err)
 
+		testVersion = 2
 		hookTask := &webhook_model.HookTask{
 			HookID:         hook.ID,
 			EventType:      webhook_module.HookEventPush,

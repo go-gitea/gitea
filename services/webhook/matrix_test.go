@@ -4,6 +4,7 @@
 package webhook
 
 import (
+	"strings"
 	"testing"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
@@ -216,7 +217,9 @@ func TestMatrixJSONPayload(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "PUT", req.Method)
-	assert.Equal(t, "/_matrix/client/r0/rooms/ROOM_ID/send/m.room.message/4ddf3b1533e54f082ae6eadfc1b5530be36c8893", req.URL.Path)
+	txnID, ok := strings.CutPrefix(req.URL.Path, "/_matrix/client/r0/rooms/ROOM_ID/send/m.room.message/")
+	assert.True(t, ok)
+	assert.Len(t, txnID, 40) // txnID is just a unique ID for a webhook request, it is a sha1 hash from the payload
 	assert.Equal(t, "sha256=", req.Header.Get("X-Hub-Signature-256"))
 	assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
 	var body MatrixPayload
