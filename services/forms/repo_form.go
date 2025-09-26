@@ -239,6 +239,11 @@ type WebhookForm struct {
 	BranchFilter             string `binding:"GlobPattern"`
 	AuthorizationHeader      string
 	Secret                   string
+	// Payload config settings
+	PayloadOptimizationFilesEnable   bool `form:"payload_optimization_files_enable"`
+	PayloadOptimizationFilesLimit    int  `form:"payload_optimization_files_limit"`
+	PayloadOptimizationCommitsEnable bool `form:"payload_optimization_commits_enable"`
+	PayloadOptimizationCommitsLimit  int  `form:"payload_optimization_commits_limit"`
 }
 
 // PushOnly if the hook will be triggered when push

@@ -1716,3 +1716,98 @@ jobs:
 		assert.Equal(t, "user2/repo1", webhookData.payloads[i].Repo.FullName)
 	}
 }
+
+func Test_WebhookPayloadOptimizationAPI(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user2")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
+
+		// Test creating webhook with payload config options via API
+		createHookOption := map[string]any{
+			"type": "gitea",
+			"config": map[string]string{
+				"url":          "http://example.com/webhook",
+				"content_type": "json",
+			},
+			"events": []string{"push"},
+			"meta_settings": map[string]any{
+				"payload_config": map[string]any{
+					"files": map[string]any{
+						"enable": true,
+						"limit":  2,
+					},
+					"commits": map[string]any{
+						"enable": true,
+						"limit":  1,
+					},
+				},
+			},
+			"active": true,
+		}
+
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/hooks", createHookOption).AddTokenAuth(token)
+		resp := session.MakeRequest(t, req, http.StatusCreated)
+
+		var hook api.Hook
+		DecodeJSON(t, resp, &hook)
+
+		// Verify the webhook was created with correct payload config settings
+		assert.NotNil(t, hook.MetaSettings)
+		payloadOptConfig := hook.MetaSettings["payload_config"].(map[string]any)
+		filesConfig := payloadOptConfig["files"].(map[string]any)
+		commitsConfig := payloadOptConfig["commits"].(map[string]any)
+		assert.Equal(t, true, filesConfig["enable"])
+		assert.InEpsilon(t, 2.0, filesConfig["limit"], 0.01)
+		assert.Equal(t, true, commitsConfig["enable"])
+		assert.InEpsilon(t, 1.0, commitsConfig["limit"], 0.01)
+
+		// Test updating webhook with different payload config options
+		editHookOption := map[string]any{
+			"meta_settings": map[string]any{
+				"payload_config": map[string]any{
+					"files": map[string]any{
+						"enable": false,
+						"limit":  0,
+					},
+					"commits": map[string]any{
+						"enable": false,
+						"limit":  0,
+					},
+				},
+			},
+		}
+
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/user2/repo1/hooks/%d", hook.ID), editHookOption).AddTokenAuth(token)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+
+		var updatedHook api.Hook
+		DecodeJSON(t, resp, &updatedHook)
+
+		// Verify the webhook was updated with correct payload config settings
+		assert.NotNil(t, updatedHook.MetaSettings)
+		payloadOptConfig = updatedHook.MetaSettings["payload_config"].(map[string]any)
+		filesConfig = payloadOptConfig["files"].(map[string]any)
+		commitsConfig = payloadOptConfig["commits"].(map[string]any)
+		assert.Equal(t, false, filesConfig["enable"])
+		assert.EqualValues(t, 0, filesConfig["limit"])
+		assert.Equal(t, false, commitsConfig["enable"])
+		assert.EqualValues(t, 0, commitsConfig["limit"])
+
+		// Test getting webhook to verify the settings are persisted
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/hooks/%d", hook.ID)).AddTokenAuth(token)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+
+		var retrievedHook api.Hook
+		DecodeJSON(t, resp, &retrievedHook)
+
+		// Verify the webhook settings are correctly retrieved
+		assert.NotNil(t, retrievedHook.MetaSettings)
+		payloadOptConfig = retrievedHook.MetaSettings["payload_config"].(map[string]any)
+		filesConfig = payloadOptConfig["files"].(map[string]any)
+		commitsConfig = payloadOptConfig["commits"].(map[string]any)
+		assert.Equal(t, false, filesConfig["enable"])
+		assert.EqualValues(t, 0, filesConfig["limit"])
+		assert.Equal(t, false, commitsConfig["enable"])
+		assert.EqualValues(t, 0, commitsConfig["limit"])
+	})
+}

@@ -121,7 +121,15 @@ func checkHookType(ctx *context.Context) string {
 // WebhooksNew render creating webhook page
 func WebhooksNew(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
-	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook_module.HookEvent{}}
+
+	// Create a new webhook with default meta settings
+	newWebhook := &webhook.Webhook{HookEvent: &webhook_module.HookEvent{}}
+	// Initialize meta settings with default values
+	if err := newWebhook.SetMetaSettings(webhook.DefaultMetaSettings()); err != nil {
+		ctx.ServerError("SetMetaSettings", err)
+		return
+	}
+	ctx.Data["Webhook"] = newWebhook
 
 	orCtx, err := getOwnerRepoCtx(ctx)
 	if err != nil {
@@ -207,7 +215,14 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
-	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook_module.HookEvent{}}
+
+	// Create a webhook with default meta settings for template rendering
+	newWebhook := &webhook.Webhook{HookEvent: &webhook_module.HookEvent{}}
+	if err := newWebhook.SetMetaSettings(webhook.DefaultMetaSettings()); err != nil {
+		ctx.ServerError("SetMetaSettings", err)
+		return
+	}
+	ctx.Data["Webhook"] = newWebhook
 	ctx.Data["HookType"] = params.Type
 
 	orCtx, err := getOwnerRepoCtx(ctx)
@@ -244,6 +259,25 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		OwnerID:         orCtx.OwnerID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
+
+	// Set webhook meta settings with payload config
+	metaSettings := webhook.MetaSettings{
+		PayloadConfig: webhook.PayloadConfig{
+			Files: webhook.PayloadConfigItem{
+				Enable: params.WebhookForm.PayloadOptimizationFilesEnable,
+				Limit:  params.WebhookForm.PayloadOptimizationFilesLimit,
+			},
+			Commits: webhook.PayloadConfigItem{
+				Enable: params.WebhookForm.PayloadOptimizationCommitsEnable,
+				Limit:  params.WebhookForm.PayloadOptimizationCommitsLimit,
+			},
+		},
+	}
+	if err := w.SetMetaSettings(metaSettings); err != nil {
+		ctx.ServerError("SetMetaSettings", err)
+		return
+	}
+
 	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
 	if err != nil {
 		ctx.ServerError("SetHeaderAuthorization", err)
@@ -294,6 +328,24 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	w.IsActive = params.WebhookForm.Active
 	w.HTTPMethod = params.HTTPMethod
 	w.Meta = string(meta)
+
+	// Set webhook meta settings with payload config
+	metaSettings := webhook.MetaSettings{
+		PayloadConfig: webhook.PayloadConfig{
+			Files: webhook.PayloadConfigItem{
+				Enable: params.WebhookForm.PayloadOptimizationFilesEnable,
+				Limit:  params.WebhookForm.PayloadOptimizationFilesLimit,
+			},
+			Commits: webhook.PayloadConfigItem{
+				Enable: params.WebhookForm.PayloadOptimizationCommitsEnable,
+				Limit:  params.WebhookForm.PayloadOptimizationCommitsLimit,
+			},
+		},
+	}
+	if err := w.SetMetaSettings(metaSettings); err != nil {
+		ctx.ServerError("SetMetaSettings", err)
+		return
+	}
 
 	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
 	if err != nil {
