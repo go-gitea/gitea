@@ -82,7 +82,7 @@ func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.C
 		languageStr := giteautil.IfZero(string(languageBytes), "text")
 
 		preClasses := "code-block"
-		if languageStr == "mermaid" || languageStr == "math" {
+		if languageStr == "mermaid" || languageStr == "math" || languageStr == "excalidraw" {
 			preClasses += " is-loading"
 		}
 

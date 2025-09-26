@@ -1,4 +1,5 @@
 import {initMarkupCodeMermaid} from './mermaid.ts';
+import {initMarkupCodeExcalidraw} from './excalidraw.ts';
 import {initMarkupCodeMath} from './math.ts';
 import {initMarkupCodeCopy} from './codecopy.ts';
 import {initMarkupRenderAsciicast} from './asciicast.ts';
@@ -12,6 +13,7 @@ export function initMarkupContent(): void {
     initMarkupTasklist(el);
     initMarkupCodeMermaid(el);
     initMarkupCodeMath(el);
+    initMarkupCodeExcalidraw(el);
     initMarkupRenderAsciicast(el);
   });
 }

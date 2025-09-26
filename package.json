@@ -10,6 +10,7 @@
     "@citation-js/plugin-bibtex": "0.7.18",
     "@citation-js/plugin-csl": "0.7.18",
     "@citation-js/plugin-software-formats": "0.6.1",
+    "@excalidraw/utils": "0.1.3-test32",
     "@github/markdown-toolbar-element": "2.2.3",
     "@github/paste-markdown": "1.5.3",
     "@github/relative-time-element": "4.4.8",
