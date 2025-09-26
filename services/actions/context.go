@@ -6,7 +6,9 @@ package actions
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -19,6 +21,38 @@ import (
 
 	"github.com/nektos/act/pkg/model"
 )
+
+// getServerURLForActions returns the server URL to use in Actions context.
+// If SSH_DOMAIN is configured differently from the main domain, this returns
+// a URL with the SSH domain to ensure checkout actions use the correct SSH hostname.
+func getServerURLForActions() string {
+	// Parse the main AppURL to get the scheme and port
+	appURL, err := url.Parse(setting.AppURL)
+	if err != nil {
+		return setting.AppURL // fallback to original if parsing fails
+	}
+
+	// Get the main domain from AppURL
+	mainDomain := appURL.Hostname()
+
+	// If SSH_DOMAIN is different from the main domain, use SSH_DOMAIN for the server URL
+	// This ensures that checkout actions will use the correct SSH hostname
+	if len(setting.SSH.Domain) > 0 && setting.SSH.Domain != mainDomain {
+		// Create a new URL with the SSH domain but keep the same scheme and port as AppURL
+		sshURL := &url.URL{
+			Scheme: appURL.Scheme,
+			Host:   setting.SSH.Domain,
+		}
+		if appURL.Port() != "" {
+			sshURL.Host = setting.SSH.Domain + ":" + appURL.Port()
+		}
+		sshURL.Path = strings.TrimSuffix(appURL.Path, "/") + "/"
+		return sshURL.String()
+	}
+
+	// If SSH_DOMAIN is not configured or is the same as main domain, use AppURL
+	return setting.AppURL
+}
 
 type GiteaContext map[string]any
 
@@ -77,7 +111,7 @@ func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.Actio
 		"run_number":        strconv.FormatInt(run.Index, 10),         // string, A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
 		"run_attempt":       "",                                       // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.
 		"secret_source":     "Actions",                                // string, The source of a secret used in a workflow. Possible values are None, Actions, Dependabot, or Codespaces.
-		"server_url":        setting.AppURL,                           // string, The URL of the GitHub server. For example: https://github.com.
+		"server_url":        getServerURLForActions(),                 // string, The URL of the GitHub server. For SSH operations, this uses SSH_DOMAIN if configured differently from the main domain.
 		"sha":               sha,                                      // string, The commit SHA that triggered the workflow. The value of this commit SHA depends on the event that triggered the workflow. For more information, see "Events that trigger workflows." For example, ffac537e6cbbf934b08745a378932722df287a53.
 		"triggering_actor":  "",                                       // string, The username of the user that initiated the workflow run. If the workflow run is a re-run, this value may differ from github.actor. Any workflow re-runs will use the privileges of github.actor, even if the actor initiating the re-run (github.triggering_actor) has different privileges.
 		"workflow":          run.WorkflowID,                           // string, The name of the workflow. If the workflow file doesn't specify a name, the value of this property is the full path of the workflow file in the repository.
