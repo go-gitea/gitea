@@ -50,7 +50,7 @@ var (
 
 func markPullRequestStatusAsChecking(ctx context.Context, pr *issues_model.PullRequest) bool {
 	pr.Status = issues_model.PullRequestStatusChecking
-	err := pr.UpdateColsIfNotMerged(ctx, "status")
+	_, err := pr.UpdateColsIfNotMerged(ctx, "status")
 	if err != nil {
 		log.Error("UpdateColsIfNotMerged failed, pr: %-v, err: %v", pr, err)
 		return false
@@ -256,7 +256,7 @@ func markPullRequestAsMergeable(ctx context.Context, pr *issues_model.PullReques
 		return
 	}
 
-	if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
+	if _, err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
 		log.Error("Update[%-v]: %v", pr, err)
 	}
 

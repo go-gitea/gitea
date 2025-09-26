@@ -15,9 +15,7 @@ import (
 	"time"
 
 	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
@@ -31,7 +29,6 @@ import (
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	pull_service "code.gitea.io/gitea/services/pull"
-	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -283,74 +280,7 @@ func GetArchive(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if ctx.Repo.GitRepo == nil {
-		var err error
-		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-	}
-
-	archiveDownload(ctx)
-}
-
-func archiveDownload(ctx *context.APIContext) {
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
-	if err != nil {
-		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
-			ctx.APIError(http.StatusBadRequest, err)
-		} else if errors.Is(err, archiver_service.RepoRefNotFoundError{}) {
-			ctx.APIError(http.StatusNotFound, err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return
-	}
-
-	archiver, err := aReq.Await(ctx)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	download(ctx, aReq.GetArchiveName(), archiver)
-}
-
-func download(ctx *context.APIContext, archiveName string, archiver *repo_model.RepoArchiver) {
-	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
-
-	// Add nix format link header so tarballs lock correctly:
-	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
-	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.%s?rev=%s>; rel="immutable"`,
-		ctx.Repo.Repository.APIURL(),
-		archiver.CommitID,
-		archiver.Type.String(),
-		archiver.CommitID,
-	))
-
-	rPath := archiver.RelativePath()
-	if setting.RepoArchive.Storage.ServeDirect() {
-		// If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.RepoArchives.URL(rPath, downloadName, ctx.Req.Method, nil)
-		if u != nil && err == nil {
-			ctx.Redirect(u.String())
-			return
-		}
-	}
-
-	// If we have matched and access to release or issue
-	fr, err := storage.RepoArchives.Open(rPath)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	defer fr.Close()
-
-	ctx.ServeContent(fr, &context.ServeHeaderOptions{
-		Filename:     downloadName,
-		LastModified: archiver.CreatedUnix.AsLocalTime(),
-	})
+	serveRepoArchive(ctx, ctx.PathParam("*"))
 }
 
 // GetEditorconfig get editor config of a repository
