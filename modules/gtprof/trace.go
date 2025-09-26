@@ -5,7 +5,10 @@ package gtprof
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	mathRand "math/rand/v2"
 	"sync"
 	"time"
 
@@ -36,6 +39,7 @@ type TraceSpan struct {
 
 	// mutable, must be protected by mutex
 	mu         sync.RWMutex
+	id         string
 	name       string
 	statusCode uint32
 	statusDesc string
@@ -52,6 +56,11 @@ type TraceAttribute struct {
 
 type TraceValue struct {
 	v any
+}
+
+func (t *TraceValue) IsString() bool {
+	_, ok := t.v.(string)
+	return ok
 }
 
 func (t *TraceValue) AsString() string {
@@ -71,6 +80,7 @@ func (t *TraceValue) AsFloat64() float64 {
 var globalTraceStarters []traceStarter
 
 type Tracer struct {
+	chacha8  *mathRand.ChaCha8
 	starters []traceStarter
 }
 
@@ -113,7 +123,7 @@ func (t *Tracer) Start(ctx context.Context, spanName string) (context.Context, *
 	if starters == nil {
 		starters = globalTraceStarters
 	}
-	ts := &TraceSpan{name: spanName, startTime: time.Now()}
+	ts := &TraceSpan{id: t.randomHexForBytes(8), name: spanName, startTime: time.Now()}
 	parentSpan := GetContextSpan(ctx)
 	if parentSpan != nil {
 		parentSpan.mu.Lock()
@@ -165,8 +175,19 @@ func (s *TraceSpan) End() {
 	}
 }
 
+func (t *Tracer) randomHexForBytes(n int) string {
+	b := make([]byte, n)
+	_, _ = t.chacha8.Read(b) // it never fails
+	return hex.EncodeToString(b)
+}
+
 func GetTracer() *Tracer {
-	return &Tracer{}
+	var seed [32]byte
+	_, err := rand.Read(seed[:])
+	if err != nil {
+		panic(fmt.Sprintf("rand.Read: %v", err))
+	}
+	return &Tracer{chacha8: mathRand.NewChaCha8(seed)}
 }
 
 func GetContextSpan(ctx context.Context) *TraceSpan {
