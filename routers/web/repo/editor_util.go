@@ -46,7 +46,8 @@ func getClosestParentWithFiles(gitRepo *git.Repository, branchName, originTreePa
 			return ""
 		}
 		// see if the tree has entries
-		if tree, err := commit.SubTree(treePath); err != nil {
+		tree := git.NewTree(gitRepo, commit.TreeID)
+		if tree, err := tree.SubTree(treePath); err != nil {
 			return f(path.Dir(treePath), commit) // failed to get the tree, going up a dir
 		} else if entries, err := tree.ListEntries(); err != nil || len(entries) == 0 {
 			return f(path.Dir(treePath), commit) // no files in this dir, going up a dir
