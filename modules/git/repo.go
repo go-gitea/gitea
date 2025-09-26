@@ -243,36 +243,6 @@ func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error
 	return time.Parse("Mon Jan _2 15:04:05 2006 -0700", commitTime)
 }
 
-// DivergeObject represents commit count diverging commits
-type DivergeObject struct {
-	Ahead  int
-	Behind int
-}
-
-// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
-func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (do DivergeObject, err error) {
-	cmd := gitcmd.NewCommand("rev-list", "--count", "--left-right").
-		AddDynamicArguments(baseBranch + "..." + targetBranch).AddArguments("--")
-	stdout, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
-	if err != nil {
-		return do, err
-	}
-	left, right, found := strings.Cut(strings.Trim(stdout, "\n"), "\t")
-	if !found {
-		return do, fmt.Errorf("git rev-list output is missing a tab: %q", stdout)
-	}
-
-	do.Behind, err = strconv.Atoi(left)
-	if err != nil {
-		return do, err
-	}
-	do.Ahead, err = strconv.Atoi(right)
-	if err != nil {
-		return do, err
-	}
-	return do, nil
-}
-
 // CreateBundle create bundle content to the target path
 func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.Writer) error {
 	tmp, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-bundle")
