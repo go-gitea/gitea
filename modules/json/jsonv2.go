@@ -7,59 +7,63 @@ package json
 
 import (
 	"bytes"
+	jsonv1 "encoding/json"    //nolint:depguard // this package wraps it
 	jsonv2 "encoding/json/v2" //nolint:depguard // this package wraps it
 	"io"
 )
 
 // JSONv2 implements Interface via encoding/json/v2
 // Requires GOEXPERIMENT=jsonv2 to be set at build time
-type JSONv2 struct{}
-
-var _ Interface = JSONv2{}
-
-func getDefaultJSONHandler() Interface {
-	return JSONv2{}
+type JSONv2 struct {
+	marshalOptions                  jsonv2.Options
+	marshalKeepOptionalEmptyOptions jsonv2.Options
+	unmarshalOptions                jsonv2.Options
 }
 
-func jsonv2DefaultMarshalOptions() jsonv2.Options {
-	return jsonv2.JoinOptions(
+var jsonV2 JSONv2
+
+func init() {
+	commonMarshalOptions := []jsonv2.Options{
 		jsonv2.MatchCaseInsensitiveNames(true),
 		jsonv2.FormatNilSliceAsNull(true),
 		jsonv2.FormatNilMapAsNull(true),
 		jsonv2.Deterministic(true),
-	)
-}
-
-func jsonv2DefaultUnmarshalOptions() jsonv2.Options {
-	return jsonv2.JoinOptions(
-		jsonv2.MatchCaseInsensitiveNames(true),
-	)
-}
-
-func (JSONv2) Marshal(v any) ([]byte, error) {
-	return jsonv2.Marshal(v, jsonv2DefaultMarshalOptions())
-}
-
-func (JSONv2) Unmarshal(data []byte, v any) error {
-	// legacy behavior: treat empty or whitespace-only input as no input, it should be safe
-	data = bytes.TrimSpace(data)
-	if len(data) == 0 {
-		return nil
 	}
-	return jsonv2.Unmarshal(data, v, jsonv2DefaultUnmarshalOptions())
+	jsonV2.marshalOptions = jsonv2.JoinOptions(commonMarshalOptions...)
+	jsonV2.unmarshalOptions = jsonv2.JoinOptions(jsonv2.MatchCaseInsensitiveNames(true))
+
+	// by default, "json/v2" omitempty removes all `""` empty strings, no matter where it comes from.
+	// v1 has a different behavior: if the `""` is from a null pointer, or a Marshal function, it is kept.
+	jsonV2.marshalKeepOptionalEmptyOptions = jsonv2.JoinOptions(append(commonMarshalOptions, jsonv1.OmitEmptyWithLegacySemantics(true))...)
 }
 
-func (JSONv2) NewEncoder(writer io.Writer) Encoder {
-	return &encoderV2{writer: writer, opts: jsonv2DefaultMarshalOptions()}
+func getDefaultJSONHandler() Interface {
+	return jsonV2
 }
 
-func (JSONv2) NewDecoder(reader io.Reader) Decoder {
-	return &decoderV2{reader: reader, opts: jsonv2DefaultMarshalOptions()}
+func MarshalKeepOptionalEmpty(v any) ([]byte, error) {
+	return jsonv2.Marshal(v, jsonV2.marshalKeepOptionalEmptyOptions)
+}
+
+func (j JSONv2) Marshal(v any) ([]byte, error) {
+	return jsonv2.Marshal(v, j.marshalOptions)
+}
+
+func (j JSONv2) Unmarshal(data []byte, v any) error {
+	return jsonv2.Unmarshal(data, v, j.unmarshalOptions)
+}
+
+func (j JSONv2) NewEncoder(writer io.Writer) Encoder {
+	return &encoderV2{writer: writer, opts: j.marshalOptions}
+}
+
+func (j JSONv2) NewDecoder(reader io.Reader) Decoder {
+	return &decoderV2{reader: reader, opts: j.unmarshalOptions}
 }
 
 // Indent implements Interface using standard library (JSON v2 doesn't have Indent yet)
 func (JSONv2) Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
-	return json.Indent(dst, src, prefix, indent)
+	return jsonv1.Indent(dst, src, prefix, indent)
 }
 
 type encoderV2 struct {

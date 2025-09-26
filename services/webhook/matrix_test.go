@@ -216,7 +216,7 @@ func TestMatrixJSONPayload(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "PUT", req.Method)
-	assert.Equal(t, "/_matrix/client/r0/rooms/ROOM_ID/send/m.room.message/6db5dc1e282529a8c162c7fe93dd2667494eeb51", req.URL.Path)
+	assert.Equal(t, "/_matrix/client/r0/rooms/ROOM_ID/send/m.room.message/4ddf3b1533e54f082ae6eadfc1b5530be36c8893", req.URL.Path)
 	assert.Equal(t, "sha256=", req.Header.Get("X-Hub-Signature-256"))
 	assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
 	var body MatrixPayload

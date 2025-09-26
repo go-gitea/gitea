@@ -131,6 +131,54 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	done := make(chan struct{}, 1)
+	version2Body := `{
+  "body": "[[test/repo](http://localhost:3000/test/repo)] user1 pushed 2 commits to [test](http://localhost:3000/test/repo/src/branch/test):\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778): commit message - user1\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778): commit message - user1",
+  "msgtype": "",
+  "format": "org.matrix.custom.html",
+  "formatted_body": "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] user1 pushed 2 commits to <a href=\"http://localhost:3000/test/repo/src/branch/test\">test</a>:<br><a href=\"http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778\">2020558</a>: commit message - user1<br><a href=\"http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778\">2020558</a>: commit message - user1",
+  "io.gitea.commits": [
+    {
+      "id": "2020558fe2e34debb818a514715839cabd25e778",
+      "message": "commit message",
+      "url": "http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778",
+      "author": {
+        "name": "user1",
+        "email": "user1@localhost",
+        "username": "user1"
+      },
+      "committer": {
+        "name": "user1",
+        "email": "user1@localhost",
+        "username": "user1"
+      },
+      "verification": null,
+      "timestamp": "0001-01-01T00:00:00Z",
+      "added": null,
+      "removed": null,
+      "modified": null
+    },
+    {
+      "id": "2020558fe2e34debb818a514715839cabd25e778",
+      "message": "commit message",
+      "url": "http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778",
+      "author": {
+        "name": "user1",
+        "email": "user1@localhost",
+        "username": "user1"
+      },
+      "committer": {
+        "name": "user1",
+        "email": "user1@localhost",
+        "username": "user1"
+      },
+      "verification": null,
+      "timestamp": "0001-01-01T00:00:00Z",
+      "added": null,
+      "removed": null,
+      "modified": null
+    }
+  ]
+}`
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "PUT", r.Method)
 		switch r.URL.Path {
@@ -142,13 +190,13 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, `{"data": 42}`, string(body))
 
-		case "/webhook/6db5dc1e282529a8c162c7fe93dd2667494eeb51":
+		case "/webhook/4ddf3b1533e54f082ae6eadfc1b5530be36c8893":
 			// Version 2
 			assert.Equal(t, "push", r.Header.Get("X-GitHub-Event"))
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 			body, err := io.ReadAll(r.Body)
 			assert.NoError(t, err)
-			assert.Len(t, body, 2147)
+			assert.JSONEq(t, version2Body, string(body))
 
 		default:
 			w.WriteHeader(http.StatusNotFound)
