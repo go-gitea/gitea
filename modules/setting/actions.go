@@ -14,21 +14,23 @@ import (
 // Actions settings
 var (
 	Actions = struct {
-		Enabled               bool
-		LogStorage            *Storage          // how the created logs should be stored
-		LogRetentionDays      int64             `ini:"LOG_RETENTION_DAYS"`
-		LogCompression        logCompression    `ini:"LOG_COMPRESSION"`
-		ArtifactStorage       *Storage          // how the created artifacts should be stored
-		ArtifactRetentionDays int64             `ini:"ARTIFACT_RETENTION_DAYS"`
-		DefaultActionsURL     defaultActionsURL `ini:"DEFAULT_ACTIONS_URL"`
-		ZombieTaskTimeout     time.Duration     `ini:"ZOMBIE_TASK_TIMEOUT"`
-		EndlessTaskTimeout    time.Duration     `ini:"ENDLESS_TASK_TIMEOUT"`
-		AbandonedJobTimeout   time.Duration     `ini:"ABANDONED_JOB_TIMEOUT"`
-		SkipWorkflowStrings   []string          `ini:"SKIP_WORKFLOW_STRINGS"`
+		Enabled                bool
+		LogStorage             *Storage          // how the created logs should be stored
+		LogRetentionDays       int64             `ini:"LOG_RETENTION_DAYS"`
+		LogCompression         logCompression    `ini:"LOG_COMPRESSION"`
+		ArtifactStorage        *Storage          // how the created artifacts should be stored
+		ArtifactRetentionDays  int64             `ini:"ARTIFACT_RETENTION_DAYS"`
+		DefaultActionsURL      defaultActionsURL `ini:"DEFAULT_ACTIONS_URL"`
+		ZombieTaskTimeout      time.Duration     `ini:"ZOMBIE_TASK_TIMEOUT"`
+		EndlessTaskTimeout     time.Duration     `ini:"ENDLESS_TASK_TIMEOUT"`
+		AbandonedJobTimeout    time.Duration     `ini:"ABANDONED_JOB_TIMEOUT"`
+		SkipWorkflowStrings    []string          `ini:"SKIP_WORKFLOW_STRINGS"`
+		EnableAutoCancellation bool              `ini:"ENABLE_AUTO_CANCELLATION"`
 	}{
-		Enabled:             true,
-		DefaultActionsURL:   defaultActionsURLGitHub,
-		SkipWorkflowStrings: []string{"[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"},
+		Enabled:                true,
+		DefaultActionsURL:      defaultActionsURLGitHub,
+		SkipWorkflowStrings:    []string{"[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"},
+		EnableAutoCancellation: true,
 	}
 )
 
