@@ -27,13 +27,13 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func cloneWiki(ctx context.Context, u *user_model.User, opts migration.MigrateOptions, migrateTimeout time.Duration) (string, error) {
+func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.MigrateOptions, migrateTimeout time.Duration) (string, error) {
 	wikiRemotePath := repo_module.WikiRemoteURL(ctx, opts.CloneAddr)
 	if wikiRemotePath == "" {
 		return "", nil
 	}
 
-	storageRepo := repo_model.StorageRepo(repo_model.RelativeWikiPath(u.Name, opts.RepoName))
+	storageRepo := repo.WikiStorageRepo()
 
 	if err := gitrepo.DeleteRepository(ctx, storageRepo); err != nil {
 		return "", fmt.Errorf("failed to remove existing wiki dir %q, err: %w", storageRepo.RelativePath(), err)
@@ -74,7 +74,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repo *repo_model.Repository, opts migration.MigrateOptions,
 	httpTransport *http.Transport,
 ) (*repo_model.Repository, error) {
-	repoPath := repo_model.RepoPath(u.Name, opts.RepoName)
+	repoPath := repo.RepoPath()
 
 	if u.IsOrganization() {
 		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)
@@ -109,7 +109,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 
 	if opts.Wiki {
-		defaultWikiBranch, err := cloneWiki(ctx, u, opts, migrateTimeout)
+		defaultWikiBranch, err := cloneWiki(ctx, repo, opts, migrateTimeout)
 		if err != nil {
 			return repo, fmt.Errorf("clone wiki error: %w", err)
 		}
@@ -138,7 +138,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	if !repo.IsEmpty {
 		if len(repo.DefaultBranch) == 0 {
 			// Try to get HEAD branch and set it as default branch.
-			headBranchName, err := git.GetDefaultBranch(ctx, repoPath)
+			headBranchName, err := gitrepo.GetDefaultBranch(ctx, repo)
 			if err != nil {
 				return repo, fmt.Errorf("GetHEADBranch: %w", err)
 			}
