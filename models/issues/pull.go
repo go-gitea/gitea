@@ -256,6 +256,9 @@ func (pr *PullRequest) LoadHeadRepo(ctx context.Context) (err error) {
 			return fmt.Errorf("pr[%d].LoadHeadRepo[%d]: %w", pr.ID, pr.HeadRepoID, err)
 		}
 		pr.isHeadRepoLoaded = true
+		if pr.IsSameRepo() && pr.BaseRepo == nil {
+			pr.BaseRepo = pr.HeadRepo
+		}
 	}
 	return nil
 }
@@ -321,6 +324,9 @@ func (pr *PullRequest) LoadBaseRepo(ctx context.Context) (err error) {
 	pr.BaseRepo, err = repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
 	if err != nil {
 		return fmt.Errorf("pr[%d].LoadBaseRepo[%d]: %w", pr.ID, pr.BaseRepoID, err)
+	}
+	if pr.IsSameRepo() && pr.HeadRepo == nil {
+		pr.HeadRepo = pr.BaseRepo
 	}
 	return nil
 }

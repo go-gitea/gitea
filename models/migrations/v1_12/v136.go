@@ -6,7 +6,6 @@ package v1_12
 import (
 	"fmt"
 	"math"
-	"strings"
 	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -18,19 +17,15 @@ import (
 	"xorm.io/xorm"
 )
 
-type Repository struct {
-	ID        int64 `xorm:"pk autoincr"`
-	OwnerID   int64 `xorm:"UNIQUE(s) index"`
-	OwnerName string
-	LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name      string `xorm:"INDEX NOT NULL"`
-}
-
-func (r *Repository) RelativePath() string {
-	return fmt.Sprintf("%s/%s.git", strings.ToLower(r.OwnerName), strings.ToLower(r.Name))
-}
-
 func AddCommitDivergenceToPulls(x *xorm.Engine) error {
+	type Repository struct {
+		ID        int64 `xorm:"pk autoincr"`
+		OwnerID   int64 `xorm:"UNIQUE(s) index"`
+		OwnerName string
+		LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		Name      string `xorm:"INDEX NOT NULL"`
+	}
+
 	type PullRequest struct {
 		ID      int64 `xorm:"pk autoincr"`
 		IssueID int64 `xorm:"INDEX"`

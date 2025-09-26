@@ -560,8 +560,7 @@ func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *r
 func UpdatePullRequestAgitFlowHead(ctx context.Context, pr *issues_model.PullRequest, commitID string) error {
 	log.Trace("UpdateAgitPullRequestHead[%d]: update pull request head in base repo '%s'", pr.ID, pr.GetGitHeadRefName())
 
-	_, _, err := gitcmd.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), commitID).RunStdString(ctx, &gitcmd.RunOpts{Dir: pr.BaseRepo.RepoPath()})
-	return err
+	return gitrepo.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), commitID)
 }
 
 // UpdatePullRequestHeadRef updates the head reference of a pull request
@@ -572,21 +571,17 @@ func UpdatePullRequestGithubFlowHead(ctx context.Context, pr *issues_model.PullR
 		return err
 	}
 
-	if err := gitrepo.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID); err != nil {
-		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
+	if !pr.IsSameRepo() { // for cross repository pull request
+		if err := pr.LoadHeadRepo(ctx); err != nil {
+			return err
+		}
+
+		if err := gitrepo.FetchRemoteBranch(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadRepo, pr.HeadBranch); err != nil {
+			return err
+		}
 	}
 
-	// for cross repository pull request
-	if err := pr.LoadHeadRepo(ctx); err != nil {
-		return err
-	}
-
-	_, _, err := gitcmd.NewCommand("fetch", "--no-tags", "--refmap=").
-		AddDynamicArguments(pr.HeadRepo.RepoPath()).
-		// + means force fetch
-		AddDynamicArguments(fmt.Sprintf("+refs/heads/%s:%s", pr.HeadBranch, pr.GetGitHeadRefName())).
-		RunStdString(ctx, &gitcmd.RunOpts{Dir: pr.BaseRepo.RepoPath()})
-	return err
+	return gitrepo.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID)
 }
 
 // retargetBranchPulls change target branch for all pull requests whose base branch is the branch
