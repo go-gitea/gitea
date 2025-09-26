@@ -26,7 +26,9 @@ import (
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/graceful"
 	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
@@ -46,8 +48,6 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
-
-	"github.com/gobwas/glob"
 )
 
 const (
@@ -224,7 +224,7 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 			commitSHA, err = ctx.Repo.GitRepo.ReadPatchCommit(pull.Index)
 			if err == nil {
 				// Recreate pull head in files for next time
-				if err := ctx.Repo.GitRepo.SetReference(pull.GetGitHeadRefName(), commitSHA); err != nil {
+				if err := gitrepo.UpdateRef(ctx, ctx.Repo.Repository, pull.GetGitHeadRefName(), commitSHA); err != nil {
 					log.Error("Could not write head file", err)
 				}
 			} else {
@@ -234,7 +234,7 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 		}
 		if commitSHA != "" {
 			// Get immediate parent of the first commit in the patch, grab history back
-			parentCommit, _, err = git.NewCommand("rev-list", "-1", "--skip=1").AddDynamicArguments(commitSHA).RunStdString(ctx, &git.RunOpts{Dir: ctx.Repo.GitRepo.Path})
+			parentCommit, _, err = gitcmd.NewCommand("rev-list", "-1", "--skip=1").AddDynamicArguments(commitSHA).RunStdString(ctx, &gitcmd.RunOpts{Dir: ctx.Repo.GitRepo.Path})
 			if err == nil {
 				parentCommit = strings.TrimSpace(parentCommit)
 			}
