@@ -124,14 +124,12 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 	performPush := func(repo *repo_model.Repository, isWiki bool) error {
 		var storageRepo gitrepo.Repository = repo
-		path := repo.RepoPath()
 		if isWiki {
 			storageRepo = repo.WikiStorageRepo()
-			path = repo.WikiPath()
 		}
 		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
-			log.Error("GetRemoteURL(%s) Error %v", path, err)
+			log.Error("GetRemoteURL(%s) Error %v", storageRepo.RelativePath(), err)
 			return errors.New("Unexpected error")
 		}
 
@@ -152,17 +150,17 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			}
 		}
 
-		log.Trace("Pushing %s mirror[%d] remote %s", path, m.ID, m.RemoteName)
+		log.Trace("Pushing %s mirror[%d] remote %s", storageRepo.RelativePath(), m.ID, m.RemoteName)
 
 		envs := proxy.EnvWithProxy(remoteURL.URL)
-		if err := git.Push(ctx, path, git.PushOptions{
+		if err := gitrepo.Push(ctx, storageRepo, git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
 			Mirror:  true,
 			Timeout: timeout,
 			Env:     envs,
 		}); err != nil {
-			log.Error("Error pushing %s mirror[%d] remote %s: %v", path, m.ID, m.RemoteName, err)
+			log.Error("Error pushing %s mirror[%d] remote %s: %v", storageRepo.RelativePath(), m.ID, m.RemoteName, err)
 
 			return util.SanitizeErrorCredentialURLs(err)
 		}
