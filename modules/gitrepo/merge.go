@@ -19,7 +19,7 @@ func MergeBase(ctx context.Context, repo Repository, commit1, commit2 string) (s
 		AddDynamicArguments(commit1, commit2).
 		RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
 	if err != nil {
-		return "", fmt.Errorf("unable to get merge-base of %s and %s: %w", commit1, commit2, err)
+		return "", fmt.Errorf("get merge-base of %s and %s failed: %w", commit1, commit2, err)
 	}
 	return strings.TrimSpace(mergeBase), nil
 }
@@ -37,8 +37,8 @@ func MergeTree(ctx context.Context, repo Repository, base, ours, theirs string) 
 		Stdout: stdout,
 	})
 	if gitErr != nil && !gitcmd.IsErrorExitCode(gitErr, 1) {
-		log.Error("Unable to run merge-tree: %v", gitErr)
-		return "", false, nil, fmt.Errorf("unable to run merge-tree: %w", gitErr)
+		log.Error("run merge-tree failed: %v", gitErr)
+		return "", false, nil, fmt.Errorf("run merge-tree failed: %w", gitErr)
 	}
 
 	// There are two situations that we consider for the output:
@@ -49,6 +49,6 @@ func MergeTree(ctx context.Context, repo Repository, base, ours, theirs string) 
 		return treeOID, gitcmd.IsErrorExitCode(gitErr, 1), nil, nil
 	}
 
-	// Remove last NULL-byte from conflicted file info, then split with NULL byte as seperator.
+	// Remove last NULL-byte from conflicted file info, then split with NULL byte as separator.
 	return treeOID, true, strings.Split(conflictedFileInfo[:len(conflictedFileInfo)-1], "\x00"), nil
 }
