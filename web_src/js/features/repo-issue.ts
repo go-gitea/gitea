@@ -64,7 +64,7 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
     selectedLabelIds.add(`${Math.abs(parseInt(id))}`); // "labels" contains negative ids, which are excluded
   }
 
-  const excludeLabel = (e: MouseEvent|KeyboardEvent, item: Element) => {
+  const excludeLabel = (e: MouseEvent | KeyboardEvent, item: Element) => {
     e.preventDefault();
     e.stopPropagation();
     const labelId = item.getAttribute('data-label-id');

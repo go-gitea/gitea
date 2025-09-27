@@ -27,7 +27,7 @@ XGO_VERSION := go-1.25.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.8.0
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.1
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4.0
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
@@ -162,7 +162,7 @@ TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST)
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
-ESLINT_FILES := web_src/js tools *.ts *.cjs tests/e2e
+ESLINT_FILES := web_src/js tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
 SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml)) $(filter-out tools/misspellings.csv, $(wildcard tools/*))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
@@ -346,12 +346,12 @@ lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backen
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js files
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
+	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --flag unstable_native_nodejs_ts_config $(ESLINT_FILES)
 	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js files and fix issues
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
+	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --flag unstable_native_nodejs_ts_config $(ESLINT_FILES) --fix
 	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-css

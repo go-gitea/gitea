@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -72,8 +72,8 @@ func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan
 	}()
 
 	stderr := &strings.Builder{}
-	err = git.NewCommand("ls-files", "-u", "-z").
-		Run(ctx, &git.RunOpts{
+	err = gitcmd.NewCommand("ls-files", "-u", "-z").
+		Run(ctx, &gitcmd.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: lsFilesWriter,
 			Stderr: stderr,
@@ -116,7 +116,7 @@ func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan
 			},
 		})
 	if err != nil {
-		outputChan <- &lsFileLine{err: fmt.Errorf("git ls-files -u -z: %w", git.ConcatenateError(err, stderr.String()))}
+		outputChan <- &lsFileLine{err: fmt.Errorf("git ls-files -u -z: %w", gitcmd.ConcatenateError(err, stderr.String()))}
 	}
 }
 

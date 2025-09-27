@@ -28,6 +28,7 @@ import (
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -524,7 +525,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 
 	// Treat as pull request if both references are branches
 	if ctx.Data["PageIsComparePull"] == nil {
-		ctx.Data["PageIsComparePull"] = headIsBranch && baseIsBranch
+		ctx.Data["PageIsComparePull"] = headIsBranch && baseIsBranch && permBase.CanReadIssuesOrPulls(true)
 	}
 
 	if ctx.Data["PageIsComparePull"] == true && !permBase.CanReadIssuesOrPulls(true) {
@@ -569,7 +570,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 func PrepareCompareDiff(
 	ctx *context.Context,
 	ci *common.CompareInfo,
-	whitespaceBehavior git.TrustedCmdArgs,
+	whitespaceBehavior gitcmd.TrustedCmdArgs,
 ) (nothingToCompare bool) {
 	repo := ctx.Repo.Repository
 	headCommitID := ci.CompareInfo.HeadCommitID
@@ -630,7 +631,7 @@ func PrepareCompareDiff(
 		ctx.ServerError("GetDiff", err)
 		return false
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ci.HeadGitRepo, beforeCommitID, headCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ci.HeadRepo, ci.HeadGitRepo, beforeCommitID, headCommitID)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return false
@@ -730,6 +731,7 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["DirectComparison"] = ci.DirectComparison
 	ctx.Data["OtherCompareSeparator"] = ".."

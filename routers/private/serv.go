@@ -108,6 +108,18 @@ func ServCommand(ctx *context.PrivateContext) {
 		results.RepoName = repoName[:len(repoName)-5]
 	}
 
+	// Check if there is a user redirect for the requested owner
+	redirectedUserID, err := user_model.LookupUserRedirect(ctx, results.OwnerName)
+	if err == nil {
+		owner, err := user_model.GetUserByID(ctx, redirectedUserID)
+		if err == nil {
+			log.Info("User %s has been redirected to %s", results.OwnerName, owner.Name)
+			results.OwnerName = owner.Name
+		} else {
+			log.Warn("User %s has a redirect to user with ID %d, but no user with this ID could be found. Trying without redirect...", results.OwnerName, redirectedUserID)
+		}
+	}
+
 	owner, err := user_model.GetUserByName(ctx, results.OwnerName)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
@@ -129,6 +141,19 @@ func ServCommand(ctx *context.PrivateContext) {
 			UserMsg: "Repository cannot be accessed, you could retry it later",
 		})
 		return
+	}
+
+	redirectedRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, results.RepoName)
+	if err == nil {
+		redirectedRepo, err := repo_model.GetRepositoryByID(ctx, redirectedRepoID)
+		if err == nil {
+			log.Info("Repository %s/%s has been redirected to %s/%s", results.OwnerName, results.RepoName, redirectedRepo.OwnerName, redirectedRepo.Name)
+			results.RepoName = redirectedRepo.Name
+			results.OwnerName = redirectedRepo.OwnerName
+			owner.ID = redirectedRepo.OwnerID
+		} else {
+			log.Warn("Repo %s/%s has a redirect to repo with ID %d, but no repo with this ID could be found. Trying without redirect...", results.OwnerName, results.RepoName, redirectedRepoID)
+		}
 	}
 
 	// Now get the Repository and set the results section
