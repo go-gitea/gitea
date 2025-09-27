@@ -631,7 +631,7 @@ func PrepareCompareDiff(
 		ctx.ServerError("GetDiff", err)
 		return false
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ci.HeadGitRepo, beforeCommitID, headCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ci.HeadRepo, ci.HeadGitRepo, beforeCommitID, headCommitID)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return false

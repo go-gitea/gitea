@@ -36,9 +36,7 @@ func GitRemoteAdd(ctx context.Context, repo Repository, remoteName, remoteURL st
 				return errors.New("unknown remote option: " + string(options[0]))
 			}
 		}
-		_, _, err := cmd.
-			AddDynamicArguments(remoteName, remoteURL).
-			RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
+		_, err := runCmdString(ctx, repo, cmd.AddDynamicArguments(remoteName, remoteURL))
 		return err
 	})
 }
@@ -46,7 +44,7 @@ func GitRemoteAdd(ctx context.Context, repo Repository, remoteName, remoteURL st
 func GitRemoteRemove(ctx context.Context, repo Repository, remoteName string) error {
 	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
 		cmd := gitcmd.NewCommand("remote", "rm").AddDynamicArguments(remoteName)
-		_, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
+		_, err := runCmdString(ctx, repo, cmd)
 		return err
 	})
 }
