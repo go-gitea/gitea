@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	attachment_service "code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
@@ -191,6 +193,8 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "413":
+	//     "$ref": "#/responses/error"
 
 	// Check if attachments are enabled
 	if !setting.Attachment.Enabled {
@@ -234,7 +238,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment_service.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, size, &repo_model.Attachment{
+	attach, err := attachment_service.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, setting.Attachment.MaxSize<<20, size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
@@ -245,6 +249,12 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 			ctx.APIError(http.StatusBadRequest, err)
 			return
 		}
+
+		if errors.Is(err, util.ErrContentTooLarge) {
+			ctx.APIError(http.StatusRequestEntityTooLarge, err)
+			return
+		}
+
 		ctx.APIErrorInternal(err)
 		return
 	}
