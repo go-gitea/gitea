@@ -182,12 +182,11 @@ func (p *RedisProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err 
 	}
 	if exist {
 		return nil, fmt.Errorf("new sid '%s' already exists", sid)
-	} else {
-		if exist, err := p.Exist(oldsid); err == nil && !exist {
-			// Make a fake old session.
-			if err = p.c.Set(graceful.GetManager().HammerContext(), poldsid, "", p.duration).Err(); err != nil {
-				return nil, err
-			}
+	}
+	if exist, err := p.Exist(oldsid); err == nil && !exist {
+		// Make a fake old session.
+		if err = p.c.Set(graceful.GetManager().HammerContext(), poldsid, "", p.duration).Err(); err != nil {
+			return nil, err
 		} else if err != nil {
 			return nil, err
 		}
