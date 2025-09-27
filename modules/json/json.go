@@ -32,8 +32,7 @@ type Interface interface {
 }
 
 var (
-	// DefaultJSONHandler default json handler
-	DefaultJSONHandler Interface = JSONiter{jsoniter.ConfigCompatibleWithStandardLibrary}
+	DefaultJSONHandler = getDefaultJSONHandler()
 
 	_ Interface = StdJSON{}
 	_ Interface = JSONiter{}

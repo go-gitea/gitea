@@ -318,7 +318,7 @@ func TestPackageSwift(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		assert.Equal(t, body, resp.Body.String())
+		assert.JSONEq(t, body, resp.Body.String())
 	})
 
 	t.Run("PackageVersionMetadata", func(t *testing.T) {
