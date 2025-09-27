@@ -74,6 +74,9 @@ func InitLocales(ctx context.Context) {
 
 		localeData := make(map[string][]byte, len(localeNames))
 		for _, name := range localeNames {
+			if !strings.HasPrefix(name, "locale_") || !strings.HasSuffix(name, ".json") {
+				continue
+			}
 			localeData[name], err = options.Locale(name)
 			if err != nil {
 				log.Fatal("Failed to load %s locale file. %v", name, err)
@@ -90,14 +93,14 @@ func InitLocales(ctx context.Context) {
 			var localeDataBase []byte
 			if i == 0 && setting.Langs[0] != "en-US" {
 				// Only en-US has complete translations. When use other language as default, the en-US should still be used as fallback.
-				localeDataBase = localeData["locale_en-US.ini"]
+				localeDataBase = localeData["locale_en-US.json"]
 				if localeDataBase == nil {
-					log.Fatal("Failed to load locale_en-US.ini file.")
+					log.Fatal("Failed to load locale_en-US.json file.")
 				}
 			}
 
-			key := "locale_" + setting.Langs[i] + ".ini"
-			if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localeDataBase, localeData[key]); err != nil {
+			key := "locale_" + setting.Langs[i] + ".json"
+			if err = i18n.DefaultLocales.AddLocaleByJSON(setting.Langs[i], setting.Names[i], localeDataBase, localeData[key]); err != nil {
 				log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
 			}
 		}
