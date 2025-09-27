@@ -205,3 +205,18 @@ func doGitPull(dstPath string, args ...string) func(*testing.T) {
 		assert.NoError(t, err)
 	}
 }
+
+func doGitCommit(dstPath, commitMessage string) func(*testing.T) {
+	return func(t *testing.T) {
+		signature := git.Signature{
+			Email: "test@test.test",
+			Name:  "test",
+			When:  time.Now(),
+		}
+		assert.NoError(t, git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
+			Committer: &signature,
+			Author:    &signature,
+			Message:   commitMessage,
+		}))
+	}
+}

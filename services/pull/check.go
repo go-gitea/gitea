@@ -437,7 +437,7 @@ func checkPullRequestMergeable(id int64) {
 		return
 	}
 
-	if err := testPullRequestBranchMergeable(pr); err != nil {
+	if err := checkPullRequestMergeableAndUpdateStatus(ctx, pr); err != nil {
 		log.Error("testPullRequestTmpRepoBranchMergeable[%-v]: %v", pr, err)
 		pr.Status = issues_model.PullRequestStatusError
 		if err := pr.UpdateCols(ctx, "status"); err != nil {
