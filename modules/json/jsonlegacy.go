@@ -5,7 +5,11 @@
 
 package json
 
-import jsoniter "github.com/json-iterator/go"
+import (
+	"io"
+
+	jsoniter "github.com/json-iterator/go"
+)
 
 func getDefaultJSONHandler() Interface {
 	return JSONiter{jsoniter.ConfigCompatibleWithStandardLibrary}
@@ -13,4 +17,8 @@ func getDefaultJSONHandler() Interface {
 
 func MarshalKeepOptionalEmpty(v any) ([]byte, error) {
 	return DefaultJSONHandler.Marshal(v)
+}
+
+func NewDecoderCaseInsensitive(reader io.Reader) Decoder {
+	return DefaultJSONHandler.NewDecoder(reader)
 }
