@@ -534,35 +534,3 @@ func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error
 	}
 	return nil
 }
-
-// GetCommitBranchStart returns the commit where the branch diverged
-func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID string) (string, error) {
-	cmd := gitcmd.NewCommand("log", prettyLogFormat)
-	cmd.AddDynamicArguments(endCommitID)
-
-	stdout, _, runErr := cmd.RunStdBytes(repo.Ctx, &gitcmd.RunOpts{
-		Dir: repo.Path,
-		Env: env,
-	})
-	if runErr != nil {
-		return "", runErr
-	}
-
-	parts := bytes.SplitSeq(bytes.TrimSpace(stdout), []byte{'\n'})
-
-	// check the commits one by one until we find a commit contained by another branch
-	// and we think this commit is the divergence point
-	for commitID := range parts {
-		branches, err := repo.getBranches(env, string(commitID), 2)
-		if err != nil {
-			return "", err
-		}
-		for _, b := range branches {
-			if b != branch {
-				return string(commitID), nil
-			}
-		}
-	}
-
-	return "", nil
-}
