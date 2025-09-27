@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	org_setting "code.gitea.io/gitea/routers/web/org/setting"
+	"code.gitea.io/gitea/routers/web/projects"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
@@ -1037,6 +1038,10 @@ func registerWebRoutes(m *web.Router) {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+			m.Group("/{id}/workflows", func() {
+				m.Get("", projects.Workflows)
+				m.Get("/{workflow_id}", projects.Workflows)
+			})
 			m.Group("", func() { //nolint:dupl // duplicates lines 1421-1441
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
@@ -1425,6 +1430,10 @@ func registerWebRoutes(m *web.Router) {
 	m.Group("/{username}/{reponame}/projects", func() {
 		m.Get("", repo.Projects)
 		m.Get("/{id}", repo.ViewProject)
+		m.Group("/{id}/workflows", func() {
+			m.Get("", projects.Workflows)
+			m.Get("/{workflow_id}", projects.Workflows)
+		})
 		m.Group("", func() { //nolint:dupl // duplicates lines 1034-1054
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
