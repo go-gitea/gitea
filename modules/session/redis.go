@@ -187,7 +187,7 @@ func (p *RedisProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err 
 			return nil, err
 		}
 	} else if err != nil {
-			return nil, err
+		return nil, err
 	}
 
 	// do not use Rename here, because the old sid and new sid may be in different redis cluster slot.
