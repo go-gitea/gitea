@@ -159,7 +159,7 @@ func (p *DBProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err err
 func (p *DBProvider) Count() (int, error) {
 	total, err := auth.CountSessions(dbContext())
 	if err != nil {
-		fmt.Errorf("session/DB: error counting records: %w", err)
+		return 0, fmt.Errorf("session/DB: error counting records: %w", err)
 	}
 	return int(total), nil
 }
