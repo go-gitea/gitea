@@ -109,8 +109,8 @@ func checkPullRequestMergeableAndUpdateStatusMergeTree(ctx context.Context, pr *
 	pr.MergeBase, err = gitrepo.MergeBase(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID)
 	if err != nil {
 		log.Error("GetMergeBase: %v and can't find commit ID for base: %v", err, baseCommitID)
-		// FIXME: is this the right thing to do?
-		pr.MergeBase = baseCommitID
+		pr.Status = issues_model.PullRequestStatusEmpty // if there is no merge base, then it's empty but we still need to allow the pull request created
+		return nil
 	}
 
 	// 4. if base == head, then it's an ancestor
@@ -122,7 +122,8 @@ func checkPullRequestMergeableAndUpdateStatusMergeTree(ctx context.Context, pr *
 	// 5. Check for conflicts
 	conflicted, err := checkConflictsMergeTree(ctx, pr.BaseRepo.RepoPath(), pr, baseCommitID)
 	if err != nil {
-		return fmt.Errorf("checkConflictsMergeTree: %w", err)
+		log.Error("checkConflictsMergeTree: %v", err)
+		pr.Status = issues_model.PullRequestStatusEmpty // if there is no merge base, then it's empty but we still need to allow the pull request created
 	}
 	if conflicted || pr.Status == issues_model.PullRequestStatusEmpty {
 		return nil
