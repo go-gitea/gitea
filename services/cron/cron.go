@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/go-co-op/gocron"
@@ -19,13 +18,10 @@ import (
 
 var scheduler = gocron.NewScheduler(time.Local)
 
-// Prevent duplicate running tasks.
-var taskStatusTable = sync.NewStatusTable()
-
-// NewContext begins cron tasks
+// Init begins cron tasks
 // Each cron task is run within the shutdown context as a running server
 // AtShutdown the cron server is stopped
-func NewContext(original context.Context) {
+func Init(original context.Context) {
 	defer pprof.SetGoroutineLabels(original)
 	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().ShutdownContext(), "Service: Cron", process.SystemProcessType, true)
 	initBasicTasks()
