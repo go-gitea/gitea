@@ -1,5 +1,4 @@
-// Copyright 2019 The Gitea Authors.
-// All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package pull
@@ -15,15 +14,14 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -67,10 +65,7 @@ var patchErrorSuffices = []string{
 	": does not exist in index",
 }
 
-func testPullRequestBranchMergeable(pr *issues_model.PullRequest) error {
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("testPullRequestBranchMergeable: %s", pr))
-	defer finished()
-
+func checkPullRequestMergeableAndUpdateStatusTmpRepo(ctx context.Context, pr *issues_model.PullRequest) error {
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
 		if !git_model.IsErrBranchNotExist(err) {
@@ -80,10 +75,6 @@ func testPullRequestBranchMergeable(pr *issues_model.PullRequest) error {
 	}
 	defer cancel()
 
-	return testPullRequestTmpRepoBranchMergeable(ctx, prCtx, pr)
-}
-
-func testPullRequestTmpRepoBranchMergeable(ctx context.Context, prCtx *prTmpRepoContext, pr *issues_model.PullRequest) error {
 	gitRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
@@ -115,7 +106,7 @@ func testPullRequestTmpRepoBranchMergeable(ctx context.Context, prCtx *prTmpRepo
 	}
 
 	// 3. Check for protected files changes
-	if err = checkPullFilesProtection(ctx, pr, gitRepo); err != nil {
+	if err = checkPullFilesProtection(ctx, pr, prCtx.tmpBasePath); err != nil {
 		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
 	}
 
@@ -530,11 +521,11 @@ func (err ErrFilePathProtected) Unwrap() error {
 }
 
 // CheckFileProtection check file Protection
-func CheckFileProtection(repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string) ([]string, error) {
+func CheckFileProtection(ctx context.Context, repoPath, oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string) ([]string, error) {
 	if len(patterns) == 0 {
 		return nil, nil
 	}
-	affectedFiles, err := git.GetAffectedFiles(repo, branchName, oldCommitID, newCommitID, env)
+	affectedFiles, err := git.GetAffectedFiles(ctx, repoPath, oldCommitID, newCommitID, env)
 	if err != nil {
 		return nil, err
 	}
@@ -560,11 +551,11 @@ func CheckFileProtection(repo *git.Repository, branchName, oldCommitID, newCommi
 }
 
 // CheckUnprotectedFiles check if the commit only touches unprotected files
-func CheckUnprotectedFiles(repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, env []string) (bool, error) {
+func CheckUnprotectedFiles(ctx context.Context, repo *repo_model.Repository, oldCommitID, newCommitID string, patterns []glob.Glob, env []string) (bool, error) {
 	if len(patterns) == 0 {
 		return false, nil
 	}
-	affectedFiles, err := git.GetAffectedFiles(repo, branchName, oldCommitID, newCommitID, env)
+	affectedFiles, err := git.GetAffectedFiles(ctx, repo.RepoPath(), oldCommitID, newCommitID, env)
 	if err != nil {
 		return false, err
 	}
@@ -585,7 +576,8 @@ func CheckUnprotectedFiles(repo *git.Repository, branchName, oldCommitID, newCom
 }
 
 // checkPullFilesProtection check if pr changed protected files and save results
-func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) error {
+// repoPath might be a temporary path so that we need to pass it in
+func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest, repoPath string) error {
 	if pr.Status == issues_model.PullRequestStatusEmpty {
 		pr.ChangedProtectedFiles = nil
 		return nil
@@ -601,7 +593,7 @@ func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest,
 		return nil
 	}
 
-	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.HeadBranch, pr.MergeBase, "tracking", pb.GetProtectedFilePatterns(), 10, os.Environ())
+	pr.ChangedProtectedFiles, err = CheckFileProtection(ctx, repoPath, pr.MergeBase, pr.HeadCommitID, pb.GetProtectedFilePatterns(), 10, os.Environ())
 	if err != nil && !IsErrFilePathProtected(err) {
 		return err
 	}

@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -86,16 +87,12 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 	}
 
-	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
-	if err != nil {
-		if !git_model.IsErrBranchNotExist(err) {
-			log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
-		}
-		return err
-	}
-	defer cancel()
+	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("testPullRequestBranchMergeable: %s", pr))
+	defer finished()
 
-	if err := testPullRequestTmpRepoBranchMergeable(ctx, prCtx, pr); err != nil {
+	// the pull request haven't been created
+	err := checkPullRequestMergeableAndUpdateStatus(ctx, pr)
+	if err != nil {
 		return err
 	}
 
@@ -275,8 +272,11 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	oldBranch := pr.BaseBranch
 	pr.BaseBranch = targetBranch
 
+	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("testPullRequestBranchMergeable: %s", pr))
+	defer finished()
+
 	// Refresh patch
-	if err := testPullRequestBranchMergeable(pr); err != nil {
+	if err := checkPullRequestMergeableAndUpdateStatus(ctx, pr); err != nil {
 		return err
 	}
 
