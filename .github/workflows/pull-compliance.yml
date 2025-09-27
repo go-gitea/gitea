@@ -121,7 +121,7 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
-      - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
+      - run: make checks-backend
 
   frontend:
     if: needs.files-changed.outputs.frontend == 'true' || needs.files-changed.outputs.actions == 'true'
