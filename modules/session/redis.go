@@ -176,20 +176,18 @@ func (p *RedisProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err 
 	poldsid := p.prefix + oldsid
 	psid := p.prefix + sid
 
-	exist, err := p.Exist(sid)
-	if err != nil {
+	if exist, err := p.Exist(sid); err != nil {
 		return nil, err
-	}
-	if exist {
+	} else if exist {
 		return nil, fmt.Errorf("new sid '%s' already exists", sid)
 	}
 	if exist, err := p.Exist(oldsid); err == nil && !exist {
 		// Make a fake old session.
-		if err = p.c.Set(graceful.GetManager().HammerContext(), poldsid, "", p.duration).Err(); err != nil {
-			return nil, err
-		} else if err != nil {
+		if err := p.c.Set(graceful.GetManager().HammerContext(), poldsid, "", p.duration).Err(); err != nil {
 			return nil, err
 		}
+	} else if err != nil {
+			return nil, err
 	}
 
 	// do not use Rename here, because the old sid and new sid may be in different redis cluster slot.
