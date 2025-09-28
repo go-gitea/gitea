@@ -193,7 +193,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		},
 		{
 			endpoint:      "https://invalid-json-response.io",
-			expectedError: "invalid json",
+			expectedError: "/(invalid json|jsontext: invalid character)/",
 		},
 		{
 			endpoint:      "https://valid-batch-request-download.io",
@@ -258,7 +258,11 @@ func TestHTTPClientDownload(t *testing.T) {
 				return nil
 			})
 			if c.expectedError != "" {
-				assert.ErrorContains(t, err, c.expectedError)
+				if strings.HasPrefix(c.expectedError, "/") && strings.HasSuffix(c.expectedError, "/") {
+					assert.Regexp(t, strings.Trim(c.expectedError, "/"), err.Error())
+				} else {
+					assert.ErrorContains(t, err, c.expectedError)
+				}
 			} else {
 				assert.NoError(t, err)
 			}
@@ -297,7 +301,7 @@ func TestHTTPClientUpload(t *testing.T) {
 		},
 		{
 			endpoint:      "https://invalid-json-response.io",
-			expectedError: "invalid json",
+			expectedError: "/(invalid json|jsontext: invalid character)/",
 		},
 		{
 			endpoint:      "https://valid-batch-request-upload.io",
@@ -352,7 +356,11 @@ func TestHTTPClientUpload(t *testing.T) {
 				return io.NopCloser(new(bytes.Buffer)), objectError
 			})
 			if c.expectedError != "" {
-				assert.ErrorContains(t, err, c.expectedError)
+				if strings.HasPrefix(c.expectedError, "/") && strings.HasSuffix(c.expectedError, "/") {
+					assert.Regexp(t, strings.Trim(c.expectedError, "/"), err.Error())
+				} else {
+					assert.ErrorContains(t, err, c.expectedError)
+				}
 			} else {
 				assert.NoError(t, err)
 			}
