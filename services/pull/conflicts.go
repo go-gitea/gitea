@@ -29,7 +29,7 @@ func checkPullRequestMergeableAndUpdateStatus(ctx context.Context, pr *issues_mo
 // checkConflictsMergeTree uses git merge-tree to check for conflicts and if none are found checks if the patch is empty
 // return true if there is conflicts otherwise return false
 // pr.Status and pr.ConflictedFiles will be updated as necessary
-func checkConflictsMergeTree(ctx context.Context, repoPath string, pr *issues_model.PullRequest, baseCommitID string) (bool, error) {
+func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, baseCommitID string) (bool, error) {
 	treeHash, conflict, conflictFiles, err := gitrepo.MergeTree(ctx, pr.BaseRepo, pr.MergeBase, baseCommitID, pr.HeadCommitID)
 	if err != nil {
 		return false, fmt.Errorf("MergeTree: %w", err)
@@ -47,10 +47,7 @@ func checkConflictsMergeTree(ctx context.Context, repoPath string, pr *issues_mo
 	// will return exit code 0 if there's no diff and exit code 1 if there's
 	// a diff.
 	isEmpty := true
-	if err = gitcmd.NewCommand("diff-tree", "--quiet").AddDynamicArguments(treeHash, pr.MergeBase).
-		Run(ctx, &gitcmd.RunOpts{
-			Dir: repoPath,
-		}); err != nil {
+	if err = gitrepo.DiffTree(ctx, pr.BaseRepo, treeHash, pr.MergeBase); err != nil {
 		if !gitcmd.IsErrorExitCode(err, 1) {
 			return false, fmt.Errorf("DiffTree: %w", err)
 		}
@@ -120,7 +117,7 @@ func checkPullRequestMergeableAndUpdateStatusMergeTree(ctx context.Context, pr *
 	}
 
 	// 5. Check for conflicts
-	conflicted, err := checkConflictsMergeTree(ctx, pr.BaseRepo.RepoPath(), pr, baseCommitID)
+	conflicted, err := checkConflictsMergeTree(ctx, pr, baseCommitID)
 	if err != nil {
 		log.Error("checkConflictsMergeTree: %v", err)
 		pr.Status = issues_model.PullRequestStatusEmpty // if there is no merge base, then it's empty but we still need to allow the pull request created

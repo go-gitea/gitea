@@ -52,3 +52,10 @@ func MergeTree(ctx context.Context, repo Repository, base, ours, theirs string) 
 	// Remove last NULL-byte from conflicted file info, then split with NULL byte as separator.
 	return treeOID, true, strings.Split(conflictedFileInfo[:len(conflictedFileInfo)-1], "\x00"), nil
 }
+
+func DiffTree(ctx context.Context, repo Repository, treeHash, mergeBase string) error {
+	return gitcmd.NewCommand("diff-tree", "--quiet").AddDynamicArguments(treeHash, mergeBase).
+		Run(ctx, &gitcmd.RunOpts{
+			Dir: repoPath(repo),
+		})
+}
