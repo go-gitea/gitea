@@ -60,6 +60,7 @@ type ChangeRepoFilesOptions struct {
 	Committer    *IdentityOptions
 	Dates        *CommitDateOptions
 	Signoff      bool
+	Force        bool
 }
 
 type RepoFileOptions struct {
@@ -168,19 +169,30 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	// A NewBranch can be specified for the file to be created/updated in a new branch.
-	// Check to make sure the branch does not already exist, otherwise we can't proceed.
-	// If we aren't branching to a new branch, make sure user can commit to the given branch
+	// Check to to see if the branch already exist. If it does, ensure Force option is set
+	// and VerifyBranchProtection passes
 	if opts.NewBranch != opts.OldBranch {
 		exist, err := git_model.IsBranchExist(ctx, repo.ID, opts.NewBranch)
 		if err != nil {
 			return nil, err
 		}
+
 		if exist {
-			return nil, git_model.ErrBranchAlreadyExists{
-				BranchName: opts.NewBranch,
+			if opts.Force {
+				// ensure branch can be force pushed
+				if err := VerifyBranchProtection(ctx, repo, doer, opts.NewBranch, treePaths, opts.Force); err != nil {
+					return nil, git_model.ErrBranchProtected{
+						BranchName: opts.NewBranch,
+					}
+				}
+			} else {
+				// branch exists but force option not set
+				return nil, git_model.ErrBranchAlreadyExists{
+					BranchName: opts.NewBranch,
+				}
 			}
 		}
-	} else if err := VerifyBranchProtection(ctx, repo, doer, opts.OldBranch, treePaths); err != nil {
+	} else if err := VerifyBranchProtection(ctx, repo, doer, opts.OldBranch, treePaths, opts.Force); err != nil {
 		return nil, err
 	}
 
@@ -303,7 +315,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	// Then push this tree to NewBranch
-	if err := t.Push(ctx, doer, commitHash, opts.NewBranch); err != nil {
+	if err := t.Push(ctx, doer, commitHash, opts.NewBranch, opts.Force); err != nil {
 		log.Error("%T %v", err, err)
 		return nil, err
 	}
@@ -685,7 +697,7 @@ func writeRepoObjectForRename(ctx context.Context, t *TemporaryUploadRepository,
 }
 
 // VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
-func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, branchName string, treePaths []string) error {
+func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, branchName string, treePaths []string, force bool) error {
 	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branchName)
 	if err != nil {
 		return err
@@ -695,12 +707,18 @@ func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, do
 		globUnprotected := protectedBranch.GetUnprotectedFilePatterns()
 		globProtected := protectedBranch.GetProtectedFilePatterns()
 		canUserPush := protectedBranch.CanUserPush(ctx, doer)
+		canUserForcePush := protectedBranch.CanUserForcePush(ctx, doer)
 		for _, treePath := range treePaths {
 			isUnprotectedFile := false
 			if len(globUnprotected) != 0 {
 				isUnprotectedFile = protectedBranch.IsUnprotectedFile(globUnprotected, treePath)
 			}
 			if !canUserPush && !isUnprotectedFile {
+				return ErrUserCannotCommit{
+					UserName: doer.LowerName,
+				}
+			}
+			if force && !canUserForcePush && !isUnprotectedFile {
 				return ErrUserCannotCommit{
 					UserName: doer.LowerName,
 				}

@@ -354,13 +354,14 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 }
 
 // Push the provided commitHash to the repository branch by the provided user
-func (t *TemporaryUploadRepository) Push(ctx context.Context, doer *user_model.User, commitHash, branch string) error {
+func (t *TemporaryUploadRepository) Push(ctx context.Context, doer *user_model.User, commitHash, branch string, force bool) error {
 	// Because calls hooks we need to pass in the environment
 	env := repo_module.PushingEnvironment(doer, t.repo)
 	if err := git.Push(ctx, t.basePath, git.PushOptions{
 		Remote: t.repo.RepoPath(),
 		Branch: strings.TrimSpace(commitHash) + ":" + git.BranchPrefix + strings.TrimSpace(branch),
 		Env:    env,
+		Force:  force,
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) {
 			return err

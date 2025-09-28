@@ -228,6 +228,54 @@ func TestAPICreateFile(t *testing.T) {
 		assert.Equal(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
 		assert.Equal(t, createFileOptions.Message+"\n", fileResponse.Commit.Message)
 
+		// Test fails creating a file in a branch that already exists without force
+		createFileOptions = getCreateFileOptions()
+		createFileOptions.BranchName = repo1.DefaultBranch
+		createFileOptions.NewBranchName = "develop"
+		createFileOptions.Force = false
+		fileID++
+		treePath = fmt.Sprintf("new/file%d.txt", fileID)
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &createFileOptions).
+			AddTokenAuth(token2)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+		// Test succeeds creating a file in a branch that already exists with force
+		createFileOptions = getCreateFileOptions()
+		createFileOptions.BranchName = repo1.DefaultBranch
+		createFileOptions.NewBranchName = "develop"
+		createFileOptions.Force = true
+		fileID++
+		treePath = fmt.Sprintf("new/file%d.txt", fileID)
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &createFileOptions).
+			AddTokenAuth(token2)
+		resp = MakeRequest(t, req, http.StatusCreated)
+		DecodeJSON(t, resp, &fileResponse)
+		expectedHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/develop/new/file%d.txt", fileID)
+		expectedDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/develop/new/file%d.txt", fileID)
+		assert.Equal(t, expectedSHA, fileResponse.Content.SHA)
+		assert.Equal(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
+		assert.Equal(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
+		assert.Equal(t, createFileOptions.Message+"\n", fileResponse.Commit.Message)
+
+		// Test fails creating a file in a branch that already exists with force and branch protection enabled
+		createFileOptions = getCreateFileOptions()
+		createFileOptions.BranchName = repo1.DefaultBranch
+		createFileOptions.NewBranchName = "develop"
+		createFileOptions.Force = true
+		protectionReq := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
+			RuleName:        "develop",
+			BranchName:      "develop",
+			Priority:        1,
+			EnablePush:      true,
+			EnableForcePush: false,
+		}).AddTokenAuth(token2)
+		MakeRequest(t, protectionReq, http.StatusCreated)
+		fileID++
+		treePath = fmt.Sprintf("new/file%d.txt", fileID)
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &createFileOptions).
+			AddTokenAuth(token2)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
+
 		// Test creating a file without a message
 		createFileOptions = getCreateFileOptions()
 		createFileOptions.Message = ""

@@ -355,6 +355,7 @@ func ReqChangeRepoFileOptionsAndCheck(ctx *context.APIContext) {
 		Message:   commonOpts.Message,
 		OldBranch: commonOpts.BranchName,
 		NewBranch: commonOpts.NewBranchName,
+		Force:     commonOpts.Force,
 		Committer: &files_service.IdentityOptions{
 			GitUserName:  commonOpts.Committer.Name,
 			GitUserEmail: commonOpts.Committer.Email,
@@ -595,7 +596,7 @@ func handleChangeRepoFilesError(ctx *context.APIContext, err error) {
 		ctx.APIError(http.StatusForbidden, err)
 		return
 	}
-	if git_model.IsErrBranchAlreadyExists(err) || files_service.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
+	if git_model.IsErrBranchAlreadyExists(err) || git_model.IsErrBranchProtected(err) || files_service.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
 		files_service.IsErrFilePathInvalid(err) || files_service.IsErrRepoFileAlreadyExists(err) ||
 		files_service.IsErrCommitIDDoesNotMatch(err) || files_service.IsErrSHAOrCommitIDNotProvided(err) {
 		ctx.APIError(http.StatusUnprocessableEntity, err)

@@ -14,6 +14,8 @@ type FileOptions struct {
 	BranchName string `json:"branch" binding:"GitRefName;MaxSize(100)"`
 	// new_branch (optional) will make a new branch from `branch` before creating the file
 	NewBranchName string `json:"new_branch" binding:"GitRefName;MaxSize(100)"`
+	// force (optional) will force update the new branch if it already exists
+	Force bool `json:"force"`
 	// `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 	Author    Identity          `json:"author"`
 	Committer Identity          `json:"committer"`

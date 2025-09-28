@@ -61,6 +61,25 @@ func (err ErrBranchAlreadyExists) Unwrap() error {
 	return util.ErrAlreadyExist
 }
 
+// ErrBranchProtected represents an error that a branch cannot be force updated due to branch protections
+type ErrBranchProtected struct {
+	BranchName string
+}
+
+// IsErrBranchAlreadyExists checks if an error is an ErrBranchAlreadyExists.
+func IsErrBranchProtected(err error) bool {
+	_, ok := err.(ErrBranchProtected)
+	return ok
+}
+
+func (err ErrBranchProtected) Error() string {
+	return fmt.Sprintf("branch cannot be force updated due to branch protection rules [name: %s]", err.BranchName)
+}
+
+func (err ErrBranchProtected) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ErrBranchNameConflict represents an error that branch name conflicts with other branch.
 type ErrBranchNameConflict struct {
 	BranchName string

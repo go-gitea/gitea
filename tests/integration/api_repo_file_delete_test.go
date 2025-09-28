@@ -91,6 +91,54 @@ func TestAPIDeleteFile(t *testing.T) {
 		assert.Nil(t, fileResponse.Content)
 		assert.Equal(t, deleteFileOptions.Message+"\n", fileResponse.Commit.Message)
 
+		// Test fails deleting a file in a branch that already exists without force
+		fileID++
+		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
+		createFile(user2, repo1, treePath)
+		deleteFileOptions = getDeleteFileOptions()
+		deleteFileOptions.BranchName = repo1.DefaultBranch
+		deleteFileOptions.NewBranchName = "develop"
+		deleteFileOptions.Force = false
+		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
+			AddTokenAuth(token2)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+		// Test succeeds deleting a file in a branch that already exists with force
+		fileID++
+		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
+		createFile(user2, repo1, treePath)
+		deleteFileOptions = getDeleteFileOptions()
+		deleteFileOptions.BranchName = repo1.DefaultBranch
+		deleteFileOptions.NewBranchName = "develop"
+		deleteFileOptions.Force = true
+		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
+			AddTokenAuth(token2)
+		resp = MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &fileResponse)
+		assert.NotNil(t, fileResponse)
+		assert.Nil(t, fileResponse.Content)
+		assert.Equal(t, deleteFileOptions.Message+"\n", fileResponse.Commit.Message)
+
+		// Test fails creating a file in a branch that already exists with force and branch protection enabled
+		fileID++
+		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
+		createFile(user2, repo1, treePath)
+		deleteFileOptions = getDeleteFileOptions()
+		deleteFileOptions.BranchName = repo1.DefaultBranch
+		deleteFileOptions.NewBranchName = "develop"
+		deleteFileOptions.Force = true
+		protectionReq := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
+			RuleName:        "develop",
+			BranchName:      "develop",
+			Priority:        1,
+			EnablePush:      true,
+			EnableForcePush: false,
+		}).AddTokenAuth(token2)
+		MakeRequest(t, protectionReq, http.StatusCreated)
+		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
+			AddTokenAuth(token2)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
+
 		// Test deleting file without a message
 		fileID++
 		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
