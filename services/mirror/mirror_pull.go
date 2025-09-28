@@ -640,7 +640,7 @@ func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, re
 		// Update the is empty and default_branch columns
 		if err := repo_model.UpdateRepositoryColsWithAutoTime(ctx, m.Repo, "default_branch", "is_empty"); err != nil {
 			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
-			desc := fmt.Sprintf("Failed to update default branch of repository '%s': %v", m.Repo.RepoPath(), err)
+			desc := fmt.Sprintf("Failed to update default branch of repository '%s': %v", m.Repo.RelativePath(), err)
 			if err = system_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}

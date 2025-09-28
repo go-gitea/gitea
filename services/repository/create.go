@@ -314,7 +314,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		licenses = append(licenses, opts.License)
 
 		var stdout string
-		stdout, _, err = gitcmd.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()})
+		stdout, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("rev-parse", "HEAD"))
 		if err != nil {
 			log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return nil, fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
@@ -475,8 +475,8 @@ func updateGitRepoAfterCreate(ctx context.Context, repo *repo_model.Repository) 
 		return fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
-	if stdout, _, err := gitcmd.NewCommand("update-server-info").
-		RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()}); err != nil {
+	if stdout, err := gitrepo.RunCmdString(ctx, repo,
+		gitcmd.NewCommand("update-server-info")); err != nil {
 		log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 		return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 	}

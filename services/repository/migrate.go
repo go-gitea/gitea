@@ -87,8 +87,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
-	if err := util.RemoveAll(repoPath); err != nil {
-		return repo, fmt.Errorf("failed to remove existing repo dir %q, err: %w", repoPath, err)
+	if err := gitrepo.DeleteRepository(ctx, repo); err != nil {
+		return repo, fmt.Errorf("failed to remove existing repo dir %q, err: %w", repo.FullName(), err)
 	}
 
 	if err := git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
@@ -123,7 +123,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repoPath)
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		return repo, fmt.Errorf("OpenRepository: %w", err)
 	}

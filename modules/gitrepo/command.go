@@ -9,7 +9,24 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
-func runCmdString(ctx context.Context, repo Repository, cmd *gitcmd.Command) (string, error) {
-	res, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
+type CmdOption struct {
+	Env []string
+}
+
+func WithEnv(env []string) func(opt *CmdOption) {
+	return func(opt *CmdOption) {
+		opt.Env = env
+	}
+}
+
+func RunCmdString(ctx context.Context, repo Repository, cmd *gitcmd.Command, opts ...func(opt *CmdOption)) (string, error) {
+	var opt CmdOption
+	for _, o := range opts {
+		o(&opt)
+	}
+	res, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{
+		Dir: repoPath(repo),
+		Env: opt.Env,
+	})
 	return res, err
 }
