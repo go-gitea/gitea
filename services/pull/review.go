@@ -46,11 +46,25 @@ func (err ErrDismissRequestOnClosedPR) Unwrap() error {
 // ErrSubmitReviewOnClosedPR represents an error when an user tries to submit an approve or reject review associated to a closed or merged PR.
 var ErrSubmitReviewOnClosedPR = errors.New("can't submit review for a closed or merged PR")
 
+// LineBlame returns the latest commit at the given line
+func lineBlame(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, branch, file string, line uint) (*git.Commit, error) {
+	sha, err := gitrepo.LineBlame(ctx, repo, branch, file, line)
+	if err != nil {
+		return nil, err
+	}
+	if len(sha) < 40 {
+		return nil, fmt.Errorf("invalid result of blame: %s", sha)
+	}
+
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+	return gitRepo.GetCommit(sha[:objectFormat.FullLength()])
+}
+
 // checkInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
-func checkInvalidation(ctx context.Context, c *issues_model.Comment, repo *git.Repository, branch string) error {
+func checkInvalidation(ctx context.Context, c *issues_model.Comment, repo *repo_model.Repository, gitRepo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
-	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
+	commit, err := lineBlame(ctx, repo, gitRepo, branch, c.TreePath, uint(c.UnsignedLine()))
 	if err != nil && (strings.Contains(err.Error(), "fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
 		c.Invalidated = true
 		return issues_model.UpdateCommentInvalidate(ctx, c)
@@ -66,7 +80,7 @@ func checkInvalidation(ctx context.Context, c *issues_model.Comment, repo *git.R
 }
 
 // InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
-func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestList, doer *user_model.User, repo *git.Repository, branch string) error {
+func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestList, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branch string) error {
 	if len(prs) == 0 {
 		return nil
 	}
@@ -82,7 +96,7 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 		return fmt.Errorf("find code comments: %v", err)
 	}
 	for _, comment := range codeComments {
-		if err := checkInvalidation(ctx, comment, repo, branch); err != nil {
+		if err := checkInvalidation(ctx, comment, repo, gitRepo, branch); err != nil {
 			return err
 		}
 	}
@@ -232,7 +246,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			// FIXME validate treePath
 			// Get latest commit referencing the commented line
 			// No need for get commit for base branch changes
-			commit, err := gitRepo.LineBlame(head, gitRepo.Path, treePath, uint(line))
+			commit, err := lineBlame(ctx, pr.BaseRepo, gitRepo, head, treePath, uint(line))
 			if err == nil {
 				commitID = commit.ID.String()
 			} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
