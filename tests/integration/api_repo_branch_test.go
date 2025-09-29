@@ -121,10 +121,10 @@ func TestAPIRepoBranchesMirror(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusForbidden)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
-	assert.Equal(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\""+setting.AppURL+"api/swagger\"}\n", string(bs))
+	assert.JSONEq(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\""+setting.AppURL+"api/swagger\"}", string(bs))
 
 	resp = MakeRequest(t, NewRequest(t, "DELETE", link2.String()).AddTokenAuth(token), http.StatusForbidden)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
-	assert.Equal(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\""+setting.AppURL+"api/swagger\"}\n", string(bs))
+	assert.JSONEq(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\""+setting.AppURL+"api/swagger\"}", string(bs))
 }

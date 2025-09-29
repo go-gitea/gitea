@@ -361,7 +361,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		Email:  form.Email,
 		Passwd: password,
 	}
-	if !createUserInContext(ctx, tplSignUpOID, form, u, nil, nil, false) {
+	if !createUserInContext(ctx, tplSignUpOID, form, u, nil, nil) {
 		// error already handled
 		return
 	}

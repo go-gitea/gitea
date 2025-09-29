@@ -73,6 +73,9 @@ func TestDecodeEnvironmentKey(t *testing.T) {
 	assert.Equal(t, "sec", section)
 	assert.Equal(t, "KEY", key)
 	assert.True(t, file)
+
+	ok, _, _, _ = decodeEnvironmentKey("PREFIX__", "", "PREFIX__SEC__KEY")
+	assert.True(t, ok)
 }
 
 func TestEnvironmentToConfig(t *testing.T) {

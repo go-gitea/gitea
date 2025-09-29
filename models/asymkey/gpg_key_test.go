@@ -232,7 +232,7 @@ Q0KHb+QcycSgbDx0ZAvdIacuKvBBcbxrsmFUI4LR+oIup0G9gUc0roPvr014jYQL
 =zHo9
 -----END PGP PUBLIC KEY BLOCK-----`
 
-	keys, err := AddGPGKey(db.DefaultContext, 1, testEmailWithUpperCaseLetters, "", "")
+	keys, err := AddGPGKey(t.Context(), 1, testEmailWithUpperCaseLetters, "", "")
 	assert.NoError(t, err)
 	if assert.NotEmpty(t, keys) {
 		key := keys[0]
@@ -407,12 +407,12 @@ func TestTryGetKeyIDFromSignature(t *testing.T) {
 
 func TestParseGPGKey(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	assert.NoError(t, db.Insert(db.DefaultContext, &user_model.EmailAddress{UID: 1, Email: "email1@example.com", IsActivated: true}))
+	assert.NoError(t, db.Insert(t.Context(), &user_model.EmailAddress{UID: 1, Email: "email1@example.com", IsActivated: true}))
 
 	// create a key for test email
 	e, err := openpgp.NewEntity("name", "comment", "email1@example.com", nil)
 	require.NoError(t, err)
-	k, err := parseGPGKey(db.DefaultContext, 1, e, true)
+	k, err := parseGPGKey(t.Context(), 1, e, true)
 	require.NoError(t, err)
 	assert.NotEmpty(t, k.KeyID)
 	assert.NotEmpty(t, k.Emails) // the key is valid, matches the email
@@ -421,7 +421,7 @@ func TestParseGPGKey(t *testing.T) {
 	for _, id := range e.Identities {
 		id.Revocations = append(id.Revocations, &packet.Signature{RevocationReason: util.ToPointer(packet.KeyCompromised)})
 	}
-	k, err = parseGPGKey(db.DefaultContext, 1, e, true)
+	k, err = parseGPGKey(t.Context(), 1, e, true)
 	require.NoError(t, err)
 	assert.NotEmpty(t, k.KeyID)
 	assert.Empty(t, k.Emails) // the key is revoked, matches no email

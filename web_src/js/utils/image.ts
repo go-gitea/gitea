@@ -1,7 +1,7 @@
 type PngChunk = {
   name: string,
   data: Uint8Array,
-}
+};
 
 export async function pngChunks(blob: Blob): Promise<PngChunk[]> {
   const uint8arr = new Uint8Array(await blob.arrayBuffer());
@@ -27,10 +27,10 @@ export async function pngChunks(blob: Blob): Promise<PngChunk[]> {
 type ImageInfo = {
   width?: number,
   dppx?: number,
-}
+};
 
-// decode a image and try to obtain width and dppx. It will never throw but instead
-// return default values.
+/** decode a image and try to obtain width and dppx. It will never throw but instead
+ *  return default values. */
 export async function imageInfo(blob: Blob): Promise<ImageInfo> {
   let width = 0, dppx = 1; // dppx: 1 dot per pixel for non-HiDPI screens
 

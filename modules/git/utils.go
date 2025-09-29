@@ -6,11 +6,12 @@ package git
 import (
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"strconv"
 	"strings"
 	"sync"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ObjectCache provides thread-safe cache operations.
@@ -38,14 +39,6 @@ func (oc *ObjectCache[T]) Get(id string) (T, bool) {
 
 	obj, has := oc.cache[id]
 	return obj, has
-}
-
-// ConcatenateError concatenats an error with stderr string
-func ConcatenateError(err error, stderr string) error {
-	if len(stderr) == 0 {
-		return err
-	}
-	return fmt.Errorf("%w - %s", err, stderr)
 }
 
 // ParseBool returns the boolean value represented by the string as per git's git_config_bool
@@ -105,4 +98,17 @@ func HashFilePathForWebUI(s string) string {
 	h := sha1.New()
 	_, _ = h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+func SplitCommitTitleBody(commitMessage string, titleRuneLimit int) (title, body string) {
+	title, body, _ = strings.Cut(commitMessage, "\n")
+	title, title2 := util.EllipsisTruncateRunes(title, titleRuneLimit)
+	if title2 != "" {
+		if body == "" {
+			body = title2
+		} else {
+			body = title2 + "\n" + body
+		}
+	}
+	return title, body
 }

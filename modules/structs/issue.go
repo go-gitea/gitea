@@ -17,7 +17,7 @@ import (
 type StateType string
 
 const (
-	// StateOpen pr is opend
+	// StateOpen pr is opened
 	StateOpen StateType = "open"
 	// StateClosed pr is closed
 	StateClosed StateType = "closed"
@@ -75,6 +75,8 @@ type Issue struct {
 	Closed *time.Time `json:"closed_at"`
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
+
+	TimeEstimate int64 `json:"time_estimate"`
 
 	PullRequest *PullRequestMeta `json:"pull_request"`
 	Repo        *RepositoryMeta  `json:"repository"`
@@ -262,7 +264,8 @@ func (it IssueTemplate) Type() IssueTemplateType {
 // IssueMeta basic issue information
 // swagger:model
 type IssueMeta struct {
-	Index int64  `json:"index"`
+	Index int64 `json:"index"`
+	// owner of the issue's repo
 	Owner string `json:"owner"`
 	Name  string `json:"repo"`
 }

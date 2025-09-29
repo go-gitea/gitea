@@ -327,6 +327,37 @@ func getStatusPayloadInfo(p *api.CommitStatusPayload, linkFormatter linkFormatte
 	return text, color
 }
 
+func getWorkflowRunPayloadInfo(p *api.WorkflowRunPayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
+	description := p.WorkflowRun.Conclusion
+	if description == "" {
+		description = p.WorkflowRun.Status
+	}
+	refLink := linkFormatter(p.WorkflowRun.HTMLURL, fmt.Sprintf("%s(#%d)", p.WorkflowRun.DisplayTitle, p.WorkflowRun.ID)+"["+base.ShortSha(p.WorkflowRun.HeadSha)+"]:"+description)
+
+	text = fmt.Sprintf("Workflow Run %s: %s", p.Action, refLink)
+	switch description {
+	case "waiting":
+		color = orangeColor
+	case "queued":
+		color = orangeColorLight
+	case "success":
+		color = greenColor
+	case "failure":
+		color = redColor
+	case "cancelled":
+		color = yellowColor
+	case "skipped":
+		color = purpleColor
+	default:
+		color = greyColor
+	}
+	if withSender {
+		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
+	}
+
+	return text, color
+}
+
 func getWorkflowJobPayloadInfo(p *api.WorkflowJobPayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
 	description := p.WorkflowJob.Conclusion
 	if description == "" {

@@ -28,7 +28,7 @@ import (
 )
 
 // IndexerMetadata is used to send data to the queue, so it contains only the ids.
-// It may look weired, because it has to be compatible with the old queue data format.
+// It may look weird, because it has to be compatible with the old queue data format.
 // If the IsDelete flag is true, the IDs specify the issues to delete from the index without querying the database.
 // If the IsDelete flag is false, the ID specify the issue to index, so Indexer will query the database to get the issue data.
 // It should be noted that if the id is not existing in the database, it's index will be deleted too even if IsDelete is false.

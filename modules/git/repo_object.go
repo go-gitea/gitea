@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"io"
 	"strings"
+
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // ObjectType git object type
@@ -66,15 +68,15 @@ func (repo *Repository) HashObject(reader io.Reader) (ObjectID, error) {
 }
 
 func (repo *Repository) hashObject(reader io.Reader, save bool) (string, error) {
-	var cmd *Command
+	var cmd *gitcmd.Command
 	if save {
-		cmd = NewCommand("hash-object", "-w", "--stdin")
+		cmd = gitcmd.NewCommand("hash-object", "-w", "--stdin")
 	} else {
-		cmd = NewCommand("hash-object", "--stdin")
+		cmd = gitcmd.NewCommand("hash-object", "--stdin")
 	}
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err := cmd.Run(repo.Ctx, &RunOpts{
+	err := cmd.Run(repo.Ctx, &gitcmd.RunOpts{
 		Dir:    repo.Path,
 		Stdin:  reader,
 		Stdout: stdout,

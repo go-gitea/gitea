@@ -8,13 +8,15 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetTemplateSubmoduleCommits(t *testing.T) {
 	testRepoPath := filepath.Join(testReposDir, "repo4_submodules")
-	submodules, err := GetTemplateSubmoduleCommits(DefaultContext, testRepoPath)
+	submodules, err := GetTemplateSubmoduleCommits(t.Context(), testRepoPath)
 	require.NoError(t, err)
 
 	assert.Len(t, submodules, 2)
@@ -30,16 +32,16 @@ func TestAddTemplateSubmoduleIndexes(t *testing.T) {
 	ctx := t.Context()
 	tmpDir := t.TempDir()
 	var err error
-	_, _, err = NewCommand("init").RunStdString(ctx, &RunOpts{Dir: tmpDir})
+	_, _, err = gitcmd.NewCommand("init").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpDir})
 	require.NoError(t, err)
 	_ = os.Mkdir(filepath.Join(tmpDir, "new-dir"), 0o755)
 	err = AddTemplateSubmoduleIndexes(ctx, tmpDir, []TemplateSubmoduleCommit{{Path: "new-dir", Commit: "1234567890123456789012345678901234567890"}})
 	require.NoError(t, err)
-	_, _, err = NewCommand("add", "--all").RunStdString(ctx, &RunOpts{Dir: tmpDir})
+	_, _, err = gitcmd.NewCommand("add", "--all").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpDir})
 	require.NoError(t, err)
-	_, _, err = NewCommand("-c", "user.name=a", "-c", "user.email=b", "commit", "-m=test").RunStdString(ctx, &RunOpts{Dir: tmpDir})
+	_, _, err = gitcmd.NewCommand("-c", "user.name=a", "-c", "user.email=b", "commit", "-m=test").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpDir})
 	require.NoError(t, err)
-	submodules, err := GetTemplateSubmoduleCommits(DefaultContext, tmpDir)
+	submodules, err := GetTemplateSubmoduleCommits(t.Context(), tmpDir)
 	require.NoError(t, err)
 	assert.Len(t, submodules, 1)
 	assert.Equal(t, "new-dir", submodules[0].Path)

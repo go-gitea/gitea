@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//nolint:forbidigo
+//nolint:forbidigo // use of print functions is allowed in cli
 package main
 
 import (
@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v71/github"
+	"github.com/google/go-github/v74/github"
 	"github.com/urfave/cli/v3"
 	"gopkg.in/yaml.v3"
 )

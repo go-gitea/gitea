@@ -14,7 +14,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -103,17 +102,17 @@ func TestPackageDebian(t *testing.T) {
 								AddBasicAuth(user.Name)
 							MakeRequest(t, req, http.StatusCreated)
 
-							pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages.TypeDebian, packageName, packageVersion)
+							pv, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeDebian, packageName, packageVersion)
 							assert.NoError(t, err)
 
-							pd, err := packages.GetPackageDescriptor(db.DefaultContext, pv)
+							pd, err := packages.GetPackageDescriptor(t.Context(), pv)
 							assert.NoError(t, err)
 							assert.Nil(t, pd.SemVer)
 							assert.IsType(t, &debian_module.Metadata{}, pd.Metadata)
 							assert.Equal(t, packageName, pd.Package.Name)
 							assert.Equal(t, packageVersion, pd.Version.Version)
 
-							pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pv.ID)
+							pfs, err := packages.GetFilesByVersionID(t.Context(), pv.ID)
 							assert.NoError(t, err)
 							assert.NotEmpty(t, pfs)
 							assert.Condition(t, func() bool {
@@ -129,7 +128,7 @@ func TestPackageDebian(t *testing.T) {
 
 										assert.True(t, pf.IsLead)
 
-										pfps, err := packages.GetProperties(db.DefaultContext, packages.PropertyTypeFile, pf.ID)
+										pfps, err := packages.GetProperties(t.Context(), packages.PropertyTypeFile, pf.ID)
 										assert.NoError(t, err)
 
 										for _, pfp := range pfps {
@@ -277,7 +276,7 @@ func TestPackageDebian(t *testing.T) {
 			Type:          packages.TypeDebian,
 		}
 
-		_, err := packages.InsertCleanupRule(db.DefaultContext, rule)
+		_, err := packages.InsertCleanupRule(t.Context(), rule)
 		assert.NoError(t, err)
 
 		// When there were a lot of packages (> 50 or 100) and the code used "Iterate" to get all packages, it ever caused bugs,
@@ -292,7 +291,7 @@ func TestPackageDebian(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/dists/%s/Release", rootURL, "test"))
 		MakeRequest(t, req, http.StatusOK)
 
-		err = packages_cleanup_service.CleanupTask(db.DefaultContext, 0)
+		err = packages_cleanup_service.CleanupTask(t.Context(), 0)
 		assert.NoError(t, err)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/dists/%s/Release", rootURL, "test"))

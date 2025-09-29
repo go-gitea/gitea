@@ -9,6 +9,8 @@ import (
 	"bufio"
 	"io"
 	"strings"
+
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // GetRefsFiltered returns all references of the repository that matches patterm exactly or starting with.
@@ -21,13 +23,13 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		err := NewCommand("for-each-ref").Run(repo.Ctx, &RunOpts{
+		err := gitcmd.NewCommand("for-each-ref").Run(repo.Ctx, &gitcmd.RunOpts{
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,
 			Stderr: stderrBuilder,
 		})
 		if err != nil {
-			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderrBuilder.String()))
+			_ = stdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, stderrBuilder.String()))
 		} else {
 			_ = stdoutWriter.Close()
 		}

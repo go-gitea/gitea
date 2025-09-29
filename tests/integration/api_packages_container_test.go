@@ -16,7 +16,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -251,14 +250,14 @@ func TestPackageContainer(t *testing.T) {
 				assert.Equal(t, fmt.Sprintf("/v2/%s/%s/blobs/%s", user.Name, image, blobDigest), resp.Header().Get("Location"))
 				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
 
-				pv, err := packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, container_module.UploadVersion)
+				pv, err := packages_model.GetInternalVersionByNameAndVersion(t.Context(), user.ID, packages_model.TypeContainer, image, container_module.UploadVersion)
 				assert.NoError(t, err)
 
-				pfs, err := packages_model.GetFilesByVersionID(db.DefaultContext, pv.ID)
+				pfs, err := packages_model.GetFilesByVersionID(t.Context(), pv.ID)
 				assert.NoError(t, err)
 				assert.Len(t, pfs, 1)
 
-				pb, err := packages_model.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+				pb, err := packages_model.GetBlobByID(t.Context(), pfs[0].BlobID)
 				assert.NoError(t, err)
 				assert.EqualValues(t, len(blobContent), pb.Size)
 			})
@@ -281,7 +280,7 @@ func TestPackageContainer(t *testing.T) {
 				uuid := resp.Header().Get("Docker-Upload-Uuid")
 				assert.NotEmpty(t, uuid)
 
-				pbu, err := packages_model.GetBlobUploadByID(db.DefaultContext, uuid)
+				pbu, err := packages_model.GetBlobUploadByID(t.Context(), uuid)
 				assert.NoError(t, err)
 				assert.EqualValues(t, 0, pbu.BytesReceived)
 
@@ -297,11 +296,22 @@ func TestPackageContainer(t *testing.T) {
 					SetHeader("Content-Range", "1-10")
 				MakeRequest(t, req, http.StatusRequestedRangeNotSatisfiable)
 
-				contentRange := fmt.Sprintf("0-%d", len(blobContent)-1)
-				req.SetHeader("Content-Range", contentRange)
+				// first patch without Content-Range
+				req = NewRequestWithBody(t, "PATCH", setting.AppURL+uploadURL[1:], bytes.NewReader(blobContent[:1])).
+					AddTokenAuth(userToken)
+				resp = MakeRequest(t, req, http.StatusAccepted)
+				assert.NotEmpty(t, resp.Header().Get("Location"))
+				assert.Equal(t, "0-0", resp.Header().Get("Range"))
+
+				// then send remaining content with Content-Range
+				req = NewRequestWithBody(t, "PATCH", setting.AppURL+uploadURL[1:], bytes.NewReader(blobContent[1:])).
+					SetHeader("Content-Range", fmt.Sprintf("1-%d", len(blobContent)-1)).
+					AddTokenAuth(userToken)
 				resp = MakeRequest(t, req, http.StatusAccepted)
 
+				contentRange := fmt.Sprintf("0-%d", len(blobContent)-1)
 				assert.Equal(t, uuid, resp.Header().Get("Docker-Upload-Uuid"))
+				assert.NotEmpty(t, resp.Header().Get("Location"))
 				assert.Equal(t, contentRange, resp.Header().Get("Range"))
 
 				uploadURL = resp.Header().Get("Location")
@@ -311,9 +321,10 @@ func TestPackageContainer(t *testing.T) {
 				resp = MakeRequest(t, req, http.StatusNoContent)
 
 				assert.Equal(t, uuid, resp.Header().Get("Docker-Upload-Uuid"))
+				assert.Equal(t, uploadURL, resp.Header().Get("Location"))
 				assert.Equal(t, contentRange, resp.Header().Get("Range"))
 
-				pbu, err = packages_model.GetBlobUploadByID(db.DefaultContext, uuid)
+				pbu, err = packages_model.GetBlobUploadByID(t.Context(), uuid)
 				assert.NoError(t, err)
 				assert.EqualValues(t, len(blobContent), pbu.BytesReceived)
 
@@ -411,10 +422,10 @@ func TestPackageContainer(t *testing.T) {
 
 						assert.Equal(t, manifestDigest, resp.Header().Get("Docker-Content-Digest"))
 
-						pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, tag)
+						pv, err := packages_model.GetVersionByNameAndVersion(t.Context(), user.ID, packages_model.TypeContainer, image, tag)
 						assert.NoError(t, err)
 
-						pd, err := packages_model.GetPackageDescriptor(db.DefaultContext, pv)
+						pd, err := packages_model.GetPackageDescriptor(t.Context(), pv)
 						assert.NoError(t, err)
 						assert.Nil(t, pd.SemVer)
 						assert.Equal(t, image, pd.Package.Name)
@@ -452,7 +463,7 @@ func TestPackageContainer(t *testing.T) {
 							AddTokenAuth(userToken)
 						MakeRequest(t, req, http.StatusOK)
 
-						pv, err = packages_model.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, tag)
+						pv, err = packages_model.GetVersionByNameAndVersion(t.Context(), user.ID, packages_model.TypeContainer, image, tag)
 						assert.NoError(t, err)
 						assert.EqualValues(t, 1, pv.DownloadCount)
 
@@ -462,7 +473,7 @@ func TestPackageContainer(t *testing.T) {
 							SetHeader("Content-Type", oci.MediaTypeImageManifest)
 						MakeRequest(t, req, http.StatusCreated)
 
-						pv, err = packages_model.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, tag)
+						pv, err = packages_model.GetVersionByNameAndVersion(t.Context(), user.ID, packages_model.TypeContainer, image, tag)
 						assert.NoError(t, err)
 						assert.EqualValues(t, 1, pv.DownloadCount)
 					})
@@ -518,10 +529,10 @@ func TestPackageContainer(t *testing.T) {
 				assert.Equal(t, strconv.Itoa(len(untaggedManifestContent)), resp.Header().Get("Content-Length"))
 				assert.Equal(t, untaggedManifestDigest, resp.Header().Get("Docker-Content-Digest"))
 
-				pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, untaggedManifestDigest)
+				pv, err := packages_model.GetVersionByNameAndVersion(t.Context(), user.ID, packages_model.TypeContainer, image, untaggedManifestDigest)
 				assert.NoError(t, err)
 
-				pd, err := packages_model.GetPackageDescriptor(db.DefaultContext, pv)
+				pd, err := packages_model.GetPackageDescriptor(t.Context(), pv)
 				assert.NoError(t, err)
 				assert.Nil(t, pd.SemVer)
 				assert.Equal(t, image, pd.Package.Name)
@@ -551,10 +562,10 @@ func TestPackageContainer(t *testing.T) {
 
 				assert.Equal(t, indexManifestDigest, resp.Header().Get("Docker-Content-Digest"))
 
-				pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, multiTag)
+				pv, err := packages_model.GetVersionByNameAndVersion(t.Context(), user.ID, packages_model.TypeContainer, image, multiTag)
 				assert.NoError(t, err)
 
-				pd, err := packages_model.GetPackageDescriptor(db.DefaultContext, pv)
+				pd, err := packages_model.GetPackageDescriptor(t.Context(), pv)
 				assert.NoError(t, err)
 				assert.Nil(t, pd.SemVer)
 				assert.Equal(t, image, pd.Package.Name)

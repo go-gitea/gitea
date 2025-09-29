@@ -132,6 +132,7 @@ func newInternalRequestLFS(ctx context.Context, internalURL, method string, head
 		return nil
 	}
 	req := private.NewInternalRequest(ctx, internalURL, method)
+	req.SetReadWriteTimeout(0)
 	for k, v := range headers {
 		req.Header(k, v)
 	}

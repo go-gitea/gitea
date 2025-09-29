@@ -49,6 +49,7 @@ func DefaultOpenWithEditorApps() OpenWithEditorAppsType {
 
 type RepositoryStruct struct {
 	OpenWithEditorApps *config.Value[OpenWithEditorAppsType]
+	GitGuideRemoteName *config.Value[string]
 }
 
 type ConfigStruct struct {
@@ -70,6 +71,7 @@ func initDefaultConfig() {
 		},
 		Repository: &RepositoryStruct{
 			OpenWithEditorApps: config.ValueJSON[OpenWithEditorAppsType]("repository.open-with.editor-apps"),
+			GitGuideRemoteName: config.ValueJSON[string]("repository.git-guide-remote-name").WithDefault("origin"),
 		},
 	}
 }

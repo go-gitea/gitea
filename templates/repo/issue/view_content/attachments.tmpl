@@ -31,7 +31,7 @@
 				{{if FilenameIsImage .Name}}
 					{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) .UUID)}}
 					<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
-						<img alt="{{.Name}}" src="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
+						<img loading="lazy" alt="{{.Name}}" src="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
 					</a>
 					{{end}}
 				{{end}}

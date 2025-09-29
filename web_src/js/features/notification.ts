@@ -1,40 +1,13 @@
 import {GET} from '../modules/fetch.ts';
-import {toggleElem, type DOMEvent, createElementFromHTML} from '../utils/dom.ts';
+import {toggleElem, createElementFromHTML} from '../utils/dom.ts';
 import {logoutFromWorker} from '../modules/worker.ts';
 
 const {appSubUrl, notificationSettings, assetVersionEncoded} = window.config;
 let notificationSequenceNumber = 0;
 
-export function initNotificationsTable() {
-  const table = document.querySelector('#notification_table');
-  if (!table) return;
-
-  // when page restores from bfcache, delete previously clicked items
-  window.addEventListener('pageshow', (e) => {
-    if (e.persisted) { // page was restored from bfcache
-      const table = document.querySelector('#notification_table');
-      const unreadCountEl = document.querySelector<HTMLElement>('.notifications-unread-count');
-      let unreadCount = parseInt(unreadCountEl.textContent);
-      for (const item of table.querySelectorAll('.notifications-item[data-remove="true"]')) {
-        item.remove();
-        unreadCount -= 1;
-      }
-      unreadCountEl.textContent = String(unreadCount);
-    }
-  });
-
-  // mark clicked unread links for deletion on bfcache restore
-  for (const link of table.querySelectorAll<HTMLAnchorElement>('.notifications-item[data-status="1"] .notifications-link')) {
-    link.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
-      e.target.closest('.notifications-item').setAttribute('data-remove', 'true');
-    });
-  }
-}
-
-async function receiveUpdateCount(event: MessageEvent) {
+async function receiveUpdateCount(event: MessageEvent<{type: string, data: string}>) {
   try {
-    const data = JSON.parse(event.data);
-
+    const data = JSON.parse(event.data.data);
     for (const count of document.querySelectorAll('.notification_count')) {
       count.classList.toggle('tw-hidden', data.Count === 0);
       count.textContent = `${data.Count}`;
@@ -71,7 +44,7 @@ export function initNotificationCount() {
       type: 'start',
       url: `${window.location.origin}${appSubUrl}/user/events`,
     });
-    worker.port.addEventListener('message', (event: MessageEvent) => {
+    worker.port.addEventListener('message', (event: MessageEvent<{type: string, data: string}>) => {
       if (!event.data || !event.data.type) {
         console.error('unknown worker message event', event);
         return;
@@ -144,11 +117,11 @@ async function updateNotificationCountWithCallback(callback: (timeout: number, n
 }
 
 async function updateNotificationTable() {
-  const notificationDiv = document.querySelector('#notification_div');
+  let notificationDiv = document.querySelector('#notification_div');
   if (notificationDiv) {
     try {
       const params = new URLSearchParams(window.location.search);
-      params.set('div-only', String(true));
+      params.set('div-only', 'true');
       params.set('sequence-number', String(++notificationSequenceNumber));
       const response = await GET(`${appSubUrl}/notifications?${params.toString()}`);
 
@@ -160,7 +133,8 @@ async function updateNotificationTable() {
       const el = createElementFromHTML(data);
       if (parseInt(el.getAttribute('data-sequence-number')) === notificationSequenceNumber) {
         notificationDiv.outerHTML = data;
-        initNotificationsTable();
+        notificationDiv = document.querySelector('#notification_div');
+        window.htmx.process(notificationDiv); // when using htmx, we must always remember to process the new content changed by us
       }
     } catch (error) {
       console.error(error);

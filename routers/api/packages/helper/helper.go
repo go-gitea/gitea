@@ -15,31 +15,29 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-// LogAndProcessError logs an error and calls a custom callback with the processed error message.
-// If the error is an InternalServerError the message is stripped if the user is not an admin.
-func LogAndProcessError(ctx *context.Context, status int, obj any, cb func(string)) {
+// ProcessErrorForUser logs the error and returns a user-error message for the end user.
+// If the status is http.StatusInternalServerError, the message is stripped for non-admin users in production.
+func ProcessErrorForUser(ctx *context.Context, status int, errObj any) string {
 	var message string
-	if err, ok := obj.(error); ok {
+	if err, ok := errObj.(error); ok {
 		message = err.Error()
-	} else if obj != nil {
-		message = fmt.Sprintf("%s", obj)
+	} else if errObj != nil {
+		message = fmt.Sprint(errObj)
 	}
+
 	if status == http.StatusInternalServerError {
-		log.ErrorWithSkip(1, message)
-
+		log.Log(2, log.ERROR, "Package registry API internal error: %d %s", status, message)
 		if setting.IsProd && (ctx.Doer == nil || !ctx.Doer.IsAdmin) {
-			message = ""
+			message = "internal server error"
 		}
-	} else {
-		log.Debug(message)
+		return message
 	}
 
-	if cb != nil {
-		cb(message)
-	}
+	log.Log(2, log.DEBUG, "Package registry API user error: %d %s", status, message)
+	return message
 }
 
-// Serves the content of the package file
+// ServePackageFile the content of the package file
 // If the url is set it will redirect the request, otherwise the content is copied to the response.
 func ServePackageFile(ctx *context.Context, s io.ReadSeekCloser, u *url.URL, pf *packages_model.PackageFile, forceOpts ...*context.ServeHeaderOptions) {
 	if u != nil {

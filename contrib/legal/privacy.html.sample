@@ -150,7 +150,7 @@
 
    <p>In general, Your Gitea Instance retains User Personal Information for as long as your account is active, or as needed to provide you service.</p>
 
-   <p>If you would like to cancel your account or delete your User Personal Information, you may do so in your user profile. We retain and use your information as necessary to comply with our legal obligations, resolve disputes, and enforce our agreements, but barring legal requirements, we will delete your full profile (within reason) within 90 days of your request. Feel free to contact our support to request erasure of the data we process on the bassis of consent within 30 days.</p>
+   <p>If you would like to cancel your account or delete your User Personal Information, you may do so in your user profile. We retain and use your information as necessary to comply with our legal obligations, resolve disputes, and enforce our agreements, but barring legal requirements, we will delete your full profile (within reason) within 90 days of your request. Feel free to contact our support to request erasure of the data we process on the basis of consent within 30 days.</p>
 
    <p>After an account has been deleted, certain data, such as contributions to other Users' repositories and comments in others' issues, will remain. However, we will delete or de-identify your User Personal Information, including your username and email address, from the author field of issues, pull requests, and comments by associating them with a ghost user.</p>
 

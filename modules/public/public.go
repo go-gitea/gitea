@@ -110,5 +110,4 @@ func servePublicAsset(w http.ResponseWriter, req *http.Request, fi os.FileInfo, 
 		}
 	}
 	http.ServeContent(w, req, fi.Name(), modtime, content)
-	return
 }

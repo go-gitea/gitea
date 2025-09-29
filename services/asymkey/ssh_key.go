@@ -27,20 +27,9 @@ func DeletePublicKey(ctx context.Context, doer *user_model.User, id int64) (err 
 		}
 	}
 
-	dbCtx, committer, err := db.TxContext(ctx)
-	if err != nil {
+	if _, err = db.DeleteByID[asymkey_model.PublicKey](ctx, id); err != nil {
 		return err
 	}
-	defer committer.Close()
-
-	if _, err = db.DeleteByID[asymkey_model.PublicKey](dbCtx, id); err != nil {
-		return err
-	}
-
-	if err = committer.Commit(); err != nil {
-		return err
-	}
-	committer.Close()
 
 	if key.Type == asymkey_model.KeyTypePrincipal {
 		return RewriteAllPrincipalKeys(ctx)

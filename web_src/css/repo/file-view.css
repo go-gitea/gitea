@@ -60,3 +60,33 @@
 .file-view.code-view .ui.button.code-line-button:hover {
   background: var(--color-secondary);
 }
+
+.view-raw {
+  display: flex;
+  justify-content: center;
+}
+
+.view-raw > * {
+  max-width: 100%;
+}
+
+.view-raw audio,
+.view-raw video,
+.view-raw img {
+  margin: 1rem;
+  border-radius: 0;
+  object-fit: contain;
+}
+
+.view-raw img[src$=".svg" i] {
+  max-height: 600px !important;
+  max-width: 600px !important;
+}
+
+.file-view-render-container {
+  width: 100%;
+}
+
+.file-view-render-container :last-child {
+  border-radius: 0 0 var(--border-radius) var(--border-radius); /* to match the "ui segment" bottom radius */
+}

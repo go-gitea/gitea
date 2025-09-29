@@ -92,7 +92,7 @@ func (ctx *Context) HTML(status int, name templates.TplName) {
 }
 
 // JSONTemplate renders the template as JSON response
-// keep in mind that the template is processed in HTML context, so JSON-things should be handled carefully, eg: by JSEscape
+// keep in mind that the template is processed in HTML context, so JSON things should be handled carefully, e.g.: use JSEscape
 func (ctx *Context) JSONTemplate(tmpl templates.TplName) {
 	t, err := ctx.Render.TemplateLookup(string(tmpl), nil)
 	if err != nil {

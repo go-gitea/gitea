@@ -84,7 +84,7 @@
 			{{end}}
 		</h4>
 		<div class="ui attached segment tw-break-anywhere">
-			<table class="ui very basic compact table">
+			<table class="ui very basic compact table tw-font-mono">
 				<tbody>
 					{{range $imageMetadata.ImageLayers}}
 						<tr>
@@ -98,7 +98,7 @@
 	{{if $imageMetadata.Labels}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.container.labels"}}</h4>
 		<div class="ui attached segment">
-			<table class="ui very basic compact table">
+			<table class="ui very basic compact table tw-font-mono">
 				<thead>
 					<tr>
 						<th>{{ctx.Locale.Tr "packages.container.labels.key"}}</th>

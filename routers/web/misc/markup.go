@@ -15,6 +15,6 @@ import (
 // Markup render markup document to HTML
 func Markup(ctx *context.Context) {
 	form := web.GetForm(ctx).(*api.MarkupOption)
-	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck
+	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
 	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, form.FilePath)
 }

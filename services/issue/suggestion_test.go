@@ -6,7 +6,6 @@ package issue
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/optional"
@@ -44,7 +43,7 @@ func Test_Suggestion(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.keyword, func(t *testing.T) {
-			issues, err := GetSuggestion(db.DefaultContext, repo1, testCase.isPull, testCase.keyword)
+			issues, err := GetSuggestion(t.Context(), repo1, testCase.isPull, testCase.keyword)
 			assert.NoError(t, err)
 
 			issueIndexes := make([]int64, 0, len(issues))

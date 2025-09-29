@@ -1,12 +1,11 @@
 import {imageInfo} from '../../utils/image.ts';
-import {replaceTextareaSelection} from '../../utils/dom.ts';
-import {isUrl} from '../../utils/url.ts';
 import {textareaInsertText, triggerEditorContentChanged} from './EditorMarkdown.ts';
 import {
   DropzoneCustomEventRemovedFile,
   DropzoneCustomEventUploadDone,
   generateMarkdownLinkForAttachment,
 } from '../dropzone.ts';
+import {subscribe} from '@github/paste-markdown';
 import type CodeMirror from 'codemirror';
 import type EasyMDE from 'easymde';
 import type {DropzoneFile} from 'dropzone';
@@ -114,50 +113,24 @@ async function handleUploadFiles(editor: CodeMirrorEditor | TextareaEditor, drop
 
 export function removeAttachmentLinksFromMarkdown(text: string, fileUuid: string) {
   text = text.replace(new RegExp(`!?\\[([^\\]]+)\\]\\(/?attachments/${fileUuid}\\)`, 'g'), '');
-  text = text.replace(new RegExp(`<img[^>]+src="/?attachments/${fileUuid}"[^>]*>`, 'g'), '');
+  text = text.replace(new RegExp(`[<]img[^>]+src="/?attachments/${fileUuid}"[^>]*>`, 'g'), '');
   return text;
 }
 
-export function pasteAsMarkdownLink(textarea: {value: string, selectionStart: number, selectionEnd: number}, pastedText: string): string | null {
-  const {value, selectionStart, selectionEnd} = textarea;
-  const selectedText = value.substring(selectionStart, selectionEnd);
-  const trimmedText = pastedText.trim();
-  const beforeSelection = value.substring(0, selectionStart);
-  const afterSelection = value.substring(selectionEnd);
-  const isInMarkdownLink = beforeSelection.endsWith('](') && afterSelection.startsWith(')');
-  const asMarkdownLink = selectedText && isUrl(trimmedText) && !isUrl(selectedText) && !isInMarkdownLink;
-  return asMarkdownLink ? `[${selectedText}](${trimmedText})` : null;
-}
-
-function handleClipboardText(textarea: HTMLTextAreaElement, e: ClipboardEvent, pastedText: string, isShiftDown: boolean) {
-  // pasting with "shift" means "paste as original content" in most applications
-  if (isShiftDown) return; // let the browser handle it
-
-  // when pasting links over selected text, turn it into [text](link)
-  const pastedAsMarkdown = pasteAsMarkdownLink(textarea, pastedText);
-  if (pastedAsMarkdown) {
-    e.preventDefault();
-    replaceTextareaSelection(textarea, pastedAsMarkdown);
-  }
-  // else, let the browser handle it
-}
-
-// extract text and images from "paste" event
-function getPastedContent(e: ClipboardEvent) {
-  const images = [];
+function getPastedImages(e: ClipboardEvent) {
+  const images: Array<File> = [];
   for (const item of e.clipboardData?.items ?? []) {
     if (item.type?.startsWith('image/')) {
       images.push(item.getAsFile());
     }
   }
-  const text = e.clipboardData?.getData?.('text') ?? '';
-  return {text, images};
+  return images;
 }
 
 export function initEasyMDEPaste(easyMDE: EasyMDE, dropzoneEl: HTMLElement) {
   const editor = new CodeMirrorEditor(easyMDE.codemirror as any);
   easyMDE.codemirror.on('paste', (_, e) => {
-    const {images} = getPastedContent(e);
+    const images = getPastedImages(e);
     if (!images.length) return;
     handleUploadFiles(editor, dropzoneEl, images, e);
   });
@@ -173,19 +146,11 @@ export function initEasyMDEPaste(easyMDE: EasyMDE, dropzoneEl: HTMLElement) {
 }
 
 export function initTextareaEvents(textarea: HTMLTextAreaElement, dropzoneEl: HTMLElement) {
-  let isShiftDown = false;
-  textarea.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.shiftKey) isShiftDown = true;
-  });
-  textarea.addEventListener('keyup', (e: KeyboardEvent) => {
-    if (!e.shiftKey) isShiftDown = false;
-  });
+  subscribe(textarea); // enable paste features
   textarea.addEventListener('paste', (e: ClipboardEvent) => {
-    const {images, text} = getPastedContent(e);
+    const images = getPastedImages(e);
     if (images.length && dropzoneEl) {
       handleUploadFiles(new TextareaEditor(textarea), dropzoneEl, images, e);
-    } else if (text) {
-      handleClipboardText(textarea, e, text, isShiftDown);
     }
   });
   textarea.addEventListener('drop', (e: DragEvent) => {

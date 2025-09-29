@@ -4,6 +4,8 @@
 	<div class="ui container">
 	{{template "base/alert" .}}
 
+	{{template "repo/code/recently_pushed_new_branches" dict "RecentBranchesPromptData" .RecentBranchesPromptData}}
+
 	{{if .PinnedIssues}}
 		<div id="issue-pins" {{if .IsRepoAdmin}}data-is-repo-admin{{end}}>
 			{{range .PinnedIssues}}

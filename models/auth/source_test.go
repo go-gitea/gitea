@@ -8,13 +8,11 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -41,12 +39,12 @@ func (source *TestSource) ToDB() ([]byte, error) {
 func TestDumpAuthSource(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	authSourceSchema, err := db.TableInfo(new(auth_model.Source))
+	authSourceSchema, err := unittest.GetXORMEngine().TableInfo(new(auth_model.Source))
 	assert.NoError(t, err)
 
 	auth_model.RegisterTypeConfig(auth_model.OAuth2, new(TestSource))
 
-	auth_model.CreateSource(db.DefaultContext, &auth_model.Source{
+	auth_model.CreateSource(t.Context(), &auth_model.Source{
 		Type:     auth_model.OAuth2,
 		Name:     "TestSource",
 		IsActive: false,
@@ -59,7 +57,7 @@ func TestDumpAuthSource(t *testing.T) {
 	sb := new(strings.Builder)
 
 	// TODO: this test is quite hacky, it should use a low-level "select" (without model processors) but not a database dump
-	engine := db.GetEngine(db.DefaultContext).(*xorm.Engine)
+	engine := unittest.GetXORMEngine()
 	require.NoError(t, engine.DumpTables([]*schemas.Table{authSourceSchema}, sb))
 	assert.Contains(t, sb.String(), `"Provider":"ConvertibleSourceName"`)
 }

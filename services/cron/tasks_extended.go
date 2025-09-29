@@ -10,7 +10,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
@@ -61,7 +61,7 @@ func registerGarbageCollectRepositories() {
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		rhcConfig := config.(*RepoHealthCheckConfig)
 		// the git args are set by config, they can be safe to be trusted
-		return repo_service.GitGcRepos(ctx, rhcConfig.Timeout, git.ToTrustedCmdArgs(rhcConfig.Args))
+		return repo_service.GitGcRepos(ctx, rhcConfig.Timeout, gitcmd.ToTrustedCmdArgs(rhcConfig.Args))
 	})
 }
 
@@ -171,34 +171,35 @@ func registerDeleteOldSystemNotices() {
 	})
 }
 
+type GCLFSConfig struct {
+	BaseConfig
+	OlderThan                time.Duration
+	LastUpdatedMoreThanAgo   time.Duration
+	NumberToCheckPerRepo     int64
+	ProportionToCheckPerRepo float64
+}
+
 func registerGCLFS() {
 	if !setting.LFS.StartServer {
 		return
 	}
-	type GCLFSConfig struct {
-		OlderThanConfig
-		LastUpdatedMoreThanAgo   time.Duration
-		NumberToCheckPerRepo     int64
-		ProportionToCheckPerRepo float64
-	}
 
 	RegisterTaskFatal("gc_lfs", &GCLFSConfig{
-		OlderThanConfig: OlderThanConfig{
-			BaseConfig: BaseConfig{
-				Enabled:    false,
-				RunAtStart: false,
-				Schedule:   "@every 24h",
-			},
-			// Only attempt to garbage collect lfs meta objects older than a week as the order of git lfs upload
-			// and git object upload is not necessarily guaranteed. It's possible to imagine a situation whereby
-			// an LFS object is uploaded but the git branch is not uploaded immediately, or there are some rapid
-			// changes in new branches that might lead to lfs objects becoming temporarily unassociated with git
-			// objects.
-			//
-			// It is likely that a week is potentially excessive but it should definitely be enough that any
-			// unassociated LFS object is genuinely unassociated.
-			OlderThan: 24 * time.Hour * 7,
+		BaseConfig: BaseConfig{
+			Enabled:    false,
+			RunAtStart: false,
+			Schedule:   "@every 24h",
 		},
+		// Only attempt to garbage collect lfs meta objects older than a week as the order of git lfs upload
+		// and git object upload is not necessarily guaranteed. It's possible to imagine a situation whereby
+		// an LFS object is uploaded but the git branch is not uploaded immediately, or there are some rapid
+		// changes in new branches that might lead to lfs objects becoming temporarily unassociated with git
+		// objects.
+		//
+		// It is likely that a week is potentially excessive but it should definitely be enough that any
+		// unassociated LFS object is genuinely unassociated.
+		OlderThan: 24 * time.Hour * 7,
+
 		// Only GC things that haven't been looked at in the past 3 days
 		LastUpdatedMoreThanAgo:   24 * time.Hour * 3,
 		NumberToCheckPerRepo:     100,

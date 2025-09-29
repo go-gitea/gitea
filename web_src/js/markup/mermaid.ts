@@ -2,6 +2,7 @@ import {isDarkTheme} from '../utils.ts';
 import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
 import {queryElems} from '../utils/dom.ts';
+import {html, htmlRaw} from '../utils/html.ts';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
@@ -46,7 +47,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
 
       const iframe = document.createElement('iframe');
       iframe.classList.add('markup-content-iframe', 'tw-invisible');
-      iframe.srcdoc = `<html><head><style>${iframeCss}</style></head><body>${svg}</body></html>`;
+      iframe.srcdoc = html`<html><head><style>${htmlRaw(iframeCss)}</style></head><body>${htmlRaw(svg)}</body></html>`;
 
       const mermaidBlock = document.createElement('div');
       mermaidBlock.classList.add('mermaid-block', 'is-loading', 'tw-hidden');

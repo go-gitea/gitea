@@ -19,7 +19,7 @@ import (
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
 
-const tplNewReleaseMail templates.TplName = "release"
+const tplNewReleaseMail templates.TplName = "repo/release"
 
 func generateMessageIDForRelease(release *repo_model.Release) string {
 	return fmt.Sprintf("<%s/releases/%d@%s>", release.Repo.FullName(), release.ID, setting.Domain)
@@ -79,7 +79,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, re
 
 	var mailBody bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplNewReleaseMail)+"/body", err)
 		return
 	}

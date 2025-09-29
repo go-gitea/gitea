@@ -129,11 +129,11 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	return err
 }
 
-func ProjectLinkForOrg(org *user_model.User, projectID int64) string { //nolint
+func ProjectLinkForOrg(org *user_model.User, projectID int64) string { //nolint:revive // export stutter
 	return fmt.Sprintf("%s/-/projects/%d", org.HomeLink(), projectID)
 }
 
-func ProjectLinkForRepo(repo *repo_model.Repository, projectID int64) string { //nolint
+func ProjectLinkForRepo(repo *repo_model.Repository, projectID int64) string { //nolint:revive // export stutter
 	return fmt.Sprintf("%s/projects/%d", repo.Link(), projectID)
 }
 
@@ -359,41 +359,25 @@ func updateRepositoryProjectCount(ctx context.Context, repoID int64) error {
 
 // ChangeProjectStatusByRepoIDAndID toggles a project between opened and closed
 func ChangeProjectStatusByRepoIDAndID(ctx context.Context, repoID, projectID int64, isClosed bool) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		p := new(Project)
 
-	p := new(Project)
+		has, err := db.GetEngine(ctx).ID(projectID).Where("repo_id = ?", repoID).Get(p)
+		if err != nil {
+			return err
+		} else if !has {
+			return ErrProjectNotExist{ID: projectID, RepoID: repoID}
+		}
 
-	has, err := db.GetEngine(ctx).ID(projectID).Where("repo_id = ?", repoID).Get(p)
-	if err != nil {
-		return err
-	} else if !has {
-		return ErrProjectNotExist{ID: projectID, RepoID: repoID}
-	}
-
-	if err := changeProjectStatus(ctx, p, isClosed); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+		return changeProjectStatus(ctx, p, isClosed)
+	})
 }
 
 // ChangeProjectStatus toggle a project between opened and closed
 func ChangeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := changeProjectStatus(ctx, p, isClosed); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		return changeProjectStatus(ctx, p, isClosed)
+	})
 }
 
 func changeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {

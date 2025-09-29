@@ -10,7 +10,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -30,7 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, treePath, content string) *httptest.ResponseRecorder {
+func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, treePath, content string) {
 	url := fmt.Sprintf("/%s/%s/_new/%s", user, repo, branch)
 	req := NewRequestWithValues(t, "POST", url, map[string]string{
 		"_csrf":         GetUserCSRFToken(t, session),
@@ -38,7 +37,8 @@ func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, tree
 		"tree_path":     treePath,
 		"content":       content,
 	})
-	return session.MakeRequest(t, req, http.StatusSeeOther)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.NotEmpty(t, test.RedirectURL(resp))
 }
 
 func TestEmptyRepo(t *testing.T) {
@@ -75,6 +75,11 @@ func TestEmptyRepoAddFile(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/repos/user30/empty/raw/main/README.md").AddTokenAuth(token)
 	session.MakeRequest(t, req, http.StatusNotFound)
 
+	// test feed
+	req = NewRequest(t, "GET", "/user30/empty/rss/branch/main/README.md").AddTokenAuth(token).SetHeader("Accept", "application/rss+xml")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "</rss>")
+
 	// create a new file
 	req = NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -87,7 +92,7 @@ func TestEmptyRepoAddFile(t *testing.T) {
 		"content":       "newly-added-test-file",
 	})
 
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	redirect := test.RedirectURL(resp)
 	assert.Equal(t, "/user30/empty/src/branch/"+setting.Repository.DefaultBranch+"/test-file.md", redirect)
 
@@ -106,7 +111,7 @@ func TestEmptyRepoAddFile(t *testing.T) {
 		user30EmptyRepo.IsEmpty = isEmpty
 		user30EmptyRepo.Status = util.Iif(isBroken, repo_model.RepositoryBroken, repo_model.RepositoryReady)
 		user30EmptyRepo.DefaultBranch = "no-such"
-		_, err := db.GetEngine(db.DefaultContext).ID(user30EmptyRepo.ID).Cols("is_empty", "status", "default_branch").Update(user30EmptyRepo)
+		_, err := db.GetEngine(t.Context()).ID(user30EmptyRepo.ID).Cols("is_empty", "status", "default_branch").Update(user30EmptyRepo)
 		require.NoError(t, err)
 		user30EmptyRepo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
 		assert.Equal(t, isEmpty, user30EmptyRepo.IsEmpty)
@@ -154,9 +159,9 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 		"files":         respMap["uuid"],
 		"tree_path":     "",
 	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	redirect := test.RedirectURL(resp)
-	assert.Equal(t, "/user30/empty/src/branch/"+setting.Repository.DefaultBranch+"/", redirect)
+	assert.Equal(t, "/user30/empty/src/branch/"+setting.Repository.DefaultBranch, redirect)
 
 	req = NewRequest(t, "GET", redirect)
 	resp = session.MakeRequest(t, req, http.StatusOK)

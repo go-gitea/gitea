@@ -18,7 +18,7 @@ func resolveLinkRelative(ctx context.Context, base, cur, link string, absolute b
 	}
 	if strings.HasPrefix(link, "/") {
 		if strings.HasPrefix(link, base) && strings.Count(base, "/") >= 4 {
-			// a trick to tolerate that some users were using absolut paths (the old gitea's behavior)
+			// a trick to tolerate that some users were using absolute paths (the old gitea's behavior)
 			finalLink = link
 		} else {
 			finalLink = util.URLJoin(base, "./", link)

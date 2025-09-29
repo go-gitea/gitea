@@ -10,10 +10,10 @@ import (
 
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/binding"
-	"github.com/gobwas/glob"
 )
 
 const (

@@ -27,7 +27,7 @@
 			</div>
 		</div>
 	</div>
-	<div class="ui list muted-links flex-items-block tw-flex tw-flex-col tw-gap-2">
+	<div class="ui relaxed list muted-links flex-items-block">
 		<span class="item empty-list {{if $issueAssignees}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}</span>
 		{{range $issueAssignees}}
 			<a class="item" href="{{$pageMeta.RepoLink}}/{{if $pageMeta.IsPullRequest}}pulls{{else}}issues{{end}}?assignee={{.ID}}">

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -25,7 +24,7 @@ func TestTeam_AddMember(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(team *organization.Team, user *user_model.User) {
-		assert.NoError(t, AddTeamMember(db.DefaultContext, team, user))
+		assert.NoError(t, AddTeamMember(t.Context(), team, user))
 		unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{UID: user.ID, TeamID: team.ID})
 		unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID}, &user_model.User{ID: team.OrgID})
 	}
@@ -44,7 +43,7 @@ func TestTeam_RemoveMember(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(team *organization.Team, user *user_model.User) {
-		assert.NoError(t, RemoveTeamMember(db.DefaultContext, team, user))
+		assert.NoError(t, RemoveTeamMember(t.Context(), team, user))
 		unittest.AssertNotExistsBean(t, &organization.TeamUser{UID: user.ID, TeamID: team.ID})
 		unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
 	}
@@ -59,7 +58,7 @@ func TestTeam_RemoveMember(t *testing.T) {
 	testSuccess(team2, user2)
 	testSuccess(team3, user2)
 
-	err := RemoveTeamMember(db.DefaultContext, team1, user2)
+	err := RemoveTeamMember(t.Context(), team1, user2)
 	assert.True(t, organization.IsErrLastOrgOwner(err))
 }
 
@@ -68,7 +67,7 @@ func TestNewTeam(t *testing.T) {
 
 	const teamName = "newTeamName"
 	team := &organization.Team{Name: teamName, OrgID: 3}
-	assert.NoError(t, NewTeam(db.DefaultContext, team))
+	assert.NoError(t, NewTeam(t.Context(), team))
 	unittest.AssertExistsAndLoadBean(t, &organization.Team{Name: teamName})
 	unittest.CheckConsistencyFor(t, &organization.Team{}, &user_model.User{ID: team.OrgID})
 }
@@ -82,7 +81,7 @@ func TestUpdateTeam(t *testing.T) {
 	team.Name = "newName"
 	team.Description = strings.Repeat("A long description!", 100)
 	team.AccessMode = perm.AccessModeAdmin
-	assert.NoError(t, UpdateTeam(db.DefaultContext, team, true, false))
+	assert.NoError(t, UpdateTeam(t.Context(), team, true, false))
 
 	team = unittest.AssertExistsAndLoadBean(t, &organization.Team{Name: "newName"})
 	assert.True(t, strings.HasPrefix(team.Description, "A long description!"))
@@ -101,7 +100,7 @@ func TestUpdateTeam2(t *testing.T) {
 	team.LowerName = "owners"
 	team.Name = "Owners"
 	team.Description = strings.Repeat("A long description!", 100)
-	err := UpdateTeam(db.DefaultContext, team, true, false)
+	err := UpdateTeam(t.Context(), team, true, false)
 	assert.True(t, organization.IsErrTeamAlreadyExist(err))
 
 	unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
@@ -111,7 +110,7 @@ func TestDeleteTeam(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	assert.NoError(t, DeleteTeam(db.DefaultContext, team))
+	assert.NoError(t, DeleteTeam(t.Context(), team))
 	unittest.AssertNotExistsBean(t, &organization.Team{ID: team.ID})
 	unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: team.ID})
 	unittest.AssertNotExistsBean(t, &organization.TeamUser{TeamID: team.ID})
@@ -119,7 +118,7 @@ func TestDeleteTeam(t *testing.T) {
 	// check that team members don't have "leftover" access to repos
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	accessMode, err := access_model.AccessLevel(db.DefaultContext, user, repo)
+	accessMode, err := access_model.AccessLevel(t.Context(), user, repo)
 	assert.NoError(t, err)
 	assert.Less(t, accessMode, perm.AccessModeWrite)
 }
@@ -128,7 +127,7 @@ func TestAddTeamMember(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(team *organization.Team, user *user_model.User) {
-		assert.NoError(t, AddTeamMember(db.DefaultContext, team, user))
+		assert.NoError(t, AddTeamMember(t.Context(), team, user))
 		unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{UID: user.ID, TeamID: team.ID})
 		unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID}, &user_model.User{ID: team.OrgID})
 	}
@@ -147,7 +146,7 @@ func TestRemoveTeamMember(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(team *organization.Team, user *user_model.User) {
-		assert.NoError(t, RemoveTeamMember(db.DefaultContext, team, user))
+		assert.NoError(t, RemoveTeamMember(t.Context(), team, user))
 		unittest.AssertNotExistsBean(t, &organization.TeamUser{UID: user.ID, TeamID: team.ID})
 		unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
 	}
@@ -162,7 +161,7 @@ func TestRemoveTeamMember(t *testing.T) {
 	testSuccess(team2, user2)
 	testSuccess(team3, user2)
 
-	err := RemoveTeamMember(db.DefaultContext, team1, user2)
+	err := RemoveTeamMember(t.Context(), team1, user2)
 	assert.True(t, organization.IsErrLastOrgOwner(err))
 }
 
@@ -171,7 +170,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 
 	testTeamRepositories := func(teamID int64, repoIDs []int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		repos, err := repo_model.GetTeamRepositories(db.DefaultContext, &repo_model.SearchTeamRepoOptions{
+		repos, err := repo_model.GetTeamRepositories(t.Context(), &repo_model.SearchTeamRepoOptions{
 			TeamID: team.ID,
 		})
 		assert.NoError(t, err, "%s: GetTeamRepositories", team.Name)
@@ -179,13 +178,13 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		assert.Len(t, repos, len(repoIDs), "%s: repo count", team.Name)
 		for i, rid := range repoIDs {
 			if rid > 0 {
-				assert.True(t, repo_service.HasRepository(db.DefaultContext, team, rid), "%s: HasRepository(%d) %d", rid, i)
+				assert.True(t, repo_service.HasRepository(t.Context(), team, rid), "%s: HasRepository(%d) %d", rid, i)
 			}
 		}
 	}
 
 	// Get an admin user.
-	user, err := user_model.GetUserByID(db.DefaultContext, 1)
+	user, err := user_model.GetUserByID(t.Context(), 1)
 	assert.NoError(t, err, "GetUserByID")
 
 	// Create org.
@@ -195,17 +194,17 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		Type:       user_model.UserTypeOrganization,
 		Visibility: structs.VisibleTypePublic,
 	}
-	assert.NoError(t, organization.CreateOrganization(db.DefaultContext, org, user), "CreateOrganization")
+	assert.NoError(t, organization.CreateOrganization(t.Context(), org, user), "CreateOrganization")
 
 	// Check Owner team.
-	ownerTeam, err := org.GetOwnerTeam(db.DefaultContext)
+	ownerTeam, err := org.GetOwnerTeam(t.Context())
 	assert.NoError(t, err, "GetOwnerTeam")
 	assert.True(t, ownerTeam.IncludesAllRepositories, "Owner team includes all repositories")
 
 	// Create repos.
 	repoIDs := make([]int64, 0)
 	for i := range 3 {
-		r, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(),
+		r, err := repo_service.CreateRepositoryDirectly(t.Context(), user, org.AsUser(),
 			repo_service.CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)}, true)
 		assert.NoError(t, err, "CreateRepository %d", i)
 		if r != nil {
@@ -213,7 +212,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		}
 	}
 	// Get fresh copy of Owner team after creating repos.
-	ownerTeam, err = org.GetOwnerTeam(db.DefaultContext)
+	ownerTeam, err = org.GetOwnerTeam(t.Context())
 	assert.NoError(t, err, "GetOwnerTeam")
 
 	// Create teams and check repositories.
@@ -253,7 +252,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 	for i, team := range teams {
 		if i > 0 { // first team is Owner.
-			assert.NoError(t, NewTeam(db.DefaultContext, team), "%s: NewTeam", team.Name)
+			assert.NoError(t, NewTeam(t.Context(), team), "%s: NewTeam", team.Name)
 		}
 		testTeamRepositories(team.ID, teamRepos[i])
 	}
@@ -263,12 +262,12 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	teams[4].IncludesAllRepositories = true
 	teamRepos[4] = repoIDs
 	for i, team := range teams {
-		assert.NoError(t, UpdateTeam(db.DefaultContext, team, false, true), "%s: UpdateTeam", team.Name)
+		assert.NoError(t, UpdateTeam(t.Context(), team, false, true), "%s: UpdateTeam", team.Name)
 		testTeamRepositories(team.ID, teamRepos[i])
 	}
 
 	// Create repo and check teams repositories.
-	r, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), repo_service.CreateRepoOptions{Name: "repo-last"}, true)
+	r, err := repo_service.CreateRepositoryDirectly(t.Context(), user, org.AsUser(), repo_service.CreateRepoOptions{Name: "repo-last"}, true)
 	assert.NoError(t, err, "CreateRepository last")
 	if r != nil {
 		repoIDs = append(repoIDs, r.ID)
@@ -281,7 +280,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Remove repo and check teams repositories.
-	assert.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, repoIDs[0]), "DeleteRepository")
+	assert.NoError(t, repo_service.DeleteRepositoryDirectly(t.Context(), repoIDs[0]), "DeleteRepository")
 	teamRepos[0] = repoIDs[1:]
 	teamRepos[1] = repoIDs[1:]
 	teamRepos[3] = repoIDs[1:3]
@@ -293,8 +292,8 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Wipe created items.
 	for i, rid := range repoIDs {
 		if i > 0 { // first repo already deleted.
-			assert.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, rid), "DeleteRepository %d", i)
+			assert.NoError(t, repo_service.DeleteRepositoryDirectly(t.Context(), rid), "DeleteRepository %d", i)
 		}
 	}
-	assert.NoError(t, DeleteOrganization(db.DefaultContext, org, false), "DeleteOrganization")
+	assert.NoError(t, DeleteOrganization(t.Context(), org, false), "DeleteOrganization")
 }

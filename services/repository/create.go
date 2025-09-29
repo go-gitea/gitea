@@ -22,7 +22,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -67,8 +69,8 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 	)
 
 	// Clone to temporary path and do the init commit.
-	if stdout, _, err := git.NewCommand("clone").AddDynamicArguments(repo.RepoPath(), tmpDir).
-		RunStdString(ctx, &git.RunOpts{Dir: "", Env: env}); err != nil {
+	if stdout, _, err := gitcmd.NewCommand("clone").AddDynamicArguments(repo.RepoPath(), tmpDir).
+		RunStdString(ctx, &gitcmd.RunOpts{Dir: "", Env: env}); err != nil {
 		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git clone: %w", err)
 	}
@@ -141,7 +143,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
 	// Init git bare new repository.
-	if err = git.InitRepository(ctx, repo.RepoPath(), true, repo.ObjectFormatName); err != nil {
+	if err = gitrepo.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
 		return fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
@@ -312,7 +314,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		licenses = append(licenses, opts.License)
 
 		var stdout string
-		stdout, _, err = git.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
+		stdout, _, err = gitcmd.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return nil, fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
@@ -459,7 +461,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 }
 
 func cleanupRepository(repoID int64) {
-	if errDelete := DeleteRepositoryDirectly(db.DefaultContext, repoID); errDelete != nil {
+	if errDelete := DeleteRepositoryDirectly(graceful.GetManager().ShutdownContext(), repoID); errDelete != nil {
 		log.Error("cleanupRepository failed: %v", errDelete)
 		// add system notice
 		if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when cleanup repository: %v", errDelete); err != nil {
@@ -469,12 +471,12 @@ func cleanupRepository(repoID int64) {
 }
 
 func updateGitRepoAfterCreate(ctx context.Context, repo *repo_model.Repository) error {
-	if err := checkDaemonExportOK(ctx, repo); err != nil {
+	if err := CheckDaemonExportOK(ctx, repo); err != nil {
 		return fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
-	if stdout, _, err := git.NewCommand("update-server-info").
-		RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
+	if stdout, _, err := gitcmd.NewCommand("update-server-info").
+		RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()}); err != nil {
 		log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 		return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 	}

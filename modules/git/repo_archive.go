@@ -10,6 +10,8 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
+
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // ArchiveType archive types
@@ -53,7 +55,7 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 		return fmt.Errorf("unknown format: %v", format)
 	}
 
-	cmd := NewCommand("archive")
+	cmd := gitcmd.NewCommand("archive")
 	if usePrefix {
 		cmd.AddOptionFormat("--prefix=%s", filepath.Base(strings.TrimSuffix(repo.Path, ".git"))+"/")
 	}
@@ -61,13 +63,13 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 	cmd.AddDynamicArguments(commitID)
 
 	var stderr strings.Builder
-	err := cmd.Run(ctx, &RunOpts{
+	err := cmd.Run(ctx, &gitcmd.RunOpts{
 		Dir:    repo.Path,
 		Stdout: target,
 		Stderr: &stderr,
 	})
 	if err != nil {
-		return ConcatenateError(err, stderr.String())
+		return gitcmd.ConcatenateError(err, stderr.String())
 	}
 	return nil
 }

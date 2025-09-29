@@ -13,7 +13,7 @@ import (
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	packages_service "code.gitea.io/gitea/services/packages"
 
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 )
 
 // Cleanup removes expired container data

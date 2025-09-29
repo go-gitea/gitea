@@ -58,7 +58,7 @@ jobs:
               - "tools/*.ts"
               - "assets/emoji.json"
               - "package.json"
-              - "package-lock.json"
+              - "pnpm-lock.yaml"
               - "Makefile"
               - ".eslintrc.cjs"
               - ".npmrc"
@@ -67,7 +67,7 @@ jobs:
               - "**/*.md"
               - ".markdownlint.yaml"
               - "package.json"
-              - "package-lock.json"
+              - "pnpm-lock.yaml"
 
             actions:
               - ".github/workflows/*"
@@ -77,7 +77,7 @@ jobs:
               - "tools/lint-templates-*.js"
               - "templates/**/*.tmpl"
               - "pyproject.toml"
-              - "poetry.lock"
+              - "uv.lock"
 
             docker:
               - "Dockerfile"
@@ -90,7 +90,7 @@ jobs:
               - "templates/swagger/v1_input.json"
               - "Makefile"
               - "package.json"
-              - "package-lock.json"
+              - "pnpm-lock.yaml"
               - ".spectral.yaml"
 
             yaml:
@@ -98,4 +98,3 @@ jobs:
               - "**/*.yaml"
               - ".yamllint.yaml"
               - "pyproject.toml"
-              - "poetry.lock"

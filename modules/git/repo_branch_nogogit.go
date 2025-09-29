@@ -13,6 +13,7 @@ import (
 	"io"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -70,25 +71,25 @@ func (repo *Repository) IsBranchExist(name string) bool {
 // GetBranchNames returns branches from the repository, skipping "skip" initial branches and
 // returning at most "limit" branches, or all branches if "limit" is 0.
 func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
-	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}, skip, limit)
+	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, gitcmd.TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}, skip, limit)
 }
 
 // WalkReferences walks all the references from the repository
 // refType should be empty, ObjectTag or ObjectBranch. All other values are equivalent to empty.
 func (repo *Repository) WalkReferences(refType ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
-	var args TrustedCmdArgs
+	var args gitcmd.TrustedCmdArgs
 	switch refType {
 	case ObjectTag:
-		args = TrustedCmdArgs{TagPrefix, "--sort=-taggerdate"}
+		args = gitcmd.TrustedCmdArgs{TagPrefix, "--sort=-taggerdate"}
 	case ObjectBranch:
-		args = TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}
+		args = gitcmd.TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}
 	}
 
 	return WalkShowRef(repo.Ctx, repo.Path, args, skip, limit, walkfn)
 }
 
 // callShowRef return refs, if limit = 0 it will not limit
-func callShowRef(ctx context.Context, repoPath, trimPrefix string, extraArgs TrustedCmdArgs, skip, limit int) (branchNames []string, countAll int, err error) {
+func callShowRef(ctx context.Context, repoPath, trimPrefix string, extraArgs gitcmd.TrustedCmdArgs, skip, limit int) (branchNames []string, countAll int, err error) {
 	countAll, err = WalkShowRef(ctx, repoPath, extraArgs, skip, limit, func(_, branchName string) error {
 		branchName = strings.TrimPrefix(branchName, trimPrefix)
 		branchNames = append(branchNames, branchName)
@@ -98,7 +99,7 @@ func callShowRef(ctx context.Context, repoPath, trimPrefix string, extraArgs Tru
 	return branchNames, countAll, err
 }
 
-func WalkShowRef(ctx context.Context, repoPath string, extraArgs TrustedCmdArgs, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {
+func WalkShowRef(ctx context.Context, repoPath string, extraArgs gitcmd.TrustedCmdArgs, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
 		_ = stdoutReader.Close()
@@ -107,9 +108,9 @@ func WalkShowRef(ctx context.Context, repoPath string, extraArgs TrustedCmdArgs,
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		args := TrustedCmdArgs{"for-each-ref", "--format=%(objectname) %(refname)"}
+		args := gitcmd.TrustedCmdArgs{"for-each-ref", "--format=%(objectname) %(refname)"}
 		args = append(args, extraArgs...)
-		err := NewCommand(args...).Run(ctx, &RunOpts{
+		err := gitcmd.NewCommand(args...).Run(ctx, &gitcmd.RunOpts{
 			Dir:    repoPath,
 			Stdout: stdoutWriter,
 			Stderr: stderrBuilder,
@@ -119,7 +120,7 @@ func WalkShowRef(ctx context.Context, repoPath string, extraArgs TrustedCmdArgs,
 				_ = stdoutWriter.Close()
 				return
 			}
-			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderrBuilder.String()))
+			_ = stdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, stderrBuilder.String()))
 		} else {
 			_ = stdoutWriter.Close()
 		}

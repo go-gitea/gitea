@@ -1,7 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//nolint:forbidigo
+//nolint:forbidigo // use of print functions is allowed in tests
 package integration
 
 import (
@@ -148,6 +148,9 @@ func (s *TestSession) GetCookieFlashMessage() *middleware.Flash {
 
 func (s *TestSession) MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
+	if s == nil {
+		return MakeRequest(t, rw, expectedStatus)
+	}
 	req := rw.Request
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
@@ -410,7 +413,8 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 	t.Helper()
 
-	decoder := json.NewDecoder(resp.Body)
+	// FIXME: JSON-KEY-CASE: for testing purpose only, because many structs don't provide `json` tags, they just use capitalized field names
+	decoder := json.NewDecoderCaseInsensitive(resp.Body)
 	require.NoError(t, decoder.Decode(v))
 }
 

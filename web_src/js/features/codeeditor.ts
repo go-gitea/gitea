@@ -19,7 +19,7 @@ type EditorConfig = {
   trim_trailing_whitespace?: boolean,
   insert_final_newline?: boolean,
   root?: boolean,
-}
+};
 
 const languagesByFilename: Record<string, string> = {};
 const languagesByExt: Record<string, string> = {};

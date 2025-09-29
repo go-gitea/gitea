@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -40,23 +39,23 @@ func TestPackageGeneric(t *testing.T) {
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeGeneric)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		assert.NoError(t, err)
 		assert.Nil(t, pd.Metadata)
 		assert.Equal(t, packageName, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
 
-		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 		assert.Equal(t, filename, pfs[0].Name)
 		assert.True(t, pfs[0].IsLead)
 
-		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+		pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
 
@@ -76,7 +75,7 @@ func TestPackageGeneric(t *testing.T) {
 			MakeRequest(t, req, http.StatusCreated)
 
 			// Check deduplication
-			pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+			pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 			assert.NoError(t, err)
 			assert.Len(t, pfs, 2)
 			assert.Equal(t, pfs[0].BlobID, pfs[1].BlobID)
@@ -103,7 +102,7 @@ func TestPackageGeneric(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		checkDownloadCount := func(count int64) {
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeGeneric)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 			assert.Equal(t, count, pvs[0].DownloadCount)
@@ -141,37 +140,25 @@ func TestPackageGeneric(t *testing.T) {
 		t.Run("ServeDirect", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			if setting.Packages.Storage.Type != setting.MinioStorageType && setting.Packages.Storage.Type != setting.AzureBlobStorageType {
-				t.Skip("Test skipped for non-Minio-storage and non-AzureBlob-storage.")
-				return
-			}
-
 			if setting.Packages.Storage.Type == setting.MinioStorageType {
-				if !setting.Packages.Storage.MinioConfig.ServeDirect {
-					old := setting.Packages.Storage.MinioConfig.ServeDirect
-					defer func() {
-						setting.Packages.Storage.MinioConfig.ServeDirect = old
-					}()
-
-					setting.Packages.Storage.MinioConfig.ServeDirect = true
-				}
+				defer test.MockVariableValue(&setting.Packages.Storage.MinioConfig.ServeDirect, true)()
 			} else if setting.Packages.Storage.Type == setting.AzureBlobStorageType {
-				if !setting.Packages.Storage.AzureBlobConfig.ServeDirect {
-					old := setting.Packages.Storage.AzureBlobConfig.ServeDirect
-					defer func() {
-						setting.Packages.Storage.AzureBlobConfig.ServeDirect = old
-					}()
-
-					setting.Packages.Storage.AzureBlobConfig.ServeDirect = true
-				}
+				defer test.MockVariableValue(&setting.Packages.Storage.AzureBlobConfig.ServeDirect, true)()
+			} else {
+				t.Skip("Test skipped for non-Minio-storage and non-AzureBlob-storage.")
 			}
 
-			req := NewRequest(t, "GET", url+"/"+filename)
-			resp := MakeRequest(t, req, http.StatusSeeOther)
+			req = NewRequest(t, "HEAD", url+"/"+filename)
+			resp = MakeRequest(t, req, http.StatusSeeOther)
+			location := resp.Header().Get("Location")
+			assert.NotEmpty(t, location)
+			checkDownloadCount(2)
 
+			req = NewRequest(t, "GET", url+"/"+filename)
+			resp = MakeRequest(t, req, http.StatusSeeOther)
 			checkDownloadCount(3)
 
-			location := resp.Header().Get("Location")
+			location = resp.Header().Get("Location")
 			assert.NotEmpty(t, location)
 
 			resp2, err := (&http.Client{}).Get(location)
@@ -206,7 +193,7 @@ func TestPackageGeneric(t *testing.T) {
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeGeneric)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 
@@ -217,7 +204,7 @@ func TestPackageGeneric(t *testing.T) {
 					AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusNoContent)
 
-				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+				pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeGeneric)
 				assert.NoError(t, err)
 				assert.Empty(t, pvs)
 			})
@@ -237,7 +224,7 @@ func TestPackageGeneric(t *testing.T) {
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNoContent)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeGeneric)
 			assert.NoError(t, err)
 			assert.Empty(t, pvs)
 

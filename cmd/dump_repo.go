@@ -90,7 +90,7 @@ func runDumpRepository(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	// migrations.GiteaLocalUploader depends on git module
-	if err := git.InitSimple(context.Background()); err != nil {
+	if err := git.InitSimple(); err != nil {
 		return err
 	}
 
@@ -179,7 +179,7 @@ func runDumpRepository(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	if err := migrations.DumpRepository(
-		context.Background(),
+		ctx,
 		repoDir,
 		cmd.String("owner_name"),
 		opts,

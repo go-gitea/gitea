@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -66,7 +67,7 @@ func testGitPush(t *testing.T, u *url.URL) {
 			}
 			pushed = append(pushed, "master")
 
-			// push all, so that master are not chagned
+			// push all, so that master is not changed
 			doGitPushTestRepository(gitPath, "origin", "--all")(t)
 
 			return pushed, deleted
@@ -137,7 +138,7 @@ func testGitPush(t *testing.T, u *url.URL) {
 
 func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gitPath string) (pushed, deleted []string)) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo, err := repo_service.CreateRepository(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
+	repo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
 		Name:          "repo-to-push",
 		Description:   "test git push",
 		AutoInit:      false,
@@ -162,14 +163,14 @@ func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gi
 
 	doGitAddRemote(gitPath, "origin", u)(t)
 
-	gitRepo, err := git.OpenRepository(git.DefaultContext, gitPath)
+	gitRepo, err := git.OpenRepository(t.Context(), gitPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
 	pushedBranches, deletedBranches := gitOperation(t, gitPath)
 
 	dbBranches := make([]*git_model.Branch, 0)
-	require.NoError(t, db.GetEngine(db.DefaultContext).Where("repo_id=?", repo.ID).Find(&dbBranches))
+	require.NoError(t, db.GetEngine(t.Context()).Where("repo_id=?", repo.ID).Find(&dbBranches))
 	assert.Lenf(t, dbBranches, len(pushedBranches), "mismatched number of branches in db")
 	dbBranchesMap := make(map[string]*git_model.Branch, len(dbBranches))
 	for _, branch := range dbBranches {
@@ -191,7 +192,7 @@ func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gi
 		assert.Equal(t, commitID, branch.CommitID)
 	}
 
-	require.NoError(t, repo_service.DeleteRepositoryDirectly(db.DefaultContext, repo.ID))
+	require.NoError(t, repo_service.DeleteRepositoryDirectly(t.Context(), repo.ID))
 }
 
 func TestPushPullRefs(t *testing.T) {
@@ -204,8 +205,8 @@ func TestPushPullRefs(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		cmd := git.NewCommand("push", "--delete", "origin", "refs/pull/2/head")
-		stdout, stderr, err := cmd.RunStdString(git.DefaultContext, &git.RunOpts{
+		cmd := gitcmd.NewCommand("push", "--delete", "origin", "refs/pull/2/head")
+		stdout, stderr, err := cmd.RunStdString(t.Context(), &gitcmd.RunOpts{
 			Dir: dstPath,
 		})
 		assert.Error(t, err)

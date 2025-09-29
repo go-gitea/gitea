@@ -19,7 +19,7 @@ type Badge struct {
 }
 
 // UserBadge represents a user badge
-type UserBadge struct { //nolint:revive
+type UserBadge struct { //nolint:revive // export stutter
 	ID      int64 `xorm:"pk autoincr"`
 	BadgeID int64
 	UserID  int64 `xorm:"INDEX"`

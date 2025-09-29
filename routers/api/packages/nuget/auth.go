@@ -26,7 +26,6 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 	token, err := auth_model.GetAccessTokenBySHA(req.Context(), req.Header.Get("X-NuGet-ApiKey"))
 	if err != nil {
 		if !(auth_model.IsErrAccessTokenNotExist(err) || auth_model.IsErrAccessTokenEmpty(err)) {
-			log.Error("GetAccessTokenBySHA: %v", err)
 			return nil, err
 		}
 		return nil, nil
@@ -34,7 +33,6 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 
 	u, err := user_model.GetUserByID(req.Context(), token.UID)
 	if err != nil {
-		log.Error("GetUserByID:  %v", err)
 		return nil, err
 	}
 

@@ -49,7 +49,7 @@
 			</div>
 			<div class="field">
 				<label for="color">{{ctx.Locale.Tr "repo.issues.label_color"}}</label>
-				<div class="column js-color-picker-input">
+				<div class="color-picker-combo" data-global-init="initColorPicker">
 					<!-- the "#" is optional because backend NormalizeColor is able to handle it, API also accepts both formats, and it is easier for users to directly copy-paste a hex value -->
 					<input name="color" value="#70c24a" placeholder="#c320f6" required pattern="^#?([\dA-Fa-f]{3}|[\dA-Fa-f]{6})$" maxlength="7">
 					{{template "repo/issue/label_precolors"}}

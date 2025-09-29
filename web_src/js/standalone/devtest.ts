@@ -11,4 +11,5 @@ function initDevtestToast() {
   }
 }
 
+// NOTICE: keep in mind that this file is not in "index.js", they do not share the same module system.
 initDevtestToast();

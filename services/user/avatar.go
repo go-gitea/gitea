@@ -24,26 +24,22 @@ func UploadAvatar(ctx context.Context, u *user_model.User, data []byte) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		u.UseCustomAvatar = true
+		u.Avatar = avatar.HashAvatar(u.ID, data)
+		if err = user_model.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
+			return fmt.Errorf("updateUser: %w", err)
+		}
 
-	u.UseCustomAvatar = true
-	u.Avatar = avatar.HashAvatar(u.ID, data)
-	if err = user_model.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
-		return fmt.Errorf("updateUser: %w", err)
-	}
+		if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
+			_, err := w.Write(avatarData)
+			return err
+		}); err != nil {
+			return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)
+		}
 
-	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-		_, err := w.Write(avatarData)
-		return err
-	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)
-	}
-
-	return committer.Commit()
+		return nil
+	})
 }
 
 // DeleteAvatar deletes the user's custom avatar.

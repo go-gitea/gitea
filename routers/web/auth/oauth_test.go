@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/services/oauth2_provider"
@@ -21,7 +20,7 @@ func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2_provider
 	assert.NoError(t, err)
 	assert.NotNil(t, signingKey)
 
-	response, terr := oauth2_provider.NewAccessTokenResponse(db.DefaultContext, grant, signingKey, signingKey)
+	response, terr := oauth2_provider.NewAccessTokenResponse(t.Context(), grant, signingKey, signingKey)
 	assert.Nil(t, terr)
 	assert.NotNil(t, response)
 
@@ -43,7 +42,7 @@ func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2_provider
 func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	grants, err := auth.GetOAuth2GrantsByUserID(db.DefaultContext, 3)
+	grants, err := auth.GetOAuth2GrantsByUserID(t.Context(), 3)
 	assert.NoError(t, err)
 	assert.Len(t, grants, 1)
 
@@ -59,7 +58,7 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.False(t, oidcToken.EmailVerified)
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	grants, err = auth.GetOAuth2GrantsByUserID(db.DefaultContext, user.ID)
+	grants, err = auth.GetOAuth2GrantsByUserID(t.Context(), user.ID)
 	assert.NoError(t, err)
 	assert.Len(t, grants, 1)
 
@@ -67,8 +66,8 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	oidcToken = createAndParseToken(t, grants[0])
 	assert.Equal(t, user.DisplayName(), oidcToken.Name)
 	assert.Equal(t, user.Name, oidcToken.PreferredUsername)
-	assert.Equal(t, user.HTMLURL(), oidcToken.Profile)
-	assert.Equal(t, user.AvatarLink(db.DefaultContext), oidcToken.Picture)
+	assert.Equal(t, user.HTMLURL(t.Context()), oidcToken.Profile)
+	assert.Equal(t, user.AvatarLink(t.Context()), oidcToken.Picture)
 	assert.Equal(t, user.Website, oidcToken.Website)
 	assert.Equal(t, user.UpdatedUnix, oidcToken.UpdatedAt)
 	assert.Equal(t, user.Email, oidcToken.Email)
