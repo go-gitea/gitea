@@ -83,11 +83,6 @@ func checkPullRequestMergeableAndUpdateStatusMergeTree(ctx context.Context, pr *
 			return fmt.Errorf("OpenRepository: %w", err)
 		}
 		defer baseGitRepo.Close()
-		// 2.1. fetch head commit id into the current repository
-		// it will be checked in 2 weeks by default from git if the pull request created failure.
-		if err := gitrepo.FetchRemoteCommit(ctx, pr.BaseRepo, pr.HeadRepo, pr.HeadCommitID); err != nil {
-			return fmt.Errorf("FetchRemoteCommit: %w", err)
-		}
 	}
 
 	// 3. Get head commit id
@@ -107,7 +102,15 @@ func checkPullRequestMergeableAndUpdateStatusMergeTree(ctx context.Context, pr *
 		}
 	}
 
-	// 4. update merge base
+	// 4. fetch head commit id into the current repository
+	// it will be checked in 2 weeks by default from git if the pull request created failure.
+	if !pr.IsSameRepo() {
+		if err := gitrepo.FetchRemoteCommit(ctx, pr.BaseRepo, pr.HeadRepo, pr.HeadCommitID); err != nil {
+			return fmt.Errorf("FetchRemoteCommit: %w", err)
+		}
+	}
+
+	// 5. update merge base
 	baseCommitID, err := baseGitRepo.GetRefCommitID(git.BranchPrefix + pr.BaseBranch)
 	if err != nil {
 		return fmt.Errorf("GetBranchCommitID: can't find commit ID for base: %w", err)
@@ -120,13 +123,13 @@ func checkPullRequestMergeableAndUpdateStatusMergeTree(ctx context.Context, pr *
 		return nil
 	}
 
-	// 5. if base == head, then it's an ancestor
+	// 6. if base == head, then it's an ancestor
 	if pr.HeadCommitID == pr.MergeBase {
 		pr.Status = issues_model.PullRequestStatusAncestor
 		return nil
 	}
 
-	// 6. Check for conflicts
+	// 7. Check for conflicts
 	conflicted, err := checkConflictsMergeTree(ctx, pr, baseCommitID)
 	if err != nil {
 		log.Error("checkConflictsMergeTree: %v", err)
