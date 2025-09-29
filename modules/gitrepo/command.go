@@ -25,9 +25,9 @@ func RunCmdString(ctx context.Context, repo Repository, cmd *gitcmd.Command, opt
 		o(&opt)
 	}
 	res, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{
-		Dir:      repoPath(repo),
-		Env:      opt.Env,
-		LogDepth: 1,
+		Dir:     repoPath(repo),
+		Env:     opt.Env,
+		LogSkip: 1,
 	})
 	return res, err
 }

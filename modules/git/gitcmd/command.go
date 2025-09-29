@@ -222,8 +222,10 @@ type RunOpts struct {
 
 	PipelineFunc func(context.Context, context.CancelFunc) error
 
-	// for debugging purpose only, it means current function call depth, every caller should +1
-	LogDepth int
+	// for debugging purpose only, it indicates how many stack frames to skip to find the caller info
+	// it's mainly used to find the caller function name for logging
+	// it should be 0 when the caller is the direct caller of Run/RunStdString/RunStdBytes
+	LogSkip int
 }
 
 func commonBaseEnvs() []string {
@@ -283,14 +285,14 @@ func (c *Command) Run(ctx context.Context, opts *RunOpts) error {
 	}
 
 	cmdLogString := c.LogString()
-	depth := 1 /* util */ + 1 /* this */ + opts.LogDepth /* parent */
-	callerInfo := util.CallerFuncName(depth)
+	skip := 1 /* util */ + 1 /* this */ + opts.LogSkip /* parent */
+	callerInfo := util.CallerFuncName(skip)
 	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
 		callerInfo = callerInfo[pos+1:]
 	}
 	// these logs are for debugging purposes only, so no guarantee of correctness or stability
 	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(opts.Dir), cmdLogString)
-	log.DebugWithSkip(depth-1, "git.Command: %s", desc)
+	log.DebugWithSkip(opts.LogSkip+1, "git.Command: %s", desc)
 
 	_, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanGitRun)
 	defer span.End()
@@ -402,7 +404,7 @@ func (c *Command) RunStdString(ctx context.Context, opts *RunOpts) (stdout, stde
 	if opts == nil {
 		opts = &RunOpts{}
 	}
-	opts.LogDepth += 1
+	opts.LogSkip++
 	stdoutBytes, stderrBytes, err := c.RunStdBytes(ctx, opts)
 	stdout = util.UnsafeBytesToString(stdoutBytes)
 	stderr = util.UnsafeBytesToString(stderrBytes)
@@ -418,7 +420,7 @@ func (c *Command) RunStdBytes(ctx context.Context, opts *RunOpts) (stdout, stder
 	if opts == nil {
 		opts = &RunOpts{}
 	}
-	opts.LogDepth += 1
+	opts.LogSkip++
 	if opts.Stdout != nil || opts.Stderr != nil {
 		// we must panic here, otherwise there would be bugs if developers set Stdin/Stderr by mistake, and it would be very difficult to debug
 		panic("stdout and stderr field must be nil when using RunStdBytes")
@@ -436,7 +438,7 @@ func (c *Command) RunStdBytes(ctx context.Context, opts *RunOpts) (stdout, stder
 		Stderr:            stderrBuf,
 		Stdin:             opts.Stdin,
 		PipelineFunc:      opts.PipelineFunc,
-		LogDepth:          opts.LogDepth,
+		LogSkip:           opts.LogSkip,
 	}
 
 	err := c.Run(ctx, newOpts)
