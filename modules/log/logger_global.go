@@ -33,6 +33,10 @@ func Debug(format string, v ...any) {
 	Log(1, DEBUG, format, v...)
 }
 
+func DebugWithSkip(skip int, format string, v ...any) {
+	Log(skip+1, DEBUG, format, v...)
+}
+
 func IsDebug() bool {
 	return GetLevel() <= DEBUG
 }

@@ -221,6 +221,9 @@ type RunOpts struct {
 	Stdin io.Reader
 
 	PipelineFunc func(context.Context, context.CancelFunc) error
+
+	// for debugging purpose only, it means current function call depth, every caller should +1
+	LogDepth int
 }
 
 func commonBaseEnvs() []string {
@@ -265,10 +268,6 @@ var ErrBrokenCommand = errors.New("git command is broken")
 
 // Run runs the command with the RunOpts
 func (c *Command) Run(ctx context.Context, opts *RunOpts) error {
-	return c.run(ctx, 1, opts)
-}
-
-func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 	if len(c.brokenArgs) != 0 {
 		log.Error("git command is broken: %s, broken args: %s", c.LogString(), strings.Join(c.brokenArgs, " "))
 		return ErrBrokenCommand
@@ -284,13 +283,14 @@ func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 	}
 
 	cmdLogString := c.LogString()
-	callerInfo := util.CallerFuncName(1 /* util */ + 1 /* this */ + skip /* parent */)
+	depth := 1 /* util */ + 1 /* this */ + opts.LogDepth /* parent */
+	callerInfo := util.CallerFuncName(depth)
 	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
 		callerInfo = callerInfo[pos+1:]
 	}
 	// these logs are for debugging purposes only, so no guarantee of correctness or stability
 	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(opts.Dir), cmdLogString)
-	log.Debug("git.Command: %s", desc)
+	log.DebugWithSkip(depth-1, "git.Command: %s", desc)
 
 	_, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanGitRun)
 	defer span.End()
@@ -399,7 +399,11 @@ func IsErrorExitCode(err error, code int) bool {
 
 // RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdString(ctx context.Context, opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
-	stdoutBytes, stderrBytes, err := c.runStdBytes(ctx, opts)
+	if opts == nil {
+		opts = &RunOpts{}
+	}
+	opts.LogDepth += 1
+	stdoutBytes, stderrBytes, err := c.RunStdBytes(ctx, opts)
 	stdout = util.UnsafeBytesToString(stdoutBytes)
 	stderr = util.UnsafeBytesToString(stderrBytes)
 	if err != nil {
@@ -411,13 +415,10 @@ func (c *Command) RunStdString(ctx context.Context, opts *RunOpts) (stdout, stde
 
 // RunStdBytes runs the command with options and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdBytes(ctx context.Context, opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
-	return c.runStdBytes(ctx, opts)
-}
-
-func (c *Command) runStdBytes(ctx context.Context, opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
 	if opts == nil {
 		opts = &RunOpts{}
 	}
+	opts.LogDepth += 1
 	if opts.Stdout != nil || opts.Stderr != nil {
 		// we must panic here, otherwise there would be bugs if developers set Stdin/Stderr by mistake, and it would be very difficult to debug
 		panic("stdout and stderr field must be nil when using RunStdBytes")
@@ -435,9 +436,10 @@ func (c *Command) runStdBytes(ctx context.Context, opts *RunOpts) (stdout, stder
 		Stderr:            stderrBuf,
 		Stdin:             opts.Stdin,
 		PipelineFunc:      opts.PipelineFunc,
+		LogDepth:          opts.LogDepth,
 	}
 
-	err := c.run(ctx, 2, newOpts)
+	err := c.Run(ctx, newOpts)
 	stderr = stderrBuf.Bytes()
 	if err != nil {
 		return nil, stderr, &runStdError{err: err, stderr: util.UnsafeBytesToString(stderr)}
