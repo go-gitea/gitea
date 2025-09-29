@@ -18,6 +18,7 @@ import (
 // checkPullRequestMergeableAndUpdateStatus checks whether a pull request is mergeable and updates its status accordingly.
 // It uses 'git merge-tree' if supported by the Git version, otherwise it falls back to using a temporary repository.
 // This function updates the pr.Status, pr.MergeBase and pr.ConflictedFiles fields as necessary.
+// The pull request parameter may not be created yet in the database, so do not assume it has an ID.
 func checkPullRequestMergeableAndUpdateStatus(ctx context.Context, pr *issues_model.PullRequest) error {
 	if git.DefaultFeatures().SupportGitMergeTree {
 		return checkPullRequestMergeableAndUpdateStatusMergeTree(ctx, pr)
@@ -72,15 +73,6 @@ func checkPullRequestMergeableAndUpdateStatusMergeTree(ctx context.Context, pr *
 	}
 	defer headGitRepo.Close()
 
-	if pr.Flow == issues_model.PullRequestFlowGithub {
-		pr.HeadCommitID, err = headGitRepo.GetRefCommitID(git.BranchPrefix + pr.HeadBranch)
-		if err != nil {
-			return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
-		}
-	} else if pr.HeadCommitID == "" {
-		return errors.New("head commit ID is empty for pull request Agit flow")
-	}
-
 	// 2. Get base commit id
 	var baseGitRepo *git.Repository
 	if pr.IsSameRepo() {
@@ -97,12 +89,30 @@ func checkPullRequestMergeableAndUpdateStatusMergeTree(ctx context.Context, pr *
 			return fmt.Errorf("FetchRemoteCommit: %w", err)
 		}
 	}
+
+	// 3. Get head commit id
+	if pr.Flow == issues_model.PullRequestFlowGithub {
+		pr.HeadCommitID, err = headGitRepo.GetRefCommitID(git.BranchPrefix + pr.HeadBranch)
+		if err != nil {
+			return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
+		}
+	} else {
+		if pr.ID > 0 {
+			pr.HeadCommitID, err = baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+			if err != nil {
+				return fmt.Errorf("GetRefCommitID: can't find commit ID for head: %w", err)
+			}
+		} else if pr.HeadCommitID == "" { // for new pull request with agit, the head commit id must be provided
+			return errors.New("head commit ID is empty for pull request Agit flow")
+		}
+	}
+
+	// 4. update merge base
 	baseCommitID, err := baseGitRepo.GetRefCommitID(git.BranchPrefix + pr.BaseBranch)
 	if err != nil {
 		return fmt.Errorf("GetBranchCommitID: can't find commit ID for base: %w", err)
 	}
 
-	// 3. update merge base
 	pr.MergeBase, err = gitrepo.MergeBase(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID)
 	if err != nil {
 		log.Error("GetMergeBase: %v and can't find commit ID for base: %v", err, baseCommitID)
@@ -110,13 +120,13 @@ func checkPullRequestMergeableAndUpdateStatusMergeTree(ctx context.Context, pr *
 		return nil
 	}
 
-	// 4. if base == head, then it's an ancestor
+	// 5. if base == head, then it's an ancestor
 	if pr.HeadCommitID == pr.MergeBase {
 		pr.Status = issues_model.PullRequestStatusAncestor
 		return nil
 	}
 
-	// 5. Check for conflicts
+	// 6. Check for conflicts
 	conflicted, err := checkConflictsMergeTree(ctx, pr, baseCommitID)
 	if err != nil {
 		log.Error("checkConflictsMergeTree: %v", err)
@@ -126,7 +136,7 @@ func checkPullRequestMergeableAndUpdateStatusMergeTree(ctx context.Context, pr *
 		return nil
 	}
 
-	// 6. Check for protected files changes
+	// 7. Check for protected files changes
 	if err = checkPullFilesProtection(ctx, pr, pr.BaseRepo.RepoPath()); err != nil {
 		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
 	}
