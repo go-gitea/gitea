@@ -162,22 +162,38 @@ td .commit-summary {
   font-size: 0.5em;
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon {
+.repository.file.list
+  .non-diff-file-content
+  .header
+  .file-actions
+  .btn-octicon {
   line-height: var(--line-height-default);
   padding: 8px;
   vertical-align: middle;
   color: var(--color-text);
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon:hover {
+.repository.file.list
+  .non-diff-file-content
+  .header
+  .file-actions
+  .btn-octicon:hover {
   color: var(--color-primary);
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon-danger:hover {
+.repository.file.list
+  .non-diff-file-content
+  .header
+  .file-actions
+  .btn-octicon-danger:hover {
   color: var(--color-red);
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon.disabled {
+.repository.file.list
+  .non-diff-file-content
+  .header
+  .file-actions
+  .btn-octicon.disabled {
   color: inherit;
   opacity: var(--opacity-disabled);
   cursor: default;
@@ -268,7 +284,11 @@ td .commit-summary {
     display: none;
   }
 }
-.repository.file.editor .commit-form-wrapper .commit-form .quick-pull-choice .branch-name {
+.repository.file.editor
+  .commit-form-wrapper
+  .commit-form
+  .quick-pull-choice
+  .branch-name {
   display: inline-block;
   padding: 2px 4px;
   font: 12px var(--fonts-monospace);
@@ -278,21 +298,34 @@ td .commit-summary {
   margin: 0 2px;
 }
 
-.repository.file.editor .commit-form-wrapper .commit-form .quick-pull-choice .new-branch-name-input {
+.repository.file.editor
+  .commit-form-wrapper
+  .commit-form
+  .quick-pull-choice
+  .new-branch-name-input {
   position: relative;
   margin-left: 25px;
 }
 
-.repository.file.editor .commit-form-wrapper .commit-form .quick-pull-choice .new-branch-name-input input {
+.repository.file.editor
+  .commit-form-wrapper
+  .commit-form
+  .quick-pull-choice
+  .new-branch-name-input
+  input {
   width: 240px !important;
   padding-left: 26px !important;
 }
 
-.repository.file.editor .commit-form-wrapper .commit-form .quick-pull-choice .octicon-git-branch {
+.repository.file.editor
+  .commit-form-wrapper
+  .commit-form
+  .quick-pull-choice
+  .octicon-git-branch {
   position: absolute;
   top: 9px;
   left: 10px;
-  color: var(--color-grey);
+  color: var(--color-grey-light);
 }
 
 .repository.options #interval {
@@ -361,7 +394,7 @@ td .commit-summary {
 
 .repository.view.issue .issue-title .ui.input input {
   font-size: 1.5em;
-  padding: 2px .5rem;
+  padding: 2px 0.5rem;
 }
 
 .issue-title .index {
@@ -436,7 +469,8 @@ td .commit-summary {
   padding-left: 16px;
 }
 
-.repository.view.issue .comment-list .timeline::before { /* ciara */
+.repository.view.issue .comment-list .timeline::before {
+  /* ciara */
   display: block;
   content: "";
   position: absolute;
@@ -518,7 +552,11 @@ td .commit-summary {
   padding: 3px;
 }
 
-.repository.view.issue .comment-list .timeline-item .badge .svg.octicon-comment {
+.repository.view.issue
+  .comment-list
+  .timeline-item
+  .badge
+  .svg.octicon-comment {
   margin-top: 2px;
 }
 
@@ -536,7 +574,11 @@ td .commit-summary {
   color: inherit;
 }
 
-.repository.view.issue .comment-list .timeline-item .avatar-with-link + .comment-text-line {
+.repository.view.issue
+  .comment-list
+  .timeline-item
+  .avatar-with-link
+  + .comment-text-line {
   margin-left: 0.25em;
 }
 
@@ -545,7 +587,10 @@ td .commit-summary {
   padding-top: 0;
 }
 
-.repository.view.issue .comment-list .timeline-item.event > .commit-status-link {
+.repository.view.issue
+  .comment-list
+  .timeline-item.event
+  > .commit-status-link {
   float: right;
   margin-right: 8px;
   margin-top: 4px;
@@ -587,7 +632,11 @@ td .commit-summary {
   background: var(--color-box-body);
 }
 
-.repository.view.issue .comment-list .conversation-holder .comment .comment-container {
+.repository.view.issue
+  .comment-list
+  .conversation-holder
+  .comment
+  .comment-container {
   border: none;
 }
 
@@ -596,7 +645,12 @@ td .commit-summary {
     width: 100%;
     margin: 0;
   }
-  .repository.view.issue .comment-list .comment .content .form .button:not(:last-child) {
+  .repository.view.issue
+    .comment-list
+    .comment
+    .content
+    .form
+    .button:not(:last-child) {
     margin-bottom: 1rem;
   }
 }
@@ -662,7 +716,10 @@ td .commit-summary {
   margin-left: 24px;
 }
 
-.repository.view.issue .comment-list .comment-code-cloud button.comment-form-reply {
+.repository.view.issue
+  .comment-list
+  .comment-code-cloud
+  button.comment-form-reply {
   margin: 0;
 }
 
@@ -790,16 +847,16 @@ td .commit-summary {
 
 /* the border css competes with .markup where all tables have outer border which would add a double
    border here, remove only the outer borders from this table */
-.repository .data-table tr:first-child :is(td,th) {
+.repository .data-table tr:first-child :is(td, th) {
   border-top: none !important;
 }
-.repository .data-table tr:last-child :is(td,th) {
+.repository .data-table tr:last-child :is(td, th) {
   border-bottom: none !important;
 }
-.repository .data-table tr :is(td,th):first-child {
+.repository .data-table tr :is(td, th):first-child {
   border-left: none !important;
 }
-.repository .data-table tr :is(td,th):last-child {
+.repository .data-table tr :is(td, th):last-child {
   border-right: none !important;
 }
 
@@ -990,7 +1047,12 @@ td .commit-summary {
   display: inline-block;
 }
 
-.repository .diff-file-box .code-diff-split .tag-code .lines-code code.code-inner {
+.repository
+  .diff-file-box
+  .code-diff-split
+  .tag-code
+  .lines-code
+  code.code-inner {
   padding-left: 10px !important;
 }
 
@@ -1130,7 +1192,8 @@ td .commit-summary {
 }
 
 .repository .repository-summary .sub-menu .item.active {
-  background: var(--color-secondary);
+  color: var(--color-primary-3);
+  background: var(--color-nav-bg);
 }
 
 #cite-repo-modal #citation-panel {
@@ -1837,7 +1900,11 @@ tbody.commit-list {
   /* Don't show the general avatar, we show the inline avatar on mobile.
    * And don't show the role labels, there's no place for that. */
   .repository.view.issue .comment-list .timeline .timeline-avatar,
-  .repository.view.issue .comment-list .timeline .comment-header-right .role-label {
+  .repository.view.issue
+    .comment-list
+    .timeline
+    .comment-header-right
+    .role-label {
     display: none;
   }
   .commit-header h3 {
@@ -1881,7 +1948,7 @@ tbody.commit-list {
 .commit-status-list {
   max-height: 240px; /* fit exactly 6 items, commit-status-item.height * 6 */
   overflow-x: hidden;
-  transition: max-height .2s;
+  transition: max-height 0.2s;
 }
 
 .commit-status-item {

@@ -30,8 +30,8 @@
 }
 
 .ui.button:hover {
-  background: var(--color-hover);
-  color: var(--color-text);
+  background: var(--color-primary);
+  color: var(--color-nav-bg);
 }
 
 .ui.active.button,
@@ -99,7 +99,8 @@
 }
 
 /* reference sizes (not exactly at the moment): normal: padding-x=21, height=38 ; compact: padding-x=15, height=32 */
-.ui.button { /* stylelint-disable-line no-duplicate-selectors */
+.ui.button {
+  /* stylelint-disable-line no-duplicate-selectors */
   min-height: 38px;
   padding: 0.57em /* around 8px */ 1.43em /* around 20px */;
 }
@@ -182,8 +183,8 @@
 
 .ui.basic.buttons .button:hover,
 .ui.basic.button:hover {
-  color: var(--color-text);
-  background: var(--color-hover);
+  color: var(--color-primary);
+  /* background: var(--color-hover); */
   border-color: var(--color-secondary-dark-2);
 }
 
@@ -193,8 +194,8 @@
 .ui.basic.active.button,
 .ui.basic.buttons .active.button:hover,
 .ui.basic.active.button:hover {
-  color: var(--color-text);
-  background: var(--color-active);
+  color: var(--color-primary);
+  /* background: var(--color-active); */
 }
 
 .ui.button.toggle.active {
@@ -214,13 +215,13 @@
 .ui.primary.button,
 .ui.primary.buttons .button {
   background: var(--color-primary);
-  color: var(--color-primary-contrast);
+  color: var(--color-nav-bg);
 }
 
 .ui.primary.button:hover,
 .ui.primary.buttons .button:hover {
   background: var(--color-primary-hover);
-  color: var(--color-primary-contrast);
+  color: var(--color-nav-bg);
 }
 
 .ui.primary.button:active,
@@ -249,7 +250,7 @@
 
 .ui.red.button,
 .ui.red.buttons .button {
-  color: var(--color-white);
+  color: var(--color-nav-bg);
   background: var(--color-red);
 }
 

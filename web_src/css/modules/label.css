@@ -91,25 +91,25 @@ a.ui.label:hover {
 
 .ui.basic.label {
   background: var(--color-button);
-  border: 1px solid var(--color-light-border);
-  color: var(--color-text-light);
+  border: 1px solid var(--color-primary-2);
+  color: var(--color-primary);
 }
 a.ui.basic.label:hover {
   text-decoration: none;
-  color: var(--color-text);
-  border-color: var(--color-secondary-dark-2);
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary);
   background: var(--color-hover);
 }
 
 .ui.ui.ui.primary.label {
   background: var(--color-primary);
   border-color: var(--color-primary-dark-2);
-  color: var(--color-primary-contrast);
+  color: var(--color-white);
 }
 a.ui.ui.ui.primary.label:hover {
-  background: var(--color-primary-dark-3);
-  border-color: var(--color-primary-dark-3);
-  color: var(--color-primary-contrast);
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-dark-2);
+  color: var(--color-nav-bg);
 }
 .ui.ui.ui.basic.primary.label {
   background: transparent;
@@ -288,7 +288,9 @@ a.ui.ui.ui.basic.grey.label:hover {
 If the labels-list itself needs some layouts, use extra classes or "tw" helpers. */
 .labels-list {
   display: contents;
-  font-size: var(--font-size-label); /* it must match the label font size, otherwise the height mismatches */
+  font-size: var(
+    --font-size-label
+  ); /* it must match the label font size, otherwise the height mismatches */
 }
 
 .labels-list a {

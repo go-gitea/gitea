@@ -7,7 +7,7 @@
   padding: 1em;
   border-radius: 0.28571429rem;
   border: 1px solid var(--color-secondary);
-  background: var(--color-box-body);
+  background: var(--color-nav-bg);
   color: var(--color-text);
 }
 .ui.segment:first-child {
@@ -70,7 +70,8 @@
 }
 
 .ui.segments:not(.horizontal) > .segment:only-child,
-.ui.segments:not(.horizontal) > .segment:has(~ .tw-hidden) { /* workaround issue with :last-child ignoring hidden elements */
+.ui.segments:not(.horizontal) > .segment:has(~ .tw-hidden) {
+  /* workaround issue with :last-child ignoring hidden elements */
   border-radius: 0.28571429rem;
 }
 
