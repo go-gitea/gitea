@@ -20,46 +20,30 @@ RUN apk --no-cache add \
     build-base \
     git \
     nodejs \
-    npm \
-    && npm install -g pnpm@10 \
-    && rm -rf /var/cache/apk/*
+    pnpm
 
 # Setup repo
 COPY . ${GOPATH}/src/code.gitea.io/gitea
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 
 # Checkout version if set
-RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
-  && make clean-all
-
-RUN --mount=type=cache,target=/root/.npm \
-  --mount=type=cache,target=/go/pkg/mod/ \
-  --mount=type=cache,target="/root/.cache/go-build" \
-  make build
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target="/root/.cache/go-build" \
+    if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
+    && make clean-all build
 
 # Begin env-to-ini build
-RUN --mount=type=cache,target=/go/pkg/mod/ \
-  --mount=type=cache,target="/root/.cache/go-build" \
-  go build contrib/environment-to-ini/environment-to-ini.go
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target="/root/.cache/go-build" \
+    go build contrib/environment-to-ini/environment-to-ini.go
 
-# Copy local files
-COPY docker/root /tmp/local
-
-# Set permissions
-RUN chmod 755 /tmp/local/usr/bin/entrypoint \
-              /tmp/local/usr/local/bin/gitea \
-              /tmp/local/etc/s6/gitea/* \
-              /tmp/local/etc/s6/openssh/* \
-              /tmp/local/etc/s6/.s6-svscan/* \
-              /go/src/code.gitea.io/gitea/gitea \
-              /go/src/code.gitea.io/gitea/environment-to-ini
-
-FROM docker.io/library/alpine:3.22
+FROM docker.io/library/alpine:3.22 AS gitea
 LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 22 3000
 
-RUN apk --no-cache add \
+RUN apk add --no-cache \
     bash \
     ca-certificates \
     curl \
@@ -70,8 +54,7 @@ RUN apk --no-cache add \
     s6 \
     sqlite \
     su-exec \
-    gnupg \
-    && rm -rf /var/cache/apk/*
+    gnupg
 
 RUN addgroup \
     -S -g 1000 \
@@ -85,6 +68,10 @@ RUN addgroup \
     git && \
   echo "git:*" | chpasswd -e
 
+COPY docker/root /
+COPY --chmod=755 --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
+COPY --chmod=755 --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
+
 ENV USER=git
 ENV GITEA_CUSTOM=/data/gitea
 
@@ -92,7 +79,3 @@ VOLUME ["/data"]
 
 ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/usr/bin/s6-svscan", "/etc/s6"]
-
-COPY --from=build-env /tmp/local /
-COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
-COPY --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
