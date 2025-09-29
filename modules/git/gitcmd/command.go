@@ -285,8 +285,7 @@ func (c *Command) Run(ctx context.Context, opts *RunOpts) error {
 	}
 
 	cmdLogString := c.LogString()
-	skip := 1 /* util */ + 1 /* this */ + opts.LogSkip /* parent */
-	callerInfo := util.CallerFuncName(skip)
+	callerInfo := util.CallerFuncName(1 /* util */ + 1 /* this */ + opts.LogSkip /* parent */)
 	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
 		callerInfo = callerInfo[pos+1:]
 	}
