@@ -18,6 +18,10 @@ DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
 IMPORT := code.gitea.io/gitea
 
+# By default use go's 1.25 experimental json v2 library when building
+# TODO: remove when no longer experimental
+export GOEXPERIMENT ?= jsonv2
+
 GO ?= go
 SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
@@ -162,7 +166,7 @@ TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST)
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
-ESLINT_FILES := web_src/js tools *.ts *.cjs tests/e2e
+ESLINT_FILES := web_src/js tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
 SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml)) $(filter-out tools/misspellings.csv, $(wildcard tools/*))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
@@ -346,12 +350,12 @@ lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backen
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js files
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
+	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --flag unstable_native_nodejs_ts_config $(ESLINT_FILES)
 	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js files and fix issues
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
+	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --flag unstable_native_nodejs_ts_config $(ESLINT_FILES) --fix
 	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-css
@@ -766,7 +770,7 @@ generate-go: $(TAGS_PREREQ)
 
 .PHONY: security-check
 security-check:
-	go run $(GOVULNCHECK_PACKAGE) -show color ./...
+	GOEXPERIMENT= go run $(GOVULNCHECK_PACKAGE) -show color ./...
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)

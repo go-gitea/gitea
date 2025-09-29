@@ -28,6 +28,7 @@ import (
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -569,7 +570,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 func PrepareCompareDiff(
 	ctx *context.Context,
 	ci *common.CompareInfo,
-	whitespaceBehavior git.TrustedCmdArgs,
+	whitespaceBehavior gitcmd.TrustedCmdArgs,
 ) (nothingToCompare bool) {
 	repo := ctx.Repo.Repository
 	headCommitID := ci.CompareInfo.HeadCommitID
@@ -630,7 +631,7 @@ func PrepareCompareDiff(
 		ctx.ServerError("GetDiff", err)
 		return false
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ci.HeadGitRepo, beforeCommitID, headCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ci.HeadRepo, ci.HeadGitRepo, beforeCommitID, headCommitID)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return false

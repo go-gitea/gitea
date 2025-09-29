@@ -8,6 +8,8 @@ package git
 import (
 	"io"
 	"strings"
+
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // Tree represents a flat directory listing.
@@ -70,7 +72,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 	}
 
-	stdout, _, runErr := NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).RunStdBytes(t.repo.Ctx, &RunOpts{Dir: t.repo.Path})
+	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).RunStdBytes(t.repo.Ctx, &gitcmd.RunOpts{Dir: t.repo.Path})
 	if runErr != nil {
 		if strings.Contains(runErr.Error(), "fatal: Not a valid object name") || strings.Contains(runErr.Error(), "fatal: not a tree object") {
 			return nil, ErrNotExist{
@@ -91,15 +93,15 @@ func (t *Tree) ListEntries() (Entries, error) {
 
 // listEntriesRecursive returns all entries of current tree recursively including all subtrees
 // extraArgs could be "-l" to get the size, which is slower
-func (t *Tree) listEntriesRecursive(extraArgs TrustedCmdArgs) (Entries, error) {
+func (t *Tree) listEntriesRecursive(extraArgs gitcmd.TrustedCmdArgs) (Entries, error) {
 	if t.entriesRecursiveParsed {
 		return t.entriesRecursive, nil
 	}
 
-	stdout, _, runErr := NewCommand("ls-tree", "-t", "-r").
+	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-t", "-r").
 		AddArguments(extraArgs...).
 		AddDynamicArguments(t.ID.String()).
-		RunStdBytes(t.repo.Ctx, &RunOpts{Dir: t.repo.Path})
+		RunStdBytes(t.repo.Ctx, &gitcmd.RunOpts{Dir: t.repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -120,5 +122,5 @@ func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
 
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees, with size
 func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
-	return t.listEntriesRecursive(TrustedCmdArgs{"--long"})
+	return t.listEntriesRecursive(gitcmd.TrustedCmdArgs{"--long"})
 }
