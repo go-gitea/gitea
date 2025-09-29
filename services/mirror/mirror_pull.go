@@ -81,113 +81,57 @@ type mirrorSyncResult struct {
 	newCommitID string
 }
 
-// parseRemoteUpdateOutput detects create, update and delete operations of references from upstream.
-// possible output example:
-/*
-// * [new tag]         v0.1.8     -> v0.1.8
-// * [new branch]      master     -> origin/master
-// * [new ref]         refs/pull/2/head  -> refs/pull/2/head"
-// - [deleted]         (none)     -> origin/test // delete a branch
-// - [deleted]         (none)     -> 1 // delete a tag
-//   957a993..a87ba5f  test       -> origin/test
-// + f895a1e...957a993 test       -> origin/test  (forced update)
-*/
-// TODO: return whether it's a force update
-func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
-	results := make([]*mirrorSyncResult, 0, 3)
-	lines := strings.Split(output, "\n")
-	for i := range lines {
-		// Make sure reference name is presented before continue
-		idx := strings.Index(lines[i], "-> ")
-		if idx == -1 {
+// parseFetchPorcelain parses `git fetch --porcelain` lines into mirrorSyncResult.
+// Lines look like: "<flag> <old> <new> <local-ref>"
+func parseFetchPorcelain(output string) []*mirrorSyncResult {
+	results := make([]*mirrorSyncResult, 0, 8)
+
+	for _, line := range strings.Split(output, "\n") {
+		if line == "" {
 			continue
 		}
+		flag := line[0]
+		fields := strings.Fields(line[1:]) // trim flag, split rest
+		if len(fields) < 3 {
+			log.Warn("parseFetchPorcelain: unexpected line %q", line)
+			continue
+		}
+		oldOID, newOID, ref := fields[0], fields[1], fields[2]
 
-		refName := strings.TrimSpace(lines[i][idx+3:])
+		// Normalize ref name
+		var refFull git.RefName
+		if strings.HasPrefix(ref, "refs/") {
+			refFull = git.RefName(ref)
+		} else {
+			// fetch porcelain prints local tracking ref; treat non-refs/* as branches
+			refFull = git.RefNameFromBranch(ref)
+		}
 
-		switch {
-		case strings.HasPrefix(lines[i], " * [new tag]"): // new tag
+		switch flag {
+		case '*': // new ref
 			results = append(results, &mirrorSyncResult{
-				refName:     git.RefNameFromTag(refName),
+				refName:     refFull,
 				oldCommitID: gitShortEmptySha,
+				newCommitID: newOID,
 			})
-		case strings.HasPrefix(lines[i], " * [new branch]"): // new branch
-			refName = strings.TrimPrefix(refName, remoteName+"/")
+		case '-': // pruned (deleted)
 			results = append(results, &mirrorSyncResult{
-				refName:     git.RefNameFromBranch(refName),
-				oldCommitID: gitShortEmptySha,
-			})
-		case strings.HasPrefix(lines[i], " * [new ref]"): // new reference
-			results = append(results, &mirrorSyncResult{
-				refName:     git.RefName(refName),
-				oldCommitID: gitShortEmptySha,
-			})
-		case strings.HasPrefix(lines[i], " - "): // Delete reference
-			isTag := !strings.HasPrefix(refName, remoteName+"/")
-			var refFullName git.RefName
-			if strings.HasPrefix(refName, "refs/") {
-				refFullName = git.RefName(refName)
-			} else if isTag {
-				refFullName = git.RefNameFromTag(refName)
-			} else {
-				refFullName = git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/"))
-			}
-			results = append(results, &mirrorSyncResult{
-				refName:     refFullName,
+				refName:     refFull,
+				oldCommitID: oldOID,
 				newCommitID: gitShortEmptySha,
 			})
-		case strings.HasPrefix(lines[i], " + "): // Force update
-			if idx := strings.Index(refName, " "); idx > -1 {
-				refName = refName[:idx]
-			}
-			delimIdx := strings.Index(lines[i][3:], " ")
-			if delimIdx == -1 {
-				log.Error("SHA delimiter not found: %q", lines[i])
-				continue
-			}
-			shas := strings.Split(lines[i][3:delimIdx+3], "...")
-			if len(shas) != 2 {
-				log.Error("Expect two SHAs but not what found: %q", lines[i])
-				continue
-			}
-			var refFullName git.RefName
-			if strings.HasPrefix(refName, "refs/") {
-				refFullName = git.RefName(refName)
-			} else {
-				refFullName = git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/"))
-			}
-
+		case '+', ' ', 't': // force, fast-forward, tag update
 			results = append(results, &mirrorSyncResult{
-				refName:     refFullName,
-				oldCommitID: shas[0],
-				newCommitID: shas[1],
+				refName:     refFull,
+				oldCommitID: oldOID,
+				newCommitID: newOID,
 			})
-		case strings.HasPrefix(lines[i], "   "): // New commits of a reference
-			delimIdx := strings.Index(lines[i][3:], " ")
-			if delimIdx == -1 {
-				log.Error("SHA delimiter not found: %q", lines[i])
-				continue
-			}
-			shas := strings.Split(lines[i][3:delimIdx+3], "..")
-			if len(shas) != 2 {
-				log.Error("Expect two SHAs but not what found: %q", lines[i])
-				continue
-			}
-			var refFullName git.RefName
-			if strings.HasPrefix(refName, "refs/") {
-				refFullName = git.RefName(refName)
-			} else {
-				refFullName = git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/"))
-			}
-
-			results = append(results, &mirrorSyncResult{
-				refName:     refFullName,
-				oldCommitID: shas[0],
-				newCommitID: shas[1],
-			})
-
+		case '!': // failed fetch for this ref
+			log.Error("fetch failed for %s (%s -> %s)", ref, oldOID, newOID)
+		case '=': // up-to-date (only if --verbose); ignore
+			continue
 		default:
-			log.Warn("parseRemoteUpdateOutput: unexpected update line %q", lines[i])
+			log.Warn("parseFetchPorcelain: unknown flag %q on %q", flag, line)
 		}
 	}
 	return results
@@ -260,7 +204,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	if m.EnablePrune {
 		cmd.AddArguments("--prune")
 	}
-	cmd.AddArguments("--tags").AddDynamicArguments(m.GetRemoteName())
+	cmd.AddArguments("--tags", "--porcelain", "--no-progress").AddDynamicArguments(m.GetRemoteName())
 
 	remoteURL, remoteErr := gitrepo.GitRemoteGetURL(ctx, m.Repo, m.GetRemoteName())
 	if remoteErr != nil {
@@ -324,7 +268,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 			return nil, false
 		}
 	}
-	output := stderrBuilder.String()
+	output := stdoutBuilder.String()
 
 	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
@@ -426,7 +370,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
-	return parseRemoteUpdateOutput(output, m.GetRemoteName()), true
+	return parseFetchPorcelain(output), true
 }
 
 func getRepoPullMirrorLockKey(repoID int64) string {
