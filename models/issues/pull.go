@@ -29,6 +29,8 @@ import (
 
 var ErrMustCollaborator = util.NewPermissionDeniedErrorf("user must be a collaborator")
 
+const reviewedBy = "Reviewed-by: "
+
 // ErrPullRequestNotExist represents a "PullRequestNotExist" kind of error.
 type ErrPullRequestNotExist struct {
 	ID         int64
@@ -348,7 +350,11 @@ type ReviewCount struct {
 func (pr *PullRequest) GetApprovalCounts(ctx context.Context) ([]*ReviewCount, error) {
 	rCounts := make([]*ReviewCount, 0, 6)
 	sess := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID)
-	return rCounts, sess.Select("issue_id, type, count(id) as `count`").Where("official = ? AND dismissed = ?", true, false).GroupBy("issue_id, type").Table("review").Find(&rCounts)
+	return rCounts, sess.Select("issue_id, type, count(id) as `count`").
+		Where(builder.Eq{"official": true, "dismissed": false}).
+		GroupBy("issue_id, type").
+		Table("review").
+		Find(&rCounts)
 }
 
 // GetApprovers returns the approvers of the pull request
@@ -392,7 +398,7 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 		} else if review.Reviewer == nil {
 			continue
 		}
-		if _, err := writer.Write([]byte("Reviewed-by: ")); err != nil {
+		if _, err := writer.Write([]byte(reviewedBy)); err != nil {
 			return err
 		}
 		if _, err := writer.Write([]byte(review.Reviewer.NewGitSig().String())); err != nil {
@@ -409,10 +415,6 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 // GetGitHeadRefName returns git ref for hidden pull request branch
 func (pr *PullRequest) GetGitHeadRefName() string {
 	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
-}
-
-func (pr *PullRequest) GetGitHeadBranchRefName() string {
-	return fmt.Sprintf("%s%s", git.BranchPrefix, pr.HeadBranch)
 }
 
 // GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
@@ -640,9 +642,8 @@ func (pr *PullRequest) UpdateCols(ctx context.Context, cols ...string) error {
 }
 
 // UpdateColsIfNotMerged updates specific fields of a pull request if it has not been merged
-func (pr *PullRequest) UpdateColsIfNotMerged(ctx context.Context, cols ...string) error {
-	_, err := db.GetEngine(ctx).Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
-	return err
+func (pr *PullRequest) UpdateColsIfNotMerged(ctx context.Context, cols ...string) (int64, error) {
+	return db.GetEngine(ctx).Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
 }
 
 // IsWorkInProgress determine if the Pull Request is a Work In Progress by its title

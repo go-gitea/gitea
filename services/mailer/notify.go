@@ -128,7 +128,7 @@ func (m *mailNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model
 
 func (m *mailNotifier) PullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
-		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL())
+		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL(ctx))
 		if err := SendIssueAssignedMail(ctx, issue, doer, ct, comment, []*user_model.User{reviewer}); err != nil {
 			log.Error("Error in SendIssueAssignedMail for issue[%d] to reviewer[%d]: %v", issue.ID, reviewer.ID, err)
 		}
@@ -208,8 +208,7 @@ func (m *mailNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *
 }
 
 func (m *mailNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
-	if !run.Status.IsDone() {
-		return
+	if err := MailActionsTrigger(ctx, sender, repo, run); err != nil {
+		log.Error("MailActionsTrigger: %v", err)
 	}
-	MailActionsTrigger(ctx, sender, repo, run)
 }

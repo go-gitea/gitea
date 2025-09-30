@@ -47,11 +47,11 @@ export type DayData = {
   additions: number,
   deletions: number,
   commits: number,
-}
+};
 
 export type DayDataObject = {
   [timestamp: string]: DayData,
-}
+};
 
 export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayDataObject): DayData[] {
   const result: Record<string, any> = {};
