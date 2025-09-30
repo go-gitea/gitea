@@ -18,14 +18,14 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/gobwas/glob"
 )
 
 // DownloadDiffOrPatch will write the patch for the pr to the writer
@@ -41,7 +41,7 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 	}
 	defer closer.Close()
 
-	compareArg := pr.MergeBase + "..." + pr.GetGitRefName()
+	compareArg := pr.MergeBase + "..." + pr.GetGitHeadRefName()
 	switch {
 	case patch:
 		err = gitRepo.GetPatch(compareArg, w)
@@ -67,9 +67,8 @@ var patchErrorSuffices = []string{
 	": does not exist in index",
 }
 
-// TestPatch will test whether a simple patch will apply
-func TestPatch(pr *issues_model.PullRequest) error {
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("TestPatch: %s", pr))
+func testPullRequestBranchMergeable(pr *issues_model.PullRequest) error {
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("testPullRequestBranchMergeable: %s", pr))
 	defer finished()
 
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
@@ -81,10 +80,10 @@ func TestPatch(pr *issues_model.PullRequest) error {
 	}
 	defer cancel()
 
-	return testPatch(ctx, prCtx, pr)
+	return testPullRequestTmpRepoBranchMergeable(ctx, prCtx, pr)
 }
 
-func testPatch(ctx context.Context, prCtx *prContext, pr *issues_model.PullRequest) error {
+func testPullRequestTmpRepoBranchMergeable(ctx context.Context, prCtx *prTmpRepoContext, pr *issues_model.PullRequest) error {
 	gitRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
@@ -92,7 +91,7 @@ func testPatch(ctx context.Context, prCtx *prContext, pr *issues_model.PullReque
 	defer gitRepo.Close()
 
 	// 1. update merge base
-	pr.MergeBase, _, err = git.NewCommand("merge-base", "--", "base", "tracking").RunStdString(ctx, &git.RunOpts{Dir: prCtx.tmpBasePath})
+	pr.MergeBase, _, err = gitcmd.NewCommand("merge-base", "--", "base", "tracking").RunStdString(ctx, &gitcmd.RunOpts{Dir: prCtx.tmpBasePath})
 	if err != nil {
 		var err2 error
 		pr.MergeBase, err2 = gitRepo.GetRefCommitID(git.BranchPrefix + "base")
@@ -192,7 +191,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, f
 		}
 
 		// Need to get the objects from the object db to attempt to merge
-		root, _, err := git.NewCommand("unpack-file").AddDynamicArguments(file.stage1.sha).RunStdString(ctx, &git.RunOpts{Dir: tmpBasePath})
+		root, _, err := gitcmd.NewCommand("unpack-file").AddDynamicArguments(file.stage1.sha).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return fmt.Errorf("unable to get root object: %s at path: %s for merging. Error: %w", file.stage1.sha, file.stage1.path, err)
 		}
@@ -201,7 +200,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, f
 			_ = util.Remove(filepath.Join(tmpBasePath, root))
 		}()
 
-		base, _, err := git.NewCommand("unpack-file").AddDynamicArguments(file.stage2.sha).RunStdString(ctx, &git.RunOpts{Dir: tmpBasePath})
+		base, _, err := gitcmd.NewCommand("unpack-file").AddDynamicArguments(file.stage2.sha).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return fmt.Errorf("unable to get base object: %s at path: %s for merging. Error: %w", file.stage2.sha, file.stage2.path, err)
 		}
@@ -209,7 +208,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, f
 		defer func() {
 			_ = util.Remove(base)
 		}()
-		head, _, err := git.NewCommand("unpack-file").AddDynamicArguments(file.stage3.sha).RunStdString(ctx, &git.RunOpts{Dir: tmpBasePath})
+		head, _, err := gitcmd.NewCommand("unpack-file").AddDynamicArguments(file.stage3.sha).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return fmt.Errorf("unable to get head object:%s at path: %s for merging. Error: %w", file.stage3.sha, file.stage3.path, err)
 		}
@@ -219,13 +218,13 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, f
 		}()
 
 		// now git merge-file annoyingly takes a different order to the merge-tree ...
-		_, _, conflictErr := git.NewCommand("merge-file").AddDynamicArguments(base, root, head).RunStdString(ctx, &git.RunOpts{Dir: tmpBasePath})
+		_, _, conflictErr := gitcmd.NewCommand("merge-file").AddDynamicArguments(base, root, head).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
 		if conflictErr != nil {
 			return &errMergeConflict{file.stage2.path}
 		}
 
 		// base now contains the merged data
-		hash, _, err := git.NewCommand("hash-object", "-w", "--path").AddDynamicArguments(file.stage2.path, base).RunStdString(ctx, &git.RunOpts{Dir: tmpBasePath})
+		hash, _, err := gitcmd.NewCommand("hash-object", "-w", "--path").AddDynamicArguments(file.stage2.path, base).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return err
 		}
@@ -250,7 +249,7 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 	defer cancel()
 
 	// First we use read-tree to do a simple three-way merge
-	if _, _, err := git.NewCommand("read-tree", "-m").AddDynamicArguments(base, ours, theirs).RunStdString(ctx, &git.RunOpts{Dir: gitPath}); err != nil {
+	if _, _, err := gitcmd.NewCommand("read-tree", "-m").AddDynamicArguments(base, ours, theirs).RunStdString(ctx, &gitcmd.RunOpts{Dir: gitPath}); err != nil {
 		log.Error("Unable to run read-tree -m! Error: %v", err)
 		return false, nil, fmt.Errorf("unable to run read-tree -m! Error: %w", err)
 	}
@@ -324,9 +323,9 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		// No conflicts detected so we need to check if the patch is empty...
 		// a. Write the newly merged tree and check the new tree-hash
 		var treeHash string
-		treeHash, _, err = git.NewCommand("write-tree").RunStdString(ctx, &git.RunOpts{Dir: tmpBasePath})
+		treeHash, _, err = gitcmd.NewCommand("write-tree").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
 		if err != nil {
-			lsfiles, _, _ := git.NewCommand("ls-files", "-u").RunStdString(ctx, &git.RunOpts{Dir: tmpBasePath})
+			lsfiles, _, _ := gitcmd.NewCommand("ls-files", "-u").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
 			return false, fmt.Errorf("unable to write unconflicted tree: %w\n`git ls-files -u`:\n%s", err, lsfiles)
 		}
 		treeHash = strings.TrimSpace(treeHash)
@@ -380,10 +379,10 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		return false, nil
 	}
 
-	log.Trace("PullRequest[%d].testPatch (patchPath): %s", pr.ID, patchPath)
+	log.Trace("PullRequest[%d].testPullRequestTmpRepoBranchMergeable (patchPath): %s", pr.ID, patchPath)
 
 	// 4. Read the base branch in to the index of the temporary repository
-	_, _, err = git.NewCommand("read-tree", "base").RunStdString(gitRepo.Ctx, &git.RunOpts{Dir: tmpBasePath})
+	_, _, err = gitcmd.NewCommand("read-tree", "base").RunStdString(gitRepo.Ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
 	if err != nil {
 		return false, fmt.Errorf("git read-tree %s: %w", pr.BaseBranch, err)
 	}
@@ -396,7 +395,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	prConfig := prUnit.PullRequestsConfig()
 
 	// 6. Prepare the arguments to apply the patch against the index
-	cmdApply := git.NewCommand("apply", "--check", "--cached")
+	cmdApply := gitcmd.NewCommand("apply", "--check", "--cached")
 	if prConfig.IgnoreWhitespaceConflicts {
 		cmdApply.AddArguments("--ignore-whitespace")
 	}
@@ -427,7 +426,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 
 	// 8. Run the check command
 	conflict = false
-	err = cmdApply.Run(gitRepo.Ctx, &git.RunOpts{
+	err = cmdApply.Run(gitRepo.Ctx, &gitcmd.RunOpts{
 		Dir:    tmpBasePath,
 		Stderr: stderrWriter,
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
@@ -450,7 +449,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 			scanner := bufio.NewScanner(stderrReader)
 			for scanner.Scan() {
 				line := scanner.Text()
-				log.Trace("PullRequest[%d].testPatch: stderr: %s", pr.ID, line)
+				log.Trace("PullRequest[%d].testPullRequestTmpRepoBranchMergeable: stderr: %s", pr.ID, line)
 				if strings.HasPrefix(line, prefix) {
 					conflict = true
 					filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])

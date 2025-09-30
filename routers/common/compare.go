@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/util"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 type CompareRouter struct {
@@ -98,7 +99,7 @@ type CompareInfo struct {
 	HeadUser     *user_model.User
 	HeadRepo     *repo_model.Repository
 	HeadGitRepo  *git.Repository
-	CompareInfo  *git.CompareInfo
+	CompareInfo  *pull_service.CompareInfo
 	close        func()
 	IsBaseCommit bool
 	IsHeadCommit bool

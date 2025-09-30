@@ -5,13 +5,13 @@ package setting
 
 import (
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
-
-	"github.com/gobwas/glob"
 )
 
 // enumerates all the types of captchas
@@ -98,6 +98,13 @@ var Service = struct {
 		DisableOrganizationsPage bool `ini:"DISABLE_ORGANIZATIONS_PAGE"`
 		DisableCodePage          bool `ini:"DISABLE_CODE_PAGE"`
 	} `ini:"service.explore"`
+
+	QoS struct {
+		Enabled             bool
+		MaxInFlightRequests int
+		MaxWaitingRequests  int
+		TargetWaitTime      time.Duration
+	}
 }{
 	AllowedUserVisibilityModesSlice: []bool{true, true, true},
 }
@@ -255,6 +262,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "service.explore", &Service.Explore)
 
 	loadOpenIDSetting(rootCfg)
+	loadQosSetting(rootCfg)
 }
 
 func loadOpenIDSetting(rootCfg ConfigProvider) {
@@ -275,4 +283,12 @@ func loadOpenIDSetting(rootCfg ConfigProvider) {
 			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
 		}
 	}
+}
+
+func loadQosSetting(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("qos")
+	Service.QoS.Enabled = sec.Key("ENABLED").MustBool(false)
+	Service.QoS.MaxInFlightRequests = sec.Key("MAX_INFLIGHT").MustInt(4 * runtime.NumCPU())
+	Service.QoS.MaxWaitingRequests = sec.Key("MAX_WAITING").MustInt(100)
+	Service.QoS.TargetWaitTime = sec.Key("TARGET_WAIT_TIME").MustDuration(250 * time.Millisecond)
 }

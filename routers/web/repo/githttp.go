@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,6 +26,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -314,7 +316,7 @@ func dummyInfoRefs(ctx *context.Context) {
 			return
 		}
 
-		refs, _, err := git.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &git.RunOpts{Dir: tmpDir})
+		refs, _, err := gitcmd.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &gitcmd.RunOpts{Dir: tmpDir})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -363,12 +365,7 @@ func containsParentDirectorySeparator(v string) bool {
 	if !strings.Contains(v, "..") {
 		return false
 	}
-	for _, ent := range strings.FieldsFunc(v, isSlashRune) {
-		if ent == ".." {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(strings.FieldsFunc(v, isSlashRune), "..")
 }
 
 func isSlashRune(r rune) bool { return r == '/' || r == '\\' }
@@ -397,12 +394,12 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 // one or more key=value pairs separated by colons
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
-func prepareGitCmdWithAllowedService(service string) (*git.Command, error) {
+func prepareGitCmdWithAllowedService(service string) (*gitcmd.Command, error) {
 	if service == "receive-pack" {
-		return git.NewCommand("receive-pack"), nil
+		return gitcmd.NewCommand("receive-pack"), nil
 	}
 	if service == "upload-pack" {
-		return git.NewCommand("upload-pack"), nil
+		return gitcmd.NewCommand("upload-pack"), nil
 	}
 
 	return nil, fmt.Errorf("service %q is not allowed", service)
@@ -452,7 +449,7 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 
 	var stderr bytes.Buffer
 	cmd.AddArguments("--stateless-rpc").AddDynamicArguments(h.getRepoDir())
-	if err := cmd.Run(ctx, &git.RunOpts{
+	if err := cmd.Run(ctx, &gitcmd.RunOpts{
 		Dir:               h.getRepoDir(),
 		Env:               append(os.Environ(), h.environ...),
 		Stdout:            ctx.Resp,
@@ -492,7 +489,7 @@ func getServiceType(ctx *context.Context) string {
 }
 
 func updateServerInfo(ctx gocontext.Context, dir string) []byte {
-	out, _, err := git.NewCommand("update-server-info").RunStdBytes(ctx, &git.RunOpts{Dir: dir})
+	out, _, err := gitcmd.NewCommand("update-server-info").RunStdBytes(ctx, &gitcmd.RunOpts{Dir: dir})
 	if err != nil {
 		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
 	}
@@ -522,7 +519,7 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, _, err := cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &git.RunOpts{Env: h.environ, Dir: h.getRepoDir()})
+		refs, _, err := cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &gitcmd.RunOpts{Env: h.environ, Dir: h.getRepoDir()})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}

@@ -6,7 +6,6 @@ package common
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
@@ -156,21 +155,21 @@ func Test_ParseComparePathParams(t *testing.T) {
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.NotNil(t, repo1)
-	assert.NoError(t, repo1.LoadOwner(db.DefaultContext))
+	assert.NoError(t, repo1.LoadOwner(t.Context()))
 	gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
 	defer gitRepo1.Close()
 
 	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 	assert.NotNil(t, repo10)
-	assert.NoError(t, repo10.LoadOwner(db.DefaultContext))
+	assert.NoError(t, repo10.LoadOwner(t.Context()))
 	gitRepo10, err := gitrepo.OpenRepository(t.Context(), repo10)
 	assert.NoError(t, err)
 	defer gitRepo10.Close()
 
 	repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
 	assert.NotNil(t, repo11)
-	assert.NoError(t, repo11.LoadOwner(db.DefaultContext))
+	assert.NoError(t, repo11.LoadOwner(t.Context()))
 	gitRepo11, err := gitrepo.OpenRepository(t.Context(), repo11)
 	assert.NoError(t, err)
 	defer gitRepo11.Close()

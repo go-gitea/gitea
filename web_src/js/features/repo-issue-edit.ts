@@ -13,10 +13,10 @@ async function tryOnEditContent(e: DOMEvent<MouseEvent>) {
   if (!clickTarget) return;
 
   e.preventDefault();
-  const segment = clickTarget.closest('.comment-header').nextElementSibling;
-  const editContentZone = segment.querySelector('.edit-content-zone');
-  const renderContent = segment.querySelector('.render-content');
-  const rawContent = segment.querySelector('.raw-content');
+  const commentContent = clickTarget.closest('.comment-header').nextElementSibling;
+  const editContentZone = commentContent.querySelector('.edit-content-zone');
+  let renderContent = commentContent.querySelector('.render-content');
+  const rawContent = commentContent.querySelector('.raw-content');
 
   let comboMarkdownEditor : ComboMarkdownEditor;
 
@@ -47,30 +47,32 @@ async function tryOnEditContent(e: DOMEvent<MouseEvent>) {
 
       const response = await POST(editContentZone.getAttribute('data-update-url'), {data: params});
       const data = await response.json();
-      if (response.status === 400) {
-        showErrorToast(data.errorMessage);
+      if (!response.ok) {
+        showErrorToast(data?.errorMessage ?? window.config.i18n.error_occurred);
         return;
       }
+
       reinitializeAreYouSure(editContentZone.querySelector('form')); // the form is no longer dirty
       editContentZone.setAttribute('data-content-version', data.contentVersion);
-      if (!data.content) {
-        renderContent.innerHTML = document.querySelector('#no-content').innerHTML;
-        rawContent.textContent = '';
-      } else {
-        renderContent.innerHTML = data.content;
-        rawContent.textContent = comboMarkdownEditor.value();
-        const refIssues = renderContent.querySelectorAll<HTMLElement>('p .ref-issue');
-        attachRefIssueContextPopup(refIssues);
-      }
-      const content = segment;
-      if (!content.querySelector('.dropzone-attachments')) {
+
+      // replace the render content with new one, to trigger re-initialization of all features
+      const newRenderContent = renderContent.cloneNode(false) as HTMLElement;
+      newRenderContent.innerHTML = data.content;
+      renderContent.replaceWith(newRenderContent);
+      renderContent = newRenderContent;
+
+      rawContent.textContent = comboMarkdownEditor.value();
+      const refIssues = renderContent.querySelectorAll<HTMLElement>('p .ref-issue');
+      attachRefIssueContextPopup(refIssues);
+
+      if (!commentContent.querySelector('.dropzone-attachments')) {
         if (data.attachments !== '') {
-          content.insertAdjacentHTML('beforeend', data.attachments);
+          commentContent.insertAdjacentHTML('beforeend', data.attachments);
         }
       } else if (data.attachments === '') {
-        content.querySelector('.dropzone-attachments').remove();
+        commentContent.querySelector('.dropzone-attachments').remove();
       } else {
-        content.querySelector('.dropzone-attachments').outerHTML = data.attachments;
+        commentContent.querySelector('.dropzone-attachments').outerHTML = data.attachments;
       }
       comboMarkdownEditor.dropzoneSubmitReload();
     } catch (error) {
@@ -132,7 +134,7 @@ async function tryOnQuoteReply(e: Event) {
   const targetMarkupToQuote = targetRawToQuote.parentElement.querySelector<HTMLElement>('.render-content.markup');
   let contentToQuote = extractSelectedMarkdown(targetMarkupToQuote);
   if (!contentToQuote) contentToQuote = targetRawToQuote.textContent;
-  const quotedContent = `${contentToQuote.replace(/^/mg, '> ')}\n`;
+  const quotedContent = `${contentToQuote.replace(/^/mg, '> ')}\n\n`;
 
   let editor;
   if (clickTarget.classList.contains('quote-reply-diff')) {

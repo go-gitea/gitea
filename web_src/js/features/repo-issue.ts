@@ -1,4 +1,4 @@
-import {htmlEscape} from 'escape-goat';
+import {html, htmlEscape} from '../utils/html.ts';
 import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
 import {
   addDelegatedEventListener,
@@ -17,6 +17,7 @@ import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 const {appSubUrl} = window.config;
 
@@ -45,8 +46,7 @@ export function initRepoIssueSidebarDependency() {
           if (String(issue.id) === currIssueId) continue;
           filteredResponse.results.push({
             value: issue.id,
-            name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
-<div class="text small tw-break-anywhere">${htmlEscape(issue.repository.full_name)}</div>`,
+            name: html`<div class="gt-ellipsis">#${issue.number} ${issue.title}</div><div class="text small tw-break-anywhere">${issue.repository.full_name}</div>`,
           });
         }
         return filteredResponse;
@@ -64,7 +64,7 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
     selectedLabelIds.add(`${Math.abs(parseInt(id))}`); // "labels" contains negative ids, which are excluded
   }
 
-  const excludeLabel = (e: MouseEvent|KeyboardEvent, item: Element) => {
+  const excludeLabel = (e: MouseEvent | KeyboardEvent, item: Element) => {
     e.preventDefault();
     e.stopPropagation();
     const labelId = item.getAttribute('data-label-id');
@@ -194,54 +194,6 @@ export function initRepoIssueCodeCommentCancel() {
     } else {
       form.closest('.comment-code-cloud')?.remove();
     }
-  });
-}
-
-export function initRepoPullRequestUpdate() {
-  const prUpdateButtonContainer = document.querySelector('#update-pr-branch-with-base');
-  if (!prUpdateButtonContainer) return;
-
-  const prUpdateButton = prUpdateButtonContainer.querySelector<HTMLButtonElement>(':scope > button');
-  const prUpdateDropdown = prUpdateButtonContainer.querySelector(':scope > .ui.dropdown');
-  prUpdateButton.addEventListener('click', async function (e) {
-    e.preventDefault();
-    const redirect = this.getAttribute('data-redirect');
-    this.classList.add('is-loading');
-    let response: Response;
-    try {
-      response = await POST(this.getAttribute('data-do'));
-    } catch (error) {
-      console.error(error);
-    } finally {
-      this.classList.remove('is-loading');
-    }
-    let data: Record<string, any>;
-    try {
-      data = await response?.json(); // the response is probably not a JSON
-    } catch (error) {
-      console.error(error);
-    }
-    if (data?.redirect) {
-      window.location.href = data.redirect;
-    } else if (redirect) {
-      window.location.href = redirect;
-    } else {
-      window.location.reload();
-    }
-  });
-
-  fomanticQuery(prUpdateDropdown).dropdown({
-    onChange(_text: string, _value: string, $choice: any) {
-      const choiceEl = $choice[0];
-      const url = choiceEl.getAttribute('data-do');
-      if (url) {
-        const buttonText = prUpdateButton.querySelector('.button-text');
-        if (buttonText) {
-          buttonText.textContent = choiceEl.textContent;
-        }
-        prUpdateButton.setAttribute('data-do', url);
-      }
-    },
   });
 }
 
@@ -464,25 +416,20 @@ export function initRepoIssueWipNewTitle() {
 
 export function initRepoIssueWipToggle() {
   // Toggle WIP for existing PR
-  queryElems(document, '.toggle-wip', (el) => el.addEventListener('click', async (e) => {
+  registerGlobalInitFunc('initPullRequestWipToggle', (toggleWip) => toggleWip.addEventListener('click', async (e) => {
     e.preventDefault();
-    const toggleWip = el;
     const title = toggleWip.getAttribute('data-title');
     const wipPrefix = toggleWip.getAttribute('data-wip-prefix');
     const updateUrl = toggleWip.getAttribute('data-update-url');
 
-    try {
-      const params = new URLSearchParams();
-      params.append('title', title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`);
-
-      const response = await POST(updateUrl, {data: params});
-      if (!response.ok) {
-        throw new Error('Failed to toggle WIP status');
-      }
-      window.location.reload();
-    } catch (error) {
-      console.error(error);
+    const params = new URLSearchParams();
+    params.append('title', title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`);
+    const response = await POST(updateUrl, {data: params});
+    if (!response.ok) {
+      showErrorToast(`Failed to toggle 'work in progress' status`);
+      return;
     }
+    window.location.reload();
   }));
 }
 
@@ -595,7 +542,12 @@ function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
       // deactivate all markdown editors
       showElem(commentForm.querySelectorAll('.combo-editor-dropzone .form-field-real'));
       hideElem(commentForm.querySelectorAll('.combo-editor-dropzone .combo-markdown-editor'));
-      hideElem(commentForm.querySelectorAll('.combo-editor-dropzone .form-field-dropzone'));
+      queryElems(commentForm, '.combo-editor-dropzone .form-field-dropzone', (dropzoneContainer) => {
+        // if "form-field-dropzone" exists, then "dropzone" must also exist
+        const dropzone = dropzoneContainer.querySelector<HTMLElement>('.dropzone').dropzone;
+        const hasUploadedFiles = dropzone.files.length !== 0;
+        toggleElem(dropzoneContainer, hasUploadedFiles);
+      });
 
       // activate this markdown editor
       hideElem(fieldTextarea);

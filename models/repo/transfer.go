@@ -61,7 +61,7 @@ func (err ErrRepoTransferInProgress) Unwrap() error {
 }
 
 // RepoTransfer is used to manage repository transfers
-type RepoTransfer struct { //nolint
+type RepoTransfer struct { //nolint:revive // export stutter
 	ID          int64 `xorm:"pk autoincr"`
 	DoerID      int64
 	Doer        *user_model.User `xorm:"-"`
@@ -249,7 +249,7 @@ func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_m
 		}
 
 		repo.Status = RepositoryPendingTransfer
-		if err := UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+		if err := UpdateRepositoryColsNoAutoTime(ctx, repo, "status"); err != nil {
 			return err
 		}
 

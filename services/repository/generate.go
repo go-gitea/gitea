@@ -18,13 +18,14 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/gobwas/glob"
 	"github.com/huandu/xstrings"
 )
 
@@ -42,10 +43,8 @@ type expansion struct {
 var defaultTransformers = []transformer{
 	{Name: "SNAKE", Transform: xstrings.ToSnakeCase},
 	{Name: "KEBAB", Transform: xstrings.ToKebabCase},
-	{Name: "CAMEL", Transform: func(str string) string {
-		return xstrings.FirstRuneToLower(xstrings.ToCamelCase(str))
-	}},
-	{Name: "PASCAL", Transform: xstrings.ToCamelCase},
+	{Name: "CAMEL", Transform: xstrings.ToCamelCase},
+	{Name: "PASCAL", Transform: xstrings.ToPascalCase},
 	{Name: "LOWER", Transform: strings.ToLower},
 	{Name: "UPPER", Transform: strings.ToUpper},
 	{Name: "TITLE", Transform: util.ToTitleCase},
@@ -236,8 +235,8 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return err
 	}
 
-	if stdout, _, err := git.NewCommand("remote", "add", "origin").AddDynamicArguments(repo.RepoPath()).
-		RunStdString(ctx, &git.RunOpts{Dir: tmpDir, Env: env}); err != nil {
+	if stdout, _, err := gitcmd.NewCommand("remote", "add", "origin").AddDynamicArguments(repo.RepoPath()).
+		RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpDir, Env: env}); err != nil {
 		log.Error("Unable to add %v as remote origin to temporary repo to %s: stdout %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git remote add: %w", err)
 	}
@@ -255,41 +254,33 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
 }
 
-func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
-	tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-" + repo.Name)
+// GenerateGitContent generates git content from a template repository
+func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) (err error) {
+	tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-" + generateRepo.Name)
 	if err != nil {
-		return fmt.Errorf("failed to create temp dir for repository %s: %w", repo.FullName(), err)
+		return fmt.Errorf("failed to create temp dir for repository %s: %w", generateRepo.FullName(), err)
 	}
 	defer cleanup()
 
-	if err = generateRepoCommit(ctx, repo, templateRepo, generateRepo, tmpDir); err != nil {
+	if err = generateRepoCommit(ctx, generateRepo, templateRepo, generateRepo, tmpDir); err != nil {
 		return fmt.Errorf("generateRepoCommit: %w", err)
 	}
 
 	// re-fetch repo
-	if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
+	if generateRepo, err = repo_model.GetRepositoryByID(ctx, generateRepo.ID); err != nil {
 		return fmt.Errorf("getRepositoryByID: %w", err)
 	}
 
 	// if there was no default branch supplied when generating the repo, use the default one from the template
-	if strings.TrimSpace(repo.DefaultBranch) == "" {
-		repo.DefaultBranch = templateRepo.DefaultBranch
+	if strings.TrimSpace(generateRepo.DefaultBranch) == "" {
+		generateRepo.DefaultBranch = templateRepo.DefaultBranch
 	}
 
-	if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+	if err = gitrepo.SetDefaultBranch(ctx, generateRepo, generateRepo.DefaultBranch); err != nil {
 		return fmt.Errorf("setDefaultBranch: %w", err)
 	}
-	if err = UpdateRepository(ctx, repo, false); err != nil {
+	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, generateRepo, "default_branch"); err != nil {
 		return fmt.Errorf("updateRepository: %w", err)
-	}
-
-	return nil
-}
-
-// GenerateGitContent generates git content from a template repository
-func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	if err := generateGitContent(ctx, generateRepo, templateRepo, generateRepo); err != nil {
-		return err
 	}
 
 	if err := repo_module.UpdateRepoSize(ctx, generateRepo); err != nil {

@@ -1,11 +1,9 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//nolint:forbidigo
 package base
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -106,7 +104,7 @@ func MainTest(m *testing.M) {
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {
 		giteaConf = filepath.Join(filepath.Dir(setting.AppPath), "tests/sqlite.ini")
-		fmt.Printf("Environment variable $GITEA_CONF not set - defaulting to %s\n", giteaConf)
+		_, _ = fmt.Fprintf(os.Stderr, "Environment variable $GITEA_CONF not set - defaulting to %s\n", giteaConf)
 	}
 
 	if !filepath.IsAbs(giteaConf) {
@@ -125,7 +123,7 @@ func MainTest(m *testing.M) {
 	setting.AppDataPath = tmpDataPath
 
 	unittest.InitSettingsForTesting()
-	if err = git.InitFull(context.Background()); err != nil {
+	if err = git.InitFull(); err != nil {
 		testlogger.Fatalf("Unable to InitFull: %v\n", err)
 	}
 	setting.LoadDBSetting()
@@ -134,7 +132,7 @@ func MainTest(m *testing.M) {
 	exitStatus := m.Run()
 
 	if err := removeAllWithRetry(setting.RepoRootPath); err != nil {
-		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
 	}
 	os.Exit(exitStatus)
 }

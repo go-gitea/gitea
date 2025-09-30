@@ -213,7 +213,7 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 		if errors.Is(err, util.ErrNotExist) {
 			repo, err = repo_service.CreateRepositoryDirectly(ctx, doer, owner, repo_service.CreateRepoOptions{
 				Name: IndexRepositoryName,
-			})
+			}, true)
 			if err != nil {
 				return nil, fmt.Errorf("CreateRepository: %w", err)
 			}
@@ -310,7 +310,7 @@ func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *re
 }
 
 func writeObjectToIndex(ctx context.Context, t *files_service.TemporaryUploadRepository, path string, r io.Reader) error {
-	hash, err := t.HashObject(ctx, r)
+	hash, err := t.HashObjectAndWrite(ctx, r)
 	if err != nil {
 		return err
 	}

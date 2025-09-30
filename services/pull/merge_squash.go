@@ -5,12 +5,12 @@ package pull
 
 import (
 	"fmt"
-	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -58,7 +58,7 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		return fmt.Errorf("getAuthorSignatureSquash: %w", err)
 	}
 
-	cmdMerge := git.NewCommand("merge", "--squash").AddDynamicArguments(trackingBranch)
+	cmdMerge := gitcmd.NewCommand("merge", "--squash").AddDynamicArguments(trackingBranch)
 	if err := runMergeCommand(ctx, repo_model.MergeStyleSquash, cmdMerge); err != nil {
 		log.Error("%-v Unable to merge --squash tracking into base: %v", ctx.pr, err)
 		return err
@@ -66,18 +66,19 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 
 	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.String() != sig.String() {
 		// add trailer
-		if !strings.Contains(message, "Co-authored-by: "+sig.String()) {
-			message += "\nCo-authored-by: " + sig.String()
-		}
-		message += fmt.Sprintf("\nCo-committed-by: %s\n", sig.String())
+		message = AddCommitMessageTailer(message, "Co-authored-by", sig.String())
+		message = AddCommitMessageTailer(message, "Co-committed-by", sig.String()) // FIXME: this one should be removed, it is not really used or widely used
 	}
-	cmdCommit := git.NewCommand("commit").
+	cmdCommit := gitcmd.NewCommand("commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email).
 		AddOptionFormat("--message=%s", message)
-	if ctx.signKeyID == "" {
+	if ctx.signKey == nil {
 		cmdCommit.AddArguments("--no-gpg-sign")
 	} else {
-		cmdCommit.AddOptionFormat("-S%s", ctx.signKeyID)
+		if ctx.signKey.Format != "" {
+			cmdCommit.AddConfig("gpg.format", ctx.signKey.Format)
+		}
+		cmdCommit.AddOptionFormat("-S%s", ctx.signKey.KeyID)
 	}
 	if err := cmdCommit.Run(ctx, ctx.RunOpts()); err != nil {
 		log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())

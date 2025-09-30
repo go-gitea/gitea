@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // CompareDiff compare two branches or commits
@@ -107,7 +108,7 @@ func CompareDiff(ctx *context.APIContext) {
 	ctx.Repo.PullRequest.SameRepo = ci.IsSameRepo()
 	log.Trace("Repo path: %q, base branch: %q, head branch: %q", ctx.Repo.GitRepo.Path, ci.BaseOriRef, ci.HeadOriRef)
 
-	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name), ci.BaseOriRef, ci.HeadOriRef, false, false)
+	ci.CompareInfo, err = pull_service.GetCompareInfo(ctx, baseRepo, ci.HeadRepo, ci.HeadGitRepo, ci.BaseOriRef, ci.HeadOriRef, false, false)
 	if err != nil {
 		ctx.APIError(http.StatusInternalServerError, err)
 		return

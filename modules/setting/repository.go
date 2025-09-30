@@ -54,6 +54,12 @@ var (
 		AllowForkWithoutMaximumLimit            bool
 		AllowForkIntoSameOwner                  bool
 
+		// StreamArchives makes Gitea stream git archive files to the client directly instead of creating an archive first.
+		// Ideally all users should use this streaming method. However, at the moment we don't know whether there are
+		// any users who still need the old behavior, so we introduce this option, intentionally not documenting it.
+		// After one or two releases, if no one complains, we will remove this option and always use streaming.
+		StreamArchives bool
+
 		// Repository editor settings
 		Editor struct {
 			LineWrapExtensions []string
@@ -82,6 +88,7 @@ var (
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
+			DelayCheckForInactiveDays                int
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -99,11 +106,13 @@ var (
 			SigningKey        string
 			SigningName       string
 			SigningEmail      string
+			SigningFormat     string
 			InitialCommit     []string
 			CRUDActions       []string `ini:"CRUD_ACTIONS"`
 			Merges            []string
 			Wiki              []string
 			DefaultTrustModel string
+			TrustedSSHKeys    []string `ini:"TRUSTED_SSH_KEYS"`
 		} `ini:"repository.signing"`
 	}{
 		DetectedCharsetsOrder: []string{
@@ -164,6 +173,7 @@ var (
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
 		AllowForkWithoutMaximumLimit:            true,
+		StreamArchives:                          true,
 
 		// Repository editor settings
 		Editor: struct {
@@ -200,6 +210,7 @@ var (
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
+			DelayCheckForInactiveDays                int
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -215,6 +226,7 @@ var (
 			PopulateSquashCommentWithCommitMessages:  false,
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
+			DelayCheckForInactiveDays:                7,
 		},
 
 		// Issue settings
@@ -239,20 +251,24 @@ var (
 			SigningKey        string
 			SigningName       string
 			SigningEmail      string
+			SigningFormat     string
 			InitialCommit     []string
 			CRUDActions       []string `ini:"CRUD_ACTIONS"`
 			Merges            []string
 			Wiki              []string
 			DefaultTrustModel string
+			TrustedSSHKeys    []string `ini:"TRUSTED_SSH_KEYS"`
 		}{
 			SigningKey:        "default",
 			SigningName:       "",
 			SigningEmail:      "",
+			SigningFormat:     "openpgp", // git.SigningKeyFormatOpenPGP
 			InitialCommit:     []string{"always"},
 			CRUDActions:       []string{"pubkey", "twofa", "parentsigned"},
 			Merges:            []string{"pubkey", "twofa", "basesigned", "commitssigned"},
 			Wiki:              []string{"never"},
 			DefaultTrustModel: "collaborator",
+			TrustedSSHKeys:    []string{},
 		},
 	}
 	RepoRootPath string

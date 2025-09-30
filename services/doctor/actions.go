@@ -19,7 +19,7 @@ func disableMirrorActionsUnit(ctx context.Context, logger log.Logger, autofix bo
 	var reposToFix []*repo_model.Repository
 
 	for page := 1; ; page++ {
-		repos, _, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+		repos, _, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     page,

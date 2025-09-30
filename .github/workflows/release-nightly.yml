@@ -20,11 +20,10 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
+          node-version: 24
       - run: make deps-frontend deps-backend
       # xgo build
       - run: make release
@@ -75,11 +74,6 @@ jobs:
       - name: Get cleaned branch name
         id: clean_name
         run: |
-          # if main then say nightly otherwise cleanup name
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "branch=nightly" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
           echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
       - name: Login to Docker Hub
@@ -99,7 +93,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64,linux/riscv64
           push: true
           tags: |-
             gitea/gitea:${{ steps.clean_name.outputs.branch }}
@@ -122,11 +116,6 @@ jobs:
       - name: Get cleaned branch name
         id: clean_name
         run: |
-          # if main then say nightly otherwise cleanup name
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "branch=nightly" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
           echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
       - name: Login to Docker Hub

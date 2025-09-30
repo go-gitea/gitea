@@ -21,11 +21,14 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/attribute"
+	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -179,7 +182,7 @@ func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
 }
 
 func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int) *DiffLineSectionInfo {
-	leftLine, leftHunk, rightLine, righHunk := git.ParseDiffHunkString(line)
+	leftLine, leftHunk, rightLine, rightHunk := git.ParseDiffHunkString(line)
 
 	return &DiffLineSectionInfo{
 		Path:          treePath,
@@ -188,7 +191,7 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 		LeftIdx:       leftLine,
 		RightIdx:      rightLine,
 		LeftHunkSize:  leftHunk,
-		RightHunkSize: righHunk,
+		RightHunkSize: rightHunk,
 	}
 }
 
@@ -212,51 +215,6 @@ func (diffSection *DiffSection) GetLine(idx int) *DiffLine {
 		return nil
 	}
 	return diffSection.Lines[idx]
-}
-
-// GetLine gets a specific line by type (add or del) and file line number
-// This algorithm is not quite right.
-// Actually now we have "Match" field, it is always right, so use it instead in new GetLine
-func (diffSection *DiffSection) getLineLegacy(lineType DiffLineType, idx int) *DiffLine { //nolint:unused
-	var (
-		difference    = 0
-		addCount      = 0
-		delCount      = 0
-		matchDiffLine *DiffLine
-	)
-
-LOOP:
-	for _, diffLine := range diffSection.Lines {
-		switch diffLine.Type {
-		case DiffLineAdd:
-			addCount++
-		case DiffLineDel:
-			delCount++
-		default:
-			if matchDiffLine != nil {
-				break LOOP
-			}
-			difference = diffLine.RightIdx - diffLine.LeftIdx
-			addCount = 0
-			delCount = 0
-		}
-
-		switch lineType {
-		case DiffLineDel:
-			if diffLine.RightIdx == 0 && diffLine.LeftIdx == idx-difference {
-				matchDiffLine = diffLine
-			}
-		case DiffLineAdd:
-			if diffLine.LeftIdx == 0 && diffLine.RightIdx == idx+difference {
-				matchDiffLine = diffLine
-			}
-		}
-	}
-
-	if addCount == delCount {
-		return matchDiffLine
-	}
-	return nil
 }
 
 func defaultDiffMatchPatch() *diffmatchpatch.DiffMatchPatch {
@@ -335,7 +293,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
-		return getLineContent(diffLine.Content[1:], locale)
+		return getLineContent(diffLine.Content, locale)
 	case DiffLineAdd:
 		compareDiffLine := diffSection.GetLine(diffLine.Match)
 		return diffSection.getDiffLineForRender(DiffLineAdd, compareDiffLine, diffLine, locale)
@@ -540,10 +498,7 @@ func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, 
 
 	// OK let's set a reasonable buffer size.
 	// This should be at least the size of maxLineCharacters or 4096 whichever is larger.
-	readerSize := maxLineCharacters
-	if readerSize < 4096 {
-		readerSize = 4096
-	}
+	readerSize := max(maxLineCharacters, 4096)
 
 	input := bufio.NewReaderSize(reader, readerSize)
 	line, err := input.ReadString('\n')
@@ -904,6 +859,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			lastLeftIdx = -1
 			curFile.Sections = append(curFile.Sections, curSection)
 
+			// FIXME: the "-1" can't be right, these "line idx" are all 1-based, maybe there are other bugs that covers this bug.
 			lineSectionInfo := getDiffLineSectionInfo(curFile.Name, line, leftLine-1, rightLine-1)
 			diffLine := &DiffLine{
 				Type:        DiffLineSection,
@@ -1137,7 +1093,7 @@ type DiffOptions struct {
 	MaxLines           int
 	MaxLineCharacters  int
 	MaxFiles           int
-	WhitespaceBehavior git.TrustedCmdArgs
+	WhitespaceBehavior gitcmd.TrustedCmdArgs
 	DirectComparison   bool
 }
 
@@ -1178,7 +1134,7 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 		return nil, nil, nil, err
 	}
 
-	cmdDiff := git.NewCommand().
+	cmdDiff := gitcmd.NewCommand().
 		AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
 		AddArguments(opts.WhitespaceBehavior...)
 
@@ -1205,7 +1161,7 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 
 	go func() {
 		stderr := &bytes.Buffer{}
-		if err := cmdDiff.Run(cmdCtx, &git.RunOpts{
+		if err := cmdDiff.Run(cmdCtx, &gitcmd.RunOpts{
 			Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,
 			Dir:     repoPath,
 			Stdout:  writer,
@@ -1232,13 +1188,13 @@ func GetDiffForAPI(ctx context.Context, gitRepo *git.Repository, opts *DiffOptio
 	return diff, err
 }
 
-func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
+func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
 	diff, beforeCommit, afterCommit, err := getDiffBasic(ctx, gitRepo, opts, files...)
 	if err != nil {
 		return nil, err
 	}
 
-	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage})
+	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage, attribute.Diff})
 	if err != nil {
 		return nil, err
 	}
@@ -1247,6 +1203,7 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 	for _, diffFile := range diff.Files {
 		isVendored := optional.None[bool]()
 		isGenerated := optional.None[bool]()
+		attrDiff := optional.None[string]()
 		attrs, err := checker.CheckPath(diffFile.Name)
 		if err == nil {
 			isVendored, isGenerated = attrs.GetVendored(), attrs.GetGenerated()
@@ -1254,11 +1211,12 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 			if language.Has() {
 				diffFile.Language = language.Value()
 			}
+			attrDiff = attrs.Get(attribute.Diff).ToString()
 		}
 
 		// Populate Submodule URLs
 		if diffFile.SubmoduleDiffInfo != nil {
-			diffFile.SubmoduleDiffInfo.PopulateURL(diffFile, beforeCommit, afterCommit)
+			diffFile.SubmoduleDiffInfo.PopulateURL(repoLink, diffFile, beforeCommit, afterCommit)
 		}
 
 		if !isVendored.Has() {
@@ -1275,7 +1233,8 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
 
-		if !setting.Git.DisableDiffHighlight {
+		shouldFullFileHighlight := !setting.Git.DisableDiffHighlight && attrDiff.Value() == ""
+		if shouldFullFileHighlight {
 			if limitedContent.LeftContent != nil && limitedContent.LeftContent.buf.Len() < MaxDiffHighlightEntireFileSize {
 				diffFile.highlightedLeftLines = highlightCodeLines(diffFile, true /* left */, limitedContent.LeftContent.buf.String())
 			}
@@ -1314,9 +1273,7 @@ type DiffShortStat struct {
 	NumFiles, TotalAddition, TotalDeletion int
 }
 
-func GetDiffShortStat(gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
-	repoPath := gitRepo.Path
-
+func GetDiffShortStat(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
 	afterCommit, err := gitRepo.GetCommit(afterCommitID)
 	if err != nil {
 		return nil, err
@@ -1328,7 +1285,7 @@ func GetDiffShortStat(gitRepo *git.Repository, beforeCommitID, afterCommitID str
 	}
 
 	diff := &DiffShortStat{}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStatByCmdArgs(gitRepo.Ctx, repoPath, nil, actualBeforeCommitID.String(), afterCommitID)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = gitrepo.GetDiffShortStatByCmdArgs(ctx, repo, nil, actualBeforeCommitID.String(), afterCommitID)
 	if err != nil {
 		return nil, err
 	}
@@ -1337,10 +1294,13 @@ func GetDiffShortStat(gitRepo *git.Repository, beforeCommitID, afterCommitID str
 
 // SyncUserSpecificDiff inserts user-specific data such as which files the user has already viewed on the given diff
 // Additionally, the database is updated asynchronously if files have changed since the last review
-func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, diff *Diff, opts *DiffOptions, files ...string) error {
+func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, diff *Diff, opts *DiffOptions) (*pull_model.ReviewState, error) {
 	review, err := pull_model.GetNewestReviewState(ctx, userID, pull.ID)
-	if err != nil || review == nil || review.UpdatedFiles == nil {
-		return err
+	if err != nil {
+		return nil, err
+	}
+	if review == nil || len(review.UpdatedFiles) == 0 {
+		return review, nil
 	}
 
 	latestCommit := opts.AfterCommitID
@@ -1348,13 +1308,13 @@ func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.
 		latestCommit = pull.HeadBranch // opts.AfterCommitID is preferred because it handles PRs from forks correctly and the branch name doesn't
 	}
 
-	changedFiles, err := gitRepo.GetFilesChangedBetween(review.CommitSHA, latestCommit)
+	changedFiles, errIgnored := gitRepo.GetFilesChangedBetween(review.CommitSHA, latestCommit)
 	// There are way too many possible errors.
 	// Examples are various git errors such as the commit the review was based on was gc'ed and hence doesn't exist anymore as well as unrecoverable errors where we should serve a 500 response
 	// Due to the current architecture and physical limitation of needing to compare explicit error messages, we can only choose one approach without the code getting ugly
 	// For SOME of the errors such as the gc'ed commit, it would be best to mark all files as changed
 	// But as that does not work for all potential errors, we simply mark all files as unchanged and drop the error which always works, even if not as good as possible
-	if err != nil {
+	if errIgnored != nil {
 		log.Error("Could not get changed files between %s and %s for pull request %d in repo with path %s. Assuming no changes. Error: %w", review.CommitSHA, latestCommit, pull.Index, gitRepo.Path, err)
 	}
 
@@ -1393,11 +1353,11 @@ outer:
 		err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
 		if err != nil {
 			log.Warn("Could not update review for user %d, pull %d, commit %s and the changed files %v: %v", review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff, err)
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return review, nil
 }
 
 // CommentAsDiff returns c.Patch as *Diff
@@ -1436,8 +1396,8 @@ func CommentMustAsDiff(ctx context.Context, c *issues_model.Comment) *Diff {
 }
 
 // GetWhitespaceFlag returns git diff flag for treating whitespaces
-func GetWhitespaceFlag(whitespaceBehavior string) git.TrustedCmdArgs {
-	whitespaceFlags := map[string]git.TrustedCmdArgs{
+func GetWhitespaceFlag(whitespaceBehavior string) gitcmd.TrustedCmdArgs {
+	whitespaceFlags := map[string]gitcmd.TrustedCmdArgs{
 		"ignore-all":    {"-w"},
 		"ignore-change": {"-b"},
 		"ignore-eol":    {"--ignore-space-at-eol"},

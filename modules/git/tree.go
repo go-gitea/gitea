@@ -7,6 +7,8 @@ package git
 import (
 	"bytes"
 	"strings"
+
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // NewTree create a new tree according the repository and tree id
@@ -48,15 +50,15 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 
 // LsTree checks if the given filenames are in the tree
 func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error) {
-	cmd := NewCommand("ls-tree", "-z", "--name-only").
+	cmd := gitcmd.NewCommand("ls-tree", "-z", "--name-only").
 		AddDashesAndList(append([]string{ref}, filenames...)...)
 
-	res, _, err := cmd.RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+	res, _, err := cmd.RunStdBytes(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}
 	filelist := make([]string, 0, len(filenames))
-	for _, line := range bytes.Split(res, []byte{'\000'}) {
+	for line := range bytes.SplitSeq(res, []byte{'\000'}) {
 		filelist = append(filelist, string(line))
 	}
 
@@ -65,9 +67,9 @@ func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error
 
 // GetTreePathLatestCommit returns the latest commit of a tree path
 func (repo *Repository) GetTreePathLatestCommit(refName, treePath string) (*Commit, error) {
-	stdout, _, err := NewCommand("rev-list", "-1").
+	stdout, _, err := gitcmd.NewCommand("rev-list", "-1").
 		AddDynamicArguments(refName).AddDashesAndList(treePath).
-		RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+		RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}

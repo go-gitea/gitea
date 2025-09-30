@@ -1,7 +1,6 @@
 import $ from 'jquery';
-import {generateAriaId} from './base.ts';
 import type {FomanticInitFunction} from '../../types.ts';
-import {queryElems} from '../../utils/dom.ts';
+import {generateElemId, queryElems} from '../../utils/dom.ts';
 
 const ariaPatchKey = '_giteaAriaPatchDropdown';
 const fomanticDropdownFn = $.fn.dropdown;
@@ -9,9 +8,9 @@ const fomanticDropdownFn = $.fn.dropdown;
 // use our own `$().dropdown` function to patch Fomantic's dropdown module
 export function initAriaDropdownPatch() {
   if ($.fn.dropdown === ariaDropdownFn) throw new Error('initAriaDropdownPatch could only be called once');
-  $.fn.dropdown.settings.onAfterFiltered = onAfterFiltered;
   $.fn.dropdown = ariaDropdownFn;
   $.fn.fomanticExt.onResponseKeepSelectedItem = onResponseKeepSelectedItem;
+  $.fn.fomanticExt.onDropdownAfterFiltered = onDropdownAfterFiltered;
   (ariaDropdownFn as FomanticInitFunction).settings = fomanticDropdownFn.settings;
 }
 
@@ -47,7 +46,7 @@ function ariaDropdownFn(this: any, ...args: Parameters<FomanticInitFunction>) {
 // make the item has role=option/menuitem, add an id if there wasn't one yet, make items as non-focusable
 // the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
 function updateMenuItem(dropdown: HTMLElement, item: HTMLElement) {
-  if (!item.id) item.id = generateAriaId();
+  if (!item.id) item.id = generateElemId('_aria_dropdown_item_');
   item.setAttribute('role', (dropdown as any)[ariaPatchKey].listItemRole);
   item.setAttribute('tabindex', '-1');
   for (const el of item.querySelectorAll('a, input, button')) el.setAttribute('tabindex', '-1');
@@ -59,7 +58,7 @@ function updateMenuItem(dropdown: HTMLElement, item: HTMLElement) {
 function updateSelectionLabel(label: HTMLElement) {
   // the "label" is like this: "<a|div class="ui label" data-value="1">the-label-name <i|svg class="delete icon"/></a>"
   if (!label.id) {
-    label.id = generateAriaId();
+    label.id = generateElemId('_aria_dropdown_label_');
   }
   label.tabIndex = -1;
 
@@ -71,11 +70,11 @@ function updateSelectionLabel(label: HTMLElement) {
   }
 }
 
-function onAfterFiltered(this: any) {
-  const $dropdown = $(this);
+function onDropdownAfterFiltered(this: any) {
+  const $dropdown = $(this).closest('.ui.dropdown'); // "this" can be the "ui dropdown" or "<select>"
   const hideEmptyDividers = $dropdown.dropdown('setting', 'hideDividers') === 'empty';
   const itemsMenu = $dropdown[0].querySelector('.scrolling.menu') || $dropdown[0].querySelector('.menu');
-  if (hideEmptyDividers) hideScopedEmptyDividers(itemsMenu);
+  if (hideEmptyDividers && itemsMenu) hideScopedEmptyDividers(itemsMenu);
 }
 
 // delegate the dropdown's template functions and callback functions to add aria attributes.
@@ -127,7 +126,7 @@ function delegateDropdownModule($dropdown: any) {
 function attachStaticElements(dropdown: HTMLElement, focusable: HTMLElement, menu: HTMLElement) {
   // prepare static dropdown menu list popup
   if (!menu.id) {
-    menu.id = generateAriaId();
+    menu.id = generateElemId('_aria_dropdown_menu_');
   }
 
   $(menu).find('> .item').each((_, item) => updateMenuItem(dropdown, item));
@@ -228,12 +227,13 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
   dropdown.addEventListener('keydown', (e: KeyboardEvent) => {
     // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
     if (e.key === 'Enter') {
-      const dropdownCall = fomanticDropdownFn.bind($(dropdown));
-      let $item = dropdownCall('get item', dropdownCall('get value'));
-      if (!$item) $item = $(menu).find('> .item.selected'); // when dropdown filters items by input, there is no "value", so query the "selected" item
+      const elItem = menu.querySelector<HTMLElement>(':scope > .item.selected, .menu > .item.selected');
       // if the selected item is clickable, then trigger the click event.
       // we can not click any item without check, because Fomantic code might also handle the Enter event. that would result in double click.
-      if ($item?.[0]?.matches('a, .js-aria-clickable')) $item[0].click();
+      if (elItem?.matches('a, .js-aria-clickable') && !elItem.matches('.tw-hidden, .filtered')) {
+        e.preventDefault();
+        elItem.click();
+      }
     }
   });
 
@@ -348,7 +348,7 @@ export function hideScopedEmptyDividers(container: Element) {
   }
 }
 
-function onResponseKeepSelectedItem(dropdown: typeof $|HTMLElement, selectedValue: string) {
+function onResponseKeepSelectedItem(dropdown: typeof $ | HTMLElement, selectedValue: string) {
   // There is a bug in fomantic dropdown when using "apiSettings" to fetch data
   // * when there is a selected item, the dropdown insists on hiding the selected one from the list:
   // * in the "filter" function: ('[data-value="'+value+'"]').addClass(className.filtered)

@@ -4,7 +4,6 @@
 package languagestats
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -22,7 +21,7 @@ func testRun(m *testing.M) error {
 	defer util.RemoveAll(gitHomePath)
 	setting.Git.HomePath = gitHomePath
 
-	if err = git.InitFull(context.Background()); err != nil {
+	if err = git.InitFull(); err != nil {
 		return fmt.Errorf("failed to call Init: %w", err)
 	}
 

@@ -208,7 +208,7 @@ func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
 		if len(teamName) > 0 {
 			teamExists := false
 			for _, team := range ctx.Org.Teams {
-				if team.LowerName == strings.ToLower(teamName) {
+				if strings.EqualFold(team.LowerName, teamName) {
 					teamExists = true
 					ctx.Org.Team = team
 					ctx.Org.IsTeamMember = true

@@ -22,7 +22,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -67,8 +69,8 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 	)
 
 	// Clone to temporary path and do the init commit.
-	if stdout, _, err := git.NewCommand("clone").AddDynamicArguments(repo.RepoPath(), tmpDir).
-		RunStdString(ctx, &git.RunOpts{Dir: "", Env: env}); err != nil {
+	if stdout, _, err := gitcmd.NewCommand("clone").AddDynamicArguments(repo.RepoPath(), tmpDir).
+		RunStdString(ctx, &gitcmd.RunOpts{Dir: "", Env: env}); err != nil {
 		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git clone: %w", err)
 	}
@@ -100,8 +102,8 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 	// .gitignore
 	if len(opts.Gitignores) > 0 {
 		var buf bytes.Buffer
-		names := strings.Split(opts.Gitignores, ",")
-		for _, name := range names {
+		names := strings.SplitSeq(opts.Gitignores, ",")
+		for name := range names {
 			data, err = options.Gitignore(name)
 			if err != nil {
 				return fmt.Errorf("GetRepoInitFile[%s]: %w", name, err)
@@ -141,7 +143,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
 	// Init git bare new repository.
-	if err = git.InitRepository(ctx, repo.RepoPath(), true, repo.ObjectFormatName); err != nil {
+	if err = gitrepo.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
 		return fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
@@ -191,15 +193,22 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 		}
 	}
 
-	if err = UpdateRepository(ctx, repo, false); err != nil {
+	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_empty", "default_branch", "default_wiki_branch"); err != nil {
 		return fmt.Errorf("updateRepository: %w", err)
+	}
+
+	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
+		log.Error("Failed to update size for repository: %v", err)
 	}
 
 	return nil
 }
 
 // CreateRepositoryDirectly creates a repository for the user/organization.
-func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
+// if needsUpdateToReady is true, it will update the repository status to ready when success
+func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
+	opts CreateRepoOptions, needsUpdateToReady bool,
+) (*repo_model.Repository, error) {
 	if !doer.CanCreateRepoIn(owner) {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: owner.MaxRepoCreation,
@@ -243,8 +252,6 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		ObjectFormatName:                opts.ObjectFormatName,
 	}
 
-	needsUpdateStatus := opts.Status != repo_model.RepositoryReady
-
 	// 1 - create the repository database operations first
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		return createRepositoryInDB(ctx, doer, owner, repo, false)
@@ -258,7 +265,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 	defer func() {
 		if err != nil {
 			// we can not use the ctx because it maybe canceled or timeout
-			cleanupRepository(doer, repo.ID)
+			cleanupRepository(repo.ID)
 		}
 	}()
 
@@ -307,7 +314,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		licenses = append(licenses, opts.License)
 
 		var stdout string
-		stdout, _, err = git.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
+		stdout, _, err = gitcmd.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return nil, fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
@@ -318,9 +325,9 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 	}
 
 	// 7 - update repository status to be ready
-	if needsUpdateStatus {
+	if needsUpdateToReady {
 		repo.Status = repo_model.RepositoryReady
-		if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+		if err = repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "status"); err != nil {
 			return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
 		}
 	}
@@ -453,8 +460,8 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 	return nil
 }
 
-func cleanupRepository(doer *user_model.User, repoID int64) {
-	if errDelete := DeleteRepositoryDirectly(db.DefaultContext, doer, repoID); errDelete != nil {
+func cleanupRepository(repoID int64) {
+	if errDelete := DeleteRepositoryDirectly(graceful.GetManager().ShutdownContext(), repoID); errDelete != nil {
 		log.Error("cleanupRepository failed: %v", errDelete)
 		// add system notice
 		if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when cleanup repository: %v", errDelete); err != nil {
@@ -464,12 +471,12 @@ func cleanupRepository(doer *user_model.User, repoID int64) {
 }
 
 func updateGitRepoAfterCreate(ctx context.Context, repo *repo_model.Repository) error {
-	if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
+	if err := CheckDaemonExportOK(ctx, repo); err != nil {
 		return fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
-	if stdout, _, err := git.NewCommand("update-server-info").
-		RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
+	if stdout, _, err := gitcmd.NewCommand("update-server-info").
+		RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()}); err != nil {
 		log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 		return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 	}

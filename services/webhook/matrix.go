@@ -252,6 +252,12 @@ func (m matrixConvertor) Status(p *api.CommitStatusPayload) (MatrixPayload, erro
 	return m.newPayload(text)
 }
 
+func (m matrixConvertor) WorkflowRun(p *api.WorkflowRunPayload) (MatrixPayload, error) {
+	text, _ := getWorkflowRunPayloadInfo(p, htmlLinkFormatter, true)
+
+	return m.newPayload(text)
+}
+
 func (m matrixConvertor) WorkflowJob(p *api.WorkflowJobPayload) (MatrixPayload, error) {
 	text, _ := getWorkflowJobPayloadInfo(p, htmlLinkFormatter, true)
 
@@ -268,6 +274,7 @@ func getMessageBody(htmlText string) string {
 
 // getMatrixTxnID computes the transaction ID to ensure idempotency
 func getMatrixTxnID(payload []byte) (string, error) {
+	payload = bytes.TrimSpace(payload)
 	if len(payload) >= matrixPayloadSizeLimit {
 		return "", fmt.Errorf("getMatrixTxnID: payload size %d > %d", len(payload), matrixPayloadSizeLimit)
 	}

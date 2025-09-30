@@ -15,6 +15,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -28,7 +29,7 @@ const (
 	stagingBranch  = "staging"  // this is used for a working branch
 )
 
-type prContext struct {
+type prTmpRepoContext struct {
 	context.Context
 	tmpBasePath string
 	pr          *issues_model.PullRequest
@@ -36,10 +37,10 @@ type prContext struct {
 	errbuf      *strings.Builder // any use should be preceded by a Reset and preferably after use
 }
 
-func (ctx *prContext) RunOpts() *git.RunOpts {
+func (ctx *prTmpRepoContext) RunOpts() *gitcmd.RunOpts {
 	ctx.outbuf.Reset()
 	ctx.errbuf.Reset()
-	return &git.RunOpts{
+	return &gitcmd.RunOpts{
 		Dir:    ctx.tmpBasePath,
 		Stdout: ctx.outbuf,
 		Stderr: ctx.errbuf,
@@ -48,7 +49,7 @@ func (ctx *prContext) RunOpts() *git.RunOpts {
 
 // createTemporaryRepoForPR creates a temporary repo with "base" for pr.BaseBranch and "tracking" for  pr.HeadBranch
 // it also create a second base branch called "original_base"
-func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest) (prCtx *prContext, cancel context.CancelFunc, err error) {
+func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest) (prCtx *prTmpRepoContext, cancel context.CancelFunc, err error) {
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		log.Error("%-v LoadHeadRepo: %v", pr, err)
 		return nil, nil, fmt.Errorf("%v LoadHeadRepo: %w", pr, err)
@@ -81,7 +82,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	}
 	cancel = cleanup
 
-	prCtx = &prContext{
+	prCtx = &prTmpRepoContext{
 		Context:     ctx,
 		tmpBasePath: tmpBasePath,
 		pr:          pr,
@@ -101,7 +102,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	remoteRepoName := "head_repo"
 	baseBranch := "base"
 
-	fetchArgs := git.TrustedCmdArgs{"--no-tags"}
+	fetchArgs := gitcmd.TrustedCmdArgs{"--no-tags"}
 	if git.DefaultFeatures().CheckVersionAtLeast("2.25.0") {
 		// Writing the commit graph can be slow and is not needed here
 		fetchArgs = append(fetchArgs, "--no-write-commit-graph")
@@ -131,21 +132,21 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		return nil, nil, fmt.Errorf("Unable to add base repository to temporary repo [%s -> tmpBasePath]: %w", pr.BaseRepo.FullName(), err)
 	}
 
-	if err := git.NewCommand("remote", "add", "-t").AddDynamicArguments(pr.BaseBranch).AddArguments("-m").AddDynamicArguments(pr.BaseBranch).AddDynamicArguments("origin", baseRepoPath).
+	if err := gitcmd.NewCommand("remote", "add", "-t").AddDynamicArguments(pr.BaseBranch).AddArguments("-m").AddDynamicArguments(pr.BaseBranch).AddDynamicArguments("origin", baseRepoPath).
 		Run(ctx, prCtx.RunOpts()); err != nil {
 		log.Error("%-v Unable to add base repository as origin [%s -> %s]: %v\n%s\n%s", pr, pr.BaseRepo.FullName(), tmpBasePath, err, prCtx.outbuf.String(), prCtx.errbuf.String())
 		cancel()
 		return nil, nil, fmt.Errorf("Unable to add base repository as origin [%s -> tmpBasePath]: %w\n%s\n%s", pr.BaseRepo.FullName(), err, prCtx.outbuf.String(), prCtx.errbuf.String())
 	}
 
-	if err := git.NewCommand("fetch", "origin").AddArguments(fetchArgs...).AddDashesAndList(pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).
+	if err := gitcmd.NewCommand("fetch", "origin").AddArguments(fetchArgs...).AddDashesAndList(pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).
 		Run(ctx, prCtx.RunOpts()); err != nil {
 		log.Error("%-v Unable to fetch origin base branch [%s:%s -> base, original_base in %s]: %v:\n%s\n%s", pr, pr.BaseRepo.FullName(), pr.BaseBranch, tmpBasePath, err, prCtx.outbuf.String(), prCtx.errbuf.String())
 		cancel()
 		return nil, nil, fmt.Errorf("Unable to fetch origin base branch [%s:%s -> base, original_base in tmpBasePath]: %w\n%s\n%s", pr.BaseRepo.FullName(), pr.BaseBranch, err, prCtx.outbuf.String(), prCtx.errbuf.String())
 	}
 
-	if err := git.NewCommand("symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseBranch).
+	if err := gitcmd.NewCommand("symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseBranch).
 		Run(ctx, prCtx.RunOpts()); err != nil {
 		log.Error("%-v Unable to set HEAD as base branch in [%s]: %v\n%s\n%s", pr, tmpBasePath, err, prCtx.outbuf.String(), prCtx.errbuf.String())
 		cancel()
@@ -158,7 +159,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		return nil, nil, fmt.Errorf("Unable to add head base repository to temporary repo [%s -> tmpBasePath]: %w", pr.HeadRepo.FullName(), err)
 	}
 
-	if err := git.NewCommand("remote", "add").AddDynamicArguments(remoteRepoName, headRepoPath).
+	if err := gitcmd.NewCommand("remote", "add").AddDynamicArguments(remoteRepoName, headRepoPath).
 		Run(ctx, prCtx.RunOpts()); err != nil {
 		log.Error("%-v Unable to add head repository as head_repo [%s -> %s]: %v\n%s\n%s", pr, pr.HeadRepo.FullName(), tmpBasePath, err, prCtx.outbuf.String(), prCtx.errbuf.String())
 		cancel()
@@ -174,9 +175,9 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	} else if len(pr.HeadCommitID) == objectFormat.FullLength() { // for not created pull request
 		headBranch = pr.HeadCommitID
 	} else {
-		headBranch = pr.GetGitRefName()
+		headBranch = pr.GetGitHeadRefName()
 	}
-	if err := git.NewCommand("fetch").AddArguments(fetchArgs...).AddDynamicArguments(remoteRepoName, headBranch+":"+trackingBranch).
+	if err := gitcmd.NewCommand("fetch").AddArguments(fetchArgs...).AddDynamicArguments(remoteRepoName, headBranch+":"+trackingBranch).
 		Run(ctx, prCtx.RunOpts()); err != nil {
 		cancel()
 		if !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {

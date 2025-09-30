@@ -13,7 +13,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -102,7 +101,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	defer func() {
 		if err != nil {
 			// we can not use the ctx because it maybe canceled or timeout
-			cleanupRepository(doer, generateRepo.ID)
+			cleanupRepository(generateRepo.ID)
 		}
 	}()
 
@@ -122,7 +121,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	// 3 -Init git bare new repository.
-	if err = git.InitRepository(ctx, generateRepo.RepoPath(), true, generateRepo.ObjectFormatName); err != nil {
+	if err = gitrepo.InitRepository(ctx, generateRepo, generateRepo.ObjectFormatName); err != nil {
 		return nil, fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = gitrepo.CreateDelegateHooks(ctx, generateRepo); err != nil {
 		return nil, fmt.Errorf("createDelegateHooks: %w", err)
@@ -184,7 +183,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 
 	// 6 - update repository status to be ready
 	generateRepo.Status = repo_model.RepositoryReady
-	if err = repo_model.UpdateRepositoryCols(ctx, generateRepo, "status"); err != nil {
+	if err = repo_model.UpdateRepositoryColsWithAutoTime(ctx, generateRepo, "status"); err != nil {
 		return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
 	}
 
