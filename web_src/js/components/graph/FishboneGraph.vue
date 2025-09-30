@@ -120,6 +120,8 @@ const containerRef = ref<HTMLDivElement | null>(null);
 const ctrlWrap = ref<HTMLDivElement | null>(null);
 let ro: ResizeObserver | null = null;
 let containerWidth = 1100;
+let containerHeight = 800;
+let pendingRaf: number | null = null;
 
 /* Props and API fetch */
 const props = defineProps<{ apiUrl?: string | null; owner?: string | null; repo?: string | null }>();
@@ -204,7 +206,7 @@ function applyResponsiveDials(){
   const forks = forkCount(state.graph);
   const maxKids = parentMaxChildren(state.graph);
   const w = containerWidth;
-  const vh = (typeof window !== 'undefined' && window.innerHeight) ? window.innerHeight : 900;
+  const ch = containerHeight || ((typeof window !== 'undefined' && window.innerHeight) ? window.innerHeight : 900);
 
   const widthFactor = Math.min(1, Math.max(0, (w - 480) / (1200 - 480))); // <480 ⇒ 0, >1200 ⇒ 1
   const complexity  = Math.min(1, (forks   / 10));                         // 0..1 over ~10 edges
@@ -223,7 +225,7 @@ function applyResponsiveDials(){
 
   // Compute a gentle attenuation for bubble sizes to improve vertical fit without scrolling
   // Height factor: smaller screens → smaller bubbles (0.7..1.0)
-  const heightNorm = Math.min(1, Math.max(0, (vh - 640) / (1080 - 640)));
+  const heightNorm = Math.min(1, Math.max(0, (ch - 640) / (1080 - 640)));
   const heightFactor = 0.7 + 0.3 * heightNorm;
   // Fork factor: more forks → smaller bubbles (down to ~0.8)
   const forksFactor = 1 - Math.min(0.20, forks * 0.02);
@@ -366,7 +368,7 @@ function layoutFishbone(g:Graph){
   jointDots.value = edges.map(e => ({ x:e.ex, y:e.ey, id:`${e.source.id}-${e.target.id}` }));
 
   const maxY = Math.max(...nodesList.value.map(n => (n.y ?? 0) + rFor(n.contributors)));
-  svgHeight.value = Math.max(1000, maxY + 240);
+  svgHeight.value = Math.max(containerHeight, maxY + 240);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────-
@@ -505,13 +507,23 @@ onMounted(async ()=>{
   /* Observe container width for responsive dials */
   await nextTick();
   const el = containerRef.value!;
-  containerWidth = el.getBoundingClientRect().width;
+  const rect0 = el.getBoundingClientRect();
+  containerWidth = rect0.width;
+  containerHeight = rect0.height;
   ro = new ResizeObserver((entries)=>{
-    const w = entries[0].contentRect.width;
-    if (Math.abs(w - containerWidth) > 2) {
-      containerWidth = w;
-      layoutAndRender();
-      resetView();
+    const rect = entries[0].contentRect;
+    const w = rect.width;
+    const h = rect.height;
+    let changed = false;
+    if (Math.abs(w - containerWidth) > 2) { containerWidth = Math.min(w, 1100); changed = true; }
+    if (Math.abs(h - containerHeight) > 2) { containerHeight = h; changed = true; }
+    if (changed) {
+      if (pendingRaf !== null) cancelAnimationFrame(pendingRaf);
+      pendingRaf = requestAnimationFrame(()=>{
+        layoutAndRender();
+        resetView();
+        pendingRaf = null;
+      });
     }
   });
   ro.observe(el);
@@ -527,8 +539,8 @@ const kComputed = computed(()=> currentK);
 </script>
 
 <template>
-  <div class="f-fishbone-graph">
-    <div class="mx-auto max-w-[1100px] relative" ref="containerRef">
+    <div class="f-fishbone-graph" ref="containerRef">
+      <div class="mx-auto max-w-[1100px] relative">
       <!-- Controls removed; using defaults -->
 
       <!-- SVG world: IMPORTANT → touch-action:none enables pinch zoom; d3 handles it -->
