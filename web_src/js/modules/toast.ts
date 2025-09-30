@@ -83,15 +83,15 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
   return toast;
 }
 
-export function showInfoToast(message: string, opts?: ToastOpts): Toast {
+export function showInfoToast(message: string, opts?: ToastOpts): Toast | null {
   return showToast(message, 'info', opts);
 }
 
-export function showWarningToast(message: string, opts?: ToastOpts): Toast {
+export function showWarningToast(message: string, opts?: ToastOpts): Toast | null {
   return showToast(message, 'warning', opts);
 }
 
-export function showErrorToast(message: string, opts?: ToastOpts): Toast {
+export function showErrorToast(message: string, opts?: ToastOpts): Toast | null {
   return showToast(message, 'error', opts);
 }
 
