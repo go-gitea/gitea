@@ -5,6 +5,7 @@ package swagger
 
 import (
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/repository"
 )
 
 // Repository
@@ -412,6 +413,13 @@ type swaggerPushMirror struct {
 type swaggerPushMirrorList struct {
 	// in:body
 	Body []api.PushMirror `json:"body"`
+}
+
+// ForkGraph
+// swagger:response ForkGraph
+type swaggerForkGraph struct {
+	// in:body
+	Body repository.ForkGraphResponse `json:"body"`
 }
 
 // RepoCollaboratorPermission

@@ -8107,6 +8107,98 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/forks/graph": {
+      "get": {
+        "description": "Returns a hierarchical tree structure of all forks with optional contributor statistics",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get repository fork graph",
+        "operationId": "getForkGraph",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "default": false,
+            "description": "Include contributor count for each fork",
+            "name": "include_contributors",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "default": 90,
+            "description": "Days to look back for contributor activity (1-365)",
+            "name": "contributor_days",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "default": 10,
+            "description": "Maximum depth of fork tree traversal (1-20)",
+            "name": "max_depth",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": false,
+            "description": "Include private forks (requires appropriate permissions)",
+            "name": "include_private",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "updated",
+            "description": "Sort order for child nodes (updated, created, stars, forks)",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "default": 1,
+            "description": "Page number for pagination",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "default": 50,
+            "description": "Number of forks per level per page (1-100)",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ForkGraph"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/blobs/{sha}": {
       "get": {
         "produces": [
@@ -22565,6 +22657,23 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ContributorStats": {
+      "description": "ContributorStats represents contributor statistics",
+      "type": "object",
+      "properties": {
+        "recent_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RecentCount"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/services/repository"
+    },
     "CreateAccessTokenOption": {
       "description": "CreateAccessTokenOption options when create access token",
       "type": "object",
@@ -25042,6 +25151,51 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ForkGraphResponse": {
+      "description": "ForkGraphResponse represents the complete fork graph response",
+      "type": "object",
+      "properties": {
+        "metadata": {
+          "$ref": "#/definitions/GraphMetadata"
+        },
+        "pagination": {
+          "$ref": "#/definitions/PaginationInfo"
+        },
+        "root": {
+          "$ref": "#/definitions/ForkNode"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/services/repository"
+    },
+    "ForkNode": {
+      "description": "ForkNode represents a node in the fork tree",
+      "type": "object",
+      "properties": {
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ForkNode"
+          },
+          "x-go-name": "Children"
+        },
+        "contributors": {
+          "$ref": "#/definitions/ContributorStats"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "level": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Level"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/services/repository"
+    },
     "GPGKey": {
       "description": "GPGKey a user GPG key to sign commit and tag in repository",
       "type": "object",
@@ -25544,6 +25698,41 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "GraphMetadata": {
+      "description": "GraphMetadata represents metadata about the fork graph",
+      "type": "object",
+      "properties": {
+        "cache_status": {
+          "type": "string",
+          "x-go-name": "CacheStatus"
+        },
+        "contributor_window_days": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContributorWindowDays"
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "GeneratedAt"
+        },
+        "max_depth_reached": {
+          "type": "boolean",
+          "x-go-name": "MaxDepthReached"
+        },
+        "total_forks": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalForks"
+        },
+        "visible_forks": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "VisibleForks"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/services/repository"
     },
     "Hook": {
       "description": "Hook a hook is a web hook when one repository changed",
@@ -26916,6 +27105,32 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "PaginationInfo": {
+      "description": "PaginationInfo represents pagination information",
+      "type": "object",
+      "properties": {
+        "has_next": {
+          "type": "boolean",
+          "x-go-name": "HasNext"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Limit"
+        },
+        "page": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Page"
+        },
+        "total_pages": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalPages"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/services/repository"
     },
     "PayloadCommit": {
       "description": "PayloadCommit represents a commit",
@@ -29465,6 +29680,12 @@
       "description": "FilesResponse",
       "schema": {
         "$ref": "#/definitions/FilesResponse"
+      }
+    },
+    "ForkGraph": {
+      "description": "ForkGraph",
+      "schema": {
+        "$ref": "#/definitions/ForkGraphResponse"
       }
     },
     "GPGKey": {
