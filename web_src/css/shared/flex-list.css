@@ -73,7 +73,7 @@
 }
 
 .flex-item .flex-item-body a {
-  color: inherit;
+  /* color: inherit; */
   overflow-wrap: anywhere;
 }
 

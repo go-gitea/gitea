@@ -163,6 +163,7 @@
 .ui.basic.buttons .button,
 .ui.basic.button {
   border-radius: var(--border-radius);
+  margin-top: 5px;
   background: none;
 }
 .ui.basic.buttons {

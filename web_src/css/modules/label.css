@@ -22,6 +22,7 @@
 
 a.ui.label {
   cursor: pointer;
+  margin-top: 5px;
 }
 
 .ui.label > a {

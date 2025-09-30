@@ -674,10 +674,11 @@ td .commit-summary {
 }
 
 .merge-section-info code {
-  border: 1px solid var(--color-light-border);
+  border: 1px solid var(--color-primary);
   border-radius: var(--border-radius);
+  color: var(--color-milk-text);
   padding: 2px 4px;
-  background: var(--color-light);
+  background: var(--color-primary-2);
 }
 
 .repository.view.issue .comment-list .comment .no-content {
