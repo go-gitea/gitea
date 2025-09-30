@@ -1,10 +1,17 @@
-/* Override primary brand color */
+/* Forkana light theme variables overriding theme-gitea-light */
+gitea-theme-meta-info {
+  --theme-display-name: "Forkana Light";
+}
+
 :root {
   --color-primary: #4E40FA;
+  --color-primary-contrast: #ffffff;
   --color-primary-hover: #3C2EED;
   --color-primary-active: #3328D8;
-  --color-primary-contrast: #ffffff;
-
   --color-secondary-nav-bg: #fff;
+
+  --color-hover: #E9E7FF66;
+  --color-muted: #F6F8FA;
+  --color-muted-text: #59636E;
 }
 

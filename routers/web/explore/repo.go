@@ -188,6 +188,16 @@ func RepoHistory(ctx *context.Context) {
 	ctx.Data["PageIsRepoHistory"] = true
 	ctx.Data["IsRepoHistoryView"] = true
 
+	// Determine which sub-view to render (bubble | table | article)
+	view := ctx.FormString("view")
+	if view == "" {
+		view = "table"
+	}
+	ctx.Data["HistoryView"] = view
+	ctx.Data["IsBubbleView"] = view == "bubble"
+	ctx.Data["IsTableView"] = view == "table"
+	ctx.Data["IsArticleView"] = view == "article"
+
 	// Call the main repository home logic
 	// This duplicates the functionality of repo.Home but in the explore context
 	renderRepositoryHistory(ctx)
@@ -265,6 +275,10 @@ func renderRepositoryHistory(ctx *context.Context) {
 	// Repository metadata
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 	ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.CloneLink(ctx, ctx.Doer)
+
+	// If the Article view is requested, try to locate README to be shown via iframe in template.
+	// We keep preparation light here; README rendering will be handled by the existing
+	// repo file renderer page that we embed.
 
 	// Render the history view template
 	ctx.HTML(http.StatusOK, "explore/repo_history")

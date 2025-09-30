@@ -7,3 +7,16 @@
   box-shadow: 0px 2px 0px var(--color-primary);
   border: 0;
 }
+
+.ui.floating.dropdown > .menu {
+  border-radius: var(--border-radius-dropdown) !important;
+}
+
+.ui.dropdown .menu > .item:first-of-type {
+  border-top-left-radius: var(--border-radius-dropdown) !important;
+  border-top-right-radius: var(--border-radius-dropdown) !important;
+}
+.ui.dropdown .menu > .item:last-of-type {
+  border-bottom-left-radius: var(--border-radius-dropdown) !important;
+  border-bottom-right-radius: var(--border-radius-dropdown) !important;
+}

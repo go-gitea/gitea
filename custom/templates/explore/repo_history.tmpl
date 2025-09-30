@@ -4,8 +4,6 @@
     {{$currentRepo := .CurrentRepo}}
     {{$ctx := .ctx}}
 
-    <h1>TEST</h1>
-
     {{if and $node $node.Repository}}
 
     <div class="item fork-level-{{$node.Level}}">
@@ -132,478 +130,159 @@
 .fork-level-3 { margin-left: 60px !important; }
 .fork-level-4 { margin-left: 80px !important; }
 .fork-level-5 { margin-left: 100px !important; }
+/* Articles table spacing */
+#articles-table col.checkbox { width: 10px; }
+#articles-table col.actions { width: 80px; }
 </style>
 <div role="main" aria-label="{{.Title}}" class="page-content repository file list">
     {{template "repo/header" .}}
 
     <div class="ui container">
-        <!-- <div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
-            <div class="fitted item">
-                <div class="ui breadcrumb">
-                    <a class="section" href="{{AppSubUrl}}/explore/articles">{{ctx.Locale.Tr "explore.repos"}}</a>
-                    <div class="divider"> / </div>
-                    <span class="section">{{ctx.Locale.Tr "repo.history_view"}}</span>
-                    <div class="divider"> / </div>
-                    <span class="active section">{{.Repository.Name}}</span>
-                </div>
-            </div>
-        </div> -->
+        {{/* Wrapper for the 3 views controlled by query param "view" */}}
 
         {{if .IsRepoEmpty}}
             {{template "repo/empty" .}}
         {{else}}
-            <!-- Fork Information Section -->
-            <div class="ui stackable grid">
-                <div class="sixteen wide column">
-                    <div class="ui top attached tabular menu">
-                        <a class="active item">
-                            {{svg "octicon-repo-forked"}} {{ctx.Locale.Tr "repo.fork_network"}}
-                        </a>
-                        <div class="right menu">
-                            <span class="item">{{ctx.Locale.Tr "repo.forks_count" (CountFmt .Repository.NumForks)}}</span>
-                        </div>
-                    </div>
-
-                    <div class="ui bottom attached segment">
-                        <!-- Main Repository Statistics -->
-                        <div class="ui header">
-                            <div class="content">
-                                {{svg "octicon-repo"}} {{ctx.Locale.Tr "repo.main_repository"}}
-                                <div class="sub header">
-                                    <a href="{{.Repository.Link}}">{{.Repository.FullName}}</a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="ui relaxed divided list">
-                            <div class="item">
-                                <div class="content">
-                                    <div class="header">{{ctx.Locale.Tr "repo.last_commit"}}</div>
-                                    <div class="description">
-                                        {{if .LastCommit}}
-                                            {{DateUtils.TimeSince .LastCommit.Committer.When}} - {{.LastCommit.Summary}}
-                                        {{else}}
-                                            {{ctx.Locale.Tr "repo.no_commits"}}
-                                        {{end}}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="item">
-                                <div class="content">
-                                    <div class="header">{{ctx.Locale.Tr "repo.total_forks"}}</div>
-                                    <div class="description">{{CountFmt .Repository.NumForks}}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Fork Network Details Section -->
-            {{if gt .Repository.NumForks 0}}
-            <div class="ui stackable grid">
-                <div class="sixteen wide column">
-                    <div class="ui top attached tabular menu">
-                        <a class="active item">
-                            {{svg "octicon-git-branch"}} {{ctx.Locale.Tr "repo.fork_network_details"}}
-                        </a>
-                        <div class="right menu">
-                            <span class="item">{{ctx.Locale.Tr "repo.showing_forks"}}</span>
-                        </div>
-                    </div>
-
-                    <div class="ui bottom attached segment">
-                        {{if .UserAndOrgForks}}
-                            <!-- User's Forks -->
-                            <div class="ui header">
-                                <div class="content">
-                                    {{svg "octicon-person"}} {{ctx.Locale.Tr "repo.your_forks"}}
-                                </div>
-                            </div>
-
-                            <div class="ui relaxed divided list">
-                                {{range .UserAndOrgForks}}
-                                <div class="item">
-                                    <div class="right floated content">
-                                        <a href="{{.Link}}" class="ui basic button">
-                                            {{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.view_fork"}}
-                                        </a>
-                                    </div>
-                                    <div class="content">
-                                        <div class="header">
-                                            <a href="{{.Link}}">{{.FullName}}</a>
-                                            {{if .IsPrivate}}
-                                                <span class="ui mini label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
-                                            {{end}}
-                                        </div>
-                                        <div class="description">
-                                            {{if .Description}}{{.Description}}{{else}}{{ctx.Locale.Tr "repo.no_desc"}}{{end}}
-                                        </div>
-                                        <div class="meta">
-                                            {{ctx.Locale.Tr "repo.updated"}} {{DateUtils.TimeSince .UpdatedUnix}}
-                                            {{if .NumStars}} • {{svg "octicon-star"}} {{CountFmt .NumStars}}{{end}}
-                                            {{if .NumForks}} • {{svg "octicon-repo-forked"}} {{CountFmt .NumForks}}{{end}}
-                                        </div>
-                                    </div>
-                                </div>
-                                {{end}}
-                            </div>
-                        {{else}}
-                            <!-- No User Forks -->
-                            <div class="ui placeholder">
-                                <div class="paragraph">
-                                    <div class="line"></div>
-                                    <div class="line"></div>
-                                    <div class="line"></div>
-                                    <div class="line"></div>
-                                </div>
-                                <div class="inline">
-                                    <div class="button">{{ctx.Locale.Tr "repo.no_user_forks"}}</div>
-                                </div>
-                            </div>
-                        {{end}}
-
-                        <!-- Fork Network Summary -->
-                        <div class="ui divider"></div>
-                        <div class="ui header">
-                            <div class="content">
-                                {{svg "octicon-git-branch"}} {{ctx.Locale.Tr "repo.fork_network_summary"}}
-                            </div>
-                        </div>
-
-                        <div class="ui statistics">
-                            <div class="statistic">
-                                <div class="value">{{CountFmt .Repository.NumForks}}</div>
-                                <div class="label">{{ctx.Locale.Tr "repo.total_forks"}}</div>
-                            </div>
-                            <div class="statistic">
-                                <div class="value">{{CountFmt .Repository.NumStars}}</div>
-                                <div class="label">{{ctx.Locale.Tr "repo.stars"}}</div>
-                            </div>
-                            <div class="statistic">
-                                <div class="value">{{CountFmt .Repository.NumWatches}}</div>
-                                <div class="label">{{ctx.Locale.Tr "repo.watches"}}</div>
-                            </div>
-                        </div>
-
-                        <!-- Fork Hierarchy Visualization -->
-                        <div class="ui divider"></div>
-                        <div class="ui header">
-                            <div class="content">
-                                {{svg "octicon-git-branch"}} {{ctx.Locale.Tr "repo.fork_hierarchy"}}
-                            </div>
-                        </div>
-
-                        <div class="ui segment">
-                            <div class="ui relaxed list">
-                                <!-- Main Repository -->
-                                <div class="item">
-                                    <div class="content">
-                                        <div class="header">
-                                            {{svg "octicon-repo"}}
-                                            <a href="{{.Repository.Link}}">{{.Repository.FullName}}</a>
-                                            <span class="ui mini blue label">{{ctx.Locale.Tr "repo.main"}}</span>
-                                        </div>
-                                        <div class="description">
-                                            {{if .Repository.Description}}{{.Repository.Description}}{{else}}{{ctx.Locale.Tr "repo.no_desc"}}{{end}}
-                                        </div>
-                                        <div class="meta">
-                                            {{ctx.Locale.Tr "repo.updated"}} {{DateUtils.TimeSince .Repository.UpdatedUnix}}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Fork Branches -->
-                                {{if .UserAndOrgForks}}
-                                    {{range .UserAndOrgForks}}
-                                    <div class="item" style="margin-left: 2em;">
-                                        <div class="content">
-                                            <div class="header">
-                                                {{svg "octicon-repo-forked"}}
-                                                <a href="{{.Link}}">{{.FullName}}</a>
-                                                {{if .IsPrivate}}
-                                                    <span class="ui mini label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
-                                                {{end}}
-                                            </div>
-                                            <div class="description">
-                                                {{if .Description}}{{.Description}}{{else}}{{ctx.Locale.Tr "repo.no_desc"}}{{end}}
-                                            </div>
-                                            <div class="meta">
-                                                {{ctx.Locale.Tr "repo.forked_from"}} {{$.Repository.FullName}} •
-                                                {{ctx.Locale.Tr "repo.updated"}} {{DateUtils.TimeSince .UpdatedUnix}}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {{end}}
-                                {{end}}
-                            </div>
-                        </div>
-                    </div>
+            {{/* Bubble view placeholder - user will replace with Vue later */}}
+            {{if .IsBubbleView}}
+            <div class="ui segment">
+                <div class="ui message">
+                    <div class="header">Bubble view</div>
+                    <p>This view will be provided by a Vue component.</p>
                 </div>
             </div>
             {{end}}
 
-            <!-- Repository Activity and Contributors Section -->
+            {{/* Table view */}}
+            {{if .IsTableView}}
+            <div class="ui stackable grid tw-mt-20">
+                <div class="sixteen wide column">
+                    <div class="tw-flex tw-items-center tw-justify-between tw-gap-4 tw-px-0 tw-border-0">
+                        <h2 class="tw-text-xl tw-font-semibold tw-m-0">Articles</h2>
+                        <div class="tw-flex tw-items-center tw-gap-2">
+                            <div class="ui floating dropdown button tw-border-0 tw-bg-transparent tw-shadow-none tw-hover:bg-transparent tw-active:bg-transparent tw-pr-0">
+                                <div style="transform: rotate(90deg);">
+                                    {{svg "octicon-arrow-switch" 16}}
+                                </div>
+                                <span class="text tw-ml-1">Sort</span>
+                                {{svg "octicon-triangle-down" 16 "tw-ml-1"}}
+                                <div class="menu">
+                                    <a class="item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "table" "sort" "most_contrib"}}">Most contributors</a>
+                                    <a class="item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "table" "sort" "least_contrib"}}">Least contributors</a>
+                                    <a class="item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "table" "sort" "latest"}}">Latest edited</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ui segment tw-px-0">
+                        <table class="ui very basic fixed single line selectable table tw-mb-0" id="articles-table">
+                            <colgroup>
+                                <col class="checkbox">
+                                <col>
+                                <col>
+                                <col>
+                                <col class="actions">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th class="five wide">Contributors</th>
+                                    <th class="three wide">Last edited</th>
+                                    <th class="four wide">Owner</th>
+                                    <th class="collapsing"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{range $idx, $f := .Files}}
+                                {{$name := .Name}}
+                                <tr class="article-row" data-row="{{$idx}}">
+                                    <td>
+                                        <div class="ui checkbox">
+                                            <input type="checkbox" class="row-check">
+                                            <label></label>
+                                        </div>
+                                    </td>
+                                    <td class="tw-font-semibold">{{CountFmt $.ContributorCount}}</td>
+                                    <td>{{if $.LastCommit}}{{DateUtils.AbsoluteShort $.LastCommit.Committer.When}}{{end}}</td>
+                                    <td>{{if $.Repository.Owner}}{{$.Repository.Owner.Name}}{{else}}-{{end}}</td>
+                                    <td class="collapsing tw-text-right">
+                                        <button type="button" class="ui icon button row-toggle tw-border-0 tw-bg-transparent" data-target="desc-{{$idx}}" aria-label="Toggle description">
+                                            <span class="icon-down">{{svg "octicon-chevron-down"}}</span>
+                                            <span class="icon-up tw-hidden">{{svg "octicon-chevron-up"}}</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr id="desc-{{$idx}}" class="tw-hidden">
+                                    <td colspan="5">
+                                        <div class="tw-pl-8 tw-pr-4 tw-py-4 tw-flex tw-items-start tw-justify-between tw-gap-4">
+                                            <div class="tw-text-gray-600 tw-text-sm tw-leading-6">
+                                                {{if $.Repository.Description}}
+                                                    {{$.Repository.Description}}
+                                                {{else}}
+                                                    {{if $.LastCommit}}{{$.LastCommit.Summary}}{{end}}
+                                                {{end}}
+                                            </div>
+                                            <a class="ui button" href="{{$.RepoLink}}/src/branch/{{$.BranchName}}/{{PathEscapeSegments $name}}">Go to article</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <script>
+            (function(){
+                const table = document.getElementById('articles-table');
+                if(!table) return;
+                const selectAll = document.getElementById('select-all-articles');
+                if (selectAll) {
+                    selectAll.addEventListener('change', function(){
+                        table.querySelectorAll('tbody .row-check').forEach(cb=>{ cb.checked = selectAll.checked; });
+                    });
+                }
+                table.querySelectorAll('.row-toggle').forEach(btn=>{
+                    btn.addEventListener('click', function(){
+                        const id = this.getAttribute('data-target');
+                        const row = document.getElementById(id);
+                        if(!row) return;
+                        row.classList.toggle('tw-hidden');
+                        const down = this.querySelector('.icon-down');
+                        const up = this.querySelector('.icon-up');
+                        if (row.classList.contains('tw-hidden')) {
+                            // now collapsed
+                            if (down) down.classList.remove('tw-hidden');
+                            if (up) up.classList.add('tw-hidden');
+                        } else {
+                            // now expanded
+                            if (down) down.classList.add('tw-hidden');
+                            if (up) up.classList.remove('tw-hidden');
+                        }
+                    });
+                });
+                // enable Fomantic dropdowns
+                if (window.$ && $('.ui.dropdown').dropdown) { $('.ui.dropdown').dropdown(); }
+            })();
+            </script>
+            {{end}}
+
+            {{/* Article view - display README of repository (if exists) */}}
+            {{if .IsArticleView}}
             <div class="ui stackable grid">
                 <div class="sixteen wide column">
                     <div class="ui top attached tabular menu">
                         <a class="active item">
-                            {{svg "octicon-graph"}} {{ctx.Locale.Tr "repo.activity_and_contributors"}}
+                            {{svg "octicon-file"}} {{ctx.Locale.Tr "repo.readme"}}
                         </a>
-                        <div class="right menu">
-                            <span class="item">{{ctx.Locale.Tr "repo.repository_insights"}}</span>
-                        </div>
                     </div>
-
                     <div class="ui bottom attached segment">
-                        <!-- Repository Activity Summary -->
-                        <div class="ui header">
-                            <div class="content">
-                                {{svg "octicon-pulse"}} {{ctx.Locale.Tr "repo.activity_summary"}}
-                            </div>
-                        </div>
-
-                        <div class="ui five statistics">
-                            <div class="statistic">
-                                <div class="value">
-                                    {{if .LastCommit}}
-                                        {{DateUtils.TimeSince .LastCommit.Committer.When}}
-                                    {{else}}
-                                        {{ctx.Locale.Tr "repo.never"}}
-                                    {{end}}
-                                </div>
-                                <div class="label">{{ctx.Locale.Tr "repo.last_activity"}}</div>
-                            </div>
-                            <div class="statistic">
-                                <div class="value">{{CountFmt .ContributorCount}}</div>
-                                <div class="label">{{ctx.Locale.Tr "repo.contributors"}}</div>
-                            </div>
-                            <div class="statistic">
-                                <div class="value">{{CountFmt .NumReleases}}</div>
-                                <div class="label">{{ctx.Locale.Tr "repo.releases"}}</div>
-                            </div>
-                            <div class="statistic">
-                                <div class="value">{{CountFmt .NumTags}}</div>
-                                <div class="label">{{ctx.Locale.Tr "repo.tags"}}</div>
-                            </div>
-                            <div class="statistic">
-                                <div class="value">{{CountFmt .Repository.NumIssues}}</div>
-                                <div class="label">{{ctx.Locale.Tr "repo.issues"}}</div>
-                            </div>
-                        </div>
-
-                        <!-- Recent Commit Information -->
-                        {{if .LastCommit}}
-                        <div class="ui divider"></div>
-                        <div class="ui header">
-                            <div class="content">
-                                {{svg "octicon-git-commit"}} {{ctx.Locale.Tr "repo.latest_commit"}}
-                            </div>
-                        </div>
-
-                        <div class="ui segment">
-                            <div class="ui relaxed list">
-                                <div class="item">
-                                    <div class="content">
-                                        <div class="header">
-                                            <a href="{{.Repository.Link}}/commit/{{.LastCommit.ID}}">
-                                                {{ShortSha .LastCommit.ID.String}}
-                                            </a>
-                                            <span class="ui mini label">{{.BranchName}}</span>
-                                        </div>
-                                        <div class="description">{{.LastCommit.Summary}}</div>
-                                        <div class="meta">
-                                            {{ctx.Locale.Tr "repo.committed_by"}}
-                                            <strong>{{.LastCommit.Author.Name}}</strong>
-                                            {{DateUtils.TimeSince .LastCommit.Committer.When}}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {{end}}
-
-                        <!-- Fork Activity Comparison -->
-                        {{if gt .Repository.NumForks 0}}
-                        <div class="ui divider"></div>
-                        <div class="ui header">
-                            <div class="content">
-                                {{svg "octicon-git-compare"}} {{ctx.Locale.Tr "repo.fork_activity_comparison"}}
-                            </div>
-                        </div>
-
-                        <div class="ui segment">
-                            <div class="ui message">
-                                <div class="header">{{ctx.Locale.Tr "repo.fork_network_activity"}}</div>
-                                <p>{{ctx.Locale.Tr "repo.fork_network_activity_desc"}}</p>
-                            </div>
-
-                            <!-- Main Repository Activity -->
-                            <div class="ui relaxed divided list">
-                                <div class="item">
-                                    <div class="content">
-                                        <div class="header">
-                                            {{svg "octicon-repo"}}
-                                            <a href="{{.Repository.Link}}">{{.Repository.FullName}}</a>
-                                            <span class="ui mini blue label">{{ctx.Locale.Tr "repo.main"}}</span>
-                                        </div>
-                                        <div class="description">
-                                            {{if .LastCommit}}
-                                                {{ctx.Locale.Tr "repo.last_commit"}}: {{DateUtils.TimeSince .LastCommit.Committer.When}}
-                                            {{else}}
-                                                {{ctx.Locale.Tr "repo.no_commits"}}
-                                            {{end}}
-                                        </div>
-                                        <div class="meta">
-                                            {{CountFmt .Repository.NumStars}} {{ctx.Locale.Tr "repo.stars"}} •
-                                            {{CountFmt .Repository.NumForks}} {{ctx.Locale.Tr "repo.forks"}} •
-                                            {{CountFmt .Repository.NumIssues}} {{ctx.Locale.Tr "repo.issues"}}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- User's Fork Activity (if available) -->
-                                {{if .UserAndOrgForks}}
-                                    {{range .UserAndOrgForks}}
-                                    <div class="item">
-                                        <div class="content">
-                                            <div class="header">
-                                                {{svg "octicon-repo-forked"}}
-                                                <a href="{{.Link}}">{{.FullName}}</a>
-                                                {{if .IsPrivate}}
-                                                    <span class="ui mini label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
-                                                {{end}}
-                                            </div>
-                                            <div class="description">
-                                                {{ctx.Locale.Tr "repo.last_activity"}}: {{DateUtils.TimeSince .UpdatedUnix}}
-                                            </div>
-                                            <div class="meta">
-                                                {{if .NumStars}}{{CountFmt .NumStars}} {{ctx.Locale.Tr "repo.stars"}} • {{end}}
-                                                {{if .NumForks}}{{CountFmt .NumForks}} {{ctx.Locale.Tr "repo.forks"}} • {{end}}
-                                                {{ctx.Locale.Tr "repo.forked_from"}} {{$.Repository.FullName}}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {{end}}
-                                {{end}}
-                            </div>
-                        </div>
-                        {{end}}
-                    </div>
-                </div>
-            </div>
-
-            {{/* Complete Fork Network Hierarchy Section */}}
-            {{if .ForkHierarchy}}
-            <div class="ui stackable grid">
-                <div class="sixteen wide column">
-                    <div class="ui segment">
-                        <h3 class="ui header">
-                            {{svg "octicon-git-branch" 16 "tw-mr-2"}}
-                            {{ctx.Locale.Tr "repo.fork_network"}} ({{CountFmt .ForkCount}} {{ctx.Locale.Tr "repo.forks"}})
-                            {{if ne .RootRepository.FullName .CurrentRepository.FullName}}
-                                <div class="ui right floated">
-                                    <a class="ui small primary button" href="/explore/articles/history/{{.RootRepository.Name}}">
-                                        {{ctx.Locale.Tr "repo.view_root_repository"}}
-                                    </a>
-                                </div>
-                            {{end}}
-                        </h3>
-
-                        {{if ne .RootRepository.FullName .CurrentRepository.FullName}}
-                            <div class="ui info message">
-                                <div class="header">{{ctx.Locale.Tr "repo.viewing_fork_network"}}</div>
-                                <p>{{ctx.Locale.Tr "repo.fork_network_explanation" .RootRepository.FullName .CurrentRepository.FullName}}</p>
-                            </div>
-                        {{end}}
-
-                        <div class="ui relaxed list">
-                            {{if and .ForkHierarchy .ForkHierarchy.Repository}}
-                                {{template "fork_hierarchy_node" (dict "Node" .ForkHierarchy "CurrentRepo" .CurrentRepository "ctx" .)}}
-                            {{else}}
-                                <div class="ui placeholder segment">
-                                    <div class="ui icon header">
-                                        {{svg "octicon-git-branch" 48}}
-                                        {{ctx.Locale.Tr "repo.no_fork_network"}}
-                                    </div>
-                                </div>
-                            {{end}}
-                        </div>
-
-                        {{if gt .ForkCount 20}}
-                            <div class="ui center aligned basic segment">
-                                <a class="ui basic button" href="{{.RootRepository.Link}}/forks">
-                                    {{ctx.Locale.Tr "repo.forks.view_all_forks" .ForkCount}}
-                                </a>
-                            </div>
-                        {{end}}
+                        <iframe src="{{.RepoLink}}" style="width:100%;border:0;min-height:60vh"></iframe>
                     </div>
                 </div>
             </div>
             {{end}}
-
-            <div class="ui stackable grid">
-                <div class="sixteen wide column">
-                    <div class="ui top attached tabular menu">
-                        <a class="active item">
-                            {{svg "octicon-file"}} {{ctx.Locale.Tr "repo.files"}}
-                        </a>
-                        <div class="right menu">
-                            <span class="item">{{ctx.Locale.Tr "repo.history_view_notice"}}</span>
-                        </div>
-                    </div>
-
-                    <div class="ui bottom attached table segment">
-                        {{if .Files}}
-                            <table class="ui very basic striped fixed table single line" id="repo-files-table">
-                                <thead>
-                                    <tr>
-                                        <th class="four wide">{{ctx.Locale.Tr "repo.file_name"}}</th>
-                                        <th class="two wide">{{ctx.Locale.Tr "repo.file_size"}}</th>
-                                        <th class="three wide">{{ctx.Locale.Tr "repo.last_commit"}}</th>
-                                        <th class="five wide">{{ctx.Locale.Tr "repo.commit_message"}}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {{range .Files}}
-                                    <tr>
-                                        <td class="name">
-                                            {{if .IsDir}}
-                                                {{svg "octicon-file-directory-fill"}}
-                                            {{else}}
-                                                {{svg "octicon-file"}}
-                                            {{end}}
-                                            <a href="{{$.RepoLink}}/src/branch/{{$.BranchName}}/{{.Name}}" title="{{.Name}}">{{.Name}}</a>
-                                        </td>
-                                        <td class="text grey">
-                                            {{if .IsDir}}
-                                                -
-                                            {{else}}
-                                                {{FileSize .Size}}
-                                            {{end}}
-                                        </td>
-                                        <td class="text grey">
-                                            {{if $.LastCommit}}
-                                                <span class="time-since" title="{{$.LastCommit.Committer.When}}">{{DateUtils.TimeSince $.LastCommit.Committer.When}}</span>
-                                            {{end}}
-                                        </td>
-                                        <td class="message">
-                                            {{if $.LastCommit}}
-                                                <span class="text truncate">{{$.LastCommit.Summary}}</span>
-                                            {{end}}
-                                        </td>
-                                    </tr>
-                                    {{end}}
-                                </tbody>
-                            </table>
-                        {{else}}
-                            <div class="ui center">
-                                <p>{{ctx.Locale.Tr "repo.no_files"}}</p>
-                            </div>
-                        {{end}}
-                    </div>
-                </div>
-            </div>
         {{end}}
     </div>
 </div>

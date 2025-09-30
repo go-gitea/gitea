@@ -1,5 +1,0 @@
-/* Use Inter as the default UI font */
-:root {
-  --fonts-override: Inter, -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
-}
-

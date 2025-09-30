@@ -1,0 +1,27 @@
+:root {
+	--fonts-override: Inter, -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
+	--border-radius: 6px;
+	--border-radius-dropdown: 12px;
+}
+
+
+/* unify radii across common Fomantic components */
+.ui.button,
+.ui.segment,
+.ui.card,
+.ui.message,
+.ui.modal,
+.ui.table,
+.ui.dropdown,
+.ui.dropdown > .menu,
+.ui.selection.dropdown,
+.ui.menu,
+.ui.label,
+.ui.input > input,
+.ui.search.selection.dropdown,
+.ui.search.selection.dropdown .menu,
+.ui.popup,
+.ui.form .field > .ui.input > input,
+.ui.form .field > .ui.input > textarea {
+  border-radius: var(--border-radius) !important;
+}

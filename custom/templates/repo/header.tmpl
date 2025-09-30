@@ -12,16 +12,13 @@
 	<div class="ui container">
 		<overflow-menu class="ui secondary pointing menu">
 			<div class="overflow-menu-items tw-justify-center">
-				<!-- <a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.RefTypeNameSubURL}}{{end}}">
-					{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}
-				</a> -->
-				<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.RefTypeNameSubURL}}{{end}}">
+				<a class="{{if .IsBubbleView}}active {{end}}item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "bubble"}}">
 					{{svg "bubble"}} Bubble view
 				</a>
-				<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.RefTypeNameSubURL}}{{end}}">
+				<a class="{{if .IsTableView}}active {{end}}item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "table"}}">
 					{{svg "octicon-table"}} Table view
 				</a>
-				<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.RefTypeNameSubURL}}{{end}}">
+				<a class="{{if .IsArticleView}}active {{end}}item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "article"}}">
 					{{svg "octicon-file"}} Article view
 				</a>
 			</div>
