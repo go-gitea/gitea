@@ -1,0 +1,36 @@
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "admin.config.theme"}}
+</h4>
+<div class="ui attached table segment">
+	<dl class="admin-dl-horizontal">
+		<dt>{{ctx.Locale.Tr "admin.config.default_theme"}}</dt>
+		<dd>
+			<div class="ui floating dropdown jump">
+				<div class="ui basic compact button">
+					<strong>{{$.SystemConfig.Theme.DefaultTheme.Value ctx}}</strong>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				</div>
+				<div class="left menu">
+					{{range .AvailableThemes}}
+						<a class="{{if eq ($.SystemConfig.Theme.DefaultTheme.Value ctx) .}}active {{end}}item" href="{{$.RepoLink}}/activity/daily">{{.}}</a>
+					{{end}}
+				</div>
+			</div>
+		</dd>
+		<div class="divider"></div>
+		<dt>{{ctx.Locale.Tr "admin.config.file_icon_theme"}}</dt>
+		<dd>
+			<div class="ui floating dropdown jump">
+				<div class="ui basic compact button">
+					<strong>{{$.SystemConfig.Theme.FileIconTheme.Value ctx}}</strong>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				</div>
+				<div class="left menu">
+					{{range .AvailableFileIconThemes}}
+						<a class="{{if eq ($.SystemConfig.Theme.FileIconTheme.Value ctx) .}}active {{end}}item" href="{{$.RepoLink}}/activity/daily">{{.}}</a>
+					{{end}}
+				</div>
+			</div>
+		</dd>
+	</dl>
+</div>

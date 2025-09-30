@@ -34,7 +34,7 @@ func (p *RenderedIconPool) RenderToHTML() template.HTML {
 }
 
 func RenderEntryIconHTML(renderedIconPool *RenderedIconPool, entry *EntryInfo) template.HTML {
-	if setting.UI.FileIconTheme == "material" {
+	if setting.Config().Theme.DefaultFileIconTheme.Value(nil) == "material" {
 		return DefaultMaterialIconProvider().EntryIconHTML(renderedIconPool, entry)
 	}
 	return BasicEntryIconHTML(entry)

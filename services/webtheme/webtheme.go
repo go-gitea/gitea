@@ -107,19 +107,20 @@ func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 
 func initThemes() {
 	availableThemes = nil
+	defaultTheme := setting.Config().Theme.DefaultTheme.Value(nil)
 	defer func() {
 		availableThemeInternalNames = container.Set[string]{}
 		for _, theme := range availableThemes {
 			availableThemeInternalNames.Add(theme.InternalName)
 		}
-		if !availableThemeInternalNames.Contains(setting.UI.DefaultTheme) {
-			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.UI.DefaultTheme)
+		if !availableThemeInternalNames.Contains(defaultTheme) {
+			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", defaultTheme)
 		}
 	}()
 	cssFiles, err := public.AssetFS().ListFiles("/assets/css")
 	if err != nil {
 		log.Error("Failed to list themes: %v", err)
-		availableThemes = []*ThemeMetaInfo{defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)}
+		availableThemes = []*ThemeMetaInfo{defaultThemeMetaInfoByInternalName(defaultTheme)}
 		return
 	}
 	var foundThemes []*ThemeMetaInfo
@@ -144,14 +145,14 @@ func initThemes() {
 		availableThemes = foundThemes
 	}
 	sort.Slice(availableThemes, func(i, j int) bool {
-		if availableThemes[i].InternalName == setting.UI.DefaultTheme {
+		if availableThemes[i].InternalName == defaultTheme {
 			return true
 		}
 		return availableThemes[i].DisplayName < availableThemes[j].DisplayName
 	})
 	if len(availableThemes) == 0 {
 		setting.LogStartupProblem(1, log.ERROR, "No theme candidate in asset files, but Gitea requires there should be at least one usable theme")
-		availableThemes = []*ThemeMetaInfo{defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)}
+		availableThemes = []*ThemeMetaInfo{defaultThemeMetaInfoByInternalName(defaultTheme)}
 	}
 }
 

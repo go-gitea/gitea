@@ -201,7 +201,7 @@ func (u *User) BeforeUpdate() {
 // AfterLoad is invoked from XORM after filling all the fields of this object.
 func (u *User) AfterLoad() {
 	if u.Theme == "" {
-		u.Theme = setting.UI.DefaultTheme
+		u.Theme = setting.Config().Theme.DefaultTheme.Value(nil)
 	}
 }
 
@@ -663,7 +663,7 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
 	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
 	u.MaxRepoCreation = -1
-	u.Theme = setting.UI.DefaultTheme
+	u.Theme = setting.Config().Theme.DefaultTheme.Value(ctx)
 	u.IsRestricted = setting.Service.DefaultUserIsRestricted
 	u.IsActive = !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm)
 

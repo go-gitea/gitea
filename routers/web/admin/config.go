@@ -192,6 +192,8 @@ func ConfigSettings(ctx *context.Context) {
 	ctx.Data["PageIsAdminConfig"] = true
 	ctx.Data["PageIsAdminConfigSettings"] = true
 	ctx.Data["DefaultOpenWithEditorAppsString"] = setting.DefaultOpenWithEditorApps().ToTextareaString()
+	ctx.Data["AvailableThemes"] = setting.UI.Themes
+	ctx.Data["AvailableFileIconThemes"] = []string{"material", "basic"}
 	ctx.HTML(http.StatusOK, tplConfigSettings)
 }
 
@@ -231,6 +233,8 @@ func ChangeConfig(ctx *context.Context) {
 		return json.Marshal(openWithEditorApps)
 	}
 	marshallers := map[string]func(string) ([]byte, error){
+		cfg.Theme.DefaultTheme.DynKey():            marshalString(cfg.Theme.DefaultTheme.DefaultValue()),
+		cfg.Theme.DefaultFileIconTheme.DynKey():    marshalString(cfg.Theme.DefaultFileIconTheme.DefaultValue()),
 		cfg.Picture.DisableGravatar.DynKey():       marshalBool,
 		cfg.Picture.EnableFederatedAvatar.DynKey(): marshalBool,
 		cfg.Repository.OpenWithEditorApps.DynKey(): marshalOpenWithApps,
