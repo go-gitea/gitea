@@ -4,6 +4,8 @@
     {{$currentRepo := .CurrentRepo}}
     {{$ctx := .ctx}}
 
+    <h1>TEST</h1>
+
     {{if and $node $node.Repository}}
 
     <div class="item fork-level-{{$node.Level}}">
@@ -135,7 +137,7 @@
     {{template "repo/header" .}}
 
     <div class="ui container">
-        <div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
+        <!-- <div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
             <div class="fitted item">
                 <div class="ui breadcrumb">
                     <a class="section" href="{{AppSubUrl}}/explore/articles">{{ctx.Locale.Tr "explore.repos"}}</a>
@@ -145,7 +147,7 @@
                     <span class="active section">{{.Repository.Name}}</span>
                 </div>
             </div>
-        </div>
+        </div> -->
 
         {{if .IsRepoEmpty}}
             {{template "repo/empty" .}}
