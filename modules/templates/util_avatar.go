@@ -5,9 +5,9 @@ package templates
 
 import (
 	"context"
-	"fmt"
 	"html"
 	"html/template"
+	"strconv"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/avatars"
@@ -28,13 +28,14 @@ func NewAvatarUtils(ctx context.Context) *AvatarUtils {
 
 // AvatarHTML creates the HTML for an avatar
 func AvatarHTML(src string, size int, class, name string) template.HTML {
-	sizeStr := fmt.Sprintf(`%d`, size)
+	sizeStr := strconv.Itoa(size)
 
 	if name == "" {
 		name = "avatar"
 	}
 
-	return template.HTML(`<img loading="lazy" class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
+	// use empty alt, otherwise if the image fails to load, the width will follow the "alt" text's width
+	return template.HTML(`<img loading="lazy" alt class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
 }
 
 // Avatar renders user avatars. args: user, size (int), class (string)

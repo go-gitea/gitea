@@ -27,7 +27,7 @@ const (
 func Security(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer,
 		setting.UserFeatureManageMFA, setting.UserFeatureManageCredentials) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
@@ -47,7 +47,7 @@ func Security(ctx *context.Context) {
 // DeleteAccountLink delete a single account link
 func DeleteAccountLink(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 

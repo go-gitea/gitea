@@ -6,12 +6,14 @@ package gitdiff
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -54,12 +56,12 @@ func runGitDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase b
 		return nil, err
 	}
 
-	cmd := git.NewCommand(ctx, "diff-tree", "--raw", "-r", "--find-renames", "--root")
+	cmd := gitcmd.NewCommand("diff-tree", "--raw", "-r", "--find-renames", "--root")
 	if useMergeBase {
 		cmd.AddArguments("--merge-base")
 	}
 	cmd.AddDynamicArguments(baseCommitID, headCommitID)
-	stdout, _, runErr := cmd.RunStdString(&git.RunOpts{Dir: gitRepo.Path})
+	stdout, _, runErr := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: gitRepo.Path})
 	if runErr != nil {
 		log.Warn("git diff-tree: %v", runErr)
 		return nil, runErr
@@ -71,7 +73,7 @@ func runGitDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase b
 func validateGitDiffTreeArguments(gitRepo *git.Repository, useMergeBase bool, baseSha, headSha string) (shouldUseMergeBase bool, resolvedBaseSha, resolvedHeadSha string, err error) {
 	// if the head is empty its an error
 	if headSha == "" {
-		return false, "", "", fmt.Errorf("headSha is empty")
+		return false, "", "", errors.New("headSha is empty")
 	}
 
 	// if the head commit doesn't exist its and error
@@ -207,7 +209,7 @@ func parseGitDiffTreeLine(line string) (*DiffTreeRecord, error) {
 
 func statusFromLetter(rawStatus string) (status string, score uint8, err error) {
 	if len(rawStatus) < 1 {
-		return "", 0, fmt.Errorf("empty status letter")
+		return "", 0, errors.New("empty status letter")
 	}
 	switch rawStatus[0] {
 	case 'A':
@@ -235,7 +237,7 @@ func statusFromLetter(rawStatus string) (status string, score uint8, err error) 
 
 func tryParseStatusScore(rawStatus string) (uint8, error) {
 	if len(rawStatus) < 2 {
-		return 0, fmt.Errorf("status score missing")
+		return 0, errors.New("status score missing")
 	}
 
 	score, err := strconv.ParseUint(rawStatus[1:], 10, 8)

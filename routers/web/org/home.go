@@ -29,7 +29,7 @@ func Home(ctx *context.Context) {
 	uname := ctx.PathParam("username")
 
 	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -86,12 +86,6 @@ func home(ctx *context.Context, viewRepositories bool) {
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
-
 	opts := &organization.FindOrgMembersOpts{
 		Doer:         ctx.Doer,
 		OrgID:        org.ID,
@@ -109,9 +103,9 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
-	prepareResult, err := shared_user.PrepareOrgHeader(ctx)
+	prepareResult, err := shared_user.RenderUserOrgHeader(ctx)
 	if err != nil {
-		ctx.ServerError("PrepareOrgHeader", err)
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 
@@ -121,7 +115,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["PageIsViewOverview"] = isViewOverview
 	ctx.Data["ShowOrgProfileReadmeSelector"] = isViewOverview && prepareResult.ProfilePublicReadmeBlob != nil && prepareResult.ProfilePrivateReadmeBlob != nil
 
-	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
@@ -154,7 +148,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }
 
-func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.PrepareOrgHeaderResult) bool {
+func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.PrepareOwnerHeaderResult) bool {
 	viewAs := ctx.FormString("view_as", util.Iif(ctx.Org.IsMember, "member", "public"))
 	viewAsMember := viewAs == "member"
 

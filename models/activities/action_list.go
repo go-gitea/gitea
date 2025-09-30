@@ -5,6 +5,7 @@ package activities
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -205,12 +206,34 @@ func (actions ActionList) LoadIssues(ctx context.Context) error {
 // GetFeeds returns actions according to the provided options
 func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, error) {
 	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
-		return nil, 0, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
+		return nil, 0, errors.New("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
 
-	cond, err := ActivityQueryCondition(ctx, opts)
-	if err != nil {
-		return nil, 0, err
+	var err error
+	var cond builder.Cond
+	// if the actor is the requested user or is an administrator, we can skip the ActivityQueryCondition
+	if opts.Actor != nil && opts.RequestedUser != nil && (opts.Actor.IsAdmin || opts.Actor.ID == opts.RequestedUser.ID) {
+		cond = builder.Eq{
+			"user_id": opts.RequestedUser.ID,
+		}.And(
+			FeedDateCond(opts),
+		)
+
+		if !opts.IncludeDeleted {
+			cond = cond.And(builder.Eq{"is_deleted": false})
+		}
+
+		if !opts.IncludePrivate {
+			cond = cond.And(builder.Eq{"is_private": false})
+		}
+		if opts.OnlyPerformedBy {
+			cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
+		}
+	} else {
+		cond, err = ActivityQueryCondition(ctx, opts)
+		if err != nil {
+			return nil, 0, err
+		}
 	}
 
 	actions := make([]*Action, 0, opts.PageSize)
@@ -221,7 +244,11 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		sess := db.GetEngine(ctx).Where(cond)
 		sess = db.SetSessionPagination(sess, &opts)
 
-		count, err = sess.Desc("`action`.created_unix").FindAndCount(&actions)
+		if opts.DontCount {
+			err = sess.Desc("`action`.created_unix").Find(&actions)
+		} else {
+			count, err = sess.Desc("`action`.created_unix").FindAndCount(&actions)
+		}
 		if err != nil {
 			return nil, 0, fmt.Errorf("FindAndCount: %w", err)
 		}
@@ -235,11 +262,13 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 			return nil, 0, fmt.Errorf("Find(actionsIDs): %w", err)
 		}
 
-		count, err = db.GetEngine(ctx).Where(cond).
-			Table("action").
-			Cols("`action`.id").Count()
-		if err != nil {
-			return nil, 0, fmt.Errorf("Count: %w", err)
+		if !opts.DontCount {
+			count, err = db.GetEngine(ctx).Where(cond).
+				Table("action").
+				Cols("`action`.id").Count()
+			if err != nil {
+				return nil, 0, fmt.Errorf("Count: %w", err)
+			}
 		}
 
 		if err := db.GetEngine(ctx).In("`action`.id", actionIDs).Desc("`action`.created_unix").Find(&actions); err != nil {
@@ -252,4 +281,10 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	}
 
 	return actions, count, nil
+}
+
+func CountUserFeeds(ctx context.Context, userID int64) (int64, error) {
+	return db.GetEngine(ctx).Where("user_id = ?", userID).
+		And("is_deleted = ?", false).
+		Count(&Action{})
 }

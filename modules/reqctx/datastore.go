@@ -6,6 +6,7 @@ package reqctx
 import (
 	"context"
 	"io"
+	"maps"
 	"sync"
 
 	"code.gitea.io/gitea/modules/process"
@@ -22,9 +23,7 @@ func (ds ContextData) GetData() ContextData {
 }
 
 func (ds ContextData) MergeFrom(other ContextData) ContextData {
-	for k, v := range other {
-		ds[k] = v
-	}
+	maps.Copy(ds, other)
 	return ds
 }
 
@@ -94,6 +93,9 @@ type RequestContext interface {
 }
 
 func FromContext(ctx context.Context) RequestContext {
+	if rc, ok := ctx.(RequestContext); ok {
+		return rc
+	}
 	// here we must use the current ctx and the underlying store
 	// the current ctx guarantees that the ctx deadline/cancellation/values are respected
 	// the underlying store guarantees that the request-specific data is available
@@ -134,6 +136,6 @@ func NewRequestContext(parentCtx context.Context, profDesc string) (_ context.Co
 
 // NewRequestContextForTest creates a new RequestContext for testing purposes
 // It doesn't add the context to the process manager, nor do cleanup
-func NewRequestContextForTest(parentCtx context.Context) context.Context {
+func NewRequestContextForTest(parentCtx context.Context) RequestContext {
 	return &requestContext{Context: parentCtx, RequestDataStore: &requestDataStore{values: make(map[any]any)}}
 }

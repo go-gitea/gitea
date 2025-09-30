@@ -4,17 +4,17 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"html"
 	"html/template"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/auth/httpauth"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -98,7 +98,7 @@ func InfoOAuth(ctx *context.Context) {
 	}
 
 	response := &userInfoResponse{
-		Sub:               fmt.Sprint(ctx.Doer.ID),
+		Sub:               strconv.FormatInt(ctx.Doer.ID, 10),
 		Name:              ctx.Doer.DisplayName(),
 		PreferredUsername: ctx.Doer.Name,
 		Email:             ctx.Doer.Email,
@@ -107,9 +107,8 @@ func InfoOAuth(ctx *context.Context) {
 
 	var accessTokenScope auth.AccessTokenScope
 	if auHead := ctx.Req.Header.Get("Authorization"); auHead != "" {
-		auths := strings.Fields(auHead)
-		if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
-			accessTokenScope, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, auths[1])
+		if parsed, ok := httpauth.ParseAuthorizationHeader(auHead); ok && parsed.BearerToken != nil {
+			accessTokenScope, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, parsed.BearerToken.Token)
 		}
 	}
 
@@ -126,23 +125,17 @@ func InfoOAuth(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-func parseBasicAuth(ctx *context.Context) (username, password string, err error) {
-	authHeader := ctx.Req.Header.Get("Authorization")
-	if authType, authData, ok := strings.Cut(authHeader, " "); ok && strings.EqualFold(authType, "Basic") {
-		return base.BasicAuthDecode(authData)
-	}
-	return "", "", errors.New("invalid basic authentication")
-}
-
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
 	clientIDValid := false
-	if clientID, clientSecret, err := parseBasicAuth(ctx); err == nil {
+	authHeader := ctx.Req.Header.Get("Authorization")
+	if parsed, ok := httpauth.ParseAuthorizationHeader(authHeader); ok && parsed.BasicAuth != nil {
+		clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 		app, err := auth.GetOAuth2ApplicationByClientID(ctx, clientID)
 		if err != nil && !auth.IsErrOauthClientIDInvalid(err) {
 			// this is likely a database error; log it and respond without details
 			log.Error("Error retrieving client_id: %v", err)
-			ctx.Error(http.StatusInternalServerError)
+			ctx.HTTPError(http.StatusInternalServerError)
 			return
 		}
 		clientIDValid = err == nil && app.ValidateClientSecret([]byte(clientSecret))
@@ -169,9 +162,7 @@ func IntrospectOAuth(ctx *context.Context) {
 			if err == nil && app != nil {
 				response.Active = true
 				response.Scope = grant.Scope
-				response.Issuer = setting.AppURL
-				response.Audience = []string{app.ClientID}
-				response.Subject = fmt.Sprint(grant.UserID)
+				response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(app.ClientID, grant.UserID, nil /*exp*/)
 			}
 			if user, err := user_model.GetUserByID(ctx, grant.UserID); err == nil {
 				response.Username = user.Name
@@ -249,7 +240,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 			}, form.RedirectURI)
 			return
 		}
-		if err := ctx.Session.Set("CodeChallengeMethod", form.CodeChallenge); err != nil {
+		if err := ctx.Session.Set("CodeChallenge", form.CodeChallenge); err != nil {
 			handleAuthorizeError(ctx, AuthorizeError{
 				ErrorCode:        ErrorCodeServerError,
 				ErrorDescription: "cannot set code challenge",
@@ -363,7 +354,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.GrantApplicationForm)
 	if ctx.Session.Get("client_id") != form.ClientID || ctx.Session.Get("state") != form.State ||
 		ctx.Session.Get("redirect_uri") != form.RedirectURI {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
@@ -431,7 +422,14 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
 func OIDCWellKnown(ctx *context.Context) {
-	ctx.Data["SigningKey"] = oauth2_provider.DefaultSigningKey
+	if !setting.OAuth2.Enabled {
+		http.NotFound(ctx.Resp, ctx.Req)
+		return
+	}
+	jwtRegisteredClaims := oauth2_provider.NewJwtRegisteredClaimsFromUser("well-known", 0, nil)
+	ctx.Data["OidcIssuer"] = jwtRegisteredClaims.Issuer // use the consistent issuer from the JWT registered claims
+	ctx.Data["OidcBaseUrl"] = strings.TrimSuffix(setting.AppURL, "/")
+	ctx.Data["SigningKeyMethodAlg"] = oauth2_provider.DefaultSigningKey.SigningMethod().Alg()
 	ctx.JSONTemplate("user/auth/oidc_wellknown")
 }
 
@@ -440,7 +438,7 @@ func OIDCKeys(ctx *context.Context) {
 	jwk, err := oauth2_provider.DefaultSigningKey.ToJWK()
 	if err != nil {
 		log.Error("Error converting signing key to JWK: %v", err)
-		ctx.Error(http.StatusInternalServerError)
+		ctx.HTTPError(http.StatusInternalServerError)
 		return
 	}
 
@@ -464,16 +462,16 @@ func AccessTokenOAuth(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AccessTokenForm)
 	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
 	if form.ClientID == "" || form.ClientSecret == "" {
-		authHeader := ctx.Req.Header.Get("Authorization")
-		if authType, authData, ok := strings.Cut(authHeader, " "); ok && strings.EqualFold(authType, "Basic") {
-			clientID, clientSecret, err := base.BasicAuthDecode(authData)
-			if err != nil {
+		if authHeader := ctx.Req.Header.Get("Authorization"); authHeader != "" {
+			parsed, ok := httpauth.ParseAuthorizationHeader(authHeader)
+			if !ok || parsed.BasicAuth == nil {
 				handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 					ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidRequest,
 					ErrorDescription: "cannot parse basic auth header",
 				})
 				return
 			}
+			clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 			// validate that any fields present in the form match the Basic auth header
 			if form.ClientID != "" && form.ClientID != clientID {
 				handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{

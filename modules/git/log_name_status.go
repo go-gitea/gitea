@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 
 	"github.com/djherbis/buffer"
 	"github.com/djherbis/nio/v3"
@@ -34,7 +35,7 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 		_ = stdoutWriter.Close()
 	}
 
-	cmd := NewCommand(ctx)
+	cmd := gitcmd.NewCommand()
 	cmd.AddArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z").AddDynamicArguments(head)
 
 	var files []string
@@ -64,13 +65,13 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 
 	go func() {
 		stderr := strings.Builder{}
-		err := cmd.Run(&RunOpts{
+		err := cmd.Run(ctx, &gitcmd.RunOpts{
 			Dir:    repository,
 			Stdout: stdoutWriter,
 			Stderr: &stderr,
 		})
 		if err != nil {
-			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
+			_ = stdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
 			return
 		}
 
@@ -118,11 +119,12 @@ func (g *LogNameStatusRepoParser) Next(treepath string, paths2ids map[string]int
 		g.buffull = false
 		g.next, err = g.rd.ReadSlice('\x00')
 		if err != nil {
-			if err == bufio.ErrBufferFull {
+			switch err {
+			case bufio.ErrBufferFull:
 				g.buffull = true
-			} else if err == io.EOF {
+			case io.EOF:
 				return nil, nil
-			} else {
+			default:
 				return nil, err
 			}
 		}
@@ -132,11 +134,12 @@ func (g *LogNameStatusRepoParser) Next(treepath string, paths2ids map[string]int
 	if bytes.Equal(g.next, []byte("commit\000")) {
 		g.next, err = g.rd.ReadSlice('\x00')
 		if err != nil {
-			if err == bufio.ErrBufferFull {
+			switch err {
+			case bufio.ErrBufferFull:
 				g.buffull = true
-			} else if err == io.EOF {
+			case io.EOF:
 				return nil, nil
-			} else {
+			default:
 				return nil, err
 			}
 		}
@@ -214,11 +217,12 @@ diffloop:
 		}
 		g.next, err = g.rd.ReadSlice('\x00')
 		if err != nil {
-			if err == bufio.ErrBufferFull {
+			switch err {
+			case bufio.ErrBufferFull:
 				g.buffull = true
-			} else if err == io.EOF {
+			case io.EOF:
 				return &ret, nil
-			} else {
+			default:
 				return nil, err
 			}
 		}
@@ -343,10 +347,7 @@ func WalkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath st
 
 	results := make([]string, len(paths))
 	remaining := len(paths)
-	nextRestart := (len(paths) * 3) / 4
-	if nextRestart > 70 {
-		nextRestart = 70
-	}
+	nextRestart := min((len(paths)*3)/4, 70)
 	lastEmptyParent := head.ID.String()
 	commitSinceLastEmptyParent := uint64(0)
 	commitSinceNextRestart := uint64(0)

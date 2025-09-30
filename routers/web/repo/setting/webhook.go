@@ -112,7 +112,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 func checkHookType(ctx *context.Context) string {
 	hookType := strings.ToLower(ctx.PathParam("type"))
 	if !util.SliceContainsString(setting.Webhook.Types, hookType, true) {
-		ctx.NotFound("checkHookType", nil)
+		ctx.NotFound(nil)
 		return ""
 	}
 	return hookType
@@ -185,6 +185,8 @@ func ParseHookEvent(form forms.WebhookForm) *webhook_module.HookEvent {
 			webhook_module.HookEventRepository:               form.Repository,
 			webhook_module.HookEventPackage:                  form.Package,
 			webhook_module.HookEventStatus:                   form.Status,
+			webhook_module.HookEventWorkflowRun:              form.WorkflowRun,
+			webhook_module.HookEventWorkflowJob:              form.WorkflowJob,
 		},
 		BranchFilter: form.BranchFilter,
 	}
@@ -196,7 +198,6 @@ type webhookParams struct {
 
 	URL         string
 	ContentType webhook.HookContentType
-	Secret      string
 	HTTPMethod  string
 	WebhookForm forms.WebhookForm
 	Meta        any
@@ -235,7 +236,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		URL:             params.URL,
 		HTTPMethod:      params.HTTPMethod,
 		ContentType:     params.ContentType,
-		Secret:          params.Secret,
+		Secret:          params.WebhookForm.Secret,
 		HookEvent:       ParseHookEvent(params.WebhookForm),
 		IsActive:        params.WebhookForm.Active,
 		Type:            params.Type,
@@ -288,7 +289,7 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 
 	w.URL = params.URL
 	w.ContentType = params.ContentType
-	w.Secret = params.Secret
+	w.Secret = params.WebhookForm.Secret
 	w.HookEvent = ParseHookEvent(params.WebhookForm)
 	w.IsActive = params.WebhookForm.Active
 	w.HTTPMethod = params.HTTPMethod
@@ -334,7 +335,6 @@ func giteaHookParams(ctx *context.Context) webhookParams {
 		Type:        webhook_module.GITEA,
 		URL:         form.PayloadURL,
 		ContentType: contentType,
-		Secret:      form.Secret,
 		HTTPMethod:  form.HTTPMethod,
 		WebhookForm: form.WebhookForm,
 	}
@@ -362,7 +362,6 @@ func gogsHookParams(ctx *context.Context) webhookParams {
 		Type:        webhook_module.GOGS,
 		URL:         form.PayloadURL,
 		ContentType: contentType,
-		Secret:      form.Secret,
 		WebhookForm: form.WebhookForm,
 	}
 }
@@ -601,7 +600,7 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 	}
 	if err != nil || w == nil {
 		if webhook.IsErrWebhookNotExist(err) {
-			ctx.NotFound("GetWebhookByID", nil)
+			ctx.NotFound(nil)
 		} else {
 			ctx.ServerError("GetWebhookByID", err)
 		}
@@ -718,7 +717,7 @@ func ReplayWebhook(ctx *context.Context) {
 
 	if err := webhook_service.ReplayHookTask(ctx, w, hookTaskUUID); err != nil {
 		if webhook.IsErrHookTaskNotExist(err) {
-			ctx.NotFound("ReplayHookTask", nil)
+			ctx.NotFound(nil)
 		} else {
 			ctx.ServerError("ReplayHookTask", err)
 		}

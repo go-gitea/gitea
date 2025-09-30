@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -235,6 +236,28 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		return packages_service.DeletePackageFile(ctx, pf)
 	}
 
+	vpfs := make(map[int64]*entryOptions)
+	for _, pf := range pfs {
+		current := &entryOptions{
+			File: pf,
+		}
+		current.Version, err = packages_model.GetVersionByID(ctx, pf.VersionID)
+		if err != nil {
+			return err
+		}
+
+		// here we compare the versions but not using SearchLatestVersions because we shouldn't allow "downgrading" to a older version by "latest" one.
+		// https://wiki.archlinux.org/title/Downgrading_packages : randomly downgrading can mess up dependencies:
+		// If a downgrade involves a soname change, all dependencies may need downgrading or rebuilding too.
+		if old, ok := vpfs[current.Version.PackageID]; ok {
+			if compareVersions(old.Version.Version, current.Version.Version) == -1 {
+				vpfs[current.Version.PackageID] = current
+			}
+		} else {
+			vpfs[current.Version.PackageID] = current
+		}
+	}
+
 	indexContent, _ := packages_module.NewHashedBuffer()
 	defer indexContent.Close()
 
@@ -243,15 +266,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 
 	cache := make(map[int64]*packages_model.Package)
 
-	for _, pf := range pfs {
-		opts := &entryOptions{
-			File: pf,
-		}
-
-		opts.Version, err = packages_model.GetVersionByID(ctx, pf.VersionID)
-		if err != nil {
-			return err
-		}
+	for _, opts := range vpfs {
 		if err := json.Unmarshal([]byte(opts.Version.MetadataJSON), &opts.VersionMetadata); err != nil {
 			return err
 		}
@@ -263,12 +278,12 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 			}
 			cache[opts.Package.ID] = opts.Package
 		}
-		opts.Blob, err = packages_model.GetBlobByID(ctx, pf.BlobID)
+		opts.Blob, err = packages_model.GetBlobByID(ctx, opts.File.BlobID)
 		if err != nil {
 			return err
 		}
 
-		sig, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeFile, pf.ID, arch_module.PropertySignature)
+		sig, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeFile, opts.File.ID, arch_module.PropertySignature)
 		if err != nil {
 			return err
 		}
@@ -277,7 +292,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		}
 		opts.Signature = sig[0].Value
 
-		meta, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeFile, pf.ID, arch_module.PropertyMetadata)
+		meta, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeFile, opts.File.ID, arch_module.PropertyMetadata)
 		if err != nil {
 			return err
 		}
@@ -358,8 +373,8 @@ func writeDescription(tw *tar.Writer, opts *entryOptions) error {
 		{"MD5SUM", opts.Blob.HashMD5},
 		{"SHA256SUM", opts.Blob.HashSHA256},
 		{"PGPSIG", opts.Signature},
-		{"CSIZE", fmt.Sprintf("%d", opts.Blob.Size)},
-		{"ISIZE", fmt.Sprintf("%d", opts.FileMetadata.InstalledSize)},
+		{"CSIZE", strconv.FormatInt(opts.Blob.Size, 10)},
+		{"ISIZE", strconv.FormatInt(opts.FileMetadata.InstalledSize, 10)},
 		{"NAME", opts.Package.Name},
 		{"BASE", opts.FileMetadata.Base},
 		{"ARCH", opts.FileMetadata.Architecture},
@@ -368,7 +383,7 @@ func writeDescription(tw *tar.Writer, opts *entryOptions) error {
 		{"URL", opts.VersionMetadata.ProjectURL},
 		{"LICENSE", strings.Join(opts.VersionMetadata.Licenses, "\n")},
 		{"GROUPS", strings.Join(opts.FileMetadata.Groups, "\n")},
-		{"BUILDDATE", fmt.Sprintf("%d", opts.FileMetadata.BuildDate)},
+		{"BUILDDATE", strconv.FormatInt(opts.FileMetadata.BuildDate, 10)},
 		{"PACKAGER", opts.FileMetadata.Packager},
 		{"PROVIDES", strings.Join(opts.FileMetadata.Provides, "\n")},
 		{"REPLACES", strings.Join(opts.FileMetadata.Replaces, "\n")},

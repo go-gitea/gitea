@@ -34,7 +34,7 @@ func CodeFrequencyData(ctx *context.Context) {
 			ctx.Status(http.StatusAccepted)
 			return
 		}
-		ctx.ServerError("GetCodeFrequencyData", err)
+		ctx.ServerError("GetContributorStats", err)
 	} else {
 		ctx.JSON(http.StatusOK, contributorStats["total"].Weeks)
 	}

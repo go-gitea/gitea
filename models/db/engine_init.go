@@ -42,16 +42,17 @@ func newXORMEngine() (*xorm.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-	if setting.Database.Type == "mysql" {
+	switch setting.Database.Type {
+	case "mysql":
 		engine.Dialect().SetParams(map[string]string{"rowFormat": "DYNAMIC"})
-	} else if setting.Database.Type == "mssql" {
+	case "mssql":
 		engine.Dialect().SetParams(map[string]string{"DEFAULT_VARCHAR": "nvarchar"})
 	}
 	engine.SetSchema(setting.Database.Schema)
 	return engine, nil
 }
 
-// InitEngine initializes the xorm.Engine and sets it as db.DefaultContext
+// InitEngine initializes the xorm.Engine and sets it as XORM's default context
 func InitEngine(ctx context.Context) error {
 	xe, err := newXORMEngine()
 	if err != nil {
@@ -69,7 +70,6 @@ func InitEngine(ctx context.Context) error {
 	xe.SetMaxOpenConns(setting.Database.MaxOpenConns)
 	xe.SetMaxIdleConns(setting.Database.MaxIdleConns)
 	xe.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
-	xe.SetDefaultContext(ctx)
 
 	if setting.Database.SlowQueryThreshold > 0 {
 		xe.AddHook(&EngineHook{
@@ -85,27 +85,26 @@ func InitEngine(ctx context.Context) error {
 // SetDefaultEngine sets the default engine for db
 func SetDefaultEngine(ctx context.Context, eng *xorm.Engine) {
 	xormEngine = eng
-	DefaultContext = &Context{Context: ctx, engine: xormEngine}
+	xormEngine.SetDefaultContext(ctx)
 }
 
 // UnsetDefaultEngine closes and unsets the default engine
 // We hope the SetDefaultEngine and UnsetDefaultEngine can be paired, but it's impossible now,
-// there are many calls to InitEngine -> SetDefaultEngine directly to overwrite the `xormEngine` and DefaultContext without close
+// there are many calls to InitEngine -> SetDefaultEngine directly to overwrite the `xormEngine` and `xormContext` without close
 // Global database engine related functions are all racy and there is no graceful close right now.
 func UnsetDefaultEngine() {
 	if xormEngine != nil {
 		_ = xormEngine.Close()
 		xormEngine = nil
 	}
-	DefaultContext = nil
 }
 
-// InitEngineWithMigration initializes a new xorm.Engine and sets it as the db.DefaultContext
+// InitEngineWithMigration initializes a new xorm.Engine and sets it as the XORM's default context
 // This function must never call .Sync() if the provided migration function fails.
 // When called from the "doctor" command, the migration function is a version check
 // that prevents the doctor from fixing anything in the database if the migration level
 // is different from the expected value.
-func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
+func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Context, *xorm.Engine) error) (err error) {
 	if err = InitEngine(ctx); err != nil {
 		return err
 	}
@@ -122,7 +121,7 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 	// Installation should only be being re-run if users want to recover an old database.
 	// However, we should think carefully about should we support re-install on an installed instance,
 	// as there may be other problems due to secret reinitialization.
-	if err = migrateFunc(xormEngine); err != nil {
+	if err = migrateFunc(ctx, xormEngine); err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
 

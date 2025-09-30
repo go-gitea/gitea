@@ -13,7 +13,7 @@ import (
 	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
-func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data string) (*actions_model.ActionVariable, error) {
+func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data, description string) (*actions_model.ActionVariable, error) {
 	if err := secret_service.ValidateName(name); err != nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data strin
 		return nil, err
 	}
 
-	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, name, util.ReserveLineBreakForTextarea(data))
+	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, name, util.ReserveLineBreakForTextarea(data), description)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func UpdateVariableNameData(ctx context.Context, variable *actions_model.ActionV
 
 	variable.Data = util.ReserveLineBreakForTextarea(variable.Data)
 
-	return actions_model.UpdateVariableCols(ctx, variable, "name", "data")
+	return actions_model.UpdateVariableCols(ctx, variable, "name", "data", "description")
 }
 
 func DeleteVariableByID(ctx context.Context, variableID int64) error {

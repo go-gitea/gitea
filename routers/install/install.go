@@ -5,19 +5,18 @@
 package install
 
 import (
-	"fmt"
 	"net/http"
 	"net/mail"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	db_install "code.gitea.io/gitea/models/db/install"
-	"code.gitea.io/gitea/models/migrations"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password/hash"
@@ -37,6 +36,7 @@ import (
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/versioned_migration"
 
 	"gitea.com/go-chi/session"
 )
@@ -64,7 +64,6 @@ func Contexter() func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base := context.NewBaseContext(resp, req)
 			ctx := context.NewWebContext(base, rnd, session.GetSession(req))
-			ctx.SetContextValue(context.WebContextKey, ctx)
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data.MergeFrom(reqctx.ContextData{
 				"Title":          ctx.Locale.Tr("install.install"),
@@ -100,14 +99,7 @@ func Install(ctx *context.Context) {
 	form.SSLMode = setting.Database.SSLMode
 
 	curDBType := setting.Database.Type.String()
-	var isCurDBTypeSupported bool
-	for _, dbType := range setting.SupportedDatabaseTypes {
-		if dbType == curDBType {
-			isCurDBTypeSupported = true
-			break
-		}
-	}
-	if !isCurDBTypeSupported {
+	if !slices.Contains(setting.SupportedDatabaseTypes, curDBType) {
 		curDBType = "mysql"
 	}
 	ctx.Data["CurDbType"] = curDBType
@@ -152,7 +144,7 @@ func Install(ctx *context.Context) {
 	form.DisableRegistration = setting.Service.DisableRegistration
 	form.AllowOnlyExternalRegistration = setting.Service.AllowOnlyExternalRegistration
 	form.EnableCaptcha = setting.Service.EnableCaptcha
-	form.RequireSignInView = setting.Service.RequireSignInView
+	form.RequireSignInView = setting.Service.RequireSignInViewStrict
 	form.DefaultKeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
 	form.DefaultAllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
@@ -188,20 +180,20 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 		return false
 	}
 
-	err = db_install.CheckDatabaseConnection()
+	err = db_install.CheckDatabaseConnection(ctx)
 	if err != nil {
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
 		return false
 	}
 
-	hasPostInstallationUser, err := db_install.HasPostInstallationUsers()
+	hasPostInstallationUser, err := db_install.HasPostInstallationUsers(ctx)
 	if err != nil {
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_table", "user", err), tplInstall, form)
 		return false
 	}
-	dbMigrationVersion, err := db_install.GetMigrationVersion()
+	dbMigrationVersion, err := db_install.GetMigrationVersion(ctx)
 	if err != nil {
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_table", "version", err), tplInstall, form)
@@ -360,7 +352,7 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	// Init the engine with migration
-	if err = db.InitEngineWithMigration(ctx, migrations.Migrate); err != nil {
+	if err = db.InitEngineWithMigration(ctx, versioned_migration.Migrate); err != nil {
 		db.UnsetDefaultEngine()
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
@@ -399,7 +391,7 @@ func SubmitInstall(ctx *context.Context) {
 		cfg.Section("server").Key("DISABLE_SSH").SetValue("true")
 	} else {
 		cfg.Section("server").Key("DISABLE_SSH").SetValue("false")
-		cfg.Section("server").Key("SSH_PORT").SetValue(fmt.Sprint(form.SSHPort))
+		cfg.Section("server").Key("SSH_PORT").SetValue(strconv.Itoa(form.SSHPort))
 	}
 
 	if form.LFSRootPath != "" {
@@ -430,10 +422,10 @@ func SubmitInstall(ctx *context.Context) {
 	} else {
 		cfg.Section("mailer").Key("ENABLED").SetValue("false")
 	}
-	cfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").SetValue(fmt.Sprint(form.RegisterConfirm))
-	cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").SetValue(fmt.Sprint(form.MailNotify))
+	cfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").SetValue(strconv.FormatBool(form.RegisterConfirm))
+	cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").SetValue(strconv.FormatBool(form.MailNotify))
 
-	cfg.Section("server").Key("OFFLINE_MODE").SetValue(fmt.Sprint(form.OfflineMode))
+	cfg.Section("server").Key("OFFLINE_MODE").SetValue(strconv.FormatBool(form.OfflineMode))
 	if err := system_model.SetSettings(ctx, map[string]string{
 		setting.Config().Picture.DisableGravatar.DynKey():       strconv.FormatBool(form.DisableGravatar),
 		setting.Config().Picture.EnableFederatedAvatar.DynKey(): strconv.FormatBool(form.EnableFederatedAvatar),
@@ -442,17 +434,17 @@ func SubmitInstall(ctx *context.Context) {
 		return
 	}
 
-	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(fmt.Sprint(form.EnableOpenIDSignIn))
-	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(fmt.Sprint(form.EnableOpenIDSignUp))
-	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(fmt.Sprint(form.DisableRegistration))
-	cfg.Section("service").Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").SetValue(fmt.Sprint(form.AllowOnlyExternalRegistration))
-	cfg.Section("service").Key("ENABLE_CAPTCHA").SetValue(fmt.Sprint(form.EnableCaptcha))
-	cfg.Section("service").Key("REQUIRE_SIGNIN_VIEW").SetValue(fmt.Sprint(form.RequireSignInView))
-	cfg.Section("service").Key("DEFAULT_KEEP_EMAIL_PRIVATE").SetValue(fmt.Sprint(form.DefaultKeepEmailPrivate))
-	cfg.Section("service").Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").SetValue(fmt.Sprint(form.DefaultAllowCreateOrganization))
-	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(fmt.Sprint(form.DefaultEnableTimetracking))
-	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(fmt.Sprint(form.NoReplyAddress))
-	cfg.Section("cron.update_checker").Key("ENABLED").SetValue(fmt.Sprint(form.EnableUpdateChecker))
+	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(strconv.FormatBool(form.EnableOpenIDSignIn))
+	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(strconv.FormatBool(form.EnableOpenIDSignUp))
+	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(strconv.FormatBool(form.DisableRegistration))
+	cfg.Section("service").Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").SetValue(strconv.FormatBool(form.AllowOnlyExternalRegistration))
+	cfg.Section("service").Key("ENABLE_CAPTCHA").SetValue(strconv.FormatBool(form.EnableCaptcha))
+	cfg.Section("service").Key("REQUIRE_SIGNIN_VIEW").SetValue(strconv.FormatBool(form.RequireSignInView))
+	cfg.Section("service").Key("DEFAULT_KEEP_EMAIL_PRIVATE").SetValue(strconv.FormatBool(form.DefaultKeepEmailPrivate))
+	cfg.Section("service").Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").SetValue(strconv.FormatBool(form.DefaultAllowCreateOrganization))
+	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(strconv.FormatBool(form.DefaultEnableTimetracking))
+	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(form.NoReplyAddress)
+	cfg.Section("cron.update_checker").Key("ENABLED").SetValue(strconv.FormatBool(form.EnableUpdateChecker))
 
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
@@ -608,6 +600,8 @@ func SubmitInstall(ctx *context.Context) {
 
 // InstallDone shows the "post-install" page, makes it easier to develop the page.
 // The name is not called as "PostInstall" to avoid misinterpretation as a handler for "POST /install"
-func InstallDone(ctx *context.Context) { //nolint
+func InstallDone(ctx *context.Context) { //nolint:revive // export stutter
+	hasUsers, _ := user_model.HasUsers(ctx)
+	ctx.Data["IsAccountCreated"] = hasUsers.HasAnyUser
 	ctx.HTML(http.StatusOK, tplPostInstall)
 }

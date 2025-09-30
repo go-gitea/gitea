@@ -4,7 +4,6 @@
 package ping
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -51,7 +50,7 @@ func MainServiceTest(t *testing.T, h http.Handler) {
 	clients := []pingv1connect.PingServiceClient{connectClient, grpcClient, grpcWebClient}
 	t.Run("ping request", func(t *testing.T) {
 		for _, client := range clients {
-			result, err := client.Ping(context.Background(), connect.NewRequest(&pingv1.PingRequest{
+			result, err := client.Ping(t.Context(), connect.NewRequest(&pingv1.PingRequest{
 				Data: "foobar",
 			}))
 			require.NoError(t, err)

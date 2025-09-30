@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -41,55 +40,55 @@ func TestDetermineLocalEndpoint(t *testing.T) {
 		{
 			cloneurl: root,
 			lfsurl:   "",
-			expected: str2url(fmt.Sprintf("file://%s", root)),
+			expected: str2url("file://" + root),
 		},
 		// case 1
 		{
 			cloneurl: root,
 			lfsurl:   lfsroot,
-			expected: str2url(fmt.Sprintf("file://%s", lfsroot)),
+			expected: str2url("file://" + lfsroot),
 		},
 		// case 2
 		{
 			cloneurl: "https://git.com/repo.git",
 			lfsurl:   lfsroot,
-			expected: str2url(fmt.Sprintf("file://%s", lfsroot)),
+			expected: str2url("file://" + lfsroot),
 		},
 		// case 3
 		{
 			cloneurl: rootdotgit,
 			lfsurl:   "",
-			expected: str2url(fmt.Sprintf("file://%s", filepath.Join(rootdotgit, ".git"))),
+			expected: str2url("file://" + filepath.Join(rootdotgit, ".git")),
 		},
 		// case 4
 		{
 			cloneurl: "",
 			lfsurl:   rootdotgit,
-			expected: str2url(fmt.Sprintf("file://%s", filepath.Join(rootdotgit, ".git"))),
+			expected: str2url("file://" + filepath.Join(rootdotgit, ".git")),
 		},
 		// case 5
 		{
 			cloneurl: rootdotgit,
 			lfsurl:   rootdotgit,
-			expected: str2url(fmt.Sprintf("file://%s", filepath.Join(rootdotgit, ".git"))),
+			expected: str2url("file://" + filepath.Join(rootdotgit, ".git")),
 		},
 		// case 6
 		{
-			cloneurl: fmt.Sprintf("file://%s", root),
+			cloneurl: "file://" + root,
 			lfsurl:   "",
-			expected: str2url(fmt.Sprintf("file://%s", root)),
+			expected: str2url("file://" + root),
 		},
 		// case 7
 		{
-			cloneurl: fmt.Sprintf("file://%s", root),
-			lfsurl:   fmt.Sprintf("file://%s", lfsroot),
-			expected: str2url(fmt.Sprintf("file://%s", lfsroot)),
+			cloneurl: "file://" + root,
+			lfsurl:   "file://" + lfsroot,
+			expected: str2url("file://" + lfsroot),
 		},
 		// case 8
 		{
 			cloneurl: root,
-			lfsurl:   fmt.Sprintf("file://%s", lfsroot),
-			expected: str2url(fmt.Sprintf("file://%s", lfsroot)),
+			lfsurl:   "file://" + lfsroot,
+			expected: str2url("file://" + lfsroot),
 		},
 		// case 9
 		{

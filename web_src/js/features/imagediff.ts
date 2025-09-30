@@ -75,7 +75,7 @@ class ImageDiff {
     this.containerEl = containerEl;
     containerEl.setAttribute('data-image-diff-loaded', 'true');
 
-    fomanticQuery(containerEl).find('.ui.menu.tabular .item').tab({autoTabActivation: false});
+    fomanticQuery(containerEl).find('.ui.menu.tabular .item').tab();
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
     this.diffContainerWidth = Math.max(containerEl.closest('.diff-file-box').clientWidth - 300, 100);

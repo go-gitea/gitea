@@ -4,13 +4,25 @@
 package repo
 
 import (
+	go_context "context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
+	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	secret_model "code.gitea.io/gitea/models/secret"
+	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -34,7 +46,7 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repository
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -65,15 +77,16 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 
 	secrets, count, err := db.FindAndCount[secret_model.Secret](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	apiSecrets := make([]*api.Secret, len(secrets))
 	for k, v := range secrets {
 		apiSecrets[k] = &api.Secret{
-			Name:    v.Name,
-			Created: v.CreatedUnix.AsTime(),
+			Name:        v.Name,
+			Description: v.Description,
+			Created:     v.CreatedUnix.AsTime(),
 		}
 	}
 
@@ -124,14 +137,14 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data)
+	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "CreateOrUpdateSecret", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "CreateOrUpdateSecret", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -170,7 +183,7 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "204":
-	//     description: delete one secret of the organization
+	//     description: delete one secret of the repository
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -181,11 +194,11 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	err := secret_service.DeleteSecretByName(ctx, 0, repo.ID, ctx.PathParam("secretname"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "DeleteSecret", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "DeleteSecret", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteSecret", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -203,7 +216,7 @@ func (Action) GetVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -229,18 +242,19 @@ func (Action) GetVariable(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "GetVariable", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetVariable", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	variable := &api.ActionVariable{
-		OwnerID: v.OwnerID,
-		RepoID:  v.RepoID,
-		Name:    v.Name,
-		Data:    v.Data,
+		OwnerID:     v.OwnerID,
+		RepoID:      v.RepoID,
+		Name:        v.Name,
+		Data:        v.Data,
+		Description: v.Description,
 	}
 
 	ctx.JSON(http.StatusOK, variable)
@@ -256,7 +270,7 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -283,11 +297,11 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 
 	if err := actions_service.DeleteVariableByName(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParam("variablename")); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "DeleteVariableByName", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "DeleteVariableByName", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteVariableByName", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -305,7 +319,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -325,12 +339,12 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     description: response when creating a repo-level variable
-	//   "204":
-	//     description: response when creating a repo-level variable
 	//   "400":
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     description: variable name already exists.
+	//   "500":
+	//     "$ref": "#/responses/error"
 
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
@@ -342,24 +356,24 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		Name:   variableName,
 	})
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		ctx.Error(http.StatusInternalServerError, "GetVariable", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if v != nil && v.ID > 0 {
-		ctx.Error(http.StatusConflict, "VariableNameAlreadyExists", util.NewAlreadyExistErrorf("variable name %s already exists", variableName))
+		ctx.APIError(http.StatusConflict, util.NewAlreadyExistErrorf("variable name %s already exists", variableName))
 		return
 	}
 
-	if _, err := actions_service.CreateVariable(ctx, 0, repoID, variableName, opt.Value); err != nil {
+	if _, err := actions_service.CreateVariable(ctx, 0, repoID, variableName, opt.Value, opt.Description); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "CreateVariable", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "CreateVariable", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	ctx.Status(http.StatusCreated)
 }
 
 // UpdateVariable update a repo-level variable
@@ -372,7 +386,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -407,9 +421,9 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "GetVariable", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetVariable", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -420,12 +434,13 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 
 	v.Name = opt.Name
 	v.Data = opt.Value
+	v.Description = opt.Description
 
 	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "UpdateVariable", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "UpdateVariable", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -443,7 +458,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -472,16 +487,18 @@ func (Action) ListVariables(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindVariables", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	variables := make([]*api.ActionVariable, len(vars))
 	for i, v := range vars {
 		variables[i] = &api.ActionVariable{
-			OwnerID: v.OwnerID,
-			RepoID:  v.RepoID,
-			Name:    v.Name,
+			OwnerID:     v.OwnerID,
+			RepoID:      v.RepoID,
+			Name:        v.Name,
+			Data:        v.Data,
+			Description: v.Description,
 		}
 	}
 
@@ -512,6 +529,233 @@ func (Action) GetRegistrationToken(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RegistrationToken"
 
 	shared.GetRegistrationToken(ctx, 0, ctx.Repo.Repository.ID)
+}
+
+// CreateRegistrationToken returns the token to register repo runners
+func (Action) CreateRegistrationToken(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runners/registration-token repository repoCreateRunnerRegistrationToken
+	// ---
+	// summary: Get a repository's actions runner registration token
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RegistrationToken"
+
+	shared.GetRegistrationToken(ctx, 0, ctx.Repo.Repository.ID)
+}
+
+// ListRunners get repo-level runners
+func (Action) ListRunners(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runners repository getRepoRunners
+	// ---
+	// summary: Get repo-level runners
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunnersResponse"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.ListRunners(ctx, 0, ctx.Repo.Repository.ID)
+}
+
+// GetRunner get an repo-level runner
+func (Action) GetRunner(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runners/{runner_id} repository getRepoRunner
+	// ---
+	// summary: Get an repo-level runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.GetRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
+}
+
+// DeleteRunner delete an repo-level runner
+func (Action) DeleteRunner(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/actions/runners/{runner_id} repository deleteRepoRunner
+	// ---
+	// summary: Delete an repo-level runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: runner has been deleted
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.DeleteRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
+}
+
+// GetWorkflowRunJobs Lists all jobs for a workflow run.
+func (Action) ListWorkflowJobs(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/jobs repository listWorkflowJobs
+	// ---
+	// summary: Lists all jobs for a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowJobsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repoID := ctx.Repo.Repository.ID
+
+	shared.ListJobs(ctx, 0, repoID, 0)
+}
+
+// ListWorkflowRuns Lists all runs for a repository run.
+func (Action) ListWorkflowRuns(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs repository getWorkflowRuns
+	// ---
+	// summary: Lists all runs for a repository run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: event
+	//   in: query
+	//   description: workflow event name
+	//   type: string
+	//   required: false
+	// - name: branch
+	//   in: query
+	//   description: workflow branch
+	//   type: string
+	//   required: false
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   type: string
+	//   required: false
+	// - name: actor
+	//   in: query
+	//   description: triggered by user
+	//   type: string
+	//   required: false
+	// - name: head_sha
+	//   in: query
+	//   description: triggering sha of the workflow run
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRunsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repoID := ctx.Repo.Repository.ID
+
+	shared.ListRuns(ctx, 0, repoID)
 }
 
 var _ actions_service.API = new(Action)
@@ -569,7 +813,7 @@ func ListActionTasks(ctx *context.APIContext) {
 		RepoID:      ctx.Repo.Repository.ID,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListActionTasks", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -580,7 +824,7 @@ func ListActionTasks(ctx *context.APIContext) {
 	for i := range tasks {
 		convertedTask, err := convert.ToActionTask(ctx, tasks[i])
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "ToActionTask", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		res.Entries[i] = convertedTask
@@ -620,9 +864,9 @@ func ActionsListRepositoryWorkflows(ctx *context.APIContext) {
 	//   "500":
 	//     "$ref": "#/responses/error"
 
-	workflows, err := actions_service.ListActionWorkflows(ctx)
+	workflows, err := convert.ListActionWorkflows(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListActionWorkflows", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -666,12 +910,12 @@ func ActionsGetWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	workflowID := ctx.PathParam("workflow_id")
-	workflow, err := actions_service.GetActionWorkflow(ctx, workflowID)
+	workflow, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "GetActionWorkflow", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetActionWorkflow", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -717,9 +961,9 @@ func ActionsDisableWorkflow(ctx *context.APIContext) {
 	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, false)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "DisableActionWorkflow", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DisableActionWorkflow", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -768,7 +1012,7 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	workflowID := ctx.PathParam("workflow_id")
 	opt := web.GetForm(ctx).(*api.CreateActionWorkflowDispatch)
 	if opt.Ref == "" {
-		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("ref is required parameter"))
+		ctx.APIError(http.StatusUnprocessableEntity, util.NewInvalidArgumentErrorf("ref is required parameter"))
 		return
 	}
 
@@ -794,11 +1038,11 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "DispatchActionWorkflow", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else if errors.Is(err, util.ErrPermissionDenied) {
-			ctx.Error(http.StatusForbidden, "DispatchActionWorkflow", err)
+			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DispatchActionWorkflow", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -846,12 +1090,604 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, true)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "EnableActionWorkflow", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "EnableActionWorkflow", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+// GetWorkflowRun Gets a specific workflow run.
+func GetWorkflowRun(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run} repository GetWorkflowRun
+	// ---
+	// summary: Gets a specific workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: id of the run
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRun"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	runID := ctx.PathParamInt64("run")
+	job, has, err := db.GetByID[actions_model.ActionRun](ctx, runID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if !has || job.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIErrorNotFound(util.ErrNotExist)
+		return
+	}
+
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, job)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedRun)
+}
+
+// ListWorkflowRunJobs Lists all jobs for a workflow run.
+func ListWorkflowRunJobs(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/jobs repository listWorkflowRunJobs
+	// ---
+	// summary: Lists all jobs for a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: runid of the workflow run
+	//   type: integer
+	//   required: true
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowJobsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repoID := ctx.Repo.Repository.ID
+
+	runID := ctx.PathParamInt64("run")
+
+	// Avoid the list all jobs functionality for this api route to be used with a runID == 0.
+	if runID <= 0 {
+		ctx.APIError(http.StatusBadRequest, util.NewInvalidArgumentErrorf("runID must be a positive integer"))
+		return
+	}
+
+	// runID is used as an additional filter next to repoID to ensure that we only list jobs for the specified repoID and runID.
+	// no additional checks for runID are needed here
+	shared.ListJobs(ctx, 0, repoID, runID)
+}
+
+// GetWorkflowJob Gets a specific workflow job for a workflow run.
+func GetWorkflowJob(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/jobs/{job_id} repository getWorkflowJob
+	// ---
+	// summary: Gets a specific workflow job for a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: job_id
+	//   in: path
+	//   description: id of the job
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowJob"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	jobID := ctx.PathParamInt64("job_id")
+	job, has, err := db.GetByID[actions_model.ActionRunJob](ctx, jobID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if !has || job.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIErrorNotFound(util.ErrNotExist)
+		return
+	}
+
+	convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, ctx.Repo.Repository, nil, job)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedWorkflowJob)
+}
+
+// GetArtifactsOfRun Lists all artifacts for a repository.
+func GetArtifactsOfRun(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/artifacts repository getArtifactsOfRun
+	// ---
+	// summary: Lists all artifacts for a repository run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: runid of the workflow run
+	//   type: integer
+	//   required: true
+	// - name: name
+	//   in: query
+	//   description: name of the artifact
+	//   type: string
+	//   required: false
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ArtifactsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repoID := ctx.Repo.Repository.ID
+	artifactName := ctx.Req.URL.Query().Get("name")
+
+	runID := ctx.PathParamInt64("run")
+
+	artifacts, total, err := db.FindAndCount[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
+		RepoID:               repoID,
+		RunID:                runID,
+		ArtifactName:         artifactName,
+		FinalizedArtifactsV4: true,
+		ListOptions:          utils.GetListOptions(ctx),
+	})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	res := new(api.ActionArtifactsResponse)
+	res.TotalCount = total
+
+	res.Entries = make([]*api.ActionArtifact, len(artifacts))
+	for i := range artifacts {
+		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		res.Entries[i] = convertedArtifact
+	}
+
+	ctx.JSON(http.StatusOK, &res)
+}
+
+// DeleteActionRun Delete a workflow run
+func DeleteActionRun(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/actions/runs/{run} repository deleteActionRun
+	// ---
+	// summary: Delete a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: runid of the workflow run
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: "No Content"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	runID := ctx.PathParamInt64("run")
+	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.APIErrorNotFound(err)
+		return
+	} else if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !run.Status.IsDone() {
+		ctx.APIError(http.StatusBadRequest, "this workflow run is not done")
+		return
+	}
+
+	if err := actions_service.DeleteRun(ctx, run); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
+
+// GetArtifacts Lists all artifacts for a repository.
+func GetArtifacts(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts repository getArtifacts
+	// ---
+	// summary: Lists all artifacts for a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: query
+	//   description: name of the artifact
+	//   type: string
+	//   required: false
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ArtifactsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repoID := ctx.Repo.Repository.ID
+	artifactName := ctx.Req.URL.Query().Get("name")
+
+	artifacts, total, err := db.FindAndCount[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
+		RepoID:               repoID,
+		ArtifactName:         artifactName,
+		FinalizedArtifactsV4: true,
+		ListOptions:          utils.GetListOptions(ctx),
+	})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	res := new(api.ActionArtifactsResponse)
+	res.TotalCount = total
+
+	res.Entries = make([]*api.ActionArtifact, len(artifacts))
+	for i := range artifacts {
+		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		res.Entries[i] = convertedArtifact
+	}
+
+	ctx.JSON(http.StatusOK, &res)
+}
+
+// GetArtifact Gets a specific artifact for a workflow run.
+func GetArtifact(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id} repository getArtifact
+	// ---
+	// summary: Gets a specific artifact for a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: artifact_id
+	//   in: path
+	//   description: id of the artifact
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Artifact"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	art := getArtifactByPathParam(ctx, ctx.Repo.Repository)
+	if ctx.Written() {
+		return
+	}
+
+	if actions.IsArtifactV4(art) {
+		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, art)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		ctx.JSON(http.StatusOK, convertedArtifact)
+		return
+	}
+	// v3 not supported due to not having one unique id
+	ctx.APIError(http.StatusNotFound, "Artifact not found")
+}
+
+// DeleteArtifact Deletes a specific artifact for a workflow run.
+func DeleteArtifact(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/actions/artifacts/{artifact_id} repository deleteArtifact
+	// ---
+	// summary: Deletes a specific artifact for a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: artifact_id
+	//   in: path
+	//   description: id of the artifact
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: "No Content"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	art := getArtifactByPathParam(ctx, ctx.Repo.Repository)
+	if ctx.Written() {
+		return
+	}
+
+	if actions.IsArtifactV4(art) {
+		if err := actions_model.SetArtifactNeedDelete(ctx, art.RunID, art.ArtifactName); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		ctx.Status(http.StatusNoContent)
+		return
+	}
+	// v3 not supported due to not having one unique id
+	ctx.APIError(http.StatusNotFound, "Artifact not found")
+}
+
+func buildSignature(endp string, expires, artifactID int64) []byte {
+	mac := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
+	mac.Write([]byte(endp))
+	fmt.Fprint(mac, expires)
+	fmt.Fprint(mac, artifactID)
+	return mac.Sum(nil)
+}
+
+func buildDownloadRawEndpoint(repo *repo_model.Repository, artifactID int64) string {
+	return fmt.Sprintf("api/v1/repos/%s/%s/actions/artifacts/%d/zip/raw", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), artifactID)
+}
+
+func buildSigURL(ctx go_context.Context, endPoint string, artifactID int64) string {
+	// endPoint is a path like "api/v1/repos/owner/repo/actions/artifacts/1/zip/raw"
+	expires := time.Now().Add(60 * time.Minute).Unix()
+	uploadURL := httplib.GuessCurrentAppURL(ctx) + endPoint + "?sig=" + base64.URLEncoding.EncodeToString(buildSignature(endPoint, expires, artifactID)) + "&expires=" + strconv.FormatInt(expires, 10)
+	return uploadURL
+}
+
+// DownloadArtifact Downloads a specific artifact for a workflow run redirects to blob url.
+func DownloadArtifact(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip repository downloadArtifact
+	// ---
+	// summary: Downloads a specific artifact for a workflow run redirects to blob url
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: artifact_id
+	//   in: path
+	//   description: id of the artifact
+	//   type: string
+	//   required: true
+	// responses:
+	//   "302":
+	//     description: redirect to the blob download
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	art := getArtifactByPathParam(ctx, ctx.Repo.Repository)
+	if ctx.Written() {
+		return
+	}
+
+	// if artifacts status is not uploaded-confirmed, treat it as not found
+	if art.Status == actions_model.ArtifactStatusExpired {
+		ctx.APIError(http.StatusNotFound, "Artifact has expired")
+		return
+	}
+	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
+
+	if actions.IsArtifactV4(art) {
+		ok, err := actions.DownloadArtifactV4ServeDirectOnly(ctx.Base, art)
+		if ok {
+			return
+		}
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+
+		redirectURL := buildSigURL(ctx, buildDownloadRawEndpoint(ctx.Repo.Repository, art.ID), art.ID)
+		ctx.Redirect(redirectURL, http.StatusFound)
+		return
+	}
+	// v3 not supported due to not having one unique id
+	ctx.APIError(http.StatusNotFound, "Artifact not found")
+}
+
+// DownloadArtifactRaw Downloads a specific artifact for a workflow run directly.
+func DownloadArtifactRaw(ctx *context.APIContext) {
+	// it doesn't use repoAssignment middleware, so it needs to prepare the repo and check permission (sig) by itself
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ctx.PathParam("username"), ctx.PathParam("reponame"))
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+	art := getArtifactByPathParam(ctx, repo)
+	if ctx.Written() {
+		return
+	}
+
+	sigStr := ctx.Req.URL.Query().Get("sig")
+	expiresStr := ctx.Req.URL.Query().Get("expires")
+	sigBytes, _ := base64.URLEncoding.DecodeString(sigStr)
+	expires, _ := strconv.ParseInt(expiresStr, 10, 64)
+
+	expectedSig := buildSignature(buildDownloadRawEndpoint(repo, art.ID), expires, art.ID)
+	if !hmac.Equal(sigBytes, expectedSig) {
+		ctx.APIError(http.StatusUnauthorized, "Error unauthorized")
+		return
+	}
+	t := time.Unix(expires, 0)
+	if t.Before(time.Now()) {
+		ctx.APIError(http.StatusUnauthorized, "Error link expired")
+		return
+	}
+
+	// if artifacts status is not uploaded-confirmed, treat it as not found
+	if art.Status == actions_model.ArtifactStatusExpired {
+		ctx.APIError(http.StatusNotFound, "Artifact has expired")
+		return
+	}
+	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
+
+	if actions.IsArtifactV4(art) {
+		err := actions.DownloadArtifactV4(ctx.Base, art)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		return
+	}
+	// v3 not supported due to not having one unique id
+	ctx.APIError(http.StatusNotFound, "artifact not found")
+}
+
+// Try to get the artifact by ID and check access
+func getArtifactByPathParam(ctx *context.APIContext, repo *repo_model.Repository) *actions_model.ActionArtifact {
+	artifactID := ctx.PathParamInt64("artifact_id")
+
+	art, ok, err := db.GetByID[actions_model.ActionArtifact](ctx, artifactID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return nil
+	}
+	// if artifacts status is not uploaded-confirmed, treat it as not found
+	// only check RepoID here, because the repository owner may change over the time
+	if !ok ||
+		art.RepoID != repo.ID ||
+		art.Status != actions_model.ArtifactStatusUploadConfirmed && art.Status != actions_model.ArtifactStatusExpired {
+		ctx.APIError(http.StatusNotFound, "artifact not found")
+		return nil
+	}
+	return art
 }

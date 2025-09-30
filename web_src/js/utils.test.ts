@@ -1,8 +1,14 @@
 import {
-  basename, extname, isObject, stripTags, parseIssueHref,
+  dirname, basename, extname, isObject, stripTags, parseIssueHref,
   parseUrl, translateMonth, translateDay, blobToDataURI,
   toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseRepoOwnerPathInfo,
 } from './utils.ts';
+
+test('dirname', () => {
+  expect(dirname('/path/to/file.js')).toEqual('/path/to');
+  expect(dirname('/path/to')).toEqual('/path');
+  expect(dirname('file.js')).toEqual('');
+});
 
 test('basename', () => {
   expect(basename('/path/to/file.js')).toEqual('file.js');

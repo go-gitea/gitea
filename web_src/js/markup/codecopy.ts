@@ -1,4 +1,5 @@
 import {svg} from '../svg.ts';
+import {queryElems} from '../utils/dom.ts';
 
 export function makeCodeCopyButton(): HTMLButtonElement {
   const button = document.createElement('button');
@@ -7,15 +8,15 @@ export function makeCodeCopyButton(): HTMLButtonElement {
   return button;
 }
 
-export function renderCodeCopy(): void {
-  const els = document.querySelectorAll('.markup .code-block code');
-  if (!els.length) return;
-
-  for (const el of els) {
-    if (!el.textContent) continue;
+export function initMarkupCodeCopy(elMarkup: HTMLElement): void {
+  // .markup .code-block code
+  queryElems(elMarkup, '.code-block code', (el) => {
+    if (!el.textContent) return;
     const btn = makeCodeCopyButton();
     // remove final trailing newline introduced during HTML rendering
     btn.setAttribute('data-clipboard-text', el.textContent.replace(/\r?\n$/, ''));
-    el.after(btn);
-  }
+    // we only want to use `.code-block-container` if it exists, no matter `.code-block` exists or not.
+    const btnContainer = el.closest('.code-block-container') ?? el.closest('.code-block');
+    btnContainer.append(btn);
+  });
 }

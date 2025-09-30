@@ -2,16 +2,16 @@
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {getIssueColor, getIssueIcon} from '../features/issue.ts';
-import {computed, onMounted, ref} from 'vue';
+import {computed, onMounted, shallowRef, useTemplateRef} from 'vue';
 import type {IssuePathInfo} from '../types.ts';
 
 const {appSubUrl, i18n} = window.config;
 
-const loading = ref(false);
-const issue = ref(null);
-const renderedLabels = ref('');
+const loading = shallowRef(false);
+const issue = shallowRef(null);
+const renderedLabels = shallowRef('');
 const i18nErrorOccurred = i18n.error_occurred;
-const i18nErrorMessage = ref(null);
+const i18nErrorMessage = shallowRef(null);
 
 const createdAt = computed(() => new Date(issue.value.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'}));
 const body = computed(() => {
@@ -22,7 +22,7 @@ const body = computed(() => {
   return body;
 });
 
-const root = ref<HTMLElement | null>(null);
+const root = useTemplateRef('root');
 
 onMounted(() => {
   root.value.addEventListener('ce-load-context-popup', (e: CustomEventInit<IssuePathInfo>) => {

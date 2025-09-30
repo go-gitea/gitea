@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/code/bleve"
 	"code.gitea.io/gitea/modules/indexer/code/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
@@ -29,13 +30,11 @@ var (
 	// When the real indexer is not ready, it will be a dummy indexer which will return error to explain it's not ready.
 	// So it's always safe use it as *globalIndexer.Load() and call its methods.
 	globalIndexer atomic.Pointer[internal.Indexer]
-	dummyIndexer  *internal.Indexer
 )
 
 func init() {
-	i := internal.NewDummyIndexer()
-	dummyIndexer = &i
-	globalIndexer.Store(dummyIndexer)
+	dummyIndexer := internal.NewDummyIndexer()
+	globalIndexer.Store(&dummyIndexer)
 }
 
 func index(ctx context.Context, indexer internal.Indexer, repoID int64) error {
@@ -303,4 +302,12 @@ func populateRepoIndexer(ctx context.Context) {
 		}
 	}
 	log.Info("Done (re)populating the repo indexer with existing repositories")
+}
+
+func SupportedSearchModes() []indexer.SearchMode {
+	gi := globalIndexer.Load()
+	if gi == nil {
+		return nil
+	}
+	return (*gi).SupportedSearchModes()
 }

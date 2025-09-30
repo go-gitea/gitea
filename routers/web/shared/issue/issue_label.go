@@ -14,14 +14,18 @@ import (
 )
 
 // PrepareFilterIssueLabels reads the "labels" query parameter, sets `ctx.Data["Labels"]` and `ctx.Data["SelectLabels"]`
-func PrepareFilterIssueLabels(ctx *context.Context, repoID int64, owner *user_model.User) (labelIDs []int64) {
+func PrepareFilterIssueLabels(ctx *context.Context, repoID int64, owner *user_model.User) (ret struct {
+	AllLabels        []*issues_model.Label
+	SelectedLabelIDs []int64
+},
+) {
 	// 1,-2 means including label 1 and excluding label 2
 	// 0 means issues with no label
 	// blank means labels will not be filtered for issues
 	selectLabels := ctx.FormString("labels")
 	if selectLabels != "" {
 		var err error
-		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
+		ret.SelectedLabelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("invalid_data", selectLabels), true)
 		}
@@ -32,7 +36,7 @@ func PrepareFilterIssueLabels(ctx *context.Context, repoID int64, owner *user_mo
 		repoLabels, err := issues_model.GetLabelsByRepoID(ctx, repoID, "", db.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLabelsByRepoID", err)
-			return nil
+			return ret
 		}
 		allLabels = append(allLabels, repoLabels...)
 	}
@@ -41,14 +45,14 @@ func PrepareFilterIssueLabels(ctx *context.Context, repoID int64, owner *user_mo
 		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, owner.ID, "", db.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLabelsByOrgID", err)
-			return nil
+			return ret
 		}
 		allLabels = append(allLabels, orgLabels...)
 	}
 
 	// Get the exclusive scope for every label ID
-	labelExclusiveScopes := make([]string, 0, len(labelIDs))
-	for _, labelID := range labelIDs {
+	labelExclusiveScopes := make([]string, 0, len(ret.SelectedLabelIDs))
+	for _, labelID := range ret.SelectedLabelIDs {
 		foundExclusiveScope := false
 		for _, label := range allLabels {
 			if label.ID == labelID || label.ID == -labelID {
@@ -63,9 +67,10 @@ func PrepareFilterIssueLabels(ctx *context.Context, repoID int64, owner *user_mo
 	}
 
 	for _, l := range allLabels {
-		l.LoadSelectedLabelsAfterClick(labelIDs, labelExclusiveScopes)
+		l.LoadSelectedLabelsAfterClick(ret.SelectedLabelIDs, labelExclusiveScopes)
 	}
 	ctx.Data["Labels"] = allLabels
 	ctx.Data["SelectLabels"] = selectLabels
-	return labelIDs
+	ret.AllLabels = allLabels
+	return ret
 }

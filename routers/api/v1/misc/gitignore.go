@@ -48,7 +48,7 @@ func GetGitignoreTemplateInfo(ctx *context.APIContext) {
 
 	text, err := options.Gitignore(name)
 	if err != nil {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 

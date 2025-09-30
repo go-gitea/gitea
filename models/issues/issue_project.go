@@ -49,6 +49,21 @@ func (issue *Issue) ProjectColumnID(ctx context.Context) (int64, error) {
 	return ip.ProjectColumnID, nil
 }
 
+func LoadProjectIssueColumnMap(ctx context.Context, projectID, defaultColumnID int64) (map[int64]int64, error) {
+	issues := make([]project_model.ProjectIssue, 0)
+	if err := db.GetEngine(ctx).Where("project_id=?", projectID).Find(&issues); err != nil {
+		return nil, err
+	}
+	result := make(map[int64]int64, len(issues))
+	for _, issue := range issues {
+		if issue.ProjectColumnID == 0 {
+			issue.ProjectColumnID = defaultColumnID
+		}
+		result[issue.IssueID] = issue.ProjectColumnID
+	}
+	return result, nil
+}
+
 // LoadIssuesFromColumn load issues assigned to this column
 func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *IssuesOptions) (IssueList, error) {
 	issueList, err := Issues(ctx, opts.Copy(func(o *IssuesOptions) {
@@ -61,11 +76,11 @@ func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *Is
 	}
 
 	if b.Default {
-		issues, err := Issues(ctx, &IssuesOptions{
-			ProjectColumnID: db.NoConditionID,
-			ProjectID:       b.ProjectID,
-			SortType:        "project-column-sorting",
-		})
+		issues, err := Issues(ctx, opts.Copy(func(o *IssuesOptions) {
+			o.ProjectColumnID = db.NoConditionID
+			o.ProjectID = b.ProjectID
+			o.SortType = "project-column-sorting"
+		}))
 		if err != nil {
 			return nil, err
 		}
@@ -77,19 +92,6 @@ func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *Is
 	}
 
 	return issueList, nil
-}
-
-// LoadIssuesFromColumnList load issues assigned to the columns
-func LoadIssuesFromColumnList(ctx context.Context, bs project_model.ColumnList, opts *IssuesOptions) (map[int64]IssueList, error) {
-	issuesMap := make(map[int64]IssueList, len(bs))
-	for i := range bs {
-		il, err := LoadIssuesFromColumn(ctx, bs[i], opts)
-		if err != nil {
-			return nil, err
-		}
-		issuesMap[bs[i].ID] = il
-	}
-	return issuesMap, nil
 }
 
 // IssueAssignOrRemoveProject changes the project associated with an issue
@@ -112,7 +114,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 				return util.NewPermissionDeniedErrorf("issue %d can't be accessed by project %d", issue.ID, newProject.ID)
 			}
 			if newColumnID == 0 {
-				newDefaultColumn, err := newProject.GetDefaultColumn(ctx)
+				newDefaultColumn, err := newProject.MustDefaultColumn(ctx)
 				if err != nil {
 					return err
 				}

@@ -22,7 +22,7 @@ func ListUserBadges(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose badges are to be listed
 	//   type: string
 	//   required: true
 	// responses:
@@ -33,7 +33,7 @@ func ListUserBadges(ctx *context.APIContext) {
 
 	badges, maxResults, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserBadges", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -53,7 +53,7 @@ func AddUserBadges(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user to whom a badge is to be added
 	//   type: string
 	//   required: true
 	// - name: body
@@ -70,7 +70,7 @@ func AddUserBadges(ctx *context.APIContext) {
 	badges := prepareBadgesForReplaceOrAdd(*form)
 
 	if err := user_model.AddUserBadges(ctx, ctx.ContextUser, badges); err != nil {
-		ctx.Error(http.StatusInternalServerError, "ReplaceUserBadges", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -87,7 +87,7 @@ func DeleteUserBadges(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose badge is to be deleted
 	//   type: string
 	//   required: true
 	// - name: body
@@ -106,7 +106,7 @@ func DeleteUserBadges(ctx *context.APIContext) {
 	badges := prepareBadgesForReplaceOrAdd(*form)
 
 	if err := user_model.RemoveUserBadges(ctx, ctx.ContextUser, badges); err != nil {
-		ctx.Error(http.StatusInternalServerError, "ReplaceUserBadges", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

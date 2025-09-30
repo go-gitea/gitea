@@ -9,8 +9,10 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -24,12 +26,14 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/templates/vars"
+	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
@@ -270,14 +274,29 @@ func combineLabelComments(issue *issues_model.Issue) {
 	}
 }
 
-// ViewIssue render issue view page
-func ViewIssue(ctx *context.Context) {
+func prepareIssueViewLoad(ctx *context.Context) *issues_model.Issue {
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
+		return nil
+	}
+	issue.Repo = ctx.Repo.Repository
+	ctx.Data["Issue"] = issue
+
+	if err = issue.LoadPullRequest(ctx); err != nil {
+		ctx.ServerError("LoadPullRequest", err)
+		return nil
+	}
+	return issue
+}
+
+func handleViewIssueRedirectExternal(ctx *context.Context) {
 	if ctx.PathParam("type") == "issues" {
 		// If issue was requested we check if repo has external tracker and redirect
 		extIssueUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 		if err == nil && extIssueUnit != nil {
 			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
-				metas := ctx.Repo.Repository.ComposeMetas(ctx)
+				metas := ctx.Repo.Repository.ComposeCommentMetas(ctx)
 				metas["index"] = ctx.PathParam("index")
 				res, err := vars.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas)
 				if err != nil {
@@ -293,18 +312,18 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 	}
+}
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound("GetIssueByIndex", err)
-		} else {
-			ctx.ServerError("GetIssueByIndex", err)
-		}
+// ViewIssue render issue view page
+func ViewIssue(ctx *context.Context) {
+	handleViewIssueRedirectExternal(ctx)
+	if ctx.Written() {
 		return
 	}
-	if issue.Repo == nil {
-		issue.Repo = ctx.Repo.Repository
+
+	issue := prepareIssueViewLoad(ctx)
+	if ctx.Written() {
+		return
 	}
 
 	// Make sure type and URL matches.
@@ -336,12 +355,12 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
-	if err = issue.LoadAttributes(ctx); err != nil {
+	if err := issue.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
 
-	if err = filterXRefComments(ctx, issue); err != nil {
+	if err := filterXRefComments(ctx, issue); err != nil {
 		ctx.ServerError("filterXRefComments", err)
 		return
 	}
@@ -350,7 +369,7 @@ func ViewIssue(ctx *context.Context) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = activities_model.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
+		if err := activities_model.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
 			ctx.ServerError("ReadBy", err)
 			return
 		}
@@ -364,15 +383,13 @@ func ViewIssue(ctx *context.Context) {
 
 	prepareFuncs := []func(*context.Context, *issues_model.Issue){
 		prepareIssueViewContent,
-		func(ctx *context.Context, issue *issues_model.Issue) {
-			preparePullViewPullInfo(ctx, issue)
-		},
 		prepareIssueViewCommentsAndSidebarParticipants,
-		preparePullViewReviewAndMerge,
 		prepareIssueViewSidebarWatch,
 		prepareIssueViewSidebarTimeTracker,
 		prepareIssueViewSidebarDependency,
 		prepareIssueViewSidebarPin,
+		func(ctx *context.Context, issue *issues_model.Issue) { preparePullViewPullInfo(ctx, issue) },
+		preparePullViewReviewAndMerge,
 	}
 
 	for _, prepareFunc := range prepareFuncs {
@@ -411,7 +428,27 @@ func ViewIssue(ctx *context.Context) {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
 
+	if issue.PullRequest != nil && !issue.PullRequest.IsChecking() && !setting.IsProd {
+		ctx.Data["PullMergeBoxReloadingInterval"] = 1 // in dev env, force using the reloading logic to make sure it won't break
+	}
+
 	ctx.HTML(http.StatusOK, tplIssueView)
+}
+
+func ViewPullMergeBox(ctx *context.Context) {
+	issue := prepareIssueViewLoad(ctx)
+	if !issue.IsPull {
+		ctx.NotFound(nil)
+		return
+	}
+	preparePullViewPullInfo(ctx, issue)
+	preparePullViewReviewAndMerge(ctx, issue)
+	ctx.Data["PullMergeBoxReloading"] = issue.PullRequest.IsChecking()
+
+	// TODO: it should use a dedicated struct to render the pull merge box, to make sure all data is prepared correctly
+	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
+	ctx.HTML(http.StatusOK, tplPullMergeBox)
 }
 
 func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model.Issue) {
@@ -456,9 +493,9 @@ func preparePullViewSigning(ctx *context.Context, issue *issues_model.Issue) {
 	pull := issue.PullRequest
 	ctx.Data["WillSign"] = false
 	if ctx.Doer != nil {
-		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitRefName())
+		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitHeadRefName())
 		ctx.Data["WillSign"] = sign
-		ctx.Data["SigningKey"] = key
+		ctx.Data["SigningKeyMergeDisplay"] = asymkey_model.GetDisplaySigningKey(key)
 		if err != nil {
 			if asymkey_service.IsErrWontSign(err) {
 				ctx.Data["WontSignReason"] = err.(*asymkey_service.ErrWontSign).Reason
@@ -526,7 +563,7 @@ func preparePullViewDeleteBranch(ctx *context.Context, issue *issues_model.Issue
 	pull := issue.PullRequest
 	isPullBranchDeletable := canDelete &&
 		pull.HeadRepo != nil &&
-		git.IsBranchExist(ctx, pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
+		gitrepo.IsBranchExist(ctx, pull.HeadRepo, pull.HeadBranch) &&
 		(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
 
 	if isPullBranchDeletable && pull.HasMerged {
@@ -543,7 +580,11 @@ func preparePullViewDeleteBranch(ctx *context.Context, issue *issues_model.Issue
 
 func prepareIssueViewSidebarPin(ctx *context.Context, issue *issues_model.Issue) {
 	var pinAllowed bool
-	if !issue.IsPinned() {
+	if err := issue.LoadPinOrder(ctx); err != nil {
+		ctx.ServerError("LoadPinOrder", err)
+		return
+	}
+	if issue.PinOrder == 0 {
 		var err error
 		pinAllowed, err = issues_model.IsNewPinAllowed(ctx, issue.RepoID, issue.IsPull)
 		if err != nil {
@@ -589,7 +630,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 		comment.Issue = issue
 
 		if comment.Type == issues_model.CommentTypeComment || comment.Type == issues_model.CommentTypeReview {
-			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo)
+			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
+				FootnoteContextID: strconv.FormatInt(comment.ID, 10),
+			})
 			comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -665,7 +708,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				}
 			}
 		} else if comment.Type.HasContentSupport() {
-			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo)
+			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
+				FootnoteContextID: strconv.FormatInt(comment.ID, 10),
+			})
 			comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -716,12 +761,15 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			}
 		} else if comment.Type == issues_model.CommentTypePullRequestPush {
 			participants = addParticipant(comment.Poster, participants)
-			if err = comment.LoadPushCommits(ctx); err != nil {
-				ctx.ServerError("LoadPushCommits", err)
+			if err = issue_service.LoadCommentPushCommits(ctx, comment); err != nil {
+				ctx.ServerError("LoadCommentPushCommits", err)
 				return
 			}
 			if !ctx.Repo.CanRead(unit.TypeActions) {
 				for _, commit := range comment.Commits {
+					if commit.Status == nil {
+						continue
+					}
 					commit.Status.HideActionsURL(ctx)
 					git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
 				}
@@ -787,6 +835,8 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 	allowMerge := false
 	canWriteToHeadRepo := false
 
+	pull_service.StartPullRequestCheckOnView(ctx, pull)
+
 	if ctx.IsSigned {
 		if err := pull.LoadHeadRepo(ctx); err != nil {
 			log.Error("LoadHeadRepo: %v", err)
@@ -833,6 +883,7 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		}
 	}
 
+	ctx.Data["PullMergeBoxReloadingInterval"] = util.Iif(pull != nil && pull.IsChecking(), 2000, 0)
 	ctx.Data["CanWriteToHeadRepo"] = canWriteToHeadRepo
 	ctx.Data["ShowMergeInstructions"] = canWriteToHeadRepo
 	ctx.Data["AllowMerge"] = allowMerge
@@ -943,7 +994,9 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 
 func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 	var err error
-	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
+		FootnoteContextID: "0", // Set footnote context ID to 0 for the issue content
+	})
 	issue.RenderedContent, err = markdown.RenderString(rctx, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -953,5 +1006,4 @@ func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 		ctx.ServerError("roleDescriptor", err)
 		return
 	}
-	ctx.Data["Issue"] = issue
 }

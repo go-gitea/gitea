@@ -56,7 +56,7 @@ func ListTopics(ctx *context.APIContext) {
 
 	topics, total, err := db.FindAndCount[repo_model.Topic](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -124,7 +124,7 @@ func UpdateTopics(ctx *context.APIContext) {
 	err := repo_model.SaveTopics(ctx, ctx.Repo.Repository.ID, validTopics...)
 	if err != nil {
 		log.Error("SaveTopics failed: %v", err)
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -178,7 +178,7 @@ func AddTopic(ctx *context.APIContext) {
 	})
 	if err != nil {
 		log.Error("CountTopics failed: %v", err)
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if count >= 25 {
@@ -191,7 +191,7 @@ func AddTopic(ctx *context.APIContext) {
 	_, err = repo_model.AddTopic(ctx, ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("AddTopic failed: %v", err)
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -242,12 +242,12 @@ func DeleteTopic(ctx *context.APIContext) {
 	topic, err := repo_model.DeleteTopic(ctx, ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("DeleteTopic failed: %v", err)
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if topic == nil {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -290,7 +290,7 @@ func TopicSearch(ctx *context.APIContext) {
 
 	topics, total, err := db.FindAndCount[repo_model.Topic](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
