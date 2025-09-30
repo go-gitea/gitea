@@ -143,14 +143,15 @@
         {{if .IsRepoEmpty}}
             {{template "repo/empty" .}}
         {{else}}
-            {{/* Bubble view placeholder - user will replace with Vue later */}}
+            {{/* Bubble view */}}
             {{if .IsBubbleView}}
-            <div class="ui segment">
-                <div class="ui message">
-                    <div class="header">Bubble view</div>
-                    <p>This view will be provided by a Vue component.</p>
-                </div>
+            
+            <div id="bubble-view-root" class="tw-w-full tw-h-full"
+                data-owner="{{.Repository.Owner.Name}}"
+                data-repo="{{.Repository.Name}}"
+                data-api-url="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/forks/graph">
             </div>
+            
             {{end}}
 
             {{/* Table view */}}
