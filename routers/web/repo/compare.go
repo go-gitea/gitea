@@ -269,7 +269,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	ctx.Data["HeadIsBranch"] = ci.HeadFullRef.IsBranch()
 	ctx.Data["HeadIsTag"] = ci.HeadFullRef.IsTag()
 
-	ci.CompareInfo, err = pull_service.GetCompareInfo(ctx, baseRepo, ci.HeadRepo, ci.BaseFullRef.String(), ci.HeadFullRef.String(), ci.DirectComparison(), fileOnly)
+	ci.CompareInfo, err = pull_service.GetCompareInfo(ctx, baseRepo, ci.HeadRepo, ci.HeadGitRepo, ci.BaseFullRef.String(), ci.HeadFullRef.String(), ci.DirectComparison(), fileOnly)
 	if err != nil {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
