@@ -133,6 +133,15 @@
 /* Articles table spacing */
 #articles-table col.checkbox { width: 10px; }
 #articles-table col.actions { width: 80px; }
+#bubble-view-root {
+    height: calc(100vh - 25rem);
+    overflow: auto;
+    margin-bottom: calc(0px - var(--page-space-bottom));
+    margin-top: -1rem;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    width: calc(100% + 2rem);
+}
 </style>
 <div role="main" aria-label="{{.Title}}" class="page-content repository file list">
     {{template "repo/header" .}}
@@ -146,7 +155,7 @@
             {{/* Bubble view */}}
             {{if .IsBubbleView}}
             
-            <div id="bubble-view-root" class="tw-w-full tw-h-full"
+            <div id="bubble-view-root"
                 data-owner="{{.Repository.Owner.Name}}"
                 data-repo="{{.Repository.Name}}"
                 data-api-url="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/forks/graph">

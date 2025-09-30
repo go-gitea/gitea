@@ -91,6 +91,8 @@ const state = reactive({
   auto: true,                             // responsive auto-tuning toggle
   /* Max contributors across current graph (for relative radius scaling) */
   maxContrib: 1,
+  /* Additional global attenuation to reduce bubble sizes for small screens / many forks */
+  radiusScale: 1,
 });
 
 /* Derived arrays used for Vue rendering (instead of D3 joins) */
@@ -175,7 +177,8 @@ function rFor(n:number){
   const max = state.maxContrib || 1;
   if (max <= 0) return R_MIN;
   const t = Math.max(0, Math.min(1, n / max));
-  return R_MIN + (R_MAX - R_MIN) * t;
+  const base = R_MIN + (R_MAX - R_MIN) * t;
+  return base * (state.radiusScale || 1);
 }
 
 function getRoot(g:Graph){ return Object.values(g).find(n=>n.parentId===null)!; }
@@ -201,6 +204,7 @@ function applyResponsiveDials(){
   const forks = forkCount(state.graph);
   const maxKids = parentMaxChildren(state.graph);
   const w = containerWidth;
+  const vh = (typeof window !== 'undefined' && window.innerHeight) ? window.innerHeight : 900;
 
   const widthFactor = Math.min(1, Math.max(0, (w - 480) / (1200 - 480))); // <480 ⇒ 0, >1200 ⇒ 1
   const complexity  = Math.min(1, (forks   / 10));                         // 0..1 over ~10 edges
@@ -216,6 +220,15 @@ function applyResponsiveDials(){
   state.branchSpacing = Math.round(J_MIN + (J_MAX - J_MIN) * (0.25 + 0.75 * Math.max(widthFactor, complexity)));
 
   state.lanePad = Math.round(8 + 12 * Math.max(widthFactor * 0.5, complexity * 0.3));
+
+  // Compute a gentle attenuation for bubble sizes to improve vertical fit without scrolling
+  // Height factor: smaller screens → smaller bubbles (0.7..1.0)
+  const heightNorm = Math.min(1, Math.max(0, (vh - 640) / (1080 - 640)));
+  const heightFactor = 0.7 + 0.3 * heightNorm;
+  // Fork factor: more forks → smaller bubbles (down to ~0.8)
+  const forksFactor = 1 - Math.min(0.20, forks * 0.02);
+  // Combine and clamp to avoid over-shrinking
+  state.radiusScale = Math.max(0.65, Math.min(1, heightFactor * forksFactor));
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────-
@@ -514,7 +527,7 @@ const kComputed = computed(()=> currentK);
 </script>
 
 <template>
-  <div class="tw-w-full tw-min-h-[100vh] tw-overflow-hidden">
+  <div class="f-fishbone-graph">
     <div class="mx-auto max-w-[1100px] relative" ref="containerRef">
       <!-- Controls removed; using defaults -->
 
@@ -572,5 +585,9 @@ const kComputed = computed(()=> currentK);
 </template>
 
 <style scoped>
-/* Tailwind covers most; gradients/shadows defined in <defs>. */
+.f-fishbone-graph {
+  width: 100%;
+  height: calc(100vh - 25rem);
+  overflow: auto;
+}
 </style>
