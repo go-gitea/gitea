@@ -274,6 +274,7 @@ func getMessageBody(htmlText string) string {
 
 // getMatrixTxnID computes the transaction ID to ensure idempotency
 func getMatrixTxnID(payload []byte) (string, error) {
+	payload = bytes.TrimSpace(payload)
 	if len(payload) >= matrixPayloadSizeLimit {
 		return "", fmt.Errorf("getMatrixTxnID: payload size %d > %d", len(payload), matrixPayloadSizeLimit)
 	}
