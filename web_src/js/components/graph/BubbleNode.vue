@@ -45,7 +45,7 @@ function recomputeFit(){
   const availH = Dpx - 2*pad;
 
   // count font scales with radius but clamped; other lines fixed
-  const fsCount = Math.min(28, Math.max(9, r*0.9));
+  const fsCount = Math.min(34, Math.max(10, r*0.95));
   const fsLabel = 12, fsSmall = 11;
   const gap1 = 6, gap2 = 6, updInnerGap = 6;
 

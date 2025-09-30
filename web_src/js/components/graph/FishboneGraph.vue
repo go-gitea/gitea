@@ -39,8 +39,8 @@ type Graph = Record<string, Node>;
 
 const RANDOM_MIN = 10, RANDOM_MAX = 600;
 
-/* Bubble radius: √n sublinear. Min radius 8px ⇒ min diameter 16px. */
-const R_MIN = 8, R_MAX = 120, R_K = 4.2;
+/* Bubble radius: relative to dataset (normalized by max contributors). */
+const R_MIN = 8, R_MAX = 120;
 const MAX_DEPTH = 4;                         // avoid explosion during demos
 
 /* Generation spacing (vertical lanes) */
@@ -89,6 +89,8 @@ const state = reactive({
   pathPad: PATH_PAD_DEFAULT,
 
   auto: true,                             // responsive auto-tuning toggle
+  /* Max contributors across current graph (for relative radius scaling) */
+  maxContrib: 1,
 });
 
 /* Derived arrays used for Vue rendering (instead of D3 joins) */
@@ -150,7 +152,8 @@ function buildGraphFromApi(root:any): Graph{
   if(!root) return g;
   const visit = (n:any, parentId: string | null)=>{
     const id: string = n?.id ?? (n?.repository?.full_name ?? Math.random().toString(36).slice(2));
-    const contributors: number = n?.contributors?.total_count ?? n?.contributors?.recent_count ?? 0;
+    const baseContrib: number = Number(n?.contributors?.total_count ?? n?.contributors?.recent_count ?? 0);
+    const contributors: number = (Number.isFinite(baseContrib) ? baseContrib : 0) + 1; // include original contributor
     const updatedAt: string | undefined = n?.repository?.updated_at ?? n?.repository?.updated ?? undefined;
     const node: Node = { id, contributors, parentId, children: [], updatedAt };
     g[id] = node;
@@ -168,7 +171,12 @@ function buildGraphFromApi(root:any): Graph{
    HELPERS (math + graph)
    ─────────────────────────────────────────────────────────────────────────── */
 
-function rFor(n:number){ return Math.max(R_MIN, Math.min(R_MAX, R_K * Math.sqrt(n))); }
+function rFor(n:number){
+  const max = state.maxContrib || 1;
+  if (max <= 0) return R_MIN;
+  const t = Math.max(0, Math.min(1, n / max));
+  return R_MIN + (R_MAX - R_MIN) * t;
+}
 
 function getRoot(g:Graph){ return Object.values(g).find(n=>n.parentId===null)!; }
 
@@ -221,6 +229,9 @@ type HRun = { x0:number; x1:number; y:number };
 function layoutFishbone(g:Graph){
   computeDepths(g);
   const root:any = getRoot(g); root.x = 0; root.y = 0;
+
+  // Update global max contributors for relative radius scaling
+  state.maxContrib = Math.max(1, ...Object.values(g).map(n => n.contributors || 0));
 
   const discs: Disc[] = [{ x:root.x, y:root.y, r:rFor(root.contributors), id:root.id }];
   const trunks: SegV[] = []; const arcs: Arc[] = []; const runs: HRun[] = [];
