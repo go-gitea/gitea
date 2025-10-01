@@ -1583,7 +1583,10 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 	}
 
 	if err := pull_service.ChangeTargetBranch(ctx, pr, ctx.Doer, targetBranch); err != nil {
-		if issues_model.IsErrPullRequestAlreadyExists(err) {
+		switch {
+		case git_model.IsErrBranchNotExist(err):
+			ctx.HTTPError(http.StatusBadRequest)
+		case issues_model.IsErrPullRequestAlreadyExists(err):
 			err := err.(issues_model.ErrPullRequestAlreadyExists)
 
 			RepoRelPath := ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
@@ -1594,7 +1597,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"error":      err.Error(),
 				"user_error": errorMessage,
 			})
-		} else if issues_model.IsErrIssueIsClosed(err) {
+		case issues_model.IsErrIssueIsClosed(err):
 			errorMessage := ctx.Tr("repo.pulls.is_closed")
 
 			ctx.Flash.Error(errorMessage)
@@ -1602,7 +1605,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"error":      err.Error(),
 				"user_error": errorMessage,
 			})
-		} else if pull_service.IsErrPullRequestHasMerged(err) {
+		case pull_service.IsErrPullRequestHasMerged(err):
 			errorMessage := ctx.Tr("repo.pulls.has_merged")
 
 			ctx.Flash.Error(errorMessage)
@@ -1610,7 +1613,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"error":      err.Error(),
 				"user_error": errorMessage,
 			})
-		} else if git_model.IsErrBranchesEqual(err) {
+		case git_model.IsErrBranchesEqual(err):
 			errorMessage := ctx.Tr("repo.pulls.nothing_to_compare")
 
 			ctx.Flash.Error(errorMessage)
@@ -1618,7 +1621,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"error":      err.Error(),
 				"user_error": errorMessage,
 			})
-		} else {
+		default:
 			ctx.ServerError("UpdatePullRequestTarget", err)
 		}
 		return
