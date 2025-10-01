@@ -222,10 +222,9 @@ func TestGetContributorStats(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	ctx := context.Background()
 
 	// Test getting contributor stats
-	stats, err := getContributorStats(ctx, repo, 90)
+	stats, err := getContributorStats(repo, 90)
 
 	// Should not error even if stats are not available
 	assert.NoError(t, err)
