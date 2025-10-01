@@ -26,11 +26,12 @@ const RequiredVersion = "2.0.0" // the minimum Git version required
 type Features struct {
 	gitVersion *version.Version
 
-	UsingGogit             bool
-	SupportProcReceive     bool           // >= 2.29
-	SupportHashSha256      bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
-	SupportedObjectFormats []ObjectFormat // sha1, sha256
-	SupportCheckAttrOnBare bool           // >= 2.40
+	UsingGogit                 bool
+	SupportProcReceive         bool           // >= 2.29
+	SupportHashSha256          bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
+	SupportedObjectFormats     []ObjectFormat // sha1, sha256
+	SupportCheckAttrOnBare     bool           // >= 2.40
+	SupportCatFileBatchCommand bool           // >= 2.36, support `git cat-file --batch-command`
 }
 
 var defaultFeatures *Features
@@ -75,6 +76,7 @@ func loadGitVersionFeatures() (*Features, error) {
 		features.SupportedObjectFormats = append(features.SupportedObjectFormats, Sha256ObjectFormat)
 	}
 	features.SupportCheckAttrOnBare = features.CheckVersionAtLeast("2.40")
+	features.SupportCatFileBatchCommand = features.CheckVersionAtLeast("2.36")
 	return features, nil
 }
 

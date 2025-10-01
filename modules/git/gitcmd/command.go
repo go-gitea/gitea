@@ -184,6 +184,12 @@ func (c *Command) AddConfig(key, value string) *Command {
 	return c
 }
 
+// ToTrustCmdArg converts a string (trusted as argument) to CmdArg
+// In most cases, it shouldn't be used. Use AddXxx function instead
+func ToTrustCmdArg(arg string) internal.CmdArg {
+	return internal.CmdArg(arg)
+}
+
 // ToTrustedCmdArgs converts a list of strings (trusted as argument) to TrustedCmdArgs
 // In most cases, it shouldn't be used. Use NewCommand().AddXxx() function instead
 func ToTrustedCmdArgs(args []string) TrustedCmdArgs {

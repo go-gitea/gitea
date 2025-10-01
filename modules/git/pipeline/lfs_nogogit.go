@@ -47,7 +47,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -61,17 +61,14 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 	fnameBuf := make([]byte, 4096)
 	modeBuf := make([]byte, 40)
 	workingShaBuf := make([]byte, objectID.Type().FullLength()/2)
+	batchReader := batch.Reader()
 
 	for scan.Scan() {
 		// Get the next commit ID
 		commitID := scan.Bytes()
 
 		// push the commit to the cat-file --batch process
-		_, err := batchStdinWriter.Write(commitID)
-		if err != nil {
-			return nil, err
-		}
-		_, err = batchStdinWriter.Write([]byte{'\n'})
+		_, err := batch.Write(append(commitID, '\n'))
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +90,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 				if err != nil {
 					return nil, err
 				}
-				_, err = batchStdinWriter.Write([]byte(id + "\n"))
+				_, err = batch.Write([]byte(id + "\n"))
 				if err != nil {
 					return nil, err
 				}
@@ -108,7 +105,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 					return nil, err
 				}
 
-				if _, err := batchStdinWriter.Write([]byte(curCommit.Tree.ID.String() + "\n")); err != nil {
+				if _, err := batch.Write([]byte(curCommit.Tree.ID.String() + "\n")); err != nil {
 					return nil, err
 				}
 				curPath = ""
@@ -140,11 +137,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 					return nil, err
 				}
 				if len(trees) > 0 {
-					_, err := batchStdinWriter.Write(trees[len(trees)-1])
-					if err != nil {
-						return nil, err
-					}
-					_, err = batchStdinWriter.Write([]byte("\n"))
+					_, err := batch.Write(append(trees[len(trees)-1], '\n'))
 					if err != nil {
 						return nil, err
 					}
