@@ -4,6 +4,7 @@
 package fileicon
 
 import (
+	"context"
 	"html/template"
 	"strings"
 
@@ -34,7 +35,7 @@ func (p *RenderedIconPool) RenderToHTML() template.HTML {
 }
 
 func RenderEntryIconHTML(renderedIconPool *RenderedIconPool, entry *EntryInfo) template.HTML {
-	if setting.Config().Theme.DefaultFileIconTheme.Value(nil) == "material" {
+	if setting.Config().Theme.DefaultFileIconTheme.Value(context.Background()) == "material" {
 		return DefaultMaterialIconProvider().EntryIconHTML(renderedIconPool, entry)
 	}
 	return BasicEntryIconHTML(entry)

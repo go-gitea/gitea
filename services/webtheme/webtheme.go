@@ -4,6 +4,7 @@
 package webtheme
 
 import (
+	"context"
 	"regexp"
 	"sort"
 	"strings"
@@ -107,7 +108,7 @@ func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 
 func initThemes() {
 	availableThemes = nil
-	defaultTheme := setting.Config().Theme.DefaultTheme.Value(nil)
+	defaultTheme := setting.Config().Theme.DefaultTheme.Value(context.Background())
 	defer func() {
 		availableThemeInternalNames = container.Set[string]{}
 		for _, theme := range availableThemes {

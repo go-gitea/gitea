@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/mailer"
+	"code.gitea.io/gitea/services/webtheme"
 
 	"gitea.com/go-chi/session"
 )
@@ -192,7 +193,7 @@ func ConfigSettings(ctx *context.Context) {
 	ctx.Data["PageIsAdminConfig"] = true
 	ctx.Data["PageIsAdminConfigSettings"] = true
 	ctx.Data["DefaultOpenWithEditorAppsString"] = setting.DefaultOpenWithEditorApps().ToTextareaString()
-	ctx.Data["AvailableThemes"] = setting.UI.Themes
+	ctx.Data["AvailableThemes"] = webtheme.GetAvailableThemes()
 	ctx.Data["AvailableFileIconThemes"] = []string{"material", "basic"}
 	ctx.HTML(http.StatusOK, tplConfigSettings)
 }

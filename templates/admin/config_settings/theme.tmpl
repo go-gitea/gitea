@@ -1,33 +1,33 @@
 <h4 class="ui top attached header">
 	{{ctx.Locale.Tr "admin.config.theme"}}
 </h4>
-<div class="ui attached table segment">
+<div class="ui attached table segment dropdown-container">
 	<dl class="admin-dl-horizontal">
 		<dt>{{ctx.Locale.Tr "admin.config.default_theme"}}</dt>
 		<dd>
-			<div class="ui floating dropdown jump">
-				<div class="ui basic compact button">
+			<div class="ui selection dropdown js-theme-config-dropdown" data-config-key="theme.default_theme">
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="text">
 					<strong>{{$.SystemConfig.Theme.DefaultTheme.Value ctx}}</strong>
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</div>
-				<div class="left menu">
+				<div class="menu">
 					{{range .AvailableThemes}}
-						<a class="{{if eq ($.SystemConfig.Theme.DefaultTheme.Value ctx) .}}active {{end}}item" href="{{$.RepoLink}}/activity/daily">{{.}}</a>
+						<div class="{{if eq ($.SystemConfig.Theme.DefaultTheme.Value ctx) .DisplayName}}active selected {{end}}item" data-value="{{.DisplayName}}">{{.DisplayName}}</div>
 					{{end}}
 				</div>
 			</div>
 		</dd>
 		<div class="divider"></div>
-		<dt>{{ctx.Locale.Tr "admin.config.file_icon_theme"}}</dt>
+		<dt>{{ctx.Locale.Tr "admin.config.default_file_icon_theme"}}</dt>
 		<dd>
-			<div class="ui floating dropdown jump">
-				<div class="ui basic compact button">
-					<strong>{{$.SystemConfig.Theme.FileIconTheme.Value ctx}}</strong>
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<div class="ui selection dropdown js-theme-config-dropdown" data-config-key="theme.default_file_icon_theme">
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="text">
+					<strong>{{$.SystemConfig.Theme.DefaultFileIconTheme.Value ctx}}</strong>
 				</div>
-				<div class="left menu">
+				<div class="menu">
 					{{range .AvailableFileIconThemes}}
-						<a class="{{if eq ($.SystemConfig.Theme.FileIconTheme.Value ctx) .}}active {{end}}item" href="{{$.RepoLink}}/activity/daily">{{.}}</a>
+						<div class="{{if eq ($.SystemConfig.Theme.DefaultFileIconTheme.Value ctx) .}}active selected {{end}}item" data-value="{{.}}">{{.}}</div>
 					{{end}}
 				</div>
 			</div>

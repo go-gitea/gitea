@@ -5,6 +5,7 @@
 package templates
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"net/url"
@@ -218,7 +219,7 @@ func evalTokens(tokens ...any) (any, error) {
 }
 
 func userThemeName(user *user_model.User) string {
-	defaultTheme := setting.Config().Theme.DefaultTheme.Value(nil)
+	defaultTheme := setting.Config().Theme.DefaultTheme.Value(context.Background())
 	if user == nil || user.Theme == "" {
 		return defaultTheme
 	}
