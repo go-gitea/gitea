@@ -229,6 +229,10 @@ func RelativePath(ownerName, repoName string) string {
 	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
 }
 
+func RelativeWikiPath(ownerName, repoName string) string {
+	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".wiki.git"
+}
+
 // RelativePath should be an unix style path like username/reponame.git
 func (repo *Repository) RelativePath() string {
 	return RelativePath(repo.OwnerName, repo.Name)
@@ -241,8 +245,10 @@ func (sr StorageRepo) RelativePath() string {
 	return string(sr)
 }
 
+// WikiStorageRepo returns the storage repo for the wiki
+// The wiki repository should have the same object format as the code repository
 func (repo *Repository) WikiStorageRepo() StorageRepo {
-	return StorageRepo(strings.ToLower(repo.OwnerName) + "/" + strings.ToLower(repo.Name) + ".wiki.git")
+	return StorageRepo(RelativeWikiPath(repo.OwnerName, repo.Name))
 }
 
 // SanitizedOriginalURL returns a sanitized OriginalURL

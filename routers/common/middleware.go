@@ -107,8 +107,8 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 	return proxy.ForwardedHeaders(opt)
 }
 
-func Sessioner() func(next http.Handler) http.Handler {
-	return session.Sessioner(session.Options{
+func Sessioner() (func(next http.Handler) http.Handler, error) {
+	middleware, err := session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
 		CookieName:     setting.SessionConfig.CookieName,
@@ -119,4 +119,9 @@ func Sessioner() func(next http.Handler) http.Handler {
 		SameSite:       setting.SessionConfig.SameSite,
 		Domain:         setting.SessionConfig.Domain,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session middleware: %w", err)
+	}
+
+	return middleware, nil
 }

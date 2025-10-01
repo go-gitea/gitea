@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_23"
 	"code.gitea.io/gitea/models/migrations/v1_24"
 	"code.gitea.io/gitea/models/migrations/v1_25"
+	"code.gitea.io/gitea/models/migrations/v1_26"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -393,7 +394,10 @@ func prepareMigrationTasks() []*migration {
 
 		// Gitea 1.24.0 ends at database version 321
 		newMigration(321, "Use LONGTEXT for some columns and fix review_state.updated_files column", v1_25.UseLongTextInSomeColumnsAndFixBugs),
-		newMigration(322, "Add table issue_dev_link", v1_25.CreateTableIssueDevLink),
+		newMigration(322, "Extend comment tree_path length limit", v1_25.ExtendCommentTreePathLength),
+
+		// Gitea 1.25.0 ends at database version 323
+		newMigration(323, "Add table issue_dev_link", v1_26.CreateTableIssueDevLink),
 	}
 	return preparedMigrations
 }

@@ -20,6 +20,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
@@ -335,4 +336,12 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	}
 
 	return nil
+}
+
+func HasWiki(ctx context.Context, repo *repo_model.Repository) bool {
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, repo.WikiStorageRepo())
+	if err != nil {
+		log.Error("gitrepo.IsRepositoryExist: %v", err)
+	}
+	return hasWiki && err == nil
 }

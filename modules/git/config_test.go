@@ -8,13 +8,14 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func gitConfigContains(sub string) bool {
-	if b, err := os.ReadFile(HomeDir() + "/.gitconfig"); err == nil {
+	if b, err := os.ReadFile(gitcmd.HomeDir() + "/.gitconfig"); err == nil {
 		return strings.Contains(string(b), sub)
 	}
 	return false

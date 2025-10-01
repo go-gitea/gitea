@@ -4,19 +4,25 @@
 package v1_25
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/migrations/base"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-func CreateTableIssueDevLink(x *xorm.Engine) error {
-	type IssueDevLink struct {
-		ID           int64 `xorm:"pk autoincr"`
-		IssueID      int64 `xorm:"INDEX"`
-		LinkType     int
-		LinkedRepoID int64              `xorm:"INDEX"` // it can link to self repo or other repo
-		LinkID       int64              // branch id in branch table or pull request id
-		CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+func ExtendCommentTreePathLength(x *xorm.Engine) error {
+	dbType := x.Dialect().URI().DBType
+	if dbType == schemas.SQLITE { // For SQLITE, varchar or char will always be represented as TEXT
+		return nil
 	}
-	return x.Sync(new(IssueDevLink))
+
+	return base.ModifyColumn(x, "comment", &schemas.Column{
+		Name: "tree_path",
+		SQLType: schemas.SQLType{
+			Name: "VARCHAR",
+		},
+		Length:         4000,
+		Nullable:       true, // To keep compatible as nullable
+		DefaultIsEmpty: true,
+	})
 }

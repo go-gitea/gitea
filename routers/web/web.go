@@ -267,7 +267,11 @@ func Routes() *web.Router {
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
-	mid = append(mid, common.Sessioner(), context.Contexter())
+	if sessionMid, err := common.Sessioner(); err == nil && sessionMid != nil {
+		mid = append(mid, sessionMid, context.Contexter())
+	} else {
+		log.Fatal("common.Sessioner failed: %v", err)
+	}
 
 	// Get user from session if logged in.
 	mid = append(mid, webAuth(buildAuthGroup()))
@@ -1225,10 +1229,11 @@ func registerWebRoutes(m *web.Router) {
 	// end "/{username}/{reponame}": view milestone, label, issue, pull, etc
 
 	m.Group("/{username}/{reponame}/{type:issues}", func() {
+		// these handlers also check unit permissions internally
 		m.Get("", repo.Issues)
-		m.Get("/{index}", repo.ViewIssue)
-	}, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypeExternalTracker))
-	// end "/{username}/{reponame}": issue/pull list, issue/pull view, external tracker
+		m.Get("/{index}", repo.ViewIssue) // also do pull-request redirection (".../issues/{PR-number}" -> ".../pulls/{PR-number}")
+	}, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests, unit.TypeExternalTracker))
+	// end "/{username}/{reponame}": issue list, issue view (pull-request redirection), external tracker
 
 	m.Group("/{username}/{reponame}", func() { // edit issues, pulls, labels, milestones, etc
 		m.Group("/issues", func() {

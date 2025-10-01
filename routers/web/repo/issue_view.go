@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -495,7 +496,7 @@ func preparePullViewSigning(ctx *context.Context, issue *issues_model.Issue) {
 	if ctx.Doer != nil {
 		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitHeadRefName())
 		ctx.Data["WillSign"] = sign
-		ctx.Data["SigningKey"] = key
+		ctx.Data["SigningKeyMergeDisplay"] = asymkey_model.GetDisplaySigningKey(key)
 		if err != nil {
 			if asymkey_service.IsErrWontSign(err) {
 				ctx.Data["WontSignReason"] = err.(*asymkey_service.ErrWontSign).Reason
