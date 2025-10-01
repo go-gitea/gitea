@@ -88,7 +88,7 @@ func TestCreateUser(t *testing.T) {
 		Email:              "GiteaBot@gitea.io",
 		Passwd:             ";p['////..-++']",
 		IsAdmin:            false,
-		Theme:              setting.UI.DefaultTheme,
+		Theme:              setting.Config().Theme.DefaultTheme.Value(t.Context()),
 		MustChangePassword: false,
 	}
 

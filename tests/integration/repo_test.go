@@ -14,10 +14,12 @@ import (
 	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -223,7 +225,13 @@ func testViewRepo1CloneLinkAuthorized(t *testing.T) {
 
 func testViewRepoWithSymlinks(t *testing.T) {
 	defer tests.PrintCurrentTest(t)()
-	defer test.MockVariableValue(&setting.UI.FileIconTheme, "basic")()
+	defer func() {
+		err := system_model.SetSettings(t.Context(), map[string]string{
+			setting.Config().Theme.DefaultFileIconTheme.DynKey(): "basic",
+		})
+		assert.NoError(t, err)
+		config.GetDynGetter().InvalidateCache()
+	}()
 	session := loginUser(t, "user2")
 
 	req := NewRequest(t, "GET", "/user2/repo20.git")
