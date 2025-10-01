@@ -28,8 +28,10 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/routers/common"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/context"
@@ -407,28 +409,72 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	var (
-		repo        = ctx.Repo.Repository
+		baseRepo    = ctx.Repo.Repository
 		labelIDs    []int64
 		milestoneID int64
 	)
 
-	// Get repo/branch information
-	compareResult, closer := parseCompareInfo(ctx, form)
-	if ctx.Written() {
+	baseGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, baseRepo)
+	if err != nil {
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
-	defer closer()
+	defer closer.Close()
 
-	if !compareResult.baseRef.IsBranch() || !compareResult.headRef.IsBranch() {
-		ctx.APIError(http.StatusUnprocessableEntity, "Invalid PullRequest: base and head must be branches")
+	// Get repo/branch information
+	ci, err := common.ParseComparePathParams(ctx, form.Base+"..."+form.Head, baseRepo, baseGitRepo)
+	if err != nil {
+		switch {
+		case user_model.IsErrUserNotExist(err):
+			ctx.APIErrorNotFound("GetUserByName")
+		case repo_model.IsErrRepoNotExist(err):
+			ctx.APIErrorNotFound("GetRepositoryByOwnerAndName")
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.APIErrorNotFound("ParseComparePathParams")
+		case git.IsErrNotExist(err):
+			ctx.APIErrorNotFound("ParseComparePathParams")
+		default:
+			ctx.APIError(http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer ci.Close()
+
+	if !ci.IsPull() {
+		ctx.APIError(http.StatusUnprocessableEntity, "Bad base or head refs, Only support branch to branch comparison")
+		return
+	}
+
+	// we just need to check the head repository's permission here because the base
+	// repository's permission is already checked in api.go with
+	// mustAllowPulls, reqRepoReader(unit.TypeCode)
+	if !ci.IsSameRepo() {
+		// user should have permission to read headrepo's codes
+		permHead, err := access_model.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
+		if err != nil {
+			ctx.APIError(http.StatusInternalServerError, err)
+			return
+		}
+		if !permHead.CanRead(unit.TypeCode) {
+			if log.IsTrace() {
+				log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
+					ctx.Doer,
+					ci.HeadRepo,
+					permHead)
+			}
+			ctx.APIErrorNotFound("Can't read headRepo UnitTypeCode")
+			return
+		}
+	}
+
+	ci.CompareInfo, err = pull_service.GetCompareInfo(ctx, baseRepo, ci.HeadRepo, ci.HeadGitRepo, ci.BaseOriRef, ci.HeadOriRef, false, false)
+	if err != nil {
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
 	// Check if another PR exists with the same targets
-	existingPr, err := issues_model.GetUnmergedPullRequest(ctx, compareResult.headRepo.ID, ctx.Repo.Repository.ID,
-		compareResult.headRef.ShortName(), compareResult.baseRef.ShortName(),
-		issues_model.PullRequestFlowGithub,
-	)
+	existingPr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, baseRepo.ID, ci.HeadOriRef, ci.BaseOriRef, issues_model.PullRequestFlowGithub)
 	if err != nil {
 		if !issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorInternal(err)
@@ -448,7 +494,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	if len(form.Labels) > 0 {
-		labels, err := issues_model.GetLabelsInRepoByIDs(ctx, ctx.Repo.Repository.ID, form.Labels)
+		labels, err := issues_model.GetLabelsInRepoByIDs(ctx, baseRepo.ID, form.Labels)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -475,7 +521,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.Milestone > 0 {
-		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, form.Milestone)
+		milestone, err := issues_model.GetMilestoneByRepoID(ctx, baseRepo.ID, form.Milestone)
 		if err != nil {
 			if issues_model.IsErrMilestoneNotExist(err) {
 				ctx.APIErrorNotFound()
@@ -494,7 +540,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	prIssue := &issues_model.Issue{
-		RepoID:       repo.ID,
+		RepoID:       baseRepo.ID,
 		Title:        form.Title,
 		PosterID:     ctx.Doer.ID,
 		Poster:       ctx.Doer,
@@ -504,13 +550,13 @@ func CreatePullRequest(ctx *context.APIContext) {
 		DeadlineUnix: deadlineUnix,
 	}
 	pr := &issues_model.PullRequest{
-		HeadRepoID: compareResult.headRepo.ID,
-		BaseRepoID: repo.ID,
-		HeadBranch: compareResult.headRef.ShortName(),
-		BaseBranch: compareResult.baseRef.ShortName(),
-		HeadRepo:   compareResult.headRepo,
-		BaseRepo:   repo,
-		MergeBase:  compareResult.compareInfo.MergeBase,
+		HeadRepoID: ci.HeadRepo.ID,
+		BaseRepoID: baseRepo.ID,
+		HeadBranch: ci.HeadOriRef,
+		BaseBranch: ci.BaseOriRef,
+		HeadRepo:   ci.HeadRepo,
+		BaseRepo:   baseRepo,
+		MergeBase:  ci.CompareInfo.MergeBase,
 		Type:       issues_model.PullRequestGitea,
 	}
 
@@ -532,19 +578,19 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 
-		valid, err := access_model.CanBeAssigned(ctx, assignee, repo, true)
+		valid, err := access_model.CanBeAssigned(ctx, assignee, baseRepo, true)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
 		if !valid {
-			ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
+			ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: baseRepo.Name})
 			return
 		}
 	}
 
 	prOpts := &pull_service.NewPullRequestOptions{
-		Repo:        repo,
+		Repo:        baseRepo,
 		Issue:       prIssue,
 		LabelIDs:    labelIDs,
 		PullRequest: pr,
@@ -568,7 +614,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
+	log.Trace("Pull request created: %d/%d", baseRepo.ID, prIssue.ID)
 	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
 }
 
@@ -1080,135 +1126,6 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusOK)
-}
-
-type parseCompareInfoResult struct {
-	headRepo    *repo_model.Repository
-	headGitRepo *git.Repository
-	compareInfo *pull_service.CompareInfo
-	baseRef     git.RefName
-	headRef     git.RefName
-}
-
-// parseCompareInfo returns non-nil if it succeeds, it always writes to the context and returns nil if it fails
-func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (result *parseCompareInfoResult, closer func()) {
-	var err error
-	// Get compared branches information
-	// format: <base branch>...[<head repo>:]<head branch>
-	// base<-head: master...head:feature
-	// same repo: master...feature
-	baseRepo := ctx.Repo.Repository
-	baseRefToGuess := form.Base
-
-	headUser := ctx.Repo.Owner
-	headRefToGuess := form.Head
-	if headInfos := strings.Split(form.Head, ":"); len(headInfos) == 1 {
-		// If there is no head repository, it means pull request between same repository.
-		// Do nothing here because the head variables have been assigned above.
-	} else if len(headInfos) == 2 {
-		// There is a head repository (the head repository could also be the same base repo)
-		headRefToGuess = headInfos[1]
-		headUser, err = user_model.GetUserByName(ctx, headInfos[0])
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				ctx.APIErrorNotFound("GetUserByName")
-			} else {
-				ctx.APIErrorInternal(err)
-			}
-			return nil, nil
-		}
-	} else {
-		ctx.APIErrorNotFound()
-		return nil, nil
-	}
-
-	isSameRepo := ctx.Repo.Owner.ID == headUser.ID
-
-	// Check if current user has fork of repository or in the same repository.
-	headRepo := repo_model.GetForkedRepo(ctx, headUser.ID, baseRepo.ID)
-	if headRepo == nil && !isSameRepo {
-		err = baseRepo.GetBaseRepo(ctx)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return nil, nil
-		}
-
-		// Check if baseRepo's base repository is the same as headUser's repository.
-		if baseRepo.BaseRepo == nil || baseRepo.BaseRepo.OwnerID != headUser.ID {
-			log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-			ctx.APIErrorNotFound("GetBaseRepo")
-			return nil, nil
-		}
-		// Assign headRepo so it can be used below.
-		headRepo = baseRepo.BaseRepo
-	}
-
-	var headGitRepo *git.Repository
-	if isSameRepo {
-		headRepo = ctx.Repo.Repository
-		headGitRepo = ctx.Repo.GitRepo
-		closer = func() {} // no need to close the head repo because it shares the base repo
-	} else {
-		headGitRepo, err = gitrepo.OpenRepository(ctx, headRepo)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return nil, nil
-		}
-		closer = func() { _ = headGitRepo.Close() }
-	}
-	defer func() {
-		if result == nil && !isSameRepo {
-			_ = headGitRepo.Close()
-		}
-	}()
-
-	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
-	permBase, err := access_model.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return nil, nil
-	}
-
-	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(unit.TypeCode) {
-		log.Trace("Permission Denied: User %-v cannot create/read pull requests or cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v", ctx.Doer, baseRepo, permBase)
-		ctx.APIErrorNotFound("Can't read pulls or can't read UnitTypeCode")
-		return nil, nil
-	}
-
-	// user should have permission to read headRepo's codes
-	// TODO: could the logic be simplified if the headRepo is the same as the baseRepo? Need to think more about it.
-	permHead, err := access_model.GetUserRepoPermission(ctx, headRepo, ctx.Doer)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return nil, nil
-	}
-	if !permHead.CanRead(unit.TypeCode) {
-		log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v", ctx.Doer, headRepo, permHead)
-		ctx.APIErrorNotFound("Can't read headRepo UnitTypeCode")
-		return nil, nil
-	}
-
-	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefToGuess)
-	headRef := headGitRepo.UnstableGuessRefByShortName(headRefToGuess)
-
-	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.GitRepo.Path, baseRefToGuess, baseRef, headRefToGuess, headRef)
-
-	baseRefValid := baseRef.IsBranch() || baseRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName), baseRef.ShortName())
-	headRefValid := headRef.IsBranch() || headRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(headRepo.ObjectFormatName), headRef.ShortName())
-	// Check if base&head ref are valid.
-	if !baseRefValid || !headRefValid {
-		ctx.APIErrorNotFound()
-		return nil, nil
-	}
-
-	compareInfo, err := pull_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef.ShortName(), headRef.ShortName(), false, false)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return nil, nil
-	}
-
-	result = &parseCompareInfoResult{headRepo: headRepo, headGitRepo: headGitRepo, compareInfo: compareInfo, baseRef: baseRef, headRef: headRef}
-	return result, closer
 }
 
 // UpdatePullRequest merge PR's baseBranch into headBranch

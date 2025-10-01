@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/queue"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -343,6 +344,10 @@ func TestCantMergeUnrelated(t *testing.T) {
 		commitSha := strings.TrimSpace(stdout.String())
 
 		_, _, err = gitcmd.NewCommand("branch", "unrelated").AddDynamicArguments(commitSha).RunStdString(t.Context(), &gitcmd.RunOpts{Dir: path})
+		assert.NoError(t, err)
+
+		// we created a branch to git repository directly, now we need to do a sync to make it available in the database
+		_, err = repo_module.SyncRepoBranches(t.Context(), repo1.ID, user1.ID)
 		assert.NoError(t, err)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
