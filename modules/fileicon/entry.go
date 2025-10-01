@@ -12,10 +12,10 @@ type EntryInfo struct {
 	IsOpen        bool
 }
 
-func EntryInfoFromGitTreeEntry(commit *git.Commit, fullPath string, gitEntry *git.TreeEntry) *EntryInfo {
+func EntryInfoFromGitTreeEntry(tree *git.Tree, fullPath string, gitEntry *git.TreeEntry) *EntryInfo {
 	ret := &EntryInfo{BaseName: gitEntry.Name(), EntryMode: gitEntry.Mode()}
 	if gitEntry.IsLink() {
-		if res, err := git.EntryFollowLink(commit, fullPath, gitEntry); err == nil && res.TargetEntry.IsDir() {
+		if res, err := git.EntryFollowLink(tree, fullPath, gitEntry); err == nil && res.TargetEntry.IsDir() {
 			ret.SymlinkToMode = res.TargetEntry.Mode()
 		}
 	}
