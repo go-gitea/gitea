@@ -56,7 +56,18 @@ func goGet(ctx *context.Context) {
 	if err == nil && len(repo.DefaultBranch) > 0 {
 		branchName = repo.DefaultBranch
 	}
-	prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
+
+	subDir := ""
+	if repo != nil {
+		subDir = context.GetGoModuleSubDirConfig(ctx, repo)
+	}
+
+	var prefix string
+	if len(subDir) > 0 {
+		prefix = setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName), subDir)
+	} else {
+		prefix = setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
+	}
 
 	appURL, _ := url.Parse(setting.AppURL)
 
@@ -73,6 +84,11 @@ func goGet(ctx *context.Context) {
 	} else {
 		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, ownerName, repoName)
 	}
+
+	if len(subDir) > 0 {
+		cloneURL += " " + util.PathEscapeSegments(subDir)
+	}
+
 	goImportContent := fmt.Sprintf("%s git %s", goGetImport, cloneURL /*CloneLink*/)
 	goSourceContent := fmt.Sprintf("%s _ %s %s", goGetImport, prefix+"{/dir}" /*GoDocDirectory*/, prefix+"{/dir}/{file}#L{line}" /*GoDocFile*/)
 	goGetCli := fmt.Sprintf("go get %s%s", insecure, goGetImport)
