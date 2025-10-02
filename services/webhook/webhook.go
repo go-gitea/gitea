@@ -119,7 +119,7 @@ func checkBranchFilter(branchFilter string, ref git.RefName) bool {
 	g, err := glob.Compile(branchFilter)
 	if err != nil {
 		// should not really happen as BranchFilter is validated
-		log.Error("CheckBranch failed: %s", err)
+		log.Debug("checkBranchFilter failed to compile filer %q, err: %s", branchFilter, err)
 		return false
 	}
 
@@ -150,8 +150,9 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		return nil
 	}
 
-	// Check the payload's git ref against the webhook's branch filter, if any.
+	// If payload has no associated branch (e.g. it's a new tag, issue, etc.), branch filter has no effect.
 	if ref := getPayloadRef(p); ref != "" {
+		// Check the payload's git ref against the webhook's branch filter.
 		if !checkBranchFilter(w.BranchFilter, ref) {
 			return nil
 		}

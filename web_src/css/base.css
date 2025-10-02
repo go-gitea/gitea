@@ -103,7 +103,7 @@ samp,
 
 code {
   padding: 1px 4px;
-  border-radius: .24em;
+  border-radius: var(--border-radius);
   background-color: var(--color-label-bg);
 }
 
@@ -185,7 +185,7 @@ table {
 
 ul {
   margin: 0.5em 0;
-  padding: 0 1.5em;
+  padding: 0 0 0 1.5em;
 }
 
 button {
