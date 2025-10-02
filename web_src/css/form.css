@@ -218,6 +218,7 @@ textarea:focus,
 
 .form .help {
   color: var(--color-secondary-dark-5);
+  margin-top: 0.25em;
   padding-bottom: 0.6em;
   display: inline-block;
   text-wrap: balance;

@@ -111,19 +111,22 @@ func enqueueHookTask(taskID int64) error {
 	return nil
 }
 
-func checkBranch(w *webhook_model.Webhook, branch string) bool {
-	if w.BranchFilter == "" || w.BranchFilter == "*" {
+func checkBranchFilter(branchFilter string, ref git.RefName) bool {
+	if branchFilter == "" || branchFilter == "*" || branchFilter == "**" {
 		return true
 	}
 
-	g, err := glob.Compile(w.BranchFilter)
+	g, err := glob.Compile(branchFilter)
 	if err != nil {
 		// should not really happen as BranchFilter is validated
 		log.Error("CheckBranch failed: %s", err)
 		return false
 	}
 
-	return g.Match(branch)
+	if ref.IsBranch() && g.Match(ref.BranchName()) {
+		return true
+	}
+	return g.Match(ref.String())
 }
 
 // PrepareWebhook creates a hook task and enqueues it for processing.
@@ -147,12 +150,9 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		return nil
 	}
 
-	// Apply the filter directly to the ref name
+	// Check the payload's git ref against the webhook's branch filter, if any.
 	if ref := getPayloadRef(p); ref != "" {
-		// FIXME: here comes the problem, "ref" is the full ref name, but the filter
-		// But, "checkBranch" check it against "w.BranchFilter", does it make sense?
-		if !checkBranch(w, ref) {
-			log.Info("Ref %q doesn't match branch filter %q, skipping", ref, w.BranchFilter)
+		if !checkBranchFilter(w.BranchFilter, ref) {
 			return nil
 		}
 	}
