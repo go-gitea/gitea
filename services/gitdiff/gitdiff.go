@@ -402,8 +402,8 @@ func (diffFile *DiffFile) GetDiffFileName() string {
 	return diffFile.Name
 }
 
-// GetDiffFileName returns the short name of the diff file, or its short old name in case it was deleted
-func (diffFile *DiffFile) GetDiffFileShortName() string {
+// GetDiffFileBaseName returns the short name of the diff file, or its short old name in case it was deleted
+func (diffFile *DiffFile) GetDiffFileBaseName() string {
 	if diffFile.Name == "" {
 		return path.Base(diffFile.OldName)
 	}
