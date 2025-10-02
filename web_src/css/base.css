@@ -102,7 +102,7 @@ samp,
 }
 
 code {
-  padding: 2px 4px;
+  padding: 1px 4px;
   border-radius: .24em;
   background-color: var(--color-label-bg);
 }
