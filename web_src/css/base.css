@@ -105,6 +105,7 @@ code {
   padding: 1px 4px;
   border-radius: var(--border-radius);
   background-color: var(--color-label-bg);
+  color: var(--color-label-text);
 }
 
 b,
