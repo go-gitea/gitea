@@ -46,24 +46,24 @@ func IsValidHookTaskType(name string) bool {
 var hookQueue *queue.WorkerPoolQueue[int64]
 
 // getPayloadRef returns the full ref name for hook event, if applicable.
-func getPayloadRef(p api.Payloader) string {
+func getPayloadRef(p api.Payloader) git.RefName {
 	switch pp := p.(type) {
 	case *api.CreatePayload:
 		switch pp.RefType {
 		case "branch":
-			return git.BranchPrefix + pp.Ref
+			return git.RefNameFromBranch(pp.Ref)
 		case "tag":
-			return git.TagPrefix + pp.Ref
+			return git.RefNameFromTag(pp.Ref)
 		}
 	case *api.DeletePayload:
 		switch pp.RefType {
 		case "branch":
-			return git.BranchPrefix + pp.Ref
+			return git.RefNameFromBranch(pp.Ref)
 		case "tag":
-			return git.TagPrefix + pp.Ref
+			return git.RefNameFromTag(pp.Ref)
 		}
 	case *api.PushPayload:
-		return pp.Ref
+		return git.RefName(pp.Ref)
 	}
 	return ""
 }
@@ -149,6 +149,8 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 
 	// Apply the filter directly to the ref name
 	if ref := getPayloadRef(p); ref != "" {
+		// FIXME: here comes the problem, "ref" is the full ref name, but the filter
+		// But, "checkBranch" check it against "w.BranchFilter", does it make sense?
 		if !checkBranch(w, ref) {
 			log.Info("Ref %q doesn't match branch filter %q, skipping", ref, w.BranchFilter)
 			return nil
