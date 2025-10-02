@@ -1585,7 +1585,13 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 	if err := pull_service.ChangeTargetBranch(ctx, pr, ctx.Doer, targetBranch); err != nil {
 		switch {
 		case git_model.IsErrBranchNotExist(err):
-			ctx.HTTPError(http.StatusBadRequest)
+			errorMessage := ctx.Tr("form.target_branch_not_exist")
+
+			ctx.Flash.Error(errorMessage)
+			ctx.JSON(http.StatusBadRequest, map[string]any{
+				"error":      err.Error(),
+				"user_error": errorMessage,
+			})
 		case issues_model.IsErrPullRequestAlreadyExists(err):
 			err := err.(issues_model.ErrPullRequestAlreadyExists)
 
