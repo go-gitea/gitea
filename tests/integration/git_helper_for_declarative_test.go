@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func withKeyFile(t *testing.T, keyname string, callback func(string)) {
@@ -171,13 +172,13 @@ func doGitCheckoutWriteFileCommit(opts localGitAddCommitOptions) func(*testing.T
 	return func(t *testing.T) {
 		doGitCheckoutBranch(opts.LocalRepoPath, opts.CheckoutBranch)(t)
 		localFilePath := filepath.Join(opts.LocalRepoPath, opts.TreeFilePath)
-		assert.NoError(t, os.WriteFile(localFilePath, []byte(opts.TreeFileContent), 0o644))
-		assert.NoError(t, git.AddChanges(t.Context(), opts.LocalRepoPath, true))
+		require.NoError(t, os.WriteFile(localFilePath, []byte(opts.TreeFileContent), 0o644))
+		require.NoError(t, git.AddChanges(t.Context(), opts.LocalRepoPath, true))
 		signature := git.Signature{
 			Email: "test@test.test",
 			Name:  "test",
 		}
-		assert.NoError(t, git.CommitChanges(t.Context(), opts.LocalRepoPath, git.CommitChangesOptions{
+		require.NoError(t, git.CommitChanges(t.Context(), opts.LocalRepoPath, git.CommitChangesOptions{
 			Committer: &signature,
 			Author:    &signature,
 			Message:   fmt.Sprintf("update %s @ %s", opts.TreeFilePath, opts.CheckoutBranch),
