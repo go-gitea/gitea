@@ -332,27 +332,27 @@
   background: none;
   padding: 0.5em 1.33333333em;
   font-size: 0.85714286em;
-  color: var(--color-text-light-2);
+  color: var(--color-text-light);
 }
 
 .ui.vertical.menu .item .menu .item {
-  color: var(--color-text-light-2);
+  color: var(--color-text-light);
   text-indent: 16px;
 }
 
 .ui.vertical.menu .item .menu .item:hover,
 .ui.vertical.menu .item .menu a.item:hover {
-  color: var(--color-text-light-1);
+  color: var(--color-text-light);
 }
 
 .ui.vertical.menu .item .menu .active.item {
   background-color: transparent;
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-light);
+  color: var(--color-text-light-2);
 }
 
 .ui.vertical.menu .item .menu a.item:hover {
-  color: var(--color-text-light);
+  color: var(--color-text-light-2);
 }
 .ui.vertical.menu .menu .item::before {
   display: none;

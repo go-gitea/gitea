@@ -957,6 +957,10 @@ td .commit-summary {
   justify-content: end;
 }
 
+.diff-detail-actions > * {
+  margin-top: 5px;
+}
+
 .diff-detail-actions > *,
 .diff-detail-actions .button {
   margin-left: 0 !important;
@@ -1194,7 +1198,7 @@ td .commit-summary {
 
 .repository .repository-summary .sub-menu .item.active {
   color: var(--color-primary-3);
-  background: var(--color-nav-bg);
+  background: var(--color-code-bg);
 }
 
 #cite-repo-modal #citation-panel {
