@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -46,21 +45,25 @@ func IsValidHookTaskType(name string) bool {
 // hookQueue is a global queue of web hooks
 var hookQueue *queue.WorkerPoolQueue[int64]
 
-// getPayloadBranch returns branch for hook event, if applicable.
-func getPayloadBranch(p api.Payloader) string {
+// getPayloadRef returns the full ref name for hook event, if applicable.
+func getPayloadRef(p api.Payloader) string {
 	switch pp := p.(type) {
 	case *api.CreatePayload:
-		if pp.RefType == "branch" {
-			return pp.Ref
+		switch pp.RefType {
+		case "branch":
+			return git.BranchPrefix + pp.Ref
+		case "tag":
+			return git.TagPrefix + pp.Ref
 		}
 	case *api.DeletePayload:
-		if pp.RefType == "branch" {
-			return pp.Ref
+		switch pp.RefType {
+		case "branch":
+			return git.BranchPrefix + pp.Ref
+		case "tag":
+			return git.TagPrefix + pp.Ref
 		}
 	case *api.PushPayload:
-		if strings.HasPrefix(pp.Ref, git.BranchPrefix) {
-			return pp.Ref[len(git.BranchPrefix):]
-		}
+		return pp.Ref
 	}
 	return ""
 }
@@ -144,11 +147,10 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		return nil
 	}
 
-	// If payload has no associated branch (e.g. it's a new tag, issue, etc.),
-	// branch filter has no effect.
-	if branch := getPayloadBranch(p); branch != "" {
-		if !checkBranch(w, branch) {
-			log.Info("Branch %q doesn't match branch filter %q, skipping", branch, w.BranchFilter)
+	// Apply the filter directly to the ref name
+	if ref := getPayloadRef(p); ref != "" {
+		if !checkBranch(w, ref) {
+			log.Info("Ref %q doesn't match branch filter %q, skipping", ref, w.BranchFilter)
 			return nil
 		}
 	}
