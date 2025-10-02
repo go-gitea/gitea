@@ -13,9 +13,10 @@ import (
 
 // ExternalMarkupRenderers represents the external markup renderers
 var (
-	ExternalMarkupRenderers    []*MarkupRenderer
-	ExternalSanitizerRules     []MarkupSanitizerRule
-	MermaidMaxSourceCharacters int
+	ExternalMarkupRenderers       []*MarkupRenderer
+	ExternalSanitizerRules        []MarkupSanitizerRule
+	ExcalidrawMaxSourceCharacters int
+	MermaidMaxSourceCharacters    int
 )
 
 const (
@@ -127,6 +128,7 @@ func loadMarkupFrom(rootCfg ConfigProvider) {
 		}
 	}
 
+	ExcalidrawMaxSourceCharacters = rootCfg.Section("markup").Key("EXCALIDRAW_MAX_SOURCE_CHARACTERS").MustInt(100000)
 	MermaidMaxSourceCharacters = rootCfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(50000)
 	ExternalMarkupRenderers = make([]*MarkupRenderer, 0, 10)
 	ExternalSanitizerRules = make([]MarkupSanitizerRule, 0, 10)
