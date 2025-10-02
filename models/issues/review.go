@@ -534,15 +534,15 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 }
 
 // GetReviewByIssueIDAndUserID get the latest review of reviewer for a pull request
-func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64, dismissed ...bool) (*Review, error) {
+func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64, dismissed optional.Option[bool]) (*Review, error) {
 	review := new(Review)
 
 	cond := builder.In("type", ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		And(builder.Eq{"issue_id": issueID, "reviewer_id": userID, "original_author_id": 0})
 
 	// apply optional filter for dismissed
-	if len(dismissed) != 0 {
-		cond = cond.And(builder.Eq{"dismissed": dismissed[0]})
+	if dismissed.Has() {
+		cond = cond.And(builder.Eq{"dismissed": dismissed.Value()})
 	}
 
 	has, err := db.GetEngine(ctx).Where(cond).
@@ -655,7 +655,7 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
 		sess := db.GetEngine(ctx)
 
-		review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
+		review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID, optional.None[bool]())
 		if err != nil && !IsErrReviewNotExist(err) {
 			return nil, err
 		}
@@ -725,7 +725,7 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 // RemoveReviewRequest remove a review request from one reviewer
 func RemoveReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_model.User) (*Comment, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
-		review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID, false)
+		review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID, optional.Some(false))
 		if err != nil && !IsErrReviewNotExist(err) {
 			return nil, err
 		}
@@ -760,7 +760,7 @@ func RemoveReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user
 
 // Recalculate the latest official review for reviewer
 func restoreLatestOfficialReview(ctx context.Context, issueID, reviewerID int64) error {
-	review, err := GetReviewByIssueIDAndUserID(ctx, issueID, reviewerID)
+	review, err := GetReviewByIssueIDAndUserID(ctx, issueID, reviewerID, optional.None[bool]())
 	if err != nil && !IsErrReviewNotExist(err) {
 		return err
 	}
@@ -852,7 +852,7 @@ func RemoveTeamReviewRequest(ctx context.Context, issue *Issue, reviewer *organi
 
 		if official {
 			// recalculate which is the latest official review from that team
-			review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, -reviewer.ID)
+			review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, -reviewer.ID, optional.None[bool]())
 			if err != nil && !IsErrReviewNotExist(err) {
 				return nil, err
 			}
