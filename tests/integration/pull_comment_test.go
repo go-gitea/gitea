@@ -31,10 +31,10 @@ func testWaitForPullRequestStatus(t *testing.T, prIssue *issues_model.Issue, exp
 
 func testPullCommentRebase(t *testing.T, u *url.URL, session *TestSession) {
 	testPRTitle := "Test PR for rebase comment"
+	// make a change on forked branch
 	testEditFile(t, session, "user1", "repo1", "test-branch/rebase", "README.md", "Hello, World (Edited)\n")
 	testPullCreate(t, session, "user1", "repo1", false, "test-branch/rebase", "test-branch/rebase", testPRTitle)
-
-	// create a conflict line on user2/repo1:test-branch/rebase README.md
+	// create a conflict on base repo branch
 	testEditFile(t, session, "user2", "repo1", "test-branch/rebase", "README.md", "Hello, World (Edited Conflicted)\n")
 
 	// Now the pull request status should be conflicted
@@ -76,8 +76,7 @@ func testPullCommentRebase(t *testing.T, u *url.URL, session *TestSession) {
 
 func testPullCommentRetarget(t *testing.T, u *url.URL, session *TestSession) {
 	testPRTitle := "Test PR for retarget comment"
-
-	// create a non-conflict branch dev from master
+	// keep a non-conflict branch
 	testCreateBranch(t, session, "user2", "repo1", "branch/test-branch/retarget", "test-branch/retarget-no-conflict", http.StatusSeeOther)
 	// make a change on forked branch
 	testEditFile(t, session, "user1", "repo1", "test-branch/retarget", "README.md", "Hello, World (Edited)\n")
