@@ -46,11 +46,12 @@ func TestPull_RebaseComment(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "Hello, World (Edited Conflicted)\n", string(content))
 
-		err = os.WriteFile(dstPath+"/README.md", []byte("Hello, World (Edited Conflict Resolved)\n"), 0o644)
-		assert.NoError(t, err)
-		_, _, err = gitcmd.NewCommand().AddArguments("add", "--all").RunStdString(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
-		assert.NoError(t, err)
-		doGitCommit(dstPath, "Resolve conflict")(t)
+		doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
+			LocalRepoPath:   dstPath,
+			CheckoutBranch:  "dev",
+			TreeFilePath:    "README.md",
+			TreeFileContent: "Hello, World (Edited Conflict Resolved)\n",
+		})(t)
 
 		// do force push
 		u.Path = "/user1/repo1.git"

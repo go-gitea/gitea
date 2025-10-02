@@ -160,20 +160,27 @@ func doGitPushTestRepositoryFail(dstPath string, args ...string) func(*testing.T
 	}
 }
 
-func doGitAddSomeCommits(dstPath, branch string) func(*testing.T) {
-	return func(t *testing.T) {
-		doGitCheckoutBranch(dstPath, branch)(t)
+type localGitAddCommitOptions struct {
+	LocalRepoPath   string
+	CheckoutBranch  string
+	TreeFilePath    string
+	TreeFileContent string
+}
 
-		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, fmt.Sprintf("file-%s.txt", branch)), []byte("file "+branch), 0o644))
-		assert.NoError(t, git.AddChanges(t.Context(), dstPath, true))
+func doGitCheckoutWriteFileCommit(opts localGitAddCommitOptions) func(*testing.T) {
+	return func(t *testing.T) {
+		doGitCheckoutBranch(opts.LocalRepoPath, opts.CheckoutBranch)(t)
+		localFilePath := filepath.Join(opts.LocalRepoPath, opts.TreeFilePath)
+		assert.NoError(t, os.WriteFile(localFilePath, []byte(opts.TreeFileContent), 0o644))
+		assert.NoError(t, git.AddChanges(t.Context(), opts.LocalRepoPath, true))
 		signature := git.Signature{
 			Email: "test@test.test",
 			Name:  "test",
 		}
-		assert.NoError(t, git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
+		assert.NoError(t, git.CommitChanges(t.Context(), opts.LocalRepoPath, git.CommitChangesOptions{
 			Committer: &signature,
 			Author:    &signature,
-			Message:   "update " + branch,
+			Message:   fmt.Sprintf("update %s @ %s", opts.TreeFilePath, opts.CheckoutBranch),
 		}))
 	}
 }
@@ -203,20 +210,5 @@ func doGitPull(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
 		_, _, err := gitcmd.NewCommand().AddArguments("pull").AddArguments(gitcmd.ToTrustedCmdArgs(args)...).RunStdString(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
-	}
-}
-
-func doGitCommit(dstPath, commitMessage string) func(*testing.T) {
-	return func(t *testing.T) {
-		signature := git.Signature{
-			Email: "test@test.test",
-			Name:  "test",
-			When:  time.Now(),
-		}
-		assert.NoError(t, git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
-			Committer: &signature,
-			Author:    &signature,
-			Message:   commitMessage,
-		}))
 	}
 }
