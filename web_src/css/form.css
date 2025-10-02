@@ -224,6 +224,10 @@ textarea:focus,
   text-wrap: balance;
 }
 
+.form .help code {
+  color: var(--color-text-light-1);
+}
+
 .m-captcha-style {
   width: 100%;
   height: 5em;
