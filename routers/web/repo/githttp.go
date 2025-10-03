@@ -196,8 +196,17 @@ func httpBase(ctx *context.Context) *serviceHandler {
 					return nil
 				}
 				if task.RepoID != repo.ID {
-					ctx.PlainText(http.StatusForbidden, "User permission denied")
-					return nil
+					if err := task.LoadRepository(ctx); err != nil {
+						ctx.ServerError("LoadRepository", err)
+						return nil
+					}
+					actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+					if !actionsCfg.IsCollaborativeOwner(task.Repo.OwnerID) || !task.Repo.IsPrivate {
+						// The task repo can access the current repo only if the task repo is private and
+						// the owner of the task repo is a collaborative owner of the current repo.
+						ctx.PlainText(http.StatusForbidden, "User permission denied")
+						return nil
+					}
 				}
 
 				if task.IsForkPullRequest {

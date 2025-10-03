@@ -12,6 +12,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
@@ -38,9 +39,10 @@ type ActionTask struct {
 	Started  timeutil.TimeStamp `xorm:"index"`
 	Stopped  timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
 
-	RepoID            int64  `xorm:"index"`
-	OwnerID           int64  `xorm:"index"`
-	CommitSHA         string `xorm:"index"`
+	RepoID            int64                  `xorm:"index"`
+	Repo              *repo_model.Repository `xorm:"-"`
+	OwnerID           int64                  `xorm:"index"`
+	CommitSHA         string                 `xorm:"index"`
 	IsForkPullRequest bool
 
 	Token          string `xorm:"-"`
@@ -144,11 +146,19 @@ func (task *ActionTask) LoadAttributes(ctx context.Context) error {
 		task.Steps = steps
 	}
 
-	return nil
+	return task.LoadRepository(ctx)
 }
 
 func (task *ActionTask) GenerateToken() (err error) {
 	task.Token, task.TokenSalt, task.TokenHash, task.TokenLastEight, err = generateSaltedToken()
+	return err
+}
+
+func (task *ActionTask) LoadRepository(ctx context.Context) (err error) {
+	if task.Repo != nil {
+		return nil
+	}
+	task.Repo, err = repo_model.GetRepositoryByID(ctx, task.RepoID)
 	return err
 }
 
