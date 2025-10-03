@@ -34,6 +34,7 @@ type Server struct {
 	address              string
 	listener             net.Listener
 	wg                   sync.WaitGroup
+	shutdownOnce         sync.Once // Ensures WaitGroup.Wait() is called only once to prevent panic on reuse
 	state                state
 	lock                 *sync.RWMutex
 	BeforeBegin          func(network, address string)
@@ -154,7 +155,10 @@ func (srv *Server) Serve(serve ServeFunction) error {
 	GetManager().RegisterServer()
 	err := serve(srv.listener)
 	log.Debug("Waiting for connections to finish... (PID: %d)", syscall.Getpid())
-	srv.wg.Wait()
+	// Use sync.Once to ensure WaitGroup.Wait() is only called once, preventing "WaitGroup is reused" panic
+	srv.shutdownOnce.Do(func() {
+		srv.wg.Wait()
+	})
 	srv.setState(stateTerminate)
 	GetManager().ServerDone()
 	// use of closed means that the listeners are closed - i.e. we should be shutting down - return nil
