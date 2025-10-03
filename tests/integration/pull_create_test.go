@@ -260,14 +260,16 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 		u.Path = "user2/repo1.git"
 		u.User = url.UserPassword("user4", userPassword)
 
-		t.Run("Clone", doGitClone(dstPath, u))
+		doGitClone(dstPath, u)(t)
+		doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
+			LocalRepoPath:   dstPath,
+			CheckoutBranch:  "master",
+			TreeFilePath:    "new-file-for-agit.txt",
+			TreeFileContent: "temp content",
+		})(t)
 
-		t.Run("add commit", doGitAddSomeCommits(dstPath, "master"))
-
-		t.Run("do agit pull create", func(t *testing.T) {
-			err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic="+"test-topic").Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
-			assert.NoError(t, err)
-		})
+		err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic="+"test-topic").Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+		assert.NoError(t, err)
 	})
 }
 
