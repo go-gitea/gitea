@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	ssh_module "code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -248,6 +249,36 @@ func checkRecoverableSyncError(stderrMessage string) bool {
 }
 
 // runSync returns true if sync finished without error.
+// setupSSHAuth sets up SSH authentication for git operations if needed
+func setupSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string, runOpts *gitcmd.RunOpts) (func(), error) {
+	if !IsSSHURL(remoteURL) {
+		return func() {}, nil
+	}
+
+	keypair, err := GetSSHKeypairForURL(ctx, repo, remoteURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get SSH keypair: %w", err)
+	}
+	if keypair == nil {
+		return func() {}, nil
+	}
+
+	privateKey, err := keypair.GetDecryptedPrivateKey()
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt private key: %w", err)
+	}
+
+	socketPath, cleanup, err := ssh_module.CreateTemporaryAgent(privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create SSH agent: %w", err)
+	}
+
+	runOpts.SSHAuthSock = socketPath
+
+	log.Debug("SSH agent created for repository %s with socket: %s", repo.FullName(), socketPath)
+	return cleanup, nil
+}
+
 func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bool) {
 	repoPath := m.Repo.RepoPath()
 	wikiPath := m.Repo.WikiPath()
@@ -272,13 +303,23 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
-	if err := cmd.Run(ctx, &gitcmd.RunOpts{
+
+	runOpts := &gitcmd.RunOpts{
 		Timeout: timeout,
 		Dir:     repoPath,
 		Env:     envs,
 		Stdout:  &stdoutBuilder,
 		Stderr:  &stderrBuilder,
-	}); err != nil {
+	}
+
+	cleanup, err := setupSSHAuth(ctx, m.Repo, remoteURL.String(), runOpts)
+	if err != nil {
+		log.Error("SyncMirrors [repo: %-v]: SSH setup error %v", m.Repo, err)
+		return nil, false
+	}
+	defer cleanup()
+
+	if err := cmd.Run(ctx, runOpts); err != nil {
 		stdout := stdoutBuilder.String()
 		stderr := stderrBuilder.String()
 
@@ -297,12 +338,21 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 				// Successful prune - reattempt mirror
 				stderrBuilder.Reset()
 				stdoutBuilder.Reset()
-				if err = cmd.Run(ctx, &gitcmd.RunOpts{
+				retryRunOpts := &gitcmd.RunOpts{
 					Timeout: timeout,
 					Dir:     repoPath,
 					Stdout:  &stdoutBuilder,
 					Stderr:  &stderrBuilder,
-				}); err != nil {
+				}
+
+				retryCleanup, sshErr := setupSSHAuth(ctx, m.Repo, remoteURL.String(), retryRunOpts)
+				if sshErr != nil {
+					log.Error("SyncMirrors [repo: %-v]: SSH setup error on retry %v", m.Repo, sshErr)
+					return nil, false
+				}
+				defer retryCleanup()
+
+				if err = cmd.Run(ctx, retryRunOpts); err != nil {
 					stdout := stdoutBuilder.String()
 					stderr := stderrBuilder.String()
 

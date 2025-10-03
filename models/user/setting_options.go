@@ -26,4 +26,8 @@ const (
 	SettingEmailNotificationGiteaActionsAll         = "all"
 	SettingEmailNotificationGiteaActionsFailureOnly = "failure-only" // Default for actions email preference
 	SettingEmailNotificationGiteaActionsDisabled    = "disabled"
+
+	UserSSHMirrorPrivPem     = "ssh_mirror.priv_pem"
+	UserSSHMirrorPubPem      = "ssh_mirror.pub_pem"
+	UserSSHMirrorFingerprint = "ssh_mirror.fingerprint"
 )
