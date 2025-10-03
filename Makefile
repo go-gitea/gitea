@@ -168,8 +168,8 @@ WEB_DIRS := web_src/js web_src/css
 
 ESLINT_FILES := web_src/js tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
-SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml)) $(filter-out tools/misspellings.csv, $(wildcard tools/*))
-EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
+SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.json .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml)) $(filter-out tools/misspellings.csv, $(wildcard tools/*))
+EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.json
 
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go")
@@ -918,14 +918,31 @@ lockfile-check:
 		exit 1; \
 	fi
 
+LOCALE_DIR := options/locale
+LOCALE_FILES := $(wildcard $(LOCALE_DIR)/*.json)
+
+.PHONY: translation-check
+translation-check:
+	@echo "Checking JSON files in $(LOCALE_DIR)"
+	@for f in $(LOCALE_FILES); do \
+		echo "==> $$f"; \
+		if ! $(NODE_VARS) pnpm exec jsonlint -q $$f > /dev/null 2>&1; then \
+			echo "❌ Invalid JSON syntax: $$f"; \
+			exit 1; \
+		fi; \
+		if ! $(NODE_VARS) pnpm exec find-duplicated-property-keys -s $$f > /dev/null 2>&1; then \
+			echo "❌ Duplicate key found in: $$f"; \
+			exit 1; \
+		fi; \
+	done
+	@echo "✅ All JSON files passed"
+
 .PHONY: update-translations
 update-translations:
 	mkdir -p ./translations
 	cd ./translations && curl -L https://crowdin.com/download/project/gitea.zip > gitea.zip && unzip gitea.zip
 	rm ./translations/gitea.zip
-	$(SED_INPLACE) -e 's/="/=/g' -e 's/"$$//g' ./translations/*.ini
-	$(SED_INPLACE) -e 's/\\"/"/g' ./translations/*.ini
-	mv ./translations/*.ini ./options/locale/
+	mv ./translations/*.json ./options/locale/
 	rmdir ./translations
 
 .PHONY: generate-gitignore
