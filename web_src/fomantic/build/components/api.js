@@ -1144,8 +1144,8 @@ $.api.settings = {
   },
 
   regExp  : {
-    required : /\{\$*[A-z0-9]+\}/g,
-    optional : /\{\/\$*[A-z0-9]+\}/g,
+    required : /\{\$*[_A-Za-z0-9]+\}/g, // GITEA-PATCH: use "_A-Za-z" instead of "A-z" for variable name matching
+    optional : /\{\/\$*[_A-Za-z0-9]+\}/g, // GITEA-PATCH: use "_A-Za-z" instead of "A-z" for variable name matching
   },
 
   className: {
