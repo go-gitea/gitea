@@ -420,11 +420,14 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	// reset run's start and stop time when it is done
+	// reset run's start and stop time when if is done
 	if run.Status.IsDone() {
 		run.PreviousDuration = run.Duration()
 		run.Started = 0
 		run.Stopped = 0
+		// Set run to waiting status so next job.Status evaluations reflect the status after the re-run trigger
+		// Avoid re-triggering email notification before the new job run ends
+		run.Status = 1
 		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration"); err != nil {
 			ctx.ServerError("UpdateRun", err)
 			return
