@@ -129,6 +129,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 
 	// Collect one job per run to send workflow run status update
 	updatedRuns := map[int64]*actions_model.ActionRunJob{}
+	updatedJobs := []*actions_model.ActionRunJob{}
 
 	for _, job := range jobs {
 		job.Status = actions_model.StatusCancelled
@@ -153,6 +154,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		}
 		CreateCommitStatus(ctx, job)
 		if updated {
+			updatedJobs = append(updatedJobs, job)
 			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 		}
 	}
@@ -160,7 +162,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 	for _, job := range updatedRuns {
 		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 	}
- 	EmitJobsIfReadyByJobs(updatedJobs)
+	EmitJobsIfReadyByJobs(updatedJobs)
 
 	return nil
 }

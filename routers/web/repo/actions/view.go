@@ -441,12 +441,6 @@ func Rerun(ctx *context_module.Context) {
 			return
 		}
 
-		if err := run.LoadAttributes(ctx); err != nil {
-			ctx.ServerError("run.LoadAttributes", err)
-			return
-		}
-		notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
-	
 		if run.RawConcurrency != "" {
 			var rawConcurrency model.RawConcurrency
 			if err := yaml.Unmarshal([]byte(run.RawConcurrency), &rawConcurrency); err != nil {
@@ -482,6 +476,12 @@ func Rerun(ctx *context_module.Context) {
 			ctx.ServerError("UpdateRun", err)
 			return
 		}
+
+		if err := run.LoadAttributes(ctx); err != nil {
+			ctx.ServerError("run.LoadAttributes", err)
+			return
+		}
+		notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 	}
 
 	if jobIndexStr == "" { // rerun all jobs
