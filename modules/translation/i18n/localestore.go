@@ -6,6 +6,7 @@ package i18n
 import (
 	"errors"
 	"fmt"
+	"html"
 	"html/template"
 	"slices"
 
@@ -127,8 +128,7 @@ func (store *localeStore) Close() error {
 }
 
 func (l *locale) TrString(trKey string, trArgs ...any) string {
-	format := trKey
-
+	var format string
 	idx, ok := l.store.trKeyToIdxMap[trKey]
 	if ok {
 		if msg, ok := l.idxToMsgMap[idx]; ok {
@@ -140,7 +140,9 @@ func (l *locale) TrString(trKey string, trArgs ...any) string {
 			}
 		}
 	}
-
+	if format == "" {
+		format = html.EscapeString(trKey)
+	}
 	msg, err := Format(format, trArgs...)
 	if err != nil {
 		log.Error("Error whilst formatting %q in %s: %v", trKey, l.langName, err)

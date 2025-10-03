@@ -10,7 +10,7 @@ export function initTableSort() {
 }
 
 function tableSort(normSort: string, revSort: string, isDefault: string) {
-  if (!normSort) return false;
+  if (!normSort) return;
   if (!revSort) revSort = '';
 
   const url = new URL(window.location.href);
