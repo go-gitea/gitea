@@ -102,6 +102,15 @@ func (run *ActionRun) PrettyRef() string {
 	return refName.ShortName()
 }
 
+// RefName return ShortName
+func (run *ActionRun) RefName() string {
+	payload, err := run.GetPullRequestEventPayload()
+	if err == nil && payload != nil && payload.PullRequest != nil {
+		return payload.PullRequest.Title
+	}
+	return git.RefName(run.Ref).ShortName()
+}
+
 // LoadAttributes load Repo TriggerUser if not loaded
 func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 	if run == nil {
