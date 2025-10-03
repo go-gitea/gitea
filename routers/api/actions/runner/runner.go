@@ -230,6 +230,9 @@ func (s *Service) UpdateTask(
 		if err := actions_service.EmitJobsIfReadyByRun(task.Job.RunID); err != nil {
 			log.Error("Emit ready jobs of run %d: %v", task.Job.RunID, err)
 		}
+		if task.Job.Run.Status.IsDone() {
+			actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, task.Job)
+		}
 	}
 
 	return connect.NewResponse(&runnerv1.UpdateTaskResponse{

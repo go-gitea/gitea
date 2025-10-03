@@ -90,9 +90,20 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
-	if len(jobs) > 0 {
+	runJobs := make(map[int64][]*actions_model.ActionRunJob)
+	for _, job := range jobs {
+		runJobs[job.RunID] = append(runJobs[job.RunID], job)
+	}
+	runUpdatedJobs := make(map[int64][]*actions_model.ActionRunJob)
+	for _, uj := range updatedJobs {
+		runUpdatedJobs[uj.RunID] = append(runUpdatedJobs[uj.RunID], uj)
+	}
+	for runID, js := range runJobs {
+		if len(runUpdatedJobs[runID]) == 0 {
+			continue
+		}
 		runUpdated := true
-		for _, job := range jobs {
+		for _, job := range js {
 			if !job.Status.IsDone() {
 				runUpdated = false
 				break
