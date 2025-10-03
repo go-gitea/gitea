@@ -107,6 +107,13 @@ samp,
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 
+code {
+  padding: 1px 4px;
+  border-radius: var(--border-radius);
+  background-color: var(--color-label-bg);
+  color: var(--color-label-text);
+}
+
 b,
 strong,
 h1,
@@ -181,6 +188,11 @@ p:last-child {
 
 table {
   border-collapse: collapse;
+}
+
+ul {
+  margin: 0.5em 0;
+  padding: 0 0 0 1.5em;
 }
 
 button {
@@ -607,11 +619,6 @@ img.ui.avatar,
 
 .ui .message.flash-message {
   text-align: center;
-}
-
-.ui .message > ul {
-  margin: 0;
-  padding: 0 1em;
 }
 
 .ui .header > i + .content {
