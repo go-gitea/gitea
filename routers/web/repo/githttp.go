@@ -454,11 +454,16 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	}
 }
 
+const (
+	ServiceTypeUploadPack  = "upload-pack"
+	ServiceTypeReceivePack = "receive-pack"
+)
+
 // ServiceUploadPack implements Git Smart HTTP protocol
 func ServiceUploadPack(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
-		serviceRPC(ctx, h, "upload-pack")
+		serviceRPC(ctx, h, ServiceTypeUploadPack)
 	}
 }
 
@@ -466,16 +471,18 @@ func ServiceUploadPack(ctx *context.Context) {
 func ServiceReceivePack(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
-		serviceRPC(ctx, h, "receive-pack")
+		serviceRPC(ctx, h, ServiceTypeReceivePack)
 	}
 }
 
 func getServiceType(ctx *context.Context) string {
-	serviceType := ctx.Req.FormValue("service")
-	if !strings.HasPrefix(serviceType, "git-") {
-		return ""
+	switch ctx.Req.FormValue("service") {
+	case "git-" + ServiceTypeUploadPack:
+		return ServiceTypeUploadPack
+	case "git-" + ServiceTypeReceivePack:
+		return ServiceTypeReceivePack
 	}
-	return strings.TrimPrefix(serviceType, "git-")
+	return ""
 }
 
 func packetWrite(str string) []byte {
