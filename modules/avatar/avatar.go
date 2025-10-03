@@ -11,15 +11,15 @@ import (
 	"image/color"
 	"image/png"
 
-	"golang.org/x/image/draw"
+	_ "image/gif"  // for image format registration
+	_ "image/jpeg" // for image format registration
 
 	"code.gitea.io/gitea/modules/avatar/identicon"
 	"code.gitea.io/gitea/modules/setting"
 
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
+	"golang.org/x/image/draw"
 
-	_ "golang.org/x/image/webp" // for processing webp images
+	_ "golang.org/x/image/webp" // for image format registration
 )
 
 // DefaultAvatarSize is the target CSS pixel size for avatar generation. It is
@@ -65,11 +65,14 @@ func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 		return nil, fmt.Errorf("image height is too large: %d > %d", imgCfg.Height, setting.Avatar.MaxHeight)
 	}
 
-	// If the origin is small enough, just use it, then APNG could be supported,
-	// otherwise, if the image is processed later, APNG loses animation.
-	// And one more thing, webp is not fully supported, for animated webp, image.DecodeConfig works but Decode fails.
-	// So for animated webp, if the uploaded file is smaller than maxOriginSize, it will be used, if it's larger, there will be an error.
-	if len(data) < int(maxOriginSize) {
+	// Check max origin size if specified (for animated images)
+	if maxOriginSize > 0 && len(data) < int(maxOriginSize) {
+		return data, nil
+	}
+
+	// If the origin is small enough (both dimensions <= target size), just use it
+	targetSize := DefaultAvatarSize * setting.Avatar.RenderedSizeFactor
+	if imgCfg.Width <= targetSize && imgCfg.Height <= targetSize {
 		return data, nil
 	}
 
@@ -81,7 +84,9 @@ func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 	// try to crop and resize the origin image if necessary
 	img = cropSquare(img)
 
-	targetSize := DefaultAvatarSize * setting.Avatar.RenderedSizeFactor
+	if setting.Avatar.RenderedSizeFactor > 0 {
+		targetSize = DefaultAvatarSize * setting.Avatar.RenderedSizeFactor
+	}
 	img = scale(img, targetSize, targetSize, draw.BiLinear)
 
 	// Create a new RGBA image to preserve transparency

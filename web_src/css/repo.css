@@ -163,10 +163,10 @@ td .commit-summary {
 }
 
 .repository.file.list
-  .non-diff-file-content
-  .header
-  .file-actions
-  .btn-octicon {
+.non-diff-file-content
+.header
+.file-actions
+.btn-octicon {
   line-height: var(--line-height-default);
   padding: 8px;
   vertical-align: middle;
@@ -174,26 +174,26 @@ td .commit-summary {
 }
 
 .repository.file.list
-  .non-diff-file-content
-  .header
-  .file-actions
-  .btn-octicon:hover {
+.non-diff-file-content
+.header
+.file-actions
+.btn-octicon:hover {
   color: var(--color-primary);
 }
 
 .repository.file.list
-  .non-diff-file-content
-  .header
-  .file-actions
-  .btn-octicon-danger:hover {
+.non-diff-file-content
+.header
+.file-actions
+.btn-octicon-danger:hover {
   color: var(--color-red);
 }
 
 .repository.file.list
-  .non-diff-file-content
-  .header
-  .file-actions
-  .btn-octicon.disabled {
+.non-diff-file-content
+.header
+.file-actions
+.btn-octicon.disabled {
   color: inherit;
   opacity: var(--opacity-disabled);
   cursor: default;
@@ -285,10 +285,10 @@ td .commit-summary {
   }
 }
 .repository.file.editor
-  .commit-form-wrapper
-  .commit-form
-  .quick-pull-choice
-  .branch-name {
+.commit-form-wrapper
+.commit-form
+.quick-pull-choice
+.branch-name {
   display: inline-block;
   padding: 2px 4px;
   font: 12px var(--fonts-monospace);
@@ -299,29 +299,29 @@ td .commit-summary {
 }
 
 .repository.file.editor
-  .commit-form-wrapper
-  .commit-form
-  .quick-pull-choice
-  .new-branch-name-input {
+.commit-form-wrapper
+.commit-form
+.quick-pull-choice
+.new-branch-name-input {
   position: relative;
   margin-left: 25px;
 }
 
 .repository.file.editor
-  .commit-form-wrapper
-  .commit-form
-  .quick-pull-choice
-  .new-branch-name-input
-  input {
+.commit-form-wrapper
+.commit-form
+.quick-pull-choice
+.new-branch-name-input
+input {
   width: 240px !important;
   padding-left: 26px !important;
 }
 
 .repository.file.editor
-  .commit-form-wrapper
-  .commit-form
-  .quick-pull-choice
-  .octicon-git-branch {
+.commit-form-wrapper
+.commit-form
+.quick-pull-choice
+.octicon-git-branch {
   position: absolute;
   top: 9px;
   left: 10px;
@@ -553,10 +553,10 @@ td .commit-summary {
 }
 
 .repository.view.issue
-  .comment-list
-  .timeline-item
-  .badge
-  .svg.octicon-comment {
+.comment-list
+.timeline-item
+.badge
+.svg.octicon-comment {
   margin-top: 2px;
 }
 
@@ -575,10 +575,10 @@ td .commit-summary {
 }
 
 .repository.view.issue
-  .comment-list
-  .timeline-item
-  .avatar-with-link
-  + .comment-text-line {
+.comment-list
+.timeline-item
+.avatar-with-link
++ .comment-text-line {
   margin-left: 0.25em;
 }
 
@@ -588,9 +588,9 @@ td .commit-summary {
 }
 
 .repository.view.issue
-  .comment-list
-  .timeline-item.event
-  > .commit-status-link {
+.comment-list
+.timeline-item.event
+> .commit-status-link {
   float: right;
   margin-right: 8px;
   margin-top: 4px;
@@ -633,10 +633,10 @@ td .commit-summary {
 }
 
 .repository.view.issue
-  .comment-list
-  .conversation-holder
-  .comment
-  .comment-container {
+.comment-list
+.conversation-holder
+.comment
+.comment-container {
   border: none;
 }
 
@@ -646,11 +646,11 @@ td .commit-summary {
     margin: 0;
   }
   .repository.view.issue
-    .comment-list
-    .comment
-    .content
-    .form
-    .button:not(:last-child) {
+  .comment-list
+  .comment
+  .content
+  .form
+  .button:not(:last-child) {
     margin-bottom: 1rem;
   }
 }
@@ -718,9 +718,9 @@ td .commit-summary {
 }
 
 .repository.view.issue
-  .comment-list
-  .comment-code-cloud
-  button.comment-form-reply {
+.comment-list
+.comment-code-cloud
+button.comment-form-reply {
   margin: 0;
 }
 
@@ -1053,11 +1053,11 @@ td .commit-summary {
 }
 
 .repository
-  .diff-file-box
-  .code-diff-split
-  .tag-code
-  .lines-code
-  code.code-inner {
+.diff-file-box
+.code-diff-split
+.tag-code
+.lines-code
+code.code-inner {
   padding-left: 10px !important;
 }
 
@@ -1906,10 +1906,10 @@ tbody.commit-list {
    * And don't show the role labels, there's no place for that. */
   .repository.view.issue .comment-list .timeline .timeline-avatar,
   .repository.view.issue
-    .comment-list
-    .timeline
-    .comment-header-right
-    .role-label {
+  .comment-list
+  .timeline
+  .comment-header-right
+  .role-label {
     display: none;
   }
   .commit-header h3 {

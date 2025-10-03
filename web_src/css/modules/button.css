@@ -17,6 +17,8 @@
   border: 1px solid var(--color-light-border);
   color: var(--color-text);
   white-space: nowrap;
+  padding: 0.57em 1.43em;
+  min-height: 38px;
 }
 
 .ui.button:focus-visible {
@@ -99,11 +101,6 @@
 }
 
 /* reference sizes (not exactly at the moment): normal: padding-x=21, height=38 ; compact: padding-x=15, height=32 */
-.ui.button {
-  /* stylelint-disable-line no-duplicate-selectors */
-  min-height: 38px;
-  padding: 0.57em /* around 8px */ 1.43em /* around 20px */;
-}
 .ui.compact.buttons .button,
 .ui.compact.button {
   padding: 0.42em /* around 8px */ 1.07em /* around 15px */;
