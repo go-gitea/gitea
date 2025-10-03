@@ -420,14 +420,11 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	// reset run's start stop time and status if it is done
+	// reset run's start and stop time when it is done
 	if run.Status.IsDone() {
 		run.PreviousDuration = run.Duration()
 		run.Started = 0
 		run.Stopped = 0
-		// Set run to waiting status so next job.Status evaluations reflect the status after the re-run trigger
-		// Avoid re-triggering email notification before the new job run ends
-		run.Status = 1
 		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration"); err != nil {
 			ctx.ServerError("UpdateRun", err)
 			return
@@ -437,7 +434,6 @@ func Rerun(ctx *context_module.Context) {
 			ctx.ServerError("run.LoadAttributes", err)
 			return
 		}
-		notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 	}
 
 	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
