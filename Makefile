@@ -923,15 +923,15 @@ LOCALE_FILES := $(wildcard $(LOCALE_DIR)/*.json)
 
 .PHONY: translation-check
 translation-check:
-	npm install -g jsonlint find-duplicated-property-keys
+	$(NODE_VARS) pnpm add -D jsonlint find-duplicated-property-keys
 	@echo "Checking JSON files in $(LOCALE_DIR)"
 	@for f in $(LOCALE_FILES); do \
 		echo "==> $$f"; \
-		if ! jsonlint -q $$f > /dev/null 2>&1; then \
+		if ! $(NODE_VARS) pnpm exec jsonlint -q $$f > /dev/null 2>&1; then \
 			echo "❌ Invalid JSON syntax: $$f"; \
 			exit 1; \
 		fi; \
-		if ! find-duplicated-property-keys -s $$f > /dev/null 2>&1; then \
+		if ! $(NODE_VARS) pnpm exec find-duplicated-property-keys -s $$f > /dev/null 2>&1; then \
 			echo "❌ Duplicate key found in: $$f"; \
 			exit 1; \
 		fi; \
