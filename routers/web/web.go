@@ -8,10 +8,10 @@ import (
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/public"
@@ -107,7 +107,7 @@ func buildAuthGroup() *auth_service.Group {
 	}
 	group.Add(&auth_service.Session{})
 
-	if setting.IsWindows && auth_model.IsSSPIEnabled(db.DefaultContext) {
+	if setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext()) {
 		group.Add(&auth_service.SSPI{}) // it MUST be the last, see the comment of SSPI
 	}
 
@@ -267,7 +267,11 @@ func Routes() *web.Router {
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
-	mid = append(mid, common.Sessioner(), context.Contexter())
+	if sessionMid, err := common.Sessioner(); err == nil && sessionMid != nil {
+		mid = append(mid, sessionMid, context.Contexter())
+	} else {
+		log.Fatal("common.Sessioner failed: %v", err)
+	}
 
 	// Get user from session if logged in.
 	mid = append(mid, webAuth(buildAuthGroup()))
@@ -971,6 +975,7 @@ func registerWebRoutes(m *web.Router) {
 
 				m.Post("/rename", web.Bind(forms.RenameOrgForm{}), org.SettingsRenamePost)
 				m.Post("/delete", org.SettingsDeleteOrgPost)
+				m.Post("/visibility", org.SettingsChangeVisibilityPost)
 
 				m.Group("/packages", func() {
 					m.Get("", org.Packages)
@@ -1224,10 +1229,11 @@ func registerWebRoutes(m *web.Router) {
 	// end "/{username}/{reponame}": view milestone, label, issue, pull, etc
 
 	m.Group("/{username}/{reponame}/{type:issues}", func() {
+		// these handlers also check unit permissions internally
 		m.Get("", repo.Issues)
-		m.Get("/{index}", repo.ViewIssue)
-	}, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypeExternalTracker))
-	// end "/{username}/{reponame}": issue/pull list, issue/pull view, external tracker
+		m.Get("/{index}", repo.ViewIssue) // also do pull-request redirection (".../issues/{PR-number}" -> ".../pulls/{PR-number}")
+	}, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests, unit.TypeExternalTracker))
+	// end "/{username}/{reponame}": issue list, issue view (pull-request redirection), external tracker
 
 	m.Group("/{username}/{reponame}", func() { // edit issues, pulls, labels, milestones, etc
 		m.Group("/issues", func() {
@@ -1531,7 +1537,7 @@ func registerWebRoutes(m *web.Router) {
 			m.Group("/commits", func() {
 				m.Get("", repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewPullCommits)
 				m.Get("/list", repo.GetPullCommits)
-				m.Get("/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
+				m.Get("/{sha:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
 			})
 			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind(forms.MergePullRequestForm{}), repo.MergePullRequest)
 			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
@@ -1540,8 +1546,7 @@ func registerWebRoutes(m *web.Router) {
 			m.Post("/cleanup", context.RepoMustNotBeArchived(), repo.CleanUpPullRequest)
 			m.Group("/files", func() {
 				m.Get("", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForAllCommitsOfPr)
-				m.Get("/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesStartingFromCommit)
-				m.Get("/{shaFrom:[a-f0-9]{7,40}}..{shaTo:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
+				m.Get("/{shaFrom:[a-f0-9]{7,64}}..{shaTo:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
 				m.Group("/reviews", func() {
 					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
 					m.Post("/comments", web.Bind(forms.CodeCommentForm{}), repo.SetShowOutdatedComments, repo.CreateCodeComment)
@@ -1615,8 +1620,8 @@ func registerWebRoutes(m *web.Router) {
 			m.Get("/cherry-pick/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, context.RepoRefByDefaultBranch(), repo.CherryPick)
 		}, repo.MustBeNotEmpty)
 
-		m.Get("/rss/branch/*", context.RepoRefByType(git.RefTypeBranch), feedEnabled, feed.RenderBranchFeed)
-		m.Get("/atom/branch/*", context.RepoRefByType(git.RefTypeBranch), feedEnabled, feed.RenderBranchFeed)
+		m.Get("/rss/branch/*", context.RepoRefByType(git.RefTypeBranch), feedEnabled, feed.RenderBranchFeedRSS)
+		m.Get("/atom/branch/*", context.RepoRefByType(git.RefTypeBranch), feedEnabled, feed.RenderBranchFeedAtom)
 
 		m.Group("/src", func() {
 			m.Get("", func(ctx *context.Context) { ctx.Redirect(ctx.Repo.RepoLink) }) // there is no "{owner}/{repo}/src" page, so redirect to "{owner}/{repo}" to avoid 404

@@ -13,6 +13,7 @@ import (
 	"html/template"
 	"io"
 	"net/url"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -21,11 +22,14 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/attribute"
+	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -398,6 +402,14 @@ func (diffFile *DiffFile) GetDiffFileName() string {
 		return diffFile.OldName
 	}
 	return diffFile.Name
+}
+
+// GetDiffFileBaseName returns the short name of the diff file, or its short old name in case it was deleted
+func (diffFile *DiffFile) GetDiffFileBaseName() string {
+	if diffFile.Name == "" {
+		return path.Base(diffFile.OldName)
+	}
+	return path.Base(diffFile.Name)
 }
 
 func (diffFile *DiffFile) ShouldBeHidden() bool {
@@ -1090,7 +1102,7 @@ type DiffOptions struct {
 	MaxLines           int
 	MaxLineCharacters  int
 	MaxFiles           int
-	WhitespaceBehavior git.TrustedCmdArgs
+	WhitespaceBehavior gitcmd.TrustedCmdArgs
 	DirectComparison   bool
 }
 
@@ -1131,7 +1143,7 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 		return nil, nil, nil, err
 	}
 
-	cmdDiff := git.NewCommand().
+	cmdDiff := gitcmd.NewCommand().
 		AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
 		AddArguments(opts.WhitespaceBehavior...)
 
@@ -1158,7 +1170,7 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 
 	go func() {
 		stderr := &bytes.Buffer{}
-		if err := cmdDiff.Run(cmdCtx, &git.RunOpts{
+		if err := cmdDiff.Run(cmdCtx, &gitcmd.RunOpts{
 			Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,
 			Dir:     repoPath,
 			Stdout:  writer,
@@ -1270,9 +1282,7 @@ type DiffShortStat struct {
 	NumFiles, TotalAddition, TotalDeletion int
 }
 
-func GetDiffShortStat(gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
-	repoPath := gitRepo.Path
-
+func GetDiffShortStat(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
 	afterCommit, err := gitRepo.GetCommit(afterCommitID)
 	if err != nil {
 		return nil, err
@@ -1284,7 +1294,7 @@ func GetDiffShortStat(gitRepo *git.Repository, beforeCommitID, afterCommitID str
 	}
 
 	diff := &DiffShortStat{}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStatByCmdArgs(gitRepo.Ctx, repoPath, nil, actualBeforeCommitID.String(), afterCommitID)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = gitrepo.GetDiffShortStatByCmdArgs(ctx, repo, nil, actualBeforeCommitID.String(), afterCommitID)
 	if err != nil {
 		return nil, err
 	}
@@ -1395,8 +1405,8 @@ func CommentMustAsDiff(ctx context.Context, c *issues_model.Comment) *Diff {
 }
 
 // GetWhitespaceFlag returns git diff flag for treating whitespaces
-func GetWhitespaceFlag(whitespaceBehavior string) git.TrustedCmdArgs {
-	whitespaceFlags := map[string]git.TrustedCmdArgs{
+func GetWhitespaceFlag(whitespaceBehavior string) gitcmd.TrustedCmdArgs {
+	whitespaceFlags := map[string]gitcmd.TrustedCmdArgs{
 		"ignore-all":    {"-w"},
 		"ignore-change": {"-b"},
 		"ignore-eol":    {"--ignore-space-at-eol"},

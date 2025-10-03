@@ -118,7 +118,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 			// make sure the base branch's update time is before the fork, to make it test the complete logic
 			baseBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: baseRepo.ID, Name: "master"})
 			forkBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: forkRepo.ID, Name: "fork-branch"})
-			_, err := db.GetEngine(db.DefaultContext).ID(forkBranch.ID).Update(&git_model.Branch{UpdatedUnix: baseBranch.UpdatedUnix + 1})
+			_, err := db.GetEngine(t.Context()).ID(forkBranch.ID).Update(&git_model.Branch{UpdatedUnix: baseBranch.UpdatedUnix + 1})
 			require.NoError(t, err)
 
 			// the repo shows a prompt to "sync fork"

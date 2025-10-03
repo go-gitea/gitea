@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -22,7 +21,7 @@ func TestActivityPubSignedPost(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	pubID := "https://example.com/pubID"
-	c, err := NewClient(db.DefaultContext, user, pubID)
+	c, err := NewClient(t.Context(), user, pubID)
 	assert.NoError(t, err)
 
 	expected := "BODY"

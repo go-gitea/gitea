@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
@@ -27,18 +28,18 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 		_ = stdoutWriter.Close()
 	}()
 
-	var command *git.Command
+	var command *gitcmd.Command
 	objectFormat, _ := repo.GetObjectFormat()
 	if oldCommitID == objectFormat.EmptyObjectID().String() {
 		// When creating a new branch, the oldCommitID is empty, by using "newCommitID --not --all":
 		// List commits that are reachable by following the newCommitID, exclude "all" existing heads/tags commits
 		// So, it only lists the new commits received, doesn't list the commits already present in the receiving repository
-		command = git.NewCommand("rev-list").AddDynamicArguments(newCommitID).AddArguments("--not", "--all")
+		command = gitcmd.NewCommand("rev-list").AddDynamicArguments(newCommitID).AddArguments("--not", "--all")
 	} else {
-		command = git.NewCommand("rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID)
+		command = gitcmd.NewCommand("rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID)
 	}
 	// This is safe as force pushes are already forbidden
-	err = command.Run(repo.Ctx, &git.RunOpts{
+	err = command.Run(repo.Ctx, &gitcmd.RunOpts{
 		Env:    env,
 		Dir:    repo.Path,
 		Stdout: stdoutWriter,
@@ -84,8 +85,8 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 
 	commitID := git.MustIDFromString(sha)
 
-	return git.NewCommand("cat-file", "commit").AddDynamicArguments(sha).
-		Run(repo.Ctx, &git.RunOpts{
+	return gitcmd.NewCommand("cat-file", "commit").AddDynamicArguments(sha).
+		Run(repo.Ctx, &gitcmd.RunOpts{
 			Env:    env,
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,

@@ -15,7 +15,7 @@ type ToastLevels = {
     background: string,
     duration: number,
   }
-}
+};
 
 const levels: ToastLevels = {
   info: {
@@ -40,10 +40,10 @@ type ToastOpts = {
   preventDuplicates?: boolean | string,
 } & Options;
 
-type ToastifyElement = HTMLElement & {_giteaToastifyInstance?: Toast };
+type ToastifyElement = HTMLElement & {_giteaToastifyInstance?: Toast};
 
-// See https://github.com/apvarun/toastify-js#api for options
-function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast {
+/** See https://github.com/apvarun/toastify-js#api for options */
+function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast | null {
   const body = useHtmlBody ? message : htmlEscape(message);
   const parent = document.querySelector('.ui.dimmer.active') ?? document.body;
   const duplicateKey = preventDuplicates ? (preventDuplicates === true ? `${level}-${body}` : preventDuplicates) : '';
@@ -56,7 +56,7 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
       showElem(toastDupNumEl);
       toastDupNumEl.textContent = String(Number(toastDupNumEl.textContent) + 1);
       animateOnce(toastDupNumEl, 'pulse-1p5-200');
-      return;
+      return null;
     }
   }
 
@@ -83,15 +83,15 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
   return toast;
 }
 
-export function showInfoToast(message: string, opts?: ToastOpts): Toast {
+export function showInfoToast(message: string, opts?: ToastOpts): Toast | null {
   return showToast(message, 'info', opts);
 }
 
-export function showWarningToast(message: string, opts?: ToastOpts): Toast {
+export function showWarningToast(message: string, opts?: ToastOpts): Toast | null {
   return showToast(message, 'warning', opts);
 }
 
-export function showErrorToast(message: string, opts?: ToastOpts): Toast {
+export function showErrorToast(message: string, opts?: ToastOpts): Toast | null {
   return showToast(message, 'error', opts);
 }
 

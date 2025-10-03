@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // CodeActivityStats represents git statistics data
@@ -40,9 +41,9 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	since := fromTime.Format(time.RFC3339)
 
-	stdout, _, runErr := NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
+	stdout, _, runErr := gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
 		AddOptionFormat("--since=%s", since).
-		RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+		RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -62,7 +63,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		_ = stdoutWriter.Close()
 	}()
 
-	gitCmd := NewCommand("log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso").
+	gitCmd := gitcmd.NewCommand("log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso").
 		AddOptionFormat("--since=%s", since)
 	if len(branch) == 0 {
 		gitCmd.AddArguments("--branches=*")
@@ -71,7 +72,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	}
 
 	stderr := new(strings.Builder)
-	err = gitCmd.Run(repo.Ctx, &RunOpts{
+	err = gitCmd.Run(repo.Ctx, &gitcmd.RunOpts{
 		Env:    []string{},
 		Dir:    repo.Path,
 		Stdout: stdoutWriter,

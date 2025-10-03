@@ -14,5 +14,4 @@ export function linkLabelAndInput(label: Element, input: Element) {
   }
 }
 
-// eslint-disable-next-line no-jquery/variable-pattern
 export const fomanticQuery = $;

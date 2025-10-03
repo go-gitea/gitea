@@ -90,11 +90,8 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	if rangeStart >= len(entries) {
 		return tree, nil
 	}
-	var rangeEnd int
-	if len(entries) > perPage {
-		tree.Truncated = true
-	}
-	rangeEnd = min(rangeStart+perPage, len(entries))
+	rangeEnd := min(rangeStart+perPage, len(entries))
+	tree.Truncated = rangeEnd < len(entries)
 	tree.Entries = make([]api.GitEntry, rangeEnd-rangeStart)
 	for e := rangeStart; e < rangeEnd; e++ {
 		i := e - rangeStart

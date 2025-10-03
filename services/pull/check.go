@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/graceful"
@@ -49,7 +50,7 @@ var (
 
 func markPullRequestStatusAsChecking(ctx context.Context, pr *issues_model.PullRequest) bool {
 	pr.Status = issues_model.PullRequestStatusChecking
-	err := pr.UpdateColsIfNotMerged(ctx, "status")
+	_, err := pr.UpdateColsIfNotMerged(ctx, "status")
 	if err != nil {
 		log.Error("UpdateColsIfNotMerged failed, pr: %-v, err: %v", pr, err)
 		return false
@@ -255,7 +256,7 @@ func markPullRequestAsMergeable(ctx context.Context, pr *issues_model.PullReques
 		return
 	}
 
-	if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
+	if _, err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
 		log.Error("Update[%-v]: %v", pr, err)
 	}
 
@@ -280,9 +281,9 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	prHeadRef := pr.GetGitHeadRefName()
 
 	// Check if the pull request is merged into BaseBranch
-	if _, _, err := git.NewCommand("merge-base", "--is-ancestor").
+	if _, _, err := gitcmd.NewCommand("merge-base", "--is-ancestor").
 		AddDynamicArguments(prHeadRef, pr.BaseBranch).
-		RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()}); err != nil {
+		RunStdString(ctx, &gitcmd.RunOpts{Dir: pr.BaseRepo.RepoPath()}); err != nil {
 		if strings.Contains(err.Error(), "exit status 1") {
 			// prHeadRef is not an ancestor of the base branch
 			return nil, nil
@@ -308,9 +309,9 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 
 	// Get the commit from BaseBranch where the pull request got merged
-	mergeCommit, _, err := git.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse").
+	mergeCommit, _, err := gitcmd.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse").
 		AddDynamicArguments(prHeadCommitID+".."+pr.BaseBranch).
-		RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+		RunStdString(ctx, &gitcmd.RunOpts{Dir: pr.BaseRepo.RepoPath()})
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
 	} else if len(mergeCommit) < objectFormat.FullLength() {

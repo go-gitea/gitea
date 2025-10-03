@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -159,12 +160,12 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	stdout := &strings.Builder{}
 	stderr := &strings.Builder{}
 
-	cmdApply := git.NewCommand("apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary")
+	cmdApply := gitcmd.NewCommand("apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary")
 	if git.DefaultFeatures().CheckVersionAtLeast("2.32") {
 		cmdApply.AddArguments("-3")
 	}
 
-	if err := cmdApply.Run(ctx, &git.RunOpts{
+	if err := cmdApply.Run(ctx, &gitcmd.RunOpts{
 		Dir:    t.basePath,
 		Stdout: stdout,
 		Stderr: stderr,

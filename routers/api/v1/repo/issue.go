@@ -351,7 +351,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   enum: [closed, open, all]
 	// - name: labels
 	//   in: query
-	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
+	//   description: comma separated list of label names. Fetch only issues that have any of this label names. Non existent labels are discarded.
 	//   type: string
 	// - name: q
 	//   in: query
@@ -979,7 +979,7 @@ func DeleteIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if err = issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
+	if err = issue_service.DeleteIssue(ctx, ctx.Doer, issue); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
