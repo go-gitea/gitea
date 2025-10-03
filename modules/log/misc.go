@@ -20,6 +20,7 @@ func BaseLoggerToGeneralLogger(b BaseLogger) Logger {
 var _ Logger = (*baseToLogger)(nil)
 
 func (s *baseToLogger) Log(skip int, event *Event, format string, v ...any) {
+	// codeql[disable-next-line=go/clear-text-logging]
 	s.base.Log(skip+1, event, format, v...)
 }
 
