@@ -109,7 +109,7 @@ require (
 	github.com/ulikunitz/xz v0.5.15
 	github.com/urfave/cli-docs/v3 v3.0.0-alpha6
 	github.com/urfave/cli/v3 v3.4.1
-	github.com/wneessen/go-mail v0.6.2
+	github.com/wneessen/go-mail v0.7.1
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/yohcop/openid-go v1.0.1
 	github.com/yuin/goldmark v1.7.13
@@ -120,9 +120,9 @@ require (
 	golang.org/x/image v0.30.0
 	golang.org/x/net v0.43.0
 	golang.org/x/oauth2 v0.30.0
-	golang.org/x/sync v0.16.0
+	golang.org/x/sync v0.17.0
 	golang.org/x/sys v0.35.0
-	golang.org/x/text v0.28.0
+	golang.org/x/text v0.29.0
 	google.golang.org/grpc v1.75.0
 	google.golang.org/protobuf v1.36.8
 	gopkg.in/ini.v1 v1.67.0
