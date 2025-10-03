@@ -67,7 +67,6 @@
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "4.5.0",
     "@playwright/test": "1.55.1",
-    "@stoplight/spectral-cli": "6.15.0",
     "@stylistic/eslint-plugin": "5.4.0",
     "@stylistic/stylelint-plugin": "4.0.0",
     "@types/codemirror": "5.60.16",
@@ -104,6 +103,7 @@
     "material-icon-theme": "5.27.0",
     "nolyfill": "1.0.44",
     "postcss-html": "1.8.0",
+    "spectral-cli-bundle": "1.0.3",
     "stylelint": "16.24.0",
     "stylelint-config-recommended": "17.0.0",
     "stylelint-declaration-block-no-ignored-properties": "2.8.0",
