@@ -25,15 +25,15 @@ func TestOrgList(t *testing.T) {
 }
 
 func testCountOrganizations(t *testing.T) {
-	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", user_model.UserTypeOrganization).Count(&organization.Organization{})
+	expected, err := db.GetEngine(t.Context()).Where("type=?", user_model.UserTypeOrganization).Count(&organization.Organization{})
 	assert.NoError(t, err)
-	cnt, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{IncludeVisibility: structs.VisibleTypePrivate})
+	cnt, err := db.Count[organization.Organization](t.Context(), organization.FindOrgOptions{IncludeVisibility: structs.VisibleTypePrivate})
 	assert.NoError(t, err)
 	assert.Equal(t, expected, cnt)
 }
 
 func testFindOrgs(t *testing.T) {
-	orgs, err := db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
+	orgs, err := db.Find[organization.Organization](t.Context(), organization.FindOrgOptions{
 		UserID:            4,
 		IncludeVisibility: structs.VisibleTypePrivate,
 	})
@@ -42,13 +42,13 @@ func testFindOrgs(t *testing.T) {
 		assert.EqualValues(t, 3, orgs[0].ID)
 	}
 
-	orgs, err = db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
+	orgs, err = db.Find[organization.Organization](t.Context(), organization.FindOrgOptions{
 		UserID: 4,
 	})
 	assert.NoError(t, err)
 	assert.Empty(t, orgs)
 
-	total, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
+	total, err := db.Count[organization.Organization](t.Context(), organization.FindOrgOptions{
 		UserID:            4,
 		IncludeVisibility: structs.VisibleTypePrivate,
 	})
@@ -57,7 +57,7 @@ func testFindOrgs(t *testing.T) {
 }
 
 func testGetUserOrgsList(t *testing.T) {
-	orgs, err := organization.GetUserOrgsList(db.DefaultContext, &user_model.User{ID: 4})
+	orgs, err := organization.GetUserOrgsList(t.Context(), &user_model.User{ID: 4})
 	assert.NoError(t, err)
 	if assert.Len(t, orgs, 1) {
 		assert.EqualValues(t, 3, orgs[0].ID)
@@ -67,10 +67,10 @@ func testGetUserOrgsList(t *testing.T) {
 }
 
 func testLoadOrgListTeams(t *testing.T) {
-	orgs, err := organization.GetUserOrgsList(db.DefaultContext, &user_model.User{ID: 4})
+	orgs, err := organization.GetUserOrgsList(t.Context(), &user_model.User{ID: 4})
 	assert.NoError(t, err)
 	assert.Len(t, orgs, 1)
-	teamsMap, err := organization.OrgList(orgs).LoadTeams(db.DefaultContext)
+	teamsMap, err := organization.OrgList(orgs).LoadTeams(t.Context())
 	assert.NoError(t, err)
 	assert.Len(t, teamsMap, 1)
 	assert.Len(t, teamsMap[3], 5)

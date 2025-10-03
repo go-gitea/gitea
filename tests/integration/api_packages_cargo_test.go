@@ -12,7 +12,6 @@ import (
 	neturl "net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -69,15 +68,15 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 		return &buf
 	}
 
-	err := cargo_service.InitializeIndexRepository(db.DefaultContext, user, user)
+	err := cargo_service.InitializeIndexRepository(t.Context(), user, user)
 	assert.NoError(t, err)
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, user.Name, cargo_service.IndexRepositoryName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), user.Name, cargo_service.IndexRepositoryName)
 	assert.NotNil(t, repo)
 	assert.NoError(t, err)
 
 	readGitContent := func(t *testing.T, path string) string {
-		gitRepo, err := gitrepo.OpenRepository(db.DefaultContext, repo)
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -179,24 +178,24 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 			DecodeJSON(t, resp, &status)
 			assert.True(t, status.OK)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeCargo)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeCargo)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 
-			pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+			pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 			assert.NoError(t, err)
 			assert.NotNil(t, pd.SemVer)
 			assert.IsType(t, &cargo_module.Metadata{}, pd.Metadata)
 			assert.Equal(t, packageName, pd.Package.Name)
 			assert.Equal(t, packageVersion, pd.Version.Version)
 
-			pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+			pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 			assert.NoError(t, err)
 			assert.Len(t, pfs, 1)
 			assert.Equal(t, fmt.Sprintf("%s-%s.crate", packageName, packageVersion), pfs[0].Name)
 			assert.True(t, pfs[0].IsLead)
 
-			pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+			pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
 			assert.NoError(t, err)
 			assert.EqualValues(t, 4, pb.Size)
 
@@ -236,7 +235,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 					t.Run("Rebuild", func(t *testing.T) {
 						defer tests.PrintCurrentTest(t)()
 
-						err := cargo_service.RebuildIndex(db.DefaultContext, user, user)
+						err := cargo_service.RebuildIndex(t.Context(), user, user)
 						assert.NoError(t, err)
 
 						_ = readGitContent(t, cargo_service.BuildPackagePath(packageName))
@@ -279,11 +278,11 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages.TypeCargo, packageName, packageVersion)
+		pv, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeCargo, packageName, packageVersion)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 0, pv.DownloadCount)
 
-		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pv.ID)
+		pfs, err := packages.GetFilesByVersionID(t.Context(), pv.ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 
@@ -293,7 +292,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 
 		assert.Equal(t, "test", resp.Body.String())
 
-		pv, err = packages.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages.TypeCargo, packageName, packageVersion)
+		pv, err = packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeCargo, packageName, packageVersion)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 1, pv.DownloadCount)
 	})
