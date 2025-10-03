@@ -923,7 +923,6 @@ LOCALE_FILES := $(wildcard $(LOCALE_DIR)/*.json)
 
 .PHONY: translation-check
 translation-check:
-	$(NODE_VARS) pnpm add -D jsonlint find-duplicated-property-keys
 	@echo "Checking JSON files in $(LOCALE_DIR)"
 	@for f in $(LOCALE_FILES); do \
 		echo "==> $$f"; \
