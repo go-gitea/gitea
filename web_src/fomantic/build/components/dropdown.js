@@ -66,7 +66,7 @@ $.fn.dropdown = function(parameters) {
         moduleNamespace = 'module-' + namespace,
 
         $module         = $(this),
-        $context        = $(settings.context),
+        $context        = $(document).find(settings.context), // GITEA-PATCH: use "jQuery.find(selector)" instead of "jQuery(selector)"
         $text           = $module.find(selector.text),
         $search         = $module.find(selector.search),
         $sizer          = $module.find(selector.sizer),

@@ -14,4 +14,6 @@ export function linkLabelAndInput(label: Element, input: Element) {
   }
 }
 
-export const fomanticQuery = $;
+export function fomanticQuery(s: string) {
+  return $(document).find(s);
+}

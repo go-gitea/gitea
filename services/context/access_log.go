@@ -10,6 +10,7 @@ import (
 	"strings"
 	"text/template"
 	"time"
+	"unicode"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -37,6 +38,16 @@ const keyOfRequestIDInTemplate = ".RequestID"
 // So, we accept a Request ID with a maximum character length of 40
 const maxRequestIDByteLength = 40
 
+func isSafeRequestID(id string) bool {
+	for _, r := range id {
+		safe := unicode.IsPrint(r)
+		if !safe {
+			return false
+		}
+	}
+	return true
+}
+
 func parseRequestIDFromRequestHeader(req *http.Request) string {
 	requestID := "-"
 	for _, key := range setting.Log.RequestIDHeaders {
@@ -44,6 +55,9 @@ func parseRequestIDFromRequestHeader(req *http.Request) string {
 			requestID = req.Header.Get(key)
 			break
 		}
+	}
+	if !isSafeRequestID(requestID) {
+		return "-"
 	}
 	if len(requestID) > maxRequestIDByteLength {
 		requestID = requestID[:maxRequestIDByteLength] + "..."
