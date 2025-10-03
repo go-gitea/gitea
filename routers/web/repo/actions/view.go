@@ -420,7 +420,7 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	// reset run's start and stop time when if is done
+	// reset run's start stop time and status if it is done
 	if run.Status.IsDone() {
 		run.PreviousDuration = run.Duration()
 		run.Started = 0
