@@ -50,11 +50,25 @@ func notifyWorkflowJobStatusUpdate(ctx context.Context, jobs []*actions_model.Ac
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
 	jobs, err := actions_model.CancelPreviousJobs(ctx, repoID, ref, workflowID, event)
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	EmitJobsIfReadyByJobs(jobs)
 	return err
 }
 
 func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) error {
 	jobs, err := actions_model.CleanRepoScheduleTasks(ctx, repo)
+	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	EmitJobsIfReadyByJobs(jobs)
+	return err
+}
+
+func CancelJobsByJobConcurrency(ctx context.Context, job *actions_model.ActionRunJob) error {
+	jobs, err := actions_model.CancelPreviousJobsByJobConcurrency(ctx, job)
+	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	return err
+}
+
+func CancelJobsByRunConcurrency(ctx context.Context, run *actions_model.ActionRun) error {
+	jobs, err := actions_model.CancelPreviousJobsByRunConcurrency(ctx, run)
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
 	return err
 }
@@ -95,6 +109,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 	}
 
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	EmitJobsIfReadyByJobs(jobs)
 
 	return nil
 }
@@ -103,7 +118,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 func CancelAbandonedJobs(ctx context.Context) error {
 	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
 		Statuses:      []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked},
-		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.AbandonedJobTimeout).Unix()),
+		UpdatedBefore: timeutil.TimeStampNow().AddDuration(-setting.Actions.AbandonedJobTimeout),
 	})
 	if err != nil {
 		log.Warn("find abandoned tasks: %v", err)
@@ -114,6 +129,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 
 	// Collect one job per run to send workflow run status update
 	updatedRuns := map[int64]*actions_model.ActionRunJob{}
+	updatedJobs := []*actions_model.ActionRunJob{}
 
 	for _, job := range jobs {
 		job.Status = actions_model.StatusCancelled
@@ -138,6 +154,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		}
 		CreateCommitStatus(ctx, job)
 		if updated {
+			updatedJobs = append(updatedJobs, job)
 			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 		}
 	}
@@ -145,6 +162,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 	for _, job := range updatedRuns {
 		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 	}
+	EmitJobsIfReadyByJobs(updatedJobs)
 
 	return nil
 }
