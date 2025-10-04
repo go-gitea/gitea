@@ -31,6 +31,7 @@ type Features struct {
 	SupportHashSha256      bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
 	SupportedObjectFormats []ObjectFormat // sha1, sha256
 	SupportCheckAttrOnBare bool           // >= 2.40
+	SupportGitMergeTree    bool           // >= 2.38
 }
 
 var defaultFeatures *Features
@@ -75,6 +76,7 @@ func loadGitVersionFeatures() (*Features, error) {
 		features.SupportedObjectFormats = append(features.SupportedObjectFormats, Sha256ObjectFormat)
 	}
 	features.SupportCheckAttrOnBare = features.CheckVersionAtLeast("2.40")
+	features.SupportGitMergeTree = features.CheckVersionAtLeast("2.38")
 	return features, nil
 }
 

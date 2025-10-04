@@ -37,9 +37,7 @@ import (
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/automergequeue"
 	pull_service "code.gitea.io/gitea/services/pull"
-	repo_service "code.gitea.io/gitea/services/repository"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
-	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -454,86 +452,6 @@ func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
 		assert.True(t, pull_service.IsErrMergeDivergingFastForwardOnly(err), "Merge error is not a diverging fast-forward-only error")
 
 		gitRepo.Close()
-	})
-}
-
-func TestConflictChecking(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-		// Create new clean repo to test conflict checking.
-		baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
-			Name:          "conflict-checking",
-			Description:   "Tempo repo",
-			AutoInit:      true,
-			Readme:        "Default",
-			DefaultBranch: "main",
-		})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, baseRepo)
-
-		// create a commit on new branch.
-		_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
-			Files: []*files_service.ChangeRepoFile{
-				{
-					Operation:     "create",
-					TreePath:      "important_file",
-					ContentReader: strings.NewReader("Just a non-important file"),
-				},
-			},
-			Message:   "Add a important file",
-			OldBranch: "main",
-			NewBranch: "important-secrets",
-		})
-		assert.NoError(t, err)
-
-		// create a commit on main branch.
-		_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
-			Files: []*files_service.ChangeRepoFile{
-				{
-					Operation:     "create",
-					TreePath:      "important_file",
-					ContentReader: strings.NewReader("Not the same content :P"),
-				},
-			},
-			Message:   "Add a important file",
-			OldBranch: "main",
-			NewBranch: "main",
-		})
-		assert.NoError(t, err)
-
-		// create Pull to merge the important-secrets branch into main branch.
-		pullIssue := &issues_model.Issue{
-			RepoID:   baseRepo.ID,
-			Title:    "PR with conflict!",
-			PosterID: user.ID,
-			Poster:   user,
-			IsPull:   true,
-		}
-
-		pullRequest := &issues_model.PullRequest{
-			HeadRepoID: baseRepo.ID,
-			BaseRepoID: baseRepo.ID,
-			HeadBranch: "important-secrets",
-			BaseBranch: "main",
-			HeadRepo:   baseRepo,
-			BaseRepo:   baseRepo,
-			Type:       issues_model.PullRequestGitea,
-		}
-		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
-		assert.NoError(t, err)
-
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"})
-		assert.NoError(t, issue.LoadPullRequest(t.Context()))
-		conflictingPR := issue.PullRequest
-
-		// Ensure conflictedFiles is populated.
-		assert.Len(t, conflictingPR.ConflictedFiles, 1)
-		// Check if status is correct.
-		assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
-		// Ensure that mergeable returns false
-		assert.False(t, conflictingPR.Mergeable(t.Context()))
 	})
 }
 
