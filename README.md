@@ -211,3 +211,12 @@ for the full license text.
 ![Home](https://dl.gitea.com/screenshots/org_home.png)
 
 </details>
+
+
+### How does `gitea` work?
+
+Check out this interactive walkthrough of the `gitea` codebase on CodeCanvas [here](https://www.code-canvas.com/?session=unauthenticatedGithub&repo=gitea&owner=go-gitea&branch=main&OnboardingTutorial=true).
+
+To update the diagram, follow the quick tutorial [here](https://docs.code-canvas.com/updating-diagram).
+
+<img width="1916" alt="CodeCanvas Screenshot" src="https://codecanvas-media-public.s3.amazonaws.com/images/codecanvas-readme-screenshot.png" />
