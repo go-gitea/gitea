@@ -40,7 +40,7 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 	cur := logCur.Cursor
 	// for the first batch, return as many as possible to test the auto-expand and auto-scroll
 	mockCount := util.Iif(logCur.Cursor == 0, opts.mockCountFirst, opts.mockCountGeneral)
-	for i := 0; i < mockCount; i++ {
+	for range mockCount {
 		logStr := mockedLogs[int(cur)%len(mockedLogs)]
 		cur++
 		logStr = strings.ReplaceAll(logStr, "{step}", strconv.Itoa(logCur.Step))

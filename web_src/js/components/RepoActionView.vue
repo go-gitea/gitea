@@ -60,10 +60,10 @@ function parseLineCommand(line: LogLine): LogLineCommand | null {
   return null;
 }
 
-function isLogElementInViewport(el: Element): boolean {
+function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();
   // only check whether bottom is in viewport, because the log element can be a log group which is usually tall
-  return 0 <= rect.bottom && rect.bottom <= window.innerHeight + 10;
+  return 0 <= rect.bottom && rect.bottom <= window.innerHeight + extraViewPortHeight;
 }
 
 type LocaleStorageOptions = {
@@ -315,7 +315,8 @@ export default defineComponent({
       const el = this.getJobStepLogsContainer(stepIndex);
       // if the logs container is empty, then auto-scroll if the step is expanded
       if (!el.lastChild) return this.currentJobStepsStates[stepIndex].expanded;
-      return isLogElementInViewport(el.lastChild as Element);
+      // use extraViewPortHeight to tolerate some extra "virtual view port" height (for example: the last line is partially visible)
+      return isLogElementInViewport(el.lastChild as Element, {extraViewPortHeight: 5});
     },
 
     appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
