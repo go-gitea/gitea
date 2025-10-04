@@ -45,7 +45,7 @@ func GetHook(repoPath, name string) (*Hook, error) {
 	}
 	h := &Hook{
 		name: name,
-		path: filepath.Join(repoPath, "hooks", name+".d", name),
+		path: filepath.Join(repoPath, filepath.Join("hooks", name+".d", name)),
 	}
 	isFile, err := util.IsFile(h.path)
 	if err != nil {
