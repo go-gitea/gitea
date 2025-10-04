@@ -88,7 +88,7 @@ func parseGitLsTreeOutput(stdout []byte) ([]internal.FileUpdate, error) {
 // genesisChanges get changes to add repo to the indexer for the first time
 func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*internal.RepoChanges, error) {
 	var changes internal.RepoChanges
-	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "--full-tree", "-l", "-r").AddDynamicArguments(revision).RunStdBytes(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()})
+	stdout, _, runErr := gitrepo.RunCmdBytes(ctx, repo, gitcmd.NewCommand("ls-tree", "--full-tree", "-l", "-r").AddDynamicArguments(revision))
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -119,7 +119,7 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 	updateChanges := func() error {
 		cmd := gitcmd.NewCommand("ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
 			AddDashesAndList(updatedFilenames...)
-		lsTreeStdout, _, err := cmd.RunStdBytes(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()})
+		lsTreeStdout, _, err := gitrepo.RunCmdBytes(ctx, repo, cmd)
 		if err != nil {
 			return err
 		}

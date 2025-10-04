@@ -206,9 +206,7 @@ func TestPushPullRefs(t *testing.T) {
 		doGitClone(dstPath, u)(t)
 
 		cmd := gitcmd.NewCommand("push", "--delete", "origin", "refs/pull/2/head")
-		stdout, stderr, err := cmd.RunStdString(t.Context(), &gitcmd.RunOpts{
-			Dir: dstPath,
-		})
+		stdout, stderr, err := cmd.WithDir(dstPath).RunStdString(t.Context())
 		assert.Error(t, err)
 		assert.Empty(t, stdout)
 		assert.NotContains(t, stderr, "[deleted]", "stderr: %s", stderr)

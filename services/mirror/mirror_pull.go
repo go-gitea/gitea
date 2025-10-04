@@ -272,13 +272,10 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
-	if err := cmd.Run(ctx, &gitcmd.RunOpts{
-		Timeout: timeout,
-		Dir:     repoPath,
-		Env:     envs,
-		Stdout:  &stdoutBuilder,
-		Stderr:  &stderrBuilder,
-	}); err != nil {
+	if err := gitrepo.RunCmd(ctx, m.Repo, cmd.WithTimeout(timeout).
+		WithEnv(envs).
+		WithStdout(&stdoutBuilder).
+		WithStderr(&stderrBuilder)); err != nil {
 		stdout := stdoutBuilder.String()
 		stderr := stderrBuilder.String()
 
@@ -297,12 +294,9 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 				// Successful prune - reattempt mirror
 				stderrBuilder.Reset()
 				stdoutBuilder.Reset()
-				if err = cmd.Run(ctx, &gitcmd.RunOpts{
-					Timeout: timeout,
-					Dir:     repoPath,
-					Stdout:  &stdoutBuilder,
-					Stderr:  &stderrBuilder,
-				}); err != nil {
+				if err = gitrepo.RunCmd(ctx, m.Repo, cmd.WithTimeout(timeout).
+					WithStdout(&stdoutBuilder).
+					WithStderr(&stderrBuilder)); err != nil {
 					stdout := stdoutBuilder.String()
 					stderr := stderrBuilder.String()
 

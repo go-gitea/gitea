@@ -1161,12 +1161,11 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 
 	go func() {
 		stderr := &bytes.Buffer{}
-		if err := cmdDiff.Run(cmdCtx, &gitcmd.RunOpts{
-			Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,
-			Dir:     repoPath,
-			Stdout:  writer,
-			Stderr:  stderr,
-		}); err != nil && !git.IsErrCanceledOrKilled(err) {
+		if err := cmdDiff.WithTimeout(time.Duration(setting.Git.Timeout.Default) * time.Second).
+			WithDir(repoPath).
+			WithStdout(writer).
+			WithStderr(stderr).
+			Run(cmdCtx); err != nil && !git.IsErrCanceledOrKilled(err) {
 			log.Error("error during GetDiff(git diff dir: %s): %v, stderr: %s", repoPath, err, stderr.String())
 		}
 

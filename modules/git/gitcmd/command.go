@@ -46,6 +46,7 @@ type Command struct {
 	brokenArgs []string
 	cmd        *exec.Cmd // for debug purpose only
 	configArgs []string
+	opts       *runOpts
 }
 
 func logArgSanitize(arg string) string {
@@ -194,8 +195,8 @@ func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
 	return ret
 }
 
-// RunOpts represents parameters to run the command. If UseContextTimeout is specified, then Timeout is ignored.
-type RunOpts struct {
+// runOpts represents parameters to run the command. If UseContextTimeout is specified, then Timeout is ignored.
+type runOpts struct {
 	Env               []string
 	Timeout           time.Duration
 	UseContextTimeout bool
@@ -268,30 +269,164 @@ func CommonCmdServEnvs() []string {
 
 var ErrBrokenCommand = errors.New("git command is broken")
 
+type stringWriter struct {
+	str *string
+}
+
+func (w *stringWriter) Write(p []byte) (n int, err error) {
+	*w.str += util.UnsafeBytesToString(p)
+	return len(p), nil
+}
+
+func (c *Command) WithStringOutput(output *string) *Command {
+	if output != nil {
+		if c.opts == nil {
+			c.opts = &runOpts{}
+		}
+		c.opts.Stdout = &stringWriter{str: output}
+	}
+	return c
+}
+
+func (c *Command) WithStringErr(stderr *string) *Command {
+	if stderr != nil {
+		if c.opts == nil {
+			c.opts = &runOpts{}
+		}
+		c.opts.Stderr = &stringWriter{str: stderr}
+	}
+	return c
+}
+
+type bytesWriter struct {
+	buf *[]byte
+}
+
+func (w *bytesWriter) Write(p []byte) (n int, err error) {
+	*w.buf = append(*w.buf, p...)
+	return len(p), nil
+}
+
+func (c *Command) WithBytesOutput(output *[]byte) *Command {
+	if output != nil {
+		if c.opts == nil {
+			c.opts = &runOpts{}
+		}
+		c.opts.Stdout = &bytesWriter{buf: output}
+	}
+	return c
+}
+
+func (c *Command) WithDir(dir string) *Command {
+	if dir != "" {
+		if c.opts == nil {
+			c.opts = &runOpts{}
+		}
+		c.opts.Dir = dir
+	}
+	return c
+}
+
+func (c *Command) WithEnv(env []string) *Command {
+	if env != nil {
+		if c.opts == nil {
+			c.opts = &runOpts{}
+		}
+		c.opts.Env = env
+	}
+	return c
+}
+
+func (c *Command) WithTimeout(timeout time.Duration) *Command {
+	if timeout > 0 {
+		if c.opts == nil {
+			c.opts = &runOpts{}
+		}
+		c.opts.Timeout = timeout
+	}
+	return c
+}
+
+func (c *Command) WithStdout(stdout io.Writer) *Command {
+	if stdout != nil {
+		if c.opts == nil {
+			c.opts = &runOpts{}
+		}
+		c.opts.Stdout = stdout
+	}
+	return c
+}
+
+func (c *Command) WithStderr(stderr io.Writer) *Command {
+	if stderr != nil {
+		if c.opts == nil {
+			c.opts = &runOpts{}
+		}
+		c.opts.Stderr = stderr
+	}
+	return c
+}
+
+func (c *Command) WithStdin(stdin io.Reader) *Command {
+	if stdin != nil {
+		if c.opts == nil {
+			c.opts = &runOpts{}
+		}
+		c.opts.Stdin = stdin
+	}
+	return c
+}
+
+func (c *Command) WithPipelineFunc(f func(context.Context, context.CancelFunc) error) *Command {
+	if f != nil {
+		if c.opts == nil {
+			c.opts = &runOpts{}
+		}
+		c.opts.PipelineFunc = f
+	}
+	return c
+}
+
+func (c *Command) WithUseContextTimeout(useContextTimeout bool) *Command {
+	if c.opts == nil {
+		c.opts = &runOpts{}
+	}
+	c.opts.UseContextTimeout = useContextTimeout
+	return c
+}
+
+func (c *Command) WithLogSkipStep(stepSkip int) *Command {
+	if c.opts == nil {
+		c.opts = &runOpts{}
+	}
+	c.opts.LogSkip += stepSkip
+	return c
+}
+
 // Run runs the command with the RunOpts
-func (c *Command) Run(ctx context.Context, opts *RunOpts) error {
+func (c *Command) Run(ctx context.Context) error {
 	if len(c.brokenArgs) != 0 {
 		log.Error("git command is broken: %s, broken args: %s", c.LogString(), strings.Join(c.brokenArgs, " "))
 		return ErrBrokenCommand
 	}
-	if opts == nil {
-		opts = &RunOpts{}
+	if c.opts == nil {
+		c.opts = &runOpts{}
 	}
 
 	// We must not change the provided options
-	timeout := opts.Timeout
+	timeout := c.opts.Timeout
 	if timeout <= 0 {
 		timeout = defaultCommandExecutionTimeout
 	}
 
 	cmdLogString := c.LogString()
-	callerInfo := util.CallerFuncName(1 /* util */ + 1 /* this */ + opts.LogSkip /* parent */)
+	callerInfo := util.CallerFuncName(1 /* util */ + 1 /* this */ + c.opts.LogSkip /* parent */)
 	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
 		callerInfo = callerInfo[pos+1:]
 	}
 	// these logs are for debugging purposes only, so no guarantee of correctness or stability
-	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(opts.Dir), cmdLogString)
-	log.DebugWithSkip(opts.LogSkip+1, "git.Command: %s", desc)
+	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(c.opts.Dir), cmdLogString)
+	log.Debug("git.Command: %s", desc)
 
 	_, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanGitRun)
 	defer span.End()
@@ -301,7 +436,7 @@ func (c *Command) Run(ctx context.Context, opts *RunOpts) error {
 	var cancel context.CancelFunc
 	var finished context.CancelFunc
 
-	if opts.UseContextTimeout {
+	if c.opts.UseContextTimeout {
 		ctx, cancel, finished = process.GetManager().AddContext(ctx, desc)
 	} else {
 		ctx, cancel, finished = process.GetManager().AddContextTimeout(ctx, timeout, desc)
@@ -312,24 +447,24 @@ func (c *Command) Run(ctx context.Context, opts *RunOpts) error {
 
 	cmd := exec.CommandContext(ctx, c.prog, append(c.configArgs, c.args...)...)
 	c.cmd = cmd // for debug purpose only
-	if opts.Env == nil {
+	if c.opts.Env == nil {
 		cmd.Env = os.Environ()
 	} else {
-		cmd.Env = opts.Env
+		cmd.Env = c.opts.Env
 	}
 
 	process.SetSysProcAttribute(cmd)
 	cmd.Env = append(cmd.Env, CommonGitCmdEnvs()...)
-	cmd.Dir = opts.Dir
-	cmd.Stdout = opts.Stdout
-	cmd.Stderr = opts.Stderr
-	cmd.Stdin = opts.Stdin
+	cmd.Dir = c.opts.Dir
+	cmd.Stdout = c.opts.Stdout
+	cmd.Stderr = c.opts.Stderr
+	cmd.Stdin = c.opts.Stdin
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 
-	if opts.PipelineFunc != nil {
-		err := opts.PipelineFunc(ctx, cancel)
+	if c.opts.PipelineFunc != nil {
+		err := c.opts.PipelineFunc(ctx, cancel)
 		if err != nil {
 			cancel()
 			_ = cmd.Wait()
@@ -398,13 +533,8 @@ func IsErrorExitCode(err error, code int) bool {
 	return false
 }
 
-// RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
-func (c *Command) RunStdString(ctx context.Context, opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
-	if opts == nil {
-		opts = &RunOpts{}
-	}
-	opts.LogSkip++
-	stdoutBytes, stderrBytes, err := c.RunStdBytes(ctx, opts)
+func (c *Command) RunStdString(ctx context.Context) (stdout, stderr string, runErr RunStdError) {
+	stdoutBytes, stderrBytes, err := c.WithLogSkipStep(1).RunStdBytes(ctx)
 	stdout = util.UnsafeBytesToString(stdoutBytes)
 	stderr = util.UnsafeBytesToString(stderrBytes)
 	if err != nil {
@@ -414,34 +544,14 @@ func (c *Command) RunStdString(ctx context.Context, opts *RunOpts) (stdout, stde
 	return stdout, stderr, nil
 }
 
-// RunStdBytes runs the command with options and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
-func (c *Command) RunStdBytes(ctx context.Context, opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
-	if opts == nil {
-		opts = &RunOpts{}
-	}
-	opts.LogSkip++
-	if opts.Stdout != nil || opts.Stderr != nil {
-		// we must panic here, otherwise there would be bugs if developers set Stdin/Stderr by mistake, and it would be very difficult to debug
-		panic("stdout and stderr field must be nil when using RunStdBytes")
-	}
+func (c *Command) RunStdBytes(ctx context.Context) (stdout, stderr []byte, runErr RunStdError) {
 	stdoutBuf := &bytes.Buffer{}
 	stderrBuf := &bytes.Buffer{}
 
-	// We must not change the provided options as it could break future calls - therefore make a copy.
-	newOpts := &RunOpts{
-		Env:               opts.Env,
-		Timeout:           opts.Timeout,
-		UseContextTimeout: opts.UseContextTimeout,
-		Dir:               opts.Dir,
-		Stdout:            stdoutBuf,
-		Stderr:            stderrBuf,
-		Stdin:             opts.Stdin,
-		PipelineFunc:      opts.PipelineFunc,
-		LogSkip:           opts.LogSkip,
-	}
-
-	err := c.Run(ctx, newOpts)
-	stderr = stderrBuf.Bytes()
+	err := c.WithLogSkipStep(1).
+		WithStdout(stdoutBuf).
+		WithStderr(stderrBuf).
+		Run(ctx)
 	if err != nil {
 		return nil, stderr, &runStdError{err: err, stderr: util.UnsafeBytesToString(stderr)}
 	}

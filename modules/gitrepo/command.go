@@ -9,25 +9,17 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
-type CmdOption struct {
-	Env []string
+func RunCmd(ctx context.Context, repo Repository, cmd *gitcmd.Command) error {
+	return cmd.WithDir(repoPath(repo)).
+		WithLogSkipStep(1).
+		Run(ctx)
 }
 
-func WithEnv(env []string) func(opt *CmdOption) {
-	return func(opt *CmdOption) {
-		opt.Env = env
-	}
-}
-
-func RunCmdString(ctx context.Context, repo Repository, cmd *gitcmd.Command, opts ...func(opt *CmdOption)) (string, error) {
-	var opt CmdOption
-	for _, o := range opts {
-		o(&opt)
-	}
-	res, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{
-		Dir:     repoPath(repo),
-		Env:     opt.Env,
-		LogSkip: 1,
-	})
+func RunCmdString(ctx context.Context, repo Repository, cmd *gitcmd.Command) (string, error) {
+	res, _, err := cmd.WithDir(repoPath(repo)).WithLogSkipStep(1).RunStdString(ctx)
 	return res, err
+}
+
+func RunCmdBytes(ctx context.Context, repo Repository, cmd *gitcmd.Command) ([]byte, []byte, error) {
+	return cmd.WithDir(repoPath(repo)).WithLogSkipStep(1).RunStdBytes(ctx)
 }

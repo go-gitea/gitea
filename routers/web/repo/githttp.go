@@ -316,7 +316,9 @@ func dummyInfoRefs(ctx *context.Context) {
 			return
 		}
 
-		refs, _, err := gitcmd.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &gitcmd.RunOpts{Dir: tmpDir})
+		refs, _, err := gitcmd.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").
+			WithDir(tmpDir).
+			RunStdBytes(ctx)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -448,15 +450,15 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	}
 
 	var stderr bytes.Buffer
-	cmd.AddArguments("--stateless-rpc").AddDynamicArguments(h.getRepoDir())
-	if err := cmd.Run(ctx, &gitcmd.RunOpts{
-		Dir:               h.getRepoDir(),
-		Env:               append(os.Environ(), h.environ...),
-		Stdout:            ctx.Resp,
-		Stdin:             reqBody,
-		Stderr:            &stderr,
-		UseContextTimeout: true,
-	}); err != nil {
+	if err := cmd.AddArguments("--stateless-rpc").
+		AddDynamicArguments(h.getRepoDir()).
+		WithDir(h.getRepoDir()).
+		WithEnv(append(os.Environ(), h.environ...)).
+		WithStderr(&stderr).
+		WithStdin(reqBody).
+		WithStdout(ctx.Resp).
+		WithUseContextTimeout(true).
+		Run(ctx); err != nil {
 		if !git.IsErrCanceledOrKilled(err) {
 			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.getRepoDir(), err, stderr.String())
 		}
@@ -489,7 +491,7 @@ func getServiceType(ctx *context.Context) string {
 }
 
 func updateServerInfo(ctx gocontext.Context, dir string) []byte {
-	out, _, err := gitcmd.NewCommand("update-server-info").RunStdBytes(ctx, &gitcmd.RunOpts{Dir: dir})
+	out, _, err := gitcmd.NewCommand("update-server-info").WithDir(dir).RunStdBytes(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
 	}
@@ -519,7 +521,10 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, _, err := cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &gitcmd.RunOpts{Env: h.environ, Dir: h.getRepoDir()})
+		refs, _, err := cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").
+			WithEnv(h.environ).
+			WithDir(h.getRepoDir()).
+			RunStdBytes(ctx)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}

@@ -505,18 +505,17 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	}
 
 	stderr := new(bytes.Buffer)
-	if err := cmd.Run(ctx, &gitcmd.RunOpts{
-		Dir:    prCtx.tmpBasePath,
-		Stdout: stdoutWriter,
-		Stderr: stderr,
-		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+	if err := cmd.WithDir(prCtx.tmpBasePath).
+		WithStdout(stdoutWriter).
+		WithStderr(stderr).
+		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			defer func() {
 				_ = stdoutReader.Close()
 			}()
 			return util.IsEmptyReader(stdoutReader)
-		},
-	}); err != nil {
+		}).
+		Run(ctx); err != nil {
 		if err == util.ErrNotEmpty {
 			return true, nil
 		}

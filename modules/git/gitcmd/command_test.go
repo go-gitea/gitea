@@ -27,31 +27,30 @@ func TestMain(m *testing.M) {
 
 func TestRunWithContextStd(t *testing.T) {
 	cmd := NewCommand("--version")
-	stdout, stderr, err := cmd.RunStdString(t.Context(), &RunOpts{})
+	stdout, stderr, err := cmd.RunStdString(t.Context())
 	assert.NoError(t, err)
 	assert.Empty(t, stderr)
 	assert.Contains(t, stdout, "git version")
 
 	cmd = NewCommand("--no-such-arg")
-	stdout, stderr, err = cmd.RunStdString(t.Context(), &RunOpts{})
+	stdout, stderr, err = cmd.RunStdString(t.Context())
 	if assert.Error(t, err) {
-		assert.Equal(t, stderr, err.Stderr())
-		assert.Contains(t, err.Stderr(), "unknown option:")
-		assert.Contains(t, err.Error(), "exit status 129 - unknown option:")
+		assert.Contains(t, stderr, "unknown option:")
+		assert.Contains(t, err.Error(), "exit status 129")
 		assert.Empty(t, stdout)
 	}
 
 	cmd = NewCommand()
 	cmd.AddDynamicArguments("-test")
-	assert.ErrorIs(t, cmd.Run(t.Context(), &RunOpts{}), ErrBrokenCommand)
+	assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
 
 	cmd = NewCommand()
 	cmd.AddDynamicArguments("--test")
-	assert.ErrorIs(t, cmd.Run(t.Context(), &RunOpts{}), ErrBrokenCommand)
+	assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
 
 	subCmd := "version"
 	cmd = NewCommand().AddDynamicArguments(subCmd) // for test purpose only, the sub-command should never be dynamic for production
-	stdout, stderr, err = cmd.RunStdString(t.Context(), &RunOpts{})
+	stdout, stderr, err = cmd.RunStdString(t.Context())
 	assert.NoError(t, err)
 	assert.Empty(t, stderr)
 	assert.Contains(t, stdout, "git version")
