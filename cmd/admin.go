@@ -121,7 +121,7 @@ func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 		}
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
-			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
+			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RelativePath())
 			gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 			if err != nil {
 				log.Warn("OpenRepository: %v", err)
@@ -147,7 +147,7 @@ func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 				continue
 			}
 
-			log.Trace(" repo %s releases synchronized to tags: from %d to %d",
+			log.Trace("repo %s releases synchronized to tags: from %d to %d",
 				repo.FullName(), oldnum, count)
 			gitRepo.Close()
 		}

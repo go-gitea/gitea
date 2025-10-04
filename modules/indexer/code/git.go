@@ -11,13 +11,14 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository) (string, error) {
-	stdout, _, err := gitcmd.NewCommand("show-ref", "-s").AddDynamicArguments(git.BranchPrefix+repo.DefaultBranch).RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()})
+	stdout, err := gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("show-ref", "-s").AddDynamicArguments(git.BranchPrefix+repo.DefaultBranch))
 	if err != nil {
 		return "", err
 	}
@@ -34,7 +35,7 @@ func getRepoChanges(ctx context.Context, repo *repo_model.Repository, revision s
 	needGenesis := len(status.CommitSha) == 0
 	if !needGenesis {
 		hasAncestorCmd := gitcmd.NewCommand("merge-base").AddDynamicArguments(status.CommitSha, revision)
-		stdout, _, _ := hasAncestorCmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()})
+		stdout, _ := gitrepo.RunCmdString(ctx, repo, hasAncestorCmd)
 		needGenesis = len(stdout) == 0
 	}
 
@@ -100,7 +101,7 @@ func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision s
 // nonGenesisChanges get changes since the previous indexer update
 func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*internal.RepoChanges, error) {
 	diffCmd := gitcmd.NewCommand("diff", "--name-status").AddDynamicArguments(repo.CodeIndexerStatus.CommitSha, revision)
-	stdout, _, runErr := diffCmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()})
+	stdout, runErr := gitrepo.RunCmdString(ctx, repo, diffCmd)
 	if runErr != nil {
 		// previous commit sha may have been removed by a force push, so
 		// try rebuilding from scratch

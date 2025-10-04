@@ -234,7 +234,8 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 		}
 		if commitSHA != "" {
 			// Get immediate parent of the first commit in the patch, grab history back
-			parentCommit, _, err = gitcmd.NewCommand("rev-list", "-1", "--skip=1").AddDynamicArguments(commitSHA).RunStdString(ctx, &gitcmd.RunOpts{Dir: ctx.Repo.GitRepo.Path})
+			parentCommit, err = gitrepo.RunCmdString(ctx, ctx.Repo.Repository,
+				gitcmd.NewCommand("rev-list", "-1", "--skip=1").AddDynamicArguments(commitSHA))
 			if err == nil {
 				parentCommit = strings.TrimSpace(parentCommit)
 			}

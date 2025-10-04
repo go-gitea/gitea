@@ -154,7 +154,7 @@ func prepareRecentlyPushedBranchTest(t *testing.T, headSession *TestSession, bas
 
 	// only `new-commit` branch has commits ahead the base branch
 	checkRecentlyPushedNewBranches(t, headSession, headRepoPath, []string{"new-commit"})
-	if baseRepo.RepoPath() != headRepo.RepoPath() {
+	if baseRepo.ID != headRepo.ID {
 		checkRecentlyPushedNewBranches(t, headSession, baseRepoPath, []string{fmt.Sprintf("%v:new-commit", headRepo.FullName())})
 	}
 
@@ -162,7 +162,7 @@ func prepareRecentlyPushedBranchTest(t *testing.T, headSession *TestSession, bas
 	testCreatePullToDefaultBranch(t, headSession, baseRepo, headRepo, "new-commit", "merge new-commit to default branch")
 	// No push message show because of active PR
 	checkRecentlyPushedNewBranches(t, headSession, headRepoPath, []string{})
-	if baseRepo.RepoPath() != headRepo.RepoPath() {
+	if baseRepo.ID != headRepo.ID {
 		checkRecentlyPushedNewBranches(t, headSession, baseRepoPath, []string{})
 	}
 }
@@ -179,7 +179,7 @@ func prepareRecentlyPushedBranchSpecialTest(t *testing.T, session *TestSession, 
 
 	// Though we have new `no-commit` branch, but the headBranch is not newer or commits ahead baseBranch. No message show.
 	checkRecentlyPushedNewBranches(t, session, headRepoPath, []string{})
-	if baseRepo.RepoPath() != headRepo.RepoPath() {
+	if baseRepo.ID != headRepo.ID {
 		checkRecentlyPushedNewBranches(t, session, baseRepoPath, []string{})
 	}
 }

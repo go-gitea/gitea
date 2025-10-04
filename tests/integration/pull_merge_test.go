@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -689,17 +688,13 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 	})
 }
 
-func testResetRepo(t *testing.T, repoPath, branch, commitID string) {
-	f, err := os.OpenFile(filepath.Join(repoPath, "refs", "heads", branch), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
-	assert.NoError(t, err)
-	_, err = f.WriteString(commitID + "\n")
-	assert.NoError(t, err)
-	f.Close()
+func testResetRepo(t *testing.T, repo *repo_model.Repository, branch, commitID string) {
+	assert.NoError(t, gitrepo.UpdateRef(t.Context(), repo, git.BranchPrefix+branch, commitID))
 
-	repo, err := git.OpenRepository(t.Context(), repoPath)
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 	assert.NoError(t, err)
-	defer repo.Close()
-	id, err := repo.GetBranchCommitID(branch)
+	defer gitRepo.Close()
+	id, err := gitRepo.GetBranchCommitID(branch)
 	assert.NoError(t, err)
 	assert.Equal(t, commitID, id)
 }
@@ -778,7 +773,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		assert.ElementsMatch(t, []string{"sub-home-md-img-check", "home-md-img-check", "pr-to-update", "branch2", "DefaultBranch", "develop", "feature/1", "master"}, branches)
 		baseGitRepo.Close()
 		defer func() {
-			testResetRepo(t, baseRepo.RepoPath(), "master", masterCommitID)
+			testResetRepo(t, baseRepo, "master", masterCommitID)
 		}()
 
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
@@ -856,7 +851,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		assert.NoError(t, err)
 		baseGitRepo.Close()
 		defer func() {
-			testResetRepo(t, baseRepo.RepoPath(), "master", masterCommitID)
+			testResetRepo(t, baseRepo, "master", masterCommitID)
 		}()
 
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
@@ -985,7 +980,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		assert.NoError(t, err)
 		baseGitRepo.Close()
 		defer func() {
-			testResetRepo(t, baseRepo.RepoPath(), "master", masterCommitID)
+			testResetRepo(t, baseRepo, "master", masterCommitID)
 		}()
 
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
