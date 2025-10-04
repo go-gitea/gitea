@@ -11,19 +11,18 @@ import (
 	"image/color"
 	"image/png"
 
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
+	_ "image/gif"  // for image format registration
+	_ "image/jpeg" // for image format registration
 
 	"code.gitea.io/gitea/modules/avatar/identicon"
 	"code.gitea.io/gitea/modules/setting"
 
 	"golang.org/x/image/draw"
 
-	_ "golang.org/x/image/webp" // for processing webp images
+	_ "golang.org/x/image/webp" // for image format registration
 )
 
 // DefaultAvatarSize is the target CSS pixel size for avatar generation. It is
-// multiplied by setting.Avatar.RenderedSizeFactor and the resulting size is the
 // usual size of avatar image saved on server, unless the original file is smaller
 // than the size after resizing.
 const DefaultAvatarSize = 256
@@ -31,8 +30,8 @@ const DefaultAvatarSize = 256
 // RandomImageSize generates and returns a random avatar image unique to input data
 // in custom size (height and width).
 func RandomImageSize(size int, data []byte) (image.Image, error) {
-	// we use white as background, and use dark colors to draw blocks
-	imgMaker, err := identicon.New(size, color.White, identicon.DarkColors...)
+	// Use transparent background instead of white
+	imgMaker, err := identicon.New(size, color.Transparent, identicon.DarkColors...)
 	if err != nil {
 		return nil, fmt.Errorf("identicon.New: %w", err)
 	}
@@ -66,11 +65,14 @@ func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 		return nil, fmt.Errorf("image height is too large: %d > %d", imgCfg.Height, setting.Avatar.MaxHeight)
 	}
 
-	// If the origin is small enough, just use it, then APNG could be supported,
-	// otherwise, if the image is processed later, APNG loses animation.
-	// And one more thing, webp is not fully supported, for animated webp, image.DecodeConfig works but Decode fails.
-	// So for animated webp, if the uploaded file is smaller than maxOriginSize, it will be used, if it's larger, there will be an error.
-	if len(data) < int(maxOriginSize) {
+	// Check max origin size if specified (for animated images)
+	if maxOriginSize > 0 && len(data) < int(maxOriginSize) {
+		return data, nil
+	}
+
+	// If the origin is small enough (both dimensions <= target size), just use it
+	targetSize := DefaultAvatarSize * setting.Avatar.RenderedSizeFactor
+	if imgCfg.Width <= targetSize && imgCfg.Height <= targetSize {
 		return data, nil
 	}
 
@@ -82,21 +84,24 @@ func processAvatarImage(data []byte, maxOriginSize int64) ([]byte, error) {
 	// try to crop and resize the origin image if necessary
 	img = cropSquare(img)
 
-	targetSize := DefaultAvatarSize * setting.Avatar.RenderedSizeFactor
+	if setting.Avatar.RenderedSizeFactor > 0 {
+		targetSize = DefaultAvatarSize * setting.Avatar.RenderedSizeFactor
+	}
 	img = scale(img, targetSize, targetSize, draw.BiLinear)
 
-	// try to encode the cropped/resized image to png
+	// Create a new RGBA image to preserve transparency
+	dst := image.NewRGBA(image.Rect(0, 0, img.Bounds().Dx(), img.Bounds().Dy()))
+	draw.Draw(dst, dst.Bounds(), image.Transparent, image.Point{}, draw.Src)
+	draw.Draw(dst, img.Bounds(), img, img.Bounds().Min, draw.Over)
+
+	// Encode the image to PNG with transparency
 	bs := bytes.Buffer{}
-	if err = png.Encode(&bs, img); err != nil {
+	if err = png.Encode(&bs, dst); err != nil {
 		return nil, err
 	}
 	resized := bs.Bytes()
 
-	// usually the png compression is not good enough, use the original image (no cropping/resizing) if the origin is smaller
-	if len(data) <= len(resized) {
-		return data, nil
-	}
-
+	// Always use the processed image to ensure transparency
 	return resized, nil
 }
 

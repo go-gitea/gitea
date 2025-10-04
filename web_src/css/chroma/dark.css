@@ -1,76 +1,252 @@
-/* https://github.com/alecthomas/chroma/blob/6428fb4e65f3c1493491571c8a6a8f1add1da822/types.go#L208 */
-.chroma .bp { color: #fabd2f; } /* NameBuiltinPseudo */
-.chroma .c { color: #777e94; } /* Comment */
-.chroma .c1 { color: #777e94; } /* CommentSingle */
-.chroma .ch { color: #777e94; } /* CommentHashbang */
-.chroma .cm { color: #777e94; } /* CommentMultiline */
-.chroma .cp { color: #8ec07c; } /* CommentPreproc */
-.chroma .cpf { color: #649bc4; } /* CommentPreprocFile */
-.chroma .cs { color: #9075cd; } /* CommentSpecial */
-.chroma .dl { color: #649bc4; } /* LiteralStringDelimiter */
-.chroma .fm {} /* NameFunctionMagic */
-.chroma .g {} /* Generic */
-.chroma .gd { color: #ffffff; background-color: #5f3737; } /* GenericDeleted */
-.chroma .ge { color: #ddee30; } /* GenericEmph */
-.chroma .gh { color: #ffaa10; } /* GenericHeading */
-.chroma .gi { color: #ffffff; background-color: #3a523a; } /* GenericInserted */
-.chroma .gl {} /* GenericUnderline */
-.chroma .go { color: #777e94; } /* GenericOutput */
-.chroma .gp { color: #ebdbb2; } /* GenericPrompt */
-.chroma .gr { color: #ff4433; } /* GenericError */
-.chroma .gs { color: #ebdbb2; } /* GenericStrong */
-.chroma .gt { color: #ff7540; } /* GenericTraceback */
-.chroma .gu { color: #b8bb26; } /* GenericSubheading */
-.chroma .il { color: #649bc4; } /* LiteralNumberIntegerLong */
-.chroma .k { color: #ff7540; } /* Keyword */
-.chroma .kc { color: #649bc4; } /* KeywordConstant */
-.chroma .kd { color: #ff7540; } /* KeywordDeclaration */
-.chroma .kn { color: #ffaa10; } /* KeywordNamespace */
-.chroma .kp { color: #5f8700; } /* KeywordPseudo */
-.chroma .kr { color: #ff7540; } /* KeywordReserved */
-.chroma .kt { color: #ff7b72; } /* KeywordType */
-.chroma .l {} /* Literal */
-.chroma .ld {} /* LiteralDate */
-.chroma .m { color: #649bc4; } /* LiteralNumber */
-.chroma .mb { color: #649bc4; } /* LiteralNumberBin */
-.chroma .mf { color: #649bc4; } /* LiteralNumberFloat */
-.chroma .mh { color: #649bc4; } /* LiteralNumberHex */
-.chroma .mi { color: #649bc4; } /* LiteralNumberInteger */
-.chroma .mo { color: #649bc4; } /* LiteralNumberOct */
-.chroma .n { color: #c9d1d9; } /* Name */
-.chroma .na { color: #fabd2f; } /* NameAttribute */
-.chroma .nb { color: #fabd2f; } /* NameBuiltin */
-.chroma .nc { color: #ffaa10; } /* NameClass */
-.chroma .nd { color: #8ec07c; } /* NameDecorator */
-.chroma .ne { color: #ff7540; } /* NameException */
-.chroma .nf { color: #fabd2f; } /* NameFunction */
-.chroma .ni { color: #fabd2f; } /* NameEntity */
-.chroma .nl { color: #ff7540; } /* NameLabel */
-.chroma .nn { color: #c9d1d9; } /* NameNamespace */
-.chroma .no { color: #649bc4; } /* NameConstant */
-.chroma .nt { color: #ff7540; } /* NameTag */
-.chroma .nv { color: #ebdbb2; } /* NameVariable */
-.chroma .nx { color: #b6bac5; } /* NameOther */
-.chroma .o { color: #ff7540; } /* Operator */
-.chroma .ow { color: #5f8700; } /* OperatorWord */
-.chroma .p { color: #d2d4db; } /* Punctuation */
-.chroma .py {} /* NameProperty */
-.chroma .s { color: #b8bb26; } /* LiteralString */
-.chroma .s1 { color: #b8bb26; } /* LiteralStringSingle */
-.chroma .s2 { color: #b8bb26; } /* LiteralStringDouble */
-.chroma .sa { color: #ffaa10; } /* LiteralStringAffix */
-.chroma .sb { color: #b8bb26; } /* LiteralStringBacktick */
-.chroma .sc { color: #ffaa10; } /* LiteralStringChar */
-.chroma .sd { color: #b8bb26; } /* LiteralStringDoc */
-.chroma .se { color: #ff8540; } /* LiteralStringEscape */
-.chroma .sh { color: #b8bb26; } /* LiteralStringHeredoc */
-.chroma .si { color: #ffaa10; } /* LiteralStringInterpol */
-.chroma .sr { color: #9075cd; } /* LiteralStringRegex */
-.chroma .ss { color: #ff8540; } /* LiteralStringSymbol */
-.chroma .sx { color: #ffaa10; } /* LiteralStringOther */
-.chroma .vc { color: #649bee; } /* NameVariableClass */
-.chroma .vg { color: #649bee; } /* NameVariableGlobal */
-.chroma .vi { color: #649bee; } /* NameVariableInstance */
-.chroma .vm {} /* NameVariableMagic */
-.chroma .w { color: #7f8699; } /* TextWhitespace */
-.chroma .err {/* not styled because Chroma uses it on too many things like JSX */} /* Error */
+/* Tokyo Night Storm Theme for Gitea */
+/* Типы данных */
+.chroma .k,         /* Ключевые слова типов (int, string, bool) */
+.chroma .kt,        /* Ключевые слова типов (type, interface, struct) */
+.chroma .nc,        /* Имена классов/пользовательских типов */
+.chroma .nn,        /* Пространства имён */
+.chroma .no,        /* Константы типов */
+.chroma .n,         /* Общие имена (пользовательские типы) */
+.chroma .n[class*="Type"] {
+  /* Классы с Type в названии */
+  color: #009999; /* Светло-голубой для всех типов */
+}
+
+.chroma .bp {
+  color: #7dcfff;
+} /* Псевдоклассы встроенных объектов */
+.chroma .c {
+  color: #565f89;
+  font-style: italic;
+} /* Комментарии */
+.chroma .c1 {
+  color: #565f89;
+  font-style: italic;
+} /* Однострочные комментарии */
+.chroma .ch {
+  color: #565f89;
+  font-style: italic;
+} /* Комментарии с хэшбэнгом (#!) */
+.chroma .cm {
+  color: #565f89;
+  font-style: italic;
+} /* Многострочные комментарии */
+.chroma .cp {
+  color: #7aa2f7;
+} /* Директивы препроцессора */
+.chroma .cpf {
+  color: #7aa2f7;
+} /* Файловые директивы препроцессора */
+.chroma .cs {
+  color: #9d7cd8;
+  font-style: italic;
+} /* Специальные комментарии */
+.chroma .dl {
+  color: #9ece6a;
+} /* Разделители строковых литералов */
+.chroma .fm {
+  color: #7dcfff;
+} /* Магические методы функций */
+.chroma .g {
+  color: #a9b1d6;
+} /* Общие стили */
+.chroma .gd {
+  color: #f7768e;
+  background-color: #3b2a3f;
+} /* Удаленный текст (git diff) */
+.chroma .ge {
+  color: #9ece6a;
+  font-style: italic;
+} /* Курсивный текст */
+.chroma .gh {
+  color: #7aa2f7;
+  font-weight: bold;
+} /* Заголовки */
+.chroma .gi {
+  color: #9ece6a;
+  background-color: #2a3a3a;
+} /* Добавленный текст (git diff) */
+.chroma .gl {
+  text-decoration: underline;
+} /* Подчеркнутый текст */
+.chroma .go {
+  color: #444b6a;
+} /* Вывод программы */
+.chroma .gp {
+  color: #7aa2f7;
+} /* Приглашение командной строки */
+.chroma .gr {
+  color: #f7768e;
+  font-weight: bold;
+} /* Ошибки */
+.chroma .gs {
+  font-weight: bold;
+} /* Жирный текст */
+.chroma .gt {
+  color: #ff9e64;
+} /* Трассировка стека */
+.chroma .gu {
+  color: #7aa2f7;
+  font-weight: bold;
+} /* Подзаголовки */
+.chroma .il {
+  color: #ff9e64;
+} /* Длинные целые числа */
+.chroma .k {
+  color: #bb9af7;
+} /* Ключевые слова */
+.chroma .kc {
+  color: #bb9af7;
+} /* Константы */
+.chroma .kd {
+  color: #bb9af7;
+} /* Объявления ключевых слов */
+.chroma .kn {
+  color: #7dcfff;
+} /* Пространства имен */
+.chroma .kp {
+  color: #bb9af7;
+} /* Псевдоклассы */
+.chroma .kr {
+  color: #bb9af7;
+} /* Зарезервированные слова */
+.chroma .kt {
+  color: #7dcfff;
+} /* Типы данных */
+.chroma .l {
+  color: #ff9e64;
+} /* Литералы */
+.chroma .ld {
+  color: #e0af68;
+} /* Даты */
+.chroma .m {
+  color: #ff9e64;
+} /* Числа */
+.chroma .mb {
+  color: #ff9e64;
+} /* Двоичные числа */
+.chroma .mf {
+  color: #ff9e64;
+} /* Числа с плавающей точкой */
+.chroma .mh {
+  color: #ff9e64;
+} /* Шестнадцатеричные числа */
+.chroma .mi {
+  color: #ff9e64;
+} /* Целые числа */
+.chroma .mo {
+  color: #ff9e64;
+} /* Восьмеричные числа */
+.chroma .n {
+  color: #a9b1d6;
+} /* Имена */
+.chroma .na {
+  color: #7dcfff;
+} /* Атрибуты */
+.chroma .nb {
+  color: #7dcfff;
+} /* Встроенные имена */
+.chroma .nc {
+  color: #7dcfff;
+  font-style: italic;
+} /* Классы */
+.chroma .nd {
+  color: #bb9af7;
+} /* Декораторы */
+.chroma .ne {
+  color: #f7768e;
+} /* Исключения */
+.chroma .nf {
+  color: #7dcfff;
+} /* Функции */
+.chroma .ni {
+  color: #ff9e64;
+} /* Сущности */
+.chroma .nl {
+  color: #e0af68;
+} /* Метки */
+.chroma .nn {
+  color: #7dcfff;
+} /* Пространства имен */
+.chroma .no {
+  color: #7dcfff;
+} /* Константы */
+.chroma .nt {
+  color: #f7768e;
+} /* HTML-теги */
+.chroma .nv {
+  color: #a9b1d6;
+} /* Переменные */
+.chroma .nx {
+  color: #a9b1d6;
+} /* Другие имена */
+.chroma .o {
+  color: #7aa2f7;
+} /* Операторы */
+.chroma .ow {
+  color: #7dcfff;
+} /* Ключевые слова операторов */
+.chroma .p {
+  color: #a9b1d6;
+} /* Пунктуация */
+.chroma .py {
+  color: #a9b1d6;
+} /* Свойства */
+.chroma .s {
+  color: #9ece6a;
+} /* Строковые литералы */
+.chroma .s1 {
+  color: #9ece6a;
+} /* Одинарные кавычки */
+.chroma .s2 {
+  color: #9ece6a;
+} /* Двойные кавычки */
+.chroma .sa {
+  color: #bb9af7;
+} /* Префиксы/суффиксы строк */
+.chroma .sb {
+  color: #9ece6a;
+} /* Обратные кавычки */
+.chroma .sc {
+  color: #e0af68;
+} /* Символы в строках */
+.chroma .sd {
+  color: #565f89;
+  font-style: italic;
+} /* Документационные строки */
+.chroma .se {
+  color: #ff9e64;
+} /* Экранированные последовательности */
+.chroma .sh {
+  color: #9ece6a;
+} /* Наследуемые строки */
+.chroma .si {
+  color: #bb9af7;
+} /* Интерполированные строки */
+.chroma .sr {
+  color: #9ece6a;
+} /* Регулярные выражения */
+.chroma .ss {
+  color: #9ece6a;
+} /* Символьные строки */
+.chroma .sx {
+  color: #e0af68;
+} /* Другие строки */
+.chroma .vc {
+  color: #7dcfff;
+} /* Переменные класса */
+.chroma .vg {
+  color: #7dcfff;
+} /* Глобальные переменные */
+.chroma .vi {
+  color: #7dcfff;
+} /* Переменные экземпляра */
+.chroma .vm {
+  color: #a9b1d6;
+} /* Магические переменные */
+.chroma .w {
+  color: #444b6a;
+} /* Пробельные символы */
+.chroma .err {
+  color: #f7768e;
+  background-color: #3b2a3f;
+} /* Ошибки */

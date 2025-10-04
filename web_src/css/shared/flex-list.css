@@ -25,7 +25,7 @@
 
 .flex-item-header {
   display: flex;
-  gap: .25rem;
+  gap: 0.25rem;
   justify-content: space-between;
   flex-wrap: wrap;
 }
@@ -59,7 +59,7 @@
 }
 
 .flex-item .flex-item-title a {
-  color: var(--color-text);
+  color: var(--color-primary);
   overflow-wrap: anywhere;
 }
 
@@ -67,13 +67,13 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: .25rem;
+  gap: 0.25rem;
   color: var(--color-text-light-2);
   overflow-wrap: anywhere;
 }
 
 .flex-item .flex-item-body a {
-  color: inherit;
+  /* color: inherit; */
   overflow-wrap: anywhere;
 }
 

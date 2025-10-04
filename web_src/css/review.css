@@ -133,7 +133,7 @@
 }
 
 .code-expander-button:hover {
-  background: var(--color-primary);
+  background: var(--color-primary-2-hover);
   color: var(--color-primary-contrast);
 }
 
@@ -150,7 +150,9 @@
 
 .review-box-panel .combo-markdown-editor {
   width: 730px; /* this width matches current EasyMDE's toolbar's width */
-  max-width: calc(100vw - 70px); /* leave enough space on left, and align the page content */
+  max-width: calc(
+    100vw - 70px
+  ); /* leave enough space on left, and align the page content */
 }
 
 #review-box {

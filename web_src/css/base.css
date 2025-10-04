@@ -1,7 +1,9 @@
 :root {
   /* fonts */
-  --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
-  --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
+  --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto,
+    "Helvetica Neue", Arial;
+  --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco,
+    Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
   /* GitHub explicitly sets font names like: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
   Actually "Twemoji Mozilla" emoji font is widely used by browsers like Firefox, Pale Moon, and it is more likely up-to-dated than the system emoji font.
   So not setting emoji font seems to be the best choice, here we just use a non-existing dummy font name and let browsers choose. */
@@ -54,10 +56,13 @@
 }
 
 :root * {
-  --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", sans-serif, var(--fonts-emoji);
+  --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans",
+    "Liberation Sans", sans-serif, var(--fonts-emoji);
 }
 
-*, ::before, ::after {
+*,
+::before,
+::after {
   /* these are needed for tailwind borders to work because we do not load tailwind's base
      https://github.com/tailwindlabs/tailwindcss/blob/master/src/css/preflight.css */
   border-width: 0;
@@ -65,7 +70,8 @@
   border-color: currentcolor;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   font-size: 14px;
 }
@@ -347,7 +353,7 @@ a.label,
 
 .inline-code-block {
   padding: 2px 4px;
-  border-radius: .24em;
+  border-radius: 0.24em;
   background-color: var(--color-label-bg);
 }
 
@@ -405,7 +411,7 @@ a.label,
   margin-bottom: -0.25rem;
 }
 .ui.dropdown .menu > .item > svg {
-  margin-right: .78rem; /* use the same margin as for <img> */
+  margin-right: 0.78rem; /* use the same margin as for <img> */
 }
 
 .ui.selection.dropdown .menu > .item {
@@ -563,7 +569,7 @@ img.ui.avatar,
 }
 
 .text.grey {
-  color: var(--color-text-light) !important;
+  color: var(--color-orange-badge) !important;
 }
 
 .text.light {
@@ -699,35 +705,40 @@ img.ui.avatar,
 blockquote.attention-note {
   border-left-color: var(--color-blue-dark-1);
 }
-strong.attention-note, svg.attention-note {
+strong.attention-note,
+svg.attention-note {
   color: var(--color-blue-dark-1);
 }
 
 blockquote.attention-tip {
   border-left-color: var(--color-success-text);
 }
-strong.attention-tip, svg.attention-tip {
+strong.attention-tip,
+svg.attention-tip {
   color: var(--color-success-text);
 }
 
 blockquote.attention-important {
   border-left-color: var(--color-violet-dark-1);
 }
-strong.attention-important, svg.attention-important {
+strong.attention-important,
+svg.attention-important {
   color: var(--color-violet-dark-1);
 }
 
 blockquote.attention-warning {
   border-left-color: var(--color-warning-text);
 }
-strong.attention-warning, svg.attention-warning {
+strong.attention-warning,
+svg.attention-warning {
   color: var(--color-warning-text);
 }
 
 blockquote.attention-caution {
   border-left-color: var(--color-red-dark-1);
 }
-strong.attention-caution, svg.attention-caution {
+strong.attention-caution,
+svg.attention-caution {
   color: var(--color-red-dark-1);
 }
 
@@ -992,7 +1003,7 @@ table th[data-sortt-desc] .svg {
 
 .ui.tabular.menu .item:hover,
 .ui.secondary.pointing.menu a.item:hover {
-  color: var(--color-text);
+  color: var(--color-primary-3);
 }
 
 .ui.tabular.menu .active.item,
@@ -1024,7 +1035,9 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.dropdown:not(.button) {
-  line-height: var(--line-height-default); /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
+  line-height: var(
+    --line-height-default
+  ); /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
 }
 
 /* dropdown has some kinds of icons:

@@ -17,11 +17,11 @@ defineProps<{
 const colorRange = [
   'var(--color-secondary-alpha-60)',
   'var(--color-secondary-alpha-60)',
-  'var(--color-primary-light-4)',
-  'var(--color-primary-light-2)',
-  'var(--color-primary)',
-  'var(--color-primary-dark-2)',
-  'var(--color-primary-dark-4)',
+  'var(--color-primary-external-legend-5)',
+  'var(--color-primary-external-legend-4)',
+  'var(--color-primary-external-legend-3)',
+  'var(--color-primary-external-legend-2)',
+  'var(--color-primary-external-legend-1)',
 ];
 
 const endDate = shallowRef(new Date());
