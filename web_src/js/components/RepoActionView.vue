@@ -1,7 +1,7 @@
 <script lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
-import {defineComponent, nextTick, type PropType} from 'vue';
+import {defineComponent, type PropType} from 'vue';
 import {createElementFromAttrs, toggleElem} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
 import {renderAnsi} from '../render/ansi.ts';
@@ -104,7 +104,6 @@ export default defineComponent({
       // internal state
       loadingAbortController: null as AbortController | null,
       intervalID: null as IntervalId | null,
-      mutationObserver: null as MutationObserver | null, // Observer for auto-expand/auto-scroll functionality
       currentJobStepsStates: [] as Array<Record<string, any>>,
       artifacts: [] as Array<Record<string, any>>,
       menuVisible: false,
@@ -186,72 +185,11 @@ export default defineComponent({
     document.body.addEventListener('click', this.closeDropdown);
     this.hashChangeListener();
     window.addEventListener('hashchange', this.hashChangeListener);
-
-    // === Auto Expand + Auto Scroll Fix (for Issue #35570) ===
-    // Ensure Vue has updated DOM for steps after initial load
-    await nextTick();
-
-    // Set up observer on the steps container (safer and more efficient than document.body)
-    const stepsContainer = (this.$refs.steps as HTMLElement);
-    if (stepsContainer && typeof MutationObserver !== 'undefined') {
-      this.mutationObserver = new MutationObserver((mutations) => {
-        for (const m of mutations) {
-          // Auto-scroll new log lines as they appear
-          if (m.type === 'childList') {
-            for (const n of m.addedNodes) {
-              if (n.nodeType === 1 && (n as Element).classList.contains('job-log-line')) {
-                if (this.optionAlwaysAutoScroll) {
-                  try { (n as Element).scrollIntoView({ behavior: 'smooth', block: 'end' }); }
-                  catch { (n as Element).scrollIntoView(); }
-                }
-              }
-            }
-          }
-
-          // Auto-expand running steps when their class changes
-          if (m.type === 'attributes' && m.attributeName === 'class') {
-            const t = m.target as Element;
-            if (t.classList && t.classList.contains('job-step-summary')) {
-              const stepAttr = t.getAttribute('data-step');
-              if (!stepAttr) continue;
-              const stepIndex = Number(stepAttr);
-              // If expand-running option is on and step is expandable but not selected, open it via state
-              if (this.optionAlwaysExpandRunning &&
-                  t.classList.contains('step-expandable') &&
-                  !t.classList.contains('selected')) {
-                // Update state inside nextTick to ensure Vue has finished rendering
-                nextTick(() => {
-                  if (!this.currentJobStepsStates[stepIndex]?.expanded) {
-                    // Update internal state so logs are immediately loaded
-                    this.currentJobStepsStates[stepIndex].expanded = true;
-                    this.loadJob();
-                  }
-                });
-              }
-            }
-          }
-        }
-      });
-
-      // Observe only the steps container subtree (minimized observation area)
-      this.mutationObserver.observe(stepsContainer, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-    }
-    // === End Fix ===
   },
 
   beforeUnmount() {
     document.body.removeEventListener('click', this.closeDropdown);
     window.removeEventListener('hashchange', this.hashChangeListener);
-    // Clean up MutationObserver to prevent memory leaks
-    if (this.mutationObserver) {
-      this.mutationObserver.disconnect();
-      this.mutationObserver = null;
-    }
   },
 
   unmounted() {
@@ -419,6 +357,19 @@ export default defineComponent({
           if (!this.currentJobStepsStates[i]) {
             // initial states for job steps
             this.currentJobStepsStates[i] = {cursor: null, expanded};
+          }
+        }
+
+        // Auto-expand running steps if option is enabled (fix for Issue #35570)
+        for (let i = 0; i < this.currentJob.steps.length; i++) {
+          const step = this.currentJob.steps[i];
+          const state = this.currentJobStepsStates[i];
+          if (
+            this.optionAlwaysExpandRunning &&
+            step.status === 'running' &&
+            !state.expanded
+          ) {
+            state.expanded = true;
           }
         }
 
@@ -630,7 +581,7 @@ export default defineComponent({
         </div>
         <div class="job-step-container" ref="steps" v-if="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
-            <div class="job-step-summary" :data-step="i" @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
+            <div class="job-step-summary" @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
                 currentJobStepsStates[i].cursor === null means the log is loaded for the first time
               -->
