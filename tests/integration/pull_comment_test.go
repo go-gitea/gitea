@@ -13,6 +13,8 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/test"
 	issues_service "code.gitea.io/gitea/services/issue"
 
 	"github.com/stretchr/testify/assert"
@@ -103,7 +105,22 @@ func TestPullComment(t *testing.T) {
 		testCreateBranch(t, session, "user2", "repo1", "branch/master", "test-branch/retarget", http.StatusSeeOther)
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 
-		t.Run("RebaseComment", func(t *testing.T) { testPullCommentRebase(t, u, session) })
-		t.Run("RetargetComment", func(t *testing.T) { testPullCommentRetarget(t, u, session) })
+		t.Run("RebaseComment_MergeTree", func(t *testing.T) {
+			defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
+			testPullCommentRebase(t, u, session)
+		})
+		t.Run("RebaseComment_TmpRepo", func(t *testing.T) {
+			defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
+			testPullCommentRebase(t, u, session)
+		})
+
+		t.Run("RetargetComment_MergeTree", func(t *testing.T) {
+			defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
+			testPullCommentRetarget(t, u, session)
+		})
+		t.Run("RetargetComment_TmpRepo", func(t *testing.T) {
+			defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
+			testPullCommentRetarget(t, u, session)
+		})
 	})
 }
