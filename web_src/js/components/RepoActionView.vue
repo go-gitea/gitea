@@ -40,6 +40,12 @@ type Step = {
   status: RunStatus,
 }
 
+type JobStepState = {
+  cursor: string|null,
+  expanded: boolean,
+  manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
+}
+
 function parseLineCommand(line: LogLine): LogLineCommand | null {
   for (const prefix of LogLinePrefixesGroup) {
     if (line.message.startsWith(prefix)) {
@@ -56,7 +62,8 @@ function parseLineCommand(line: LogLine): LogLineCommand | null {
 
 function isLogElementInViewport(el: Element): boolean {
   const rect = el.getBoundingClientRect();
-  return rect.top >= 0 && rect.bottom <= window.innerHeight; // only check height but not width
+  // only check whether bottom is in viewport, because the log element can be a log group which is usually tall
+  return 0 <= rect.bottom && rect.bottom <= window.innerHeight + 10;
 }
 
 type LocaleStorageOptions = {
@@ -104,7 +111,7 @@ export default defineComponent({
       // internal state
       loadingAbortController: null as AbortController | null,
       intervalID: null as IntervalId | null,
-      currentJobStepsStates: [] as Array<Record<string, any>>,
+      currentJobStepsStates: [] as Array<JobStepState>,
       artifacts: [] as Array<Record<string, any>>,
       menuVisible: false,
       isFullScreen: false,
@@ -252,6 +259,8 @@ export default defineComponent({
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
         this.loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
+      } else if (this.currentJob.steps[idx].status === 'running') {
+        this.currentJobStepsStates[idx].manuallyCollapsed = true;
       }
     },
     // cancel a run
@@ -343,7 +352,6 @@ export default defineComponent({
       const abortController = new AbortController();
       this.loadingAbortController = abortController;
       try {
-        const isFirstLoad = !this.run.status;
         const job = await this.fetchJobData(abortController);
         if (this.loadingAbortController !== abortController) return;
 
@@ -353,23 +361,15 @@ export default defineComponent({
 
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
-          const expanded = isFirstLoad && this.optionAlwaysExpandRunning && this.currentJob.steps[i].status === 'running';
+          const autoExpand = this.optionAlwaysExpandRunning && this.currentJob.steps[i].status === 'running';
           if (!this.currentJobStepsStates[i]) {
             // initial states for job steps
-            this.currentJobStepsStates[i] = {cursor: null, expanded};
-          }
-        }
-
-        // Auto-expand running steps if option is enabled (fix for Issue #35570)
-        for (let i = 0; i < this.currentJob.steps.length; i++) {
-          const step = this.currentJob.steps[i];
-          const state = this.currentJobStepsStates[i];
-          if (
-            this.optionAlwaysExpandRunning &&
-            step.status === 'running' &&
-            !state.expanded
-          ) {
-            state.expanded = true;
+            this.currentJobStepsStates[i] = {cursor: null, expanded: autoExpand,  manuallyCollapsed: false};
+          } else {
+            // if the step is not manually collapsed by user, then auto-expand it if option is enabled
+            if (autoExpand && !this.currentJobStepsStates[i].manuallyCollapsed) {
+              this.currentJobStepsStates[i].expanded = true;
+            }
           }
         }
 
@@ -393,7 +393,10 @@ export default defineComponent({
           if (!autoScrollStepIndexes.get(stepIndex)) continue;
           autoScrollJobStepElement = this.getJobStepLogsContainer(stepIndex);
         }
-        autoScrollJobStepElement?.lastElementChild.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+        const lastLogElem = autoScrollJobStepElement?.lastElementChild;
+        if (lastLogElem && !isLogElementInViewport(lastLogElem)) {
+          lastLogElem.scrollIntoView({behavior: 'smooth', block: 'end'});
+        }
 
         // clear the interval timer if the job is done
         if (this.run.done && this.intervalID) {
@@ -432,6 +435,7 @@ export default defineComponent({
       this.isFullScreen = !this.isFullScreen;
       toggleFullScreen('.action-view-right', this.isFullScreen, '.action-view-body');
     },
+
     async hashChangeListener() {
       const selectedLogStep = window.location.hash;
       if (!selectedLogStep) return;

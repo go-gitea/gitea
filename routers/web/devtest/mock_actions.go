@@ -6,6 +6,7 @@ package devtest
 import (
 	mathRand "math/rand/v2"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -17,24 +18,28 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-func generateMockStepsLog(logCur actions.LogCursor) (stepsLog []*actions.ViewStepLog) {
-	mockedLogs := []string{
-		"::group::test group for: step={step}, cursor={cursor}",
-		"in group msg for: step={step}, cursor={cursor}",
-		"in group msg for: step={step}, cursor={cursor}",
-		"in group msg for: step={step}, cursor={cursor}",
-		"::endgroup::",
+type generateMockStepsLogOptions struct {
+	mockCountFirst   int
+	mockCountGeneral int
+	groupRepeat      int
+}
+
+func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOptions) (stepsLog []*actions.ViewStepLog) {
+	var mockedLogs []string
+	mockedLogs = append(mockedLogs, "::group::test group for: step={step}, cursor={cursor}")
+	mockedLogs = append(mockedLogs, slices.Repeat([]string{"in group msg for: step={step}, cursor={cursor}"}, opts.groupRepeat)...)
+	mockedLogs = append(mockedLogs, "::endgroup::")
+	mockedLogs = append(mockedLogs,
 		"message for: step={step}, cursor={cursor}",
 		"message for: step={step}, cursor={cursor}",
 		"##[group]test group for: step={step}, cursor={cursor}",
 		"in group msg for: step={step}, cursor={cursor}",
 		"##[endgroup]",
-	}
-	cur := logCur.Cursor // usually the cursor is the "file offset", but here we abuse it as "line number" to make the mock easier, intentionally
-	mockCount := util.Iif(logCur.Step == 0, 3, 1)
-	if logCur.Step == 1 && logCur.Cursor == 0 {
-		mockCount = 30 // for the first batch, return as many as possible to test the auto-expand and auto-scroll
-	}
+	)
+	// usually the cursor is the "file offset", but here we abuse it as "line number" to make the mock easier, intentionally
+	cur := logCur.Cursor
+	// for the first batch, return as many as possible to test the auto-expand and auto-scroll
+	mockCount := util.Iif(logCur.Cursor == 0, opts.mockCountFirst, opts.mockCountGeneral)
 	for i := 0; i < mockCount; i++ {
 		logStr := mockedLogs[int(cur)%len(mockedLogs)]
 		cur++
@@ -127,21 +132,28 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Duration: "3h",
 	})
 
+	var mockLogOptions []generateMockStepsLogOptions
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
 		Summary:  "step 0 (mock slow)",
 		Duration: time.Hour.String(),
 		Status:   actions_model.StatusRunning.String(),
 	})
+	mockLogOptions = append(mockLogOptions, generateMockStepsLogOptions{mockCountFirst: 30, mockCountGeneral: 1, groupRepeat: 3})
+
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
 		Summary:  "step 1 (mock fast)",
 		Duration: time.Hour.String(),
 		Status:   actions_model.StatusRunning.String(),
 	})
+	mockLogOptions = append(mockLogOptions, generateMockStepsLogOptions{mockCountFirst: 30, mockCountGeneral: 3, groupRepeat: 20})
+
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
 		Summary:  "step 2 (mock error)",
 		Duration: time.Hour.String(),
 		Status:   actions_model.StatusRunning.String(),
 	})
+	mockLogOptions = append(mockLogOptions, generateMockStepsLogOptions{mockCountFirst: 30, mockCountGeneral: 3, groupRepeat: 3})
+
 	if len(req.LogCursors) == 0 {
 		ctx.JSON(http.StatusOK, resp)
 		return
@@ -156,7 +168,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		}
 		doSlowResponse = doSlowResponse || logCur.Step == 0
 		doErrorResponse = doErrorResponse || logCur.Step == 2
-		resp.Logs.StepsLog = append(resp.Logs.StepsLog, generateMockStepsLog(logCur)...)
+		resp.Logs.StepsLog = append(resp.Logs.StepsLog, generateMockStepsLog(logCur, mockLogOptions[logCur.Step])...)
 	}
 	if doErrorResponse {
 		if mathRand.Float64() > 0.5 {
