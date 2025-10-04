@@ -3,7 +3,13 @@
 
 package git
 
-import "code.gitea.io/gitea/modules/setting"
+import (
+	"context"
+	"strings"
+
+	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/setting"
+)
 
 // Based on https://git-scm.com/docs/git-config#Documentation/git-config.txt-gpgformat
 const (
@@ -23,4 +29,49 @@ func (s *SigningKey) String() string {
 	// In case the key is a file path and the struct is rendered in a template, then the server path will be exposed.
 	setting.PanicInDevOrTesting("don't call SigningKey.String() - it exposes the KeyID which might be a local file path")
 	return "SigningKey:" + s.Format
+}
+
+// GetSigningKey returns the KeyID and git Signature for the repo
+func GetSigningKey(ctx context.Context, repoPath string) (*SigningKey, *Signature) {
+	if setting.Repository.Signing.SigningKey == "none" {
+		return nil, nil
+	}
+
+	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
+		// Can ignore the error here as it means that commit.gpgsign is not set
+		value, _, _ := gitcmd.NewCommand("config", "--get", "commit.gpgsign").RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
+		sign, valid := ParseBool(strings.TrimSpace(value))
+		if !sign || !valid {
+			return nil, nil
+		}
+
+		format, _, _ := gitcmd.NewCommand("config", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
+		signingKey, _, _ := gitcmd.NewCommand("config", "--get", "user.signingkey").RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
+		signingName, _, _ := gitcmd.NewCommand("config", "--get", "user.name").RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
+		signingEmail, _, _ := gitcmd.NewCommand("config", "--get", "user.email").RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
+
+		if strings.TrimSpace(signingKey) == "" {
+			return nil, nil
+		}
+
+		return &SigningKey{
+				KeyID:  strings.TrimSpace(signingKey),
+				Format: strings.TrimSpace(format),
+			}, &Signature{
+				Name:  strings.TrimSpace(signingName),
+				Email: strings.TrimSpace(signingEmail),
+			}
+	}
+
+	if setting.Repository.Signing.SigningKey == "" {
+		return nil, nil
+	}
+
+	return &SigningKey{
+			KeyID:  setting.Repository.Signing.SigningKey,
+			Format: setting.Repository.Signing.SigningFormat,
+		}, &Signature{
+			Name:  setting.Repository.Signing.SigningName,
+			Email: setting.Repository.Signing.SigningEmail,
+		}
 }
