@@ -434,7 +434,6 @@ func Rerun(ctx *context_module.Context) {
 			ctx.ServerError("run.LoadAttributes", err)
 			return
 		}
-		notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 	}
 
 	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
