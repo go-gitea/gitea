@@ -102,6 +102,15 @@ func (run *ActionRun) PrettyRef() string {
 	return refName.ShortName()
 }
 
+// RefTooltip return a tooltop of run's ref. For pull request, it's the title of the PR, otherwise it's the ShortName.
+func (run *ActionRun) RefTooltip() string {
+	payload, err := run.GetPullRequestEventPayload()
+	if err == nil && payload != nil && payload.PullRequest != nil {
+		return payload.PullRequest.Title
+	}
+	return git.RefName(run.Ref).ShortName()
+}
+
 // LoadAttributes load Repo TriggerUser if not loaded
 func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 	if run == nil {
