@@ -150,441 +150,527 @@ func TestPullStatusDelayCheck(t *testing.T) {
 	})
 }
 
-func Test_PullRequestStatusChecking_Mergeable(t *testing.T) {
+func Test_PullRequestStatusChecking_Mergeable_MergeTree(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-		// Create new clean repo to test conflict checking.
-		baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
-			Name:          "conflict-checking",
-			Description:   "Tempo repo",
-			AutoInit:      true,
-			Readme:        "Default",
-			DefaultBranch: "main",
-		})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, baseRepo)
-
-		// create a commit on new branch.
-		_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
-			Files: []*files_service.ChangeRepoFile{
-				{
-					Operation:     "create",
-					TreePath:      "important_file",
-					ContentReader: strings.NewReader("Just a non-important file"),
-				},
-			},
-			Message:   "Add a important file",
-			OldBranch: "main",
-			NewBranch: "important-secrets",
-		})
-		assert.NoError(t, err)
-
-		// create Pull to merge the important-secrets branch into main branch.
-		pullIssue := &issues_model.Issue{
-			RepoID:   baseRepo.ID,
-			Title:    "PR with no conflict",
-			PosterID: user.ID,
-			Poster:   user,
-			IsPull:   true,
-		}
-
-		pullRequest := &issues_model.PullRequest{
-			HeadRepoID: baseRepo.ID,
-			BaseRepoID: baseRepo.ID,
-			HeadBranch: "important-secrets",
-			BaseBranch: "main",
-			HeadRepo:   baseRepo,
-			BaseRepo:   baseRepo,
-			Type:       issues_model.PullRequestGitea,
-		}
-		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
-		assert.NoError(t, err)
-
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with no conflict"})
-		assert.NoError(t, issue.LoadPullRequest(t.Context()))
-		conflictingPR := issue.PullRequest
-
-		// Ensure conflictedFiles is populated.
-		assert.Empty(t, conflictingPR.ConflictedFiles)
-		// Check if status is correct.
-		assert.Equal(t, issues_model.PullRequestStatusMergeable, conflictingPR.Status)
-		// Ensure that mergeable returns true
-		assert.True(t, conflictingPR.Mergeable(t.Context()))
+		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
+		testPullRequestStatusCheckingMergeable(t)
 	})
 }
 
-func Test_PullRequestStatusChecking_Conflicted(t *testing.T) {
+func Test_PullRequestStatusChecking_Mergeable_TmpRepo(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-		// Create new clean repo to test conflict checking.
-		baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
-			Name:          "conflict-checking",
-			Description:   "Tempo repo",
-			AutoInit:      true,
-			Readme:        "Default",
-			DefaultBranch: "main",
-		})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, baseRepo)
-
-		// create a commit on new branch.
-		_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
-			Files: []*files_service.ChangeRepoFile{
-				{
-					Operation:     "create",
-					TreePath:      "important_file",
-					ContentReader: strings.NewReader("Just a non-important file"),
-				},
-			},
-			Message:   "Add a important file",
-			OldBranch: "main",
-			NewBranch: "important-secrets",
-		})
-		assert.NoError(t, err)
-
-		// create a commit on main branch.
-		_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
-			Files: []*files_service.ChangeRepoFile{
-				{
-					Operation:     "create",
-					TreePath:      "important_file",
-					ContentReader: strings.NewReader("Not the same content :P"),
-				},
-			},
-			Message:   "Add a important file",
-			OldBranch: "main",
-			NewBranch: "main",
-		})
-		assert.NoError(t, err)
-
-		// create Pull to merge the important-secrets branch into main branch.
-		pullIssue := &issues_model.Issue{
-			RepoID:   baseRepo.ID,
-			Title:    "PR with conflict!",
-			PosterID: user.ID,
-			Poster:   user,
-			IsPull:   true,
-		}
-
-		pullRequest := &issues_model.PullRequest{
-			HeadRepoID: baseRepo.ID,
-			BaseRepoID: baseRepo.ID,
-			HeadBranch: "important-secrets",
-			BaseBranch: "main",
-			HeadRepo:   baseRepo,
-			BaseRepo:   baseRepo,
-			Type:       issues_model.PullRequestGitea,
-		}
-		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
-		assert.NoError(t, err)
-
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"})
-		assert.NoError(t, issue.LoadPullRequest(t.Context()))
-		conflictingPR := issue.PullRequest
-
-		// Ensure conflictedFiles is populated.
-		assert.Len(t, conflictingPR.ConflictedFiles, 1)
-		// Check if status is correct.
-		assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
-		// Ensure that mergeable returns false
-		assert.False(t, conflictingPR.Mergeable(t.Context()))
+		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
+		testPullRequestStatusCheckingMergeable(t)
 	})
 }
 
-func Test_PullRequestStatusCheckingCrossRepo_Mergeable(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		session := loginUser(t, user.Name)
+func testPullRequestStatusCheckingMergeable(t *testing.T) {
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-		// Create new clean repo to test conflict checking.
-		baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
-			Name:          "conflict-checking",
-			Description:   "Tempo repo",
-			AutoInit:      true,
-			Readme:        "Default",
-			DefaultBranch: "main",
-		})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, baseRepo)
-
-		testRepoFork(t, session, baseRepo.OwnerName, baseRepo.Name, "org3", "conflict-checking", "main")
-
-		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "org3", Name: "conflict-checking"})
-
-		// create a commit on new branch of forked repository
-		_, err = files_service.ChangeRepoFiles(t.Context(), forkRepo, user, &files_service.ChangeRepoFilesOptions{
-			Files: []*files_service.ChangeRepoFile{
-				{
-					Operation:     "create",
-					TreePath:      "important_file",
-					ContentReader: strings.NewReader("Just a non-important file"),
-				},
-			},
-			Message:   "Add a important file",
-			OldBranch: "main",
-			NewBranch: "important-secrets",
-		})
-		assert.NoError(t, err)
-
-		// create Pull to merge the important-secrets branch into main branch.
-		pullIssue := &issues_model.Issue{
-			RepoID:   baseRepo.ID,
-			Title:    "PR with no conflict",
-			PosterID: user.ID,
-			Poster:   user,
-			IsPull:   true,
-		}
-
-		pullRequest := &issues_model.PullRequest{
-			HeadRepoID: forkRepo.ID,
-			BaseRepoID: baseRepo.ID,
-			HeadBranch: "important-secrets",
-			BaseBranch: "main",
-			HeadRepo:   forkRepo,
-			BaseRepo:   baseRepo,
-			Type:       issues_model.PullRequestGitea,
-		}
-		prOpts := &pull_service.NewPullRequestOptions{
-			Repo:        baseRepo,
-			Issue:       pullIssue,
-			PullRequest: pullRequest,
-		}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
-		assert.NoError(t, err)
-
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with no conflict"})
-		assert.NoError(t, issue.LoadPullRequest(t.Context()))
-		conflictingPR := issue.PullRequest
-
-		// Ensure conflictedFiles is populated.
-		assert.Empty(t, conflictingPR.ConflictedFiles)
-		// Check if status is correct.
-		assert.Equal(t, issues_model.PullRequestStatusMergeable, conflictingPR.Status)
-		// Ensure that mergeable returns true
-		assert.True(t, conflictingPR.Mergeable(t.Context()))
+	// Create new clean repo to test conflict checking.
+	baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
+		Name:          "conflict-checking",
+		Description:   "Tempo repo",
+		AutoInit:      true,
+		Readme:        "Default",
+		DefaultBranch: "main",
 	})
-}
+	assert.NoError(t, err)
+	assert.NotEmpty(t, baseRepo)
 
-func Test_PullRequestStatusCheckingCrossRepo_Conflicted(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		session := loginUser(t, user.Name)
-
-		// Create new clean repo to test conflict checking.
-		baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
-			Name:          "conflict-checking",
-			Description:   "Tempo repo",
-			AutoInit:      true,
-			Readme:        "Default",
-			DefaultBranch: "main",
-		})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, baseRepo)
-
-		testRepoFork(t, session, baseRepo.OwnerName, baseRepo.Name, "org3", "conflict-checking", "main")
-
-		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "org3", Name: "conflict-checking"})
-
-		// create a commit on new branch of forked repository
-		_, err = files_service.ChangeRepoFiles(t.Context(), forkRepo, user, &files_service.ChangeRepoFilesOptions{
-			Files: []*files_service.ChangeRepoFile{
-				{
-					Operation:     "create",
-					TreePath:      "important_file",
-					ContentReader: strings.NewReader("Just a non-important file"),
-				},
+	// create a commit on new branch.
+	_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation:     "create",
+				TreePath:      "important_file",
+				ContentReader: strings.NewReader("Just a non-important file"),
 			},
-			Message:   "Add a important file",
-			OldBranch: "main",
-			NewBranch: "important-secrets",
-		})
-		assert.NoError(t, err)
-
-		// create a commit on main branch of base repository.
-		_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
-			Files: []*files_service.ChangeRepoFile{
-				{
-					Operation:     "create",
-					TreePath:      "important_file",
-					ContentReader: strings.NewReader("Not the same content :P"),
-				},
-			},
-			Message:   "Add a important file",
-			OldBranch: "main",
-			NewBranch: "main",
-		})
-		assert.NoError(t, err)
-
-		// create Pull to merge the important-secrets branch into main branch.
-		pullIssue := &issues_model.Issue{
-			RepoID:   baseRepo.ID,
-			Title:    "PR with conflict!",
-			PosterID: user.ID,
-			Poster:   user,
-			IsPull:   true,
-		}
-
-		pullRequest := &issues_model.PullRequest{
-			HeadRepoID: forkRepo.ID,
-			BaseRepoID: baseRepo.ID,
-			HeadBranch: "important-secrets",
-			BaseBranch: "main",
-			HeadRepo:   forkRepo,
-			BaseRepo:   baseRepo,
-			Type:       issues_model.PullRequestGitea,
-		}
-		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
-		assert.NoError(t, err)
-
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"})
-		assert.NoError(t, issue.LoadPullRequest(t.Context()))
-		conflictingPR := issue.PullRequest
-
-		// Ensure conflictedFiles is populated.
-		assert.Len(t, conflictingPR.ConflictedFiles, 1)
-		// Check if status is correct.
-		assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
-		// Ensure that mergeable returns false
-		assert.False(t, conflictingPR.Mergeable(t.Context()))
+		},
+		Message:   "Add a important file",
+		OldBranch: "main",
+		NewBranch: "important-secrets",
 	})
-}
+	assert.NoError(t, err)
 
-func Test_PullRequest_AGit_StatusChecking_Mergeable(t *testing.T) {
-	// skip this test if git version is low
-	if !git.DefaultFeatures().SupportProcReceive {
-		return
+	// create Pull to merge the important-secrets branch into main branch.
+	pullIssue := &issues_model.Issue{
+		RepoID:   baseRepo.ID,
+		Title:    "PR with no conflict",
+		PosterID: user.ID,
+		Poster:   user,
+		IsPull:   true,
 	}
 
+	pullRequest := &issues_model.PullRequest{
+		HeadRepoID: baseRepo.ID,
+		BaseRepoID: baseRepo.ID,
+		HeadBranch: "important-secrets",
+		BaseBranch: "main",
+		HeadRepo:   baseRepo,
+		BaseRepo:   baseRepo,
+		Type:       issues_model.PullRequestGitea,
+	}
+	prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
+	err = pull_service.NewPullRequest(t.Context(), prOpts)
+	assert.NoError(t, err)
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with no conflict"})
+	assert.NoError(t, issue.LoadPullRequest(t.Context()))
+	conflictingPR := issue.PullRequest
+
+	// Ensure conflictedFiles is populated.
+	assert.Empty(t, conflictingPR.ConflictedFiles)
+	// Check if status is correct.
+	assert.Equal(t, issues_model.PullRequestStatusMergeable, conflictingPR.Status)
+	// Ensure that mergeable returns true
+	assert.True(t, conflictingPR.Mergeable(t.Context()))
+}
+
+func Test_PullRequestStatusChecking_Conflicted_MergeTree(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-		// Create new clean repo to test conflict checking.
-		baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
-			Name:          "conflict-checking",
-			Description:   "Tempo repo",
-			AutoInit:      true,
-			Readme:        "Default",
-			DefaultBranch: "main",
-		})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, baseRepo)
-
-		// add something in local repository and push it to remote
-		dstPath := t.TempDir()
-		repoURL := *giteaURL
-		repoURL.Path = baseRepo.FullName() + ".git"
-		repoURL.User = url.UserPassword("user2", userPassword)
-		doGitClone(dstPath, &repoURL)(t)
-
-		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
-		assert.NoError(t, err)
-		defer gitRepo.Close()
-
-		doGitCreateBranch(dstPath, "test-agit-push")(t)
-
-		_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-")
-		assert.NoError(t, err)
-
-		// push to create an agit pull request
-		err = gitcmd.NewCommand("push", "origin",
-			"-o", "title=agit-test-title", "-o", "description=agit-test-description",
-			"-o", "topic=head-branch-name",
-			"HEAD:refs/for/main",
-		).Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
-		assert.NoError(t, err)
-
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
-			RepoID: baseRepo.ID,
-			Title:  "agit-test-title",
-		})
-		assert.NoError(t, issue.LoadPullRequest(t.Context()))
-		conflictingPR := issue.PullRequest
-
-		// Ensure conflictedFiles is populated.
-		assert.Empty(t, conflictingPR.ConflictedFiles)
-		// Check if status is correct.
-		assert.Equal(t, issues_model.PullRequestStatusMergeable, conflictingPR.Status)
-		// Ensure that mergeable returns true
-		assert.True(t, conflictingPR.Mergeable(t.Context()))
+		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
+		testPullRequestStatusCheckingConflicted(t)
 	})
 }
 
-func Test_PullRequest_AGit_StatusChecking_Conflicted(t *testing.T) {
-	// skip this test if git version is low
-	if !git.DefaultFeatures().SupportProcReceive {
-		return
+func Test_PullRequestStatusChecking_Conflicted_TmpRepo(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
+		testPullRequestStatusCheckingConflicted(t)
+	})
+}
+
+func testPullRequestStatusCheckingConflicted(t *testing.T) {
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// Create new clean repo to test conflict checking.
+	baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
+		Name:          "conflict-checking",
+		Description:   "Tempo repo",
+		AutoInit:      true,
+		Readme:        "Default",
+		DefaultBranch: "main",
+	})
+	assert.NoError(t, err)
+	assert.NotEmpty(t, baseRepo)
+
+	// create a commit on new branch.
+	_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation:     "create",
+				TreePath:      "important_file",
+				ContentReader: strings.NewReader("Just a non-important file"),
+			},
+		},
+		Message:   "Add a important file",
+		OldBranch: "main",
+		NewBranch: "important-secrets",
+	})
+	assert.NoError(t, err)
+
+	// create a commit on main branch.
+	_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation:     "create",
+				TreePath:      "important_file",
+				ContentReader: strings.NewReader("Not the same content :P"),
+			},
+		},
+		Message:   "Add a important file",
+		OldBranch: "main",
+		NewBranch: "main",
+	})
+	assert.NoError(t, err)
+
+	// create Pull to merge the important-secrets branch into main branch.
+	pullIssue := &issues_model.Issue{
+		RepoID:   baseRepo.ID,
+		Title:    "PR with conflict!",
+		PosterID: user.ID,
+		Poster:   user,
+		IsPull:   true,
 	}
 
+	pullRequest := &issues_model.PullRequest{
+		HeadRepoID: baseRepo.ID,
+		BaseRepoID: baseRepo.ID,
+		HeadBranch: "important-secrets",
+		BaseBranch: "main",
+		HeadRepo:   baseRepo,
+		BaseRepo:   baseRepo,
+		Type:       issues_model.PullRequestGitea,
+	}
+	prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
+	err = pull_service.NewPullRequest(t.Context(), prOpts)
+	assert.NoError(t, err)
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"})
+	assert.NoError(t, issue.LoadPullRequest(t.Context()))
+	conflictingPR := issue.PullRequest
+
+	// Ensure conflictedFiles is populated.
+	assert.Len(t, conflictingPR.ConflictedFiles, 1)
+	// Check if status is correct.
+	assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
+	// Ensure that mergeable returns false
+	assert.False(t, conflictingPR.Mergeable(t.Context()))
+}
+
+func Test_PullRequestStatusCheckingCrossRepo_Mergeable_MergeTree(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-		// Create new clean repo to test conflict checking.
-		baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
-			Name:          "conflict-checking",
-			Description:   "Tempo repo",
-			AutoInit:      true,
-			Readme:        "Default",
-			DefaultBranch: "main",
-		})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, baseRepo)
-
-		// add something in local repository and push it to remote
-		dstPath := t.TempDir()
-		repoURL := *giteaURL
-		repoURL.Path = baseRepo.FullName() + ".git"
-		repoURL.User = url.UserPassword("user2", userPassword)
-		doGitClone(dstPath, &repoURL)(t)
-
-		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
-		assert.NoError(t, err)
-		defer gitRepo.Close()
-
-		// create agit branch from current commit
-		doGitCreateBranch(dstPath, "test-agit-push")(t)
-
-		// add something on the same file of main branch so that it causes conflict
-		doGitCheckoutBranch(dstPath, "main")(t)
-
-		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte("Some changes to README file to main cause conflict"), 0o644))
-		assert.NoError(t, git.AddChanges(t.Context(), dstPath, true))
-		doGitCommit(dstPath, "add something to main branch")(t)
-
-		err = gitcmd.NewCommand("push", "origin", "main").Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
-		assert.NoError(t, err)
-
-		// check out back to agit branch and change the same file
-		doGitCheckoutBranch(dstPath, "test-agit-push")(t)
-
-		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte("Some changes to README file for agit branch"), 0o644))
-		assert.NoError(t, git.AddChanges(t.Context(), dstPath, true))
-		doGitCommit(dstPath, "add something to agit branch")(t)
-
-		// push to create an agit pull request
-		err = gitcmd.NewCommand("push", "origin",
-			"-o", "title=agit-test-title", "-o", "description=agit-test-description",
-			"-o", "topic=head-branch-name",
-			"HEAD:refs/for/main",
-		).Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
-		assert.NoError(t, err)
-
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
-			RepoID: baseRepo.ID,
-			Title:  "agit-test-title",
-		})
-		assert.NoError(t, issue.LoadPullRequest(t.Context()))
-		conflictingPR := issue.PullRequest
-
-		// Ensure conflictedFiles is populated.
-		assert.Equal(t, []string{"README.md"}, conflictingPR.ConflictedFiles)
-		// Check if status is correct.
-		assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
-		// Ensure that mergeable returns false
-		assert.False(t, conflictingPR.Mergeable(t.Context()))
+		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
+		testPullRequestStatusCheckingCrossRepoMergeable(t, giteaURL)
 	})
+}
+
+func Test_PullRequestStatusCheckingCrossRepo_Mergeable_TmpRepo(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
+		testPullRequestStatusCheckingCrossRepoMergeable(t, giteaURL)
+	})
+}
+
+func testPullRequestStatusCheckingCrossRepoMergeable(t *testing.T, giteaURL *url.URL) {
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session := loginUser(t, user.Name)
+
+	// Create new clean repo to test conflict checking.
+	baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
+		Name:          "conflict-checking",
+		Description:   "Tempo repo",
+		AutoInit:      true,
+		Readme:        "Default",
+		DefaultBranch: "main",
+	})
+	assert.NoError(t, err)
+	assert.NotEmpty(t, baseRepo)
+
+	testRepoFork(t, session, baseRepo.OwnerName, baseRepo.Name, "org3", "conflict-checking", "main")
+
+	forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "org3", Name: "conflict-checking"})
+
+	// create a commit on new branch of forked repository
+	_, err = files_service.ChangeRepoFiles(t.Context(), forkRepo, user, &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation:     "create",
+				TreePath:      "important_file",
+				ContentReader: strings.NewReader("Just a non-important file"),
+			},
+		},
+		Message:   "Add a important file",
+		OldBranch: "main",
+		NewBranch: "important-secrets",
+	})
+	assert.NoError(t, err)
+
+	// create Pull to merge the important-secrets branch into main branch.
+	pullIssue := &issues_model.Issue{
+		RepoID:   baseRepo.ID,
+		Title:    "PR with no conflict",
+		PosterID: user.ID,
+		Poster:   user,
+		IsPull:   true,
+	}
+
+	pullRequest := &issues_model.PullRequest{
+		HeadRepoID: forkRepo.ID,
+		BaseRepoID: baseRepo.ID,
+		HeadBranch: "important-secrets",
+		BaseBranch: "main",
+		HeadRepo:   forkRepo,
+		BaseRepo:   baseRepo,
+		Type:       issues_model.PullRequestGitea,
+	}
+	prOpts := &pull_service.NewPullRequestOptions{
+		Repo:        baseRepo,
+		Issue:       pullIssue,
+		PullRequest: pullRequest,
+	}
+	err = pull_service.NewPullRequest(t.Context(), prOpts)
+	assert.NoError(t, err)
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with no conflict"})
+	assert.NoError(t, issue.LoadPullRequest(t.Context()))
+	conflictingPR := issue.PullRequest
+
+	// Ensure conflictedFiles is populated.
+	assert.Empty(t, conflictingPR.ConflictedFiles)
+	// Check if status is correct.
+	assert.Equal(t, issues_model.PullRequestStatusMergeable, conflictingPR.Status)
+	// Ensure that mergeable returns true
+	assert.True(t, conflictingPR.Mergeable(t.Context()))
+}
+
+func Test_PullRequestStatusCheckingCrossRepo_Conflicted_MergeTree(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
+		testPullRequestStatusCheckingCrossRepoConflicted(t, giteaURL)
+	})
+}
+
+func Test_PullRequestStatusCheckingCrossRepo_Conflicted_TmpRepo(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
+		testPullRequestStatusCheckingCrossRepoConflicted(t, giteaURL)
+	})
+}
+
+func testPullRequestStatusCheckingCrossRepoConflicted(t *testing.T, giteaURL *url.URL) {
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session := loginUser(t, user.Name)
+
+	// Create new clean repo to test conflict checking.
+	baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
+		Name:          "conflict-checking",
+		Description:   "Tempo repo",
+		AutoInit:      true,
+		Readme:        "Default",
+		DefaultBranch: "main",
+	})
+	assert.NoError(t, err)
+	assert.NotEmpty(t, baseRepo)
+
+	testRepoFork(t, session, baseRepo.OwnerName, baseRepo.Name, "org3", "conflict-checking", "main")
+
+	forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "org3", Name: "conflict-checking"})
+
+	// create a commit on new branch of forked repository
+	_, err = files_service.ChangeRepoFiles(t.Context(), forkRepo, user, &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation:     "create",
+				TreePath:      "important_file",
+				ContentReader: strings.NewReader("Just a non-important file"),
+			},
+		},
+		Message:   "Add a important file",
+		OldBranch: "main",
+		NewBranch: "important-secrets",
+	})
+	assert.NoError(t, err)
+
+	// create a commit on main branch of base repository.
+	_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation:     "create",
+				TreePath:      "important_file",
+				ContentReader: strings.NewReader("Not the same content :P"),
+			},
+		},
+		Message:   "Add a important file",
+		OldBranch: "main",
+		NewBranch: "main",
+	})
+	assert.NoError(t, err)
+
+	// create Pull to merge the important-secrets branch into main branch.
+	pullIssue := &issues_model.Issue{
+		RepoID:   baseRepo.ID,
+		Title:    "PR with conflict!",
+		PosterID: user.ID,
+		Poster:   user,
+		IsPull:   true,
+	}
+
+	pullRequest := &issues_model.PullRequest{
+		HeadRepoID: forkRepo.ID,
+		BaseRepoID: baseRepo.ID,
+		HeadBranch: "important-secrets",
+		BaseBranch: "main",
+		HeadRepo:   forkRepo,
+		BaseRepo:   baseRepo,
+		Type:       issues_model.PullRequestGitea,
+	}
+	prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
+	err = pull_service.NewPullRequest(t.Context(), prOpts)
+	assert.NoError(t, err)
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"})
+	assert.NoError(t, issue.LoadPullRequest(t.Context()))
+	conflictingPR := issue.PullRequest
+
+	// Ensure conflictedFiles is populated.
+	assert.Len(t, conflictingPR.ConflictedFiles, 1)
+	// Check if status is correct.
+	assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
+	// Ensure that mergeable returns false
+	assert.False(t, conflictingPR.Mergeable(t.Context()))
+}
+
+func Test_PullRequest_AGit_StatusChecking_Mergeable_MergeTree(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// skip this test if git version is low
+		if !git.DefaultFeatures().SupportProcReceive {
+			return
+		}
+
+		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
+
+		testPullRequestAGitStatusCheckingMergeable(t, giteaURL)
+	})
+}
+
+func Test_PullRequest_AGit_StatusChecking_Mergeable_TmpRepo(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// skip this test if git version is low
+		if !git.DefaultFeatures().SupportProcReceive {
+			return
+		}
+
+		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
+
+		testPullRequestAGitStatusCheckingMergeable(t, giteaURL)
+	})
+}
+
+func testPullRequestAGitStatusCheckingMergeable(t *testing.T, giteaURL *url.URL) {
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// Create new clean repo to test conflict checking.
+	baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
+		Name:          "conflict-checking",
+		Description:   "Tempo repo",
+		AutoInit:      true,
+		Readme:        "Default",
+		DefaultBranch: "main",
+	})
+	assert.NoError(t, err)
+	assert.NotEmpty(t, baseRepo)
+
+	// add something in local repository and push it to remote
+	dstPath := t.TempDir()
+	repoURL := *giteaURL
+	repoURL.Path = baseRepo.FullName() + ".git"
+	repoURL.User = url.UserPassword("user2", userPassword)
+	doGitClone(dstPath, &repoURL)(t)
+
+	gitRepo, err := git.OpenRepository(t.Context(), dstPath)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	doGitCreateBranch(dstPath, "test-agit-push")(t)
+
+	_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+	assert.NoError(t, err)
+
+	// push to create an agit pull request
+	err = gitcmd.NewCommand("push", "origin",
+		"-o", "title=agit-test-title", "-o", "description=agit-test-description",
+		"-o", "topic=head-branch-name",
+		"HEAD:refs/for/main",
+	).Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+	assert.NoError(t, err)
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
+		RepoID: baseRepo.ID,
+		Title:  "agit-test-title",
+	})
+	assert.NoError(t, issue.LoadPullRequest(t.Context()))
+	conflictingPR := issue.PullRequest
+
+	// Ensure conflictedFiles is populated.
+	assert.Empty(t, conflictingPR.ConflictedFiles)
+	// Check if status is correct.
+	assert.Equal(t, issues_model.PullRequestStatusMergeable, conflictingPR.Status)
+	// Ensure that mergeable returns true
+	assert.True(t, conflictingPR.Mergeable(t.Context()))
+}
+
+func Test_PullRequest_AGit_StatusChecking_Conflicted_MergeTree(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// skip this test if git version is low
+		if !git.DefaultFeatures().SupportProcReceive {
+			return
+		}
+
+		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
+
+		testPullRequestAGitStatusCheckingConflicted(t, giteaURL)
+	})
+}
+
+func Test_PullRequest_AGit_StatusChecking_Conflicted_TmpRepo(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// skip this test if git version is low
+		if !git.DefaultFeatures().SupportProcReceive {
+			return
+		}
+
+		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
+
+		testPullRequestAGitStatusCheckingConflicted(t, giteaURL)
+	})
+}
+
+func testPullRequestAGitStatusCheckingConflicted(t *testing.T, giteaURL *url.URL) {
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// Create new clean repo to test conflict checking.
+	baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
+		Name:          "conflict-checking",
+		Description:   "Tempo repo",
+		AutoInit:      true,
+		Readme:        "Default",
+		DefaultBranch: "main",
+	})
+	assert.NoError(t, err)
+	assert.NotEmpty(t, baseRepo)
+
+	// add something in local repository and push it to remote
+	dstPath := t.TempDir()
+	repoURL := *giteaURL
+	repoURL.Path = baseRepo.FullName() + ".git"
+	repoURL.User = url.UserPassword("user2", userPassword)
+	doGitClone(dstPath, &repoURL)(t)
+
+	gitRepo, err := git.OpenRepository(t.Context(), dstPath)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	// create agit branch from current commit
+	doGitCreateBranch(dstPath, "test-agit-push")(t)
+
+	// add something on the same file of main branch so that it causes conflict
+	doGitCheckoutBranch(dstPath, "main")(t)
+
+	assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte("Some changes to README file to main cause conflict"), 0o644))
+	assert.NoError(t, git.AddChanges(t.Context(), dstPath, true))
+	doGitCommit(dstPath, "add something to main branch")(t)
+
+	err = gitcmd.NewCommand("push", "origin", "main").Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+	assert.NoError(t, err)
+
+	// check out back to agit branch and change the same file
+	doGitCheckoutBranch(dstPath, "test-agit-push")(t)
+
+	assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte("Some changes to README file for agit branch"), 0o644))
+	assert.NoError(t, git.AddChanges(t.Context(), dstPath, true))
+	doGitCommit(dstPath, "add something to agit branch")(t)
+
+	// push to create an agit pull request
+	err = gitcmd.NewCommand("push", "origin",
+		"-o", "title=agit-test-title", "-o", "description=agit-test-description",
+		"-o", "topic=head-branch-name",
+		"HEAD:refs/for/main",
+	).Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+	assert.NoError(t, err)
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
+		RepoID: baseRepo.ID,
+		Title:  "agit-test-title",
+	})
+	assert.NoError(t, issue.LoadPullRequest(t.Context()))
+	conflictingPR := issue.PullRequest
+
+	// Ensure conflictedFiles is populated.
+	assert.Equal(t, []string{"README.md"}, conflictingPR.ConflictedFiles)
+	// Check if status is correct.
+	assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
+	// Ensure that mergeable returns false
+	assert.False(t, conflictingPR.Mergeable(t.Context()))
 }
