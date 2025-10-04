@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -394,6 +395,11 @@ func UpdateIssueDeadline(ctx *context.Context) {
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.HTTPError(http.StatusForbidden, "", "Not repo writer")
+		return
+	}
+
+	if ctx.Doer.IsRestricted && !setting.RestrictedUser.AllowEditDueDate {
+		ctx.HTTPError(http.StatusForbidden, "", "restricted users cannot modify due dates")
 		return
 	}
 
