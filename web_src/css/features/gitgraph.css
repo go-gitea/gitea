@@ -88,162 +88,226 @@
   fill: var(--color-secondary-dark-5);
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-1 {
-  stroke: #499a37;
-  fill: #499a37;
-}
-
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-2 {
-  stroke: #ce4751;
-  fill: #ce4751;
-}
-
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-3 {
-  stroke: #8f9121;
-  fill: #8f9121;
-}
-
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-4 {
-  stroke: #ac32a6;
-  fill: #ac32a6;
-}
-
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-5 {
-  stroke: #7445e9;
-  fill: #7445e9;
-}
-
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-6 {
-  stroke: #c67d28;
-  fill: #c67d28;
-}
-
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-7 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-1 {
   stroke: #4db392;
   fill: #4db392;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-8 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-2 {
+  stroke: #ce4751;
+  fill: #ce4751;
+}
+
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-3 {
+  stroke: #8f9121;
+  fill: #8f9121;
+}
+
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-4 {
+  stroke: #ac32a6;
+  fill: #ac32a6;
+}
+
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-5 {
+  stroke: #7445e9;
+  fill: #7445e9;
+}
+
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-6 {
+  stroke: #c67d28;
+  fill: #c67d28;
+}
+
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-7 {
+  stroke: #499a37;
+  fill: #499a37;
+}
+
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-8 {
   stroke: #aa4d30;
   fill: #aa4d30;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-9 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-9 {
   stroke: #2a6f84;
   fill: #2a6f84;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-10 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-10 {
   stroke: #c45327;
   fill: #c45327;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-11 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-11 {
   stroke: #3d965c;
   fill: #3d965c;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-12 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-12 {
   stroke: #792a93;
   fill: #792a93;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-13 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-13 {
   stroke: #439d73;
   fill: #439d73;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-14 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-14 {
   stroke: #103aad;
   fill: #103aad;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-15 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-15 {
   stroke: #982e85;
   fill: #982e85;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-0 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.flow-color-16-0 {
   stroke: #7db233;
   fill: #7db233;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-1 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-1 {
   stroke: #5ac144;
   fill: #5ac144;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-2 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-2 {
   stroke: #ed5a8b;
   fill: #ed5a8b;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-3 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-3 {
   stroke: #ced049;
   fill: #ced048;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-4 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-4 {
   stroke: #db61d7;
   fill: #db62d6;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-5 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-5 {
   stroke: #8455f9;
   fill: #8455f9;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-6 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-6 {
   stroke: #e6a151;
   fill: #e6a151;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-7 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-7 {
   stroke: #44daaa;
   fill: #44daaa;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-8 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-8 {
   stroke: #dd7a5c;
   fill: #dd7a5c;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-9 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-9 {
   stroke: #38859c;
   fill: #38859c;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-10 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-10 {
   stroke: #d95520;
   fill: #d95520;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-11 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-11 {
   stroke: #42ae68;
   fill: #42ae68;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-12 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-12 {
   stroke: #9126b5;
   fill: #9126b5;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-13 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-13 {
   stroke: #4ab080;
   fill: #4ab080;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-14 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-14 {
   stroke: #284fb8;
   fill: #284fb8;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-15 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-15 {
   stroke: #971c80;
   fill: #971c80;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-0 {
+#git-graph-container:not(.monochrome)
+#rel-container
+.flow-group.highlight.flow-color-16-0 {
   stroke: #87ca28;
   fill: #87ca28;
 }

@@ -87,6 +87,7 @@ input[type="radio"] {
   left: 0;
 }
 .ui.toggle.checkbox label::after {
+  cursor: pointer;
   background: var(--color-white);
   box-shadow: 1px 1px 4px 1px var(--color-shadow);
   position: absolute;

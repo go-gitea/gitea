@@ -31,12 +31,14 @@
 }
 
 #navbar .item.active {
-  background: var(--color-active);
+  color: var(--color-primary);
+  /* background: var(--color-active); */
 }
 
 #navbar a.item:hover,
 #navbar button.item:hover {
-  background: var(--color-nav-hover-bg);
+  color: var(--color-primary);
+  /* background: var(--color-nav-hover-bg); */
 }
 
 #navbar .item.ui.dropdown {
@@ -130,7 +132,9 @@
 }
 
 .secondary-nav {
-  background: var(--color-secondary-nav-bg) !important; /* important because of .ui.secondary.menu */
+  background: var(
+    --color-secondary-nav-bg
+  ) !important; /* important because of .ui.secondary.menu */
 }
 
 .issue-navbar {
