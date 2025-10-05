@@ -1076,6 +1076,29 @@ func CountComments(ctx context.Context, opts *FindCommentsOptions) (int64, error
 	return sess.Count(&Comment{})
 }
 
+// FindCommitComments finds all code comments for a specific commit
+func FindCommitComments(ctx context.Context, repoID int64, commitSHA string) (CommentList, error) {
+	comments := make([]*Comment, 0, 10)
+	return comments, db.GetEngine(ctx).
+		Where("commit_sha = ?", commitSHA).
+		And("type = ?", CommentTypeCode).
+		Asc("created_unix").
+		Asc("id").
+		Find(&comments)
+}
+
+// FindCommitLineComments finds code comments for a specific file and line in a commit
+func FindCommitLineComments(ctx context.Context, commitSHA, treePath string) (CommentList, error) {
+	comments := make([]*Comment, 0, 10)
+	return comments, db.GetEngine(ctx).
+		Where("commit_sha = ?", commitSHA).
+		And("tree_path = ?", treePath).
+		And("type = ?", CommentTypeCode).
+		Asc("created_unix").
+		Asc("id").
+		Find(&comments)
+}
+
 // UpdateCommentInvalidate updates comment invalidated column
 func UpdateCommentInvalidate(ctx context.Context, c *Comment) error {
 	_, err := db.GetEngine(ctx).ID(c.ID).Cols("invalidated").Update(c)

@@ -30,8 +30,11 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context/upload"
+	"code.gitea.io/gitea/services/forms"
 	git_service "code.gitea.io/gitea/services/git"
 	"code.gitea.io/gitea/services/gitdiff"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -417,6 +420,25 @@ func Diff(ctx *context.Context) {
 		ctx.Data["MergedPRIssueNumber"] = pr.Index
 	}
 
+	// Load commit comments for inline display
+	comments, err := issues_model.FindCommitComments(ctx, ctx.Repo.Repository.ID, commitID)
+	if err != nil {
+		log.Error("FindCommitComments: %v", err)
+	} else {
+		if err := comments.LoadPosters(ctx); err != nil {
+			log.Error("LoadPosters: %v", err)
+		}
+		if err := comments.LoadAttachments(ctx); err != nil {
+			log.Error("LoadAttachments: %v", err)
+		}
+		ctx.Data["CommitComments"] = comments
+	}
+
+	// Mark this as a commit page to enable comment UI
+	ctx.Data["PageIsCommit"] = true
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
+
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }
 
@@ -468,4 +490,136 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 		}
 	}
 	return commits, nil
+}
+
+// RenderNewCommitCodeCommentForm renders the form for creating a new commit code comment
+func RenderNewCommitCodeCommentForm(ctx *context.Context) {
+	ctx.Data["PageIsCommit"] = true
+	ctx.Data["AfterCommitID"] = ctx.PathParam("sha")
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
+	// Use the same template as PR new comments (defined in pull_review.go)
+	ctx.HTML(http.StatusOK, "repo/diff/new_comment")
+}
+
+// CreateCommitCodeComment creates an inline comment on a commit
+func CreateCommitCodeComment(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.CodeCommentForm)
+	commitSHA := ctx.PathParam("sha")
+
+	if ctx.Written() {
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
+		ctx.Redirect(fmt.Sprintf("%s/commit/%s", ctx.Repo.RepoLink, commitSHA))
+		return
+	}
+
+	// Convert line to signed line (negative for previous side)
+	signedLine := form.Line
+	if form.Side == "previous" {
+		signedLine *= -1
+	}
+
+	var attachments []string
+	if setting.Attachment.Enabled {
+		attachments = form.Files
+	}
+
+	// Create the comment using the service layer
+	comment, err := repo_service.CreateCommitCodeComment(
+		ctx,
+		ctx.Doer,
+		ctx.Repo.Repository,
+		ctx.Repo.GitRepo,
+		commitSHA,
+		signedLine,
+		form.Content,
+		form.TreePath,
+		attachments,
+	)
+	if err != nil {
+		ctx.ServerError("CreateCommitCodeComment", err)
+		return
+	}
+
+	log.Trace("Commit comment created: %d for commit %s in %-v", comment.ID, commitSHA, ctx.Repo.Repository)
+
+	// Render the comment
+	ctx.Data["Comment"] = comment
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
+
+	ctx.JSON(http.StatusOK, map[string]any{
+		"ok":      true,
+		"comment": comment,
+	})
+}
+
+// UpdateCommitCodeComment updates an existing commit inline comment
+func UpdateCommitCodeComment(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.CodeCommentForm)
+	commentID := ctx.PathParamInt64(":id")
+
+	comment, err := issues_model.GetCommentByID(ctx, commentID)
+	if err != nil {
+		ctx.ServerError("GetCommentByID", err)
+		return
+	}
+
+	// Verify this is a commit comment
+	if comment.Type != issues_model.CommentTypeCode || comment.CommitSHA == "" {
+		ctx.NotFound(errors.New("not a commit code comment"))
+		return
+	}
+
+	// Verify the comment belongs to this repository
+	if comment.PosterID != ctx.Doer.ID {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
+	var attachments []string
+	if setting.Attachment.Enabled {
+		attachments = form.Files
+	}
+
+	// Update the comment
+	if err := repo_service.UpdateCommitCodeComment(ctx, ctx.Doer, comment, form.Content, attachments); err != nil {
+		ctx.ServerError("UpdateCommitCodeComment", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]any{
+		"ok": true,
+	})
+}
+
+// DeleteCommitCodeComment deletes a commit inline comment
+func DeleteCommitCodeComment(ctx *context.Context) {
+	commentID := ctx.PathParamInt64(":id")
+
+	comment, err := issues_model.GetCommentByID(ctx, commentID)
+	if err != nil {
+		ctx.ServerError("GetCommentByID", err)
+		return
+	}
+
+	// Verify this is a commit comment
+	if comment.Type != issues_model.CommentTypeCode || comment.CommitSHA == "" {
+		ctx.NotFound(errors.New("not a commit code comment"))
+		return
+	}
+
+	// Delete the comment
+	if err := repo_service.DeleteCommitCodeComment(ctx, ctx.Doer, comment); err != nil {
+		ctx.ServerError("DeleteCommitCodeComment", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]any{
+		"ok": true,
+	})
 }
