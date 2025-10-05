@@ -5,6 +5,7 @@
 package repo
 
 import (
+	stdCtx "context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -40,7 +41,7 @@ const (
 )
 
 // calReleaseNumCommitsBehind calculates given release has how many commits behind release target.
-func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model.Release, countCache map[string]int64) error {
+func calReleaseNumCommitsBehind(ctx stdCtx.Context, repoCtx *context.Repository, release *repo_model.Release, countCache map[string]int64) error {
 	target := release.Target
 	if target == "" {
 		target = repoCtx.Repository.DefaultBranch
@@ -60,7 +61,7 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model
 				return fmt.Errorf("GetBranchCommit(DefaultBranch): %w", err)
 			}
 		}
-		countCache[target], err = commit.CommitsCount()
+		countCache[target], err = gitrepo.CommitsCountOfCommit(ctx, repoCtx.Repository, commit.ID.String())
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %w", err)
 		}
@@ -123,7 +124,7 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 		}
 
 		if !r.IsDraft {
-			if err := calReleaseNumCommitsBehind(ctx.Repo, r, countCache); err != nil {
+			if err := calReleaseNumCommitsBehind(ctx, ctx.Repo, r, countCache); err != nil {
 				return nil, err
 			}
 		}

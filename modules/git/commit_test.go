@@ -13,33 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCommitsCount(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-
-	commitsCount, err := CommitsCount(t.Context(),
-		CommitsCountOptions{
-			RepoPath: bareRepo1Path,
-			Revision: []string{"8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"},
-		})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(3), commitsCount)
-}
-
-func TestCommitsCountWithoutBase(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-
-	commitsCount, err := CommitsCount(t.Context(),
-		CommitsCountOptions{
-			RepoPath: bareRepo1Path,
-			Not:      "master",
-			Revision: []string{"branch1"},
-		})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(2), commitsCount)
-}
-
 func TestGetFullCommitID(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 

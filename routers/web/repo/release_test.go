@@ -158,7 +158,7 @@ func TestCalReleaseNumCommitsBehind(t *testing.T) {
 
 	countCache := make(map[string]int64)
 	for _, release := range releases {
-		err := calReleaseNumCommitsBehind(ctx.Repo, release, countCache)
+		err := calReleaseNumCommitsBehind(ctx, ctx.Repo, release, countCache)
 		assert.NoError(t, err)
 	}
 

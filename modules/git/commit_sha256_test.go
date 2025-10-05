@@ -14,33 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCommitsCountSha256(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
-
-	commitsCount, err := CommitsCount(t.Context(),
-		CommitsCountOptions{
-			RepoPath: bareRepo1Path,
-			Revision: []string{"f004f41359117d319dedd0eaab8c5259ee2263da839dcba33637997458627fdc"},
-		})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(3), commitsCount)
-}
-
-func TestCommitsCountWithoutBaseSha256(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
-
-	commitsCount, err := CommitsCount(t.Context(),
-		CommitsCountOptions{
-			RepoPath: bareRepo1Path,
-			Not:      "main",
-			Revision: []string{"branch1"},
-		})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(2), commitsCount)
-}
-
 func TestGetFullCommitIDSha256(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
 

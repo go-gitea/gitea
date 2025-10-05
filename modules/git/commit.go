@@ -9,7 +9,6 @@ import (
 	"errors"
 	"io"
 	"os/exec"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -125,65 +124,6 @@ func CommitChanges(ctx context.Context, repoPath string, opts CommitChangesOptio
 		return nil
 	}
 	return err
-}
-
-// AllCommitsCount returns count of all commits in repository
-func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, files ...string) (int64, error) {
-	cmd := gitcmd.NewCommand("rev-list")
-	if hidePRRefs {
-		cmd.AddArguments("--exclude=" + PullPrefix + "*")
-	}
-	cmd.AddArguments("--all", "--count")
-	if len(files) > 0 {
-		cmd.AddDashesAndList(files...)
-	}
-
-	stdout, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
-}
-
-// CommitsCountOptions the options when counting commits
-type CommitsCountOptions struct {
-	RepoPath string
-	Not      string
-	Revision []string
-	RelPath  []string
-	Since    string
-	Until    string
-}
-
-// CommitsCount returns number of total commits of until given revision.
-func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) {
-	cmd := gitcmd.NewCommand("rev-list", "--count")
-
-	cmd.AddDynamicArguments(opts.Revision...)
-
-	if opts.Not != "" {
-		cmd.AddOptionValues("--not", opts.Not)
-	}
-
-	if len(opts.RelPath) > 0 {
-		cmd.AddDashesAndList(opts.RelPath...)
-	}
-
-	stdout, _, err := cmd.WithDir(opts.RepoPath).RunStdString(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
-}
-
-// CommitsCount returns number of total commits of until current revision.
-func (c *Commit) CommitsCount() (int64, error) {
-	return CommitsCount(c.repo.Ctx, CommitsCountOptions{
-		RepoPath: c.repo.Path,
-		Revision: []string{c.ID.String()},
-	})
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize

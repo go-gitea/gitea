@@ -70,7 +70,7 @@ func CommitInfoCache(ctx *context.Context) {
 		ctx.ServerError("GetBranchCommit", err)
 		return
 	}
-	ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
+	ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount(ctx)
 	if err != nil {
 		ctx.ServerError("GetCommitsCount", err)
 		return
