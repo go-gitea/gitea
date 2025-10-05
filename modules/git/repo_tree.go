@@ -64,6 +64,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		WithDir(repo.Path).
 		WithStdin(messageBytes).
 		WithStdout(stdout).
+		WithStderr(stderr).
 		Run(repo.Ctx)
 	if err != nil {
 		return nil, gitcmd.ConcatenateError(err, stderr.String())
