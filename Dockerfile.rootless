@@ -1,19 +1,12 @@
 # Build stage
 FROM docker.io/library/golang:1.25-alpine3.22 AS build-env
 
-ARG GOPROXY
-ENV GOPROXY=${GOPROXY:-direct}
+ARG GOPROXY=direct
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS="bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
-
-ARG GOCACHE
-ENV GOCACHE=${GOCACHE:-/root/.cache/go-build}
-
-ARG GOMODCACHE
-ENV GOMODCACHE=${GOMODCACHE:-/go/pkg/mod}
 
 # Build deps
 RUN apk --no-cache add \
@@ -22,16 +15,28 @@ RUN apk --no-cache add \
     nodejs \
     pnpm
 
+WORKDIR ${GOPATH}/src/code.gitea.io/gitea
+
+# Fetch go dependencies
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+  go mod download
+
+# Fetch pnpm dependencies
+COPY package.json pnpm-lock.yaml ./
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+  pnpm install --frozen-lockfile --prod
+
 # Setup repo
 COPY . ${GOPATH}/src/code.gitea.io/gitea
-WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 
 # Checkout version if set
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target="/root/.cache/go-build" \
+    --mount=type=bind,source=".git",target="${GOPATH}/src/code.gitea.io/gitea/.git" \
     if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
-    && make clean-all build
+    && make build
 
 # Begin env-to-ini build
 RUN --mount=type=cache,target=/go/pkg/mod \
@@ -39,7 +44,6 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go build contrib/environment-to-ini/environment-to-ini.go
 
 FROM docker.io/library/alpine:3.22 AS gitea-rootless
-LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 2222 3000
 
