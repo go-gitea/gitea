@@ -46,7 +46,7 @@ type Command struct {
 	brokenArgs []string
 	cmd        *exec.Cmd // for debug purpose only
 	configArgs []string
-	opts       *runOpts
+	opts       runOpts
 }
 
 func logArgSanitize(arg string) string {
@@ -269,59 +269,8 @@ func CommonCmdServEnvs() []string {
 
 var ErrBrokenCommand = errors.New("git command is broken")
 
-type stringWriter struct {
-	str *string
-}
-
-func (w *stringWriter) Write(p []byte) (n int, err error) {
-	*w.str += util.UnsafeBytesToString(p)
-	return len(p), nil
-}
-
-func (c *Command) WithStringOutput(output *string) *Command {
-	if output != nil {
-		if c.opts == nil {
-			c.opts = &runOpts{}
-		}
-		c.opts.Stdout = &stringWriter{str: output}
-	}
-	return c
-}
-
-func (c *Command) WithStringErr(stderr *string) *Command {
-	if stderr != nil {
-		if c.opts == nil {
-			c.opts = &runOpts{}
-		}
-		c.opts.Stderr = &stringWriter{str: stderr}
-	}
-	return c
-}
-
-type bytesWriter struct {
-	buf *[]byte
-}
-
-func (w *bytesWriter) Write(p []byte) (n int, err error) {
-	*w.buf = append(*w.buf, p...)
-	return len(p), nil
-}
-
-func (c *Command) WithBytesOutput(output *[]byte) *Command {
-	if output != nil {
-		if c.opts == nil {
-			c.opts = &runOpts{}
-		}
-		c.opts.Stdout = &bytesWriter{buf: output}
-	}
-	return c
-}
-
 func (c *Command) WithDir(dir string) *Command {
 	if dir != "" {
-		if c.opts == nil {
-			c.opts = &runOpts{}
-		}
 		c.opts.Dir = dir
 	}
 	return c
@@ -329,9 +278,6 @@ func (c *Command) WithDir(dir string) *Command {
 
 func (c *Command) WithEnv(env []string) *Command {
 	if env != nil {
-		if c.opts == nil {
-			c.opts = &runOpts{}
-		}
 		c.opts.Env = env
 	}
 	return c
@@ -339,9 +285,6 @@ func (c *Command) WithEnv(env []string) *Command {
 
 func (c *Command) WithTimeout(timeout time.Duration) *Command {
 	if timeout > 0 {
-		if c.opts == nil {
-			c.opts = &runOpts{}
-		}
 		c.opts.Timeout = timeout
 	}
 	return c
@@ -349,9 +292,6 @@ func (c *Command) WithTimeout(timeout time.Duration) *Command {
 
 func (c *Command) WithStdout(stdout io.Writer) *Command {
 	if stdout != nil {
-		if c.opts == nil {
-			c.opts = &runOpts{}
-		}
 		c.opts.Stdout = stdout
 	}
 	return c
@@ -359,9 +299,6 @@ func (c *Command) WithStdout(stdout io.Writer) *Command {
 
 func (c *Command) WithStderr(stderr io.Writer) *Command {
 	if stderr != nil {
-		if c.opts == nil {
-			c.opts = &runOpts{}
-		}
 		c.opts.Stderr = stderr
 	}
 	return c
@@ -369,9 +306,6 @@ func (c *Command) WithStderr(stderr io.Writer) *Command {
 
 func (c *Command) WithStdin(stdin io.Reader) *Command {
 	if stdin != nil {
-		if c.opts == nil {
-			c.opts = &runOpts{}
-		}
 		c.opts.Stdin = stdin
 	}
 	return c
@@ -379,26 +313,17 @@ func (c *Command) WithStdin(stdin io.Reader) *Command {
 
 func (c *Command) WithPipelineFunc(f func(context.Context, context.CancelFunc) error) *Command {
 	if f != nil {
-		if c.opts == nil {
-			c.opts = &runOpts{}
-		}
 		c.opts.PipelineFunc = f
 	}
 	return c
 }
 
 func (c *Command) WithUseContextTimeout(useContextTimeout bool) *Command {
-	if c.opts == nil {
-		c.opts = &runOpts{}
-	}
 	c.opts.UseContextTimeout = useContextTimeout
 	return c
 }
 
 func (c *Command) WithLogSkipStep(stepSkip int) *Command {
-	if c.opts == nil {
-		c.opts = &runOpts{}
-	}
 	c.opts.LogSkip += stepSkip
 	return c
 }
@@ -408,9 +333,6 @@ func (c *Command) Run(ctx context.Context) error {
 	if len(c.brokenArgs) != 0 {
 		log.Error("git command is broken: %s, broken args: %s", c.LogString(), strings.Join(c.brokenArgs, " "))
 		return ErrBrokenCommand
-	}
-	if c.opts == nil {
-		c.opts = &runOpts{}
 	}
 
 	// We must not change the provided options
@@ -547,10 +469,6 @@ func (c *Command) RunStdString(ctx context.Context) (stdout, stderr string, runE
 
 // RunStdBytes runs the command and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdBytes(ctx context.Context) (stdout, stderr []byte, runErr RunStdError) {
-	if c.opts == nil {
-		c.opts = &runOpts{}
-	}
-
 	if c.opts.Stdout != nil || c.opts.Stderr != nil {
 		// we must panic here, otherwise there would be bugs if developers set Stdin/Stderr by mistake, and it would be very difficult to debug
 		panic("stdout and stderr field must be nil when using RunStdBytes")
