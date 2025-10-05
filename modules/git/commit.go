@@ -173,8 +173,7 @@ func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) 
 		cmd.AddDashesAndList(opts.RelPath...)
 	}
 
-	var stdout string
-	err := cmd.WithDir(opts.RepoPath).WithStringOutput(&stdout).Run(ctx)
+	stdout, _, err := cmd.WithDir(opts.RepoPath).RunStdString(ctx)
 	if err != nil {
 		return 0, err
 	}

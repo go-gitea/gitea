@@ -403,7 +403,7 @@ func (c *Command) WithLogSkipStep(stepSkip int) *Command {
 	return c
 }
 
-// Run runs the command with the RunOpts
+// Run runs the command
 func (c *Command) Run(ctx context.Context) error {
 	if len(c.brokenArgs) != 0 {
 		log.Error("git command is broken: %s, broken args: %s", c.LogString(), strings.Join(c.brokenArgs, " "))
@@ -533,6 +533,7 @@ func IsErrorExitCode(err error, code int) bool {
 	return false
 }
 
+// RunStdString runs the command and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdString(ctx context.Context) (stdout, stderr string, runErr RunStdError) {
 	stdoutBytes, stderrBytes, err := c.WithLogSkipStep(1).RunStdBytes(ctx)
 	stdout = util.UnsafeBytesToString(stdoutBytes)
@@ -544,7 +545,17 @@ func (c *Command) RunStdString(ctx context.Context) (stdout, stderr string, runE
 	return stdout, stderr, nil
 }
 
+// RunStdBytes runs the command and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdBytes(ctx context.Context) (stdout, stderr []byte, runErr RunStdError) {
+	if c.opts == nil {
+		c.opts = &runOpts{}
+	}
+
+	if c.opts.Stdout != nil || c.opts.Stderr != nil {
+		// we must panic here, otherwise there would be bugs if developers set Stdin/Stderr by mistake, and it would be very difficult to debug
+		panic("stdout and stderr field must be nil when using RunStdBytes")
+	}
+
 	stdoutBuf := &bytes.Buffer{}
 	stderrBuf := &bytes.Buffer{}
 

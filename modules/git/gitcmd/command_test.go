@@ -35,8 +35,9 @@ func TestRunWithContextStd(t *testing.T) {
 	cmd = NewCommand("--no-such-arg")
 	stdout, stderr, err = cmd.RunStdString(t.Context())
 	if assert.Error(t, err) {
+		assert.Equal(t, stderr, err.Stderr())
 		assert.Contains(t, stderr, "unknown option:")
-		assert.Contains(t, err.Error(), "exit status 129")
+		assert.Contains(t, err.Error(), "exit status 129 - unknown option:")
 		assert.Empty(t, stdout)
 	}
 
