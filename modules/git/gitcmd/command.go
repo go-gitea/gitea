@@ -453,18 +453,16 @@ func IsErrorExitCode(err error, code int) bool {
 
 // RunStdString runs the command and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdString(ctx context.Context) (stdout, stderr string, runErr RunStdError) {
-	stdoutBytes, stderrBytes, err := c.WithParentCallerInfo().RunStdBytes(ctx)
-	stdout = util.UnsafeBytesToString(stdoutBytes)
-	stderr = util.UnsafeBytesToString(stderrBytes)
-	if err != nil {
-		return stdout, stderr, &runStdError{err: err, stderr: stderr}
-	}
-	// even if there is no err, there could still be some stderr output, so we just return stdout/stderr as they are
-	return stdout, stderr, nil
+	stdoutBytes, stderrBytes, runErr := c.WithParentCallerInfo().runStdBytes(ctx)
+	return util.UnsafeBytesToString(stdoutBytes), util.UnsafeBytesToString(stderrBytes), runErr
 }
 
 // RunStdBytes runs the command and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
-func (c *Command) RunStdBytes(ctx context.Context) (stdout, stderr []byte, runErr RunStdError) {
+func (c *Command) RunStdBytes(ctx context.Context) ( /*stdout*/ []byte /*stderr*/, []byte /*runErr*/, RunStdError) {
+	return c.WithParentCallerInfo().runStdBytes(ctx)
+}
+
+func (c *Command) runStdBytes(ctx context.Context) ( /*stdout*/ []byte /*stderr*/, []byte /*runErr*/, RunStdError) {
 	if c.opts.Stdout != nil || c.opts.Stderr != nil {
 		// we must panic here, otherwise there would be bugs if developers set Stdin/Stderr by mistake, and it would be very difficult to debug
 		panic("stdout and stderr field must be nil when using RunStdBytes")

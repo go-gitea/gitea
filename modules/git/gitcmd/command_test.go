@@ -23,38 +23,58 @@ func TestMain(m *testing.M) {
 	defer cleanup()
 
 	setting.Git.HomePath = gitHomePath
+	os.Exit(m.Run())
 }
 
 func TestRunWithContextStd(t *testing.T) {
-	cmd := NewCommand("--version")
-	stdout, stderr, err := cmd.RunStdString(t.Context())
-	assert.NoError(t, err)
-	assert.Empty(t, stderr)
-	assert.Contains(t, stdout, "git version")
-
-	cmd = NewCommand("--no-such-arg")
-	stdout, stderr, err = cmd.RunStdString(t.Context())
-	if assert.Error(t, err) {
-		assert.Equal(t, stderr, err.Stderr())
-		assert.Contains(t, err.Stderr(), "unknown option:")
-		assert.Contains(t, err.Error(), "exit status 129 - unknown option:")
-		assert.Empty(t, stdout)
+	{
+		cmd := NewCommand("--version")
+		stdout, stderr, err := cmd.RunStdString(t.Context())
+		assert.NoError(t, err)
+		assert.Empty(t, stderr)
+		assert.Contains(t, stdout, "git version")
 	}
 
-	cmd = NewCommand()
-	cmd.AddDynamicArguments("-test")
-	assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+	{
+		cmd := NewCommand("ls-tree", "no-such")
+		stdout, stderr, err := cmd.RunStdString(t.Context())
+		if assert.Error(t, err) {
+			assert.Equal(t, stderr, err.Stderr())
+			assert.Equal(t, "fatal: Not a valid object name no-such\n", err.Stderr())
+			assert.Equal(t, "exit status 128 - fatal: Not a valid object name no-such\n", err.Error())
+			assert.Empty(t, stdout)
+		}
+	}
 
-	cmd = NewCommand()
-	cmd.AddDynamicArguments("--test")
-	assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+	{
+		cmd := NewCommand("ls-tree", "no-such")
+		stdout, stderr, err := cmd.RunStdBytes(t.Context())
+		if assert.Error(t, err) {
+			assert.Equal(t, string(stderr), err.Stderr())
+			assert.Equal(t, "fatal: Not a valid object name no-such\n", err.Stderr())
+			assert.Equal(t, "exit status 128 - fatal: Not a valid object name no-such\n", err.Error())
+			assert.Empty(t, stdout)
+		}
+	}
 
-	subCmd := "version"
-	cmd = NewCommand().AddDynamicArguments(subCmd) // for test purpose only, the sub-command should never be dynamic for production
-	stdout, stderr, err = cmd.RunStdString(t.Context())
-	assert.NoError(t, err)
-	assert.Empty(t, stderr)
-	assert.Contains(t, stdout, "git version")
+	{
+		cmd := NewCommand()
+		cmd.AddDynamicArguments("-test")
+		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+
+		cmd = NewCommand()
+		cmd.AddDynamicArguments("--test")
+		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+	}
+
+	{
+		subCmd := "version"
+		cmd := NewCommand().AddDynamicArguments(subCmd) // for test purpose only, the sub-command should never be dynamic for production
+		stdout, stderr, err := cmd.RunStdString(t.Context())
+		assert.NoError(t, err)
+		assert.Empty(t, stderr)
+		assert.Contains(t, stdout, "git version")
+	}
 }
 
 func TestGitArgument(t *testing.T) {
