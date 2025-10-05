@@ -223,10 +223,7 @@ type runOpts struct {
 
 	PipelineFunc func(context.Context, context.CancelFunc) error
 
-	// for debugging purpose only, it indicates how many stack frames to skip to find the caller info
-	// it's mainly used to find the caller function name for logging
-	// it should be 0 when the caller is the direct caller of Run/RunStdString/RunStdBytes
-	LogSkip int
+	callerInfo string
 }
 
 func commonBaseEnvs() []string {
@@ -270,51 +267,37 @@ func CommonCmdServEnvs() []string {
 var ErrBrokenCommand = errors.New("git command is broken")
 
 func (c *Command) WithDir(dir string) *Command {
-	if dir != "" {
-		c.opts.Dir = dir
-	}
+	c.opts.Dir = dir
 	return c
 }
 
 func (c *Command) WithEnv(env []string) *Command {
-	if env != nil {
-		c.opts.Env = env
-	}
+	c.opts.Env = env
 	return c
 }
 
 func (c *Command) WithTimeout(timeout time.Duration) *Command {
-	if timeout > 0 {
-		c.opts.Timeout = timeout
-	}
+	c.opts.Timeout = timeout
 	return c
 }
 
 func (c *Command) WithStdout(stdout io.Writer) *Command {
-	if stdout != nil {
-		c.opts.Stdout = stdout
-	}
+	c.opts.Stdout = stdout
 	return c
 }
 
 func (c *Command) WithStderr(stderr io.Writer) *Command {
-	if stderr != nil {
-		c.opts.Stderr = stderr
-	}
+	c.opts.Stderr = stderr
 	return c
 }
 
 func (c *Command) WithStdin(stdin io.Reader) *Command {
-	if stdin != nil {
-		c.opts.Stdin = stdin
-	}
+	c.opts.Stdin = stdin
 	return c
 }
 
 func (c *Command) WithPipelineFunc(f func(context.Context, context.CancelFunc) error) *Command {
-	if f != nil {
-		c.opts.PipelineFunc = f
-	}
+	c.opts.PipelineFunc = f
 	return c
 }
 
@@ -323,8 +306,22 @@ func (c *Command) WithUseContextTimeout(useContextTimeout bool) *Command {
 	return c
 }
 
-func (c *Command) WithLogSkipStep(stepSkip int) *Command {
-	c.opts.LogSkip += stepSkip
+// WithParentCallerInfo can be used to set the caller info (usually function name) of the parent function of the caller.
+// For most cases, "Run" family functions can get its caller info automatically
+// But if you need to call "Run" family functions in a wrapper function: "FeatureFunc -> GeneralWrapperFunc -> RunXxx",
+// then you can to call this function in GeneralWrapperFunc to set the caller info of FeatureFunc.
+func (c *Command) WithParentCallerInfo(optInfo ...string) *Command {
+	if len(optInfo) > 0 {
+		c.opts.callerInfo = optInfo[0]
+		return c
+	}
+	skip := 1 /*parent "wrap/run" functions*/ + 1 /*this function*/
+	callerFuncName := util.CallerFuncName(skip)
+	callerInfo := callerFuncName
+	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
+		callerInfo = callerInfo[pos+1:]
+	}
+	c.opts.callerInfo = callerInfo
 	return c
 }
 
@@ -342,17 +339,16 @@ func (c *Command) Run(ctx context.Context) error {
 	}
 
 	cmdLogString := c.LogString()
-	callerInfo := util.CallerFuncName(1 /* util */ + 1 /* this */ + c.opts.LogSkip /* parent */)
-	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
-		callerInfo = callerInfo[pos+1:]
+	if c.opts.callerInfo == "" {
+		c.WithParentCallerInfo()
 	}
 	// these logs are for debugging purposes only, so no guarantee of correctness or stability
-	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(c.opts.Dir), cmdLogString)
+	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", c.opts.callerInfo, logArgSanitize(c.opts.Dir), cmdLogString)
 	log.Debug("git.Command: %s", desc)
 
 	_, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanGitRun)
 	defer span.End()
-	span.SetAttributeString(gtprof.TraceAttrFuncCaller, callerInfo)
+	span.SetAttributeString(gtprof.TraceAttrFuncCaller, c.opts.callerInfo)
 	span.SetAttributeString(gtprof.TraceAttrGitCommand, cmdLogString)
 
 	var cancel context.CancelFunc
@@ -457,7 +453,7 @@ func IsErrorExitCode(err error, code int) bool {
 
 // RunStdString runs the command and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdString(ctx context.Context) (stdout, stderr string, runErr RunStdError) {
-	stdoutBytes, stderrBytes, err := c.WithLogSkipStep(1).RunStdBytes(ctx)
+	stdoutBytes, stderrBytes, err := c.WithParentCallerInfo().RunStdBytes(ctx)
 	stdout = util.UnsafeBytesToString(stdoutBytes)
 	stderr = util.UnsafeBytesToString(stderrBytes)
 	if err != nil {
@@ -477,7 +473,7 @@ func (c *Command) RunStdBytes(ctx context.Context) (stdout, stderr []byte, runEr
 	stdoutBuf := &bytes.Buffer{}
 	stderrBuf := &bytes.Buffer{}
 
-	err := c.WithLogSkipStep(1).
+	err := c.WithParentCallerInfo().
 		WithStdout(stdoutBuf).
 		WithStderr(stderrBuf).
 		Run(ctx)

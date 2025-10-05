@@ -10,16 +10,14 @@ import (
 )
 
 func RunCmd(ctx context.Context, repo Repository, cmd *gitcmd.Command) error {
-	return cmd.WithDir(repoPath(repo)).
-		WithLogSkipStep(1).
-		Run(ctx)
+	return cmd.WithDir(repoPath(repo)).WithParentCallerInfo().Run(ctx)
 }
 
 func RunCmdString(ctx context.Context, repo Repository, cmd *gitcmd.Command) (string, error) {
-	res, _, err := cmd.WithDir(repoPath(repo)).WithLogSkipStep(1).RunStdString(ctx)
+	res, _, err := cmd.WithDir(repoPath(repo)).WithParentCallerInfo().RunStdString(ctx)
 	return res, err
 }
 
 func RunCmdBytes(ctx context.Context, repo Repository, cmd *gitcmd.Command) ([]byte, []byte, error) {
-	return cmd.WithDir(repoPath(repo)).WithLogSkipStep(1).RunStdBytes(ctx)
+	return cmd.WithDir(repoPath(repo)).WithParentCallerInfo().RunStdBytes(ctx)
 }

@@ -37,7 +37,7 @@ func (ctx *mergeContext) WithCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	ctx.errbuf.Reset()
 	return cmd.WithEnv(ctx.env).
 		WithDir(ctx.tmpBasePath).
-		WithLogSkipStep(1).
+		WithParentCallerInfo().
 		WithStdout(ctx.outbuf).
 		WithStderr(ctx.errbuf)
 }
