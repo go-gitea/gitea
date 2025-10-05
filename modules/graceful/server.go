@@ -33,8 +33,7 @@ type Server struct {
 	network              string
 	address              string
 	listener             net.Listener
-	wg                   sync.WaitGroup
-	shutdownOnce         sync.Once // Ensures WaitGroup.Wait() is called only once to prevent panic on reuse
+	wg                   SafeWaitGroup
 	state                state
 	lock                 *sync.RWMutex
 	BeforeBegin          func(network, address string)
@@ -51,7 +50,6 @@ func NewServer(network, address, name string) *Server {
 		log.Info("Starting new %s server: %s:%s on PID: %d", name, network, address, os.Getpid())
 	}
 	srv := &Server{
-		wg:                   sync.WaitGroup{},
 		state:                stateInit,
 		lock:                 &sync.RWMutex{},
 		network:              network,
@@ -155,10 +153,8 @@ func (srv *Server) Serve(serve ServeFunction) error {
 	GetManager().RegisterServer()
 	err := serve(srv.listener)
 	log.Debug("Waiting for connections to finish... (PID: %d)", syscall.Getpid())
-	// Use sync.Once to ensure WaitGroup.Wait() is only called once, preventing "WaitGroup is reused" panic
-	srv.shutdownOnce.Do(func() {
-		srv.wg.Wait()
-	})
+	// Shutdown the waitgroup and wait for all connections to finish
+	srv.wg.Shutdown()
 	srv.setState(stateTerminate)
 	GetManager().ServerDone()
 	// use of closed means that the listeners are closed - i.e. we should be shutting down - return nil
@@ -228,7 +224,11 @@ func (wl *wrappedListener) Accept() (net.Conn, error) {
 		perWritePerKbTimeout: wl.server.PerWritePerKbTimeout,
 	}
 
-	wl.server.wg.Add(1)
+	if !wl.server.wg.AddIfRunning() {
+		// Server is shutting down, reject new connection
+		_ = c.Close()
+		return nil, net.ErrClosed
+	}
 	return c, nil
 }
 
