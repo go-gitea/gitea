@@ -157,39 +157,3 @@ func TestHasPreviousCommitSha256(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, selfNot)
 }
-
-func TestGetCommitFileStatusMergesSha256(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo6_merge_sha256")
-
-	commitFileStatus, err := GetCommitFileStatus(t.Context(), bareRepo1Path, "d2e5609f630dd8db500f5298d05d16def282412e3e66ed68cc7d0833b29129a1")
-	assert.NoError(t, err)
-
-	expected := CommitFileStatus{
-		[]string{
-			"add_file.txt",
-		},
-		[]string{},
-		[]string{
-			"to_modify.txt",
-		},
-	}
-
-	assert.Equal(t, expected.Added, commitFileStatus.Added)
-	assert.Equal(t, expected.Removed, commitFileStatus.Removed)
-	assert.Equal(t, expected.Modified, commitFileStatus.Modified)
-
-	expected = CommitFileStatus{
-		[]string{},
-		[]string{
-			"to_remove.txt",
-		},
-		[]string{},
-	}
-
-	commitFileStatus, err = GetCommitFileStatus(t.Context(), bareRepo1Path, "da1ded40dc8e5b7c564171f4bf2fc8370487decfb1cb6a99ef28f3ed73d09172")
-	assert.NoError(t, err)
-
-	assert.Equal(t, expected.Added, commitFileStatus.Added)
-	assert.Equal(t, expected.Removed, commitFileStatus.Removed)
-	assert.Equal(t, expected.Modified, commitFileStatus.Modified)
-}

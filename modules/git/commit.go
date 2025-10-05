@@ -5,8 +5,6 @@
 package git
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -15,7 +13,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -369,85 +366,6 @@ func (c *Commit) GetBranchName() (string, error) {
 
 	// name-rev commitID output will be "master" or "master~12"
 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
-}
-
-// CommitFileStatus represents status of files in a commit.
-type CommitFileStatus struct {
-	Added    []string
-	Removed  []string
-	Modified []string
-}
-
-// NewCommitFileStatus creates a CommitFileStatus
-func NewCommitFileStatus() *CommitFileStatus {
-	return &CommitFileStatus{
-		[]string{}, []string{}, []string{},
-	}
-}
-
-func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
-	rd := bufio.NewReader(stdout)
-	peek, err := rd.Peek(1)
-	if err != nil {
-		if err != io.EOF {
-			log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
-		}
-		return
-	}
-	if peek[0] == '\n' || peek[0] == '\x00' {
-		_, _ = rd.Discard(1)
-	}
-	for {
-		modifier, err := rd.ReadString('\x00')
-		if err != nil {
-			if err != io.EOF {
-				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
-			}
-			return
-		}
-		file, err := rd.ReadString('\x00')
-		if err != nil {
-			if err != io.EOF {
-				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
-			}
-			return
-		}
-		file = file[:len(file)-1]
-		switch modifier[0] {
-		case 'A':
-			fileStatus.Added = append(fileStatus.Added, file)
-		case 'D':
-			fileStatus.Removed = append(fileStatus.Removed, file)
-		case 'M':
-			fileStatus.Modified = append(fileStatus.Modified, file)
-		}
-	}
-}
-
-// GetCommitFileStatus returns file status of commit in given repository.
-func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*CommitFileStatus, error) {
-	stdout, w := io.Pipe()
-	done := make(chan struct{})
-	fileStatus := NewCommitFileStatus()
-	go func() {
-		parseCommitFileStatus(fileStatus, stdout)
-		close(done)
-	}()
-
-	stderr := new(bytes.Buffer)
-	err := gitcmd.NewCommand("log", "--name-status", "-m", "--pretty=format:", "--first-parent", "--no-renames", "-z", "-1").
-		AddDynamicArguments(commitID).
-		WithDir(repoPath).
-		WithStdout(w).
-		WithStderr(stderr).
-		Run(ctx)
-	w.Close() // Close writer to exit parsing goroutine
-	if err != nil {
-		return nil, gitcmd.ConcatenateError(err, stderr.String())
-	}
-
-	<-done
-	return fileStatus, nil
 }
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
