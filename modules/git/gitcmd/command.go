@@ -472,14 +472,13 @@ func (c *Command) RunStdBytes(ctx context.Context) (stdout, stderr []byte, runEr
 
 	stdoutBuf := &bytes.Buffer{}
 	stderrBuf := &bytes.Buffer{}
-
 	err := c.WithParentCallerInfo().
 		WithStdout(stdoutBuf).
 		WithStderr(stderrBuf).
 		Run(ctx)
 	if err != nil {
-		return nil, stderr, &runStdError{err: err, stderr: util.UnsafeBytesToString(stderr)}
+		return nil, stderrBuf.Bytes(), &runStdError{err: err, stderr: util.UnsafeBytesToString(stderrBuf.Bytes())}
 	}
 	// even if there is no err, there could still be some stderr output
-	return stdoutBuf.Bytes(), stderr, nil
+	return stdoutBuf.Bytes(), stderrBuf.Bytes(), nil
 }
