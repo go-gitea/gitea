@@ -137,7 +137,8 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		return nil, nil, fmt.Errorf("Unable to add base repository as origin [%s -> tmpBasePath]: %w\n%s\n%s", pr.BaseRepo.FullName(), err, prCtx.outbuf.String(), prCtx.errbuf.String())
 	}
 
-	if err := prCtx.WithCmd(gitcmd.NewCommand("fetch", "origin").AddArguments(fetchArgs...).AddDashesAndList(pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch)).
+	if err := prCtx.WithCmd(gitcmd.NewCommand("fetch", "origin").AddArguments(fetchArgs...).
+		AddDashesAndList(git.BranchPrefix+pr.BaseBranch+":"+git.BranchPrefix+baseBranch, git.BranchPrefix+pr.BaseBranch+":"+git.BranchPrefix+"original_"+baseBranch)).
 		Run(ctx); err != nil {
 		log.Error("%-v Unable to fetch origin base branch [%s:%s -> base, original_base in %s]: %v:\n%s\n%s", pr, pr.BaseRepo.FullName(), pr.BaseBranch, tmpBasePath, err, prCtx.outbuf.String(), prCtx.errbuf.String())
 		cancel()

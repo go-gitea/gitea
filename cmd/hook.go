@@ -186,7 +186,7 @@ Gitea or set your environment appropriately.`, "")
 	userID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
 	deployKeyID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvDeployKeyID), 10, 64)
-	actionPerm, _ := strconv.ParseInt(os.Getenv(repo_module.EnvActionPerm), 10, 64)
+	actionPerm, _ := strconv.Atoi(os.Getenv(repo_module.EnvActionPerm))
 
 	hookOptions := private.HookOptions{
 		UserID:                          userID,
@@ -196,7 +196,7 @@ Gitea or set your environment appropriately.`, "")
 		GitPushOptions:                  pushOptions(),
 		PullRequestID:                   prID,
 		DeployKeyID:                     deployKeyID,
-		ActionPerm:                      int(actionPerm),
+		ActionPerm:                      actionPerm,
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)

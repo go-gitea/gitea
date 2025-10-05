@@ -58,8 +58,12 @@ func testGitPush(t *testing.T, u *url.URL) {
 			for i := range 5 {
 				branchName := fmt.Sprintf("branch-%d", i)
 				pushed = append(pushed, branchName)
-
-				doGitAddSomeCommits(gitPath, branchName)(t)
+				doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
+					LocalRepoPath:   gitPath,
+					CheckoutBranch:  branchName,
+					TreeFilePath:    fmt.Sprintf("file-%s.txt", branchName),
+					TreeFileContent: "file " + branchName,
+				})(t)
 			}
 
 			for i := 5; i < 10; i++ {
