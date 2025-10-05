@@ -310,7 +310,11 @@ func (c *Command) WithUseContextTimeout(useContextTimeout bool) *Command {
 // For most cases, "Run" family functions can get its caller info automatically
 // But if you need to call "Run" family functions in a wrapper function: "FeatureFunc -> GeneralWrapperFunc -> RunXxx",
 // then you can to call this function in GeneralWrapperFunc to set the caller info of FeatureFunc.
+// The caller info can only be set once.
 func (c *Command) WithParentCallerInfo(optInfo ...string) *Command {
+	if c.opts.callerInfo != "" {
+		return c
+	}
 	if len(optInfo) > 0 {
 		c.opts.callerInfo = optInfo[0]
 		return c
@@ -428,7 +432,8 @@ type runStdError struct {
 }
 
 func (r *runStdError) Error() string {
-	// the stderr must be in the returned error text, some code only checks `strings.Contains(err.Error(), "git error")`
+	// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
+	// But a lof of code only checks `strings.Contains(err.Error(), "git error")`
 	if r.errMsg == "" {
 		r.errMsg = ConcatenateError(r.err, r.stderr).Error()
 	}
@@ -458,7 +463,7 @@ func (c *Command) RunStdString(ctx context.Context) (stdout, stderr string, runE
 }
 
 // RunStdBytes runs the command and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
-func (c *Command) RunStdBytes(ctx context.Context) ( /*stdout*/ []byte /*stderr*/, []byte /*runErr*/, RunStdError) {
+func (c *Command) RunStdBytes(ctx context.Context) (stdout, stderr []byte, runErr RunStdError) {
 	return c.WithParentCallerInfo().runStdBytes(ctx)
 }
 
@@ -467,7 +472,6 @@ func (c *Command) runStdBytes(ctx context.Context) ( /*stdout*/ []byte /*stderr*
 		// we must panic here, otherwise there would be bugs if developers set Stdin/Stderr by mistake, and it would be very difficult to debug
 		panic("stdout and stderr field must be nil when using RunStdBytes")
 	}
-
 	stdoutBuf := &bytes.Buffer{}
 	stderrBuf := &bytes.Buffer{}
 	err := c.WithParentCallerInfo().
@@ -475,6 +479,8 @@ func (c *Command) runStdBytes(ctx context.Context) ( /*stdout*/ []byte /*stderr*
 		WithStderr(stderrBuf).
 		Run(ctx)
 	if err != nil {
+		// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
+		// But a lot of code depends on it, so we have to keep this behavior
 		return nil, stderrBuf.Bytes(), &runStdError{err: err, stderr: util.UnsafeBytesToString(stderrBuf.Bytes())}
 	}
 	// even if there is no err, there could still be some stderr output

@@ -41,6 +41,7 @@ func TestRunWithContextStd(t *testing.T) {
 		if assert.Error(t, err) {
 			assert.Equal(t, stderr, err.Stderr())
 			assert.Equal(t, "fatal: Not a valid object name no-such\n", err.Stderr())
+			// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
 			assert.Equal(t, "exit status 128 - fatal: Not a valid object name no-such\n", err.Error())
 			assert.Empty(t, stdout)
 		}
@@ -52,6 +53,7 @@ func TestRunWithContextStd(t *testing.T) {
 		if assert.Error(t, err) {
 			assert.Equal(t, string(stderr), err.Stderr())
 			assert.Equal(t, "fatal: Not a valid object name no-such\n", err.Stderr())
+			// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
 			assert.Equal(t, "exit status 128 - fatal: Not a valid object name no-such\n", err.Error())
 			assert.Empty(t, stdout)
 		}
