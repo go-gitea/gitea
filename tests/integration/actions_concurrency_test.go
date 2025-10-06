@@ -1668,10 +1668,3 @@ jobs:
 		assert.Equal(t, actions_model.StatusCancelled, run2.Status)
 	})
 }
-
-func getTaskAndJobAndRunByTaskID(t *testing.T, taskID int64) (*actions_model.ActionTask, *actions_model.ActionRunJob, *actions_model.ActionRun) {
-	actionTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: taskID})
-	actionRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: actionTask.JobID})
-	actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: actionRunJob.RunID})
-	return actionTask, actionRunJob, actionRun
-}
