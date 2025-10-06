@@ -138,9 +138,24 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		return err
 	}
 
+	singleWorkflow := &jobparser.SingleWorkflow{}
+	if err := yaml.Unmarshal(content, singleWorkflow); err != nil {
+		return fmt.Errorf("failed to unmarshal workflow content: %w", err)
+	}
+	// get inputs from post
+	workflow := &model.Workflow{
+		RawOn: singleWorkflow.RawOn,
+	}
+	inputsWithDefaults := make(map[string]any)
+	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
+		if err = processInputs(workflowDispatch, inputsWithDefaults); err != nil {
+			return err
+		}
+	}
+
 	giteaCtx := GenerateGiteaContext(run, nil)
 
-	workflows, err = jobparser.Parse(content, jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
+	workflows, err = jobparser.Parse(content, jobparser.WithGitContext(giteaCtx.ToGitHubContext()), jobparser.WithInputs(inputsWithDefaults))
 	if err != nil {
 		return err
 	}
@@ -159,17 +174,6 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	wfRawConcurrency, err = jobparser.ReadWorkflowRawConcurrency(content)
 	if err != nil {
 		return err
-	}
-
-	// get inputs from post
-	workflow := &model.Workflow{
-		RawOn: workflows[0].RawOn,
-	}
-	inputsWithDefaults := make(map[string]any)
-	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
-		if err = processInputs(workflowDispatch, inputsWithDefaults); err != nil {
-			return err
-		}
 	}
 
 	// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event
