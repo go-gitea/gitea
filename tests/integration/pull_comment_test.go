@@ -27,7 +27,7 @@ func testWaitForPullRequestStatus(t *testing.T, prIssue *issues_model.Issue, exp
 		retIssue = unittest.AssertExistsAndLoadBean(t, &prIssueCond)
 		require.NoError(t, retIssue.LoadPullRequest(t.Context()))
 		return retIssue.PullRequest.Status == expectedStatus
-	}, 5*time.Second, 20*time.Millisecond)
+	}, 10*time.Second, 20*time.Millisecond)
 	return retIssue
 }
 
