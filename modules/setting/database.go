@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -29,7 +31,7 @@ var (
 		Host               string
 		Name               string
 		User               string
-		Passwd             string
+		Passwd             util.SensitivePasswordString
 		Schema             string
 		SSLMode            string
 		Path               string
@@ -65,7 +67,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	Database.Name = sec.Key("NAME").String()
 	Database.User = sec.Key("USER").String()
 	if len(Database.Passwd) == 0 {
-		Database.Passwd = sec.Key("PASSWD").String()
+		Database.Passwd = util.SensitivePasswordString(sec.Key("PASSWD").String())
 	}
 	Database.Schema = sec.Key("SCHEMA").String()
 	Database.SSLMode = sec.Key("SSL_MODE").MustString("disable")
@@ -92,8 +94,8 @@ func loadDBSetting(rootCfg ConfigProvider) {
 }
 
 // DBConnStr returns database connection string
-func DBConnStr() (string, error) {
-	var connStr string
+func DBConnStr() (util.SensitiveURLString, error) {
+	var connStr util.SensitiveURLString
 	paramSep := "?"
 	if strings.Contains(Database.Name, paramSep) {
 		paramSep = "&"
@@ -108,13 +110,13 @@ func DBConnStr() (string, error) {
 		if tls == "disable" { // allow (Postgres-inspired) default value to work in MySQL
 			tls = "false"
 		}
-		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%sparseTime=true&tls=%s",
-			Database.User, Database.Passwd, connType, Database.Host, Database.Name, paramSep, tls)
+		connStr = util.SensitiveURLString(fmt.Sprintf("%s:%s@%s(%s)/%s%sparseTime=true&tls=%s",
+			Database.User, Database.Passwd, connType, Database.Host, Database.Name, paramSep, tls))
 	case "postgres":
-		connStr = getPostgreSQLConnectionString(Database.Host, Database.User, Database.Passwd, Database.Name, Database.SSLMode)
+		connStr = util.SensitiveURLString(getPostgreSQLConnectionString(Database.Host, Database.User, Database.Passwd.String(), Database.Name, Database.SSLMode))
 	case "mssql":
 		host, port := ParseMSSQLHostPort(Database.Host)
-		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, Database.Name, Database.User, Database.Passwd)
+		connStr = util.SensitiveURLString(fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, Database.Name, Database.User, Database.Passwd))
 	case "sqlite3":
 		if !EnableSQLite3 {
 			return "", errors.New("this Gitea binary was not built with SQLite3 support")
@@ -126,8 +128,8 @@ func DBConnStr() (string, error) {
 		if Database.SQLiteJournalMode != "" {
 			journalMode = "&_journal_mode=" + Database.SQLiteJournalMode
 		}
-		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate%s",
-			Database.Path, Database.Timeout, journalMode)
+		connStr = util.SensitiveURLString(fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate%s",
+			Database.Path, Database.Timeout, journalMode))
 	default:
 		return "", fmt.Errorf("unknown database type: %s", Database.Type)
 	}

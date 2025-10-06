@@ -10,14 +10,15 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Indexer settings
 var Indexer = struct {
 	IssueType        string
 	IssuePath        string
-	IssueConnStr     string
-	IssueConnAuth    string
+	IssueConnStr     util.SensitiveURLString
+	IssueConnAuth    util.SensitivePasswordString
 	IssueIndexerName string
 	StartupTimeout   time.Duration
 
@@ -25,7 +26,7 @@ var Indexer = struct {
 	RepoIndexerRepoTypes []string
 	RepoType             string
 	RepoPath             string
-	RepoConnStr          string
+	RepoConnStr          util.SensitiveURLString
 	RepoIndexerName      string
 	MaxIndexerFileSize   int64
 	IncludePatterns      []*GlobMatcher
@@ -60,16 +61,17 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 		}
 		checkOverlappedPath("[indexer].ISSUE_INDEXER_PATH", Indexer.IssuePath)
 	} else {
-		Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString(Indexer.IssueConnStr)
+		Indexer.IssueConnStr = util.SensitiveURLString(sec.Key("ISSUE_INDEXER_CONN_STR").MustString(string(Indexer.IssueConnStr)))
 		if Indexer.IssueType == "meilisearch" {
-			u, err := url.Parse(Indexer.IssueConnStr)
+			u, err := url.Parse(string(Indexer.IssueConnStr))
 			if err != nil {
 				log.Warn("Failed to parse ISSUE_INDEXER_CONN_STR: %v", err)
 				u = &url.URL{}
 			}
-			Indexer.IssueConnAuth, _ = u.User.Password()
+			p, _ := u.User.Password()
+			Indexer.IssueConnAuth = util.SensitivePasswordString(p)
 			u.User = nil
-			Indexer.IssueConnStr = u.String()
+			Indexer.IssueConnStr = util.SensitiveURLString(u.String())
 		}
 	}
 
@@ -82,7 +84,7 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 	if !filepath.IsAbs(Indexer.RepoPath) {
 		Indexer.RepoPath = filepath.ToSlash(filepath.Join(AppWorkPath, Indexer.RepoPath))
 	}
-	Indexer.RepoConnStr = sec.Key("REPO_INDEXER_CONN_STR").MustString("")
+	Indexer.RepoConnStr = util.SensitiveURLString(sec.Key("REPO_INDEXER_CONN_STR").MustString(""))
 	Indexer.RepoIndexerName = sec.Key("REPO_INDEXER_NAME").MustString("gitea_codes")
 
 	Indexer.IncludePatterns = IndexerGlobFromString(sec.Key("REPO_INDEXER_INCLUDE").MustString(""))
