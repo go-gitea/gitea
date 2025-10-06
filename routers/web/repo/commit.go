@@ -570,7 +570,7 @@ func UpdateCommitCodeComment(ctx *context.Context) {
 	}
 
 	// Verify this is a commit comment
-	if comment.Type != issues_model.CommentTypeCode || comment.CommitSHA == "" {
+	if comment.Type != issues_model.CommentTypeCommitCode || comment.CommitSHA == "" {
 		ctx.NotFound(errors.New("not a commit code comment"))
 		return
 	}
@@ -608,7 +608,7 @@ func DeleteCommitCodeComment(ctx *context.Context) {
 	}
 
 	// Verify this is a commit comment
-	if comment.Type != issues_model.CommentTypeCode || comment.CommitSHA == "" {
+	if comment.Type != issues_model.CommentTypeCommitCode || comment.CommitSHA == "" {
 		ctx.NotFound(errors.New("not a commit code comment"))
 		return
 	}

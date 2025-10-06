@@ -36,7 +36,7 @@ func CreateCommitCodeComment(
 
 	// Create the comment using CreateCommentOptions
 	comment, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
-		Type:        issues_model.CommentTypeCode,
+		Type:        issues_model.CommentTypeCommitCode,
 		Doer:        doer,
 		Repo:        repo,
 		Content:     content,
