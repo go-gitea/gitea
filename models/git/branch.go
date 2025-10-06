@@ -66,7 +66,7 @@ type ErrBranchProtected struct {
 	BranchName string
 }
 
-// IsErrBranchAlreadyExists checks if an error is an ErrBranchAlreadyExists.
+// IsErrBranchProtected checks if an error is an ErrBranchProtected.
 func IsErrBranchProtected(err error) bool {
 	_, ok := err.(ErrBranchProtected)
 	return ok
