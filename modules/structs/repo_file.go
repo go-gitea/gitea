@@ -8,14 +8,14 @@ import "time"
 
 // FileOptions options for all file APIs
 type FileOptions struct {
-	// message (optional) for the commit of this file. if not supplied, a default message will be used
+	// message (optional) is the commit message of the changes. If not supplied, a default message will be used
 	Message string `json:"message"`
-	// branch (optional) to base this file from. if not given, the default branch is used
+	// branch (optional) is the base branch for the changes. If not supplied, the default branch is used
 	BranchName string `json:"branch" binding:"GitRefName;MaxSize(100)"`
-	// new_branch (optional) will make a new branch from `branch` before creating the file
+	// new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be commited to the base branch
 	NewBranchName string `json:"new_branch" binding:"GitRefName;MaxSize(100)"`
-	// force (optional) will force update the new branch if it already exists
-	Force bool `json:"force"`
+	// force_push (optional) will do a force-push if the new branch already exists
+	ForcePush bool `json:"force_push_new_branch"`
 	// `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 	Author    Identity          `json:"author"`
 	Committer Identity          `json:"committer"`

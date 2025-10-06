@@ -355,7 +355,7 @@ func ReqChangeRepoFileOptionsAndCheck(ctx *context.APIContext) {
 		Message:   commonOpts.Message,
 		OldBranch: commonOpts.BranchName,
 		NewBranch: commonOpts.NewBranchName,
-		Force:     commonOpts.Force,
+		ForcePush: commonOpts.ForcePush,
 		Committer: &files_service.IdentityOptions{
 			GitUserName:  commonOpts.Committer.Name,
 			GitUserEmail: commonOpts.Committer.Email,
@@ -592,11 +592,16 @@ func UpdateFile(ctx *context.APIContext) {
 }
 
 func handleChangeRepoFilesError(ctx *context.APIContext, err error) {
+	if git.IsErrPushRejected(err) {
+		err := err.(*git.ErrPushRejected)
+		ctx.APIError(http.StatusForbidden, err.Message)
+		return
+	}
 	if files_service.IsErrUserCannotCommit(err) || pull_service.IsErrFilePathProtected(err) {
 		ctx.APIError(http.StatusForbidden, err)
 		return
 	}
-	if git_model.IsErrBranchAlreadyExists(err) || git_model.IsErrBranchProtected(err) || files_service.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
+	if git_model.IsErrBranchAlreadyExists(err) || files_service.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
 		files_service.IsErrFilePathInvalid(err) || files_service.IsErrRepoFileAlreadyExists(err) ||
 		files_service.IsErrCommitIDDoesNotMatch(err) || files_service.IsErrSHAOrCommitIDNotProvided(err) {
 		ctx.APIError(http.StatusUnprocessableEntity, err)

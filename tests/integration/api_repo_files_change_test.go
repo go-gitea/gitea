@@ -161,14 +161,13 @@ func TestAPIChangeFiles(t *testing.T) {
 		assert.Equal(t, expectedUpdateHTMLURL, *filesResponse.Files[1].HTMLURL)
 		assert.Equal(t, expectedUpdateDownloadURL, *filesResponse.Files[1].DownloadURL)
 		assert.Nil(t, filesResponse.Files[2])
-
 		assert.Equal(t, changeFilesOptions.Message+"\n", filesResponse.Commit.Message)
 
 		// Test fails creating a file in a branch that already exists without force
 		changeFilesOptions = getChangeFilesOptions()
 		changeFilesOptions.BranchName = repo1.DefaultBranch
 		changeFilesOptions.NewBranchName = "develop"
-		changeFilesOptions.Force = false
+		changeFilesOptions.ForcePush = false
 		fileID++
 		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
 		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
@@ -181,13 +180,14 @@ func TestAPIChangeFiles(t *testing.T) {
 		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name)
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
 			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusUnprocessableEntity)
+		resp = MakeRequest(t, req, http.StatusUnprocessableEntity)
+		assert.Contains(t, resp.Body.String(), `"message":"branch already exists [name: develop]"`)
 
 		// Test succeeds creating a file in a branch that already exists with force
 		changeFilesOptions = getChangeFilesOptions()
 		changeFilesOptions.BranchName = repo1.DefaultBranch
 		changeFilesOptions.NewBranchName = "develop"
-		changeFilesOptions.Force = true
+		changeFilesOptions.ForcePush = true
 		fileID++
 		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
 		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
@@ -227,7 +227,7 @@ func TestAPIChangeFiles(t *testing.T) {
 		changeFilesOptions = getChangeFilesOptions()
 		changeFilesOptions.BranchName = repo1.DefaultBranch
 		changeFilesOptions.NewBranchName = "develop"
-		changeFilesOptions.Force = true
+		changeFilesOptions.ForcePush = true
 		fileID++
 		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
 		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
@@ -240,7 +240,8 @@ func TestAPIChangeFiles(t *testing.T) {
 		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name)
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
 			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusUnprocessableEntity)
+		resp = MakeRequest(t, req, http.StatusForbidden)
+		assert.Contains(t, resp.Body.String(), `"message":"branch develop is protected from force push"`)
 
 		// Test updating a file and renaming it
 		changeFilesOptions = getChangeFilesOptions()

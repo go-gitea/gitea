@@ -366,9 +366,6 @@ func (t *TemporaryUploadRepository) Push(ctx context.Context, doer *user_model.U
 		if git.IsErrPushOutOfDate(err) {
 			return err
 		} else if git.IsErrPushRejected(err) {
-			rejectErr := err.(*git.ErrPushRejected)
-			log.Info("Unable to push back to repo from temporary repo due to rejection: %s (%s)\nStdout: %s\nStderr: %s\nError: %v",
-				t.repo.FullName(), t.basePath, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
 			return err
 		}
 		log.Error("Unable to push back to repo from temporary repo: %s (%s)\nError: %v",

@@ -180,57 +180,6 @@ func TestAPIUpdateFile(t *testing.T) {
 		assert.Equal(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
 		assert.Equal(t, updateFileOptions.Message+"\n", fileResponse.Commit.Message)
 
-		// Test fails creating a file in a branch that already exists without force
-		updateFileOptions = getUpdateFileOptions()
-		updateFileOptions.BranchName = repo1.DefaultBranch
-		updateFileOptions.NewBranchName = "develop"
-		updateFileOptions.Force = false
-		fileID++
-		treePath = fmt.Sprintf("update/file%d.txt", fileID)
-		createFile(user2, repo1, treePath)
-		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
-			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusUnprocessableEntity)
-
-		// Test succeeds creating a file in a branch that already exists with force
-		updateFileOptions = getUpdateFileOptions()
-		updateFileOptions.BranchName = repo1.DefaultBranch
-		updateFileOptions.NewBranchName = "develop"
-		updateFileOptions.Force = true
-		fileID++
-		treePath = fmt.Sprintf("update/file%d.txt", fileID)
-		createFile(user2, repo1, treePath)
-		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
-			AddTokenAuth(token2)
-		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &fileResponse)
-
-		expectedHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/develop/update/file%d.txt", fileID)
-		expectedDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/develop/update/file%d.txt", fileID)
-		assert.Equal(t, expectedSHA, fileResponse.Content.SHA)
-		assert.Equal(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
-		assert.Equal(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
-		assert.Equal(t, updateFileOptions.Message+"\n", fileResponse.Commit.Message)
-		// Test fails creating a file in a branch that already exists with force and branch protection enabled
-		updateFileOptions = getUpdateFileOptions()
-		updateFileOptions.BranchName = repo1.DefaultBranch
-		updateFileOptions.NewBranchName = "develop"
-		updateFileOptions.Force = true
-		protectionReq := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
-			RuleName:        "develop",
-			BranchName:      "develop",
-			Priority:        1,
-			EnablePush:      true,
-			EnableForcePush: false,
-		}).AddTokenAuth(token2)
-		MakeRequest(t, protectionReq, http.StatusCreated)
-		fileID++
-		treePath = fmt.Sprintf("update/file%d.txt", fileID)
-		createFile(user2, repo1, treePath)
-		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
-			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusUnprocessableEntity)
-
 		// Test updating a file and renaming it
 		updateFileOptions = getUpdateFileOptions()
 		updateFileOptions.BranchName = repo1.DefaultBranch
