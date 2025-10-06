@@ -15,6 +15,12 @@ func AddActionsConcurrency(x *xorm.Engine) error {
 		ConcurrencyCancel bool
 	}
 
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(ActionRun)); err != nil {
+		return err
+	}
+
 	if err := x.Sync(new(ActionRun)); err != nil {
 		return err
 	}
@@ -27,5 +33,11 @@ func AddActionsConcurrency(x *xorm.Engine) error {
 		ConcurrencyCancel      bool
 	}
 
-	return x.Sync(new(ActionRunJob))
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(ActionRunJob)); err != nil {
+		return err
+	}
+
+	return nil
 }
