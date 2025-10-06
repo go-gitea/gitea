@@ -61,7 +61,7 @@ func UploadAttachment(ctx context.Context, file io.Reader, allowedTypes string, 
 		return nil, err
 	}
 
-	if maxFileSize >= 0 && fileSize > (maxFileSize) {
+	if maxFileSize >= 0 && fileSize > maxFileSize {
 		return nil, ErrAttachmentSizeExceed{MaxSize: maxFileSize, Size: fileSize}
 	}
 
