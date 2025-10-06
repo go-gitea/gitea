@@ -205,12 +205,12 @@ func TestAPIUpdateFile(t *testing.T) {
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &fileResponse)
 
+		expectedHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/develop/update/file%d.txt", fileID)
+		expectedDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/develop/update/file%d.txt", fileID)
 		assert.Equal(t, expectedSHA, fileResponse.Content.SHA)
 		assert.Equal(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
 		assert.Equal(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
 		assert.Equal(t, updateFileOptions.Message+"\n", fileResponse.Commit.Message)
-		expectedHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/develop/update/file%d.txt", fileID)
-		expectedDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/develop/update/file%d.txt", fileID)
 		// Test fails creating a file in a branch that already exists with force and branch protection enabled
 		updateFileOptions = getUpdateFileOptions()
 		updateFileOptions.BranchName = repo1.DefaultBranch

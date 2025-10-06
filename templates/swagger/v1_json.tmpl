@@ -22014,7 +22014,7 @@
           "x-go-name": "Files"
         },
         "force": {
-          "description": "force updates new_branch if branch already exists",
+          "description": "force (optional) will force update the new branch if it already exists",
           "type": "boolean",
           "x-go-name": "Force"
         },
@@ -22855,7 +22855,7 @@
           "$ref": "#/definitions/CommitDateOptions"
         },
         "force": {
-          "description": "force updates new_branch if branch already exists",
+          "description": "force (optional) will force update the new branch if it already exists",
           "type": "boolean",
           "x-go-name": "Force"
         },
@@ -23868,7 +23868,7 @@
           "$ref": "#/definitions/CommitDateOptions"
         },
         "force": {
-          "description": "force updates new_branch if branch already exists",
+          "description": "force (optional) will force update the new branch if it already exists",
           "type": "boolean",
           "x-go-name": "Force"
         },
@@ -28669,15 +28669,15 @@
         "dates": {
           "$ref": "#/definitions/CommitDateOptions"
         },
+        "force": {
+          "description": "force (optional) will force update the new branch if it already exists",
+          "type": "boolean",
+          "x-go-name": "Force"
+        },
         "from_path": {
           "description": "from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL",
           "type": "string",
           "x-go-name": "FromPath"
-        },
-        "force": {
-          "description": "force updates new_branch if branch already exists",
-          "type": "boolean",
-          "x-go-name": "Force"
         },
         "message": {
           "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
