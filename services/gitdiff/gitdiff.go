@@ -13,6 +13,7 @@ import (
 	"html/template"
 	"io"
 	"net/url"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -401,6 +402,14 @@ func (diffFile *DiffFile) GetDiffFileName() string {
 		return diffFile.OldName
 	}
 	return diffFile.Name
+}
+
+// GetDiffFileBaseName returns the short name of the diff file, or its short old name in case it was deleted
+func (diffFile *DiffFile) GetDiffFileBaseName() string {
+	if diffFile.Name == "" {
+		return path.Base(diffFile.OldName)
+	}
+	return path.Base(diffFile.Name)
 }
 
 func (diffFile *DiffFile) ShouldBeHidden() bool {
