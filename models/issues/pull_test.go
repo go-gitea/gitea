@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -344,7 +345,7 @@ func TestGetApprovers(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 5})
 	// Official reviews are already deduplicated. Allow unofficial reviews
 	// to assert that there are no duplicated approvers.
-	setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly = false
+	defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly, false)()
 	approvers := pr.GetApprovers(t.Context())
 	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: Org Six <org6@example.com>\n"
 	assert.Equal(t, expected, approvers)
@@ -352,7 +353,6 @@ func TestGetApprovers(t *testing.T) {
 	// comment-type and pending reviews should be ignored
 	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.EqualValues(t, 3, pr.IssueID)
-	setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly = false
 	approvers = pr.GetApprovers(t.Context())
 	expected = "Reviewed-by: User Five <user5@example.com>\nReviewed-by: user4 <user4@example.com>\n"
 	assert.Equal(t, expected, approvers)
