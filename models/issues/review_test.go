@@ -167,7 +167,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 	for _, review := range allReviews {
 		assert.NoError(t, review.LoadReviewer(t.Context()))
 	}
-	if assert.Len(t, allReviews, 5) {
+	if assert.Len(t, allReviews, 6) {
 		for i, review := range allReviews {
 			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
 			assert.Equal(t, expectedReviews[i].Type, review.Type)
