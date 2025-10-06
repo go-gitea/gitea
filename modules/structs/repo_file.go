@@ -12,10 +12,10 @@ type FileOptions struct {
 	Message string `json:"message"`
 	// branch (optional) is the base branch for the changes. If not supplied, the default branch is used
 	BranchName string `json:"branch" binding:"GitRefName;MaxSize(100)"`
-	// new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be commited to the base branch
+	// new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch
 	NewBranchName string `json:"new_branch" binding:"GitRefName;MaxSize(100)"`
 	// force_push (optional) will do a force-push if the new branch already exists
-	ForcePush bool `json:"force_push_new_branch"`
+	ForcePush bool `json:"force_push"`
 	// `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 	Author    Identity          `json:"author"`
 	Committer Identity          `json:"committer"`
