@@ -517,11 +517,6 @@ func Test_PullRequest_AGit_StatusChecking_Mergeable_MergeTree(t *testing.T) {
 
 func Test_PullRequest_AGit_StatusChecking_Mergeable_TmpRepo(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		// skip this test if git version is low
-		if !git.DefaultFeatures().SupportProcReceive {
-			return
-		}
-
 		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
 
 		testPullRequestAGitStatusCheckingMergeable(t, giteaURL)
@@ -583,11 +578,6 @@ func testPullRequestAGitStatusCheckingMergeable(t *testing.T, giteaURL *url.URL)
 
 func Test_PullRequest_AGit_StatusChecking_Conflicted_MergeTree(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		// skip this test if git version is low
-		if !git.DefaultFeatures().SupportProcReceive {
-			return
-		}
-
 		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
 
 		testPullRequestAGitStatusCheckingConflicted(t, giteaURL)
@@ -596,11 +586,6 @@ func Test_PullRequest_AGit_StatusChecking_Conflicted_MergeTree(t *testing.T) {
 
 func Test_PullRequest_AGit_StatusChecking_Conflicted_TmpRepo(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		// skip this test if git version is low
-		if !git.DefaultFeatures().SupportProcReceive {
-			return
-		}
-
 		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
 
 		testPullRequestAGitStatusCheckingConflicted(t, giteaURL)
