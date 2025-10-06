@@ -115,8 +115,8 @@ func (err *ErrPushRejected) GenerateMessage() {
 	}
 
 	messageBuilder := &strings.Builder{}
-	lines := strings.Split(err.StdErr, "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(err.StdErr, "\n")
+	for line := range lines {
 		line, ok := strings.CutPrefix(line, prefixRemote)
 		if !ok {
 			continue
