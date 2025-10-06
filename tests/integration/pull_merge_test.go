@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -41,19 +42,27 @@ import (
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle repo_model.MergeStyle, deleteBranch bool) *httptest.ResponseRecorder {
+func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle repo_model.MergeStyle, deleteBranch bool, messages ...string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link := path.Join(user, repo, "pulls", pullnum, "merge")
 
+	message := ""
+	if len(messages) > 0 {
+		message = messages[0]
+	}
+
 	options := map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-		"do":    string(mergeStyle),
+		"_csrf":               htmlDoc.GetCSRF(),
+		"do":                  string(mergeStyle),
+		"merge_message_field": message,
 	}
 
 	if deleteBranch {
@@ -166,11 +175,116 @@ func TestPullSquash(t *testing.T) {
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited!)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
-
-		elem := strings.Split(test.RedirectURL(resp), "/")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title", "This is a pull content")
+		prURL := test.RedirectURL(resp)
+		elem := strings.Split(prURL, "/")
 		assert.Equal(t, "pulls", elem[3])
-		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleSquash, false)
+
+		resp = session.MakeRequest(t, NewRequest(t, "GET", prURL), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		dataURL, exists := htmlDoc.doc.Find("#allow-edits-from-maintainers").Attr("data-url")
+		assert.True(t, exists)
+		req := NewRequestWithValues(t, "POST", dataURL+"/set_allow_maintainer_edit", map[string]string{
+			"_csrf":                 htmlDoc.GetCSRF(),
+			"allow_maintainer_edit": "true",
+		})
+		session.MakeRequest(t, req, http.StatusOK)
+
+		user2Session := loginUser(t, "user2")
+		resp = user2Session.MakeRequest(t, NewRequest(t, "GET", prURL+"/files"), http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		nodes := htmlDoc.doc.Find(".diff-file-box[data-new-filename=\"README.md\"] .diff-file-header-actions .tippy-target a")
+		if assert.Equal(t, 2, nodes.Length()) {
+			assert.Equal(t, "Edit File", nodes.Last().Text())
+			editFileLink, exists := nodes.Last().Attr("href")
+			if assert.True(t, exists) {
+				// edit the file
+				resp := user2Session.MakeRequest(t, NewRequest(t, "GET", editFileLink), http.StatusOK)
+				htmlDoc := NewHTMLParser(t, resp.Body)
+				lastCommit := htmlDoc.GetInputValueByName("last_commit")
+				assert.NotEmpty(t, lastCommit)
+				req := NewRequestWithValues(t, "POST", editFileLink, map[string]string{
+					"_csrf":          htmlDoc.GetCSRF(),
+					"last_commit":    lastCommit,
+					"tree_path":      "README.md",
+					"content":        "Hello, World (Edite!!)",
+					"commit_summary": "user2 updated the file",
+					"commit_choice":  "direct",
+				})
+				resp = user2Session.MakeRequest(t, req, http.StatusOK)
+				assert.NotEmpty(t, test.RedirectURL(resp))
+			}
+		}
+		resp = user2Session.MakeRequest(t, NewRequest(t, "GET", prURL+"/files"), http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		nodes = htmlDoc.doc.Find(".diff-file-box[data-new-filename=\"README.md\"] .diff-file-header-actions .tippy-target a")
+		if assert.Equal(t, 2, nodes.Length()) {
+			assert.Equal(t, "Edit File", nodes.Last().Text())
+			editFileLink, exists := nodes.Last().Attr("href")
+			if assert.True(t, exists) {
+				// edit the file
+				resp := user2Session.MakeRequest(t, NewRequest(t, "GET", editFileLink), http.StatusOK)
+				htmlDoc := NewHTMLParser(t, resp.Body)
+				lastCommit := htmlDoc.GetInputValueByName("last_commit")
+				assert.NotEmpty(t, lastCommit)
+				req := NewRequestWithValues(t, "POST", editFileLink, map[string]string{
+					"_csrf":          htmlDoc.GetCSRF(),
+					"last_commit":    lastCommit,
+					"tree_path":      "README.md",
+					"content":        "Hello, World (Edite!!!)",
+					"commit_summary": "user2 updated the file!",
+					"commit_choice":  "direct",
+				})
+				resp = user2Session.MakeRequest(t, req, http.StatusOK)
+				assert.NotEmpty(t, test.RedirectURL(resp))
+			}
+		}
+
+		resp = session.MakeRequest(t, NewRequest(t, "GET", prURL+"/merge_box"), http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		message := ""
+		htmlDoc.doc.Find("script").Each(func(i int, s *goquery.Selection) {
+			scriptContent := s.Text()
+			re := regexp.MustCompile(`const\s+defaultSquashMergeMessage\s*=\s*"(.*?)"\s*;`)
+			matches := re.FindStringSubmatch(scriptContent)
+			if len(matches) > 1 {
+				message = matches[1]
+			}
+		})
+
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleSquash, false, message)
+
+		req = NewRequest(t, "GET", "/user2/repo1/src/branch/master/")
+		resp = user2Session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		commitHref := htmlDoc.doc.Find(".latest-commit .commit-id-short").AttrOr("href", "")
+		assert.NotEmpty(t, commitHref)
+
+		req = NewRequest(t, "GET", commitHref)
+		resp = user2Session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		prTitle, exists := htmlDoc.doc.Find(".commit-summary").Attr("title")
+		assert.True(t, exists)
+		assert.Contains(t, prTitle, "This is a pull title")
+
+		commitBody := htmlDoc.doc.Find(".commit-body").Text()
+		assert.NotEmpty(t, commitBody)
+		assert.Contains(t, commitBody, "--------------------")
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%s/commits/list", elem[4]))
+		resp = user2Session.MakeRequest(t, req, http.StatusOK)
+
+		var pullCommitList struct {
+			Commits             []pull_service.CommitInfo `json:"commits"`
+			LastReviewCommitSha string                    `json:"last_review_commit_sha"`
+		}
+		DecodeJSON(t, resp, &pullCommitList)
+
+		require.Len(t, pullCommitList.Commits, 4)
+
+		for _, commit := range pullCommitList.Commits {
+			assert.Contains(t, commitBody, "* "+commit.Summary)
+		}
 
 		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
 		assert.NoError(t, err)
