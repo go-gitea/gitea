@@ -5,6 +5,8 @@ package attachment
 
 import "io"
 
+// modified version of io.LimitReader: https://cs.opensource.google/go/go/+/refs/tags/go1.25.1:src/io/io.go;l=458-482
+
 // attachmentLimitedReader returns a Reader that reads from r
 // but errors with ErrAttachmentSizeExceed after n bytes.
 // The underlying implementation is a *attachmentReader.
