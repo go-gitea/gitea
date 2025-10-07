@@ -178,3 +178,14 @@ func (env *accessibleReposEnv) AddKeyword(keyword string) {
 func (env *accessibleReposEnv) SetSort(orderBy db.SearchOrderBy) {
 	env.orderBy = orderBy
 }
+
+// Add a new function to filter repositories by a search term
+func GetFilteredTeamRepositories(teamID int64, searchTerm string) ([]*Repository, error) {
+	// Query to fetch repositories with filtering
+	repos := make([]*Repository, 0, 10)
+	sess := x.Where("team_id = ?", teamID)
+	if searchTerm != "" {
+		sess = sess.And("name LIKE ?", "%"+searchTerm+"%")
+	}
+	return repos, sess.Find(&repos)
+}

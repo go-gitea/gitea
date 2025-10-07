@@ -416,15 +416,16 @@ func TeamRepositories(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamRepos"] = true
 
-	repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
-		TeamID: ctx.Org.Team.ID,
-	})
+	searchTerm := ctx.FormTrim("q") // Get the search term from the query parameter
+	repos, err := repo_model.GetFilteredTeamRepositories(ctx.Org.Team.ID, searchTerm)
 	if err != nil {
-		ctx.ServerError("GetTeamRepositories", err)
+		ctx.ServerError("GetFilteredTeamRepositories", err)
 		return
 	}
+
 	ctx.Data["Units"] = unit_model.Units
 	ctx.Data["TeamRepos"] = repos
+	ctx.Data["SearchTerm"] = searchTerm // Pass the search term back to the template
 	ctx.HTML(http.StatusOK, tplTeamRepositories)
 }
 
