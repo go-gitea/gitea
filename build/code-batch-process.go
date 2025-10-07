@@ -181,7 +181,7 @@ func parseArgs() (mainOptions map[string]string, subCmd string, subArgs []string
 			break
 		}
 	}
-	return
+	return mainOptions, subCmd, subArgs
 }
 
 func showUsage() {

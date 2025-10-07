@@ -12,9 +12,9 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 )
 

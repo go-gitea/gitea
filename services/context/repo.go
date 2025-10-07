@@ -14,6 +14,7 @@ import (
 	"path"
 	"strings"
 
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -99,7 +100,7 @@ type CommitFormOptions struct {
 	UserCanPush              bool
 	RequireSigned            bool
 	WillSign                 bool
-	SigningKey               *git.SigningKey
+	SigningKeyFormDisplay    string
 	WontSignReason           string
 	CanCreatePullRequest     bool
 	CanCreateBasePullRequest bool
@@ -139,7 +140,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	willSign, signKeyID, _, err := asymkey_service.SignCRUDAction(ctx, targetRepo.RepoPath(), doer, targetRepo.RepoPath(), refName.String())
+	willSign, signKey, _, err := asymkey_service.SignCRUDAction(ctx, targetRepo.RepoPath(), doer, targetRepo.RepoPath(), refName.String())
 	wontSignReason := ""
 	if asymkey_service.IsErrWontSign(err) {
 		wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
@@ -156,14 +157,14 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 	canCreatePullRequest := targetRepo.UnitEnabled(ctx, unit_model.TypePullRequests) || canCreateBasePullRequest
 
 	opts := &CommitFormOptions{
-		TargetRepo:        targetRepo,
-		WillSubmitToFork:  submitToForkedRepo,
-		CanCommitToBranch: canCommitToBranch,
-		UserCanPush:       canPushWithProtection,
-		RequireSigned:     protectionRequireSigned,
-		WillSign:          willSign,
-		SigningKey:        signKeyID,
-		WontSignReason:    wontSignReason,
+		TargetRepo:            targetRepo,
+		WillSubmitToFork:      submitToForkedRepo,
+		CanCommitToBranch:     canCommitToBranch,
+		UserCanPush:           canPushWithProtection,
+		RequireSigned:         protectionRequireSigned,
+		WillSign:              willSign,
+		SigningKeyFormDisplay: asymkey_model.GetDisplaySigningKey(signKey),
+		WontSignReason:        wontSignReason,
 
 		CanCreatePullRequest:     canCreatePullRequest,
 		CanCreateBasePullRequest: canCreateBasePullRequest,
@@ -620,7 +621,7 @@ func RepoAssignment(ctx *Context) {
 	ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
-			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
+			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RelativePath(), err)
 			ctx.Repo.Repository.MarkAsBrokenEmpty()
 			// Only allow access to base of repo or settings
 			if !isHomeOrSettings {

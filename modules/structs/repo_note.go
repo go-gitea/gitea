@@ -5,6 +5,8 @@ package structs
 
 // Note contains information related to a git note
 type Note struct {
-	Message string  `json:"message"`
-	Commit  *Commit `json:"commit"`
+	// The content message of the git note
+	Message string `json:"message"`
+	// The commit that this note is attached to
+	Commit *Commit `json:"commit"`
 }

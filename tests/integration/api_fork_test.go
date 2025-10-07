@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -36,9 +35,9 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 	limitedOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
 	assert.Equal(t, api.VisibleTypeLimited, limitedOrg.Visibility)
 
-	ownerTeam1, err := org_model.OrgFromUser(limitedOrg).GetOwnerTeam(db.DefaultContext)
+	ownerTeam1, err := org_model.OrgFromUser(limitedOrg).GetOwnerTeam(t.Context())
 	assert.NoError(t, err)
-	assert.NoError(t, org_service.AddTeamMember(db.DefaultContext, ownerTeam1, user1))
+	assert.NoError(t, org_service.AddTeamMember(t.Context(), ownerTeam1, user1))
 	user1Token := getTokenForLoggedInUser(t, user1Sess, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{
 		Organization: &limitedOrg.Name,
@@ -51,9 +50,9 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 	privateOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
 	assert.Equal(t, api.VisibleTypePrivate, privateOrg.Visibility)
 
-	ownerTeam2, err := org_model.OrgFromUser(privateOrg).GetOwnerTeam(db.DefaultContext)
+	ownerTeam2, err := org_model.OrgFromUser(privateOrg).GetOwnerTeam(t.Context())
 	assert.NoError(t, err)
-	assert.NoError(t, org_service.AddTeamMember(db.DefaultContext, ownerTeam2, user4))
+	assert.NoError(t, org_service.AddTeamMember(t.Context(), ownerTeam2, user4))
 	user4Token := getTokenForLoggedInUser(t, user4Sess, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
 	req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{
 		Organization: &privateOrg.Name,
@@ -85,7 +84,7 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 		assert.Len(t, forks, 2)
 		assert.Equal(t, "2", resp.Header().Get("X-Total-Count"))
 
-		assert.NoError(t, org_service.AddTeamMember(db.DefaultContext, ownerTeam2, user1))
+		assert.NoError(t, org_service.AddTeamMember(t.Context(), ownerTeam2, user1))
 
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks").AddTokenAuth(user1Token)
 		resp = MakeRequest(t, req, http.StatusOK)

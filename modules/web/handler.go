@@ -16,7 +16,7 @@ import (
 var responseStatusProviders = map[reflect.Type]func(req *http.Request) types.ResponseStatusProvider{}
 
 func RegisterResponseStatusProvider[T any](fn func(req *http.Request) types.ResponseStatusProvider) {
-	responseStatusProviders[reflect.TypeOf((*T)(nil)).Elem()] = fn
+	responseStatusProviders[reflect.TypeFor[T]()] = fn
 }
 
 // responseWriter is a wrapper of http.ResponseWriter, to check whether the response has been written
@@ -48,8 +48,8 @@ func (r *responseWriter) WriteHeader(statusCode int) {
 }
 
 var (
-	httpReqType    = reflect.TypeOf((*http.Request)(nil))
-	respWriterType = reflect.TypeOf((*http.ResponseWriter)(nil)).Elem()
+	httpReqType    = reflect.TypeFor[*http.Request]()
+	respWriterType = reflect.TypeFor[http.ResponseWriter]()
 )
 
 // preCheckHandler checks whether the handler is valid, developers could get first-time feedback, all mistakes could be found at startup

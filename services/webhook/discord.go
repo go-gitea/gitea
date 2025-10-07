@@ -57,7 +57,7 @@ type (
 	DiscordPayload struct {
 		Wait      bool           `json:"wait"`
 		Content   string         `json:"content"`
-		Username  string         `json:"username"`
+		Username  string         `json:"username,omitempty"`
 		AvatarURL string         `json:"avatar_url,omitempty"`
 		TTS       bool           `json:"tts"`
 		Embeds    []DiscordEmbed `json:"embeds"`

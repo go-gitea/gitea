@@ -13,12 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
@@ -527,7 +525,7 @@ func TestGenerateRepository(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo44 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 44})
 
-	generatedRepo, err := repo_service.GenerateRepository(git.DefaultContext, user2, user2, repo44, repo_service.GenerateRepoOptions{
+	generatedRepo, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
 		Name:       "generated-from-template-44",
 		GitContent: true,
 	})
@@ -540,14 +538,14 @@ func TestGenerateRepository(t *testing.T) {
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: generatedRepo.Name})
 
-	err = repo_service.DeleteRepositoryDirectly(db.DefaultContext, generatedRepo.ID)
+	err = repo_service.DeleteRepositoryDirectly(t.Context(), generatedRepo.ID)
 	assert.NoError(t, err)
 
 	// a failed creating because some mock data
 	// create the repository directory so that the creation will fail after database record created.
 	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "generated-from-template-44"), os.ModePerm))
 
-	generatedRepo2, err := repo_service.GenerateRepository(db.DefaultContext, user2, user2, repo44, repo_service.GenerateRepoOptions{
+	generatedRepo2, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
 		Name:       "generated-from-template-44",
 		GitContent: true,
 	})

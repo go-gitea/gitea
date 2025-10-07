@@ -58,6 +58,7 @@ func runMustChangePassword(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
+	// codeql[disable-next-line=go/clear-text-logging]
 	fmt.Printf("Updated %d users setting MustChangePassword to %t\n", n, mustChangePassword)
 	return nil
 }

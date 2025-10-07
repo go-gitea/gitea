@@ -141,7 +141,7 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 		fatalTestError("util.SyncDirs: %v\n", err)
 	}
 
-	if err = git.InitFull(context.Background()); err != nil {
+	if err = git.InitFull(); err != nil {
 		fatalTestError("git.Init: %v\n", err)
 	}
 

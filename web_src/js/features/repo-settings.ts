@@ -1,9 +1,9 @@
-import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.ts';
 import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {globMatch} from '../utils/glob.ts';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -108,7 +108,7 @@ function initRepoSettingsBranches() {
       let matched = false;
       const statusCheck = el.getAttribute('data-status-check');
       for (const pattern of validPatterns) {
-        if (minimatch(statusCheck, pattern, {noext: true})) { // https://github.com/go-gitea/gitea/issues/33121 disable extended glob syntax
+        if (globMatch(statusCheck, pattern, '/')) {
           matched = true;
           break;
         }

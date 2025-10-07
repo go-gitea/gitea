@@ -18,7 +18,7 @@ type TextareaValueSelection = {
   value: string;
   selStart: number;
   selEnd: number;
-}
+};
 
 function handleIndentSelection(textarea: HTMLTextAreaElement, e: KeyboardEvent) {
   const selStart = textarea.selectionStart;
@@ -65,14 +65,14 @@ function handleIndentSelection(textarea: HTMLTextAreaElement, e: KeyboardEvent) 
 type MarkdownHandleIndentionResult = {
   handled: boolean;
   valueSelection?: TextareaValueSelection;
-}
+};
 
 type TextLinesBuffer = {
   lines: string[];
   lengthBeforePosLine: number;
   posLineIndex: number;
   inlinePos: number
-}
+};
 
 export function textareaSplitLines(value: string, pos: number): TextLinesBuffer {
   const lines = value.split('\n');

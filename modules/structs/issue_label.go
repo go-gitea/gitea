@@ -7,27 +7,33 @@ package structs
 // Label a label to an issue or a pr
 // swagger:model
 type Label struct {
-	ID   int64  `json:"id"`
+	// ID is the unique identifier for the label
+	ID int64 `json:"id"`
+	// Name is the display name of the label
 	Name string `json:"name"`
 	// example: false
 	Exclusive bool `json:"exclusive"`
 	// example: false
 	IsArchived bool `json:"is_archived"`
 	// example: 00aabb
-	Color       string `json:"color"`
+	Color string `json:"color"`
+	// Description provides additional context about the label's purpose
 	Description string `json:"description"`
-	URL         string `json:"url"`
+	// URL is the API endpoint for accessing this label
+	URL string `json:"url"`
 }
 
 // CreateLabelOption options for creating a label
 type CreateLabelOption struct {
 	// required:true
+	// Name is the display name for the new label
 	Name string `json:"name" binding:"Required"`
 	// example: false
 	Exclusive bool `json:"exclusive"`
 	// required:true
 	// example: #00aabb
-	Color       string `json:"color" binding:"Required"`
+	Color string `json:"color" binding:"Required"`
+	// Description provides additional context about the label's purpose
 	Description string `json:"description"`
 	// example: false
 	IsArchived bool `json:"is_archived"`
@@ -35,11 +41,13 @@ type CreateLabelOption struct {
 
 // EditLabelOption options for editing a label
 type EditLabelOption struct {
+	// Name is the new display name for the label
 	Name *string `json:"name"`
 	// example: false
 	Exclusive *bool `json:"exclusive"`
 	// example: #00aabb
-	Color       *string `json:"color"`
+	Color *string `json:"color"`
+	// Description provides additional context about the label's purpose
 	Description *string `json:"description"`
 	// example: false
 	IsArchived *bool `json:"is_archived"`
@@ -54,10 +62,12 @@ type IssueLabelsOption struct {
 
 // LabelTemplate info of a Label template
 type LabelTemplate struct {
+	// Name is the display name of the label template
 	Name string `json:"name"`
 	// example: false
 	Exclusive bool `json:"exclusive"`
 	// example: 00aabb
-	Color       string `json:"color"`
+	Color string `json:"color"`
+	// Description provides additional context about the label template's purpose
 	Description string `json:"description"`
 }

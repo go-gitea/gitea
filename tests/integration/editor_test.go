@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
@@ -187,7 +188,7 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 	require.True(t, user.KeepEmailPrivate)
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	gitRepo, _ := git.OpenRepository(git.DefaultContext, repo1.RepoPath())
+	gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
 	defer gitRepo.Close()
 	getLastCommit := func(t *testing.T) *git.Commit {
 		c, err := gitRepo.GetBranchCommit("master")

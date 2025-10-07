@@ -442,58 +442,53 @@ func SearchEmails(ctx context.Context, opts *SearchEmailOptions) ([]*SearchEmail
 // ActivateUserEmail will change the activated state of an email address,
 // either primary or secondary (all in the email_address table)
 func ActivateUserEmail(ctx context.Context, userID int64, email string, activate bool) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	// Activate/deactivate a user's secondary email address
-	// First check if there's another user active with the same address
-	addr, exist, err := db.Get[EmailAddress](ctx, builder.Eq{"uid": userID, "lower_email": strings.ToLower(email)})
-	if err != nil {
-		return err
-	} else if !exist {
-		return fmt.Errorf("no such email: %d (%s)", userID, email)
-	}
-
-	if addr.IsActivated == activate {
-		// Already in the desired state; no action
-		return nil
-	}
-	if activate {
-		if used, err := IsEmailActive(ctx, email, addr.ID); err != nil {
-			return fmt.Errorf("unable to check isEmailActive() for %s: %w", email, err)
-		} else if used {
-			return ErrEmailAlreadyUsed{Email: email}
-		}
-	}
-	if err = updateActivation(ctx, addr, activate); err != nil {
-		return fmt.Errorf("unable to updateActivation() for %d:%s: %w", addr.ID, addr.Email, err)
-	}
-
-	// Activate/deactivate a user's primary email address and account
-	if addr.IsPrimary {
-		user, exist, err := db.Get[User](ctx, builder.Eq{"id": userID})
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// Activate/deactivate a user's secondary email address
+		// First check if there's another user active with the same address
+		addr, exist, err := db.Get[EmailAddress](ctx, builder.Eq{"uid": userID, "lower_email": strings.ToLower(email)})
 		if err != nil {
 			return err
-		} else if !exist || !strings.EqualFold(user.Email, email) {
-			return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)
+		} else if !exist {
+			return fmt.Errorf("no such email: %d (%s)", userID, email)
 		}
 
-		// The user's activation state should be synchronized with the primary email
-		if user.IsActive != activate {
-			user.IsActive = activate
-			if user.Rands, err = GetUserSalt(); err != nil {
-				return fmt.Errorf("unable to generate salt: %w", err)
-			}
-			if err = UpdateUserCols(ctx, user, "is_active", "rands"); err != nil {
-				return fmt.Errorf("unable to updateUserCols() for user ID: %d: %w", userID, err)
+		if addr.IsActivated == activate {
+			// Already in the desired state; no action
+			return nil
+		}
+		if activate {
+			if used, err := IsEmailActive(ctx, email, addr.ID); err != nil {
+				return fmt.Errorf("unable to check isEmailActive() for %s: %w", email, err)
+			} else if used {
+				return ErrEmailAlreadyUsed{Email: email}
 			}
 		}
-	}
+		if err = updateActivation(ctx, addr, activate); err != nil {
+			return fmt.Errorf("unable to updateActivation() for %d:%s: %w", addr.ID, addr.Email, err)
+		}
 
-	return committer.Commit()
+		// Activate/deactivate a user's primary email address and account
+		if addr.IsPrimary {
+			user, exist, err := db.Get[User](ctx, builder.Eq{"id": userID})
+			if err != nil {
+				return err
+			} else if !exist || !strings.EqualFold(user.Email, email) {
+				return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)
+			}
+
+			// The user's activation state should be synchronized with the primary email
+			if user.IsActive != activate {
+				user.IsActive = activate
+				if user.Rands, err = GetUserSalt(); err != nil {
+					return fmt.Errorf("unable to generate salt: %w", err)
+				}
+				if err = UpdateUserCols(ctx, user, "is_active", "rands"); err != nil {
+					return fmt.Errorf("unable to updateUserCols() for user ID: %d: %w", userID, err)
+				}
+			}
+		}
+		return nil
+	})
 }
 
 // validateEmailBasic checks whether the email complies with the rules

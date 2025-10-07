@@ -70,7 +70,7 @@ func (i *Identicon) render(c, b1, b2, b1Angle, b2Angle, foreColor int) image.Ima
 /*
 # Algorithm
 
-Origin: An image is splitted into 9 areas
+Origin: An image is split into 9 areas
 
 ```
   -------------

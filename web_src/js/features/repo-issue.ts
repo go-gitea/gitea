@@ -64,7 +64,7 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
     selectedLabelIds.add(`${Math.abs(parseInt(id))}`); // "labels" contains negative ids, which are excluded
   }
 
-  const excludeLabel = (e: MouseEvent|KeyboardEvent, item: Element) => {
+  const excludeLabel = (e: MouseEvent | KeyboardEvent, item: Element) => {
     e.preventDefault();
     e.stopPropagation();
     const labelId = item.getAttribute('data-label-id');
@@ -333,7 +333,7 @@ export function initRepoPullRequestReview() {
     let ntr = tr.nextElementSibling;
     if (!ntr?.classList.contains('add-comment')) {
       ntr = createElementFromHTML(`
-        <tr class="add-comment" data-line-type="${lineType}">
+        <tr class="add-comment" data-line-type="${htmlEscape(lineType)}">
           ${isSplit ? `
             <td class="add-comment-left" colspan="4"></td>
             <td class="add-comment-right" colspan="4"></td>

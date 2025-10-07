@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -40,23 +39,23 @@ func TestPackageGeneric(t *testing.T) {
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeGeneric)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		assert.NoError(t, err)
 		assert.Nil(t, pd.Metadata)
 		assert.Equal(t, packageName, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
 
-		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 		assert.Equal(t, filename, pfs[0].Name)
 		assert.True(t, pfs[0].IsLead)
 
-		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+		pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
 
@@ -76,7 +75,7 @@ func TestPackageGeneric(t *testing.T) {
 			MakeRequest(t, req, http.StatusCreated)
 
 			// Check deduplication
-			pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+			pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 			assert.NoError(t, err)
 			assert.Len(t, pfs, 2)
 			assert.Equal(t, pfs[0].BlobID, pfs[1].BlobID)
@@ -103,7 +102,7 @@ func TestPackageGeneric(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		checkDownloadCount := func(count int64) {
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeGeneric)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 			assert.Equal(t, count, pvs[0].DownloadCount)
@@ -194,7 +193,7 @@ func TestPackageGeneric(t *testing.T) {
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeGeneric)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 
@@ -205,7 +204,7 @@ func TestPackageGeneric(t *testing.T) {
 					AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusNoContent)
 
-				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+				pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeGeneric)
 				assert.NoError(t, err)
 				assert.Empty(t, pvs)
 			})
@@ -225,7 +224,7 @@ func TestPackageGeneric(t *testing.T) {
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNoContent)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeGeneric)
 			assert.NoError(t, err)
 			assert.Empty(t, pvs)
 

@@ -6,7 +6,6 @@ package repo_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 
@@ -16,11 +15,11 @@ import (
 func TestLookupRedirect(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repoID, err := repo_model.LookupRedirect(db.DefaultContext, 2, "oldrepo1")
+	repoID, err := repo_model.LookupRedirect(t.Context(), 2, "oldrepo1")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, repoID)
 
-	_, err = repo_model.LookupRedirect(db.DefaultContext, unittest.NonexistentID, "doesnotexist")
+	_, err = repo_model.LookupRedirect(t.Context(), unittest.NonexistentID, "doesnotexist")
 	assert.True(t, repo_model.IsErrRedirectNotExist(err))
 }
 
@@ -29,7 +28,7 @@ func TestNewRedirect(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	assert.NoError(t, repo_model.NewRedirect(db.DefaultContext, repo.OwnerID, repo.ID, repo.Name, "newreponame"))
+	assert.NoError(t, repo_model.NewRedirect(t.Context(), repo.OwnerID, repo.ID, repo.Name, "newreponame"))
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Redirect{
 		OwnerID:        repo.OwnerID,
@@ -48,7 +47,7 @@ func TestNewRedirect2(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	assert.NoError(t, repo_model.NewRedirect(db.DefaultContext, repo.OwnerID, repo.ID, repo.Name, "oldrepo1"))
+	assert.NoError(t, repo_model.NewRedirect(t.Context(), repo.OwnerID, repo.ID, repo.Name, "oldrepo1"))
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Redirect{
 		OwnerID:        repo.OwnerID,
@@ -67,7 +66,7 @@ func TestNewRedirect3(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	assert.NoError(t, repo_model.NewRedirect(db.DefaultContext, repo.OwnerID, repo.ID, repo.Name, "newreponame"))
+	assert.NoError(t, repo_model.NewRedirect(t.Context(), repo.OwnerID, repo.ID, repo.Name, "newreponame"))
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Redirect{
 		OwnerID:        repo.OwnerID,

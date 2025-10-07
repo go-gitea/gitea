@@ -20,6 +20,7 @@ type AddTimeOption struct {
 
 // TrackedTime worked time for an issue / pr
 type TrackedTime struct {
+	// ID is the unique identifier for the tracked time entry
 	ID int64 `json:"id"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created"`
@@ -30,8 +31,9 @@ type TrackedTime struct {
 	// username of the user
 	UserName string `json:"user_name"`
 	// deprecated (only for backwards compatibility)
-	IssueID int64  `json:"issue_id"`
-	Issue   *Issue `json:"issue"`
+	IssueID int64 `json:"issue_id"`
+	// Issue contains the associated issue information
+	Issue *Issue `json:"issue"`
 }
 
 // TrackedTimeList represents a list of tracked times

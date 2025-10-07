@@ -25,10 +25,10 @@ func TestInitToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("NoToken", func(t *testing.T) {
-		_, _ = db.Exec(db.DefaultContext, "DELETE FROM action_runner_token")
+		_, _ = db.Exec(t.Context(), "DELETE FROM action_runner_token")
 		t.Setenv("GITEA_RUNNER_REGISTRATION_TOKEN", "")
 		t.Setenv("GITEA_RUNNER_REGISTRATION_TOKEN_FILE", "")
-		err := initGlobalRunnerToken(db.DefaultContext)
+		err := initGlobalRunnerToken(t.Context())
 		require.NoError(t, err)
 		notEmpty, err := db.IsTableNotEmpty(&actions_model.ActionRunnerToken{})
 		require.NoError(t, err)
@@ -39,13 +39,13 @@ func TestInitToken(t *testing.T) {
 		tokenValue, _ := util.CryptoRandomString(32)
 		t.Setenv("GITEA_RUNNER_REGISTRATION_TOKEN", tokenValue)
 		t.Setenv("GITEA_RUNNER_REGISTRATION_TOKEN_FILE", "")
-		err := initGlobalRunnerToken(db.DefaultContext)
+		err := initGlobalRunnerToken(t.Context())
 		require.NoError(t, err)
 		token := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerToken{Token: tokenValue})
 		assert.True(t, token.IsActive)
 
 		// init with the same token again, should not create a new token
-		err = initGlobalRunnerToken(db.DefaultContext)
+		err = initGlobalRunnerToken(t.Context())
 		require.NoError(t, err)
 		token2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerToken{Token: tokenValue})
 		assert.Equal(t, token.ID, token2.ID)
@@ -58,13 +58,13 @@ func TestInitToken(t *testing.T) {
 		_ = os.WriteFile(f, []byte(tokenValue), 0o644)
 		t.Setenv("GITEA_RUNNER_REGISTRATION_TOKEN", "")
 		t.Setenv("GITEA_RUNNER_REGISTRATION_TOKEN_FILE", f)
-		err := initGlobalRunnerToken(db.DefaultContext)
+		err := initGlobalRunnerToken(t.Context())
 		require.NoError(t, err)
 		token := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerToken{Token: tokenValue})
 		assert.True(t, token.IsActive)
 
 		// if the env token is invalidated by another new token, then it shouldn't be active anymore
-		_, err = actions_model.NewRunnerToken(db.DefaultContext, 0, 0)
+		_, err = actions_model.NewRunnerToken(t.Context(), 0, 0)
 		require.NoError(t, err)
 		token = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerToken{Token: tokenValue})
 		assert.False(t, token.IsActive)
@@ -72,7 +72,7 @@ func TestInitToken(t *testing.T) {
 
 	t.Run("InvalidToken", func(t *testing.T) {
 		t.Setenv("GITEA_RUNNER_REGISTRATION_TOKEN", "abc")
-		err := initGlobalRunnerToken(db.DefaultContext)
+		err := initGlobalRunnerToken(t.Context())
 		assert.ErrorContains(t, err, "must be at least")
 	})
 }

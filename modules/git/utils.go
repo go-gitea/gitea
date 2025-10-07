@@ -6,7 +6,6 @@ package git
 import (
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -40,14 +39,6 @@ func (oc *ObjectCache[T]) Get(id string) (T, bool) {
 
 	obj, has := oc.cache[id]
 	return obj, has
-}
-
-// ConcatenateError concatenats an error with stderr string
-func ConcatenateError(err error, stderr string) error {
-	if len(stderr) == 0 {
-		return err
-	}
-	return fmt.Errorf("%w - %s", err, stderr)
 }
 
 // ParseBool returns the boolean value represented by the string as per git's git_config_bool

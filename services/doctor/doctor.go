@@ -36,7 +36,7 @@ func initDBSkipLogger(ctx context.Context) error {
 		return fmt.Errorf("db.InitEngine: %w", err)
 	}
 	// some doctor sub-commands need to use git command
-	if err := git.InitFull(ctx); err != nil {
+	if err := git.InitFull(); err != nil {
 		return fmt.Errorf("git.InitFull: %w", err)
 	}
 	return nil

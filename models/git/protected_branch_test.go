@@ -105,17 +105,17 @@ func TestUpdateProtectBranchPriorities(t *testing.T) {
 	}
 
 	for _, pb := range protectedBranches {
-		_, err := db.GetEngine(db.DefaultContext).Insert(pb)
+		_, err := db.GetEngine(t.Context()).Insert(pb)
 		assert.NoError(t, err)
 	}
 
 	// Test updating priorities
 	newPriorities := []int64{protectedBranches[2].ID, protectedBranches[0].ID, protectedBranches[1].ID}
-	err := UpdateProtectBranchPriorities(db.DefaultContext, repo, newPriorities)
+	err := UpdateProtectBranchPriorities(t.Context(), repo, newPriorities)
 	assert.NoError(t, err)
 
 	// Verify new priorities
-	pbs, err := FindRepoProtectedBranchRules(db.DefaultContext, repo.ID)
+	pbs, err := FindRepoProtectedBranchRules(t.Context(), repo.ID)
 	assert.NoError(t, err)
 
 	expectedPriorities := map[string]int64{
@@ -133,7 +133,7 @@ func TestNewProtectBranchPriority(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	err := UpdateProtectBranch(db.DefaultContext, repo, &ProtectedBranch{
+	err := UpdateProtectBranch(t.Context(), repo, &ProtectedBranch{
 		RepoID:   repo.ID,
 		RuleName: "branch-1",
 		Priority: 1,
@@ -146,10 +146,10 @@ func TestNewProtectBranchPriority(t *testing.T) {
 		// Priority intentionally omitted
 	}
 
-	err = UpdateProtectBranch(db.DefaultContext, repo, newPB, WhitelistOptions{})
+	err = UpdateProtectBranch(t.Context(), repo, newPB, WhitelistOptions{})
 	assert.NoError(t, err)
 
-	savedPB2, err := GetFirstMatchProtectedBranchRule(db.DefaultContext, repo.ID, "branch-2")
+	savedPB2, err := GetFirstMatchProtectedBranchRule(t.Context(), repo.ID, "branch-2")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), savedPB2.Priority)
 }

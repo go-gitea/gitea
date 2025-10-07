@@ -25,6 +25,9 @@ __debug_bin*
 # Visual Studio
 /.vs/
 
+# mise version managment tool
+mise.toml
+
 *.cgo1.go
 *.cgo2.c
 _cgo_defun.c
@@ -78,6 +81,7 @@ cpu.out
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*
+/.pnpm-store
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
@@ -120,4 +124,3 @@ prime/
 /AGENT.md
 /CLAUDE.md
 /llms.txt
-

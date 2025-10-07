@@ -8,7 +8,7 @@ const (
 	SettingsKeyHiddenCommentTypes = "issue.hidden_comment_types"
 	// SettingsKeyDiffWhitespaceBehavior is the setting key for whitespace behavior of diff
 	SettingsKeyDiffWhitespaceBehavior = "diff.whitespace_behaviour"
-	// SettingsKeyShowOutdatedComments is the setting key wether or not to show outdated comments in PRs
+	// SettingsKeyShowOutdatedComments is the setting key whether or not to show outdated comments in PRs
 	SettingsKeyShowOutdatedComments = "comment_code.show_outdated"
 
 	// UserActivityPubPrivPem is user's private key

@@ -413,7 +413,8 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 	t.Helper()
 
-	decoder := json.NewDecoder(resp.Body)
+	// FIXME: JSON-KEY-CASE: for testing purpose only, because many structs don't provide `json` tags, they just use capitalized field names
+	decoder := json.NewDecoderCaseInsensitive(resp.Body)
 	require.NoError(t, decoder.Decode(v))
 }
 

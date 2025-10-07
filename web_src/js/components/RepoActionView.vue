@@ -2,7 +2,7 @@
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {defineComponent, type PropType} from 'vue';
-import {createElementFromAttrs, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
 import {renderAnsi} from '../render/ansi.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
@@ -40,6 +40,12 @@ type Step = {
   status: RunStatus,
 }
 
+type JobStepState = {
+  cursor: string|null,
+  expanded: boolean,
+  manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
+}
+
 function parseLineCommand(line: LogLine): LogLineCommand | null {
   for (const prefix of LogLinePrefixesGroup) {
     if (line.message.startsWith(prefix)) {
@@ -54,9 +60,10 @@ function parseLineCommand(line: LogLine): LogLineCommand | null {
   return null;
 }
 
-function isLogElementInViewport(el: Element): boolean {
+function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();
-  return rect.top >= 0 && rect.bottom <= window.innerHeight; // only check height but not width
+  // only check whether bottom is in viewport, because the log element can be a log group which is usually tall
+  return 0 <= rect.bottom && rect.bottom <= window.innerHeight + extraViewPortHeight;
 }
 
 type LocaleStorageOptions = {
@@ -104,7 +111,7 @@ export default defineComponent({
       // internal state
       loadingAbortController: null as AbortController | null,
       intervalID: null as IntervalId | null,
-      currentJobStepsStates: [] as Array<Record<string, any>>,
+      currentJobStepsStates: [] as Array<JobStepState>,
       artifacts: [] as Array<Record<string, any>>,
       menuVisible: false,
       isFullScreen: false,
@@ -181,6 +188,19 @@ export default defineComponent({
     // load job data and then auto-reload periodically
     // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
     await this.loadJob();
+
+    // auto-scroll to the bottom of the log group when it is opened
+    // "toggle" event doesn't bubble, so we need to use 'click' event delegation to handle it
+    addDelegatedEventListener(this.elStepsContainer(), 'click', 'summary.job-log-group-summary', (el, _) => {
+      if (!this.optionAlwaysAutoScroll) return;
+      const elJobLogGroup = el.closest('details.job-log-group') as HTMLDetailsElement;
+      setTimeout(() => {
+        if (elJobLogGroup.open && !isLogElementInViewport(elJobLogGroup)) {
+          elJobLogGroup.scrollIntoView({behavior: 'smooth', block: 'end'});
+        }
+      }, 0);
+    });
+
     this.intervalID = setInterval(() => this.loadJob(), 1000);
     document.body.addEventListener('click', this.closeDropdown);
     this.hashChangeListener();
@@ -252,6 +272,8 @@ export default defineComponent({
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
         this.loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
+      } else if (this.currentJob.steps[idx].status === 'running') {
+        this.currentJobStepsStates[idx].manuallyCollapsed = true;
       }
     },
     // cancel a run
@@ -293,7 +315,8 @@ export default defineComponent({
       const el = this.getJobStepLogsContainer(stepIndex);
       // if the logs container is empty, then auto-scroll if the step is expanded
       if (!el.lastChild) return this.currentJobStepsStates[stepIndex].expanded;
-      return isLogElementInViewport(el.lastChild as Element);
+      // use extraViewPortHeight to tolerate some extra "virtual view port" height (for example: the last line is partially visible)
+      return isLogElementInViewport(el.lastChild as Element, {extraViewPortHeight: 5});
     },
 
     appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
@@ -343,7 +366,6 @@ export default defineComponent({
       const abortController = new AbortController();
       this.loadingAbortController = abortController;
       try {
-        const isFirstLoad = !this.run.status;
         const job = await this.fetchJobData(abortController);
         if (this.loadingAbortController !== abortController) return;
 
@@ -353,10 +375,15 @@ export default defineComponent({
 
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
-          const expanded = isFirstLoad && this.optionAlwaysExpandRunning && this.currentJob.steps[i].status === 'running';
+          const autoExpand = this.optionAlwaysExpandRunning && this.currentJob.steps[i].status === 'running';
           if (!this.currentJobStepsStates[i]) {
             // initial states for job steps
-            this.currentJobStepsStates[i] = {cursor: null, expanded};
+            this.currentJobStepsStates[i] = {cursor: null, expanded: autoExpand,  manuallyCollapsed: false};
+          } else {
+            // if the step is not manually collapsed by user, then auto-expand it if option is enabled
+            if (autoExpand && !this.currentJobStepsStates[i].manuallyCollapsed) {
+              this.currentJobStepsStates[i].expanded = true;
+            }
           }
         }
 
@@ -380,7 +407,10 @@ export default defineComponent({
           if (!autoScrollStepIndexes.get(stepIndex)) continue;
           autoScrollJobStepElement = this.getJobStepLogsContainer(stepIndex);
         }
-        autoScrollJobStepElement?.lastElementChild.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+        const lastLogElem = autoScrollJobStepElement?.lastElementChild;
+        if (lastLogElem && !isLogElementInViewport(lastLogElem)) {
+          lastLogElem.scrollIntoView({behavior: 'smooth', block: 'end'});
+        }
 
         // clear the interval timer if the job is done
         if (this.run.done && this.intervalID) {
@@ -408,9 +438,13 @@ export default defineComponent({
       if (this.menuVisible) this.menuVisible = false;
     },
 
+    elStepsContainer(): HTMLElement {
+      return this.$refs.stepsContainer as HTMLElement;
+    },
+
     toggleTimeDisplay(type: 'seconds' | 'stamp') {
       this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
-      for (const el of (this.$refs.steps as HTMLElement).querySelectorAll(`.log-time-${type}`)) {
+      for (const el of this.elStepsContainer().querySelectorAll(`.log-time-${type}`)) {
         toggleElem(el, this.timeVisible[`log-time-${type}`]);
       }
     },
@@ -419,6 +453,7 @@ export default defineComponent({
       this.isFullScreen = !this.isFullScreen;
       toggleFullScreen('.action-view-right', this.isFullScreen, '.action-view-body');
     },
+
     async hashChangeListener() {
       const selectedLogStep = window.location.hash;
       if (!selectedLogStep) return;
@@ -431,7 +466,7 @@ export default defineComponent({
         // so logline can be selected by querySelector
         await this.loadJob();
       }
-      const logLine = (this.$refs.steps as HTMLElement).querySelector(selectedLogStep);
+      const logLine = this.elStepsContainer().querySelector(selectedLogStep);
       if (!logLine) return;
       logLine.querySelector<HTMLAnchorElement>('.line-num').click();
     },
@@ -566,7 +601,7 @@ export default defineComponent({
             </div>
           </div>
         </div>
-        <div class="job-step-container" ref="steps" v-if="currentJob.steps.length">
+        <div class="job-step-container" ref="stepsContainer" v-if="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon

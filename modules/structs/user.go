@@ -61,7 +61,7 @@ type User struct {
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility
 func (u User) MarshalJSON() ([]byte, error) {
-	// Re-declaring User to avoid recursion
+	// Redeclaring User to avoid recursion
 	type shadow User
 	return json.Marshal(struct {
 		shadow

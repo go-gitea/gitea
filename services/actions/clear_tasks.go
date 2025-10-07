@@ -42,10 +42,8 @@ func notifyWorkflowJobStatusUpdate(ctx context.Context, jobs []*actions_model.Ac
 			_ = job.LoadAttributes(ctx)
 			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 		}
-		if len(jobs) > 0 {
-			job := jobs[0]
-			notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
-		}
+		job := jobs[0]
+		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 	}
 }
 
@@ -101,7 +99,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 	return nil
 }
 
-// CancelAbandonedJobs cancels the jobs which have waiting status, but haven't been picked by a runner for a long time
+// CancelAbandonedJobs cancels jobs that have not been picked by any runner for a long time
 func CancelAbandonedJobs(ctx context.Context) error {
 	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
 		Statuses:      []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked},
@@ -113,23 +111,39 @@ func CancelAbandonedJobs(ctx context.Context) error {
 	}
 
 	now := timeutil.TimeStampNow()
+
+	// Collect one job per run to send workflow run status update
+	updatedRuns := map[int64]*actions_model.ActionRunJob{}
+
 	for _, job := range jobs {
 		job.Status = actions_model.StatusCancelled
 		job.Stopped = now
 		updated := false
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
 			n, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
-			updated = err == nil && n > 0
-			return err
+			if err != nil {
+				return err
+			}
+			if err := job.LoadAttributes(ctx); err != nil {
+				return err
+			}
+			updated = n > 0
+			if updated && job.Run.Status.IsDone() {
+				updatedRuns[job.RunID] = job
+			}
+			return nil
 		}); err != nil {
 			log.Warn("cancel abandoned job %v: %v", job.ID, err)
 			// go on
 		}
 		CreateCommitStatus(ctx, job)
 		if updated {
-			NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
 			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 		}
+	}
+
+	for _, job := range updatedRuns {
+		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 	}
 
 	return nil

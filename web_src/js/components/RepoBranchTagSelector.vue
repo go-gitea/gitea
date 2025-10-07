@@ -153,7 +153,7 @@ export default defineComponent({
       return -1;
     },
     getActiveItem() {
-      const el = this.$refs[`listItem${this.activeItemIndex}`]; // eslint-disable-line no-jquery/variable-pattern
+      const el = this.$refs[`listItem${this.activeItemIndex}`];
       // @ts-expect-error - el is unknown type
       return (el && el.length) ? el[0] : null;
     },

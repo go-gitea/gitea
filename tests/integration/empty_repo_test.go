@@ -111,7 +111,7 @@ func TestEmptyRepoAddFile(t *testing.T) {
 		user30EmptyRepo.IsEmpty = isEmpty
 		user30EmptyRepo.Status = util.Iif(isBroken, repo_model.RepositoryBroken, repo_model.RepositoryReady)
 		user30EmptyRepo.DefaultBranch = "no-such"
-		_, err := db.GetEngine(db.DefaultContext).ID(user30EmptyRepo.ID).Cols("is_empty", "status", "default_branch").Update(user30EmptyRepo)
+		_, err := db.GetEngine(t.Context()).ID(user30EmptyRepo.ID).Cols("is_empty", "status", "default_branch").Update(user30EmptyRepo)
 		require.NoError(t, err)
 		user30EmptyRepo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
 		assert.Equal(t, isEmpty, user30EmptyRepo.IsEmpty)

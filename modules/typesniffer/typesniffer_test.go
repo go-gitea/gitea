@@ -48,12 +48,12 @@ func TestIsSvgImage(t *testing.T) {
 	<!-- Comments -->
 	<svg></svg>`)).IsSvgImage())
 	assert.True(t, DetectContentType([]byte(`<?xml version="1.0" encoding="UTF-8"?>
-	<!-- Multline
+	<!-- Multiline
 	Comment -->
 	<svg></svg>`)).IsSvgImage())
 	assert.True(t, DetectContentType([]byte(`<?xml version="1.0" encoding="UTF-8"?>
 	<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-	<!-- Multline
+	<!-- Multiline
 	Comment -->
 	<svg></svg>`)).IsSvgImage())
 

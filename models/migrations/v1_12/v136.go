@@ -6,11 +6,10 @@ package v1_12
 import (
 	"fmt"
 	"math"
-	"path/filepath"
-	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -85,12 +84,9 @@ func AddCommitDivergenceToPulls(x *xorm.Engine) error {
 				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
 				continue
 			}
-			userPath := filepath.Join(setting.RepoRootPath, strings.ToLower(baseRepo.OwnerName))
-			repoPath := filepath.Join(userPath, strings.ToLower(baseRepo.Name)+".git")
-
+			repoStore := repo_model.StorageRepo(repo_model.RelativePath(baseRepo.OwnerName, baseRepo.Name))
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
-
-			divergence, err := git.GetDivergingCommits(graceful.GetManager().HammerContext(), repoPath, pr.BaseBranch, gitRefName)
+			divergence, err := gitrepo.GetDivergingCommits(graceful.GetManager().HammerContext(), repoStore, pr.BaseBranch, gitRefName)
 			if err != nil {
 				log.Warn("Could not recalculate Divergence for pull: %d", pr.ID)
 				pr.CommitsAhead = 0

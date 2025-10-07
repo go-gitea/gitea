@@ -56,7 +56,7 @@ func initMigrationTest(t *testing.T) func() {
 
 	assert.NotEmpty(t, setting.RepoRootPath)
 	assert.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
-	assert.NoError(t, git.InitFull(t.Context()))
+	assert.NoError(t, git.InitFull())
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
 
@@ -250,7 +250,7 @@ func restoreOldDB(t *testing.T, version string) {
 
 func wrappedMigrate(ctx context.Context, x *xorm.Engine) error {
 	currentEngine = x
-	return migrations.Migrate(x)
+	return migrations.Migrate(ctx, x)
 }
 
 func doMigrationTest(t *testing.T, version string) {

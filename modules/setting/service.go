@@ -9,10 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
-
-	"github.com/gobwas/glob"
 )
 
 // enumerates all the types of captchas

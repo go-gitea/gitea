@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
@@ -45,7 +45,9 @@ func TestGitLFSSSH(t *testing.T) {
 			setting.LFS.AllowPureSSH = true
 			require.NoError(t, cfg.Save())
 
-			_, _, cmdErr := git.NewCommand("config", "lfs.sshtransfer", "always").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
+			_, _, cmdErr := gitcmd.NewCommand("config", "lfs.sshtransfer", "always").
+				WithDir(dstPath).
+				RunStdString(t.Context())
 			assert.NoError(t, cmdErr)
 			lfsCommitAndPushTest(t, dstPath, 10)
 		})

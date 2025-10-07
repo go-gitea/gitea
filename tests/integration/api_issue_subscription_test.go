@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -45,7 +44,7 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 
 		assert.Equal(t, isWatching, wi.Subscribed)
 		assert.Equal(t, !isWatching, wi.Ignored)
-		assert.Equal(t, issue.APIURL(db.DefaultContext)+"/subscriptions", wi.URL)
+		assert.Equal(t, issue.APIURL(t.Context())+"/subscriptions", wi.URL)
 		assert.EqualValues(t, issue.CreatedUnix, wi.CreatedAt.Unix())
 		assert.Equal(t, issueRepo.APIURL(), wi.RepositoryURL)
 	}

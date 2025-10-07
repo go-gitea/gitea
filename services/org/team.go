@@ -15,6 +15,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -259,10 +260,9 @@ func AddTeamMember(ctx context.Context, team *organization.Team, user *user_mode
 			log.Error("GetTeamRepositories failed: %v", err)
 		}
 
-		// FIXME: in the goroutine, it can't access the "ctx", it could only use db.DefaultContext at the moment
 		go func(repos []*repo_model.Repository) {
 			for _, repo := range repos {
-				if err = repo_model.WatchRepo(db.DefaultContext, user, repo, true); err != nil {
+				if err = repo_model.WatchRepo(graceful.GetManager().ShutdownContext(), user, repo, true); err != nil {
 					log.Error("watch repo failed: %v", err)
 				}
 			}

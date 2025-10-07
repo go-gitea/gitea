@@ -8,7 +8,7 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/git"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
@@ -25,38 +25,33 @@ func Activity(ctx *context.Context) {
 
 	ctx.Data["PageIsPulse"] = true
 
-	ctx.Data["Period"] = ctx.PathParam("period")
-
 	timeUntil := time.Now()
-	var timeFrom time.Time
-
-	switch ctx.Data["Period"] {
+	period, timeFrom := "weekly", timeUntil.Add(-time.Hour*168)
+	switch ctx.PathParam("period") {
 	case "daily":
-		timeFrom = timeUntil.Add(-time.Hour * 24)
+		period, timeFrom = "daily", timeUntil.Add(-time.Hour*24)
 	case "halfweekly":
-		timeFrom = timeUntil.Add(-time.Hour * 72)
+		period, timeFrom = "halfweekly", timeUntil.Add(-time.Hour*72)
 	case "weekly":
-		timeFrom = timeUntil.Add(-time.Hour * 168)
+		period, timeFrom = "weekly", timeUntil.Add(-time.Hour*168)
 	case "monthly":
-		timeFrom = timeUntil.AddDate(0, -1, 0)
+		period, timeFrom = "monthly", timeUntil.AddDate(0, -1, 0)
 	case "quarterly":
-		timeFrom = timeUntil.AddDate(0, -3, 0)
+		period, timeFrom = "quarterly", timeUntil.AddDate(0, -3, 0)
 	case "semiyearly":
-		timeFrom = timeUntil.AddDate(0, -6, 0)
+		period, timeFrom = "semiyearly", timeUntil.AddDate(0, -6, 0)
 	case "yearly":
-		timeFrom = timeUntil.AddDate(-1, 0, 0)
-	default:
-		ctx.Data["Period"] = "weekly"
-		timeFrom = timeUntil.Add(-time.Hour * 168)
+		period, timeFrom = "yearly", timeUntil.AddDate(-1, 0, 0)
 	}
 	ctx.Data["DateFrom"] = timeFrom
 	ctx.Data["DateUntil"] = timeUntil
-	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + ctx.Data["Period"].(string))
+	ctx.Data["Period"] = period
+	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + period)
 
 	canReadCode := ctx.Repo.CanRead(unit.TypeCode)
 	if canReadCode {
 		// GetActivityStats needs to read the default branch to get some information
-		branchExist, _ := git.IsBranchExist(ctx, ctx.Repo.Repository.ID, ctx.Repo.Repository.DefaultBranch)
+		branchExist, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, ctx.Repo.Repository.DefaultBranch)
 		if !branchExist {
 			ctx.Data["NotFoundPrompt"] = ctx.Tr("repo.branch.default_branch_not_exist", ctx.Repo.Repository.DefaultBranch)
 			ctx.NotFound(nil)

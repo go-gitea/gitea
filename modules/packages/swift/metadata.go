@@ -82,6 +82,7 @@ type ProgrammingLanguage struct {
 // https://schema.org/Person
 type Person struct {
 	Type       string `json:"@type,omitempty"`
+	Name       string `json:"name,omitempty"` // inherited from https://schema.org/Thing
 	GivenName  string `json:"givenName,omitempty"`
 	MiddleName string `json:"middleName,omitempty"`
 	FamilyName string `json:"familyName,omitempty"`
@@ -184,11 +185,17 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 		p.Metadata.Description = ssc.Description
 		p.Metadata.Keywords = ssc.Keywords
 		p.Metadata.License = ssc.License
-		p.Metadata.Author = Person{
+		author := Person{
+			Name:       ssc.Author.Name,
 			GivenName:  ssc.Author.GivenName,
 			MiddleName: ssc.Author.MiddleName,
 			FamilyName: ssc.Author.FamilyName,
 		}
+		// If Name is not provided, generate it from individual name components
+		if author.Name == "" {
+			author.Name = author.String()
+		}
+		p.Metadata.Author = author
 
 		p.Metadata.RepositoryURL = ssc.CodeRepository
 		if !validation.IsValidURL(p.Metadata.RepositoryURL) {

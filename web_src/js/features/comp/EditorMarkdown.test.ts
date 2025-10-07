@@ -26,13 +26,13 @@ test('textareaSplitLines', () => {
 test('markdownHandleIndention', () => {
   const testInput = (input: string, expected?: string) => {
     const inputPos = input.indexOf('|');
-    input = input.replace('|', '');
+    input = input.replaceAll('|', '');
     const ret = markdownHandleIndention({value: input, selStart: inputPos, selEnd: inputPos});
     if (expected === null) {
       expect(ret).toEqual({handled: false});
     } else {
       const expectedPos = expected.indexOf('|');
-      expected = expected.replace('|', '');
+      expected = expected.replaceAll('|', '');
       expect(ret).toEqual({
         handled: true,
         valueSelection: {value: expected, selStart: expectedPos, selEnd: expectedPos},
@@ -169,7 +169,7 @@ test('EditorMarkdown', () => {
   type ValueWithCursor = string | {
     value: string;
     pos: number;
-  }
+  };
   const testInput = (input: ValueWithCursor, result: ValueWithCursor) => {
     const intputValue = typeof input === 'string' ? input : input.value;
     const inputPos = typeof input === 'string' ? intputValue.length : input.pos;

@@ -4,13 +4,13 @@ type Processor = (el: HTMLElement) => string | HTMLElement | void;
 
 type Processors = {
   [tagName: string]: Processor;
-}
+};
 
 type ProcessorContext = {
   elementIsFirst: boolean;
   elementIsLast: boolean;
   listNestingLevel: number;
-}
+};
 
 function prepareProcessors(ctx:ProcessorContext): Processors {
   const processors: Processors = {

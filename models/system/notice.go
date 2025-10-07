@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -56,8 +57,7 @@ func CreateNotice(ctx context.Context, tp NoticeType, desc string, args ...any) 
 
 // CreateRepositoryNotice creates new system notice with type NoticeRepository.
 func CreateRepositoryNotice(desc string, args ...any) error {
-	// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
-	return CreateNotice(db.DefaultContext, NoticeRepository, desc, args...)
+	return CreateNotice(graceful.GetManager().ShutdownContext(), NoticeRepository, desc, args...)
 }
 
 // RemoveAllWithNotice removes all directories in given path and
@@ -66,8 +66,7 @@ func RemoveAllWithNotice(ctx context.Context, title, path string) {
 	if err := util.RemoveAll(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(title+" [%s]: %v", path, err)
-		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
-		if err = CreateNotice(db.DefaultContext, NoticeRepository, desc); err != nil {
+		if err = CreateNotice(graceful.GetManager().ShutdownContext(), NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
@@ -80,8 +79,7 @@ func RemoveStorageWithNotice(ctx context.Context, bucket storage.ObjectStorage, 
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(title+" [%s]: %v", path, err)
 
-		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
-		if err = CreateNotice(db.DefaultContext, NoticeRepository, desc); err != nil {
+		if err = CreateNotice(graceful.GetManager().ShutdownContext(), NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}

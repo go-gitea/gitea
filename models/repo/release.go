@@ -282,11 +282,8 @@ func (opts FindReleasesOptions) ToOrders() string {
 
 // GetTagNamesByRepoID returns a list of release tag names of repository.
 func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
-	listOptions := db.ListOptions{
-		ListAll: true,
-	}
 	opts := FindReleasesOptions{
-		ListOptions:   listOptions,
+		ListOptions:   db.ListOptionsAll,
 		IncludeDrafts: true,
 		IncludeTags:   true,
 		HasSha1:       optional.Some(true),

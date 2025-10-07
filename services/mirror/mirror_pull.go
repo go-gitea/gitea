@@ -13,6 +13,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
@@ -39,30 +40,27 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	}
 
 	remoteName := m.GetRemoteName()
-	repoPath := m.GetRepository(ctx).RepoPath()
+	repo := m.GetRepository(ctx)
 	// Remove old remote
-	_, _, err = git.NewCommand("remote", "rm").AddDynamicArguments(remoteName).RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+	err = gitrepo.GitRemoteRemove(ctx, repo, remoteName)
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
 
-	cmd := git.NewCommand("remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(addr)
-	_, _, err = cmd.RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+	err = gitrepo.GitRemoteAdd(ctx, repo, remoteName, addr, gitrepo.RemoteOptionMirrorFetch)
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
 
-	if m.Repo.HasWiki() {
-		wikiPath := m.Repo.WikiPath()
+	if repo_service.HasWiki(ctx, m.Repo) {
 		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
 		// Remove old remote of wiki
-		_, _, err = git.NewCommand("remote", "rm").AddDynamicArguments(remoteName).RunStdString(ctx, &git.RunOpts{Dir: wikiPath})
+		err = gitrepo.GitRemoteRemove(ctx, repo.WikiStorageRepo(), remoteName)
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
 
-		cmd = git.NewCommand("remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(wikiRemotePath)
-		_, _, err = cmd.RunStdString(ctx, &git.RunOpts{Dir: wikiPath})
+		err = gitrepo.GitRemoteAdd(ctx, repo.WikiStorageRepo(), remoteName, wikiRemotePath, gitrepo.RemoteOptionMirrorFetch)
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
@@ -197,25 +195,21 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 
 func pruneBrokenReferences(ctx context.Context,
 	m *repo_model.Mirror,
-	repoPath string,
 	timeout time.Duration,
 	stdoutBuilder, stderrBuilder *strings.Builder,
 	isWiki bool,
 ) error {
 	wiki := ""
+	var storageRepo gitrepo.Repository = m.Repo
 	if isWiki {
 		wiki = "Wiki "
+		storageRepo = m.Repo.WikiStorageRepo()
 	}
 
 	stderrBuilder.Reset()
 	stdoutBuilder.Reset()
-	pruneErr := git.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).
-		Run(ctx, &git.RunOpts{
-			Timeout: timeout,
-			Dir:     repoPath,
-			Stdout:  stdoutBuilder,
-			Stderr:  stderrBuilder,
-		})
+
+	pruneErr := gitrepo.GitRemotePrune(ctx, storageRepo, m.GetRemoteName(), timeout, stdoutBuilder, stderrBuilder)
 	if pruneErr != nil {
 		stdout := stdoutBuilder.String()
 		stderr := stderrBuilder.String()
@@ -226,7 +220,7 @@ func pruneBrokenReferences(ctx context.Context,
 		stdoutMessage := util.SanitizeCredentialURLs(stdout)
 
 		log.Error("Failed to prune mirror repository %s%-v references:\nStdout: %s\nStderr: %s\nErr: %v", wiki, m.Repo, stdoutMessage, stderrMessage, pruneErr)
-		desc := fmt.Sprintf("Failed to prune mirror repository %s'%s' references: %s", wiki, repoPath, stderrMessage)
+		desc := fmt.Sprintf("Failed to prune mirror repository %s'%s' references: %s", wiki, storageRepo.RelativePath(), stderrMessage)
 		if err := system_model.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
@@ -262,15 +256,15 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
-	cmd := git.NewCommand("fetch")
+	cmd := gitcmd.NewCommand("fetch")
 	if m.EnablePrune {
 		cmd.AddArguments("--prune")
 	}
 	cmd.AddArguments("--tags").AddDynamicArguments(m.GetRemoteName())
 
-	remoteURL, remoteErr := git.GetRemoteURL(ctx, repoPath, m.GetRemoteName())
+	remoteURL, remoteErr := gitrepo.GitRemoteGetURL(ctx, m.Repo, m.GetRemoteName())
 	if remoteErr != nil {
-		log.Error("SyncMirrors [repo: %-v]: GetRemoteAddress Error %v", m.Repo, remoteErr)
+		log.Error("SyncMirrors [repo: %-v]: GetRemoteURL Error %v", m.Repo, remoteErr)
 		return nil, false
 	}
 
@@ -278,13 +272,10 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
-	if err := cmd.Run(ctx, &git.RunOpts{
-		Timeout: timeout,
-		Dir:     repoPath,
-		Env:     envs,
-		Stdout:  &stdoutBuilder,
-		Stderr:  &stderrBuilder,
-	}); err != nil {
+	if err := gitrepo.RunCmd(ctx, m.Repo, cmd.WithTimeout(timeout).
+		WithEnv(envs).
+		WithStdout(&stdoutBuilder).
+		WithStderr(&stderrBuilder)); err != nil {
 		stdout := stdoutBuilder.String()
 		stderr := stderrBuilder.String()
 
@@ -298,17 +289,14 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 			err = nil
 
 			// Attempt prune
-			pruneErr := pruneBrokenReferences(ctx, m, repoPath, timeout, &stdoutBuilder, &stderrBuilder, false)
+			pruneErr := pruneBrokenReferences(ctx, m, timeout, &stdoutBuilder, &stderrBuilder, false)
 			if pruneErr == nil {
 				// Successful prune - reattempt mirror
 				stderrBuilder.Reset()
 				stdoutBuilder.Reset()
-				if err = cmd.Run(ctx, &git.RunOpts{
-					Timeout: timeout,
-					Dir:     repoPath,
-					Stdout:  &stdoutBuilder,
-					Stderr:  &stderrBuilder,
-				}); err != nil {
+				if err = gitrepo.RunCmd(ctx, m.Repo, cmd.WithTimeout(timeout).
+					WithStdout(&stdoutBuilder).
+					WithStderr(&stderrBuilder)); err != nil {
 					stdout := stdoutBuilder.String()
 					stderr := stderrBuilder.String()
 
@@ -347,7 +335,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		endpoint := lfs.DetermineEndpoint(remoteURL.String(), m.LFSEndpoint)
 		lfsClient := lfs.NewClient(endpoint, nil)
 		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
-			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo, err)
+			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo.FullName(), err)
 		}
 	}
 
@@ -364,20 +352,16 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
 	if err := repo_module.UpdateRepoSize(ctx, m.Repo); err != nil {
-		log.Error("SyncMirrors [repo: %-v]: failed to update size for mirror repository: %v", m.Repo, err)
+		log.Error("SyncMirrors [repo: %-v]: failed to update size for mirror repository: %v", m.Repo.FullName(), err)
 	}
 
-	if m.Repo.HasWiki() {
+	if repo_service.HasWiki(ctx, m.Repo) {
 		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
-		if err := git.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
-			Run(ctx, &git.RunOpts{
-				Timeout: timeout,
-				Dir:     wikiPath,
-				Stdout:  &stdoutBuilder,
-				Stderr:  &stderrBuilder,
-			}); err != nil {
+
+		if err := gitrepo.GitRemoteUpdatePrune(ctx, m.Repo.WikiStorageRepo(), m.GetRemoteName(),
+			timeout, &stdoutBuilder, &stderrBuilder); err != nil {
 			stdout := stdoutBuilder.String()
 			stderr := stderrBuilder.String()
 
@@ -391,19 +375,14 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 				err = nil
 
 				// Attempt prune
-				pruneErr := pruneBrokenReferences(ctx, m, repoPath, timeout, &stdoutBuilder, &stderrBuilder, true)
+				pruneErr := pruneBrokenReferences(ctx, m, timeout, &stdoutBuilder, &stderrBuilder, true)
 				if pruneErr == nil {
 					// Successful prune - reattempt mirror
 					stderrBuilder.Reset()
 					stdoutBuilder.Reset()
 
-					if err = git.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
-						Run(ctx, &git.RunOpts{
-							Timeout: timeout,
-							Dir:     wikiPath,
-							Stdout:  &stdoutBuilder,
-							Stderr:  &stderrBuilder,
-						}); err != nil {
+					if err = gitrepo.GitRemoteUpdatePrune(ctx, m.Repo.WikiStorageRepo(), m.GetRemoteName(),
+						timeout, &stdoutBuilder, &stderrBuilder); err != nil {
 						stdout := stdoutBuilder.String()
 						stderr := stderrBuilder.String()
 						stderrMessage = util.SanitizeCredentialURLs(stderr)
@@ -655,7 +634,7 @@ func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, re
 		// Update the is empty and default_branch columns
 		if err := repo_model.UpdateRepositoryColsWithAutoTime(ctx, m.Repo, "default_branch", "is_empty"); err != nil {
 			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
-			desc := fmt.Sprintf("Failed to update default branch of repository '%s': %v", m.Repo.RepoPath(), err)
+			desc := fmt.Sprintf("Failed to update default branch of repository '%s': %v", m.Repo.RelativePath(), err)
 			if err = system_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
