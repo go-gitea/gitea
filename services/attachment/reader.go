@@ -6,7 +6,7 @@ package attachment
 import "io"
 
 // attachmentLimitedReader returns a Reader that reads from r
-// but stops with EOF after n bytes.
+// but errors with ErrAttachmentSizeExceed after n bytes.
 // The underlying implementation is a *attachmentReader.
 func attachmentLimitedReader(r io.Reader, n int64) io.Reader { return &attachmentReader{r, n} }
 
