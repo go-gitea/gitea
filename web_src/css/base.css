@@ -111,7 +111,7 @@ code {
   padding: 1px 4px;
   border-radius: var(--border-radius);
   background-color: var(--color-label-bg);
-  color: var(--color-label-text);
+  color: var(--color-text-light);
 }
 
 b,
