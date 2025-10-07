@@ -63,10 +63,6 @@ func GetSigningKey(ctx context.Context, repoPath string) (*SigningKey, *Signatur
 			}
 	}
 
-	if setting.Repository.Signing.SigningKey == "" {
-		return nil, nil
-	}
-
 	return &SigningKey{
 			KeyID:  setting.Repository.Signing.SigningKey,
 			Format: setting.Repository.Signing.SigningFormat,
