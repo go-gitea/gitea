@@ -856,7 +856,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				if err == nil && len(brs) != 0 {
 					refShortName = brs[0]
 				} else if len(brs) == 0 {
-					log.Error("No branches in non-empty repository %s", ctx.Repo.GitRepo.Path)
+					log.Error("No branches in non-empty repository %s", ctx.Repo.Repository.RelativePath())
 				} else {
 					log.Error("GetBranches error: %v", err)
 				}

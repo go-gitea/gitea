@@ -1191,7 +1191,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefToGuess)
 	headRef := headGitRepo.UnstableGuessRefByShortName(headRefToGuess)
 
-	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.GitRepo.Path, baseRefToGuess, baseRef, headRefToGuess, headRef)
+	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.RelativePath(), baseRefToGuess, baseRef, headRefToGuess, headRef)
 
 	baseRefValid := baseRef.IsBranch() || baseRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName), baseRef.ShortName())
 	headRefValid := headRef.IsBranch() || headRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(headRepo.ObjectFormatName), headRef.ShortName())
