@@ -85,7 +85,7 @@ MAX_WORKERS = 123
 	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues/dir1"), q1.baseConfig.DataFullDir)
 	assert.Equal(t, 100, q1.baseConfig.Length)
 	assert.Equal(t, 20, q1.batchLength)
-	assert.Equal(t, "addrs=127.0.0.1:6379 db=0", q1.baseConfig.ConnStr)
+	assert.Equal(t, "addrs=127.0.0.1:6379 db=0", q1.baseConfig.ConnStr.String())
 	assert.Equal(t, "no-such_queue1", q1.baseConfig.QueueFullName)
 	assert.Equal(t, "no-such_queue1_unique", q1.baseConfig.SetFullName)
 	assert.NotZero(t, q1.GetWorkerMaxNumber())
