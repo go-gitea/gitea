@@ -73,14 +73,14 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 		}, err)
 		return
 	}
-	commit, err := ctx.Repo.GitRepo.GetCommit(run.CommitSHA)
+	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, run.CommitSHA)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommit", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
 		return
 	}
-	rpath, entries, err := actions.ListWorkflows(commit)
+	rpath, entries, err := actions.ListWorkflows(ctx, commit)
 	if err != nil {
 		ctx.ServerError("ListWorkflows", err)
 		return

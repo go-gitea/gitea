@@ -145,7 +145,7 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 	cmd := gitcmd.NewCommand("blame", "--porcelain")
 
 	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
-		ignoreRevsFileName, ignoreRevsFileCleanup, err = tryCreateBlameIgnoreRevsFile(commit)
+		ignoreRevsFileName, ignoreRevsFileCleanup, err = tryCreateBlameIgnoreRevsFile(ctx, commit)
 		if err != nil && !IsErrNotExist(err) {
 			return nil, err
 		}
@@ -190,13 +190,13 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 	}, nil
 }
 
-func tryCreateBlameIgnoreRevsFile(commit *Commit) (string, func(), error) {
-	entry, err := commit.GetTreeEntryByPath(".git-blame-ignore-revs")
+func tryCreateBlameIgnoreRevsFile(ctx context.Context, commit *Commit) (string, func(), error) {
+	entry, err := commit.GetTreeEntryByPath(ctx, ".git-blame-ignore-revs")
 	if err != nil {
 		return "", nil, err
 	}
 
-	r, err := entry.Blob().DataAsync()
+	r, err := entry.Blob().DataAsync(ctx)
 	if err != nil {
 		return "", nil, err
 	}

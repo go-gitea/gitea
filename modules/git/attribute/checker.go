@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
-func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attributes []string) (*gitcmd.Command, []string, func(), error) {
+func checkAttrCommand(ctx context.Context, gitRepo *git.Repository, treeish string, filenames, attributes []string) (*gitcmd.Command, []string, func(), error) {
 	cancel := func() {}
 	envs := []string{"GIT_FLUSH=1"}
 	cmd := gitcmd.NewCommand("check-attr", "-z")
@@ -28,7 +28,7 @@ func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attrib
 			cmd.AddArguments("--source")
 			cmd.AddDynamicArguments(treeish)
 		} else {
-			indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(treeish)
+			indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(ctx, treeish)
 			if err != nil {
 				return nil, nil, nil, err
 			}
@@ -62,7 +62,7 @@ type CheckAttributeOpts struct {
 // CheckAttributes return the attributes of the given filenames and attributes in the given treeish.
 // If treeish is empty, then it will use current working directory, otherwise it will use the provided treeish on the bare repo
 func CheckAttributes(ctx context.Context, gitRepo *git.Repository, treeish string, opts CheckAttributeOpts) (map[string]*Attributes, error) {
-	cmd, envs, cancel, err := checkAttrCommand(gitRepo, treeish, opts.Filenames, opts.Attributes)
+	cmd, envs, cancel, err := checkAttrCommand(ctx, gitRepo, treeish, opts.Filenames, opts.Attributes)
 	if err != nil {
 		return nil, err
 	}

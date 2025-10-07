@@ -136,7 +136,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
-	if blob.Size() > lfs.MetaFileMaxSize {
+	if blob.Size(ctx) > lfs.MetaFileMaxSize {
 		// First handle caching for the blob
 		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
@@ -151,7 +151,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 
 	// OK, now the blob is known to have at most 1024 (lfs pointer max size) bytes,
 	// we can simply read this in one go (This saves reading it twice)
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(ctx)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -179,7 +179,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 
 		// If not cached - serve!
-		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
+		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(ctx), bytes.NewReader(buf))
 		return
 	}
 
@@ -193,7 +193,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 			return
 		}
 
-		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
+		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(ctx), bytes.NewReader(buf))
 		return
 	} else if err != nil {
 		ctx.APIErrorInternal(err)
@@ -225,7 +225,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 }
 
 func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified *time.Time) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound()
@@ -240,7 +240,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEn
 		return nil, nil, nil
 	}
 
-	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
+	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx, ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil, nil
@@ -316,7 +316,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	ec, _, err := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
+	ec, _, err := ctx.Repo.GetEditorconfig(ctx, ctx.Repo.Commit)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound(err)

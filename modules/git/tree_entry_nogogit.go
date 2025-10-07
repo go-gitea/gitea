@@ -5,7 +5,11 @@
 
 package git
 
-import "code.gitea.io/gitea/modules/log"
+import (
+	"context"
+
+	"code.gitea.io/gitea/modules/log"
+)
 
 // TreeEntry the leaf in the git tree
 type TreeEntry struct {
@@ -29,14 +33,14 @@ func (te *TreeEntry) Mode() EntryMode {
 }
 
 // Size returns the size of the entry
-func (te *TreeEntry) Size() int64 {
+func (te *TreeEntry) Size(ctx context.Context) int64 {
 	if te.IsDir() {
 		return 0
 	} else if te.sized {
 		return te.size
 	}
 
-	wr, rd, cancel, err := te.ptree.repo.CatFileBatchCheck(te.ptree.repo.Ctx)
+	wr, rd, cancel, err := te.ptree.repo.CatFileBatchCheck(ctx)
 	if err != nil {
 		log.Debug("error whilst reading size for %s in %s. Error: %v", te.ID.String(), te.ptree.repo.Path, err)
 		return 0

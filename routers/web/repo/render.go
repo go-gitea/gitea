@@ -24,7 +24,7 @@ func RenderFile(ctx *context.Context) {
 	var blob *git.Blob
 	var err error
 	if ctx.Repo.TreePath != "" {
-		blob, err = ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+		blob, err = ctx.Repo.Commit.GetBlobByPath(ctx, ctx.Repo.TreePath)
 	} else {
 		blob, err = ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	}
@@ -37,7 +37,7 @@ func RenderFile(ctx *context.Context) {
 		return
 	}
 
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(ctx)
 	if err != nil {
 		ctx.ServerError("DataAsync", err)
 		return

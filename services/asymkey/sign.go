@@ -247,12 +247,12 @@ Loop:
 				return false, nil, nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			gitRepo, err := gitrepo.OpenRepository(ctx, repo.WikiStorageRepo())
+			gitRepo, err := gitrepo.OpenRepository(repo.WikiStorageRepo())
 			if err != nil {
 				return false, nil, nil, err
 			}
 			defer gitRepo.Close()
-			commit, err := gitRepo.GetCommit("HEAD")
+			commit, err := gitRepo.GetCommit(ctx, "HEAD")
 			if err != nil {
 				return false, nil, nil, err
 			}
@@ -300,17 +300,17 @@ Loop:
 				return false, nil, nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
+			gitRepo, err := git.OpenRepository(tmpBasePath)
 			if err != nil {
 				return false, nil, nil, err
 			}
 			defer gitRepo.Close()
-			isEmpty, err := gitRepo.IsEmpty()
+			isEmpty, err := gitRepo.IsEmpty(ctx)
 			if err != nil {
 				return false, nil, nil, err
 			}
 			if !isEmpty {
-				commit, err := gitRepo.GetCommit(parentCommit)
+				commit, err := gitRepo.GetCommit(ctx, parentCommit)
 				if err != nil {
 					return false, nil, nil, err
 				}
@@ -380,13 +380,13 @@ Loop:
 			}
 		case baseSigned:
 			if gitRepo == nil {
-				gitRepo, err = git.OpenRepository(ctx, tmpBasePath)
+				gitRepo, err = git.OpenRepository(tmpBasePath)
 				if err != nil {
 					return false, nil, nil, err
 				}
 				defer gitRepo.Close()
 			}
-			commit, err := gitRepo.GetCommit(baseCommit)
+			commit, err := gitRepo.GetCommit(ctx, baseCommit)
 			if err != nil {
 				return false, nil, nil, err
 			}
@@ -396,13 +396,13 @@ Loop:
 			}
 		case headSigned:
 			if gitRepo == nil {
-				gitRepo, err = git.OpenRepository(ctx, tmpBasePath)
+				gitRepo, err = git.OpenRepository(tmpBasePath)
 				if err != nil {
 					return false, nil, nil, err
 				}
 				defer gitRepo.Close()
 			}
-			commit, err := gitRepo.GetCommit(headCommit)
+			commit, err := gitRepo.GetCommit(ctx, headCommit)
 			if err != nil {
 				return false, nil, nil, err
 			}
@@ -412,13 +412,13 @@ Loop:
 			}
 		case commitsSigned:
 			if gitRepo == nil {
-				gitRepo, err = git.OpenRepository(ctx, tmpBasePath)
+				gitRepo, err = git.OpenRepository(tmpBasePath)
 				if err != nil {
 					return false, nil, nil, err
 				}
 				defer gitRepo.Close()
 			}
-			commit, err := gitRepo.GetCommit(headCommit)
+			commit, err := gitRepo.GetCommit(ctx, headCommit)
 			if err != nil {
 				return false, nil, nil, err
 			}
@@ -427,11 +427,11 @@ Loop:
 				return false, nil, nil, &ErrWontSign{commitsSigned}
 			}
 			// need to work out merge-base
-			mergeBaseCommit, _, err := gitRepo.GetMergeBase("", baseCommit, headCommit)
+			mergeBaseCommit, _, err := gitRepo.GetMergeBase(ctx, "", baseCommit, headCommit)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			commitList, err := commit.CommitsBeforeUntil(mergeBaseCommit)
+			commitList, err := commit.CommitsBeforeUntil(ctx, mergeBaseCommit)
 			if err != nil {
 				return false, nil, nil, err
 			}

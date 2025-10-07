@@ -87,7 +87,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		return fmt.Errorf("GetRepositoryByOwnerAndName failed: %w", err)
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	if err != nil {
 		return fmt.Errorf("OpenRepository[%s]: %w", repo.FullName(), err)
 	}
@@ -132,7 +132,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				delTags = append(delTags, tagName)
 				notify_service.DeleteRef(ctx, pusher, repo, opts.RefFullName)
 			} else { // is new tag
-				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
+				newCommit, err := gitRepo.GetCommit(ctx, opts.NewCommitID)
 				if err != nil {
 					// in case there is dirty data, for example, the "github.com/git/git" repository has tags pointing to non-existing commits
 					if !errors.Is(err, util.ErrNotExist) {
@@ -172,7 +172,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
-				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
+				newCommit, err := gitRepo.GetCommit(ctx, opts.NewCommitID)
 				if err != nil {
 					return fmt.Errorf("gitRepo.GetCommit(%s) in %s/%s[%d]: %w", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
 				}
@@ -206,7 +206,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					log.Error("updateIssuesCommit: %v", err)
 				}
 
-				commits.CompareURL = getCompareURL(repo, gitRepo, objectFormat, commits.Commits, opts)
+				commits.CompareURL = getCompareURL(ctx, repo, gitRepo, objectFormat, commits.Commits, opts)
 
 				if len(commits.Commits) > setting.UI.FeedMaxCommitNum {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
@@ -245,10 +245,10 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	return nil
 }
 
-func getCompareURL(repo *repo_model.Repository, gitRepo *git.Repository, objectFormat git.ObjectFormat, commits []*repo_module.PushCommit, opts *repo_module.PushUpdateOptions) string {
+func getCompareURL(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, objectFormat git.ObjectFormat, commits []*repo_module.PushCommit, opts *repo_module.PushUpdateOptions) string {
 	oldCommitID := opts.OldCommitID
 	if oldCommitID == objectFormat.EmptyObjectID().String() && len(commits) > 0 {
-		oldCommit, err := gitRepo.GetCommit(commits[len(commits)-1].Sha1)
+		oldCommit, err := gitRepo.GetCommit(ctx, commits[len(commits)-1].Sha1)
 		if err != nil && !git.IsErrNotExist(err) {
 			log.Error("unable to GetCommit %s from %-v: %v", oldCommitID, repo, err)
 		}
@@ -288,7 +288,7 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 		}
 	}
 
-	l, err := newCommit.CommitsBeforeLimit(10)
+	l, err := newCommit.CommitsBeforeLimit(ctx, 10)
 	if err != nil {
 		return nil, fmt.Errorf("newCommit.CommitsBeforeLimit: %w", err)
 	}
@@ -296,15 +296,15 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 	return l, nil
 }
 
-func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
-	l, err := newCommit.CommitsBeforeUntil(opts.OldCommitID)
+func pushUpdateBranch(ctx context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
+	l, err := newCommit.CommitsBeforeUntil(ctx, opts.OldCommitID)
 	if err != nil {
 		return nil, fmt.Errorf("newCommit.CommitsBeforeUntil: %w", err)
 	}
 
 	branch := opts.RefFullName.BranchName()
 
-	isForcePush, err := newCommit.IsForcePush(opts.OldCommitID)
+	isForcePush, err := newCommit.IsForcePush(ctx, opts.OldCommitID)
 	if err != nil {
 		log.Error("IsForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 	}
@@ -379,11 +379,11 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	newReleases := make([]*repo_model.Release, 0, len(lowerTags)-len(relMap))
 
 	for i, lowerTag := range lowerTags {
-		tag, err := gitRepo.GetTag(tags[i])
+		tag, err := gitRepo.GetTag(ctx, tags[i])
 		if err != nil {
 			return fmt.Errorf("GetTag: %w", err)
 		}
-		commit, err := gitRepo.GetTagCommit(tag.Name)
+		commit, err := gitRepo.GetTagCommit(ctx, tag.Name)
 		if err != nil {
 			return fmt.Errorf("Commit: %w", err)
 		}

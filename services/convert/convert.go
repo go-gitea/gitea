@@ -394,7 +394,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, co
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 
-	defaultBranch, _ := commit.GetBranchName()
+	defaultBranch, _ := commit.GetBranchName(ctx)
 
 	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", repo.APIURL(), util.PathEscapeSegments(entry.Name()))
 	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", repo.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), util.PathEscapeSegments(entry.Name()))
@@ -420,7 +420,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, co
 	createdAt := commit.Author.When
 	updatedAt := commit.Author.When
 
-	content, err := actions.GetContentFromEntry(entry)
+	content, err := actions.GetContentFromEntry(ctx, entry)
 	name := entry.Name()
 	if err == nil {
 		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
@@ -450,12 +450,12 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, co
 }
 
 func ListActionWorkflows(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository) ([]*api.ActionWorkflow, error) {
-	defaultBranchCommit, err := gitrepo.GetBranchCommit(repo.DefaultBranch)
+	defaultBranchCommit, err := gitrepo.GetBranchCommit(ctx, repo.DefaultBranch)
 	if err != nil {
 		return nil, err
 	}
 
-	folder, entries, err := actions.ListWorkflows(defaultBranchCommit)
+	folder, entries, err := actions.ListWorkflows(ctx, defaultBranchCommit)
 	if err != nil {
 		return nil, err
 	}

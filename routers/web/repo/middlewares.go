@@ -18,7 +18,7 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 		return
 	}
 
-	ec, _, err := ctx.Repo.GetEditorconfig()
+	ec, _, err := ctx.Repo.GetEditorconfig(ctx)
 	if err != nil {
 		// it used to check `!git.IsErrNotExist(err)` and create a system notice, but it is quite annoying and useless
 		// because network errors also happen frequently, so we just ignore it

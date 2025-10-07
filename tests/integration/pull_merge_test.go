@@ -263,7 +263,7 @@ func TestCantMergeConflict(t *testing.T) {
 			BaseBranch: "base",
 		})
 
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
+		gitRepo, err := gitrepo.OpenRepository(repo1)
 		assert.NoError(t, err)
 
 		err = pull_service.Merge(t.Context(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "CONFLICT", false)
@@ -361,7 +361,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
+		gitRepo, err := gitrepo.OpenRepository(repo1)
 		assert.NoError(t, err)
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 			HeadRepoID: repo1.ID,
@@ -407,7 +407,7 @@ func TestFastForwardOnlyMerge(t *testing.T) {
 			BaseBranch: "master",
 		})
 
-		gitRepo, err := git.OpenRepository(t.Context(), repo_model.RepoPath(user1.Name, repo1.Name))
+		gitRepo, err := git.OpenRepository(repo_model.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
 
 		err = pull_service.Merge(t.Context(), pr, user1, gitRepo, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false)
@@ -449,7 +449,7 @@ func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
 			BaseBranch: "master",
 		})
 
-		gitRepo, err := git.OpenRepository(t.Context(), repo_model.RepoPath(user1.Name, repo1.Name))
+		gitRepo, err := git.OpenRepository(repo_model.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
 
 		err = pull_service.Merge(t.Context(), pr, user1, gitRepo, repo_model.MergeStyleFastForwardOnly, "", "DIVERGING", false)
@@ -696,10 +696,10 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 func testResetRepo(t *testing.T, repo *repo_model.Repository, branch, commitID string) {
 	assert.NoError(t, gitrepo.UpdateRef(t.Context(), repo, git.BranchPrefix+branch, commitID))
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
-	id, err := gitRepo.GetBranchCommitID(branch)
+	id, err := gitRepo.GetBranchCommitID(t.Context(), branch)
 	assert.NoError(t, err)
 	assert.Equal(t, commitID, id)
 }
@@ -766,14 +766,14 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update commit status to success, then it should be merged automatically
-		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
+		baseGitRepo, err := gitrepo.OpenRepository(baseRepo)
 		assert.NoError(t, err)
-		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
-		masterCommitID, err := baseGitRepo.GetBranchCommitID("master")
+		masterCommitID, err := baseGitRepo.GetBranchCommitID(t.Context(), "master")
 		assert.NoError(t, err)
 
-		branches, _, err := baseGitRepo.GetBranchNames(0, 100)
+		branches, _, err := baseGitRepo.GetBranchNames(t.Context(), 0, 100)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, []string{"sub-home-md-img-check", "home-md-img-check", "pr-to-update", "branch2", "DefaultBranch", "develop", "feature/1", "master"}, branches)
 		baseGitRepo.Close()
@@ -848,11 +848,11 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update commit status to success, then it should be merged automatically
-		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
+		baseGitRepo, err := gitrepo.OpenRepository(baseRepo)
 		assert.NoError(t, err)
-		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
-		masterCommitID, err := baseGitRepo.GetBranchCommitID("master")
+		masterCommitID, err := baseGitRepo.GetBranchCommitID(t.Context(), "master")
 		assert.NoError(t, err)
 		baseGitRepo.Close()
 		defer func() {
@@ -979,11 +979,11 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update commit status to success, then it should be merged automatically
-		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
+		baseGitRepo, err := gitrepo.OpenRepository(baseRepo)
 		assert.NoError(t, err)
-		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
-		masterCommitID, err := baseGitRepo.GetBranchCommitID("master")
+		masterCommitID, err := baseGitRepo.GetBranchCommitID(t.Context(), "master")
 		assert.NoError(t, err)
 		baseGitRepo.Close()
 		defer func() {

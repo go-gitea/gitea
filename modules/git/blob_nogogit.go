@@ -8,6 +8,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"io"
 
 	"code.gitea.io/gitea/modules/log"
@@ -25,8 +26,8 @@ type Blob struct {
 
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
-func (b *Blob) DataAsync() (io.ReadCloser, error) {
-	wr, rd, cancel, err := b.repo.CatFileBatch(b.repo.Ctx)
+func (b *Blob) DataAsync(ctx context.Context) (io.ReadCloser, error) {
+	wr, rd, cancel, err := b.repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -62,12 +63,12 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 }
 
 // Size returns the uncompressed size of the blob
-func (b *Blob) Size() int64 {
+func (b *Blob) Size(ctx context.Context) int64 {
 	if b.gotSize {
 		return b.size
 	}
 
-	wr, rd, cancel, err := b.repo.CatFileBatchCheck(b.repo.Ctx)
+	wr, rd, cancel, err := b.repo.CatFileBatchCheck(ctx)
 	if err != nil {
 		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0

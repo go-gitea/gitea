@@ -44,20 +44,20 @@ func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 
 		sha := resp.Commit.SHA
 
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, err := gitrepo.OpenRepository(repo)
 		assert.NoError(t, err)
 
-		commit, err := gitRepo.GetCommit(sha)
+		commit, err := gitRepo.GetCommit(t.Context(), sha)
 		assert.NoError(t, err)
 
-		entry, err := commit.GetTreeEntryByPath("test.txt")
+		entry, err := commit.GetTreeEntryByPath(t.Context(), "test.txt")
 		assert.NoError(t, err)
 
 		b := entry.Blob()
-		r1, err := b.DataAsync()
+		r1, err := b.DataAsync(t.Context())
 		assert.NoError(t, err)
 		defer r1.Close()
-		r2, err := b.DataAsync()
+		r2, err := b.DataAsync(t.Context())
 		assert.NoError(t, err)
 		defer r2.Close()
 
@@ -90,7 +90,7 @@ func TestAgitPullPush(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
+		gitRepo, err := git.OpenRepository(dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -153,7 +153,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
+		gitRepo, err := git.OpenRepository(dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -222,11 +222,11 @@ func TestAgitReviewStaleness(t *testing.T) {
 
 		// For AGit PRs, HeadCommitID must be loaded from git references
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
+		baseGitRepo, err := gitrepo.OpenRepository(baseRepo)
 		assert.NoError(t, err)
 		defer baseGitRepo.Close()
 
-		updatedCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		updatedCommitID, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		t.Logf("Updated commit ID: %s", updatedCommitID)
 

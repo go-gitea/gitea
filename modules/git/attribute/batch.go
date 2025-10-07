@@ -22,22 +22,21 @@ type BatchChecker struct {
 	repo          *git.Repository
 	stdinWriter   *os.File
 	stdOut        *nulSeparatedAttributeWriter
-	ctx           context.Context
 	cancel        context.CancelFunc
 	cmd           *gitcmd.Command
 }
 
 // NewBatchChecker creates a check attribute reader for the current repository and provided commit ID
 // If treeish is empty, then it will use current working directory, otherwise it will use the provided treeish on the bare repo
-func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) (checker *BatchChecker, returnedErr error) {
-	ctx, cancel := context.WithCancel(repo.Ctx)
+func NewBatchChecker(ctx context.Context, repo *git.Repository, treeish string, attributes []string) (checker *BatchChecker, returnedErr error) {
+	ctx, cancel := context.WithCancel(ctx)
 	defer func() {
 		if returnedErr != nil {
 			cancel()
 		}
 	}()
 
-	cmd, envs, cleanup, err := checkAttrCommand(repo, treeish, nil, attributes)
+	cmd, envs, cleanup, err := checkAttrCommand(ctx, repo, treeish, nil, attributes)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +51,6 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) 
 	checker = &BatchChecker{
 		attributesNum: len(attributes),
 		repo:          repo,
-		ctx:           ctx,
 		cmd:           cmd,
 		cancel: func() {
 			cancel()
@@ -94,16 +92,16 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) 
 }
 
 // CheckPath check attr for given path
-func (c *BatchChecker) CheckPath(path string) (rs *Attributes, err error) {
+func (c *BatchChecker) CheckPath(ctx context.Context, path string) (rs *Attributes, err error) {
 	defer func() {
-		if err != nil && err != c.ctx.Err() {
+		if err != nil && err != ctx.Err() {
 			log.Error("Unexpected error when checking path %s in %s, error: %v", path, filepath.Base(c.repo.Path), err)
 		}
 	}()
 
 	select {
-	case <-c.ctx.Done():
-		return nil, c.ctx.Err()
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	default:
 	}
 
@@ -136,11 +134,11 @@ func (c *BatchChecker) CheckPath(path string) (rs *Attributes, err error) {
 			return nil, reportTimeout()
 		case attr, ok := <-c.stdOut.ReadAttribute():
 			if !ok {
-				return nil, c.ctx.Err()
+				return nil, ctx.Err()
 			}
 			rs.m[attr.Attribute] = Attribute(attr.Value)
-		case <-c.ctx.Done():
-			return nil, c.ctx.Err()
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		}
 	}
 	return rs, nil

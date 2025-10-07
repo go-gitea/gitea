@@ -16,14 +16,14 @@ import (
 )
 
 func BenchmarkGetCommitGraph(b *testing.B) {
-	currentRepo, err := git.OpenRepository(b.Context(), ".")
+	currentRepo, err := git.OpenRepository(".")
 	if err != nil || currentRepo == nil {
 		b.Error("Could not open repository")
 	}
 	defer currentRepo.Close()
 
 	for b.Loop() {
-		graph, err := GetCommitGraph(currentRepo, 1, 0, false, nil, nil)
+		graph, err := GetCommitGraph(b.Context(), currentRepo, 1, 0, false, nil, nil)
 		if err != nil {
 			b.Error("Could get commit graph")
 		}

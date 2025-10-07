@@ -12,11 +12,11 @@ import (
 
 func TestRepository_GetRefs(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
+	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
-	refs, err := bareRepo1.GetRefs()
+	refs, err := bareRepo1.GetRefs(t.Context())
 
 	assert.NoError(t, err)
 	assert.Len(t, refs, 6)
@@ -37,11 +37,11 @@ func TestRepository_GetRefs(t *testing.T) {
 
 func TestRepository_GetRefsFiltered(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
+	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
-	refs, err := bareRepo1.GetRefsFiltered(TagPrefix)
+	refs, err := bareRepo1.GetRefsFiltered(t.Context(), TagPrefix)
 
 	assert.NoError(t, err)
 	if assert.Len(t, refs, 2) {

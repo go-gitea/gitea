@@ -18,12 +18,12 @@ import (
 )
 
 // IsObjectExist returns true if the given object exists in the repository.
-func (repo *Repository) IsObjectExist(name string) bool {
+func (repo *Repository) IsObjectExist(ctx context.Context, name string) bool {
 	if name == "" {
 		return false
 	}
 
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatchCheck(ctx)
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
@@ -39,12 +39,12 @@ func (repo *Repository) IsObjectExist(name string) bool {
 }
 
 // IsReferenceExist returns true if given reference exists in the repository.
-func (repo *Repository) IsReferenceExist(name string) bool {
+func (repo *Repository) IsReferenceExist(ctx context.Context, name string) bool {
 	if name == "" {
 		return false
 	}
 
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatchCheck(ctx)
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
@@ -60,23 +60,23 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 }
 
 // IsBranchExist returns true if given branch exists in current repository.
-func (repo *Repository) IsBranchExist(name string) bool {
+func (repo *Repository) IsBranchExist(ctx context.Context, name string) bool {
 	if repo == nil || name == "" {
 		return false
 	}
 
-	return repo.IsReferenceExist(BranchPrefix + name)
+	return repo.IsReferenceExist(ctx, BranchPrefix+name)
 }
 
 // GetBranchNames returns branches from the repository, skipping "skip" initial branches and
 // returning at most "limit" branches, or all branches if "limit" is 0.
-func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
-	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, gitcmd.TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}, skip, limit)
+func (repo *Repository) GetBranchNames(ctx context.Context, skip, limit int) ([]string, int, error) {
+	return callShowRef(ctx, repo.Path, BranchPrefix, gitcmd.TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}, skip, limit)
 }
 
 // WalkReferences walks all the references from the repository
 // refType should be empty, ObjectTag or ObjectBranch. All other values are equivalent to empty.
-func (repo *Repository) WalkReferences(refType ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
+func (repo *Repository) WalkReferences(ctx context.Context, refType ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
 	var args gitcmd.TrustedCmdArgs
 	switch refType {
 	case ObjectTag:
@@ -85,7 +85,7 @@ func (repo *Repository) WalkReferences(refType ObjectType, skip, limit int, walk
 		args = gitcmd.TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}
 	}
 
-	return WalkShowRef(repo.Ctx, repo.Path, args, skip, limit, walkfn)
+	return WalkShowRef(ctx, repo.Path, args, skip, limit, walkfn)
 }
 
 // callShowRef return refs, if limit = 0 it will not limit
@@ -191,9 +191,9 @@ func WalkShowRef(ctx context.Context, repoPath string, extraArgs gitcmd.TrustedC
 }
 
 // GetRefsBySha returns all references filtered with prefix that belong to a sha commit hash
-func (repo *Repository) GetRefsBySha(sha, prefix string) ([]string, error) {
+func (repo *Repository) GetRefsBySha(ctx context.Context, sha, prefix string) ([]string, error) {
 	var revList []string
-	_, err := WalkShowRef(repo.Ctx, repo.Path, nil, 0, 0, func(walkSha, refname string) error {
+	_, err := WalkShowRef(ctx, repo.Path, nil, 0, 0, func(walkSha, refname string) error {
 		if walkSha == sha && strings.HasPrefix(refname, prefix) {
 			revList = append(revList, refname)
 		}

@@ -123,13 +123,13 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	if err != nil {
 		return repo, fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer gitRepo.Close()
 
-	repo.IsEmpty, err = gitRepo.IsEmpty()
+	repo.IsEmpty, err = gitRepo.IsEmpty(ctx)
 	if err != nil {
 		return repo, fmt.Errorf("git.IsEmpty: %w", err)
 	}

@@ -344,7 +344,7 @@ func checkForInvalidation(ctx context.Context, requests issues_model.PullRequest
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByIDCtx: %w", err)
 	}
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	if err != nil {
 		return fmt.Errorf("gitrepo.OpenRepository: %w", err)
 	}
@@ -497,14 +497,14 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	}
 	defer cancel()
 
-	tmpRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
+	tmpRepo, err := git.OpenRepository(prCtx.tmpBasePath)
 	if err != nil {
 		return false, fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer tmpRepo.Close()
 
 	// Find the merge-base
-	_, base, err := tmpRepo.GetMergeBase("", "base", "tracking")
+	_, base, err := tmpRepo.GetMergeBase(ctx, "", "base", "tracking")
 	if err != nil {
 		return false, fmt.Errorf("GetMergeBase: %w", err)
 	}
@@ -797,21 +797,21 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 
 	var headCommit *git.Commit
 	if pr.Flow == issues_model.PullRequestFlowGithub {
-		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
+		headCommit, err = gitRepo.GetBranchCommit(ctx, pr.HeadBranch)
 	} else {
-		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		pr.HeadCommitID, err = gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitHeadRefName(), err)
 			return ""
 		}
-		headCommit, err = gitRepo.GetCommit(pr.HeadCommitID)
+		headCommit, err = gitRepo.GetCommit(ctx, pr.HeadCommitID)
 	}
 	if err != nil {
 		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
 		return ""
 	}
 
-	mergeBase, err := gitRepo.GetCommit(pr.MergeBase)
+	mergeBase, err := gitRepo.GetCommit(ctx, pr.MergeBase)
 	if err != nil {
 		log.Error("Unable to get merge base commit: %s Error: %v", pr.MergeBase, err)
 		return ""
@@ -819,7 +819,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 
 	limit := setting.Repository.PullRequest.DefaultMergeMessageCommitsLimit
 
-	commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, 0)
+	commits, err := gitRepo.CommitsBetweenLimit(ctx, headCommit, mergeBase, limit, 0)
 	if err != nil {
 		log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 		return ""
@@ -889,7 +889,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		skip := limit
 		limit = 30
 		for {
-			commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
+			commits, err := gitRepo.CommitsBetweenLimit(ctx, headCommit, mergeBase, limit, skip)
 			if err != nil {
 				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 				return ""
@@ -955,7 +955,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 		}
 		gitRepo, ok := gitRepos[issue.RepoID]
 		if !ok {
-			gitRepo, err = gitrepo.OpenRepository(ctx, issue.Repo)
+			gitRepo, err = gitrepo.OpenRepository(issue.Repo)
 			if err != nil {
 				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %v", issue.Repo, issue.Index, issue.ID, err)
 				continue
@@ -976,7 +976,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 
 // getAllCommitStatus get pr's commit statuses.
 func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest) (statuses []*git_model.CommitStatus, lastStatus *git_model.CommitStatus, err error) {
-	sha, shaErr := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	sha, shaErr := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 	if shaErr != nil {
 		return nil, nil, shaErr
 	}
@@ -998,7 +998,7 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 	}
 	defer closer.Close()
 
-	baseCommit, err := baseGitRepo.GetBranchCommit(branchName)
+	baseCommit, err := baseGitRepo.GetBranchCommit(ctx, branchName)
 	if err != nil {
 		return false, err
 	}
@@ -1021,20 +1021,20 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 
 	var headCommit *git.Commit
 	if pr.Flow == issues_model.PullRequestFlowGithub {
-		headCommit, err = headGitRepo.GetBranchCommit(pr.HeadBranch)
+		headCommit, err = headGitRepo.GetBranchCommit(ctx, pr.HeadBranch)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		pr.HeadCommitID, err = baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		pr.HeadCommitID, err = baseGitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			return false, err
 		}
-		if headCommit, err = baseGitRepo.GetCommit(pr.HeadCommitID); err != nil {
+		if headCommit, err = baseGitRepo.GetCommit(ctx, pr.HeadCommitID); err != nil {
 			return false, err
 		}
 	}
-	return baseCommit.HasPreviousCommit(headCommit.ID)
+	return baseCommit.HasPreviousCommit(ctx, headCommit.ID)
 }
 
 type CommitInfo struct {

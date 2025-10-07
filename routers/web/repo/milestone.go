@@ -262,7 +262,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 
 	prepareIssueFilterAndList(ctx, milestoneID, projectID, optional.None[bool]())
 
-	ret := issue.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ret := issue.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.Data["NewIssueChooseTemplate"] = len(ret.IssueTemplates) > 0
 
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWriteIssuesOrPulls(false)

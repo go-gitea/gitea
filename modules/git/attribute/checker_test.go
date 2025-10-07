@@ -18,7 +18,7 @@ import (
 func Test_Checker(t *testing.T) {
 	setting.AppDataPath = t.TempDir()
 	repoPath := "../tests/repos/language_stats_repo"
-	gitRepo, err := git.OpenRepository(t.Context(), repoPath)
+	gitRepo, err := git.OpenRepository(repoPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -44,7 +44,7 @@ func Test_Checker(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		tempRepo, err := git.OpenRepository(t.Context(), dir)
+		tempRepo, err := git.OpenRepository(dir)
 		assert.NoError(t, err)
 		defer tempRepo.Close()
 

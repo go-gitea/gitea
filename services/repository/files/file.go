@@ -45,7 +45,7 @@ func GetContentsListFromTreePaths(ctx context.Context, repo *repo_model.Reposito
 
 func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, treeNames []string) (*api.FilesResponse, error) {
 	files := GetContentsListFromTreePaths(ctx, repo, gitRepo, refCommit, treeNames)
-	fileCommitResponse, _ := GetFileCommitResponse(repo, refCommit.Commit) // ok if fails, then will be nil
+	fileCommitResponse, _ := GetFileCommitResponse(ctx, repo, refCommit.Commit) // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(ctx, refCommit.Commit)
 	filesResponse := &api.FilesResponse{
 		Files:        files,
@@ -70,7 +70,7 @@ func GetFileResponseFromFilesResponse(filesResponse *api.FilesResponse, index in
 }
 
 // GetFileCommitResponse Constructs a FileCommitResponse from a Commit object
-func GetFileCommitResponse(repo *repo_model.Repository, commit *git.Commit) (*api.FileCommitResponse, error) {
+func GetFileCommitResponse(ctx context.Context, repo *repo_model.Repository, commit *git.Commit) (*api.FileCommitResponse, error) {
 	if repo == nil {
 		return nil, errors.New("repo cannot be nil")
 	}
@@ -81,7 +81,7 @@ func GetFileCommitResponse(repo *repo_model.Repository, commit *git.Commit) (*ap
 	commitTreeURL, _ := url.Parse(repo.APIURL() + "/git/trees/" + url.PathEscape(commit.Tree.ID.String()))
 	parents := make([]*api.CommitMeta, commit.ParentCount())
 	for i := 0; i <= commit.ParentCount(); i++ {
-		if parent, err := commit.Parent(i); err == nil && parent != nil {
+		if parent, err := commit.Parent(ctx, i); err == nil && parent != nil {
 			parentCommitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + url.PathEscape(parent.ID.String()))
 			parents[i] = &api.CommitMeta{
 				SHA: parent.ID.String(),

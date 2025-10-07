@@ -22,13 +22,13 @@ import (
 
 // TreeList get all files' entries of a repository
 func TreeList(ctx *context.Context) {
-	tree, err := ctx.Repo.Commit.SubTree("/")
+	tree, err := ctx.Repo.Commit.SubTree(ctx, "/")
 	if err != nil {
 		ctx.ServerError("Repo.Commit.SubTree", err)
 		return
 	}
 
-	entries, err := tree.ListEntriesRecursiveFast()
+	entries, err := tree.ListEntriesRecursiveFast(ctx)
 	if err != nil {
 		ctx.ServerError("ListEntriesRecursiveFast", err)
 		return

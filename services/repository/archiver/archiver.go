@@ -74,7 +74,7 @@ func (e RepoRefNotFoundError) Is(err error) bool {
 // NewRequest creates an archival request, based on the URI.  The
 // resulting ArchiveRequest is suitable for being passed to Await()
 // if it's determined that the request still needs to be satisfied.
-func NewRequest(repo *repo_model.Repository, gitRepo *git.Repository, archiveRefExt string) (*ArchiveRequest, error) {
+func NewRequest(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, archiveRefExt string) (*ArchiveRequest, error) {
 	// here the archiveRefShortName is not a clear ref, it could be a tag, branch or commit id
 	archiveRefShortName, archiveType := repo_model.SplitArchiveNameType(archiveRefExt)
 	if archiveType == repo_model.ArchiveUnknown {
@@ -82,7 +82,7 @@ func NewRequest(repo *repo_model.Repository, gitRepo *git.Repository, archiveRef
 	}
 
 	// Get corresponding commit.
-	commitID, err := gitRepo.ConvertToGitID(archiveRefShortName)
+	commitID, err := gitRepo.ConvertToGitID(ctx, archiveRefShortName)
 	if err != nil {
 		return nil, RepoRefNotFoundError{RefShortName: archiveRefShortName}
 	}

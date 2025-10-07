@@ -17,7 +17,7 @@ import (
 
 // This file contains commit verification functions for refs passed across in hooks
 
-func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
+func verifyCommits(ctx context.Context, oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to create os.Pipe for %s", repo.Path)
@@ -29,7 +29,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 	}()
 
 	var command *gitcmd.Command
-	objectFormat, _ := repo.GetObjectFormat()
+	objectFormat, _ := repo.GetObjectFormat(ctx)
 	if oldCommitID == objectFormat.EmptyObjectID().String() {
 		// When creating a new branch, the oldCommitID is empty, by using "newCommitID --not --all":
 		// List commits that are reachable by following the newCommitID, exclude "all" existing heads/tags commits
@@ -44,7 +44,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 		WithStdout(stdoutWriter).
 		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
-			err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
+			err := readAndVerifyCommitsFromShaReader(ctx, stdoutReader, repo, env)
 			if err != nil {
 				log.Error("readAndVerifyCommitsFromShaReader failed: %v", err)
 				cancel()
@@ -52,18 +52,18 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 			_ = stdoutReader.Close()
 			return err
 		}).
-		Run(repo.Ctx)
+		Run(ctx)
 	if err != nil && !isErrUnverifiedCommit(err) {
 		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}
 	return err
 }
 
-func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository, env []string) error {
+func readAndVerifyCommitsFromShaReader(ctx context.Context, input io.ReadCloser, repo *git.Repository, env []string) error {
 	scanner := bufio.NewScanner(input)
 	for scanner.Scan() {
 		line := scanner.Text()
-		err := readAndVerifyCommit(line, repo, env)
+		err := readAndVerifyCommit(ctx, line, repo, env)
 		if err != nil {
 			return err
 		}
@@ -71,7 +71,7 @@ func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository
 	return scanner.Err()
 }
 
-func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
+func readAndVerifyCommit(ctx context.Context, sha string, repo *git.Repository, env []string) error {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to create pipe for %s: %v", repo.Path, err)
@@ -103,7 +103,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 			}
 			return nil
 		}).
-		Run(repo.Ctx)
+		Run(ctx)
 }
 
 type errUnverifiedCommit struct {

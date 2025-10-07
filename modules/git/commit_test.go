@@ -83,7 +83,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 empty commit`
 
 	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
-	gitRepo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
+	gitRepo, err := OpenRepository(filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
@@ -147,7 +147,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 ISO-8859-1`
 	commitString = strings.ReplaceAll(commitString, "<SPACE>", " ")
 	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
-	gitRepo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
+	gitRepo, err := OpenRepository(filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
@@ -189,25 +189,25 @@ ISO-8859-1`, commitFromReader.Signature.Payload)
 func TestHasPreviousCommit(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	repo, err := OpenRepository(t.Context(), bareRepo1Path)
+	repo, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 
-	commit, err := repo.GetCommit("8006ff9adbf0cb94da7dad9e537e53817f9fa5c0")
+	commit, err := repo.GetCommit(t.Context(), "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0")
 	assert.NoError(t, err)
 
 	parentSHA := MustIDFromString("8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2")
 	notParentSHA := MustIDFromString("2839944139e0de9737a044f78b0e4b40d989a9e3")
 
-	haz, err := commit.HasPreviousCommit(parentSHA)
+	haz, err := commit.HasPreviousCommit(t.Context(), parentSHA)
 	assert.NoError(t, err)
 	assert.True(t, haz)
 
-	hazNot, err := commit.HasPreviousCommit(notParentSHA)
+	hazNot, err := commit.HasPreviousCommit(t.Context(), notParentSHA)
 	assert.NoError(t, err)
 	assert.False(t, hazNot)
 
-	selfNot, err := commit.HasPreviousCommit(commit.ID)
+	selfNot, err := commit.HasPreviousCommit(t.Context(), commit.ID)
 	assert.NoError(t, err)
 	assert.False(t, selfNot)
 }
@@ -342,14 +342,14 @@ func TestGetCommitFileStatusMerges(t *testing.T) {
 
 func Test_GetCommitBranchStart(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(t.Context(), bareRepo1Path)
+	repo, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
-	commit, err := repo.GetBranchCommit("branch1")
+	commit, err := repo.GetBranchCommit(t.Context(), "branch1")
 	assert.NoError(t, err)
 	assert.Equal(t, "2839944139e0de9737a044f78b0e4b40d989a9e3", commit.ID.String())
 
-	startCommitID, err := repo.GetCommitBranchStart(os.Environ(), "branch1", commit.ID.String())
+	startCommitID, err := repo.GetCommitBranchStart(t.Context(), os.Environ(), "branch1", commit.ID.String())
 	assert.NoError(t, err)
 	assert.NotEmpty(t, startCommitID)
 	assert.Equal(t, "95bb4d39648ee7e325106df01a621c530863a653", startCommitID)

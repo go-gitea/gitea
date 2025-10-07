@@ -1055,7 +1055,7 @@ func MergePullRequest(ctx *context.APIContext) {
 			if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
 				headRepo = ctx.Repo.GitRepo
 			} else {
-				headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
+				headRepo, err = gitrepo.OpenRepository(pr.HeadRepo)
 				if err != nil {
 					ctx.APIErrorInternal(err)
 					return
@@ -1149,7 +1149,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headGitRepo = ctx.Repo.GitRepo
 		closer = func() {} // no need to close the head repo because it shares the base repo
 	} else {
-		headGitRepo, err = gitrepo.OpenRepository(ctx, headRepo)
+		headGitRepo, err = gitrepo.OpenRepository(headRepo)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return nil, nil
@@ -1188,8 +1188,8 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefToGuess)
-	headRef := headGitRepo.UnstableGuessRefByShortName(headRefToGuess)
+	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(ctx, baseRefToGuess)
+	headRef := headGitRepo.UnstableGuessRefByShortName(ctx, headRefToGuess)
 
 	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.GitRepo.Path, baseRefToGuess, baseRef, headRefToGuess, headRef)
 
@@ -1593,7 +1593,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
-	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	headCommitID, err := baseGitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

@@ -121,7 +121,7 @@ func LFSLocks(ctx *context.Context) {
 		return
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
+	gitRepo, err := git.OpenRepository(tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("failed to open new temporary repository in: %s %w", tmpBasePath, err))
@@ -129,7 +129,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	defer gitRepo.Close()
 
-	checker, err := attribute.NewBatchChecker(gitRepo, ctx.Repo.Repository.DefaultBranch, []string{attribute.Lockable})
+	checker, err := attribute.NewBatchChecker(ctx, gitRepo, ctx.Repo.Repository.DefaultBranch, []string{attribute.Lockable})
 	if err != nil {
 		log.Error("Unable to check attributes in %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", err)
@@ -141,7 +141,7 @@ func LFSLocks(ctx *context.Context) {
 	filenames := make([]string, len(lfsLocks))
 	for i, lock := range lfsLocks {
 		filenames[i] = lock.Path
-		attrs, err := checker.CheckPath(lock.Path)
+		attrs, err := checker.CheckPath(ctx, lock.Path)
 		if err != nil {
 			log.Error("Unable to check attributes in %s: %s (%v)", tmpBasePath, lock.Path, err)
 			continue
@@ -150,7 +150,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	ctx.Data["Lockables"] = lockables
 
-	filelist, err := gitRepo.LsFiles(filenames...)
+	filelist, err := gitRepo.LsFiles(ctx, filenames...)
 	if err != nil {
 		log.Error("Unable to lsfiles in %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", err)
@@ -383,7 +383,7 @@ func LFSFileFind(ctx *context.Context) {
 	ctx.Data["Size"] = size
 	ctx.Data["SHA"] = sha
 
-	results, err := pipeline.FindLFSFile(ctx.Repo.GitRepo, objectID)
+	results, err := pipeline.FindLFSFile(ctx, ctx.Repo.GitRepo, objectID)
 	if err != nil && err != io.EOF {
 		log.Error("Failure in FindLFSFile: %v", err)
 		ctx.ServerError("LFSFind: FindLFSFile.", err)

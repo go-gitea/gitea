@@ -115,7 +115,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 			var commit *git.Commit
 			if title == "" || description == "" {
-				commit, err = gitRepo.GetCommit(opts.NewCommitIDs[i])
+				commit, err = gitRepo.GetCommit(ctx, opts.NewCommitIDs[i])
 				if err != nil {
 					return nil, fmt.Errorf("failed to get commit %s in repository: %s Error: %w", opts.NewCommitIDs[i], repo.FullName(), err)
 				}
@@ -182,7 +182,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			return nil, fmt.Errorf("unable to load base repository for PR[%d] Error: %w", pr.ID, err)
 		}
 
-		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		oldCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, fmt.Errorf("unable to get ref commit id in base repository for PR[%d] Error: %w", pr.ID, err)
 		}

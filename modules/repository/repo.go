@@ -47,7 +47,7 @@ func SyncRepoTags(ctx context.Context, repoID int64) error {
 		return err
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	if err != nil {
 		return err
 	}
@@ -179,7 +179,7 @@ func (shortRelease) TableName() string {
 // repositories like https://github.com/vim/vim (with over 13000 tags).
 func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
 	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
-	tags, _, err := gitRepo.GetTagInfos(0, 0)
+	tags, _, err := gitRepo.GetTagInfos(ctx, 0, 0)
 	if err != nil {
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}

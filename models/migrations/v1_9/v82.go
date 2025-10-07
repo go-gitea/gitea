@@ -99,7 +99,7 @@ func FixReleaseSha1OnReleaseTable(ctx context.Context, x *xorm.Engine) error {
 					userCache[repo.OwnerID] = user
 				}
 
-				gitRepo, err = git.OpenRepository(ctx, RepoPath(user.Name, repo.Name))
+				gitRepo, err = git.OpenRepository(RepoPath(user.Name, repo.Name))
 				if err != nil {
 					return err
 				}
@@ -107,7 +107,7 @@ func FixReleaseSha1OnReleaseTable(ctx context.Context, x *xorm.Engine) error {
 				gitRepoCache[release.RepoID] = gitRepo
 			}
 
-			release.Sha1, err = gitRepo.GetTagCommitID(release.TagName)
+			release.Sha1, err = gitRepo.GetTagCommitID(ctx, release.TagName)
 			if err != nil && !git.IsErrNotExist(err) {
 				return err
 			}

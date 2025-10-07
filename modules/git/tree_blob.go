@@ -4,9 +4,11 @@
 
 package git
 
+import "context"
+
 // GetBlobByPath get the blob object according the path
-func (t *Tree) GetBlobByPath(relpath string) (*Blob, error) {
-	entry, err := t.GetTreeEntryByPath(relpath)
+func (t *Tree) GetBlobByPath(ctx context.Context, relpath string) (*Blob, error) {
+	entry, err := t.GetTreeEntryByPath(ctx, relpath)
 	if err != nil {
 		return nil, err
 	}

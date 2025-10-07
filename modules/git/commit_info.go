@@ -3,6 +3,8 @@
 
 package git
 
+import "context"
+
 // CommitInfo describes the first commit with the provided entry
 type CommitInfo struct {
 	Entry         *TreeEntry
@@ -10,8 +12,8 @@ type CommitInfo struct {
 	SubmoduleFile *CommitSubmoduleFile
 }
 
-func GetCommitInfoSubmoduleFile(repoLink, fullPath string, commit *Commit, refCommitID ObjectID) (*CommitSubmoduleFile, error) {
-	submodule, err := commit.GetSubModule(fullPath)
+func GetCommitInfoSubmoduleFile(ctx context.Context, repoLink, fullPath string, commit *Commit, refCommitID ObjectID) (*CommitSubmoduleFile, error) {
+	submodule, err := commit.GetSubModule(ctx, fullPath)
 	if err != nil {
 		return nil, err
 	}

@@ -101,13 +101,13 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 				}
 			}
 
-			commit, err := gitRepo.GetCommit(rel.Target)
+			commit, err := gitRepo.GetCommit(ctx, rel.Target)
 			if err != nil {
 				return false, err
 			}
 
 			if len(msg) > 0 {
-				if err = gitRepo.CreateAnnotatedTag(rel.TagName, msg, commit.ID.String()); err != nil {
+				if err = gitRepo.CreateAnnotatedTag(ctx, rel.TagName, msg, commit.ID.String()); err != nil {
 					if strings.Contains(err.Error(), "is not a valid tag name") {
 						return false, ErrInvalidTagName{
 							TagName: rel.TagName,
@@ -115,7 +115,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 					}
 					return false, err
 				}
-			} else if err = gitRepo.CreateTag(rel.TagName, commit.ID.String()); err != nil {
+			} else if err = gitRepo.CreateTag(ctx, rel.TagName, commit.ID.String()); err != nil {
 				if strings.Contains(err.Error(), "is not a valid tag name") {
 					return false, ErrInvalidTagName{
 						TagName: rel.TagName,
@@ -142,13 +142,13 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 			notify_service.CreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
 			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
-		commit, err := gitRepo.GetTagCommit(rel.TagName)
+		commit, err := gitRepo.GetTagCommit(ctx, rel.TagName)
 		if err != nil {
 			return false, fmt.Errorf("GetTagCommit: %w", err)
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.NumCommits, err = commit.CommitsCount()
+		rel.NumCommits, err = commit.CommitsCount(ctx)
 		if err != nil {
 			return false, fmt.Errorf("CommitsCount: %w", err)
 		}
@@ -166,8 +166,8 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 }
 
 // CreateRelease creates a new release of repository.
-func CreateRelease(gitRepo *git.Repository, rel *repo_model.Release, attachmentUUIDs []string, msg string) error {
-	has, err := repo_model.IsReleaseExist(gitRepo.Ctx, rel.RepoID, rel.TagName)
+func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, attachmentUUIDs []string, msg string) error {
+	has, err := repo_model.IsReleaseExist(ctx, rel.RepoID, rel.TagName)
 	if err != nil {
 		return err
 	} else if has {
@@ -176,22 +176,22 @@ func CreateRelease(gitRepo *git.Repository, rel *repo_model.Release, attachmentU
 		}
 	}
 
-	if _, err = createTag(gitRepo.Ctx, gitRepo, rel, msg); err != nil {
+	if _, err = createTag(ctx, gitRepo, rel, msg); err != nil {
 		return err
 	}
 
 	rel.Title = util.EllipsisDisplayString(rel.Title, 255)
 	rel.LowerTagName = strings.ToLower(rel.TagName)
-	if err = db.Insert(gitRepo.Ctx, rel); err != nil {
+	if err = db.Insert(ctx, rel); err != nil {
 		return err
 	}
 
-	if err = repo_model.AddReleaseAttachments(gitRepo.Ctx, rel.ID, attachmentUUIDs); err != nil {
+	if err = repo_model.AddReleaseAttachments(ctx, rel.ID, attachmentUUIDs); err != nil {
 		return err
 	}
 
 	if !rel.IsDraft {
-		notify_service.NewRelease(gitRepo.Ctx, rel)
+		notify_service.NewRelease(ctx, rel)
 	}
 
 	return nil
@@ -262,7 +262,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	if rel.ID == 0 {
 		return errors.New("UpdateRelease only accepts an exist release")
 	}
-	isTagCreated, err := createTag(gitRepo.Ctx, gitRepo, rel, "")
+	isTagCreated, err := createTag(ctx, gitRepo, rel, "")
 	if err != nil {
 		return err
 	}
@@ -346,10 +346,10 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 
 	if !rel.IsDraft {
 		if !isTagCreated && !isConvertedFromTag {
-			notify_service.UpdateRelease(gitRepo.Ctx, doer, rel)
+			notify_service.UpdateRelease(ctx, doer, rel)
 			return nil
 		}
-		notify_service.NewRelease(gitRepo.Ctx, rel)
+		notify_service.NewRelease(ctx, rel)
 	}
 	return nil
 }

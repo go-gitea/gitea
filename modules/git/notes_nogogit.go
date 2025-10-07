@@ -17,7 +17,7 @@ import (
 // FIXME: Add LastCommitCache support
 func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note) error {
 	log.Trace("Searching for git note corresponding to the commit %q in the repository %q", commitID, repo.Path)
-	notes, err := repo.GetCommit(NotesRef)
+	notes, err := repo.GetCommit(ctx, NotesRef)
 	if err != nil {
 		if IsErrNotExist(err) {
 			return err
@@ -34,13 +34,13 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 	var entry *TreeEntry
 	originalCommitID := commitID
 	for len(commitID) > 2 {
-		entry, err = tree.GetTreeEntryByPath(commitID)
+		entry, err = tree.GetTreeEntryByPath(ctx, commitID)
 		if err == nil {
 			path += commitID
 			break
 		}
 		if IsErrNotExist(err) {
-			tree, err = tree.SubTree(commitID[0:2])
+			tree, err = tree.SubTree(ctx, commitID[0:2])
 			path += commitID[0:2] + "/"
 			commitID = commitID[2:]
 		}
@@ -54,7 +54,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 	}
 
 	blob := entry.Blob()
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(ctx)
 	if err != nil {
 		log.Error("Unable to read blob with ID %q. Error: %v", blob.ID, err)
 		return err

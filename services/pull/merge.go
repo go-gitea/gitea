@@ -68,11 +68,11 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 
 	if mergeStyle != "" {
 		templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
-		commit, err := baseGitRepo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
+		commit, err := baseGitRepo.GetBranchCommit(ctx, pr.BaseRepo.DefaultBranch)
 		if err != nil {
 			return "", "", err
 		}
-		templateContent, err := commit.GetFileContent(templateFilepath, setting.Repository.PullRequest.DefaultMergeMessageSize)
+		templateContent, err := commit.GetFileContent(ctx, templateFilepath, setting.Repository.PullRequest.DefaultMergeMessageSize)
 		if err != nil {
 			if !git.IsErrNotExist(err) {
 				return "", "", err
@@ -633,7 +633,7 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 			return errors.New("Wrong commit ID")
 		}
 
-		commit, err := baseGitRepo.GetCommit(commitID)
+		commit, err := baseGitRepo.GetCommit(ctx, commitID)
 		if err != nil {
 			if git.IsErrNotExist(err) {
 				return errors.New("Wrong commit ID")
@@ -642,7 +642,7 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		}
 		commitID = commit.ID.String()
 
-		ok, err := baseGitRepo.IsCommitInBranch(commitID, pr.BaseBranch)
+		ok, err := baseGitRepo.IsCommitInBranch(ctx, commitID, pr.BaseBranch)
 		if err != nil {
 			return err
 		}
@@ -663,7 +663,7 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		return err
 	}
 
-	notify_service.MergePullRequest(baseGitRepo.Ctx, doer, pr)
+	notify_service.MergePullRequest(ctx, doer, pr)
 	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
 
 	return handleCloseCrossReferences(ctx, pr, doer)

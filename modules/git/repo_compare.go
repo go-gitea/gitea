@@ -7,6 +7,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -19,7 +20,7 @@ import (
 )
 
 // GetMergeBase checks and returns merge base of two branches and the reference used as base.
-func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, string, error) {
+func (repo *Repository) GetMergeBase(ctx context.Context, tmpRemote, base, head string) (string, string, error) {
 	if tmpRemote == "" {
 		tmpRemote = "origin"
 	}
@@ -31,7 +32,7 @@ func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, stri
 			AddDynamicArguments(tmpRemote).
 			AddDashesAndList(base + ":" + tmpBaseName).
 			WithDir(repo.Path).
-			RunStdString(repo.Ctx)
+			RunStdString(ctx)
 		if err == nil {
 			base = tmpBaseName
 		}
@@ -40,7 +41,7 @@ func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, stri
 	stdout, _, err := gitcmd.NewCommand("merge-base").
 		AddDashesAndList(base, head).
 		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		RunStdString(ctx)
 	return strings.TrimSpace(stdout), base, err
 }
 
@@ -57,7 +58,7 @@ func (l *lineCountWriter) Write(p []byte) (n int, err error) {
 
 // GetDiffNumChangedFiles counts the number of changed files
 // This is substantially quicker than shortstat but...
-func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparison bool) (int, error) {
+func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head string, directComparison bool) (int, error) {
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
 	w := &lineCountWriter{}
 	stderr := new(bytes.Buffer)
@@ -74,7 +75,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 		WithDir(repo.Path).
 		WithStdout(w).
 		WithStderr(stderr).
-		Run(repo.Ctx); err != nil {
+		Run(ctx); err != nil {
 		if strings.Contains(stderr.String(), "no merge base") {
 			// git >= 2.28 now returns an error if base and head have become unrelated.
 			// previously it would return the results of git diff -z --name-only base head so let's try that...
@@ -86,7 +87,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 				WithDir(repo.Path).
 				WithStdout(w).
 				WithStderr(stderr).
-				Run(repo.Ctx); err == nil {
+				Run(ctx); err == nil {
 				return w.numLines, nil
 			}
 		}
@@ -98,39 +99,39 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 var patchCommits = regexp.MustCompile(`^From\s(\w+)\s`)
 
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
-func (repo *Repository) GetDiff(compareArg string, w io.Writer) error {
+func (repo *Repository) GetDiff(ctx context.Context, compareArg string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	return gitcmd.NewCommand("diff", "-p").AddDynamicArguments(compareArg).
 		WithDir(repo.Path).
 		WithStdout(w).
 		WithStderr(stderr).
-		Run(repo.Ctx)
+		Run(ctx)
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
-func (repo *Repository) GetDiffBinary(compareArg string, w io.Writer) error {
+func (repo *Repository) GetDiffBinary(ctx context.Context, compareArg string, w io.Writer) error {
 	return gitcmd.NewCommand("diff", "-p", "--binary", "--histogram").
 		AddDynamicArguments(compareArg).
 		WithDir(repo.Path).
 		WithStdout(w).
-		Run(repo.Ctx)
+		Run(ctx)
 }
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
-func (repo *Repository) GetPatch(compareArg string, w io.Writer) error {
+func (repo *Repository) GetPatch(ctx context.Context, compareArg string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	return gitcmd.NewCommand("format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
 		WithDir(repo.Path).
 		WithStdout(w).
 		WithStderr(stderr).
-		Run(repo.Ctx)
+		Run(ctx)
 }
 
 // GetFilesChangedBetween returns a list of all files that have been changed between the given commits
 // If base is undefined empty SHA (zeros), it only returns the files changed in the head commit
 // If base is the SHA of an empty tree (EmptyTreeSHA), it returns the files changes from the initial commit to the head commit
-func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, error) {
-	objectFormat, err := repo.GetObjectFormat()
+func (repo *Repository) GetFilesChangedBetween(ctx context.Context, base, head string) ([]string, error) {
+	objectFormat, err := repo.GetObjectFormat(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +141,7 @@ func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, err
 	} else {
 		cmd.AddDynamicArguments(base, head)
 	}
-	stdout, _, err := cmd.WithDir(repo.Path).RunStdString(repo.Ctx)
+	stdout, _, err := cmd.WithDir(repo.Path).RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}

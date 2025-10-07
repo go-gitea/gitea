@@ -13,14 +13,14 @@ import (
 
 func TestRepository_GetTagInfos(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
+	bareRepo1, err := OpenRepository(bareRepo1Path)
 	if err != nil {
 		assert.NoError(t, err)
 		return
 	}
 	defer bareRepo1.Close()
 
-	tags, total, err := bareRepo1.GetTagInfos(0, 0)
+	tags, total, err := bareRepo1.GetTagInfos(t.Context(), 0, 0)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -44,7 +44,7 @@ func TestRepository_GetTag(t *testing.T) {
 		return
 	}
 
-	bareRepo1, err := OpenRepository(t.Context(), clonedPath)
+	bareRepo1, err := OpenRepository(clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -56,14 +56,14 @@ func TestRepository_GetTag(t *testing.T) {
 	lTagName := "lightweightTag"
 
 	// Create the lightweight tag
-	err = bareRepo1.CreateTag(lTagName, lTagCommitID)
+	err = bareRepo1.CreateTag(t.Context(), lTagName, lTagCommitID)
 	if err != nil {
 		assert.NoError(t, err, "Unable to create the lightweight tag: %s for ID: %s. Error: %v", lTagName, lTagCommitID, err)
 		return
 	}
 
 	// and try to get the Tag for lightweight tag
-	lTag, err := bareRepo1.GetTag(lTagName)
+	lTag, err := bareRepo1.GetTag(t.Context(), lTagName)
 	require.NoError(t, err)
 	require.NotNil(t, lTag, "nil lTag: %s", lTagName)
 
@@ -78,20 +78,20 @@ func TestRepository_GetTag(t *testing.T) {
 	aTagMessage := "my annotated message \n - test two line"
 
 	// Create the annotated tag
-	err = bareRepo1.CreateAnnotatedTag(aTagName, aTagMessage, aTagCommitID)
+	err = bareRepo1.CreateAnnotatedTag(t.Context(), aTagName, aTagMessage, aTagCommitID)
 	if err != nil {
 		assert.NoError(t, err, "Unable to create the annotated tag: %s for ID: %s. Error: %v", aTagName, aTagCommitID, err)
 		return
 	}
 
 	// Now try to get the tag for the annotated Tag
-	aTagID, err := bareRepo1.GetTagID(aTagName)
+	aTagID, err := bareRepo1.GetTagID(t.Context(), aTagName)
 	if err != nil {
 		assert.NoError(t, err)
 		return
 	}
 
-	aTag, err := bareRepo1.GetTag(aTagName)
+	aTag, err := bareRepo1.GetTag(t.Context(), aTagName)
 	require.NoError(t, err)
 	require.NotNil(t, aTag, "nil aTag: %s", aTagName)
 
@@ -106,20 +106,20 @@ func TestRepository_GetTag(t *testing.T) {
 	rTagCommitID := "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"
 	rTagName := "release/" + lTagName
 
-	err = bareRepo1.CreateTag(rTagName, rTagCommitID)
+	err = bareRepo1.CreateTag(t.Context(), rTagName, rTagCommitID)
 	if err != nil {
 		assert.NoError(t, err, "Unable to create the  tag: %s for ID: %s. Error: %v", rTagName, rTagCommitID, err)
 		return
 	}
 
-	rTagID, err := bareRepo1.GetTagID(rTagName)
+	rTagID, err := bareRepo1.GetTagID(t.Context(), rTagName)
 	if err != nil {
 		assert.NoError(t, err)
 		return
 	}
 	assert.Equal(t, rTagCommitID, rTagID)
 
-	oTagID, err := bareRepo1.GetTagID(lTagName)
+	oTagID, err := bareRepo1.GetTagID(t.Context(), lTagName)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -136,7 +136,7 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 		return
 	}
 
-	bareRepo1, err := OpenRepository(t.Context(), clonedPath)
+	bareRepo1, err := OpenRepository(clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -145,16 +145,16 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 
 	lTagCommitID := "6fbd69e9823458e6c4a2fc5c0f6bc022b2f2acd1"
 	lTagName := "lightweightTag"
-	bareRepo1.CreateTag(lTagName, lTagCommitID)
+	bareRepo1.CreateTag(t.Context(), lTagName, lTagCommitID)
 
 	aTagCommitID := "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"
 	aTagName := "annotatedTag"
 	aTagMessage := "my annotated message"
-	bareRepo1.CreateAnnotatedTag(aTagName, aTagMessage, aTagCommitID)
-	aTagID, _ := bareRepo1.GetTagID(aTagName)
+	bareRepo1.CreateAnnotatedTag(t.Context(), aTagName, aTagMessage, aTagCommitID)
+	aTagID, _ := bareRepo1.GetTagID(t.Context(), aTagName)
 
 	// Try an annotated tag
-	tag, err := bareRepo1.GetAnnotatedTag(aTagID)
+	tag, err := bareRepo1.GetAnnotatedTag(t.Context(), aTagID)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -165,18 +165,18 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 	assert.Equal(t, "tag", tag.Type)
 
 	// Annotated tag's Commit ID should fail
-	tag2, err := bareRepo1.GetAnnotatedTag(aTagCommitID)
+	tag2, err := bareRepo1.GetAnnotatedTag(t.Context(), aTagCommitID)
 	assert.Error(t, err)
 	assert.True(t, IsErrNotExist(err))
 	assert.Nil(t, tag2)
 
 	// Annotated tag's name should fail
-	tag3, err := bareRepo1.GetAnnotatedTag(aTagName)
+	tag3, err := bareRepo1.GetAnnotatedTag(t.Context(), aTagName)
 	assert.Errorf(t, err, "Length must be 40: %d", len(aTagName))
 	assert.Nil(t, tag3)
 
 	// Lightweight Tag should fail
-	tag4, err := bareRepo1.GetAnnotatedTag(lTagCommitID)
+	tag4, err := bareRepo1.GetAnnotatedTag(t.Context(), lTagCommitID)
 	assert.Error(t, err)
 	assert.True(t, IsErrNotExist(err))
 	assert.Nil(t, tag4)

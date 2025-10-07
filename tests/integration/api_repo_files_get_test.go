@@ -42,10 +42,10 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
+	gitRepo, err := gitrepo.OpenRepository(repo1)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
-	lastCommit, _ := gitRepo.GetCommitByPath("README.md")
+	lastCommit, _ := gitRepo.GetCommitByPath(t.Context(), "README.md")
 
 	requestFiles := func(t *testing.T, url string, files []string, expectedStatusCode ...int) (ret []*api.ContentsResponse) {
 		req := NewRequestWithJSON(t, "POST", url, &api.GetFilesOptions{Files: files})

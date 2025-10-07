@@ -253,10 +253,10 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		Author:    &signature,
 		Message:   "Initial Commit",
 	}))
-	fromGitRepo, err := gitrepo.OpenRepository(t.Context(), fromRepo)
+	fromGitRepo, err := gitrepo.OpenRepository(fromRepo)
 	assert.NoError(t, err)
 	defer fromGitRepo.Close()
-	baseSHA, err := fromGitRepo.GetBranchCommitID(baseRef)
+	baseSHA, err := fromGitRepo.GetBranchCommitID(t.Context(), baseRef)
 	assert.NoError(t, err)
 
 	//
@@ -274,7 +274,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		Message:   "Pull request",
 	}))
 	assert.NoError(t, err)
-	headSHA, err := fromGitRepo.GetBranchCommitID(headRef)
+	headSHA, err := fromGitRepo.GetBranchCommitID(t.Context(), headRef)
 	assert.NoError(t, err)
 
 	fromRepoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: fromRepo.OwnerID})
@@ -296,10 +296,10 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		Author:    &signature,
 		Message:   "branch2 commit",
 	}))
-	forkGitRepo, err := gitrepo.OpenRepository(t.Context(), forkRepo)
+	forkGitRepo, err := gitrepo.OpenRepository(forkRepo)
 	assert.NoError(t, err)
 	defer forkGitRepo.Close()
-	forkHeadSHA, err := forkGitRepo.GetBranchCommitID(forkHeadRef)
+	forkHeadSHA, err := forkGitRepo.GetBranchCommitID(t.Context(), forkHeadRef)
 	assert.NoError(t, err)
 
 	toRepoName := "migrated"

@@ -76,17 +76,17 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 	assert.NoError(t, err)
 
 	readGitContent := func(t *testing.T, path string) string {
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, err := gitrepo.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
-		commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+		commit, err := gitRepo.GetBranchCommit(t.Context(), repo.DefaultBranch)
 		assert.NoError(t, err)
 
-		blob, err := commit.GetBlobByPath(path)
+		blob, err := commit.GetBlobByPath(t.Context(), path)
 		assert.NoError(t, err)
 
-		content, err := blob.GetBlobContent(1024)
+		content, err := blob.GetBlobContent(t.Context(), 1024)
 		assert.NoError(t, err)
 
 		return content

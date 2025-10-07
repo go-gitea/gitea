@@ -6,6 +6,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"strings"
 
@@ -39,12 +40,12 @@ func (EmptyReader) Read(p []byte) (int, error) {
 	return 0, io.EOF
 }
 
-func (repo *Repository) GetObjectFormat() (ObjectFormat, error) {
+func (repo *Repository) GetObjectFormat(ctx context.Context) (ObjectFormat, error) {
 	if repo != nil && repo.objectFormat != nil {
 		return repo.objectFormat, nil
 	}
 
-	str, err := repo.hashObject(EmptyReader{}, false)
+	str, err := repo.hashObject(ctx, EmptyReader{}, false)
 	if err != nil {
 		return nil, err
 	}
@@ -59,15 +60,15 @@ func (repo *Repository) GetObjectFormat() (ObjectFormat, error) {
 }
 
 // HashObject takes a reader and returns hash for that reader
-func (repo *Repository) HashObject(reader io.Reader) (ObjectID, error) {
-	idStr, err := repo.hashObject(reader, true)
+func (repo *Repository) HashObject(ctx context.Context, reader io.Reader) (ObjectID, error) {
+	idStr, err := repo.hashObject(ctx, reader, true)
 	if err != nil {
 		return nil, err
 	}
 	return NewIDFromString(idStr)
 }
 
-func (repo *Repository) hashObject(reader io.Reader, save bool) (string, error) {
+func (repo *Repository) hashObject(ctx context.Context, reader io.Reader, save bool) (string, error) {
 	var cmd *gitcmd.Command
 	if save {
 		cmd = gitcmd.NewCommand("hash-object", "-w", "--stdin")
@@ -81,7 +82,7 @@ func (repo *Repository) hashObject(reader io.Reader, save bool) (string, error) 
 		WithStdin(reader).
 		WithStdout(stdout).
 		WithStderr(stderr).
-		Run(repo.Ctx)
+		Run(ctx)
 	if err != nil {
 		return "", err
 	}

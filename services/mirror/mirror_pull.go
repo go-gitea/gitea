@@ -324,7 +324,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, m.Repo)
+	gitRepo, err := gitrepo.OpenRepository(m.Repo)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to OpenRepository: %v", m.Repo, err)
 		return nil, false
@@ -472,7 +472,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, m.Repo)
+	gitRepo, err := gitrepo.OpenRepository(m.Repo)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: unable to OpenRepository: %v", m.Repo, err)
 		return false
@@ -495,7 +495,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 		// Create reference
 		if result.oldCommitID == gitShortEmptySha {
-			commitID, err := gitRepo.GetRefCommitID(result.refName.String())
+			commitID, err := gitRepo.GetRefCommitID(ctx, result.refName.String())
 			if err != nil {
 				log.Error("SyncMirrors [repo: %-v]: unable to GetRefCommitID [ref_name: %s]: %v", m.Repo, result.refName, err)
 				continue
@@ -517,17 +517,17 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		}
 
 		// Push commits
-		oldCommitID, err := git.GetFullCommitID(gitRepo.Ctx, gitRepo.Path, result.oldCommitID)
+		oldCommitID, err := git.GetFullCommitID(ctx, gitRepo.Path, result.oldCommitID)
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to get GetFullCommitID[%s]: %v", m.Repo, result.oldCommitID, err)
 			continue
 		}
-		newCommitID, err := git.GetFullCommitID(gitRepo.Ctx, gitRepo.Path, result.newCommitID)
+		newCommitID, err := git.GetFullCommitID(ctx, gitRepo.Path, result.newCommitID)
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to get GetFullCommitID [%s]: %v", m.Repo, result.newCommitID, err)
 			continue
 		}
-		commits, err := gitRepo.CommitsBetweenIDs(newCommitID, oldCommitID)
+		commits, err := gitRepo.CommitsBetweenIDs(ctx, newCommitID, oldCommitID)
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to get CommitsBetweenIDs [new_commit_id: %s, old_commit_id: %s]: %v", m.Repo, newCommitID, oldCommitID, err)
 			continue
@@ -538,7 +538,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 			theCommits.Commits = theCommits.Commits[:setting.UI.FeedMaxCommitNum]
 		}
 
-		newCommit, err := gitRepo.GetCommit(newCommitID)
+		newCommit, err := gitRepo.GetCommit(ctx, newCommitID)
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to get commit %s: %v", m.Repo, newCommitID, err)
 			continue
@@ -555,7 +555,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	}
 	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)
 
-	isEmpty, err := gitRepo.IsEmpty()
+	isEmpty, err := gitRepo.IsEmpty(ctx)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: unable to check empty git repo: %v", m.Repo, err)
 		return false

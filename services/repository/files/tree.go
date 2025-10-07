@@ -42,7 +42,7 @@ func (err ErrSHANotFound) Unwrap() error {
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
 func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, sha string, page, perPage int, recursive bool) (*api.GitTreeResponse, error) {
-	gitTree, err := gitRepo.GetTree(sha)
+	gitTree, err := gitRepo.GetTree(ctx, sha)
 	if err != nil || gitTree == nil {
 		return nil, ErrSHANotFound{ // TODO: this error has never been catch outside of this function
 			SHA: sha,
@@ -53,9 +53,9 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	tree.URL = repo.APIURL() + "/git/trees/" + url.PathEscape(tree.SHA)
 	var entries git.Entries
 	if recursive {
-		entries, err = gitTree.ListEntriesRecursiveWithSize()
+		entries, err = gitTree.ListEntriesRecursiveWithSize(ctx)
 	} else {
-		entries, err = gitTree.ListEntries()
+		entries, err = gitTree.ListEntries(ctx)
 	}
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		tree.Entries[i].Path = entries[e].Name()
 		tree.Entries[i].Mode = fmt.Sprintf("%06o", entries[e].Mode())
 		tree.Entries[i].Type = entries[e].Type()
-		tree.Entries[i].Size = entries[e].Size()
+		tree.Entries[i].Size = entries[e].Size(ctx)
 		tree.Entries[i].SHA = entries[e].ID.String()
 
 		if entries[e].IsDir() {
@@ -158,7 +158,7 @@ func newTreeViewNodeFromEntry(ctx context.Context, repoLink string, renderedIcon
 		FullPath:  path.Join(parentDir, entry.Name()),
 	}
 
-	entryInfo := fileicon.EntryInfoFromGitTreeEntry(commit, node.FullPath, entry)
+	entryInfo := fileicon.EntryInfoFromGitTreeEntry(ctx, commit, node.FullPath, entry)
 	node.EntryIcon = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
 	if entryInfo.EntryMode.IsDir() {
 		entryInfo.IsOpen = true
@@ -166,7 +166,7 @@ func newTreeViewNodeFromEntry(ctx context.Context, repoLink string, renderedIcon
 	}
 
 	if node.EntryMode == "commit" {
-		if subModule, err := commit.GetSubModule(node.FullPath); err != nil {
+		if subModule, err := commit.GetSubModule(ctx, node.FullPath); err != nil {
 			log.Error("GetSubModule: %v", err)
 		} else if subModule != nil {
 			submoduleFile := git.NewCommitSubmoduleFile(repoLink, node.FullPath, subModule.URL, entry.ID.String())
@@ -192,7 +192,7 @@ func sortTreeViewNodes(nodes []*TreeViewNode) {
 }
 
 func listTreeNodes(ctx context.Context, repoLink string, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
-	entries, err := tree.ListEntries()
+	entries, err := tree.ListEntries(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func listTreeNodes(ctx context.Context, repoLink string, renderedIconPool *filei
 			if subTreePath[0] == '/' {
 				subTreePath = subTreePath[1:]
 			}
-			subNodes, err := listTreeNodes(ctx, repoLink, renderedIconPool, commit, entry.Tree(), subTreePath, subPathRemaining)
+			subNodes, err := listTreeNodes(ctx, repoLink, renderedIconPool, commit, entry.Tree(ctx), subTreePath, subPathRemaining)
 			if err != nil {
 				log.Error("listTreeNodes: %v", err)
 			} else {
@@ -220,9 +220,9 @@ func listTreeNodes(ctx context.Context, repoLink string, renderedIconPool *filei
 }
 
 func GetTreeViewNodes(ctx context.Context, repoLink string, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, treePath, subPath string) ([]*TreeViewNode, error) {
-	entry, err := commit.GetTreeEntryByPath(treePath)
+	entry, err := commit.GetTreeEntryByPath(ctx, treePath)
 	if err != nil {
 		return nil, err
 	}
-	return listTreeNodes(ctx, repoLink, renderedIconPool, commit, entry.Tree(), treePath, subPath)
+	return listTreeNodes(ctx, repoLink, renderedIconPool, commit, entry.Tree(ctx), treePath, subPath)
 }

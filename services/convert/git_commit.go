@@ -190,7 +190,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	// Retrieve files affected by the commit
 	if opts.Files {
-		fileStatus, err := git.GetCommitFileStatus(gitRepo.Ctx, repo.RepoPath(), commit.ID.String())
+		fileStatus, err := git.GetCommitFileStatus(ctx, repo.RepoPath(), commit.ID.String())
 		if err != nil {
 			return nil, err
 		}

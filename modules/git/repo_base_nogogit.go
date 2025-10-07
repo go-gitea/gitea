@@ -31,14 +31,13 @@ type Repository struct {
 	checkInUse bool
 	check      *Batch
 
-	Ctx             context.Context
 	LastCommitCache *LastCommitCache
 
 	objectFormat ObjectFormat
 }
 
 // OpenRepository opens the repository at the given path with the provided context.
-func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
+func OpenRepository(repoPath string) (*Repository, error) {
 	repoPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, err
@@ -54,7 +53,6 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	return &Repository{
 		Path:     repoPath,
 		tagCache: newObjectCache[*Tag](),
-		Ctx:      ctx,
 	}, nil
 }
 
