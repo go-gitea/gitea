@@ -167,12 +167,11 @@ func CreateBlameReader(ctx context.Context, repo *Repository, objectFormat Objec
 	go func() {
 		stderr := bytes.Buffer{}
 		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
-		err := cmd.Run(ctx, &gitcmd.RunOpts{
-			UseContextTimeout: true,
-			Dir:               repoPath,
-			Stdout:            stdout,
-			Stderr:            &stderr,
-		})
+		err := cmd.WithDir(repoPath).
+			WithUseContextTimeout(true).
+			WithStdout(stdout).
+			WithStderr(&stderr).
+			Run(ctx)
 		done <- err
 		_ = stdout.Close()
 		if err != nil {

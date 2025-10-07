@@ -195,7 +195,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	log.Trace("repo %s with commit %s event %s find %d workflows and %d schedules",
-		input.Repo.RepoPath(),
+		input.Repo.RelativePath(),
 		commit.ID,
 		input.Event,
 		len(workflows),
@@ -204,7 +204,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	for _, wf := range workflows {
 		if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
-			log.Trace("repo %s has disable workflows %s", input.Repo.RepoPath(), wf.EntryName)
+			log.Trace("repo %s has disable workflows %s", input.Repo.RelativePath(), wf.EntryName)
 			continue
 		}
 
@@ -225,7 +225,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 			return fmt.Errorf("DetectWorkflows: %w", err)
 		}
 		if len(baseWorkflows) == 0 {
-			log.Trace("repo %s with commit %s couldn't find pull_request_target workflows", input.Repo.RepoPath(), baseCommit.ID)
+			log.Trace("repo %s with commit %s couldn't find pull_request_target workflows", input.Repo.RelativePath(), baseCommit.ID)
 		} else {
 			for _, wf := range baseWorkflows {
 				if wf.TriggerEvent.Name == actions_module.GithubEventPullRequestTarget {
@@ -255,11 +255,11 @@ func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) 
 	if slices.Contains(skipWorkflowEvents, input.Event) {
 		for _, s := range setting.Actions.SkipWorkflowStrings {
 			if input.PullRequest != nil && strings.Contains(input.PullRequest.Issue.Title, s) {
-				log.Debug("repo %s: skipped run for pr %v because of %s string", input.Repo.RepoPath(), input.PullRequest.Issue.ID, s)
+				log.Debug("repo %s: skipped run for pr %v because of %s string", input.Repo.RelativePath(), input.PullRequest.Issue.ID, s)
 				return true
 			}
 			if strings.Contains(commit.CommitMessage, s) {
-				log.Debug("repo %s with commit %s: skipped run because of %s string", input.Repo.RepoPath(), commit.ID, s)
+				log.Debug("repo %s with commit %s: skipped run because of %s string", input.Repo.RelativePath(), commit.ID, s)
 				return true
 			}
 		}
@@ -282,7 +282,7 @@ func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) 
 			}
 		}
 		// skip workflow runs events exceeding the maximum of 5 recursive events
-		log.Debug("repo %s: skipped workflow_run because of recursive event of 5", input.Repo.RepoPath())
+		log.Debug("repo %s: skipped workflow_run because of recursive event of 5", input.Repo.RelativePath())
 		return true
 	}
 	return false
@@ -296,7 +296,7 @@ func handleWorkflows(
 	ref string,
 ) error {
 	if len(detectedWorkflows) == 0 {
-		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
+		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RelativePath(), commit.ID)
 		return nil
 	}
 
@@ -522,7 +522,7 @@ func handleSchedules(
 	}
 
 	if len(detectedWorkflows) == 0 {
-		log.Trace("repo %s with commit %s couldn't find schedules", input.Repo.RepoPath(), commit.ID)
+		log.Trace("repo %s with commit %s couldn't find schedules", input.Repo.RelativePath(), commit.ID)
 		return nil
 	}
 

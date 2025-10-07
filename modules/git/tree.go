@@ -55,7 +55,7 @@ func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error
 	cmd := gitcmd.NewCommand("ls-tree", "-z", "--name-only").
 		AddDashesAndList(append([]string{ref}, filenames...)...)
 
-	res, _, err := cmd.RunStdBytes(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	res, _, err := cmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,8 @@ func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error
 func (repo *Repository) GetTreePathLatestCommit(refName, treePath string) (*Commit, error) {
 	stdout, _, err := gitcmd.NewCommand("rev-list", "-1").
 		AddDynamicArguments(refName).AddDashesAndList(treePath).
-		RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}

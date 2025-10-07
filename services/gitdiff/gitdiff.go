@@ -13,6 +13,7 @@ import (
 	"html/template"
 	"io"
 	"net/url"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -401,6 +402,14 @@ func (diffFile *DiffFile) GetDiffFileName() string {
 		return diffFile.OldName
 	}
 	return diffFile.Name
+}
+
+// GetDiffFileBaseName returns the short name of the diff file, or its short old name in case it was deleted
+func (diffFile *DiffFile) GetDiffFileBaseName() string {
+	if diffFile.Name == "" {
+		return path.Base(diffFile.OldName)
+	}
+	return path.Base(diffFile.Name)
 }
 
 func (diffFile *DiffFile) ShouldBeHidden() bool {
@@ -1161,12 +1170,11 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 
 	go func() {
 		stderr := &bytes.Buffer{}
-		if err := cmdDiff.Run(cmdCtx, &gitcmd.RunOpts{
-			Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,
-			Dir:     repoPath,
-			Stdout:  writer,
-			Stderr:  stderr,
-		}); err != nil && !git.IsErrCanceledOrKilled(err) {
+		if err := cmdDiff.WithTimeout(time.Duration(setting.Git.Timeout.Default) * time.Second).
+			WithDir(repoPath).
+			WithStdout(writer).
+			WithStderr(stderr).
+			Run(cmdCtx); err != nil && !git.IsErrCanceledOrKilled(err) {
 			log.Error("error during GetDiff(git diff dir: %s): %v, stderr: %s", repoPath, err, stderr.String())
 		}
 

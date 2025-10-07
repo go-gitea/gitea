@@ -279,7 +279,7 @@ func handleRepoViewSubmodule(ctx *context.Context, submoduleFile *git.SubmoduleF
 		ctx.Data["NotFoundPrompt"] = redirectLink
 		ctx.NotFound(nil)
 	} else {
-		ctx.Redirect(submoduleWebLink.CommitWebLink)
+		ctx.RedirectToCurrentSite(redirectLink)
 	}
 }
 
