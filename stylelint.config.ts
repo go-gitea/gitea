@@ -20,9 +20,13 @@ export default {
   ],
   ignoreFiles: [
     '**/*.go',
-    '/web_src/fomantic',
+    '/web_src/fomantic/**/*',
   ],
   overrides: [
+    {
+      files: ['**/*.css', '**/*.vue'],
+      rules: {},
+    },
     {
       files: ['**/chroma/*', '**/codemirror/*', '**/standalone/*', '**/console.css', 'font_i18n.css'],
       rules: {
