@@ -12,14 +12,12 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/proxy"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 // GPGSettings represents the default GPG settings for this repository
@@ -241,44 +239,4 @@ func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error
 	}
 	commitTime := strings.TrimSpace(stdout)
 	return time.Parse("Mon Jan _2 15:04:05 2006 -0700", commitTime)
-}
-
-// CreateBundle create bundle content to the target path
-func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.Writer) error {
-	tmp, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-bundle")
-	if err != nil {
-		return err
-	}
-	defer cleanup()
-
-	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repo.Path, "objects"))
-	_, _, err = gitcmd.NewCommand("init", "--bare").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
-	if err != nil {
-		return err
-	}
-
-	_, _, err = gitcmd.NewCommand("reset", "--soft").AddDynamicArguments(commit).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
-	if err != nil {
-		return err
-	}
-
-	_, _, err = gitcmd.NewCommand("branch", "-m", "bundle").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
-	if err != nil {
-		return err
-	}
-
-	tmpFile := filepath.Join(tmp, "bundle")
-	_, _, err = gitcmd.NewCommand("bundle", "create").AddDynamicArguments(tmpFile, "bundle", "HEAD").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
-	if err != nil {
-		return err
-	}
-
-	fi, err := os.Open(tmpFile)
-	if err != nil {
-		return err
-	}
-	defer fi.Close()
-
-	_, err = io.Copy(out, fi)
-	return err
 }
