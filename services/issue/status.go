@@ -98,7 +98,7 @@ func ReopenIssue(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 	return nil
 }
 
-// ReopenIssue reopen an issue with a comment.
+// ReopenIssueWithComment reopen an issue with a comment.
 // FIXME: If some issues dependent this one are closed, should we also reopen them?
 func ReopenIssueWithComment(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID, commentContent string, attachments []string) (*issues_model.Comment, error) {
 	var createdComment *issues_model.Comment
