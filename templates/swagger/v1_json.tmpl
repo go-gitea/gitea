@@ -22004,7 +22004,7 @@
           "$ref": "#/definitions/Identity"
         },
         "branch": {
-          "description": "branch (optional) to base this file from. if not given, the default branch is used",
+          "description": "branch (optional) is the base branch for the changes. If not supplied, the default branch is used",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -22022,13 +22022,18 @@
           },
           "x-go-name": "Files"
         },
+        "force_push": {
+          "description": "force_push (optional) will do a force-push if the new branch already exists",
+          "type": "boolean",
+          "x-go-name": "ForcePush"
+        },
         "message": {
-          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
+          "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
           "type": "string",
           "x-go-name": "Message"
         },
         "new_branch": {
-          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
+          "description": "new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch",
           "type": "string",
           "x-go-name": "NewBranchName"
         },
@@ -22843,7 +22848,7 @@
           "$ref": "#/definitions/Identity"
         },
         "branch": {
-          "description": "branch (optional) to base this file from. if not given, the default branch is used",
+          "description": "branch (optional) is the base branch for the changes. If not supplied, the default branch is used",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -22858,13 +22863,18 @@
         "dates": {
           "$ref": "#/definitions/CommitDateOptions"
         },
+        "force_push": {
+          "description": "force_push (optional) will do a force-push if the new branch already exists",
+          "type": "boolean",
+          "x-go-name": "ForcePush"
+        },
         "message": {
-          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
+          "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
           "type": "string",
           "x-go-name": "Message"
         },
         "new_branch": {
-          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
+          "description": "new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch",
           "type": "string",
           "x-go-name": "NewBranchName"
         },
@@ -23856,7 +23866,7 @@
           "$ref": "#/definitions/Identity"
         },
         "branch": {
-          "description": "branch (optional) to base this file from. if not given, the default branch is used",
+          "description": "branch (optional) is the base branch for the changes. If not supplied, the default branch is used",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -23866,13 +23876,18 @@
         "dates": {
           "$ref": "#/definitions/CommitDateOptions"
         },
+        "force_push": {
+          "description": "force_push (optional) will do a force-push if the new branch already exists",
+          "type": "boolean",
+          "x-go-name": "ForcePush"
+        },
         "message": {
-          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
+          "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
           "type": "string",
           "x-go-name": "Message"
         },
         "new_branch": {
-          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
+          "description": "new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch",
           "type": "string",
           "x-go-name": "NewBranchName"
         },
@@ -28648,7 +28663,7 @@
           "$ref": "#/definitions/Identity"
         },
         "branch": {
-          "description": "branch (optional) to base this file from. if not given, the default branch is used",
+          "description": "branch (optional) is the base branch for the changes. If not supplied, the default branch is used",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -28663,18 +28678,23 @@
         "dates": {
           "$ref": "#/definitions/CommitDateOptions"
         },
+        "force_push": {
+          "description": "force_push (optional) will do a force-push if the new branch already exists",
+          "type": "boolean",
+          "x-go-name": "ForcePush"
+        },
         "from_path": {
           "description": "from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL",
           "type": "string",
           "x-go-name": "FromPath"
         },
         "message": {
-          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
+          "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
           "type": "string",
           "x-go-name": "Message"
         },
         "new_branch": {
-          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
+          "description": "new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch",
           "type": "string",
           "x-go-name": "NewBranchName"
         },
