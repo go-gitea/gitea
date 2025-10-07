@@ -36,14 +36,14 @@ func GetBranchCommitID(ctx context.Context, repo Repository, branch string) (str
 
 // SetDefaultBranch sets default branch of repository.
 func SetDefaultBranch(ctx context.Context, repo Repository, name string) error {
-	_, err := runCmdString(ctx, repo, gitcmd.NewCommand("symbolic-ref", "HEAD").
+	_, err := RunCmdString(ctx, repo, gitcmd.NewCommand("symbolic-ref", "HEAD").
 		AddDynamicArguments(git.BranchPrefix+name))
 	return err
 }
 
 // GetDefaultBranch gets default branch of repository.
 func GetDefaultBranch(ctx context.Context, repo Repository) (string, error) {
-	stdout, err := runCmdString(ctx, repo, gitcmd.NewCommand("symbolic-ref", "HEAD"))
+	stdout, err := RunCmdString(ctx, repo, gitcmd.NewCommand("symbolic-ref", "HEAD"))
 	if err != nil {
 		return "", err
 	}
@@ -56,7 +56,7 @@ func GetDefaultBranch(ctx context.Context, repo Repository) (string, error) {
 
 // IsReferenceExist returns true if given reference exists in the repository.
 func IsReferenceExist(ctx context.Context, repo Repository, name string) bool {
-	_, err := runCmdString(ctx, repo, gitcmd.NewCommand("show-ref", "--verify").AddDashesAndList(name))
+	_, err := RunCmdString(ctx, repo, gitcmd.NewCommand("show-ref", "--verify").AddDashesAndList(name))
 	return err == nil
 }
 
@@ -76,7 +76,7 @@ func DeleteBranch(ctx context.Context, repo Repository, name string, force bool)
 	}
 
 	cmd.AddDashesAndList(name)
-	_, err := runCmdString(ctx, repo, cmd)
+	_, err := RunCmdString(ctx, repo, cmd)
 	return err
 }
 
@@ -85,12 +85,12 @@ func CreateBranch(ctx context.Context, repo Repository, branch, oldbranchOrCommi
 	cmd := gitcmd.NewCommand("branch")
 	cmd.AddDashesAndList(branch, oldbranchOrCommit)
 
-	_, err := runCmdString(ctx, repo, cmd)
+	_, err := RunCmdString(ctx, repo, cmd)
 	return err
 }
 
 // RenameBranch rename a branch
 func RenameBranch(ctx context.Context, repo Repository, from, to string) error {
-	_, err := runCmdString(ctx, repo, gitcmd.NewCommand("branch", "-m").AddDynamicArguments(from, to))
+	_, err := RunCmdString(ctx, repo, gitcmd.NewCommand("branch", "-m").AddDynamicArguments(from, to))
 	return err
 }

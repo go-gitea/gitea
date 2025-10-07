@@ -249,7 +249,6 @@ func checkRecoverableSyncError(stderrMessage string) bool {
 
 // runSync returns true if sync finished without error.
 func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bool) {
-	repoPath := m.Repo.RepoPath()
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
@@ -271,13 +270,10 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
-	if err := cmd.Run(ctx, &gitcmd.RunOpts{
-		Timeout: timeout,
-		Dir:     repoPath,
-		Env:     envs,
-		Stdout:  &stdoutBuilder,
-		Stderr:  &stderrBuilder,
-	}); err != nil {
+	if err := gitrepo.RunCmd(ctx, m.Repo, cmd.WithTimeout(timeout).
+		WithEnv(envs).
+		WithStdout(&stdoutBuilder).
+		WithStderr(&stderrBuilder)); err != nil {
 		stdout := stdoutBuilder.String()
 		stderr := stderrBuilder.String()
 
@@ -296,12 +292,9 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 				// Successful prune - reattempt mirror
 				stderrBuilder.Reset()
 				stdoutBuilder.Reset()
-				if err = cmd.Run(ctx, &gitcmd.RunOpts{
-					Timeout: timeout,
-					Dir:     repoPath,
-					Stdout:  &stdoutBuilder,
-					Stderr:  &stderrBuilder,
-				}); err != nil {
+				if err = gitrepo.RunCmd(ctx, m.Repo, cmd.WithTimeout(timeout).
+					WithStdout(&stdoutBuilder).
+					WithStderr(&stderrBuilder)); err != nil {
 					stdout := stdoutBuilder.String()
 					stderr := stderrBuilder.String()
 
@@ -639,7 +632,7 @@ func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, re
 		// Update the is empty and default_branch columns
 		if err := repo_model.UpdateRepositoryColsWithAutoTime(ctx, m.Repo, "default_branch", "is_empty"); err != nil {
 			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
-			desc := fmt.Sprintf("Failed to update default branch of repository '%s': %v", m.Repo.RepoPath(), err)
+			desc := fmt.Sprintf("Failed to update default branch of repository '%s': %v", m.Repo.RelativePath(), err)
 			if err = system_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}

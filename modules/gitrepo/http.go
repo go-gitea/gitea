@@ -26,17 +26,15 @@ func serviceCmd(service string) *gitcmd.Command {
 
 func StatelessRPC(ctx context.Context, storageRepo Repository, service string, extraEnvs []string, input io.Reader, output io.Writer) (string, error) {
 	var stderr bytes.Buffer
-	if err := serviceCmd(service).
-		AddArguments("--stateless-rpc").
+	if err := serviceCmd(service).AddArguments("--stateless-rpc").
 		AddDynamicArguments(repoPath(storageRepo)).
-		Run(ctx, &gitcmd.RunOpts{
-			Dir:               repoPath(storageRepo),
-			Env:               append(os.Environ(), extraEnvs...),
-			Stdout:            output,
-			Stdin:             input,
-			Stderr:            &stderr,
-			UseContextTimeout: true,
-		}); err != nil {
+		WithDir(repoPath(storageRepo)).
+		WithEnv(append(os.Environ(), extraEnvs...)).
+		WithStderr(&stderr).
+		WithStdin(input).
+		WithStdout(output).
+		WithUseContextTimeout(true).
+		Run(ctx); err != nil {
 		return stderr.String(), err
 	}
 	return "", nil
@@ -44,9 +42,8 @@ func StatelessRPC(ctx context.Context, storageRepo Repository, service string, e
 
 func StatelessRPCAdvertiseRefs(ctx context.Context, storageRepo Repository, service string, extraEnvs []string) ([]byte, error) {
 	refs, _, err := serviceCmd(service).AddArguments("--stateless-rpc", "--advertise-refs", ".").
-		RunStdBytes(ctx, &gitcmd.RunOpts{
-			Dir: repoPath(storageRepo),
-			Env: append(os.Environ(), extraEnvs...),
-		})
+		WithEnv(append(os.Environ(), extraEnvs...)).
+		WithDir(repoPath(storageRepo)).
+		RunStdBytes(ctx)
 	return refs, err
 }

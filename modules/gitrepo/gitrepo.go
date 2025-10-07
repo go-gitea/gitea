@@ -91,7 +91,7 @@ func InitRepository(ctx context.Context, repo Repository, objectFormatName strin
 }
 
 func UpdateServerInfo(ctx context.Context, repo Repository) error {
-	_, _, err := gitcmd.NewCommand("update-server-info").RunStdBytes(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
+	_, _, err := RunCmdBytes(ctx, repo, gitcmd.NewCommand("update-server-info"))
 	return err
 }
 

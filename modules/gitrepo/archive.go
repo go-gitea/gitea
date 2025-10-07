@@ -29,12 +29,7 @@ func CreateArchive(ctx context.Context, repo Repository, format string, target i
 	cmd.AddDynamicArguments(commitID)
 
 	var stderr strings.Builder
-	err := cmd.Run(ctx, &gitcmd.RunOpts{
-		Dir:    repoPath(repo),
-		Stdout: target,
-		Stderr: &stderr,
-	})
-	if err != nil {
+	if err := RunCmd(ctx, repo, cmd.WithStdout(target).WithStderr(&stderr)); err != nil {
 		return gitcmd.ConcatenateError(err, stderr.String())
 	}
 	return nil
@@ -49,23 +44,23 @@ func CreateBundle(ctx context.Context, repo Repository, commit string, out io.Wr
 	defer cleanup()
 
 	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repoPath(repo), "objects"))
-	_, _, err = gitcmd.NewCommand("init", "--bare").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
+	_, _, err = gitcmd.NewCommand("init", "--bare").WithDir(tmp).WithEnv(env).RunStdString(ctx)
 	if err != nil {
 		return err
 	}
 
-	_, _, err = gitcmd.NewCommand("reset", "--soft").AddDynamicArguments(commit).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
+	_, _, err = gitcmd.NewCommand("reset", "--soft").AddDynamicArguments(commit).WithDir(tmp).WithEnv(env).RunStdString(ctx)
 	if err != nil {
 		return err
 	}
 
-	_, _, err = gitcmd.NewCommand("branch", "-m", "bundle").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
+	_, _, err = gitcmd.NewCommand("branch", "-m", "bundle").WithDir(tmp).WithEnv(env).RunStdString(ctx)
 	if err != nil {
 		return err
 	}
 
 	tmpFile := filepath.Join(tmp, "bundle")
-	_, _, err = gitcmd.NewCommand("bundle", "create").AddDynamicArguments(tmpFile, "bundle", "HEAD").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmp, Env: env})
+	_, _, err = gitcmd.NewCommand("bundle", "create").AddDynamicArguments(tmpFile, "bundle", "HEAD").WithDir(tmp).WithEnv(env).RunStdString(ctx)
 	if err != nil {
 		return err
 	}
