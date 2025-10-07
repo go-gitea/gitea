@@ -38,7 +38,10 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	}
 
 	if len(idStr) != objectFormat.FullLength() {
-		res, _, err := gitcmd.NewCommand("rev-parse", "--verify").AddDynamicArguments(idStr).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+		res, _, err := gitcmd.NewCommand("rev-parse", "--verify").
+			AddDynamicArguments(idStr).
+			WithDir(repo.Path).
+			RunStdString(repo.Ctx)
 		if err != nil {
 			return nil, err
 		}
