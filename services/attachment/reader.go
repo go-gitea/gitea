@@ -13,7 +13,8 @@ func attachmentLimitedReader(r io.Reader, n int64) io.Reader { return &attachmen
 // A attachmentReader reads from R but limits the amount of
 // data returned to just N bytes. Each call to Read
 // updates N to reflect the new amount remaining.
-// Read returns EOF when N <= 0 or when the underlying R returns EOF.
+// Read returns ErrAttachmentSizeExceed when N <= 0.
+// Underlying errors are passed through.
 type attachmentReader struct {
 	R io.Reader // underlying reader
 	N int64     // max bytes remaining
