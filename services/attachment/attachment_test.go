@@ -15,6 +15,7 @@ import (
 	_ "code.gitea.io/gitea/models/actions"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -28,15 +29,18 @@ func TestUploadAttachment(t *testing.T) {
 
 	fPath := "./attachment_test.go"
 	f, err := os.Open(fPath)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer f.Close()
+	fs, err := f.Stat()
+	require.NoError(t, err)
 
 	attach, err := NewAttachment(t.Context(), &repo_model.Attachment{
 		RepoID:     1,
 		UploaderID: user.ID,
 		Name:       filepath.Base(fPath),
-	}, f, -1)
+	}, f, fs.Size())
 	assert.NoError(t, err)
+	assert.Equal(t, fs.Size(), attach.Size)
 
 	attachment, err := repo_model.GetAttachmentByUUID(t.Context(), attach.UUID)
 	assert.NoError(t, err)
