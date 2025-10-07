@@ -2326,7 +2326,6 @@
     "settings.event_package": "软件包",
     "settings.event_package_desc": "软件包在仓库中已创建或删除。",
     "settings.branch_filter": "分支过滤",
-    "settings.branch_filter_desc": "推送、创建，删除分支事件的分支白名单，使用 glob 表达式匹配指定。若为空或 <code>*</code>，则会报告所有分支的事件。语法文档见 <a href=\"%[1]s\">%[2]s</a>。示例：<code>master</code>、<code>{master,release*}</code>。",
     "settings.authorization_header": "授权标头",
     "settings.authorization_header_desc": "当存在时将被作为授权标头包含在内。例如: %s。",
     "settings.active": "激活",

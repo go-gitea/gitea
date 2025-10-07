@@ -45,13 +45,13 @@ func convertIniToJSON(data []byte) ([]byte, error) {
 			// trim quotes
 			if strings.HasPrefix(v, "\"") && strings.HasSuffix(v, "\"") {
 				v = v[1 : len(v)-1]
-			} else {
-				if strings.HasPrefix(v, "`") && strings.HasSuffix(v, "`") {
-					v = v[1 : len(v)-1]
-				}
-				v = strings.ReplaceAll(v, `\`, `\\`)
-				v = strings.ReplaceAll(v, `"`, `\"`)
 			}
+
+			if strings.HasPrefix(v, "`") && strings.HasSuffix(v, "`") {
+				v = v[1 : len(v)-1]
+			}
+			v = strings.ReplaceAll(v, `\`, `\\`)
+			v = strings.ReplaceAll(v, `"`, `\"`)
 
 			if !isDefault {
 				buf.WriteString("  ")

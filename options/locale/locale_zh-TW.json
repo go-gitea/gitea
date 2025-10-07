@@ -2106,7 +2106,6 @@
     "settings.event_package": "套件",
     "settings.event_package_desc": "套件已在儲存庫中建立或刪除。",
     "settings.branch_filter": "分支篩選",
-    "settings.branch_filter_desc": "推送、建立分支、刪除分支事件的白名單，請使用 glob 比對模式。如果留白或輸入<code>*</code>，所有分支的事件都會被回報。語法參見 <a href=\"https://pkg.go.dev/github.com/gobwas/glob#Compile\">github.com/gobwas/glob</a>。範例：<code>master</code>, <code>{master,release*}</code>。",
     "settings.authorization_header": "Authorization 標頭",
     "settings.authorization_header_desc": "存在時將將包含此 Authorization 標頭在請求中。例: %s。",
     "settings.active": "啟用",

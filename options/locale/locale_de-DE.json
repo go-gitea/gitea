@@ -2162,7 +2162,6 @@
     "settings.event_package": "Paket",
     "settings.event_package_desc": "Paket wurde in einem Repository erstellt oder gelöscht.",
     "settings.branch_filter": "Branch-Filter",
-    "settings.branch_filter_desc": "Whitelist für Branches für Push-, Erzeugungs- und Löschevents, als Glob-Pattern beschrieben. Es werden Events für alle Branches gemeldet, falls das Pattern <code>*</code> ist, oder falls es leer ist. Siehe die <a href=\"%[1]s\">%[2]s</a> Dokumentation für die Syntax (Englisch). Beispiele: <code>master</code>, <code>{master,release*}</code>.",
     "settings.authorization_header": "Authorization-Header",
     "settings.authorization_header_desc": "Wird, falls vorhanden, als Authorization-Header mitgesendet. Beispiele: %s.",
     "settings.active": "Aktiv",
