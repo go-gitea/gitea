@@ -364,7 +364,7 @@ func RedirectDownload(ctx *context.Context) {
 
 // Download an archive of a repository
 func Download(ctx *context.Context) {
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"))
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
@@ -375,7 +375,7 @@ func Download(ctx *context.Context) {
 		}
 		return
 	}
-	archiver_service.ServeRepoArchive(ctx.Base, ctx.Repo.Repository, ctx.Repo.GitRepo, aReq)
+	archiver_service.ServeRepoArchive(ctx.Base, aReq)
 }
 
 // InitiateDownload will enqueue an archival request, as needed.  It may submit
@@ -388,7 +388,7 @@ func InitiateDownload(ctx *context.Context) {
 		})
 		return
 	}
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"))
 	if err != nil {
 		ctx.HTTPError(http.StatusBadRequest, "invalid archive request")
 		return
@@ -398,7 +398,7 @@ func InitiateDownload(ctx *context.Context) {
 		return
 	}
 
-	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.Repo.ID, aReq.Type, aReq.CommitID)
 	if err != nil {
 		ctx.ServerError("archiver_service.StartArchive", err)
 		return
