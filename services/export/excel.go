@@ -5,6 +5,7 @@ package export
 
 import (
 	"fmt"
+
 	"github.com/xuri/excelize/v2"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -13,12 +14,31 @@ import (
 
 func IssuesToExcel(ctx *context.Context, issues issues_model.IssueList) *excelize.File {
 	f := excelize.NewFile()
-	sheet := f.GetSheetName(f.GetActiveSheetIndex())
+	sw, err := f.NewStreamWriter("Sheet1")
+	if err != nil {
+		fmt.Println(err)
+		return f
+	}
+	// print headers
+	cell, err := excelize.CoordinatesToCellName(1, 1)
+	if err != nil {
+		fmt.Println(err)
+		return f
+	}
+	sw.SetRow(cell, []interface{}{
+		excelize.Cell{Value: "ID"},
+		excelize.Cell{Value: "Title"},
+		excelize.Cell{Value: "Status"},
+		excelize.Cell{Value: "Assignee(s)"},
+		excelize.Cell{Value: "Label(s)"},
+		excelize.Cell{Value: "Created At"},
+	})
 
-	headers := []string{"ID", "Title", "Status", "Assignee(s)", "Label(s)", "Created At"}
-	for col, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(col+1, 1)
-		f.SetCellValue(sheet, cell, h)
+	// built-in format ID 22 ("m/d/yy h:mm")
+	datetimeStyleID, err := f.NewStyle(&excelize.Style{NumFmt: 22})
+	if err != nil {
+		fmt.Println(err)
+		return f
 	}
 
 	for i, issue := range issues {
@@ -51,12 +71,19 @@ func IssuesToExcel(ctx *context.Context, issues issues_model.IssueList) *exceliz
 			}
 		}
 
-		f.SetCellValue(sheet, fmt.Sprintf("A%d", i+2), issue.Index)
-		f.SetCellValue(sheet, fmt.Sprintf("B%d", i+2), issue.Title)
-		f.SetCellValue(sheet, fmt.Sprintf("C%d", i+2), issue.State())
-		f.SetCellValue(sheet, fmt.Sprintf("D%d", i+2), assignees)
-		f.SetCellValue(sheet, fmt.Sprintf("E%d", i+2), labels)
-		f.SetCellValue(sheet, fmt.Sprintf("F%d", i+2), issue.CreatedUnix.AsTime()) // .Format("2006-01-02"))
+		cell, _ := excelize.CoordinatesToCellName(1, i+1)
+		sw.SetRow(cell, []interface{}{
+			excelize.Cell{Value: issue.Index},
+			excelize.Cell{Value: issue.Title},
+			excelize.Cell{Value: issue.State()},
+			excelize.Cell{Value: assignees},
+			excelize.Cell{Value: labels},
+			excelize.Cell{StyleID: datetimeStyleID, Value: issue.CreatedUnix.AsTime()},
+		})
+
 	}
+
+	sw.Flush()
+
 	return f
 }
