@@ -11,7 +11,7 @@ import (
 )
 
 func TestCallerFuncName(t *testing.T) {
-	s := CallerFuncName(1)
+	s := CallerFuncName()
 	assert.Equal(t, "code.gitea.io/gitea/modules/util.TestCallerFuncName", s)
 }
 
@@ -26,7 +26,7 @@ func BenchmarkCallerFuncName(b *testing.B) {
 	// It is almost as fast as fmt.Sprintf
 	b.Run("caller", func(b *testing.B) {
 		for b.Loop() {
-			CallerFuncName(1)
+			CallerFuncName()
 		}
 	})
 }
