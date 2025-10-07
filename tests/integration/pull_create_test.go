@@ -318,3 +318,49 @@ func TestCreatePullWhenBlocked(t *testing.T) {
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }
+
+func TestPullRequestCommentClose(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
+		pullURL := test.RedirectURL(resp)
+
+		testIssueAddComment(t, session, pullURL, "Test comment 1", "")
+		testIssueAddComment(t, session, pullURL, "Test comment 2", "")
+		testIssueAddComment(t, session, pullURL, "Test comment 3", "close")
+
+		// Validate that issue content has not been updated
+		req := NewRequest(t, "GET", pullURL)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		val := strings.Split(strings.TrimSpace(htmlDoc.doc.Find("#issue-title-display > h1").First().Text()), "\n")[0]
+		assert.Equal(t, "This is a pull title", val)
+		val = strings.TrimSpace(htmlDoc.doc.Find(".issue-title-header .issue-state-label").Text())
+		assert.Equal(t, "Closed", val)
+	})
+}
+
+func TestPullRequestCommentReopen(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
+		pullURL := test.RedirectURL(resp)
+
+		testIssueAddComment(t, session, pullURL, "Test comment 1", "")
+		testIssueAddComment(t, session, pullURL, "Test comment 2", "close")
+		testIssueAddComment(t, session, pullURL, "Test comment 2", "reopen")
+
+		// Validate that issue content has not been updated
+		req := NewRequest(t, "GET", pullURL)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		val := strings.Split(strings.TrimSpace(htmlDoc.doc.Find("#issue-title-display > h1").First().Text()), "\n")[0]
+		assert.Equal(t, "This is a pull title", val)
+		val = strings.TrimSpace(htmlDoc.doc.Find(".issue-title-header .issue-state-label").Text())
+		assert.Equal(t, "Open", val)
+	})
+}
