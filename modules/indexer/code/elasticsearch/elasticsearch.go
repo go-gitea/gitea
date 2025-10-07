@@ -210,7 +210,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elasti
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
-		batch, err := git.NewBatch(ctx, repo.RepoPath())
+		batch, err := gitrepo.NewBatch(ctx, repo)
 		if err != nil {
 			return err
 		}
