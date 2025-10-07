@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -272,9 +273,10 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 				return cancelledJobs, err
 			}
 
-			// If the update affected 0 rows, it means the job has changed in the meantime, so we need to try again.
+			// If the update affected 0 rows, it means the job has changed in the meantime
 			if n == 0 {
-				return cancelledJobs, errors.New("job has changed, try again")
+				log.Error("Failed to cancel job %d because it has changed", job.ID)
+				continue
 			}
 
 			cancelledJobs = append(cancelledJobs, job)
