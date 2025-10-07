@@ -103,7 +103,10 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Eq{"`action_run`.commit_sha": opts.CommitSHA})
 	}
 	if len(opts.ConcurrencyGroup) > 0 {
-		cond = cond.And(builder.Eq{"concurrency_group": opts.ConcurrencyGroup})
+		if opts.RepoID == 0 {
+			panic("Invalid FindRunOptions: repo_id is required")
+		}
+		cond = cond.And(builder.Eq{"`action_run`.concurrency_group": opts.ConcurrencyGroup})
 	}
 	return cond
 }

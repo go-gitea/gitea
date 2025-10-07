@@ -29,7 +29,7 @@ import (
 type ActionRun struct {
 	ID                int64
 	Title             string
-	RepoID            int64                  `xorm:"index unique(repo_index) index(repo_concurrency)"`
+	RepoID            int64                  `xorm:"unique(repo_index) index(repo_concurrency)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
 	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
@@ -49,8 +49,8 @@ type ActionRun struct {
 	Status            Status                       `xorm:"index"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	RawConcurrency    string                       // raw concurrency
-	ConcurrencyGroup  string                       `xorm:"index(repo_concurrency)"`
-	ConcurrencyCancel bool
+	ConcurrencyGroup  string                       `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"`
+	ConcurrencyCancel bool                         `xorm:"NOT NULL DEFAULT FALSE"`
 	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
@@ -295,18 +295,6 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 
 	// Return nil to indicate successful cancellation of all running and waiting jobs.
 	return cancelledJobs, nil
-}
-
-func GetRunByID(ctx context.Context, id int64) (*ActionRun, error) {
-	var run ActionRun
-	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&run)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, fmt.Errorf("run with id %d: %w", id, util.ErrNotExist)
-	}
-
-	return &run, nil
 }
 
 func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, error) {

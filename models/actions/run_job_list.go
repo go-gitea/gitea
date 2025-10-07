@@ -96,7 +96,10 @@ func (opts FindRunJobOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Lt{"`action_run_job`.updated": opts.UpdatedBefore})
 	}
 	if opts.ConcurrencyGroup != "" {
-		cond = cond.And(builder.Eq{"concurrency_group": opts.ConcurrencyGroup})
+		if opts.RepoID == 0 {
+			panic("Invalid FindRunJobOptions: repo_id is required")
+		}
+		cond = cond.And(builder.Eq{"`action_run_job`.concurrency_group": opts.ConcurrencyGroup})
 	}
 	return cond
 }
