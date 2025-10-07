@@ -4,18 +4,29 @@
 package explore
 
 import (
+	"bytes"
 	"errors"
+	"html/template"
+	"io"
 	"net/http"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sitemap"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -276,9 +287,13 @@ func renderRepositoryHistory(ctx *context.Context) {
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 	ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.CloneLink(ctx, ctx.Doer)
 
-	// If the Article view is requested, try to locate README to be shown via iframe in template.
-	// We keep preparation light here; README rendering will be handled by the existing
-	// repo file renderer page that we embed.
+	// For Article view, handle mode parameter and load README content
+	if ctx.Data["IsArticleView"] == true {
+		prepareArticleView(ctx, gitRepo, commit, entries, defaultBranch)
+		if ctx.Written() {
+			return
+		}
+	}
 
 	// Render the history view template
 	ctx.HTML(http.StatusOK, "explore/repo_history")
@@ -297,4 +312,234 @@ func handleRepoHistoryFeed(ctx *context.Context) bool {
 		return true
 	}
 	return false
+}
+
+// prepareArticleView prepares data for the article view (README display with read/edit/history modes)
+func prepareArticleView(ctx *context.Context, gitRepo *git.Repository, commit *git.Commit, entries []*git.TreeEntry, defaultBranch string) {
+	// Determine mode (read/edit/history)
+	mode := ctx.FormString("mode")
+	if mode == "" {
+		mode = "read"
+	}
+	ctx.Data["ArticleMode"] = mode
+	ctx.Data["IsArticleModeRead"] = mode == "read"
+	ctx.Data["IsArticleModeEdit"] = mode == "edit"
+	ctx.Data["IsArticleModeHistory"] = mode == "history"
+
+	// Find README.md file
+	readmeFile := findReadmeInEntries(entries)
+	if readmeFile == nil {
+		ctx.Data["ReadmeError"] = "No README.md file found in repository"
+		return
+	}
+
+	readmeTreePath := readmeFile.Name()
+	ctx.Data["ReadmeTreePath"] = readmeTreePath
+
+	// Get the blob for the README
+	blob := readmeFile.Blob()
+	if blob == nil {
+		ctx.ServerError("Blob is nil", errors.New("readme blob is nil"))
+		return
+	}
+
+	// Get contributor count for the readme file
+	contributorCount, err := getFileContributorCount(gitRepo, defaultBranch, readmeTreePath)
+	if err != nil {
+		log.Warn("Failed to get contributor count: %v", err)
+		contributorCount = 0
+	}
+	ctx.Data["ReadmeContributorCount"] = contributorCount
+
+	// Get last commit for the readme file
+	lastCommit, err := gitRepo.GetCommitByPath(readmeTreePath)
+	if err != nil {
+		log.Warn("Failed to get last commit: %v", err)
+	} else {
+		ctx.Data["ReadmeLastCommit"] = lastCommit
+	}
+
+	// For read mode, render the README content
+	if mode == "read" {
+		buf, dataRc, err := getReadmeContent(gitRepo, blob)
+		if err != nil {
+			ctx.ServerError("getReadmeContent", err)
+			return
+		}
+		defer dataRc.Close()
+
+		// Check file size
+		fileSize := blob.Size()
+		if fileSize >= setting.UI.MaxDisplayFileSize {
+			ctx.Data["IsFileTooLarge"] = true
+			return
+		}
+
+		// Detect if this is markup
+		if markupType := markup.DetectMarkupTypeByFileName(readmeFile.Name()); markupType != "" {
+			ctx.Data["IsMarkup"] = true
+			ctx.Data["MarkupType"] = markupType
+
+			rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
+				CurrentRefPath:  path.Join("branch", util.PathEscapeSegments(defaultBranch)),
+				CurrentTreePath: "",
+			}).
+				WithMarkupType(markupType).
+				WithRelativePath(readmeTreePath)
+
+			rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
+			var escapeStatus *charset.EscapeStatus
+			escapeStatus, ctx.Data["FileContent"], err = markupRender(ctx, rctx, rd)
+			if err != nil {
+				log.Error("Render failed for %s in %-v: %v", readmeFile.Name(), ctx.Repo.Repository, err)
+				ctx.Data["IsMarkup"] = false
+			}
+			ctx.Data["EscapeStatus"] = escapeStatus
+		}
+
+		if ctx.Data["IsMarkup"] != true {
+			ctx.Data["IsPlainText"] = true
+			rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
+			content, err := io.ReadAll(rd)
+			if err != nil {
+				log.Error("Read readme content failed: %v", err)
+			}
+			contentEscaped := template.HTMLEscapeString(util.UnsafeBytesToString(content))
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(template.HTML(contentEscaped), ctx.Locale)
+		}
+
+		ctx.Data["FileSize"] = fileSize
+		ctx.Data["CanEditReadmeFile"] = ctx.Repo.Repository.CanEnableEditor()
+	} else if mode == "edit" {
+		// For edit mode, load raw content
+		buf, dataRc, err := getReadmeContent(gitRepo, blob)
+		if err != nil {
+			ctx.ServerError("getReadmeContent", err)
+			return
+		}
+		defer dataRc.Close()
+
+		fileSize := blob.Size()
+		if fileSize >= setting.UI.MaxDisplayFileSize {
+			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_too_large_file")
+		} else {
+			allContent, err := io.ReadAll(io.MultiReader(bytes.NewReader(buf), dataRc))
+			if err != nil {
+				ctx.ServerError("ReadAll", err)
+				return
+			}
+			if content, err := charset.ToUTF8(allContent, charset.ConvertOpts{KeepBOM: true}); err != nil {
+				ctx.Data["FileContent"] = string(allContent)
+			} else {
+				ctx.Data["FileContent"] = content
+			}
+		}
+		ctx.Data["FileSize"] = fileSize
+	} else if mode == "history" {
+		// For history mode, get file commit history
+		commitsCount, err := gitRepo.FileCommitsCount(defaultBranch, readmeTreePath)
+		if err != nil {
+			ctx.ServerError("FileCommitsCount", err)
+			return
+		}
+
+		page := ctx.FormInt("page")
+		if page <= 0 {
+			page = 1
+		}
+
+		commits, err := gitRepo.CommitsByFileAndRange(
+			git.CommitsByFileAndRangeOptions{
+				Revision: defaultBranch,
+				File:     readmeTreePath,
+				Page:     page,
+			})
+		if err != nil {
+			ctx.ServerError("CommitsByFileAndRange", err)
+			return
+		}
+
+		// Process commits to attach user information
+		processedCommits, err := processGitCommits(ctx, commits)
+		if err != nil {
+			ctx.ServerError("processGitCommits", err)
+			return
+		}
+
+		ctx.Data["Commits"] = processedCommits
+		ctx.Data["CommitCount"] = commitsCount
+		ctx.Data["FileTreePath"] = readmeTreePath
+
+		pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
+		pager.AddParamFromRequest(ctx.Req)
+		ctx.Data["Page"] = pager
+	}
+}
+
+// findReadmeInEntries finds a README file in the given entries
+func findReadmeInEntries(entries []*git.TreeEntry) *git.TreeEntry {
+	// Look for readme.md (case insensitive)
+	for _, entry := range entries {
+		if entry.IsRegular() || entry.IsExecutable() {
+			name := strings.ToLower(entry.Name())
+			if name == "readme.md" || name == "readme" || name == "readme.txt" {
+				return entry
+			}
+		}
+	}
+	return nil
+}
+
+// getReadmeContent reads content from a blob
+func getReadmeContent(gitRepo *git.Repository, blob *git.Blob) ([]byte, io.ReadCloser, error) {
+	dataRc, err := blob.DataAsync()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	buf := make([]byte, 1024)
+	n, _ := util.ReadAtMost(dataRc, buf)
+	buf = buf[:n]
+
+	return buf, dataRc, nil
+}
+
+// markupRender renders markup content
+func markupRender(ctx *context.Context, rctx *markup.RenderContext, rd io.Reader) (*charset.EscapeStatus, template.HTML, error) {
+	var buf bytes.Buffer
+	err := markup.Render(rctx, rd, &buf)
+	if err != nil {
+		return nil, "", err
+	}
+	escapeStatus, content := charset.EscapeControlHTML(template.HTML(buf.String()), ctx.Locale)
+	return escapeStatus, content, nil
+}
+
+// processGitCommits processes git commits to attach user information
+func processGitCommits(ctx *context.Context, commits []*git.Commit) ([]*user_model.UserCommit, error) {
+	// Validate commits with emails to attach user information
+	userCommits, err := user_model.ValidateCommitsWithEmails(ctx, commits)
+	if err != nil {
+		return nil, err
+	}
+	return userCommits, nil
+}
+
+// getFileContributorCount gets the number of unique contributors for a specific file
+func getFileContributorCount(gitRepo *git.Repository, branch, filePath string) (int64, error) {
+	// Use git shortlog to get unique contributors for the file
+	stdout, _, err := gitcmd.NewCommand("shortlog", "-sn").
+		AddDynamicArguments(branch, "--", filePath).
+		RunStdString(gitRepo.Ctx, &gitcmd.RunOpts{Dir: gitRepo.Path})
+	if err != nil {
+		return 0, err
+	}
+
+	// Count the number of lines (each line represents a unique contributor)
+	lines := strings.Split(strings.TrimSpace(stdout), "\n")
+	if len(lines) == 1 && lines[0] == "" {
+		return 0, nil // No contributors
+	}
+
+	return int64(len(lines)), nil
 }

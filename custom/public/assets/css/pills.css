@@ -1,0 +1,8 @@
+.pill {
+  border: 1px solid var(--color-secondary);
+  border-radius: 100vw;
+  padding: 0 .6rem;
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-light-3);
+}

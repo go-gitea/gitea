@@ -123,7 +123,7 @@
 
 {{template "base/head" .}}
 <style>
-/* Fork hierarchy level styling */
+/* Temporary Fork hierarchy level styling until we agree on design */
 .fork-level-0 { margin-left: 0px !important; }
 .fork-level-1 { margin-left: 20px !important; }
 .fork-level-2 { margin-left: 40px !important; }
@@ -186,7 +186,7 @@
                     </div>
 
                     <div class="ui segment tw-px-0">
-                        <table class="ui very basic fixed single line selectable table tw-mb-0" id="articles-table">
+                        <table class="ui unstackable very basic fixed single line selectable table tw-mb-0" id="articles-table">
                             <colgroup>
                                 <col class="checkbox">
                                 <col>
@@ -244,6 +244,7 @@
                 </div>
             </div>
             <script>
+            // TODO: Double check that this code should be moved to a common file
             (function(){
                 const table = document.getElementById('articles-table');
                 if(!table) return;
@@ -280,17 +281,160 @@
 
             {{/* Article view - display README of repository (if exists) */}}
             {{if .IsArticleView}}
-            <div class="ui stackable grid">
-                <div class="sixteen wide column">
-                    <div class="ui top attached tabular menu">
-                        <a class="active item">
-                            {{svg "octicon-file"}} {{ctx.Locale.Tr "repo.readme"}}
-                        </a>
+            <div class="ui tw-mt-10">
+                {{if .ReadmeError}}
+                    <div class="ui error message">
+                        {{.ReadmeError}}
                     </div>
-                    <div class="ui bottom attached segment">
-                        <iframe src="{{.RepoLink}}" style="width:100%;border:0;min-height:60vh"></iframe>
+                {{else}}
+                    {{/* Contributors and Last Updated Pills */}}
+                    <div class="tw-flex tw-items-center tw-gap-2">
+                        <span class="pill">
+                            {{svg "octicon-person" 16 "tw-mr-1"}}
+                            {{.ReadmeContributorCount}} {{if eq .ReadmeContributorCount 1}}contributor{{else}}contributors{{end}}
+                        </span>
+                        {{if .ReadmeLastCommit}}
+                            <span class="pill">
+                                {{svg "octicon-sync" 16 "tw-mr-1"}}
+                                Updated {{DateUtils.TimeSince .ReadmeLastCommit.Committer.When}}
+                            </span>
+                        {{end}}
                     </div>
-                </div>
+                    {{/* Tab navigation for Read/Edit/History */}}
+                    <div class="tw-flex tw-items-center tw-gap-4">
+                        <div class="ui top attached tabular menu tw-my-10 tw-gap-1">
+                            <a class="{{if .IsArticleModeRead}}active {{end}}item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "article" "mode" "read"}}">
+                                {{svg "octicon-book" 16}} Read
+                            </a>
+                            <a class="{{if .IsArticleModeEdit}}active {{end}}item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "article" "mode" "edit"}}">
+                                {{svg "octicon-pencil" 16}} Edit
+                            </a>
+                            <a class="{{if .IsArticleModeHistory}}active {{end}}item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "article" "mode" "history"}}">
+                                {{svg "octicon-history" 16}} History
+                            </a>
+                            {{/* Align buttons on the right */}}
+                            <div class="tw-flex tw-items-center tw-gap-2 tw-ml-auto">
+                                <div class="tw-flex">
+                                    {{template "repo/watch_unwatch" .}}
+                                </div>
+
+                                <div class="ui icon top left pointing dropdown button mini tw-px-3">
+                                    {{svg "octicon-kebab-horizontal" 14}}
+                                    <div class="menu">
+                                        <div class="item">Something</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{/* Read mode - Display rendered README */}}
+                    {{if .IsArticleModeRead}}
+                    <div class="ui bottom attached">
+                        {{if .IsFileTooLarge}}
+                            <div class="ui error message">
+                                {{ctx.Locale.Tr "repo.file_too_large"}}
+                            </div>
+                        {{else}}
+                            <div class="file-view {{if .IsMarkup}}markup {{.MarkupType}}{{else if .IsPlainText}}plain-text{{end}}">
+                                {{if .IsMarkup}}
+                                    {{.FileContent}}
+                                {{else if .IsPlainText}}
+                                    <pre>{{if .FileContent}}{{.FileContent}}{{end}}</pre>
+                                {{end}}
+                            </div>
+                        {{end}}
+                    </div>
+                    {{end}}
+
+                    {{/* Edit mode - Display editor */}}
+                    {{if .IsArticleModeEdit}}
+                    <div class="ui bottom attached">
+                        {{if .NotEditableReason}}
+                            <div class="ui warning message">
+                                <h4>{{.NotEditableReason}}</h4>
+                                <p>{{ctx.Locale.Tr "repo.editor.file_not_editable_hint"}}</p>
+                            </div>
+                        {{else}}
+                            <div class="ui message">
+                                <p><strong>Note:</strong> This is a read-only preview. To edit this file, please go to the <a href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{.ReadmeTreePath}}">repository edit page</a>.</p>
+                            </div>
+                            <div class="file-view code-view">
+                                <pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto;"><code>{{.FileContent}}</code></pre>
+                            </div>
+                        {{end}}
+                    </div>
+                    {{end}}
+
+                    {{/* History mode - Display commit history */}}
+                    {{if .IsArticleModeHistory}}
+                    <div class="ui bottom attached">
+                        <h4 class="ui top attached header">
+                            {{ctx.Locale.Tr "repo.file_history"}}: {{.ReadmeTreePath}}
+                        </h4>
+                        {{if .Commits}}
+                            <div class="ui attached table segment commit-table">
+                                <table class="ui very basic striped table unstackable" id="commits-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="three wide">{{ctx.Locale.Tr "repo.commits.author"}}</th>
+                                            <th class="two wide sha">SHA</th>
+                                            <th class="eight wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
+                                            <th class="two wide tw-text-right">{{ctx.Locale.Tr "repo.commits.date"}}</th>
+                                            <th class="one wide"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="commit-list">
+                                        {{range .Commits}}
+                                        <tr>
+                                            <td class="author">
+                                                <div class="tw-flex">
+                                                    {{$userName := .Author.Name}}
+                                                    {{if .User}}
+                                                        {{if and .User.FullName DefaultShowFullName}}
+                                                            {{$userName = .User.FullName}}
+                                                        {{end}}
+                                                        {{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}<a class="muted author-wrapper" href="{{.User.HomeLink}}">{{$userName}}</a>
+                                                    {{else}}
+                                                        {{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "tw-mr-2"}}
+                                                        <span class="author-wrapper">{{$userName}}</span>
+                                                    {{end}}
+                                                </div>
+                                            </td>
+                                            <td class="sha">
+                                                <a href="{{$.RepoLink}}/commit/{{.ID.String}}" rel="nofollow" class="ui sha label">
+                                                    {{ShortSha .ID.String}}
+                                                </a>
+                                            </td>
+                                            <td class="message">
+                                                <span class="message-wrapper">
+                                                    <span class="commit-summary" title="{{.Summary}}">{{.Summary | ctx.RenderUtils.RenderEmoji}}</span>
+                                                </span>
+                                            </td>
+                                            {{if .Committer}}
+                                                <td class="tw-text-right">{{DateUtils.TimeSince .Committer.When}}</td>
+                                            {{else}}
+                                                <td class="tw-text-right">{{DateUtils.TimeSince .Author.When}}</td>
+                                            {{end}}
+                                            <td class="tw-text-right tw-py-0">
+                                                <a class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$.RepoLink}}/src/commit/{{PathEscape .ID.String}}/{{PathEscapeSegments $.ReadmeTreePath}}">{{svg "octicon-file-code"}}</a>
+                                            </td>
+                                        </tr>
+                                        {{end}}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {{if .Page}}
+                                {{template "base/paginate" .}}
+                            {{end}}
+                        {{else}}
+                            <div class="ui message">
+                                {{ctx.Locale.Tr "repo.commits.no_commits"}}
+                            </div>
+                        {{end}}
+                    </div>
+                    {{end}}
+                {{end}}
             </div>
             {{end}}
         {{end}}

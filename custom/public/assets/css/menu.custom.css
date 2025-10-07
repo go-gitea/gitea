@@ -2,12 +2,6 @@
   border-color: var(--color-primary);
 }
 
-.ui.tabular.menu .active.item, .ui.tabular.menu .active.item:hover {
-  margin-bottom: 0;
-  box-shadow: 0px 2px 0px var(--color-primary);
-  border: 0;
-}
-
 .ui.floating.dropdown > .menu {
   border-radius: var(--border-radius-dropdown) !important;
 }
@@ -19,4 +13,12 @@
 .ui.dropdown .menu > .item:last-of-type {
   border-bottom-left-radius: var(--border-radius-dropdown) !important;
   border-bottom-right-radius: var(--border-radius-dropdown) !important;
+}
+
+.ui.tabular.menu .active.item, .ui.tabular.menu .active.item:hover {
+  border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0 !important;
+}
+
+.ui.menu .item > .svg {
+  margin-right: 0.5rem;
 }
