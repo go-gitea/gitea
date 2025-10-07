@@ -200,7 +200,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	}
 
 	// Then push this tree to NewBranch
-	if err := t.Push(ctx, doer, commitHash, opts.NewBranch); err != nil {
+	if err := t.Push(ctx, doer, commitHash, opts.NewBranch, false); err != nil {
 		return nil, err
 	}
 
