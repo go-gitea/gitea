@@ -32,6 +32,9 @@ type mergeContext struct {
 	env       []string
 }
 
+// PrepareGitCmd prepares a git command with the correct directory, environment, and output buffers
+// This function can only be called with gitcmd.Run()
+// Do NOT use it with gitcmd.RunStd*() functions, otherwise it will panic
 func (ctx *mergeContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	ctx.outbuf.Reset()
 	ctx.errbuf.Reset()
