@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-const verifyURL = "https://hcaptcha.com/siteverify"
+const VerifyURL = "https://hcaptcha.com/siteverify"
 
 // Client is an hCaptcha client
 type Client struct {
@@ -93,7 +93,7 @@ func (c *Client) Verify(token string, opts PostOptions) (*Response, error) {
 	}
 
 	// Basically a copy of http.PostForm, but with a context
-	req, err := http.NewRequestWithContext(c.ctx, http.MethodPost, verifyURL, strings.NewReader(post.Encode()))
+	req, err := http.NewRequestWithContext(c.ctx, http.MethodPost, VerifyURL, strings.NewReader(post.Encode()))
 	if err != nil {
 		return nil, err
 	}
