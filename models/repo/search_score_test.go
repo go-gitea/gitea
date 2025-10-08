@@ -119,9 +119,9 @@ func TestMultipleKeywordScoring(t *testing.T) {
 		keywords           string
 		expectedTotalScore int
 	}{
-		{"moon-landing", "Moon Landing", "moon,landing", 4},           // 2 + 2 (both prefix matches)
+		{"moon-landing", "Moon Landing", "moon,landing", 5},           // 2 + 3 (prefix + substring)
 		{"apollo-moon", "Apollo Moon Program", "moon,landing", 7},     // 3 + 4 (substring + no match)
-		{"space-landing", "Space Landing Mission", "moon,landing", 6}, // 4 + 2 (no match + prefix)
+		{"space-landing", "Space Landing Mission", "moon,landing", 7}, // 4 + 3 (no match + substring)
 		{"mars-rover", "Mars Rover Project", "moon,landing", 8},       // 4 + 4 (no match + no match)
 	}
 
@@ -170,17 +170,16 @@ func calculateMockRelevanceScore(name, subject, keyword string) int {
 	keyword = strings.ToLower(strings.TrimSpace(keyword))
 
 	// Determine the display field (subject if available, otherwise name)
+	// This matches the COALESCE(subject.name, repository.name) logic
 	displayField := strings.ToLower(name)
 	if subject != "" {
 		displayField = strings.ToLower(subject)
 	}
 
-	repoName := strings.ToLower(name)
-
 	// Calculate score based on priority:
 	// 1 = exact match, 2 = prefix match, 3 = substring match, 4 = no match
+	// Only check the display field (subject takes priority over name)
 
-	// Check display field first
 	if displayField == keyword {
 		return 1 // Exact match
 	}
@@ -188,17 +187,6 @@ func calculateMockRelevanceScore(name, subject, keyword string) int {
 		return 2 // Prefix match
 	}
 	if strings.Contains(displayField, keyword) {
-		return 3 // Substring match
-	}
-
-	// Check name field as fallback
-	if repoName == keyword {
-		return 1 // Exact match
-	}
-	if strings.HasPrefix(repoName, keyword) {
-		return 2 // Prefix match
-	}
-	if strings.Contains(repoName, keyword) {
 		return 3 // Substring match
 	}
 

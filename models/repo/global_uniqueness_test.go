@@ -49,14 +49,19 @@ func TestIsRepositorySubjectGloballyUnique(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, unique)
 
-	// Create a test repository with a subject to test against
+	// Create a test subject to test against
+	subject, err := repo_model.GetOrCreateSubject(ctx, "Test Subject for Global Uniqueness")
+	assert.NoError(t, err)
+	assert.NotNil(t, subject)
+
+	// Create a test repository with the subject
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	repo := &repo_model.Repository{
 		OwnerID:     user.ID,
 		Owner:       user,
 		LowerName:   "test-subject-repo",
 		Name:        "test-subject-repo",
-		Subject:     "Test Subject for Global Uniqueness",
+		SubjectID:   subject.ID,
 		Description: "Test repository for global uniqueness validation",
 		IsPrivate:   false,
 	}
@@ -98,13 +103,16 @@ func TestCheckCreateRepositoryGlobalUnique(t *testing.T) {
 	err = repo_model.CheckCreateRepositoryGlobalUnique(ctx, user, user, "repo1", "Some Subject", false)
 	assert.True(t, repo_model.IsErrRepoNameGloballyTaken(err))
 
-	// Create a test repository to test subject uniqueness
+	// Create a test subject and repository to test subject uniqueness
+	globalSubject, err := repo_model.GetOrCreateSubject(ctx, "Global Test Subject")
+	assert.NoError(t, err)
+
 	testRepo := &repo_model.Repository{
 		OwnerID:     user.ID,
 		Owner:       user,
 		LowerName:   "test-global-subject",
 		Name:        "test-global-subject",
-		Subject:     "Global Test Subject",
+		SubjectID:   globalSubject.ID,
 		Description: "Test repository for global subject validation",
 		IsPrivate:   false,
 	}

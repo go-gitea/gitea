@@ -26,22 +26,22 @@ func TestSearchOrderByConstants(t *testing.T) {
 		{
 			name:     "SearchOrderByScore",
 			orderBy:  db.SearchOrderByScore,
-			expected: []string{"relevance_score", "ASC", "CASE", "subject", "name"},
+			expected: []string{"relevance_score", "ASC", "COALESCE", "subject.name", "repository.name"},
 		},
 		{
 			name:     "SearchOrderByScoreReverse",
 			orderBy:  db.SearchOrderByScoreReverse,
-			expected: []string{"relevance_score", "DESC", "CASE", "subject", "name"},
+			expected: []string{"relevance_score", "DESC", "COALESCE", "subject.name", "repository.name"},
 		},
 		{
 			name:     "SearchOrderBySubjectAlphabetically",
 			orderBy:  db.SearchOrderBySubjectAlphabetically,
-			expected: []string{"CASE", "subject", "name", "ASC"},
+			expected: []string{"COALESCE", "subject.name", "repository.name", "ASC"},
 		},
 		{
 			name:     "SearchOrderBySubjectReverse",
 			orderBy:  db.SearchOrderBySubjectReverse,
-			expected: []string{"CASE", "subject", "name", "DESC"},
+			expected: []string{"COALESCE", "subject.name", "repository.name", "DESC"},
 		},
 	}
 
@@ -65,18 +65,18 @@ func TestRelevanceScoreSQL(t *testing.T) {
 	assert.Contains(t, scoreSQL, "relevance_score", "Score SQL should contain relevance_score")
 	assert.Contains(t, reverseScoreSQL, "relevance_score", "Reverse score SQL should contain relevance_score")
 
-	// Both should contain CASE statement for subject/name fallback
-	assert.Contains(t, scoreSQL, "CASE WHEN subject", "Score SQL should contain subject fallback")
-	assert.Contains(t, reverseScoreSQL, "CASE WHEN subject", "Reverse score SQL should contain subject fallback")
+	// Both should contain COALESCE for subject/name fallback
+	assert.Contains(t, scoreSQL, "COALESCE(subject.name, repository.name)", "Score SQL should contain subject fallback")
+	assert.Contains(t, reverseScoreSQL, "COALESCE(subject.name, repository.name)", "Reverse score SQL should contain subject fallback")
 
 	// They should have different ordering for relevance_score
 	assert.Contains(t, scoreSQL, "relevance_score ASC", "Score SQL should order relevance_score ASC")
 	assert.Contains(t, reverseScoreSQL, "relevance_score DESC", "Reverse score SQL should order relevance_score DESC")
 
 	// Both should have same secondary ordering (alphabetical by display name)
-	assert.Contains(t, scoreSQL, "CASE WHEN subject != '' THEN subject ELSE name END ASC",
+	assert.Contains(t, scoreSQL, "COALESCE(subject.name, repository.name) ASC",
 		"Score SQL should have alphabetical secondary ordering")
-	assert.Contains(t, reverseScoreSQL, "CASE WHEN subject != '' THEN subject ELSE name END ASC",
+	assert.Contains(t, reverseScoreSQL, "COALESCE(subject.name, repository.name) ASC",
 		"Reverse score SQL should have alphabetical secondary ordering")
 }
 
@@ -103,8 +103,8 @@ func TestSubjectFieldSearchIntegration(t *testing.T) {
 		// Verify that repositories have the expected fields
 		for _, repo := range repos {
 			assert.NotEmpty(t, repo.Name, "Repository should have a name")
-			// Subject field may be empty, but should be accessible
-			_ = repo.Subject // This should not panic
+			// Subject can be accessed via GetSubject() method
+			_ = repo.GetSubject() // This should not panic
 		}
 	}
 }

@@ -152,10 +152,10 @@ func TestCaseInsensitiveMatching(t *testing.T) {
 		keyword  string
 		expected int
 	}{
-		{"MOON", "MOON PROJECT", "moon", 1},        // Exact match, different case
+		{"MOON", "MOON PROJECT", "moon", 2},        // Prefix match (subject "moon project" starts with "moon"), different case
 		{"moon", "Moon Project", "MOON", 2},        // Prefix match, different case
 		{"project", "The MOON Project", "moon", 3}, // Substring match, different case
-		{"test", "Test Repository", "TEST", 1},     // Exact match, different case
+		{"test", "Test Repository", "TEST", 2},     // Prefix match (subject "test repository" starts with "test"), different case
 	}
 
 	for _, tc := range testCases {
