@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	gocontext "context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -203,7 +204,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 						return nil
 					}
 					if !exist {
-						ctx.ServerError("Load task repository", fmt.Errorf("repo not found"))
+						ctx.ServerError("Load task repository", errors.New("repo not found"))
 						return nil
 					}
 					actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
