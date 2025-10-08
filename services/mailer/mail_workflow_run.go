@@ -153,6 +153,7 @@ func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo
 	if setting.MailService == nil {
 		return nil
 	}
+	// Skip email if run just started
 	if !run.Status.IsDone() || run.Status.IsSkipped() || (run.Started == 0 && run.Stopped == 0) {
 		return nil
 	}
