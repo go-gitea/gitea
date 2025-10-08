@@ -7,13 +7,13 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/git"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/services/context"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 )
 
 func serveRepoArchive(ctx *context.APIContext, reqFileName string) {
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, reqFileName)
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, reqFileName)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.APIError(http.StatusBadRequest, err)
@@ -24,18 +24,18 @@ func serveRepoArchive(ctx *context.APIContext, reqFileName string) {
 		}
 		return
 	}
-	archiver_service.ServeRepoArchive(ctx.Base, ctx.Repo.Repository, ctx.Repo.GitRepo, aReq)
+	archiver_service.ServeRepoArchive(ctx.Base, aReq)
 }
 
 func DownloadArchive(ctx *context.APIContext) {
-	var tp git.ArchiveType
+	var tp repo_model.ArchiveType
 	switch ballType := ctx.PathParam("ball_type"); ballType {
 	case "tarball":
-		tp = git.ArchiveTarGz
+		tp = repo_model.ArchiveTarGz
 	case "zipball":
-		tp = git.ArchiveZip
+		tp = repo_model.ArchiveZip
 	case "bundle":
-		tp = git.ArchiveBundle
+		tp = repo_model.ArchiveBundle
 	default:
 		ctx.APIError(http.StatusBadRequest, "Unknown archive type: "+ballType)
 		return
