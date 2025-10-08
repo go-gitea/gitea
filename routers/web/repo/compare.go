@@ -759,7 +759,6 @@ func CompareDiff(ctx *context.Context) {
 		err := git.GetRepoRawDiffForFile(ci.HeadGitRepo, ci.BaseBranch, ci.HeadBranch, ci.RawDiffType, "", ctx.Resp)
 		if err != nil {
 			ctx.ServerError("GetRepoRawDiffForFile", err)
-			return
 		}
 		return
 	}
