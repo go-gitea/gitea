@@ -73,12 +73,22 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		}
 	}
 
+	// Get or create subject if provided
+	var subjectID int64
+	if opts.Subject != "" {
+		subject, err := repo_model.GetOrCreateSubject(ctx, opts.Subject)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get or create subject: %w", err)
+		}
+		subjectID = subject.ID
+	}
+
 	generateRepo := &repo_model.Repository{
 		OwnerID:          owner.ID,
 		Owner:            owner,
 		OwnerName:        owner.Name,
 		Name:             opts.Name,
-		Subject:          opts.Subject,
+		SubjectID:        subjectID,
 		LowerName:        strings.ToLower(opts.Name),
 		Description:      opts.Description,
 		DefaultBranch:    opts.DefaultBranch,

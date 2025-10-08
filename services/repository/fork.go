@@ -88,6 +88,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	if opts.SingleBranch != "" {
 		defaultBranch = opts.SingleBranch
 	}
+
 	repo := &repo_model.Repository{
 		OwnerID:          owner.ID,
 		Owner:            owner,
@@ -100,6 +101,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		IsEmpty:          opts.BaseRepo.IsEmpty,
 		IsFork:           true,
 		ForkID:           opts.BaseRepo.ID,
+		SubjectID:        opts.BaseRepo.SubjectID,
 		ObjectFormatName: opts.BaseRepo.ObjectFormatName,
 		Status:           repo_model.RepositoryBeingMigrated,
 	}
