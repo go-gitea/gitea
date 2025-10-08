@@ -386,3 +386,35 @@ func TestDeleteTeam(t *testing.T) {
 
 	assert.False(t, repo_service.HasRepository(t.Context(), team, re.ID))
 }
+
+func TestRepositorySubjectLoaded(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	// Create a repository with a subject
+	subject, err := repo_model.GetOrCreateSubject(t.Context(), "Test Subject for Settings")
+	assert.NoError(t, err)
+	assert.NotNil(t, subject)
+
+	// Get repository with ID 1 from fixtures
+	repo, err := repo_model.GetRepositoryByID(t.Context(), 1)
+	assert.NoError(t, err)
+	assert.NotNil(t, repo)
+
+	// Set the subject ID
+	repo.SubjectID = subject.ID
+	err = repo_model.UpdateRepositoryColsWithAutoTime(t.Context(), repo, "subject_id")
+	assert.NoError(t, err)
+
+	// Load the subject relation (simulating what repoAssignment does)
+	err = repo.LoadSubject(t.Context())
+	assert.NoError(t, err)
+
+	// Verify that GetSubject() returns the subject name, not the repo name
+	assert.Equal(t, "Test Subject for Settings", repo.GetSubject())
+	assert.NotEqual(t, repo.Name, repo.GetSubject())
+
+	// Verify that SubjectRelation is properly loaded
+	assert.NotNil(t, repo.SubjectRelation)
+	assert.Equal(t, subject.ID, repo.SubjectRelation.ID)
+	assert.Equal(t, "Test Subject for Settings", repo.SubjectRelation.Name)
+}

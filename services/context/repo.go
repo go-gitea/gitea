@@ -501,6 +501,12 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
+	// Load subject relation for display in forms and templates
+	if err = repo.LoadSubject(ctx); err != nil {
+		ctx.ServerError("LoadSubject", err)
+		return
+	}
+
 	if ctx.DoerNeedTwoFactorAuth() {
 		ctx.Repo.Permission = access_model.PermissionNoAccess()
 	} else {
