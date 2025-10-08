@@ -186,6 +186,9 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		return nil
 	}
 
+	// Load subject relation if available
+	_ = repo.LoadSubject(ctx) // Ignore error, will fall back to legacy field or name
+
 	repoAPIURL := repo.APIURL()
 
 	return &api.Repository{

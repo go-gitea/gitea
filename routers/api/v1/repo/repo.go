@@ -710,8 +710,11 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	repo.Name = newRepoName
 	repo.LowerName = strings.ToLower(newRepoName)
 
-	if opts.Subject != nil {
-		repo.Subject = *opts.Subject
+	// Subject cannot be edited after repository creation
+	if opts.Subject != nil && *opts.Subject != repo.GetSubject() {
+		err := fmt.Errorf("subject cannot be modified after repository creation")
+		ctx.APIError(http.StatusUnprocessableEntity, err)
+		return err
 	}
 
 	if opts.Description != nil {

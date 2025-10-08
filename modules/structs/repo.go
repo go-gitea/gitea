@@ -164,7 +164,7 @@ type EditRepoOption struct {
 	// name of the repository
 	// unique: true
 	Name *string `json:"name,omitempty" binding:"OmitEmpty;AlphaDashDot;MaxSize(100);"`
-	// subject of the repository
+	// subject of the repository (read-only, cannot be modified after creation)
 	Subject *string `json:"subject,omitempty" binding:"MaxSize(255)"`
 	// a short description of the repository.
 	Description *string `json:"description,omitempty" binding:"MaxSize(2048)"`
