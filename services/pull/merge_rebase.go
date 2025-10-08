@@ -17,7 +17,7 @@ import (
 // getRebaseAmendMessage composes the message to amend commits in rebase merge of a pull request.
 func getRebaseAmendMessage(ctx *mergeContext, baseGitRepo *git.Repository) (message string, err error) {
 	// Get existing commit message.
-	commitMessage, _, err := gitcmd.NewCommand("show", "--format=%B", "-s").RunStdString(ctx, &gitcmd.RunOpts{Dir: ctx.tmpBasePath})
+	commitMessage, _, err := gitcmd.NewCommand("show", "--format=%B", "-s").WithDir(ctx.tmpBasePath).RunStdString(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -74,7 +74,10 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 	}
 
 	if newMessage != "" {
-		if err := gitcmd.NewCommand("commit", "--amend").AddOptionFormat("--message=%s", newMessage).Run(ctx, &gitcmd.RunOpts{Dir: ctx.tmpBasePath}); err != nil {
+		if err := gitcmd.NewCommand("commit", "--amend").
+			AddOptionFormat("--message=%s", newMessage).
+			WithDir(ctx.tmpBasePath).
+			Run(ctx); err != nil {
 			log.Error("Unable to amend commit message: %v", err)
 			return err
 		}
@@ -106,8 +109,8 @@ func doMergeStyleRebase(ctx *mergeContext, mergeStyle repo_model.MergeStyle, mes
 	}
 
 	// Checkout base branch again
-	if err := gitcmd.NewCommand("checkout").AddDynamicArguments(baseBranch).
-		Run(ctx, ctx.RunOpts()); err != nil {
+	if err := ctx.PrepareGitCmd(gitcmd.NewCommand("checkout").AddDynamicArguments(baseBranch)).
+		Run(ctx); err != nil {
 		log.Error("git checkout base prior to merge post staging rebase %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 		return fmt.Errorf("git checkout base prior to merge post staging rebase  %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 	}

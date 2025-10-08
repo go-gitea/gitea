@@ -69,12 +69,10 @@ func deleteCommitStatusCache(repoID int64, branchName string) error {
 // NOTE: All text-values will be trimmed from whitespaces.
 // Requires: Repo, Creator, SHA
 func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creator *user_model.User, sha string, status *git_model.CommitStatus) error {
-	repoPath := repo.RepoPath()
-
 	// confirm that commit is exist
 	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
-		return fmt.Errorf("OpenRepository[%s]: %w", repoPath, err)
+		return fmt.Errorf("OpenRepository[%s]: %w", repo.RelativePath(), err)
 	}
 	defer closer.Close()
 
