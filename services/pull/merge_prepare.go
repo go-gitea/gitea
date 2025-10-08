@@ -38,8 +38,8 @@ func (ctx *mergeContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	return cmd.WithEnv(ctx.env).
 		WithDir(ctx.tmpBasePath).
 		WithParentCallerInfo().
-		WithStdout(ctx.outbuf).
-		WithStderr(ctx.errbuf)
+		WithStdout(nil).
+		WithStderr(nil)
 }
 
 // ErrSHADoesNotMatch represents a "SHADoesNotMatch" kind of error.
