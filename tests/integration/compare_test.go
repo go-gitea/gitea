@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	git_module "code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -164,7 +165,7 @@ func TestCompareCodeExpand(t *testing.T) {
 func TestCompareRawDiffNormal(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user1, user1, repo_service.CreateRepoOptions{
+		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user1, user1, repo_service.CreateRepoOptions{
 			Name:          "test_raw_diff",
 			Readme:        "Default",
 			AutoInit:      true,
@@ -173,7 +174,7 @@ func TestCompareRawDiffNormal(t *testing.T) {
 		assert.NoError(t, err)
 		session := loginUser(t, user1.Name)
 
-		r, _ := gitrepo.OpenRepository(db.DefaultContext, repo)
+		r, _ := gitrepo.OpenRepository(t.Context(), repo)
 		defer r.Close()
 		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
 		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
@@ -203,7 +204,7 @@ index %s..%s 100644
 func TestCompareRawDiffPatch(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user1, user1, repo_service.CreateRepoOptions{
+		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user1, user1, repo_service.CreateRepoOptions{
 			Name:          "test_raw_diff",
 			Readme:        "Default",
 			AutoInit:      true,
@@ -212,13 +213,16 @@ func TestCompareRawDiffPatch(t *testing.T) {
 		assert.NoError(t, err)
 		session := loginUser(t, user1.Name)
 
-		r, _ := gitrepo.OpenRepository(db.DefaultContext, repo)
+		r, _ := gitrepo.OpenRepository(t.Context(), repo)
 
 		// Get the old commit and blob reference
 		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
 		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
 
-		resp := testEditFile(t, session, user1.Name, repo.Name, "main", "README.md", strings.Repeat("a\n", 2))
+		resp := testEditorActionEdit(t, session, user1.Name, repo.Name, "_edit", "main", "README.md", map[string]string{
+			"content":       strings.Repeat("a\n", 2),
+			"commit_choice": "direct",
+		})
 
 		newRef, _ := r.GetBranchCommit(repo.DefaultBranch)
 		newBlobRef, _ := revParse(r, newRef.ID.String(), "README.md")
@@ -260,7 +264,7 @@ index %s..%s 100644
 func TestCompareRawDiffNormalSameOwnerDifferentRepo(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user1, user1, repo_service.CreateRepoOptions{
+		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user1, user1, repo_service.CreateRepoOptions{
 			Name:          "test_raw_diff",
 			Readme:        "Default",
 			AutoInit:      true,
@@ -269,7 +273,7 @@ func TestCompareRawDiffNormalSameOwnerDifferentRepo(t *testing.T) {
 		assert.NoError(t, err)
 		session := loginUser(t, user1.Name)
 
-		headRepo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user1, user1, repo_service.CreateRepoOptions{
+		headRepo, err := repo_service.CreateRepositoryDirectly(t.Context(), user1, user1, repo_service.CreateRepoOptions{
 			Name:          "test_raw_diff_head",
 			Readme:        "Default",
 			AutoInit:      true,
@@ -277,8 +281,8 @@ func TestCompareRawDiffNormalSameOwnerDifferentRepo(t *testing.T) {
 		}, true)
 		assert.NoError(t, err)
 
-		r, _ := gitrepo.OpenRepository(db.DefaultContext, repo)
-		hr, _ := gitrepo.OpenRepository(db.DefaultContext, headRepo)
+		r, _ := gitrepo.OpenRepository(t.Context(), repo)
+		hr, _ := gitrepo.OpenRepository(t.Context(), headRepo)
 
 		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
 		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
@@ -310,7 +314,7 @@ func TestCompareRawDiffNormalAcrossForks(t *testing.T) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user1, user1, repo_service.CreateRepoOptions{
+		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user1, user1, repo_service.CreateRepoOptions{
 			Name:          "test_raw_diff",
 			Readme:        "Default",
 			AutoInit:      true,
@@ -318,7 +322,7 @@ func TestCompareRawDiffNormalAcrossForks(t *testing.T) {
 		}, true)
 		assert.NoError(t, err)
 
-		headRepo, err := repo_service.ForkRepository(db.DefaultContext, user2, user2, repo_service.ForkRepoOptions{
+		headRepo, err := repo_service.ForkRepository(t.Context(), user2, user2, repo_service.ForkRepoOptions{
 			BaseRepo:     repo,
 			Name:         repo.Name,
 			Description:  repo.Description,
@@ -328,8 +332,8 @@ func TestCompareRawDiffNormalAcrossForks(t *testing.T) {
 
 		session := loginUser(t, user2.Name)
 
-		r, _ := gitrepo.OpenRepository(db.DefaultContext, repo)
-		hr, _ := gitrepo.OpenRepository(db.DefaultContext, headRepo)
+		r, _ := gitrepo.OpenRepository(t.Context(), repo)
+		hr, _ := gitrepo.OpenRepository(t.Context(), headRepo)
 
 		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
 		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
@@ -361,9 +365,9 @@ index %s..%s 100644
 // helper function to use rev-parse
 // revParse resolves a revision reference to other git-related objects
 func revParse(repo *git_module.Repository, ref, file string) (string, error) {
-	stdout, _, err := git_module.NewCommand("rev-parse").
-		AddDynamicArguments(ref+":"+file).
-		RunStdString(repo.Ctx, &git_module.RunOpts{Dir: repo.Path})
+	stdout, _, err := gitcmd.NewCommand("rev-parse").
+		AddDynamicArguments(ref + ":" + file).WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	if err != nil {
 		return "", err
 	}
