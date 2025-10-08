@@ -36,13 +36,19 @@ func (mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
-	values, err := url.ParseQuery(string(body))
-	token := values.Get("response")
-	if token == dummyToken {
-		return &http.Response{Request: req, Body: io.NopCloser(strings.NewReader(`{"success":true,"credit":false,"hostname":"dummy-key-pass","challenge_ts":"2025-10-08T16:02:56.136Z"}`))}, nil
-	} else {
-		return &http.Response{Request: req, Body: io.NopCloser(strings.NewReader(`{"success":false,"error-codes":["invalid-input-response"]}`))}, nil
+	bodyValues, err := url.ParseQuery(string(body))
+	if err != nil {
+		return nil, err
 	}
+
+	var responseText string
+	if bodyValues.Get("response") == dummyToken {
+		responseText = `{"success":true,"credit":false,"hostname":"dummy-key-pass","challenge_ts":"2025-10-08T16:02:56.136Z"}`
+	} else {
+		responseText = `{"success":false,"error-codes":["invalid-input-response"]}`
+	}
+
+	return &http.Response{Request: req, Body: io.NopCloser(strings.NewReader(responseText))}, nil
 }
 
 func TestCaptcha(t *testing.T) {
