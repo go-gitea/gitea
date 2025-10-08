@@ -44,7 +44,7 @@
 				{{end}}
 			</a>
 			{{end}}
-			{{if and EnableTimetracking .IsOrganizationOwner}}
+			{{if and (EnableTimeTracking ctx) .IsOrganizationOwner}}
 			<a class="{{if $.PageIsOrgTimes}}active{{end}} item" href="{{$.OrgLink}}/worktime">
 				{{svg "octicon-clock"}} {{ctx.Locale.Tr "org.worktime"}}
 			</a>

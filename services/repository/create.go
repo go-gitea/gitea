@@ -376,9 +376,9 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 				RepoID: repo.ID,
 				Type:   tp,
 				Config: &repo_model.IssuesConfig{
-					EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
-					AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
-					EnableDependencies:               setting.Service.DefaultEnableDependencies,
+					EnableTimetracker:                setting.Config().Service.DefaultEnableTimeTracking.Value(ctx),
+					AllowOnlyContributorsToTrackTime: setting.Config().Service.DefaultAllowOnlyContributorsToTrackTime.Value(ctx),
+					EnableDependencies:               setting.Config().Service.DefaultEnableDependencies.Value(ctx),
 				},
 			})
 		case unit.TypePullRequests:
@@ -447,7 +447,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 		return fmt.Errorf("RecalculateAccesses: %w", err)
 	}
 
-	if setting.Service.AutoWatchNewRepos {
+	if setting.Config().Service.AutoWatchNewRepos.Value(ctx) {
 		if err = repo_model.WatchRepo(ctx, doer, repo, true); err != nil {
 			return fmt.Errorf("WatchRepo: %w", err)
 		}

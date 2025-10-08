@@ -164,7 +164,7 @@ func GetRepoWatchers(ctx context.Context, repoID int64, opts db.ListOptions) ([]
 
 // WatchIfAuto subscribes to repo if AutoWatchOnChanges is set
 func WatchIfAuto(ctx context.Context, userID, repoID int64, isWrite bool) error {
-	if !isWrite || !setting.Service.AutoWatchOnChanges {
+	if !isWrite || !setting.Config().Service.AutoWatchOnChanges.Value(ctx) {
 		return nil
 	}
 	watch, err := GetWatch(ctx, userID, repoID)

@@ -233,6 +233,20 @@ func ChangeConfig(ctx *context.Context) {
 	marshallers := map[string]func(string) ([]byte, error){
 		cfg.Picture.DisableGravatar.DynKey():       marshalBool,
 		cfg.Picture.EnableFederatedAvatar.DynKey(): marshalBool,
+
+		cfg.Service.DefaultKeepEmailPrivate.DynKey():                 marshalBool,
+		cfg.Service.DefaultAllowCreateOrganization.DynKey():          marshalBool,
+		cfg.Service.DefaultUserIsRestricted.DynKey():                 marshalBool,
+		cfg.Service.EnableTimeTracking.DynKey():                      marshalBool,
+		cfg.Service.DefaultEnableTimeTracking.DynKey():               marshalBool,
+		cfg.Service.DefaultEnableDependencies.DynKey():               marshalBool,
+		cfg.Service.AllowCrossRepositoryDependencies.DynKey():        marshalBool,
+		cfg.Service.DefaultAllowOnlyContributorsToTrackTime.DynKey(): marshalBool,
+		cfg.Service.EnableUserHeatmap.DynKey():                       marshalBool,
+		cfg.Service.AutoWatchNewRepos.DynKey():                       marshalBool,
+		cfg.Service.AutoWatchOnChanges.DynKey():                      marshalBool,
+		cfg.Service.DefaultOrgMemberVisible.DynKey():                 marshalBool,
+
 		cfg.Repository.OpenWithEditorApps.DynKey(): marshalOpenWithApps,
 		cfg.Repository.GitGuideRemoteName.DynKey(): marshalString(cfg.Repository.GitGuideRemoteName.DefaultValue()),
 	}

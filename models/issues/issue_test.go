@@ -14,9 +14,11 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
@@ -384,7 +386,10 @@ func TestCountIssues(t *testing.T) {
 
 func TestIssueLoadAttributes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.Service.EnableTimetracking = true
+	system.SetSettings(t.Context(), map[string]string{
+		setting.Config().Service.EnableTimeTracking.DynKey(): "true",
+	})
+	config.GetDynGetter().InvalidateCache()
 
 	issueList := issues_model.IssueList{
 		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}),

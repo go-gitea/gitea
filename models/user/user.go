@@ -658,13 +658,13 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 	}
 
 	// set system defaults
-	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
+	u.KeepEmailPrivate = setting.Config().Service.DefaultKeepEmailPrivate.Value(ctx)
 	u.Visibility = setting.Service.DefaultUserVisibilityMode
-	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
+	u.AllowCreateOrganization = setting.Config().Service.DefaultAllowCreateOrganization.Value(ctx) && !setting.Admin.DisableRegularOrgCreation
 	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
-	u.IsRestricted = setting.Service.DefaultUserIsRestricted
+	u.IsRestricted = setting.Config().Service.DefaultUserIsRestricted.Value(ctx)
 	u.IsActive = !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm)
 
 	// Ensure consistency of the dates.

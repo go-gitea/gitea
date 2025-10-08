@@ -46,7 +46,7 @@ func AddDependency(ctx *context.Context) {
 
 	// Check if both issues are in the same repo if cross repository dependencies is not enabled
 	if issue.RepoID != dep.RepoID {
-		if !setting.Service.AllowCrossRepositoryDependencies {
+		if !setting.Config().Service.AllowCrossRepositoryDependencies.Value(ctx) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_same_repo"))
 			return
 		}

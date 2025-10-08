@@ -10,9 +10,11 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/tests"
@@ -40,7 +42,10 @@ func TestSignup(t *testing.T) {
 func TestSignupAsRestricted(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	defer test.MockVariableValue(&setting.Service.EnableCaptcha, false)()
-	defer test.MockVariableValue(&setting.Service.DefaultUserIsRestricted, true)()
+	system.SetSettings(t.Context(), map[string]string{
+		setting.Config().Service.DefaultUserIsRestricted.DynKey(): "true",
+	})
+	config.GetDynGetter().InvalidateCache()
 
 	req := NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
 		"user_name": "restrictedUser",
