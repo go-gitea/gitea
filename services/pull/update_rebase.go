@@ -28,7 +28,8 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	defer cancel()
 
 	// Determine the old merge-base before the rebase - we use this for LFS push later on
-	oldMergeBase, _, _ := gitcmd.NewCommand("merge-base").AddDashesAndList(baseBranch, trackingBranch).RunStdString(ctx, &gitcmd.RunOpts{Dir: mergeCtx.tmpBasePath})
+	oldMergeBase, _, _ := gitcmd.NewCommand("merge-base").AddDashesAndList(baseBranch, trackingBranch).
+		WithDir(mergeCtx.tmpBasePath).RunStdString(ctx)
 	oldMergeBase = strings.TrimSpace(oldMergeBase)
 
 	// Rebase the tracking branch on to the base as the staging branch
@@ -72,18 +73,18 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	mergeCtx.outbuf.Reset()
 	mergeCtx.errbuf.Reset()
 
-	if err := pushCmd.Run(ctx, &gitcmd.RunOpts{
-		Env: repo_module.FullPushingEnvironment(
+	if err := pushCmd.
+		WithEnv(repo_module.FullPushingEnvironment(
 			headUser,
 			doer,
 			pr.HeadRepo,
 			pr.HeadRepo.Name,
 			pr.ID,
-		),
-		Dir:    mergeCtx.tmpBasePath,
-		Stdout: mergeCtx.outbuf,
-		Stderr: mergeCtx.errbuf,
-	}); err != nil {
+		)).
+		WithDir(mergeCtx.tmpBasePath).
+		WithStdout(mergeCtx.outbuf).
+		WithStderr(mergeCtx.errbuf).
+		Run(ctx); err != nil {
 		if strings.Contains(mergeCtx.errbuf.String(), "non-fast-forward") {
 			return &git.ErrPushOutOfDate{
 				StdOut: mergeCtx.outbuf.String(),
