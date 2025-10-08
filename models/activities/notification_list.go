@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
@@ -25,6 +27,7 @@ type FindNotificationOptions struct {
 	UserID            int64
 	RepoID            int64
 	IssueID           int64
+	ReleaseID         int64
 	Status            []NotificationStatus
 	Source            []NotificationSource
 	UpdatedAfterUnix  int64
@@ -42,6 +45,9 @@ func (opts FindNotificationOptions) ToConds() builder.Cond {
 	}
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"notification.issue_id": opts.IssueID})
+	}
+	if opts.ReleaseID != 0 {
+		cond = cond.And(builder.Eq{"notification.release_id": opts.ReleaseID})
 	}
 	if len(opts.Status) > 0 {
 		if len(opts.Status) == 1 {
@@ -166,16 +172,29 @@ type NotificationList []*Notification
 
 // LoadAttributes load Repo Issue User and Comment if not loaded
 func (nl NotificationList) LoadAttributes(ctx context.Context) error {
-	if _, _, err := nl.LoadRepos(ctx); err != nil {
+	repos, _, err := nl.LoadRepos(ctx)
+	if err != nil {
+		return err
+	}
+	if err := repos.LoadAttributes(ctx); err != nil {
 		return err
 	}
 	if _, err := nl.LoadIssues(ctx); err != nil {
+		return err
+	}
+	if err = nl.LoadIssuePullRequests(ctx); err != nil {
 		return err
 	}
 	if _, err := nl.LoadUsers(ctx); err != nil {
 		return err
 	}
 	if _, err := nl.LoadComments(ctx); err != nil {
+		return err
+	}
+	if _, err = nl.LoadCommits(ctx); err != nil {
+		return err
+	}
+	if _, err := nl.LoadReleases(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -447,6 +466,89 @@ func (nl NotificationList) LoadComments(ctx context.Context) ([]int, error) {
 			notification.Comment.Issue = notification.Issue
 		}
 	}
+	return failures, nil
+}
+
+func (nl NotificationList) getPendingReleaseIDs() []int64 {
+	ids := make(container.Set[int64], len(nl))
+	for _, notification := range nl {
+		if notification.Release != nil {
+			continue
+		}
+		if notification.ReleaseID > 0 {
+			ids.Add(notification.ReleaseID)
+		}
+	}
+	return ids.Values()
+}
+
+func (nl NotificationList) LoadReleases(ctx context.Context) ([]int, error) {
+	if len(nl) == 0 {
+		return []int{}, nil
+	}
+
+	releaseIDs := nl.getPendingReleaseIDs()
+	releases := make(map[int64]*repo_model.Release, len(releaseIDs))
+	if err := db.GetEngine(ctx).In("id", releaseIDs).Find(&releases); err != nil {
+		return nil, err
+	}
+
+	failures := []int{}
+	for i, notification := range nl {
+		if notification.ReleaseID > 0 && notification.Release == nil && releases[notification.ReleaseID] != nil {
+			notification.Release = releases[notification.ReleaseID]
+			if notification.Release == nil {
+				log.Error("Notification[%d]: ReleaseID[%d] failed to load", notification.ID, notification.ReleaseID)
+				failures = append(failures, i)
+				continue
+			}
+			notification.Release.Repo = notification.Repository
+		}
+	}
+	return failures, nil
+}
+
+func (nl NotificationList) LoadCommits(ctx context.Context) ([]int, error) {
+	if len(nl) == 0 {
+		return []int{}, nil
+	}
+
+	_, _, err := nl.LoadRepos(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	failures := []int{}
+	repos := make(map[int64]*git.Repository, len(nl))
+	for i, n := range nl {
+		if n.Source != NotificationSourceCommit || n.CommitID == "" {
+			continue
+		}
+
+		repo, ok := repos[n.RepoID]
+		if !ok {
+			repo, err = gitrepo.OpenRepository(ctx, n.Repository)
+			if err != nil {
+				log.Error("Notification[%d]: Failed to get repo for commit %s: %v", n.ID, n.CommitID, err)
+				failures = append(failures, i)
+				continue
+			}
+			repos[n.RepoID] = repo
+		}
+		n.Commit, err = repo.GetCommit(n.CommitID)
+		if err != nil {
+			log.Error("Notification[%d]: Failed to get repo for commit %s: %v", n.ID, n.CommitID, err)
+			failures = append(failures, i)
+			continue
+		}
+	}
+
+	for _, repo := range repos {
+		if err := repo.Close(); err != nil {
+			log.Error("Failed to close repository: %v", err)
+		}
+	}
+
 	return failures, nil
 }
 
