@@ -558,7 +558,7 @@ func testPullRequestAGitStatusCheckingMergeable(t *testing.T, giteaURL *url.URL)
 		"-o", "title=agit-test-title", "-o", "description=agit-test-description",
 		"-o", "topic=head-branch-name",
 		"HEAD:refs/for/main",
-	).Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+	).WithDir(dstPath).Run(t.Context())
 	assert.NoError(t, err)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
@@ -627,7 +627,7 @@ func testPullRequestAGitStatusCheckingConflicted(t *testing.T, giteaURL *url.URL
 	assert.NoError(t, git.AddChanges(t.Context(), dstPath, true))
 	doGitCommit(dstPath, "add something to main branch")(t)
 
-	err = gitcmd.NewCommand("push", "origin", "main").Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+	err = gitcmd.NewCommand("push", "origin", "main").WithDir(dstPath).Run(t.Context())
 	assert.NoError(t, err)
 
 	// check out back to agit branch and change the same file
@@ -642,7 +642,7 @@ func testPullRequestAGitStatusCheckingConflicted(t *testing.T, giteaURL *url.URL
 		"-o", "title=agit-test-title", "-o", "description=agit-test-description",
 		"-o", "topic=head-branch-name",
 		"HEAD:refs/for/main",
-	).Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+	).WithDir(dstPath).Run(t.Context())
 	assert.NoError(t, err)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{

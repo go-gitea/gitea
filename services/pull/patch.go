@@ -82,7 +82,7 @@ func checkPullRequestMergeableAndUpdateStatusTmpRepo(ctx context.Context, pr *is
 	defer gitRepo.Close()
 
 	// 1. update merge base
-	pr.MergeBase, _, err = gitcmd.NewCommand("merge-base", "--", "base", "tracking").RunStdString(ctx, &gitcmd.RunOpts{Dir: prCtx.tmpBasePath})
+	pr.MergeBase, _, err = gitcmd.NewCommand("merge-base", "--", "base", "tracking").WithDir(prCtx.tmpBasePath).RunStdString(ctx)
 	if err != nil {
 		var err2 error
 		pr.MergeBase, err2 = gitRepo.GetRefCommitID(git.BranchPrefix + "base")
@@ -182,7 +182,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, f
 		}
 
 		// Need to get the objects from the object db to attempt to merge
-		root, _, err := gitcmd.NewCommand("unpack-file").AddDynamicArguments(file.stage1.sha).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
+		root, _, err := gitcmd.NewCommand("unpack-file").AddDynamicArguments(file.stage1.sha).WithDir(tmpBasePath).RunStdString(ctx)
 		if err != nil {
 			return fmt.Errorf("unable to get root object: %s at path: %s for merging. Error: %w", file.stage1.sha, file.stage1.path, err)
 		}
@@ -191,7 +191,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, f
 			_ = util.Remove(filepath.Join(tmpBasePath, root))
 		}()
 
-		base, _, err := gitcmd.NewCommand("unpack-file").AddDynamicArguments(file.stage2.sha).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
+		base, _, err := gitcmd.NewCommand("unpack-file").AddDynamicArguments(file.stage2.sha).WithDir(tmpBasePath).RunStdString(ctx)
 		if err != nil {
 			return fmt.Errorf("unable to get base object: %s at path: %s for merging. Error: %w", file.stage2.sha, file.stage2.path, err)
 		}
@@ -199,7 +199,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, f
 		defer func() {
 			_ = util.Remove(base)
 		}()
-		head, _, err := gitcmd.NewCommand("unpack-file").AddDynamicArguments(file.stage3.sha).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
+		head, _, err := gitcmd.NewCommand("unpack-file").AddDynamicArguments(file.stage3.sha).WithDir(tmpBasePath).RunStdString(ctx)
 		if err != nil {
 			return fmt.Errorf("unable to get head object:%s at path: %s for merging. Error: %w", file.stage3.sha, file.stage3.path, err)
 		}
@@ -209,13 +209,13 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, f
 		}()
 
 		// now git merge-file annoyingly takes a different order to the merge-tree ...
-		_, _, conflictErr := gitcmd.NewCommand("merge-file").AddDynamicArguments(base, root, head).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
+		_, _, conflictErr := gitcmd.NewCommand("merge-file").AddDynamicArguments(base, root, head).WithDir(tmpBasePath).RunStdString(ctx)
 		if conflictErr != nil {
 			return &errMergeConflict{file.stage2.path}
 		}
 
 		// base now contains the merged data
-		hash, _, err := gitcmd.NewCommand("hash-object", "-w", "--path").AddDynamicArguments(file.stage2.path, base).RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
+		hash, _, err := gitcmd.NewCommand("hash-object", "-w", "--path").AddDynamicArguments(file.stage2.path, base).WithDir(tmpBasePath).RunStdString(ctx)
 		if err != nil {
 			return err
 		}
@@ -240,7 +240,7 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 	defer cancel()
 
 	// First we use read-tree to do a simple three-way merge
-	if _, _, err := gitcmd.NewCommand("read-tree", "-m").AddDynamicArguments(base, ours, theirs).RunStdString(ctx, &gitcmd.RunOpts{Dir: gitPath}); err != nil {
+	if _, _, err := gitcmd.NewCommand("read-tree", "-m").AddDynamicArguments(base, ours, theirs).WithDir(gitPath).RunStdString(ctx); err != nil {
 		log.Error("Unable to run read-tree -m! Error: %v", err)
 		return false, nil, fmt.Errorf("unable to run read-tree -m! Error: %w", err)
 	}
@@ -314,9 +314,9 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		// No conflicts detected so we need to check if the patch is empty...
 		// a. Write the newly merged tree and check the new tree-hash
 		var treeHash string
-		treeHash, _, err = gitcmd.NewCommand("write-tree").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
+		treeHash, _, err = gitcmd.NewCommand("write-tree").WithDir(tmpBasePath).RunStdString(ctx)
 		if err != nil {
-			lsfiles, _, _ := gitcmd.NewCommand("ls-files", "-u").RunStdString(ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
+			lsfiles, _, _ := gitcmd.NewCommand("ls-files", "-u").WithDir(tmpBasePath).RunStdString(ctx)
 			return false, fmt.Errorf("unable to write unconflicted tree: %w\n`git ls-files -u`:\n%s", err, lsfiles)
 		}
 		treeHash = strings.TrimSpace(treeHash)
@@ -373,7 +373,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	log.Trace("PullRequest[%d].testPullRequestTmpRepoBranchMergeable (patchPath): %s", pr.ID, patchPath)
 
 	// 4. Read the base branch in to the index of the temporary repository
-	_, _, err = gitcmd.NewCommand("read-tree", "base").RunStdString(gitRepo.Ctx, &gitcmd.RunOpts{Dir: tmpBasePath})
+	_, _, err = gitcmd.NewCommand("read-tree", "base").WithDir(tmpBasePath).RunStdString(ctx)
 	if err != nil {
 		return false, fmt.Errorf("git read-tree %s: %w", pr.BaseBranch, err)
 	}
@@ -417,10 +417,10 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 
 	// 8. Run the check command
 	conflict = false
-	err = cmdApply.Run(gitRepo.Ctx, &gitcmd.RunOpts{
-		Dir:    tmpBasePath,
-		Stderr: stderrWriter,
-		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+	err = cmdApply.
+		WithDir(tmpBasePath).
+		WithStderr(stderrWriter).
+		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			// Close the writer end of the pipe to begin processing
 			_ = stderrWriter.Close()
 			defer func() {
@@ -479,8 +479,8 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 			}
 
 			return nil
-		},
-	})
+		}).
+		Run(gitRepo.Ctx)
 
 	// 9. Check if the found conflictedfiles is non-zero, "err" could be non-nil, so we should ignore it if we found conflicts.
 	// Note: `"err" could be non-nil` is due that if enable 3-way merge, it doesn't return any error on found conflicts.

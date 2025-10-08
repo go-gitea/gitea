@@ -15,9 +15,8 @@ import (
 )
 
 func MergeBase(ctx context.Context, repo Repository, commit1, commit2 string) (string, error) {
-	mergeBase, _, err := gitcmd.NewCommand("merge-base", "--").
-		AddDynamicArguments(commit1, commit2).
-		RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
+	mergeBase, err := RunCmdString(ctx, repo, gitcmd.NewCommand("merge-base", "--").
+		AddDynamicArguments(commit1, commit2))
 	if err != nil {
 		return "", fmt.Errorf("get merge-base of %s and %s failed: %w", commit1, commit2, err)
 	}
@@ -32,10 +31,7 @@ func MergeTree(ctx context.Context, repo Repository, base, ours, theirs string) 
 	}
 
 	stdout := &bytes.Buffer{}
-	gitErr := cmd.AddDynamicArguments(ours, theirs).Run(ctx, &gitcmd.RunOpts{
-		Dir:    repoPath(repo),
-		Stdout: stdout,
-	})
+	gitErr := RunCmd(ctx, repo, cmd.AddDynamicArguments(ours, theirs).WithStdout(stdout))
 	if gitErr != nil && !gitcmd.IsErrorExitCode(gitErr, 1) {
 		log.Error("run merge-tree failed: %v", gitErr)
 		return "", false, nil, fmt.Errorf("run merge-tree failed: %w", gitErr)
@@ -54,8 +50,5 @@ func MergeTree(ctx context.Context, repo Repository, base, ours, theirs string) 
 }
 
 func DiffTree(ctx context.Context, repo Repository, treeHash, mergeBase string) error {
-	return gitcmd.NewCommand("diff-tree", "--quiet").AddDynamicArguments(treeHash, mergeBase).
-		Run(ctx, &gitcmd.RunOpts{
-			Dir: repoPath(repo),
-		})
+	return RunCmd(ctx, repo, gitcmd.NewCommand("diff-tree", "--quiet").AddDynamicArguments(treeHash, mergeBase))
 }
