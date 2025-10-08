@@ -159,7 +159,8 @@ type Repository struct {
 	Owner               *user_model.User   `xorm:"-"`
 	LowerName           string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name                string             `xorm:"INDEX NOT NULL"`
-	Subject             string             `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+	SubjectID           int64              `xorm:"INDEX"`
+	SubjectRelation     *Subject           `xorm:"-"`
 	Description         string             `xorm:"TEXT"`
 	Website             string             `xorm:"VARCHAR(2048)"`
 	OriginalServiceType api.GitServiceType `xorm:"index"`
@@ -338,18 +339,34 @@ func (repo *Repository) AfterLoad() {
 	if repo.DefaultWikiBranch == "" {
 		repo.DefaultWikiBranch = setting.Repository.DefaultBranch
 	}
-	// Initialize DisplayName if empty (for backward compatibility)
-	if repo.Subject == "" {
-		repo.Subject = repo.Name
+}
+
+// LoadSubject loads the subject relation for the repository
+func (repo *Repository) LoadSubject(ctx context.Context) error {
+	if repo.SubjectID == 0 {
+		return nil
 	}
+	if repo.SubjectRelation != nil {
+		return nil
+	}
+
+	subject, err := GetSubjectByID(ctx, repo.SubjectID)
+	if err != nil {
+		return err
+	}
+	repo.SubjectRelation = subject
+	return nil
 }
 
 // GetSubject returns the subject for the repository.
-// If Subject is empty, it falls back to Name for backward compatibility.
+// Priority: SubjectRelation > Name (fallback)
 func (repo *Repository) GetSubject() string {
-	if repo.Subject != "" {
-		return repo.Subject
+	// First priority: loaded subject relation
+	if repo.SubjectRelation != nil {
+		return repo.SubjectRelation.Name
 	}
+
+	// Fallback: repository name
 	return repo.Name
 }
 
@@ -947,7 +964,8 @@ func IsRepositorySubjectGloballyUnique(ctx context.Context, subject string) (boo
 	}
 
 	subject = strings.ToLower(strings.TrimSpace(subject))
-	count, err := db.GetEngine(ctx).Where("LOWER(subject) = ?", subject).Count(&Repository{})
+	// Check if subject exists in the subject table
+	count, err := db.GetEngine(ctx).Where("LOWER(name) = ?", subject).Count(&Subject{})
 	if err != nil {
 		return false, err
 	}
