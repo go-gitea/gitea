@@ -7,6 +7,7 @@ package languagestats
 
 import (
 	"bytes"
+	"context"
 	"io"
 
 	"code.gitea.io/gitea/modules/analyze"
@@ -21,7 +22,7 @@ import (
 )
 
 // GetLanguageStats calculates language stats for git repository at specified commit
-func GetLanguageStats(repo *git_module.Repository, commitID string) (map[string]int64, error) {
+func GetLanguageStats(ctx context.Context, repo *git_module.Repository, commitID string) (map[string]int64, error) {
 	r, err := git.PlainOpen(repo.Path)
 	if err != nil {
 		return nil, err
@@ -42,7 +43,7 @@ func GetLanguageStats(repo *git_module.Repository, commitID string) (map[string]
 		return nil, err
 	}
 
-	checker, err := attribute.NewBatchChecker(repo, commitID, attribute.LinguistAttributes)
+	checker, err := attribute.NewBatchChecker(ctx, repo, commitID, attribute.LinguistAttributes)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +68,7 @@ func GetLanguageStats(repo *git_module.Repository, commitID string) (map[string]
 		isDocumentation := optional.None[bool]()
 		isDetectable := optional.None[bool]()
 
-		attrs, err := checker.CheckPath(f.Name)
+		attrs, err := checker.CheckPath(ctx, f.Name)
 		if err == nil {
 			isVendored = attrs.GetVendored()
 			if isVendored.ValueOrDefault(false) {

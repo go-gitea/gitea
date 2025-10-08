@@ -7,19 +7,21 @@
 package git
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // IsTagExist returns true if given tag exists in the repository.
-func (repo *Repository) IsTagExist(name string) bool {
+func (repo *Repository) IsTagExist(ctx context.Context, name string) bool {
 	_, err := repo.gogitRepo.Reference(plumbing.ReferenceName(TagPrefix+name), true)
 	return err == nil
 }
 
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
-func (repo *Repository) GetTagType(id ObjectID) (string, error) {
+func (repo *Repository) GetTagType(ctx context.Context, id ObjectID) (string, error) {
 	// Get tag type
 	obj, err := repo.gogitRepo.Object(plumbing.AnyObject, plumbing.Hash(id.RawValue()))
 	if err != nil {
@@ -32,7 +34,7 @@ func (repo *Repository) GetTagType(id ObjectID) (string, error) {
 	return obj.Type().String(), nil
 }
 
-func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
+func (repo *Repository) getTag(ctx context.Context, tagID ObjectID, name string) (*Tag, error) {
 	t, ok := repo.tagCache.Get(tagID.String())
 	if ok {
 		log.Debug("Hit cache: %s", tagID)
@@ -41,13 +43,13 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 		return &tagClone, nil
 	}
 
-	tp, err := repo.GetTagType(tagID)
+	tp, err := repo.GetTagType(ctx, tagID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get the commit ID and tag ID (may be different for annotated tag) for the returned tag object
-	commitIDStr, err := repo.GetTagCommitID(name)
+	commitIDStr, err := repo.GetTagCommitID(ctx, name)
 	if err != nil {
 		// every tag should have a commit ID so return all errors
 		return nil, err
@@ -59,7 +61,7 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 
 	// If type is "commit, the tag is a lightweight tag
 	if ObjectType(tp) == ObjectCommit {
-		commit, err := repo.GetCommit(commitIDStr)
+		commit, err := repo.GetCommit(ctx, commitIDStr)
 		if err != nil {
 			return nil, err
 		}

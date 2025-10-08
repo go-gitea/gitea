@@ -7,6 +7,8 @@
 package git
 
 import (
+	"context"
+
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -34,7 +36,7 @@ func (te *TreeEntry) Mode() EntryMode {
 }
 
 // Size returns the size of the entry
-func (te *TreeEntry) Size() int64 {
+func (te *TreeEntry) Size(ctx context.Context) int64 {
 	if te.IsDir() {
 		return 0
 	} else if te.sized {
