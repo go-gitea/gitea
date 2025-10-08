@@ -209,9 +209,7 @@ func ShouldBlockJobByConcurrency(ctx context.Context, job *ActionRunJob) (bool, 
 		return false, nil
 	}
 	if !job.IsConcurrencyEvaluated {
-		return false, ErrUnevaluatedConcurrency{
-			RawConcurrency: job.RawConcurrency,
-		}
+		return false, ErrUnevaluatedConcurrency{}
 	}
 	if job.ConcurrencyGroup == "" || job.ConcurrencyCancel {
 		return false, nil
@@ -233,9 +231,7 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 	var jobsToCancel []*ActionRunJob
 
 	if !job.IsConcurrencyEvaluated {
-		return nil, ErrUnevaluatedConcurrency{
-			RawConcurrency: job.RawConcurrency,
-		}
+		return nil, ErrUnevaluatedConcurrency{}
 	}
 	if job.ConcurrencyGroup == "" {
 		return nil, nil
@@ -266,9 +262,7 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 	return CancelJobs(ctx, jobsToCancel)
 }
 
-type ErrUnevaluatedConcurrency struct {
-	RawConcurrency string
-}
+type ErrUnevaluatedConcurrency struct{}
 
 func IsErrUnevaluatedConcurrency(err error) bool {
 	_, ok := err.(ErrUnevaluatedConcurrency)
@@ -276,5 +270,5 @@ func IsErrUnevaluatedConcurrency(err error) bool {
 }
 
 func (err ErrUnevaluatedConcurrency) Error() string {
-	return fmt.Sprintf("the raw concurrency [%s] is not evaluated", err.RawConcurrency)
+	return "raw concurrency is not evaluated"
 }

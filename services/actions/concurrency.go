@@ -17,6 +17,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// EvaluateWorkflowConcurrency evaluates the expressions in a workflow-level concurrency and returns the value of `concurrency.group` and `concurrency.cancel-in-progress`
+// See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency
 func EvaluateWorkflowConcurrency(ctx context.Context, run *actions_model.ActionRun, rc *act_model.RawConcurrency, vars map[string]string) (string, bool, error) {
 	if err := run.LoadAttributes(ctx); err != nil {
 		return "", false, fmt.Errorf("run LoadAttributes: %w", err)
@@ -37,6 +39,8 @@ func EvaluateWorkflowConcurrency(ctx context.Context, run *actions_model.ActionR
 	return concurrencyGroup, concurrencyCancel, nil
 }
 
+// EvaluateJobConcurrency evaluates the expressions in a job-level concurrency and returns the value of `concurrency.group` and `concurrency.cancel-in-progress`
+// See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idconcurrency
 func EvaluateJobConcurrency(ctx context.Context, run *actions_model.ActionRun, actionRunJob *actions_model.ActionRunJob, vars map[string]string, jobResults map[string]*jobparser.JobResult) (string, bool, error) {
 	if err := actionRunJob.LoadAttributes(ctx); err != nil {
 		return "", false, fmt.Errorf("job LoadAttributes: %w", err)
