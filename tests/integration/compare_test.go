@@ -174,7 +174,7 @@ func TestCompareRawDiffNormal(t *testing.T) {
 		session := loginUser(t, user1.Name)
 
 		r, _ := gitrepo.OpenRepository(db.DefaultContext, repo)
-
+defer r.Close()
 		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
 		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
 
