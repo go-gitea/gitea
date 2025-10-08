@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 type mockTransport struct{}
 
 func (mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if req.URL.String() != VerifyURL {
+	if req.URL.String() != verifyURL {
 		return nil, errors.New("unsupported url")
 	}
 
