@@ -1161,6 +1161,12 @@ func RepoAssignmentByName(ctx *Context) {
 		return
 	}
 
+	// Load subject relation for display in forms and templates
+	if err = repo.LoadSubject(ctx); err != nil {
+		ctx.ServerError("LoadSubject", err)
+		return
+	}
+
 	// Set up repository context similar to standard RepoAssignment
 	ctx.Repo = &Repository{
 		Repository: repo,
