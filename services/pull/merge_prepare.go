@@ -73,7 +73,11 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	if expectedHeadCommitID != "" {
-		trackingCommitID, _, err := mergeCtx.PrepareGitCmd(gitcmd.NewCommand("show-ref", "--hash").AddDynamicArguments(git.BranchPrefix + trackingBranch)).RunStdString(ctx)
+		trackingCommitID, _, err := gitcmd.NewCommand("show-ref", "--hash").
+			AddDynamicArguments(git.BranchPrefix + trackingBranch).
+			WithEnv(mergeCtx.env).
+			WithDir(mergeCtx.tmpBasePath).
+			RunStdString(ctx)
 		if err != nil {
 			defer cancel()
 			log.Error("failed to get sha of head branch in %-v: show-ref[%s] --hash refs/heads/tracking: %v", mergeCtx.pr, mergeCtx.tmpBasePath, err)
