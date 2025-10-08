@@ -388,12 +388,12 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 
 	// Restrict to starred repositories
 	if opts.StarredByID > 0 {
-		cond = cond.And(builder.In("id", builder.Select("repo_id").From("star").Where(builder.Eq{"uid": opts.StarredByID})))
+		cond = cond.And(builder.In("repository.id", builder.Select("repo_id").From("star").Where(builder.Eq{"uid": opts.StarredByID})))
 	}
 
 	// Restrict to watched repositories
 	if opts.WatchedByID > 0 {
-		cond = cond.And(builder.In("id", builder.Select("repo_id").From("watch").Where(builder.Eq{"user_id": opts.WatchedByID})))
+		cond = cond.And(builder.In("repository.id", builder.Select("repo_id").From("watch").Where(builder.Eq{"user_id": opts.WatchedByID})))
 	}
 
 	// Restrict repositories to those the OwnerID owns or contributes to as per opts.Collaborate
@@ -461,13 +461,17 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 			Where(subQueryCond).
 			GroupBy("repo_topic.repo_id")
 
-		keywordCond := builder.In("id", subQuery)
+		keywordCond := builder.In("repository.id", subQuery)
 		if !opts.TopicOnly {
 			likes := builder.NewCond()
 			for v := range strings.SplitSeq(opts.Keyword, ",") {
 				likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
-				// Also search in subject field
-				likes = likes.Or(builder.Like{"LOWER(subject)", strings.ToLower(v)})
+				// Also search in subject table using EXISTS clause to avoid ambiguity
+				subjectExistsQuery := builder.Select("1").
+					From("subject s").
+					Where(builder.Expr("s.id = repository.subject_id")).
+					And(builder.Like{"LOWER(s.name)", strings.ToLower(v)})
+				likes = likes.Or(builder.Exists(subjectExistsQuery))
 
 				// If the string looks like "org/repo", match against that pattern too
 				if opts.TeamID == 0 && strings.Count(opts.Keyword, "/") == 1 {
@@ -475,8 +479,12 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 					ownerName := pieces[0]
 					repoName := pieces[1]
 					likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Like{"lower_name", strings.ToLower(repoName)}))
-					// Also check subject field for repo name part
-					likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Like{"LOWER(subject)", strings.ToLower(repoName)}))
+					// Also check subject field for repo name part using EXISTS
+					subjectOrgExistsQuery := builder.Select("1").
+						From("subject s").
+						Where(builder.Expr("s.id = repository.subject_id")).
+						And(builder.Like{"LOWER(s.name)", strings.ToLower(repoName)})
+					likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Exists(subjectOrgExistsQuery)))
 				}
 
 				if opts.IncludeDescription {
@@ -489,7 +497,7 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 	}
 
 	if opts.Language != "" {
-		cond = cond.And(builder.In("id", builder.
+		cond = cond.And(builder.In("repository.id", builder.
 			Select("repo_id").
 			From("language_stat").
 			Where(builder.Eq{"language": opts.Language}).And(builder.Eq{"is_primary": true})))
@@ -624,7 +632,7 @@ func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 			keyword = strings.TrimSpace(strings.ToLower(keyword))
 			if keyword != "" {
 				// Add arguments for exact match, prefix match, and substring match
-				args = append(args, keyword, keyword+"%", "%"+keyword+"%")
+				// Only one set needed since we use COALESCE(subject.name, repository.name)
 				args = append(args, keyword, keyword+"%", "%"+keyword+"%")
 			}
 		}
@@ -640,14 +648,20 @@ func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 		args = append(args, orgName)
 	}
 
-	sess := db.GetEngine(ctx)
+	sess := db.GetEngine(ctx).Table("repository")
+
+	// Add LEFT JOIN with subject table when ordering by subject or using relevance scoring
+	needsJoin := strings.Contains(string(orderBy), "subject.name")
+	if needsJoin {
+		sess = sess.Join("LEFT", "subject", "repository.subject_id = subject.id").
+			Cols("repository.*") // Select only repository columns to avoid ambiguity
+	}
 
 	var count int64
 	if opts.PageSize > 0 {
 		var err error
-		count, err = sess.
-			Where(cond).
-			Count(new(Repository))
+		// Don't use JOIN for count query - it's not needed and causes ambiguity
+		count, err = db.GetEngine(ctx).Where(cond).Count(new(Repository))
 		if err != nil {
 			return nil, 0, fmt.Errorf("Count: %w", err)
 		}
@@ -761,16 +775,14 @@ func buildRelevanceScoreSQL(keyword string) string {
 	var scoreParts []string
 
 	for range keywords {
-		// For each keyword, create scoring logic that considers both subject and name
+		// For each keyword, create scoring logic that uses subject if available, otherwise name
 		// Priority: 1=exact, 2=prefix, 3=substring, 4=no match
+		// Use COALESCE to fallback from subject.name to repository.name
 		scoreSQL := `(
 			CASE
-				WHEN LOWER(CASE WHEN subject != '' THEN subject ELSE name END) = ? THEN 1
-				WHEN LOWER(CASE WHEN subject != '' THEN subject ELSE name END) LIKE ? THEN 2
-				WHEN LOWER(CASE WHEN subject != '' THEN subject ELSE name END) LIKE ? THEN 3
-				WHEN LOWER(name) = ? THEN 1
-				WHEN LOWER(name) LIKE ? THEN 2
-				WHEN LOWER(name) LIKE ? THEN 3
+				WHEN LOWER(COALESCE(subject.name, repository.name)) = ? THEN 1
+				WHEN LOWER(COALESCE(subject.name, repository.name)) LIKE ? THEN 2
+				WHEN LOWER(COALESCE(subject.name, repository.name)) LIKE ? THEN 3
 				ELSE 4
 			END
 		)`
