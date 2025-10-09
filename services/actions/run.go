@@ -106,11 +106,16 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 					}
 					runJob.IsConcurrencyEvaluated = true
 				}
-				// do not need to check job concurrency if the job is blocked because it will be checked by job emitter
-				if runJob.Status != actions_model.StatusBlocked {
-					// Now the job is ready for concurrency check:
-					// * If a job needs other jobs (needs is not empty), its status is set to StatusBlocked at the entry of the loop
-					// * If a job doesn't need other jobs (needs is empty), its concurrency should have been evaluated above
+
+				// If a job needs other jobs ("needs" is not empty), its status is set to StatusBlocked at the entry of the loop
+				// No need to check job concurrency for a blocked job (it will be checked by job emitter later)
+				runJobIsBlocked := runJob.Status == actions_model.StatusBlocked
+
+				// If a job doesn't need other jobs ("needs" is empty), its concurrency should have been evaluated above
+				shouldWaitForConcurrencyEvaluation := actions_model.ShouldWaitJobForConcurrencyEvaluation(runJob)
+
+				// If the job is not blocked and is ready for concurrency check, then check
+				if !runJobIsBlocked && !shouldWaitForConcurrencyEvaluation {
 					blockByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, runJob)
 					if err != nil {
 						return err
