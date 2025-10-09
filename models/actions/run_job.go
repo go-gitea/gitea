@@ -29,12 +29,16 @@ type ActionRunJob struct {
 	IsForkPullRequest bool
 	Name              string `xorm:"VARCHAR(255)"`
 	Attempt           int64
-	WorkflowPayload   []byte
-	JobID             string   `xorm:"VARCHAR(255)"` // job id in workflow, not job's id
-	Needs             []string `xorm:"JSON TEXT"`
-	RunsOn            []string `xorm:"JSON TEXT"`
-	TaskID            int64    // the latest task of the job
-	Status            Status   `xorm:"index"`
+
+	// WorkflowPayload is act/jobparser.SingleWorkflow for act/jobparser.Parse
+	// it should contain exactly one job with global workflow fields for this model
+	WorkflowPayload []byte
+
+	JobID  string   `xorm:"VARCHAR(255)"` // job id in workflow, not job's id
+	Needs  []string `xorm:"JSON TEXT"`
+	RunsOn []string `xorm:"JSON TEXT"`
+	TaskID int64    // the latest task of the job
+	Status Status   `xorm:"index"`
 
 	RawConcurrency string // raw concurrency from job YAML's "concurrency" section
 

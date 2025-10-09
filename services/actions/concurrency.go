@@ -68,6 +68,8 @@ func EvaluateJobConcurrency(ctx context.Context, run *actions_model.ActionRun, a
 		return "", false, fmt.Errorf("get inputs: %w", err)
 	}
 
+	// singleWorkflows is created from an ActionJob, which always contains exactly a single job's YAML definition.
+	// Ideally it shouldn't be called "Workflow", it is just a job with global workflow fields + trigger
 	singleWorkflows, err := jobparser.Parse(actionRunJob.WorkflowPayload)
 	if err != nil {
 		return "", false, fmt.Errorf("parse single workflow: %w", err)
