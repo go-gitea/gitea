@@ -309,9 +309,10 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			actionRunJob := r.jobMap[id]
 			err := updateConcurrencyEvaluationForJobWithNeeds(ctx, r.jobMap[id], r.vars)
 			if err != nil {
-				// The err can be caused by 2 cases: database error, or unable to evaluate the concurrency expression (not really a error)
-				// At the moment there is no way to distinguish them
-				// TODO: if "concurrency expression" has syntax error, there should be a user error message, need to show it to end users
+				// The err can be caused by different cases: database error, or syntax error, or the needed jobs haven't completed (not really a error)
+				// At the moment there is no way to distinguish them.
+				// Actually, for most cases, the error is caused by "the needed jobs haven't completed"
+				// TODO: if workflow or concurrency expression has syntax error, there should be a user error message, need to show it to end users
 				log.Debug("updateConcurrencyEvaluationForJobWithNeeds failed, this job will stay blocked: job: %d, err: %v", id, err)
 				continue
 			}
