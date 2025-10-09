@@ -69,6 +69,14 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 
 	assert.Equal(t, fmt.Sprintf("/%s/%s/pulls/%s", user, repo, pullnum), respJSON.Redirect)
 
+	pullnumInt, err := strconv.ParseInt(pullnum, 10, 64)
+	assert.NoError(t, err)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), user, repo)
+	assert.NoError(t, err)
+	pull, err := issues_model.GetPullRequestByIndex(t.Context(), repository.ID, pullnumInt)
+	assert.NoError(t, err)
+	assert.True(t, pull.HasMerged)
+
 	return resp
 }
 
