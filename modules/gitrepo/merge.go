@@ -6,12 +6,12 @@ package gitrepo
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
 )
 
 func MergeBase(ctx context.Context, repo Repository, commit1, commit2 string) (string, error) {
@@ -23,32 +23,53 @@ func MergeBase(ctx context.Context, repo Repository, commit1, commit2 string) (s
 	return strings.TrimSpace(mergeBase), nil
 }
 
-func MergeTree(ctx context.Context, repo Repository, base, ours, theirs string) (string, bool, []string, error) {
+// parseMergeTreeOutput parses the output of git merge-tree --write-tree -z --name-only --no-messages
+// For a successful merge, the output is a simply one line <OID of toplevel tree>NUL
+// Whereas for a conflicted merge, the output is:
+// <OID of toplevel tree>NUL
+// <Conflicted file name 1>NUL
+// <Conflicted file name 2>NUL
+// ...
+// ref: https://git-scm.com/docs/git-merge-tree/2.38.0#OUTPUT
+func parseMergeTreeOutput(output string) (string, []string, error) {
+	fields := strings.Split(strings.TrimSuffix(output, "\x00"), "\x00")
+	if len(fields) == 0 {
+		return "", nil, errors.New("unexpected empty output")
+	}
+	if len(fields) == 1 {
+		return strings.TrimSpace(fields[0]), nil, nil
+	}
+	// ignore the last one because it's always empty after the last NUL
+	return strings.TrimSpace(fields[0]), fields[1:], nil
+}
+
+// MergeTree performs a merge between two commits (baseRef and headRef) with an optional merge base.
+// It returns the resulting tree hash, a list of conflicted files (if any), and an error if the operation fails.
+// If there are no conflicts, the list of conflicted files will be nil.
+func MergeTree(ctx context.Context, repo Repository, baseRef, headRef, mergeBase string) (string, bool, []string, error) {
 	cmd := gitcmd.NewCommand("merge-tree", "--write-tree", "-z", "--name-only", "--no-messages")
-	// https://git-scm.com/docs/git-merge-tree/2.40.0#_mistakes_to_avoid
-	if git.DefaultFeatures().CheckVersionAtLeast("2.40") && !git.DefaultFeatures().CheckVersionAtLeast("2.41") {
-		cmd.AddOptionFormat("--merge-base=%s", base)
+	if git.DefaultFeatures().CheckVersionAtLeast("2.40") && mergeBase != "" {
+		cmd.AddOptionFormat("--merge-base=%s", mergeBase)
 	}
 
 	stdout := &bytes.Buffer{}
-	gitErr := RunCmd(ctx, repo, cmd.AddDynamicArguments(ours, theirs).WithStdout(stdout))
-	if gitErr != nil && !gitcmd.IsErrorExitCode(gitErr, 1) {
-		log.Error("run merge-tree failed: %v", gitErr)
+	gitErr := RunCmd(ctx, repo, cmd.AddDynamicArguments(baseRef, headRef).WithStdout(stdout))
+	exitCode, ok := gitcmd.ExitCode(gitErr)
+	if !ok {
 		return "", false, nil, fmt.Errorf("run merge-tree failed: %w", gitErr)
 	}
 
-	// There are two situations that we consider for the output:
-	// 1. Clean merge and the output is <OID of toplevel tree>NUL
-	// 2. Merge conflict and the output is <OID of toplevel tree>NUL<Conflicted file info>NUL
-	treeOID, conflictedFileInfo, _ := strings.Cut(stdout.String(), "\x00")
-	if len(conflictedFileInfo) == 0 {
-		return treeOID, gitcmd.IsErrorExitCode(gitErr, 1), nil, nil
+	switch exitCode {
+	case 0, 1:
+		treeID, conflictedFiles, err := parseMergeTreeOutput(stdout.String())
+		if err != nil {
+			return "", false, nil, fmt.Errorf("parse merge-tree output failed: %w", err)
+		}
+		// For a successful, non-conflicted merge, the exit status is 0. When the merge has conflicts, the exit status is 1.
+		// A merge can have conflicts without having individual files conflict
+		// https://git-scm.com/docs/git-merge-tree/2.38.0#_mistakes_to_avoid
+		return treeID, exitCode == 1, conflictedFiles, nil
+	default:
+		return "", false, nil, fmt.Errorf("run merge-tree exit abnormally: %w", gitErr)
 	}
-
-	// Remove last NULL-byte from conflicted file info, then split with NULL byte as separator.
-	return treeOID, true, strings.Split(conflictedFileInfo[:len(conflictedFileInfo)-1], "\x00"), nil
-}
-
-func DiffTree(ctx context.Context, repo Repository, treeHash, mergeBase string) error {
-	return RunCmd(ctx, repo, gitcmd.NewCommand("diff-tree", "--quiet").AddDynamicArguments(treeHash, mergeBase))
 }

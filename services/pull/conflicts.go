@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // checkPullRequestMergeableAndUpdateStatus checks whether a pull request is mergeable and updates its status accordingly.
@@ -31,33 +32,35 @@ func checkPullRequestMergeableAndUpdateStatus(ctx context.Context, pr *issues_mo
 // return true if there is conflicts otherwise return false
 // pr.Status and pr.ConflictedFiles will be updated as necessary
 func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, baseCommitID string) (bool, error) {
-	treeHash, conflict, conflictFiles, err := gitrepo.MergeTree(ctx, pr.BaseRepo, pr.MergeBase, baseCommitID, pr.HeadCommitID)
+	treeHash, conflict, conflictFiles, err := gitrepo.MergeTree(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID, pr.MergeBase)
 	if err != nil {
 		return false, fmt.Errorf("MergeTree: %w", err)
 	}
 	if conflict {
 		pr.Status = issues_model.PullRequestStatusConflict
-		pr.ConflictedFiles = conflictFiles
+		pr.ConflictedFiles = util.Iif(len(conflictFiles) > 0, conflictFiles, []string{"(no files listed)"})
 
 		log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
 		return true, nil
 	}
 
-	// No conflicts were detected, now check if the pull request actually
-	// contains anything useful via a diff. git-diff-tree(1) with --quiet
-	// will return exit code 0 if there's no diff and exit code 1 if there's
-	// a diff.
-	isEmpty := true
-	if err = gitrepo.DiffTree(ctx, pr.BaseRepo, treeHash, pr.MergeBase); err != nil {
-		if !gitcmd.IsErrorExitCode(err, 1) {
-			return false, fmt.Errorf("DiffTree: %w", err)
-		}
-		isEmpty = false
+	// Detecting whether the pull request has difference via git diff-tree
+	// it will return exit code 0 if there's no diff and exit code 1 if there's a diff.
+	gitErr := gitrepo.RunCmd(ctx, pr.BaseRepo, gitcmd.NewCommand("diff-tree", "-r", "--quiet").
+		AddDynamicArguments(treeHash, pr.MergeBase))
+	exitCode, ok := gitcmd.ExitCode(gitErr)
+	if !ok {
+		return false, fmt.Errorf("run diff-tree failed: %w", gitErr)
 	}
 
-	if isEmpty {
+	switch exitCode {
+	case 0:
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
 		pr.Status = issues_model.PullRequestStatusEmpty
+	case 1:
+		pr.Status = issues_model.PullRequestStatusMergeable
+	default:
+		return false, fmt.Errorf("run diff-tree exit abnormally: %w", gitErr)
 	}
 	return false, nil
 }

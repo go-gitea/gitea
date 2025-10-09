@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -23,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/test"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
-	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -166,6 +164,7 @@ func Test_PullRequestStatusChecking_Mergeable_TmpRepo(t *testing.T) {
 
 func testPullRequestStatusCheckingMergeable(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session := loginUser(t, user.Name)
 
 	// Create new clean repo to test conflict checking.
 	baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
@@ -179,41 +178,14 @@ func testPullRequestStatusCheckingMergeable(t *testing.T) {
 	assert.NotEmpty(t, baseRepo)
 
 	// create a commit on new branch.
-	_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
-		Files: []*files_service.ChangeRepoFile{
-			{
-				Operation:     "create",
-				TreePath:      "important_file",
-				ContentReader: strings.NewReader("Just a non-important file"),
-			},
-		},
-		Message:   "Add a important file",
-		OldBranch: "main",
-		NewBranch: "important-secrets",
-	})
-	assert.NoError(t, err)
+	testCreateFile(t, session, baseRepo.OwnerName, baseRepo.Name, "main", "important-secrets", "important_file", "Just a non-important file")
 
 	// create Pull to merge the important-secrets branch into main branch.
-	pullIssue := &issues_model.Issue{
-		RepoID:   baseRepo.ID,
-		Title:    "PR with no conflict",
-		PosterID: user.ID,
-		Poster:   user,
-		IsPull:   true,
-	}
-
-	pullRequest := &issues_model.PullRequest{
-		HeadRepoID: baseRepo.ID,
-		BaseRepoID: baseRepo.ID,
-		HeadBranch: "important-secrets",
-		BaseBranch: "main",
-		HeadRepo:   baseRepo,
-		BaseRepo:   baseRepo,
-		Type:       issues_model.PullRequestGitea,
-	}
-	prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-	err = pull_service.NewPullRequest(t.Context(), prOpts)
-	assert.NoError(t, err)
+	resp := testPullCreateDirectly(t, session, baseRepo.OwnerName, baseRepo.Name, "main",
+		baseRepo.OwnerName, baseRepo.Name, "important-secrets", "PR with no conflict")
+	// check the redirected URL
+	url := test.RedirectURL(resp)
+	assert.Regexp(t, fmt.Sprintf("^/%s/pulls/[0-9]*$", baseRepo.FullName()), url)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with no conflict"})
 	assert.NoError(t, issue.LoadPullRequest(t.Context()))
@@ -243,6 +215,7 @@ func Test_PullRequestStatusChecking_Conflicted_TmpRepo(t *testing.T) {
 
 func testPullRequestStatusCheckingConflicted(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session := loginUser(t, user.Name)
 
 	// Create new clean repo to test conflict checking.
 	baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
@@ -256,63 +229,24 @@ func testPullRequestStatusCheckingConflicted(t *testing.T) {
 	assert.NotEmpty(t, baseRepo)
 
 	// create a commit on new branch.
-	_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
-		Files: []*files_service.ChangeRepoFile{
-			{
-				Operation:     "create",
-				TreePath:      "important_file",
-				ContentReader: strings.NewReader("Just a non-important file"),
-			},
-		},
-		Message:   "Add a important file",
-		OldBranch: "main",
-		NewBranch: "important-secrets",
-	})
-	assert.NoError(t, err)
+	testCreateFile(t, session, baseRepo.OwnerName, baseRepo.Name, "main", "important-secrets", "important_file", "Just a non-important file")
 
 	// create a commit on main branch.
-	_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
-		Files: []*files_service.ChangeRepoFile{
-			{
-				Operation:     "create",
-				TreePath:      "important_file",
-				ContentReader: strings.NewReader("Not the same content :P"),
-			},
-		},
-		Message:   "Add a important file",
-		OldBranch: "main",
-		NewBranch: "main",
-	})
-	assert.NoError(t, err)
+	testCreateFile(t, session, baseRepo.OwnerName, baseRepo.Name, "main", "main", "important_file", "Not the same content :P")
 
 	// create Pull to merge the important-secrets branch into main branch.
-	pullIssue := &issues_model.Issue{
-		RepoID:   baseRepo.ID,
-		Title:    "PR with conflict!",
-		PosterID: user.ID,
-		Poster:   user,
-		IsPull:   true,
-	}
-
-	pullRequest := &issues_model.PullRequest{
-		HeadRepoID: baseRepo.ID,
-		BaseRepoID: baseRepo.ID,
-		HeadBranch: "important-secrets",
-		BaseBranch: "main",
-		HeadRepo:   baseRepo,
-		BaseRepo:   baseRepo,
-		Type:       issues_model.PullRequestGitea,
-	}
-	prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-	err = pull_service.NewPullRequest(t.Context(), prOpts)
-	assert.NoError(t, err)
+	resp := testPullCreateDirectly(t, session, baseRepo.OwnerName, baseRepo.Name, "main",
+		baseRepo.OwnerName, baseRepo.Name, "important-secrets", "PR with conflict!")
+	// check the redirected URL
+	url := test.RedirectURL(resp)
+	assert.Regexp(t, fmt.Sprintf("^/%s/pulls/[0-9]*$", baseRepo.FullName()), url)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"})
 	assert.NoError(t, issue.LoadPullRequest(t.Context()))
 	conflictingPR := issue.PullRequest
 
 	// Ensure conflictedFiles is populated.
-	assert.Len(t, conflictingPR.ConflictedFiles, 1)
+	assert.Equal(t, []string{"important_file"}, conflictingPR.ConflictedFiles)
 	// Check if status is correct.
 	assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
 	// Ensure that mergeable returns false
@@ -353,45 +287,14 @@ func testPullRequestStatusCheckingCrossRepoMergeable(t *testing.T, giteaURL *url
 	forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "org3", Name: "conflict-checking"})
 
 	// create a commit on new branch of forked repository
-	_, err = files_service.ChangeRepoFiles(t.Context(), forkRepo, user, &files_service.ChangeRepoFilesOptions{
-		Files: []*files_service.ChangeRepoFile{
-			{
-				Operation:     "create",
-				TreePath:      "important_file",
-				ContentReader: strings.NewReader("Just a non-important file"),
-			},
-		},
-		Message:   "Add a important file",
-		OldBranch: "main",
-		NewBranch: "important-secrets",
-	})
-	assert.NoError(t, err)
+	testCreateFile(t, session, forkRepo.OwnerName, forkRepo.Name, "main", "important-secrets", "important_file", "Just a non-important file")
 
 	// create Pull to merge the important-secrets branch into main branch.
-	pullIssue := &issues_model.Issue{
-		RepoID:   baseRepo.ID,
-		Title:    "PR with no conflict",
-		PosterID: user.ID,
-		Poster:   user,
-		IsPull:   true,
-	}
-
-	pullRequest := &issues_model.PullRequest{
-		HeadRepoID: forkRepo.ID,
-		BaseRepoID: baseRepo.ID,
-		HeadBranch: "important-secrets",
-		BaseBranch: "main",
-		HeadRepo:   forkRepo,
-		BaseRepo:   baseRepo,
-		Type:       issues_model.PullRequestGitea,
-	}
-	prOpts := &pull_service.NewPullRequestOptions{
-		Repo:        baseRepo,
-		Issue:       pullIssue,
-		PullRequest: pullRequest,
-	}
-	err = pull_service.NewPullRequest(t.Context(), prOpts)
-	assert.NoError(t, err)
+	resp := testPullCreateDirectly(t, session, baseRepo.OwnerName, baseRepo.Name, "main",
+		forkRepo.OwnerName, forkRepo.Name, "important-secrets", "PR with no conflict")
+	// check the redirected URL
+	url := test.RedirectURL(resp)
+	assert.Regexp(t, fmt.Sprintf("^/%s/pulls/[0-9]*$", baseRepo.FullName()), url)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with no conflict"})
 	assert.NoError(t, issue.LoadPullRequest(t.Context()))
@@ -439,63 +342,24 @@ func testPullRequestStatusCheckingCrossRepoConflicted(t *testing.T, giteaURL *ur
 	forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "org3", Name: "conflict-checking"})
 
 	// create a commit on new branch of forked repository
-	_, err = files_service.ChangeRepoFiles(t.Context(), forkRepo, user, &files_service.ChangeRepoFilesOptions{
-		Files: []*files_service.ChangeRepoFile{
-			{
-				Operation:     "create",
-				TreePath:      "important_file",
-				ContentReader: strings.NewReader("Just a non-important file"),
-			},
-		},
-		Message:   "Add a important file",
-		OldBranch: "main",
-		NewBranch: "important-secrets",
-	})
-	assert.NoError(t, err)
+	testCreateFile(t, session, forkRepo.OwnerName, forkRepo.Name, "main", "important-secrets", "important_file", "Just a non-important file")
 
 	// create a commit on main branch of base repository.
-	_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
-		Files: []*files_service.ChangeRepoFile{
-			{
-				Operation:     "create",
-				TreePath:      "important_file",
-				ContentReader: strings.NewReader("Not the same content :P"),
-			},
-		},
-		Message:   "Add a important file",
-		OldBranch: "main",
-		NewBranch: "main",
-	})
-	assert.NoError(t, err)
+	testCreateFile(t, session, baseRepo.OwnerName, baseRepo.Name, "main", "main", "important_file", "Not the same content :P")
 
 	// create Pull to merge the important-secrets branch into main branch.
-	pullIssue := &issues_model.Issue{
-		RepoID:   baseRepo.ID,
-		Title:    "PR with conflict!",
-		PosterID: user.ID,
-		Poster:   user,
-		IsPull:   true,
-	}
-
-	pullRequest := &issues_model.PullRequest{
-		HeadRepoID: forkRepo.ID,
-		BaseRepoID: baseRepo.ID,
-		HeadBranch: "important-secrets",
-		BaseBranch: "main",
-		HeadRepo:   forkRepo,
-		BaseRepo:   baseRepo,
-		Type:       issues_model.PullRequestGitea,
-	}
-	prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-	err = pull_service.NewPullRequest(t.Context(), prOpts)
-	assert.NoError(t, err)
+	resp := testPullCreateDirectly(t, session, baseRepo.OwnerName, baseRepo.Name, "main",
+		forkRepo.OwnerName, forkRepo.Name, "important-secrets", "PR with conflict!")
+	// check the redirected URL
+	url := test.RedirectURL(resp)
+	assert.Regexp(t, fmt.Sprintf("^/%s/pulls/[0-9]*$", baseRepo.FullName()), url)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"})
 	assert.NoError(t, issue.LoadPullRequest(t.Context()))
 	conflictingPR := issue.PullRequest
 
 	// Ensure conflictedFiles is populated.
-	assert.Len(t, conflictingPR.ConflictedFiles, 1)
+	assert.Equal(t, []string{"important_file"}, conflictingPR.ConflictedFiles)
 	// Check if status is correct.
 	assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
 	// Ensure that mergeable returns false
@@ -620,22 +484,23 @@ func testPullRequestAGitStatusCheckingConflicted(t *testing.T, giteaURL *url.URL
 	// create agit branch from current commit
 	doGitCreateBranch(dstPath, "test-agit-push")(t)
 
-	// add something on the same file of main branch so that it causes conflict
-	doGitCheckoutBranch(dstPath, "main")(t)
-
-	assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte("Some changes to README file to main cause conflict"), 0o644))
-	assert.NoError(t, git.AddChanges(t.Context(), dstPath, true))
-	doGitCommit(dstPath, "add something to main branch")(t)
+	doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
+		LocalRepoPath:   dstPath,
+		CheckoutBranch:  "main",
+		TreeFilePath:    filepath.Join(dstPath, "README.md"),
+		TreeFileContent: "Some changes to README file to main cause conflict",
+	})
 
 	err = gitcmd.NewCommand("push", "origin", "main").WithDir(dstPath).Run(t.Context())
 	assert.NoError(t, err)
 
 	// check out back to agit branch and change the same file
-	doGitCheckoutBranch(dstPath, "test-agit-push")(t)
-
-	assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte("Some changes to README file for agit branch"), 0o644))
-	assert.NoError(t, git.AddChanges(t.Context(), dstPath, true))
-	doGitCommit(dstPath, "add something to agit branch")(t)
+	doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
+		LocalRepoPath:   dstPath,
+		CheckoutBranch:  "test-agit-push",
+		TreeFilePath:    filepath.Join(dstPath, "README.md"),
+		TreeFileContent: "Some changes to README file for agit branch",
+	})
 
 	// push to create an agit pull request
 	err = gitcmd.NewCommand("push", "origin",
