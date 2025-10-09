@@ -17,7 +17,7 @@ func TestRunWithContextNoTimeout(t *testing.T) {
 	// 'git --version' does not block so it must be finished before the timeout triggered.
 	cmd := NewCommand("--version")
 	for i := 0; i < maxLoops; i++ {
-		if err := cmd.Run(t.Context(), &RunOpts{}); err != nil {
+		if err := cmd.Run(t.Context()); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -29,7 +29,7 @@ func TestRunWithContextTimeout(t *testing.T) {
 	// 'git hash-object --stdin' blocks on stdin so we can have the timeout triggered.
 	cmd := NewCommand("hash-object", "--stdin")
 	for i := 0; i < maxLoops; i++ {
-		if err := cmd.Run(t.Context(), &RunOpts{Timeout: 1 * time.Millisecond}); err != nil {
+		if err := cmd.WithTimeout(1 * time.Millisecond).Run(t.Context()); err != nil {
 			if err != context.DeadlineExceeded {
 				t.Fatalf("Testing %d/%d: %v", i, maxLoops, err)
 			}

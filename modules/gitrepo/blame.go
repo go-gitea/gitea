@@ -10,7 +10,7 @@ import (
 )
 
 func LineBlame(ctx context.Context, repo Repository, revision, file string, line uint) (string, error) {
-	return runCmdString(ctx, repo,
+	return RunCmdString(ctx, repo,
 		gitcmd.NewCommand("blame").
 			AddOptionFormat("-L %d,%d", line, line).
 			AddOptionValues("-p", revision).

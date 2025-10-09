@@ -316,7 +316,9 @@ func dummyInfoRefs(ctx *context.Context) {
 			return
 		}
 
-		refs, _, err := gitcmd.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &gitcmd.RunOpts{Dir: tmpDir})
+		refs, _, err := gitcmd.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").
+			WithDir(tmpDir).
+			RunStdBytes(ctx)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -376,7 +378,7 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 		ctx.Resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	reqFile := filepath.Join(h.getRepoDir(), file)
+	reqFile := filepath.Join(h.getRepoDir(), filepath.Clean(file))
 
 	fi, err := os.Stat(reqFile)
 	if os.IsNotExist(err) {
@@ -395,13 +397,12 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
 func prepareGitCmdWithAllowedService(service string) (*gitcmd.Command, error) {
-	if service == "receive-pack" {
-		return gitcmd.NewCommand("receive-pack"), nil
+	if service == ServiceTypeReceivePack {
+		return gitcmd.NewCommand(ServiceTypeReceivePack), nil
 	}
-	if service == "upload-pack" {
-		return gitcmd.NewCommand("upload-pack"), nil
+	if service == ServiceTypeUploadPack {
+		return gitcmd.NewCommand(ServiceTypeUploadPack), nil
 	}
-
 	return nil, fmt.Errorf("service %q is not allowed", service)
 }
 
@@ -448,15 +449,15 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	}
 
 	var stderr bytes.Buffer
-	cmd.AddArguments("--stateless-rpc").AddDynamicArguments(h.getRepoDir())
-	if err := cmd.Run(ctx, &gitcmd.RunOpts{
-		Dir:               h.getRepoDir(),
-		Env:               append(os.Environ(), h.environ...),
-		Stdout:            ctx.Resp,
-		Stdin:             reqBody,
-		Stderr:            &stderr,
-		UseContextTimeout: true,
-	}); err != nil {
+	if err := cmd.AddArguments("--stateless-rpc").
+		AddDynamicArguments(h.getRepoDir()).
+		WithDir(h.getRepoDir()).
+		WithEnv(append(os.Environ(), h.environ...)).
+		WithStderr(&stderr).
+		WithStdin(reqBody).
+		WithStdout(ctx.Resp).
+		WithUseContextTimeout(true).
+		Run(ctx); err != nil {
 		if !git.IsErrCanceledOrKilled(err) {
 			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.getRepoDir(), err, stderr.String())
 		}
@@ -464,11 +465,16 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	}
 }
 
+const (
+	ServiceTypeUploadPack  = "upload-pack"
+	ServiceTypeReceivePack = "receive-pack"
+)
+
 // ServiceUploadPack implements Git Smart HTTP protocol
 func ServiceUploadPack(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
-		serviceRPC(ctx, h, "upload-pack")
+		serviceRPC(ctx, h, ServiceTypeUploadPack)
 	}
 }
 
@@ -476,20 +482,22 @@ func ServiceUploadPack(ctx *context.Context) {
 func ServiceReceivePack(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
-		serviceRPC(ctx, h, "receive-pack")
+		serviceRPC(ctx, h, ServiceTypeReceivePack)
 	}
 }
 
 func getServiceType(ctx *context.Context) string {
-	serviceType := ctx.Req.FormValue("service")
-	if !strings.HasPrefix(serviceType, "git-") {
-		return ""
+	switch ctx.Req.FormValue("service") {
+	case "git-" + ServiceTypeUploadPack:
+		return ServiceTypeUploadPack
+	case "git-" + ServiceTypeReceivePack:
+		return ServiceTypeReceivePack
 	}
-	return strings.TrimPrefix(serviceType, "git-")
+	return ""
 }
 
 func updateServerInfo(ctx gocontext.Context, dir string) []byte {
-	out, _, err := gitcmd.NewCommand("update-server-info").RunStdBytes(ctx, &gitcmd.RunOpts{Dir: dir})
+	out, _, err := gitcmd.NewCommand("update-server-info").WithDir(dir).RunStdBytes(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
 	}
@@ -519,7 +527,10 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, _, err := cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &gitcmd.RunOpts{Env: h.environ, Dir: h.getRepoDir()})
+		refs, _, err := cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").
+			WithEnv(h.environ).
+			WithDir(h.getRepoDir()).
+			RunStdBytes(ctx)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}

@@ -17,8 +17,8 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 	if fetch {
 		cmd.AddArguments("-f")
 	}
-	cmd.AddDynamicArguments(name, url)
-
-	_, _, err := cmd.RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	_, _, err := cmd.AddDynamicArguments(name, url).
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	return err
 }

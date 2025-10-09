@@ -65,7 +65,7 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 		decodedBytes := make([]byte, len(toDecode)/2)
 		for i := 0; i < len(toDecode)/2; i++ {
 			// Can ignore error here as we know these should be hexadecimal from the regexp
-			byteInt, _ := strconv.ParseInt(toDecode[2*i:2*i+2], 16, 0)
+			byteInt, _ := strconv.ParseInt(toDecode[2*i:2*i+2], 16, 8)
 			decodedBytes[i] = byte(byteInt)
 		}
 		if inKey {

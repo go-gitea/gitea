@@ -355,6 +355,7 @@ func ReqChangeRepoFileOptionsAndCheck(ctx *context.APIContext) {
 		Message:   commonOpts.Message,
 		OldBranch: commonOpts.BranchName,
 		NewBranch: commonOpts.NewBranchName,
+		ForcePush: commonOpts.ForcePush,
 		Committer: &files_service.IdentityOptions{
 			GitUserName:  commonOpts.Committer.Name,
 			GitUserEmail: commonOpts.Committer.Email,
@@ -591,6 +592,11 @@ func UpdateFile(ctx *context.APIContext) {
 }
 
 func handleChangeRepoFilesError(ctx *context.APIContext, err error) {
+	if git.IsErrPushRejected(err) {
+		err := err.(*git.ErrPushRejected)
+		ctx.APIError(http.StatusForbidden, err.Message)
+		return
+	}
 	if files_service.IsErrUserCannotCommit(err) || pull_service.IsErrFilePathProtected(err) {
 		ctx.APIError(http.StatusForbidden, err)
 		return

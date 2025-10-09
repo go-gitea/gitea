@@ -22,7 +22,7 @@ func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (string,
 		cmd = gitcmd.NewCommand("config", "--get").AddDynamicArguments("remote." + remoteName + ".url")
 	}
 
-	result, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
+	result, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
 	if err != nil {
 		return "", err
 	}

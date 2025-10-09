@@ -169,7 +169,7 @@ func MoveIssuePin(ctx *context.APIContext) {
 		return
 	}
 
-	err = issues_model.MovePin(ctx, issue, int(ctx.PathParamInt64("position")))
+	err = issues_model.MovePin(ctx, issue, ctx.PathParamInt("position"))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

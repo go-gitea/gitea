@@ -20,7 +20,7 @@ func GetDiffShortStatByCmdArgs(ctx context.Context, repo Repository, trustedArgs
 	// we get:
 	// " 9902 files changed, 2034198 insertions(+), 298800 deletions(-)\n"
 	cmd := gitcmd.NewCommand("diff", "--shortstat").AddArguments(trustedArgs...).AddDynamicArguments(dynamicArgs...)
-	stdout, err := runCmdString(ctx, repo, cmd)
+	stdout, err := RunCmdString(ctx, repo, cmd)
 	if err != nil {
 		return 0, 0, 0, err
 	}

@@ -60,13 +60,12 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err := cmd.Run(repo.Ctx, &gitcmd.RunOpts{
-		Env:    env,
-		Dir:    repo.Path,
-		Stdin:  messageBytes,
-		Stdout: stdout,
-		Stderr: stderr,
-	})
+	err := cmd.WithEnv(env).
+		WithDir(repo.Path).
+		WithStdin(messageBytes).
+		WithStdout(stdout).
+		WithStderr(stderr).
+		Run(repo.Ctx)
 	if err != nil {
 		return nil, gitcmd.ConcatenateError(err, stderr.String())
 	}

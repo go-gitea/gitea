@@ -36,7 +36,7 @@ func GitRemoteAdd(ctx context.Context, repo Repository, remoteName, remoteURL st
 				return errors.New("unknown remote option: " + string(options[0]))
 			}
 		}
-		_, err := runCmdString(ctx, repo, cmd.AddDynamicArguments(remoteName, remoteURL))
+		_, err := RunCmdString(ctx, repo, cmd.AddDynamicArguments(remoteName, remoteURL))
 		return err
 	})
 }
@@ -44,7 +44,7 @@ func GitRemoteAdd(ctx context.Context, repo Repository, remoteName, remoteURL st
 func GitRemoteRemove(ctx context.Context, repo Repository, remoteName string) error {
 	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
 		cmd := gitcmd.NewCommand("remote", "rm").AddDynamicArguments(remoteName)
-		_, err := runCmdString(ctx, repo, cmd)
+		_, err := RunCmdString(ctx, repo, cmd)
 		return err
 	})
 }
@@ -63,22 +63,18 @@ func GitRemoteGetURL(ctx context.Context, repo Repository, remoteName string) (*
 
 // GitRemotePrune prunes the remote branches that no longer exist in the remote repository.
 func GitRemotePrune(ctx context.Context, repo Repository, remoteName string, timeout time.Duration, stdout, stderr io.Writer) error {
-	return gitcmd.NewCommand("remote", "prune").AddDynamicArguments(remoteName).
-		Run(ctx, &gitcmd.RunOpts{
-			Timeout: timeout,
-			Dir:     repoPath(repo),
-			Stdout:  stdout,
-			Stderr:  stderr,
-		})
+	return RunCmd(ctx, repo, gitcmd.NewCommand("remote", "prune").
+		AddDynamicArguments(remoteName).
+		WithTimeout(timeout).
+		WithStdout(stdout).
+		WithStderr(stderr))
 }
 
 // GitRemoteUpdatePrune updates the remote branches and prunes the ones that no longer exist in the remote repository.
 func GitRemoteUpdatePrune(ctx context.Context, repo Repository, remoteName string, timeout time.Duration, stdout, stderr io.Writer) error {
-	return gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(remoteName).
-		Run(ctx, &gitcmd.RunOpts{
-			Timeout: timeout,
-			Dir:     repoPath(repo),
-			Stdout:  stdout,
-			Stderr:  stderr,
-		})
+	return RunCmd(ctx, repo, gitcmd.NewCommand("remote", "update", "--prune").
+		AddDynamicArguments(remoteName).
+		WithTimeout(timeout).
+		WithStdout(stdout).
+		WithStderr(stderr))
 }

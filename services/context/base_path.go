@@ -37,6 +37,11 @@ func (b *Base) PathParamInt64(p string) int64 {
 	return v
 }
 
+func (b *Base) PathParamInt(p string) int {
+	v, _ := strconv.Atoi(b.PathParam(p))
+	return v
+}
+
 // SetPathParam set request path params into routes
 func (b *Base) SetPathParam(name, value string) {
 	if strings.HasPrefix(name, ":") {

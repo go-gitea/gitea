@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -295,24 +294,27 @@ func TestCantMergeUnrelated(t *testing.T) {
 		})
 		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
-		err := gitcmd.NewCommand("read-tree", "--empty").Run(t.Context(), &gitcmd.RunOpts{Dir: path})
+		err := gitcmd.NewCommand("read-tree", "--empty").WithDir(path).Run(t.Context())
 		assert.NoError(t, err)
 
 		stdin := strings.NewReader("Unrelated File")
 		var stdout strings.Builder
-		err = gitcmd.NewCommand("hash-object", "-w", "--stdin").Run(t.Context(), &gitcmd.RunOpts{
-			Dir:    path,
-			Stdin:  stdin,
-			Stdout: &stdout,
-		})
+		err = gitcmd.NewCommand("hash-object", "-w", "--stdin").
+			WithDir(path).
+			WithStdin(stdin).
+			WithStdout(&stdout).
+			Run(t.Context())
 
 		assert.NoError(t, err)
 		sha := strings.TrimSpace(stdout.String())
 
-		_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments("100644", sha, "somewher-over-the-rainbow").RunStdString(t.Context(), &gitcmd.RunOpts{Dir: path})
+		_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
+			AddDynamicArguments("100644", sha, "somewher-over-the-rainbow").
+			WithDir(path).
+			RunStdString(t.Context())
 		assert.NoError(t, err)
 
-		treeSha, _, err := gitcmd.NewCommand("write-tree").RunStdString(t.Context(), &gitcmd.RunOpts{Dir: path})
+		treeSha, _, err := gitcmd.NewCommand("write-tree").WithDir(path).RunStdString(t.Context())
 		assert.NoError(t, err)
 		treeSha = strings.TrimSpace(treeSha)
 
@@ -333,16 +335,18 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		stdout.Reset()
 		err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSha).
-			Run(t.Context(), &gitcmd.RunOpts{
-				Env:    env,
-				Dir:    path,
-				Stdin:  messageBytes,
-				Stdout: &stdout,
-			})
+			WithEnv(env).
+			WithDir(path).
+			WithStdin(messageBytes).
+			WithStdout(&stdout).
+			Run(t.Context())
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout.String())
 
-		_, _, err = gitcmd.NewCommand("branch", "unrelated").AddDynamicArguments(commitSha).RunStdString(t.Context(), &gitcmd.RunOpts{Dir: path})
+		_, _, err = gitcmd.NewCommand("branch", "unrelated").
+			AddDynamicArguments(commitSha).
+			WithDir(path).
+			RunStdString(t.Context())
 		assert.NoError(t, err)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
@@ -689,17 +693,13 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 	})
 }
 
-func testResetRepo(t *testing.T, repoPath, branch, commitID string) {
-	f, err := os.OpenFile(filepath.Join(repoPath, "refs", "heads", branch), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
-	assert.NoError(t, err)
-	_, err = f.WriteString(commitID + "\n")
-	assert.NoError(t, err)
-	f.Close()
+func testResetRepo(t *testing.T, repo *repo_model.Repository, branch, commitID string) {
+	assert.NoError(t, gitrepo.UpdateRef(t.Context(), repo, git.BranchPrefix+branch, commitID))
 
-	repo, err := git.OpenRepository(t.Context(), repoPath)
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 	assert.NoError(t, err)
-	defer repo.Close()
-	id, err := repo.GetBranchCommitID(branch)
+	defer gitRepo.Close()
+	id, err := gitRepo.GetBranchCommitID(branch)
 	assert.NoError(t, err)
 	assert.Equal(t, commitID, id)
 }
@@ -778,7 +778,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		assert.ElementsMatch(t, []string{"sub-home-md-img-check", "home-md-img-check", "pr-to-update", "branch2", "DefaultBranch", "develop", "feature/1", "master"}, branches)
 		baseGitRepo.Close()
 		defer func() {
-			testResetRepo(t, baseRepo.RepoPath(), "master", masterCommitID)
+			testResetRepo(t, baseRepo, "master", masterCommitID)
 		}()
 
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
@@ -856,7 +856,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		assert.NoError(t, err)
 		baseGitRepo.Close()
 		defer func() {
-			testResetRepo(t, baseRepo.RepoPath(), "master", masterCommitID)
+			testResetRepo(t, baseRepo, "master", masterCommitID)
 		}()
 
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
@@ -932,7 +932,9 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 			AddDynamicArguments(`title="create a test pull request with agit"`).
 			AddArguments("-o").
 			AddDynamicArguments(`description="This PR is a test pull request which created with agit"`).
-			Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath, Stderr: stderrBuf})
+			WithDir(dstPath).
+			WithStderr(stderrBuf).
+			Run(t.Context())
 		assert.NoError(t, err)
 
 		assert.Contains(t, stderrBuf.String(), setting.AppURL+"user2/repo1/pulls/6")
@@ -985,7 +987,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		assert.NoError(t, err)
 		baseGitRepo.Close()
 		defer func() {
-			testResetRepo(t, baseRepo.RepoPath(), "master", masterCommitID)
+			testResetRepo(t, baseRepo, "master", masterCommitID)
 		}()
 
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{

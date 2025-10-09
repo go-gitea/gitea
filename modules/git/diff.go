@@ -35,12 +35,12 @@ func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer 
 // GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
 func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io.Writer) error {
 	stderr := new(bytes.Buffer)
-	cmd := gitcmd.NewCommand("show", "--pretty=format:revert %H%n", "-R").AddDynamicArguments(commitID)
-	if err := cmd.Run(ctx, &gitcmd.RunOpts{
-		Dir:    repoPath,
-		Stdout: writer,
-		Stderr: stderr,
-	}); err != nil {
+	if err := gitcmd.NewCommand("show", "--pretty=format:revert %H%n", "-R").
+		AddDynamicArguments(commitID).
+		WithDir(repoPath).
+		WithStdout(writer).
+		WithStderr(stderr).
+		Run(ctx); err != nil {
 		return fmt.Errorf("Run: %w - %s", err, stderr)
 	}
 	return nil
@@ -90,11 +90,10 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	}
 
 	stderr := new(bytes.Buffer)
-	if err = cmd.Run(repo.Ctx, &gitcmd.RunOpts{
-		Dir:    repo.Path,
-		Stdout: writer,
-		Stderr: stderr,
-	}); err != nil {
+	if err = cmd.WithDir(repo.Path).
+		WithStdout(writer).
+		WithStderr(stderr).
+		Run(repo.Ctx); err != nil {
 		return fmt.Errorf("Run: %w - %s", err, stderr)
 	}
 	return nil
@@ -314,29 +313,28 @@ func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID str
 
 	// Run `git diff --name-only` to get the names of the changed files
 	err = gitcmd.NewCommand("diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID).
-		Run(repo.Ctx, &gitcmd.RunOpts{
-			Env:    env,
-			Dir:    repo.Path,
-			Stdout: stdoutWriter,
-			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
-				// Close the writer end of the pipe to begin processing
-				_ = stdoutWriter.Close()
-				defer func() {
-					// Close the reader on return to terminate the git command if necessary
-					_ = stdoutReader.Close()
-				}()
-				// Now scan the output from the command
-				scanner := bufio.NewScanner(stdoutReader)
-				for scanner.Scan() {
-					path := strings.TrimSpace(scanner.Text())
-					if len(path) == 0 {
-						continue
-					}
-					affectedFiles = append(affectedFiles, path)
+		WithEnv(env).
+		WithDir(repo.Path).
+		WithStdout(stdoutWriter).
+		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
+			// Close the writer end of the pipe to begin processing
+			_ = stdoutWriter.Close()
+			defer func() {
+				// Close the reader on return to terminate the git command if necessary
+				_ = stdoutReader.Close()
+			}()
+			// Now scan the output from the command
+			scanner := bufio.NewScanner(stdoutReader)
+			for scanner.Scan() {
+				path := strings.TrimSpace(scanner.Text())
+				if len(path) == 0 {
+					continue
 				}
-				return scanner.Err()
-			},
-		})
+				affectedFiles = append(affectedFiles, path)
+			}
+			return scanner.Err()
+		}).
+		Run(repo.Ctx)
 	if err != nil {
 		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}

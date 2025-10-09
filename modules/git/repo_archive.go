@@ -63,11 +63,10 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 	cmd.AddDynamicArguments(commitID)
 
 	var stderr strings.Builder
-	err := cmd.Run(ctx, &gitcmd.RunOpts{
-		Dir:    repo.Path,
-		Stdout: target,
-		Stderr: &stderr,
-	})
+	err := cmd.WithDir(repo.Path).
+		WithStdout(target).
+		WithStderr(&stderr).
+		Run(ctx)
 	if err != nil {
 		return gitcmd.ConcatenateError(err, stderr.String())
 	}

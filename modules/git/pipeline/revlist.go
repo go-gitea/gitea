@@ -24,11 +24,10 @@ func RevListAllObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sy
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
 	cmd := gitcmd.NewCommand("rev-list", "--objects", "--all")
-	if err := cmd.Run(ctx, &gitcmd.RunOpts{
-		Dir:    basePath,
-		Stdout: revListWriter,
-		Stderr: stderr,
-	}); err != nil {
+	if err := cmd.WithDir(basePath).
+		WithStdout(revListWriter).
+		WithStderr(stderr).
+		Run(ctx); err != nil {
 		log.Error("git rev-list --objects --all [%s]: %v - %s", basePath, err, errbuf.String())
 		err = fmt.Errorf("git rev-list --objects --all [%s]: %w - %s", basePath, err, errbuf.String())
 		_ = revListWriter.CloseWithError(err)
@@ -46,11 +45,10 @@ func RevListObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sync.
 	if baseSHA != "" {
 		cmd = cmd.AddArguments("--not").AddDynamicArguments(baseSHA)
 	}
-	if err := cmd.Run(ctx, &gitcmd.RunOpts{
-		Dir:    tmpBasePath,
-		Stdout: revListWriter,
-		Stderr: stderr,
-	}); err != nil {
+	if err := cmd.WithDir(tmpBasePath).
+		WithStdout(revListWriter).
+		WithStderr(stderr).
+		Run(ctx); err != nil {
 		log.Error("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 		errChan <- fmt.Errorf("git rev-list [%s]: %w - %s", tmpBasePath, err, errbuf.String())
 	}

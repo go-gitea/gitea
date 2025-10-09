@@ -43,7 +43,8 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	stdout, _, runErr := gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
 		AddOptionFormat("--since=%s", since).
-		RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -72,12 +73,11 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	}
 
 	stderr := new(strings.Builder)
-	err = gitCmd.Run(repo.Ctx, &gitcmd.RunOpts{
-		Env:    []string{},
-		Dir:    repo.Path,
-		Stdout: stdoutWriter,
-		Stderr: stderr,
-		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+	err = gitCmd.
+		WithDir(repo.Path).
+		WithStdout(stdoutWriter).
+		WithStderr(stderr).
+		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			scanner := bufio.NewScanner(stdoutReader)
 			scanner.Split(bufio.ScanLines)
@@ -145,8 +145,8 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			stats.Authors = a
 			_ = stdoutReader.Close()
 			return nil
-		},
-	})
+		}).
+		Run(repo.Ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get GetCodeActivityStats for repository.\nError: %w\nStderr: %s", err, stderr)
 	}
