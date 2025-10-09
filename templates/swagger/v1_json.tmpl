@@ -7575,6 +7575,56 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/contents/diffpatch": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Apply diff patch to repository",
+        "operationId": "repoApplyDiffPatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ApplyDiffPatchFileOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/FileResponse"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/contents/{filepath}": {
       "get": {
         "description": "This API follows GitHub's design, and it is not easy to use. Recommend users to use the \"contents-ext\" API instead.",
@@ -7804,56 +7854,6 @@
           },
           "422": {
             "$ref": "#/responses/error"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/diffpatch": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Apply diff patch to repository",
-        "operationId": "repoApplyDiffPatch",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/UpdateFileOptions"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/FileResponse"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           },
           "423": {
             "$ref": "#/responses/repoArchivedError"
@@ -21645,6 +21645,54 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ApplyDiffPatchFileOptions": {
+      "description": "ApplyDiffPatchFileOptions options for applying a diff patch\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "type": "object",
+      "required": [
+        "content"
+      ],
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/Identity"
+        },
+        "branch": {
+          "description": "branch (optional) is the base branch for the changes. If not supplied, the default branch is used",
+          "type": "string",
+          "x-go-name": "BranchName"
+        },
+        "committer": {
+          "$ref": "#/definitions/Identity"
+        },
+        "content": {
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
+        },
+        "force_push": {
+          "description": "force_push (optional) will do a force-push if the new branch already exists",
+          "type": "boolean",
+          "x-go-name": "ForcePush"
+        },
+        "message": {
+          "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "new_branch": {
+          "description": "new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch",
+          "type": "string",
+          "x-go-name": "NewBranchName"
+        },
+        "signoff": {
+          "description": "Add a Signed-off-by trailer by the committer at the end of the commit log message.",
+          "type": "boolean",
+          "x-go-name": "Signoff"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Attachment": {
       "description": "Attachment a generic attachment",
       "type": "object",
@@ -30249,7 +30297,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/LockIssueOption"
+        "$ref": "#/definitions/ApplyDiffPatchFileOptions"
       }
     },
     "redirect": {

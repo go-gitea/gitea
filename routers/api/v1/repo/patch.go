@@ -14,7 +14,7 @@ import (
 
 // ApplyDiffPatch handles API call for applying a patch
 func ApplyDiffPatch(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/diffpatch repository repoApplyDiffPatch
+	// swagger:operation POST /repos/{owner}/{repo}/contents/diffpatch repository repoApplyDiffPatch
 	// ---
 	// summary: Apply diff patch to repository
 	// consumes:
@@ -36,7 +36,7 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 	//   in: body
 	//   required: true
 	//   schema:
-	//     "$ref": "#/definitions/UpdateFileOptions"
+	//     "$ref": "#/definitions/ApplyDiffPatchFileOptions"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileResponse"
