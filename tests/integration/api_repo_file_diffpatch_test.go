@@ -56,7 +56,7 @@ func TestAPIApplyDiffPatchFileOptions(t *testing.T) {
 		assert.NotEmpty(t, fileResponse.Commit.HTMLURL)
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/raw/patch-file-1.txt")
 		resp = MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, "File 1\n", string(resp.Body.Bytes()))
+		assert.Equal(t, "File 1\n", resp.Body.String())
 
 		// Test creating a file in repo1 by user4 who does not have write access
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/diffpatch", user2.Name, repo16.Name), getApplyDiffPatchFileOptions()).
