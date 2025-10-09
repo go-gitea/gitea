@@ -122,6 +122,9 @@ type swaggerParameterBodies struct {
 	GetFilesOptions api.GetFilesOptions
 
 	// in:body
+	ApplyDiffPatchFileOptions api.ApplyDiffPatchFileOptions
+
+	// in:body
 	ChangeFilesOptions api.ChangeFilesOptions
 
 	// in:body
@@ -222,7 +225,4 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	LockIssueOption api.LockIssueOption
-
-	// in:body
-	ApplyDiffPatchFileOptions api.ApplyDiffPatchFileOptions
 }
