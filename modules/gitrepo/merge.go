@@ -39,7 +39,6 @@ func parseMergeTreeOutput(output string) (string, []string, error) {
 	if len(fields) == 1 {
 		return strings.TrimSpace(fields[0]), nil, nil
 	}
-	// ignore the last one because it's always empty after the last NUL
 	return strings.TrimSpace(fields[0]), fields[1:], nil
 }
 
