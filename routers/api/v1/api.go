@@ -1203,6 +1203,7 @@ func Routes() *web.Router {
 					m.Put("/{workflow_id}/disable", reqRepoWriter(unit.TypeActions), repo.ActionsDisableWorkflow)
 					m.Put("/{workflow_id}/enable", reqRepoWriter(unit.TypeActions), repo.ActionsEnableWorkflow)
 					m.Post("/{workflow_id}/dispatches", reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), repo.ActionsDispatchWorkflow)
+					m.Get("/{workflow_id}/runs", repo.ActionsListWorkflowRuns)
 				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions))
 
 				m.Group("/actions/jobs", func() {

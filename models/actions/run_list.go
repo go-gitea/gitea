@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -64,15 +65,18 @@ func (runs RunList) LoadRepos(ctx context.Context) error {
 
 type FindRunOptions struct {
 	db.ListOptions
-	RepoID        int64
-	OwnerID       int64
-	WorkflowID    string
-	Ref           string // the commit/tag/… that caused this workflow
-	TriggerUserID int64
-	TriggerEvent  webhook_module.HookEventType
-	Approved      bool // not util.OptionalBool, it works only when it's true
-	Status        []Status
-	CommitSHA     string
+	RepoID              int64
+	OwnerID             int64
+	WorkflowID          string
+	Ref                 string // the commit/tag/... that caused this workflow
+	TriggerUserID       int64
+	TriggerEvent        webhook_module.HookEventType
+	Approved            bool // not util.OptionalBool, it works only when it's true
+	Status              []Status
+	CommitSHA           string
+	CreatedAfter        time.Time
+	CreatedBefore       time.Time
+	ExcludePullRequests bool
 }
 
 func (opts FindRunOptions) ToConds() builder.Cond {
@@ -100,6 +104,15 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	}
 	if opts.CommitSHA != "" {
 		cond = cond.And(builder.Eq{"`action_run`.commit_sha": opts.CommitSHA})
+	}
+	if !opts.CreatedAfter.IsZero() {
+		cond = cond.And(builder.Gte{"`action_run`.created": opts.CreatedAfter})
+	}
+	if !opts.CreatedBefore.IsZero() {
+		cond = cond.And(builder.Lte{"`action_run`.created": opts.CreatedBefore})
+	}
+	if opts.ExcludePullRequests {
+		cond = cond.And(builder.Neq{"`action_run`.trigger_event": webhook_module.HookEventPullRequest})
 	}
 	return cond
 }

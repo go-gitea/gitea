@@ -1100,6 +1100,85 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
+func ActionsListWorkflowRuns(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs repository ActionsListWorkflowRuns
+	// ---
+	// summary: List workflow runs for a workflow
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: workflow_id
+	//   in: path
+	//   description: id of the workflow
+	//   type: string
+	//   required: true
+	// - name: actor
+	//   in: query
+	//   description: Returns someone's workflow runs. Use the login for the user who created the push associated with the check suite or workflow run.
+	//   type: string
+	// - name: branch
+	//   in: query
+	//   description: Returns workflow runs associated with a branch. Use the name of the branch of the push.
+	//   type: string
+	// - name: event
+	//   in: query
+	//   description: Returns workflow run triggered by the event you specify. For example, push, pull_request or issue.
+	//   type: string
+	// - name: status
+	//   in: query
+	//   description: Returns workflow runs with the check run status or conclusion that you specify. Can be one of completed, action_required, cancelled, failure, neutral, skipped, stale, success, timed_out, in_progress, queued, requested, waiting, pending
+	//   type: string
+	// - name: created
+	//   in: query
+	//   description: Returns workflow runs created within the given date-time range. For more information on the syntax, see "Understanding the search syntax".
+	//   type: string
+	// - name: exclude_pull_requests
+	//   in: query
+	//   description: If true pull requests are omitted from the response (empty array).
+	//   type: boolean
+	//   default: false
+	// - name: check_suite_id
+	//   in: query
+	//   description: Not supported in Gitea API. (GitHub API compatibility - parameter ignored).
+	//   type: integer
+	// - name: head_sha
+	//   in: query
+	//   description: Only returns workflow runs that are associated with the specified head_sha.
+	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRunsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "500":
+	//     "$ref": "#/responses/error"
+	shared.ListRuns(ctx, 0, ctx.Repo.Repository.ID)
+}
+
 // GetWorkflowRun Gets a specific workflow run.
 func GetWorkflowRun(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run} repository GetWorkflowRun
