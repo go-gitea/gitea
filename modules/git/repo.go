@@ -40,8 +40,8 @@ func (repo *Repository) GetAllCommitsCount() (int64, error) {
 func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
 	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
 	logs, _, err := gitcmd.NewCommand("log").AddArguments(prettyLogFormat).
-		AddDynamicArguments(revisionRange).AddArguments("--").
-		RunStdBytes(ctx, &gitcmd.RunOpts{Dir: repo.Path})
+		AddDynamicArguments(revisionRange).AddArguments("--").WithDir(repo.Path).
+		RunStdBytes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(ctx context.Context, url string) bool {
-	_, _, err := gitcmd.NewCommand("ls-remote", "-q", "-h").AddDynamicArguments(url, "HEAD").RunStdString(ctx, nil)
+	_, _, err := gitcmd.NewCommand("ls-remote", "-q", "-h").AddDynamicArguments(url, "HEAD").RunStdString(ctx)
 	return err == nil
 }
 
@@ -92,19 +92,20 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 	if bare {
 		cmd.AddArguments("--bare")
 	}
-	_, _, err = cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
+	_, _, err = cmd.WithDir(repoPath).RunStdString(ctx)
 	return err
 }
 
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
-	if err := gitcmd.NewCommand().AddOptionFormat("--git-dir=%s", repo.Path).AddArguments("rev-list", "-n", "1", "--all").
-		Run(repo.Ctx, &gitcmd.RunOpts{
-			Dir:    repo.Path,
-			Stdout: &output,
-			Stderr: &errbuf,
-		}); err != nil {
+	if err := gitcmd.NewCommand().
+		AddOptionFormat("--git-dir=%s", repo.Path).
+		AddArguments("rev-list", "-n", "1", "--all").
+		WithDir(repo.Path).
+		WithStdout(&output).
+		WithStderr(&errbuf).
+		Run(repo.Ctx); err != nil {
 		if (err.Error() == "exit status 1" && strings.TrimSpace(errbuf.String()) == "") || err.Error() == "exit status 129" {
 			// git 2.11 exits with 129 if the repo is empty
 			return true, nil
@@ -177,12 +178,12 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	}
 
 	stderr := new(bytes.Buffer)
-	if err = cmd.Run(ctx, &gitcmd.RunOpts{
-		Timeout: opts.Timeout,
-		Env:     envs,
-		Stdout:  io.Discard,
-		Stderr:  stderr,
-	}); err != nil {
+	if err = cmd.
+		WithTimeout(opts.Timeout).
+		WithEnv(envs).
+		WithStdout(io.Discard).
+		WithStderr(stderr).
+		Run(ctx); err != nil {
 		return gitcmd.ConcatenateError(err, stderr.String())
 	}
 	return nil
@@ -213,7 +214,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 	cmd.AddDashesAndList(remoteBranchArgs...)
 
-	stdout, stderr, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Env: opts.Env, Timeout: opts.Timeout, Dir: repoPath})
+	stdout, stderr, err := cmd.WithEnv(opts.Env).WithTimeout(opts.Timeout).WithDir(repoPath).RunStdString(ctx)
 	if err != nil {
 		if strings.Contains(stderr, "non-fast-forward") {
 			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}
@@ -233,7 +234,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
 func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error) {
 	cmd := gitcmd.NewCommand("for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
-	stdout, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
+	stdout, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
 	if err != nil {
 		return time.Time{}, err
 	}
