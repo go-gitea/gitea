@@ -35,6 +35,8 @@ type Batch interface {
 // ref: https://git-scm.com/docs/git-cat-file#Documentation/git-cat-file.txt---batch
 // To align with --batch-command, we creates the two commands both at the same time if git version is lower than 2.36
 type batchCatFileWithCheck struct {
+	ctx        context.Context
+	repoPath   string
 	batch      *batchCatFile
 	batchCheck *batchCatFile
 }
@@ -49,25 +51,41 @@ func newBatchCatFileWithCheck(ctx context.Context, repoPath string) (*batchCatFi
 	}
 
 	return &batchCatFileWithCheck{
-		batch:      newCatFileBatch(ctx, repoPath, "--batch"),
-		batchCheck: newCatFileBatch(ctx, repoPath, "--batch-check"),
+		ctx:      ctx,
+		repoPath: repoPath,
 	}, nil
 }
 
+func (b *batchCatFileWithCheck) getBatch() *batchCatFile {
+	if b.batch != nil {
+		return b.batch
+	}
+	b.batch = newCatFileBatch(b.ctx, b.repoPath, "--batch")
+	return b.batch
+}
+
+func (b *batchCatFileWithCheck) getBatchCheck() *batchCatFile {
+	if b.batchCheck != nil {
+		return b.batchCheck
+	}
+	b.batchCheck = newCatFileBatch(b.ctx, b.repoPath, "--batch-check")
+	return b.batchCheck
+}
+
 func (b *batchCatFileWithCheck) Write(bs []byte) (int, error) {
-	return b.batch.Writer.Write(bs)
+	return b.getBatch().Writer.Write(bs)
 }
 
 func (b *batchCatFileWithCheck) WriteCheck(bs []byte) (int, error) {
-	return b.batchCheck.Writer.Write(bs)
+	return b.getBatchCheck().Writer.Write(bs)
 }
 
 func (b *batchCatFileWithCheck) Reader() *bufio.Reader {
-	return b.batch.Reader
+	return b.getBatch().Reader
 }
 
 func (b *batchCatFileWithCheck) CheckReader() *bufio.Reader {
-	return b.batchCheck.Reader
+	return b.getBatchCheck().Reader
 }
 
 func (b *batchCatFileWithCheck) Close() {
@@ -84,7 +102,9 @@ func (b *batchCatFileWithCheck) Close() {
 // batchCommandCatFile implements the Batch interface using the "cat-file --batch-command" command
 // ref: https://git-scm.com/docs/git-cat-file#Documentation/git-cat-file.txt---batch-command
 type batchCommandCatFile struct {
-	batch *batchCatFile
+	ctx      context.Context
+	repoPath string
+	batch    *batchCatFile
 }
 
 var _ Batch = &batchCommandCatFile{}
@@ -96,24 +116,33 @@ func newBatchCommandCatFile(ctx context.Context, repoPath string) (*batchCommand
 	}
 
 	return &batchCommandCatFile{
-		batch: newCatFileBatch(ctx, repoPath, "--batch-command"),
+		ctx:      ctx,
+		repoPath: repoPath,
 	}, nil
 }
 
+func (b *batchCommandCatFile) getBatch() *batchCatFile {
+	if b.batch != nil {
+		return b.batch
+	}
+	b.batch = newCatFileBatch(b.ctx, b.repoPath, "--batch-command")
+	return b.batch
+}
+
 func (b *batchCommandCatFile) Write(bs []byte) (int, error) {
-	return b.batch.Writer.Write(append([]byte("contents "), bs...))
+	return b.getBatch().Writer.Write(append([]byte("contents "), bs...))
 }
 
 func (b *batchCommandCatFile) WriteCheck(bs []byte) (int, error) {
-	return b.batch.Writer.Write(append([]byte("info "), bs...))
+	return b.getBatch().Writer.Write(append([]byte("info "), bs...))
 }
 
 func (b *batchCommandCatFile) Reader() *bufio.Reader {
-	return b.batch.Reader
+	return b.getBatch().Reader
 }
 
 func (b *batchCommandCatFile) CheckReader() *bufio.Reader {
-	return b.batch.Reader
+	return b.getBatch().Reader
 }
 
 func (b *batchCommandCatFile) Close() {
