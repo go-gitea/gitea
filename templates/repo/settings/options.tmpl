@@ -372,7 +372,7 @@
 						</div>
 					</div>
 					<div class="field tw-pl-4 {{if (.Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
-						{{if .Repository.CanEnableTimetracker}}
+						{{if .Repository.CanEnableTimetracker ctx}}
 							<div class="field">
 								<div class="ui checkbox">
 									<input name="enable_timetracker" class="enable-system" data-target="#only_contributors" type="checkbox" {{if .Repository.IsTimetrackerEnabled ctx}}checked{{end}}>

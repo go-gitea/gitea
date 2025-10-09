@@ -2,89 +2,103 @@
 	{{ctx.Locale.Tr "admin.config.service_config"}}
 </h4>
 <div class="ui attached table segment">
+	<form class="ui form">
 	<dl class="admin-dl-horizontal">
 		<dt>{{ctx.Locale.Tr "admin.config.default_keep_email_private"}}</dt>
 		<dd>
-			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.default_keep_email_private_desc"}}">
+			<div class="ui toggle checkbox">
 				<input type="checkbox" data-config-dyn-key="service.default_keep_email_private" {{if .SystemConfig.Service.DefaultKeepEmailPrivate.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
+		<div><p class="help">{{ctx.Locale.Tr "admin.config.default_keep_email_private_desc"}}</p></div>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.default_allow_create_organization"}}</dt>
 		<dd>
-			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.default_allow_create_organization_desc"}}">
+			<div class="ui toggle checkbox">
 				<input type="checkbox" data-config-dyn-key="service.default_allow_create_organization" {{if .SystemConfig.Service.DefaultAllowCreateOrganization.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
+		<div><p class="help">{{ctx.Locale.Tr "admin.config.default_allow_create_organization_desc"}}</p></div>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.default_user_is_restricted"}}</dt>
 		<dd>
-			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.default_user_is_restricted_desc"}}">
+			<div class="ui toggle checkbox">
 				<input type="checkbox" data-config-dyn-key="service.default_user_is_restricted" {{if .SystemConfig.Service.DefaultUserIsRestricted.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
+		<div><p class="help">{{ctx.Locale.Tr "admin.config.default_user_is_restricted_desc"}}</p></div>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.enable_time_tracking"}}</dt>
 		<dd>
-			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.enable_time_tracking_desc"}}">
+			<div class="ui toggle checkbox">
 				<input type="checkbox" data-config-dyn-key="service.enable_time_tracking" {{if .SystemConfig.Service.EnableTimeTracking.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
+		<div><p class="help">{{ctx.Locale.Tr "admin.config.enable_time_tracking_desc"}}</p></div>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.default_enable_time_tracking"}}</dt>
 		<dd>
-			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.default_enable_time_tracking_desc"}}">
+			<div class="ui toggle checkbox">
 				<input type="checkbox" data-config-dyn-key="service.default_enable_time_tracking" {{if .SystemConfig.Service.DefaultEnableTimeTracking.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
+		<div><p class="help">{{ctx.Locale.Tr "admin.config.default_enable_time_tracking_desc"}}</p></div>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.default_allow_only_contributors_to_track_time"}}</dt>
 		<dd>
-			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.default_allow_only_contributors_to_track_time_desc"}}">
+			<div class="ui toggle checkbox">
 				<input type="checkbox" data-config-dyn-key="service.default_allow_only_contributors_to_track_time" {{if .SystemConfig.Service.DefaultAllowOnlyContributorsToTrackTime.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
+		<div><p class="help">{{ctx.Locale.Tr "admin.config.default_allow_only_contributors_to_track_time_desc"}}</p></div>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.default_enable_dependencies"}}</dt>
 		<dd>
-			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.default_enable_dependencies_desc"}}">
+			<div class="ui toggle checkbox">
 				<input type="checkbox" data-config-dyn-key="service.default_enable_dependencies" {{if .SystemConfig.Service.DefaultEnableDependencies.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
+		<div><p class="help">{{ctx.Locale.Tr "admin.config.default_enable_dependencies_desc"}}</p></div>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.allow_cross_repository_dependencies"}}</dt>
 		<dd>
-			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.allow_cross_repository_dependencies_desc"}}">
+			<div class="ui toggle checkbox">
 				<input type="checkbox" data-config-dyn-key="service.allow_cross_repository_dependencies" {{if .SystemConfig.Service.AllowCrossRepositoryDependencies.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
+		<div><p class="help">{{ctx.Locale.Tr "admin.config.allow_cross_repository_dependencies_desc"}}</p></div>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.enable_user_heatmap"}}</dt>
 		<dd>
-			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.enable_user_heatmap_desc"}}">
+			<div class="ui toggle checkbox">
 				<input type="checkbox" data-config-dyn-key="service.enable_user_heatmap" {{if .SystemConfig.Service.EnableUserHeatmap.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
+		<div><p class="help">{{ctx.Locale.Tr "admin.config.enable_user_heatmap_desc"}}</p></div>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.auto_watch_new_repos"}}</dt>
 		<dd>
-			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.auto_watch_new_repos_desc"}}">
+			<div class="ui toggle checkbox">
 				<input type="checkbox" data-config-dyn-key="service.auto_watch_new_repos" {{if .SystemConfig.Service.AutoWatchNewRepos.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
+		<div><p class="help">{{ctx.Locale.Tr "admin.config.auto_watch_new_repos_desc"}}</p></div>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.auto_watch_on_changes"}}</dt>
 		<dd>
-			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.auto_watch_on_changes_desc"}}">
+			<div class="ui toggle checkbox">
 				<input type="checkbox" data-config-dyn-key="service.auto_watch_on_changes" {{if .SystemConfig.Service.AutoWatchOnChanges.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
+		<div><p class="help">{{ctx.Locale.Tr "admin.config.auto_watch_on_changes_desc"}}</p></div>
 		<div class="divider"></div>
 		<dt>{{ctx.Locale.Tr "admin.config.default_org_member_visible"}}</dt>
 		<dd>
-			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.default_org_member_visible_desc"}}">
+			<div class="ui toggle checkbox">
 				<input type="checkbox" data-config-dyn-key="service.default_org_member_visible" {{if .SystemConfig.Service.DefaultOrgMemberVisible.Value ctx}}checked{{end}}><label></label>
 			</div>
 		</dd>
+		<div><p class="help">{{ctx.Locale.Tr "admin.config.default_org_member_visible_desc"}}</p></div>
 	</dl>
+	</form>
 </div>
