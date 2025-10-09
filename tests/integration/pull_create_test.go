@@ -300,7 +300,10 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 			TreeFileContent: "temp content",
 		})(t)
 
-		err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic="+"test-topic").Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+		err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
+			AddDynamicArguments("topic=test-topic").
+			WithDir(dstPath).
+			Run(t.Context())
 		assert.NoError(t, err)
 	})
 }
