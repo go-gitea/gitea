@@ -108,6 +108,12 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				}
 				// do not need to check job concurrency if the job is blocked because it will be checked by job emitter
 				if runJob.Status != actions_model.StatusBlocked {
+					shouldWaitEvaluation := actions_model.ShouldWaitJobForConcurrencyEvaluation(runJob)
+					if shouldWaitEvaluation {
+						// FIXME: old logic: "return err"? Or should we just insert? Or continue?
+						// Or it is just a logic error and should be avoided and panic?
+						continue
+					}
 					// check if the job should be blocked by job concurrency
 					blockByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, runJob)
 					if err != nil {

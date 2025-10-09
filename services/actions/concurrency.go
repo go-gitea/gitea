@@ -17,7 +17,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// EvaluateWorkflowConcurrency evaluates the expressions in a workflow-level concurrency and returns the value of `concurrency.group` and `concurrency.cancel-in-progress`
+// EvaluateWorkflowConcurrency evaluates the expressions in a workflow-level concurrency
+// and returns the value of `concurrency.group` and `concurrency.cancel-in-progress`.
+// Workflow-level concurrency doesn't depend on the job outputs, so it can always be evaluated if there is no syntax error.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency
 func EvaluateWorkflowConcurrency(ctx context.Context, run *actions_model.ActionRun, rc *act_model.RawConcurrency, vars map[string]string) (string, bool, error) {
 	if err := run.LoadAttributes(ctx); err != nil {
@@ -39,7 +41,10 @@ func EvaluateWorkflowConcurrency(ctx context.Context, run *actions_model.ActionR
 	return concurrencyGroup, concurrencyCancel, nil
 }
 
-// EvaluateJobConcurrency evaluates the expressions in a job-level concurrency and returns the value of `concurrency.group` and `concurrency.cancel-in-progress`
+// EvaluateJobConcurrency evaluates the expressions in a job-level concurrency
+// and returns the value of `concurrency.group` and `concurrency.cancel-in-progress`.
+// Job-level concurrency may depend on other job's outputs (via `needs`): `concurrency.group: my-group-${{ needs.job1.outputs.out1 }}`
+// If the needed jobs haven't been executed yet, this evaluation will also fail.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idconcurrency
 func EvaluateJobConcurrency(ctx context.Context, run *actions_model.ActionRun, actionRunJob *actions_model.ActionRunJob, vars map[string]string, jobResults map[string]*jobparser.JobResult) (string, bool, error) {
 	if err := actionRunJob.LoadAttributes(ctx); err != nil {

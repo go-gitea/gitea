@@ -305,13 +305,22 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			}
 		}
 		if allDone {
-			// check concurrency
-			blockedByJobConcurrency, err := checkConcurrencyForJobWithNeeds(ctx, r.jobMap[id], r.vars)
+			// update concurrency and check whether the job can run now
+			actionRunJob := r.jobMap[id]
+			err := updateConcurrencyEvaluationForJobWithNeeds(ctx, r.jobMap[id], r.vars)
 			if err != nil {
-				log.Error("Check job %d concurrency: %v. This job will stay blocked.", id, err)
+				// The err can be caused by 2 cases: database error, or unable to evaluate the concurrency expression (not really a error)
+				// At the moment there is no way to distinguish them
+				// TODO: if "concurrency expression" has syntax error, there should be a user error message, need to show it to end users
+				log.Debug("updateConcurrencyEvaluationForJobWithNeeds failed, this job will stay blocked: job: %d, err: %v", id, err)
 				continue
 			}
 
+			blockedByJobConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, actionRunJob)
+			if err != nil {
+				log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
+				continue
+			}
 			if blockedByJobConcurrency {
 				continue
 			}
@@ -343,38 +352,36 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 	return ret
 }
 
-func checkConcurrencyForJobWithNeeds(ctx context.Context, actionRunJob *actions_model.ActionRunJob, vars map[string]string) (bool, error) {
-	if actionRunJob.RawConcurrency == "" {
-		return false, nil
+func updateConcurrencyEvaluationForJobWithNeeds(ctx context.Context, actionRunJob *actions_model.ActionRunJob, vars map[string]string) error {
+	if !actions_model.ShouldWaitJobForConcurrencyEvaluation(actionRunJob) {
+		return nil
 	}
+
 	if err := actionRunJob.LoadAttributes(ctx); err != nil {
-		return false, err
+		return err
 	}
 
-	if !actionRunJob.IsConcurrencyEvaluated {
-		taskNeeds, err := FindTaskNeeds(ctx, actionRunJob)
-		if err != nil {
-			return false, fmt.Errorf("find task needs: %w", err)
+	taskNeeds, err := FindTaskNeeds(ctx, actionRunJob)
+	if err != nil {
+		return fmt.Errorf("find task needs: %w", err)
+	}
+	jobResults := make(map[string]*jobparser.JobResult, len(taskNeeds))
+	for jobID, taskNeed := range taskNeeds {
+		jobResult := &jobparser.JobResult{
+			Result:  taskNeed.Result.String(),
+			Outputs: taskNeed.Outputs,
 		}
-		jobResults := make(map[string]*jobparser.JobResult, len(taskNeeds))
-		for jobID, taskNeed := range taskNeeds {
-			jobResult := &jobparser.JobResult{
-				Result:  taskNeed.Result.String(),
-				Outputs: taskNeed.Outputs,
-			}
-			jobResults[jobID] = jobResult
-		}
-
-		actionRunJob.ConcurrencyGroup, actionRunJob.ConcurrencyCancel, err = EvaluateJobConcurrency(ctx, actionRunJob.Run, actionRunJob, vars, jobResults)
-		if err != nil {
-			return false, fmt.Errorf("evaluate job concurrency: %w", err)
-		}
-		actionRunJob.IsConcurrencyEvaluated = true
-
-		if _, err := actions_model.UpdateRunJob(ctx, actionRunJob, nil, "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"); err != nil {
-			return false, fmt.Errorf("update run job: %w", err)
-		}
+		jobResults[jobID] = jobResult
 	}
 
-	return actions_model.ShouldBlockJobByConcurrency(ctx, actionRunJob)
+	actionRunJob.ConcurrencyGroup, actionRunJob.ConcurrencyCancel, err = EvaluateJobConcurrency(ctx, actionRunJob.Run, actionRunJob, vars, jobResults)
+	if err != nil {
+		return fmt.Errorf("evaluate job concurrency: %w", err)
+	}
+	actionRunJob.IsConcurrencyEvaluated = true
+
+	if _, err := actions_model.UpdateRunJob(ctx, actionRunJob, nil, "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"); err != nil {
+		return fmt.Errorf("update run job: %w", err)
+	}
+	return nil
 }
