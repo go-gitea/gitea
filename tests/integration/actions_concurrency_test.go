@@ -608,7 +608,7 @@ jobs:
 		})
 		// fetch wf2-job2
 		wf2Job2Task := runner1.fetchTask(t)
-		_, wf2Job2ActionJob, _ := getTaskAndJobAndRunByTaskID(t, wf2Job2Task.Id)
+		_, wf2Job2ActionJob, wf2Run := getTaskAndJobAndRunByTaskID(t, wf2Job2Task.Id)
 		assert.Equal(t, "job-main-v1.23.0", wf2Job2ActionJob.ConcurrencyGroup)
 		assert.Equal(t, actions_model.StatusRunning, wf2Job2ActionJob.Status)
 		// push workflow3 to trigger wf3-job1
@@ -622,6 +622,45 @@ jobs:
 		// wf2-job2 has been cancelled
 		_, wf2Job2ActionJob, _ = getTaskAndJobAndRunByTaskID(t, wf2Job2Task.Id)
 		assert.Equal(t, actions_model.StatusCancelled, wf2Job2ActionJob.Status)
+
+		// rerun wf2
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, wf2Run.Index), map[string]string{
+			"_csrf": GetUserCSRFToken(t, session),
+		})
+		_ = session.MakeRequest(t, req, http.StatusOK)
+
+		// (rerun1) cannot fetch wf2-job2
+		runner1.fetchNoTask(t)
+		// (rerun1) fetch and exec wf2-job1
+		wf2Job1Rerun1Task := runner2.fetchTask(t)
+		_, _, wf2Rerun1Run := getTaskAndJobAndRunByTaskID(t, wf2Job1Rerun1Task.Id)
+		assert.Equal(t, wf2Rerun1Run.ID, wf2Run.ID)
+		runner2.execTask(t, wf2Job1Rerun1Task, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+			outputs: map[string]string{
+				"version": "v1.24.0",
+			},
+		})
+		// (rerun1) fetch and exec wf2-job2
+		wf2Job2Rerun1Task := runner1.fetchTask(t)
+		runner1.execTask(t, wf2Job2Rerun1Task, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+		})
+		_, wf2Job2Rerun1Job, _ := getTaskAndJobAndRunByTaskID(t, wf2Job2Rerun1Task.Id)
+		assert.Equal(t, "job-main-v1.24.0", wf2Job2Rerun1Job.ConcurrencyGroup)
+
+		// rerun wf2-job2
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, wf2Run.Index, 1), map[string]string{
+			"_csrf": GetUserCSRFToken(t, session),
+		})
+		_ = session.MakeRequest(t, req, http.StatusOK)
+		// (rerun2) fetch and exec wf2-job2
+		wf2Job2Rerun2Task := runner1.fetchTask(t)
+		runner1.execTask(t, wf2Job2Rerun2Task, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+		})
+		_, wf2Job2Rerun2Job, _ := getTaskAndJobAndRunByTaskID(t, wf2Job2Rerun2Task.Id)
+		assert.Equal(t, "job-main-v1.24.0", wf2Job2Rerun2Job.ConcurrencyGroup)
 	})
 }
 

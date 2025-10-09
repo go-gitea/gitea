@@ -34,6 +34,7 @@ import (
 	context_module "code.gitea.io/gitea/services/context"
 	notify_service "code.gitea.io/gitea/services/notify"
 
+	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 	"gopkg.in/yaml.v3"
 	"xorm.io/builder"
@@ -536,8 +537,19 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 		return fmt.Errorf("get run %d variables: %w", job.Run.ID, err)
 	}
 	if job.RawConcurrency != "" && job.Status != actions_model.StatusBlocked {
-		var err error
-		job.ConcurrencyGroup, job.ConcurrencyCancel, err = actions_service.EvaluateJobConcurrency(ctx, job.Run, job, vars, nil)
+		taskNeeds, err := actions_service.FindTaskNeeds(ctx, job)
+		if err != nil {
+			return fmt.Errorf("find task needs: %w", err)
+		}
+		jobResults := make(map[string]*jobparser.JobResult, len(taskNeeds))
+		for jobID, taskNeed := range taskNeeds {
+			jobResult := &jobparser.JobResult{
+				Result:  taskNeed.Result.String(),
+				Outputs: taskNeed.Outputs,
+			}
+			jobResults[jobID] = jobResult
+		}
+		job.ConcurrencyGroup, job.ConcurrencyCancel, err = actions_service.EvaluateJobConcurrency(ctx, job.Run, job, vars, jobResults)
 		if err != nil {
 			return fmt.Errorf("evaluate job concurrency: %w", err)
 		}
