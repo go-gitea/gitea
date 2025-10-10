@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -487,7 +486,7 @@ func testPullRequestAGitStatusCheckingConflicted(t *testing.T, giteaURL *url.URL
 	doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
 		LocalRepoPath:   dstPath,
 		CheckoutBranch:  "main",
-		TreeFilePath:    filepath.Join(dstPath, "README.md"),
+		TreeFilePath:    "README.md",
 		TreeFileContent: "Some changes to README file to main cause conflict",
 	})
 
@@ -498,7 +497,7 @@ func testPullRequestAGitStatusCheckingConflicted(t *testing.T, giteaURL *url.URL
 	doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
 		LocalRepoPath:   dstPath,
 		CheckoutBranch:  "test-agit-push",
-		TreeFilePath:    filepath.Join(dstPath, "README.md"),
+		TreeFilePath:    "README.md",
 		TreeFileContent: "Some changes to README file for agit branch",
 	})
 
