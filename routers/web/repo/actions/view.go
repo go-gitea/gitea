@@ -427,8 +427,6 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	var blockRunByConcurrency bool
-
 	// reset run's start and stop time when it is done
 	if run.Status.IsDone() {
 		run.PreviousDuration = run.Duration()
@@ -473,11 +471,12 @@ func Rerun(ctx *context_module.Context) {
 		notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 	}
 
+	isRunBlocked := run.Status == actions_model.StatusBlocked
 	if jobIndexStr == "" { // rerun all jobs
 		for _, j := range jobs {
 			// if the job has needs, it should be set to "blocked" status to wait for other jobs
-			shouldBlock := len(j.Needs) > 0 || blockRunByConcurrency
-			if err := rerunJob(ctx, j, shouldBlock); err != nil {
+			shouldBlockJob := len(j.Needs) > 0 || isRunBlocked
+			if err := rerunJob(ctx, j, shouldBlockJob); err != nil {
 				ctx.ServerError("RerunJob", err)
 				return
 			}
@@ -490,8 +489,8 @@ func Rerun(ctx *context_module.Context) {
 
 	for _, j := range rerunJobs {
 		// jobs other than the specified one should be set to "blocked" status
-		shouldBlock := j.JobID != job.JobID || blockRunByConcurrency
-		if err := rerunJob(ctx, j, shouldBlock); err != nil {
+		shouldBlockJob := j.JobID != job.JobID || isRunBlocked
+		if err := rerunJob(ctx, j, shouldBlockJob); err != nil {
 			ctx.ServerError("RerunJob", err)
 			return
 		}
