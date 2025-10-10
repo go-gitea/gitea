@@ -483,7 +483,7 @@ func testPullRequestAGitStatusCheckingConflicted(t *testing.T, giteaURL *url.URL
 		CheckoutBranch:  "main",
 		TreeFilePath:    "README.md",
 		TreeFileContent: "Some changes to README file to main cause conflict",
-	})
+	})(t)
 
 	err = gitcmd.NewCommand("push", "origin", "main").WithDir(dstPath).Run(t.Context())
 	assert.NoError(t, err)
@@ -494,7 +494,7 @@ func testPullRequestAGitStatusCheckingConflicted(t *testing.T, giteaURL *url.URL
 		CheckoutBranch:  "test-agit-push",
 		TreeFilePath:    "README.md",
 		TreeFileContent: "Some changes to README file for agit branch",
-	})
+	})(t)
 
 	// push to create an agit pull request
 	err = gitcmd.NewCommand("push", "origin",
