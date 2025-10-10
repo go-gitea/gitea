@@ -1,73 +1,148 @@
-<div class="ui container fluid{{if .LinkAccountMode}} icon{{end}}">
-	<h4 class="ui top attached header center">
-		{{if .LinkAccountMode}}
-			{{ctx.Locale.Tr "auth.oauth_signup_title"}}
-		{{else}}
-			{{ctx.Locale.Tr "sign_up"}}
-		{{end}}
-	</h4>
-	<div class="ui attached segment">
-		{{if .IsFirstTimeRegistration}}
-			<p>{{ctx.Locale.Tr "auth.sign_up_tip"}}</p>
-		{{end}}
-		<form class="ui form" action="{{.SignUpLink}}" method="post">
-			{{.CsrfTokenHtml}}
-			{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister)}}
-			{{template "base/alert" .}}
-			{{end}}
-			{{if .DisableRegistration}}
-				<p>{{ctx.Locale.Tr "auth.disable_register_prompt"}}</p>
-			{{else}}
-				<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
-					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
-					<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
-				</div>
-				<div class="required field {{if .Err_Email}}error{{end}}">
-					<label for="email">{{ctx.Locale.Tr "email"}}</label>
-					<input id="email" name="email" type="email" value="{{.email}}" required>
-				</div>
-
-				{{if not .DisablePassword}}
-					<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
-						<label for="password">{{ctx.Locale.Tr "password"}}</label>
-						<input id="password" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
-					</div>
-					<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
-						<label for="retype">{{ctx.Locale.Tr "re_type"}}</label>
-						<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="new-password" required>
-					</div>
-				{{end}}
-
-				{{template "user/auth/captcha" .}}
-
-				<div class="inline field">
-					<button class="ui primary button tw-w-full">
-						{{if .LinkAccountMode}}
-							{{ctx.Locale.Tr "auth.oauth_signup_submit"}}
-						{{else}}
-							{{ctx.Locale.Tr "auth.create_new_account"}}
-						{{end}}
-					</button>
-				</div>
-			{{end}}
-			{{/* "oauth_container" contains not only "oauth2" methods, but also "OIDC" and "SSPI" methods */}}
-			{{/* TODO: it seems that "EnableSSPI" is only set in "sign-in" handlers, but it should use the same logic to control its display */}}
-			{{$showOAuth2Methods := or .OAuth2Providers .EnableOpenIDSignIn .EnableSSPI}}
-			{{if $showOAuth2Methods}}
-				<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
-				{{template "user/auth/oauth_container" .}}
-			{{end}}
-		</form>
-	</div>
-</div>
-
-<div class="ui container fluid">
-	{{if not .LinkAccountMode}}
-	<div class="ui attached segment header top tw-flex tw-flex-col tw-items-center">
-		<div class="field">
-			<span>{{ctx.Locale.Tr "auth.already_have_account"}}</span>
-			<a href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "auth.sign_in_now"}}</a>
+<div class="tw-flex tw-flex-col tw-items-center tw-gap-[60px] tw-w-full">
+	{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister)}}
+	{{template "base/alert" .}}
+	{{end}}
+	
+	{{/* Logo section */}}
+	<div class="tw-flex tw-flex-col tw-items-center tw-gap-[80px]">
+		<div class="tw-w-[124px] tw-h-[122px]">
+			<img class="logo" width="124" height="122" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}">
 		</div>
 	</div>
-	{{end}}
+
+	<div class="tw-flex tw-flex-col tw-gap-[12px] tw-items-start tw-w-full">
+		<div class="tw-flex tw-flex-col tw-gap-[16px] tw-items-start tw-w-full">
+			{{/* Title */}}
+			<div class="tw-w-full tw-text-center tw-text-[20px] tw-font-bold tw-leading-[32px] tw-text-black">
+				{{if .LinkAccountMode}}
+					{{ctx.Locale.Tr "auth.oauth_signup_title"}}
+				{{else}}
+					{{ctx.Locale.Tr "sign_up"}}
+				{{end}}
+			</div>
+
+			{{if .IsFirstTimeRegistration}}
+			<div class="tw-w-full tw-text-center tw-text-[14px] tw-text-[#59636e] tw-leading-[20px]">
+				<p>{{ctx.Locale.Tr "auth.sign_up_tip"}}</p>
+			</div>
+			{{end}}
+
+			<div class="tw-flex tw-flex-col tw-gap-[24px] tw-items-center tw-w-full">
+				{{/* Main form container */}}
+				<div class="tw-bg-white tw-border tw-border-solid tw-border-[rgba(209,217,224,0.7)] tw-rounded-[12px] tw-p-[24px] tw-flex tw-flex-col tw-gap-[30px] tw-w-full">
+					{{if .DisableRegistration}}
+						<p class="tw-text-[14px] tw-text-[#59636e] tw-text-center">{{ctx.Locale.Tr "auth.disable_register_prompt"}}</p>
+					{{else}}
+					<form class="tw-flex tw-flex-col tw-gap-[25px] tw-w-full" action="{{.SignUpLink}}" method="post">
+						{{.CsrfTokenHtml}}
+						
+						{{/* Username field */}}
+						<div class="tw-flex tw-flex-col tw-gap-[4px] tw-w-full {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+							<label for="user_name" class="tw-text-[14px] tw-font-semibold tw-leading-[20px] tw-text-[#1f2328]">
+								{{ctx.Locale.Tr "username"}}
+							</label>
+							<input 
+								id="user_name" 
+								type="text" 
+								name="user_name" 
+								value="{{.user_name}}" 
+								placeholder="Type your username"
+								autofocus 
+								required 
+								tabindex="1"
+								class="tw-bg-white tw-border tw-border-[#d1d9e0] tw-border-solid tw-rounded-[6px] tw-px-[8px] tw-h-[32px] tw-text-[14px] tw-text-[#59636e] tw-leading-[20px] tw-w-full focus:tw-outline-none focus:tw-border-[#4e40fa]"
+							>
+						</div>
+
+						{{/* Email field */}}
+						<div class="tw-flex tw-flex-col tw-gap-[4px] tw-w-full {{if .Err_Email}}error{{end}}">
+							<label for="email" class="tw-text-[14px] tw-font-semibold tw-leading-[20px] tw-text-[#1f2328]">
+								{{ctx.Locale.Tr "email"}}
+							</label>
+							<input 
+								id="email" 
+								name="email" 
+								type="email" 
+								value="{{.email}}" 
+								placeholder="Type your email address"
+								required 
+								tabindex="2"
+								class="tw-bg-white tw-border tw-border-[#d1d9e0] tw-border-solid tw-rounded-[6px] tw-px-[8px] tw-h-[32px] tw-text-[14px] tw-text-[#59636e] tw-leading-[20px] tw-w-full focus:tw-outline-none focus:tw-border-[#4e40fa]"
+							>
+						</div>
+
+						{{if not .DisablePassword}}
+						{{/* Password field */}}
+						<div class="tw-flex tw-flex-col tw-gap-[4px] tw-w-full {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+							<label for="password" class="tw-text-[14px] tw-font-semibold tw-leading-[20px] tw-text-[#1f2328]">
+								{{ctx.Locale.Tr "password"}}
+							</label>
+							<input 
+								id="password" 
+								name="password" 
+								type="password" 
+								value="{{.password}}" 
+								placeholder="Type your password"
+								autocomplete="new-password" 
+								required 
+								tabindex="3"
+								class="tw-bg-white tw-border tw-border-[#d1d9e0] tw-border-solid tw-rounded-[6px] tw-px-[8px] tw-h-[32px] tw-text-[14px] tw-text-[#59636e] tw-leading-[20px] tw-w-full focus:tw-outline-none focus:tw-border-[#4e40fa]"
+							>
+						</div>
+
+						{{/* Re-type password field */}}
+						<div class="tw-flex tw-flex-col tw-gap-[4px] tw-w-full {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+							<label for="retype" class="tw-text-[14px] tw-font-semibold tw-leading-[20px] tw-text-[#1f2328]">
+								{{ctx.Locale.Tr "re_type"}}
+							</label>
+							<input 
+								id="retype" 
+								name="retype" 
+								type="password" 
+								value="{{.retype}}" 
+								placeholder="Re-type your password"
+								autocomplete="new-password" 
+								required 
+								tabindex="4"
+								class="tw-bg-white tw-border tw-border-[#d1d9e0] tw-border-solid tw-rounded-[6px] tw-px-[8px] tw-h-[32px] tw-text-[14px] tw-text-[#59636e] tw-leading-[20px] tw-w-full focus:tw-outline-none focus:tw-border-[#4e40fa]"
+							>
+						</div>
+						{{end}}
+
+						{{template "user/auth/captcha" .}}
+
+						{{/* Sign up button */}}
+						<button type="submit" class="tw-bg-[#4e40fa] tw-border tw-border-[rgba(31,35,40,0.15)] tw-border-solid tw-rounded-[6px] tw-px-[16px] tw-py-[10px] tw-flex tw-items-center tw-justify-center tw-gap-[8px] tw-w-full tw-text-white tw-text-[14px] tw-font-semibold tw-leading-[20px] hover:tw-bg-[#4230d8] tw-cursor-pointer" tabindex="5">
+							{{if .LinkAccountMode}}
+								{{ctx.Locale.Tr "auth.oauth_signup_submit"}}
+							{{else}}
+								{{ctx.Locale.Tr "auth.create_new_account"}}
+							{{end}}
+						</button>
+					</form>
+					{{end}}
+					
+					{{/* OAuth methods */}}
+					{{$showOAuth2Methods := or .OAuth2Providers .EnableOpenIDSignIn .EnableSSPI}}
+					{{if and $showOAuth2Methods (not .DisableRegistration)}}
+						<div class="tw-relative tw-text-center tw-my-4">
+							<span class="tw-bg-white tw-px-4 tw-relative tw-z-10 tw-text-[#59636e]">{{ctx.Locale.Tr "sign_in_or"}}</span>
+							<div class="tw-absolute tw-top-1/2 tw-left-0 tw-right-0 tw-h-px tw-bg-[#d1d9e0]"></div>
+						</div>
+					{{end}}
+					{{if $showOAuth2Methods}}
+						{{template "user/auth/oauth_container" .}}
+					{{end}}
+				</div>
+
+				{{/* Sign in button for existing users */}}
+				{{if not .LinkAccountMode}}
+				<a href="{{AppSubUrl}}/user/login" class="tw-bg-[#f6f8fa] tw-border tw-border-[#d1d9e0] tw-border-solid tw-rounded-[6px] tw-px-[12px] tw-py-[6px] tw-flex tw-items-center tw-justify-center tw-gap-[8px] tw-w-full tw-text-[14px] tw-font-semibold tw-leading-[20px] tw-text-[#25292e] hover:tw-bg-[#eaeef2] tw-no-underline">
+					<span>{{ctx.Locale.Tr "auth.already_have_account"}}</span>
+					<span class="tw-font-normal tw-text-[#4e40fa]">{{ctx.Locale.Tr "auth.sign_in_now"}}</span>
+				</a>
+				{{end}}
+			</div>
+		</div>
+	</div>
 </div>

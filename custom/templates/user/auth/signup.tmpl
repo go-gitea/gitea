@@ -1,9 +1,8 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user signin{{if .LinkAccountMode}} icon{{end}} tw-pt-10">
 	<div class="ui middle very relaxed page grid">
-		{{/* these styles are quite tricky and should also apply to the signup and link_account pages */}}
 		<div class="column tw-flex tw-flex-col tw-gap-4 tw-max-w-lg tw-m-auto">
-			{{template "user/auth/signin_inner" .}}
+			{{template "user/auth/signup_inner" .}}
 		</div>
 	</div>
 </div>
