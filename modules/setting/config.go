@@ -10,6 +10,11 @@ import (
 	"code.gitea.io/gitea/modules/setting/config"
 )
 
+type ThemeStruct struct {
+	DefaultTheme         *config.Value[string]
+	DefaultFileIconTheme *config.Value[string]
+}
+
 type PictureStruct struct {
 	DisableGravatar       *config.Value[bool]
 	EnableFederatedAvatar *config.Value[bool]
@@ -53,6 +58,7 @@ type RepositoryStruct struct {
 }
 
 type ConfigStruct struct {
+	Theme      *ThemeStruct
 	Picture    *PictureStruct
 	Repository *RepositoryStruct
 }
@@ -65,6 +71,10 @@ var (
 func initDefaultConfig() {
 	config.SetCfgSecKeyGetter(&cfgSecKeyGetter{})
 	defaultConfig = &ConfigStruct{
+		Theme: &ThemeStruct{
+			DefaultTheme:         config.ValueJSON[string]("theme.default_theme").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "DEFAULT_THEME"}).WithDefault("gitea-auto"),
+			DefaultFileIconTheme: config.ValueJSON[string]("theme.default_file_icon_theme").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "FILE_ICON_THEME"}).WithDefault("material"),
+		},
 		Picture: &PictureStruct{
 			DisableGravatar:       config.ValueJSON[bool]("picture.disable_gravatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "DISABLE_GRAVATAR"}),
 			EnableFederatedAvatar: config.ValueJSON[bool]("picture.enable_federated_avatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "ENABLE_FEDERATED_AVATAR"}),
