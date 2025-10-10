@@ -143,7 +143,7 @@ const svgs = {
   'octicon-repo-forked': octiconRepoForked,
   'octicon-repo-template': octiconRepoTemplate,
   'octicon-rss': octiconRss,
-  'octicon-running': octionRunning,
+  'octicon-running': octiconRunning,
   'octicon-screen-full': octiconScreenFull,
   'octicon-search': octiconSearch,
   'octicon-sidebar-collapse': octiconSidebarCollapse,
