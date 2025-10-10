@@ -88,8 +88,11 @@ func PrepareToStartJobWithConcurrency(ctx context.Context, job *actions_model.Ac
 		return actions_model.StatusBlocked, err
 	}
 
-	// even if the current job is blocked, we still need to cancel previous "blocked" jobs in the same concurrency group
+	// even if the current job is blocked, we still need to cancel previous "waiting/blocked" jobs in the same concurrency group
 	jobs, err := actions_model.CancelPreviousJobsByJobConcurrency(ctx, job)
+	if err != nil {
+		return actions_model.StatusBlocked, fmt.Errorf("CancelPreviousJobsByJobConcurrency: %w", err)
+	}
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
 
 	return util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting), nil
@@ -109,15 +112,18 @@ func shouldBlockRunByConcurrency(ctx context.Context, actionRun *actions_model.A
 }
 
 // PrepareToStartRunWithConcurrency prepares a run to start by its evaluated concurrency group and cancelling previous jobs if necessary.
-// It returns the new status of the job (either StatusBlocked or StatusWaiting) and any error encountered during the process.
+// It returns the new status of the run (either StatusBlocked or StatusWaiting) and any error encountered during the process.
 func PrepareToStartRunWithConcurrency(ctx context.Context, run *actions_model.ActionRun) (actions_model.Status, error) {
 	shouldBlock, err := shouldBlockRunByConcurrency(ctx, run)
 	if err != nil {
 		return actions_model.StatusBlocked, err
 	}
 
-	// even if the current run is blocked, we still need to cancel previous "blocked" jobs in the same concurrency group
+	// even if the current run is blocked, we still need to cancel previous "waiting/blocked" jobs in the same concurrency group
 	jobs, err := actions_model.CancelPreviousJobsByRunConcurrency(ctx, run)
+	if err != nil {
+		return actions_model.StatusBlocked, fmt.Errorf("CancelPreviousJobsByRunConcurrency: %w", err)
+	}
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
 
 	return util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting), nil
