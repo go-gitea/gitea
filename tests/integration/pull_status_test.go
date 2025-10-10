@@ -367,11 +367,6 @@ func testPullRequestStatusCheckingCrossRepoConflicted(t *testing.T, giteaURL *ur
 
 func Test_PullRequest_AGit_StatusChecking_Mergeable_MergeTree(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		// skip this test if git version is low
-		if !git.DefaultFeatures().SupportProcReceive {
-			return
-		}
-
 		defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
 
 		testPullRequestAGitStatusCheckingMergeable(t, giteaURL)
