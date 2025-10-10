@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -89,12 +90,9 @@ func PrepareToStartJobWithConcurrency(ctx context.Context, job *actions_model.Ac
 
 	// even if the current job is blocked, we still need to cancel previous "blocked" jobs in the same concurrency group
 	jobs, err := actions_model.CancelPreviousJobsByJobConcurrency(ctx, job)
-
-	if shouldBlock {
-		return actions_model.StatusBlocked, nil
-	}
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
-	return actions_model.StatusWaiting, err
+
+	return util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting), nil
 }
 
 func shouldBlockRunByConcurrency(ctx context.Context, actionRun *actions_model.ActionRun) (bool, error) {
@@ -120,12 +118,9 @@ func PrepareToStartRunWithConcurrency(ctx context.Context, run *actions_model.Ac
 
 	// even if the current run is blocked, we still need to cancel previous "blocked" jobs in the same concurrency group
 	jobs, err := actions_model.CancelPreviousJobsByRunConcurrency(ctx, run)
-
-	if shouldBlock {
-		return actions_model.StatusBlocked, nil
-	}
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
-	return actions_model.StatusWaiting, err
+
+	return util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting), nil
 }
 
 func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
