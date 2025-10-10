@@ -575,14 +575,14 @@ func Cancel(ctx *context_module.Context) {
 		return
 	}
 
-	var updatedjobs []*actions_model.ActionRunJob
+	var updatedJobs []*actions_model.ActionRunJob
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		cancelledJobs, err := actions_model.CancelJobs(ctx, jobs)
 		if err != nil {
 			return fmt.Errorf("cancel jobs: %w", err)
 		}
-		updatedjobs = append(updatedjobs, cancelledJobs...)
+		updatedJobs = append(updatedJobs, cancelledJobs...)
 		return nil
 	}); err != nil {
 		ctx.ServerError("StopTask", err)
@@ -590,14 +590,14 @@ func Cancel(ctx *context_module.Context) {
 	}
 
 	actions_service.CreateCommitStatus(ctx, jobs...)
-	actions_service.EmitJobsIfReadyByJobs(updatedjobs)
+	actions_service.EmitJobsIfReadyByJobs(updatedJobs)
 
-	for _, job := range updatedjobs {
+	for _, job := range updatedJobs {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
-	if len(updatedjobs) > 0 {
-		job := updatedjobs[0]
+	if len(updatedJobs) > 0 {
+		job := updatedJobs[0]
 		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
 	}
 	ctx.JSONOK()
