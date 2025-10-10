@@ -6,6 +6,7 @@ package utils
 import (
 	"errors"
 
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -27,7 +28,7 @@ func ResolveRefCommit(ctx reqctx.RequestContext, repo *repo_model.Repository, in
 		return nil, err
 	}
 	refCommit := RefCommit{InputRef: inputRef}
-	if gitrepo.IsBranchExist(ctx, repo, inputRef) {
+	if exist, _ := git_model.IsBranchExist(ctx, repo.ID, inputRef); exist {
 		refCommit.RefName = git.RefNameFromBranch(inputRef)
 	} else if gitrepo.IsTagExist(ctx, repo, inputRef) {
 		refCommit.RefName = git.RefNameFromTag(inputRef)

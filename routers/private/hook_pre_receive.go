@@ -454,12 +454,27 @@ func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
 
 	baseBranchName := refFullName.ForBranchName()
 
-	baseBranchExist := gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, baseBranchName)
+	baseBranchExist, err := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, baseBranchName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: err.Error(),
+		})
+		return
+	}
 
 	if !baseBranchExist {
 		for p, v := range baseBranchName {
-			if v == '/' && gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, baseBranchName[:p]) && p != len(baseBranchName)-1 {
-				baseBranchExist = true
+			if v != '/' || p == len(baseBranchName)-1 {
+				continue
+			}
+			baseBranchExist, err = git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, baseBranchName[:p])
+			if err != nil {
+				ctx.JSON(http.StatusInternalServerError, private.Response{
+					Err: err.Error(),
+				})
+				return
+			}
+			if baseBranchExist {
 				break
 			}
 		}
