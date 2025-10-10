@@ -43,8 +43,8 @@ type Manager struct {
 	hammerCtxCancel        context.CancelFunc
 	terminateCtxCancel     context.CancelFunc
 	managerCtxCancel       context.CancelFunc
-	runningServerWaitGroup sync.WaitGroup
-	terminateWaitGroup     sync.WaitGroup
+	runningServerWaitGroup SafeWaitGroup
+	terminateWaitGroup     SafeWaitGroup
 	createServerCond       sync.Cond
 	createdServer          int
 	shutdownRequested      chan struct{}
@@ -106,5 +106,8 @@ func (g *Manager) DoGracefulShutdown() {
 // Any call to RegisterServer must be matched by a call to ServerDone
 func (g *Manager) RegisterServer() {
 	KillParent()
-	g.runningServerWaitGroup.Add(1)
+	if !g.runningServerWaitGroup.AddIfRunning() {
+		// Shutdown already in progress, server should not start
+		return
+	}
 }

@@ -72,7 +72,10 @@ func initManager(ctx context.Context) {
 // The Cancel function should stop the Run function in predictable time.
 func (g *Manager) RunWithCancel(rc RunCanceler) {
 	g.RunAtShutdown(context.Background(), rc.Cancel)
-	g.runningServerWaitGroup.Add(1)
+	if !g.runningServerWaitGroup.AddIfRunning() {
+		// Shutdown already in progress, do not start this server
+		return
+	}
 	defer g.runningServerWaitGroup.Done()
 	defer func() {
 		if err := recover(); err != nil {
@@ -87,7 +90,10 @@ func (g *Manager) RunWithCancel(rc RunCanceler) {
 // After the provided context is Done(), the main function must return once shutdown is complete.
 // (Optionally the HammerContext may be obtained and waited for however, this should be avoided if possible.)
 func (g *Manager) RunWithShutdownContext(run func(context.Context)) {
-	g.runningServerWaitGroup.Add(1)
+	if !g.runningServerWaitGroup.AddIfRunning() {
+		// Shutdown already in progress, do not start this server
+		return
+	}
 	defer g.runningServerWaitGroup.Done()
 	defer func() {
 		if err := recover(); err != nil {
@@ -102,7 +108,10 @@ func (g *Manager) RunWithShutdownContext(run func(context.Context)) {
 
 // RunAtTerminate adds to the terminate wait group and creates a go-routine to run the provided function at termination
 func (g *Manager) RunAtTerminate(terminate func()) {
-	g.terminateWaitGroup.Add(1)
+	if !g.terminateWaitGroup.AddIfRunning() {
+		// Termination already in progress, do not add this function
+		return
+	}
 	g.lock.Lock()
 	defer g.lock.Unlock()
 	g.toRunAtTerminate = append(g.toRunAtTerminate,
@@ -155,12 +164,12 @@ func (g *Manager) doShutdown() {
 		go g.doHammerTime(setting.GracefulHammerTime)
 	}
 	go func() {
-		g.runningServerWaitGroup.Wait()
+		g.runningServerWaitGroup.Shutdown()
 		// Mop up any remaining unclosed events.
 		g.doHammerTime(0)
 		<-time.After(1 * time.Second)
 		g.doTerminate()
-		g.terminateWaitGroup.Wait()
+		g.terminateWaitGroup.Shutdown()
 		g.lock.Lock()
 		g.managerCtxCancel()
 		g.lock.Unlock()
