@@ -61,16 +61,37 @@ func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) er
 	return err
 }
 
-func CancelJobsByJobConcurrency(ctx context.Context, job *actions_model.ActionRunJob) error {
+// PrepareToStartJobWithConcurrency prepares a job to start by evaluating its concurrency group and cancelling previous jobs if necessary.
+// It returns the new status of the job (either StatusBlocked or StatusWaiting) and any error encountered during the process.
+func PrepareToStartJobWithConcurrency(ctx context.Context, job *actions_model.ActionRunJob) (actions_model.Status, error) {
+	if actions_model.ShouldWaitJobForConcurrencyEvaluation(job) {
+		return actions_model.StatusBlocked, nil
+	}
+	shouldBlock, err := actions_model.ShouldBlockJobByConcurrency(ctx, job)
+	if err != nil {
+		return actions_model.StatusBlocked, err
+	}
+	if shouldBlock {
+		return actions_model.StatusBlocked, nil
+	}
 	jobs, err := actions_model.CancelPreviousJobsByJobConcurrency(ctx, job)
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
-	return err
+	return actions_model.StatusWaiting, err
 }
 
-func CancelJobsByRunConcurrency(ctx context.Context, run *actions_model.ActionRun) error {
+// PrepareToStartRunWithConcurrency prepares a run to start by its evaluated concurrency group and cancelling previous jobs if necessary.
+// It returns the new status of the job (either StatusBlocked or StatusWaiting) and any error encountered during the process.
+func PrepareToStartRunWithConcurrency(ctx context.Context, run *actions_model.ActionRun) (actions_model.Status, error) {
+	shouldBlock, err := actions_model.ShouldBlockRunByConcurrency(ctx, run)
+	if err != nil {
+		return actions_model.StatusBlocked, err
+	}
+	if shouldBlock {
+		return actions_model.StatusBlocked, nil
+	}
 	jobs, err := actions_model.CancelPreviousJobsByRunConcurrency(ctx, run)
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
-	return err
+	return actions_model.StatusWaiting, err
 }
 
 func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {

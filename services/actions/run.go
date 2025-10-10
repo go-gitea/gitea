@@ -9,7 +9,6 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/nektos/act/pkg/jobparser"
@@ -28,27 +27,17 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		run.Title = util.EllipsisDisplayString(run.Title, 255)
 
 		// check run (workflow-level) concurrency
-		blockRunByConcurrency, err := actions_model.ShouldBlockRunByConcurrency(ctx, run)
+		run.Status, err = PrepareToStartRunWithConcurrency(ctx, run)
 		if err != nil {
 			return err
-		}
-		if blockRunByConcurrency {
-			run.Status = actions_model.StatusBlocked
-		}
-		if err := CancelJobsByRunConcurrency(ctx, run); err != nil {
-			return fmt.Errorf("cancel jobs: %w", err)
 		}
 
 		if err := db.Insert(ctx, run); err != nil {
 			return err
 		}
 
-		if run.Repo == nil {
-			repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
-			if err != nil {
-				return err
-			}
-			run.Repo = repo
+		if err := run.LoadRepo(ctx); err != nil {
+			return err
 		}
 
 		if err := actions_model.UpdateRepoRunsNumbers(ctx, run.Repo); err != nil {
@@ -62,7 +51,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		}
 
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
-		var hasWaiting bool
+		var hasWaitingJobs bool
 		for _, v := range jobs {
 			id, job := v.Job()
 			needs := job.Needs()
@@ -70,12 +59,9 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				return err
 			}
 			payload, _ := v.Marshal()
-			status := actions_model.StatusWaiting
-			if len(needs) > 0 || run.NeedApproval || run.Status == actions_model.StatusBlocked {
-				status = actions_model.StatusBlocked
-			} else {
-				hasWaiting = true
-			}
+
+			shouldBlockJob := len(needs) > 0 || run.NeedApproval || run.Status == actions_model.StatusBlocked
+
 			job.Name = util.EllipsisDisplayString(job.Name, 255)
 			runJob := &actions_model.ActionRunJob{
 				RunID:             run.ID,
@@ -88,7 +74,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				JobID:             id,
 				Needs:             needs,
 				RunsOn:            job.RunsOn(),
-				Status:            status,
+				Status:            util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
 			}
 			// check job concurrency
 			if job.RawConcurrency != nil {
@@ -97,38 +83,26 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 					return fmt.Errorf("marshal raw concurrency: %w", err)
 				}
 				runJob.RawConcurrency = string(rawConcurrency)
-				// do not evaluate job concurrency when it requires `needs`
+
+				// do not evaluate job concurrency when it requires `needs`, the jobs with `needs` will be evaluated later by job emitter
 				if len(needs) == 0 {
-					var err error
-					runJob.ConcurrencyGroup, runJob.ConcurrencyCancel, err = EvaluateJobConcurrency(ctx, run, runJob, vars, nil)
+					err = EvaluateJobConcurrencyAndFillJobModel(ctx, run, runJob, vars)
 					if err != nil {
 						return fmt.Errorf("evaluate job concurrency: %w", err)
 					}
-					runJob.IsConcurrencyEvaluated = true
 				}
 
 				// If a job needs other jobs ("needs" is not empty), its status is set to StatusBlocked at the entry of the loop
 				// No need to check job concurrency for a blocked job (it will be checked by job emitter later)
-				runJobIsBlocked := runJob.Status == actions_model.StatusBlocked
-
-				// If a job doesn't need other jobs ("needs" is empty), its concurrency should have been evaluated above
-				shouldWaitForConcurrencyEvaluation := actions_model.ShouldWaitJobForConcurrencyEvaluation(runJob)
-
-				// If the job is not blocked and is ready for concurrency check, then check
-				if !runJobIsBlocked && !shouldWaitForConcurrencyEvaluation {
-					blockByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, runJob)
+				if runJob.Status == actions_model.StatusWaiting {
+					runJob.Status, err = PrepareToStartJobWithConcurrency(ctx, runJob)
 					if err != nil {
-						return err
-					}
-					if blockByConcurrency {
-						runJob.Status = actions_model.StatusBlocked
-					}
-					if err := CancelJobsByJobConcurrency(ctx, runJob); err != nil {
-						return fmt.Errorf("cancel jobs: %w", err)
+						return fmt.Errorf("prepare to start job with concurrency: %w", err)
 					}
 				}
 			}
 
+			hasWaitingJobs = hasWaitingJobs || runJob.Status == actions_model.StatusWaiting
 			if err := db.Insert(ctx, runJob); err != nil {
 				return err
 			}
@@ -142,7 +116,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		}
 
 		// if there is a job in the waiting status, increase tasks version.
-		if hasWaiting {
+		if hasWaitingJobs {
 			if err := actions_model.IncreaseTaskVersion(ctx, run.OwnerID, run.RepoID); err != nil {
 				return err
 			}

@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/jobparser"
@@ -288,72 +289,69 @@ func (r *jobStatusResolver) Resolve(ctx context.Context) map[int64]actions_model
 	return ret
 }
 
+func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed bool) {
+	allDone, allSucceed = true, true
+	for _, need := range r.needs[id] {
+		needStatus := r.statuses[need]
+		if !needStatus.IsDone() {
+			allDone = false
+		}
+		if needStatus.In(actions_model.StatusFailure, actions_model.StatusCancelled, actions_model.StatusSkipped) {
+			allSucceed = false
+		}
+	}
+	return allDone, allSucceed
+}
+
+func (r *jobStatusResolver) resolveJobHasIfCondition(actionRunJob *actions_model.ActionRunJob) (hasIf bool) {
+	if wfJobs, _ := jobparser.Parse(actionRunJob.WorkflowPayload); len(wfJobs) == 1 {
+		_, wfJob := wfJobs[0].Job()
+		hasIf = len(wfJob.If.Value) > 0
+	}
+	return hasIf
+}
+
 func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model.Status {
 	ret := map[int64]actions_model.Status{}
 	for id, status := range r.statuses {
+		actionRunJob := r.jobMap[id]
 		if status != actions_model.StatusBlocked {
 			continue
 		}
-		allDone, allSucceed := true, true
-		for _, need := range r.needs[id] {
-			needStatus := r.statuses[need]
-			if !needStatus.IsDone() {
-				allDone = false
-			}
-			if needStatus.In(actions_model.StatusFailure, actions_model.StatusCancelled, actions_model.StatusSkipped) {
-				allSucceed = false
+		allDone, allSucceed := r.resolveCheckNeeds(id)
+		if !allDone {
+			continue
+		}
+
+		// update concurrency and check whether the job can run now
+		err := updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars)
+		if err != nil {
+			// The err can be caused by different cases: database error, or syntax error, or the needed jobs haven't completed
+			// At the moment there is no way to distinguish them.
+			// Actually, for most cases, the error is caused by "syntax error" / "the needed jobs haven't completed (skipped?)"
+			// TODO: if workflow or concurrency expression has syntax error, there should be a user error message, need to show it to end users
+			log.Error("updateConcurrencyEvaluationForJobWithNeeds failed, this job will stay blocked: job: %d, err: %v", id, err)
+			continue
+		}
+
+		shouldStartJob := true
+		if !allSucceed {
+			// Not all dependent jobs completed successfully:
+			// * if the job has "if" condition, it can be started, then the act_runner will evaluate the "if" condition.
+			// * otherwise, the job should be skipped.
+			shouldStartJob = r.resolveJobHasIfCondition(actionRunJob)
+		}
+
+		newStatus := util.Iif(shouldStartJob, actions_model.StatusWaiting, actions_model.StatusSkipped)
+		if newStatus == actions_model.StatusWaiting {
+			newStatus, err = PrepareToStartJobWithConcurrency(ctx, actionRunJob)
+			if err != nil {
+				log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
 			}
 		}
-		if allDone {
-			// update concurrency and check whether the job can run now
-			actionRunJob := r.jobMap[id]
-			err := updateConcurrencyEvaluationForJobWithNeeds(ctx, r.jobMap[id], r.vars)
-			if err != nil {
-				// The err can be caused by different cases: database error, or syntax error, or the needed jobs haven't completed (not really a error)
-				// At the moment there is no way to distinguish them.
-				// Actually, for most cases, the error is caused by "the needed jobs haven't completed"
-				// TODO: if workflow or concurrency expression has syntax error, there should be a user error message, need to show it to end users
-				log.Debug("updateConcurrencyEvaluationForJobWithNeeds failed, this job will stay blocked: job: %d, err: %v", id, err)
-				continue
-			}
 
-			var newStatus actions_model.Status
-			if allSucceed {
-				newStatus = actions_model.StatusWaiting
-			} else {
-				// Check if the job has an "if" condition
-				hasIf := false
-				if wfJobs, _ := jobparser.Parse(r.jobMap[id].WorkflowPayload); len(wfJobs) == 1 {
-					_, wfJob := wfJobs[0].Job()
-					hasIf = len(wfJob.If.Value) > 0
-				}
-				if hasIf {
-					// act_runner will check the "if" condition
-					newStatus = actions_model.StatusWaiting
-				} else {
-					// If the "if" condition is empty and not all dependent jobs completed successfully,
-					// the job should be skipped.
-					newStatus = actions_model.StatusSkipped
-				}
-			}
-
-			if newStatus == actions_model.StatusWaiting {
-				blockedByJobConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, actionRunJob)
-				if err != nil {
-					log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
-					continue
-				}
-				if blockedByJobConcurrency {
-					newStatus = actions_model.StatusBlocked
-				}
-				if err := CancelJobsByJobConcurrency(ctx, r.jobMap[id]); err != nil {
-					log.Error("Cancel previous jobs for job %d: %v", id, err)
-				}
-			}
-
-			if newStatus != actions_model.StatusBlocked {
-				ret[id] = newStatus
-			}
+		if newStatus != actions_model.StatusBlocked {
+			ret[id] = newStatus
 		}
 	}
 	return ret
@@ -368,24 +366,10 @@ func updateConcurrencyEvaluationForJobWithNeeds(ctx context.Context, actionRunJo
 		return err
 	}
 
-	taskNeeds, err := FindTaskNeeds(ctx, actionRunJob)
-	if err != nil {
-		return fmt.Errorf("find task needs: %w", err)
-	}
-	jobResults := make(map[string]*jobparser.JobResult, len(taskNeeds))
-	for jobID, taskNeed := range taskNeeds {
-		jobResult := &jobparser.JobResult{
-			Result:  taskNeed.Result.String(),
-			Outputs: taskNeed.Outputs,
-		}
-		jobResults[jobID] = jobResult
-	}
-
-	actionRunJob.ConcurrencyGroup, actionRunJob.ConcurrencyCancel, err = EvaluateJobConcurrency(ctx, actionRunJob.Run, actionRunJob, vars, jobResults)
+	err := EvaluateJobConcurrencyAndFillJobModel(ctx, actionRunJob.Run, actionRunJob, vars)
 	if err != nil {
 		return fmt.Errorf("evaluate job concurrency: %w", err)
 	}
-	actionRunJob.IsConcurrencyEvaluated = true
 
 	if _, err := actions_model.UpdateRunJob(ctx, actionRunJob, nil, "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"); err != nil {
 		return fmt.Errorf("update run job: %w", err)

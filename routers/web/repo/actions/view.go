@@ -34,7 +34,6 @@ import (
 	context_module "code.gitea.io/gitea/services/context"
 	notify_service "code.gitea.io/gitea/services/notify"
 
-	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 	"gopkg.in/yaml.v3"
 	"xorm.io/builder"
@@ -448,28 +447,16 @@ func Rerun(ctx *context_module.Context) {
 				ctx.ServerError("UnmarshalRawConcurrency", fmt.Errorf("unmarshal raw concurrency: %w", err))
 				return
 			}
-			wfConcurrencyGroup, wfConcurrencyCancel, err := actions_service.EvaluateWorkflowConcurrency(ctx, run, &rawConcurrency, vars)
+
+			err = actions_service.EvaluateWorkflowConcurrencyAndFillRunModel(ctx, run, &rawConcurrency, vars)
 			if err != nil {
-				ctx.ServerError("EvaluateWorkflowConcurrency", fmt.Errorf("evaluate workflow concurrency: %w", err))
+				ctx.ServerError("EvaluateWorkflowConcurrencyAndFillRunModel", err)
 				return
-			}
-			if wfConcurrencyGroup != "" {
-				run.ConcurrencyGroup = wfConcurrencyGroup
-				run.ConcurrencyCancel = wfConcurrencyCancel
 			}
 
-			blockRunByConcurrency, err = actions_model.ShouldBlockRunByConcurrency(ctx, run)
+			run.Status, err = actions_service.PrepareToStartRunWithConcurrency(ctx, run)
 			if err != nil {
-				ctx.ServerError("ShouldBlockRunByConcurrency", err)
-				return
-			}
-			if blockRunByConcurrency {
-				run.Status = actions_model.StatusBlocked
-			} else {
-				run.Status = actions_model.StatusRunning
-			}
-			if err := actions_service.CancelJobsByRunConcurrency(ctx, run); err != nil {
-				ctx.ServerError("cancel jobs", err)
+				ctx.ServerError("PrepareToStartRunWithConcurrency", err)
 				return
 			}
 		}
@@ -519,10 +506,7 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	}
 
 	job.TaskID = 0
-	job.Status = actions_model.StatusWaiting
-	if shouldBlock {
-		job.Status = actions_model.StatusBlocked
-	}
+	job.Status = util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting)
 	job.Started = 0
 	job.Stopped = 0
 
@@ -532,37 +516,21 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	if err := job.LoadRun(ctx); err != nil {
 		return err
 	}
+
 	vars, err := actions_model.GetVariablesOfRun(ctx, job.Run)
 	if err != nil {
 		return fmt.Errorf("get run %d variables: %w", job.Run.ID, err)
 	}
+
 	if job.RawConcurrency != "" && job.Status != actions_model.StatusBlocked {
-		taskNeeds, err := actions_service.FindTaskNeeds(ctx, job)
-		if err != nil {
-			return fmt.Errorf("find task needs: %w", err)
-		}
-		jobResults := make(map[string]*jobparser.JobResult, len(taskNeeds))
-		for jobID, taskNeed := range taskNeeds {
-			jobResult := &jobparser.JobResult{
-				Result:  taskNeed.Result.String(),
-				Outputs: taskNeed.Outputs,
-			}
-			jobResults[jobID] = jobResult
-		}
-		job.ConcurrencyGroup, job.ConcurrencyCancel, err = actions_service.EvaluateJobConcurrency(ctx, job.Run, job, vars, jobResults)
+		err = actions_service.EvaluateJobConcurrencyAndFillJobModel(ctx, job.Run, job, vars)
 		if err != nil {
 			return fmt.Errorf("evaluate job concurrency: %w", err)
 		}
-		job.IsConcurrencyEvaluated = true
-		blockByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, job)
+
+		job.Status, err = actions_service.PrepareToStartJobWithConcurrency(ctx, job)
 		if err != nil {
 			return err
-		}
-		if blockByConcurrency {
-			job.Status = actions_model.StatusBlocked
-		}
-		if err := actions_service.CancelJobsByJobConcurrency(ctx, job); err != nil {
-			return fmt.Errorf("cancel jobs: %w", err)
 		}
 	}
 
@@ -645,27 +613,18 @@ func Approve(ctx *context_module.Context) {
 	run := current.Run
 	doer := ctx.Doer
 
-	var updatedjobs []*actions_model.ActionRunJob
+	var updatedJobs []*actions_model.ActionRunJob
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
+	err := db.WithTx(ctx, func(ctx context.Context) (err error) {
 		run.NeedApproval = false
 		run.ApprovedBy = doer.ID
 		if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
 			return err
 		}
 		for _, job := range jobs {
-			if actions_model.ShouldWaitJobForConcurrencyEvaluation(job) {
-				continue
-			}
-			blockJobByConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, job)
+			job.Status, err = actions_service.PrepareToStartJobWithConcurrency(ctx, job)
 			if err != nil {
 				return err
-			}
-			if !blockJobByConcurrency {
-				job.Status = actions_model.StatusWaiting
-			}
-			if err := actions_service.CancelJobsByJobConcurrency(ctx, job); err != nil {
-				return fmt.Errorf("cancel jobs: %w", err)
 			}
 			if job.Status == actions_model.StatusWaiting {
 				n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
@@ -673,24 +632,25 @@ func Approve(ctx *context_module.Context) {
 					return err
 				}
 				if n > 0 {
-					updatedjobs = append(updatedjobs, job)
+					updatedJobs = append(updatedJobs, job)
 				}
 			}
 		}
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		ctx.ServerError("UpdateRunJob", err)
 		return
 	}
 
 	actions_service.CreateCommitStatus(ctx, jobs...)
 
-	if len(updatedjobs) > 0 {
-		job := updatedjobs[0]
+	if len(updatedJobs) > 0 {
+		job := updatedJobs[0]
 		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
 	}
 
-	for _, job := range updatedjobs {
+	for _, job := range updatedJobs {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}

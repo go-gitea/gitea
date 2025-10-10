@@ -17,73 +17,96 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// EvaluateWorkflowConcurrency evaluates the expressions in a workflow-level concurrency
-// and returns the value of `concurrency.group` and `concurrency.cancel-in-progress`.
+// EvaluateWorkflowConcurrencyAndFillRunModel evaluates the expressions in a workflow-level concurrency,
+// and fills the run's model fields with `concurrency.group` and `concurrency.cancel-in-progress`.
 // Workflow-level concurrency doesn't depend on the job outputs, so it can always be evaluated if there is no syntax error.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency
-func EvaluateWorkflowConcurrency(ctx context.Context, run *actions_model.ActionRun, rc *act_model.RawConcurrency, vars map[string]string) (string, bool, error) {
+func EvaluateWorkflowConcurrencyAndFillRunModel(ctx context.Context, run *actions_model.ActionRun, wfRawConcurrency *act_model.RawConcurrency, vars map[string]string) error {
 	if err := run.LoadAttributes(ctx); err != nil {
-		return "", false, fmt.Errorf("run LoadAttributes: %w", err)
+		return fmt.Errorf("run LoadAttributes: %w", err)
 	}
 
-	gitCtx := GenerateGiteaContext(run, nil)
+	actionsRunCtx := GenerateGiteaContext(run, nil)
 	jobResults := map[string]*jobparser.JobResult{"": {}}
 	inputs, err := getInputsFromRun(run)
 	if err != nil {
-		return "", false, fmt.Errorf("get inputs: %w", err)
+		return fmt.Errorf("get inputs: %w", err)
 	}
 
-	concurrencyGroup, concurrencyCancel, err := jobparser.EvaluateConcurrency(rc, "", nil, gitCtx, jobResults, vars, inputs)
+	rawConcurrency, err := yaml.Marshal(wfRawConcurrency)
 	if err != nil {
-		return "", false, fmt.Errorf("evaluate concurrency: %w", err)
+		return fmt.Errorf("marshal raw concurrency: %w", err)
 	}
-
-	return concurrencyGroup, concurrencyCancel, nil
+	run.RawConcurrency = string(rawConcurrency)
+	run.ConcurrencyGroup, run.ConcurrencyCancel, err = jobparser.EvaluateConcurrency(wfRawConcurrency, "", nil, actionsRunCtx, jobResults, vars, inputs)
+	if err != nil {
+		return fmt.Errorf("evaluate concurrency: %w", err)
+	}
+	return nil
 }
 
-// EvaluateJobConcurrency evaluates the expressions in a job-level concurrency
-// and returns the value of `concurrency.group` and `concurrency.cancel-in-progress`.
+func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*jobparser.JobResult, error) {
+	taskNeeds, err := FindTaskNeeds(ctx, job)
+	if err != nil {
+		return nil, fmt.Errorf("find task needs: %w", err)
+	}
+	jobResults := make(map[string]*jobparser.JobResult, len(taskNeeds))
+	for jobID, taskNeed := range taskNeeds {
+		jobResult := &jobparser.JobResult{
+			Result:  taskNeed.Result.String(),
+			Outputs: taskNeed.Outputs,
+		}
+		jobResults[jobID] = jobResult
+	}
+	jobResults[job.JobID] = &jobparser.JobResult{
+		Needs: job.Needs,
+	}
+	return jobResults, nil
+}
+
+// EvaluateJobConcurrencyAndFillJobModel evaluates the expressions in a job-level concurrency,
+// and fills the job's model fields with `concurrency.group` and `concurrency.cancel-in-progress`.
 // Job-level concurrency may depend on other job's outputs (via `needs`): `concurrency.group: my-group-${{ needs.job1.outputs.out1 }}`
 // If the needed jobs haven't been executed yet, this evaluation will also fail.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idconcurrency
-func EvaluateJobConcurrency(ctx context.Context, run *actions_model.ActionRun, actionRunJob *actions_model.ActionRunJob, vars map[string]string, jobResults map[string]*jobparser.JobResult) (string, bool, error) {
+func EvaluateJobConcurrencyAndFillJobModel(ctx context.Context, run *actions_model.ActionRun, actionRunJob *actions_model.ActionRunJob, vars map[string]string) error {
 	if err := actionRunJob.LoadAttributes(ctx); err != nil {
-		return "", false, fmt.Errorf("job LoadAttributes: %w", err)
+		return fmt.Errorf("job LoadAttributes: %w", err)
 	}
 
 	var rawConcurrency act_model.RawConcurrency
 	if err := yaml.Unmarshal([]byte(actionRunJob.RawConcurrency), &rawConcurrency); err != nil {
-		return "", false, fmt.Errorf("unmarshal raw concurrency: %w", err)
+		return fmt.Errorf("unmarshal raw concurrency: %w", err)
 	}
 
-	gitCtx := GenerateGiteaContext(run, actionRunJob)
-	if jobResults == nil {
-		jobResults = map[string]*jobparser.JobResult{}
+	actionsJobCtx := GenerateGiteaContext(run, actionRunJob)
+
+	jobResults, err := findJobNeedsAndFillJobResults(ctx, actionRunJob)
+	if err != nil {
+		return fmt.Errorf("find job needs and fill job results: %w", err)
 	}
-	jobResults[actionRunJob.JobID] = &jobparser.JobResult{
-		Needs: actionRunJob.Needs,
-	}
+
 	inputs, err := getInputsFromRun(run)
 	if err != nil {
-		return "", false, fmt.Errorf("get inputs: %w", err)
+		return fmt.Errorf("get inputs: %w", err)
 	}
 
 	// singleWorkflows is created from an ActionJob, which always contains exactly a single job's YAML definition.
 	// Ideally it shouldn't be called "Workflow", it is just a job with global workflow fields + trigger
 	singleWorkflows, err := jobparser.Parse(actionRunJob.WorkflowPayload)
 	if err != nil {
-		return "", false, fmt.Errorf("parse single workflow: %w", err)
+		return fmt.Errorf("parse single workflow: %w", err)
 	} else if len(singleWorkflows) != 1 {
-		return "", false, errors.New("not single workflow")
+		return errors.New("not single workflow")
 	}
 	_, singleWorkflowJob := singleWorkflows[0].Job()
 
-	concurrencyGroup, concurrencyCancel, err := jobparser.EvaluateConcurrency(&rawConcurrency, actionRunJob.JobID, singleWorkflowJob, gitCtx, jobResults, vars, inputs)
+	actionRunJob.ConcurrencyGroup, actionRunJob.ConcurrencyCancel, err = jobparser.EvaluateConcurrency(&rawConcurrency, actionRunJob.JobID, singleWorkflowJob, actionsJobCtx, jobResults, vars, inputs)
 	if err != nil {
-		return "", false, fmt.Errorf("evaluate concurrency: %w", err)
+		return fmt.Errorf("evaluate concurrency: %w", err)
 	}
-
-	return concurrencyGroup, concurrencyCancel, nil
+	actionRunJob.IsConcurrencyEvaluated = true
+	return nil
 }
 
 func getInputsFromRun(run *actions_model.ActionRun) (map[string]any, error) {

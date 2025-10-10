@@ -197,20 +197,11 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	if wfRawConcurrency != nil {
 		vars, err := actions_model.GetVariablesOfRun(ctx, run)
 		if err != nil {
-			return err
+			return fmt.Errorf("GetVariablesOfRun: %w", err)
 		}
-		rawConcurrency, err := yaml.Marshal(wfRawConcurrency)
+		err = EvaluateWorkflowConcurrencyAndFillRunModel(ctx, run, wfRawConcurrency, vars)
 		if err != nil {
-			return fmt.Errorf("marshal raw concurrency: %w", err)
-		}
-		run.RawConcurrency = string(rawConcurrency)
-		wfConcurrencyGroup, wfConcurrencyCancel, err := EvaluateWorkflowConcurrency(ctx, run, wfRawConcurrency, vars)
-		if err != nil {
-			return err
-		}
-		if wfConcurrencyGroup != "" {
-			run.ConcurrencyGroup = wfConcurrencyGroup
-			run.ConcurrencyCancel = wfConcurrencyCancel
+			return fmt.Errorf("EvaluateWorkflowConcurrencyAndFillRunModel: %w", err)
 		}
 	}
 

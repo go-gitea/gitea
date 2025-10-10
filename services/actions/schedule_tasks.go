@@ -18,7 +18,6 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/jobparser"
-	"gopkg.in/yaml.v3"
 )
 
 // StartScheduleTasks start the task
@@ -136,18 +135,9 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		return err
 	}
 	if wfRawConcurrency != nil {
-		rawConcurrency, err := yaml.Marshal(wfRawConcurrency)
+		err = EvaluateWorkflowConcurrencyAndFillRunModel(ctx, run, wfRawConcurrency, vars)
 		if err != nil {
-			return fmt.Errorf("marshal raw concurrency: %w", err)
-		}
-		run.RawConcurrency = string(rawConcurrency)
-		wfConcurrencyGroup, wfConcurrencyCancel, err := EvaluateWorkflowConcurrency(ctx, run, wfRawConcurrency, vars)
-		if err != nil {
-			return err
-		}
-		if wfConcurrencyGroup != "" {
-			run.ConcurrencyGroup = wfConcurrencyGroup
-			run.ConcurrencyCancel = wfConcurrencyCancel
+			return fmt.Errorf("EvaluateWorkflowConcurrencyAndFillRunModel: %w", err)
 		}
 	}
 
