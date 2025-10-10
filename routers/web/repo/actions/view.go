@@ -522,7 +522,7 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 		return fmt.Errorf("get run %d variables: %w", job.Run.ID, err)
 	}
 
-	if job.RawConcurrency != "" && job.Status == actions_model.StatusWaiting {
+	if job.RawConcurrency != "" && !shouldBlock {
 		err = actions_service.EvaluateJobConcurrencyAndFillJobModel(ctx, job.Run, job, vars)
 		if err != nil {
 			return fmt.Errorf("evaluate job concurrency: %w", err)
