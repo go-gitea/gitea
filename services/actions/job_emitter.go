@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
@@ -330,7 +331,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			// At the moment there is no way to distinguish them.
 			// Actually, for most cases, the error is caused by "syntax error" / "the needed jobs haven't completed (skipped?)"
 			// TODO: if workflow or concurrency expression has syntax error, there should be a user error message, need to show it to end users
-			log.Error("updateConcurrencyEvaluationForJobWithNeeds failed, this job will stay blocked: job: %d, err: %v", id, err)
+			log.Debug("updateConcurrencyEvaluationForJobWithNeeds failed, this job will stay blocked: job: %d, err: %v", id, err)
 			continue
 		}
 
@@ -358,8 +359,8 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 }
 
 func updateConcurrencyEvaluationForJobWithNeeds(ctx context.Context, actionRunJob *actions_model.ActionRunJob, vars map[string]string) error {
-	if err := actionRunJob.LoadAttributes(ctx); err != nil {
-		return err
+	if setting.IsInTesting && actionRunJob.RepoID == 0 {
+		return nil // for testing purpose only, no repo, no evaluation
 	}
 
 	err := EvaluateJobConcurrencyAndFillJobModel(ctx, actionRunJob.Run, actionRunJob, vars)
