@@ -317,21 +317,9 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 				continue
 			}
 
-			blockedByJobConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, actionRunJob)
-			if err != nil {
-				log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
-				continue
-			}
-			if blockedByJobConcurrency {
-				continue
-			}
-
-			if err := CancelJobsByJobConcurrency(ctx, r.jobMap[id]); err != nil {
-				log.Error("Cancel previous jobs for job %d: %v", id, err)
-			}
-
+			newStatus := actions_model.StatusBlocked
 			if allSucceed {
-				ret[id] = actions_model.StatusWaiting
+				newStatus = actions_model.StatusWaiting
 			} else {
 				// Check if the job has an "if" condition
 				hasIf := false
@@ -341,12 +329,30 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 				}
 				if hasIf {
 					// act_runner will check the "if" condition
-					ret[id] = actions_model.StatusWaiting
+					newStatus = actions_model.StatusWaiting
 				} else {
 					// If the "if" condition is empty and not all dependent jobs completed successfully,
 					// the job should be skipped.
-					ret[id] = actions_model.StatusSkipped
+					newStatus = actions_model.StatusSkipped
 				}
+			}
+
+			if newStatus == actions_model.StatusWaiting {
+				blockedByJobConcurrency, err := actions_model.ShouldBlockJobByConcurrency(ctx, actionRunJob)
+				if err != nil {
+					log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
+					continue
+				}
+				if blockedByJobConcurrency {
+					newStatus = actions_model.StatusBlocked
+				}
+				if err := CancelJobsByJobConcurrency(ctx, r.jobMap[id]); err != nil {
+					log.Error("Cancel previous jobs for job %d: %v", id, err)
+				}
+			}
+
+			if newStatus != actions_model.StatusBlocked {
+				ret[id] = newStatus
 			}
 		}
 	}

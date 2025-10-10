@@ -661,11 +661,13 @@ func Approve(ctx *context_module.Context) {
 			if err != nil {
 				return err
 			}
-			if len(job.Needs) == 0 && job.Status.IsBlocked() && !blockJobByConcurrency {
-				if err := actions_service.CancelJobsByJobConcurrency(ctx, job); err != nil {
-					return fmt.Errorf("cancel jobs: %w", err)
-				}
+			if !blockJobByConcurrency {
 				job.Status = actions_model.StatusWaiting
+			}
+			if err := actions_service.CancelJobsByJobConcurrency(ctx, job); err != nil {
+				return fmt.Errorf("cancel jobs: %w", err)
+			}
+			if job.Status == actions_model.StatusWaiting {
 				n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
 				if err != nil {
 					return err
