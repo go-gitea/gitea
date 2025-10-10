@@ -52,7 +52,7 @@ interface Element {
 
 interface Window {
   __webpack_public_path__: string;
-  config: import('./web_src/js/types.ts').Config;
+  config: import('./types.ts').Config;
   $: typeof import('@types/jquery'),
   jQuery: typeof import('@types/jquery'),
   htmx: typeof import('htmx.org').default,
