@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/user"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/common"
@@ -92,7 +93,7 @@ func Install(ctx *context.Context) {
 	// Database settings
 	form.DbHost = setting.Database.Host
 	form.DbUser = setting.Database.User
-	form.DbPasswd = setting.Database.Passwd
+	form.DbPasswd = setting.Database.Passwd.String()
 	form.DbName = setting.Database.Name
 	form.DbPath = setting.Database.Path
 	form.DbSchema = setting.Database.Schema
@@ -255,7 +256,7 @@ func SubmitInstall(ctx *context.Context) {
 	setting.Database.Type = setting.DatabaseType(form.DbType)
 	setting.Database.Host = form.DbHost
 	setting.Database.User = form.DbUser
-	setting.Database.Passwd = form.DbPasswd
+	setting.Database.Passwd = util.SensitivePasswordString(form.DbPasswd)
 	setting.Database.Name = form.DbName
 	setting.Database.Schema = form.DbSchema
 	setting.Database.SSLMode = form.SSLMode
@@ -374,7 +375,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("database").Key("HOST").SetValue(setting.Database.Host)
 	cfg.Section("database").Key("NAME").SetValue(setting.Database.Name)
 	cfg.Section("database").Key("USER").SetValue(setting.Database.User)
-	cfg.Section("database").Key("PASSWD").SetValue(setting.Database.Passwd)
+	cfg.Section("database").Key("PASSWD").SetValue(setting.Database.Passwd.String())
 	cfg.Section("database").Key("SCHEMA").SetValue(setting.Database.Schema)
 	cfg.Section("database").Key("SSL_MODE").SetValue(setting.Database.SSLMode)
 	cfg.Section("database").Key("PATH").SetValue(setting.Database.Path)
