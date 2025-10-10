@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"github.com/nektos/act/pkg/jobparser"
 
 	"xorm.io/builder"
 )
@@ -97,6 +98,20 @@ func (job *ActionRunJob) LoadAttributes(ctx context.Context) error {
 	}
 
 	return job.Run.LoadAttributes(ctx)
+}
+
+// Load the job structure from the ActionRunJob
+func (job *ActionRunJob) ParseJob() (*jobparser.Job, error) {
+	// singleWorkflows is created from an ActionJob, which always contains exactly a single job's YAML definition.
+	// Ideally it shouldn't be called "Workflow", it is just a job with global workflow fields + trigger
+	parsedWorkflows, err := jobparser.Parse(job.WorkflowPayload)
+	if err != nil {
+		return nil, fmt.Errorf("parse workflow of job %d: %w", job.ID, err)
+	} else if len(parsedWorkflows) != 1 {
+		return nil, fmt.Errorf("workflow of job %d: not single workflow", job.ID)
+	}
+	_, workflowJob := parsedWorkflows[0].Job()
+	return workflowJob, nil
 }
 
 func GetRunJobByID(ctx context.Context, id int64) (*ActionRunJob, error) {
