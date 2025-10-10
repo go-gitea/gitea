@@ -22,11 +22,11 @@ import (
 
 const (
 	// TODO: Separate secrets from runners when layout is ready
-	tplRepoRunners     templates.TplName = "repo/settings/actions"
+	tplRepoRunners     templates.TplName = "repo/settings/actions/actions"
 	tplOrgRunners      templates.TplName = "org/settings/actions"
 	tplAdminRunners    templates.TplName = "admin/actions"
 	tplUserRunners     templates.TplName = "user/settings/actions"
-	tplRepoRunnerEdit  templates.TplName = "repo/settings/runner_edit"
+	tplRepoRunnerEdit  templates.TplName = "repo/settings/actions/runner_edit"
 	tplOrgRunnerEdit   templates.TplName = "org/settings/runners_edit"
 	tplAdminRunnerEdit templates.TplName = "admin/runners/edit"
 	tplUserRunnerEdit  templates.TplName = "user/settings/runner_edit"
