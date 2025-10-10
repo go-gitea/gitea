@@ -1058,6 +1058,88 @@ func createDiffFile(line string) *DiffFile {
 	return curFile
 }
 
+func RenderUnifiedDiff(file *DiffFile) string {
+	var sb strings.Builder
+
+	oldPath := file.OldName
+	if oldPath == "" {
+		oldPath = file.Name
+	}
+	newPath := file.Name
+
+	// File header
+	fmt.Fprintf(&sb, "diff --git a/%s b/%s\n", oldPath, newPath)
+	fmt.Fprintf(&sb, "--- a/%s\n", oldPath)
+	fmt.Fprintf(&sb, "+++ b/%s\n", newPath)
+
+	if file.IsBin {
+		return ("Binary files differ\n\n")
+	}
+
+	for _, section := range file.Sections {
+		// Compute hunk header
+		leftStart, leftCount := hunkRange(section, true)
+		rightStart, rightCount := hunkRange(section, false)
+		fmt.Fprintf(&sb, "@@ -%d,%d +%d,%d @@\n", leftStart, leftCount, rightStart, rightCount)
+
+		for _, line := range section.Lines {
+			prefix := " "
+			switch line.Type {
+			case DiffLineAdd:
+				prefix = "+"
+			case DiffLineDel:
+				prefix = "-"
+			}
+			sb.WriteString(prefix + line.Content)
+			if !strings.HasSuffix(line.Content, "\n") {
+				sb.WriteString("\n")
+			}
+		}
+	}
+	sb.WriteString("\n")
+
+	return sb.String()
+}
+
+// hunkRange calculates the start and length for either old or new file in a section
+func hunkRange(section *DiffSection, left bool) (start, count int) {
+	lines := section.Lines
+	if len(lines) == 0 {
+		return 0, 0
+	}
+
+	if left {
+		for _, l := range lines {
+			if l.LeftIdx > 0 {
+				start = l.LeftIdx
+				break
+			}
+		}
+		for _, l := range lines {
+			if l.LeftIdx > 0 {
+				count++
+			}
+		}
+	} else {
+		for _, l := range lines {
+			if l.RightIdx > 0 {
+				start = l.RightIdx
+				break
+			}
+		}
+		for _, l := range lines {
+			if l.RightIdx > 0 {
+				count++
+			}
+		}
+	}
+
+	if count == 0 {
+		count = 1
+	}
+	return start, count
+}
+
 func readFileName(rd *strings.Reader) (string, bool) {
 	ambiguity := false
 	var name string
