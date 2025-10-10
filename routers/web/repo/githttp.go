@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	gocontext "context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -21,6 +22,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -196,8 +198,22 @@ func httpBase(ctx *context.Context) *serviceHandler {
 					return nil
 				}
 				if task.RepoID != repo.ID {
-					ctx.PlainText(http.StatusForbidden, "User permission denied")
-					return nil
+					taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
+					if err != nil {
+						ctx.ServerError("Load task repository", err)
+						return nil
+					}
+					if !exist {
+						ctx.ServerError("Load task repository", errors.New("repo not found"))
+						return nil
+					}
+					actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+					if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
+						// The task repo can access the current repo only if the task repo is private and
+						// the owner of the task repo is a collaborative owner of the current repo.
+						ctx.PlainText(http.StatusForbidden, "User permission denied")
+						return nil
+					}
 				}
 
 				if task.IsForkPullRequest {
