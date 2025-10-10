@@ -185,7 +185,7 @@
 										{{end}}
 									</div>
 								{{else}}
-									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
+									<table class="chroma" data-new-comment-url="{{if $.PageIsCommit}}{{$.RepoLink}}/commit/{{$.CommitID}}/comments/new{{else if $.Issue}}{{$.Issue.Link}}/files/reviews/new_comment{{end}}" data-path="{{$file.Name}}">
 										{{if $.IsSplitStyle}}
 											{{template "repo/diff/section_split" dict "file" . "root" $}}
 										{{else}}
