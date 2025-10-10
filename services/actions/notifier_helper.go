@@ -29,7 +29,6 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	notify_service "code.gitea.io/gitea/services/notify"
 
-	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 )
 
@@ -346,44 +345,8 @@ func handleWorkflows(
 
 		run.NeedApproval = need
 
-		if err := run.LoadAttributes(ctx); err != nil {
-			log.Error("LoadAttributes: %v", err)
-			continue
-		}
-
-		vars, err := actions_model.GetVariablesOfRun(ctx, run)
-		if err != nil {
-			log.Error("GetVariablesOfRun: %v", err)
-			continue
-		}
-
-		wfRawConcurrency, err := jobparser.ReadWorkflowRawConcurrency(dwf.Content)
-		if err != nil {
-			log.Error("ReadWorkflowRawConcurrency: %v", err)
-			continue
-		}
-		if wfRawConcurrency != nil {
-			err = EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars)
-			if err != nil {
-				log.Error("EvaluateRunConcurrencyFillModel: %v", err)
-				continue
-			}
-		}
-
-		giteaCtx := GenerateGiteaContext(run, nil)
-
-		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
-		if err != nil {
-			log.Error("jobparser.Parse: %v", err)
-			continue
-		}
-
-		if len(jobs) > 0 && jobs[0].RunName != "" {
-			run.Title = jobs[0].RunName
-		}
-
-		if err := InsertRun(ctx, run, jobs); err != nil {
-			log.Error("InsertRun: %v", err)
+		if err := PrepareRun(ctx, dwf.Content, run, nil); err != nil {
+			log.Error("PrepareRun: %v", err)
 			continue
 		}
 
@@ -392,6 +355,7 @@ func handleWorkflows(
 			log.Error("FindRunJobs: %v", err)
 			continue
 		}
+		// FIXME PERF skip this for schedule, dispatch etc.
 		CreateCommitStatus(ctx, alljobs...)
 		if len(alljobs) > 0 {
 			job := alljobs[0]
@@ -557,24 +521,6 @@ func handleSchedules(
 			EventPayload:  string(p),
 			Specs:         schedules,
 			Content:       dwf.Content,
-		}
-
-		vars, err := actions_model.GetVariablesOfRun(ctx, run.ToActionRun())
-		if err != nil {
-			log.Error("GetVariablesOfRun: %v", err)
-			continue
-		}
-
-		giteaCtx := GenerateGiteaContext(run.ToActionRun(), nil)
-
-		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
-		if err != nil {
-			log.Error("jobparser.Parse: %v", err)
-			continue
-		}
-
-		if len(jobs) > 0 && jobs[0].RunName != "" {
-			run.Title = jobs[0].RunName
 		}
 
 		crons = append(crons, run)

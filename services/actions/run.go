@@ -9,11 +9,70 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"gopkg.in/yaml.v3"
 )
+
+// PrepareRun prepares a run before inserting it into the database
+// It parses the workflow content, evaluates concurrency if needed, and inserts the run and its jobs into the database.
+// The title will be cut off at 255 characters if it's longer than 255 characters.
+func PrepareRun(ctx context.Context, content []byte, run *actions_model.ActionRun, inputsWithDefaults map[string]any) error {
+	if err := run.LoadAttributes(ctx); err != nil {
+		return fmt.Errorf("LoadAttributes: %w", err)
+	}
+
+	vars, err := actions_model.GetVariablesOfRun(ctx, run)
+	if err != nil {
+		return fmt.Errorf("GetVariablesOfRun: %w", err)
+	}
+
+	wfRawConcurrency, err := jobparser.ReadWorkflowRawConcurrency(content)
+	if err != nil {
+		return fmt.Errorf("ReadWorkflowRawConcurrency: %w", err)
+	}
+
+	if wfRawConcurrency != nil {
+		err = EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars)
+		if err != nil {
+			return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
+		}
+	}
+
+	giteaCtx := GenerateGiteaContext(run, nil)
+
+	jobs, err := jobparser.Parse(content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()), jobparser.WithInputs(inputsWithDefaults))
+	if err != nil {
+		return fmt.Errorf("parse workflow: %w", err)
+	}
+
+	if len(jobs) > 0 && jobs[0].RunName != "" {
+		run.Title = jobs[0].RunName
+	}
+
+	if err := InsertRun(ctx, run, jobs); err != nil {
+		return fmt.Errorf("InsertRun: %w", err)
+	}
+
+	allJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+	if err != nil {
+		log.Error("FindRunJobs: %v", err)
+	}
+	err = run.LoadAttributes(ctx)
+	if err != nil {
+		log.Error("LoadAttributes: %v", err)
+	}
+	notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+	for _, job := range allJobs {
+		notify_service.WorkflowJobStatusUpdate(ctx, run.Repo, run.TriggerUser, job, nil)
+	}
+
+	// Return nil if no errors occurred
+	return nil
+}
 
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
