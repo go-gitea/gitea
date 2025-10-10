@@ -358,10 +358,6 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 }
 
 func updateConcurrencyEvaluationForJobWithNeeds(ctx context.Context, actionRunJob *actions_model.ActionRunJob, vars map[string]string) error {
-	if !actions_model.ShouldWaitJobForConcurrencyEvaluation(actionRunJob) {
-		return nil
-	}
-
 	if err := actionRunJob.LoadAttributes(ctx); err != nil {
 		return err
 	}

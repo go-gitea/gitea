@@ -391,19 +391,6 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 
 type ActionRunIndex db.ResourceIndex
 
-func ShouldBlockRunByConcurrency(ctx context.Context, actionRun *ActionRun) (bool, error) {
-	if actionRun.ConcurrencyGroup == "" || actionRun.ConcurrencyCancel {
-		return false, nil
-	}
-
-	runs, jobs, err := GetConcurrentRunsAndJobs(ctx, actionRun.RepoID, actionRun.ConcurrencyGroup, []Status{StatusRunning})
-	if err != nil {
-		return false, fmt.Errorf("find concurrent runs and jobs: %w", err)
-	}
-
-	return len(runs) > 0 || len(jobs) > 0, nil
-}
-
 func GetConcurrentRunsAndJobs(ctx context.Context, repoID int64, concurrencyGroup string, status []Status) ([]*ActionRun, []*ActionRunJob, error) {
 	runs, err := db.Find[ActionRun](ctx, &FindRunOptions{
 		RepoID:           repoID,

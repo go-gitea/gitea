@@ -61,13 +61,28 @@ func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) er
 	return err
 }
 
-// PrepareToStartJobWithConcurrency prepares a job to start by evaluating its concurrency group and cancelling previous jobs if necessary.
+func shouldBlockJobByConcurrency(ctx context.Context, job *actions_model.ActionRunJob) (bool, error) {
+	if job.RawConcurrency != "" && !job.IsConcurrencyEvaluated {
+		// when the job depends on other jobs, we cannot evaluate its concurrency, so it should be blocked and will be evaluated again when its dependencies are done
+		return true, nil
+	}
+
+	if job.ConcurrencyGroup == "" || job.ConcurrencyCancel {
+		return false, nil
+	}
+
+	runs, jobs, err := actions_model.GetConcurrentRunsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, []actions_model.Status{actions_model.StatusRunning})
+	if err != nil {
+		return false, fmt.Errorf("GetConcurrentRunsAndJobs: %w", err)
+	}
+
+	return len(runs) > 0 || len(jobs) > 0, nil
+}
+
+// PrepareToStartJobWithConcurrency prepares a job to start by its evaluated concurrency group and cancelling previous jobs if necessary.
 // It returns the new status of the job (either StatusBlocked or StatusWaiting) and any error encountered during the process.
 func PrepareToStartJobWithConcurrency(ctx context.Context, job *actions_model.ActionRunJob) (actions_model.Status, error) {
-	if actions_model.ShouldWaitJobForConcurrencyEvaluation(job) {
-		return actions_model.StatusBlocked, nil
-	}
-	shouldBlock, err := actions_model.ShouldBlockJobByConcurrency(ctx, job)
+	shouldBlock, err := shouldBlockJobByConcurrency(ctx, job)
 	if err != nil {
 		return actions_model.StatusBlocked, err
 	}
@@ -79,10 +94,23 @@ func PrepareToStartJobWithConcurrency(ctx context.Context, job *actions_model.Ac
 	return actions_model.StatusWaiting, err
 }
 
+func shouldBlockRunByConcurrency(ctx context.Context, actionRun *actions_model.ActionRun) (bool, error) {
+	if actionRun.ConcurrencyGroup == "" || actionRun.ConcurrencyCancel {
+		return false, nil
+	}
+
+	runs, jobs, err := actions_model.GetConcurrentRunsAndJobs(ctx, actionRun.RepoID, actionRun.ConcurrencyGroup, []actions_model.Status{actions_model.StatusRunning})
+	if err != nil {
+		return false, fmt.Errorf("find concurrent runs and jobs: %w", err)
+	}
+
+	return len(runs) > 0 || len(jobs) > 0, nil
+}
+
 // PrepareToStartRunWithConcurrency prepares a run to start by its evaluated concurrency group and cancelling previous jobs if necessary.
 // It returns the new status of the job (either StatusBlocked or StatusWaiting) and any error encountered during the process.
 func PrepareToStartRunWithConcurrency(ctx context.Context, run *actions_model.ActionRun) (actions_model.Status, error) {
-	shouldBlock, err := actions_model.ShouldBlockRunByConcurrency(ctx, run)
+	shouldBlock, err := shouldBlockRunByConcurrency(ctx, run)
 	if err != nil {
 		return actions_model.StatusBlocked, err
 	}

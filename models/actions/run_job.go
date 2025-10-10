@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -211,27 +212,6 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 	default:
 		return StatusUnknown // it shouldn't happen
 	}
-}
-
-func ShouldWaitJobForConcurrencyEvaluation(job *ActionRunJob) bool {
-	return job.RawConcurrency != "" && !job.IsConcurrencyEvaluated
-}
-
-func ShouldBlockJobByConcurrency(ctx context.Context, job *ActionRunJob) (bool, error) {
-	if ShouldWaitJobForConcurrencyEvaluation(job) {
-		panic("job concurrency not evaluated, this function shouldn't be called")
-	}
-
-	if job.ConcurrencyGroup == "" || job.ConcurrencyCancel {
-		return false, nil
-	}
-
-	runs, jobs, err := GetConcurrentRunsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, []Status{StatusRunning})
-	if err != nil {
-		return false, fmt.Errorf("GetConcurrentRunsAndJobs: %w", err)
-	}
-
-	return len(runs) > 0 || len(jobs) > 0, nil
 }
 
 func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) (jobsToCancel []*ActionRunJob, _ error) {
