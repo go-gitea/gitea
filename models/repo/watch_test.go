@@ -8,9 +8,11 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -71,7 +73,10 @@ func TestWatchIfAuto(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, watchers, repo.NumWatches)
 
-	setting.Service.AutoWatchOnChanges = false
+	assert.NoError(t, system.SetSettings(t.Context(), map[string]string{
+		setting.Config().Service.AutoWatchOnChanges.DynKey(): "false",
+	}))
+	config.GetDynGetter().InvalidateCache()
 
 	prevCount := repo.NumWatches
 
@@ -87,7 +92,10 @@ func TestWatchIfAuto(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
 
-	setting.Service.AutoWatchOnChanges = true
+	assert.NoError(t, system.SetSettings(t.Context(), map[string]string{
+		setting.Config().Service.AutoWatchOnChanges.DynKey(): "true",
+	}))
+	config.GetDynGetter().InvalidateCache()
 
 	// Must not add watch
 	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), 8, 1, true))

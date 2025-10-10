@@ -1010,7 +1010,7 @@ func Routes() *web.Router {
 			m.Group("/{username}", func() {
 				m.Get("", reqExploreSignIn(), user.GetInfo)
 
-				if setting.Service.EnableUserHeatmap {
+				if setting.Config().Service.EnableUserHeatmap.Value(gocontext.Background()) {
 					m.Get("/heatmap", user.GetUserHeatmapData)
 				}
 

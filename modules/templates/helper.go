@@ -5,6 +5,7 @@
 package templates
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"net/url"
@@ -124,8 +125,8 @@ func NewFuncMap() template.FuncMap {
 		"MetaKeywords": func() string {
 			return setting.UI.Meta.Keywords
 		},
-		"EnableTimetracking": func() bool {
-			return setting.Service.EnableTimetracking
+		"EnableTimeTracking": func(ctx context.Context) bool {
+			return setting.Config().Service.EnableTimeTracking.Value(ctx)
 		},
 		"DisableWebhooks": func() bool {
 			return setting.DisableWebhooks
