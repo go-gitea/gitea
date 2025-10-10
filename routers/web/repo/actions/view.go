@@ -446,9 +446,9 @@ func Rerun(ctx *context_module.Context) {
 				return
 			}
 
-			err = actions_service.EvaluateWorkflowConcurrencyAndFillRunModel(ctx, run, &rawConcurrency, vars)
+			err = actions_service.EvaluateRunConcurrencyFillModel(ctx, run, &rawConcurrency, vars)
 			if err != nil {
-				ctx.ServerError("EvaluateWorkflowConcurrencyAndFillRunModel", err)
+				ctx.ServerError("EvaluateRunConcurrencyFillModel", err)
 				return
 			}
 
@@ -457,7 +457,6 @@ func Rerun(ctx *context_module.Context) {
 				ctx.ServerError("PrepareToStartRunWithConcurrency", err)
 				return
 			}
-			// FIXME: old code sets "status" to "running" if it isn't blocked, should we do it? Or keep the status as "waiting"?
 		}
 		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration", "status", "concurrency_group", "concurrency_cancel"); err != nil {
 			ctx.ServerError("UpdateRun", err)
@@ -523,7 +522,7 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	}
 
 	if job.RawConcurrency != "" && !shouldBlock {
-		err = actions_service.EvaluateJobConcurrencyAndFillJobModel(ctx, job.Run, job, vars)
+		err = actions_service.EvaluateJobConcurrencyFillModel(ctx, job.Run, job, vars)
 		if err != nil {
 			return fmt.Errorf("evaluate job concurrency: %w", err)
 		}

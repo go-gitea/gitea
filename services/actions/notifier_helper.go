@@ -363,9 +363,9 @@ func handleWorkflows(
 			continue
 		}
 		if wfRawConcurrency != nil {
-			err = EvaluateWorkflowConcurrencyAndFillRunModel(ctx, run, wfRawConcurrency, vars)
+			err = EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars)
 			if err != nil {
-				log.Error("EvaluateWorkflowConcurrencyAndFillRunModel: %v", err)
+				log.Error("EvaluateRunConcurrencyFillModel: %v", err)
 				continue
 			}
 		}

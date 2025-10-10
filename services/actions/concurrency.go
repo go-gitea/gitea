@@ -17,11 +17,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// EvaluateWorkflowConcurrencyAndFillRunModel evaluates the expressions in a workflow-level concurrency,
+// EvaluateRunConcurrencyFillModel evaluates the expressions in a run-level (workflow) concurrency,
 // and fills the run's model fields with `concurrency.group` and `concurrency.cancel-in-progress`.
 // Workflow-level concurrency doesn't depend on the job outputs, so it can always be evaluated if there is no syntax error.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency
-func EvaluateWorkflowConcurrencyAndFillRunModel(ctx context.Context, run *actions_model.ActionRun, wfRawConcurrency *act_model.RawConcurrency, vars map[string]string) error {
+func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.ActionRun, wfRawConcurrency *act_model.RawConcurrency, vars map[string]string) error {
 	if err := run.LoadAttributes(ctx); err != nil {
 		return fmt.Errorf("run LoadAttributes: %w", err)
 	}
@@ -64,12 +64,12 @@ func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.Actio
 	return jobResults, nil
 }
 
-// EvaluateJobConcurrencyAndFillJobModel evaluates the expressions in a job-level concurrency,
+// EvaluateJobConcurrencyFillModel evaluates the expressions in a job-level concurrency,
 // and fills the job's model fields with `concurrency.group` and `concurrency.cancel-in-progress`.
 // Job-level concurrency may depend on other job's outputs (via `needs`): `concurrency.group: my-group-${{ needs.job1.outputs.out1 }}`
 // If the needed jobs haven't been executed yet, this evaluation will also fail.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idconcurrency
-func EvaluateJobConcurrencyAndFillJobModel(ctx context.Context, run *actions_model.ActionRun, actionRunJob *actions_model.ActionRunJob, vars map[string]string) error {
+func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.ActionRun, actionRunJob *actions_model.ActionRunJob, vars map[string]string) error {
 	if err := actionRunJob.LoadAttributes(ctx); err != nil {
 		return fmt.Errorf("job LoadAttributes: %w", err)
 	}

@@ -199,9 +199,9 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		if err != nil {
 			return fmt.Errorf("GetVariablesOfRun: %w", err)
 		}
-		err = EvaluateWorkflowConcurrencyAndFillRunModel(ctx, run, wfRawConcurrency, vars)
+		err = EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars)
 		if err != nil {
-			return fmt.Errorf("EvaluateWorkflowConcurrencyAndFillRunModel: %w", err)
+			return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
 		}
 	}
 
