@@ -188,4 +188,6 @@ type ChangedFile struct {
 	ContentsURL string `json:"contents_url,omitempty"`
 	// The raw URL to download the file
 	RawURL string `json:"raw_url,omitempty"`
+	// The patch text for the file changes
+	Patch string `json:"patch,omitempty"`
 }
