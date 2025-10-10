@@ -177,7 +177,7 @@ func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) (err e
 		}
 		defer closer.Close()
 
-		c.Commits, err = git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
+		c.Commits, err = git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(ctx, data.CommitIDs), c.Issue.Repo)
 		if err != nil {
 			return err
 		}

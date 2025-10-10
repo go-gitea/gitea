@@ -22,18 +22,18 @@ func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldC
 	}
 	defer closer.Close()
 
-	oldCommit, err := gitRepo.GetCommit(oldCommitID)
+	oldCommit, err := gitRepo.GetCommit(ctx, oldCommitID)
 	if err != nil {
 		return nil, err
 	}
 
-	newCommit, err := gitRepo.GetCommit(newCommitID)
+	newCommit, err := gitRepo.GetCommit(ctx, newCommitID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Find commits between new and old commit excluding base branch commits
-	commits, err := gitRepo.CommitsBetweenNotBase(newCommit, oldCommit, baseBranch)
+	commits, err := gitRepo.CommitsBetweenNotBase(ctx, newCommit, oldCommit, baseBranch)
 	if err != nil {
 		return nil, err
 	}

@@ -5,6 +5,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -18,28 +19,28 @@ import (
 const TagPrefix = "refs/tags/"
 
 // CreateTag create one tag in the repository
-func (repo *Repository) CreateTag(name, revision string) error {
-	_, _, err := gitcmd.NewCommand("tag").AddDashesAndList(name, revision).WithDir(repo.Path).RunStdString(repo.Ctx)
+func (repo *Repository) CreateTag(ctx context.Context, name, revision string) error {
+	_, _, err := gitcmd.NewCommand("tag").AddDashesAndList(name, revision).WithDir(repo.Path).RunStdString(ctx)
 	return err
 }
 
 // CreateAnnotatedTag create one annotated tag in the repository
-func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error {
+func (repo *Repository) CreateAnnotatedTag(ctx context.Context, name, message, revision string) error {
 	_, _, err := gitcmd.NewCommand("tag", "-a", "-m").
 		AddDynamicArguments(message).
 		AddDashesAndList(name, revision).
 		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		RunStdString(ctx)
 	return err
 }
 
 // GetTagNameBySHA returns the name of a tag from its tag object SHA or commit SHA
-func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
+func (repo *Repository) GetTagNameBySHA(ctx context.Context, sha string) (string, error) {
 	if len(sha) < 5 {
 		return "", fmt.Errorf("SHA is too short: %s", sha)
 	}
 
-	stdout, _, err := gitcmd.NewCommand("show-ref", "--tags", "-d").WithDir(repo.Path).RunStdString(repo.Ctx)
+	stdout, _, err := gitcmd.NewCommand("show-ref", "--tags", "-d").WithDir(repo.Path).RunStdString(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -61,8 +62,8 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 }
 
 // GetTagID returns the object ID for a tag (annotated tags have both an object SHA AND a commit SHA)
-func (repo *Repository) GetTagID(name string) (string, error) {
-	stdout, _, err := gitcmd.NewCommand("show-ref", "--tags").AddDashesAndList(name).WithDir(repo.Path).RunStdString(repo.Ctx)
+func (repo *Repository) GetTagID(ctx context.Context, name string) (string, error) {
+	stdout, _, err := gitcmd.NewCommand("show-ref", "--tags").AddDashesAndList(name).WithDir(repo.Path).RunStdString(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -77,8 +78,8 @@ func (repo *Repository) GetTagID(name string) (string, error) {
 }
 
 // GetTag returns a Git tag by given name.
-func (repo *Repository) GetTag(name string) (*Tag, error) {
-	idStr, err := repo.GetTagID(name)
+func (repo *Repository) GetTag(ctx context.Context, name string) (*Tag, error) {
+	idStr, err := repo.GetTagID(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 		return nil, err
 	}
 
-	tag, err := repo.getTag(id, name)
+	tag, err := repo.getTag(ctx, id, name)
 	if err != nil {
 		return nil, err
 	}
@@ -96,13 +97,13 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 }
 
 // GetTagWithID returns a Git tag by given name and ID
-func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
+func (repo *Repository) GetTagWithID(ctx context.Context, idStr, name string) (*Tag, error) {
 	id, err := NewIDFromString(idStr)
 	if err != nil {
 		return nil, err
 	}
 
-	tag, err := repo.getTag(id, name)
+	tag, err := repo.getTag(ctx, id, name)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +111,7 @@ func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
 }
 
 // GetTagInfos returns all tag infos of the repository.
-func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
+func (repo *Repository) GetTagInfos(ctx context.Context, page, pageSize int) ([]*Tag, int, error) {
 	// Generally, refname:short should be equal to refname:lstrip=2 except core.warnAmbiguousRefs is used to select the strict abbreviation mode.
 	// https://git-scm.com/docs/git-for-each-ref#Documentation/git-for-each-ref.txt-refname
 	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:lstrip=2", "object", "objectname", "creator", "contents", "contents:signature")
@@ -127,7 +128,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 			WithDir(repo.Path).
 			WithStdout(stdoutWriter).
 			WithStderr(&stderr).
-			Run(repo.Ctx)
+			Run(ctx)
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, stderr.String()))
 		} else {
@@ -205,14 +206,14 @@ func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 }
 
 // GetAnnotatedTag returns a Git tag by its SHA, must be an annotated tag
-func (repo *Repository) GetAnnotatedTag(sha string) (*Tag, error) {
+func (repo *Repository) GetAnnotatedTag(ctx context.Context, sha string) (*Tag, error) {
 	id, err := NewIDFromString(sha)
 	if err != nil {
 		return nil, err
 	}
 
 	// Tag type must be "tag" (annotated) and not a "commit" (lightweight) tag
-	if tagType, err := repo.GetTagType(id); err != nil {
+	if tagType, err := repo.GetTagType(ctx, id); err != nil {
 		return nil, err
 	} else if ObjectType(tagType) != ObjectTag {
 		// not an annotated tag
@@ -220,12 +221,12 @@ func (repo *Repository) GetAnnotatedTag(sha string) (*Tag, error) {
 	}
 
 	// Get tag name
-	name, err := repo.GetTagNameBySHA(id.String())
+	name, err := repo.GetTagNameBySHA(ctx, id.String())
 	if err != nil {
 		return nil, err
 	}
 
-	tag, err := repo.getTag(id, name)
+	tag, err := repo.getTag(ctx, id, name)
 	if err != nil {
 		return nil, err
 	}

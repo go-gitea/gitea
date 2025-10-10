@@ -22,7 +22,7 @@ func (c *Commit) recursiveCache(ctx context.Context, tree *Tree, treePath string
 		return nil
 	}
 
-	entries, err := tree.ListEntries()
+	entries, err := tree.ListEntries(ctx)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (c *Commit) recursiveCache(ctx context.Context, tree *Tree, treePath string
 	for _, treeEntry := range entries {
 		// entryMap won't contain "" therefore skip this.
 		if treeEntry.IsDir() {
-			subTree, err := tree.SubTree(treeEntry.Name())
+			subTree, err := tree.SubTree(ctx, treeEntry.Name())
 			if err != nil {
 				return err
 			}

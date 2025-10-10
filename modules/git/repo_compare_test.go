@@ -22,7 +22,7 @@ func TestGetFormatPatch(t *testing.T) {
 		return
 	}
 
-	repo, err := OpenRepository(t.Context(), clonedPath)
+	repo, err := OpenRepository(clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -30,7 +30,7 @@ func TestGetFormatPatch(t *testing.T) {
 	defer repo.Close()
 
 	rd := &bytes.Buffer{}
-	err = repo.GetPatch("8d92fc95^...8d92fc95", rd)
+	err = repo.GetPatch(t.Context(), "8d92fc95^...8d92fc95", rd)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -50,7 +50,7 @@ func TestGetFormatPatch(t *testing.T) {
 func TestReadPatch(t *testing.T) {
 	// Ensure we can read the patch files
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(t.Context(), bareRepo1Path)
+	repo, err := OpenRepository(bareRepo1Path)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -88,7 +88,7 @@ func TestReadWritePullHead(t *testing.T) {
 		return
 	}
 
-	repo, err := OpenRepository(t.Context(), clonedPath)
+	repo, err := OpenRepository(clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -96,7 +96,7 @@ func TestReadWritePullHead(t *testing.T) {
 	defer repo.Close()
 
 	// Try to open non-existing Pull
-	_, err = repo.GetRefCommitID(PullPrefix + "0/head")
+	_, err = repo.GetRefCommitID(t.Context(), PullPrefix+"0/head")
 	assert.Error(t, err)
 
 	// Write a fake sha1 with only 40 zeros
@@ -111,7 +111,7 @@ func TestReadWritePullHead(t *testing.T) {
 	}
 
 	// Read the file created
-	headContents, err := repo.GetRefCommitID(PullPrefix + "1/head")
+	headContents, err := repo.GetRefCommitID(t.Context(), PullPrefix+"1/head")
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -130,11 +130,11 @@ func TestReadWritePullHead(t *testing.T) {
 
 func TestGetCommitFilesChanged(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(t.Context(), bareRepo1Path)
+	repo, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 
-	objectFormat, err := repo.GetObjectFormat()
+	objectFormat, err := repo.GetObjectFormat(t.Context())
 	assert.NoError(t, err)
 
 	testCases := []struct {
@@ -164,7 +164,7 @@ func TestGetCommitFilesChanged(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		changedFiles, err := repo.GetFilesChangedBetween(tc.base, tc.head)
+		changedFiles, err := repo.GetFilesChangedBetween(t.Context(), tc.base, tc.head)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, tc.files, changedFiles)
 	}

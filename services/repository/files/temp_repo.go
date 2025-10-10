@@ -75,7 +75,7 @@ func (t *TemporaryUploadRepository) Clone(ctx context.Context, branch string, ba
 		}
 		return fmt.Errorf("Clone: %w %s", err, stderr)
 	}
-	gitRepo, err := git.OpenRepository(ctx, t.basePath)
+	gitRepo, err := git.OpenRepository(t.basePath)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (t *TemporaryUploadRepository) Init(ctx context.Context, objectFormatName s
 	if err := git.InitRepository(ctx, t.basePath, false, objectFormatName); err != nil {
 		return err
 	}
-	gitRepo, err := git.OpenRepository(ctx, t.basePath)
+	gitRepo, err := git.OpenRepository(t.basePath)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (t *TemporaryUploadRepository) LsFiles(ctx context.Context, filenames ...st
 
 // RemoveFilesFromIndex removes the given files from the index
 func (t *TemporaryUploadRepository) RemoveFilesFromIndex(ctx context.Context, filenames ...string) error {
-	objFmt, err := t.gitRepo.GetObjectFormat()
+	objFmt, err := t.gitRepo.GetObjectFormat(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to get object format for temporary repo: %q, error: %w", t.repo.FullName(), err)
 	}
@@ -412,17 +412,17 @@ func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context) (*gitdiff.Dif
 }
 
 // GetBranchCommit Gets the commit object of the given branch
-func (t *TemporaryUploadRepository) GetBranchCommit(branch string) (*git.Commit, error) {
+func (t *TemporaryUploadRepository) GetBranchCommit(ctx context.Context, branch string) (*git.Commit, error) {
 	if t.gitRepo == nil {
 		return nil, errors.New("repository has not been cloned")
 	}
-	return t.gitRepo.GetBranchCommit(branch)
+	return t.gitRepo.GetBranchCommit(ctx, branch)
 }
 
 // GetCommit Gets the commit object of the given commit ID
-func (t *TemporaryUploadRepository) GetCommit(commitID string) (*git.Commit, error) {
+func (t *TemporaryUploadRepository) GetCommit(ctx context.Context, commitID string) (*git.Commit, error) {
 	if t.gitRepo == nil {
 		return nil, errors.New("repository has not been cloned")
 	}
-	return t.gitRepo.GetCommit(commitID)
+	return t.gitRepo.GetCommit(ctx, commitID)
 }

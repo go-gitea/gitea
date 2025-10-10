@@ -69,7 +69,7 @@ func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*
 			fullPath := path.Join(parentDir, entry.Name())
 			if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].Name(), entry.Blob().Name()) {
 				if entry.IsLink() {
-					res, err := git.EntryFollowLinks(ctx.Repo.Commit, fullPath, entry)
+					res, err := git.EntryFollowLinks(ctx, ctx.Repo.Commit, fullPath, entry)
 					if err == nil && (res.TargetEntry.IsExecutable() || res.TargetEntry.IsRegular()) {
 						readmeFiles[i] = entry
 					}
@@ -93,12 +93,12 @@ func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*
 			if subTreeEntry == nil {
 				continue
 			}
-			subTree := subTreeEntry.Tree()
+			subTree := subTreeEntry.Tree(ctx)
 			if subTree == nil {
 				// this should be impossible; if subTreeEntry exists so should this.
 				continue
 			}
-			childEntries, err := subTree.ListEntries()
+			childEntries, err := subTree.ListEntries(ctx)
 			if err != nil {
 				return "", nil, err
 			}
@@ -146,7 +146,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	readmeFullPath := path.Join(ctx.Repo.TreePath, subfolder, readmeFile.Name())
 	readmeTargetEntry := readmeFile
 	if readmeFile.IsLink() {
-		if res, err := git.EntryFollowLinks(ctx.Repo.Commit, readmeFullPath, readmeFile); err == nil {
+		if res, err := git.EntryFollowLinks(ctx, ctx.Repo.Commit, readmeFullPath, readmeFile); err == nil {
 			readmeTargetEntry = res.TargetEntry
 		} else {
 			readmeTargetEntry = nil // if we cannot resolve the symlink, we cannot render the readme, ignore the error

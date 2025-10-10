@@ -135,7 +135,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	}
 
 	// Get the commit of the original branch
-	commit, err := t.GetBranchCommit(opts.OldBranch)
+	commit, err := t.GetBranchCommit(ctx, opts.OldBranch)
 	if err != nil {
 		return nil, err // Couldn't get a commit for the branch
 	}
@@ -144,7 +144,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
 	} else {
-		lastCommitID, err := t.gitRepo.ConvertToGitID(opts.LastCommitID)
+		lastCommitID, err := t.gitRepo.ConvertToGitID(ctx, opts.LastCommitID)
 		if err != nil {
 			return nil, fmt.Errorf("ApplyPatch: Invalid last commit ID: %w", err)
 		}
@@ -204,12 +204,12 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 		return nil, err
 	}
 
-	commit, err = t.GetCommit(commitHash)
+	commit, err = t.GetCommit(ctx, commitHash)
 	if err != nil {
 		return nil, err
 	}
 
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
+	fileCommitResponse, _ := GetFileCommitResponse(ctx, repo, commit) // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(ctx, commit)
 	fileResponse := &structs.FileResponse{
 		Commit:       fileCommitResponse,

@@ -122,7 +122,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 		if len(branchesToSync) > 0 {
 			var err error
-			gitRepo, err = gitrepo.OpenRepository(ctx, repo)
+			gitRepo, err = gitrepo.OpenRepository(repo)
 			if err != nil {
 				log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
 				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{

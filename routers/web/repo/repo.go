@@ -65,12 +65,12 @@ func MustBeAbleToUpload(ctx *context.Context) {
 
 func CommitInfoCache(ctx *context.Context) {
 	var err error
-	ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
 		ctx.ServerError("GetBranchCommit", err)
 		return
 	}
-	ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
+	ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount(ctx)
 	if err != nil {
 		ctx.ServerError("GetCommitsCount", err)
 		return
@@ -364,7 +364,7 @@ func RedirectDownload(ctx *context.Context) {
 
 // Download an archive of a repository
 func Download(ctx *context.Context) {
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"))
+	aReq, err := archiver_service.NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"))
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
@@ -388,7 +388,7 @@ func InitiateDownload(ctx *context.Context) {
 		})
 		return
 	}
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"))
+	aReq, err := archiver_service.NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"))
 	if err != nil {
 		ctx.HTTPError(http.StatusBadRequest, "invalid archive request")
 		return

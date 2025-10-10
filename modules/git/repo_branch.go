@@ -5,6 +5,8 @@
 package git
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
@@ -12,13 +14,13 @@ import (
 const BranchPrefix = "refs/heads/"
 
 // AddRemote adds a new remote to repository.
-func (repo *Repository) AddRemote(name, url string, fetch bool) error {
+func (repo *Repository) AddRemote(ctx context.Context, name, url string, fetch bool) error {
 	cmd := gitcmd.NewCommand("remote", "add")
 	if fetch {
 		cmd.AddArguments("-f")
 	}
 	_, _, err := cmd.AddDynamicArguments(name, url).
 		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		RunStdString(ctx)
 	return err
 }

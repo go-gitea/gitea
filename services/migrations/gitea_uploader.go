@@ -138,13 +138,13 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = gitrepo.OpenRepository(ctx, g.repo)
+	g.gitRepo, err = gitrepo.OpenRepository(g.repo)
 	if err != nil {
 		return err
 	}
 
 	// detect object format from git repository and update to database
-	objectFormat, err := g.gitRepo.GetObjectFormat()
+	objectFormat, err := g.gitRepo.GetObjectFormat(ctx)
 	if err != nil {
 		return err
 	}
@@ -297,13 +297,13 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 
 		// calc NumCommits if possible
 		if rel.TagName != "" {
-			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
+			commit, err := g.gitRepo.GetTagCommit(ctx, rel.TagName)
 			if !git.IsErrNotExist(err) {
 				if err != nil {
 					return fmt.Errorf("GetTagCommit[%v]: %w", rel.TagName, err)
 				}
 				rel.Sha1 = commit.ID.String()
-				rel.NumCommits, err = commit.CommitsCount()
+				rel.NumCommits, err = commit.CommitsCount(ctx)
 				if err != nil {
 					return fmt.Errorf("CommitsCount: %w", err)
 				}
@@ -625,7 +625,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
 			}
 			// ... now add the remote
-			err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
+			err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true)
 			if err != nil {
 				log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
 			} else {
@@ -644,10 +644,10 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 			localRef = git.SanitizeRefPattern(pr.Head.OwnerName + "/" + pr.Head.Ref)
 
 			// ... Now we must assert that this does not exist
-			if g.gitRepo.IsBranchExist(localRef) {
+			if g.gitRepo.IsBranchExist(ctx, localRef) {
 				localRef = "head-pr-" + strconv.FormatInt(pr.Number, 10) + "/" + localRef
 				i := 0
-				for g.gitRepo.IsBranchExist(localRef) {
+				for g.gitRepo.IsBranchExist(ctx, localRef) {
 					if i > 5 {
 						// ... We tried, we really tried but this is just a seriously unfriendly repo
 						return head, nil
@@ -674,7 +674,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 
 		// 5. Now if pr.Head.SHA == "" we should recover this to the head of this branch
 		if pr.Head.SHA == "" {
-			headSha, err := g.gitRepo.GetBranchCommitID(localRef)
+			headSha, err := g.gitRepo.GetBranchCommitID(ctx, localRef)
 			if err != nil {
 				log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %v", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 				return head, nil
@@ -734,7 +734,7 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 		if pr.Base.Ref != "" && pr.Head.SHA != "" {
 			// A PR against a tag base does not make sense - therefore pr.Base.Ref must be a branch
 			// TODO: should we be checking for the refs/heads/ prefix on the pr.Base.Ref? (i.e. are these actually branches or refs)
-			pr.Base.SHA, _, err = g.gitRepo.GetMergeBase("", git.BranchPrefix+pr.Base.Ref, pr.Head.SHA)
+			pr.Base.SHA, _, err = g.gitRepo.GetMergeBase(ctx, "", git.BranchPrefix+pr.Base.Ref, pr.Head.SHA)
 			if err != nil {
 				log.Error("Cannot determine the merge base for PR #%d in %s/%s. Error: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}
@@ -879,7 +879,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			continue
 		}
 
-		headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		headCommitID, err := g.gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			log.Warn("PR #%d GetRefCommitID[%s] in %s/%s: %v, all review comments will be ignored", pr.Index, pr.GetGitHeadRefName(), g.repoOwner, g.repoName, err)
 			continue
@@ -903,7 +903,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 				_ = writer.Close()
 			}()
 			go func(comment *base.ReviewComment) {
-				if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, writer); err != nil {
+				if err := git.GetRepoRawDiffForFile(ctx, g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, writer); err != nil {
 					// We should ignore the error since the commit maybe removed when force push to the pull request
 					log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
 				}

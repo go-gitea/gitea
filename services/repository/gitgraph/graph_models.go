@@ -102,7 +102,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		if len(c.Rev) == 0 {
 			continue
 		}
-		c.Commit, err = gitRepo.GetCommit(c.Rev)
+		c.Commit, err = gitRepo.GetCommit(ctx, c.Rev)
 		if err != nil {
 			return fmt.Errorf("GetCommit: %s Error: %w", c.Rev, err)
 		}

@@ -15,14 +15,14 @@ import (
 )
 
 // ReadTreeToIndex reads a treeish to the index
-func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string) error {
-	objectFormat, err := repo.GetObjectFormat()
+func (repo *Repository) ReadTreeToIndex(ctx context.Context, treeish string, indexFilename ...string) error {
+	objectFormat, err := repo.GetObjectFormat(ctx)
 	if err != nil {
 		return err
 	}
 
 	if len(treeish) != objectFormat.FullLength() {
-		res, _, err := gitcmd.NewCommand("rev-parse", "--verify").AddDynamicArguments(treeish).WithDir(repo.Path).RunStdString(repo.Ctx)
+		res, _, err := gitcmd.NewCommand("rev-parse", "--verify").AddDynamicArguments(treeish).WithDir(repo.Path).RunStdString(ctx)
 		if err != nil {
 			return err
 		}
@@ -34,15 +34,15 @@ func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string)
 	if err != nil {
 		return err
 	}
-	return repo.readTreeToIndex(id, indexFilename...)
+	return repo.readTreeToIndex(ctx, id, indexFilename...)
 }
 
-func (repo *Repository) readTreeToIndex(id ObjectID, indexFilename ...string) error {
+func (repo *Repository) readTreeToIndex(ctx context.Context, id ObjectID, indexFilename ...string) error {
 	var env []string
 	if len(indexFilename) > 0 {
 		env = append(os.Environ(), "GIT_INDEX_FILE="+indexFilename[0])
 	}
-	_, _, err := gitcmd.NewCommand("read-tree").AddDynamicArguments(id.String()).WithDir(repo.Path).WithEnv(env).RunStdString(repo.Ctx)
+	_, _, err := gitcmd.NewCommand("read-tree").AddDynamicArguments(id.String()).WithDir(repo.Path).WithEnv(env).RunStdString(ctx)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (repo *Repository) readTreeToIndex(id ObjectID, indexFilename ...string) er
 }
 
 // ReadTreeToTemporaryIndex reads a treeish to a temporary index file
-func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (tmpIndexFilename, tmpDir string, cancel context.CancelFunc, err error) {
+func (repo *Repository) ReadTreeToTemporaryIndex(ctx context.Context, treeish string) (tmpIndexFilename, tmpDir string, cancel context.CancelFunc, err error) {
 	defer func() {
 		// if error happens and there is a cancel function, do clean up
 		if err != nil && cancel != nil {
@@ -66,7 +66,7 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (tmpIndexFilena
 
 	tmpIndexFilename = filepath.Join(tmpDir, ".tmp-index")
 
-	err = repo.ReadTreeToIndex(treeish, tmpIndexFilename)
+	err = repo.ReadTreeToIndex(ctx, treeish, tmpIndexFilename)
 	if err != nil {
 		return "", "", cancel, err
 	}
@@ -74,15 +74,15 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (tmpIndexFilena
 }
 
 // EmptyIndex empties the index
-func (repo *Repository) EmptyIndex() error {
-	_, _, err := gitcmd.NewCommand("read-tree", "--empty").WithDir(repo.Path).RunStdString(repo.Ctx)
+func (repo *Repository) EmptyIndex(ctx context.Context) error {
+	_, _, err := gitcmd.NewCommand("read-tree", "--empty").WithDir(repo.Path).RunStdString(ctx)
 	return err
 }
 
 // LsFiles checks if the given filenames are in the index
-func (repo *Repository) LsFiles(filenames ...string) ([]string, error) {
+func (repo *Repository) LsFiles(ctx context.Context, filenames ...string) ([]string, error) {
 	cmd := gitcmd.NewCommand("ls-files", "-z").AddDashesAndList(filenames...)
-	res, _, err := cmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
+	res, _, err := cmd.WithDir(repo.Path).RunStdBytes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +95,8 @@ func (repo *Repository) LsFiles(filenames ...string) ([]string, error) {
 }
 
 // RemoveFilesFromIndex removes given filenames from the index - it does not check whether they are present.
-func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
-	objectFormat, err := repo.GetObjectFormat()
+func (repo *Repository) RemoveFilesFromIndex(ctx context.Context, filenames ...string) error {
+	objectFormat, err := repo.GetObjectFormat(ctx)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 		WithStdin(bytes.NewReader(buffer.Bytes())).
 		WithStdout(stdout).
 		WithStderr(stderr).
-		Run(repo.Ctx)
+		Run(ctx)
 }
 
 type IndexObjectInfo struct {
@@ -125,7 +125,7 @@ type IndexObjectInfo struct {
 }
 
 // AddObjectsToIndex adds the provided object hashes to the index at the provided filenames
-func (repo *Repository) AddObjectsToIndex(objects ...IndexObjectInfo) error {
+func (repo *Repository) AddObjectsToIndex(ctx context.Context, objects ...IndexObjectInfo) error {
 	cmd := gitcmd.NewCommand("update-index", "--add", "--replace", "-z", "--index-info")
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
@@ -139,17 +139,17 @@ func (repo *Repository) AddObjectsToIndex(objects ...IndexObjectInfo) error {
 		WithStdin(bytes.NewReader(buffer.Bytes())).
 		WithStdout(stdout).
 		WithStderr(stderr).
-		Run(repo.Ctx)
+		Run(ctx)
 }
 
 // AddObjectToIndex adds the provided object hash to the index at the provided filename
-func (repo *Repository) AddObjectToIndex(mode string, object ObjectID, filename string) error {
-	return repo.AddObjectsToIndex(IndexObjectInfo{Mode: mode, Object: object, Filename: filename})
+func (repo *Repository) AddObjectToIndex(ctx context.Context, mode string, object ObjectID, filename string) error {
+	return repo.AddObjectsToIndex(ctx, IndexObjectInfo{Mode: mode, Object: object, Filename: filename})
 }
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
-func (repo *Repository) WriteTree() (*Tree, error) {
-	stdout, _, runErr := gitcmd.NewCommand("write-tree").WithDir(repo.Path).RunStdString(repo.Ctx)
+func (repo *Repository) WriteTree(ctx context.Context) (*Tree, error) {
+	stdout, _, runErr := gitcmd.NewCommand("write-tree").WithDir(repo.Path).RunStdString(ctx)
 	if runErr != nil {
 		return nil, runErr
 	}

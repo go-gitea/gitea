@@ -196,7 +196,7 @@ func GetPullDiffStats(ctx *context.Context) {
 	}
 
 	// do not report 500 server error to end users if error occurs, otherwise a PR missing ref won't be able to view.
-	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
 	if err != nil {
 		log.Error("Failed to GetRefCommitID: %v, repo: %v", err, ctx.Repo.Repository.FullName())
 		return
@@ -218,7 +218,7 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 	if pull.MergeBase == "" {
 		var commitSHA, parentCommit string
 		// If there is a head or a patch file, and it is readable, grab info
-		commitSHA, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+		commitSHA, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
 		if err != nil {
 			// Head File does not exist, try the patch
 			commitSHA, err = ctx.Repo.GitRepo.ReadPatchCommit(pull.Index)
@@ -341,7 +341,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 	if pull.BaseRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
 		baseGitRepo = ctx.Repo.GitRepo
 	} else {
-		baseGitRepo, err := gitrepo.OpenRepository(ctx, pull.BaseRepo)
+		baseGitRepo, err := gitrepo.OpenRepository(pull.BaseRepo)
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -355,7 +355,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 		ctx.Data["BaseTarget"] = pull.BaseBranch
 		ctx.Data["HeadTarget"] = pull.HeadBranch
 
-		sha, err := baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitHeadRefName()), err)
 			return nil
@@ -413,9 +413,9 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 
 		if headBranchExist {
 			if pull.Flow != issues_model.PullRequestFlowGithub {
-				headBranchSha, err = baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+				headBranchSha, err = baseGitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
 			} else {
-				headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
+				headBranchSha, err = headGitRepo.GetBranchCommitID(ctx, pull.HeadBranch)
 			}
 			if err != nil {
 				ctx.ServerError("GetBranchCommitID", err)
@@ -436,7 +436,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 		ctx.Data["GetCommitMessages"] = ""
 	}
 
-	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+	sha, err := baseGitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.Data["IsPullRequestBroken"] = true
@@ -674,7 +674,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		return
 	}
 
-	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+	headCommitID, err := gitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return
@@ -699,7 +699,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		if beforeCommitID == "" || beforeCommitID == prInfo.MergeBase {
 			beforeCommitID = prInfo.MergeBase
 			// mergebase commit is not in the list of the pull request commits
-			beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
+			beforeCommit, err = gitRepo.GetCommit(ctx, beforeCommitID)
 			if err != nil {
 				ctx.ServerError("GetCommit", err)
 				return
@@ -712,7 +712,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 			}
 		}
 	} else {
-		beforeCommit, err = afterCommit.Parent(0)
+		beforeCommit, err = afterCommit.Parent(ctx, 0)
 		if err != nil {
 			ctx.ServerError("Parent", err)
 			return
@@ -1206,7 +1206,7 @@ func MergePullRequest(ctx *context.Context) {
 	if ctx.Repo != nil && ctx.Repo.Repository != nil && pr.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
 		headRepo = ctx.Repo.GitRepo
 	} else {
-		headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
+		headRepo, err = gitrepo.OpenRepository(pr.HeadRepo)
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
 			return
@@ -1301,7 +1301,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	content := form.Content
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
-		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+		if template, err := issue_template.UnmarshalFromRepo(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
 			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
 		}
 	}
@@ -1461,7 +1461,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		gitBaseRepo = ctx.Repo.GitRepo
 	} else {
 		// If not just open it
-		gitBaseRepo, err = gitrepo.OpenRepository(ctx, pr.BaseRepo)
+		gitBaseRepo, err = gitrepo.OpenRepository(pr.BaseRepo)
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.BaseRepo.FullName()), err)
 			return
@@ -1476,7 +1476,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		gitRepo = ctx.Repo.GitRepo
 	} else if pr.BaseRepoID != pr.HeadRepoID {
 		// Otherwise just load it up
-		gitRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
+		gitRepo, err = gitrepo.OpenRepository(pr.HeadRepo)
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
 			return
@@ -1489,13 +1489,13 @@ func CleanUpPullRequest(ctx *context.Context) {
 	}()
 
 	// Check if branch has no new commits
-	headCommitID, err := gitBaseRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	headCommitID, err := gitBaseRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 	if err != nil {
 		log.Error("GetRefCommitID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
-	branchCommitID, err := gitRepo.GetBranchCommitID(pr.HeadBranch)
+	branchCommitID, err := gitRepo.GetBranchCommitID(ctx, pr.HeadBranch)
 	if err != nil {
 		log.Error("GetBranchCommitID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))

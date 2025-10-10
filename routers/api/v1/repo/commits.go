@@ -73,7 +73,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 }
 
 func getCommit(ctx *context.APIContext, identifier string, toCommitOpts convert.ToCommitOptions) {
-	commit, err := ctx.Repo.GitRepo.GetCommit(identifier)
+	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, identifier)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound("commit doesn't exist: " + identifier)
@@ -207,14 +207,14 @@ func GetAllCommits(ctx *context.APIContext) {
 		var baseCommit *git.Commit
 		if len(sha) == 0 {
 			// no sha supplied - use default branch
-			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
 			}
 		} else {
 			// get commit specified by sha
-			baseCommit, err = ctx.Repo.GitRepo.GetCommit(sha)
+			baseCommit, err = ctx.Repo.GitRepo.GetCommit(ctx, sha)
 			if err != nil {
 				ctx.NotFoundOrServerError(err)
 				return
@@ -222,7 +222,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Total commit count
-		commitsCountTotal, err = git.CommitsCount(ctx.Repo.GitRepo.Ctx, git.CommitsCountOptions{
+		commitsCountTotal, err = git.CommitsCount(ctx, git.CommitsCountOptions{
 			RepoPath: ctx.Repo.GitRepo.Path,
 			Not:      not,
 			Revision: []string{baseCommit.ID.String()},
@@ -235,7 +235,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Query commits
-		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not, since, until)
+		commits, err = baseCommit.CommitsByRange(ctx, listOptions.Page, listOptions.PageSize, not, since, until)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -264,6 +264,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		commits, err = ctx.Repo.GitRepo.CommitsByFileAndRange(
+			ctx,
 			git.CommitsByFileAndRangeOptions{
 				Revision: sha,
 				File:     path,
@@ -342,7 +343,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	sha := ctx.PathParam("sha")
 	diffType := git.RawDiffType(ctx.PathParam("diffType"))
 
-	if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
+	if err := git.GetRawDiff(ctx, ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound("commit doesn't exist: " + sha)
 			return

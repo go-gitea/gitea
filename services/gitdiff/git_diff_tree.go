@@ -51,7 +51,7 @@ func GetDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase bool
 }
 
 func runGitDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase bool, baseSha, headSha string) ([]*DiffTreeRecord, error) {
-	useMergeBase, baseCommitID, headCommitID, err := validateGitDiffTreeArguments(gitRepo, useMergeBase, baseSha, headSha)
+	useMergeBase, baseCommitID, headCommitID, err := validateGitDiffTreeArguments(ctx, gitRepo, useMergeBase, baseSha, headSha)
 	if err != nil {
 		return nil, err
 	}
@@ -70,14 +70,14 @@ func runGitDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase b
 	return parseGitDiffTree(strings.NewReader(stdout))
 }
 
-func validateGitDiffTreeArguments(gitRepo *git.Repository, useMergeBase bool, baseSha, headSha string) (shouldUseMergeBase bool, resolvedBaseSha, resolvedHeadSha string, err error) {
+func validateGitDiffTreeArguments(ctx context.Context, gitRepo *git.Repository, useMergeBase bool, baseSha, headSha string) (shouldUseMergeBase bool, resolvedBaseSha, resolvedHeadSha string, err error) {
 	// if the head is empty its an error
 	if headSha == "" {
 		return false, "", "", errors.New("headSha is empty")
 	}
 
 	// if the head commit doesn't exist its and error
-	headCommit, err := gitRepo.GetCommit(headSha)
+	headCommit, err := gitRepo.GetCommit(ctx, headSha)
 	if err != nil {
 		return false, "", "", fmt.Errorf("failed to get commit headSha: %v", err)
 	}
@@ -88,7 +88,7 @@ func validateGitDiffTreeArguments(gitRepo *git.Repository, useMergeBase bool, ba
 		// if the headCommit has no parent we should use an empty commit
 		// this can happen when we are generating a diff against an orphaned commit
 		if headCommit.ParentCount() == 0 {
-			objectFormat, err := gitRepo.GetObjectFormat()
+			objectFormat, err := gitRepo.GetObjectFormat(ctx)
 			if err != nil {
 				return false, "", "", err
 			}
@@ -97,7 +97,7 @@ func validateGitDiffTreeArguments(gitRepo *git.Repository, useMergeBase bool, ba
 			return false, objectFormat.EmptyTree().String(), headCommitID, nil
 		}
 
-		baseCommit, err := headCommit.Parent(0)
+		baseCommit, err := headCommit.Parent(ctx, 0)
 		if err != nil {
 			return false, "", "", fmt.Errorf("baseSha is '', attempted to use parent of commit %s, got error: %v", headCommit.ID.String(), err)
 		}
@@ -105,7 +105,7 @@ func validateGitDiffTreeArguments(gitRepo *git.Repository, useMergeBase bool, ba
 	}
 
 	// try and get the base commit
-	baseCommit, err := gitRepo.GetCommit(baseSha)
+	baseCommit, err := gitRepo.GetCommit(ctx, baseSha)
 	// propagate the error if we couldn't get the base commit
 	if err != nil {
 		return useMergeBase, "", "", fmt.Errorf("failed to get base commit %s: %v", baseSha, err)

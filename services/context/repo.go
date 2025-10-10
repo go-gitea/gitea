@@ -202,14 +202,14 @@ func (r *Repository) CanCreateIssueDependencies(ctx context.Context, user *user_
 }
 
 // GetCommitsCount returns cached commit count for current view
-func (r *Repository) GetCommitsCount() (int64, error) {
+func (r *Repository) GetCommitsCount(ctx context.Context) (int64, error) {
 	if r.Commit == nil {
 		return 0, nil
 	}
 	contextName := r.RefFullName.ShortName()
 	isRef := r.RefFullName.IsBranch() || r.RefFullName.IsTag()
-	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, isRef), func() (int64, error) {
-		return r.Commit.CommitsCount()
+	return cache.GetInt64(ctx, r.Repository.GetCommitsCountCacheKey(contextName, isRef), func(ctx context.Context) (int64, error) {
+		return r.Commit.CommitsCount(ctx)
 	})
 }
 
@@ -217,7 +217,7 @@ func (r *Repository) GetCommitsCount() (int64, error) {
 func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, branches, files []string) (int64, error) {
 	cacheKey := fmt.Sprintf("commits-count-%d-graph-%t-%s-%s", r.Repository.ID, hidePRRefs, branches, files)
 
-	return cache.GetInt64(cacheKey, func() (int64, error) {
+	return cache.GetInt64(ctx, cacheKey, func(ctx context.Context) (int64, error) {
 		if len(branches) == 0 {
 			return git.AllCommitsCount(ctx, r.Repository.RepoPath(), hidePRRefs, files...)
 		}
@@ -241,7 +241,7 @@ func (r *Repository) RefTypeNameSubURL() string {
 
 // GetEditorconfig returns the .editorconfig definition if found in the
 // HEAD of the default repo branch.
-func (r *Repository) GetEditorconfig(optCommit ...*git.Commit) (cfg *editorconfig.Editorconfig, warning, err error) {
+func (r *Repository) GetEditorconfig(ctx context.Context, optCommit ...*git.Commit) (cfg *editorconfig.Editorconfig, warning, err error) {
 	if r.GitRepo == nil {
 		return nil, nil, nil
 	}
@@ -251,19 +251,19 @@ func (r *Repository) GetEditorconfig(optCommit ...*git.Commit) (cfg *editorconfi
 	if len(optCommit) != 0 {
 		commit = optCommit[0]
 	} else {
-		commit, err = r.GitRepo.GetBranchCommit(r.Repository.DefaultBranch)
+		commit, err = r.GitRepo.GetBranchCommit(ctx, r.Repository.DefaultBranch)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
-	treeEntry, err := commit.GetTreeEntryByPath(".editorconfig")
+	treeEntry, err := commit.GetTreeEntryByPath(ctx, ".editorconfig")
 	if err != nil {
 		return nil, nil, err
 	}
-	if treeEntry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+	if treeEntry.Blob().Size(ctx) >= setting.UI.MaxDisplayFileSize {
 		return nil, nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
 	}
-	reader, err := treeEntry.Blob().DataAsync()
+	reader, err := treeEntry.Blob().DataAsync(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -711,12 +711,12 @@ func RepoAssignment(ctx *Context) {
 
 const headRefName = "HEAD"
 
-func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool) string {
+func getRefNameFromPath(base *Base, repo *Repository, path string, isExist func(context.Context, string) bool) string {
 	refName := ""
 	parts := strings.Split(path, "/")
 	for i, part := range parts {
 		refName = strings.TrimPrefix(refName+"/"+part, "/")
-		if isExist(refName) {
+		if isExist(base, refName) {
 			repo.TreePath = strings.Join(parts[i+1:], "/")
 			return refName
 		}
@@ -747,7 +747,7 @@ func getRefNameLegacy(ctx *Base, repo *Repository, reqPath, extraRef string) (re
 func getRefName(ctx *Base, repo *Repository, path string, refType git.RefType) string {
 	switch refType {
 	case git.RefTypeBranch:
-		ref := getRefNameFromPath(repo, path, repo.GitRepo.IsBranchExist)
+		ref := getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsBranchExist)
 		if len(ref) == 0 {
 			// check if ref is HEAD
 			parts := strings.Split(path, "/")
@@ -757,8 +757,8 @@ func getRefName(ctx *Base, repo *Repository, path string, refType git.RefType) s
 			}
 
 			// maybe it's a renamed branch
-			return getRefNameFromPath(repo, path, func(s string) bool {
-				b, exist, err := git_model.FindRenamedBranch(ctx, repo.Repository.ID, s)
+			return getRefNameFromPath(ctx, repo, path, func(stdCtx context.Context, s string) bool {
+				b, exist, err := git_model.FindRenamedBranch(stdCtx, repo.Repository.ID, s)
 				if err != nil {
 					log.Error("FindRenamedBranch: %v", err)
 					return false
@@ -777,7 +777,7 @@ func getRefName(ctx *Base, repo *Repository, path string, refType git.RefType) s
 
 		return ref
 	case git.RefTypeTag:
-		return getRefNameFromPath(repo, path, repo.GitRepo.IsTagExist)
+		return getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsTagExist)
 	case git.RefTypeCommit:
 		parts := strings.Split(path, "/")
 		if git.IsStringLikelyCommitID(repo.GetObjectFormat(), parts[0], 7) {
@@ -788,7 +788,7 @@ func getRefName(ctx *Base, repo *Repository, path string, refType git.RefType) s
 
 		if parts[0] == headRefName {
 			// HEAD ref points to last default branch commit
-			commit, err := repo.GitRepo.GetBranchCommit(repo.Repository.DefaultBranch)
+			commit, err := repo.GitRepo.GetBranchCommit(ctx, repo.Repository.DefaultBranch)
 			if err != nil {
 				return ""
 			}
@@ -819,8 +819,8 @@ func RepoRefByDefaultBranch() func(*Context) {
 	return func(ctx *Context) {
 		ctx.Repo.RefFullName = git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch)
 		ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
-		ctx.Repo.Commit, _ = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
-		ctx.Repo.CommitsCount, _ = ctx.Repo.GetCommitsCount()
+		ctx.Repo.Commit, _ = ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.BranchName)
+		ctx.Repo.CommitsCount, _ = ctx.Repo.GetCommitsCount(ctx)
 		ctx.Data["RefFullName"] = ctx.Repo.RefFullName
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
@@ -853,7 +853,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 		if reqPath == "" {
 			refShortName = ctx.Repo.Repository.DefaultBranch
 			if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refShortName) {
-				brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 1)
+				brs, _, err := ctx.Repo.GitRepo.GetBranchNames(ctx, 0, 1)
 				if err == nil && len(brs) != 0 {
 					refShortName = brs[0]
 				} else if len(brs) == 0 {
@@ -864,7 +864,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 			}
 			ctx.Repo.RefFullName = git.RefNameFromBranch(refShortName)
 			ctx.Repo.BranchName = refShortName
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refShortName)
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, refShortName)
 			if err == nil {
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 			} else if strings.Contains(err.Error(), "fatal: not a git repository") || strings.Contains(err.Error(), "object does not exist") {
@@ -896,7 +896,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				ctx.Repo.BranchName = refShortName
 				ctx.Repo.RefFullName = git.RefNameFromBranch(refShortName)
 
-				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refShortName)
+				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, refShortName)
 				if err != nil {
 					ctx.ServerError("GetBranchCommit", err)
 					return
@@ -905,7 +905,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 			} else if refType == git.RefTypeTag && gitrepo.IsTagExist(ctx, ctx.Repo.Repository, refShortName) {
 				ctx.Repo.RefFullName = git.RefNameFromTag(refShortName)
 
-				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refShortName)
+				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(ctx, refShortName)
 				if err != nil {
 					if git.IsErrNotExist(err) {
 						ctx.NotFound(err)
@@ -919,7 +919,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				ctx.Repo.RefFullName = git.RefNameFromCommit(refShortName)
 				ctx.Repo.CommitID = refShortName
 
-				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refShortName)
+				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(ctx, refShortName)
 				if err != nil {
 					ctx.NotFound(err)
 					return
@@ -969,7 +969,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch() // only used by the branch selector dropdown: AllowCreateNewRef
 
-		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
+		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount(ctx)
 		if err != nil {
 			ctx.ServerError("GetCommitsCount", err)
 			return
@@ -1000,8 +1000,8 @@ func GitHookService() func(ctx *Context) {
 
 // canWriteAsMaintainer check if the doer can write to a branch as a maintainer
 func canWriteAsMaintainer(ctx *Context) bool {
-	branchName := getRefNameFromPath(ctx.Repo, ctx.PathParam("*"), func(branchName string) bool {
-		return issues_model.CanMaintainerWriteToBranch(ctx, ctx.Repo.Permission, branchName, ctx.Doer)
+	branchName := getRefNameFromPath(ctx.Base, ctx.Repo, ctx.PathParam("*"), func(stdCtx context.Context, branchName string) bool {
+		return issues_model.CanMaintainerWriteToBranch(stdCtx, ctx.Repo.Permission, branchName, ctx.Doer)
 	})
 	return len(branchName) > 0
 }

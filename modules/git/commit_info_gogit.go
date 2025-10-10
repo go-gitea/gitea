@@ -37,7 +37,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 	var revs map[string]*Commit
 	if commit.repo.LastCommitCache != nil {
 		var unHitPaths []string
-		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, commit.repo.LastCommitCache)
+		revs, unHitPaths, err = getLastCommitForPathsByCache(ctx, commit.ID.String(), treePath, entryPaths, commit.repo.LastCommitCache)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -73,7 +73,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 
 		// If the entry is a submodule, add a submodule file for this
 		if entry.IsSubModule() {
-			commitsInfo[i].SubmoduleFile, err = GetCommitInfoSubmoduleFile(repoLink, path.Join(treePath, entry.Name()), commit, entry.ID)
+			commitsInfo[i].SubmoduleFile, err = GetCommitInfoSubmoduleFile(ctx, repoLink, path.Join(treePath, entry.Name()), commit, entry.ID)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -143,11 +143,11 @@ func getFileHashes(c cgobject.CommitNode, treePath string, paths []string) (map[
 	return hashes, nil
 }
 
-func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
+func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
 	var unHitEntryPaths []string
 	results := make(map[string]*Commit)
 	for _, p := range paths {
-		lastCommit, err := cache.Get(commitID, path.Join(treePath, p))
+		lastCommit, err := cache.Get(ctx, commitID, path.Join(treePath, p))
 		if err != nil {
 			return nil, nil, err
 		}

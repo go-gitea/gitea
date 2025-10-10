@@ -24,7 +24,7 @@ func ServeBlob(ctx *context.Base, repo *repo_model.Repository, filePath string, 
 		return nil
 	}
 
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(ctx)
 	if err != nil {
 		return err
 	}
@@ -35,7 +35,7 @@ func ServeBlob(ctx *context.Base, repo *repo_model.Repository, filePath string, 
 	}()
 
 	_ = repo.LoadOwner(ctx)
-	httplib.ServeContentByReader(ctx.Req, ctx.Resp, blob.Size(), dataRc, &httplib.ServeHeaderOptions{
+	httplib.ServeContentByReader(ctx.Req, ctx.Resp, blob.Size(ctx), dataRc, &httplib.ServeHeaderOptions{
 		Filename:      path.Base(filePath),
 		CacheIsPublic: !repo.IsPrivate && repo.Owner != nil && repo.Owner.Visibility == structs.VisibleTypePublic,
 		CacheDuration: setting.StaticCacheTime,

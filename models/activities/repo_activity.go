@@ -74,7 +74,7 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 		}
 		defer closer.Close()
 
-		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
+		code, err := gitRepo.GetCodeActivityStats(ctx, timeFrom, repo.DefaultBranch)
 		if err != nil {
 			return nil, fmt.Errorf("FillFromGit: %w", err)
 		}
@@ -91,7 +91,7 @@ func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository
 	}
 	defer closer.Close()
 
-	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
+	code, err := gitRepo.GetCodeActivityStats(ctx, timeFrom, "")
 	if err != nil {
 		return nil, fmt.Errorf("FillFromGit: %w", err)
 	}

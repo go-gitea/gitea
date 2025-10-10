@@ -225,14 +225,14 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 		if pr.HasMerged {
 			baseGitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
 			if !ok {
-				baseGitRepo, err = gitrepo.OpenRepository(ctx, pr.BaseRepo)
+				baseGitRepo, err = gitrepo.OpenRepository(pr.BaseRepo)
 				if err != nil {
 					return nil, fmt.Errorf("OpenRepository: %v", err)
 				}
 				defer baseGitRepo.Close()
 				repoIDToGitRepo[pr.BaseRepoID] = baseGitRepo
 			}
-			pullCommit, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+			pullCommit, err := baseGitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 			if err != nil && !git.IsErrNotExist(err) {
 				return nil, fmt.Errorf("GetBranchCommitID: %v", err)
 			}
@@ -289,7 +289,7 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 // It will check whether the branches of the repository have never been synced before.
 // If so, it will sync all branches of the repository.
 // Otherwise, it will sync the branches that need to be updated.
-func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, commitIDs []string, getCommit func(commitID string) (*git.Commit, error)) error {
+func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, commitIDs []string, getCommit func(ctx context.Context, commitID string) (*git.Commit, error)) error {
 	// Some designs that make the code look strange but are made for performance optimization purposes:
 	// 1. Sync branches in a batch to reduce the number of DB queries.
 	// 2. Lazy load commit information since it may be not necessary.
@@ -343,7 +343,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 				continue
 			}
 
-			commit, err := getCommit(commitID)
+			commit, err := getCommit(ctx, commitID)
 			if err != nil {
 				return fmt.Errorf("get commit of %s failed: %v", branchName, err)
 			}
@@ -473,7 +473,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "", err
 	}
 	refNameTo := git.RefNameFromBranch(to)
-	refID, err := gitRepo.GetRefCommitID(refNameTo.String())
+	refID, err := gitRepo.GetRefCommitID(ctx, refNameTo.String())
 	if err != nil {
 		return "", err
 	}
@@ -531,7 +531,7 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	// database branch record not exist or it's a deleted branch
 	notExist := git_model.IsErrBranchNotExist(err) || rawBranch.IsDeleted
 
-	branchCommit, err := gitRepo.GetBranchCommit(branchName)
+	branchCommit, err := gitRepo.GetBranchCommit(ctx, branchName)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return err
 	}
@@ -728,7 +728,7 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 		if err != nil {
 			return nil, err
 		}
-		headCommit, err := headGitRepo.GetCommit(headGitBranch.CommitID)
+		headCommit, err := headGitRepo.GetCommit(ctx, headGitBranch.CommitID)
 		if err != nil {
 			return nil, err
 		}
@@ -736,7 +736,7 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 		if err != nil {
 			return nil, err
 		}
-		hasPreviousCommit, _ := headCommit.HasPreviousCommit(baseCommitID)
+		hasPreviousCommit, _ := headCommit.HasPreviousCommit(ctx, baseCommitID)
 		info.BaseHasNewCommits = !hasPreviousCommit
 		return info, nil
 	}

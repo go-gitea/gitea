@@ -167,7 +167,7 @@ func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gi
 
 	doGitAddRemote(gitPath, "origin", u)(t)
 
-	gitRepo, err := git.OpenRepository(t.Context(), gitPath)
+	gitRepo, err := git.OpenRepository(gitPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -191,7 +191,7 @@ func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gi
 		deleted := deletedBranchesMap[branchName]
 		assert.True(t, ok, "branch %s not found in database", branchName)
 		assert.Equal(t, deleted, branch.IsDeleted, "IsDeleted of %s is %v, but it's expected to be %v", branchName, branch.IsDeleted, deleted)
-		commitID, err := gitRepo.GetBranchCommitID(branchName)
+		commitID, err := gitRepo.GetBranchCommitID(t.Context(), branchName)
 		require.NoError(t, err)
 		assert.Equal(t, commitID, branch.CommitID)
 	}

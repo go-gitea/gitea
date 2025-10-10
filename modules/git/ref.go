@@ -4,6 +4,7 @@
 package git
 
 import (
+	"context"
 	"regexp"
 	"strings"
 
@@ -49,8 +50,8 @@ type Reference struct {
 }
 
 // Commit return the commit of the reference
-func (ref *Reference) Commit() (*Commit, error) {
-	return ref.repo.getCommit(ref.Object)
+func (ref *Reference) Commit(ctx context.Context) (*Commit, error) {
+	return ref.repo.getCommit(ctx, ref.Object)
 }
 
 // ShortName returns the short name of the reference

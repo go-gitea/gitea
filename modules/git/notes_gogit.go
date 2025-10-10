@@ -19,7 +19,7 @@ import (
 // FIXME: Add LastCommitCache support
 func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note) error {
 	log.Trace("Searching for git note corresponding to the commit %q in the repository %q", commitID, repo.Path)
-	notes, err := repo.GetCommit(NotesRef)
+	notes, err := repo.GetCommit(ctx, NotesRef)
 	if err != nil {
 		if IsErrNotExist(err) {
 			return err

@@ -70,7 +70,7 @@ func (fi *fileInfo) isLFSFile() bool {
 }
 
 func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []byte, dataRc io.ReadCloser, fi *fileInfo, err error) {
-	dataRc, err = blob.DataAsync()
+	dataRc, err = blob.DataAsync(ctx)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -81,7 +81,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []b
 	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 
-	fi = &fileInfo{fileSize: blob.Size(), st: typesniffer.DetectContentType(buf)}
+	fi = &fileInfo{fileSize: blob.Size(ctx), st: typesniffer.DetectContentType(buf)}
 
 	// FIXME: what happens when README file is an image?
 	if !fi.st.IsText() || !setting.LFS.StartServer {
@@ -114,7 +114,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []b
 	}
 	buf = buf[:n]
 	fi.st = typesniffer.DetectContentType(buf)
-	fi.fileSize = blob.Size()
+	fi.fileSize = blob.Size(ctx)
 	fi.lfsMeta = &meta.Pointer
 	return buf, dataRc, fi, nil
 }
@@ -262,7 +262,7 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 	fileIcons := map[string]template.HTML{}
 	for _, f := range files {
 		fullPath := path.Join(ctx.Repo.TreePath, f.Entry.Name())
-		entryInfo := fileicon.EntryInfoFromGitTreeEntry(ctx.Repo.Commit, fullPath, f.Entry)
+		entryInfo := fileicon.EntryInfoFromGitTreeEntry(ctx, ctx.Repo.Commit, fullPath, f.Entry)
 		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
 	}
 	fileIcons[".."] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
@@ -271,7 +271,7 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 }
 
 func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entries {
-	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+	tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.SubTree", err)
 		return nil
@@ -280,7 +280,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	ctx.Data["LastCommitLoaderURL"] = ctx.Repo.RepoLink + "/lastcommit/" + url.PathEscape(ctx.Repo.CommitID) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	// Get current entry user currently looking at.
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return nil
@@ -291,7 +291,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 
-	allEntries, err := tree.ListEntries()
+	allEntries, err := tree.ListEntries(ctx)
 	if err != nil {
 		ctx.ServerError("ListEntries", err)
 		return nil

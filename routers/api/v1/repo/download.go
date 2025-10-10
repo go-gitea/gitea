@@ -13,7 +13,7 @@ import (
 )
 
 func serveRepoArchive(ctx *context.APIContext, reqFileName string) {
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, reqFileName)
+	aReq, err := archiver_service.NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, reqFileName)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.APIError(http.StatusBadRequest, err)

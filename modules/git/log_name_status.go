@@ -298,12 +298,12 @@ func (g *LogNameStatusRepoParser) Close() {
 func WalkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath string, paths ...string) (map[string]string, error) {
 	headRef := head.ID.String()
 
-	tree, err := head.SubTree(treepath)
+	tree, err := head.SubTree(ctx, treepath)
 	if err != nil {
 		return nil, err
 	}
 
-	entries, err := tree.ListEntries()
+	entries, err := tree.ListEntries(ctx)
 	if err != nil {
 		return nil, err
 	}

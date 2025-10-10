@@ -186,7 +186,7 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 		}
 	}
 
-	g.gitRepo, err = git.OpenRepository(ctx, g.gitPath())
+	g.gitRepo, err = git.OpenRepository(g.gitPath())
 	return err
 }
 
@@ -508,7 +508,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 			remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
 		}
 		// ... now add the remote
-		err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
+		err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true)
 		if err != nil {
 			log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
 		} else {
@@ -535,10 +535,10 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 		localRef = git.SanitizeRefPattern(oldHeadOwnerName + "/" + pr.Head.Ref)
 
 		// ... Now we must assert that this does not exist
-		if g.gitRepo.IsBranchExist(localRef) {
+		if g.gitRepo.IsBranchExist(ctx, localRef) {
 			localRef = "head-pr-" + strconv.FormatInt(pr.Number, 10) + "/" + localRef
 			i := 0
-			for g.gitRepo.IsBranchExist(localRef) {
+			for g.gitRepo.IsBranchExist(ctx, localRef) {
 				if i > 5 {
 					// ... We tried, we really tried but this is just a seriously unfriendly repo
 					return fmt.Errorf("unable to create unique local reference from %s", pr.Head.Ref)
@@ -570,7 +570,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 
 	// 5. Now if pr.Head.SHA == "" we should recover this to the head of this branch
 	if pr.Head.SHA == "" {
-		headSha, err := g.gitRepo.GetBranchCommitID(localRef)
+		headSha, err := g.gitRepo.GetBranchCommitID(ctx, localRef)
 		if err != nil {
 			log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %v", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 			return nil
