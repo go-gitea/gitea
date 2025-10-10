@@ -459,6 +459,7 @@ func Rerun(ctx *context_module.Context) {
 				ctx.ServerError("PrepareToStartRunWithConcurrency", err)
 				return
 			}
+			// FIXME: old code sets "status" to "running" if it isn't blocked, should we do it? Or keep the status as "waiting"?
 		}
 		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration", "status", "concurrency_group", "concurrency_cancel"); err != nil {
 			ctx.ServerError("UpdateRun", err)

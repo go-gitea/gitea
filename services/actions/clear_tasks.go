@@ -86,10 +86,13 @@ func PrepareToStartJobWithConcurrency(ctx context.Context, job *actions_model.Ac
 	if err != nil {
 		return actions_model.StatusBlocked, err
 	}
+
+	// even if the current job is blocked, we still need to cancel previous "blocked" jobs in the same concurrency group
+	jobs, err := actions_model.CancelPreviousJobsByJobConcurrency(ctx, job)
+
 	if shouldBlock {
 		return actions_model.StatusBlocked, nil
 	}
-	jobs, err := actions_model.CancelPreviousJobsByJobConcurrency(ctx, job)
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
 	return actions_model.StatusWaiting, err
 }
@@ -114,10 +117,13 @@ func PrepareToStartRunWithConcurrency(ctx context.Context, run *actions_model.Ac
 	if err != nil {
 		return actions_model.StatusBlocked, err
 	}
+
+	// even if the current run is blocked, we still need to cancel previous "blocked" jobs in the same concurrency group
+	jobs, err := actions_model.CancelPreviousJobsByRunConcurrency(ctx, run)
+
 	if shouldBlock {
 		return actions_model.StatusBlocked, nil
 	}
-	jobs, err := actions_model.CancelPreviousJobsByRunConcurrency(ctx, run)
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
 	return actions_model.StatusWaiting, err
 }
