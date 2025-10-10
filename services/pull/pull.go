@@ -639,10 +639,10 @@ func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 	return err
 }
 
-// retargetBranchPulls change target branch for all pull requests whose base branch is the branch
-// Both branch and targetBranch must be in the same repo (for security reasons)
-func retargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
-	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
+// RetargetBranchPulls change target branch for all pull requests whose base branch is oldBranch
+// Both oldBranch and newTargetBranch must be in the same repo (for security reasons)
+func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, oldBranch, newTargetBranch string) error {
+	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, oldBranch)
 	if err != nil {
 		return err
 	}
@@ -655,7 +655,7 @@ func retargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int6
 	for _, pr := range prs {
 		if err = pr.Issue.LoadRepo(ctx); err != nil {
 			errs = append(errs, err)
-		} else if err = ChangeTargetBranch(ctx, pr, doer, targetBranch); err != nil &&
+		} else if err = ChangeTargetBranch(ctx, pr, doer, newTargetBranch); err != nil &&
 			!issues_model.IsErrIssueIsClosed(err) && !IsErrPullRequestHasMerged(err) &&
 			!issues_model.IsErrPullRequestAlreadyExists(err) {
 			errs = append(errs, err)
@@ -664,9 +664,10 @@ func retargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int6
 	return errors.Join(errs...)
 }
 
-// AdjustPullsCausedByBranchDeleted close all the pull requests who's head branch is the branch
-// Or Close all the plls who's base branch is the branch if setting.Repository.PullRequest.RetargetChildrenOnMerge is false.
-// If it's true, Retarget all these pulls to the default branch.
+// AdjustPullsCausedByBranchDeleted close all the pull requests with the deleted branch as head
+// Retarget all PR's with the deleted branch as target to the default branch
+// We don't handle setting.Repository.PullRequest.RetargetChildrenOnMerge here,
+// because we would need the PR that was merged to determine which branch to redirect to
 func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branch string) error {
 	// branch as head branch
 	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch)
@@ -694,12 +695,7 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 			}
 		}
 	}
-
-	if setting.Repository.PullRequest.RetargetChildrenOnMerge {
-		if err := retargetBranchPulls(ctx, doer, repo.ID, branch, repo.DefaultBranch); err != nil {
-			log.Error("retargetBranchPulls failed: %v", err)
-			errs = append(errs, err)
-		}
+	if len(errs) > 0 {
 		return errors.Join(errs...)
 	}
 
