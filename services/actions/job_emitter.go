@@ -317,7 +317,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 				continue
 			}
 
-			newStatus := actions_model.StatusBlocked
+			var newStatus actions_model.Status
 			if allSucceed {
 				newStatus = actions_model.StatusWaiting
 			} else {
