@@ -719,8 +719,11 @@ func registerWebRoutes(m *web.Router) {
 	// ***** START: Admin *****
 	m.Group("/-/admin", func() {
 		m.Get("", admin.Dashboard)
+
 		m.Get("/system_status", admin.SystemStatus)
-		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
+
+		m.Get("/maintenance-operations", admin.MaintenanceOperations)
+		m.Post("/maintenance-operations", web.Bind(forms.AdminMaintenanceOperationsForm{}), admin.MaintenanceOperationsPost)
 
 		m.Get("/self_check", admin.SelfCheck)
 		m.Post("/self_check", admin.SelfCheckPost)
