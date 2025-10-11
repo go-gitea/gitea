@@ -100,6 +100,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	// find workflow from commit
 	var workflows []*jobparser.SingleWorkflow
 	var entry *git.TreeEntry
+	var wfRawConcurrency *model.RawConcurrency
 
 	run := &actions_model.ActionRun{
 		Title:             strings.SplitN(runTargetCommit.CommitMessage, "\n", 2)[0],
@@ -170,6 +171,11 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		)
 	}
 
+	wfRawConcurrency, err = jobparser.ReadWorkflowRawConcurrency(content)
+	if err != nil {
+		return err
+	}
+
 	// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event
 	// https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 	// https://docs.github.com/en/webhooks/webhook-events-and-payloads#workflow_dispatch
@@ -187,19 +193,20 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 	run.EventPayload = string(eventPayload)
 
-	// cancel running jobs of the same workflow
-	if err := CancelPreviousJobs(
-		ctx,
-		run.RepoID,
-		run.Ref,
-		run.WorkflowID,
-		run.Event,
-	); err != nil {
-		log.Error("CancelRunningJobs: %v", err)
+	// cancel running jobs of the same concurrency group
+	if wfRawConcurrency != nil {
+		vars, err := actions_model.GetVariablesOfRun(ctx, run)
+		if err != nil {
+			return fmt.Errorf("GetVariablesOfRun: %w", err)
+		}
+		err = EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars)
+		if err != nil {
+			return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
+		}
 	}
 
 	// Insert the action run and its associated jobs into the database
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+	if err := InsertRun(ctx, run, workflows); err != nil {
 		return fmt.Errorf("InsertRun: %w", err)
 	}
 
