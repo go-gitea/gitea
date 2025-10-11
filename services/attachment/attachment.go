@@ -71,20 +71,12 @@ func UploadAttachment(ctx context.Context, file io.Reader, allowedTypes string, 
 		return nil, err
 	}
 
-	reader := io.MultiReader(bytes.NewReader(buf), file)
-
 	// enforce file size limit
-	if maxFileSize >= 0 {
-		if fileSize > maxFileSize {
-			return nil, &ErrAttachmentSizeExceed{MaxSize: maxFileSize, Size: fileSize}
-		}
-		// limit reader to max file size with additional 1k more,
-		// to allow side-cases where encoding tells us its exactly maxFileSize but the actual created file is bit more,
-		// while still make sure the limit is enforced
-		reader = attachmentLimitedReader(reader, maxFileSize+1024)
+	if maxFileSize >= 0 && fileSize > maxFileSize {
+		return nil, &ErrAttachmentSizeExceed{MaxSize: maxFileSize, Size: fileSize}
 	}
 
-	return NewAttachment(ctx, attach, reader, fileSize)
+	return NewAttachment(ctx, attach, io.MultiReader(bytes.NewReader(buf), file), fileSize)
 }
 
 // UpdateAttachment updates an attachment, verifying that its name is among the allowed types.
