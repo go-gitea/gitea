@@ -24,7 +24,7 @@ func NewAttachment(ctx context.Context, attach *repo_model.Attachment, file io.R
 		return nil, fmt.Errorf("attachment %s should belong to a repository", attach.Name)
 	}
 
-	err := db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		attach.UUID = uuid.New().String()
 		size, err := storage.Attachments.Save(attach.RelativePath(), file, size)
 		if err != nil {
@@ -33,13 +33,36 @@ func NewAttachment(ctx context.Context, attach *repo_model.Attachment, file io.R
 		attach.Size = size
 
 		return db.Insert(ctx, attach)
-	})
+	}); err != nil {
+		return nil, err
+	}
 
-	return attach, err
+	return attach, nil
+}
+
+type ErrAttachmentSizeExceed struct {
+	MaxSize int64
+	Size    int64
+}
+
+func (e *ErrAttachmentSizeExceed) Error() string {
+	if e.Size == 0 {
+		return fmt.Sprintf("attachment size exceeds limit %d", e.MaxSize)
+	}
+	return fmt.Sprintf("attachment size %d exceeds limit %d", e.Size, e.MaxSize)
+}
+
+func (e *ErrAttachmentSizeExceed) Unwrap() error {
+	return util.ErrContentTooLarge
+}
+
+func (e *ErrAttachmentSizeExceed) Is(target error) bool {
+	_, ok := target.(*ErrAttachmentSizeExceed)
+	return ok
 }
 
 // UploadAttachment upload new attachment into storage and update database
-func UploadAttachment(ctx context.Context, file io.Reader, allowedTypes string, fileSize int64, attach *repo_model.Attachment) (*repo_model.Attachment, error) {
+func UploadAttachment(ctx context.Context, file io.Reader, allowedTypes string, maxFileSize, fileSize int64, attach *repo_model.Attachment) (*repo_model.Attachment, error) {
 	buf := make([]byte, 1024)
 	n, _ := util.ReadAtMost(file, buf)
 	buf = buf[:n]
@@ -48,7 +71,20 @@ func UploadAttachment(ctx context.Context, file io.Reader, allowedTypes string, 
 		return nil, err
 	}
 
-	return NewAttachment(ctx, attach, io.MultiReader(bytes.NewReader(buf), file), fileSize)
+	reader := io.MultiReader(bytes.NewReader(buf), file)
+
+	// enforce file size limit
+	if maxFileSize >= 0 {
+		if fileSize > maxFileSize {
+			return nil, &ErrAttachmentSizeExceed{MaxSize: maxFileSize, Size: fileSize}
+		}
+		// limit reader to max file size with additional 1k more,
+		// to allow side-cases where encoding tells us its exactly maxFileSize but the actual created file is bit more,
+		// while still make sure the limit is enforced
+		reader = attachmentLimitedReader(reader, maxFileSize+1024)
+	}
+
+	return NewAttachment(ctx, attach, reader, fileSize)
 }
 
 // UpdateAttachment updates an attachment, verifying that its name is among the allowed types.
