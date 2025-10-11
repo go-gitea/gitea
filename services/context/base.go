@@ -18,6 +18,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
+
+	"github.com/pkg/errors"
 )
 
 type BaseContextKeyType struct{}
@@ -40,6 +42,20 @@ type Base struct {
 
 	// Locale is mainly for Web context, although the API context also uses it in some cases: message response, form validation
 	Locale translation.Locale
+}
+
+func (b *Base) ParseMultipartForm() bool {
+	err := b.Req.ParseMultipartForm(32 << 20)
+	if err != nil {
+		if errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
+			// TODO: all errors caused by client side should be ignored (connection closed).
+			// Errors caused by server side (disk full) should be logged.
+			log.Error("Failed to parse request multipart form for %s: %v", b.Req.RequestURI, err)
+		}
+		b.HTTPError(http.StatusInternalServerError, "failed to parse request multipart form")
+		return false
+	}
+	return true
 }
 
 // AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header

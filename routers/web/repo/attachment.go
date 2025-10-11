@@ -45,7 +45,8 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	}
 	defer file.Close()
 
-	attach, err := attachment.UploadAttachment(ctx, file, allowedTypes, setting.Attachment.MaxSize<<20, header.Size, &repo_model.Attachment{
+	uploaderFile := attachment.NewLimitedUploaderKnownSize(file, header.Size)
+	attach, err := attachment.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, allowedTypes, &repo_model.Attachment{
 		Name:       header.Filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     repoID,

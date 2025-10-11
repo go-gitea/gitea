@@ -86,7 +86,9 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 	attachmentIDs := make([]string, 0, len(content.Attachments))
 	if setting.Attachment.Enabled {
 		for _, attachment := range content.Attachments {
-			a, err := attachment_service.UploadAttachment(ctx, bytes.NewReader(attachment.Content), setting.Attachment.AllowedTypes, setting.Attachment.MaxSize<<20, int64(len(attachment.Content)), &repo_model.Attachment{
+			attachmentBuf := bytes.NewReader(attachment.Content)
+			uploaderFile := attachment_service.NewLimitedUploaderKnownSize(attachmentBuf, attachmentBuf.Size())
+			a, err := attachment_service.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, setting.Attachment.AllowedTypes, &repo_model.Attachment{
 				Name:       attachment.Name,
 				UploaderID: doer.ID,
 				RepoID:     issue.Repo.ID,

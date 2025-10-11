@@ -185,7 +185,8 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		filename = query
 	}
 
-	attachment, err := attachment_service.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, setting.Attachment.MaxSize<<20, header.Size, &repo_model.Attachment{
+	uploaderFile := attachment_service.NewLimitedUploaderKnownSize(file, header.Size)
+	attachment, err := attachment_service.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, setting.Attachment.AllowedTypes, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
