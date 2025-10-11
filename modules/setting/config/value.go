@@ -22,8 +22,9 @@ type Value[T any] struct {
 	cfgSecKey CfgSecKey
 	dynKey    string
 
-	def, value T
-	revision   int
+	def, value  T
+	revision    int
+	flipBoolean bool
 }
 
 func (value *Value[T]) parse(key, valStr string) (v T) {
@@ -33,6 +34,17 @@ func (value *Value[T]) parse(key, valStr string) (v T) {
 			log.Error("Unable to unmarshal json config for key %q, err: %v", key, err)
 		}
 	}
+
+	if value.flipBoolean {
+		// if value is of type bool
+		if _, ok := any(v).(bool); ok {
+			// invert the boolean value upon retrieval
+			v = any(!any(v).(bool)).(T)
+		} else {
+			log.Warn("Ignoring attempt to invert key '%q' for non boolean type", key)
+		}
+	}
+
 	return v
 }
 
@@ -90,6 +102,11 @@ func (value *Value[T]) DefaultValue() T {
 
 func (value *Value[T]) WithFileConfig(cfgSecKey CfgSecKey) *Value[T] {
 	value.cfgSecKey = cfgSecKey
+	return value
+}
+
+func (value *Value[bool]) Invert() *Value[bool] {
+	value.flipBoolean = true
 	return value
 }
 

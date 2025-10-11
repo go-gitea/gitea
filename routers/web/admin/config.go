@@ -203,6 +203,11 @@ func ChangeConfig(ctx *context.Context) {
 		return json.Marshal(b)
 	}
 
+	marshalBoolInvert := func(v string) ([]byte, error) {
+		b, _ := strconv.ParseBool(v)
+		return json.Marshal(!b)
+	}
+
 	marshalString := func(emptyDefault string) func(v string) ([]byte, error) {
 		return func(v string) ([]byte, error) {
 			return json.Marshal(util.IfZero(v, emptyDefault))
@@ -230,8 +235,9 @@ func ChangeConfig(ctx *context.Context) {
 		}
 		return json.Marshal(openWithEditorApps)
 	}
+
 	marshallers := map[string]func(string) ([]byte, error){
-		cfg.Picture.DisableGravatar.DynKey():       marshalBool,
+		cfg.Picture.EnableGravatar.DynKey():        marshalBoolInvert, // Invert for backwards compatability with old database semantics
 		cfg.Picture.EnableFederatedAvatar.DynKey(): marshalBool,
 		cfg.Repository.OpenWithEditorApps.DynKey(): marshalOpenWithApps,
 		cfg.Repository.GitGuideRemoteName.DynKey(): marshalString(cfg.Repository.GitGuideRemoteName.DefaultValue()),

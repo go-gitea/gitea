@@ -11,7 +11,7 @@ import (
 )
 
 type PictureStruct struct {
-	DisableGravatar       *config.Value[bool]
+	EnableGravatar        *config.Value[bool]
 	EnableFederatedAvatar *config.Value[bool]
 }
 
@@ -66,7 +66,7 @@ func initDefaultConfig() {
 	config.SetCfgSecKeyGetter(&cfgSecKeyGetter{})
 	defaultConfig = &ConfigStruct{
 		Picture: &PictureStruct{
-			DisableGravatar:       config.ValueJSON[bool]("picture.disable_gravatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "DISABLE_GRAVATAR"}),
+			EnableGravatar:        config.ValueJSON[bool]("picture.disable_gravatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "DISABLE_GRAVATAR"}).Invert(),
 			EnableFederatedAvatar: config.ValueJSON[bool]("picture.enable_federated_avatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "ENABLE_FEDERATED_AVATAR"}),
 		},
 		Repository: &RepositoryStruct{

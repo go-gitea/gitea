@@ -216,8 +216,8 @@ func generateEmailAvatarLink(ctx context.Context, email string, size int, final 
 		return urlStr
 	}
 
-	disableGravatar := setting.Config().Picture.DisableGravatar.Value(ctx)
-	if !disableGravatar {
+	enableGravatar := setting.Config().Picture.EnableGravatar.Value(ctx)
+	if enableGravatar {
 		// copy GravatarSourceURL, because we will modify its Path.
 		avatarURLCopy := *avatarSetting.gravatarSourceURL
 		avatarURLCopy.Path = path.Join(avatarURLCopy.Path, HashEmail(email))

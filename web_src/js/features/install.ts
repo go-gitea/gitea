@@ -62,20 +62,20 @@ function initPreInstall() {
   // TODO: better handling of exclusive relations.
   document.querySelector<HTMLInputElement>('#offline-mode input').addEventListener('change', function () {
     if (this.checked) {
-      document.querySelector<HTMLInputElement>('#disable-gravatar input').checked = true;
+      document.querySelector<HTMLInputElement>('#enable-gravatar input').checked = false;
       document.querySelector<HTMLInputElement>('#federated-avatar-lookup input').checked = false;
     }
   });
-  document.querySelector<HTMLInputElement>('#disable-gravatar input').addEventListener('change', function () {
+  document.querySelector<HTMLInputElement>('#enable-gravatar input').addEventListener('change', function () {
     if (this.checked) {
-      document.querySelector<HTMLInputElement>('#federated-avatar-lookup input').checked = false;
+      document.querySelector<HTMLInputElement>('#federated-avatar-lookup input').checked = true;
     } else {
-      document.querySelector<HTMLInputElement>('#offline-mode input').checked = false;
+      document.querySelector<HTMLInputElement>('#offline-mode input').checked = true;
     }
   });
   document.querySelector<HTMLInputElement>('#federated-avatar-lookup input').addEventListener('change', function () {
     if (this.checked) {
-      document.querySelector<HTMLInputElement>('#disable-gravatar input').checked = false;
+      document.querySelector<HTMLInputElement>('#enable-gravatar input').checked = false;
       document.querySelector<HTMLInputElement>('#offline-mode input').checked = false;
     }
   });

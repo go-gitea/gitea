@@ -19,12 +19,14 @@ const gravatarSource = "https://secure.gravatar.com/avatar/"
 func disableGravatar(t *testing.T) {
 	err := system_model.SetSettings(t.Context(), map[string]string{setting.Config().Picture.EnableFederatedAvatar.DynKey(): "false"})
 	assert.NoError(t, err)
-	err = system_model.SetSettings(t.Context(), map[string]string{setting.Config().Picture.DisableGravatar.DynKey(): "true"})
+	// EnableGravatar.DynKey == picture.disable_gravatar for backwards compatability; .Value will flip correctly but the true value here is misleading
+	err = system_model.SetSettings(t.Context(), map[string]string{setting.Config().Picture.EnableGravatar.DynKey(): "true"})
 	assert.NoError(t, err)
 }
 
 func enableGravatar(t *testing.T) {
-	err := system_model.SetSettings(t.Context(), map[string]string{setting.Config().Picture.DisableGravatar.DynKey(): "false"})
+	// EnableGravatar.DynKey == picture.disable_gravatar for backwards compatability; .Value will flip correctly but the false value here is misleading
+	err := system_model.SetSettings(t.Context(), map[string]string{setting.Config().Picture.EnableGravatar.DynKey(): "false"})
 	assert.NoError(t, err)
 	setting.GravatarSource = gravatarSource
 }
