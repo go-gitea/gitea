@@ -17,7 +17,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// PrepareRun prepares a run before inserting it into the database
+// PrepareRun prepares a run and inserts it into the database
 // It parses the workflow content, evaluates concurrency if needed, and inserts the run and its jobs into the database.
 // The title will be cut off at 255 characters if it's longer than 255 characters.
 func PrepareRun(ctx context.Context, content []byte, run *actions_model.ActionRun, inputsWithDefaults map[string]any) error {
