@@ -57,10 +57,15 @@ func PrepareRun(ctx context.Context, content []byte, run *actions_model.ActionRu
 		return fmt.Errorf("InsertRun: %w", err)
 	}
 
+	// FIXME PERF do we need this db round trip?
 	allJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
 	if err != nil {
 		log.Error("FindRunJobs: %v", err)
 	}
+
+	// FIXME PERF skip this for schedule, dispatch etc.
+	CreateCommitStatus(ctx, allJobs...)
+
 	err = run.LoadAttributes(ctx)
 	if err != nil {
 		log.Error("LoadAttributes: %v", err)

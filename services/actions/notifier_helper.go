@@ -27,7 +27,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
-	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/model"
 )
@@ -348,26 +347,6 @@ func handleWorkflows(
 		if err := PrepareRun(ctx, dwf.Content, run, nil); err != nil {
 			log.Error("PrepareRun: %v", err)
 			continue
-		}
-
-		alljobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
-		if err != nil {
-			log.Error("FindRunJobs: %v", err)
-			continue
-		}
-		// FIXME PERF skip this for schedule, dispatch etc.
-		CreateCommitStatus(ctx, alljobs...)
-		if len(alljobs) > 0 {
-			job := alljobs[0]
-			err := job.LoadRun(ctx)
-			if err != nil {
-				log.Error("LoadRun: %v", err)
-				continue
-			}
-			notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
-		}
-		for _, job := range alljobs {
-			notify_service.WorkflowJobStatusUpdate(ctx, input.Repo, input.Doer, job, nil)
 		}
 	}
 	return nil
