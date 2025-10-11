@@ -119,7 +119,7 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 	// FIXME cron.Content might be outdated if the workflow file has been changed.
 	// Load the latest sha from default branch
 	// Insert the action run and its associated jobs into the database
-	if err := PrepareRun(ctx, cron.Content, run, nil); err != nil {
+	if err := PrepareRunAndInsert(ctx, cron.Content, run, nil); err != nil {
 		return err
 	}
 

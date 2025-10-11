@@ -344,7 +344,7 @@ func handleWorkflows(
 
 		run.NeedApproval = need
 
-		if err := PrepareRun(ctx, dwf.Content, run, nil); err != nil {
+		if err := PrepareRunAndInsert(ctx, dwf.Content, run, nil); err != nil {
 			log.Error("PrepareRun: %v", err)
 			continue
 		}

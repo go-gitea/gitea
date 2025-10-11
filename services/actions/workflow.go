@@ -166,7 +166,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	run.EventPayload = string(eventPayload)
 
 	// Insert the action run and its associated jobs into the database
-	if err := PrepareRun(ctx, content, run, inputsWithDefaults); err != nil {
+	if err := PrepareRunAndInsert(ctx, content, run, inputsWithDefaults); err != nil {
 		return fmt.Errorf("PrepareRun: %w", err)
 	}
 	return nil
