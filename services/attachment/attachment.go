@@ -24,7 +24,7 @@ func NewAttachment(ctx context.Context, attach *repo_model.Attachment, file io.R
 		return nil, fmt.Errorf("attachment %s should belong to a repository", attach.Name)
 	}
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
 		attach.UUID = uuid.New().String()
 		size, err := storage.Attachments.Save(attach.RelativePath(), file, size)
 		if err != nil {
@@ -33,11 +33,9 @@ func NewAttachment(ctx context.Context, attach *repo_model.Attachment, file io.R
 		attach.Size = size
 
 		return db.Insert(ctx, attach)
-	}); err != nil {
-		return nil, err
-	}
+	})
 
-	return attach, nil
+	return attach, err
 }
 
 type ErrAttachmentSizeExceed struct {
@@ -45,20 +43,12 @@ type ErrAttachmentSizeExceed struct {
 	Size    int64
 }
 
-func (e *ErrAttachmentSizeExceed) Error() string {
-	if e.Size == 0 {
-		return fmt.Sprintf("attachment size exceeds limit %d", e.MaxSize)
-	}
+func (e ErrAttachmentSizeExceed) Error() string {
 	return fmt.Sprintf("attachment size %d exceeds limit %d", e.Size, e.MaxSize)
 }
 
-func (e *ErrAttachmentSizeExceed) Unwrap() error {
+func (e ErrAttachmentSizeExceed) Unwrap() error {
 	return util.ErrContentTooLarge
-}
-
-func (e *ErrAttachmentSizeExceed) Is(target error) bool {
-	_, ok := target.(*ErrAttachmentSizeExceed)
-	return ok
 }
 
 // UploadAttachment upload new attachment into storage and update database
@@ -71,9 +61,8 @@ func UploadAttachment(ctx context.Context, file io.Reader, allowedTypes string, 
 		return nil, err
 	}
 
-	// enforce file size limit
 	if maxFileSize >= 0 && fileSize > maxFileSize {
-		return nil, &ErrAttachmentSizeExceed{MaxSize: maxFileSize, Size: fileSize}
+		return nil, ErrAttachmentSizeExceed{MaxSize: maxFileSize, Size: fileSize}
 	}
 
 	return NewAttachment(ctx, attach, io.MultiReader(bytes.NewReader(buf), file), fileSize)

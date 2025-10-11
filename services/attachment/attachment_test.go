@@ -15,67 +15,31 @@ import (
 	_ "code.gitea.io/gitea/models/actions"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m)
 }
 
-func TestNewAttachment(t *testing.T) {
+func TestUploadAttachment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	fPath := "./attachment_test.go"
 	f, err := os.Open(fPath)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer f.Close()
-	fs, err := f.Stat()
-	require.NoError(t, err)
 
 	attach, err := NewAttachment(t.Context(), &repo_model.Attachment{
 		RepoID:     1,
 		UploaderID: user.ID,
 		Name:       filepath.Base(fPath),
-	}, f, fs.Size())
+	}, f, -1)
 	assert.NoError(t, err)
-	assert.Equal(t, fs.Size(), attach.Size)
 
 	attachment, err := repo_model.GetAttachmentByUUID(t.Context(), attach.UUID)
 	assert.NoError(t, err)
 	assert.Equal(t, user.ID, attachment.UploaderID)
 	assert.Equal(t, int64(0), attachment.DownloadCount)
-}
-
-func TestUploadAttachment(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-
-	fPath := "./attachment_test.go"
-	f, err := os.Open(fPath)
-	require.NoError(t, err)
-	defer f.Close()
-	fs, err := f.Stat()
-	require.NoError(t, err)
-
-	t.Run("size to big", func(t *testing.T) {
-		attach, err := UploadAttachment(t.Context(), f, "", 10, fs.Size(), &repo_model.Attachment{
-			RepoID:     1,
-			UploaderID: user.ID,
-			Name:       filepath.Base(fPath),
-		})
-		assert.ErrorIs(t, err, &ErrAttachmentSizeExceed{})
-		assert.Nil(t, attach)
-	})
-
-	t.Run("size was correct", func(t *testing.T) {
-		attach, err := UploadAttachment(t.Context(), f, "", fs.Size(), fs.Size(), &repo_model.Attachment{
-			RepoID:     1,
-			UploaderID: user.ID,
-			Name:       filepath.Base(fPath),
-		})
-		assert.NoError(t, err)
-		require.NotNil(t, attach)
-		assert.Equal(t, user.ID, attach.UploaderID)
-	})
 }
