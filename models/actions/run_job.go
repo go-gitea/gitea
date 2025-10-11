@@ -113,7 +113,7 @@ func (job *ActionRunJob) ParseJob() (*jobparser.Job, error) {
 	_, workflowJob := parsedWorkflows[0].Job()
 	if workflowJob == nil {
 		// it shouldn't happen, and since the callers don't check nil, so return an error instead of nil
-		return nil, util.ErrorWrap(util.ErrNotExist, "job %d single workflow: payload doesn't contain a job", job.JobID)
+		return nil, util.ErrorWrap(util.ErrNotExist, "job %d single workflow: payload doesn't contain a job", job.ID)
 	}
 	return workflowJob, nil
 }
