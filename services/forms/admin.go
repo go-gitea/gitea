@@ -60,14 +60,14 @@ func (f *AdminEditUserForm) Validate(req *http.Request, errs binding.Errors) bin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// AdminDashboardForm form for admin dashboard operations
-type AdminDashboardForm struct {
+// AdminMaintenanceOperationsForm form for admin maintenance operations
+type AdminMaintenanceOperationsForm struct {
 	Op   string `binding:"required"`
 	From string
 }
 
 // Validate validates form fields
-func (f *AdminDashboardForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+func (f *AdminMaintenanceOperationsForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

@@ -32,15 +32,16 @@ import (
 )
 
 const (
-	tplDashboard    templates.TplName = "admin/dashboard"
-	tplSystemStatus templates.TplName = "admin/system_status"
-	tplSelfCheck    templates.TplName = "admin/self_check"
-	tplCron         templates.TplName = "admin/cron"
-	tplQueue        templates.TplName = "admin/queue"
-	tplPerfTrace    templates.TplName = "admin/perftrace"
-	tplStacktrace   templates.TplName = "admin/stacktrace"
-	tplQueueManage  templates.TplName = "admin/queue_manage"
-	tplStats        templates.TplName = "admin/stats"
+	tplDashboard             templates.TplName = "admin/dashboard"
+	tplSystemStatus          templates.TplName = "admin/system_status"
+	tplMaintenanceOperations templates.TplName = "admin/maintenance_operations"
+	tplSelfCheck             templates.TplName = "admin/self_check"
+	tplCron                  templates.TplName = "admin/cron"
+	tplQueue                 templates.TplName = "admin/queue"
+	tplPerfTrace             templates.TplName = "admin/perftrace"
+	tplStacktrace            templates.TplName = "admin/stacktrace"
+	tplQueueManage           templates.TplName = "admin/queue_manage"
+	tplStats                 templates.TplName = "admin/stats"
 )
 
 var sysStatus struct {
@@ -151,13 +152,18 @@ func SystemStatus(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplSystemStatus)
 }
 
-// DashboardPost run an admin operation
-func DashboardPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AdminDashboardForm)
-	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
-	ctx.Data["PageIsAdminDashboard"] = true
-	updateSystemStatus()
-	ctx.Data["SysStatus"] = sysStatus
+// MaintenanceOperations show admin panel maintenance operations
+func MaintenanceOperations(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.dashboard.maintenance_operations")
+	ctx.Data["PageIsAdminMaintenanceOperations"] = true
+	ctx.HTML(http.StatusOK, tplMaintenanceOperations)
+}
+
+// MaintenanceOperationsPost run an admin maintenance operations
+func MaintenanceOperationsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.AdminMaintenanceOperationsForm)
+	ctx.Data["Title"] = ctx.Tr("admin.dashboard.maintenance_operations")
+	ctx.Data["PageIsAdminMaintenanceOperations"] = true
 
 	// Run operation.
 	if form.Op != "" {
@@ -189,7 +195,7 @@ func DashboardPost(ctx *context.Context) {
 	if form.From == "monitor" {
 		ctx.Redirect(setting.AppSubURL + "/-/admin/monitor/cron")
 	} else {
-		ctx.Redirect(setting.AppSubURL + "/-/admin")
+		ctx.Redirect(setting.AppSubURL + "/-/admin/maintenance-operations")
 	}
 }
 
