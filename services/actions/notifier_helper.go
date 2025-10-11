@@ -357,6 +357,19 @@ func handleWorkflows(
 			continue
 		}
 
+		wfRawConcurrency, err := jobparser.ReadWorkflowRawConcurrency(dwf.Content)
+		if err != nil {
+			log.Error("ReadWorkflowRawConcurrency: %v", err)
+			continue
+		}
+		if wfRawConcurrency != nil {
+			err = EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars)
+			if err != nil {
+				log.Error("EvaluateRunConcurrencyFillModel: %v", err)
+				continue
+			}
+		}
+
 		giteaCtx := GenerateGiteaContext(run, nil)
 
 		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
@@ -369,21 +382,7 @@ func handleWorkflows(
 			run.Title = jobs[0].RunName
 		}
 
-		// cancel running jobs if the event is push or pull_request_sync
-		if run.Event == webhook_module.HookEventPush ||
-			run.Event == webhook_module.HookEventPullRequestSync {
-			if err := CancelPreviousJobs(
-				ctx,
-				run.RepoID,
-				run.Ref,
-				run.WorkflowID,
-				run.Event,
-			); err != nil {
-				log.Error("CancelPreviousJobs: %v", err)
-			}
-		}
-
-		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
+		if err := InsertRun(ctx, run, jobs); err != nil {
 			log.Error("InsertRun: %v", err)
 			continue
 		}
