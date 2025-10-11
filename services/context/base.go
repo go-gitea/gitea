@@ -47,8 +47,8 @@ type Base struct {
 func (b *Base) ParseMultipartForm() bool {
 	err := b.Req.ParseMultipartForm(32 << 20)
 	if err != nil {
-		if errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
-			// TODO: all errors caused by client side should be ignored (connection closed).
+		// TODO: all errors caused by client side should be ignored (connection closed).
+		if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 			// Errors caused by server side (disk full) should be logged.
 			log.Error("Failed to parse request multipart form for %s: %v", b.Req.RequestURI, err)
 		}
