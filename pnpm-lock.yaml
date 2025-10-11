@@ -245,10 +245,10 @@ importers:
         version: 8.45.0(eslint@9.36.0(jiti@2.6.1))(typescript@5.9.3)
       '@vitejs/plugin-vue':
         specifier: 6.0.1
-        version: 6.0.1(vite@7.1.7(@types/node@24.6.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1))(vue@3.5.22(typescript@5.9.3))
+        version: 6.0.1(vite@7.1.7(@types/node@24.7.1)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1))(vue@3.5.22(typescript@5.9.3))
       '@vitest/eslint-plugin':
         specifier: 1.3.13
-        version: 1.3.13(eslint@9.36.0(jiti@2.6.1))(typescript@5.9.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.6.2)(happy-dom@19.0.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1))
+        version: 1.3.13(eslint@9.36.0(jiti@2.6.1))(typescript@5.9.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.7.1)(happy-dom@20.0.0)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1))
       eslint:
         specifier: 9.36.0
         version: 9.36.0(jiti@2.6.1)
@@ -292,8 +292,8 @@ importers:
         specifier: 16.4.0
         version: 16.4.0
       happy-dom:
-        specifier: 19.0.2
-        version: 19.0.2
+        specifier: 20.0.0
+        version: 20.0.0
       markdownlint-cli:
         specifier: 0.45.0
         version: 0.45.0
@@ -338,7 +338,7 @@ importers:
         version: 1.4.6
       vitest:
         specifier: 3.2.4
-        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.6.2)(happy-dom@19.0.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.7.1)(happy-dom@20.0.0)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
       vue-tsc:
         specifier: 3.1.0
         version: 3.1.0(typescript@5.9.3)
@@ -1188,11 +1188,11 @@ packages:
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
 
-  '@types/node@20.19.19':
-    resolution: {integrity: sha512-pb1Uqj5WJP7wrcbLU7Ru4QtA0+3kAXrkutGiD26wUKzSMgNNaPARTUDQmElUXp64kh3cWdou3Q0C7qwwxqSFmg==}
+  '@types/node@20.19.20':
+    resolution: {integrity: sha512-2Q7WS25j4pS1cS8yw3d6buNCVJukOTeQ39bAnwR6sOJbaxvyCGebzTMypDFN82CxBLnl+lSWVdCCWbRY6y9yZQ==}
 
-  '@types/node@24.6.2':
-    resolution: {integrity: sha512-d2L25Y4j+W3ZlNAeMKcy7yDsK425ibcAOO2t7aPTz6gNMH0z2GThtwENCDc0d/Pw9wgyRqE5Px1wkV7naz8ang==}
+  '@types/node@24.7.1':
+    resolution: {integrity: sha512-CmyhGZanP88uuC5GpWU9q+fI61j2SkhO3UGMUdfYRE6Bcy0ccyzn1Rqj9YAB/ZY4kOXmNf0ocah5GtphmLMP6Q==}
 
   '@types/pdfobject@2.2.5':
     resolution: {integrity: sha512-7gD5tqc/RUDq0PyoLemL0vEHxBYi+zY0WVaFAx/Y0jBsXFgot1vB9No1GhDZGwRGJMCIZbgAb74QG9MTyTNU/g==}
@@ -2714,8 +2714,8 @@ packages:
     resolution: {integrity: sha512-tSQXBXS/MWQOn/RKckawJ61vvsDpCom87JgxiYdGwHdOa0ht0vzUWDlfioofFCRU0L+6NGDt6XzbgoJvZkMeRQ==}
     engines: {node: '>=0.8.0'}
 
-  happy-dom@19.0.2:
-    resolution: {integrity: sha512-831CLbgDyjRbd2lApHZFsBDe56onuFcjsCBPodzWpzedTpeDr8CGZjs7iEIdNW1DVwSFRecfwzLpVyGBPamwGA==}
+  happy-dom@20.0.0:
+    resolution: {integrity: sha512-GkWnwIFxVGCf2raNrxImLo397RdGhLapj5cT3R2PT7FwL62Ze1DROhzmYW7+J3p9105DYMVenEejEbnq5wA37w==}
     engines: {node: '>=20.0.0'}
 
   has-flag@4.0.0:
@@ -3745,6 +3745,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  semver@7.7.3:
+    resolution: {integrity: sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   serialize-javascript@6.0.2:
     resolution: {integrity: sha512-Saa1xPByTTq2gdeFZYLLo+RFE35NHZkAbqZeWNd3BpzppeVisAqpDjcp8dyf6uIvEqJRd46jemmyA4iFIeVk8g==}
 
@@ -4122,8 +4127,8 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
-  undici-types@7.13.0:
-    resolution: {integrity: sha512-Ov2Rr9Sx+fRgagJ5AX0qvItZG/JKKoBRAVITs1zk7IqZGTJUwgUr7qoYBpWwakpWilTZFM98rG/AFRocu10iIQ==}
+  undici-types@7.14.0:
+    resolution: {integrity: sha512-QQiYxHuyZ9gQUIrmPo3IA+hUl4KYk8uSA7cHrcKd/l3p1OTpZcM0Tbp9x7FAtXdAYhlasd60ncPpgu6ihG6TOA==}
 
   unrs-resolver@1.11.1:
     resolution: {integrity: sha512-bSjt9pjaEBnNiGgc9rUiHGKv5l4/TGzDmYw3RhnkJGtLhbnnA/5qJj7x3dNDCRx/PJxu774LlH8lCOlB4hEfKg==}
@@ -5169,13 +5174,13 @@ snapshots:
 
   '@types/ms@2.1.0': {}
 
-  '@types/node@20.19.19':
+  '@types/node@20.19.20':
     dependencies:
       undici-types: 6.21.0
 
-  '@types/node@24.6.2':
+  '@types/node@24.7.1':
     dependencies:
-      undici-types: 7.13.0
+      undici-types: 7.14.0
 
   '@types/pdfobject@2.2.5': {}
 
@@ -5356,20 +5361,20 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
 
-  '@vitejs/plugin-vue@6.0.1(vite@7.1.7(@types/node@24.6.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1))(vue@3.5.22(typescript@5.9.3))':
+  '@vitejs/plugin-vue@6.0.1(vite@7.1.7(@types/node@24.7.1)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1))(vue@3.5.22(typescript@5.9.3))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-beta.29
-      vite: 7.1.7(@types/node@24.6.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
+      vite: 7.1.7(@types/node@24.7.1)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
       vue: 3.5.22(typescript@5.9.3)
 
-  '@vitest/eslint-plugin@1.3.13(eslint@9.36.0(jiti@2.6.1))(typescript@5.9.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.6.2)(happy-dom@19.0.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1))':
+  '@vitest/eslint-plugin@1.3.13(eslint@9.36.0(jiti@2.6.1))(typescript@5.9.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.7.1)(happy-dom@20.0.0)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1))':
     dependencies:
       '@typescript-eslint/scope-manager': 8.45.0
       '@typescript-eslint/utils': 8.45.0(eslint@9.36.0(jiti@2.6.1))(typescript@5.9.3)
       eslint: 9.36.0(jiti@2.6.1)
     optionalDependencies:
       typescript: 5.9.3
-      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@24.6.2)(happy-dom@19.0.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
+      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@24.7.1)(happy-dom@20.0.0)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -5381,13 +5386,13 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 2.0.0
 
-  '@vitest/mocker@3.2.4(vite@7.1.7(@types/node@24.6.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1))':
+  '@vitest/mocker@3.2.4(vite@7.1.7(@types/node@24.7.1)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1))':
     dependencies:
       '@vitest/spy': 3.2.4
       estree-walker: 3.0.3
       magic-string: 0.30.19
     optionalDependencies:
-      vite: 7.1.7(@types/node@24.6.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
+      vite: 7.1.7(@types/node@24.7.1)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
 
   '@vitest/pretty-format@3.2.4':
     dependencies:
@@ -6832,9 +6837,9 @@ snapshots:
 
   hammerjs@2.0.8: {}
 
-  happy-dom@19.0.2:
+  happy-dom@20.0.0:
     dependencies:
-      '@types/node': 20.19.19
+      '@types/node': 20.19.20
       '@types/whatwg-mimetype': 3.0.2
       whatwg-mimetype: 3.0.0
 
@@ -6986,7 +6991,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 24.6.2
+      '@types/node': 24.7.1
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -7892,6 +7897,8 @@ snapshots:
 
   semver@7.7.2: {}
 
+  semver@7.7.3: {}
+
   serialize-javascript@6.0.2:
     dependencies:
       randombytes: 2.1.0
@@ -8308,7 +8315,7 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici-types@7.13.0: {}
+  undici-types@7.14.0: {}
 
   unrs-resolver@1.11.1:
     dependencies:
@@ -8352,13 +8359,13 @@ snapshots:
 
   vanilla-colorful@0.7.2: {}
 
-  vite-node@3.2.4(@types/node@24.6.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1):
+  vite-node@3.2.4(@types/node@24.7.1)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1):
     dependencies:
       cac: 6.7.14
       debug: 4.4.3
       es-module-lexer: 1.7.0
       pathe: 2.0.3
-      vite: 7.1.7(@types/node@24.6.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
+      vite: 7.1.7(@types/node@24.7.1)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
     transitivePeerDependencies:
       - '@types/node'
       - jiti
@@ -8375,7 +8382,7 @@ snapshots:
 
   vite-string-plugin@1.4.6: {}
 
-  vite@7.1.7(@types/node@24.6.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1):
+  vite@7.1.7(@types/node@24.7.1)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1):
     dependencies:
       esbuild: 0.25.10
       fdir: 6.5.0(picomatch@4.0.3)
@@ -8384,18 +8391,18 @@ snapshots:
       rollup: 4.52.3
       tinyglobby: 0.2.15
     optionalDependencies:
-      '@types/node': 24.6.2
+      '@types/node': 24.7.1
       fsevents: 2.3.3
       jiti: 2.6.1
       stylus: 0.57.0
       terser: 5.44.0
       yaml: 2.8.1
 
-  vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.6.2)(happy-dom@19.0.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1):
+  vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.7.1)(happy-dom@20.0.0)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1):
     dependencies:
       '@types/chai': 5.2.2
       '@vitest/expect': 3.2.4
-      '@vitest/mocker': 3.2.4(vite@7.1.7(@types/node@24.6.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1))
+      '@vitest/mocker': 3.2.4(vite@7.1.7(@types/node@24.7.1)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1))
       '@vitest/pretty-format': 3.2.4
       '@vitest/runner': 3.2.4
       '@vitest/snapshot': 3.2.4
@@ -8413,13 +8420,13 @@ snapshots:
       tinyglobby: 0.2.15
       tinypool: 1.1.1
       tinyrainbow: 2.0.0
-      vite: 7.1.7(@types/node@24.6.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
-      vite-node: 3.2.4(@types/node@24.6.2)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
+      vite: 7.1.7(@types/node@24.7.1)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
+      vite-node: 3.2.4(@types/node@24.7.1)(jiti@2.6.1)(stylus@0.57.0)(terser@5.44.0)(yaml@2.8.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/debug': 4.1.12
-      '@types/node': 24.6.2
-      happy-dom: 19.0.2
+      '@types/node': 24.7.1
+      happy-dom: 20.0.0
     transitivePeerDependencies:
       - jiti
       - less
@@ -8472,7 +8479,7 @@ snapshots:
       eslint-visitor-keys: 4.2.1
       espree: 10.4.0
       esquery: 1.6.0
-      semver: 7.7.2
+      semver: 7.7.3
     transitivePeerDependencies:
       - supports-color
 
