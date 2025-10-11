@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -91,17 +90,12 @@ func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 		return fmt.Errorf("get inputs: %w", err)
 	}
 
-	// singleWorkflows is created from an ActionJob, which always contains exactly a single job's YAML definition.
-	// Ideally it shouldn't be called "Workflow", it is just a job with global workflow fields + trigger
-	singleWorkflows, err := jobparser.Parse(actionRunJob.WorkflowPayload)
+	workflowJob, err := actionRunJob.ParseJob()
 	if err != nil {
-		return fmt.Errorf("parse single workflow: %w", err)
-	} else if len(singleWorkflows) != 1 {
-		return errors.New("not single workflow")
+		return fmt.Errorf("load job %d: %w", actionRunJob.ID, err)
 	}
-	_, singleWorkflowJob := singleWorkflows[0].Job()
 
-	actionRunJob.ConcurrencyGroup, actionRunJob.ConcurrencyCancel, err = jobparser.EvaluateConcurrency(&rawConcurrency, actionRunJob.JobID, singleWorkflowJob, actionsJobCtx, jobResults, vars, inputs)
+	actionRunJob.ConcurrencyGroup, actionRunJob.ConcurrencyCancel, err = jobparser.EvaluateConcurrency(&rawConcurrency, actionRunJob.JobID, workflowJob, actionsJobCtx, jobResults, vars, inputs)
 	if err != nil {
 		return fmt.Errorf("evaluate concurrency: %w", err)
 	}
