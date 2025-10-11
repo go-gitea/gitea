@@ -17,6 +17,8 @@ RUN apk --no-cache add \
 
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 
+COPY Makefile .
+
 # Fetch go dependencies
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
@@ -27,16 +29,33 @@ COPY package.json pnpm-lock.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
   pnpm install --frozen-lockfile --prod
 
-# Setup repo
-COPY . ${GOPATH}/src/code.gitea.io/gitea
+COPY ./webpack.config.ts tailwind.config.ts ./
+COPY ./assets ./assets
+COPY ./public ./public
+COPY ./web_src ./web_src
+
+RUN make frontend
+
+# Copy source files
+COPY ./build ./build
+COPY ./cmd ./cmd
+COPY ./models ./models
+COPY ./modules ./modules
+COPY ./options ./options
+COPY ./routers ./routers
+COPY ./services ./services
+COPY ./templates ./templates
+COPY ./build.go .
+COPY ./main.go .
+COPY contrib/environment-to-ini/environment-to-ini.go contrib/environment-to-ini/environment-to-ini.go
+COPY ./custom ./custom
 
 # Checkout version if set
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    --mount=type=cache,target=/go/pkg/mod \
+RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target="/root/.cache/go-build" \
     --mount=type=bind,source=".git",target="${GOPATH}/src/code.gitea.io/gitea/.git" \
     if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
-    && make build
+    && make backend
 
 # Begin env-to-ini build
 RUN --mount=type=cache,target=/go/pkg/mod \
