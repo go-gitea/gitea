@@ -4,6 +4,7 @@
 package context
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -18,8 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
-
-	"github.com/pkg/errors"
 )
 
 type BaseContextKeyType struct{}
