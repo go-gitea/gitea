@@ -227,8 +227,11 @@ func (s *Service) UpdateTask(
 	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
-		if err := actions_service.EmitJobsIfReady(task.Job.RunID); err != nil {
+		if err := actions_service.EmitJobsIfReadyByRun(task.Job.RunID); err != nil {
 			log.Error("Emit ready jobs of run %d: %v", task.Job.RunID, err)
+		}
+		if task.Job.Run.Status.IsDone() {
+			actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, task.Job)
 		}
 	}
 

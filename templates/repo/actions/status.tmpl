@@ -12,11 +12,11 @@
 {{else if eq .status "cancelled"}}
 	{{svg "octicon-stop" $size (printf "text grey %s" $className)}}
 {{else if eq .status "waiting"}}
-	{{svg "octicon-clock" $size (printf "text yellow %s" $className)}}
+	{{svg "octicon-circle" $size (printf "text grey %s" $className)}}
 {{else if eq .status "blocked"}}
 	{{svg "octicon-blocked" $size (printf "text yellow %s" $className)}}
 {{else if eq .status "running"}}
-	{{svg "octicon-meter" $size (printf "text yellow circular-spin %s" $className)}}
+	{{svg "gitea-running" $size (printf "text yellow circular-spin %s" $className)}}
 {{else}}{{/*failure, unknown*/}}
 	{{svg "octicon-x-circle-fill" $size (printf "text red %s" $className)}}
 {{end}}
