@@ -101,13 +101,6 @@ samp,
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 
-code {
-  padding: 1px 4px;
-  border-radius: var(--border-radius);
-  background-color: var(--color-label-bg);
-  color: var(--color-label-text);
-}
-
 b,
 strong,
 h1,
@@ -302,6 +295,13 @@ a.label,
 .ui.cards a.card,
 .issue-keyword a {
   text-decoration-line: none !important;
+}
+
+.help code {
+  padding: 1px 4px;
+  border-radius: var(--border-radius);
+  background-color: var(--color-label-bg);
+  color: var(--color-label-text);
 }
 
 .ui.search > .results {
