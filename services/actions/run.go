@@ -53,7 +53,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		run.Title = jobs[0].RunName
 	}
 
-	if err := InsertRun(ctx, run, jobs); err != nil {
+	if err := InsertRun(ctx, run, jobs, vars); err != nil {
 		return fmt.Errorf("InsertRun: %w", err)
 	}
 
@@ -81,7 +81,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
-func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow) error {
+func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow, vars map[string]string) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
@@ -106,12 +106,6 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 
 		if err := actions_model.UpdateRepoRunsNumbers(ctx, run.Repo); err != nil {
 			return err
-		}
-
-		// query vars for evaluating job concurrency groups
-		vars, err := actions_model.GetVariablesOfRun(ctx, run)
-		if err != nil {
-			return fmt.Errorf("get run %d variables: %w", run.ID, err)
 		}
 
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
