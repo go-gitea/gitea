@@ -31,7 +31,7 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 		return
 	}
 
-	event, commitID, err := getCommitStatusEventNameAndSHA(run)
+	event, commitID, err := getCommitStatusEventNameAndCommitID(run)
 	if err != nil {
 		log.Error("GetCommitStatusEventNameAndSHA: %v", err)
 	} else if event == "" || commitID == "" {
@@ -50,7 +50,7 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 	}
 }
 
-func getCommitStatusEventNameAndSHA(run *actions_model.ActionRun) (event, sha string, _ error) {
+func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {
 	switch run.Event {
 	case webhook_module.HookEventPush:
 		event = "push"
@@ -61,7 +61,7 @@ func getCommitStatusEventNameAndSHA(run *actions_model.ActionRun) (event, sha st
 		if payload.HeadCommit == nil {
 			return "", "", errors.New("head commit is missing in event payload")
 		}
-		sha = payload.HeadCommit.ID
+		commitID = payload.HeadCommit.ID
 	case // pull_request
 		webhook_module.HookEventPullRequest,
 		webhook_module.HookEventPullRequestSync,
@@ -83,14 +83,13 @@ func getCommitStatusEventNameAndSHA(run *actions_model.ActionRun) (event, sha st
 		} else if payload.PullRequest.Head == nil {
 			return "", "", errors.New("head of pull request is missing in event payload")
 		}
-		sha = payload.PullRequest.Head.Sha
+		commitID = payload.PullRequest.Head.Sha
 	case webhook_module.HookEventRelease:
 		event = string(run.Event)
-		sha = run.CommitSHA
-	default:
-		return "", "", nil
+		commitID = run.CommitSHA
+	default: // do nothing, return empty
 	}
-	return event, sha, nil
+	return event, commitID, nil
 }
 
 func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {

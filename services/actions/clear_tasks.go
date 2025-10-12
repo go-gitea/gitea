@@ -43,13 +43,15 @@ func notifyWorkflowJobStatusUpdate(ctx context.Context, jobs []*actions_model.Ac
 	for _, job := range jobs {
 		if err := job.LoadAttributes(ctx); err != nil {
 			log.Error("Failed to load job attributes: %v", err)
+			continue
 		}
 		CreateCommitStatusForRunJobs(ctx, job.Run, job)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
 
-	job := jobs[0]
-	notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
+	if job := jobs[0]; job.Run != nil && job.Run.Repo != nil {
+		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
+	}
 }
 
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
@@ -212,8 +214,8 @@ func CancelAbandonedJobs(ctx context.Context) error {
 			log.Warn("cancel abandoned job %v: %v", job.ID, err)
 			// go on
 		}
-		if job.Run == nil {
-			continue // error occurs during loading attributes, the following code that depends on "Run" will fail, so ignore and skip
+		if job.Run == nil || job.Run.Repo == nil {
+			continue // error occurs during loading attributes, the following code that depends on "Run.Repo" will fail, so ignore and skip
 		}
 		CreateCommitStatusForRunJobs(ctx, job.Run, job)
 		if updated {
