@@ -73,7 +73,7 @@ func getCommitStatusEventNameAndSHA(run *actions_model.ActionRun) (event, sha st
 	default:
 		return "", "", nil
 	}
-	return
+	return event, sha, nil
 }
 
 // ShouldCreateCommitStatus checks whether we should create a commit status for the given run.
