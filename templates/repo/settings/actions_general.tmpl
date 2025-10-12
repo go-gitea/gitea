@@ -24,10 +24,10 @@
 	</div>
 
 	{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
+	{{if .Repository.IsPrivate}}
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.general.collaborative_owners_management"}}
 	</h4>
-	{{if .Repository.IsPrivate}}
 	{{if len .CollaborativeOwners}}
 	<div class="ui attached segment">
 		<div class="flex-list">
