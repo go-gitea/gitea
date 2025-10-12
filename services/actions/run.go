@@ -9,7 +9,6 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
@@ -53,29 +52,27 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		run.Title = jobs[0].RunName
 	}
 
-	if err := InsertRun(ctx, run, jobs, vars); err != nil {
+	if err = InsertRun(ctx, run, jobs, vars); err != nil {
 		return fmt.Errorf("InsertRun: %w", err)
 	}
 
-	// FIXME PERF do we need this db round trip?
+	// Load the newly inserted jobs with all fields from database (the job models in InsertRun are partial, so load again)
 	allJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
 	if err != nil {
-		log.Error("FindRunJobs: %v", err)
+		return fmt.Errorf("FindRunJob: %w", err)
 	}
 
 	// FIXME PERF skip this for schedule, dispatch etc.
-	CreateCommitStatus(ctx, allJobs...)
-
-	err = run.LoadAttributes(ctx)
-	if err != nil {
-		log.Error("LoadAttributes: %v", err)
+	const shouldCreateCommitStatus = true
+	if shouldCreateCommitStatus {
+		CreateCommitStatus(ctx, allJobs...)
 	}
+
 	notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 	for _, job := range allJobs {
 		notify_service.WorkflowJobStatusUpdate(ctx, run.Repo, run.TriggerUser, job, nil)
 	}
 
-	// Return nil if no errors occurred
 	return nil
 }
 
