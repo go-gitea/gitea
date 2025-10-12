@@ -195,3 +195,15 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - run: make lint-actions
+
+  readme:
+    if: needs.files-changed.outputs.readme == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY : ${{ secrets.OPENAI_API_KEY  }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          npm install -g @openai/codex
+          codex exec --full-auto -c model="gpt-5-codex" -c model_providers.openai.base_url="${{ secrets.OPENAI_BASE_URL }}" -c model_providers.openai.env_key="OPENAI_API_KEY" "$(cat ./.codex/prompts/readme-translation.txt)"
