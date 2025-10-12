@@ -77,13 +77,14 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 		schema, _, _ := strings.Cut(app.OpenURL, ":")
 
 		var iconName string
-		if schema == "vscode" {
+		switch schema {
+		case "vscode":
 			iconName = "octicon-vscode"
-		} else if schema == "vscodium" {
+		case "vscodium":
 			iconName = "gitea-vscodium"
-		} else if schema == "jetbrains" {
+		case "jetbrains":
 			iconName = "gitea-jetbrains"
-		} else {
+		default:
 			// TODO: it could support user's customized icon in the future
 			iconName = "gitea-git"
 		}
