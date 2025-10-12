@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"strconv"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -133,7 +134,7 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 	case actions_model.StatusBlocked:
 		description = "Blocked by required conditions"
 	default:
-		description = "Unknown status: " + job.Status.String()
+		description = "Unknown status: " + strconv.Itoa(int(job.Status))
 	}
 
 	index, err := getIndexOfJob(ctx, job)
