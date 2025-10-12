@@ -204,7 +204,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 						return nil
 					}
 					if !exist {
-						ctx.ServerError("Load task repository", errors.New("repo not found"))
+						ctx.NotFound(errors.New("task repo not found"))
 						return nil
 					}
 					actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
