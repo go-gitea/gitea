@@ -201,9 +201,18 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     env:
-      OPENAI_API_KEY : ${{ secrets.OPENAI_API_KEY  }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
       - uses: actions/checkout@v4
-      - run: |
+      - name: translate-readme
+        if: steps.openai-secret.outputs.skip != 'true'
+        run: |
           npm install -g @openai/codex
-          codex exec --full-auto -c model="gpt-5-codex" -c model_providers.openai.base_url="${{ secrets.OPENAI_BASE_URL }}" -c model_providers.openai.env_key="OPENAI_API_KEY" "$(cat ./.codex/prompts/readme-translation.txt)"
+          codex exec --full-auto \
+            -c model="gpt-5-codex" \
+            -c model_provider="gitea_openai" \
+            -c model_providers.gitea_openai.name="gitea_openai" \
+            -c model_providers.gitea_openai.base_url="${{ secrets.OPENAI_BASE_URL }}" \
+            -c model_providers.gitea_openai.env_key="OPENAI_API_KEY" \
+            -c model_providers.gitea_openai.wire_api="responses" \
+            "$(cat ./.codex/prompts/readme-translation.txt)"
