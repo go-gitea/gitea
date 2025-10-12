@@ -216,3 +216,4 @@ jobs:
             -c model_providers.gitea_openai.env_key="OPENAI_API_KEY" \
             -c model_providers.gitea_openai.wire_api="responses" \
             "$(cat ./.codex/prompts/readme-translation.txt)"
+
