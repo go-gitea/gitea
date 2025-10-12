@@ -114,7 +114,7 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
 
-	description := ""
+	var description string
 	switch job.Status {
 	// TODO: if we want support description in different languages, we need to support i18n placeholders in it
 	case actions_model.StatusSuccess:
