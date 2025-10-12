@@ -38,6 +38,9 @@ const baseOptions: MonacoOpts = {
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
   scrollBeyondLastLine: false,
   automaticLayout: true,
+  wrappingIndent: 'none',
+  wordWrapBreakAfterCharacters: '',
+  wordWrapBreakBeforeCharacters: '',
 };
 
 function getEditorconfig(input: HTMLInputElement): EditorConfig | null {
