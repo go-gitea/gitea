@@ -1,12 +1,33 @@
 <div class="repo-setting-content">
 	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.general.enable_actions"}}
+	</h4>
+	<div class="ui attached segment">
+		<form class="ui form" action="{{.Link}}/actions_unit" method="post">
+			{{.CsrfTokenHtml}}
+			{{$isActionsEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeActions}}
+			{{$isActionsGlobalDisabled := ctx.Consts.RepoUnitTypeActions.UnitGlobalDisabled}}
+			<div class="inline field">
+				<label>{{ctx.Locale.Tr "actions.actions"}}</label>
+				<div class="ui checkbox{{if $isActionsGlobalDisabled}} disabled{{end}}"{{if $isActionsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
+					<input class="enable-system" name="enable_actions" type="checkbox" {{if $isActionsGlobalDisabled}}disabled{{end}} {{if $isActionsEnabled}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.actions_desc"}}</label>
+				</div>
+			</div>
+			{{if not $isActionsGlobalDisabled}}
+			<div class="divider"></div>
+				<div class="field">
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
+			</div>
+			{{end}}
+		</form>
+	</div>
+
+	{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
+	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.general.collaborative_owners_management"}}
 	</h4>
-	{{if not .Repository.IsPrivate}}
-	<div class="ui attached segment">
-		{{ctx.Locale.Tr "actions.general.collaborative_owner_not_required"}}
-	</div>
-	{{else}}
+	{{if .Repository.IsPrivate}}
 	{{if len .CollaborativeOwners}}
 	<div class="ui attached segment">
 		<div class="flex-list">
@@ -41,6 +62,7 @@
 		<br>
 		{{ctx.Locale.Tr "actions.general.collaborative_owners_management_help"}}
 	</div>
+	{{end}}
 	{{end}}
 </div>
 

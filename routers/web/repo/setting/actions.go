@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const tplRepoActionsGeneralSettings templates.TplName = "repo/settings/actions"
@@ -23,12 +24,17 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["PageType"] = "general"
 	ctx.Data["PageIsActionsSettingsGeneral"] = true
 
+	actionsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeActions)
+	if err != nil && !repo_model.IsErrUnitTypeNotExist(err) {
+		ctx.ServerError("GetUnit", err)
+		return
+	}
+	if actionsUnit == nil { // no actions unit
+		ctx.HTML(http.StatusOK, tplRepoActionsGeneralSettings)
+		return
+	}
+
 	if ctx.Repo.Repository.IsPrivate {
-		actionsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeActions)
-		if err != nil {
-			ctx.ServerError("GetUnit", err)
-			return
-		}
 		collaborativeOwnerIDs := actionsUnit.ActionsConfig().CollaborativeOwnerIDs
 		collaborativeOwners, err := user_model.GetUsersByIDs(ctx, collaborativeOwnerIDs)
 		if err != nil {
@@ -39,6 +45,27 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, tplRepoActionsGeneralSettings)
+}
+
+func ActionsUnitPost(ctx *context.Context) {
+	redirectURL := ctx.Repo.RepoLink + "/settings/actions/general"
+	enableActionsUnit := ctx.FormBool("enable_actions")
+	repo := ctx.Repo.Repository
+
+	var err error
+	if enableActionsUnit && !unit_model.TypeActions.UnitGlobalDisabled() {
+		err = repo_service.UpdateRepositoryUnits(ctx, repo, []repo_model.RepoUnit{newRepoUnit(repo, unit_model.TypeActions, nil)}, nil)
+	} else if !unit_model.TypeActions.UnitGlobalDisabled() {
+		err = repo_service.UpdateRepositoryUnits(ctx, repo, nil, []unit_model.Type{unit_model.TypeActions})
+	}
+
+	if err != nil {
+		ctx.ServerError("UpdateRepositoryUnits", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+	ctx.Redirect(redirectURL)
 }
 
 func AddCollaborativeOwner(ctx *context.Context) {
