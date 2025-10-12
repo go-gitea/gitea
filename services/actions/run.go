@@ -62,9 +62,8 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		return fmt.Errorf("FindRunJob: %w", err)
 	}
 
-	// FIXME PERF skip this for schedule, dispatch etc.
-	const shouldCreateCommitStatus = true
-	if shouldCreateCommitStatus {
+	// Create commit status for all jobs if needed
+	if ShouldCreateCommitStatus(run) {
 		CreateCommitStatus(ctx, allJobs...)
 	}
 

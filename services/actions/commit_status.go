@@ -33,26 +33,16 @@ func CreateCommitStatus(ctx context.Context, jobs ...*actions_model.ActionRunJob
 	}
 }
 
-func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) error {
-	if err := job.LoadAttributes(ctx); err != nil {
-		return fmt.Errorf("load run: %w", err)
-	}
-
-	run := job.Run
-
-	var (
-		sha   string
-		event string
-	)
+func getCommitStatusEventNameAndSHA(run *actions_model.ActionRun) (event, sha string, _ error) {
 	switch run.Event {
 	case webhook_module.HookEventPush:
 		event = "push"
 		payload, err := run.GetPushEventPayload()
 		if err != nil {
-			return fmt.Errorf("GetPushEventPayload: %w", err)
+			return "", "", fmt.Errorf("GetPushEventPayload: %w", err)
 		}
 		if payload.HeadCommit == nil {
-			return errors.New("head commit is missing in event payload")
+			return "", "", errors.New("head commit is missing in event payload")
 		}
 		sha = payload.HeadCommit.ID
 	case // pull_request
@@ -69,18 +59,49 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 		}
 		payload, err := run.GetPullRequestEventPayload()
 		if err != nil {
-			return fmt.Errorf("GetPullRequestEventPayload: %w", err)
+			return "", "", fmt.Errorf("GetPullRequestEventPayload: %w", err)
 		}
 		if payload.PullRequest == nil {
-			return errors.New("pull request is missing in event payload")
+			return "", "", errors.New("pull request is missing in event payload")
 		} else if payload.PullRequest.Head == nil {
-			return errors.New("head of pull request is missing in event payload")
+			return "", "", errors.New("head of pull request is missing in event payload")
 		}
 		sha = payload.PullRequest.Head.Sha
 	case webhook_module.HookEventRelease:
 		event = string(run.Event)
 		sha = run.CommitSHA
 	default:
+		return "", "", nil
+	}
+	return
+}
+
+// ShouldCreateCommitStatus checks whether we should create a commit status for the given run.
+// It returns true if the event is supported and the SHA is not empty.
+func ShouldCreateCommitStatus(run *actions_model.ActionRun) bool {
+	event, sha, err := getCommitStatusEventNameAndSHA(run)
+	if err != nil {
+		log.Error("ShouldCreateCommitStatus: %s", err.Error())
+		return false
+	} else if event == "" || sha == "" {
+		// Unsupported event, do nothing
+		return false
+	}
+	return true
+}
+
+func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) error {
+	if err := job.LoadAttributes(ctx); err != nil {
+		return fmt.Errorf("load run: %w", err)
+	}
+
+	run := job.Run
+
+	event, sha, err := getCommitStatusEventNameAndSHA(run)
+	if err != nil {
+		return fmt.Errorf("getCommitStatusEventNameAndSHA: %w", err)
+	} else if event == "" || sha == "" {
+		// Unsupported event, do nothing
 		return nil
 	}
 
