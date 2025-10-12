@@ -62,10 +62,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		return fmt.Errorf("FindRunJob: %w", err)
 	}
 
-	// Create commit status for all jobs if needed
-	if ShouldCreateCommitStatus(run) {
-		CreateCommitStatus(ctx, allJobs...)
-	}
+	CreateCommitStatusForRunJobs(ctx, run, allJobs...)
 
 	notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 	for _, job := range allJobs {

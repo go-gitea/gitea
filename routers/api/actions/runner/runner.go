@@ -217,10 +217,7 @@ func (s *Service) UpdateTask(
 		return nil, status.Errorf(codes.Internal, "load run: %v", err)
 	}
 
-	// don't create commit status for cron job
-	if task.Job.Run.ScheduleID == 0 {
-		actions_service.CreateCommitStatus(ctx, task.Job)
-	}
+	actions_service.CreateCommitStatusForRunJobs(ctx, task.Job.Run, task.Job)
 
 	if task.Status.IsDone() {
 		notify_service.WorkflowJobStatusUpdate(ctx, task.Job.Run.Repo, task.Job.Run.TriggerUser, task.Job, task)
