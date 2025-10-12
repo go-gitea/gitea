@@ -6,7 +6,6 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"path"
 	"strconv"
@@ -76,16 +75,23 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 	}
 	for _, app := range apps {
 		schema, _, _ := strings.Cut(app.OpenURL, ":")
-		var iconHTML template.HTML
-		if schema == "vscode" || schema == "vscodium" || schema == "jetbrains" {
-			iconHTML = svg.RenderHTML("gitea-"+schema, 16)
+
+		var iconName string
+		if schema == "vscode" {
+			iconName = "octicon-vscode"
+		} else if schema == "vscodium" {
+			iconName = "gitea-vscodium"
+		} else if schema == "jetbrains" {
+			iconName = "gitea-jetbrains"
 		} else {
-			iconHTML = svg.RenderHTML("gitea-git", 16) // TODO: it could support user's customized icon in the future
+			// TODO: it could support user's customized icon in the future
+			iconName = "gitea-git"
 		}
+
 		tmplApps = append(tmplApps, map[string]any{
 			"DisplayName": app.DisplayName,
 			"OpenURL":     app.OpenURL,
-			"IconHTML":    iconHTML,
+			"IconHTML":    svg.RenderHTML(iconName, 16),
 		})
 	}
 	ctx.Data["OpenWithEditorApps"] = tmplApps
