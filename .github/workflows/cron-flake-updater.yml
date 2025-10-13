@@ -9,7 +9,6 @@ jobs:
   nix-flake-update:
     permissions:
       contents: write
-      id-token: write
       issues: write
       pull-requests: write
     runs-on: ubuntu-latest
