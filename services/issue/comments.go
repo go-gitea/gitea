@@ -164,6 +164,13 @@ func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) (err e
 
 	c.IsForcePush = data.IsForcePush
 
+	if err := c.LoadIssue(ctx); err != nil {
+		return err
+	}
+	if err := c.Issue.LoadRepo(ctx); err != nil {
+		return err
+	}
+
 	if c.IsForcePush {
 		if len(data.CommitIDs) != 2 {
 			return nil

@@ -310,7 +310,8 @@ func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *us
 	}
 
 	// only update branch can trigger pull request task because the pull request hasn't been created yet when creating a branch
-	go pull_service.AddTestPullRequestTask(pull_service.TestPullRequestOptions{
+	// since pushUpdateBrach is called in a queue worker, we don't need to call it in a go routine again
+	pull_service.AddTestPullRequestTask(pull_service.TestPullRequestOptions{
 		RepoID:      repo.ID,
 		Doer:        pusher,
 		Branch:      branch,

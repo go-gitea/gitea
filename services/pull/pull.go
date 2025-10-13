@@ -376,7 +376,6 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 	graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
 		// There is no sensible way to shut this down ":-("
 		// If you don't let it run all the way then you will lose data
-		// TODO: graceful: AddTestPullRequestTask needs to become a queue!
 
 		repo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
 		if err != nil {
@@ -402,11 +401,15 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 				continue
 			}
 
-			StartPullRequestCheckImmediately(ctx, pr)
+			// create push comment first then check pull request status so the test
+			// will get a stable result
 			comment, err := CreatePushPullComment(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID, opts.IsForcePush)
 			if err == nil && comment != nil {
 				notify_service.PullRequestPushCommits(ctx, opts.Doer, pr, comment)
 			}
+			// FIXME: since AddTestPullRequestTask was called in a goroutine or a queue worker, is it still necessary to
+			// call another queue to handle the PR check? Maybe we can use checkPullRequestMergeable directly here?
+			StartPullRequestCheckImmediately(ctx, pr)
 		}
 
 		if opts.IsSync {

@@ -62,18 +62,7 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		return fmt.Errorf("unable to load HeadRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
 	}
 
-	defer func() {
-		go AddTestPullRequestTask(TestPullRequestOptions{
-			RepoID:      pr.BaseRepo.ID,
-			Doer:        doer,
-			Branch:      pr.BaseBranch,
-			IsSync:      false,
-			IsForcePush: false,
-			OldCommitID: "",
-			NewCommitID: "",
-		})
-	}()
-
+	// we don't need to run pull request check here because it will be triggered by push
 	if rebase {
 		return updateHeadByRebaseOnToBase(ctx, pr, doer)
 	}

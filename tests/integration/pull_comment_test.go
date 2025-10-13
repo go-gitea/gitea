@@ -62,7 +62,8 @@ func testPullCommentRebase(t *testing.T, u *url.URL, session *TestSession) {
 	doGitPushTestRepositoryFail(dstPath, "base-repo", "local-branch/rebase:test-branch/rebase")(t)
 	doGitPushTestRepository(dstPath, "--force", "base-repo", "local-branch/rebase:test-branch/rebase")(t)
 
-	// reload the pr
+	// FIXME: Both the status of the pull request before pushing and the waiting are mergeable. So that
+	// if it's fast enough here, the pull request checking might be not process yet.
 	prIssue := testWaitForPullRequestStatus(t, &issues_model.Issue{Title: testPRTitle}, issues_model.PullRequestStatusMergeable)
 	comments, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
 		IssueID: prIssue.ID,
