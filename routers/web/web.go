@@ -493,6 +493,8 @@ func registerWebRoutes(m *web.Router) {
 
 	m.Post("/-/markup", reqSignIn, web.Bind(structs.MarkupOption{}), misc.Markup)
 
+	m.Get("/subject/{subjectname}", optSignIn, context.RepoAssignmentBySubject, context.RepoRefByDefaultBranch(), repo.SetEditorconfigIfExists, explore.RepoHistory)
+
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/articles")
@@ -1172,6 +1174,8 @@ func registerWebRoutes(m *web.Router) {
 		ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer),
 	)
 	// end "/{username}/{reponame}/settings"
+
+	m.Get("/article/{username}/{subjectname}", optSignIn, context.RepoAssignmentByOwnerAndSubject, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)
 
 	// user/org home, including rss feeds like "/{username}/{reponame}.rss"
 	m.Get("/{username}/{reponame}", optSignIn, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)

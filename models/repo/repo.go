@@ -889,6 +889,67 @@ func GetPublicRepositoryByName(ctx context.Context, name string) (*Repository, e
 	return &repo, nil
 }
 
+// GetPublicRepositoryBySubject returns the first public repository with the given subject name.
+// This function searches across all owners and prioritizes root repositories (non-forks)
+// over forks to ensure the original repository is returned when multiple repos share the same subject.
+func GetPublicRepositoryBySubject(ctx context.Context, subjectName string) (*Repository, error) {
+	// First, get the subject by name
+	subject, err := GetSubjectByName(ctx, subjectName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the first public repository with this subject_id, preferring root repos
+	var repo Repository
+	has, err := db.GetEngine(ctx).
+		Where("`subject_id`=?", subject.ID).
+		And("`is_private`=?", false).
+		OrderBy("`is_fork` ASC, `updated_unix` DESC"). // Prefer root repos (is_fork=false), then most recently updated
+		NoAutoCondition().
+		Get(&repo)
+
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrRepoNotExist{0, 0, "", subjectName}
+	}
+
+	// Load the subject relation
+	repo.SubjectRelation = subject
+
+	return &repo, nil
+}
+
+// GetRepositoryByOwnerAndSubject returns a repository by owner name and subject name.
+// This function returns the specific user's repository (whether it's a root or fork).
+func GetRepositoryByOwnerAndSubject(ctx context.Context, ownerName, subjectName string) (*Repository, error) {
+	// First, get the subject by name
+	subject, err := GetSubjectByName(ctx, subjectName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the repository with this owner and subject_id
+	var repo Repository
+	has, err := db.GetEngine(ctx).Table("repository").Select("repository.*").
+		Join("INNER", "`user`", "`user`.id = repository.owner_id").
+		Where("repository.subject_id = ?", subject.ID).
+		And("`user`.lower_name = ?", strings.ToLower(ownerName)).
+		NoAutoCondition().
+		Get(&repo)
+
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrRepoNotExist{0, 0, ownerName, subjectName}
+	}
+
+	// Load the subject relation
+	repo.SubjectRelation = subject
+
+	return &repo, nil
+}
+
 // GetRepositoryByURL returns the repository by given url
 func GetRepositoryByURL(ctx context.Context, repoURL string) (*Repository, error) {
 	ret, err := giturl.ParseRepositoryURL(ctx, repoURL)
