@@ -112,7 +112,15 @@ func DeleteSubject(ctx context.Context, id int64) error {
 // FindSubjects finds subjects based on options
 func FindSubjects(ctx context.Context, opts FindSubjectsOptions) ([]*Subject, int64, error) {
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
-	
+
+	// Apply sorting
+	if opts.OrderBy != "" {
+		sess = sess.OrderBy(opts.OrderBy)
+	} else {
+		// Default sort by updated time descending
+		sess = sess.OrderBy("updated_unix DESC")
+	}
+
 	if opts.PageSize > 0 {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
@@ -126,6 +134,7 @@ func FindSubjects(ctx context.Context, opts FindSubjectsOptions) ([]*Subject, in
 type FindSubjectsOptions struct {
 	db.ListOptions
 	Keyword string
+	OrderBy string
 }
 
 // ToConds converts options to database conditions
@@ -135,6 +144,38 @@ func (opts FindSubjectsOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Like{"LOWER(name)", opts.Keyword})
 	}
 	return cond
+}
+
+// SubjectSortType represents the sort type for subjects
+type SubjectSortType string
+
+const (
+	SubjectSortAlphabetically SubjectSortType = "alphabetically"
+	SubjectSortAlphaReverse   SubjectSortType = "reversealphabetically"
+	SubjectSortNewest         SubjectSortType = "newest"
+	SubjectSortOldest         SubjectSortType = "oldest"
+	SubjectSortRecentUpdate   SubjectSortType = "recentupdate"
+	SubjectSortLeastUpdate    SubjectSortType = "leastupdate"
+)
+
+// SubjectOrderByMap maps sort types to database ORDER BY clauses
+var SubjectOrderByMap = map[SubjectSortType]string{
+	SubjectSortAlphabetically: "name ASC",
+	SubjectSortAlphaReverse:   "name DESC",
+	SubjectSortNewest:         "created_unix DESC",
+	SubjectSortOldest:         "created_unix ASC",
+	SubjectSortRecentUpdate:   "updated_unix DESC",
+	SubjectSortLeastUpdate:    "updated_unix ASC",
+}
+
+// CountRepositoriesBySubject counts the number of repositories for a given subject
+func CountRepositoriesBySubject(ctx context.Context, subjectID int64) (int64, error) {
+	return db.GetEngine(ctx).Where("subject_id = ?", subjectID).Count(new(Repository))
+}
+
+// CountRootRepositoriesBySubject counts the number of root (non-fork) repositories for a given subject
+func CountRootRepositoriesBySubject(ctx context.Context, subjectID int64) (int64, error) {
+	return db.GetEngine(ctx).Where("subject_id = ? AND is_fork = ?", subjectID, false).Count(new(Repository))
 }
 
 // ErrSubjectNotExist represents a "SubjectNotExist" error

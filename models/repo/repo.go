@@ -359,14 +359,24 @@ func (repo *Repository) LoadSubject(ctx context.Context) error {
 }
 
 // GetSubject returns the subject for the repository.
-// Priority: SubjectRelation > Name (fallback)
+// If a subject is assigned (SubjectID > 0), callers should call LoadSubject(ctx) first.
+// Priority: SubjectRelation.Name > Name (fallback when SubjectID == 0)
 func (repo *Repository) GetSubject() string {
-	// First priority: loaded subject relation
+	// If subject relation is loaded, return its name
 	if repo.SubjectRelation != nil {
 		return repo.SubjectRelation.Name
 	}
 
-	// Fallback: repository name
+	// If no subject is assigned (SubjectID == 0), fallback to repository name
+	if repo.SubjectID == 0 {
+		return repo.Name
+	}
+
+	// SubjectID > 0 but SubjectRelation is nil - this is a programming error
+	// The caller should have called LoadSubject(ctx) before calling GetSubject()
+	log.Error("Repository %d (%s) has SubjectID %d but SubjectRelation is not loaded. Call LoadSubject(ctx) before GetSubject().",
+		repo.ID, repo.FullName(), repo.SubjectID)
+
 	return repo.Name
 }
 

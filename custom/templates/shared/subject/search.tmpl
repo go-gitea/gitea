@@ -1,0 +1,25 @@
+<div class="ui small secondary filter menu">
+	<form id="subject-search-form" class="ui form ignore-dirty tw-flex-1 tw-flex tw-items-center tw-gap-x-2">
+		<div class="ui small fluid action input tw-flex-1 tw-my-4">
+			{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.subject_kind")}}
+			{{template "shared/search/button"}}
+		</div>
+		<!-- Sort -->
+		<div class="item ui small dropdown jump">
+			<div style="transform: rotate(90deg) !important;">
+				{{svg "octicon-arrow-switch" 14 "dropdown icon tw-mt-1 tw-rotate-90"}}
+			</div>
+			<span class="text">{{ctx.Locale.Tr "repo.issues.filter_sort"}}</span>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<div class="menu">
+				<label class="{{if eq .SortType "alphabetically"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "alphabetically"}}checked{{end}} value="alphabetically"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</label>
+				<label class="{{if eq .SortType "reversealphabetically"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "reversealphabetically"}}checked{{end}} value="reversealphabetically"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</label>
+				<label class="{{if eq .SortType "newest"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "newest"}}checked{{end}} value="newest"> {{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</label>
+				<label class="{{if eq .SortType "oldest"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "oldest"}}checked{{end}} value="oldest"> {{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</label>
+				<label class="{{if eq .SortType "recentupdate"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "recentupdate"}}checked{{end}} value="recentupdate"> {{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</label>
+				<label class="{{if eq .SortType "leastupdate"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "leastupdate"}}checked{{end}} value="leastupdate"> {{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</label>
+			</div>
+		</div>
+	</form>
+</div>
+

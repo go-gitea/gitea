@@ -25,7 +25,7 @@
                             {{if gt $node.Level 2}}<span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span><span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span><span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span>{{end}}
                         {{end}}
 
-                        <a class="ui large text" href="/explore/articles/history/{{$node.Repository.Name}}">
+                        <a class="ui large text" href="/subject/{{$node.Repository.GetSubject}}">
                             <strong>{{if $node.Repository.Owner}}{{$node.Repository.Owner.Name}}{{else}}unknown{{end}}/{{$node.Repository.Name}}</strong>
                         </a>
 

@@ -33,6 +33,8 @@ import (
 const (
 	// tplExploreRepos explore repositories page template
 	tplExploreRepos        templates.TplName = "explore/repos"
+	// tplExploreSubjects explore subjects page template
+	tplExploreSubjects     templates.TplName = "explore/subjects"
 	relevantReposOnlyParam string            = "only_show_relevant"
 )
 
@@ -189,6 +191,91 @@ func Repos(ctx *context.Context) {
 		TplName:          tplExploreRepos,
 		OnlyShowRelevant: onlyShowRelevant,
 	})
+}
+
+// Subjects render explore subjects page (articles list)
+func Subjects(ctx *context.Context) {
+	ctx.Data["UsersPageIsDisabled"] = setting.Service.Explore.DisableUsersPage
+	ctx.Data["OrganizationsPageIsDisabled"] = setting.Service.Explore.DisableOrganizationsPage
+	ctx.Data["CodePageIsDisabled"] = setting.Service.Explore.DisableCodePage
+	ctx.Data["Title"] = ctx.Tr("explore")
+	ctx.Data["PageIsExplore"] = true
+	ctx.Data["PageIsExploreSubjects"] = true
+
+	// Get page number
+	page := ctx.FormInt("page")
+	if page <= 0 {
+		page = 1
+	}
+
+	// Get sort order
+	sortOrder := ctx.FormString("sort")
+	if sortOrder == "" {
+		sortOrder = string(repo_model.SubjectSortRecentUpdate)
+	}
+
+	// Map sort order to database ORDER BY clause
+	orderBy := repo_model.SubjectOrderByMap[repo_model.SubjectSortType(sortOrder)]
+	if orderBy == "" {
+		sortOrder = string(repo_model.SubjectSortRecentUpdate)
+		orderBy = repo_model.SubjectOrderByMap[repo_model.SubjectSortRecentUpdate]
+	}
+	ctx.Data["SortType"] = sortOrder
+
+	// Get search keyword
+	keyword := ctx.FormTrim("q")
+	ctx.Data["Keyword"] = keyword
+
+	// Search subjects
+	subjects, count, err := repo_model.FindSubjects(ctx, repo_model.FindSubjectsOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.ExplorePagingNum,
+		},
+		Keyword: keyword,
+		OrderBy: orderBy,
+	})
+	if err != nil {
+		ctx.ServerError("FindSubjects", err)
+		return
+	}
+
+	// For each subject, get the repository count
+	type SubjectWithCount struct {
+		*repo_model.Subject
+		RepoCount     int64
+		RootRepoCount int64
+	}
+
+	subjectsWithCount := make([]*SubjectWithCount, 0, len(subjects))
+	for _, subject := range subjects {
+		repoCount, err := repo_model.CountRepositoriesBySubject(ctx, subject.ID)
+		if err != nil {
+			ctx.ServerError("CountRepositoriesBySubject", err)
+			return
+		}
+
+		rootRepoCount, err := repo_model.CountRootRepositoriesBySubject(ctx, subject.ID)
+		if err != nil {
+			ctx.ServerError("CountRootRepositoriesBySubject", err)
+			return
+		}
+
+		subjectsWithCount = append(subjectsWithCount, &SubjectWithCount{
+			Subject:       subject,
+			RepoCount:     repoCount,
+			RootRepoCount: rootRepoCount,
+		})
+	}
+
+	ctx.Data["Total"] = count
+	ctx.Data["Subjects"] = subjectsWithCount
+
+	pager := context.NewPagination(int(count), setting.UI.ExplorePagingNum, page, 5)
+	pager.AddParamFromRequest(ctx.Req)
+	ctx.Data["Page"] = pager
+
+	ctx.HTML(http.StatusOK, tplExploreSubjects)
 }
 
 // RepoHistory renders repository history page - an alternative interface to repo home

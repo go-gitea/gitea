@@ -12,13 +12,13 @@
 	<div class="ui container">
 		<overflow-menu class="ui secondary pointing menu">
 			<div class="overflow-menu-items tw-justify-center">
-				<a class="{{if .IsBubbleView}}active {{end}}item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "bubble"}}">
+				<a class="{{if .IsBubbleView}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "bubble"}}">
 					{{svg "bubble"}} Bubble view
 				</a>
-				<a class="{{if .IsTableView}}active {{end}}item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "table"}}">
+				<a class="{{if .IsTableView}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "table"}}">
 					{{svg "octicon-table"}} Table view
 				</a>
-				<a class="{{if .IsArticleView}}active {{end}}item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "article"}}">
+				<a class="{{if .IsArticleView}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "article"}}">
 					{{svg "octicon-file"}} Article view
 				</a>
 			</div>

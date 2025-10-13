@@ -1,0 +1,48 @@
+<div class="flex-list">
+	{{if .Keyword}}
+		<div class="tw-font-bold tw-text-base tw-mb-4">
+			{{ctx.Locale.Tr "explore.search_results_for" .Keyword}}
+		</div>
+	{{end}}
+	{{range .Subjects}}
+		<div class="flex-item">
+			<div class="flex-item-leading">
+				{{svg "octicon-book" 24}}
+			</div>
+			<div class="flex-item-main">
+				<div class="flex-item-header">
+					<div class="flex-item-title">
+						<a class="text primary name" href="/subject/{{PathEscapeSegments .Name}}">{{.Name}}</a>
+					</div>
+					<div class="flex-item-trailing muted-links">
+						{{if gt .RootRepoCount 0}}
+							<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "explore.subject.root_repositories"}}">
+								{{svg "octicon-repo" 16}}
+								<span>{{.RootRepoCount}}</span>
+							</span>
+						{{end}}
+						{{if gt .RepoCount .RootRepoCount}}
+							<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "explore.subject.total_repositories"}}">
+								{{svg "octicon-repo-forked" 16}}
+								<span>{{.RepoCount}}</span>
+							</span>
+						{{end}}
+					</div>
+				</div>
+				<div class="flex-item-body">
+					<span class="text small muted">
+						{{ctx.Locale.Tr "explore.subject.created"}} {{DateUtils.TimeSince .CreatedUnix}}
+						{{if ne .CreatedUnix .UpdatedUnix}}
+							· {{ctx.Locale.Tr "explore.subject.updated"}} {{DateUtils.TimeSince .UpdatedUnix}}
+						{{end}}
+					</span>
+				</div>
+			</div>
+		</div>
+	{{else}}
+		<div>
+			{{ctx.Locale.Tr "search.no_results"}}
+		</div>
+	{{end}}
+</div>
+
