@@ -108,9 +108,18 @@ func StartPullRequestCheckOnView(ctx context.Context, pr *issues_model.PullReque
 	// So duplicate "start" requests will be ignored if there is already a task in the queue or one is running.
 	// Ideally in the future we should decouple the "unique queue" feature from the "start" request.
 	if pr.Status == issues_model.PullRequestStatusChecking {
-		// We can't use the global lock here, otherwise it will cause a deadlock. A global lock per pull request has been
-		// implemented in the function checkPullRequestMergeable, so it is safe to ignore duplicate "start" requests here.
-		AddPullRequestToCheckQueue(pr.ID)
+		if setting.IsInTesting {
+			// In testing mode, there might be an "immediate" queue, which is not a real queue, everything is executed in the same goroutine
+			// So we can't use the global lock here, otherwise it will cause a deadlock.
+			AddPullRequestToCheckQueue(pr.ID)
+		} else {
+			// When a PR check starts, the task is popped from the queue and the task handler acquires the global lock
+			// So we need to acquire the global lock here to prevent from duplicate tasks
+			_, _ = globallock.TryLockAndDo(ctx, getPullWorkingLockKey(pr.ID), func(ctx context.Context) error {
+				AddPullRequestToCheckQueue(pr.ID) // the queue is a unique queue and won't add the same task again
+				return nil
+			})
+		}
 	}
 }
 
