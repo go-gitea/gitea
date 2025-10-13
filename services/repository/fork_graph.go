@@ -103,6 +103,27 @@ const (
 // BuildForkGraph builds the fork graph for a repository
 func BuildForkGraph(ctx context.Context, repo *repo_model.Repository, params ForkGraphParams, doer *user_model.User) (*ForkGraphResponse, error) {
 
+	// Find the root repository (traverse up the fork chain)
+	// This ensures we always build the graph from the true root, even if a fork was passed in
+	rootRepo := repo
+	if repo.IsFork {
+		current := repo
+		for current.IsFork {
+			parent, err := repo_model.GetRepositoryByID(ctx, current.ForkID)
+			if err != nil {
+				log.Warn("Failed to find parent repository for fork %s (ID: %d, ForkID: %d): %v. Using current repo as root.", current.FullName(), current.ID, current.ForkID, err)
+				break
+			}
+			if err := parent.LoadOwner(ctx); err != nil {
+				log.Warn("Failed to load owner for parent repository %d: %v. Using current repo as root.", parent.ID, err)
+				break
+			}
+			current = parent
+		}
+		rootRepo = current
+		log.Info("Repository %s is a fork, building fork graph from root repository %s", repo.FullName(), rootRepo.FullName())
+	}
+
 	// Create context with timeout
 	timeoutCtx, cancel := context.WithTimeout(ctx, processingTimeout)
 	defer cancel()
@@ -112,14 +133,14 @@ func BuildForkGraph(ctx context.Context, repo *repo_model.Repository, params For
 	nodeCount := 0
 	maxDepthReached := false
 
-	// Build the tree
-	rootNode, err := buildNode(timeoutCtx, repo, 0, params, doer, visited, &nodeCount, &maxDepthReached)
+	// Build the tree from the root repository
+	rootNode, err := buildNode(timeoutCtx, rootRepo, 0, params, doer, visited, &nodeCount, &maxDepthReached)
 	if err != nil {
 		return nil, err
 	}
 
-	// Count total and visible forks
-	totalForks := repo.NumForks
+	// Count total and visible forks (use root repository's fork count)
+	totalForks := rootRepo.NumForks
 	visibleForks := countVisibleForks(rootNode)
 
 	// Build response
@@ -314,22 +335,6 @@ func sortRepositories(repos []*repo_model.Repository, sortBy string) {
 	})
 }
 
-// getContributorStatsInternal is a wrapper around the contributor stats service
-// This avoids circular import issues
-func getContributorStatsInternal(c cache.StringCache, repo *repo_model.Repository, revision string) (map[string]*ContributorData, error) {
-	// Try to get from cache
-	cacheKey := fmt.Sprintf("GetContributorStats/%s/%s", repo.FullName(), revision)
-
-	var stats map[string]*ContributorData
-	found, err := c.GetJSON(cacheKey, &stats)
-	if err == nil && found {
-		return stats, nil
-	}
-
-	// If not in cache, return error indicating stats need to be generated
-	return nil, errAwaitGeneration
-}
-
 // getContributorStats gets contributor statistics for a repository
 func getContributorStats(repo *repo_model.Repository, days int) (*ContributorStats, error) {
 	// Use existing contributor stats service
@@ -338,23 +343,34 @@ func getContributorStats(repo *repo_model.Repository, days int) (*ContributorSta
 		return &ContributorStats{TotalCount: 0, RecentCount: 0}, nil
 	}
 
-	stats, err := getContributorStatsInternal(c, repo, repo.DefaultBranch)
+	// Call GetContributorStats which handles cache and generation
+	// This function will generate stats if not cached, or return cached stats if available
+	ctx := context.Background()
+	stats, err := GetContributorStats(ctx, c, repo, repo.DefaultBranch)
 	if err != nil {
-		// If contributor stats are not available, return zeros
-		if errors.Is(err, errAwaitGeneration) {
+		// If contributor stats generation is still in progress, return zeros
+		if errors.Is(err, ErrAwaitGeneration) {
 			return &ContributorStats{TotalCount: 0, RecentCount: 0}, nil
 		}
 		return nil, err
 	}
 
-	// Count total contributors
+	// Count total contributors (exclude "total" summary entry)
 	totalCount := len(stats)
+	if _, hasTotal := stats["total"]; hasTotal {
+		totalCount-- // Don't count the "total" summary as a contributor
+	}
 
 	// Count recent contributors
 	cutoffTime := time.Now().AddDate(0, 0, -days)
 	recentCount := 0
 
-	for _, contributor := range stats {
+	for email, contributor := range stats {
+		// Skip the "total" summary entry
+		if email == "total" {
+			continue
+		}
+
 		// Check if contributor has commits in the time window
 		for _, week := range contributor.Weeks {
 			weekTime := time.UnixMilli(week.Week)

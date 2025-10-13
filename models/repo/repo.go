@@ -870,13 +870,14 @@ func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repo
 }
 
 // GetPublicRepositoryByName returns the first public repository with the given name.
-// This function searches across all owners and returns the most recently updated public repository.
+// This function searches across all owners and prioritizes root repositories (non-forks)
+// over forks to ensure the original repository is returned when multiple repos share the same name.
 func GetPublicRepositoryByName(ctx context.Context, name string) (*Repository, error) {
 	var repo Repository
 	has, err := db.GetEngine(ctx).
 		Where("`lower_name`=?", strings.ToLower(name)).
 		And("`is_private`=?", false).
-		OrderBy("`updated_unix` DESC"). // Get the most recently updated public repo
+		OrderBy("`is_fork` ASC, `updated_unix` DESC"). // Prefer root repos (is_fork=false), then most recently updated
 		NoAutoCondition().
 		Get(&repo)
 
