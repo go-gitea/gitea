@@ -541,7 +541,7 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 		return err
 	}
 
-	actions_service.CreateCommitStatus(ctx, job)
+	actions_service.CreateCommitStatusForRunJobs(ctx, job.Run, job)
 	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 
 	return nil
@@ -569,7 +569,7 @@ func Logs(ctx *context_module.Context) {
 func Cancel(ctx *context_module.Context) {
 	runIndex := getRunIndex(ctx)
 
-	_, jobs := getRunJobs(ctx, runIndex, -1)
+	firstJob, jobs := getRunJobs(ctx, runIndex, -1)
 	if ctx.Written() {
 		return
 	}
@@ -588,7 +588,7 @@ func Cancel(ctx *context_module.Context) {
 		return
 	}
 
-	actions_service.CreateCommitStatus(ctx, jobs...)
+	actions_service.CreateCommitStatusForRunJobs(ctx, firstJob.Run, jobs...)
 	actions_service.EmitJobsIfReadyByJobs(updatedJobs)
 
 	for _, job := range updatedJobs {
@@ -642,7 +642,7 @@ func Approve(ctx *context_module.Context) {
 		return
 	}
 
-	actions_service.CreateCommitStatus(ctx, jobs...)
+	actions_service.CreateCommitStatusForRunJobs(ctx, current.Run, jobs...)
 
 	if len(updatedJobs) > 0 {
 		job := updatedJobs[0]

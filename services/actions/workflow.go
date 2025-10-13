@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -16,13 +15,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/reqctx"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
-	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
@@ -98,9 +95,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 
 	// find workflow from commit
-	var workflows []*jobparser.SingleWorkflow
 	var entry *git.TreeEntry
-	var wfRawConcurrency *model.RawConcurrency
 
 	run := &actions_model.ActionRun{
 		Title:             strings.SplitN(runTargetCommit.CommitMessage, "\n", 2)[0],
@@ -153,29 +148,6 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		}
 	}
 
-	giteaCtx := GenerateGiteaContext(run, nil)
-
-	workflows, err = jobparser.Parse(content, jobparser.WithGitContext(giteaCtx.ToGitHubContext()), jobparser.WithInputs(inputsWithDefaults))
-	if err != nil {
-		return err
-	}
-
-	if len(workflows) > 0 && workflows[0].RunName != "" {
-		run.Title = workflows[0].RunName
-	}
-
-	if len(workflows) == 0 {
-		return util.ErrorWrapLocale(
-			util.NewNotExistErrorf("workflow %q doesn't exist", workflowID),
-			"actions.workflow.not_found", workflowID,
-		)
-	}
-
-	wfRawConcurrency, err = jobparser.ReadWorkflowRawConcurrency(content)
-	if err != nil {
-		return err
-	}
-
 	// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event
 	// https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 	// https://docs.github.com/en/webhooks/webhook-events-and-payloads#workflow_dispatch
@@ -193,39 +165,9 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 	run.EventPayload = string(eventPayload)
 
-	// cancel running jobs of the same concurrency group
-	if wfRawConcurrency != nil {
-		vars, err := actions_model.GetVariablesOfRun(ctx, run)
-		if err != nil {
-			return fmt.Errorf("GetVariablesOfRun: %w", err)
-		}
-		err = EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars)
-		if err != nil {
-			return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
-		}
-	}
-
 	// Insert the action run and its associated jobs into the database
-	if err := InsertRun(ctx, run, workflows); err != nil {
-		return fmt.Errorf("InsertRun: %w", err)
-	}
-
-	allJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
-	if err != nil {
-		log.Error("FindRunJobs: %v", err)
-	}
-	CreateCommitStatus(ctx, allJobs...)
-	if len(allJobs) > 0 {
-		job := allJobs[0]
-		err := job.LoadRun(ctx)
-		if err != nil {
-			log.Error("LoadRun: %v", err)
-		} else {
-			notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
-		}
-	}
-	for _, job := range allJobs {
-		notify_service.WorkflowJobStatusUpdate(ctx, repo, doer, job, nil)
+	if err := PrepareRunAndInsert(ctx, content, run, inputsWithDefaults); err != nil {
+		return fmt.Errorf("PrepareRun: %w", err)
 	}
 	return nil
 }
