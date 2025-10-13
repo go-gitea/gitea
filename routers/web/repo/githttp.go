@@ -198,6 +198,10 @@ func httpBase(ctx *context.Context) *serviceHandler {
 					return nil
 				}
 				if task.RepoID != repo.ID {
+					if accessMode > perm.AccessModeRead {
+						ctx.PlainText(http.StatusForbidden, "User permission denied")
+						return nil
+					}
 					taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
 					if err != nil {
 						ctx.ServerError("Load task repository", err)
