@@ -71,6 +71,7 @@
 @import "./repo/clone.css";
 @import "./repo/commit-sign.css";
 @import "./repo/packages.css";
+@import "./repo/diff-hidden-comments.css";
 
 @import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";

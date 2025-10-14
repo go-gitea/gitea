@@ -1,0 +1,38 @@
+/* Styling for expand buttons with hidden comments */
+.code-expander-button.has-hidden-comments {
+  position: relative;
+}
+
+.code-expander-button .ui.mini.label {
+  position: absolute;
+  min-width: 16px;
+  height: 16px;
+  padding: 2px 4px;
+  font-size: 10px;
+  line-height: 12px;
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-radius: 8px;
+}
+
+.code-expander-button:has(svg.octicon-fold-down) .ui.mini.label {
+  top: 50%;
+  left: -20px;
+  transform: translateY(-50%);
+}
+
+.code-expander-button:has(svg.octicon-fold-up) .ui.mini.label {
+  top: 50%;
+  left: -20px;
+  transform: translateY(-50%);
+}
+
+.code-expander-button:has(svg.octicon-fold) .ui.mini.label {
+  top: 50%;
+  left: -20px;
+  transform: translateY(-50%);
+}
+
+.code-expander-button.has-hidden-comments:hover .ui.mini.label {
+  background-color: var(--color-primary-dark-1);
+}

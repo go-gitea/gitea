@@ -81,13 +81,15 @@ const (
 
 // DiffLine represents a line difference in a DiffSection.
 type DiffLine struct {
-	LeftIdx     int // line number, 1-based
-	RightIdx    int // line number, 1-based
-	Match       int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
-	Type        DiffLineType
-	Content     string
-	Comments    issues_model.CommentList // related PR code comments
-	SectionInfo *DiffLineSectionInfo
+	LeftIdx            int // line number, 1-based
+	RightIdx           int // line number, 1-based
+	Match              int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
+	Type               DiffLineType
+	Content            string
+	Comments           issues_model.CommentList // related PR code comments
+	SectionInfo        *DiffLineSectionInfo
+	HasHiddenComments  bool // indicates if this expand button has comments in hidden lines
+	HiddenCommentCount int  // number of hidden comments in this section
 }
 
 // DiffLineSectionInfo represents diff line section meta data
@@ -485,6 +487,25 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 					sort.SliceStable(line.Comments, func(i, j int) bool {
 						return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
 					})
+
+					// Mark expand buttons that have comments in hidden lines
+					if line.Type == DiffLineSection && line.SectionInfo != nil {
+						hiddenCommentCount := 0
+						// Check if there are comments in the hidden range
+						for commentLineNum := range lineCommits {
+							absLineNum := int(commentLineNum)
+							if commentLineNum < 0 {
+								absLineNum = int(-commentLineNum)
+							}
+							if absLineNum > line.SectionInfo.LastRightIdx && absLineNum < line.SectionInfo.RightIdx {
+								hiddenCommentCount++
+							}
+						}
+						if hiddenCommentCount > 0 {
+							line.HasHiddenComments = true
+							line.HiddenCommentCount = hiddenCommentCount
+						}
+					}
 				}
 			}
 		}
@@ -1370,19 +1391,102 @@ outer:
 
 // CommentAsDiff returns c.Patch as *Diff
 func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) {
-	diff, err := ParsePatch(ctx, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch), "")
+	// Try to parse existing patch first
+	if c.Patch != "" {
+		diff, err := ParsePatch(ctx, setting.Git.MaxGitDiffLines,
+			setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch), "")
+		if err == nil && len(diff.Files) > 0 && len(diff.Files[0].Sections) > 0 {
+			return diff, nil
+		}
+	}
+
+	// If patch is empty or invalid, generate code context for unchanged line comments
+	if c.TreePath != "" && c.CommitSHA != "" && c.Line != 0 {
+		return generateCodeContextForComment(ctx, c)
+	}
+
+	return nil, fmt.Errorf("no valid patch or context available for comment ID: %d", c.ID)
+}
+
+func generateCodeContextForComment(ctx context.Context, c *issues_model.Comment) (*Diff, error) {
+	if err := c.LoadIssue(ctx); err != nil {
+		return nil, fmt.Errorf("LoadIssue: %w", err)
+	}
+	if err := c.Issue.LoadRepo(ctx); err != nil {
+		return nil, fmt.Errorf("LoadRepo: %w", err)
+	}
+	if err := c.Issue.LoadPullRequest(ctx); err != nil {
+		return nil, fmt.Errorf("LoadPullRequest: %w", err)
+	}
+
+	pr := c.Issue.PullRequest
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return nil, fmt.Errorf("LoadBaseRepo: %w", err)
+	}
+
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
-		log.Error("Unable to parse patch: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}
-	if len(diff.Files) == 0 {
-		return nil, fmt.Errorf("no file found for comment ID: %d", c.ID)
+	defer closer.Close()
+
+	// Get the file content at the commit
+	commit, err := gitRepo.GetCommit(c.CommitSHA)
+	if err != nil {
+		return nil, fmt.Errorf("GetCommit: %w", err)
 	}
-	secs := diff.Files[0].Sections
-	if len(secs) == 0 {
-		return nil, fmt.Errorf("no sections found for comment ID: %d", c.ID)
+
+	entry, err := commit.GetTreeEntryByPath(c.TreePath)
+	if err != nil {
+		return nil, fmt.Errorf("GetTreeEntryByPath: %w", err)
 	}
+
+	blob := entry.Blob()
+	dataRc, err := blob.DataAsync()
+	if err != nil {
+		return nil, fmt.Errorf("DataAsync: %w", err)
+	}
+	defer dataRc.Close()
+
+	// Read file lines
+	scanner := bufio.NewScanner(dataRc)
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("scanner error: %w", err)
+	}
+
+	// Validate comment line is within file bounds
+	commentLine := int(c.UnsignedLine())
+	if commentLine < 1 || commentLine > len(lines) {
+		return nil, fmt.Errorf("comment line %d is out of file bounds (1-%d)", commentLine, len(lines))
+	}
+
+	// Calculate line range to show (commented line + lines above it, matching CutDiffAroundLine behavior)
+	contextLines := setting.UI.CodeCommentLines
+	startLine := max(commentLine-contextLines, 1)
+	endLine := commentLine
+
+	var patchBuilder strings.Builder
+	patchBuilder.WriteString(fmt.Sprintf("diff --git a/%s b/%s\n", c.TreePath, c.TreePath))
+	patchBuilder.WriteString(fmt.Sprintf("--- a/%s\n", c.TreePath))
+	patchBuilder.WriteString(fmt.Sprintf("+++ b/%s\n", c.TreePath))
+	patchBuilder.WriteString(fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", startLine, endLine-startLine+1, startLine, endLine-startLine+1))
+
+	for i := startLine - 1; i < endLine; i++ {
+		patchBuilder.WriteString(" ")
+		patchBuilder.WriteString(lines[i])
+		patchBuilder.WriteString("\n")
+	}
+
+	diff, err := ParsePatch(ctx, setting.Git.MaxGitDiffLines,
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(patchBuilder.String()), "")
+	if err != nil {
+		return nil, fmt.Errorf("ParsePatch: %w", err)
+	}
+
 	return diff, nil
 }
 

@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -43,6 +44,7 @@ import (
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -947,6 +949,41 @@ func ExcerptBlob(ctx *context.Context) {
 			section.Lines = append(section.Lines, lineSection)
 		}
 	}
+	if ctx.Doer != nil {
+		ctx.Data["SignedUserID"] = ctx.Doer.ID
+	}
+	isPull := ctx.FormBool("is_pull")
+	ctx.Data["PageIsPullFiles"] = isPull
+
+	if isPull {
+		issueIndex := ctx.FormInt64("issue_index")
+		ctx.Data["IssueIndex"] = issueIndex
+		if issueIndex > 0 {
+			if issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex); err == nil && issue.IsPull {
+				ctx.Data["Issue"] = issue
+				ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+					return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+				}
+
+				if allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated")); err == nil {
+					if lineComments, ok := allComments[filePath]; ok {
+						for _, line := range section.Lines {
+							if comments, ok := lineComments[int64(line.LeftIdx*-1)]; ok {
+								line.Comments = append(line.Comments, comments...)
+							}
+							if comments, ok := lineComments[int64(line.RightIdx)]; ok {
+								line.Comments = append(line.Comments, comments...)
+							}
+							sort.SliceStable(line.Comments, func(i, j int) bool {
+								return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+							})
+						}
+					}
+				}
+			}
+		}
+	}
+
 	ctx.Data["section"] = section
 	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
 	ctx.Data["AfterCommitID"] = commitID
