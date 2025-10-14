@@ -67,13 +67,9 @@ export async function createToastEditor(
   // Rename mode switch labels
   const switchEl = container.querySelector('.toastui-editor-mode-switch');
   if (switchEl) {
-    const tabItems = switchEl.querySelectorAll('.tab-item');
-    tabItems.forEach((el) => {
-      if (el.textContent?.trim() === 'WYSIWYG') {
-        el.textContent = 'Visual editor';
-      } else if (el.textContent?.trim() === 'Markdown') {
-        el.textContent = 'Source editor';
-      }
+    switchEl.querySelectorAll('.tab-item').forEach((el) => {
+      if (el.textContent?.trim() === 'WYSIWYG') el.textContent = 'Visual editor';
+      else if (el.textContent?.trim() === 'Markdown') el.textContent = 'Source editor';
     });
   }
 

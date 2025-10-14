@@ -17,36 +17,6 @@ export function initArticleEditor() {
       hideModeSwitch: false  // Allow mode switching
     });
 
-    // Handle switching between visual (WYSIWYG) and source (Markdown) modes
-    const editTab = editForm.querySelector<HTMLAnchorElement>('a[data-tab="write"]');
-    const sourceTab = editForm.querySelector<HTMLAnchorElement>('a[data-tab="preview"]');
-    
-    if (editTab && sourceTab) {
-      // Set initial state - visual mode
-      let isVisualMode = true;
-
-      editTab.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (!isVisualMode) {
-          // Switch to visual mode
-          editor.changeMode('wysiwyg');
-          isVisualMode = true;
-          editTab.classList.add('active');
-          sourceTab.classList.remove('active');
-        }
-      });
-
-      sourceTab.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (isVisualMode) {
-          // Switch to source mode
-          editor.changeMode('markdown');
-          isVisualMode = false;
-          sourceTab.classList.add('active');
-          editTab.classList.remove('active');
-        }
-      });
-    }
 
     // Handle Fork button
     const forkButton = document.getElementById('fork-button');

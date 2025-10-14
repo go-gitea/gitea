@@ -326,16 +326,40 @@
                             </a>
                             {{/* Align buttons on the right */}}
                             <div class="tw-flex tw-items-center tw-gap-2 tw-ml-auto">
-                                <div class="tw-flex">
-                                    {{template "repo/watch_unwatch" .}}
-                                </div>
-
-                                <div class="ui icon top left pointing dropdown button mini tw-px-3">
-                                    {{svg "octicon-kebab-horizontal" 14}}
-                                    <div class="menu">
-                                        <div class="item">Something</div>
+                                {{if .IsArticleModeRead}}
+                                    <div class="tw-flex">
+                                        {{template "repo/watch_unwatch" .}}
                                     </div>
-                                </div>
+                                    <div class="ui icon top left pointing dropdown button mini tw-px-3">
+                                        {{svg "octicon-kebab-horizontal" 14}}
+                                        <div class="menu">
+                                            <div class="item">Something</div>
+                                        </div>
+                                    </div>
+                                {{end}}
+                                {{if .IsArticleModeEdit}}
+                                    {{/* Action buttons above editor */}}
+                                    <div class="tw-flex tw-items-center tw-justify-between tw-mb-4">
+                                        <div class="tw-flex tw-items-center tw-gap-2">
+                                            <button type="button" id="fork-button" class="ui button{{if not .IsSigned}} disabled{{end}}" data-repo-link="{{.RepoLink}}">
+                                                {{svg "octicon-repo-forked" 16 "tw-mr-1"}}
+                                                Fork
+                                            </button>
+                                            <button type="button" id="submit-changes-button" class="ui primary button{{if not .IsSigned}} disabled{{end}}">
+                                                {{svg "octicon-check" 16 "tw-mr-1"}}
+                                                Submit Changes
+                                            </button>
+                                        </div>
+                                    </div>
+                                {{end}}
+                                {{if .IsArticleModeHistory}}
+                                    <div class="ui icon top left pointing dropdown button mini tw-px-3">
+                                        {{svg "octicon-kebab-horizontal" 14}}
+                                        <div class="menu">
+                                            <div class="item">Something</div>
+                                        </div>
+                                    </div>
+                                {{end}}
                             </div>
                         </div>
                     </div>
@@ -402,41 +426,19 @@
                                 <p>{{ctx.Locale.Tr "repo.editor.file_not_editable_hint"}}</p>
                             </div>
                         {{else}}
-                            {{/* Action buttons above editor */}}
-                            <div class="tw-flex tw-items-center tw-justify-between tw-mb-4">
-                                <div class="tw-flex tw-items-center tw-gap-2">
-                                    <button type="button" id="fork-button" class="ui button{{if not .IsSigned}} disabled{{end}}" data-repo-link="{{.RepoLink}}">
-                                        {{svg "octicon-repo-forked" 16 "tw-mr-1"}}
-                                        Fork
-                                    </button>
-                                    <button type="button" id="submit-changes-button" class="ui primary button{{if not .IsSigned}} disabled{{end}}">
-                                        {{svg "octicon-check" 16 "tw-mr-1"}}
-                                        Submit Changes
-                                    </button>
-                                </div>
-                            </div>
-
                             {{/* Editor form */}}
                             <form class="ui edit form" id="article-edit-form" method="post" action="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{.ReadmeTreePath}}">
                                 {{.CsrfTokenHtml}}
                                 <input type="hidden" name="last_commit" value="{{.LastCommitID}}">
                                 <input type="hidden" name="tree_path" value="{{.ReadmeTreePath}}">
                                 
-                                <div class="field">
-                                    <div class="ui top attached header">
-                                        <div class="ui compact small menu small-menu-items repo-editor-menu">
-                                            <a class="active item" data-tab="write">{{svg "octicon-pencil"}} Visual Editor</a>
-                                            <a class="item" data-tab="preview">{{svg "octicon-code"}} Source Editor</a>
-                                        </div>
-                                    </div>
-                                    <div class="ui bottom attached segment tw-p-0">
-                                        <div class="tw-rounded-b">
-                                            <textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.ReadmeTreePath}}">{{.FileContent}}</textarea>
-                                            <div class="editor-loading is-loading"></div>
-                                            <div id="toast-editor-container" style="min-height: 500px;"></div>
-                                        </div>
-                                    </div>
-                                </div>
+                                 <div class="field">
+                                     <div class="tw-p-0">
+                                         <textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.ReadmeTreePath}}">{{.FileContent}}</textarea>
+                                         <div class="editor-loading is-loading"></div>
+                                         <div id="toast-editor-container" style="min-height: 500px;"></div>
+                                     </div>
+                                 </div>
                             </form>
                         {{end}}
                     </div>
