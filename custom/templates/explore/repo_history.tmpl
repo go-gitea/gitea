@@ -425,18 +425,15 @@
                                 <div class="field">
                                     <div class="ui top attached header">
                                         <div class="ui compact small menu small-menu-items repo-editor-menu">
-                                            <a class="active item" data-tab="write">{{svg "octicon-code"}} Edit</a>
-                                            <a class="item" data-tab="preview" data-preview-url="{{.Repository.Link}}/markup" data-preview-context-ref="{{.RepoLink}}/src/{{.BranchName}}" data-readme-path="{{.ReadmeTreePath}}">{{svg "octicon-eye"}} Preview</a>
+                                            <a class="active item" data-tab="write">{{svg "octicon-pencil"}} Visual Editor</a>
+                                            <a class="item" data-tab="preview">{{svg "octicon-code"}} Source Editor</a>
                                         </div>
                                     </div>
                                     <div class="ui bottom attached segment tw-p-0">
-                                        <div class="ui active tab tw-rounded-b" data-tab="write">
+                                        <div class="tw-rounded-b">
                                             <textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.ReadmeTreePath}}">{{.FileContent}}</textarea>
                                             <div class="editor-loading is-loading"></div>
                                             <div id="toast-editor-container" style="min-height: 500px;"></div>
-                                        </div>
-                                        <div class="ui tab tw-px-4 tw-py-3" data-tab="preview">
-                                            {{ctx.Locale.Tr "loading"}}
                                         </div>
                                     </div>
                                 </div>

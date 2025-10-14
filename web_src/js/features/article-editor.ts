@@ -1,5 +1,4 @@
 import {createToastEditor} from './toast-editor.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 export function initArticleEditor() {
   const editForm = document.querySelector<HTMLFormElement>('#article-edit-form');
@@ -8,12 +7,6 @@ export function initArticleEditor() {
   const textarea = document.getElementById('edit_area') as HTMLTextAreaElement;
   if (!textarea) return;
 
-  // Initialize Fomantic tabs
-  const elTabMenu = editForm.querySelector('.repo-editor-menu');
-  if (elTabMenu) {
-    fomanticQuery(elTabMenu.querySelectorAll('.item')).tab();
-  }
-
   // Initialize Toast UI Editor
   (async () => {
     const editor = await createToastEditor(textarea, {
@@ -21,34 +14,36 @@ export function initArticleEditor() {
       initialEditType: 'wysiwyg',
       previewStyle: 'vertical',
       usageStatistics: false,
-      hideModeSwitch: true
+      hideModeSwitch: false  // Allow mode switching
     });
 
-    // Handle preview tab
-    const previewTab = editForm.querySelector<HTMLAnchorElement>('a[data-tab="preview"]');
-    const previewPanel = editForm.querySelector<HTMLElement>('.tab[data-tab="preview"]');
-    if (previewTab && previewPanel) {
-      previewTab.addEventListener('click', async () => {
-        const previewUrl = previewTab.getAttribute('data-preview-url');
-        const previewContextRef = previewTab.getAttribute('data-preview-context-ref');
-        const readmeTreePath = previewTab.getAttribute('data-readme-path');
-        
-        const formData = new FormData();
-        formData.append('mode', 'file');
-        formData.append('context', `${previewContextRef}/${readmeTreePath}`);
-        formData.append('text', editor.getMarkdown());
-        formData.append('file_path', readmeTreePath || 'README.md');
-        
-        try {
-          const response = await fetch(previewUrl, {
-            method: 'POST',
-            body: formData
-          });
-          const data = await response.text();
-          previewPanel.innerHTML = `<div class="render-content markup">${data}</div>`;
-        } catch (error) {
-          console.error('Preview error:', error);
-          previewPanel.innerHTML = '<div class="ui error message">Failed to load preview</div>';
+    // Handle switching between visual (WYSIWYG) and source (Markdown) modes
+    const editTab = editForm.querySelector<HTMLAnchorElement>('a[data-tab="write"]');
+    const sourceTab = editForm.querySelector<HTMLAnchorElement>('a[data-tab="preview"]');
+    
+    if (editTab && sourceTab) {
+      // Set initial state - visual mode
+      let isVisualMode = true;
+
+      editTab.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!isVisualMode) {
+          // Switch to visual mode
+          editor.changeMode('wysiwyg');
+          isVisualMode = true;
+          editTab.classList.add('active');
+          sourceTab.classList.remove('active');
+        }
+      });
+
+      sourceTab.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (isVisualMode) {
+          // Switch to source mode
+          editor.changeMode('markdown');
+          isVisualMode = false;
+          sourceTab.classList.add('active');
+          editTab.classList.remove('active');
         }
       });
     }
