@@ -18,8 +18,6 @@
     "@primer/octicons": "19.19.0",
     "@resvg/resvg-wasm": "2.6.2",
     "@silverwind/vue3-calendar-heatmap": "2.0.6",
-    "@techknowlogick/license-checker-webpack-plugin": "0.3.0",
-    "add-asset-webpack-plugin": "3.1.1",
     "ansi_up": "6.0.6",
     "asciinema-player": "3.12.0",
     "chart.js": "4.5.0",
@@ -61,8 +59,7 @@
     "vue-chartjs": "5.3.2",
     "vue-loader": "17.4.2",
     "webpack": "5.102.1",
-    "webpack-cli": "6.0.1",
-    "wrap-ansi": "9.0.2"
+    "webpack-cli": "6.0.1"
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "4.5.0",
