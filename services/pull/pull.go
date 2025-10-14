@@ -374,6 +374,8 @@ type TestPullRequestOptions struct {
 func AddTestPullRequestTask(opts TestPullRequestOptions) {
 	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", opts.RepoID, opts.Branch)
 	graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
+		// this function does a lot of operations to various models, if the process gets killed in the middle,
+		// there is no way to recover at the moment. The best workaround is to let end user push again.
 		repo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
 		if err != nil {
 			log.Error("GetRepositoryByID: %v", err)
