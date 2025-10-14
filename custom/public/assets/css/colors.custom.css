@@ -13,5 +13,9 @@ gitea-theme-meta-info {
   --color-hover: #E9E7FF66;
   --color-muted: #F6F8FA;
   --color-muted-text: #59636E;
+
+  --color-warning-border: #d4a72c66;
+  --color-warning-text: #9A6700;
+  --color-warning-bg: #FFF8C5;
 }
 

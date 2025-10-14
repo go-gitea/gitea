@@ -144,19 +144,17 @@
 }
 </style>
 <div role="main" aria-label="{{.Title}}" class="page-content repository file list">
-    {{template "repo/header" .}}
-
     {{/* Login banner for non-authenticated users */}}
     {{if and .IsArticleModeEdit (not .IsSigned)}}
-    <div class="ui container tw-mt-4">
-        <div class="ui info message">
-            <div class="tw-flex tw-items-center tw-gap-2">
-                {{svg "octicon-info" 16}}
-                <span>You are not logged in. You have to <a href="{{AppSubUrl}}/user/login?redirect_to={{QueryEscape .Link}}">Sign in</a> / <a href="{{AppSubUrl}}/user/sign_up?redirect_to={{QueryEscape .Link}}">Sign up</a> in order to do edits.</span>
-            </div>
+    <div class="ui warning message tw-mt-0">
+        <div class="tw-flex tw-items-center tw-gap-2">
+            {{svg "octicon-alert" 16}}
+            <span class="tw-color-text">You are not logged in. You have to <a href="{{AppSubUrl}}/user/login?redirect_to={{QueryEscape .Link}}">Sign in</a> / <a href="{{AppSubUrl}}/user/sign_up?redirect_to={{QueryEscape .Link}}">Sign up</a> in order to do edits.</span>
         </div>
     </div>
     {{end}}
+    {{template "repo/header" .}}
+
 
     <div class="ui container">
         {{/* Wrapper for the 3 views controlled by query param "view" */}}
