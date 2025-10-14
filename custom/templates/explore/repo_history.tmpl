@@ -146,6 +146,18 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository file list">
     {{template "repo/header" .}}
 
+    {{/* Login banner for non-authenticated users */}}
+    {{if and .IsArticleModeEdit (not .IsSigned)}}
+    <div class="ui container tw-mt-4">
+        <div class="ui info message">
+            <div class="tw-flex tw-items-center tw-gap-2">
+                {{svg "octicon-info" 16}}
+                <span>You are not logged in. You have to <a href="{{AppSubUrl}}/user/login?redirect_to={{QueryEscape .Link}}">Sign in</a> / <a href="{{AppSubUrl}}/user/sign_up?redirect_to={{QueryEscape .Link}}">Sign up</a> in order to do edits.</span>
+            </div>
+        </div>
+    </div>
+    {{end}}
+
     <div class="ui container">
         {{/* Wrapper for the 3 views controlled by query param "view" */}}
 
@@ -390,12 +402,45 @@
                                 <p>{{ctx.Locale.Tr "repo.editor.file_not_editable_hint"}}</p>
                             </div>
                         {{else}}
-                            <div class="ui message">
-                                <p><strong>Note:</strong> This is a read-only preview. To edit this file, please go to the <a href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{.ReadmeTreePath}}">repository edit page</a>.</p>
+                            {{/* Action buttons above editor */}}
+                            <div class="tw-flex tw-items-center tw-justify-between tw-mb-4">
+                                <div class="tw-flex tw-items-center tw-gap-2">
+                                    <button type="button" id="fork-button" class="ui button{{if not .IsSigned}} disabled{{end}}" data-repo-link="{{.RepoLink}}">
+                                        {{svg "octicon-repo-forked" 16 "tw-mr-1"}}
+                                        Fork
+                                    </button>
+                                    <button type="button" id="submit-changes-button" class="ui primary button{{if not .IsSigned}} disabled{{end}}">
+                                        {{svg "octicon-check" 16 "tw-mr-1"}}
+                                        Submit Changes
+                                    </button>
+                                </div>
                             </div>
-                            <div class="file-view code-view">
-                                <pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto;"><code>{{.FileContent}}</code></pre>
-                            </div>
+
+                            {{/* Editor form */}}
+                            <form class="ui edit form" id="article-edit-form" method="post" action="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{.ReadmeTreePath}}">
+                                {{.CsrfTokenHtml}}
+                                <input type="hidden" name="last_commit" value="{{.LastCommitID}}">
+                                <input type="hidden" name="tree_path" value="{{.ReadmeTreePath}}">
+                                
+                                <div class="field">
+                                    <div class="ui top attached header">
+                                        <div class="ui compact small menu small-menu-items repo-editor-menu">
+                                            <a class="active item" data-tab="write">{{svg "octicon-code"}} Edit</a>
+                                            <a class="item" data-tab="preview" data-preview-url="{{.Repository.Link}}/markup" data-preview-context-ref="{{.RepoLink}}/src/{{.BranchName}}" data-readme-path="{{.ReadmeTreePath}}">{{svg "octicon-eye"}} Preview</a>
+                                        </div>
+                                    </div>
+                                    <div class="ui bottom attached segment tw-p-0">
+                                        <div class="ui active tab tw-rounded-b" data-tab="write">
+                                            <textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.ReadmeTreePath}}">{{.FileContent}}</textarea>
+                                            <div class="editor-loading is-loading"></div>
+                                            <div id="toast-editor-container" style="min-height: 500px;"></div>
+                                        </div>
+                                        <div class="ui tab tw-px-4 tw-py-3" data-tab="preview">
+                                            {{ctx.Locale.Tr "loading"}}
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
                         {{end}}
                     </div>
                     {{end}}
