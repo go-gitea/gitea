@@ -237,7 +237,6 @@ export default {
     entrypoints: false,
     excludeAssets: [
       /^js\/monaco-language-.+\.js$/,
-      !isProduction && /^licenses.txt$/,
     ].filter(Boolean),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,
