@@ -429,12 +429,12 @@ watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: node-check node_modules ## watch frontend files and continuously rebuild
+watch-frontend: $(LICENSES_FILE) node-check node_modules ## watch frontend files and continuously rebuild
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	@BROWSERSLIST_IGNORE_OLD_DATA=true NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress --disable-interpret
 
 .PHONY: watch-backend
-watch-backend: $(LICENSES_FILE) go-check ## watch backend files and continuously rebuild
+watch-backend: go-check ## watch backend files and continuously rebuild
 	GITEA_RUN_MODE=dev $(GO) run $(AIR_PACKAGE) -c .air.toml
 
 .PHONY: test
@@ -498,7 +498,7 @@ tidy-check: tidy
 licenses: $(LICENSES_FILE) ## generate licenses.txt
 
 $(LICENSES_FILE): go.sum pnpm-lock.yaml uv.lock
-	GOEXPERIMENT= $(GO) run $(TRIVY_PACKAGE) fs --quiet --scanners license --exit-code 0 --format spdx --output $(LICENSES_FILE) .
+	$(GO) run $(TRIVY_PACKAGE) fs --quiet --scanners license --exit-code 0 --format spdx --output $(LICENSES_FILE) .
 
 generate-ini-sqlite:
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
@@ -743,7 +743,7 @@ install: $(wildcard *.go)
 build: frontend backend ## build everything
 
 .PHONY: frontend
-frontend: $(WEBPACK_DEST) ## build frontend files
+frontend: $(WEBPACK_DEST) $(LICENSES_FILE) ## build frontend files
 
 .PHONY: backend
 backend: go-check generate-backend $(EXECUTABLE) ## build backend files
@@ -756,7 +756,7 @@ generate: generate-backend ## run "go generate"
 generate-backend: $(TAGS_PREREQ) generate-go
 
 .PHONY: generate-go
-generate-go: $(TAGS_PREREQ) $(LICENSES_FILE)
+generate-go: $(TAGS_PREREQ)
 	@echo "Running go generate..."
 	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags '$(TAGS)' ./...
 
