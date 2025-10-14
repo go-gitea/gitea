@@ -62,6 +62,7 @@ func testPullCommentRebase(t *testing.T, u *url.URL, session *TestSession) {
 	doGitPushTestRepositoryFail(dstPath, "base-repo", "local-branch/rebase:test-branch/rebase")(t)
 	doGitPushTestRepository(dstPath, "--force", "base-repo", "local-branch/rebase:test-branch/rebase")(t)
 
+	// reload the pr
 	prIssue := testWaitForPullRequestStatus(t, &issues_model.Issue{Title: testPRTitle}, issues_model.PullRequestStatusMergeable)
 	comments, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
 		IssueID: prIssue.ID,

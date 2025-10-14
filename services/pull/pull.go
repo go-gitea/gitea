@@ -374,9 +374,6 @@ type TestPullRequestOptions struct {
 func AddTestPullRequestTask(opts TestPullRequestOptions) {
 	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", opts.RepoID, opts.Branch)
 	graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
-		// There is no sensible way to shut this down ":-("
-		// If you don't let it run all the way then you will lose data
-
 		repo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
 		if err != nil {
 			log.Error("GetRepositoryByID: %v", err)
