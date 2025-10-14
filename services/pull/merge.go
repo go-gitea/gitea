@@ -248,8 +248,11 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	}
 	defer releaser()
 	defer func() {
-		// FIXME: This is a duplicated call to AddTestPullRequestTask in case the merge or push successfully but
-		// the post-receive hook failed. This will ensure the test task is added.
+		// This is a duplicated call to AddTestPullRequestTask (it will also be called by the post-receive hook, via a push queue).
+		// This call will do some operations (push to base repo, sync commit divergence, add PR conflict check queue task, etc)
+		// immediately instead of waiting for the "push queue"'s task. The code is from https://github.com/go-gitea/gitea/pull/7082.
+		// But it's really questionable whether it's worth to do it ahead without waiting for the "push queue" task to run.
+		// TODO: DUPLICATE-PR-TASK: maybe can try to remove this in 1.26 to see if there is any issue.
 		go AddTestPullRequestTask(TestPullRequestOptions{
 			RepoID:      pr.BaseRepo.ID,
 			Doer:        doer,

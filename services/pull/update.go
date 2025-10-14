@@ -63,8 +63,9 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 	}
 
 	defer func() {
-		// FIXME: This is a duplicated call to AddTestPullRequestTask in case the git push successfully but
-		// the post-receive hook failed. This will ensure the test task is added.
+		// The code is from https://github.com/go-gitea/gitea/pull/9784,
+		// it seems a simple copy-paste from https://github.com/go-gitea/gitea/pull/7082 without a real reason.
+		// TODO: DUPLICATE-PR-TASK: search and see another TODO comment for more details
 		go AddTestPullRequestTask(TestPullRequestOptions{
 			RepoID:      pr.BaseRepo.ID,
 			Doer:        doer,
