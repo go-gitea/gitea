@@ -429,12 +429,12 @@ watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: $(LICENSES_FILE) node-check node_modules ## watch frontend files and continuously rebuild
+watch-frontend: node-check node_modules ## watch frontend files and continuously rebuild
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	@BROWSERSLIST_IGNORE_OLD_DATA=true NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress --disable-interpret
 
 .PHONY: watch-backend
-watch-backend: go-check ## watch backend files and continuously rebuild
+watch-backend: $(LICENSES_FILE) go-check ## watch backend files and continuously rebuild
 	GITEA_RUN_MODE=dev $(GO) run $(AIR_PACKAGE) -c .air.toml
 
 .PHONY: test
@@ -756,7 +756,7 @@ generate: generate-backend ## run "go generate"
 generate-backend: $(TAGS_PREREQ) generate-go
 
 .PHONY: generate-go
-generate-go: $(TAGS_PREREQ)
+generate-go: $(TAGS_PREREQ) $(LICENSES_FILE)
 	@echo "Running go generate..."
 	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags '$(TAGS)' ./...
 
@@ -877,7 +877,7 @@ update-py: node-check | node_modules ## update py dependencies
 .PHONY: webpack
 webpack: $(WEBPACK_DEST) ## build webpack files
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) $(LICENSES_FILE) pnpm-lock.yaml
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
 	@$(MAKE) -s node-check node_modules
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	@echo "Running webpack..."
