@@ -235,9 +235,6 @@ export default {
     chunksSort: 'name',
     colors: true,
     entrypoints: false,
-    excludeAssets: [
-      /^js\/monaco-language-.+\.js$/,
-    ].filter(Boolean),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,
     groupAssetsByInfo: false,
