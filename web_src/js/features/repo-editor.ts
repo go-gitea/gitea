@@ -1,5 +1,5 @@
 import {html, htmlRaw} from '../utils/html.ts';
-import {createCodeEditor} from './codeeditor.ts';
+import {createToastEditor} from './toast-editor.ts';
 import {hideElem, queryElems, showElem, createElementFromHTML} from '../utils/dom.ts';
 import {attachRefIssueContextPopup} from './contextpopup.ts';
 import {POST} from '../modules/fetch.ts';
@@ -170,14 +170,20 @@ export function initRepoEditor() {
   initEditPreviewTab(elForm);
 
   (async () => {
-    const editor = await createCodeEditor(editArea, filenameInput);
+    const editor = await createToastEditor(editArea, {
+      height: '500px',
+      initialEditType: 'wysiwyg',
+      previewStyle: 'vertical',
+      usageStatistics: false,
+      hideModeSwitch: true
+    });
 
     // Update the editor from query params, if available,
     // only after the dirtyFileClass initialization
     const params = new URLSearchParams(window.location.search);
     const value = params.get('value');
     if (value) {
-      editor.setValue(value);
+      editor.setMarkdown(value);
     }
 
     commitButton.addEventListener('click', async (e) => {
