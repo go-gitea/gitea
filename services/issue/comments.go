@@ -164,6 +164,7 @@ func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) error 
 	}
 
 	c.IsForcePush = data.IsForcePush
+
 	if c.IsForcePush {
 		if len(data.CommitIDs) != 2 {
 			return nil
@@ -185,7 +186,7 @@ func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) error 
 
 		c.Commits, err = git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
 		if err != nil {
-			log.Debug("GetCommitsFromIDs: %v", err) // no need to show 500 error to end user when the commit does not exist
+			log.Debug("ConvertFromGitCommit: %v", err) // no need to show 500 error to end user when the commit does not exist
 		} else {
 			c.CommitsNum = int64(len(c.Commits))
 		}
