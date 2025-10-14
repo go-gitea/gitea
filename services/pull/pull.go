@@ -401,14 +401,14 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 				continue
 			}
 
-			// create push comment first then check pull request status so the test
-			// will get a stable result
+			// create push comment before check pull request status,
+			// then when the status is mergeable, the comment is already in database, to make testing easy and stable
 			comment, err := CreatePushPullComment(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID, opts.IsForcePush)
 			if err == nil && comment != nil {
 				notify_service.PullRequestPushCommits(ctx, opts.Doer, pr, comment)
 			}
-			// FIXME: since AddTestPullRequestTask was called in a goroutine or a queue worker, is it still necessary to
-			// call another queue to handle the PR check? Maybe we can use checkPullRequestMergeable directly here?
+			// The caller can be in a goroutine or a "push queue", "conflict check" can be time-consuming,
+			// and the concurrency should be limited, so the conflict check will be done in another queue
 			StartPullRequestCheckImmediately(ctx, pr)
 		}
 

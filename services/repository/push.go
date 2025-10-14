@@ -310,7 +310,6 @@ func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *us
 	}
 
 	// only update branch can trigger pull request task because the pull request hasn't been created yet when creating a branch
-	// since pushUpdateBrach is called in a queue worker, we don't need to call it in a go routine again
 	testPullRequestOpts := pull_service.TestPullRequestOptions{
 		RepoID:      repo.ID,
 		Doer:        pusher,
@@ -320,14 +319,7 @@ func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *us
 		OldCommitID: opts.OldCommitID,
 		NewCommitID: opts.NewCommitID,
 	}
-	if setting.IsInTesting {
-		// testing mode use immediate queue which runs in the same goroutine which will
-		// cause a deadlock because checkPullRequestMergeable also needs to acquire the global lock
-		go pull_service.AddTestPullRequestTask(testPullRequestOpts)
-	} else {
-		// real queue will run in a different goroutine so it is safe to call here
-		pull_service.AddTestPullRequestTask(testPullRequestOpts)
-	}
+	go pull_service.AddTestPullRequestTask(testPullRequestOpts)
 
 	if isForcePush {
 		log.Trace("Push %s is a force push", opts.NewCommitID)
