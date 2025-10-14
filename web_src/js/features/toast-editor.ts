@@ -19,30 +19,23 @@ export async function createToastEditor(
     initialEditType = 'wysiwyg',
     previewStyle = 'vertical',
     usageStatistics = false,
-    hideModeSwitch = true,
+    hideModeSwitch = false,   // must be false to show the tabs
     toolbarItems = [
-      ['heading', 'bold', 'italic', 'strike'],
-      ['hr', 'quote'],
-      ['ul', 'ol', 'task', 'indent', 'outdent'],
-      ['table', 'image', 'link'],
-      ['code', 'codeblock'],
-      ['scrollSync']
+      ['heading', 'bold', 'italic'],
+      ['indent', 'outdent','code', 'link'],
+      ['ul', 'ol', 'task'],
+      ['image', 'table']
     ]
   } = options;
 
   // Use the existing container from the template
   let container = document.getElementById('toast-editor-container');
   if (!container) {
-    // Fallback: create container if not found
     container = document.createElement('div');
     container.id = 'toast-editor-container';
     container.className = 'toast-editor-container';
     container.style.height = height;
-    
-    if (!textarea.parentNode) {
-      throw new Error('Parent node absent');
-    }
-    
+    if (!textarea.parentNode) throw new Error('Parent node absent');
     textarea.parentNode.append(container);
   } else {
     container.style.height = height;
@@ -59,7 +52,6 @@ export async function createToastEditor(
     toolbarItems,
     events: {
       change: () => {
-        // Sync editor content with textarea
         const content = editor.getMarkdown();
         textarea.value = content;
         textarea.dispatchEvent(new Event('change'));
@@ -72,14 +64,25 @@ export async function createToastEditor(
     editor.setMarkdown(textarea.value);
   }
 
+  // Rename mode switch labels
+  const switchEl = container.querySelector('.toastui-editor-mode-switch');
+  if (switchEl) {
+    const tabItems = switchEl.querySelectorAll('.tab-item');
+    tabItems.forEach((el) => {
+      if (el.textContent?.trim() === 'WYSIWYG') {
+        el.textContent = 'Visual editor';
+      } else if (el.textContent?.trim() === 'Markdown') {
+        el.textContent = 'Source editor';
+      }
+    });
+  }
+
   // Hide the original textarea
   textarea.style.display = 'none';
 
-  // Remove loading indicator
+  // Remove loading indicator if present
   const loading = document.querySelector('.editor-loading');
-  if (loading) {
-    loading.remove();
-  }
+  if (loading) loading.remove();
 
   return editor;
 }
