@@ -498,7 +498,7 @@ tidy-check: tidy
 licenses: $(LICENSES_FILE) ## generate licenses.txt
 
 $(LICENSES_FILE): go.sum pnpm-lock.yaml uv.lock
-	$(GO) run $(TRIVY_PACKAGE) fs --quiet --scanners license --exit-code 0 --format spdx --output $(LICENSES_FILE) .
+	GOEXPERIMENT= $(GO) run $(TRIVY_PACKAGE) fs --quiet --scanners license --exit-code 0 --format spdx --output $(LICENSES_FILE) .
 
 generate-ini-sqlite:
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
