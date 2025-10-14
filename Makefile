@@ -495,7 +495,7 @@ tidy-check: tidy
 		exit 1; \
 	fi
 
-licenses: $(LICENSES_FILE) ## regenerate go licenses
+licenses: $(LICENSES_FILE) ## generate licenses.txt
 
 $(LICENSES_FILE): go.sum pnpm-lock.yaml uv.lock
 	$(GO) run $(TRIVY_PACKAGE) fs --quiet --security-checks license --exit-code 0 --format spdx --output $(LICENSES_FILE) .
