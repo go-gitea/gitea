@@ -42,7 +42,7 @@ func dialContextInternalAPI(ctx context.Context, network, address string) (conn 
 		conn, err = d.DialContext(ctx, network, address)
 	}
 	if err != nil {
-		return conn, err
+		return nil, err
 	}
 	if setting.LocalUseProxyProtocol {
 		if err = proxyprotocol.WriteLocalHeader(conn); err != nil {
@@ -50,7 +50,7 @@ func dialContextInternalAPI(ctx context.Context, network, address string) (conn 
 			return nil, err
 		}
 	}
-	return conn, err
+	return conn, nil
 }
 
 var internalAPITransport = sync.OnceValue(func() http.RoundTripper {
