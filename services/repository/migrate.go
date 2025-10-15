@@ -44,7 +44,7 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 			log.Error("Failed to remove incomplete wiki dir %q, err: %v", storageRepo.RelativePath(), err)
 		}
 	}
-	if err := gitrepo.CloneExternalRepo(ctx, storageRepo, wikiRemoteURL, git.CloneRepoOptions{
+	if err := gitrepo.CloneExternalRepo(ctx, wikiRemoteURL, storageRepo, git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,

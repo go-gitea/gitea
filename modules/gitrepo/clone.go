@@ -10,11 +10,11 @@ import (
 )
 
 // CloneExternalRepo clones an external repository to the managed repository.
-func CloneExternalRepo(ctx context.Context, dstRepo Repository, remoteURL string, opts git.CloneRepoOptions) error {
-	return git.Clone(ctx, remoteURL, repoPath(dstRepo), opts)
+func CloneExternalRepo(ctx context.Context, fromRemoteURL string, toRepo Repository, opts git.CloneRepoOptions) error {
+	return git.Clone(ctx, fromRemoteURL, repoPath(toRepo), opts)
 }
 
 // CloneRepoToLocal clones a managed repository to a local path.
-func CloneRepoToLocal(ctx context.Context, fromRepo Repository, to string, opts git.CloneRepoOptions) error {
-	return git.Clone(ctx, repoPath(fromRepo), to, opts)
+func CloneRepoToLocal(ctx context.Context, fromRepo Repository, toLocalPath string, opts git.CloneRepoOptions) error {
+	return git.Clone(ctx, repoPath(fromRepo), toLocalPath, opts)
 }
