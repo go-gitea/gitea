@@ -639,6 +639,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidRequest,
 			ErrorDescription: "cannot proceed your request",
 		})
+		return
 	}
 	resp, tokenErr := oauth2_provider.NewAccessTokenResponse(ctx, authorizationCode.Grant, serverKey, clientKey)
 	if tokenErr != nil {
