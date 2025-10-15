@@ -48,9 +48,7 @@ func TestGitLFSSSH(t *testing.T) {
 			setting.LFS.AllowPureSSH = true
 			require.NoError(t, cfg.Save())
 
-			_, _, cmdErr := gitcmd.NewCommand("config", "lfs.sshtransfer", "always").
-				WithDir(localRepoForUpload).
-				RunStdString(t.Context())
+			_, _, cmdErr := gitcmd.NewCommand("config", "lfs.sshtransfer", "always").RunStdString(t.Context(), &gitcmd.RunOpts{Dir: localRepoForUpload})
 			assert.NoError(t, cmdErr)
 			pushedFiles := lfsCommitAndPushTest(t, localRepoForUpload, 10)
 
