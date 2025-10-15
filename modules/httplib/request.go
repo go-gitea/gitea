@@ -24,14 +24,9 @@ var defaultTransport = sync.OnceValue(func() http.RoundTripper {
 	}
 })
 
-func DialContextWithTimeout(timeout time.Duration) func(ctx context.Context, netw, addr string) (net.Conn, error) {
-	return func(ctx context.Context, netw, addr string) (net.Conn, error) {
-		d := net.Dialer{Timeout: timeout}
-		conn, err := d.DialContext(ctx, netw, addr)
-		if err != nil {
-			return nil, err
-		}
-		return conn, nil
+func DialContextWithTimeout(timeout time.Duration) func(ctx context.Context, network, address string) (net.Conn, error) {
+	return func(ctx context.Context, network, address string) (net.Conn, error) {
+		return (&net.Dialer{Timeout: timeout}).DialContext(ctx, network, address)
 	}
 }
 
@@ -47,7 +42,7 @@ func NewRequest(url, method string) *Request {
 		},
 		params: map[string]string{},
 
-		// from legacy httplib, caller's must pay more attention to it, it will cause annoying bugs when the response takes a long time
+		// ATTENTION: from legacy httplib, callers must pay more attention to it, it will cause annoying bugs when the response takes a long time
 		readWriteTimeout: 60 * time.Second,
 	}
 }
@@ -68,7 +63,7 @@ func (r *Request) SetContext(ctx context.Context) *Request {
 }
 
 // SetTransport sets the request transport, if not set, will use httplib's default transport with environment proxy support
-// ATTENTION: the http.Transport has connection pool, so you should reuse it as much as possible, do not create a lot of transports
+// ATTENTION: the http.Transport has a connection pool, so it should be reused as much as possible, do not create a lot of transports
 func (r *Request) SetTransport(transport http.RoundTripper) *Request {
 	r.transport = transport
 	return r
