@@ -311,15 +311,16 @@
                         {{end}}
                     </div>
                     {{/* Tab navigation for Read/Edit/History */}}
+                    {{/* Read/Edit/History should go under the url "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.GetSubject e.g. /article/wikipedia/Moon%20Landing */}}
                     <div class="tw-flex tw-items-center tw-gap-4">
                         <div class="ui top attached tabular menu tw-my-10 tw-gap-1">
-                            <a class="{{if .IsArticleModeRead}}active {{end}}item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "article" "mode" "read"}}">
+                            <a class="{{if .IsArticleModeRead}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "article" "mode" "read"}}">
                                 {{svg "octicon-book" 16}} Read
                             </a>
-                            <a class="{{if .IsArticleModeEdit}}active {{end}}item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "article" "mode" "edit"}}">
+                            <a class="{{if .IsArticleModeEdit}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "article" "mode" "edit"}}">
                                 {{svg "octicon-pencil" 16}} Edit
                             </a>
-                            <a class="{{if .IsArticleModeHistory}}active {{end}}item" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "article" "mode" "history"}}">
+                            <a class="{{if .IsArticleModeHistory}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "article" "mode" "history"}}">
                                 {{svg "octicon-history" 16}} History
                             </a>
                             {{/* Align buttons on the right */}}
