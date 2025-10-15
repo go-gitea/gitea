@@ -1035,8 +1035,17 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 	log.Trace("Pull request merged: %d", pr.ID)
 
+	prUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	// for agit flow, we should not delete the agit reference after merge
-	if form.DeleteBranchAfterMerge && pr.Flow == issues_model.PullRequestFlowGithub {
+	shouldDeleteBranch := (prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge || form.DeleteBranchAfterMerge) &&
+		pr.Flow == issues_model.PullRequestFlowGithub
+
+	if shouldDeleteBranch {
 		// check permission even it has been checked in repo_service.DeleteBranch so that we don't need to
 		// do RetargetChildrenOnMerge
 		if err := repo_service.CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, ctx.Doer); err == nil {
