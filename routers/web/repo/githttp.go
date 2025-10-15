@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path"
 	"regexp"
 	"slices"
 	"strconv"
@@ -379,7 +380,7 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 	}
 
 	fs := gitrepo.GetRepoFS(h.getStorageRepo())
-	f, err := fs.Open(file)
+	f, err := fs.Open(path.Clean(file))
 	if err != nil {
 		if os.IsNotExist(err) {
 			ctx.Resp.WriteHeader(http.StatusNotFound)
@@ -442,6 +443,7 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	ctx.Resp.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", service))
 
 	reqBody := ctx.Req.Body
+
 	// Handle GZIP.
 	if ctx.Req.Header.Get("Content-Encoding") == "gzip" {
 		reqBody, err = gzip.NewReader(reqBody)
@@ -525,7 +527,6 @@ func GetInfoRefs(ctx *context.Context) {
 		if protocol := ctx.Req.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
 			h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 		}
-
 		h.environ = append(os.Environ(), h.environ...)
 
 		refs, _, err := gitrepo.RunCmdBytes(ctx, h.getStorageRepo(), cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").
