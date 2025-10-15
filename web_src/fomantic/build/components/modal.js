@@ -64,7 +64,7 @@ $.fn.modal = function(parameters) {
         moduleNamespace = 'module-' + namespace,
 
         $module         = $(this),
-        $context        = $(settings.context),
+        $context        = (typeof settings.context === 'string') ? $(document).find(settings.context) : $(settings.context), // GITEA-PATCH: use "jQuery.find(selector)" instead of "jQuery(selector)"
         $close          = $module.find(selector.close),
 
         $allModals,

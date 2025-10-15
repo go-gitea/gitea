@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/process"
 )
 
@@ -42,7 +43,7 @@ func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, 
 		Sign: true,
 	}
 
-	value, _, _ := NewCommand("config", "--get", "commit.gpgsign").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	value, _, _ := gitcmd.NewCommand("config", "--get", "commit.gpgsign").WithDir(repo.Path).RunStdString(repo.Ctx)
 	sign, valid := ParseBool(strings.TrimSpace(value))
 	if !sign || !valid {
 		gpgSettings.Sign = false
@@ -50,16 +51,16 @@ func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, 
 		return gpgSettings, nil
 	}
 
-	signingKey, _, _ := NewCommand("config", "--get", "user.signingkey").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	signingKey, _, _ := gitcmd.NewCommand("config", "--get", "user.signingkey").WithDir(repo.Path).RunStdString(repo.Ctx)
 	gpgSettings.KeyID = strings.TrimSpace(signingKey)
 
-	format, _, _ := NewCommand("config", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	format, _, _ := gitcmd.NewCommand("config", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").WithDir(repo.Path).RunStdString(repo.Ctx)
 	gpgSettings.Format = strings.TrimSpace(format)
 
-	defaultEmail, _, _ := NewCommand("config", "--get", "user.email").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	defaultEmail, _, _ := gitcmd.NewCommand("config", "--get", "user.email").WithDir(repo.Path).RunStdString(repo.Ctx)
 	gpgSettings.Email = strings.TrimSpace(defaultEmail)
 
-	defaultName, _, _ := NewCommand("config", "--get", "user.name").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	defaultName, _, _ := gitcmd.NewCommand("config", "--get", "user.name").WithDir(repo.Path).RunStdString(repo.Ctx)
 	gpgSettings.Name = strings.TrimSpace(defaultName)
 
 	if err := gpgSettings.LoadPublicKeyContent(); err != nil {

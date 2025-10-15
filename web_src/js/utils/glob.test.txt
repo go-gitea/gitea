@@ -1,0 +1,44 @@
+# test cases are from https://github.com/gobwas/glob/blob/master/glob_test.go
+
+pattern_all          = "[a-z][!a-x]*cat*[h][!b]*eyes*"
+regexp_all           = `^[a-z][^a-x].*cat.*[h][^b].*eyes.*$`
+fixture_all_match    = "my cat has very bright eyes"
+fixture_all_mismatch = "my dog has very bright eyes"
+
+pattern_plain          = "google.com"
+regexp_plain           = `^google\.com$`
+fixture_plain_match    = "google.com"
+fixture_plain_mismatch = "gobwas.com"
+
+pattern_multiple          = "https://*.google.*"
+regexp_multiple           = `^https:\/\/.*\.google\..*$`
+fixture_multiple_match    = "https://account.google.com"
+fixture_multiple_mismatch = "https://google.com"
+
+pattern_alternatives          = "{https://*.google.*,*yandex.*,*yahoo.*,*mail.ru}"
+regexp_alternatives           = `^(https:\/\/.*\.google\..*|.*yandex\..*|.*yahoo\..*|.*mail\.ru)$`
+fixture_alternatives_match    = "http://yahoo.com"
+fixture_alternatives_mismatch = "http://google.com"
+
+pattern_alternatives_suffix                = "{https://*gobwas.com,http://exclude.gobwas.com}"
+regexp_alternatives_suffix                 = `^(https:\/\/.*gobwas\.com|http://exclude\.gobwas\.com)$`
+fixture_alternatives_suffix_first_match    = "https://safe.gobwas.com"
+fixture_alternatives_suffix_first_mismatch = "http://safe.gobwas.com"
+fixture_alternatives_suffix_second         = "http://exclude.gobwas.com"
+
+pattern_prefix                 = "abc*"
+regexp_prefix                  = `^abc.*$`
+pattern_suffix                 = "*def"
+regexp_suffix                  = `^.*def$`
+pattern_prefix_suffix          = "ab*ef"
+regexp_prefix_suffix           = `^ab.*ef$`
+fixture_prefix_suffix_match    = "abcdef"
+fixture_prefix_suffix_mismatch = "af"
+
+pattern_alternatives_combine_lite = "{abc*def,abc?def,abc[zte]def}"
+regexp_alternatives_combine_lite  = `^(abc.*def|abc.def|abc[zte]def)$`
+fixture_alternatives_combine_lite = "abczdef"
+
+pattern_alternatives_combine_hard = "{abc*[a-c]def,abc?[d-g]def,abc[zte]?def}"
+regexp_alternatives_combine_hard  = `^(abc.*[a-c]def|abc.[d-g]def|abc[zte].def)$`
+fixture_alternatives_combine_hard = "abczqdef"

@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings options{{if .ContextUser.IsOrganization}} organization{{end}}">
+<div role="main" aria-label="{{.Title}}" class="page-content package settings options{{if .ContextUser.IsOrganization}} organization{{end}}">
 	{{if .ContextUser.IsOrganization}}
 		{{template "org/header" .}}
 	{{else}}
@@ -16,29 +16,15 @@
 		</h4>
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "packages.settings.link.description"}}</p>
-			<form class="ui form" action="{{.Link}}" method="post">
-				{{template "base/disable_form_autofill"}}
+			<form class="ui form form-fetch-action ignore-dirty flex-text-block" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="link">
-				<div class="field">
-					<div class="ui clearable selection dropdown">
-						{{$repoID := 0}}
-						{{if .PackageDescriptor.Repository}}
-							{{$repoID = .PackageDescriptor.Repository.ID}}
-						{{end}}
-						<input type="hidden" name="repo_id" value="{{$repoID}}">
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="default text">{{ctx.Locale.Tr "packages.settings.link.select"}}</div>
-						<div class="menu">
-							{{range .Repos}}
-								<div class="item" data-value="{{.ID}}">{{.Name}}</div>
-							{{end}}
-						</div>
+				<div data-global-init="initSearchRepoBox" class="ui search" data-uid="{{.PackageDescriptor.Owner.ID}}">
+					<div class="ui input">
+						<input class="prompt" name="repo_name" value="{{.LinkedRepoName}}" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off">
 					</div>
 				</div>
-				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "packages.settings.link.button"}}</button>
-				</div>
+				<button class="ui primary button">{{ctx.Locale.Tr "packages.settings.link.button"}}</button>
 			</form>
 		</div>
 		<h4 class="ui top attached error header">

@@ -48,7 +48,7 @@ type csrfProtector struct {
 	opt CsrfOptions
 	// id must be unique per user.
 	id string
-	// token is the valid one which wil be used by end user and passed via header, cookie, or hidden form value.
+	// token is the valid one which will be used by end user and passed via header, cookie, or hidden form value.
 	token string
 }
 

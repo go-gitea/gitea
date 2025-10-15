@@ -17,6 +17,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -69,6 +70,29 @@ func signingModeFromStrings(modeStrings []string) []signingMode {
 	return returnable
 }
 
+func userHasPubkeysGPG(ctx context.Context, userID int64) (bool, error) {
+	return db.Exist[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		OwnerID:        userID,
+		IncludeSubKeys: true,
+	}.ToConds())
+}
+
+func userHasPubkeysSSH(ctx context.Context, userID int64) (bool, error) {
+	return db.Exist[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		OwnerID:    userID,
+		NotKeytype: asymkey_model.KeyTypePrincipal,
+	}.ToConds())
+}
+
+// userHasPubkeys checks if a user has any public keys (GPG or SSH)
+func userHasPubkeys(ctx context.Context, userID int64) (bool, error) {
+	has, err := userHasPubkeysGPG(ctx, userID)
+	if has || err != nil {
+		return has, err
+	}
+	return userHasPubkeysSSH(ctx, userID)
+}
+
 // ErrWontSign explains the first reason why a commit would not be signed
 // There may be other reasons - this is just the first reason found
 type ErrWontSign struct {
@@ -93,16 +117,16 @@ func SigningKey(ctx context.Context, repoPath string) (*git.SigningKey, *git.Sig
 
 	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
 		// Can ignore the error here as it means that commit.gpgsign is not set
-		value, _, _ := git.NewCommand("config", "--get", "commit.gpgsign").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+		value, _, _ := gitcmd.NewCommand("config", "--get", "commit.gpgsign").WithDir(repoPath).RunStdString(ctx)
 		sign, valid := git.ParseBool(strings.TrimSpace(value))
 		if !sign || !valid {
 			return nil, nil
 		}
 
-		format, _, _ := git.NewCommand("config", "--default", git.SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-		signingKey, _, _ := git.NewCommand("config", "--get", "user.signingkey").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-		signingName, _, _ := git.NewCommand("config", "--get", "user.name").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-		signingEmail, _, _ := git.NewCommand("config", "--get", "user.email").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+		format, _, _ := gitcmd.NewCommand("config", "--default", git.SigningKeyFormatOpenPGP, "--get", "gpg.format").WithDir(repoPath).RunStdString(ctx)
+		signingKey, _, _ := gitcmd.NewCommand("config", "--get", "user.signingkey").WithDir(repoPath).RunStdString(ctx)
+		signingName, _, _ := gitcmd.NewCommand("config", "--get", "user.name").WithDir(repoPath).RunStdString(ctx)
+		signingEmail, _, _ := gitcmd.NewCommand("config", "--get", "user.email").WithDir(repoPath).RunStdString(ctx)
 
 		if strings.TrimSpace(signingKey) == "" {
 			return nil, nil
@@ -170,14 +194,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
@@ -210,14 +231,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
@@ -266,14 +284,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
@@ -337,14 +352,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:

@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRepository_GetTags(t *testing.T) {
+func TestRepository_GetTagInfos(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -44,7 +44,7 @@ func TestRepository_GetTag(t *testing.T) {
 		return
 	}
 
-	bareRepo1, err := openRepositoryWithDefaultContext(clonedPath)
+	bareRepo1, err := OpenRepository(t.Context(), clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -136,7 +136,7 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 		return
 	}
 
-	bareRepo1, err := openRepositoryWithDefaultContext(clonedPath)
+	bareRepo1, err := OpenRepository(t.Context(), clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 		return
