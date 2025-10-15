@@ -28,8 +28,8 @@ import (
 )
 
 func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.MigrateOptions, migrateTimeout time.Duration) (string, error) {
-	wikiRemotePath := repo_module.WikiRemoteURL(ctx, opts.CloneAddr)
-	if wikiRemotePath == "" {
+	wikiRemoteURL := repo_module.WikiRemoteURL(ctx, opts.CloneAddr)
+	if wikiRemoteURL == "" {
 		return "", nil
 	}
 
@@ -44,7 +44,7 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 			log.Error("Failed to remove incomplete wiki dir %q, err: %v", storageRepo.RelativePath(), err)
 		}
 	}
-	if err := gitrepo.CloneIn(ctx, storageRepo, wikiRemotePath, git.CloneRepoOptions{
+	if err := gitrepo.CloneExternalRepo(ctx, storageRepo, wikiRemoteURL, git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
