@@ -380,30 +380,8 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 	}
 
 	fs := gitrepo.GetRepoFS(h.getStorageRepo())
-	f, err := fs.Open(path.Clean(file))
-	if err != nil {
-		if os.IsNotExist(err) {
-			ctx.Resp.WriteHeader(http.StatusNotFound)
-		} else {
-			log.Error("Unable to open file %s: %v", file, err)
-			ctx.Resp.WriteHeader(http.StatusInternalServerError)
-		}
-		return
-	}
-
-	fi, err := f.Stat()
-	f.Close()
-	if err != nil {
-		log.Error("Unable to stat file %s: %v", file, err)
-		ctx.Resp.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	ctx.Resp.Header().Set("Content-Type", contentType)
-	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
-	// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
-	ctx.Resp.Header().Set("Last-Modified", fi.ModTime().UTC().Format(http.TimeFormat))
-	http.ServeFileFS(ctx.Resp, ctx.Req, fs, file)
+	http.ServeFileFS(ctx.Resp, ctx.Req, fs, path.Clean(file))
 }
 
 // one or more key=value pairs separated by colons
