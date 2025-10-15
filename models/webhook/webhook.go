@@ -22,6 +22,35 @@ import (
 	"xorm.io/builder"
 )
 
+// MetaSettings represents the metadata settings for webhook
+type MetaSettings struct {
+	PayloadConfig PayloadConfig `json:"payload_config"` // Payload configuration
+}
+
+// PayloadConfig represents the configuration for webhook payload
+type PayloadConfig struct {
+	Files   PayloadConfigItem `json:"files"`   // Files configuration
+	Commits PayloadConfigItem `json:"commits"` // Commits configuration
+}
+
+// PayloadConfigItem represents a single payload configuration item
+type PayloadConfigItem struct {
+	Enable bool `json:"enable"` // Whether to enable this configuration
+	Limit  int  `json:"limit"`  // 0: trim all (none kept), >0: keep N items (forward order), <0: keep N items (reverse order)
+}
+
+// DefaultMetaSettings returns the default webhook meta settings
+func DefaultMetaSettings() MetaSettings {
+	return MetaSettings{
+		PayloadConfig: DefaultPayloadConfig(),
+	}
+}
+
+// DefaultPayloadConfig returns the default payload configuration
+func DefaultPayloadConfig() PayloadConfig {
+	return PayloadConfig{}
+}
+
 // ErrWebhookNotExist represents a "WebhookNotExist" kind of error.
 type ErrWebhookNotExist struct {
 	ID int64
@@ -138,6 +167,9 @@ type Webhook struct {
 
 	// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
 	HeaderAuthorizationEncrypted string `xorm:"TEXT"`
+
+	// Webhook metadata settings (JSON format)
+	MetaSettings string `xorm:"meta_settings TEXT"` // JSON: webhook metadata configuration
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -345,4 +377,84 @@ func DeleteWebhookByOwnerID(ctx context.Context, ownerID, id int64) error {
 		return err
 	}
 	return DeleteWebhookByID(ctx, id)
+}
+
+// GetMetaSettings returns the webhook meta settings
+func (w *Webhook) GetMetaSettings() MetaSettings {
+	if w.MetaSettings == "" {
+		return DefaultMetaSettings()
+	}
+
+	var settings MetaSettings
+	if err := json.Unmarshal([]byte(w.MetaSettings), &settings); err != nil {
+		log.Error("Failed to unmarshal webhook meta settings: %v", err)
+		return DefaultMetaSettings()
+	}
+
+	return settings
+}
+
+// GetPayloadConfig returns the payload configuration
+func (w *Webhook) GetPayloadConfig() PayloadConfig {
+	return w.GetMetaSettings().PayloadConfig
+}
+
+// SetMetaSettings sets the webhook meta settings
+func (w *Webhook) SetMetaSettings(settings MetaSettings) error {
+	data, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("failed to marshal webhook meta settings: %w", err)
+	}
+
+	w.MetaSettings = string(data)
+	return nil
+}
+
+// SetPayloadConfig sets the payload configuration
+func (w *Webhook) SetPayloadConfig(config PayloadConfig) error {
+	settings := w.GetMetaSettings()
+	settings.PayloadConfig = config
+	return w.SetMetaSettings(settings)
+}
+
+// IsPayloadConfigEnabled returns whether payload configuration is enabled
+func (w *Webhook) IsPayloadConfigEnabled() bool {
+	config := w.GetPayloadConfig()
+	return config.Files.Enable || config.Commits.Enable
+}
+
+// GetPayloadConfigLimit returns the payload configuration limit
+func (w *Webhook) GetPayloadConfigLimit() int {
+	config := w.GetPayloadConfig()
+	if config.Files.Enable {
+		return config.Files.Limit
+	}
+	if config.Commits.Enable {
+		return config.Commits.Limit
+	}
+	return 0
+}
+
+// IsFilesConfigEnabled returns whether files configuration is enabled
+func (w *Webhook) IsFilesConfigEnabled() bool {
+	config := w.GetPayloadConfig()
+	return config.Files.Enable
+}
+
+// GetFilesConfigLimit returns the files configuration limit
+func (w *Webhook) GetFilesConfigLimit() int {
+	config := w.GetPayloadConfig()
+	return config.Files.Limit
+}
+
+// IsCommitsConfigEnabled returns whether commits configuration is enabled
+func (w *Webhook) IsCommitsConfigEnabled() bool {
+	config := w.GetPayloadConfig()
+	return config.Commits.Enable
+}
+
+// GetCommitsConfigLimit returns the commits configuration limit
+func (w *Webhook) GetCommitsConfigLimit() int {
+	config := w.GetPayloadConfig()
+	return config.Commits.Limit
 }

@@ -7,6 +7,7 @@ import (
 	"context"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -15,10 +16,12 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -641,6 +644,138 @@ func (m *webhookNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 	}
 }
 
+// applyWebhookPayloadOptimizations applies payload optimizations based on webhook configurations
+func (m *webhookNotifier) applyWebhookPayloadOptimizations(ctx context.Context, repo *repo_model.Repository, apiCommits []*api.PayloadCommit, apiHeadCommit *api.PayloadCommit) ([]*api.PayloadCommit, *api.PayloadCommit) {
+	// Get all webhooks for this repository
+	webhooks, err := db.Find[webhook_model.Webhook](ctx, webhook_model.ListWebhookOptions{
+		RepoID:   repo.ID,
+		IsActive: optional.Some(true),
+	})
+	if err != nil {
+		log.Error("Failed to get webhooks for repository %d: %v", repo.ID, err)
+		// Continue with default behavior if we can't get webhooks
+		return apiCommits, apiHeadCommit
+	}
+
+	// Check if any webhook has payload optimization options enabled
+	var filesLimit, commitsLimit int
+	hasFilesLimit := false
+	hasCommitsLimit := false
+	optimizationEnabled := false
+
+	for _, webhook := range webhooks {
+		if webhook.HasEvent(webhook_module.HookEventPush) {
+			config := webhook.GetPayloadConfig()
+
+			// Check files optimization
+			if config.Files.Enable {
+				optimizationEnabled = true
+				if !hasFilesLimit || config.Files.Limit < filesLimit {
+					filesLimit = config.Files.Limit
+					hasFilesLimit = true
+				}
+			}
+
+			// Check commits optimization
+			if config.Commits.Enable {
+				optimizationEnabled = true
+				if !hasCommitsLimit || config.Commits.Limit < commitsLimit {
+					commitsLimit = config.Commits.Limit
+					hasCommitsLimit = true
+				}
+			}
+		}
+	}
+
+	// Apply payload optimizations based on webhook configurations
+	// 0: trim all (none kept), >0: trim to N items (forward order), <0: trim to N items (reverse order)
+	if optimizationEnabled {
+		// Apply files optimization to all commits
+		if hasFilesLimit {
+			for _, commit := range apiCommits {
+				if commit.Added != nil {
+					if filesLimit == 0 {
+						commit.Added = nil
+					} else if filesLimit > 0 && len(commit.Added) > filesLimit {
+						commit.Added = commit.Added[:filesLimit]
+					} else if filesLimit < 0 && len(commit.Added) > -filesLimit {
+						// Reverse order: keep the last N items
+						commit.Added = commit.Added[len(commit.Added)+filesLimit:]
+					}
+				}
+				if commit.Removed != nil {
+					if filesLimit == 0 {
+						commit.Removed = nil
+					} else if filesLimit > 0 && len(commit.Removed) > filesLimit {
+						commit.Removed = commit.Removed[:filesLimit]
+					} else if filesLimit < 0 && len(commit.Removed) > -filesLimit {
+						// Reverse order: keep the last N items
+						commit.Removed = commit.Removed[len(commit.Removed)+filesLimit:]
+					}
+				}
+				if commit.Modified != nil {
+					if filesLimit == 0 {
+						commit.Modified = nil
+					} else if filesLimit > 0 && len(commit.Modified) > filesLimit {
+						commit.Modified = commit.Modified[:filesLimit]
+					} else if filesLimit < 0 && len(commit.Modified) > -filesLimit {
+						// Reverse order: keep the last N items
+						commit.Modified = commit.Modified[len(commit.Modified)+filesLimit:]
+					}
+				}
+			}
+
+			// Apply files optimization to head commit
+			if apiHeadCommit != nil {
+				if apiHeadCommit.Added != nil {
+					if filesLimit == 0 {
+						apiHeadCommit.Added = nil
+					} else if filesLimit > 0 && len(apiHeadCommit.Added) > filesLimit {
+						apiHeadCommit.Added = apiHeadCommit.Added[:filesLimit]
+					} else if filesLimit < 0 && len(apiHeadCommit.Added) > -filesLimit {
+						// Reverse order: keep the last N items
+						apiHeadCommit.Added = apiHeadCommit.Added[len(apiHeadCommit.Added)+filesLimit:]
+					}
+				}
+				if apiHeadCommit.Removed != nil {
+					if filesLimit == 0 {
+						apiHeadCommit.Removed = nil
+					} else if filesLimit > 0 && len(apiHeadCommit.Removed) > filesLimit {
+						apiHeadCommit.Removed = apiHeadCommit.Removed[:filesLimit]
+					} else if filesLimit < 0 && len(apiHeadCommit.Removed) > -filesLimit {
+						// Reverse order: keep the last N items
+						apiHeadCommit.Removed = apiHeadCommit.Removed[len(apiHeadCommit.Removed)+filesLimit:]
+					}
+				}
+				if apiHeadCommit.Modified != nil {
+					if filesLimit == 0 {
+						apiHeadCommit.Modified = nil
+					} else if filesLimit > 0 && len(apiHeadCommit.Modified) > filesLimit {
+						apiHeadCommit.Modified = apiHeadCommit.Modified[:filesLimit]
+					} else if filesLimit < 0 && len(apiHeadCommit.Modified) > -filesLimit {
+						// Reverse order: keep the last N items
+						apiHeadCommit.Modified = apiHeadCommit.Modified[len(apiHeadCommit.Modified)+filesLimit:]
+					}
+				}
+			}
+		}
+
+		// Apply commits optimization
+		if hasCommitsLimit {
+			if commitsLimit == 0 {
+				apiCommits = nil
+			} else if commitsLimit > 0 && len(apiCommits) > commitsLimit {
+				apiCommits = apiCommits[:commitsLimit]
+			} else if commitsLimit < 0 && len(apiCommits) > -commitsLimit {
+				// Reverse order: keep the last N commits
+				apiCommits = apiCommits[len(apiCommits)+commitsLimit:]
+			}
+		}
+	}
+
+	return apiCommits, apiHeadCommit
+}
+
 func (m *webhookNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(ctx, repo)
@@ -648,6 +783,9 @@ func (m *webhookNotifier) PushCommits(ctx context.Context, pusher *user_model.Us
 		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
 		return
 	}
+
+	// Apply payload optimizations
+	apiCommits, apiHeadCommit = m.applyWebhookPayloadOptimizations(ctx, repo, apiCommits, apiHeadCommit)
 
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{
 		Ref:          opts.RefFullName.String(),
@@ -887,6 +1025,9 @@ func (m *webhookNotifier) SyncPushCommits(ctx context.Context, pusher *user_mode
 		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
 		return
 	}
+
+	// Apply payload optimizations
+	apiCommits, apiHeadCommit = m.applyWebhookPayloadOptimizations(ctx, repo, apiCommits, apiHeadCommit)
 
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{
 		Ref:          opts.RefFullName.String(),
