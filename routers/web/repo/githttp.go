@@ -407,6 +407,10 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 // one or more key=value pairs separated by colons
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
+func isAllowedRPCServiceType(service string) bool {
+	return service == ServiceTypeUploadPack || service == ServiceTypeReceivePack
+}
+
 func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	defer func() {
 		if err := ctx.Req.Body.Close(); err != nil {
@@ -414,15 +418,16 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 		}
 	}()
 
-	expectedContentType := fmt.Sprintf("application/x-git-%s-request", service)
-	if ctx.Req.Header.Get("Content-Type") != expectedContentType {
-		log.Error("Content-Type (%q) doesn't match expected: %q", ctx.Req.Header.Get("Content-Type"), expectedContentType)
+	if !isAllowedRPCServiceType(service) {
+		log.Error("Invalid service: %q", service)
+		// FIXME: why it's 401 if the service type doesn't supported?
 		ctx.Resp.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	if service != "upload-pack" && service != "receive-pack" {
-		log.Error("Invalid service: %q", service)
+	expectedContentType := fmt.Sprintf("application/x-git-%s-request", service)
+	if ctx.Req.Header.Get("Content-Type") != expectedContentType {
+		log.Error("Content-Type (%q) doesn't match expected: %q", ctx.Req.Header.Get("Content-Type"), expectedContentType)
 		ctx.Resp.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -503,7 +508,7 @@ func GetInfoRefs(ctx *context.Context) {
 	}
 	setHeaderNoCache(ctx)
 	service := getServiceType(ctx)
-	if service == "upload-pack" || service == "receive-pack" {
+	if service == ServiceTypeUploadPack || service == ServiceTypeReceivePack {
 		if protocol := ctx.Req.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
 			h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 		}
