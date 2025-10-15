@@ -89,7 +89,7 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 	}); err != nil {
 		return err
 	}
-	CreateCommitStatus(ctx, jobs...)
+	CreateCommitStatusForRunJobs(ctx, run, jobs...)
 	for _, job := range updatedJobs {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
