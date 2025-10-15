@@ -32,17 +32,17 @@ func TestAPIGitTags(t *testing.T) {
 	_ = gitrepo.GitConfigSet(t.Context(), repo, "user.name", user.Name)
 	_ = gitrepo.GitConfigSet(t.Context(), repo, "user.email", user.Email)
 
-	gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, _ := gitrepo.OpenRepository(repo)
 	defer gitRepo.Close()
 
-	commit, _ := gitRepo.GetBranchCommit("master")
+	commit, _ := gitRepo.GetBranchCommit(t.Context(), "master")
 	lTagName := "lightweightTag"
-	gitRepo.CreateTag(lTagName, commit.ID.String())
+	gitRepo.CreateTag(t.Context(), lTagName, commit.ID.String())
 
 	aTagName := "annotatedTag"
 	aTagMessage := "my annotated message"
-	gitRepo.CreateAnnotatedTag(aTagName, aTagMessage, commit.ID.String())
-	aTag, _ := gitRepo.GetTag(aTagName)
+	gitRepo.CreateAnnotatedTag(t.Context(), aTagName, aTagMessage, commit.ID.String())
+	aTag, _ := gitRepo.GetTag(t.Context(), aTagName)
 
 	// SHOULD work for annotated tags
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s", user.Name, repo.Name, aTag.ID.String()).

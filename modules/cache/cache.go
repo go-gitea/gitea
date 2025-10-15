@@ -4,6 +4,7 @@
 package cache
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -96,9 +97,9 @@ func GetString(key string, getFunc func() (string, error)) (string, error) {
 }
 
 // GetInt64 returns key value from cache with callback when no key exists in cache
-func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
+func GetInt64(ctx context.Context, key string, getFunc func(ctx context.Context) (int64, error)) (int64, error) {
 	s, err := GetString(key, func() (string, error) {
-		v, err := getFunc()
+		v, err := getFunc(ctx)
 		return strconv.FormatInt(v, 10), err
 	})
 	if err != nil {

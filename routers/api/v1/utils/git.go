@@ -37,7 +37,7 @@ func ResolveRefCommit(ctx reqctx.RequestContext, repo *repo_model.Repository, in
 	if refCommit.RefName == "" {
 		return nil, git.ErrNotExist{ID: inputRef}
 	}
-	if refCommit.Commit, err = gitRepo.GetCommit(refCommit.RefName.String()); err != nil {
+	if refCommit.Commit, err = gitRepo.GetCommit(ctx, refCommit.RefName.String()); err != nil {
 		return nil, err
 	}
 	refCommit.CommitID = refCommit.Commit.ID.String()
@@ -56,6 +56,6 @@ func GetGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, strin
 	if len(filter) > 0 {
 		filter = "refs/" + filter
 	}
-	refs, err := ctx.Repo.GitRepo.GetRefsFiltered(filter)
+	refs, err := ctx.Repo.GitRepo.GetRefsFiltered(ctx, filter)
 	return refs, "GetRefsFiltered", err
 }

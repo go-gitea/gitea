@@ -361,17 +361,17 @@ type DiffLimitedContent struct {
 }
 
 // GetTailSectionAndLimitedContent creates a fake DiffLineSection if the last section is not the end of the file
-func (diffFile *DiffFile) GetTailSectionAndLimitedContent(leftCommit, rightCommit *git.Commit) (_ *DiffSection, diffLimitedContent DiffLimitedContent) {
+func (diffFile *DiffFile) GetTailSectionAndLimitedContent(ctx context.Context, leftCommit, rightCommit *git.Commit) (_ *DiffSection, diffLimitedContent DiffLimitedContent) {
 	var leftLineCount, rightLineCount int
 	diffLimitedContent = DiffLimitedContent{}
 	if diffFile.IsBin || diffFile.IsLFSFile {
 		return nil, diffLimitedContent
 	}
 	if (diffFile.Type == DiffFileDel || diffFile.Type == DiffFileChange) && leftCommit != nil {
-		leftLineCount, diffLimitedContent.LeftContent = getCommitFileLineCountAndLimitedContent(leftCommit, diffFile.OldName)
+		leftLineCount, diffLimitedContent.LeftContent = getCommitFileLineCountAndLimitedContent(ctx, leftCommit, diffFile.OldName)
 	}
 	if (diffFile.Type == DiffFileAdd || diffFile.Type == DiffFileChange) && rightCommit != nil {
-		rightLineCount, diffLimitedContent.RightContent = getCommitFileLineCountAndLimitedContent(rightCommit, diffFile.OldName)
+		rightLineCount, diffLimitedContent.RightContent = getCommitFileLineCountAndLimitedContent(ctx, rightCommit, diffFile.OldName)
 	}
 	if len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange {
 		return nil, diffLimitedContent
@@ -445,13 +445,13 @@ func (l *limitByteWriter) Write(p []byte) (n int, err error) {
 	return l.buf.Write(p)
 }
 
-func getCommitFileLineCountAndLimitedContent(commit *git.Commit, filePath string) (lineCount int, limitWriter *limitByteWriter) {
-	blob, err := commit.GetBlobByPath(filePath)
+func getCommitFileLineCountAndLimitedContent(ctx context.Context, commit *git.Commit, filePath string) (lineCount int, limitWriter *limitByteWriter) {
+	blob, err := commit.GetBlobByPath(ctx, filePath)
 	if err != nil {
 		return 0, nil
 	}
 	w := &limitByteWriter{limit: MaxDiffHighlightEntireFileSize + 1}
-	lineCount, err = blob.GetBlobLineCount(w)
+	lineCount, err = blob.GetBlobLineCount(ctx, w)
 	if err != nil {
 		return 0, nil
 	}
@@ -1106,7 +1106,7 @@ type DiffOptions struct {
 	DirectComparison   bool
 }
 
-func guessBeforeCommitForDiff(gitRepo *git.Repository, beforeCommitID string, afterCommit *git.Commit) (actualBeforeCommit *git.Commit, actualBeforeCommitID git.ObjectID, err error) {
+func guessBeforeCommitForDiff(ctx context.Context, gitRepo *git.Repository, beforeCommitID string, afterCommit *git.Commit) (actualBeforeCommit *git.Commit, actualBeforeCommitID git.ObjectID, err error) {
 	commitObjectFormat := afterCommit.ID.Type()
 	isBeforeCommitIDEmpty := beforeCommitID == "" || beforeCommitID == commitObjectFormat.EmptyObjectID().String()
 
@@ -1114,9 +1114,9 @@ func guessBeforeCommitForDiff(gitRepo *git.Repository, beforeCommitID string, af
 		actualBeforeCommitID = commitObjectFormat.EmptyTree()
 	} else {
 		if isBeforeCommitIDEmpty {
-			actualBeforeCommit, err = afterCommit.Parent(0)
+			actualBeforeCommit, err = afterCommit.Parent(ctx, 0)
 		} else {
-			actualBeforeCommit, err = gitRepo.GetCommit(beforeCommitID)
+			actualBeforeCommit, err = gitRepo.GetCommit(ctx, beforeCommitID)
 		}
 		if err != nil {
 			return nil, nil, err
@@ -1133,12 +1133,12 @@ func guessBeforeCommitForDiff(gitRepo *git.Repository, beforeCommitID string, af
 func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (_ *Diff, beforeCommit, afterCommit *git.Commit, err error) {
 	repoPath := gitRepo.Path
 
-	afterCommit, err = gitRepo.GetCommit(opts.AfterCommitID)
+	afterCommit, err = gitRepo.GetCommit(ctx, opts.AfterCommitID)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	beforeCommit, beforeCommitID, err := guessBeforeCommitForDiff(gitRepo, opts.BeforeCommitID, afterCommit)
+	beforeCommit, beforeCommitID, err := guessBeforeCommitForDiff(ctx, gitRepo, opts.BeforeCommitID, afterCommit)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1202,7 +1202,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		return nil, err
 	}
 
-	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage, attribute.Diff})
+	checker, err := attribute.NewBatchChecker(ctx, gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage, attribute.Diff})
 	if err != nil {
 		return nil, err
 	}
@@ -1212,7 +1212,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		isVendored := optional.None[bool]()
 		isGenerated := optional.None[bool]()
 		attrDiff := optional.None[string]()
-		attrs, err := checker.CheckPath(diffFile.Name)
+		attrs, err := checker.CheckPath(ctx, diffFile.Name)
 		if err == nil {
 			isVendored, isGenerated = attrs.GetVendored(), attrs.GetGenerated()
 			language := attrs.GetLanguage()
@@ -1224,7 +1224,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 
 		// Populate Submodule URLs
 		if diffFile.SubmoduleDiffInfo != nil {
-			diffFile.SubmoduleDiffInfo.PopulateURL(repoLink, diffFile, beforeCommit, afterCommit)
+			diffFile.SubmoduleDiffInfo.PopulateURL(ctx, repoLink, diffFile, beforeCommit, afterCommit)
 		}
 
 		if !isVendored.Has() {
@@ -1236,7 +1236,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 			isGenerated = optional.Some(analyze.IsGenerated(diffFile.Name))
 		}
 		diffFile.IsGenerated = isGenerated.Value()
-		tailSection, limitedContent := diffFile.GetTailSectionAndLimitedContent(beforeCommit, afterCommit)
+		tailSection, limitedContent := diffFile.GetTailSectionAndLimitedContent(ctx, beforeCommit, afterCommit)
 		if tailSection != nil {
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
@@ -1282,12 +1282,12 @@ type DiffShortStat struct {
 }
 
 func GetDiffShortStat(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
-	afterCommit, err := gitRepo.GetCommit(afterCommitID)
+	afterCommit, err := gitRepo.GetCommit(ctx, afterCommitID)
 	if err != nil {
 		return nil, err
 	}
 
-	_, actualBeforeCommitID, err := guessBeforeCommitForDiff(gitRepo, beforeCommitID, afterCommit)
+	_, actualBeforeCommitID, err := guessBeforeCommitForDiff(ctx, gitRepo, beforeCommitID, afterCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -1316,7 +1316,7 @@ func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.
 		latestCommit = pull.HeadBranch // opts.AfterCommitID is preferred because it handles PRs from forks correctly and the branch name doesn't
 	}
 
-	changedFiles, errIgnored := gitRepo.GetFilesChangedBetween(review.CommitSHA, latestCommit)
+	changedFiles, errIgnored := gitRepo.GetFilesChangedBetween(ctx, review.CommitSHA, latestCommit)
 	// There are way too many possible errors.
 	// Examples are various git errors such as the commit the review was based on was gc'ed and hence doesn't exist anymore as well as unrecoverable errors where we should serve a 500 response
 	// Due to the current architecture and physical limitation of needing to compare explicit error messages, we can only choose one approach without the code getting ugly

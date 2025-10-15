@@ -7,7 +7,6 @@
 package git
 
 import (
-	"context"
 	"path/filepath"
 
 	gitealog "code.gitea.io/gitea/modules/log"
@@ -34,13 +33,12 @@ type Repository struct {
 	gogitStorage *filesystem.Storage
 	gpgSettings  *GPGSettings
 
-	Ctx             context.Context
 	LastCommitCache *LastCommitCache
 	objectFormat    ObjectFormat
 }
 
 // OpenRepository opens the repository at the given path within the context.Context
-func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
+func OpenRepository(repoPath string) (*Repository, error) {
 	repoPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, err
@@ -80,7 +78,6 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		gogitRepo:    gogitRepo,
 		gogitStorage: storage,
 		tagCache:     newObjectCache[*Tag](),
-		Ctx:          ctx,
 		objectFormat: ParseGogitHash(plumbing.ZeroHash).Type(),
 	}, nil
 }

@@ -4,6 +4,7 @@
 package cache
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -92,32 +93,32 @@ func TestGetString(t *testing.T) {
 func TestGetInt64(t *testing.T) {
 	createTestCache()
 
-	data, err := GetInt64("key", func() (int64, error) {
+	data, err := GetInt64(t.Context(), "key", func(_ context.Context) (int64, error) {
 		return 0, errors.New("some error")
 	})
 	assert.Error(t, err)
 	assert.EqualValues(t, 0, data)
 
-	data, err = GetInt64("key", func() (int64, error) {
+	data, err = GetInt64(t.Context(), "key", func(_ context.Context) (int64, error) {
 		return 0, nil
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, data)
 
-	data, err = GetInt64("key", func() (int64, error) {
+	data, err = GetInt64(t.Context(), "key", func(_ context.Context) (int64, error) {
 		return 100, nil
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, data)
 	Remove("key")
 
-	data, err = GetInt64("key", func() (int64, error) {
+	data, err = GetInt64(t.Context(), "key", func(_ context.Context) (int64, error) {
 		return 100, nil
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 100, data)
 
-	data, err = GetInt64("key", func() (int64, error) {
+	data, err = GetInt64(t.Context(), "key", func(_ context.Context) (int64, error) {
 		return 0, errors.New("some error")
 	})
 	assert.NoError(t, err)

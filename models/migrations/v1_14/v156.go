@@ -109,14 +109,14 @@ func FixPublisherIDforTagReleases(ctx context.Context, x *xorm.Engine) error {
 						return err
 					}
 				}
-				gitRepo, err = git.OpenRepository(ctx, repoPath(repo.OwnerName, repo.Name))
+				gitRepo, err = git.OpenRepository(repoPath(repo.OwnerName, repo.Name))
 				if err != nil {
 					log.Error("Error whilst opening git repo for [%d]%s/%s. Error: %v", repo.ID, repo.OwnerName, repo.Name, err)
 					return err
 				}
 			}
 
-			commit, err := gitRepo.GetTagCommit(release.TagName)
+			commit, err := gitRepo.GetTagCommit(ctx, release.TagName)
 			if err != nil {
 				if git.IsErrNotExist(err) {
 					log.Warn("Unable to find commit %s for Tag: %s in [%d]%s/%s. Cannot update publisher ID.", err.(git.ErrNotExist).ID, release.TagName, repo.ID, repo.OwnerName, repo.Name)
@@ -128,7 +128,7 @@ func FixPublisherIDforTagReleases(ctx context.Context, x *xorm.Engine) error {
 
 			if commit.Author.Email == "" {
 				log.Warn("Tag: %s in Repo[%d]%s/%s does not have a tagger.", release.TagName, repo.ID, repo.OwnerName, repo.Name)
-				commit, err = gitRepo.GetCommit(commit.ID.String())
+				commit, err = gitRepo.GetCommit(ctx, commit.ID.String())
 				if err != nil {
 					if git.IsErrNotExist(err) {
 						log.Warn("Unable to find commit %s for Tag: %s in [%d]%s/%s. Cannot update publisher ID.", err.(git.ErrNotExist).ID, release.TagName, repo.ID, repo.OwnerName, repo.Name)

@@ -18,7 +18,7 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, treePath)
 	if err != nil {
 		ctx.ServerError("GetTreeEntryByPath", err)
 		return

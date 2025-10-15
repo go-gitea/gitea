@@ -27,8 +27,8 @@ var repoPath = func(repo Repository) string {
 }
 
 // OpenRepository opens the repository at the given relative path with the provided context.
-func OpenRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
-	return git.OpenRepository(ctx, repoPath(repo))
+func OpenRepository(repo Repository) (*git.Repository, error) {
+	return git.OpenRepository(repoPath(repo))
 }
 
 // contextKey is a value for use with context.WithValue.
@@ -44,7 +44,7 @@ func RepositoryFromContextOrOpen(ctx context.Context, repo Repository) (*git.Rep
 		gitRepo, err := RepositoryFromRequestContextOrOpen(reqCtx, repo)
 		return gitRepo, util.NopCloser{}, err
 	}
-	gitRepo, err := OpenRepository(ctx, repo)
+	gitRepo, err := OpenRepository(repo)
 	return gitRepo, gitRepo, err
 }
 
@@ -55,7 +55,7 @@ func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Reposito
 	if gitRepo, ok := ctx.Value(ck).(*git.Repository); ok {
 		return gitRepo, nil
 	}
-	gitRepo, err := git.OpenRepository(ctx, ck.repoPath)
+	gitRepo, err := git.OpenRepository(ck.repoPath)
 	if err != nil {
 		return nil, err
 	}

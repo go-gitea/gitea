@@ -68,7 +68,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	c, err := ctx.Repo.GitRepo.GetBranchCommit(branchName)
+	c, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, branchName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -219,14 +219,14 @@ func CreateBranch(ctx *context.APIContext) {
 	var err error
 
 	if len(opt.OldRefName) > 0 {
-		oldCommit, err = ctx.Repo.GitRepo.GetCommit(opt.OldRefName)
+		oldCommit, err = ctx.Repo.GitRepo.GetCommit(ctx, opt.OldRefName)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
 	} else if len(opt.OldBranchName) > 0 { //nolint:staticcheck // deprecated field
 		if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, opt.OldBranchName) { //nolint:staticcheck // deprecated field
-			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldBranchName) //nolint:staticcheck // deprecated field
+			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, opt.OldBranchName) //nolint:staticcheck // deprecated field
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -236,7 +236,7 @@ func CreateBranch(ctx *context.APIContext) {
 			return
 		}
 	} else {
-		oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+		oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -259,7 +259,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(opt.BranchName)
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, opt.BranchName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -354,7 +354,7 @@ func ListBranches(ctx *context.APIContext) {
 
 		apiBranches = make([]*api.Branch, 0, len(branches))
 		for i := range branches {
-			c, err := ctx.Repo.GitRepo.GetBranchCommit(branches[i].Name)
+			c, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, branches[i].Name)
 			if err != nil {
 				// Skip if this branch doesn't exist anymore.
 				if git.IsErrNotExist(err) {

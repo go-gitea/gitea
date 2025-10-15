@@ -7,6 +7,7 @@
 package git
 
 import (
+	"context"
 	"io"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -36,7 +37,7 @@ func (t *Tree) loadTreeObject() error {
 }
 
 // ListEntries returns all entries of current tree.
-func (t *Tree) ListEntries() (Entries, error) {
+func (t *Tree) ListEntries(ctx context.Context) (Entries, error) {
 	if t.gogitTree == nil {
 		err := t.loadTreeObject()
 		if err != nil {
@@ -57,7 +58,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 }
 
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees
-func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
+func (t *Tree) ListEntriesRecursiveWithSize(ctx context.Context) (Entries, error) {
 	if t.gogitTree == nil {
 		err := t.loadTreeObject()
 		if err != nil {
@@ -92,6 +93,6 @@ func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
 }
 
 // ListEntriesRecursiveFast is the alias of ListEntriesRecursiveWithSize for the gogit version
-func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
-	return t.ListEntriesRecursiveWithSize()
+func (t *Tree) ListEntriesRecursiveFast(ctx context.Context) (Entries, error) {
+	return t.ListEntriesRecursiveWithSize(ctx)
 }

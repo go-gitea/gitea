@@ -300,7 +300,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 		return nil, fmt.Errorf("GetFullCommitID(%s) in %s: %w", prHeadRef, pr.BaseRepo.FullName(), err)
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	gitRepo, err := gitrepo.OpenRepository(pr.BaseRepo)
 	if err != nil {
 		return nil, fmt.Errorf("%-v OpenRepository: %w", pr.BaseRepo, err)
 	}
@@ -320,7 +320,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	}
 	mergeCommit = strings.TrimSpace(mergeCommit)
 
-	commit, err := gitRepo.GetCommit(mergeCommit)
+	commit, err := gitRepo.GetCommit(ctx, mergeCommit)
 	if err != nil {
 		return nil, fmt.Errorf("GetMergeCommit[%s]: %w", mergeCommit, err)
 	}

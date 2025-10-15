@@ -6,6 +6,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"strings"
 	"time"
@@ -23,7 +24,7 @@ type CommitTreeOpts struct {
 }
 
 // CommitTree creates a commit from a given tree id for the user with provided message
-func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opts CommitTreeOpts) (ObjectID, error) {
+func (repo *Repository) CommitTree(ctx context.Context, author, committer *Signature, tree *Tree, opts CommitTreeOpts) (ObjectID, error) {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	// Because this may call hooks we should pass in the environment
@@ -65,7 +66,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		WithStdin(messageBytes).
 		WithStdout(stdout).
 		WithStderr(stderr).
-		Run(repo.Ctx)
+		Run(ctx)
 	if err != nil {
 		return nil, gitcmd.ConcatenateError(err, stderr.String())
 	}

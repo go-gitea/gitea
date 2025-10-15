@@ -221,7 +221,7 @@ func redirectForCommitChoice[T any](ctx *context.Context, parsed *preparedEditor
 }
 
 func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.ReadCloser, fInfo *fileInfo) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "GetTreeEntryByPath", err)
 		return nil, nil, nil
@@ -413,7 +413,7 @@ func DeleteFilePost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", treePath))
-	redirectTreePath := getClosestParentWithFiles(ctx.Repo.GitRepo, parsed.NewBranchName, treePath)
+	redirectTreePath := getClosestParentWithFiles(ctx, ctx.Repo.GitRepo, parsed.NewBranchName, treePath)
 	redirectForCommitChoice(ctx, parsed, redirectTreePath)
 }
 

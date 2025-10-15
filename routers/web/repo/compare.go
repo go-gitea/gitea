@@ -61,7 +61,7 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 			return nil
 		}
 
-		blob, err := commit.GetBlobByPath(path)
+		blob, err := commit.GetBlobByPath(ctx, path)
 		if err != nil {
 			return nil
 		}
@@ -75,7 +75,7 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 			return st
 		}
 
-		st, err := blob.GuessContentType()
+		st, err := blob.GuessContentType(ctx)
 		if err != nil {
 			log.Error("GuessContentType failed: %v", err)
 			return st
@@ -140,11 +140,11 @@ func setCsvCompareContext(ctx *context.Context) {
 				return nil, nil, nil
 			}
 
-			if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < blob.Size() {
+			if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < blob.Size(ctx) {
 				return nil, nil, errTooLarge
 			}
 
-			reader, err := blob.DataAsync()
+			reader, err := blob.DataAsync(ctx)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -303,13 +303,13 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	ctx.Repo.PullRequest.SameRepo = isSameRepo
 
 	// Check if base branch is valid.
-	baseIsCommit := ctx.Repo.GitRepo.IsCommitExist(ci.BaseBranch)
+	baseIsCommit := ctx.Repo.GitRepo.IsCommitExist(ctx, ci.BaseBranch)
 	baseIsBranch := gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, ci.BaseBranch)
 	baseIsTag := gitrepo.IsTagExist(ctx, ctx.Repo.Repository, ci.BaseBranch)
 
 	if !baseIsCommit && !baseIsBranch && !baseIsTag {
 		// Check if baseBranch is short sha commit hash
-		if baseCommit, _ := ctx.Repo.GitRepo.GetCommit(ci.BaseBranch); baseCommit != nil {
+		if baseCommit, _ := ctx.Repo.GitRepo.GetCommit(ctx, ci.BaseBranch); baseCommit != nil {
 			ci.BaseBranch = baseCommit.ID.String()
 			ctx.Data["BaseBranch"] = ci.BaseBranch
 			baseIsCommit = true
@@ -505,12 +505,12 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	}
 
 	// Check if head branch is valid.
-	headIsCommit := ci.HeadGitRepo.IsCommitExist(ci.HeadBranch)
+	headIsCommit := ci.HeadGitRepo.IsCommitExist(ctx, ci.HeadBranch)
 	headIsBranch := gitrepo.IsBranchExist(ctx, ci.HeadRepo, ci.HeadBranch)
 	headIsTag := gitrepo.IsTagExist(ctx, ci.HeadRepo, ci.HeadBranch)
 	if !headIsCommit && !headIsBranch && !headIsTag {
 		// Check if headBranch is short sha commit hash
-		if headCommit, _ := ci.HeadGitRepo.GetCommit(ci.HeadBranch); headCommit != nil {
+		if headCommit, _ := ci.HeadGitRepo.GetCommit(ctx, ci.HeadBranch); headCommit != nil {
 			ci.HeadBranch = headCommit.ID.String()
 			ctx.Data["HeadBranch"] = ci.HeadBranch
 			headIsCommit = true
@@ -654,7 +654,7 @@ func PrepareCompareDiff(
 		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 	}
 
-	headCommit, err := ci.HeadGitRepo.GetCommit(headCommitID)
+	headCommit, err := ci.HeadGitRepo.GetCommit(ctx, headCommitID)
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
 		return false
@@ -662,7 +662,7 @@ func PrepareCompareDiff(
 
 	baseGitRepo := ctx.Repo.GitRepo
 
-	beforeCommit, err := baseGitRepo.GetCommit(beforeCommitID)
+	beforeCommit, err := baseGitRepo.GetCommit(ctx, beforeCommitID)
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
 		return false
@@ -880,7 +880,7 @@ func ExcerptBlob(ctx *context.Context) {
 	gitRepo := ctx.Repo.GitRepo
 	if ctx.Data["PageIsWiki"] == true {
 		var err error
-		gitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
+		gitRepo, err = gitrepo.OpenRepository(ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return
@@ -888,7 +888,7 @@ func ExcerptBlob(ctx *context.Context) {
 		defer gitRepo.Close()
 	}
 	chunkSize := gitdiff.BlobExcerptChunkSize
-	commit, err := gitRepo.GetCommit(commitID)
+	commit, err := gitRepo.GetCommit(ctx, commitID)
 	if err != nil {
 		ctx.HTTPError(http.StatusInternalServerError, "GetCommit")
 		return
@@ -901,9 +901,9 @@ func ExcerptBlob(ctx *context.Context) {
 		idxRight -= chunkSize
 		leftHunkSize += chunkSize
 		rightHunkSize += chunkSize
-		section.Lines, err = getExcerptLines(commit, filePath, idxLeft-1, idxRight-1, chunkSize)
+		section.Lines, err = getExcerptLines(ctx, commit, filePath, idxLeft-1, idxRight-1, chunkSize)
 	} else if direction == "down" && (idxLeft-lastLeft) > chunkSize {
-		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, chunkSize)
+		section.Lines, err = getExcerptLines(ctx, commit, filePath, lastLeft, lastRight, chunkSize)
 		lastLeft += chunkSize
 		lastRight += chunkSize
 	} else {
@@ -911,7 +911,7 @@ func ExcerptBlob(ctx *context.Context) {
 		if direction == "down" {
 			offset = 0
 		}
-		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, idxRight-lastRight+offset)
+		section.Lines, err = getExcerptLines(ctx, commit, filePath, lastLeft, lastRight, idxRight-lastRight+offset)
 		leftHunkSize = 0
 		rightHunkSize = 0
 		idxLeft = lastLeft
@@ -954,12 +954,12 @@ func ExcerptBlob(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)
 }
 
-func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chunkSize int) ([]*gitdiff.DiffLine, error) {
-	blob, err := commit.Tree.GetBlobByPath(filePath)
+func getExcerptLines(ctx gocontext.Context, commit *git.Commit, filePath string, idxLeft, idxRight, chunkSize int) ([]*gitdiff.DiffLine, error) {
+	blob, err := commit.Tree.GetBlobByPath(ctx, filePath)
 	if err != nil {
 		return nil, err
 	}
-	reader, err := blob.DataAsync()
+	reader, err := blob.DataAsync(ctx)
 	if err != nil {
 		return nil, err
 	}

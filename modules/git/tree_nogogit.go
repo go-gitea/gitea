@@ -6,6 +6,7 @@
 package git
 
 import (
+	"context"
 	"io"
 	"strings"
 
@@ -29,13 +30,13 @@ type Tree struct {
 }
 
 // ListEntries returns all entries of current tree.
-func (t *Tree) ListEntries() (Entries, error) {
+func (t *Tree) ListEntries(ctx context.Context) (Entries, error) {
 	if t.entriesParsed {
 		return t.entries, nil
 	}
 
 	if t.repo != nil {
-		wr, rd, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
+		wr, rd, cancel, err := t.repo.CatFileBatch(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +73,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 	}
 
-	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).WithDir(t.repo.Path).RunStdBytes(t.repo.Ctx)
+	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).WithDir(t.repo.Path).RunStdBytes(ctx)
 	if runErr != nil {
 		if strings.Contains(runErr.Error(), "fatal: Not a valid object name") || strings.Contains(runErr.Error(), "fatal: not a tree object") {
 			return nil, ErrNotExist{
@@ -93,7 +94,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 
 // listEntriesRecursive returns all entries of current tree recursively including all subtrees
 // extraArgs could be "-l" to get the size, which is slower
-func (t *Tree) listEntriesRecursive(extraArgs gitcmd.TrustedCmdArgs) (Entries, error) {
+func (t *Tree) listEntriesRecursive(ctx context.Context, extraArgs gitcmd.TrustedCmdArgs) (Entries, error) {
 	if t.entriesRecursiveParsed {
 		return t.entriesRecursive, nil
 	}
@@ -102,7 +103,7 @@ func (t *Tree) listEntriesRecursive(extraArgs gitcmd.TrustedCmdArgs) (Entries, e
 		AddArguments(extraArgs...).
 		AddDynamicArguments(t.ID.String()).
 		WithDir(t.repo.Path).
-		RunStdBytes(t.repo.Ctx)
+		RunStdBytes(ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -117,11 +118,11 @@ func (t *Tree) listEntriesRecursive(extraArgs gitcmd.TrustedCmdArgs) (Entries, e
 }
 
 // ListEntriesRecursiveFast returns all entries of current tree recursively including all subtrees, no size
-func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
-	return t.listEntriesRecursive(nil)
+func (t *Tree) ListEntriesRecursiveFast(ctx context.Context) (Entries, error) {
+	return t.listEntriesRecursive(ctx, nil)
 }
 
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees, with size
-func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
-	return t.listEntriesRecursive(gitcmd.TrustedCmdArgs{"--long"})
+func (t *Tree) ListEntriesRecursiveWithSize(ctx context.Context) (Entries, error) {
+	return t.listEntriesRecursive(ctx, gitcmd.TrustedCmdArgs{"--long"})
 }

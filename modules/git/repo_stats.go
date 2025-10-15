@@ -36,7 +36,7 @@ type CodeActivityAuthor struct {
 }
 
 // GetCodeActivityStats returns code statistics for activity page
-func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) (*CodeActivityStats, error) {
+func (repo *Repository) GetCodeActivityStats(ctx context.Context, fromTime time.Time, branch string) (*CodeActivityStats, error) {
 	stats := &CodeActivityStats{}
 
 	since := fromTime.Format(time.RFC3339)
@@ -44,7 +44,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	stdout, _, runErr := gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
 		AddOptionFormat("--since=%s", since).
 		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		RunStdString(ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -146,7 +146,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			_ = stdoutReader.Close()
 			return nil
 		}).
-		Run(repo.Ctx)
+		Run(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get GetCodeActivityStats for repository.\nError: %w\nStderr: %s", err, stderr)
 	}

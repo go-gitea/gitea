@@ -32,7 +32,7 @@ func getMergeBase(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		}
 	}()
 
-	mergeBase, _, err := gitRepo.GetMergeBase(tmpRemote, baseBranch, headBranch)
+	mergeBase, _, err := gitRepo.GetMergeBase(ctx, tmpRemote, baseBranch, headBranch)
 	return mergeBase, err
 }
 
@@ -69,21 +69,21 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		return nil, nil
 	}
 
-	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	repo, err := gitrepo.OpenRepository(pr.BaseRepo)
 	if err != nil {
 		return nil, err
 	}
 	defer repo.Close()
 
-	commit, err := repo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
+	commit, err := repo.GetBranchCommit(ctx, pr.BaseRepo.DefaultBranch)
 	if err != nil {
 		return nil, err
 	}
 
 	var data string
 	for _, file := range codeOwnerFiles {
-		if blob, err := commit.GetBlobByPath(file); err == nil {
-			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
+		if blob, err := commit.GetBlobByPath(ctx, file); err == nil {
+			data, err = blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 			if err == nil {
 				break
 			}
@@ -106,7 +106,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitHeadRefName())
+	changedFiles, err := repo.GetFilesChangedBetween(ctx, mergeBase, pr.GetGitHeadRefName())
 	if err != nil {
 		return nil, err
 	}

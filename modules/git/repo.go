@@ -33,8 +33,8 @@ type GPGSettings struct {
 const prettyLogFormat = `--pretty=format:%H`
 
 // GetAllCommitsCount returns count of all commits in repository
-func (repo *Repository) GetAllCommitsCount() (int64, error) {
-	return AllCommitsCount(repo.Ctx, repo.Path, false)
+func (repo *Repository) GetAllCommitsCount(ctx context.Context) (int64, error) {
+	return AllCommitsCount(ctx, repo.Path, false)
 }
 
 func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
@@ -45,10 +45,10 @@ func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionR
 	if err != nil {
 		return nil, err
 	}
-	return repo.parsePrettyFormatLogToList(logs)
+	return repo.parsePrettyFormatLogToList(ctx, logs)
 }
 
-func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, error) {
+func (repo *Repository) parsePrettyFormatLogToList(ctx context.Context, logs []byte) ([]*Commit, error) {
 	var commits []*Commit
 	if len(logs) == 0 {
 		return commits, nil
@@ -57,7 +57,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 	parts := bytes.SplitSeq(logs, []byte{'\n'})
 
 	for commitID := range parts {
-		commit, err := repo.GetCommit(string(commitID))
+		commit, err := repo.GetCommit(ctx, string(commitID))
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +97,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 }
 
 // IsEmpty Check if repository is empty.
-func (repo *Repository) IsEmpty() (bool, error) {
+func (repo *Repository) IsEmpty(ctx context.Context) (bool, error) {
 	var errbuf, output strings.Builder
 	if err := gitcmd.NewCommand().
 		AddOptionFormat("--git-dir=%s", repo.Path).
@@ -105,7 +105,7 @@ func (repo *Repository) IsEmpty() (bool, error) {
 		WithDir(repo.Path).
 		WithStdout(&output).
 		WithStderr(&errbuf).
-		Run(repo.Ctx); err != nil {
+		Run(ctx); err != nil {
 		if (err.Error() == "exit status 1" && strings.TrimSpace(errbuf.String()) == "") || err.Error() == "exit status 129" {
 			// git 2.11 exits with 129 if the repo is empty
 			return true, nil

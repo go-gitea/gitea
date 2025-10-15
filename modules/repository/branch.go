@@ -26,7 +26,7 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 
 	log.Debug("SyncRepoBranches: in Repo[%d:%s]", repo.ID, repo.FullName())
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	if err != nil {
 		log.Error("OpenRepository[%s]: %w", repo.FullName(), err)
 		return 0, err
@@ -37,7 +37,7 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 }
 
 func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) (int64, error) {
-	objFmt, err := gitRepo.GetObjectFormat()
+	objFmt, err := gitRepo.GetObjectFormat(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("GetObjectFormat: %w", err)
 	}
@@ -50,7 +50,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 
 	allBranches := container.Set[string]{}
 	{
-		branches, _, err := gitRepo.GetBranchNames(0, 0)
+		branches, _, err := gitRepo.GetBranchNames(ctx, 0, 0)
 		if err != nil {
 			return 0, err
 		}
@@ -79,7 +79,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 	var toRemove []int64
 	for branch := range allBranches {
 		dbb := dbBranches[branch]
-		commit, err := gitRepo.GetBranchCommit(branch)
+		commit, err := gitRepo.GetBranchCommit(ctx, branch)
 		if err != nil {
 			return 0, err
 		}

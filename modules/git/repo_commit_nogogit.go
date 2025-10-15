@@ -7,6 +7,7 @@ package git
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"io"
 	"strings"
@@ -16,11 +17,11 @@ import (
 )
 
 // ResolveReference resolves a name to a reference
-func (repo *Repository) ResolveReference(name string) (string, error) {
+func (repo *Repository) ResolveReference(ctx context.Context, name string) (string, error) {
 	stdout, _, err := gitcmd.NewCommand("show-ref", "--hash").
 		AddDynamicArguments(name).
 		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		RunStdString(ctx)
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {
 			return "", ErrNotExist{name, ""}
@@ -36,8 +37,8 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 }
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
-func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+func (repo *Repository) GetRefCommitID(ctx context.Context, name string) (string, error) {
+	wr, rd, cancel, err := repo.CatFileBatchCheck(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -55,20 +56,20 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 }
 
 // IsCommitExist returns true if given commit exists in current repository.
-func (repo *Repository) IsCommitExist(name string) bool {
-	if err := ensureValidGitRepository(repo.Ctx, repo.Path); err != nil {
+func (repo *Repository) IsCommitExist(ctx context.Context, name string) bool {
+	if err := ensureValidGitRepository(ctx, repo.Path); err != nil {
 		log.Error("IsCommitExist: %v", err)
 		return false
 	}
 	_, _, err := gitcmd.NewCommand("cat-file", "-e").
 		AddDynamicArguments(name).
 		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		RunStdString(ctx)
 	return err == nil
 }
 
-func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
-	wr, rd, cancel, err := repo.CatFileBatch(repo.Ctx)
+func (repo *Repository) getCommit(ctx context.Context, id ObjectID) (*Commit, error) {
+	wr, rd, cancel, err := repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -140,8 +141,8 @@ func (repo *Repository) getCommitFromBatchReader(wr WriteCloserError, rd *bufio.
 }
 
 // ConvertToGitID returns a GitHash object from a potential ID string
-func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
-	objectFormat, err := repo.GetObjectFormat()
+func (repo *Repository) ConvertToGitID(ctx context.Context, commitID string) (ObjectID, error) {
+	objectFormat, err := repo.GetObjectFormat(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +153,7 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		}
 	}
 
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatchCheck(ctx)
 	if err != nil {
 		return nil, err
 	}

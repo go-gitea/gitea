@@ -53,7 +53,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		compareInfo.HeadCommitID = headBranch
 	}
 
-	compareInfo.MergeBase, remoteBranch, err = headGitRepo.GetMergeBase(tmpRemote, baseBranch, headBranch)
+	compareInfo.MergeBase, remoteBranch, err = headGitRepo.GetMergeBase(ctx, tmpRemote, baseBranch, headBranch)
 	if err == nil {
 		compareInfo.BaseCommitID, err = git.GetFullCommitID(ctx, headGitRepo.Path, remoteBranch)
 		if err != nil {
@@ -87,7 +87,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	// Count number of changed files.
 	// This probably should be removed as we need to use shortstat elsewhere
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
-	compareInfo.NumFiles, err = headGitRepo.GetDiffNumChangedFiles(remoteBranch, headBranch, directComparison)
+	compareInfo.NumFiles, err = headGitRepo.GetDiffNumChangedFiles(ctx, remoteBranch, headBranch, directComparison)
 	if err != nil {
 		return nil, err
 	}

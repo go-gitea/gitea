@@ -32,7 +32,7 @@ import (
 )
 
 func prepareLatestCommitInfo(ctx *context.Context) bool {
-	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
+	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
 		return false
@@ -178,7 +178,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	if ctx.Repo.TreePath == ".editorconfig" {
-		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
+		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx, ctx.Repo.Commit)
 		if editorconfigWarning != nil {
 			ctx.Data["FileWarning"] = strings.TrimSpace(editorconfigWarning.Error())
 		}
@@ -186,12 +186,12 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["FileError"] = strings.TrimSpace(editorconfigErr.Error())
 		}
 	} else if issue_service.IsTemplateConfig(ctx.Repo.TreePath) {
-		_, issueConfigErr := issue_service.GetTemplateConfig(ctx.Repo.GitRepo, ctx.Repo.TreePath, ctx.Repo.Commit)
+		_, issueConfigErr := issue_service.GetTemplateConfig(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath, ctx.Repo.Commit)
 		if issueConfigErr != nil {
 			ctx.Data["FileError"] = strings.TrimSpace(issueConfigErr.Error())
 		}
 	} else if actions.IsWorkflow(ctx.Repo.TreePath) {
-		content, err := actions.GetContentFromEntry(entry)
+		content, err := actions.GetContentFromEntry(ctx, entry)
 		if err != nil {
 			log.Error("actions.GetContentFromEntry: %v", err)
 		}
@@ -200,7 +200,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
 	} else if issue_service.IsCodeOwnerFile(ctx.Repo.TreePath) {
-		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
+		if data, err := blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err == nil {
 			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
 			if len(warnings) > 0 {
 				ctx.Data["FileWarning"] = strings.Join(warnings, "\n")

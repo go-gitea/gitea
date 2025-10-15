@@ -55,7 +55,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		}, "feaf4ba6bc635fec442f46ddd4512416ec43c2c2"},
 	}
 	for _, testCase := range testCases {
-		commit, err := repo1.GetCommit(testCase.CommitID)
+		commit, err := repo1.GetCommit(t.Context(), testCase.CommitID)
 		if err != nil {
 			assert.NoError(t, err, "Unable to get commit: %s from testcase due to error: %v", testCase.CommitID, err)
 			// no point trying to do anything else for this test.
@@ -65,7 +65,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		assert.NotNil(t, commit.Tree)
 		assert.NotNil(t, commit.Tree.repo)
 
-		tree, err := commit.Tree.SubTree(testCase.Path)
+		tree, err := commit.Tree.SubTree(t.Context(), testCase.Path)
 		if err != nil {
 			assert.NoError(t, err, "Unable to get subtree: %s of commit: %s from testcase due to error: %v", testCase.Path, testCase.CommitID, err)
 			// no point trying to do anything else for this test.
@@ -75,7 +75,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		assert.NotNil(t, tree, "tree is nil for testCase CommitID %s in Path %s", testCase.CommitID, testCase.Path)
 		assert.NotNil(t, tree.repo, "repo is nil for testCase CommitID %s in Path %s", testCase.CommitID, testCase.Path)
 
-		entries, err := tree.ListEntries()
+		entries, err := tree.ListEntries(t.Context())
 		if err != nil {
 			assert.NoError(t, err, "Unable to get entries of subtree: %s in commit: %s from testcase due to error: %v", testCase.Path, testCase.CommitID, err)
 			// no point trying to do anything else for this test.
@@ -104,7 +104,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 
 func TestEntries_GetCommitsInfo(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
+	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -114,7 +114,7 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	if err != nil {
 		assert.NoError(t, err)
 	}
-	clonedRepo1, err := OpenRepository(t.Context(), clonedPath)
+	clonedRepo1, err := OpenRepository(clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 	}
@@ -123,11 +123,11 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	testGetCommitsInfo(t, clonedRepo1)
 
 	t.Run("NonExistingSubmoduleAsNil", func(t *testing.T) {
-		commit, err := bareRepo1.GetCommit("HEAD")
+		commit, err := bareRepo1.GetCommit(t.Context(), "HEAD")
 		require.NoError(t, err)
-		treeEntry, err := commit.GetTreeEntryByPath("file1.txt")
+		treeEntry, err := commit.GetTreeEntryByPath(t.Context(), "file1.txt")
 		require.NoError(t, err)
-		cisf, err := GetCommitInfoSubmoduleFile("/any/repo-link", "file1.txt", commit, treeEntry.ID)
+		cisf, err := GetCommitInfoSubmoduleFile(t.Context(), "/any/repo-link", "file1.txt", commit, treeEntry.ID)
 		require.NoError(t, err)
 		assert.Equal(t, &CommitSubmoduleFile{
 			repoLink: "/any/repo-link",
@@ -163,14 +163,14 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		if repo, err = OpenRepository(b.Context(), repoPath); err != nil {
+		if repo, err = OpenRepository(repoPath); err != nil {
 			b.Fatal(err)
 		}
 		defer repo.Close()
 
-		if commit, err = repo.GetBranchCommit("master"); err != nil {
+		if commit, err = repo.GetBranchCommit(b.Context(), "master"); err != nil {
 			b.Fatal(err)
-		} else if entries, err = commit.Tree.ListEntries(); err != nil {
+		} else if entries, err = commit.Tree.ListEntries(b.Context()); err != nil {
 			b.Fatal(err)
 		}
 		entries.Sort()
