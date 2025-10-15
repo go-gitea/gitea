@@ -429,6 +429,7 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	expectedContentType := fmt.Sprintf("application/x-git-%s-request", service)
 	if ctx.Req.Header.Get("Content-Type") != expectedContentType {
 		log.Error("Content-Type (%q) doesn't match expected: %q", ctx.Req.Header.Get("Content-Type"), expectedContentType)
+		// FIXME: why it's 401 if the content type is unexpected?
 		ctx.Resp.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -436,6 +437,7 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	cmd, err := prepareGitCmdWithAllowedService(service)
 	if err != nil {
 		log.Error("Failed to prepareGitCmdWithService: %v", err)
+		// FIXME: why it's 401 if the service type doesn't supported?
 		ctx.Resp.WriteHeader(http.StatusUnauthorized)
 		return
 	}
