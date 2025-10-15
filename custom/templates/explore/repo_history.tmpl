@@ -311,7 +311,7 @@
                         {{end}}
                     </div>
                     {{/* Tab navigation for Read/Edit/History */}}
-                    {{/* Read/Edit/History should go under the url "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.GetSubject e.g. /article/wikipedia/Moon%20Landing */}}
+                    {{/* pierre: Read/Edit/History should go under the url "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.GetSubject e.g. /article/wikipedia/Moon%20Landing */}}
                     <div class="tw-flex tw-items-center tw-gap-4">
                         <div class="ui top attached tabular menu tw-my-10 tw-gap-1">
                             <a class="{{if .IsArticleModeRead}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "article" "mode" "read"}}">
