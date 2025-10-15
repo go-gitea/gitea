@@ -11,14 +11,14 @@
 {{end}}
 	<div class="ui container">
 		<overflow-menu class="ui secondary pointing menu">
-			<div class="overflow-menu-items tw-justify-center">
-				<a class="{{if .IsBubbleView}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "bubble"}}">
+            <div class="overflow-menu-items tw-justify-center" id="subject-view-tabs" data-owner="{{.Repository.Owner.Name}}" data-subject="{{.Repository.GetSubject}}">
+                <a class="{{if .IsBubbleView}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "bubble"}}" data-view="bubble">
 					{{svg "bubble"}} Bubble view
 				</a>
-				<a class="{{if .IsTableView}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "table"}}">
+                <a class="{{if .IsTableView}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "table"}}" data-view="table">
 					{{svg "octicon-table"}} Table view
 				</a>
-				<a class="{{if .IsArticleView}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "article"}}">
+                <a class="{{if .IsArticleView}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "article"}}" data-view="article" id="article-view-link">
 					{{svg "octicon-file"}} Article view
 				</a>
 			</div>

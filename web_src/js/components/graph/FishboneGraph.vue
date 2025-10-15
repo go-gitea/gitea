@@ -157,7 +157,7 @@ function buildGraphFromApi(root:any): Graph{
   const visit = (n:any, parentId: string | null)=>{
     const id: string = n?.id ?? (n?.repository?.full_name ?? Math.random().toString(36).slice(2));
     const baseContrib: number = Number(n?.contributors?.total_count ?? n?.contributors?.recent_count ?? 0);
-    const contributors: number = (Number.isFinite(baseContrib) ? baseContrib : 0) + 1; // include original contributor
+    const contributors: number = Number.isFinite(baseContrib) ? baseContrib : 0;
     const updatedAt: string | undefined = n?.repository?.updated_at ?? n?.repository?.updated ?? undefined;
     const node: Node = { id, contributors, parentId, children: [], updatedAt };
     g[id] = node;
@@ -491,10 +491,18 @@ onMounted(async ()=>{
 
   svgSel.call(zoomBehavior as any);
 
-  /* Background click (outside any bubble) → reset */
+  /* Background click (outside any bubble) → reset; if on true background (svg), also clear selection */
   svgSel.on("click.bg", (ev:any)=>{
     const target = ev.target as Element;
-    if (!target.closest("g.node")) resetView(true);
+    if (!target.closest("g.node")) {
+      resetView(true);
+      if (target === svgRef.value) {
+        try {
+          window.localStorage.removeItem('selectedArticleOwner');
+          window.localStorage.removeItem('selectedArticleSubject');
+        } catch {}
+      }
+    }
   });
 
   /* Wheel pans (natural trackpad behavior). Ctrl+wheel handled by d3-zoom. */
@@ -536,6 +544,33 @@ onBeforeUnmount(()=>{ if (ro) ro.disconnect(); });
 
 /* Derived for template binding */
 const kComputed = computed(()=> currentK);
+
+/* Click handler: focus or delete, and persist selected article (owner/subject) */
+function onBubbleClick(n: Node, ev: MouseEvent){
+  if (ev && (ev as any).altKey) { deleteNode(n.id); return; }
+  focusNode(n);
+  try {
+    let owner: string | null = null;
+    let subject: string | null = null;
+    // Try to parse from node id if it looks like "owner/repo"
+    if (n.id && n.id.includes('/')) {
+      const parts = n.id.split('/');
+      if (parts.length >= 2) {
+        owner = parts[0] || null;
+        subject = parts[1] || null;
+      }
+    }
+    // Fallback to provided props
+    if (!owner) owner = (props.owner ?? '') || null;
+    if (!subject) subject = (props.repo ?? '') || null;
+    if (owner && subject && typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('selectedArticleOwner', owner);
+      window.localStorage.setItem('selectedArticleSubject', subject);
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
 </script>
 
 <template>
@@ -586,7 +621,7 @@ const kComputed = computed(()=> currentK);
           <BubbleNode v-for="n in nodesList" :key="n.id"
             :id="n.id" :x="(n as any).x" :y="(n as any).y" :r="(rFor(n.contributors))"
             :contributors="n.contributors" :updatedAt="n.updatedAt" :k="kComputed"
-            @click="(_, ev) => (ev.altKey ? deleteNode(n.id) : focusNode(n))"
+            @click="(_, ev) => onBubbleClick(n, ev)"
             @dblclick="() => addFork(n.id)" />
         </g>
       </svg>

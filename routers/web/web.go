@@ -1177,7 +1177,7 @@ func registerWebRoutes(m *web.Router) {
 	)
 	// end "/{username}/{reponame}/settings"
 
-	m.Get("/article/{username}/{subjectname}", optSignIn, context.RepoAssignmentByOwnerAndSubject, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)
+	m.Get("/article/{username}/{subjectname}", optSignIn, context.RepoAssignmentByOwnerAndSubject, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, explore.RepoArticle)
 
 	// user/org home, including rss feeds like "/{username}/{reponame}.rss"
 	m.Get("/{username}/{reponame}", optSignIn, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)

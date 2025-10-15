@@ -32,7 +32,7 @@ import (
 
 const (
 	// tplExploreRepos explore repositories page template
-	tplExploreRepos        templates.TplName = "explore/repos"
+	tplExploreRepos templates.TplName = "explore/repos"
 	// tplExploreSubjects explore subjects page template
 	tplExploreSubjects     templates.TplName = "explore/subjects"
 	relevantReposOnlyParam string            = "only_show_relevant"
@@ -289,7 +289,8 @@ func RepoHistory(ctx *context.Context) {
 	// Determine which sub-view to render (bubble | table | article)
 	view := ctx.FormString("view")
 	if view == "" {
-		view = "table"
+		// Default to bubble view per UX requirement
+		view = "bubble"
 	}
 	ctx.Data["HistoryView"] = view
 	ctx.Data["IsBubbleView"] = view == "bubble"
@@ -384,6 +385,26 @@ func renderRepositoryHistory(ctx *context.Context) {
 
 	// Render the history view template
 	ctx.HTML(http.StatusOK, "explore/repo_history")
+}
+
+// RepoArticle renders the dedicated article page (Read/Edit/History tabs)
+// It reuses the repository history renderer but forces the view to "article".
+func RepoArticle(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Repo.Repository.FullName() + " - Article"
+	ctx.Data["PageIsExploreRepositories"] = true
+	ctx.Data["PageIsRepoHistory"] = true
+	ctx.Data["IsRepoHistoryView"] = true
+	ctx.Data["IsSubjectContext"] = true
+	ctx.Data["IsRepoHistoryView"] = true
+	ctx.Data["IsSubjectContext"] = false
+
+	// Force article view (set flags directly)
+	ctx.Data["HistoryView"] = "article"
+	ctx.Data["IsBubbleView"] = false
+	ctx.Data["IsTableView"] = false
+	ctx.Data["IsArticleView"] = true
+
+	renderRepositoryHistory(ctx)
 }
 
 // handleRepoHistoryFeed handles RSS/Atom feed requests for repository history

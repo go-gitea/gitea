@@ -168,6 +168,7 @@
             <div id="bubble-view-root"
                 data-owner="{{.Repository.Owner.Name}}"
                 data-repo="{{.Repository.Name}}"
+                data-subject="{{.Repository.GetSubject}}"
                 data-api-url="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/forks/graph">
             </div>
             
@@ -216,7 +217,7 @@
                             <tbody>
                                 {{range $idx, $f := .Files}}
                                 {{$name := .Name}}
-                                <tr class="article-row" data-row="{{$idx}}">
+                                <tr class="article-row" data-row="{{$idx}}" data-owner="{{$.Repository.Owner.Name}}" data-subject="{{$.Repository.GetSubject}}">
                                     <td>
                                         <div class="ui checkbox">
                                             <input type="checkbox" class="row-check">
@@ -243,7 +244,7 @@
                                                     {{if $.LastCommit}}{{$.LastCommit.Summary}}{{end}}
                                                 {{end}}
                                             </div>
-                                            <a class="ui button" href="{{$.RepoLink}}/src/branch/{{$.BranchName}}/{{PathEscapeSegments $name}}">Go to article</a>
+                                            <a class="ui button go-to-article" href="{{printf "%s/article/%s/%s?view=article&mode=read" AppSubUrl $.Repository.Owner.Name $.Repository.GetSubject}}">Go to article</a>
                                         </div>
                                     </td>
                                 </tr>
@@ -292,6 +293,12 @@
             {{/* Article view - display README of repository (if exists) */}}
             {{if .IsArticleView}}
             <div class="ui tw-mt-10">
+                {{if .IsSubjectContext}}
+                    <div class="ui info message" id="article-guidance" style="display:none">
+                        {{svg "octicon-info" 16}}
+                        <span class="tw-ml-2">Select an article in Bubble view or Table view to open its Article page.</span>
+                    </div>
+                {{end}}
                 {{if .ReadmeError}}
                     <div class="ui error message">
                         {{.ReadmeError}}
@@ -312,15 +319,15 @@
                     </div>
                     {{/* Tab navigation for Read/Edit/History */}}
                     {{/* pierre: Read/Edit/History should go under the url "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.GetSubject e.g. /article/wikipedia/Moon%20Landing */}}
-                    <div class="tw-flex tw-items-center tw-gap-4">
+                    <div class="tw-flex tw-items-center tw-gap-4" id="article-tabs">
                         <div class="ui top attached tabular menu tw-my-10 tw-gap-1">
-                            <a class="{{if .IsArticleModeRead}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "article" "mode" "read"}}">
+                            <a class="{{if .IsArticleModeRead}}active {{end}}item" href="{{QueryBuild (printf "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.GetSubject) "view" "article" "mode" "read"}}" data-article-tab="read">
                                 {{svg "octicon-book" 16}} Read
                             </a>
-                            <a class="{{if .IsArticleModeEdit}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "article" "mode" "edit"}}">
+                            <a class="{{if .IsArticleModeEdit}}active {{end}}item" href="{{QueryBuild (printf "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.GetSubject) "view" "article" "mode" "edit"}}" data-article-tab="edit">
                                 {{svg "octicon-pencil" 16}} Edit
                             </a>
-                            <a class="{{if .IsArticleModeHistory}}active {{end}}item" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl .Repository.GetSubject) "view" "article" "mode" "history"}}">
+                            <a class="{{if .IsArticleModeHistory}}active {{end}}item" href="{{QueryBuild (printf "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.GetSubject) "view" "article" "mode" "history"}}" data-article-tab="history">
                                 {{svg "octicon-history" 16}} History
                             </a>
                             {{/* Align buttons on the right */}}
@@ -574,3 +581,117 @@
     </div>
 </div>
 {{template "base/footer" .}}
+<script>
+(function(){
+  // Persist selection when clicking a row in the table
+  var table = document.getElementById('articles-table');
+  if (table) {
+    table.querySelectorAll('tbody tr.article-row').forEach(function(tr){
+      tr.addEventListener('click', function(){
+        try {
+          var owner = tr.getAttribute('data-owner') || '';
+          var subject = tr.getAttribute('data-subject') || '';
+          if (owner && subject) {
+            window.localStorage.setItem('selectedArticleOwner', owner);
+            window.localStorage.setItem('selectedArticleSubject', subject);
+          }
+        } catch(e) {}
+      });
+    });
+  }
+
+  // Intercept Article view tab click in header to redirect to last selected article
+  var articleLink = document.getElementById('article-view-link');
+  if (articleLink) {
+    articleLink.addEventListener('click', function(ev){
+      try {
+        var owner = window.localStorage.getItem('selectedArticleOwner');
+        var subject = window.localStorage.getItem('selectedArticleSubject');
+        if (owner && subject) {
+          ev.preventDefault();
+          var base = (window.APP_SUB_URL || '');
+          var url = base + '/article/' + encodeURIComponent(owner) + '/' + encodeURIComponent(subject) + '?view=article&mode=read';
+          window.location.assign(url);
+        }
+      } catch(e) {}
+    });
+  }
+
+  // If in subject context and no selection exists, show guidance message
+  var guidance = document.getElementById('article-guidance');
+  if (guidance) {
+    try {
+      var owner = window.localStorage.getItem('selectedArticleOwner');
+      var subject = window.localStorage.getItem('selectedArticleSubject');
+      if (!owner || !subject) guidance.style.display = '';
+    } catch(e) { guidance.style.display = ''; }
+  }
+
+  // Hide tabs and content when no selection exists (subject article view)
+  var tabs = document.getElementById('article-tabs');
+  if (tabs) {
+    try {
+      var selOwner = window.localStorage.getItem('selectedArticleOwner');
+      var selSubject = window.localStorage.getItem('selectedArticleSubject');
+      var show = !!(selOwner && selSubject);
+      if (!show) {
+        tabs.style.display = 'none';
+      }
+    } catch(e) {}
+  }
+
+  // Sync table checkboxes with selection and update on change
+  if (table) {
+    try {
+      var selOwner2 = window.localStorage.getItem('selectedArticleOwner');
+      var selSubject2 = window.localStorage.getItem('selectedArticleSubject');
+      table.querySelectorAll('tbody tr.article-row').forEach(function(tr){
+        var cb = tr.querySelector('input.row-check');
+        var rowOwner = tr.getAttribute('data-owner') || '';
+        var rowSubject = tr.getAttribute('data-subject') || '';
+        if (cb && selOwner2 && selSubject2) {
+          cb.checked = (rowOwner === selOwner2 && rowSubject === selSubject2);
+        }
+        if (cb) {
+          cb.addEventListener('change', function(ev){
+            try {
+              if (cb.checked) {
+                window.localStorage.setItem('selectedArticleOwner', rowOwner);
+                window.localStorage.setItem('selectedArticleSubject', rowSubject);
+                // Untick other rows
+                table.querySelectorAll('tbody tr.article-row input.row-check').forEach(function(other){ if (other !== cb) other.checked = false; });
+              } else {
+                // If the unchecked row was the selected, clear selection
+                var curOwner = window.localStorage.getItem('selectedArticleOwner');
+                var curSubject = window.localStorage.getItem('selectedArticleSubject');
+                if (curOwner === rowOwner && curSubject === rowSubject) {
+                  window.localStorage.removeItem('selectedArticleOwner');
+                  window.localStorage.removeItem('selectedArticleSubject');
+                }
+              }
+            } catch(e) {}
+          });
+        }
+      });
+    } catch(e) {}
+  }
+
+  // On click of Go to article, persist current row selection then navigate
+  document.querySelectorAll('a.go-to-article').forEach(function(a){
+    a.addEventListener('click', function(ev){
+      var tr = (a.closest && a.closest('tr')) || null;
+      var row = tr ? tr.previousElementSibling : null; // the article-row is before the desc row
+      if (row && row.classList.contains('article-row')) {
+        try {
+          var rowOwner = row.getAttribute('data-owner') || '';
+          var rowSubject = row.getAttribute('data-subject') || '';
+          if (rowOwner && rowSubject) {
+            window.localStorage.setItem('selectedArticleOwner', rowOwner);
+            window.localStorage.setItem('selectedArticleSubject', rowSubject);
+          }
+        } catch(e) {}
+      }
+    });
+  });
+})();
+</script>
