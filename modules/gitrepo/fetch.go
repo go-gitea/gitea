@@ -10,8 +10,7 @@ import (
 )
 
 func FetchRemoteCommit(ctx context.Context, repo, remoteRepo Repository, commitID string) error {
-	_, err := RunCmdString(ctx, repo, gitcmd.NewCommand("fetch", "--no-tags").
+	return RunCmd(ctx, repo, gitcmd.NewCommand("fetch", "--no-tags").
 		AddDynamicArguments(repoPath(remoteRepo)).
 		AddDynamicArguments(commitID))
-	return err
 }
