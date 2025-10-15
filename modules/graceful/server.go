@@ -36,6 +36,8 @@ type Server struct {
 	wg                   sync.WaitGroup
 	state                state
 	lock                 *sync.RWMutex
+	connections          map[*wrappedConn]struct{}
+	connectionsLock      sync.RWMutex
 	BeforeBegin          func(network, address string)
 	OnShutdown           func()
 	PerWriteTimeout      time.Duration
@@ -53,6 +55,7 @@ func NewServer(network, address, name string) *Server {
 		wg:                   sync.WaitGroup{},
 		state:                stateInit,
 		lock:                 &sync.RWMutex{},
+		connections:          make(map[*wrappedConn]struct{}),
 		network:              network,
 		address:              address,
 		PerWriteTimeout:      setting.PerWriteTimeout,
@@ -178,6 +181,21 @@ func (srv *Server) setState(st state) {
 	srv.state = st
 }
 
+// closeAllConnections forcefully closes all active connections
+func (srv *Server) closeAllConnections() {
+	srv.connectionsLock.Lock()
+	connections := make([]*wrappedConn, 0, len(srv.connections))
+	for conn := range srv.connections {
+		connections = append(connections, conn)
+	}
+	srv.connectionsLock.Unlock()
+
+	// Close all connections outside the lock to avoid deadlock
+	for _, conn := range connections {
+		_ = conn.Conn.Close() // Force close the underlying connection
+	}
+}
+
 type filer interface {
 	File() (*os.File, error)
 }
@@ -216,16 +234,20 @@ func (wl *wrappedListener) Accept() (net.Conn, error) {
 
 	closed := int32(0)
 
-	c = &wrappedConn{
-		Conn:                 c,
-		server:               wl.server,
-		closed:               &closed,
-		perWriteTimeout:      wl.server.PerWriteTimeout,
-		perWritePerKbTimeout: wl.server.PerWritePerKbTimeout,
+	wc := &wrappedConn{
+		Conn:   c,
+		server: wl.server,
+		closed: &closed,
 	}
 
 	wl.server.wg.Add(1)
-	return c, nil
+
+	// Track the connection
+	wl.server.connectionsLock.Lock()
+	wl.server.connections[wc] = struct{}{}
+	wl.server.connectionsLock.Unlock()
+
+	return wc, nil
 }
 
 func (wl *wrappedListener) Close() error {
@@ -244,17 +266,15 @@ func (wl *wrappedListener) File() (*os.File, error) {
 
 type wrappedConn struct {
 	net.Conn
-	server               *Server
-	closed               *int32
-	deadline             time.Time
-	perWriteTimeout      time.Duration
-	perWritePerKbTimeout time.Duration
+	server   *Server
+	closed   *int32
+	deadline time.Time
 }
 
 func (w *wrappedConn) Write(p []byte) (n int, err error) {
-	if w.perWriteTimeout > 0 {
-		minTimeout := time.Duration(len(p)/1024) * w.perWritePerKbTimeout
-		minDeadline := time.Now().Add(minTimeout).Add(w.perWriteTimeout)
+	if w.server.PerWriteTimeout > 0 {
+		minTimeout := time.Duration(len(p)/1024) * w.server.PerWritePerKbTimeout
+		minDeadline := time.Now().Add(minTimeout).Add(w.server.PerWriteTimeout)
 
 		w.deadline = w.deadline.Add(minTimeout)
 		if minDeadline.After(w.deadline) {
@@ -278,6 +298,12 @@ func (w *wrappedConn) Close() error {
 				}
 			}
 		}()
+
+		// Remove from tracked connections
+		w.server.connectionsLock.Lock()
+		delete(w.server.connections, w)
+		w.server.connectionsLock.Unlock()
+
 		w.server.wg.Done()
 	}
 	return w.Conn.Close()
