@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"net/http"
@@ -407,8 +408,14 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 // one or more key=value pairs separated by colons
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
-func isAllowedRPCServiceType(service string) bool {
-	return service == ServiceTypeUploadPack || service == ServiceTypeReceivePack
+func prepareGitCmdWithAllowedService(service string) (*gitcmd.Command, error) {
+	if service == ServiceTypeReceivePack {
+		return gitcmd.NewCommand(ServiceTypeReceivePack), nil
+	}
+	if service == ServiceTypeUploadPack {
+		return gitcmd.NewCommand(ServiceTypeUploadPack), nil
+	}
+	return nil, fmt.Errorf("service %q is not allowed", service)
 }
 
 func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
@@ -418,13 +425,6 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 		}
 	}()
 
-	if !isAllowedRPCServiceType(service) {
-		log.Error("Invalid service: %q", service)
-		// FIXME: why it's 401 if the service type doesn't supported?
-		ctx.Resp.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
 	expectedContentType := fmt.Sprintf("application/x-git-%s-request", service)
 	if ctx.Req.Header.Get("Content-Type") != expectedContentType {
 		log.Error("Content-Type (%q) doesn't match expected: %q", ctx.Req.Header.Get("Content-Type"), expectedContentType)
@@ -432,10 +432,16 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 		return
 	}
 
+	cmd, err := prepareGitCmdWithAllowedService(service)
+	if err != nil {
+		log.Error("Failed to prepareGitCmdWithService: %v", err)
+		ctx.Resp.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	ctx.Resp.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", service))
 
 	reqBody := ctx.Req.Body
-	var err error
 	// Handle GZIP.
 	if ctx.Req.Header.Get("Content-Encoding") == "gzip" {
 		reqBody, err = gzip.NewReader(reqBody)
@@ -453,9 +459,15 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 	}
 
-	if stderr, err := gitrepo.StatelessRPC(ctx, h.getStorageRepo(), service, h.environ, reqBody, ctx.Resp); err != nil {
+	var stderr bytes.Buffer
+	if err := gitrepo.RunCmd(ctx, h.getStorageRepo(), cmd.AddArguments("--stateless-rpc", ".").
+		WithEnv(append(os.Environ(), h.environ...)).
+		WithStderr(&stderr).
+		WithStdin(reqBody).
+		WithStdout(ctx.Resp).
+		WithUseContextTimeout(true)); err != nil {
 		if !git.IsErrCanceledOrKilled(err) {
-			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.getStorageRepo().RelativePath(), err, stderr)
+			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.getStorageRepo().RelativePath(), err, stderr.String())
 		}
 		return
 	}
@@ -508,12 +520,16 @@ func GetInfoRefs(ctx *context.Context) {
 	}
 	setHeaderNoCache(ctx)
 	service := getServiceType(ctx)
-	if service == ServiceTypeUploadPack || service == ServiceTypeReceivePack {
+	cmd, err := prepareGitCmdWithAllowedService(service)
+	if err == nil {
 		if protocol := ctx.Req.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
 			h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 		}
 
-		refs, err := gitrepo.StatelessRPCAdvertiseRefs(ctx, h.getStorageRepo(), service, h.environ)
+		h.environ = append(os.Environ(), h.environ...)
+
+		refs, _, err := gitrepo.RunCmdBytes(ctx, h.getStorageRepo(), cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").
+			WithEnv(h.environ))
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
