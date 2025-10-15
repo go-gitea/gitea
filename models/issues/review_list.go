@@ -173,7 +173,7 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (latestReviews, mig
 	reviewersMap := make(map[int64][]*Review)         // key is reviewer id
 	originalReviewersMap := make(map[int64][]*Review) // key is original author id
 	reviewTeamsMap := make(map[int64][]*Review)       // key is reviewer team id
-	countedReivewTypes := []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest}
+	countedReivewTypes := []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, ReviewTypeComment}
 	for _, review := range reviews {
 		if review.ReviewerTeamID == 0 && slices.Contains(countedReivewTypes, review.Type) {
 			if review.OriginalAuthorID != 0 {
