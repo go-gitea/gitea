@@ -56,7 +56,6 @@ type Request struct {
 	url    string
 	req    *http.Request
 	params map[string]string
-	body   []byte
 
 	readWriteTimeout time.Duration
 	transport        http.RoundTripper
