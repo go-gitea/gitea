@@ -96,7 +96,7 @@
     "eslint-plugin-vue-scoped-css": "2.12.0",
     "eslint-plugin-wc": "3.0.2",
     "globals": "16.4.0",
-    "happy-dom": "20.0.0",
+    "happy-dom": "20.0.2",
     "markdownlint-cli": "0.45.0",
     "material-icon-theme": "5.27.0",
     "nolyfill": "1.0.44",
