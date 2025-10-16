@@ -4,7 +4,7 @@
 package repo
 
 import (
-	"bytes"
+	gocontext "context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -173,7 +173,7 @@ func Migrate(ctx *context.APIContext) {
 		opts.AWSSecretAccessKey = form.AWSSecretAccessKey
 	}
 
-	repo, err := repo_service.CreateRepositoryDirectly(ctx, ctx.Doer, repoOwner, repo_service.CreateRepoOptions{
+	createdRepo, err := repo_service.CreateRepositoryDirectly(ctx, ctx.Doer, repoOwner, repo_service.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    form.CloneAddr,
@@ -187,35 +187,35 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
-	opts.MigrateToRepoID = repo.ID
+	opts.MigrateToRepoID = createdRepo.ID
 
-	defer func() {
-		if e := recover(); e != nil {
-			var buf bytes.Buffer
-			fmt.Fprintf(&buf, "Handler crashed with error: %v", log.Stack(2))
-
-			err = errors.New(buf.String())
-		}
-
-		if err == nil {
-			notify_service.MigrateRepository(ctx, ctx.Doer, repoOwner, repo)
-			return
-		}
-
-		if repo != nil {
-			if errDelete := repo_service.DeleteRepositoryDirectly(ctx, repo.ID); errDelete != nil {
-				log.Error("DeleteRepository: %v", errDelete)
+	doLongTimeMigrate := func(ctx gocontext.Context, doer *user_model.User) (migratedRepo *repo_model.Repository, retErr error) {
+		defer func() {
+			if e := recover(); e != nil {
+				log.Error("MigrateRepository panic: %v\n%s", e, log.Stack(2))
+				if errDelete := repo_service.DeleteRepositoryDirectly(ctx, createdRepo.ID); errDelete != nil {
+					log.Error("Unable to delete repo after MigrateRepository panic: %v", errDelete)
+				}
+				retErr = errors.New("MigrateRepository panic") // no idea why it would happen, just legacy code
 			}
-		}
-	}()
+		}()
 
-	if repo, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.Doer, repoOwner.Name, opts, nil); err != nil {
+		migratedRepo, err := migrations.MigrateRepository(graceful.GetManager().HammerContext(), doer, repoOwner.Name, opts, nil)
+		if err != nil {
+			return nil, err
+		}
+		notify_service.MigrateRepository(ctx, doer, repoOwner, migratedRepo)
+		return migratedRepo, nil
+	}
+
+	// use a background context, don't cancel the migration even if the client goes away
+	migratedRepo, err := doLongTimeMigrate(graceful.GetManager().ShutdownContext(), ctx.Doer)
+	if err != nil {
 		handleMigrateError(ctx, repoOwner, err)
 		return
 	}
 
-	log.Trace("Repository migrated: %s/%s", repoOwner.Name, form.RepoName)
-	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, migratedRepo, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
 }
 
 func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err error) {

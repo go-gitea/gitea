@@ -104,7 +104,8 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 		}
 		logf := logInfo
 		// lower the log level for some specific requests, in most cases these logs are not useful
-		if strings.HasPrefix(req.RequestURI, "/assets/") /* static assets */ ||
+		if 0 < status && status < 400 &&
+			strings.HasPrefix(req.RequestURI, "/assets/") /* static assets */ ||
 			req.RequestURI == "/user/events" /* Server-Sent Events (SSE) handler */ ||
 			req.RequestURI == "/api/actions/runner.v1.RunnerService/FetchTask" /* Actions Runner polling */ {
 			logf = logTrace
