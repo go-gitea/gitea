@@ -400,6 +400,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(323, "Forkana: add subject to repository table", v1_25_custom.AddSubjectToRepository),
 		newMigration(324, "Forkana: create subjects table and populate with existing data", v1_25_custom.CreateSubjectsTable),
 		newMigration(325, "Forkana: add subject_id foreign key to repository table", v1_25_custom.AddSubjectForeignKeyToRepository),
+		newMigration(326, "Forkana: add slug column to subjects table", v1_25_custom.AddSubjectSlugColumn),
 	}
 	return preparedMigrations
 }

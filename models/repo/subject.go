@@ -6,17 +6,24 @@ package repo
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
+	"unicode"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 	"xorm.io/builder"
 )
 
 // Subject represents a repository subject that can be shared across repositories
 type Subject struct {
 	ID          int64              `xorm:"pk autoincr"`
-	Name        string             `xorm:"VARCHAR(255) UNIQUE NOT NULL"`
+	Name        string             `xorm:"VARCHAR(255) NOT NULL"`        // Display name (can contain special chars)
+	Slug        string             `xorm:"VARCHAR(255) UNIQUE NOT NULL"` // URL-safe slug (globally unique)
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
@@ -30,14 +37,107 @@ func (s *Subject) TableName() string {
 	return "subject"
 }
 
-// GetOrCreateSubject gets an existing subject by name or creates a new one if it doesn't exist
+// GenerateSlugFromName creates a URL-safe slug from a subject display name
+// Examples:
+//   "The Moon" → "the-moon"
+//   "the moon!" → "the-moon"
+//   "El Camiño?" → "el-camino"
+func GenerateSlugFromName(name string) string {
+	// Normalize Unicode (NFD = decompose accents)
+	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	normalized, _, _ := transform.String(t, name)
+
+	// Convert to lowercase
+	slug := strings.ToLower(normalized)
+
+	// Replace spaces and underscores with hyphens
+	slug = strings.ReplaceAll(slug, " ", "-")
+	slug = strings.ReplaceAll(slug, "_", "-")
+
+	// Remove all characters except alphanumeric and hyphens
+	reg := regexp.MustCompile(`[^a-z0-9-]+`)
+	slug = reg.ReplaceAllString(slug, "")
+
+	// Collapse multiple consecutive hyphens
+	for strings.Contains(slug, "--") {
+		slug = strings.ReplaceAll(slug, "--", "-")
+	}
+
+	// Trim leading/trailing hyphens
+	slug = strings.Trim(slug, "-")
+
+	// Ensure slug is not empty
+	if slug == "" {
+		slug = "subject"
+	}
+
+	// Limit length
+	const maxSlugLength = 100
+	if len(slug) > maxSlugLength {
+		slug = slug[:maxSlugLength]
+		slug = strings.TrimRight(slug, "-")
+	}
+
+	return slug
+}
+
+// CreateSubject creates a new subject with the given name
+// Returns ErrSubjectSlugAlreadyExists if a subject with the same slug already exists
+func CreateSubject(ctx context.Context, name string) (*Subject, error) {
+	if name == "" {
+		return nil, fmt.Errorf("subject name cannot be empty")
+	}
+
+	slug := GenerateSlugFromName(name)
+
+	subject := &Subject{
+		Name: name,
+		Slug: slug,
+	}
+
+	// Use transaction to prevent race conditions
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		// Check if slug already exists
+		existing := &Subject{Slug: slug}
+		has, err := db.GetEngine(ctx).Get(existing)
+		if err != nil {
+			return err
+		}
+		if has {
+			return ErrSubjectSlugAlreadyExists{Slug: slug, Name: name}
+		}
+
+		// Insert the new subject
+		if err := db.Insert(ctx, subject); err != nil {
+			// Check if it's a unique constraint violation
+			if strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "unique") ||
+				strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "Duplicate") {
+				return ErrSubjectSlugAlreadyExists{Slug: slug, Name: name}
+			}
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return subject, nil
+}
+
+// GetOrCreateSubject gets an existing subject by slug or creates a new one if it doesn't exist
+// This function is idempotent and safe for concurrent use
 func GetOrCreateSubject(ctx context.Context, name string) (*Subject, error) {
 	if name == "" {
 		return nil, nil
 	}
 
-	// Try to get existing subject
-	subject := &Subject{Name: name}
+	slug := GenerateSlugFromName(name)
+
+	// Try to get existing subject by slug
+	subject := &Subject{Slug: slug}
 	has, err := db.GetEngine(ctx).Get(subject)
 	if err != nil {
 		return nil, err
@@ -47,8 +147,15 @@ func GetOrCreateSubject(ctx context.Context, name string) (*Subject, error) {
 	}
 
 	// Create new subject
+	subject = &Subject{
+		Name: name,
+		Slug: slug,
+	}
+
 	if err := db.Insert(ctx, subject); err != nil {
 		// Handle race condition: another process might have created it
+		// Try to get it again by slug
+		subject = &Subject{Slug: slug}
 		has, err := db.GetEngine(ctx).Get(subject)
 		if err != nil {
 			return nil, err
@@ -75,7 +182,7 @@ func GetSubjectByID(ctx context.Context, id int64) (*Subject, error) {
 	return subject, nil
 }
 
-// GetSubjectByName gets a subject by its name
+// GetSubjectByName gets a subject by its name (exact match)
 func GetSubjectByName(ctx context.Context, name string) (*Subject, error) {
 	subject := &Subject{Name: name}
 	has, err := db.GetEngine(ctx).Get(subject)
@@ -84,6 +191,19 @@ func GetSubjectByName(ctx context.Context, name string) (*Subject, error) {
 	}
 	if !has {
 		return nil, ErrSubjectNotExist{Name: name}
+	}
+	return subject, nil
+}
+
+// GetSubjectBySlug gets a subject by its slug
+func GetSubjectBySlug(ctx context.Context, slug string) (*Subject, error) {
+	subject := &Subject{Slug: slug}
+	has, err := db.GetEngine(ctx).Get(subject)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrSubjectNotExist{Name: slug}
 	}
 	return subject, nil
 }
@@ -211,5 +331,21 @@ func IsErrSubjectInUse(err error) bool {
 
 func (err ErrSubjectInUse) Error() string {
 	return fmt.Sprintf("subject is in use by %d repositories [id: %d]", err.RepoCount, err.ID)
+}
+
+// ErrSubjectSlugAlreadyExists represents a "SubjectSlugAlreadyExists" error
+type ErrSubjectSlugAlreadyExists struct {
+	Slug string
+	Name string
+}
+
+// IsErrSubjectSlugAlreadyExists checks if an error is ErrSubjectSlugAlreadyExists
+func IsErrSubjectSlugAlreadyExists(err error) bool {
+	_, ok := err.(ErrSubjectSlugAlreadyExists)
+	return ok
+}
+
+func (err ErrSubjectSlugAlreadyExists) Error() string {
+	return fmt.Sprintf("subject slug already exists [slug: %s, name: %s]", err.Slug, err.Name)
 }
 

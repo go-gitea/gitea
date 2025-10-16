@@ -1,12 +1,14 @@
 -
   id: 1
   name: example-subject
+  slug: example-subject
   created_unix: 1588800000
   updated_unix: 1588800000
 
 -
   id: 2
   name: another-subject
+  slug: another-subject
   created_unix: 1588800000
   updated_unix: 1588800000
 
