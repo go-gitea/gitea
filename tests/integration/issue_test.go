@@ -255,6 +255,26 @@ func TestIssueCommentClose(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	val := htmlDoc.doc.Find(".comment-list .comment .render-content p").First().Text()
 	assert.Equal(t, "Description", val)
+	val = strings.TrimSpace(htmlDoc.doc.Find(".issue-title-header .issue-state-label").Text())
+	assert.Equal(t, "Closed", val)
+}
+
+func TestIssueCommentReopen(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+	testIssueAddComment(t, session, issueURL, "Test comment 1", "")
+	testIssueAddComment(t, session, issueURL, "Test comment 2", "close")
+	testIssueAddComment(t, session, issueURL, "Test comment 2", "reopen")
+
+	// Validate that issue content has not been updated
+	req := NewRequest(t, "GET", issueURL)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	val := htmlDoc.doc.Find(".comment-list .comment .render-content p").First().Text()
+	assert.Equal(t, "Description", val)
+	val = strings.TrimSpace(htmlDoc.doc.Find(".issue-title-header .issue-state-label").Text())
+	assert.Equal(t, "Open", val)
 }
 
 func TestIssueCommentDelete(t *testing.T) {
