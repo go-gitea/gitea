@@ -226,7 +226,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	}
 
 	ctx.Data["IsLFSFile"] = fInfo.isLFSFile()
-	ctx.Data["FileSize"] = fInfo.fileSize
+	ctx.Data["FileSize"] = fInfo.blobOrLfsSize
 	ctx.Data["IsRepresentableAsText"] = fInfo.st.IsRepresentableAsText()
 	ctx.Data["IsExecutable"] = entry.IsExecutable()
 	ctx.Data["CanCopyContent"] = fInfo.st.IsRepresentableAsText() || fInfo.st.IsImage()
@@ -243,7 +243,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 
 	utf8Reader := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 	switch {
-	case fInfo.fileSize >= setting.UI.MaxDisplayFileSize:
+	case fInfo.blobOrLfsSize >= setting.UI.MaxDisplayFileSize:
 		ctx.Data["IsFileTooLarge"] = true
 	case handleFileViewRenderMarkup(ctx, entry.Name(), fInfo.st, buf, utf8Reader):
 		// it also sets ctx.Data["FileContent"] and more

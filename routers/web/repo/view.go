@@ -60,9 +60,9 @@ const (
 )
 
 type fileInfo struct {
-	fileSize int64
-	lfsMeta  *lfs.Pointer
-	st       typesniffer.SniffedType
+	blobOrLfsSize int64
+	lfsMeta       *lfs.Pointer
+	st            typesniffer.SniffedType
 }
 
 func (fi *fileInfo) isLFSFile() bool {
@@ -81,7 +81,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []b
 	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 
-	fi = &fileInfo{fileSize: blob.Size(), st: typesniffer.DetectContentType(buf)}
+	fi = &fileInfo{blobOrLfsSize: blob.Size(), st: typesniffer.DetectContentType(buf)}
 
 	// FIXME: what happens when README file is an image?
 	if !fi.st.IsText() || !setting.LFS.StartServer {
@@ -114,7 +114,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []b
 	}
 	buf = buf[:n]
 	fi.st = typesniffer.DetectContentType(buf)
-	fi.fileSize = meta.Pointer.Size
+	fi.blobOrLfsSize = meta.Pointer.Size
 	fi.lfsMeta = &meta.Pointer
 	return buf, dataRc, fi, nil
 }
