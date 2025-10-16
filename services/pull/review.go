@@ -5,6 +5,7 @@
 package pull
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -197,6 +198,73 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 	return comment, nil
 }
 
+// generatePatchForUnchangedLine creates a patch showing code context for an unchanged line
+func generatePatchForUnchangedLine(gitRepo *git.Repository, commitID, treePath string, line int64, contextLines int) (string, error) {
+	commit, err := gitRepo.GetCommit(commitID)
+	if err != nil {
+		return "", fmt.Errorf("GetCommit: %w", err)
+	}
+
+	entry, err := commit.GetTreeEntryByPath(treePath)
+	if err != nil {
+		return "", fmt.Errorf("GetTreeEntryByPath: %w", err)
+	}
+
+	blob := entry.Blob()
+	dataRc, err := blob.DataAsync()
+	if err != nil {
+		return "", fmt.Errorf("DataAsync: %w", err)
+	}
+	defer dataRc.Close()
+
+	// Calculate line range (commented line + lines above it)
+	commentLine := int(line)
+	if line < 0 {
+		commentLine = int(-line)
+	}
+	startLine := commentLine - contextLines
+	if startLine < 1 {
+		startLine = 1
+	}
+	endLine := commentLine
+
+	// Read only the needed lines efficiently
+	scanner := bufio.NewScanner(dataRc)
+	currentLine := 0
+	var lines []string
+	for scanner.Scan() {
+		currentLine++
+		if currentLine >= startLine && currentLine <= endLine {
+			lines = append(lines, scanner.Text())
+		}
+		if currentLine > endLine {
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("scanner error: %w", err)
+	}
+
+	if len(lines) == 0 {
+		return "", fmt.Errorf("no lines found in range %d-%d", startLine, endLine)
+	}
+
+	// Generate synthetic patch
+	var patchBuilder strings.Builder
+	patchBuilder.WriteString(fmt.Sprintf("diff --git a/%s b/%s\n", treePath, treePath))
+	patchBuilder.WriteString(fmt.Sprintf("--- a/%s\n", treePath))
+	patchBuilder.WriteString(fmt.Sprintf("+++ b/%s\n", treePath))
+	patchBuilder.WriteString(fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", startLine, len(lines), startLine, len(lines)))
+
+	for _, lineContent := range lines {
+		patchBuilder.WriteString(" ")
+		patchBuilder.WriteString(lineContent)
+		patchBuilder.WriteString("\n")
+	}
+
+	return patchBuilder.String(), nil
+}
+
 // createCodeComment creates a plain code comment at the specified line / path
 func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, treePath string, line, reviewID int64, attachments []string) (*issues_model.Comment, error) {
 	var commitID, patch string
@@ -282,6 +350,15 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		if err != nil {
 			log.Error("Error whilst generating patch: %v", err)
 			return nil, err
+		}
+
+		// If patch is still empty (unchanged line), generate code context
+		if len(patch) == 0 && len(commitID) > 0 {
+			patch, err = generatePatchForUnchangedLine(gitRepo, commitID, treePath, line, setting.UI.CodeCommentLines)
+			if err != nil {
+				log.Warn("Error generating patch for unchanged line: %v", err)
+				// Don't fail comment creation, just leave patch empty
+			}
 		}
 	}
 	return issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
