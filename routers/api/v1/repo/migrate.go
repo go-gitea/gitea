@@ -200,7 +200,7 @@ func Migrate(ctx *context.APIContext) {
 			}
 		}()
 
-		migratedRepo, err := migrations.MigrateRepository(graceful.GetManager().HammerContext(), doer, repoOwner.Name, opts, nil)
+		migratedRepo, err := migrations.MigrateRepository(ctx, doer, repoOwner.Name, opts, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -209,7 +209,9 @@ func Migrate(ctx *context.APIContext) {
 	}
 
 	// use a background context, don't cancel the migration even if the client goes away
-	migratedRepo, err := doLongTimeMigrate(graceful.GetManager().ShutdownContext(), ctx.Doer)
+	// HammerContext doesn't seem right (from https://github.com/go-gitea/gitea/pull/9335/files)
+	// There are other abuses, maybe most HammerContext abuses should be fixed together in the future.
+	migratedRepo, err := doLongTimeMigrate(graceful.GetManager().HammerContext(), ctx.Doer)
 	if err != nil {
 		handleMigrateError(ctx, repoOwner, err)
 		return
