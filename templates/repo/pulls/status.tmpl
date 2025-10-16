@@ -23,14 +23,23 @@
 			{{ctx.Locale.Tr "repo.pulls.status_checking"}}
 		{{end}}
 
-		{{if .ShowHideChecks}}
 		<div class="ui right">
-			<button class="commit-status-hide-checks btn interact-fg"
-			data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
-			data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}">
-			{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
+			{{if and .RequireApproval .CanApprove}}
+				<form method="post" action="{{.RepoLink}}/actions/approve-all-checks?redirect={{.IssueLink}}">
+					{{ctx.RootData.CsrfTokenHtml}}
+					<input type="hidden" name="sha" value="{{.SHA}}">
+					<button type="submit" class="ui small tiny compact button primary">
+						Approve workflows to run
+					</button>
+				</form>
+			{{end}}
+			{{if .ShowHideChecks}}
+				<button class="commit-status-hide-checks btn interact-fg"
+				data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
+				data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}">
+				{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
+			{{end}}
 		</div>
-		{{end}}
 	</div>
 
 	<div class="commit-status-list">

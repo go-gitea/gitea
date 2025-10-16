@@ -8,7 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"regexp"
 	"strconv"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -50,6 +52,74 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 			log.Error("Failed to create commit status for job %d: %v", job.ID, err)
 		}
 	}
+}
+
+func GetRunsAndJobsFromCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) ([]*actions_model.ActionRun, []*actions_model.ActionRunJob, error) {
+	jobMap := make(map[int64]*actions_model.ActionRunJob)
+	runMap := make(map[int64]*actions_model.ActionRun)
+	jobsMap := make(map[int64][]*actions_model.ActionRunJob)
+	for _, status := range statuses {
+		if !status.CreatedByGiteaActions(ctx) {
+			continue
+		}
+		runIndex, jobIndex, err := getActionRunAndJobIndexFromCommitStatus(status)
+		if err != nil {
+			return nil, nil, fmt.Errorf("getActionRunAndJobIndexFromCommitStatus: %w", err)
+		}
+		run, ok := runMap[runIndex]
+		if !ok {
+			run, err = actions_model.GetRunByIndex(ctx, status.RepoID, runIndex)
+			if err != nil {
+				return nil, nil, fmt.Errorf("GetRunByIndex: %w", err)
+			}
+			runMap[runIndex] = run
+		}
+		jobs, ok := jobsMap[runIndex]
+		if !ok {
+			jobs, err = actions_model.GetRunJobsByRunID(ctx, run.ID)
+			if err != nil {
+				return nil, nil, fmt.Errorf("GetRunJobByIndex: %w", err)
+			}
+			jobsMap[runIndex] = jobs
+		}
+		if jobIndex < 0 || jobIndex >= int64(len(jobs)) {
+			return nil, nil, fmt.Errorf("job index %d out of range for run %d", jobIndex, runIndex)
+		}
+		job := jobs[jobIndex]
+		jobMap[job.ID] = job
+	}
+	runs := make([]*actions_model.ActionRun, 0, len(runMap))
+	for _, run := range runMap {
+		runs = append(runs, run)
+	}
+	jobs := make([]*actions_model.ActionRunJob, 0, len(jobMap))
+	for _, job := range jobMap {
+		jobs = append(jobs, job)
+	}
+	return runs, jobs, nil
+}
+
+func getActionRunAndJobIndexFromCommitStatus(status *git_model.CommitStatus) (int64, int64, error) {
+	actionsLink, _ := strings.CutPrefix(status.TargetURL, status.Repo.Link()+"/actions/")
+	// actionsLink should be like "runs/<run_index>/jobs/<job_index>"
+
+	re := regexp.MustCompile(`runs/(\d+)/jobs/(\d+)`)
+	matches := re.FindStringSubmatch(actionsLink)
+
+	if len(matches) != 3 {
+		return 0, 0, fmt.Errorf("%s is not a Gitea Actions link", status.TargetURL)
+	}
+
+	runIndex, err := strconv.ParseInt(matches[1], 10, 64)
+	if err != nil {
+		return 0, 0, fmt.Errorf("parse run index: %w", err)
+	}
+	jobIndex, err := strconv.ParseInt(matches[2], 10, 64)
+	if err != nil {
+		return 0, 0, fmt.Errorf("parse job index: %w", err)
+	}
+
+	return runIndex, jobIndex, nil
 }
 
 func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {

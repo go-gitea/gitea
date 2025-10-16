@@ -38,6 +38,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/context"
@@ -455,6 +456,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 		ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitHeadRefName()), err)
 		return nil
 	}
+	ctx.Data["SHA"] = sha
 
 	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptionsAll)
 	if err != nil {
@@ -463,6 +465,20 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 	}
 	if !ctx.Repo.CanRead(unit.TypeActions) {
 		git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
+	}
+
+	runs, _, err := actions_service.GetRunsAndJobsFromCommitStatuses(ctx, commitStatuses)
+	if err != nil {
+		ctx.ServerError("GetRunsAndJobsFromCommitStatuses", err)
+		return nil
+	}
+	for _, run := range runs {
+		if run.NeedApproval {
+			ctx.Data["RequireApproval"] = true
+		}
+	}
+	if ctx.Data["RequireApproval"] == true {
+		ctx.Data["CanApprove"] = ctx.Repo.CanWrite(unit.TypeActions)
 	}
 
 	if len(commitStatuses) > 0 {
