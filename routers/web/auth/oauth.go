@@ -217,7 +217,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 
 			if hasUser {
-				if err := externalaccount.LinkAccountToUser(ctx, user, &gothUser); err != nil {
+				if err := externalaccount.LinkAccountToUser(ctx, authSource.ID, user, gothUser); err != nil {
 					ctx.ServerError("LinkAccountToUser", err)
 					return
 				}
