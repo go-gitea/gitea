@@ -114,7 +114,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []b
 	}
 	buf = buf[:n]
 	fi.st = typesniffer.DetectContentType(buf)
-	fi.fileSize = blob.Size()
+	fi.fileSize = meta.Pointer.Size
 	fi.lfsMeta = &meta.Pointer
 	return buf, dataRc, fi, nil
 }
