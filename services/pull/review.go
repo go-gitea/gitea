@@ -222,10 +222,7 @@ func generatePatchForUnchangedLine(gitRepo *git.Repository, commitID, treePath s
 	if line < 0 {
 		commentLine = int(-line)
 	}
-	startLine := commentLine - contextLines
-	if startLine < 1 {
-		startLine = 1
-	}
+	startLine := max(commentLine-contextLines, 1)
 	endLine := commentLine
 
 	// Read only the needed lines efficiently

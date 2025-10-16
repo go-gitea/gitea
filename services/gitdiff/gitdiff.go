@@ -1390,12 +1390,16 @@ outer:
 }
 
 // CommentAsDiff returns c.Patch as *Diff
-// CommentAsDiff returns c.Patch as *Diff
 func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) {
+	// If patch is empty, generate it
+	if c.Patch == "" && c.TreePath != "" && c.CommitSHA != "" && c.Line != 0 {
+		return generateCodeContextForComment(ctx, c)
+	}
+
 	diff, err := ParsePatch(ctx, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch), "")
 	if err != nil {
-		log.Error("Unable to parse patch: %v", err)
+		log.Error("Unable to parse patch for comment ID=%d: %v", c.ID, err)
 		return nil, err
 	}
 	if len(diff.Files) == 0 {
@@ -1405,6 +1409,97 @@ func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) 
 	if len(secs) == 0 {
 		return nil, fmt.Errorf("no sections found for comment ID: %d", c.ID)
 	}
+	return diff, nil
+}
+
+// generateCodeContextForComment creates a synthetic diff showing code context around a comment
+func generateCodeContextForComment(ctx context.Context, c *issues_model.Comment) (*Diff, error) {
+	if err := c.LoadIssue(ctx); err != nil {
+		return nil, fmt.Errorf("LoadIssue: %w", err)
+	}
+	if err := c.Issue.LoadRepo(ctx); err != nil {
+		return nil, fmt.Errorf("LoadRepo: %w", err)
+	}
+	if err := c.Issue.LoadPullRequest(ctx); err != nil {
+		return nil, fmt.Errorf("LoadPullRequest: %w", err)
+	}
+
+	pr := c.Issue.PullRequest
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return nil, fmt.Errorf("LoadBaseRepo: %w", err)
+	}
+
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
+	if err != nil {
+		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
+	}
+	defer closer.Close()
+
+	// Get the file content at the commit
+	commit, err := gitRepo.GetCommit(c.CommitSHA)
+	if err != nil {
+		return nil, fmt.Errorf("GetCommit: %w", err)
+	}
+
+	entry, err := commit.GetTreeEntryByPath(c.TreePath)
+	if err != nil {
+		return nil, fmt.Errorf("GetTreeEntryByPath: %w", err)
+	}
+
+	blob := entry.Blob()
+	dataRc, err := blob.DataAsync()
+	if err != nil {
+		return nil, fmt.Errorf("DataAsync: %w", err)
+	}
+	defer dataRc.Close()
+
+	// Calculate line range (commented line + lines above it)
+	commentLine := int(c.UnsignedLine())
+	contextLines := setting.UI.CodeCommentLines
+	startLine := max(commentLine-contextLines, 1)
+	endLine := commentLine
+
+	// Read only the needed lines efficiently
+	scanner := bufio.NewScanner(dataRc)
+	currentLine := 0
+	var lines []string
+	for scanner.Scan() {
+		currentLine++
+		if currentLine >= startLine && currentLine <= endLine {
+			lines = append(lines, scanner.Text())
+		}
+		if currentLine > endLine {
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("scanner error: %w", err)
+	}
+
+	if len(lines) == 0 {
+		return nil, fmt.Errorf("no lines found in range %d-%d", startLine, endLine)
+	}
+
+	// Generate synthetic patch
+	var patchBuilder strings.Builder
+	patchBuilder.WriteString(fmt.Sprintf("diff --git a/%s b/%s\n", c.TreePath, c.TreePath))
+	patchBuilder.WriteString(fmt.Sprintf("--- a/%s\n", c.TreePath))
+	patchBuilder.WriteString(fmt.Sprintf("+++ b/%s\n", c.TreePath))
+	patchBuilder.WriteString(fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", startLine, len(lines), startLine, len(lines)))
+
+	for _, lineContent := range lines {
+		patchBuilder.WriteString(" ")
+		patchBuilder.WriteString(lineContent)
+		patchBuilder.WriteString("\n")
+	}
+
+	// Parse the synthetic patch
+	diff, err := ParsePatch(ctx, setting.Git.MaxGitDiffLines,
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(patchBuilder.String()), "")
+	if err != nil {
+		return nil, fmt.Errorf("ParsePatch: %w", err)
+	}
+
 	return diff, nil
 }
 
