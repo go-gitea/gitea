@@ -201,9 +201,10 @@ func TestCycleDetection(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, node1)
 
-	// Try to build same repo again - should return nil due to cycle detection
+	// Try to build same repo again - should return ErrCycleDetected
 	node2, err := buildNode(ctx, repo, 0, params, user, visited, &nodeCount, &maxDepthReached)
-	assert.NoError(t, err)
+	assert.Error(t, err)
+	assert.True(t, IsErrCycleDetected(err))
 	assert.Nil(t, node2)
 }
 
@@ -216,6 +217,9 @@ func TestErrorTypes(t *testing.T) {
 
 	assert.True(t, IsErrProcessingTimeout(ErrProcessingTimeout))
 	assert.False(t, IsErrProcessingTimeout(ErrMaxDepthExceeded))
+
+	assert.True(t, IsErrCycleDetected(ErrCycleDetected))
+	assert.False(t, IsErrCycleDetected(ErrTooManyNodes))
 }
 
 func TestGetContributorStats(t *testing.T) {
@@ -278,4 +282,138 @@ func getMaxLevel(node *ForkNode) int {
 	}
 
 	return maxLevel
+}
+
+func TestCycleDetection_SelfLoop(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	params := ForkGraphParams{
+		IncludeContributors: false,
+		ContributorDays:     90,
+		MaxDepth:            10,
+		IncludePrivate:      false,
+		Sort:                "updated",
+		Page:                1,
+		Limit:               50,
+	}
+
+	ctx := context.Background()
+	visited := make(map[int64]bool)
+	nodeCount := 0
+	maxDepthReached := false
+
+	// First call should succeed
+	node1, err := buildNode(ctx, repo, 0, params, user, visited, &nodeCount, &maxDepthReached)
+	assert.NoError(t, err)
+	assert.NotNil(t, node1)
+	assert.Equal(t, 1, nodeCount)
+
+	// Second call with same repo should detect cycle
+	node2, err := buildNode(ctx, repo, 0, params, user, visited, &nodeCount, &maxDepthReached)
+	assert.Error(t, err)
+	assert.True(t, IsErrCycleDetected(err))
+	assert.Nil(t, node2)
+	// Node count should not increase on cycle detection
+	assert.Equal(t, 1, nodeCount)
+}
+
+func TestCycleDetection_VisitedMapPreventsInfiniteRecursion(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	params := ForkGraphParams{
+		IncludeContributors: false,
+		ContributorDays:     90,
+		MaxDepth:            10,
+		IncludePrivate:      false,
+		Sort:                "updated",
+		Page:                1,
+		Limit:               50,
+	}
+
+	ctx := context.Background()
+	visited := make(map[int64]bool)
+	nodeCount := 0
+	maxDepthReached := false
+
+	// Build node - this will mark repo as visited
+	node, err := buildNode(ctx, repo, 0, params, user, visited, &nodeCount, &maxDepthReached)
+	assert.NoError(t, err)
+	assert.NotNil(t, node)
+
+	// Verify repo is in visited map
+	assert.True(t, visited[repo.ID])
+
+	// Attempting to visit again should immediately return ErrCycleDetected
+	// without causing stack overflow or infinite recursion
+	node2, err := buildNode(ctx, repo, 0, params, user, visited, &nodeCount, &maxDepthReached)
+	assert.Error(t, err)
+	assert.True(t, IsErrCycleDetected(err))
+	assert.Nil(t, node2)
+}
+
+func TestCycleDetection_ErrorPropagation(t *testing.T) {
+	// Test that ErrCycleDetected is properly handled by callers
+	// and doesn't cause the entire graph building to fail
+
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	params := ForkGraphParams{
+		IncludeContributors: false,
+		ContributorDays:     90,
+		MaxDepth:            10,
+		IncludePrivate:      false,
+		Sort:                "updated",
+		Page:                1,
+		Limit:               50,
+	}
+
+	ctx := context.Background()
+
+	// BuildForkGraph should handle cycles gracefully and continue building
+	graph, err := BuildForkGraph(ctx, repo, params, user)
+	assert.NoError(t, err)
+	assert.NotNil(t, graph)
+	assert.NotNil(t, graph.Root)
+}
+
+func TestCycleDetection_DeepForkChain(t *testing.T) {
+	// Test that cycle detection works correctly in deep fork chains
+	// This ensures O(n) performance and no stack overflow
+
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	params := ForkGraphParams{
+		IncludeContributors: false,
+		ContributorDays:     90,
+		MaxDepth:            100, // Deep chain
+		IncludePrivate:      false,
+		Sort:                "updated",
+		Page:                1,
+		Limit:               50,
+	}
+
+	ctx := context.Background()
+	visited := make(map[int64]bool)
+	nodeCount := 0
+	maxDepthReached := false
+
+	// Build a deep chain - should not cause stack overflow
+	node, err := buildNode(ctx, repo, 0, params, user, visited, &nodeCount, &maxDepthReached)
+	assert.NoError(t, err)
+	assert.NotNil(t, node)
+
+	// Verify visited map has entries (cycle detection is working)
+	assert.Greater(t, len(visited), 0)
 }

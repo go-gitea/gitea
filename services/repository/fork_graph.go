@@ -26,6 +26,7 @@ var (
 	ErrMaxDepthExceeded  = errors.New("maximum depth exceeded")
 	ErrTooManyNodes      = errors.New("too many nodes in graph")
 	ErrProcessingTimeout = errors.New("processing timeout")
+	ErrCycleDetected     = errors.New("cycle detected in fork graph")
 	errAwaitGeneration   = errors.New("generation took longer than expected")
 )
 
@@ -42,6 +43,11 @@ func IsErrTooManyNodes(err error) bool {
 // IsErrProcessingTimeout checks if an error is ErrProcessingTimeout
 func IsErrProcessingTimeout(err error) bool {
 	return errors.Is(err, ErrProcessingTimeout)
+}
+
+// IsErrCycleDetected checks if an error is ErrCycleDetected
+func IsErrCycleDetected(err error) bool {
+	return errors.Is(err, ErrCycleDetected)
 }
 
 // ForkGraphParams represents parameters for building fork graph
@@ -178,7 +184,8 @@ func buildNode(ctx context.Context, repo *repo_model.Repository, level int, para
 
 	// Check if already visited (cycle detection)
 	if visited[repo.ID] {
-		return nil, nil
+		log.Warn("Cycle detected in fork graph for repository ID %d", repo.ID)
+		return nil, ErrCycleDetected
 	}
 	visited[repo.ID] = true
 	*nodeCount++
@@ -203,6 +210,11 @@ func buildNode(ctx context.Context, repo *repo_model.Repository, level int, para
 		if err != nil {
 			if errors.Is(err, ErrProcessingTimeout) || errors.Is(err, ErrTooManyNodes) {
 				return nil, err
+			}
+			if errors.Is(err, ErrCycleDetected) {
+				// Log the cycle but continue building the rest of the graph
+				log.Warn("Skipping cyclic fork relationship in graph for repo %d", fork.ID)
+				continue
 			}
 			// Log error but continue with other children
 			log.Error("Failed to build node for fork %d: %v", fork.ID, err)
