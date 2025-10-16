@@ -6,7 +6,6 @@
 package graceful
 
 import (
-	"container/list"
 	"crypto/tls"
 	"net"
 	"os"
@@ -34,11 +33,9 @@ type Server struct {
 	address  string
 	listener net.Listener
 
-	lock  sync.RWMutex
-	state state
-	// FIXME: actually we do not need to record the whole list, just a counter should be enough
-	// Because the connections will be closed by OS, no need to track them one by one.
-	connList      *list.List
+	lock          sync.RWMutex
+	state         state
+	connCounter   int64
 	connEmptyCond *sync.Cond
 
 	BeforeBegin          func(network, address string)
@@ -56,7 +53,6 @@ func NewServer(network, address, name string) *Server {
 	}
 	srv := &Server{
 		state:                stateInit,
-		connList:             list.New(),
 		network:              network,
 		address:              address,
 		PerWriteTimeout:      setting.PerWriteTimeout,
@@ -185,7 +181,7 @@ func (srv *Server) setState(st state) {
 
 func (srv *Server) waitForActiveConnections() {
 	srv.lock.Lock()
-	for srv.connList.Len() > 0 {
+	for srv.connCounter > 0 {
 		srv.connEmptyCond.Wait()
 	}
 	srv.lock.Unlock()
@@ -200,20 +196,16 @@ func (srv *Server) wrapConnection(c net.Conn) (net.Conn, error) {
 		return nil, syscall.EINVAL // same as AcceptTCP
 	}
 
-	wc := &wrappedConn{Conn: c, server: srv}
-	wc.listElem = srv.connList.PushBack(wc)
-	return wc, nil
+	srv.connCounter++
+	return &wrappedConn{Conn: c, server: srv}, nil
 }
 
-func (srv *Server) removeConnection(conn *wrappedConn) {
+func (srv *Server) removeConnection(_ *wrappedConn) {
 	srv.lock.Lock()
 	defer srv.lock.Unlock()
 
-	if conn.listElem == nil {
-		return
-	}
-	srv.connList.Remove(conn.listElem)
-	if srv.connList.Len() == 0 {
+	srv.connCounter--
+	if srv.connCounter <= 0 {
 		srv.connEmptyCond.Broadcast()
 	}
 }
@@ -221,21 +213,11 @@ func (srv *Server) removeConnection(conn *wrappedConn) {
 // closeAllConnections forcefully closes all active connections
 func (srv *Server) closeAllConnections() {
 	srv.lock.Lock()
-	if srv.connList.Len() > 0 {
-		log.Warn("Forcefully closing all %d connections", srv.connList.Len())
+	if srv.connCounter > 0 {
+		log.Warn("After graceful shutdown period, %d connections are still active. Forcefully close.", srv.connCounter)
+		srv.connCounter = 0 // OS will close all the connections after the process exits, so we just assume there is no active connection now
 	}
-	conns := make([]*wrappedConn, 0, srv.connList.Len())
-	for e := srv.connList.Front(); e != nil; e = e.Next() {
-		conn := e.Value.(*wrappedConn)
-		conn.listElem = nil // mark as removed, will close it later to avoid deadlock of "server.lock"
-		conns = append(conns, conn)
-	}
-	srv.connList = list.New()
 	srv.lock.Unlock()
-
-	for _, conn := range conns {
-		_ = conn.Close() // do real close outside of lock
-	}
 	srv.connEmptyCond.Broadcast()
 }
 
@@ -262,7 +244,7 @@ func newWrappedListener(l net.Listener, srv *Server) *wrappedListener {
 
 func (wl *wrappedListener) Accept() (c net.Conn, err error) {
 	if tcl, ok := wl.Listener.(*net.TCPListener); ok {
-		// Set keepalive on TCPListeners connections if possible, http.tcpKeepAliveListener
+		// Set keepalive on TCPListeners connections if possible, see http.tcpKeepAliveListener
 		tc, err := tcl.AcceptTCP()
 		if err != nil {
 			return nil, err
@@ -287,11 +269,6 @@ func (wl *wrappedListener) File() (*os.File, error) {
 
 type wrappedConn struct {
 	net.Conn
-
-	// listElem is protected by the server's lock (used by the server to remove conn itself from the list)
-	// nil means it has been removed
-	listElem *list.Element
-
 	server   *Server
 	deadline time.Time
 }

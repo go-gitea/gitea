@@ -169,19 +169,6 @@ func serveInstalled(c *cli.Command) error {
 
 	showWebStartupMessage("Prepare to run web server")
 
-	// FIXME: remove it if it doesn't really help
-	// Check for shutdown signal during startup
-	/*
-		select {
-		case <-graceful.GetManager().IsShutdown():
-			log.Info("Shutdown signal received during startup, aborting server start")
-			<-graceful.GetManager().Done()
-			log.Info("PID: %d Gitea Web Finished", os.Getpid())
-			return nil
-		default:
-		}
-	*/
-
 	if setting.AppWorkPathMismatch {
 		log.Error("WORK_PATH from config %q doesn't match other paths from environment variables or command arguments. "+
 			"Only WORK_PATH in config should be set and used. Please make sure the path in config file is correct, "+
@@ -238,19 +225,6 @@ func serveInstalled(c *cli.Command) error {
 
 	gtprof.EnableBuiltinTracer(util.Iif(setting.IsProd, 2000*time.Millisecond, 100*time.Millisecond))
 
-	// FIXME: remove it if it doesn't really help
-	// Check for shutdown signal before starting web server
-	/*
-		select {
-		case <-graceful.GetManager().IsShutdown():
-			log.Info("Shutdown signal received before starting web server, aborting")
-			<-graceful.GetManager().Done()
-			log.Info("PID: %d Gitea Web Finished", os.Getpid())
-			return nil
-		default:
-		}
-	*/
-	
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()
 	err := listen(webRoutes, true)
