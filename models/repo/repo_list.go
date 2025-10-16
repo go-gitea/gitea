@@ -28,6 +28,13 @@ import (
 // repository data...
 const RepositoryListDefaultPageSize = 64
 
+const (
+	// Search keyword validation limits to prevent DoS attacks
+	maxSearchKeywordLength       = 500 // Maximum total search string length
+	maxSearchKeywords            = 10  // Maximum number of comma-separated keywords
+	maxIndividualKeywordLength   = 100 // Maximum length of each individual keyword
+)
+
 // RepositoryList contains a list of repositories
 type RepositoryList []*Repository
 
@@ -627,14 +634,29 @@ func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 		orderBy = db.SearchOrderBy(strings.ReplaceAll(string(orderBy), "relevance_score", relevanceSQL))
 
 		// Add keyword arguments for relevance scoring
-		keywords := strings.SplitSeq(opts.Keyword, ",")
-		for keyword := range keywords {
-			keyword = strings.TrimSpace(strings.ToLower(keyword))
-			if keyword != "" {
-				// Add arguments for exact match, prefix match, and substring match
-				// Only one set needed since we use COALESCE(subject.name, repository.name)
-				args = append(args, keyword, keyword+"%", "%"+keyword+"%")
+		// Apply the same validation as buildRelevanceScoreSQL to ensure consistency
+		keyword := strings.TrimSpace(opts.Keyword)
+		if len(keyword) > maxSearchKeywordLength {
+			keyword = keyword[:maxSearchKeywordLength]
+		}
+
+		keywords := strings.Split(keyword, ",")
+		if len(keywords) > maxSearchKeywords {
+			keywords = keywords[:maxSearchKeywords]
+		}
+
+		for _, kw := range keywords {
+			kw = strings.TrimSpace(strings.ToLower(kw))
+			if kw == "" {
+				continue
 			}
+			// Limit individual keyword length
+			if len(kw) > maxIndividualKeywordLength {
+				kw = kw[:maxIndividualKeywordLength]
+			}
+			// Add arguments for exact match, prefix match, and substring match
+			// Only one set needed since we use COALESCE(subject.name, repository.name)
+			args = append(args, kw, kw+"%", "%"+kw+"%")
 		}
 	}
 
@@ -767,14 +789,45 @@ func SearchRepositoryIDs(ctx context.Context, opts SearchRepoOptions) ([]int64, 
 // buildRelevanceScoreSQL creates a SQL expression for relevance scoring
 // It prioritizes exact matches, then prefix matches, then substring matches
 func buildRelevanceScoreSQL(keyword string) string {
+	// Validate and sanitize input to prevent DoS attacks
+	keyword = strings.TrimSpace(keyword)
+	if keyword == "" {
+		return "0"
+	}
+
+	// Limit total keyword length to prevent DoS
+	if len(keyword) > maxSearchKeywordLength {
+		keyword = keyword[:maxSearchKeywordLength]
+	}
+
 	keywords := strings.Split(keyword, ",")
-	if len(keywords) == 0 {
+
+	// Limit number of keywords to prevent DoS
+	if len(keywords) > maxSearchKeywords {
+		keywords = keywords[:maxSearchKeywords]
+	}
+
+	// Validate and sanitize each keyword
+	validKeywords := make([]string, 0, len(keywords))
+	for _, kw := range keywords {
+		kw = strings.TrimSpace(kw)
+		if kw == "" {
+			continue
+		}
+		// Limit individual keyword length
+		if len(kw) > maxIndividualKeywordLength {
+			kw = kw[:maxIndividualKeywordLength]
+		}
+		validKeywords = append(validKeywords, kw)
+	}
+
+	if len(validKeywords) == 0 {
 		return "0"
 	}
 
 	var scoreParts []string
 
-	for range keywords {
+	for range validKeywords {
 		// For each keyword, create scoring logic that uses subject if available, otherwise name
 		// Priority: 1=exact, 2=prefix, 3=substring, 4=no match
 		// Use COALESCE to fallback from subject.name to repository.name
