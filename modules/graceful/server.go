@@ -34,8 +34,10 @@ type Server struct {
 	address  string
 	listener net.Listener
 
-	lock          sync.RWMutex
-	state         state
+	lock  sync.RWMutex
+	state state
+	// FIXME: actually we do not need to record the whole list, just a counter should be enough
+	// Because the connections will be closed by OS, no need to track them one by one.
 	connList      *list.List
 	connEmptyCond *sync.Cond
 
