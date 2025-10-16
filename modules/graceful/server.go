@@ -6,12 +6,12 @@
 package graceful
 
 import (
+	"container/list"
 	"crypto/tls"
 	"net"
 	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -30,14 +30,15 @@ type ServeFunction = func(net.Listener) error
 
 // Server represents our graceful server
 type Server struct {
-	network              string
-	address              string
-	listener             net.Listener
-	wg                   sync.WaitGroup
-	state                state
-	lock                 *sync.RWMutex
-	connections          map[*wrappedConn]struct{}
-	connectionsLock      sync.RWMutex
+	network  string
+	address  string
+	listener net.Listener
+
+	lock          sync.RWMutex
+	state         state
+	connList      *list.List
+	connEmptyCond *sync.Cond
+
 	BeforeBegin          func(network, address string)
 	OnShutdown           func()
 	PerWriteTimeout      time.Duration
@@ -52,15 +53,14 @@ func NewServer(network, address, name string) *Server {
 		log.Info("Starting new %s server: %s:%s on PID: %d", name, network, address, os.Getpid())
 	}
 	srv := &Server{
-		wg:                   sync.WaitGroup{},
 		state:                stateInit,
-		lock:                 &sync.RWMutex{},
-		connections:          make(map[*wrappedConn]struct{}),
+		connList:             list.New(),
 		network:              network,
 		address:              address,
 		PerWriteTimeout:      setting.PerWriteTimeout,
 		PerWritePerKbTimeout: setting.PerWritePerKbTimeout,
 	}
+	srv.connEmptyCond = sync.NewCond(&srv.lock)
 
 	srv.BeforeBegin = func(network, addr string) {
 		log.Debug("Starting server on %s:%s (PID: %d)", network, addr, syscall.Getpid())
@@ -157,7 +157,7 @@ func (srv *Server) Serve(serve ServeFunction) error {
 	GetManager().RegisterServer()
 	err := serve(srv.listener)
 	log.Debug("Waiting for connections to finish... (PID: %d)", syscall.Getpid())
-	srv.wg.Wait()
+	srv.waitForActiveConnections()
 	srv.setState(stateTerminate)
 	GetManager().ServerDone()
 	// use of closed means that the listeners are closed - i.e. we should be shutting down - return nil
@@ -181,19 +181,60 @@ func (srv *Server) setState(st state) {
 	srv.state = st
 }
 
+func (srv *Server) waitForActiveConnections() {
+	srv.lock.Lock()
+	for srv.connList.Len() > 0 {
+		srv.connEmptyCond.Wait()
+	}
+	srv.lock.Unlock()
+}
+
+func (srv *Server) wrapConnection(c net.Conn) (net.Conn, error) {
+	srv.lock.Lock()
+	defer srv.lock.Unlock()
+
+	if srv.state != stateRunning {
+		_ = c.Close()
+		return nil, syscall.EINVAL // same as AcceptTCP
+	}
+
+	wc := &wrappedConn{Conn: c, server: srv}
+	wc.listElem = srv.connList.PushBack(wc)
+	return wc, nil
+}
+
+func (srv *Server) removeConnection(conn *wrappedConn) {
+	srv.lock.Lock()
+	defer srv.lock.Unlock()
+
+	if conn.listElem == nil {
+		return
+	}
+	srv.connList.Remove(conn.listElem)
+	if srv.connList.Len() == 0 {
+		srv.connEmptyCond.Broadcast()
+	}
+}
+
 // closeAllConnections forcefully closes all active connections
 func (srv *Server) closeAllConnections() {
-	srv.connectionsLock.Lock()
-	connections := make([]*wrappedConn, 0, len(srv.connections))
-	for conn := range srv.connections {
-		connections = append(connections, conn)
+	srv.lock.Lock()
+	if srv.connList.Len() > 0 {
+		log.Warn("Forcefully closing all %d connections", srv.connList.Len())
 	}
-	srv.connectionsLock.Unlock()
+	conns := make([]*wrappedConn, 0, srv.connList.Len())
+	for e := srv.connList.Front(); e != nil; e = e.Next() {
+		conn := e.Value.(*wrappedConn)
+		conn.listElem = nil // mark as removed, will close it later to avoid deadlock of "server.lock"
+		conns = append(conns, conn)
+	}
+	srv.connList = list.New()
+	srv.lock.Unlock()
 
-	// Close all connections outside the lock to avoid deadlock
-	for _, conn := range connections {
-		_ = conn.Conn.Close() // Force close the underlying connection
+	for _, conn := range conns {
+		_ = conn.Close() // do real close outside of lock
 	}
+	srv.connEmptyCond.Broadcast()
 }
 
 type filer interface {
@@ -202,9 +243,13 @@ type filer interface {
 
 type wrappedListener struct {
 	net.Listener
-	stopped bool
-	server  *Server
+	server *Server
 }
+
+var (
+	_ net.Listener = (*wrappedListener)(nil)
+	_ filer        = (*wrappedListener)(nil)
+)
 
 func newWrappedListener(l net.Listener, srv *Server) *wrappedListener {
 	return &wrappedListener{
@@ -213,50 +258,24 @@ func newWrappedListener(l net.Listener, srv *Server) *wrappedListener {
 	}
 }
 
-func (wl *wrappedListener) Accept() (net.Conn, error) {
-	var c net.Conn
-	// Set keepalive on TCPListeners connections.
+func (wl *wrappedListener) Accept() (c net.Conn, err error) {
 	if tcl, ok := wl.Listener.(*net.TCPListener); ok {
+		// Set keepalive on TCPListeners connections if possible, http.tcpKeepAliveListener
 		tc, err := tcl.AcceptTCP()
 		if err != nil {
 			return nil, err
 		}
-		_ = tc.SetKeepAlive(true)                  // see http.tcpKeepAliveListener
-		_ = tc.SetKeepAlivePeriod(3 * time.Minute) // see http.tcpKeepAliveListener
+		_ = tc.SetKeepAlive(true)
+		_ = tc.SetKeepAlivePeriod(3 * time.Minute)
 		c = tc
 	} else {
-		var err error
 		c, err = wl.Listener.Accept()
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	closed := int32(0)
-
-	wc := &wrappedConn{
-		Conn:   c,
-		server: wl.server,
-		closed: &closed,
-	}
-
-	wl.server.wg.Add(1)
-
-	// Track the connection
-	wl.server.connectionsLock.Lock()
-	wl.server.connections[wc] = struct{}{}
-	wl.server.connectionsLock.Unlock()
-
-	return wc, nil
-}
-
-func (wl *wrappedListener) Close() error {
-	if wl.stopped {
-		return syscall.EINVAL
-	}
-
-	wl.stopped = true
-	return wl.Listener.Close()
+	return wl.server.wrapConnection(c)
 }
 
 func (wl *wrappedListener) File() (*os.File, error) {
@@ -266,8 +285,12 @@ func (wl *wrappedListener) File() (*os.File, error) {
 
 type wrappedConn struct {
 	net.Conn
+
+	// listElem is protected by the server's lock (used by the server to remove conn itself from the list)
+	// nil means it has been removed
+	listElem *list.Element
+
 	server   *Server
-	closed   *int32
 	deadline time.Time
 }
 
@@ -286,25 +309,6 @@ func (w *wrappedConn) Write(p []byte) (n int, err error) {
 }
 
 func (w *wrappedConn) Close() error {
-	if atomic.CompareAndSwapInt32(w.closed, 0, 1) {
-		defer func() {
-			if err := recover(); err != nil {
-				select {
-				case <-GetManager().IsHammer():
-					// Likely deadlocked request released at hammertime
-					log.Warn("Panic during connection close! %v. Likely there has been a deadlocked request which has been released by forced shutdown.", err)
-				default:
-					log.Error("Panic during connection close! %v", err)
-				}
-			}
-		}()
-
-		// Remove from tracked connections
-		w.server.connectionsLock.Lock()
-		delete(w.server.connections, w)
-		w.server.connectionsLock.Unlock()
-
-		w.server.wg.Done()
-	}
+	w.server.removeConnection(w)
 	return w.Conn.Close()
 }

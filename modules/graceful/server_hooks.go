@@ -50,11 +50,5 @@ func (srv *Server) doHammer() {
 	if srv.getState() != stateShuttingDown {
 		return
 	}
-	log.Warn("Forcefully closing all connections")
-
-	// Close all active connections. Each connection's Close() method
-	// will call wg.Done() exactly once, maintaining WaitGroup integrity.
-	// This will allow wg.Wait() in Serve() to complete, and Serve() will
-	// then set the state to stateTerminate.
 	srv.closeAllConnections()
 }
