@@ -956,6 +956,10 @@ func ExcerptBlob(ctx *context.Context) {
 	ctx.Data["PageIsPullFiles"] = isPull
 
 	if isPull {
+		if !ctx.Repo.CanRead(unit.TypePullRequests) {
+			ctx.NotFound(nil)
+			return
+		}
 		issueIndex := ctx.FormInt64("issue_index")
 		ctx.Data["IssueIndex"] = issueIndex
 		if issueIndex > 0 {
