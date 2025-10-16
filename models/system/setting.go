@@ -150,3 +150,34 @@ func (d *dbConfigCachedGetter) InvalidateCache() {
 func NewDatabaseDynKeyGetter() config.DynKeyGetter {
 	return &dbConfigCachedGetter{}
 }
+
+type dbConfigSetter struct {
+	mu sync.RWMutex
+}
+
+var _ config.DynKeySetter = (*dbConfigSetter)(nil)
+
+func (d *dbConfigSetter) SetValue(ctx context.Context, dynKey, value string) error {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	_ = GetRevision(ctx) // prepare the "revision" key ahead
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		e := db.GetEngine(ctx)
+		res, err := e.Exec("UPDATE system_setting SET version=version+1, setting_value=? WHERE setting_key=?", value, dynKey)
+		if err != nil {
+			return err
+		}
+		rows, _ := res.RowsAffected()
+		if rows == 0 { // if no existing row, insert a new row
+			if _, err = e.Insert(&Setting{SettingKey: dynKey, SettingValue: value}); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+func NewDatabaseDynKeySetter() config.DynKeySetter {
+	return &dbConfigSetter{}
+}

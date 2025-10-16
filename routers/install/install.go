@@ -427,7 +427,8 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(strconv.FormatBool(form.OfflineMode))
 	if err := system_model.SetSettings(ctx, map[string]string{
-		setting.Config().Picture.EnableGravatar.DynKey():        strconv.FormatBool(!form.EnableGravatar), // invert value as it is stored as disable_gravatar for backwards compatability
+		// Form is submitted on install and should use the SelectFrom key and inverted this enter
+		setting.Config().Picture.EnableGravatar.SelectFromKey(): strconv.FormatBool(!form.EnableGravatar),
 		setting.Config().Picture.EnableFederatedAvatar.DynKey(): strconv.FormatBool(form.EnableFederatedAvatar),
 	}); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)

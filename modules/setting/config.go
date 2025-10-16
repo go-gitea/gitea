@@ -58,15 +58,15 @@ type ConfigStruct struct {
 }
 
 var (
-	defaultConfig     *ConfigStruct
-	defaultConfigOnce sync.Once
+	defaultConfig *ConfigStruct
+	ConfigOnce    sync.Once
 )
 
 func initDefaultConfig() {
 	config.SetCfgSecKeyGetter(&cfgSecKeyGetter{})
 	defaultConfig = &ConfigStruct{
 		Picture: &PictureStruct{
-			EnableGravatar:        config.ValueJSON[bool]("picture.disable_gravatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "DISABLE_GRAVATAR"}).Invert(),
+			EnableGravatar:        config.ValueJSON[bool]("picture.enable_gravatar").SelectFrom("picture.disable_gravatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "DISABLE_GRAVATAR"}).Invert(),
 			EnableFederatedAvatar: config.ValueJSON[bool]("picture.enable_federated_avatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "ENABLE_FEDERATED_AVATAR"}),
 		},
 		Repository: &RepositoryStruct{
@@ -77,7 +77,7 @@ func initDefaultConfig() {
 }
 
 func Config() *ConfigStruct {
-	defaultConfigOnce.Do(initDefaultConfig)
+	ConfigOnce.Do(initDefaultConfig)
 	return defaultConfig
 }
 

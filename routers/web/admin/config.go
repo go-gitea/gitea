@@ -198,14 +198,13 @@ func ConfigSettings(ctx *context.Context) {
 func ChangeConfig(ctx *context.Context) {
 	cfg := setting.Config()
 
+	subValueSet := map[string]func(string) error{
+		cfg.Picture.EnableGravatar.DynKey(): cfg.Picture.EnableGravatar.SetValue,
+	}
+
 	marshalBool := func(v string) ([]byte, error) {
 		b, _ := strconv.ParseBool(v)
 		return json.Marshal(b)
-	}
-
-	marshalBoolInvert := func(v string) ([]byte, error) {
-		b, _ := strconv.ParseBool(v)
-		return json.Marshal(!b)
 	}
 
 	marshalString := func(emptyDefault string) func(v string) ([]byte, error) {
@@ -237,7 +236,7 @@ func ChangeConfig(ctx *context.Context) {
 	}
 
 	marshallers := map[string]func(string) ([]byte, error){
-		cfg.Picture.EnableGravatar.DynKey():        marshalBoolInvert, // Invert for backwards compatability with old database semantics
+		cfg.Picture.EnableGravatar.DynKey():        marshalBool,
 		cfg.Picture.EnableFederatedAvatar.DynKey(): marshalBool,
 		cfg.Repository.OpenWithEditorApps.DynKey(): marshalOpenWithApps,
 		cfg.Repository.GitGuideRemoteName.DynKey(): marshalString(cfg.Repository.GitGuideRemoteName.DefaultValue()),
@@ -266,7 +265,15 @@ loop:
 			ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
 			break loop
 		}
-		configSettings[key] = string(marshaledValue)
+
+		if setter, ok := subValueSet[key]; ok {
+			if err := setter(string(marshaledValue)); err != nil {
+				ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+				break loop
+			}
+		} else {
+			configSettings[key] = string(marshaledValue)
+		}
 	}
 	if ctx.Written() {
 		return

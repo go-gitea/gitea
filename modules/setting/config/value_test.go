@@ -33,3 +33,31 @@ func TestValue_parse(t *testing.T) {
 		})
 	}
 }
+
+func TestValue_getKey(t *testing.T) {
+	tests := []struct {
+		name       string // description of this test case
+		valueClass *Value[bool]
+		want       string
+	}{
+		{
+			name:       "Custom dynKey name",
+			valueClass: ValueJSON[bool]("picture.enable_gravatar").SelectFrom("picture.disable_gravatar").WithFileConfig(CfgSecKey{Sec: "", Key: ""}),
+			want:       "picture.enable_gravatar",
+		},
+		{
+			name:       "Normal dynKey name",
+			valueClass: ValueJSON[bool]("picture.disable_gravatar").WithFileConfig(CfgSecKey{Sec: "", Key: ""}),
+			want:       "picture.disable_gravatar",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.valueClass.getKey()
+
+			if got != tt.want {
+				t.Errorf("getKey() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
