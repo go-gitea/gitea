@@ -5,7 +5,6 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"code.gitea.io/gitea/modules/json"
@@ -50,7 +49,6 @@ func (value *Value[T]) invertBoolStr(val string) (inverted string) {
 func (value *Value[T]) invert(val T) (v T) {
 	v = val
 	if value.flipBoolean {
-		fmt.Printf("Flipping boolean value '%v'...\n", val)
 		// if value is of type bool
 		if _, ok := any(val).(bool); ok {
 			// invert the boolean value upon retrieval
@@ -150,8 +148,6 @@ func (value *Value[any]) SetValue(val string) error {
 		// it should panic to avoid inconsistent config values (from config / system setting) and fix the code
 		panic("no config dyn value getter")
 	}
-
-	fmt.Printf("Setting value '%s' with old key '%s' using key '%s'\n", val, value.selectFromKey, value.dynKey)
 
 	if value.flipBoolean {
 		return ds.SetValue(ctx, value.getKey(), value.invertBoolStr(val))

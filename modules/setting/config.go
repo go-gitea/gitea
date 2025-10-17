@@ -58,8 +58,8 @@ type ConfigStruct struct {
 }
 
 var (
-	defaultConfig *ConfigStruct
-	ConfigOnce    sync.Once
+	defaultConfig     *ConfigStruct
+	defaultConfigOnce sync.Once
 )
 
 func initDefaultConfig() {
@@ -77,7 +77,7 @@ func initDefaultConfig() {
 }
 
 func Config() *ConfigStruct {
-	ConfigOnce.Do(initDefaultConfig)
+	defaultConfigOnce.Do(initDefaultConfig)
 	return defaultConfig
 }
 
