@@ -326,7 +326,7 @@ func CreateOrganization(ctx context.Context, org *Organization, owner *user_mode
 		if err = db.Insert(ctx, &OrgUser{
 			UID:      owner.ID,
 			OrgID:    org.ID,
-			IsPublic: setting.Service.DefaultOrgMemberVisible,
+			IsPublic: setting.Config().Service.DefaultOrgMemberVisible.Value(ctx),
 		}); err != nil {
 			return fmt.Errorf("insert org-user relation: %w", err)
 		}
@@ -504,7 +504,7 @@ func AddOrgUser(ctx context.Context, orgID, uid int64) error {
 		ou := &OrgUser{
 			UID:      uid,
 			OrgID:    orgID,
-			IsPublic: setting.Service.DefaultOrgMemberVisible,
+			IsPublic: setting.Config().Service.DefaultOrgMemberVisible.Value(ctx),
 		}
 
 		if err := db.Insert(ctx, ou); err != nil {

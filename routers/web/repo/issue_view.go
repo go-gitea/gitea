@@ -464,7 +464,7 @@ func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model
 	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull)
 
 	// check if dependencies can be created across repositories
-	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
+	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Config().Service.AllowCrossRepositoryDependencies.Value(ctx)
 
 	// Get Dependencies
 	blockedBy, err := issue.BlockedByDependencies(ctx, db.ListOptions{})
