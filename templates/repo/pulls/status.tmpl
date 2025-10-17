@@ -28,8 +28,8 @@
 				<form method="post" action="{{.RepoLink}}/actions/approve-all-checks?redirect={{.IssueLink}}">
 					{{ctx.RootData.CsrfTokenHtml}}
 					<input type="hidden" name="sha" value="{{.SHA}}">
-					<button type="submit" class="ui small tiny compact button primary">
-						Approve workflows to run
+					<button type="submit" class="ui basic small compact button">
+						{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
 					</button>
 				</form>
 			{{end}}

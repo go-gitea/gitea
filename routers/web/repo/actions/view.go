@@ -870,7 +870,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 		return
 	}
 
-	ctx.Flash.Success("Successfully approved all pending checks")
+	ctx.Flash.Success(ctx.Tr("actions.approve_all_success"))
 	ctx.Redirect(redirect)
 }
 
