@@ -20,6 +20,7 @@ import (
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 
@@ -70,6 +71,10 @@ func GetRunsAndJobsFromCommitStatuses(ctx context.Context, statuses []*git_model
 		if !ok {
 			run, err = actions_model.GetRunByIndex(ctx, status.RepoID, runIndex)
 			if err != nil {
+				if errors.Is(err, util.ErrNotExist) {
+					// the run may be deleted manually, just skip it
+					continue
+				}
 				return nil, nil, fmt.Errorf("GetRunByIndex: %w", err)
 			}
 			runMap[runIndex] = run
