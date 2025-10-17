@@ -17,21 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"golang.org/x/crypto/ssh"
 )
 
-//  _____          __  .__                 .__                  .___
-// /  _  \  __ ___/  |_|  |__   ___________|__|_______ ____   __| _/
-// /  /_\  \|  |  \   __\  |  \ /  _ \_  __ \  \___   // __ \ / __ |
-// /    |    \  |  /|  | |   Y  (  <_> )  | \/  |/    /\  ___// /_/ |
-// \____|__  /____/ |__| |___|  /\____/|__|  |__/_____ \\___  >____ |
-//         \/                 \/                      \/    \/     \/
-// ____  __.
-// |    |/ _|____ ___.__. ______
-// |      <_/ __ <   |  |/  ___/
-// |    |  \  ___/\___  |\___ \
-// |____|__ \___  > ____/____  >
-//         \/   \/\/         \/
-//
 // This file contains functions for creating authorized_keys files
 //
 // There is a dependence on the database within RegeneratePublicKeys however most of these functions probably belong in a module
@@ -49,6 +37,23 @@ func WithSSHOpLocker(f func() error) error {
 	return f()
 }
 
+// removeSSHKeyComment removes the trailing comment from an SSH public key line.
+func removeSSHKeyComment(pubKeyLine string) (string, error) {
+	pubKeyLine = strings.TrimSpace(pubKeyLine)
+	if pubKeyLine == "" || strings.HasPrefix(pubKeyLine, "#") {
+		return pubKeyLine, nil
+	}
+
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKeyLine))
+	if err != nil {
+		return "", fmt.Errorf("invalid public key: %w", err)
+	}
+
+	// MarshalAuthorizedKey returns "<type> <base64>\n"
+	key := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pubKey)))
+	return key, nil
+}
+
 // AuthorizedStringForKey creates the authorized keys string appropriate for the provided key
 func AuthorizedStringForKey(key *PublicKey) string {
 	sb := &strings.Builder{}
@@ -60,7 +65,13 @@ func AuthorizedStringForKey(key *PublicKey) string {
 		"Key":         key,
 	})
 
-	return fmt.Sprintf(tplPublicKey, util.ShellEscape(sb.String()), key.Content)
+	content, err := removeSSHKeyComment(key.Content)
+	if err != nil {
+		log.Error("Failed to remove comment from SSH key ID %d: %v", key.ID, err)
+		content = key.Content
+	}
+
+	return fmt.Sprintf(tplPublicKey, util.ShellEscape(sb.String()), content)
 }
 
 // appendAuthorizedKeysToFile appends new SSH keys' content to authorized_keys file.
