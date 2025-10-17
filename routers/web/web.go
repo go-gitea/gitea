@@ -1159,11 +1159,21 @@ func registerWebRoutes(m *web.Router) {
 				m.Post("/{lid}/unlock", repo_setting.LFSUnlock)
 			})
 		})
+		m.Group("/actions/general", func() {
+			m.Get("", repo_setting.ActionsGeneralSettings)
+			m.Post("/actions_unit", repo_setting.ActionsUnitPost)
+		})
 		m.Group("/actions", func() {
 			m.Get("", shared_actions.RedirectToDefaultSetting)
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
+			m.Group("/general", func() {
+				m.Group("/collaborative_owner", func() {
+					m.Post("/add", repo_setting.AddCollaborativeOwner)
+					m.Post("/delete", repo_setting.DeleteCollaborativeOwner)
+				})
+			})
 		}, actions.MustEnableActions)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 		m.Group("/migrate", func() {

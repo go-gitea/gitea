@@ -614,12 +614,6 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
 	}
 
-	if form.EnableActions && !unit_model.TypeActions.UnitGlobalDisabled() {
-		units = append(units, newRepoUnit(repo, unit_model.TypeActions, nil))
-	} else if !unit_model.TypeActions.UnitGlobalDisabled() {
-		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeActions)
-	}
-
 	if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		units = append(units, newRepoUnit(repo, unit_model.TypePullRequests, &repo_model.PullRequestsConfig{
 			IgnoreWhitespaceConflicts:     form.PullsIgnoreWhitespace,
