@@ -65,9 +65,9 @@ func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.Commit
 		if err != nil {
 			return nil, fmt.Errorf("getActionRunAndJobIndexFromCommitStatus: %w", err)
 		}
-		run, ok := runMap[runIndex]
+		_, ok := runMap[runIndex]
 		if !ok {
-			run, err = actions_model.GetRunByIndex(ctx, status.RepoID, runIndex)
+			run, err := actions_model.GetRunByIndex(ctx, status.RepoID, runIndex)
 			if err != nil {
 				if errors.Is(err, util.ErrNotExist) {
 					// the run may be deleted manually, just skip it
