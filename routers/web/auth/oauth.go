@@ -208,8 +208,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 		} else if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
 			// allow ACCOUNT_LINKING=auto to work without ENABLE_AUTO_REGISTRATION.
-			var user *user_model.User
-			user = &user_model.User{Email: gothUser.Email}
+			user := &user_model.User{Email: gothUser.Email}
 			hasUser, err := user_model.GetUser(ctx, user)
 			if err != nil {
 				ctx.ServerError("UserLinkAccount", err)
