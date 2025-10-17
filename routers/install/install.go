@@ -427,7 +427,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(strconv.FormatBool(form.OfflineMode))
 	if err := system_model.SetSettings(ctx, map[string]string{
-		// Form is submitted on install and should use the SelectFrom key and inverted this enter
+		// Form is submitted on install and should use the SelectFrom key for backwards compatability; getting the value will properly invert the boolean
 		setting.Config().Picture.EnableGravatar.SelectFromKey(): strconv.FormatBool(!form.EnableGravatar),
 		setting.Config().Picture.EnableFederatedAvatar.DynKey(): strconv.FormatBool(form.EnableFederatedAvatar),
 	}); err != nil {
