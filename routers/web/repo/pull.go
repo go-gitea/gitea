@@ -479,9 +479,9 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 		git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
 	}
 
-	runs, _, err := actions_service.GetRunsAndJobsFromCommitStatuses(ctx, commitStatuses)
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
 	if err != nil {
-		ctx.ServerError("GetRunsAndJobsFromCommitStatuses", err)
+		ctx.ServerError("GetRunsFromCommitStatuses", err)
 		return nil
 	}
 	for _, run := range runs {

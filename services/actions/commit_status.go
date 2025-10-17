@@ -55,17 +55,15 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 	}
 }
 
-func GetRunsAndJobsFromCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) ([]*actions_model.ActionRun, []*actions_model.ActionRunJob, error) {
-	jobMap := make(map[int64]*actions_model.ActionRunJob)
+func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) ([]*actions_model.ActionRun, error) {
 	runMap := make(map[int64]*actions_model.ActionRun)
-	jobsMap := make(map[int64][]*actions_model.ActionRunJob)
 	for _, status := range statuses {
 		if !status.CreatedByGiteaActions(ctx) {
 			continue
 		}
-		runIndex, jobIndex, err := getActionRunAndJobIndexFromCommitStatus(status)
+		runIndex, _, err := getActionRunAndJobIndexFromCommitStatus(status)
 		if err != nil {
-			return nil, nil, fmt.Errorf("getActionRunAndJobIndexFromCommitStatus: %w", err)
+			return nil, fmt.Errorf("getActionRunAndJobIndexFromCommitStatus: %w", err)
 		}
 		run, ok := runMap[runIndex]
 		if !ok {
@@ -75,33 +73,16 @@ func GetRunsAndJobsFromCommitStatuses(ctx context.Context, statuses []*git_model
 					// the run may be deleted manually, just skip it
 					continue
 				}
-				return nil, nil, fmt.Errorf("GetRunByIndex: %w", err)
+				return nil, fmt.Errorf("GetRunByIndex: %w", err)
 			}
 			runMap[runIndex] = run
 		}
-		jobs, ok := jobsMap[runIndex]
-		if !ok {
-			jobs, err = actions_model.GetRunJobsByRunID(ctx, run.ID)
-			if err != nil {
-				return nil, nil, fmt.Errorf("GetRunJobByIndex: %w", err)
-			}
-			jobsMap[runIndex] = jobs
-		}
-		if jobIndex < 0 || jobIndex >= int64(len(jobs)) {
-			return nil, nil, fmt.Errorf("job index %d out of range for run %d", jobIndex, runIndex)
-		}
-		job := jobs[jobIndex]
-		jobMap[job.ID] = job
 	}
 	runs := make([]*actions_model.ActionRun, 0, len(runMap))
 	for _, run := range runMap {
 		runs = append(runs, run)
 	}
-	jobs := make([]*actions_model.ActionRunJob, 0, len(jobMap))
-	for _, job := range jobMap {
-		jobs = append(jobs, job)
-	}
-	return runs, jobs, nil
+	return runs, nil
 }
 
 func getActionRunAndJobIndexFromCommitStatus(status *git_model.CommitStatus) (int64, int64, error) {
