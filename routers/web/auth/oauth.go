@@ -217,6 +217,12 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 
 			if hasUser {
+				if user.ProhibitLogin || !user.IsActive {
+					log.Info("Failed authentication attempt for %s from %s: user has disabled sign-in", user.Name, ctx.RemoteAddr())
+					ctx.Flash.Error(ctx.Tr("auth.prohibit_login"))
+					ctx.Redirect(setting.AppSubURL + "/user/login")
+					return
+				}
 				if err := externalaccount.LinkAccountToUser(ctx, authSource.ID, user, gothUser); err != nil {
 					ctx.ServerError("LinkAccountToUser", err)
 					return
