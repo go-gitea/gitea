@@ -37,16 +37,16 @@
 									{{.CsrfTokenHtml}}
 									<button type="submit" class="ui red small button">{{ctx.Locale.Tr "admin.notices.delete_all"}}</button>
 								</form>
-								<div class="ui floating upward dropdown small button">{{/* TODO: Make this dropdown accessible */}}
+								<div class="ui floating upward dropdown small button" role="button" aria-haspopup="true" aria-expanded="false" aria-label="{{ctx.Locale.Tr "admin.notices.operations"}}">
 									<span class="text">{{ctx.Locale.Tr "admin.notices.operations"}}</span>
-									<div class="menu">
-										<div class="item select action" data-action="select-all">
+									<div class="menu" role="menu">
+										<div class="item select action" role="menuitem" data-action="select-all">
 											{{ctx.Locale.Tr "admin.notices.select_all"}}
 										</div>
-										<div class="item select action" data-action="deselect-all">
+										<div class="item select action" role="menuitem" data-action="deselect-all">
 											{{ctx.Locale.Tr "admin.notices.deselect_all"}}
 										</div>
-										<div class="item select action" data-action="inverse">
+										<div class="item select action" role="menuitem" data-action="inverse">
 											{{ctx.Locale.Tr "admin.notices.inverse_selection"}}
 										</div>
 									</div>
