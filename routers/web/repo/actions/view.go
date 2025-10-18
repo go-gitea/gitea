@@ -432,6 +432,7 @@ func Rerun(ctx *context_module.Context) {
 		run.PreviousDuration = run.Duration()
 		run.Started = 0
 		run.Stopped = 0
+		run.Status = actions_model.StatusWaiting
 
 		vars, err := actions_model.GetVariablesOfRun(ctx, run)
 		if err != nil {
