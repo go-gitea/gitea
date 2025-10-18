@@ -17,13 +17,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: docker/setup-buildx-action@v3
-      - name: Build regular variant
+      - name: Build regular container image
         uses: docker/build-push-action@v5
         with:
           push: false
           tags: gitea/gitea:linux-amd64
           platforms: linux/amd64,linux/arm64,linux/riscv64
-      - name: Build rootless variant
+      - name: Build rootless container image
         uses: docker/build-push-action@v5
         with:
           push: false

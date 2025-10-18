@@ -106,14 +106,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: build rootful docker image
+      - name: build regular docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/amd64,linux/arm64,linux/riscv64
           push: true
-          tags: ${{ steps.meta_rootless.outputs.tags }}
-          annotations: ${{ steps.meta_rootless.outputs.annotations }}
+          tags: ${{ steps.meta.outputs.tags }}
+          annotations: ${{ steps.meta.outputs.annotations }}
       - name: build rootless docker image
         uses: docker/build-push-action@v5
         with:

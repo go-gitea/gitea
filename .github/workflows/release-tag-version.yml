@@ -129,7 +129,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: build rootful container image
+      - name: build regular container image
         uses: docker/build-push-action@v5
         with:
           context: .
