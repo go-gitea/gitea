@@ -6,6 +6,7 @@ package repo
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/services/context"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
@@ -18,7 +19,9 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
+	tree := git.NewTree(ctx.Repo.GitRepo, ctx.Repo.Commit.TreeID)
+
+	entry, err := tree.GetTreeEntryByPath(treePath)
 	if err != nil {
 		ctx.ServerError("GetTreeEntryByPath", err)
 		return

@@ -76,7 +76,7 @@ func Commits(ctx *context.Context) {
 	}
 
 	// Both `git log branchName` and `git log commitId` work.
-	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize, "", "", "")
+	commits, err := ctx.Repo.GitRepo.CommitsByRangeWithTime(ctx.Repo.Commit.ID, page, pageSize, "", "", "")
 	if err != nil {
 		ctx.ServerError("CommitsByRange", err)
 		return
@@ -194,7 +194,7 @@ func SearchCommits(ctx *context.Context) {
 
 	all := ctx.FormBool("all")
 	opts := git.NewSearchCommitsOptions(query, all)
-	commits, err := ctx.Repo.Commit.SearchCommits(opts)
+	commits, err := ctx.Repo.GitRepo.SearchCommits(ctx.Repo.Commit.ID, opts)
 	if err != nil {
 		ctx.ServerError("SearchCommits", err)
 		return
@@ -386,7 +386,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
-	verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
+	verification := asymkey_service.ParseCommitWithSignature(ctx, ctx.Repo.GitRepo, commit)
 	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(ctx, commit)
 	ctx.Data["Parents"] = parents
@@ -454,7 +454,7 @@ func RawDiff(ctx *context.Context) {
 }
 
 func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_model.SignCommitWithStatuses, error) {
-	commits, err := git_service.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository)
+	commits, err := git_service.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	if err != nil {
 		return nil, err
 	}

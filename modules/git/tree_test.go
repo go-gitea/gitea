@@ -18,9 +18,11 @@ func TestSubTree_Issue29101(t *testing.T) {
 	commit, err := repo.GetCommit("ce064814f4a0d337b333e646ece456cd39fab612")
 	assert.NoError(t, err)
 
+	tree := NewTree(repo, commit.TreeID)
+
 	// old code could produce a different error if called multiple times
 	for range 10 {
-		_, err = commit.SubTree("file1.txt")
+		_, err = tree.SubTree("file1.txt")
 		assert.Error(t, err)
 		assert.True(t, IsErrNotExist(err))
 	}

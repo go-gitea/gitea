@@ -47,8 +47,8 @@ func UnmarshalFromEntry(entry *git.TreeEntry, dir string) (*api.IssueTemplate, e
 }
 
 // UnmarshalFromCommit parses out a valid template from the commit
-func UnmarshalFromCommit(commit *git.Commit, filename string) (*api.IssueTemplate, error) {
-	entry, err := commit.GetTreeEntryByPath(filename)
+func UnmarshalFromCommit(tree *git.Tree, filename string) (*api.IssueTemplate, error) {
+	entry, err := tree.GetTreeEntryByPath(filename)
 	if err != nil {
 		return nil, fmt.Errorf("get entry for %q: %w", filename, err)
 	}
@@ -62,7 +62,7 @@ func UnmarshalFromRepo(repo *git.Repository, branch, filename string) (*api.Issu
 		return nil, fmt.Errorf("get commit on branch %q: %w", branch, err)
 	}
 
-	return UnmarshalFromCommit(commit, filename)
+	return UnmarshalFromCommit(git.NewTree(repo, commit.TreeID), filename)
 }
 
 func unmarshalFromEntry(entry *git.TreeEntry, filename string) (*api.IssueTemplate, error) {
