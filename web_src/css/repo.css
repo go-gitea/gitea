@@ -1582,6 +1582,7 @@ tbody.commit-list {
   display: flex;
   align-items: center;
   width: max-content;
+  gap: 0.25em;
 }
 
 .file-info-entry + .file-info-entry {

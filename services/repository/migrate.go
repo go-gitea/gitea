@@ -28,22 +28,23 @@ import (
 )
 
 func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.MigrateOptions, migrateTimeout time.Duration) (string, error) {
-	wikiPath := repo.WikiPath()
-	wikiRemotePath := repo_module.WikiRemoteURL(ctx, opts.CloneAddr)
-	if wikiRemotePath == "" {
+	wikiRemoteURL := repo_module.WikiRemoteURL(ctx, opts.CloneAddr)
+	if wikiRemoteURL == "" {
 		return "", nil
 	}
 
-	if err := util.RemoveAll(wikiPath); err != nil {
-		return "", fmt.Errorf("failed to remove existing wiki dir %q, err: %w", wikiPath, err)
+	storageRepo := repo.WikiStorageRepo()
+
+	if err := gitrepo.DeleteRepository(ctx, storageRepo); err != nil {
+		return "", fmt.Errorf("failed to remove existing wiki dir %q, err: %w", storageRepo.RelativePath(), err)
 	}
 
 	cleanIncompleteWikiPath := func() {
-		if err := util.RemoveAll(wikiPath); err != nil {
-			log.Error("Failed to remove incomplete wiki dir %q, err: %v", wikiPath, err)
+		if err := gitrepo.DeleteRepository(ctx, storageRepo); err != nil {
+			log.Error("Failed to remove incomplete wiki dir %q, err: %v", storageRepo.RelativePath(), err)
 		}
 	}
-	if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
+	if err := gitrepo.CloneExternalRepo(ctx, wikiRemoteURL, storageRepo, git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
@@ -54,15 +55,15 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 		return "", err
 	}
 
-	if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
+	if err := gitrepo.WriteCommitGraph(ctx, storageRepo); err != nil {
 		cleanIncompleteWikiPath()
 		return "", err
 	}
 
-	defaultBranch, err := gitrepo.GetDefaultBranch(ctx, repo.WikiStorageRepo())
+	defaultBranch, err := gitrepo.GetDefaultBranch(ctx, storageRepo)
 	if err != nil {
 		cleanIncompleteWikiPath()
-		return "", fmt.Errorf("failed to get wiki repo default branch for %q, err: %w", wikiPath, err)
+		return "", fmt.Errorf("failed to get wiki repo default branch for %q, err: %w", storageRepo.RelativePath(), err)
 	}
 
 	return defaultBranch, nil

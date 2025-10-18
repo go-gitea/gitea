@@ -21,7 +21,6 @@ import (
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	lru "github.com/hashicorp/golang-lru/v2"
-	"github.com/nektos/act/pkg/jobparser"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"
 )
@@ -278,13 +277,10 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		return nil, false, err
 	}
 
-	parsedWorkflows, err := jobparser.Parse(job.WorkflowPayload)
+	workflowJob, err := job.ParseJob()
 	if err != nil {
-		return nil, false, fmt.Errorf("parse workflow of job %d: %w", job.ID, err)
-	} else if len(parsedWorkflows) != 1 {
-		return nil, false, fmt.Errorf("workflow of job %d: not single workflow", job.ID)
+		return nil, false, fmt.Errorf("load job %d: %w", job.ID, err)
 	}
-	_, workflowJob := parsedWorkflows[0].Job()
 
 	if _, err := e.Insert(task); err != nil {
 		return nil, false, err

@@ -32,6 +32,9 @@ type mergeContext struct {
 	env       []string
 }
 
+// PrepareGitCmd prepares a git command with the correct directory, environment, and output buffers
+// This function can only be called with gitcmd.Run()
+// Do NOT use it with gitcmd.RunStd*() functions, otherwise it will panic
 func (ctx *mergeContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	ctx.outbuf.Reset()
 	ctx.errbuf.Reset()
@@ -73,7 +76,11 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	if expectedHeadCommitID != "" {
-		trackingCommitID, _, err := mergeCtx.PrepareGitCmd(gitcmd.NewCommand("show-ref", "--hash").AddDynamicArguments(git.BranchPrefix + trackingBranch)).RunStdString(ctx)
+		trackingCommitID, _, err := gitcmd.NewCommand("show-ref", "--hash").
+			AddDynamicArguments(git.BranchPrefix + trackingBranch).
+			WithEnv(mergeCtx.env).
+			WithDir(mergeCtx.tmpBasePath).
+			RunStdString(ctx)
 		if err != nil {
 			defer cancel()
 			log.Error("failed to get sha of head branch in %-v: show-ref[%s] --hash refs/heads/tracking: %v", mergeCtx.pr, mergeCtx.tmpBasePath, err)

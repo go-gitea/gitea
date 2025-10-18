@@ -53,7 +53,7 @@ function checkAuth() {
 }
 
 function checkItems(tokenAuth: boolean) {
-  let enableItems = false;
+  let enableItems: boolean;
   if (tokenAuth) {
     enableItems = token?.value !== '';
   } else {

@@ -7844,7 +7844,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/UpdateFileOptions"
+              "$ref": "#/definitions/ApplyDiffPatchFileOptions"
             }
           }
         ],
@@ -21641,6 +21641,54 @@
           "description": "The URL to access the tagged object",
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ApplyDiffPatchFileOptions": {
+      "description": "ApplyDiffPatchFileOptions options for applying a diff patch\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "type": "object",
+      "required": [
+        "content"
+      ],
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/Identity"
+        },
+        "branch": {
+          "description": "branch (optional) is the base branch for the changes. If not supplied, the default branch is used",
+          "type": "string",
+          "x-go-name": "BranchName"
+        },
+        "committer": {
+          "$ref": "#/definitions/Identity"
+        },
+        "content": {
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
+        },
+        "force_push": {
+          "description": "force_push (optional) will do a force-push if the new branch already exists",
+          "type": "boolean",
+          "x-go-name": "ForcePush"
+        },
+        "message": {
+          "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "new_branch": {
+          "description": "new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch",
+          "type": "string",
+          "x-go-name": "NewBranchName"
+        },
+        "signoff": {
+          "description": "Add a Signed-off-by trailer by the committer at the end of the commit log message.",
+          "type": "boolean",
+          "x-go-name": "Signoff"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

@@ -5,6 +5,7 @@ import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-che
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
 import giteaExclamation from '../../public/assets/img/svg/gitea-exclamation.svg';
+import giteaRunning from '../../public/assets/img/svg/gitea-running.svg';
 import octiconArchive from '../../public/assets/img/svg/octicon-archive.svg';
 import octiconArrowSwitch from '../../public/assets/img/svg/octicon-arrow-switch.svg';
 import octiconBlocked from '../../public/assets/img/svg/octicon-blocked.svg';
@@ -15,6 +16,7 @@ import octiconCheckCircleFill from '../../public/assets/img/svg/octicon-check-ci
 import octiconChevronDown from '../../public/assets/img/svg/octicon-chevron-down.svg';
 import octiconChevronLeft from '../../public/assets/img/svg/octicon-chevron-left.svg';
 import octiconChevronRight from '../../public/assets/img/svg/octicon-chevron-right.svg';
+import octiconCircle from '../../public/assets/img/svg/octicon-circle.svg';
 import octiconClock from '../../public/assets/img/svg/octicon-clock.svg';
 import octiconCode from '../../public/assets/img/svg/octicon-code.svg';
 import octiconColumns from '../../public/assets/img/svg/octicon-columns.svg';
@@ -84,6 +86,7 @@ const svgs = {
   'gitea-double-chevron-right': giteaDoubleChevronRight,
   'gitea-empty-checkbox': giteaEmptyCheckbox,
   'gitea-exclamation': giteaExclamation,
+  'gitea-running': giteaRunning,
   'octicon-archive': octiconArchive,
   'octicon-arrow-switch': octiconArrowSwitch,
   'octicon-blocked': octiconBlocked,
@@ -94,6 +97,7 @@ const svgs = {
   'octicon-chevron-down': octiconChevronDown,
   'octicon-chevron-left': octiconChevronLeft,
   'octicon-chevron-right': octiconChevronRight,
+  'octicon-circle': octiconCircle,
   'octicon-clock': octiconClock,
   'octicon-code': octiconCode,
   'octicon-columns': octiconColumns,

@@ -7,54 +7,53 @@ package httplib
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
-var defaultSetting = Settings{"GiteaServer", 60 * time.Second, 60 * time.Second, nil, nil}
-
-// newRequest returns *Request with specific method
-func newRequest(url, method string) *Request {
-	var resp http.Response
-	req := http.Request{
-		Method:     method,
-		Header:     make(http.Header),
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
+var defaultTransport = sync.OnceValue(func() http.RoundTripper {
+	return &http.Transport{
+		Proxy:       http.ProxyFromEnvironment,
+		DialContext: DialContextWithTimeout(10 * time.Second), // it is good enough in modern days
 	}
-	return &Request{url, &req, map[string]string{}, defaultSetting, &resp, nil}
+})
+
+func DialContextWithTimeout(timeout time.Duration) func(ctx context.Context, network, address string) (net.Conn, error) {
+	return func(ctx context.Context, network, address string) (net.Conn, error) {
+		return (&net.Dialer{Timeout: timeout}).DialContext(ctx, network, address)
+	}
 }
 
-// NewRequest returns *Request with specific method
 func NewRequest(url, method string) *Request {
-	return newRequest(url, method)
+	return &Request{
+		url: url,
+		req: &http.Request{
+			Method:     method,
+			Header:     make(http.Header),
+			Proto:      "HTTP/1.1", // FIXME: from legacy httplib, it shouldn't be hardcoded
+			ProtoMajor: 1,
+			ProtoMinor: 1,
+		},
+		params: map[string]string{},
+
+		// ATTENTION: from legacy httplib, callers must pay more attention to it, it will cause annoying bugs when the response takes a long time
+		readWriteTimeout: 60 * time.Second,
+	}
 }
 
-// Settings is the default settings for http client
-type Settings struct {
-	UserAgent        string
-	ConnectTimeout   time.Duration
-	ReadWriteTimeout time.Duration
-	TLSClientConfig  *tls.Config
-	Transport        http.RoundTripper
-}
-
-// Request provides more useful methods for requesting one url than http.Request.
 type Request struct {
-	url     string
-	req     *http.Request
-	params  map[string]string
-	setting Settings
-	resp    *http.Response
-	body    []byte
+	url    string
+	req    *http.Request
+	params map[string]string
+
+	readWriteTimeout time.Duration
+	transport        http.RoundTripper
 }
 
 // SetContext sets the request's Context
@@ -63,33 +62,21 @@ func (r *Request) SetContext(ctx context.Context) *Request {
 	return r
 }
 
-// SetTimeout sets connect time out and read-write time out for BeegoRequest.
-func (r *Request) SetTimeout(connectTimeout, readWriteTimeout time.Duration) *Request {
-	r.setting.ConnectTimeout = connectTimeout
-	r.setting.ReadWriteTimeout = readWriteTimeout
+// SetTransport sets the request transport, if not set, will use httplib's default transport with environment proxy support
+// ATTENTION: the http.Transport has a connection pool, so it should be reused as much as possible, do not create a lot of transports
+func (r *Request) SetTransport(transport http.RoundTripper) *Request {
+	r.transport = transport
 	return r
 }
 
 func (r *Request) SetReadWriteTimeout(readWriteTimeout time.Duration) *Request {
-	r.setting.ReadWriteTimeout = readWriteTimeout
+	r.readWriteTimeout = readWriteTimeout
 	return r
 }
 
-// SetTLSClientConfig sets tls connection configurations if visiting https url.
-func (r *Request) SetTLSClientConfig(config *tls.Config) *Request {
-	r.setting.TLSClientConfig = config
-	return r
-}
-
-// Header add header item string in request.
+// Header set header item string in request.
 func (r *Request) Header(key, value string) *Request {
 	r.req.Header.Set(key, value)
-	return r
-}
-
-// SetTransport sets transport to
-func (r *Request) SetTransport(transport http.RoundTripper) *Request {
-	r.setting.Transport = transport
 	return r
 }
 
@@ -125,11 +112,9 @@ func (r *Request) Body(data any) *Request {
 	return r
 }
 
-func (r *Request) getResponse() (*http.Response, error) {
-	if r.resp.StatusCode != 0 {
-		return r.resp, nil
-	}
-
+// Response executes request client and returns the response.
+// Caller MUST close the response body if no error occurs.
+func (r *Request) Response() (*http.Response, error) {
 	var paramBody string
 	if len(r.params) > 0 {
 		var buf bytes.Buffer
@@ -160,59 +145,19 @@ func (r *Request) getResponse() (*http.Response, error) {
 		return nil, err
 	}
 
-	trans := r.setting.Transport
-	if trans == nil {
-		// create default transport
-		trans = &http.Transport{
-			TLSClientConfig: r.setting.TLSClientConfig,
-			Proxy:           http.ProxyFromEnvironment,
-			DialContext:     TimeoutDialer(r.setting.ConnectTimeout),
-		}
-	} else if t, ok := trans.(*http.Transport); ok {
-		if t.TLSClientConfig == nil {
-			t.TLSClientConfig = r.setting.TLSClientConfig
-		}
-		if t.DialContext == nil {
-			t.DialContext = TimeoutDialer(r.setting.ConnectTimeout)
-		}
-	}
-
 	client := &http.Client{
-		Transport: trans,
-		Timeout:   r.setting.ReadWriteTimeout,
+		Transport: r.transport,
+		Timeout:   r.readWriteTimeout,
+	}
+	if client.Transport == nil {
+		client.Transport = defaultTransport()
 	}
 
-	if len(r.setting.UserAgent) > 0 && len(r.req.Header.Get("User-Agent")) == 0 {
-		r.req.Header.Set("User-Agent", r.setting.UserAgent)
+	if r.req.Header.Get("User-Agent") == "" {
+		r.req.Header.Set("User-Agent", "GiteaHttpLib")
 	}
 
-	resp, err := client.Do(r.req)
-	if err != nil {
-		return nil, err
-	}
-	r.resp = resp
-	return resp, nil
-}
-
-// Response executes request client gets response manually.
-// Caller MUST close the response body if no error occurs
-func (r *Request) Response() (*http.Response, error) {
-	if r == nil {
-		return nil, errors.New("invalid request")
-	}
-	return r.getResponse()
-}
-
-// TimeoutDialer returns functions of connection dialer with timeout settings for http.Transport Dial field.
-func TimeoutDialer(cTimeout time.Duration) func(ctx context.Context, net, addr string) (c net.Conn, err error) {
-	return func(ctx context.Context, netw, addr string) (net.Conn, error) {
-		d := net.Dialer{Timeout: cTimeout}
-		conn, err := d.DialContext(ctx, netw, addr)
-		if err != nil {
-			return nil, err
-		}
-		return conn, nil
-	}
+	return client.Do(r.req)
 }
 
 func (r *Request) GoString() string {
