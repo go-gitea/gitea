@@ -214,7 +214,10 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 			resp := testPullCreate(t, user1Session, "user1", "repo1", false, "master", "master", "This is a pull title")
 			elem := strings.Split(test.RedirectURL(resp), "/")
 			assert.Equal(t, "pulls", elem[3])
-			testPullMerge(t, user1Session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
+			testPullMerge(t, user1Session, elem[1], elem[2], elem[4], MergeOptions{
+				Style:        repo_model.MergeStyleMerge,
+				DeleteBranch: false,
+			})
 
 			// Grab the CSRF token.
 			req := NewRequest(t, "GET", path.Join(elem[1], elem[2], "pulls", elem[4]))

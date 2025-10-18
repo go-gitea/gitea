@@ -6,11 +6,8 @@ package git
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
-	"regexp"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -25,13 +22,20 @@ func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, stri
 	if tmpRemote != "origin" {
 		tmpBaseName := RemotePrefix + tmpRemote + "/tmp_" + base
 		// Fetch commit into a temporary branch in order to be able to handle commits and tags
-		_, _, err := gitcmd.NewCommand("fetch", "--no-tags").AddDynamicArguments(tmpRemote).AddDashesAndList(base+":"+tmpBaseName).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+		_, _, err := gitcmd.NewCommand("fetch", "--no-tags").
+			AddDynamicArguments(tmpRemote).
+			AddDashesAndList(base + ":" + tmpBaseName).
+			WithDir(repo.Path).
+			RunStdString(repo.Ctx)
 		if err == nil {
 			base = tmpBaseName
 		}
 	}
 
-	stdout, _, err := gitcmd.NewCommand("merge-base").AddDashesAndList(base, head).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	stdout, _, err := gitcmd.NewCommand("merge-base").
+		AddDashesAndList(base, head).
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	return strings.TrimSpace(stdout), base, err
 }
 
@@ -59,22 +63,25 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 	}
 
 	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
-	if err := gitcmd.NewCommand("diff", "-z", "--name-only").AddDynamicArguments(base+separator+head).AddArguments("--").
-		Run(repo.Ctx, &gitcmd.RunOpts{
-			Dir:    repo.Path,
-			Stdout: w,
-			Stderr: stderr,
-		}); err != nil {
+	if err := gitcmd.NewCommand("diff", "-z", "--name-only").
+		AddDynamicArguments(base + separator + head).
+		AddArguments("--").
+		WithDir(repo.Path).
+		WithStdout(w).
+		WithStderr(stderr).
+		Run(repo.Ctx); err != nil {
 		if strings.Contains(stderr.String(), "no merge base") {
 			// git >= 2.28 now returns an error if base and head have become unrelated.
 			// previously it would return the results of git diff -z --name-only base head so let's try that...
 			w = &lineCountWriter{}
 			stderr.Reset()
-			if err = gitcmd.NewCommand("diff", "-z", "--name-only").AddDynamicArguments(base, head).AddArguments("--").Run(repo.Ctx, &gitcmd.RunOpts{
-				Dir:    repo.Path,
-				Stdout: w,
-				Stderr: stderr,
-			}); err == nil {
+			if err = gitcmd.NewCommand("diff", "-z", "--name-only").
+				AddDynamicArguments(base, head).
+				AddArguments("--").
+				WithDir(repo.Path).
+				WithStdout(w).
+				WithStderr(stderr).
+				Run(repo.Ctx); err == nil {
 				return w.numLines, nil
 			}
 		}
@@ -83,83 +90,33 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 	return w.numLines, nil
 }
 
-// GetDiffShortStatByCmdArgs counts number of changed files, number of additions and deletions
-// TODO: it can be merged with another "GetDiffShortStat" in the future
-func GetDiffShortStatByCmdArgs(ctx context.Context, repoPath string, trustedArgs gitcmd.TrustedCmdArgs, dynamicArgs ...string) (numFiles, totalAdditions, totalDeletions int, err error) {
-	// Now if we call:
-	// $ git diff --shortstat 1ebb35b98889ff77299f24d82da426b434b0cca0...788b8b1440462d477f45b0088875
-	// we get:
-	// " 9902 files changed, 2034198 insertions(+), 298800 deletions(-)\n"
-	cmd := gitcmd.NewCommand("diff", "--shortstat").AddArguments(trustedArgs...).AddDynamicArguments(dynamicArgs...)
-	stdout, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
-	if err != nil {
-		return 0, 0, 0, err
-	}
-
-	return parseDiffStat(stdout)
-}
-
-var shortStatFormat = regexp.MustCompile(
-	`\s*(\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?`)
-
-func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int, err error) {
-	if len(stdout) == 0 || stdout == "\n" {
-		return 0, 0, 0, nil
-	}
-	groups := shortStatFormat.FindStringSubmatch(stdout)
-	if len(groups) != 4 {
-		return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s groups: %s", stdout, groups)
-	}
-
-	numFiles, err = strconv.Atoi(groups[1])
-	if err != nil {
-		return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s. Error parsing NumFiles %w", stdout, err)
-	}
-
-	if len(groups[2]) != 0 {
-		totalAdditions, err = strconv.Atoi(groups[2])
-		if err != nil {
-			return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s. Error parsing NumAdditions %w", stdout, err)
-		}
-	}
-
-	if len(groups[3]) != 0 {
-		totalDeletions, err = strconv.Atoi(groups[3])
-		if err != nil {
-			return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s. Error parsing NumDeletions %w", stdout, err)
-		}
-	}
-	return numFiles, totalAdditions, totalDeletions, err
-}
-
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
 func (repo *Repository) GetDiff(compareArg string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	return gitcmd.NewCommand("diff", "-p").AddDynamicArguments(compareArg).
-		Run(repo.Ctx, &gitcmd.RunOpts{
-			Dir:    repo.Path,
-			Stdout: w,
-			Stderr: stderr,
-		})
+		WithDir(repo.Path).
+		WithStdout(w).
+		WithStderr(stderr).
+		Run(repo.Ctx)
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
 func (repo *Repository) GetDiffBinary(compareArg string, w io.Writer) error {
-	return gitcmd.NewCommand("diff", "-p", "--binary", "--histogram").AddDynamicArguments(compareArg).Run(repo.Ctx, &gitcmd.RunOpts{
-		Dir:    repo.Path,
-		Stdout: w,
-	})
+	return gitcmd.NewCommand("diff", "-p", "--binary", "--histogram").
+		AddDynamicArguments(compareArg).
+		WithDir(repo.Path).
+		WithStdout(w).
+		Run(repo.Ctx)
 }
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
 func (repo *Repository) GetPatch(compareArg string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	return gitcmd.NewCommand("format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
-		Run(repo.Ctx, &gitcmd.RunOpts{
-			Dir:    repo.Path,
-			Stdout: w,
-			Stderr: stderr,
-		})
+		WithDir(repo.Path).
+		WithStdout(w).
+		WithStderr(stderr).
+		Run(repo.Ctx)
 }
 
 // GetFilesChangedBetween returns a list of all files that have been changed between the given commits
@@ -176,7 +133,7 @@ func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, err
 	} else {
 		cmd.AddDynamicArguments(base, head)
 	}
-	stdout, _, err := cmd.RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	stdout, _, err := cmd.WithDir(repo.Path).RunStdString(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}

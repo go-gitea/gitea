@@ -38,16 +38,6 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	return ref.Hash().String(), nil
 }
 
-// SetReference sets the commit ID string of given reference (e.g. branch or tag).
-func (repo *Repository) SetReference(name, commitID string) error {
-	return repo.gogitRepo.Storer.SetReference(plumbing.NewReferenceFromStrings(name, commitID))
-}
-
-// RemoveReference removes the given reference (e.g. branch or tag).
-func (repo *Repository) RemoveReference(name string) error {
-	return repo.gogitRepo.Storer.RemoveReference(plumbing.ReferenceName(name))
-}
-
 // ConvertToHash returns a Hash object from a potential ID string
 func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 	objectFormat, err := repo.GetObjectFormat()
@@ -61,7 +51,10 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		}
 	}
 
-	actualCommitID, _, err := gitcmd.NewCommand("rev-parse", "--verify").AddDynamicArguments(commitID).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	actualCommitID, _, err := gitcmd.NewCommand("rev-parse", "--verify").
+		AddDynamicArguments(commitID).
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	actualCommitID = strings.TrimSpace(actualCommitID)
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown revision or path") ||

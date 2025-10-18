@@ -52,21 +52,16 @@ export default defineConfig([
     },
     plugins: {
       '@eslint-community/eslint-comments': comments,
-      // @ts-expect-error
       '@stylistic': stylistic,
       '@typescript-eslint': typescriptPlugin.plugin,
       'array-func': arrayFunc,
       // @ts-expect-error -- https://github.com/un-ts/eslint-plugin-import-x/issues/203
       'import-x': importPlugin,
       'no-use-extend-native': noUseExtendNative,
-      // @ts-expect-error
       regexp,
-      // @ts-expect-error
       sonarjs,
-      // @ts-expect-error
       unicorn,
       github,
-      // @ts-expect-error
       wc,
     },
     settings: {
@@ -595,6 +590,7 @@ export default defineConfig([
       'no-unused-vars': [0], // handled by @typescript-eslint/no-unused-vars
       'no-use-before-define': [0], // handled by @typescript-eslint/no-use-before-define
       'no-use-extend-native/no-use-extend-native': [2],
+      'no-useless-assignment': [2],
       'no-useless-backreference': [2],
       'no-useless-call': [2],
       'no-useless-catch': [2],
@@ -900,7 +896,6 @@ export default defineConfig([
       'yoda': [2, 'never'],
     },
   },
-  // @ts-expect-error
   {
     ...playwright.configs['flat/recommended'],
     files: ['tests/e2e/**'],
@@ -916,7 +911,6 @@ export default defineConfig([
       },
     },
     extends: [
-      // @ts-expect-error
       vue.configs['flat/recommended'],
       // @ts-expect-error
       vueScopedCss.configs['flat/recommended'],

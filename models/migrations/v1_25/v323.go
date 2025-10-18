@@ -7,22 +7,37 @@ import (
 	"xorm.io/xorm"
 )
 
-type comment struct {
-	BeforeCommitID string `xorm:"VARCHAR(64)"`
-}
+func AddActionsConcurrency(x *xorm.Engine) error {
+	type ActionRun struct {
+		RepoID            int64 `xorm:"index(repo_concurrency)"`
+		RawConcurrency    string
+		ConcurrencyGroup  string `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"`
+		ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`
+	}
 
-// TableName return database table name for xorm
-func (comment) TableName() string {
-	return "comment"
-}
-
-func AddBeforeCommitIDForComment(x *xorm.Engine) error {
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains: true,
-		IgnoreIndices:    true,
-	}, new(comment)); err != nil {
+		IgnoreDropIndices: true,
+	}, new(ActionRun)); err != nil {
 		return err
 	}
-	_, err := x.Exec("UPDATE comment SET before_commit_id = (SELECT merge_base FROM pull_request WHERE pull_request.issue_id = comment.issue_id) WHERE `type`=21 AND before_commit_id IS NULL")
-	return err
+
+	if err := x.Sync(new(ActionRun)); err != nil {
+		return err
+	}
+
+	type ActionRunJob struct {
+		RepoID                 int64 `xorm:"index(repo_concurrency)"`
+		RawConcurrency         string
+		IsConcurrencyEvaluated bool
+		ConcurrencyGroup       string `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"`
+		ConcurrencyCancel      bool   `xorm:"NOT NULL DEFAULT FALSE"`
+	}
+
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(ActionRunJob)); err != nil {
+		return err
+	}
+
+	return nil
 }

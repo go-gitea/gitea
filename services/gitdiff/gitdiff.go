@@ -13,6 +13,7 @@ import (
 	"html/template"
 	"io"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -20,11 +21,13 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -397,6 +400,14 @@ func (diffFile *DiffFile) GetDiffFileName() string {
 		return diffFile.OldName
 	}
 	return diffFile.Name
+}
+
+// GetDiffFileBaseName returns the short name of the diff file, or its short old name in case it was deleted
+func (diffFile *DiffFile) GetDiffFileBaseName() string {
+	if diffFile.Name == "" {
+		return path.Base(diffFile.OldName)
+	}
+	return path.Base(diffFile.Name)
 }
 
 func (diffFile *DiffFile) ShouldBeHidden() bool {
@@ -1131,12 +1142,11 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 
 	go func() {
 		stderr := &bytes.Buffer{}
-		if err := cmdDiff.Run(cmdCtx, &gitcmd.RunOpts{
-			Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,
-			Dir:     repoPath,
-			Stdout:  writer,
-			Stderr:  stderr,
-		}); err != nil && !git.IsErrCanceledOrKilled(err) {
+		if err := cmdDiff.WithTimeout(time.Duration(setting.Git.Timeout.Default) * time.Second).
+			WithDir(repoPath).
+			WithStdout(writer).
+			WithStderr(stderr).
+			Run(cmdCtx); err != nil && !git.IsErrCanceledOrKilled(err) {
 			log.Error("error during GetDiff(git diff dir: %s): %v, stderr: %s", repoPath, err, stderr.String())
 		}
 
@@ -1243,9 +1253,7 @@ type DiffShortStat struct {
 	NumFiles, TotalAddition, TotalDeletion int
 }
 
-func GetDiffShortStat(gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
-	repoPath := gitRepo.Path
-
+func GetDiffShortStat(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
 	afterCommit, err := gitRepo.GetCommit(afterCommitID)
 	if err != nil {
 		return nil, err
@@ -1257,7 +1265,7 @@ func GetDiffShortStat(gitRepo *git.Repository, beforeCommitID, afterCommitID str
 	}
 
 	diff := &DiffShortStat{}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStatByCmdArgs(gitRepo.Ctx, repoPath, nil, actualBeforeCommitID.String(), afterCommitID)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = gitrepo.GetDiffShortStatByCmdArgs(ctx, repo, nil, actualBeforeCommitID.String(), afterCommitID)
 	if err != nil {
 		return nil, err
 	}

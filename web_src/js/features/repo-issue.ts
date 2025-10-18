@@ -333,7 +333,7 @@ export function initRepoPullRequestReview() {
     let ntr = tr.nextElementSibling;
     if (!ntr?.classList.contains('add-comment')) {
       ntr = createElementFromHTML(`
-        <tr class="add-comment" data-line-type="${lineType}">
+        <tr class="add-comment" data-line-type="${htmlEscape(lineType)}">
           ${isSplit ? `
             <td class="add-comment-left" colspan="4"></td>
             <td class="add-comment-right" colspan="4"></td>

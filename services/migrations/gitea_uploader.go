@@ -663,7 +663,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				fetchArg = git.BranchPrefix + fetchArg
 			}
 
-			_, _, err = gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(ctx, &gitcmd.RunOpts{Dir: g.repo.RepoPath()})
+			_, err = gitrepo.RunCmdString(ctx, g.repo, gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg))
 			if err != nil {
 				log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 				return head, nil
@@ -682,8 +682,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 			pr.Head.SHA = headSha
 		}
 
-		_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).RunStdString(ctx, &gitcmd.RunOpts{Dir: g.repo.RepoPath()})
-		if err != nil {
+		if err = gitrepo.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
 			return "", err
 		}
 
@@ -699,14 +698,13 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		// The SHA is empty
 		log.Warn("Empty reference, no pull head for PR #%d in %s/%s", pr.Number, g.repoOwner, g.repoName)
 	} else {
-		_, _, err = gitcmd.NewCommand("rev-list", "--quiet", "-1").AddDynamicArguments(pr.Head.SHA).RunStdString(ctx, &gitcmd.RunOpts{Dir: g.repo.RepoPath()})
+		_, err = gitrepo.RunCmdString(ctx, g.repo, gitcmd.NewCommand("rev-list", "--quiet", "-1").AddDynamicArguments(pr.Head.SHA))
 		if err != nil {
 			// Git update-ref remove bad references with a relative path
 			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitHeadRefName())
 		} else {
 			// set head information
-			_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).RunStdString(ctx, &gitcmd.RunOpts{Dir: g.repo.RepoPath()})
-			if err != nil {
+			if err = gitrepo.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
 				log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 			}
 		}

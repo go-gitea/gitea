@@ -182,7 +182,7 @@ func UpdateAssignees(ctx context.Context, issue *issues_model.Issue, oneAssignee
 }
 
 // DeleteIssue deletes an issue
-func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue) error {
+func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) error {
 	// load issue before deleting it
 	if err := issue.LoadAttributes(ctx); err != nil {
 		return err
