@@ -9,7 +9,7 @@ import {submitEventSubmitter, queryElemSiblings, hideElem, showElem, animateOnce
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
-import {parseDom} from '../utils.ts';
+import {parseDom, sleep} from '../utils.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 
 const {i18n} = window.config;
@@ -219,18 +219,34 @@ function initRepoDiffShowMore() {
 }
 
 async function loadUntilFound() {
-  const hashTargetSelector = window.location.hash;
-  if (!hashTargetSelector.startsWith('#diff-') && !hashTargetSelector.startsWith('#issuecomment-')) {
+  const currentHash = window.location.hash;
+  if (!currentHash.startsWith('#diff-') && !currentHash.startsWith('#issuecomment-')) {
     return;
   }
 
-  while (true) {
+  while (window.location.hash === currentHash) {
     // use getElementById to avoid querySelector throws an error when the hash is invalid
     // eslint-disable-next-line unicorn/prefer-query-selector
-    const targetElement = document.getElementById(hashTargetSelector.substring(1));
+    const targetElement = document.getElementById(currentHash.substring(1));
     if (targetElement) {
-      targetElement.scrollIntoView();
+      // re-trigger :target CSS and browser will scroll to the element
+      window.location.hash = '';
+      setTimeout(() => { window.location.hash = currentHash }, 0);
       return;
+    }
+
+    // If looking for a hidden comment, try to expand the section that contains it
+    if (currentHash.startsWith('#issuecomment-')) {
+      const commentId = currentHash.substring('#issuecomment-'.length);
+      const expandButton = findExpandButtonForComment(commentId);
+      if (expandButton) {
+        // Avoid infinite loop, do not re-click the button if already clicked
+        if (expandButton.hasAttribute('data-auto-load-clicked')) return;
+        expandButton.setAttribute('data-auto-load-clicked', 'true');
+        expandButton.click();
+        await sleep(500); // Wait for HTMX to load the content. FIXME: need to drop htmx in the future
+        continue; // Try again to find the element
+      }
     }
 
     // the button will be refreshed after each "load more", so query it every time
@@ -243,6 +259,20 @@ async function loadUntilFound() {
     const ok = await loadMoreFiles(showMoreButton);
     if (!ok) return; // failed to load more files
   }
+}
+
+// Find the expand button that contains the target comment ID
+function findExpandButtonForComment(commentId: string): HTMLElement | null {
+  const expandButtons = document.querySelectorAll('.code-expander-button[data-hidden-comment-ids]');
+  for (const button of expandButtons) {
+    const hiddenIdsAttr = button.getAttribute('data-hidden-comment-ids');
+    if (!hiddenIdsAttr) continue;
+    const hiddenIds = hiddenIdsAttr.split(',').filter(Boolean);
+    if (hiddenIds.includes(commentId)) {
+      return button as HTMLElement;
+    }
+  }
+  return null;
 }
 
 function initRepoDiffHashChangeListener() {
