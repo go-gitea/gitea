@@ -721,7 +721,7 @@ func TestGeneratePatchForUnchangedLineFromReader(t *testing.T) {
 		},
 		{
 			name:         "multi-line context",
-			content:      "package main\n\nfunc main() {\n\tfmt.Println(\"Hello\")\n}\n",
+			content:      "package main\n\nfunc main() {\n  fmt.Println(\"Hello\")\n}\n",
 			treePath:     "main.go",
 			line:         4,
 			contextLines: 2,
@@ -729,9 +729,9 @@ func TestGeneratePatchForUnchangedLineFromReader(t *testing.T) {
 --- a/main.go
 +++ b/main.go
 @@ -2,3 +2,3 @@
-
+<SP>
  func main() {
- 	fmt.Println("Hello")
+   fmt.Println("Hello")
 `,
 		},
 		{
@@ -752,7 +752,7 @@ func TestGeneratePatchForUnchangedLineFromReader(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tt.want, got)
+				assert.Equal(t, strings.ReplaceAll(tt.want, "<SP>", " "), got)
 			}
 		})
 	}
@@ -820,38 +820,16 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 			},
 			lineComments: map[int64][]*issues_model.Comment{
 				10: {{ID: 100}}, // at LastRightIdx, should not be included
-				20: {{ID: 101}}, // at RightIdx, should not be included
+				20: {{ID: 101}}, // at RightIdx, should be included
 				11: {{ID: 102}}, // just inside range, should be included
 				19: {{ID: 103}}, // just inside range, should be included
 			},
-			expected: []int64{102, 103},
-		},
-		{
-			name: "not a section line",
-			line: &DiffLine{
-				Type: DiffLinePlain,
-			},
-			lineComments: map[int64][]*issues_model.Comment{
-				15: {{ID: 100}},
-			},
-			expected: nil,
-		},
-		{
-			name: "section line without section info",
-			line: &DiffLine{
-				Type:        DiffLineSection,
-				SectionInfo: nil,
-			},
-			lineComments: map[int64][]*issues_model.Comment{
-				15: {{ID: 100}},
-			},
-			expected: nil,
+			expected: []int64{101, 102, 103},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.line.SectionInfo = &DiffLineSectionInfo{}
 			FillHiddenCommentIDsForDiffLine(tt.line, tt.lineComments)
 			assert.ElementsMatch(t, tt.expected, tt.line.SectionInfo.HiddenCommentIDs)
 		})

@@ -224,8 +224,8 @@ func FillHiddenCommentIDsForDiffLine(line *DiffLine, lineComments map[int64][]*i
 	var hiddenCommentIDs []int64
 	for commentLineNum, comments := range lineComments {
 		absLineNum := int(commentLineNum)
-		if commentLineNum < 0 {
-			absLineNum = int(-commentLineNum)
+		if absLineNum < 0 {
+			absLineNum = -absLineNum
 		}
 		// Check if comments are in the hidden range
 		if absLineNum > line.SectionInfo.LastRightIdx && absLineNum <= line.SectionInfo.RightIdx {

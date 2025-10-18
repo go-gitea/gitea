@@ -641,7 +641,7 @@ func PrepareCompareDiff(
 	ctx.Data["DiffShortStat"] = diffShortStat
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
-		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
+		BaseLink:      ci.HeadRepo.Link() + "/blob_excerpt",
 		DiffStyle:     ctx.FormString("style"),
 		AfterCommitID: headCommitID,
 	}
