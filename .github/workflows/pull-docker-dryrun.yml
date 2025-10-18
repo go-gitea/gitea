@@ -11,7 +11,7 @@ jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
 
-  contianer:
+  container:
     if: needs.files-changed.outputs.docker == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
