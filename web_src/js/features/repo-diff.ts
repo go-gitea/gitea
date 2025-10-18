@@ -233,6 +233,18 @@ async function loadUntilFound() {
       return;
     }
 
+    // If looking for a comment, try to expand the section that contains it
+    if (hashTargetSelector.startsWith('#issuecomment-')) {
+      const commentId = hashTargetSelector.substring('#issuecomment-'.length);
+      const expandButton = findExpandButtonForComment(commentId);
+      if (expandButton) {
+        expandButton.click();
+        // Wait for HTMX to load the content
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        continue; // Try again to find the element
+      }
+    }
+
     // the button will be refreshed after each "load more", so query it every time
     const showMoreButton = document.querySelector('#diff-show-more-files');
     if (!showMoreButton) {
@@ -243,6 +255,23 @@ async function loadUntilFound() {
     const ok = await loadMoreFiles(showMoreButton);
     if (!ok) return; // failed to load more files
   }
+}
+
+// Find the expand button that contains the target comment ID
+function findExpandButtonForComment(commentId: string): HTMLElement | null {
+  const expandButtons = document.querySelectorAll('.code-expander-button[data-hidden-comment-ids]');
+  for (const button of expandButtons) {
+    const hiddenIds = button.getAttribute('data-hidden-comment-ids');
+    if (hiddenIds) {
+      // Parse the comma-separated list of IDs
+      const ids = hiddenIds.replace(/[[\]]/g, '').split(' ').filter(Boolean);
+      if (ids.includes(commentId)) {
+        return button as HTMLElement;
+      }
+    }
+  }
+
+  return null;
 }
 
 function initRepoDiffHashChangeListener() {

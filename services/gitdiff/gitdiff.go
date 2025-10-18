@@ -88,8 +88,9 @@ type DiffLine struct {
 	Content            string
 	Comments           issues_model.CommentList // related PR code comments
 	SectionInfo        *DiffLineSectionInfo
-	HasHiddenComments  bool // indicates if this expand button has comments in hidden lines
-	HiddenCommentCount int  // number of hidden comments in this section
+	HasHiddenComments  bool    // indicates if this expand button has comments in hidden lines
+	HiddenCommentCount int     // number of hidden comments in this section
+	HiddenCommentIDs   []int64 // IDs of hidden comments in this section
 }
 
 // DiffLineSectionInfo represents diff line section meta data
@@ -491,19 +492,25 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 					// Mark expand buttons that have comments in hidden lines
 					if line.Type == DiffLineSection && line.SectionInfo != nil {
 						hiddenCommentCount := 0
+						var hiddenCommentIDs []int64
 						// Check if there are comments in the hidden range
-						for commentLineNum := range lineCommits {
+						for commentLineNum, comments := range lineCommits {
 							absLineNum := int(commentLineNum)
 							if commentLineNum < 0 {
 								absLineNum = int(-commentLineNum)
 							}
 							if absLineNum > line.SectionInfo.LastRightIdx && absLineNum < line.SectionInfo.RightIdx {
 								hiddenCommentCount++
+								// Collect comment IDs
+								for _, comment := range comments {
+									hiddenCommentIDs = append(hiddenCommentIDs, comment.ID)
+								}
 							}
 						}
 						if hiddenCommentCount > 0 {
 							line.HasHiddenComments = true
 							line.HiddenCommentCount = hiddenCommentCount
+							line.HiddenCommentIDs = hiddenCommentIDs
 						}
 					}
 				}
