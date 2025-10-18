@@ -137,7 +137,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           annotations: ${{ steps.meta.outputs.annotations }}
-          cache-from: type=registry,ref=ghcr.io/thefox0x7/gitea-buildcache
       - name: build rootless container image
         uses: docker/build-push-action@v5
         with:
@@ -147,4 +146,3 @@ jobs:
           file: Dockerfile.rootless
           tags: ${{ steps.meta_rootless.outputs.tags }}
           annotations: ${{ steps.meta_rootless.outputs.annotations }}
-          cache-from: type=registry,ref=ghcr.io/thefox0x7/gitea-buildcache
