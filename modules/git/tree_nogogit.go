@@ -72,7 +72,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 	}
 
-	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).RunStdBytes(t.repo.Ctx, &gitcmd.RunOpts{Dir: t.repo.Path})
+	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).WithDir(t.repo.Path).RunStdBytes(t.repo.Ctx)
 	if runErr != nil {
 		if strings.Contains(runErr.Error(), "fatal: Not a valid object name") || strings.Contains(runErr.Error(), "fatal: not a tree object") {
 			return nil, ErrNotExist{
@@ -101,7 +101,8 @@ func (t *Tree) listEntriesRecursive(extraArgs gitcmd.TrustedCmdArgs) (Entries, e
 	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-t", "-r").
 		AddArguments(extraArgs...).
 		AddDynamicArguments(t.ID.String()).
-		RunStdBytes(t.repo.Ctx, &gitcmd.RunOpts{Dir: t.repo.Path})
+		WithDir(t.repo.Path).
+		RunStdBytes(t.repo.Ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
