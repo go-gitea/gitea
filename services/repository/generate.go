@@ -153,33 +153,43 @@ func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, 
 		if d.IsDir() {
 			return nil
 		}
+		fInfo, err := d.Info()
+		if err != nil {
+			return err
+		}
+		mode := fInfo.Mode()
+		if !mode.IsRegular() { // for symlinks and other special files, just skip
+			return nil
+		}
 
 		base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
 		for _, g := range giteaTemplateFile.Globs() {
-			if g.Match(base) {
-				content, err := os.ReadFile(path)
-				if err != nil {
-					return err
-				}
-
-				generatedContent := []byte(generateExpansion(ctx, string(content), templateRepo, generateRepo, false))
-				if err := os.WriteFile(path, generatedContent, 0o644); err != nil {
-					return err
-				}
-
-				substPath := filepath.FromSlash(filepath.Join(tmpDirSlash, generateExpansion(ctx, base, templateRepo, generateRepo, true)))
-
-				// Create parent subdirectories if needed or continue silently if it exists
-				if err = os.MkdirAll(filepath.Dir(substPath), 0o755); err != nil {
-					return err
-				}
-
-				// Substitute filename variables
-				if err = os.Rename(path, substPath); err != nil {
-					return err
-				}
-				break
+			if !g.Match(base) {
+				continue
 			}
+
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+
+			generatedContent := []byte(generateExpansion(ctx, string(content), templateRepo, generateRepo, false))
+			if err := os.WriteFile(path, generatedContent, 0o644); err != nil {
+				return err
+			}
+
+			substPath := filepath.FromSlash(filepath.Join(tmpDirSlash, generateExpansion(ctx, base, templateRepo, generateRepo, true)))
+
+			// Create parent subdirectories if needed or continue silently if it exists
+			if err = os.MkdirAll(filepath.Dir(substPath), 0o755); err != nil {
+				return err
+			}
+
+			// Substitute filename variables
+			if err = os.Rename(path, substPath); err != nil {
+				return err
+			}
+			break
 		}
 		return nil
 	}) // end: WalkDir
