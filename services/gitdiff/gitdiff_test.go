@@ -810,21 +810,57 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 			expected: []int64{100},
 		},
 		{
-			name: "boundary conditions - exclusive range",
+			name: "boundary conditions - normal expansion (both boundaries exclusive)",
 			line: &DiffLine{
 				Type: DiffLineSection,
 				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx: 10,
-					RightIdx:     20,
+					LastRightIdx:  10,
+					RightIdx:      20,
+					RightHunkSize: 5, // Normal case: next section has content
 				},
 			},
 			lineComments: map[int64][]*issues_model.Comment{
-				10: {{ID: 100}}, // at LastRightIdx, should not be included
-				20: {{ID: 101}}, // at RightIdx, should be included
+				10: {{ID: 100}}, // at LastRightIdx (visible line), should NOT be included
+				20: {{ID: 101}}, // at RightIdx (visible line), should NOT be included
 				11: {{ID: 102}}, // just inside range, should be included
 				19: {{ID: 103}}, // just inside range, should be included
 			},
-			expected: []int64{101, 102, 103},
+			expected: []int64{102, 103},
+		},
+		{
+			name: "boundary conditions - end of file expansion (RightIdx inclusive)",
+			line: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx:  54,
+					RightIdx:      70,
+					RightHunkSize: 0, // End of file: no more content after
+				},
+			},
+			lineComments: map[int64][]*issues_model.Comment{
+				54: {{ID: 54}}, // at LastRightIdx (visible line), should NOT be included
+				70: {{ID: 70}}, // at RightIdx (last hidden line), SHOULD be included
+				60: {{ID: 60}}, // inside range, should be included
+			},
+			expected: []int64{60, 70}, // Lines 60 and 70 are hidden
+		},
+		{
+			name: "real-world scenario - start of file with hunk",
+			line: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx:  0,  // No previous visible section
+					RightIdx:      26, // Line 26 is first visible line of hunk
+					RightHunkSize: 9,  // Normal hunk with content
+				},
+			},
+			lineComments: map[int64][]*issues_model.Comment{
+				1:  {{ID: 1}},  // Line 1 is hidden
+				26: {{ID: 26}}, // Line 26 is visible (hunk start) - should NOT be hidden
+				10: {{ID: 10}}, // Line 10 is hidden
+				15: {{ID: 15}}, // Line 15 is hidden
+			},
+			expected: []int64{1, 10, 15}, // Lines 1, 10, 15 are hidden; line 26 is visible
 		},
 	}
 
@@ -832,6 +868,117 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			FillHiddenCommentIDsForDiffLine(tt.line, tt.lineComments)
 			assert.ElementsMatch(t, tt.expected, tt.line.SectionInfo.HiddenCommentIDs)
+		})
+	}
+}
+
+func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
+	tests := []struct {
+		name             string
+		line             *DiffLine
+		fileNameHash     string
+		data             *DiffBlobExcerptData
+		expectContains   []string
+		expectNotContain []string
+	}{
+		{
+			name: "expand up button with hidden comments",
+			line: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx:     0,
+					RightIdx:         26,
+					LeftIdx:          26,
+					LastLeftIdx:      0,
+					LeftHunkSize:     0,
+					RightHunkSize:    0,
+					HiddenCommentIDs: []int64{100},
+				},
+			},
+			fileNameHash: "abc123",
+			data: &DiffBlobExcerptData{
+				BaseLink:      "/repo/blob_excerpt",
+				AfterCommitID: "commit123",
+				DiffStyle:     "unified",
+			},
+			expectContains: []string{
+				"octicon-fold-up",
+				"direction=up",
+				"code-comment-more",
+				"1 hidden comment(s)",
+			},
+		},
+		{
+			name: "expand up and down buttons with pull request",
+			line: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx:     10,
+					RightIdx:         50,
+					LeftIdx:          10,
+					LastLeftIdx:      5,
+					LeftHunkSize:     5,
+					RightHunkSize:    5,
+					HiddenCommentIDs: []int64{200, 201},
+				},
+			},
+			fileNameHash: "def456",
+			data: &DiffBlobExcerptData{
+				BaseLink:       "/repo/blob_excerpt",
+				AfterCommitID:  "commit456",
+				DiffStyle:      "split",
+				PullIssueIndex: 42,
+			},
+			expectContains: []string{
+				"octicon-fold-down",
+				"octicon-fold-up",
+				"direction=down",
+				"direction=up",
+				"data-hidden-comment-ids=\"200,201\"",
+				"pull_issue_index=42",
+				"2 hidden comment(s)",
+			},
+		},
+		{
+			name: "no hidden comments",
+			line: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx:     10,
+					RightIdx:         20,
+					LeftIdx:          10,
+					LastLeftIdx:      5,
+					LeftHunkSize:     5,
+					RightHunkSize:    5,
+					HiddenCommentIDs: nil,
+				},
+			},
+			fileNameHash: "ghi789",
+			data: &DiffBlobExcerptData{
+				BaseLink:      "/repo/blob_excerpt",
+				AfterCommitID: "commit789",
+			},
+			expectContains: []string{
+				"code-expander-button",
+			},
+			expectNotContain: []string{
+				"code-comment-more",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.line.RenderBlobExcerptButtons(tt.fileNameHash, tt.data)
+			resultStr := string(result)
+
+			for _, expected := range tt.expectContains {
+				assert.Contains(t, resultStr, expected, "Expected to contain: %s", expected)
+			}
+
+			for _, notExpected := range tt.expectNotContain {
+				assert.NotContains(t, resultStr, notExpected, "Expected NOT to contain: %s", notExpected)
+			}
 		})
 	}
 }

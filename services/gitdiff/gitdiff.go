@@ -228,7 +228,13 @@ func FillHiddenCommentIDsForDiffLine(line *DiffLine, lineComments map[int64][]*i
 			absLineNum = -absLineNum
 		}
 		// Check if comments are in the hidden range
-		if absLineNum > line.SectionInfo.LastRightIdx && absLineNum <= line.SectionInfo.RightIdx {
+		// depending on 'end-of-file' expansion might be RightHunkSize = 0
+		isEndOfFileExpansion := line.SectionInfo.RightHunkSize == 0
+		inRange := absLineNum > line.SectionInfo.LastRightIdx &&
+			(isEndOfFileExpansion && absLineNum <= line.SectionInfo.RightIdx ||
+				!isEndOfFileExpansion && absLineNum < line.SectionInfo.RightIdx)
+
+		if inRange {
 			for _, comment := range comments {
 				hiddenCommentIDs = append(hiddenCommentIDs, comment.ID)
 			}
