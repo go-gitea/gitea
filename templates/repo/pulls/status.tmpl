@@ -7,7 +7,7 @@
 	* IsContextRequired: function to check whether a context is required
 	* RequireApproval: whether approval is required for workflow runs
 	* CanApprove: whether the user can approve workflow runs
-	* ApproveActionLink: link to approve all checks
+	* ApproveLink: link to approve all checks
 */}}
 
 {{if .CommitStatus}}
@@ -29,12 +29,9 @@
 
 		<div class="ui right">
 			{{if and .StatusCheckData .StatusCheckData.RequireApproval .StatusCheckData.CanApprove}}
-				<form method="post" action="{{.StatusCheckData.ApproveActionLink}}">
-					{{ctx.RootData.CsrfTokenHtml}}
-					<button type="submit" class="ui basic small compact button">
-						{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
-					</button>
-				</form>
+				<button class="ui basic small compact button link-action" data-url="{{.StatusCheckData.ApproveLink}}">
+					{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
+				</button>
 			{{end}}
 			{{if .ShowHideChecks}}
 				<button class="commit-status-hide-checks btn interact-fg"

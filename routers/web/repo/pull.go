@@ -317,7 +317,7 @@ type pullCommitStatusCheckData struct {
 	IsContextRequired     func(string) bool
 	RequireApproval       bool
 	CanApprove            bool
-	ApproveActionLink     string
+	ApproveLink           string
 }
 
 // prepareViewPullInfo show meta information for a pull request preview page
@@ -466,7 +466,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 	}
 
 	statusCheckData := &pullCommitStatusCheckData{
-		ApproveActionLink: fmt.Sprintf("%s/actions/approve-all-checks?sha=%s&redirect=%s", repo.Link(), sha, issue.Link()),
+		ApproveLink: fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", repo.Link(), sha),
 	}
 	ctx.Data["StatusCheckData"] = statusCheckData
 

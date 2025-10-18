@@ -840,10 +840,9 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 
 func ApproveAllChecks(ctx *context_module.Context) {
 	repo := ctx.Repo.Repository
-	sha := ctx.FormString("sha")
-	redirect := ctx.FormString("redirect")
+	commitID := ctx.FormString("commit_id")
 
-	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptionsAll)
+	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll)
 	if err != nil {
 		ctx.ServerError("GetLatestCommitStatus", err)
 		return
@@ -862,7 +861,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 	}
 
 	if len(runIndexes) == 0 {
-		ctx.Redirect(redirect)
+		ctx.JSONOK()
 		return
 	}
 
@@ -872,7 +871,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("actions.approve_all_success"))
-	ctx.Redirect(redirect)
+	ctx.JSONOK()
 }
 
 func DisableWorkflowFile(ctx *context_module.Context) {

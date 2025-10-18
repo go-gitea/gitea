@@ -112,26 +112,26 @@ jobs:
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", baseRepo.OwnerName, baseRepo.Name, apiPull.Index))
 		resp = user4Session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.Zero(t, htmlDoc.doc.Find(".commit-status-header form").Length())
+		assert.Zero(t, htmlDoc.doc.Find(".commit-status-header button.link-action").Length())
 
 		// user2 can see the approve button
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", baseRepo.OwnerName, baseRepo.Name, apiPull.Index))
 		resp = user2Session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
-		formAction, exist := htmlDoc.doc.Find(".commit-status-header form").Attr("action")
+		dataURL, exist := htmlDoc.doc.Find(".commit-status-header button.link-action").Attr("data-url")
 		assert.True(t, exist)
 		assert.Equal(t,
-			fmt.Sprintf("%s/actions/approve-all-checks?sha=%s&redirect=/%s/%s/pulls/%d",
-				baseRepo.Link(), apiPull.Head.Sha, baseRepo.OwnerName, baseRepo.Name, apiPull.Index),
-			formAction,
+			fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s",
+				baseRepo.Link(), apiPull.Head.Sha),
+			dataURL,
 		)
 
 		// user2 approves all runs
-		req = NewRequestWithValues(t, "POST", formAction,
+		req = NewRequestWithValues(t, "POST", dataURL,
 			map[string]string{
 				"_csrf": GetUserCSRFToken(t, user2Session),
 			})
-		user2Session.MakeRequest(t, req, http.StatusSeeOther)
+		user2Session.MakeRequest(t, req, http.StatusOK)
 
 		// check runs
 		run1 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run1.ID})
