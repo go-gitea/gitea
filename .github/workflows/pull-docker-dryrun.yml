@@ -21,11 +21,13 @@ jobs:
       - name: Build regular container image
         uses: docker/build-push-action@v5
         with:
+          context: .
           push: false
           tags: gitea/gitea:linux-amd64
       - name: Build rootless container image
         uses: docker/build-push-action@v5
         with:
+          context: .
           push: false
           file: Dockerfile.rootless
           tags: gitea/gitea:linux-amd64
