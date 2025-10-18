@@ -38,6 +38,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/context"
@@ -311,6 +312,14 @@ func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 	return compareInfo
 }
 
+type pullCommitStatusCheckData struct {
+	MissingRequiredChecks []string
+	IsContextRequired     func(string) bool
+	RequireApproval       bool
+	CanApprove            bool
+	ApproveActionLink     string
+}
+
 // prepareViewPullInfo show meta information for a pull request preview page
 func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_service.CompareInfo {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
@@ -456,6 +465,11 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 		return nil
 	}
 
+	statusCheckData := &pullCommitStatusCheckData{
+		ApproveActionLink: fmt.Sprintf("%s/actions/approve-all-checks?sha=%s&redirect=%s", repo.Link(), sha, issue.Link()),
+	}
+	ctx.Data["StatusCheckData"] = statusCheckData
+
 	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptionsAll)
 	if err != nil {
 		ctx.ServerError("GetLatestCommitStatus", err)
@@ -463,6 +477,21 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 	}
 	if !ctx.Repo.CanRead(unit.TypeActions) {
 		git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
+	}
+
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
+	if err != nil {
+		ctx.ServerError("GetRunsFromCommitStatuses", err)
+		return nil
+	}
+	for _, run := range runs {
+		if run.NeedApproval {
+			statusCheckData.RequireApproval = true
+			break
+		}
+	}
+	if statusCheckData.RequireApproval {
+		statusCheckData.CanApprove = ctx.Repo.CanWrite(unit.TypeActions)
 	}
 
 	if len(commitStatuses) > 0 {
@@ -486,9 +515,9 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 				missingRequiredChecks = append(missingRequiredChecks, requiredContext)
 			}
 		}
-		ctx.Data["MissingRequiredChecks"] = missingRequiredChecks
+		statusCheckData.MissingRequiredChecks = missingRequiredChecks
 
-		ctx.Data["is_context_required"] = func(context string) bool {
+		statusCheckData.IsContextRequired = func(context string) bool {
 			for _, c := range pb.StatusCheckContexts {
 				if c == context {
 					return true

@@ -8,7 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"regexp"
 	"strconv"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -18,6 +20,7 @@ import (
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 
@@ -50,6 +53,59 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 			log.Error("Failed to create commit status for job %d: %v", job.ID, err)
 		}
 	}
+}
+
+func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) ([]*actions_model.ActionRun, error) {
+	runMap := make(map[int64]*actions_model.ActionRun)
+	for _, status := range statuses {
+		if !status.CreatedByGiteaActions(ctx) {
+			continue
+		}
+		runIndex, _, err := getActionRunAndJobIndexFromCommitStatus(status)
+		if err != nil {
+			return nil, fmt.Errorf("getActionRunAndJobIndexFromCommitStatus: %w", err)
+		}
+		_, ok := runMap[runIndex]
+		if !ok {
+			run, err := actions_model.GetRunByIndex(ctx, status.RepoID, runIndex)
+			if err != nil {
+				if errors.Is(err, util.ErrNotExist) {
+					// the run may be deleted manually, just skip it
+					continue
+				}
+				return nil, fmt.Errorf("GetRunByIndex: %w", err)
+			}
+			runMap[runIndex] = run
+		}
+	}
+	runs := make([]*actions_model.ActionRun, 0, len(runMap))
+	for _, run := range runMap {
+		runs = append(runs, run)
+	}
+	return runs, nil
+}
+
+func getActionRunAndJobIndexFromCommitStatus(status *git_model.CommitStatus) (int64, int64, error) {
+	actionsLink, _ := strings.CutPrefix(status.TargetURL, status.Repo.Link()+"/actions/")
+	// actionsLink should be like "runs/<run_index>/jobs/<job_index>"
+
+	re := regexp.MustCompile(`runs/(\d+)/jobs/(\d+)`)
+	matches := re.FindStringSubmatch(actionsLink)
+
+	if len(matches) != 3 {
+		return 0, 0, fmt.Errorf("%s is not a Gitea Actions link", status.TargetURL)
+	}
+
+	runIndex, err := strconv.ParseInt(matches[1], 10, 64)
+	if err != nil {
+		return 0, 0, fmt.Errorf("parse run index: %w", err)
+	}
+	jobIndex, err := strconv.ParseInt(matches[2], 10, 64)
+	if err != nil {
+		return 0, 0, fmt.Errorf("parse job index: %w", err)
+	}
+
+	return runIndex, jobIndex, nil
 }
 
 func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {

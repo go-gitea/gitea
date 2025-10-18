@@ -211,21 +211,26 @@ func (status *CommitStatus) LocaleString(lang translation.Locale) string {
 
 // HideActionsURL set `TargetURL` to an empty string if the status comes from Gitea Actions
 func (status *CommitStatus) HideActionsURL(ctx context.Context) {
+	if status.CreatedByGiteaActions(ctx) {
+		status.TargetURL = ""
+	}
+}
+
+// CreatedByGiteaActions returns true if the commit status is created by Gitea Actions
+func (status *CommitStatus) CreatedByGiteaActions(ctx context.Context) bool {
 	if status.RepoID == 0 {
-		return
+		return false
 	}
 
 	if status.Repo == nil {
 		if err := status.loadRepository(ctx); err != nil {
 			log.Error("loadRepository: %v", err)
-			return
+			return false
 		}
 	}
 
 	prefix := status.Repo.Link() + "/actions"
-	if strings.HasPrefix(status.TargetURL, prefix) {
-		status.TargetURL = ""
-	}
+	return strings.HasPrefix(status.TargetURL, prefix)
 }
 
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
