@@ -1,4 +1,5 @@
 {{$diffBlobExcerptData := .DiffBlobExcerptData}}
+{{$canCreateComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex}}
 {{if $.IsSplitStyle}}
 	{{range $k, $line := $.section.Lines}}
 	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">
@@ -14,7 +15,7 @@
 			<td class="lines-escape lines-escape-old">{{if and $line.LeftIdx $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>
 			<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
 			<td class="lines-code lines-code-old">
-				{{- if and $.SignedUserID $.PageIsPullFiles $line.LeftIdx -}}
+				{{- if and $canCreateComment $line.LeftIdx -}}
 					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">
 						{{- svg "octicon-plus" -}}
 					</button>
@@ -29,7 +30,7 @@
 			<td class="lines-escape lines-escape-new">{{if and $line.RightIdx $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>
 			<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
 			<td class="lines-code lines-code-new">
-				{{- if and $.SignedUserID $.PageIsPullFiles $line.RightIdx -}}
+				{{- if and $canCreateComment $line.RightIdx -}}
 					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
 						{{- svg "octicon-plus" -}}
 					</button>
@@ -70,7 +71,7 @@
 		<td class="lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>
 		<td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 		<td class="lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
-			{{- if and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex -}}
+			{{- if and $canCreateComment -}}
 				<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
 					{{- svg "octicon-plus" -}}
 				</button>
