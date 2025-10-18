@@ -429,6 +429,10 @@ func HasOrgOrUserVisible(ctx context.Context, orgOrUser, user *user_model.User) 
 		return true
 	}
 
+	if orgOrUser.Visibility == structs.VisibleTypePublic {
+		return true
+	}
+
 	if (orgOrUser.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !OrgFromUser(orgOrUser).hasMemberWithUserID(ctx, user.ID) {
 		return false
 	}
