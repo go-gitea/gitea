@@ -80,6 +80,7 @@ func TestAPIViewPulls(t *testing.T) {
 					assert.Equal(t, 1, files[0].Changes)
 					assert.Equal(t, 0, files[0].Deletions)
 					assert.Equal(t, "added", files[0].Status)
+					assert.Equal(t, gitdiff.RenderUnifiedDiff(patch.Files[0]), files[0].Patch)
 				}
 			}))
 	}
