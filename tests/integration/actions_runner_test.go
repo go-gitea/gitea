@@ -93,7 +93,20 @@ func (r *mockRunner) registerAsRepoRunner(t *testing.T, ownerName, repoName, run
 }
 
 func (r *mockRunner) fetchTask(t *testing.T, timeout ...time.Duration) *runnerv1.Task {
-	fetchTimeout := 10 * time.Second
+	task := r.tryFetchTask(t, timeout...)
+	assert.NotNil(t, task, "failed to fetch a task")
+	return task
+}
+
+func (r *mockRunner) fetchNoTask(t *testing.T, timeout ...time.Duration) {
+	task := r.tryFetchTask(t, timeout...)
+	assert.Nil(t, task, "a task is fetched")
+}
+
+const defaultFetchTaskTimeout = 1 * time.Second
+
+func (r *mockRunner) tryFetchTask(t *testing.T, timeout ...time.Duration) *runnerv1.Task {
+	fetchTimeout := defaultFetchTaskTimeout
 	if len(timeout) > 0 {
 		fetchTimeout = timeout[0]
 	}
@@ -108,9 +121,9 @@ func (r *mockRunner) fetchTask(t *testing.T, timeout ...time.Duration) *runnerv1
 			task = resp.Msg.Task
 			break
 		}
-		time.Sleep(time.Second)
+		time.Sleep(200 * time.Millisecond)
 	}
-	assert.NotNil(t, task, "failed to fetch a task")
+
 	return task
 }
 

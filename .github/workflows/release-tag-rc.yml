@@ -13,11 +13,11 @@ jobs:
   binary:
     runs-on: namespace-profile-gitea-release-binary
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true
@@ -66,7 +66,7 @@ jobs:
           gh release create ${{ github.ref_name }} --title ${{ github.ref_name }} --draft --notes-from-tag dist/release/*
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-  container:
+  docker-rootful:
     runs-on: namespace-profile-gitea-release-docker
     permissions:
       packages: write # to publish to ghcr.io

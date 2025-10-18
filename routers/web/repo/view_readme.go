@@ -170,7 +170,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 
 	ctx.Data["FileIsText"] = fInfo.st.IsText()
 	ctx.Data["FileTreePath"] = readmeFullPath
-	ctx.Data["FileSize"] = fInfo.fileSize
+	ctx.Data["FileSize"] = fInfo.blobOrLfsSize
 	ctx.Data["IsLFSFile"] = fInfo.isLFSFile()
 
 	if fInfo.isLFSFile() {
@@ -182,7 +182,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 		return
 	}
 
-	if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
+	if fInfo.blobOrLfsSize >= setting.UI.MaxDisplayFileSize {
 		// Pretend that this is a normal text file to display 'This file is too large to be shown'
 		ctx.Data["IsFileTooLarge"] = true
 		return
