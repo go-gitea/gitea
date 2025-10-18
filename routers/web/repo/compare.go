@@ -885,9 +885,7 @@ func attachCommentsToLines(section *gitdiff.DiffSection, lineComments map[int64]
 // attachHiddenCommentIDs calculates and attaches hidden comment IDs to expand buttons
 func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
 	for _, line := range section.Lines {
-		if hiddenIDs := gitdiff.CalculateHiddenCommentIDsForLine(line, lineComments); len(hiddenIDs) > 0 {
-			line.HiddenCommentIDs = hiddenIDs
-		}
+		gitdiff.FillHiddenCommentIDsForDiffLine(line, lineComments)
 	}
 }
 
@@ -904,15 +902,23 @@ func ExcerptBlob(ctx *context.Context) {
 	direction := ctx.FormString("direction")
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
+
+	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
+		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
+		DiffStyle:     ctx.FormString("style"),
+		AfterCommitID: commitID,
+	}
+
 	if ctx.Data["PageIsWiki"] == true {
 		var err error
-		gitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
+		gitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return
 		}
-		defer gitRepo.Close()
+		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
 	}
+
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
@@ -985,6 +991,7 @@ func ExcerptBlob(ctx *context.Context) {
 			return
 		}
 		issueIndex := ctx.FormInt64("issue_index")
+		diffBlobExcerptData.PullIndex = issueIndex
 		ctx.Data["IssueIndex"] = issueIndex
 		if issueIndex > 0 {
 			if issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex); err == nil && issue.IsPull {
@@ -1007,6 +1014,8 @@ func ExcerptBlob(ctx *context.Context) {
 	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Anchor"] = anchor
+	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
+
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)
 }
 

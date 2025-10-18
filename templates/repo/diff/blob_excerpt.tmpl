@@ -1,31 +1,9 @@
-{{$blobExcerptLink := print $.RepoLink (Iif $.PageIsWiki "/wiki" "") "/blob_excerpt/" (PathEscape $.AfterCommitID) (QueryBuild "?" "anchor" $.Anchor) (Iif $.PageIsPullFiles (print "&is_pull=true&issue_index=" $.IssueIndex) "")}}
+{{$diffBlobExcerptData := .DiffBlobExcerptData}}
 {{if $.IsSplitStyle}}
 	{{range $k, $line := $.section.Lines}}
 	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">
 		{{if eq .GetType 4}}
-			{{$expandDirection := $line.GetExpandDirection}}
-			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}">
-				<div class="code-expander-buttons" data-expand-direction="{{$expandDirection}}">
-				{{if or (eq $expandDirection 3) (eq $expandDirection 5)}}
-					<button class="code-expander-button{{if $line.HiddenCommentIDs}} has-hidden-comments{{end}}" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=split&direction=down" title="{{if $line.HiddenCommentIDs}}{{len $line.HiddenCommentIDs}} hidden comment(s){{end}}">
-						{{svg "octicon-fold-down"}}
-						{{if $line.HiddenCommentIDs}}<span class="ui mini label">{{len $line.HiddenCommentIDs}}</span>{{end}}
-					</button>
-				{{end}}
-				{{if or (eq $expandDirection 3) (eq $expandDirection 4)}}
-					<button class="code-expander-button{{if $line.HiddenCommentIDs}} has-hidden-comments{{end}}" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=split&direction=up" title="{{if $line.HiddenCommentIDs}}{{len $line.HiddenCommentIDs}} hidden comment(s){{end}}">
-						{{svg "octicon-fold-up"}}
-						{{if $line.HiddenCommentIDs}}<span class="ui mini label">{{len $line.HiddenCommentIDs}}</span>{{end}}
-					</button>
-				{{end}}
-				{{if eq $expandDirection 2}}
-					<button class="code-expander-button{{if $line.HiddenCommentIDs}} has-hidden-comments{{end}}" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=split" title="{{if $line.HiddenCommentIDs}}{{len $line.HiddenCommentIDs}} hidden comment(s){{end}}">
-						{{svg "octicon-fold"}}
-						{{if $line.HiddenCommentIDs}}<span class="ui mini label">{{len $line.HiddenCommentIDs}}</span>{{end}}
-					</button>
-				{{end}}
-				</div>
-			</td>
+			<td class="lines-num lines-num-old">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData}}</td>
 			<td colspan="7" class="lines-code lines-code-old">
 				{{- $inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale -}}
 				{{- template "repo/diff/section_code" dict "diff" $inlineDiff -}}
@@ -83,29 +61,7 @@
 	{{range $k, $line := $.section.Lines}}
 	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">
 		{{if eq .GetType 4}}
-			{{$expandDirection := $line.GetExpandDirection}}
-			<td colspan="2" class="lines-num">
-				<div class="code-expander-buttons" data-expand-direction="{{$expandDirection}}">
-					{{if or (eq $expandDirection 3) (eq $expandDirection 5)}}
-						<button class="code-expander-button{{if $line.HiddenCommentIDs}} has-hidden-comments{{end}}" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=unified&direction=down" title="{{if $line.HiddenCommentIDs}}{{len $line.HiddenCommentIDs}} hidden comment(s){{end}}"{{if $line.HiddenCommentIDs}} data-hidden-comment-ids="{{StringUtils.ToString $line.HiddenCommentIDs}}"{{end}}>
-							{{svg "octicon-fold-down"}}
-							{{if $line.HiddenCommentIDs}}<span class="ui mini label">{{len $line.HiddenCommentIDs}}</span>{{end}}
-						</button>
-					{{end}}
-					{{if or (eq $expandDirection 3) (eq $expandDirection 4)}}
-						<button class="code-expander-button{{if $line.HiddenCommentIDs}} has-hidden-comments{{end}}" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=unified&direction=up" title="{{if $line.HiddenCommentIDs}}{{len $line.HiddenCommentIDs}} hidden comment(s){{end}}"{{if $line.HiddenCommentIDs}} data-hidden-comment-ids="{{StringUtils.ToString $line.HiddenCommentIDs}}"{{end}}>
-							{{svg "octicon-fold-up"}}
-							{{if $line.HiddenCommentIDs}}<span class="ui mini label">{{len $line.HiddenCommentIDs}}</span>{{end}}
-						</button>
-					{{end}}
-					{{if eq $expandDirection 2}}
-						<button class="code-expander-button{{if $line.HiddenCommentIDs}} has-hidden-comments{{end}}" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=unified" title="{{if $line.HiddenCommentIDs}}{{len $line.HiddenCommentIDs}} hidden comment(s){{end}}"{{if $line.HiddenCommentIDs}} data-hidden-comment-ids="{{StringUtils.ToString $line.HiddenCommentIDs}}"{{end}}>
-							{{svg "octicon-fold"}}
-							{{if $line.HiddenCommentIDs}}<span class="ui mini label">{{len $line.HiddenCommentIDs}}</span>{{end}}
-						</button>
-					{{end}}
-				</div>
-			</td>
+			<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData}}</td>
 		{{else}}
 			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$.FileNameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
 			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$.FileNameHash}}R{{$line.RightIdx}}{{end}}"></span></td>

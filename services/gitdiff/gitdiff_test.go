@@ -729,7 +729,7 @@ func TestGeneratePatchForUnchangedLineFromReader(t *testing.T) {
 --- a/main.go
 +++ b/main.go
 @@ -2,3 +2,3 @@
- 
+
  func main() {
  	fmt.Println("Hello")
 `,
@@ -851,12 +851,9 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := CalculateHiddenCommentIDsForLine(tt.line, tt.lineComments)
-			if tt.expected == nil {
-				assert.Nil(t, result)
-			} else {
-				assert.ElementsMatch(t, tt.expected, result)
-			}
+			tt.line.SectionInfo = &DiffLineSectionInfo{}
+			FillHiddenCommentIDsForDiffLine(tt.line, tt.lineComments)
+			assert.ElementsMatch(t, tt.expected, tt.line.SectionInfo.HiddenCommentIDs)
 		})
 	}
 }

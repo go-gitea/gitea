@@ -115,6 +115,23 @@
   color: var(--color-text);
 }
 
+.code-expander-buttons {
+  position: relative;
+}
+
+.code-expander-buttons .code-comment-more {
+  position: absolute;
+  line-height: 12px;
+  padding: 2px 4px;
+  font-size: 10px;
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-radius: 8px !important;
+  left: 4px;
+  top: 4px;
+  text-align: center;
+}
+
 .code-expander-button {
   border: none;
   color: var(--color-text-light);
@@ -127,8 +144,8 @@
   flex: 1;
 }
 
-/* expand direction 3 is both ways with two buttons */
-.code-expander-buttons[data-expand-direction="3"] .code-expander-button {
+/* expand direction "updown" is both ways with two buttons */
+.code-expander-buttons[data-expand-direction="updown"] .code-expander-button {
   height: 18px;
 }
 

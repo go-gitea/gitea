@@ -22,19 +22,21 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
@@ -67,28 +69,15 @@ const (
 	DiffFileCopy
 )
 
-// DiffLineExpandDirection represents the DiffLineSection expand direction
-type DiffLineExpandDirection uint8
-
-// DiffLineExpandDirection possible values.
-const (
-	DiffLineExpandNone DiffLineExpandDirection = iota + 1
-	DiffLineExpandSingle
-	DiffLineExpandUpDown
-	DiffLineExpandUp
-	DiffLineExpandDown
-)
-
 // DiffLine represents a line difference in a DiffSection.
 type DiffLine struct {
-	LeftIdx          int // line number, 1-based
-	RightIdx         int // line number, 1-based
-	Match            int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
-	Type             DiffLineType
-	Content          string
-	Comments         issues_model.CommentList // related PR code comments
-	SectionInfo      *DiffLineSectionInfo
-	HiddenCommentIDs []int64 // IDs of hidden comments in this section
+	LeftIdx     int // line number, 1-based
+	RightIdx    int // line number, 1-based
+	Match       int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
+	Type        DiffLineType
+	Content     string
+	Comments    issues_model.CommentList // related PR code comments
+	SectionInfo *DiffLineSectionInfo
 }
 
 // DiffLineSectionInfo represents diff line section meta data
@@ -100,6 +89,9 @@ type DiffLineSectionInfo struct {
 	RightIdx      int
 	LeftHunkSize  int
 	RightHunkSize int
+
+	HiddenCommentIDs []int64 // IDs of hidden comments in this section
+
 }
 
 // DiffHTMLOperation is the HTML version of diffmatchpatch.Diff
@@ -154,8 +146,7 @@ func (d *DiffLine) GetLineTypeMarker() string {
 	return ""
 }
 
-// GetBlobExcerptQuery builds query string to get blob excerpt
-func (d *DiffLine) GetBlobExcerptQuery() string {
+func (d *DiffLine) getBlobExcerptQuery() string {
 	query := fmt.Sprintf(
 		"last_left=%d&last_right=%d&"+
 			"left=%d&right=%d&"+
@@ -168,25 +159,70 @@ func (d *DiffLine) GetBlobExcerptQuery() string {
 	return query
 }
 
-// GetExpandDirection gets DiffLineExpandDirection
-func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
+func (d *DiffLine) getExpandDirection() string {
 	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.LeftIdx-d.SectionInfo.LastLeftIdx <= 1 || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
-		return DiffLineExpandNone
+		return ""
 	}
 	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
-		return DiffLineExpandUp
+		return "up"
 	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
-		return DiffLineExpandUpDown
+		return "updown"
 	} else if d.SectionInfo.LeftHunkSize <= 0 && d.SectionInfo.RightHunkSize <= 0 {
-		return DiffLineExpandDown
+		return "down"
 	}
-	return DiffLineExpandSingle
+	return "single"
 }
 
-// CalculateHiddenCommentIDsForLine finds comment IDs that are in the hidden range of an expand button
-func CalculateHiddenCommentIDsForLine(line *DiffLine, lineComments map[int64][]*issues_model.Comment) []int64 {
-	if line.Type != DiffLineSection || line.SectionInfo == nil {
-		return nil
+type DiffBlobExcerptData struct {
+	BaseLink      string
+	IsWikiRepo    bool
+	PullIndex     int64
+	DiffStyle     string
+	AfterCommitID string
+}
+
+func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
+	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
+	anchor := fmt.Sprintf("diff-%sK%d", fileNameHash, d.SectionInfo.RightIdx)
+
+	makeButton := func(direction, svgName string) template.HTML {
+		style := util.IfZero(data.DiffStyle, "unified")
+		link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&direction=%s&anchor=%s", url.QueryEscape(style), direction, url.QueryEscape(anchor))
+		if data.PullIndex > 0 {
+			link += fmt.Sprintf("&is_pull=1&issue_index=%d", data.PullIndex)
+		}
+		link += "&" + d.getBlobExcerptQuery()
+
+		svgContent := svg.RenderHTML(svgName)
+		return htmlutil.HTMLFormat(
+			`<button class="code-expander-button" hx-target="closest tr" hx-get="%s"  data-hidden-comment-ids="%s">%s</button>`,
+			link, dataHiddenCommentIDs, svgContent,
+		)
+	}
+	var content template.HTML
+
+	if len(d.SectionInfo.HiddenCommentIDs) > 0 {
+		tooltip := fmt.Sprintf("%d hidden comment(s)", len(d.SectionInfo.HiddenCommentIDs))
+		content += htmlutil.HTMLFormat(`<span class="code-comment-more" data-tooltip-content="%s">%d</span>`, tooltip, len(d.SectionInfo.HiddenCommentIDs))
+	}
+
+	expandDirection := d.getExpandDirection()
+	if expandDirection == "up" || expandDirection == "updown" {
+		content += makeButton("up", "octicon-fold-up")
+	}
+	if expandDirection == "updown" || expandDirection == "down" {
+		content += makeButton("down", "octicon-fold-down")
+	}
+	if expandDirection == "single" {
+		content += makeButton("single", "octicon-fold")
+	}
+	return htmlutil.HTMLFormat(`<div class="code-expander-buttons" data-expand-direction="%s">%s</div>`, expandDirection, content)
+}
+
+// FillHiddenCommentIDsForDiffLine finds comment IDs that are in the hidden range of an expand button
+func FillHiddenCommentIDsForDiffLine(line *DiffLine, lineComments map[int64][]*issues_model.Comment) {
+	if line.Type != DiffLineSection {
+		return
 	}
 
 	var hiddenCommentIDs []int64
@@ -196,13 +232,13 @@ func CalculateHiddenCommentIDsForLine(line *DiffLine, lineComments map[int64][]*
 			absLineNum = int(-commentLineNum)
 		}
 		// Check if comments are in the hidden range
-		if absLineNum > line.SectionInfo.LastRightIdx && absLineNum < line.SectionInfo.RightIdx {
+		if absLineNum > line.SectionInfo.LastRightIdx && absLineNum <= line.SectionInfo.RightIdx {
 			for _, comment := range comments {
 				hiddenCommentIDs = append(hiddenCommentIDs, comment.ID)
 			}
 		}
 	}
-	return hiddenCommentIDs
+	line.SectionInfo.HiddenCommentIDs = hiddenCommentIDs
 }
 
 func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int) *DiffLineSectionInfo {
@@ -508,11 +544,8 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 					sort.SliceStable(line.Comments, func(i, j int) bool {
 						return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
 					})
-
 					// Mark expand buttons that have comments in hidden lines
-					if hiddenIDs := CalculateHiddenCommentIDsForLine(line, lineCommits); len(hiddenIDs) > 0 {
-						line.HiddenCommentIDs = hiddenIDs
-					}
+					FillHiddenCommentIDsForDiffLine(line, lineCommits)
 				}
 			}
 		}
@@ -1309,7 +1342,7 @@ type DiffShortStat struct {
 	NumFiles, TotalAddition, TotalDeletion int
 }
 
-func GetDiffShortStat(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
+func GetDiffShortStat(ctx context.Context, repoStorage gitrepo.Repository, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
 	afterCommit, err := gitRepo.GetCommit(afterCommitID)
 	if err != nil {
 		return nil, err
@@ -1321,7 +1354,7 @@ func GetDiffShortStat(ctx context.Context, repo *repo_model.Repository, gitRepo 
 	}
 
 	diff := &DiffShortStat{}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = gitrepo.GetDiffShortStatByCmdArgs(ctx, repo, nil, actualBeforeCommitID.String(), afterCommitID)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = gitrepo.GetDiffShortStatByCmdArgs(ctx, repoStorage, nil, actualBeforeCommitID.String(), afterCommitID)
 	if err != nil {
 		return nil, err
 	}
