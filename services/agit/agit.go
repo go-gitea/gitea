@@ -72,7 +72,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 		baseBranchName := opts.RefFullNames[i].ForBranchName()
 		currentTopicBranch := ""
-		if !gitrepo.IsBranchExist(ctx, repo, baseBranchName) {
+		if exist, _ := git_model.IsBranchExist(ctx, repo.ID, baseBranchName); !exist {
 			// try match refs/for/<target-branch>/<topic-branch>
 			for p, v := range baseBranchName {
 				if v == '/' && gitrepo.IsBranchExist(ctx, repo, baseBranchName[:p]) && p != len(baseBranchName)-1 {
