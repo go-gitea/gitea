@@ -33,6 +33,8 @@ type Hook struct {
 	AuthorizationHeader string `json:"authorization_header"`
 	// Whether the webhook is active and will be triggered
 	Active bool `json:"active"`
+	// MetaSettings webhook metadata settings including payload optimization
+	MetaSettings map[string]any `json:"meta_settings"`
 	// swagger:strfmt date-time
 	// The date and time when the webhook was last updated
 	Updated time.Time `json:"updated_at"`
@@ -63,6 +65,8 @@ type CreateHookOption struct {
 	BranchFilter string `json:"branch_filter" binding:"GlobPattern"`
 	// Authorization header to include in webhook requests
 	AuthorizationHeader string `json:"authorization_header"`
+	// Webhook metadata settings including payload optimization
+	MetaSettings map[string]any `json:"meta_settings"` // {"payload_config": {"files": {"enable": bool, "limit": int}, "commits": {"enable": bool, "limit": int}}}
 	// default: false
 	// Whether the webhook should be active upon creation
 	Active bool `json:"active"`
@@ -78,6 +82,8 @@ type EditHookOption struct {
 	BranchFilter string `json:"branch_filter" binding:"GlobPattern"`
 	// Authorization header to include in webhook requests
 	AuthorizationHeader string `json:"authorization_header"`
+	// Webhook metadata settings including payload optimization
+	MetaSettings *map[string]any `json:"meta_settings"` // {"payload_config": {"files": {"enable": bool, "limit": int}, "commits": {"enable": bool, "limit": int}}}
 	// Whether the webhook is active and will be triggered
 	Active *bool `json:"active"`
 }
