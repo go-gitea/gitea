@@ -91,7 +91,6 @@ type DiffLineSectionInfo struct {
 	RightHunkSize int
 
 	HiddenCommentIDs []int64 // IDs of hidden comments in this section
-
 }
 
 // DiffHTMLOperation is the HTML version of diffmatchpatch.Diff
@@ -174,11 +173,11 @@ func (d *DiffLine) getExpandDirection() string {
 }
 
 type DiffBlobExcerptData struct {
-	BaseLink      string
-	IsWikiRepo    bool
-	PullIndex     int64
-	DiffStyle     string
-	AfterCommitID string
+	BaseLink       string
+	IsWikiRepo     bool
+	PullIssueIndex int64
+	DiffStyle      string
+	AfterCommitID  string
 }
 
 func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
@@ -187,16 +186,13 @@ func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobE
 
 	makeButton := func(direction, svgName string) template.HTML {
 		style := util.IfZero(data.DiffStyle, "unified")
-		link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&direction=%s&anchor=%s", url.QueryEscape(style), direction, url.QueryEscape(anchor))
-		if data.PullIndex > 0 {
-			link += fmt.Sprintf("&is_pull=1&issue_index=%d", data.PullIndex)
+		link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&direction=%s&anchor=%s", url.QueryEscape(style), direction, url.QueryEscape(anchor)) + "&" + d.getBlobExcerptQuery()
+		if data.PullIssueIndex > 0 {
+			link += fmt.Sprintf("&pull_issue_index=%d", data.PullIssueIndex)
 		}
-		link += "&" + d.getBlobExcerptQuery()
-
-		svgContent := svg.RenderHTML(svgName)
 		return htmlutil.HTMLFormat(
 			`<button class="code-expander-button" hx-target="closest tr" hx-get="%s"  data-hidden-comment-ids="%s">%s</button>`,
-			link, dataHiddenCommentIDs, svgContent,
+			link, dataHiddenCommentIDs, svg.RenderHTML(svgName),
 		)
 	}
 	var content template.HTML

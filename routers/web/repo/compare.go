@@ -640,6 +640,11 @@ func PrepareCompareDiff(
 	}
 	ctx.Data["DiffShortStat"] = diffShortStat
 	ctx.Data["Diff"] = diff
+	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
+		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
+		DiffStyle:     ctx.FormString("style"),
+		AfterCommitID: headCommitID,
+	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 
 	if !fileOnly {
@@ -979,32 +984,29 @@ func ExcerptBlob(ctx *context.Context) {
 			section.Lines = append(section.Lines, lineSection)
 		}
 	}
-	if ctx.Doer != nil {
-		ctx.Data["SignedUserID"] = ctx.Doer.ID
-	}
-	isPull := ctx.FormBool("is_pull")
-	ctx.Data["PageIsPullFiles"] = isPull
 
-	if isPull {
+	diffBlobExcerptData.PullIssueIndex = ctx.FormInt64("pull_issue_index")
+	if diffBlobExcerptData.PullIssueIndex > 0 {
 		if !ctx.Repo.CanRead(unit.TypePullRequests) {
 			ctx.NotFound(nil)
 			return
 		}
-		issueIndex := ctx.FormInt64("issue_index")
-		diffBlobExcerptData.PullIndex = issueIndex
-		ctx.Data["IssueIndex"] = issueIndex
-		if issueIndex > 0 {
-			if issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex); err == nil && issue.IsPull {
-				ctx.Data["Issue"] = issue
-				ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
-					return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
-				}
 
-				if allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated")); err == nil {
-					if lineComments, ok := allComments[filePath]; ok {
-						attachCommentsToLines(section, lineComments)
-						attachHiddenCommentIDs(section, lineComments)
-					}
+		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, diffBlobExcerptData.PullIssueIndex)
+		if err != nil {
+			log.Error("GetIssueByIndex error: %v", err)
+		} else if issue.IsPull {
+			ctx.Data["Issue"] = issue
+			ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+				return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+			}
+			allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated"))
+			if err != nil {
+				log.Error("FetchCodeComments error: %v", err)
+			} else {
+				if lineComments, ok := allComments[filePath]; ok {
+					attachCommentsToLines(section, lineComments)
+					attachHiddenCommentIDs(section, lineComments)
 				}
 			}
 		}

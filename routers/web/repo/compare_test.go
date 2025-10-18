@@ -43,9 +43,9 @@ func TestAttachHiddenCommentIDs(t *testing.T) {
 
 	attachHiddenCommentIDs(section, lineComments)
 
-	assert.Equal(t, []int64{100}, section.Lines[0].HiddenCommentIDs)
-	assert.Nil(t, section.Lines[1].HiddenCommentIDs)
-	assert.Equal(t, []int64{200}, section.Lines[2].HiddenCommentIDs)
+	assert.Equal(t, []int64{100}, section.Lines[0].SectionInfo.HiddenCommentIDs)
+	assert.Nil(t, section.Lines[1].SectionInfo.HiddenCommentIDs)
+	assert.Equal(t, []int64{200}, section.Lines[2].SectionInfo.HiddenCommentIDs)
 }
 
 func TestAttachCommentsToLines(t *testing.T) {

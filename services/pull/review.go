@@ -286,11 +286,11 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		}
 
 		// If patch is still empty (unchanged line), generate code context
-		if len(patch) == 0 && len(commitID) > 0 {
+		if patch == "" && commitID != "" {
 			patch, err = gitdiff.GeneratePatchForUnchangedLine(gitRepo, commitID, treePath, line, setting.UI.CodeCommentLines)
 			if err != nil {
 				// Log the error but don't fail comment creation
-				log.Warn("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, commitID, err)
+				log.Debug("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, commitID, err)
 			}
 		}
 	}
