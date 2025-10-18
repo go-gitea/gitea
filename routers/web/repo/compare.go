@@ -867,6 +867,52 @@ func CompareDiff(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 
+// attachCommentsToLines attaches comments to their corresponding diff lines
+func attachCommentsToLines(section *gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
+	for _, line := range section.Lines {
+		if comments, ok := lineComments[int64(line.LeftIdx*-1)]; ok {
+			line.Comments = append(line.Comments, comments...)
+		}
+		if comments, ok := lineComments[int64(line.RightIdx)]; ok {
+			line.Comments = append(line.Comments, comments...)
+		}
+		sort.SliceStable(line.Comments, func(i, j int) bool {
+			return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+		})
+	}
+}
+
+// calculateHiddenCommentIDs finds comment IDs that are in the hidden range of an expand button
+func calculateHiddenCommentIDs(line *gitdiff.DiffLine, lineComments map[int64][]*issues_model.Comment) []int64 {
+	if line.Type != gitdiff.DiffLineSection || line.SectionInfo == nil {
+		return nil
+	}
+
+	var hiddenCommentIDs []int64
+	for commentLineNum, comments := range lineComments {
+		absLineNum := commentLineNum
+		if absLineNum < 0 {
+			absLineNum = -absLineNum
+		}
+		// Check if comments are in the hidden range
+		if int(absLineNum) > line.SectionInfo.LastRightIdx && int(absLineNum) < line.SectionInfo.RightIdx {
+			for _, comment := range comments {
+				hiddenCommentIDs = append(hiddenCommentIDs, comment.ID)
+			}
+		}
+	}
+	return hiddenCommentIDs
+}
+
+// attachHiddenCommentIDs calculates and attaches hidden comment IDs to expand buttons
+func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
+	for _, line := range section.Lines {
+		if hiddenIDs := calculateHiddenCommentIDs(line, lineComments); len(hiddenIDs) > 0 {
+			line.HiddenCommentIDs = hiddenIDs
+		}
+	}
+}
+
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.PathParam("sha")
@@ -971,41 +1017,8 @@ func ExcerptBlob(ctx *context.Context) {
 
 				if allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated")); err == nil {
 					if lineComments, ok := allComments[filePath]; ok {
-						for _, line := range section.Lines {
-							if comments, ok := lineComments[int64(line.LeftIdx*-1)]; ok {
-								line.Comments = append(line.Comments, comments...)
-							}
-							if comments, ok := lineComments[int64(line.RightIdx)]; ok {
-								line.Comments = append(line.Comments, comments...)
-							}
-							sort.SliceStable(line.Comments, func(i, j int) bool {
-								return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
-							})
-						}
-
-						// Recalculate hidden comment counts for expand buttons after loading comments
-						for _, line := range section.Lines {
-							if line.Type == gitdiff.DiffLineSection && line.SectionInfo != nil {
-								var hiddenCommentIDs []int64
-								// Check if there are comments in the hidden range
-								for commentLineNum, comments := range lineComments {
-									absLineNum := commentLineNum
-									if absLineNum < 0 {
-										absLineNum = -absLineNum
-									}
-									// Count comments that are in the hidden range
-									if int(absLineNum) > line.SectionInfo.LastRightIdx && int(absLineNum) < line.SectionInfo.RightIdx {
-										// Collect comment IDs
-										for _, comment := range comments {
-											hiddenCommentIDs = append(hiddenCommentIDs, comment.ID)
-										}
-									}
-								}
-								if len(hiddenCommentIDs) > 0 {
-									line.HiddenCommentIDs = hiddenCommentIDs
-								}
-							}
-						}
+						attachCommentsToLines(section, lineComments)
+						attachHiddenCommentIDs(section, lineComments)
 					}
 				}
 			}
