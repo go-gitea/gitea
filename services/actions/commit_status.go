@@ -10,7 +10,6 @@ import (
 	"path"
 	"regexp"
 	"strconv"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -86,11 +85,9 @@ func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.Commit
 }
 
 func getActionRunAndJobIndexFromCommitStatus(status *git_model.CommitStatus) (int64, int64, error) {
-	actionsLink, _ := strings.CutPrefix(status.TargetURL, status.Repo.Link()+"/actions/")
-	// actionsLink should be like "runs/<run_index>/jobs/<job_index>"
-
-	re := regexp.MustCompile(`runs/(\d+)/jobs/(\d+)`)
-	matches := re.FindStringSubmatch(actionsLink)
+	// status.TargetURL should be like "<repo_link>/actions/runs/<run_index>/jobs/<job_index>"
+	re := regexp.MustCompile(regexp.QuoteMeta(status.Repo.Link()+"/actions/runs/") + `(\d+)/jobs/(\d+)$`)
+	matches := re.FindStringSubmatch(status.TargetURL)
 
 	if len(matches) != 3 {
 		return 0, 0, fmt.Errorf("%s is not a Gitea Actions link", status.TargetURL)
