@@ -69,12 +69,12 @@ func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
 	useLocalAvatar := false
 	autoGenerateAvatar := false
 
-	disableGravatar := setting.Config().Picture.DisableGravatar.Value(ctx)
+	enableGravatar := setting.Config().Picture.EnableGravatar.Value(ctx)
 
 	switch {
-	case u.UseCustomAvatar:
+	case u.UseCustomAvatar, enableGravatar:
 		useLocalAvatar = true
-	case disableGravatar, setting.OfflineMode:
+	case setting.OfflineMode:
 		useLocalAvatar = true
 		autoGenerateAvatar = true
 	}
