@@ -764,6 +764,10 @@ func registerWebRoutes(m *web.Router) {
 			m.Post("/delete", admin.DeleteEmail)
 		})
 
+		m.Group("/ips", func() {
+			m.Get("", admin.IPs)
+		})
+
 		m.Group("/orgs", func() {
 			m.Get("", admin.Organizations)
 		})
@@ -823,7 +827,7 @@ func registerWebRoutes(m *web.Router) {
 			addSettingsRunnersRoutes()
 			addSettingsVariablesRoutes()
 		})
-	}, adminReq, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled))
+	}, adminReq, ctxDataSet("RecordUserSignupMetadata", setting.RecordUserSignupMetadata, "EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled))
 	// ***** END: Admin *****
 
 	m.Group("", func() {
