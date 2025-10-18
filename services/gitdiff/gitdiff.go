@@ -14,7 +14,6 @@ import (
 	"io"
 	"net/url"
 	"path"
-	"sort"
 	"strings"
 	"time"
 
@@ -23,7 +22,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -464,32 +462,6 @@ type Diff struct {
 	Files          []*DiffFile
 	IsIncomplete   bool
 	NumViewedFiles int // user-specific
-}
-
-// LoadComments loads comments into each line
-func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, currentUser *user_model.User, showOutdatedComments bool) error {
-	allComments, err := issues_model.FetchCodeComments(ctx, issue, currentUser, showOutdatedComments)
-	if err != nil {
-		return err
-	}
-	for _, file := range diff.Files {
-		if lineCommits, ok := allComments[file.Name]; ok {
-			for _, section := range file.Sections {
-				for _, line := range section.Lines {
-					if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
-						line.Comments = append(line.Comments, comments...)
-					}
-					if comments, ok := lineCommits[int64(line.RightIdx)]; ok {
-						line.Comments = append(line.Comments, comments...)
-					}
-					sort.SliceStable(line.Comments, func(i, j int) bool {
-						return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
-					})
-				}
-			}
-		}
-	}
-	return nil
 }
 
 const cmdDiffHead = "diff --git "
