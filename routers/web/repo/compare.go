@@ -903,7 +903,6 @@ func ExcerptBlob(ctx *context.Context) {
 	idxRight := ctx.FormInt("right")
 	leftHunkSize := ctx.FormInt("left_hunk_size")
 	rightHunkSize := ctx.FormInt("right_hunk_size")
-	anchor := ctx.FormString("anchor")
 	direction := ctx.FormString("direction")
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
@@ -1014,8 +1013,6 @@ func ExcerptBlob(ctx *context.Context) {
 
 	ctx.Data["section"] = section
 	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
-	ctx.Data["AfterCommitID"] = commitID
-	ctx.Data["Anchor"] = anchor
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)

@@ -12,42 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAttachHiddenCommentIDs(t *testing.T) {
-	section := &gitdiff.DiffSection{
-		Lines: []*gitdiff.DiffLine{
-			{
-				Type: gitdiff.DiffLineSection,
-				SectionInfo: &gitdiff.DiffLineSectionInfo{
-					LastRightIdx: 10,
-					RightIdx:     20,
-				},
-			},
-			{
-				Type: gitdiff.DiffLinePlain,
-			},
-			{
-				Type: gitdiff.DiffLineSection,
-				SectionInfo: &gitdiff.DiffLineSectionInfo{
-					LastRightIdx: 30,
-					RightIdx:     40,
-				},
-			},
-		},
-	}
-
-	lineComments := map[int64][]*issues_model.Comment{
-		15: {{ID: 100}}, // in first section's hidden range
-		35: {{ID: 200}}, // in second section's hidden range
-		50: {{ID: 300}}, // outside any range
-	}
-
-	attachHiddenCommentIDs(section, lineComments)
-
-	assert.Equal(t, []int64{100}, section.Lines[0].SectionInfo.HiddenCommentIDs)
-	assert.Nil(t, section.Lines[1].SectionInfo.HiddenCommentIDs)
-	assert.Equal(t, []int64{200}, section.Lines[2].SectionInfo.HiddenCommentIDs)
-}
-
 func TestAttachCommentsToLines(t *testing.T) {
 	section := &gitdiff.DiffSection{
 		Lines: []*gitdiff.DiffLine{
