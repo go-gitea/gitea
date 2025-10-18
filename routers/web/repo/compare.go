@@ -882,32 +882,10 @@ func attachCommentsToLines(section *gitdiff.DiffSection, lineComments map[int64]
 	}
 }
 
-// calculateHiddenCommentIDs finds comment IDs that are in the hidden range of an expand button
-func calculateHiddenCommentIDs(line *gitdiff.DiffLine, lineComments map[int64][]*issues_model.Comment) []int64 {
-	if line.Type != gitdiff.DiffLineSection || line.SectionInfo == nil {
-		return nil
-	}
-
-	var hiddenCommentIDs []int64
-	for commentLineNum, comments := range lineComments {
-		absLineNum := commentLineNum
-		if absLineNum < 0 {
-			absLineNum = -absLineNum
-		}
-		// Check if comments are in the hidden range
-		if int(absLineNum) > line.SectionInfo.LastRightIdx && int(absLineNum) < line.SectionInfo.RightIdx {
-			for _, comment := range comments {
-				hiddenCommentIDs = append(hiddenCommentIDs, comment.ID)
-			}
-		}
-	}
-	return hiddenCommentIDs
-}
-
 // attachHiddenCommentIDs calculates and attaches hidden comment IDs to expand buttons
 func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
 	for _, line := range section.Lines {
-		if hiddenIDs := calculateHiddenCommentIDs(line, lineComments); len(hiddenIDs) > 0 {
+		if hiddenIDs := gitdiff.CalculateHiddenCommentIDsForLine(line, lineComments); len(hiddenIDs) > 0 {
 			line.HiddenCommentIDs = hiddenIDs
 		}
 	}

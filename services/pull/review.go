@@ -290,7 +290,6 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			patch, err = gitdiff.GeneratePatchForUnchangedLine(gitRepo, commitID, treePath, line, setting.UI.CodeCommentLines)
 			if err != nil {
 				// Log the error but don't fail comment creation
-				// This can happen for deleted/renamed files or other edge cases
 				log.Warn("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, commitID, err)
 			}
 		}

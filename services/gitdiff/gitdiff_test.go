@@ -640,3 +640,223 @@ func TestNoCrashes(t *testing.T) {
 		ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
 	}
 }
+
+func TestGeneratePatchForUnchangedLineFromReader(t *testing.T) {
+	tests := []struct {
+		name         string
+		content      string
+		treePath     string
+		line         int64
+		contextLines int
+		want         string
+		wantErr      bool
+	}{
+		{
+			name:         "single line with context",
+			content:      "line1\nline2\nline3\nline4\nline5\n",
+			treePath:     "test.txt",
+			line:         3,
+			contextLines: 1,
+			want: `diff --git a/test.txt b/test.txt
+--- a/test.txt
++++ b/test.txt
+@@ -2,2 +2,2 @@
+ line2
+ line3
+`,
+		},
+		{
+			name:         "negative line number (left side)",
+			content:      "line1\nline2\nline3\nline4\nline5\n",
+			treePath:     "test.txt",
+			line:         -3,
+			contextLines: 1,
+			want: `diff --git a/test.txt b/test.txt
+--- a/test.txt
++++ b/test.txt
+@@ -2,2 +2,2 @@
+ line2
+ line3
+`,
+		},
+		{
+			name:         "line near start of file",
+			content:      "line1\nline2\nline3\n",
+			treePath:     "test.txt",
+			line:         2,
+			contextLines: 5,
+			want: `diff --git a/test.txt b/test.txt
+--- a/test.txt
++++ b/test.txt
+@@ -1,2 +1,2 @@
+ line1
+ line2
+`,
+		},
+		{
+			name:         "first line with context",
+			content:      "line1\nline2\nline3\n",
+			treePath:     "test.txt",
+			line:         1,
+			contextLines: 3,
+			want: `diff --git a/test.txt b/test.txt
+--- a/test.txt
++++ b/test.txt
+@@ -1,1 +1,1 @@
+ line1
+`,
+		},
+		{
+			name:         "zero context lines",
+			content:      "line1\nline2\nline3\n",
+			treePath:     "test.txt",
+			line:         2,
+			contextLines: 0,
+			want: `diff --git a/test.txt b/test.txt
+--- a/test.txt
++++ b/test.txt
+@@ -2,1 +2,1 @@
+ line2
+`,
+		},
+		{
+			name:         "multi-line context",
+			content:      "package main\n\nfunc main() {\n\tfmt.Println(\"Hello\")\n}\n",
+			treePath:     "main.go",
+			line:         4,
+			contextLines: 2,
+			want: `diff --git a/main.go b/main.go
+--- a/main.go
++++ b/main.go
+@@ -2,3 +2,3 @@
+ 
+ func main() {
+ 	fmt.Println("Hello")
+`,
+		},
+		{
+			name:         "empty file",
+			content:      "",
+			treePath:     "empty.txt",
+			line:         1,
+			contextLines: 1,
+			wantErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.content)
+			got, err := generatePatchForUnchangedLineFromReader(reader, tt.treePath, tt.line, tt.contextLines)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.want, got)
+			}
+		})
+	}
+}
+
+func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
+	tests := []struct {
+		name         string
+		line         *DiffLine
+		lineComments map[int64][]*issues_model.Comment
+		expected     []int64
+	}{
+		{
+			name: "comments in hidden range",
+			line: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx: 10,
+					RightIdx:     20,
+				},
+			},
+			lineComments: map[int64][]*issues_model.Comment{
+				15: {{ID: 100}, {ID: 101}},
+				12: {{ID: 102}},
+			},
+			expected: []int64{100, 101, 102},
+		},
+		{
+			name: "comments outside hidden range",
+			line: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx: 10,
+					RightIdx:     20,
+				},
+			},
+			lineComments: map[int64][]*issues_model.Comment{
+				5:  {{ID: 100}},
+				25: {{ID: 101}},
+			},
+			expected: nil,
+		},
+		{
+			name: "negative line numbers (left side)",
+			line: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx: 10,
+					RightIdx:     20,
+				},
+			},
+			lineComments: map[int64][]*issues_model.Comment{
+				-15: {{ID: 100}},
+			},
+			expected: []int64{100},
+		},
+		{
+			name: "boundary conditions - exclusive range",
+			line: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx: 10,
+					RightIdx:     20,
+				},
+			},
+			lineComments: map[int64][]*issues_model.Comment{
+				10: {{ID: 100}}, // at LastRightIdx, should not be included
+				20: {{ID: 101}}, // at RightIdx, should not be included
+				11: {{ID: 102}}, // just inside range, should be included
+				19: {{ID: 103}}, // just inside range, should be included
+			},
+			expected: []int64{102, 103},
+		},
+		{
+			name: "not a section line",
+			line: &DiffLine{
+				Type: DiffLinePlain,
+			},
+			lineComments: map[int64][]*issues_model.Comment{
+				15: {{ID: 100}},
+			},
+			expected: nil,
+		},
+		{
+			name: "section line without section info",
+			line: &DiffLine{
+				Type:        DiffLineSection,
+				SectionInfo: nil,
+			},
+			lineComments: map[int64][]*issues_model.Comment{
+				15: {{ID: 100}},
+			},
+			expected: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := CalculateHiddenCommentIDsForLine(tt.line, tt.lineComments)
+			if tt.expected == nil {
+				assert.Nil(t, result)
+			} else {
+				assert.ElementsMatch(t, tt.expected, result)
+			}
+		})
+	}
+}

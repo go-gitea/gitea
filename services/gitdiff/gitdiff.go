@@ -183,6 +183,28 @@ func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
 	return DiffLineExpandSingle
 }
 
+// CalculateHiddenCommentIDsForLine finds comment IDs that are in the hidden range of an expand button
+func CalculateHiddenCommentIDsForLine(line *DiffLine, lineComments map[int64][]*issues_model.Comment) []int64 {
+	if line.Type != DiffLineSection || line.SectionInfo == nil {
+		return nil
+	}
+
+	var hiddenCommentIDs []int64
+	for commentLineNum, comments := range lineComments {
+		absLineNum := int(commentLineNum)
+		if commentLineNum < 0 {
+			absLineNum = int(-commentLineNum)
+		}
+		// Check if comments are in the hidden range
+		if absLineNum > line.SectionInfo.LastRightIdx && absLineNum < line.SectionInfo.RightIdx {
+			for _, comment := range comments {
+				hiddenCommentIDs = append(hiddenCommentIDs, comment.ID)
+			}
+		}
+	}
+	return hiddenCommentIDs
+}
+
 func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int) *DiffLineSectionInfo {
 	leftLine, leftHunk, rightLine, rightHunk := git.ParseDiffHunkString(line)
 
@@ -488,24 +510,8 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 					})
 
 					// Mark expand buttons that have comments in hidden lines
-					if line.Type == DiffLineSection && line.SectionInfo != nil {
-						var hiddenCommentIDs []int64
-						// Check if there are comments in the hidden range
-						for commentLineNum, comments := range lineCommits {
-							absLineNum := int(commentLineNum)
-							if commentLineNum < 0 {
-								absLineNum = int(-commentLineNum)
-							}
-							if absLineNum > line.SectionInfo.LastRightIdx && absLineNum < line.SectionInfo.RightIdx {
-								// Collect comment IDs
-								for _, comment := range comments {
-									hiddenCommentIDs = append(hiddenCommentIDs, comment.ID)
-								}
-							}
-						}
-						if len(hiddenCommentIDs) > 0 {
-							line.HiddenCommentIDs = hiddenCommentIDs
-						}
+					if hiddenIDs := CalculateHiddenCommentIDsForLine(line, lineCommits); len(hiddenIDs) > 0 {
+						line.HiddenCommentIDs = hiddenIDs
 					}
 				}
 			}
@@ -1427,6 +1433,11 @@ func GeneratePatchForUnchangedLine(gitRepo *git.Repository, commitID, treePath s
 	}
 	defer dataRc.Close()
 
+	return generatePatchForUnchangedLineFromReader(dataRc, treePath, line, contextLines)
+}
+
+// generatePatchForUnchangedLineFromReader is the testable core logic that generates a patch from a reader
+func generatePatchForUnchangedLineFromReader(reader io.Reader, treePath string, line int64, contextLines int) (string, error) {
 	// Calculate line range (commented line + lines above it)
 	commentLine := int(line)
 	if line < 0 {
@@ -1436,7 +1447,7 @@ func GeneratePatchForUnchangedLine(gitRepo *git.Repository, commitID, treePath s
 	endLine := commentLine
 
 	// Read only the needed lines efficiently
-	scanner := bufio.NewScanner(dataRc)
+	scanner := bufio.NewScanner(reader)
 	currentLine := 0
 	var lines []string
 	for scanner.Scan() {

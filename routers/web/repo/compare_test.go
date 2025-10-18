@@ -12,57 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCalculateHiddenCommentIDs(t *testing.T) {
-	tests := []struct {
-		name         string
-		line         *gitdiff.DiffLine
-		lineComments map[int64][]*issues_model.Comment
-		expected     []int64
-	}{
-		{
-			name: "comments in hidden range",
-			line: &gitdiff.DiffLine{
-				Type: gitdiff.DiffLineSection,
-				SectionInfo: &gitdiff.DiffLineSectionInfo{
-					LastRightIdx: 10,
-					RightIdx:     20,
-				},
-			},
-			lineComments: map[int64][]*issues_model.Comment{
-				15: {{ID: 100}, {ID: 101}},
-				12: {{ID: 102}},
-			},
-			expected: []int64{100, 101, 102},
-		},
-		{
-			name: "comments outside hidden range",
-			line: &gitdiff.DiffLine{
-				Type: gitdiff.DiffLineSection,
-				SectionInfo: &gitdiff.DiffLineSectionInfo{
-					LastRightIdx: 10,
-					RightIdx:     20,
-				},
-			},
-			lineComments: map[int64][]*issues_model.Comment{
-				5:  {{ID: 100}},
-				25: {{ID: 101}},
-			},
-			expected: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := calculateHiddenCommentIDs(tt.line, tt.lineComments)
-			if tt.expected == nil {
-				assert.Nil(t, result)
-			} else {
-				assert.ElementsMatch(t, tt.expected, result)
-			}
-		})
-	}
-}
-
 func TestAttachHiddenCommentIDs(t *testing.T) {
 	section := &gitdiff.DiffSection{
 		Lines: []*gitdiff.DiffLine{
