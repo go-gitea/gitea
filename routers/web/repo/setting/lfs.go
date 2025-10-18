@@ -32,11 +32,11 @@ import (
 )
 
 const (
-	tplSettingsLFS         templates.TplName = "repo/settings/lfs"
-	tplSettingsLFSLocks    templates.TplName = "repo/settings/lfs_locks"
-	tplSettingsLFSFile     templates.TplName = "repo/settings/lfs_file"
-	tplSettingsLFSFileFind templates.TplName = "repo/settings/lfs_file_find"
-	tplSettingsLFSPointers templates.TplName = "repo/settings/lfs_pointers"
+	tplSettingsLFS         templates.TplName = "repo/settings/lfs/lfs"
+	tplSettingsLFSLocks    templates.TplName = "repo/settings/lfs/lfs_locks"
+	tplSettingsLFSFile     templates.TplName = "repo/settings/lfs/lfs_file"
+	tplSettingsLFSFileFind templates.TplName = "repo/settings/lfs/lfs_file_find"
+	tplSettingsLFSPointers templates.TplName = "repo/settings/lfs/lfs_pointers"
 )
 
 // LFSFiles shows a repository's LFS files
