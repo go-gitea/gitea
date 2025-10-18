@@ -156,7 +156,6 @@ func serveInstall(cmd *cli.Command) error {
 	case <-graceful.GetManager().IsShutdown():
 		<-graceful.GetManager().Done()
 		log.Info("PID: %d Gitea Web Finished", os.Getpid())
-		log.GetManager().Close()
 		return err
 	default:
 	}
@@ -231,7 +230,6 @@ func serveInstalled(c *cli.Command) error {
 	err := listen(webRoutes, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
-	log.GetManager().Close()
 	return err
 }
 
