@@ -81,16 +81,14 @@ const (
 
 // DiffLine represents a line difference in a DiffSection.
 type DiffLine struct {
-	LeftIdx            int // line number, 1-based
-	RightIdx           int // line number, 1-based
-	Match              int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
-	Type               DiffLineType
-	Content            string
-	Comments           issues_model.CommentList // related PR code comments
-	SectionInfo        *DiffLineSectionInfo
-	HasHiddenComments  bool    // indicates if this expand button has comments in hidden lines
-	HiddenCommentCount int     // number of hidden comments in this section
-	HiddenCommentIDs   []int64 // IDs of hidden comments in this section
+	LeftIdx          int // line number, 1-based
+	RightIdx         int // line number, 1-based
+	Match            int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
+	Type             DiffLineType
+	Content          string
+	Comments         issues_model.CommentList // related PR code comments
+	SectionInfo      *DiffLineSectionInfo
+	HiddenCommentIDs []int64 // IDs of hidden comments in this section
 }
 
 // DiffLineSectionInfo represents diff line section meta data
@@ -491,7 +489,6 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 
 					// Mark expand buttons that have comments in hidden lines
 					if line.Type == DiffLineSection && line.SectionInfo != nil {
-						hiddenCommentCount := 0
 						var hiddenCommentIDs []int64
 						// Check if there are comments in the hidden range
 						for commentLineNum, comments := range lineCommits {
@@ -500,16 +497,13 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 								absLineNum = int(-commentLineNum)
 							}
 							if absLineNum > line.SectionInfo.LastRightIdx && absLineNum < line.SectionInfo.RightIdx {
-								hiddenCommentCount++
 								// Collect comment IDs
 								for _, comment := range comments {
 									hiddenCommentIDs = append(hiddenCommentIDs, comment.ID)
 								}
 							}
 						}
-						if hiddenCommentCount > 0 {
-							line.HasHiddenComments = true
-							line.HiddenCommentCount = hiddenCommentCount
+						if len(hiddenCommentIDs) > 0 {
 							line.HiddenCommentIDs = hiddenCommentIDs
 						}
 					}

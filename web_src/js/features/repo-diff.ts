@@ -224,12 +224,23 @@ async function loadUntilFound() {
     return;
   }
 
+  let wasExpanded = false;
+
   while (true) {
     // use getElementById to avoid querySelector throws an error when the hash is invalid
     // eslint-disable-next-line unicorn/prefer-query-selector
     const targetElement = document.getElementById(hashTargetSelector.substring(1));
     if (targetElement) {
-      targetElement.scrollIntoView();
+      // If we just expanded content, we need to re-trigger :target CSS
+      if (wasExpanded) {
+        const currentHash = window.location.hash;
+        window.location.hash = '';
+        setTimeout(() => {
+          window.location.hash = currentHash;
+        }, 10);
+      } else {
+        targetElement.scrollIntoView();
+      }
       return;
     }
 
@@ -239,6 +250,7 @@ async function loadUntilFound() {
       const expandButton = findExpandButtonForComment(commentId);
       if (expandButton) {
         expandButton.click();
+        wasExpanded = true;
         // Wait for HTMX to load the content
         await new Promise((resolve) => setTimeout(resolve, 500));
         continue; // Try again to find the element

@@ -986,7 +986,6 @@ func ExcerptBlob(ctx *context.Context) {
 						// Recalculate hidden comment counts for expand buttons after loading comments
 						for _, line := range section.Lines {
 							if line.Type == gitdiff.DiffLineSection && line.SectionInfo != nil {
-								hiddenCommentCount := 0
 								var hiddenCommentIDs []int64
 								// Check if there are comments in the hidden range
 								for commentLineNum, comments := range lineComments {
@@ -996,16 +995,13 @@ func ExcerptBlob(ctx *context.Context) {
 									}
 									// Count comments that are in the hidden range
 									if int(absLineNum) > line.SectionInfo.LastRightIdx && int(absLineNum) < line.SectionInfo.RightIdx {
-										hiddenCommentCount++
 										// Collect comment IDs
 										for _, comment := range comments {
 											hiddenCommentIDs = append(hiddenCommentIDs, comment.ID)
 										}
 									}
 								}
-								if hiddenCommentCount > 0 {
-									line.HasHiddenComments = true
-									line.HiddenCommentCount = hiddenCommentCount
+								if len(hiddenCommentIDs) > 0 {
 									line.HiddenCommentIDs = hiddenCommentIDs
 								}
 							}
