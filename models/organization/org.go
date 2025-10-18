@@ -429,7 +429,7 @@ func HasOrgOrUserVisible(ctx context.Context, orgOrUser, user *user_model.User) 
 		return true
 	}
 
-	if orgOrUser.Visibility == structs.VisibleTypePublic {
+	if !setting.Service.RequireSignInViewStrict && orgOrUser.Visibility == structs.VisibleTypePublic {
 		return true
 	}
 

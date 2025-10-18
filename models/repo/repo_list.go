@@ -687,7 +687,7 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 		if !user.IsRestricted {
 			// 5. Be able to see all public repos in private organizations that we are an org_user of
 			cond = cond.Or(userOrgPublicRepoCond(user.ID))
-		} else {
+		} else if !setting.Service.RequireSignInViewStrict {
 			orgVisibilityLimit := []structs.VisibleType{structs.VisibleTypePrivate, structs.VisibleTypeLimited}
 			cond = userAllPublicRepoCond(cond, orgVisibilityLimit)
 		}
