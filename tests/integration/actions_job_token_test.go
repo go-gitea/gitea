@@ -8,6 +8,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/structs"
+
 	"github.com/stretchr/testify/require"
 )
 
