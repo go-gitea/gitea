@@ -805,9 +805,10 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 				},
 			},
 			lineComments: map[int64][]*issues_model.Comment{
-				-15: {{ID: 100}},
+				-15: {{ID: 100}}, // Left-side comment, should NOT be counted
+				15:  {{ID: 101}}, // Right-side comment, should be counted
 			},
-			expected: []int64{100},
+			expected: []int64{101}, // Only right-side comment
 		},
 		{
 			name: "boundary conditions - normal expansion (both boundaries exclusive)",
