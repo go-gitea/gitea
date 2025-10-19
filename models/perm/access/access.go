@@ -104,7 +104,7 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 	}
 
 	// Query existing accesses for cross-comparison
-	existingAccesses, err := db.Find[Access](ctx, &Access{RepoID: repo.ID})
+	existingAccesses, err := db.Find[Access](ctx, builder.Eq{"repo_id": repo.ID})
 	if err != nil {
 		return fmt.Errorf("find existing accesses: %w", err)
 	}
