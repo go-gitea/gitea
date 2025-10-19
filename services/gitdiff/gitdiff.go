@@ -224,7 +224,8 @@ func FillHiddenCommentIDsForDiffLine(line *DiffLine, lineComments map[int64][]*i
 	var hiddenCommentIDs []int64
 	for commentLineNum, comments := range lineComments {
 		if commentLineNum < 0 {
-			continue // Skip left-side, unchanged lines always use "right (proposed)" side for comments
+			// ATTENTION: BLOB-EXCERPT-COMMENT-RIGHT: skip left-side, unchanged lines always use "right (proposed)" side for comments
+			continue
 		}
 		lineNum := int(commentLineNum)
 		isEndOfFileExpansion := line.SectionInfo.RightHunkSize == 0
