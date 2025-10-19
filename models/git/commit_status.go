@@ -233,7 +233,7 @@ func (status *CommitStatus) cutTargetURLGiteaActionsPrefix(ctx context.Context) 
 	}
 
 	prefix := status.Repo.Link() + "/actions"
-	return strings.CutPrefix(prefix, status.TargetURL)
+	return strings.CutPrefix(status.TargetURL, prefix)
 }
 
 // ParseGiteaActionsTargetURL parses the commit status target URL as Gitea Actions link
