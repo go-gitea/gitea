@@ -30,17 +30,21 @@ import (
 
 // CommitStatus holds a single Status of a single Commit
 type CommitStatus struct {
-	ID          int64                          `xorm:"pk autoincr"`
-	Index       int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	RepoID      int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	Repo        *repo_model.Repository         `xorm:"-"`
-	State       commitstatus.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
-	SHA         string                         `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
-	TargetURL   string                         `xorm:"TEXT"`
-	Description string                         `xorm:"TEXT"`
-	ContextHash string                         `xorm:"VARCHAR(64) index"`
-	Context     string                         `xorm:"TEXT"`
-	Creator     *user_model.User               `xorm:"-"`
+	ID     int64                          `xorm:"pk autoincr"`
+	Index  int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
+	RepoID int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
+	Repo   *repo_model.Repository         `xorm:"-"`
+	State  commitstatus.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
+	SHA    string                         `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
+
+	// TargetURL points to the commit status page reported by a CI system
+	// If Gitea Actions is used, it is a relative  like "{RepoLink}/actions/runs/{RunID}/jobs{JobID}"
+	TargetURL string `xorm:"TEXT"`
+
+	Description string           `xorm:"TEXT"`
+	ContextHash string           `xorm:"VARCHAR(64) index"`
+	Context     string           `xorm:"TEXT"`
+	Creator     *user_model.User `xorm:"-"`
 	CreatorID   int64
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
@@ -211,26 +215,45 @@ func (status *CommitStatus) LocaleString(lang translation.Locale) string {
 
 // HideActionsURL set `TargetURL` to an empty string if the status comes from Gitea Actions
 func (status *CommitStatus) HideActionsURL(ctx context.Context) {
-	if status.CreatedByGiteaActions(ctx) {
+	if _, ok := status.cutTargetURLGiteaActionsPrefix(ctx); ok {
 		status.TargetURL = ""
 	}
 }
 
-// CreatedByGiteaActions returns true if the commit status is created by Gitea Actions
-func (status *CommitStatus) CreatedByGiteaActions(ctx context.Context) bool {
+func (status *CommitStatus) cutTargetURLGiteaActionsPrefix(ctx context.Context) (string, bool) {
 	if status.RepoID == 0 {
-		return false
+		return "", false
 	}
 
 	if status.Repo == nil {
 		if err := status.loadRepository(ctx); err != nil {
 			log.Error("loadRepository: %v", err)
-			return false
+			return "", false
 		}
 	}
 
 	prefix := status.Repo.Link() + "/actions"
-	return strings.HasPrefix(status.TargetURL, prefix)
+	return strings.CutPrefix(prefix, status.TargetURL)
+}
+
+// ParseGiteaActionsTargetURL parses the commit status target URL as Gitea Actions link
+func (status *CommitStatus) ParseGiteaActionsTargetURL(ctx context.Context) (runID, jobID int64, ok bool) {
+	s, ok := status.cutTargetURLGiteaActionsPrefix(ctx)
+	if !ok {
+		return 0, 0, false
+	}
+
+	parts := strings.Split(s, "/") // expect: /runs/{runID}/jobs/{jobID}
+	if len(parts) < 5 || parts[1] != "runs" || parts[3] != "jobs" {
+		return 0, 0, false
+	}
+
+	runID, err1 := strconv.ParseInt(parts[2], 10, 64)
+	jobID, err2 := strconv.ParseInt(parts[4], 10, 64)
+	if err1 != nil || err2 != nil {
+		return 0, 0, false
+	}
+	return runID, jobID, true
 }
 
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc

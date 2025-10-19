@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"regexp"
 	"strconv"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -57,14 +56,11 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) ([]*actions_model.ActionRun, error) {
 	runMap := make(map[int64]*actions_model.ActionRun)
 	for _, status := range statuses {
-		if !status.CreatedByGiteaActions(ctx) {
+		runIndex, _, ok := status.ParseGiteaActionsTargetURL(ctx)
+		if !ok {
 			continue
 		}
-		runIndex, _, err := getActionRunAndJobIndexFromCommitStatus(status)
-		if err != nil {
-			return nil, fmt.Errorf("getActionRunAndJobIndexFromCommitStatus: %w", err)
-		}
-		_, ok := runMap[runIndex]
+		_, ok = runMap[runIndex]
 		if !ok {
 			run, err := actions_model.GetRunByIndex(ctx, status.RepoID, runIndex)
 			if err != nil {
@@ -82,27 +78,6 @@ func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.Commit
 		runs = append(runs, run)
 	}
 	return runs, nil
-}
-
-func getActionRunAndJobIndexFromCommitStatus(status *git_model.CommitStatus) (int64, int64, error) {
-	// status.TargetURL should be like "<repo_link>/actions/runs/<run_index>/jobs/<job_index>"
-	re := regexp.MustCompile(regexp.QuoteMeta(status.Repo.Link()+"/actions/runs/") + `(\d+)/jobs/(\d+)$`)
-	matches := re.FindStringSubmatch(status.TargetURL)
-
-	if len(matches) != 3 {
-		return 0, 0, fmt.Errorf("%s is not a Gitea Actions link", status.TargetURL)
-	}
-
-	runIndex, err := strconv.ParseInt(matches[1], 10, 64)
-	if err != nil {
-		return 0, 0, fmt.Errorf("parse run index: %w", err)
-	}
-	jobIndex, err := strconv.ParseInt(matches[2], 10, 64)
-	if err != nil {
-		return 0, 0, fmt.Errorf("parse job index: %w", err)
-	}
-
-	return runIndex, jobIndex, nil
 }
 
 func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {
