@@ -17,7 +17,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -235,7 +234,7 @@ func TestAPIMergePull(t *testing.T) {
 			prResp := creatPullRequestWithCommit(t, owner, token, newBranch, repo)
 
 			// set the default branch after merge setting at the repo level
-			prUnit, err := repo.GetUnit(t.Context(), unit.TypePullRequests)
+			prUnit, err := repo.GetUnit(t.Context(), unit_model.TypePullRequests)
 			require.NoError(t, err)
 
 			prConfig := prUnit.PullRequestsConfig()
