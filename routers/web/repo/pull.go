@@ -313,11 +313,11 @@ func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 }
 
 type pullCommitStatusCheckData struct {
-	MissingRequiredChecks []string
-	IsContextRequired     func(string) bool
-	RequireApproval       bool
-	CanApprove            bool
-	ApproveLink           string
+	MissingRequiredChecks []string          // list of missing required checks
+	IsContextRequired     func(string) bool // function to check whether a context is required
+	RequireApproval       bool              // whether approval is required for workflow runs
+	CanApprove            bool              // whether the user can approve workflow runs
+	ApproveLink           string            // link to approve all checks
 }
 
 // prepareViewPullInfo show meta information for a pull request preview page
