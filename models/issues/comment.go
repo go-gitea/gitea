@@ -1101,14 +1101,27 @@ func FindCommitComments(ctx context.Context, repoID int64, commitSHA string) (Co
 
 // FindCommitLineComments finds code comments for a specific file and line in a commit
 func FindCommitLineComments(ctx context.Context, commitSHA, treePath string) (CommentList, error) {
-	comments := make([]*Comment, 0, 10)
-	return comments, db.GetEngine(ctx).
+	// Fetch all commit code comments for this commit (filter by tree path in memory to avoid needing a new index)
+	allComments := make([]*Comment, 0, 10)
+	err := db.GetEngine(ctx).
 		Where("commit_sha = ?", commitSHA).
-		And("tree_path = ?", treePath).
 		And("type = ?", CommentTypeCommitCode).
 		Asc("created_unix").
 		Asc("id").
-		Find(&comments)
+		Find(&allComments)
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter in memory by tree path
+	comments := make(CommentList, 0, len(allComments))
+	for _, comment := range allComments {
+		if comment.TreePath == treePath {
+			comments = append(comments, comment)
+		}
+	}
+
+	return comments, nil
 }
 
 // UpdateCommentInvalidate updates comment invalidated column
