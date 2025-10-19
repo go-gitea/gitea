@@ -264,8 +264,8 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		return perm, err
 	}
 	if task.RepoID != repo.ID {
-		// Allow public repo read access
-		return GetUserRepoPermission(ctx, repo, actionsUser)
+		// FIXME allow public repo read access if tokenless pull is enabled
+		return perm, nil
 	}
 
 	var accessMode perm_model.AccessMode
