@@ -246,7 +246,7 @@ async function onLocationHashChange() {
     const issueCommentPrefix = '#issuecomment-';
     if (currentHash.startsWith(issueCommentPrefix)) {
       const commentId = currentHash.substring(issueCommentPrefix.length);
-      const expandButton = findExpandButtonForComment(commentId);
+      const expandButton = document.querySelector<HTMLElement>(`.code-expander-button[data-hidden-comment-ids*=",${commentId},"]`);
       if (expandButton) {
         // avoid infinite loop, do not re-click the button if already clicked
         const attrAutoLoadClicked = 'data-auto-load-clicked';
@@ -268,20 +268,6 @@ async function onLocationHashChange() {
     const ok = await loadMoreFiles(showMoreButton);
     if (!ok) return; // failed to load more files
   }
-}
-
-// Find the expand button that contains the target comment ID
-function findExpandButtonForComment(commentId: string): HTMLElement | null {
-  const expandButtons = document.querySelectorAll('.code-expander-button[data-hidden-comment-ids]');
-  for (const button of expandButtons) {
-    const hiddenIdsAttr = button.getAttribute('data-hidden-comment-ids');
-    if (!hiddenIdsAttr) continue;
-    const hiddenIds = hiddenIdsAttr.split(',').filter(Boolean);
-    if (hiddenIds.includes(commentId)) {
-      return button as HTMLElement;
-    }
-  }
-  return null;
 }
 
 function initRepoDiffHashChangeListener() {

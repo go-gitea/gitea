@@ -935,7 +935,7 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 				"octicon-fold-up",
 				"direction=down",
 				"direction=up",
-				"data-hidden-comment-ids=\"200,201\"",
+				`data-hidden-comment-ids=",200,201,"`, // use leading and trailing commas to ensure exact match by CSS selector `attr*=",id,"`
 				"pull_issue_index=42",
 				"2 hidden comment(s)",
 			},
