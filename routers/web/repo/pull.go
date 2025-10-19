@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -1099,7 +1100,7 @@ func MergePullRequest(ctx *context.Context) {
 		// delete all scheduled auto merges
 		_ = pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
 		// schedule auto merge
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, form.DeleteBranchAfterMerge)
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, optional.FromPtr(form.DeleteBranchAfterMerge).ValueOrDefault(false))
 		if err != nil {
 			ctx.ServerError("ScheduleAutoMerge", err)
 			return
@@ -1185,7 +1186,7 @@ func MergePullRequest(ctx *context.Context) {
 
 	log.Trace("Pull request merged: %d", pr.ID)
 
-	if !form.DeleteBranchAfterMerge {
+	if !optional.FromPtr(form.DeleteBranchAfterMerge).ValueOrDefault(false) {
 		ctx.JSONRedirect(issue.Link())
 		return
 	}

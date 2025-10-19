@@ -219,10 +219,11 @@ func TestAPIMergePull(t *testing.T) {
 		t.Run("DeleteBranchAfterMergePassedByFormField", func(t *testing.T) {
 			newBranch := "test-pull-2"
 			prResp := creatPullRequestWithCommit(t, owner, token, newBranch, repo)
+			deleteBranch := true
 
 			req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, prResp.Index), &forms.MergePullRequestForm{
 				Do:                     "merge",
-				DeleteBranchAfterMerge: true,
+				DeleteBranchAfterMerge: &deleteBranch,
 			}).AddTokenAuth(token)
 
 			MakeRequest(t, req, http.StatusOK)
@@ -251,6 +252,36 @@ func TestAPIMergePull(t *testing.T) {
 			// perform merge
 			req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, prResp.Index), &forms.MergePullRequestForm{
 				Do: "merge",
+			}).AddTokenAuth(token)
+
+			MakeRequest(t, req, http.StatusOK)
+			doCheckBranchExists(owner, token, newBranch, repo, http.StatusNotFound)
+		})
+
+		t.Run("DeleteBranchAfterMergeFormFieldIsSetButNotRepoSettings", func(t *testing.T) {
+			newBranch := "test-pull-4"
+			prResp := creatPullRequestWithCommit(t, owner, token, newBranch, repo)
+
+			// make sure the default branch after merge setting is unset at the repo level
+			prUnit, err := repo.GetUnit(t.Context(), unit_model.TypePullRequests)
+			require.NoError(t, err)
+
+			prConfig := prUnit.PullRequestsConfig()
+			prConfig.DefaultDeleteBranchAfterMerge = false
+
+			var units []repo_model.RepoUnit
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypePullRequests,
+				Config: prConfig,
+			})
+			require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, units, nil))
+
+			// perform merge
+			deleteBranch := true
+			req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, prResp.Index), &forms.MergePullRequestForm{
+				Do:                     "merge",
+				DeleteBranchAfterMerge: &deleteBranch,
 			}).AddTokenAuth(token)
 
 			MakeRequest(t, req, http.StatusOK)

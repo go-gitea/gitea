@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -990,7 +991,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, form.DeleteBranchAfterMerge)
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, optional.FromPtr(form.DeleteBranchAfterMerge).ValueOrDefault(false))
 		if err != nil {
 			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
 				ctx.APIError(http.StatusConflict, err)
@@ -1042,8 +1043,14 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	// for agit flow, we should not delete the agit reference after merge
-	shouldDeleteBranch := (prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge || form.DeleteBranchAfterMerge) &&
-		pr.Flow == issues_model.PullRequestFlowGithub
+	shouldDeleteBranch := pr.Flow == issues_model.PullRequestFlowGithub
+	if form.DeleteBranchAfterMerge != nil {
+		// if the form field is defined, it takes precedence over the repo setting equivalent
+		shouldDeleteBranch = shouldDeleteBranch && *form.DeleteBranchAfterMerge
+	} else {
+		// otherwise, we look at the repo setting to make the determination
+		shouldDeleteBranch = shouldDeleteBranch && prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge
+	}
 
 	if shouldDeleteBranch {
 		// check permission even it has been checked in repo_service.DeleteBranch so that we don't need to
