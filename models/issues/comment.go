@@ -115,6 +115,8 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+
+	CommentTypeCommitCode // 39 Comment a line of code in a commit (not part of a pull request)
 )
 
 var commentStrings = []string{
@@ -157,6 +159,7 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"commit_code",
 }
 
 func (t CommentType) String() string {
@@ -174,7 +177,7 @@ func AsCommentType(typeName string) CommentType {
 
 func (t CommentType) HasContentSupport() bool {
 	switch t {
-	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview:
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview, CommentTypeCommitCode:
 		return true
 	}
 	return false
@@ -182,7 +185,7 @@ func (t CommentType) HasContentSupport() bool {
 
 func (t CommentType) HasAttachmentSupport() bool {
 	switch t {
-	case CommentTypeComment, CommentTypeCode, CommentTypeReview:
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeCommitCode:
 		return true
 	}
 	return false
@@ -190,7 +193,7 @@ func (t CommentType) HasAttachmentSupport() bool {
 
 func (t CommentType) HasMailReplySupport() bool {
 	switch t {
-	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview, CommentTypeReopen, CommentTypeClose, CommentTypeMergePull, CommentTypeAssignees:
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview, CommentTypeReopen, CommentTypeClose, CommentTypeMergePull, CommentTypeAssignees, CommentTypeCommitCode:
 		return true
 	}
 	return false
@@ -447,6 +450,9 @@ func (c *Comment) hashLink(ctx context.Context) string {
 			return "/files#" + c.HashTag()
 		}
 	}
+	if c.Type == CommentTypeCommitCode {
+		return "/files#" + c.HashTag()
+	}
 	return "#" + c.HashTag()
 }
 
@@ -657,9 +663,9 @@ func (c *Comment) LoadAssigneeUserAndTeam(ctx context.Context) error {
 	return nil
 }
 
-// LoadResolveDoer if comment.Type is CommentTypeCode and ResolveDoerID not zero, then load resolveDoer
+// LoadResolveDoer if comment.Type is CommentTypeCode or CommentTypeCommitCode and ResolveDoerID not zero, then load resolveDoer
 func (c *Comment) LoadResolveDoer(ctx context.Context) (err error) {
-	if c.ResolveDoerID == 0 || c.Type != CommentTypeCode {
+	if c.ResolveDoerID == 0 || (c.Type != CommentTypeCode && c.Type != CommentTypeCommitCode) {
 		return nil
 	}
 	c.ResolveDoer, err = user_model.GetUserByID(ctx, c.ResolveDoerID)
@@ -674,7 +680,7 @@ func (c *Comment) LoadResolveDoer(ctx context.Context) (err error) {
 
 // IsResolved check if an code comment is resolved
 func (c *Comment) IsResolved() bool {
-	return c.ResolveDoerID != 0 && c.Type == CommentTypeCode
+	return c.ResolveDoerID != 0 && (c.Type == CommentTypeCode || c.Type == CommentTypeCommitCode)
 }
 
 // LoadDepIssueDetails loads Dependent Issue Details
@@ -862,6 +868,12 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		if err = UpdateCommentAttachments(ctx, comment, opts.Attachments); err != nil {
 			return err
 		}
+	case CommentTypeCommitCode:
+		if err = UpdateCommentAttachments(ctx, comment, opts.Attachments); err != nil {
+			return err
+		}
+		// Commit comments don't have an associated issue, so just return here
+		return nil
 	case CommentTypeReopen, CommentTypeClose:
 		if err = repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, true); err != nil {
 			return err
@@ -1074,6 +1086,42 @@ func CountComments(ctx context.Context, opts *FindCommentsOptions) (int64, error
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
 	return sess.Count(&Comment{})
+}
+
+// FindCommitComments finds all code comments for a specific commit
+func FindCommitComments(ctx context.Context, repoID int64, commitSHA string) (CommentList, error) {
+	comments := make([]*Comment, 0, 10)
+	return comments, db.GetEngine(ctx).
+		Where("commit_sha = ?", commitSHA).
+		And("type = ?", CommentTypeCommitCode).
+		Asc("created_unix").
+		Asc("id").
+		Find(&comments)
+}
+
+// FindCommitLineComments finds code comments for a specific file and line in a commit
+func FindCommitLineComments(ctx context.Context, commitSHA, treePath string) (CommentList, error) {
+	// Fetch all commit code comments for this commit (filter by tree path in memory to avoid needing a new index)
+	allComments := make([]*Comment, 0, 10)
+	err := db.GetEngine(ctx).
+		Where("commit_sha = ?", commitSHA).
+		And("type = ?", CommentTypeCommitCode).
+		Asc("created_unix").
+		Asc("id").
+		Find(&allComments)
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter in memory by tree path
+	comments := make(CommentList, 0, len(allComments))
+	for _, comment := range allComments {
+		if comment.TreePath == treePath {
+			comments = append(comments, comment)
+		}
+	}
+
+	return comments, nil
 }
 
 // UpdateCommentInvalidate updates comment invalidated column
