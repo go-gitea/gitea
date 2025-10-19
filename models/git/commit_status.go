@@ -38,7 +38,7 @@ type CommitStatus struct {
 	SHA    string                         `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
 
 	// TargetURL points to the commit status page reported by a CI system
-	// If Gitea Actions is used, it is a relative  like "{RepoLink}/actions/runs/{RunID}/jobs{JobID}"
+	// If Gitea Actions is used, it is a relative link like "{RepoLink}/actions/runs/{RunID}/jobs{JobID}"
 	TargetURL string `xorm:"TEXT"`
 
 	Description string           `xorm:"TEXT"`
