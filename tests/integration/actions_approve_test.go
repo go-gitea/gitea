@@ -112,13 +112,13 @@ jobs:
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", baseRepo.OwnerName, baseRepo.Name, apiPull.Index))
 		resp = user4Session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.Zero(t, htmlDoc.doc.Find(".commit-status-header button.link-action").Length())
+		assert.Zero(t, htmlDoc.doc.Find("#approve-status-checks button.link-action").Length())
 
 		// user2 can see the approve button
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", baseRepo.OwnerName, baseRepo.Name, apiPull.Index))
 		resp = user2Session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
-		dataURL, exist := htmlDoc.doc.Find(".commit-status-header button.link-action").Attr("data-url")
+		dataURL, exist := htmlDoc.doc.Find("#approve-status-checks button.link-action").Attr("data-url")
 		assert.True(t, exist)
 		assert.Equal(t,
 			fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s",

@@ -22,20 +22,31 @@
 			{{ctx.Locale.Tr "repo.pulls.status_checking"}}
 		{{end}}
 
+		{{if .ShowHideChecks}}
 		<div class="ui right">
-			{{if and $statusCheckData $statusCheckData.RequireApproval $statusCheckData.CanApprove}}
-				<button class="ui basic small compact button link-action" data-url="{{$statusCheckData.ApproveLink}}">
+			<button class="commit-status-hide-checks btn interact-fg"
+			data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
+			data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}">
+			{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
+		</div>
+		{{end}}
+	</div>
+
+	{{if and $statusCheckData (gt $statusCheckData.RequireApprovalRunCount 0)}}
+		<div class="ui attached segment tw-flex tw-items-center tw-justify-between" id="approve-status-checks">
+			<div>
+				<strong>
+					{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals" $statusCheckData.RequireApprovalRunCount}}
+				</strong>
+				<p>{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals_helper"}}</p>
+			</div>
+			{{if $statusCheckData.CanApprove}}
+				<button class="ui basic button link-action" data-url="{{$statusCheckData.ApproveLink}}">
 					{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
 				</button>
 			{{end}}
-			{{if .ShowHideChecks}}
-				<button class="commit-status-hide-checks btn interact-fg"
-				data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
-				data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}">
-				{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
-			{{end}}
 		</div>
-	</div>
+	{{end}}
 
 	<div class="commit-status-list">
 		{{range .CommitStatuses}}

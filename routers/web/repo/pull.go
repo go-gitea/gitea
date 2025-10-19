@@ -313,11 +313,11 @@ func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 }
 
 type pullCommitStatusCheckData struct {
-	MissingRequiredChecks []string          // list of missing required checks
-	IsContextRequired     func(string) bool // function to check whether a context is required
-	RequireApproval       bool              // whether approval is required for workflow runs
-	CanApprove            bool              // whether the user can approve workflow runs
-	ApproveLink           string            // link to approve all checks
+	MissingRequiredChecks   []string          // list of missing required checks
+	IsContextRequired       func(string) bool // function to check whether a context is required
+	RequireApprovalRunCount int               // number of workflow runs that require approval
+	CanApprove              bool              // whether the user can approve workflow runs
+	ApproveLink             string            // link to approve all checks
 }
 
 // prepareViewPullInfo show meta information for a pull request preview page
@@ -486,11 +486,10 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 	}
 	for _, run := range runs {
 		if run.NeedApproval {
-			statusCheckData.RequireApproval = true
-			break
+			statusCheckData.RequireApprovalRunCount++
 		}
 	}
-	if statusCheckData.RequireApproval {
+	if statusCheckData.RequireApprovalRunCount > 0 {
 		statusCheckData.CanApprove = ctx.Repo.CanWrite(unit.TypeActions)
 	}
 
