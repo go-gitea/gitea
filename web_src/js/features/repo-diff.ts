@@ -218,31 +218,40 @@ function initRepoDiffShowMore() {
   });
 }
 
-async function loadUntilFound() {
+async function onLocationHashChange() {
+  // try to scroll to the target element by the current hash
   const currentHash = window.location.hash;
-  if (!currentHash.startsWith('#diff-') && !currentHash.startsWith('#issuecomment-')) {
-    return;
-  }
+  if (!currentHash.startsWith('#diff-') && !currentHash.startsWith('#issuecomment-')) return;
 
-  while (window.location.hash === currentHash) {
+  // avoid reentrance when we are changing the hash to scroll and trigger ":target" selection
+  const attrAutoScrollRunning = 'data-auto-scroll-running';
+  if (document.body.hasAttribute(attrAutoScrollRunning)) return;
+
+  const targetElementId = currentHash.substring(1);
+  while (currentHash === window.location.hash) {
     // use getElementById to avoid querySelector throws an error when the hash is invalid
     // eslint-disable-next-line unicorn/prefer-query-selector
-    const targetElement = document.getElementById(currentHash.substring(1));
+    const targetElement = document.getElementById(targetElementId);
     if (targetElement) {
-      // re-trigger :target CSS and browser will scroll to the element
+      // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
+      targetElement.scrollIntoView();
+      document.body.setAttribute(attrAutoScrollRunning, 'true');
       window.location.hash = '';
-      setTimeout(() => { window.location.hash = currentHash }, 0);
+      window.location.hash = currentHash;
+      setTimeout(() => document.body.removeAttribute(attrAutoScrollRunning), 0);
       return;
     }
 
     // If looking for a hidden comment, try to expand the section that contains it
-    if (currentHash.startsWith('#issuecomment-')) {
-      const commentId = currentHash.substring('#issuecomment-'.length);
+    const issueCommentPrefix = '#issuecomment-';
+    if (currentHash.startsWith(issueCommentPrefix)) {
+      const commentId = currentHash.substring(issueCommentPrefix.length);
       const expandButton = findExpandButtonForComment(commentId);
       if (expandButton) {
-        // Avoid infinite loop, do not re-click the button if already clicked
-        if (expandButton.hasAttribute('data-auto-load-clicked')) return;
-        expandButton.setAttribute('data-auto-load-clicked', 'true');
+        // avoid infinite loop, do not re-click the button if already clicked
+        const attrAutoLoadClicked = 'data-auto-load-clicked';
+        if (expandButton.hasAttribute(attrAutoLoadClicked)) return;
+        expandButton.setAttribute(attrAutoLoadClicked, 'true');
         expandButton.click();
         await sleep(500); // Wait for HTMX to load the content. FIXME: need to drop htmx in the future
         continue; // Try again to find the element
@@ -276,8 +285,8 @@ function findExpandButtonForComment(commentId: string): HTMLElement | null {
 }
 
 function initRepoDiffHashChangeListener() {
-  window.addEventListener('hashchange', loadUntilFound);
-  loadUntilFound();
+  window.addEventListener('hashchange', onLocationHashChange);
+  onLocationHashChange();
 }
 
 export function initRepoDiffView() {

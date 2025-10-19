@@ -995,10 +995,15 @@ func ExcerptBlob(ctx *context.Context) {
 		if err != nil {
 			log.Error("GetIssueByIndex error: %v", err)
 		} else if issue.IsPull {
+			// FIXME: DIFF-CONVERSATION-DATA: the following data assignment is fragile
 			ctx.Data["Issue"] = issue
 			ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 				return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 			}
+			// and "diff/comment_form.tmpl" (reply comment) needs them
+			ctx.Data["PageIsPullFiles"] = true
+			ctx.Data["AfterCommitID"] = diffBlobExcerptData.AfterCommitID
+
 			allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated"))
 			if err != nil {
 				log.Error("FetchCodeComments error: %v", err)

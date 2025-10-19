@@ -191,7 +191,7 @@ func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobE
 			link += fmt.Sprintf("&pull_issue_index=%d", data.PullIssueIndex)
 		}
 		return htmlutil.HTMLFormat(
-			`<button class="code-expander-button" hx-target="closest tr" hx-get="%s"  data-hidden-comment-ids="%s">%s</button>`,
+			`<button class="code-expander-button" hx-target="closest tr" hx-get="%s" data-hidden-comment-ids="%s">%s</button>`,
 			link, dataHiddenCommentIDs, svg.RenderHTML(svgName),
 		)
 	}

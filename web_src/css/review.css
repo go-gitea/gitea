@@ -127,7 +127,7 @@
   background-color: var(--color-primary);
   color: var(--color-primary-contrast);
   border-radius: 8px !important;
-  left: 4px;
+  left: -12px;
   top: 6px;
   text-align: center;
 }
