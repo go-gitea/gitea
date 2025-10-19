@@ -17,6 +17,8 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -26,10 +28,12 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIViewPulls(t *testing.T) {
@@ -184,6 +188,76 @@ func TestAPIMergePullWIP(t *testing.T) {
 	}).AddTokenAuth(token)
 
 	MakeRequest(t, req, http.StatusMethodNotAllowed)
+}
+
+func TestAPIMergePull(t *testing.T) {
+	doCheckBranchExists := func(user *user_model.User, token, branchName string, repo *repo_model.Repository, status int) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", user.Name, repo.Name, branchName)).AddTokenAuth(token)
+		MakeRequest(t, req, status)
+	}
+
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+		session := loginUser(t, owner.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		t.Run("Normal", func(t *testing.T) {
+			newBranch := "test-pull-1"
+			prResp := creatPullRequestWithCommit(t, owner, token, newBranch, repo)
+
+			req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, prResp.Index), &forms.MergePullRequestForm{
+				Do: "merge",
+			}).AddTokenAuth(token)
+
+			MakeRequest(t, req, http.StatusOK)
+			doCheckBranchExists(owner, token, newBranch, repo, http.StatusOK)
+			// make sure we cannot perform a merge on the same PR
+			MakeRequest(t, req, http.StatusUnprocessableEntity)
+			doCheckBranchExists(owner, token, newBranch, repo, http.StatusOK)
+		})
+
+		t.Run("DeleteBranchAfterMergePassedByFormField", func(t *testing.T) {
+			newBranch := "test-pull-2"
+			prResp := creatPullRequestWithCommit(t, owner, token, newBranch, repo)
+
+			req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, prResp.Index), &forms.MergePullRequestForm{
+				Do:                     "merge",
+				DeleteBranchAfterMerge: true,
+			}).AddTokenAuth(token)
+
+			MakeRequest(t, req, http.StatusOK)
+			doCheckBranchExists(owner, token, newBranch, repo, http.StatusNotFound)
+		})
+
+		t.Run("DeleteBranchAfterMergePassedByRepoSettings", func(t *testing.T) {
+			newBranch := "test-pull-3"
+			prResp := creatPullRequestWithCommit(t, owner, token, newBranch, repo)
+
+			// set the default branch after merge setting at the repo level
+			prUnit, err := repo.GetUnit(t.Context(), unit.TypePullRequests)
+			require.NoError(t, err)
+
+			prConfig := prUnit.PullRequestsConfig()
+			prConfig.DefaultDeleteBranchAfterMerge = true
+
+			var units []repo_model.RepoUnit
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypePullRequests,
+				Config: prConfig,
+			})
+			require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, units, nil))
+
+			// perform merge
+			req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, prResp.Index), &forms.MergePullRequestForm{
+				Do: "merge",
+			}).AddTokenAuth(token)
+
+			MakeRequest(t, req, http.StatusOK)
+			doCheckBranchExists(owner, token, newBranch, repo, http.StatusNotFound)
+		})
+	})
 }
 
 func TestAPICreatePullSuccess(t *testing.T) {
@@ -519,4 +593,47 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 			}
 		})(t)
 	})
+}
+
+func creatPullRequestWithCommit(t *testing.T, user *user_model.User, token, newBranch string, repo *repo_model.Repository) *api.PullRequest {
+	// create a new branch with a commit
+	filesResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user, &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation:     "create",
+				TreePath:      strings.ReplaceAll(newBranch, " ", "_"),
+				ContentReader: strings.NewReader("This is a test."),
+			},
+		},
+		Message:   "Add test file using branch name as its name",
+		OldBranch: repo.DefaultBranch,
+		NewBranch: newBranch,
+		Author: &files_service.IdentityOptions{
+			GitUserName:  user.Name,
+			GitUserEmail: user.Email,
+		},
+		Committer: &files_service.IdentityOptions{
+			GitUserName:  user.Name,
+			GitUserEmail: user.Email,
+		},
+		Dates: &files_service.CommitDateOptions{
+			Author:    time.Now(),
+			Committer: time.Now(),
+		},
+	})
+
+	require.NoError(t, err)
+	require.NotEmpty(t, filesResp)
+
+	// create a corresponding PR
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", user.Name, repo.Name), &api.CreatePullRequestOption{
+		Head:  newBranch,
+		Base:  repo.DefaultBranch,
+		Title: "Add a test file",
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusCreated)
+	pull := new(api.PullRequest)
+	DecodeJSON(t, resp, pull)
+
+	return pull
 }
