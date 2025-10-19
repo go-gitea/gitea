@@ -42,8 +42,8 @@ func testActionsJobTokenAccess(u *url.URL, isFork bool) func(t *testing.T) {
 		t.Run("Git Clone", doGitClone(dstPath, u))
 
 		t.Run("API Get Repository", doAPIGetRepository(context, func(t *testing.T, r structs.Repository) {
-			require.EqualValues(t, "repo4", r.Name)
-			require.EqualValues(t, "user5", r.Owner.UserName)
+			require.Equal(t, "repo4", r.Name)
+			require.Equal(t, "user5", r.Owner.UserName)
 		}))
 
 		if isFork {
