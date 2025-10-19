@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"os"
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -15,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
@@ -198,9 +198,10 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		if !forcePush.Value() {
-			output, _, err := git.NewCommand("rev-list", "--max-count=1").
-				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
-				RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
+			output, err := gitrepo.RunCmdString(ctx, repo,
+				gitcmd.NewCommand("rev-list", "--max-count=1").
+					AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]),
+			)
 			if err != nil {
 				return nil, fmt.Errorf("failed to detect force push: %w", err)
 			} else if len(output) > 0 {

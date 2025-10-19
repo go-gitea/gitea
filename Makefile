@@ -18,6 +18,10 @@ DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
 IMPORT := code.gitea.io/gitea
 
+# By default use go's 1.25 experimental json v2 library when building
+# TODO: remove when no longer experimental
+export GOEXPERIMENT ?= jsonv2
+
 GO ?= go
 SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
@@ -135,10 +139,10 @@ LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/r
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration code.gitea.io/gitea/tests/e2e,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
 
-RSPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
-RSPACK_CONFIGS := rspack.config.ts tailwind.config.ts
-RSPACK_DEST := public/assets/js/index.js public/assets/css/index.css
-RSPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts
+WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
+WEBPACK_CONFIGS := webpack.config.ts tailwind.config.ts
+WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
+WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts
 
 BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* modules/options/bindata.* modules/templates/bindata.*
 
@@ -162,7 +166,7 @@ TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST)
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
-ESLINT_FILES := web_src/js tools *.ts *.cjs tests/e2e
+ESLINT_FILES := web_src/js tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
 SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml)) $(filter-out tools/misspellings.csv, $(wildcard tools/*))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
@@ -238,7 +242,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean ## delete backend, frontend and integration files
-	rm -rf $(RSPACK_DEST_ENTRIES) node_modules
+	rm -rf $(WEBPACK_DEST_ENTRIES) node_modules
 
 .PHONY: clean
 clean: ## delete backend and integration files
@@ -346,12 +350,12 @@ lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backen
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js files
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
+	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --flag unstable_native_nodejs_ts_config $(ESLINT_FILES)
 	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js files and fix issues
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
+	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --flag unstable_native_nodejs_ts_config $(ESLINT_FILES) --fix
 	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-css
@@ -428,8 +432,8 @@ watch: ## watch everything and continuously rebuild
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules ## watch frontend files and continuously rebuild
-	@rm -rf $(RSPACK_DEST_ENTRIES)
-	NODE_ENV=development $(NODE_VARS) pnpm exec rspack --watch
+	@rm -rf $(WEBPACK_DEST_ENTRIES)
+	NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress --disable-interpret
 
 .PHONY: watch-backend
 watch-backend: go-check ## watch backend files and continuously rebuild
@@ -747,7 +751,7 @@ install: $(wildcard *.go)
 build: frontend backend ## build everything
 
 .PHONY: frontend
-frontend: $(RSPACK_DEST) ## build frontend files
+frontend: $(WEBPACK_DEST) ## build frontend files
 
 .PHONY: backend
 backend: go-check generate-backend $(EXECUTABLE) ## build backend files
@@ -766,7 +770,7 @@ generate-go: $(TAGS_PREREQ)
 
 .PHONY: security-check
 security-check:
-	go run $(GOVULNCHECK_PACKAGE) -show color ./...
+	GOEXPERIMENT= go run $(GOVULNCHECK_PACKAGE) -show color ./...
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)
@@ -878,15 +882,15 @@ update-py: node-check | node_modules ## update py dependencies
 	uv sync
 	@touch .venv
 
-.PHONY: rspack
-rspack: $(RSPACK_DEST) ## build rspack files
+.PHONY: webpack
+webpack: $(WEBPACK_DEST) ## build webpack files
 
-$(RSPACK_DEST): $(RSPACK_SOURCES) $(RSPACK_CONFIGS) pnpm-lock.yaml
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
 	@$(MAKE) -s node-check node_modules
-	@rm -rf $(RSPACK_DEST_ENTRIES)
-	@echo "Running rspack..."
-	@$(NODE_VARS) pnpm exec rspack
-	@touch $(RSPACK_DEST)
+	@rm -rf $(WEBPACK_DEST_ENTRIES)
+	@echo "Running webpack..."
+	@BROWSERSLIST_IGNORE_OLD_DATA=true $(NODE_VARS) pnpm exec webpack --disable-interpret
+	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
 svg: node-check | node_modules ## build svg files

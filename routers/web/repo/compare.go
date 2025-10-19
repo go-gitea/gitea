@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -28,6 +29,7 @@ import (
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -42,6 +44,7 @@ import (
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -569,7 +572,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 func PrepareCompareDiff(
 	ctx *context.Context,
 	ci *common.CompareInfo,
-	whitespaceBehavior git.TrustedCmdArgs,
+	whitespaceBehavior gitcmd.TrustedCmdArgs,
 ) (nothingToCompare bool) {
 	repo := ctx.Repo.Repository
 	headCommitID := ci.CompareInfo.HeadCommitID
@@ -630,13 +633,18 @@ func PrepareCompareDiff(
 		ctx.ServerError("GetDiff", err)
 		return false
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ci.HeadGitRepo, beforeCommitID, headCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ci.HeadRepo, ci.HeadGitRepo, beforeCommitID, headCommitID)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return false
 	}
 	ctx.Data["DiffShortStat"] = diffShortStat
 	ctx.Data["Diff"] = diff
+	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
+		BaseLink:      ci.HeadRepo.Link() + "/blob_excerpt",
+		DiffStyle:     ctx.FormString("style"),
+		AfterCommitID: headCommitID,
+	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 
 	if !fileOnly {
@@ -864,6 +872,28 @@ func CompareDiff(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 
+// attachCommentsToLines attaches comments to their corresponding diff lines
+func attachCommentsToLines(section *gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
+	for _, line := range section.Lines {
+		if comments, ok := lineComments[int64(line.LeftIdx*-1)]; ok {
+			line.Comments = append(line.Comments, comments...)
+		}
+		if comments, ok := lineComments[int64(line.RightIdx)]; ok {
+			line.Comments = append(line.Comments, comments...)
+		}
+		sort.SliceStable(line.Comments, func(i, j int) bool {
+			return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+		})
+	}
+}
+
+// attachHiddenCommentIDs calculates and attaches hidden comment IDs to expand buttons
+func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
+	for _, line := range section.Lines {
+		gitdiff.FillHiddenCommentIDsForDiffLine(line, lineComments)
+	}
+}
+
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.PathParam("sha")
@@ -873,19 +903,26 @@ func ExcerptBlob(ctx *context.Context) {
 	idxRight := ctx.FormInt("right")
 	leftHunkSize := ctx.FormInt("left_hunk_size")
 	rightHunkSize := ctx.FormInt("right_hunk_size")
-	anchor := ctx.FormString("anchor")
 	direction := ctx.FormString("direction")
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
+
+	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
+		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
+		DiffStyle:     ctx.FormString("style"),
+		AfterCommitID: commitID,
+	}
+
 	if ctx.Data["PageIsWiki"] == true {
 		var err error
-		gitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
+		gitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return
 		}
-		defer gitRepo.Close()
+		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
 	}
+
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
@@ -946,10 +983,43 @@ func ExcerptBlob(ctx *context.Context) {
 			section.Lines = append(section.Lines, lineSection)
 		}
 	}
+
+	diffBlobExcerptData.PullIssueIndex = ctx.FormInt64("pull_issue_index")
+	if diffBlobExcerptData.PullIssueIndex > 0 {
+		if !ctx.Repo.CanRead(unit.TypePullRequests) {
+			ctx.NotFound(nil)
+			return
+		}
+
+		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, diffBlobExcerptData.PullIssueIndex)
+		if err != nil {
+			log.Error("GetIssueByIndex error: %v", err)
+		} else if issue.IsPull {
+			// FIXME: DIFF-CONVERSATION-DATA: the following data assignment is fragile
+			ctx.Data["Issue"] = issue
+			ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+				return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+			}
+			// and "diff/comment_form.tmpl" (reply comment) needs them
+			ctx.Data["PageIsPullFiles"] = true
+			ctx.Data["AfterCommitID"] = diffBlobExcerptData.AfterCommitID
+
+			allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated"))
+			if err != nil {
+				log.Error("FetchCodeComments error: %v", err)
+			} else {
+				if lineComments, ok := allComments[filePath]; ok {
+					attachCommentsToLines(section, lineComments)
+					attachHiddenCommentIDs(section, lineComments)
+				}
+			}
+		}
+	}
+
 	ctx.Data["section"] = section
 	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
-	ctx.Data["AfterCommitID"] = commitID
-	ctx.Data["Anchor"] = anchor
+	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
+
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)
 }
 

@@ -16,7 +16,7 @@ async function loadGlobTestData(): Promise<{caseNames: string[], caseDataMap: Re
     const key = parts[0].trim();
     let value = parts[1].trim();
     value = value.substring(1, value.length - 1); // remove quotes
-    value = value.replace(/\\\\/g, '\\').replaceAll(/\\\//g, '/');
+    value = value.replace(/\\\//g, '/').replace(/\\\\/g, '\\');
     caseDataMap[key] = value;
     if (key.startsWith('pattern_')) caseNameMap[key.substring('pattern_'.length)] = true;
   }
@@ -117,7 +117,7 @@ test('GlobCompiler', async () => {
   for (const c of golangCases) {
     const compiled = globCompile(c.pattern, c.separators);
     const msg = `pattern: ${c.pattern}, input: ${c.input}, separators: ${c.separators || '(none)'}, compiled: ${compiled.regexpPattern}`;
-    // eslint-disable-next-line @vitest/valid-expect -- Unlike Jest, Vitest supports a message as the second argument
+    // eslint-disable-next-line vitest/valid-expect -- Unlike Jest, Vitest supports a message as the second argument
     expect(compiled.regexp.test(c.input), msg).toBe(c.matched);
   }
 
