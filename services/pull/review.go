@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -282,6 +283,15 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		if err != nil {
 			log.Error("Error whilst generating patch: %v", err)
 			return nil, err
+		}
+
+		// If patch is still empty (unchanged line), generate code context
+		if patch == "" && commitID != "" {
+			patch, err = gitdiff.GeneratePatchForUnchangedLine(gitRepo, commitID, treePath, line, setting.UI.CodeCommentLines)
+			if err != nil {
+				// Log the error but don't fail comment creation
+				log.Debug("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, commitID, err)
+			}
 		}
 	}
 	return issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{

@@ -1,11 +1,10 @@
 {{/* Template Attributes:
 * CommitStatus: summary of all commit status state
 * CommitStatuses: all commit status elements
-* MissingRequiredChecks: commit check contexts that are required by branch protection but not present
 * ShowHideChecks: whether use a button to show/hide the checks
-* is_context_required: Used in pull request commit status check table
+* StatusCheckData: additional status check data, see backend pullCommitStatusCheckData struct
 */}}
-
+{{$statusCheckData := .StatusCheckData}}
 {{if .CommitStatus}}
 <div class="commit-status-panel">
 	<div class="ui top attached header commit-status-header">
@@ -33,25 +32,43 @@
 		{{end}}
 	</div>
 
+	{{if and $statusCheckData $statusCheckData.RequireApprovalRunCount}}
+		<div class="ui attached segment flex-text-block tw-justify-between" id="approve-status-checks">
+			<div>
+				<strong>
+					{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals" $statusCheckData.RequireApprovalRunCount}}
+				</strong>
+				<p>{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals_helper"}}</p>
+			</div>
+			{{if $statusCheckData.CanApprove}}
+				<button class="ui basic button link-action" data-url="{{$statusCheckData.ApproveLink}}">
+					{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
+				</button>
+			{{end}}
+		</div>
+	{{end}}
+
 	<div class="commit-status-list">
 		{{range .CommitStatuses}}
 			<div class="commit-status-item">
 				{{template "repo/commit_status" .}}
 				<div class="status-context gt-ellipsis">{{.Context}} <span class="text light-2">{{.Description}}</span></div>
 				<div class="ui status-details">
-					{{if $.is_context_required}}
-						{{if (call $.is_context_required .Context)}}<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
+					{{if and $statusCheckData $statusCheckData.IsContextRequired}}
+						{{if (call $statusCheckData.IsContextRequired .Context)}}<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
 					{{end}}
 					<span>{{if .TargetURL}}<a href="{{.TargetURL}}">{{ctx.Locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
 				</div>
 			</div>
 		{{end}}
-		{{range .MissingRequiredChecks}}
-			<div class="commit-status-item">
-				{{svg "octicon-dot-fill" 18 "commit-status icon text yellow"}}
-				<div class="status-context gt-ellipsis">{{.}}</div>
-				<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>
-			</div>
+		{{if $statusCheckData}}
+			{{range $statusCheckData.MissingRequiredChecks}}
+				<div class="commit-status-item">
+					{{svg "octicon-dot-fill" 18 "commit-status icon text yellow"}}
+					<div class="status-context gt-ellipsis">{{.}}</div>
+					<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>
+				</div>
+			{{end}}
 		{{end}}
 	</div>
 </div>

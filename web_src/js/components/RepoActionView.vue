@@ -601,7 +601,8 @@ export default defineComponent({
             </div>
           </div>
         </div>
-        <div class="job-step-container" ref="stepsContainer" v-if="currentJob.steps.length">
+        <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
+        <div class="job-step-container" ref="stepsContainer" v-show="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon

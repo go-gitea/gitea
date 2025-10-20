@@ -72,6 +72,8 @@ func TestLFSRender(t *testing.T) {
 
 		fileInfo := doc.Find("div.file-info-entry").First().Text()
 		assert.Contains(t, fileInfo, "LFS")
+		fileSize := doc.Find("div.file-info-entry > .file-info-size").Text()
+		assert.Equal(t, "2.0 KiB", fileSize)
 
 		// find new file view container
 		fileViewContainer := doc.Find("[data-global-init=initRepoFileView]")

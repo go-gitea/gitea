@@ -374,10 +374,8 @@ type TestPullRequestOptions struct {
 func AddTestPullRequestTask(opts TestPullRequestOptions) {
 	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", opts.RepoID, opts.Branch)
 	graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
-		// There is no sensible way to shut this down ":-("
-		// If you don't let it run all the way then you will lose data
-		// TODO: graceful: AddTestPullRequestTask needs to become a queue!
-
+		// this function does a lot of operations to various models, if the process gets killed in the middle,
+		// there is no way to recover at the moment. The best workaround is to let end user push again.
 		repo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
 		if err != nil {
 			log.Error("GetRepositoryByID: %v", err)
@@ -402,11 +400,15 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 				continue
 			}
 
-			StartPullRequestCheckImmediately(ctx, pr)
+			// create push comment before check pull request status,
+			// then when the status is mergeable, the comment is already in database, to make testing easy and stable
 			comment, err := CreatePushPullComment(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID, opts.IsForcePush)
 			if err == nil && comment != nil {
 				notify_service.PullRequestPushCommits(ctx, opts.Doer, pr, comment)
 			}
+			// The caller can be in a goroutine or a "push queue", "conflict check" can be time-consuming,
+			// and the concurrency should be limited, so the conflict check will be done in another queue
+			StartPullRequestCheckImmediately(ctx, pr)
 		}
 
 		if opts.IsSync {

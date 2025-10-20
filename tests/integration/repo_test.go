@@ -257,10 +257,12 @@ func testViewFileInRepo(t *testing.T) {
 	description := htmlDoc.doc.Find(".repo-description")
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
+	fileSize := htmlDoc.Find("div.file-info-entry > .file-info-size").Text()
 
 	assert.Equal(t, 0, description.Length())
 	assert.Equal(t, 0, repoTopics.Length())
 	assert.Equal(t, 0, repoSummary.Length())
+	assert.Equal(t, "30 B", fileSize)
 }
 
 // TestBlameFileInRepo repo description, topics and summary should not be displayed when running blame on a file
