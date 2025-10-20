@@ -1469,6 +1469,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
 		m.Post("/run", reqRepoActionsWriter, actions.Run)
 		m.Get("/workflow-dispatch-inputs", reqRepoActionsWriter, actions.WorkflowDispatchInputs)
+		m.Post("/approve-all-checks", reqRepoActionsWriter, actions.ApproveAllChecks)
 
 		m.Group("/runs/{run}", func() {
 			m.Combo("").

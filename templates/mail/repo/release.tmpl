@@ -32,10 +32,10 @@
 		<ul>
 			{{if not .DisableDownloadSourceArchives}}
 			<li>
-				<a href="{{.Release.Repo.Link}}/archive/{{.Release.TagName | PathEscapeSegments}}.zip" rel="nofollow"><strong>{{.locale.Tr "mail.release.download.zip"}}</strong></a>
+				<a href="{{.Release.Repo.HTMLURL}}/archive/{{.Release.TagName | PathEscapeSegments}}.zip" rel="nofollow"><strong>{{.locale.Tr "mail.release.download.zip"}}</strong></a>
 			</li>
 			<li>
-				<a href="{{.Release.Repo.Link}}/archive/{{.Release.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow"><strong>{{.locale.Tr "mail.release.download.targz"}}</strong></a>
+				<a href="{{.Release.Repo.HTMLURL}}/archive/{{.Release.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow"><strong>{{.locale.Tr "mail.release.download.targz"}}</strong></a>
 			</li>
 			{{end}}
 			{{if .Release.Attachments}}
