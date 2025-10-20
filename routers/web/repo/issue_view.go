@@ -436,6 +436,9 @@ func ViewIssue(ctx *context.Context) {
 
 func ViewPullMergeBox(ctx *context.Context) {
 	issue := prepareIssueViewLoad(ctx)
+	if ctx.Written() {
+		return
+	}
 	if !issue.IsPull {
 		ctx.NotFound(nil)
 		return
