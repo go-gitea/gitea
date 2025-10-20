@@ -855,6 +855,12 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 
 	ctx.Data["Diff"] = diff
+	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
+		BaseLink:       ctx.Repo.RepoLink + "/blob_excerpt",
+		PullIssueIndex: pull.Index,
+		DiffStyle:      ctx.FormString("style"),
+		AfterCommitID:  afterCommitID,
+	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 
 	if ctx.IsSigned && ctx.Doer != nil {
