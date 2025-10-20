@@ -22,6 +22,13 @@ func ParseTreeEntries(data []byte) ([]*TreeEntry, error) {
 // parseTreeEntries FIXME this function's design is not right, it should not make the caller read all data into memory
 func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	entries := make([]*TreeEntry, 0, bytes.Count(data, []byte{'\n'})+1)
+	return entries, iterateTreeEntries(data, ptree, func(entry *TreeEntry) error {
+		entries = append(entries, entry)
+		return nil
+	})
+}
+
+func iterateTreeEntries(data []byte, ptree *Tree, f func(entry *TreeEntry) error) error {
 	for pos := 0; pos < len(data); {
 		posEnd := bytes.IndexByte(data[pos:], '\n')
 		if posEnd == -1 {
@@ -33,7 +40,7 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 		line := data[pos:posEnd]
 		lsTreeLine, err := parseLsTreeLine(line)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		entry := &TreeEntry{
 			ptree:     ptree,
@@ -44,9 +51,11 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 			sized:     lsTreeLine.Size.Has(),
 		}
 		pos = posEnd + 1
-		entries = append(entries, entry)
+		if err := f(entry); err != nil {
+			return err
+		}
 	}
-	return entries, nil
+	return nil
 }
 
 func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd *bufio.Reader, sz int64) ([]*TreeEntry, error) {

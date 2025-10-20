@@ -7,6 +7,7 @@ package languagestats
 
 import (
 	"bytes"
+	"context"
 	"io"
 
 	"code.gitea.io/gitea/modules/analyze"
@@ -20,8 +21,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// GetLanguageStats calculates language stats for git repository at specified commit
-func GetLanguageStats(repo *git_module.Repository, commitID string) (map[string]int64, error) {
+// CalcLanguageStats calculates language stats for git repository at specified commit
+func CalcLanguageStats(ctx context.Context, repo *git_module.Repository, commitID string) (map[string]int64, error) {
 	r, err := git.PlainOpen(repo.Path)
 	if err != nil {
 		return nil, err
@@ -58,6 +59,13 @@ func GetLanguageStats(repo *git_module.Repository, commitID string) (map[string]
 	firstExcludedLanguageSize := int64(0)
 
 	err = tree.Files().ForEach(func(f *object.File) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			return nil
+		}
+
 		if f.Size == 0 {
 			return nil
 		}

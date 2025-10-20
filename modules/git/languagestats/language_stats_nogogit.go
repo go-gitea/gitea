@@ -7,6 +7,7 @@ package languagestats
 
 import (
 	"bytes"
+	"context"
 	"io"
 
 	"code.gitea.io/gitea/modules/analyze"
@@ -18,8 +19,8 @@ import (
 	"github.com/go-enry/go-enry/v2"
 )
 
-// GetLanguageStats calculates language stats for git repository at specified commit
-func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, error) {
+// CalcLanguageStats calculates language stats for git repository at specified commit
+func CalcLanguageStats(ctx context.Context, repo *git.Repository, commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
 	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(repo.Ctx)
@@ -59,11 +60,6 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 
 	tree := commit.Tree
 
-	entries, err := tree.ListEntriesRecursiveWithSize()
-	if err != nil {
-		return nil, err
-	}
-
 	checker, err := attribute.NewBatchChecker(repo, commitID, attribute.LinguistAttributes)
 	if err != nil {
 		return nil, err
@@ -82,18 +78,12 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 	firstExcludedLanguage := ""
 	firstExcludedLanguageSize := int64(0)
 
-	for _, f := range entries {
-		select {
-		case <-repo.Ctx.Done():
-			return sizes, repo.Ctx.Err()
-		default:
-		}
-
+	if err := tree.IterateEntriesRecursive(ctx, func(ctx context.Context, f *git.TreeEntry) error {
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
 
 		if f.Size() == 0 {
-			continue
+			return nil
 		}
 
 		isVendored := optional.None[bool]()
@@ -104,19 +94,19 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		attrLinguistGenerated := optional.None[bool]()
 		if err == nil {
 			if isVendored = attrs.GetVendored(); isVendored.ValueOrDefault(false) {
-				continue
+				return nil
 			}
 
 			if attrLinguistGenerated = attrs.GetGenerated(); attrLinguistGenerated.ValueOrDefault(false) {
-				continue
+				return nil
 			}
 
 			if isDocumentation = attrs.GetDocumentation(); isDocumentation.ValueOrDefault(false) {
-				continue
+				return nil
 			}
 
 			if isDetectable = attrs.GetDetectable(); !isDetectable.ValueOrDefault(true) {
-				continue
+				return nil
 			}
 
 			if hasLanguage := attrs.GetLanguage(); hasLanguage.Value() != "" {
@@ -130,7 +120,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 
 				// this language will always be added to the size
 				sizes[language] += f.Size()
-				continue
+				return nil
 			}
 		}
 
@@ -138,19 +128,19 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 			enry.IsDotFile(f.Name()) ||
 			(!isDocumentation.Has() && enry.IsDocumentation(f.Name())) ||
 			enry.IsConfiguration(f.Name()) {
-			continue
+			return nil
 		}
 
 		// If content can not be read or file is too big just do detection by filename
 
 		if f.Size() <= bigFileSize {
 			if err := writeID(f.ID.String()); err != nil {
-				return nil, err
+				return err
 			}
 			_, _, size, err := git.ReadBatchLine(batchReader)
 			if err != nil {
 				log.Debug("Error reading blob: %s Err: %v", f.ID.String(), err)
-				return nil, err
+				return err
 			}
 
 			sizeToRead := size
@@ -162,11 +152,11 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 
 			_, err = contentBuf.ReadFrom(io.LimitReader(batchReader, sizeToRead))
 			if err != nil {
-				return nil, err
+				return err
 			}
 			content = contentBuf.Bytes()
 			if err := git.DiscardFull(batchReader, discard); err != nil {
-				return nil, err
+				return err
 			}
 		}
 
@@ -178,14 +168,14 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 			isGenerated = enry.IsGenerated(f.Name(), content)
 		}
 		if isGenerated {
-			continue
+			return nil
 		}
 
 		// FIXME: Why can't we split this and the IsGenerated tests to avoid reading the blob unless absolutely necessary?
 		// - eg. do the all the detection tests using filename first before reading content.
 		language := analyze.GetCodeLanguage(f.Name(), content)
 		if language == "" {
-			continue
+			return nil
 		}
 
 		// group languages, such as Pug -> HTML; SCSS -> CSS
@@ -206,6 +196,9 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 			firstExcludedLanguage = language
 			firstExcludedLanguageSize += f.Size()
 		}
+		return nil
+	}, git.TrustedCmdArgs{"--long"}); err != nil {
+		return sizes, err
 	}
 
 	// If there are no included languages add the first excluded language
