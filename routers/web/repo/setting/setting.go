@@ -41,11 +41,11 @@ import (
 
 const (
 	tplSettingsOptions templates.TplName = "repo/settings/options"
-	tplCollaboration   templates.TplName = "repo/settings/collaboration"
+	tplCollaboration   templates.TplName = "repo/settings/access/collaboration"
 	tplBranches        templates.TplName = "repo/settings/branches"
 	tplGithooks        templates.TplName = "repo/settings/githooks"
 	tplGithookEdit     templates.TplName = "repo/settings/githook_edit"
-	tplDeployKeys      templates.TplName = "repo/settings/deploy_keys"
+	tplDeployKeys      templates.TplName = "repo/settings/access/deploy_keys"
 )
 
 // SettingsCtxData is a middleware that sets all the general context data for the
