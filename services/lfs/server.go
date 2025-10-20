@@ -77,7 +77,7 @@ func GetLFSAuthTokenWithBearer(opts AuthTokenOptions) (string, error) {
 	// Sign and get the complete encoded token as a string using the secret
 	tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
 	if err != nil {
-		return "", fmt.Errorf("failed to sign token: %w", err)
+		return "", fmt.Errorf("failed to sign LFS JWT token: %w", err)
 	}
 	return "Bearer " + tokenString, nil
 }

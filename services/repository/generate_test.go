@@ -62,7 +62,10 @@ func TestFilePathSanitize(t *testing.T) {
 	assert.Equal(t, "_", filePathSanitize("CoM1"))
 	assert.Equal(t, "_", filePathSanitize("\u0000"))
 	assert.Equal(t, "目标", filePathSanitize("目标"))
-	assert.Equal(t, "目标", filePathSanitize("目标"))
+	// unlike filepath.Clean, it only sanitizes, doesn't change the separator layout
+	assert.Equal(t, "", filePathSanitize(""))
+	assert.Equal(t, ".", filePathSanitize("."))
+	assert.Equal(t, "/", filePathSanitize("/"))
 }
 
 func TestProcessGiteaTemplateFile(t *testing.T) {

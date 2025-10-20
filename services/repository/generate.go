@@ -55,6 +55,9 @@ var globalVars = sync.OnceValue(func() (ret struct {
 		{Name: "UPPER", Transform: strings.ToUpper},
 		{Name: "TITLE", Transform: util.ToTitleCase},
 	}
+
+	// invalid filename contents, based on https://github.com/sindresorhus/filename-reserved-regex
+	// "COM10" needs to be opened with UNC "\\.\COM10" on Windows, so itself is valid
 	ret.fileNameSanitizeRegexp = regexp.MustCompile(`(?i)[<>:"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
 	return ret
 })
@@ -336,7 +339,6 @@ func (gro GenerateRepoOptions) IsValid() bool {
 		gro.IssueLabels || gro.ProtectedBranch // or other items as they are added
 }
 
-// Sanitize user input to valid OS filenames, based on https://github.com/sindresorhus/filename-reserved-regex
 func filePathSanitize(s string) string {
 	fields := strings.Split(filepath.ToSlash(s), "/")
 	for i, field := range fields {
