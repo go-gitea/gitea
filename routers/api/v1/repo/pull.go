@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -990,8 +989,26 @@ func MergePullRequest(ctx *context.APIContext) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
+	prUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	// for agit flow, we should not delete the agit reference after merge
+	// FIXME: old code has that comment above. Is that comment valid? What would go wrong if a agit branch is deleted after merge?
+	// * If a agit branch can be deleted after merge, then fix the comment and maybe other related code
+	// * If a agit branch should not be deleted, then we need to fix the logic and add more tests
+	deleteBranchAfterMerge := pr.Flow == issues_model.PullRequestFlowGithub
+	if form.DeleteBranchAfterMerge != nil {
+		// if the form field is defined, it takes precedence over the repo setting equivalent
+		deleteBranchAfterMerge = deleteBranchAfterMerge && *form.DeleteBranchAfterMerge
+	} else {
+		// otherwise, we look at the repo setting to make the determination
+		deleteBranchAfterMerge = deleteBranchAfterMerge && prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge
+	}
+
 	if form.MergeWhenChecksSucceed {
-		deleteBranchAfterMerge := optional.FromPtr(form.DeleteBranchAfterMerge).ValueOrDefault(false)
 		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
 		if err != nil {
 			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
@@ -1037,26 +1054,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 	log.Trace("Pull request merged: %d", pr.ID)
 
-	prUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	// for agit flow, we should not delete the agit reference after merge
-	// FIXME: old code has that comment above. Is that comment valid? What would go wrong if a agit branch is deleted after merge?
-	// * If a agit branch can be deleted after merge, then fix the comment and maybe other related code
-	// * If a agit branch should not be deleted, then we need to fix the logic and add more tests
-	shouldDeleteBranch := pr.Flow == issues_model.PullRequestFlowGithub
-	if form.DeleteBranchAfterMerge != nil {
-		// if the form field is defined, it takes precedence over the repo setting equivalent
-		shouldDeleteBranch = shouldDeleteBranch && *form.DeleteBranchAfterMerge
-	} else {
-		// otherwise, we look at the repo setting to make the determination
-		shouldDeleteBranch = shouldDeleteBranch && prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge
-	}
-
-	if shouldDeleteBranch {
+	if deleteBranchAfterMerge {
 		// check permission even it has been checked in repo_service.DeleteBranch so that we don't need to
 		// do RetargetChildrenOnMerge
 		if err := repo_service.CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, ctx.Doer); err == nil {
