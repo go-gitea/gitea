@@ -887,8 +887,8 @@ func Run(ctx *context_module.Context) {
 		return nil
 	})
 	if err != nil {
-		if errLocale := util.ErrorAsLocale(err); errLocale != nil {
-			ctx.Flash.Error(ctx.Tr(errLocale.TrKey, errLocale.TrArgs...))
+		if errTr := util.ErrorAsTranslatable(err); errTr != nil {
+			ctx.Flash.Error(errTr.Translate(ctx.Locale))
 			ctx.Redirect(redirectURL)
 		} else {
 			ctx.ServerError("DispatchActionWorkflow", err)

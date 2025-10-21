@@ -13,7 +13,6 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -989,23 +988,10 @@ func MergePullRequest(ctx *context.APIContext) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
-	prUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests)
+	deleteBranchAfterMerge, err := pull_service.ShouldDeleteBranchAfterMerge(ctx, form.DeleteBranchAfterMerge, ctx.Repo.Repository, pr)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
-	}
-
-	// for agit flow, we should not delete the agit reference after merge
-	// FIXME: old code has that comment above. Is that comment valid? What would go wrong if a agit branch is deleted after merge?
-	// * If a agit branch can be deleted after merge, then fix the comment and maybe other related code
-	// * If a agit branch should not be deleted, then we need to fix the logic and add more tests
-	deleteBranchAfterMerge := pr.Flow == issues_model.PullRequestFlowGithub
-	if form.DeleteBranchAfterMerge != nil {
-		// if the form field is defined, it takes precedence over the repo setting equivalent
-		deleteBranchAfterMerge = deleteBranchAfterMerge && *form.DeleteBranchAfterMerge
-	} else {
-		// otherwise, we look at the repo setting to make the determination
-		deleteBranchAfterMerge = deleteBranchAfterMerge && prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge
 	}
 
 	if form.MergeWhenChecksSucceed {
@@ -1055,45 +1041,9 @@ func MergePullRequest(ctx *context.APIContext) {
 	log.Trace("Pull request merged: %d", pr.ID)
 
 	if deleteBranchAfterMerge {
-		// check permission even it has been checked in repo_service.DeleteBranch so that we don't need to
-		// do RetargetChildrenOnMerge
-		if err := repo_service.CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, ctx.Doer); err == nil {
-			// Don't cleanup when there are other PR's that use this branch as head branch.
-			exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			if exist {
-				ctx.Status(http.StatusOK)
-				return
-			}
-
-			var headRepo *git.Repository
-			if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
-				headRepo = ctx.Repo.GitRepo
-			} else {
-				headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
-				if err != nil {
-					ctx.APIErrorInternal(err)
-					return
-				}
-				defer headRepo.Close()
-			}
-
-			if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch, pr); err != nil {
-				switch {
-				case git.IsErrBranchNotExist(err):
-					ctx.APIErrorNotFound(err)
-				case errors.Is(err, repo_service.ErrBranchIsDefault):
-					ctx.APIError(http.StatusForbidden, errors.New("can not delete default branch"))
-				case errors.Is(err, git_model.ErrBranchIsProtected):
-					ctx.APIError(http.StatusForbidden, errors.New("branch protected"))
-				default:
-					ctx.APIErrorInternal(err)
-				}
-				return
-			}
+		// no way to tell users that what error happens, and the PR has been merged, so ignore the error
+		if err = repo_service.DeleteBranchAfterMerge(ctx, ctx.Doer, pr.ID, nil); err != nil {
+			log.Debug("DeleteBranchAfterMerge: pr %d, err: %v", pr.ID, err)
 		}
 	}
 

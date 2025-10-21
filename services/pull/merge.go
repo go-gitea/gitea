@@ -730,3 +730,24 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 		return true, nil
 	})
 }
+
+func ShouldDeleteBranchAfterMerge(ctx context.Context, userOption *bool, repo *repo_model.Repository, pr *issues_model.PullRequest) (bool, error) {
+	if pr.Flow != issues_model.PullRequestFlowGithub {
+		// only support GitHub workflow (branch-based)
+		// for agit workflow, there is no branch, so nothing to delete
+		// TODO: maybe in the future, it should delete the "agit reference (/efs/for/xxxx)"?
+		return false, nil
+	}
+
+	// if user has set an option, respect it
+	if userOption != nil {
+		return *userOption, nil
+	}
+
+	// otherwise, use repository default
+	prUnit, err := repo.GetUnit(ctx, unit.TypePullRequests)
+	if err != nil {
+		return false, err
+	}
+	return prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge, nil
+}
