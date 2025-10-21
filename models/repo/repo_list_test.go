@@ -236,7 +236,7 @@ func testSearchRepositoryRestricted(t *testing.T) {
 			ListOptions: db.ListOptions{Page: 1, PageSize: 10000},
 			Actor:       user,
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Len(t, repos, int(count))
 		for _, repo := range repos {
 			require.NoError(t, repo.LoadOwner(t.Context()))
