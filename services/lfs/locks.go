@@ -175,16 +175,10 @@ func PostLockHandler(ctx *context.Context) {
 		return
 	}
 
-	var taskID int64
-	// Passing a non zero Actions Task ID as parameter if creating lock using Actions Job Token
-	if ctx.Data["IsActionsToken"] == true {
-		taskID = ctx.Data["ActionsTaskID"].(int64)
-	}
-
 	lock, err := git_model.CreateLFSLock(ctx, repository, &git_model.LFSLock{
 		Path:    req.Path,
 		OwnerID: ctx.Doer.ID,
-	}, taskID)
+	})
 	if err != nil {
 		if git_model.IsErrLFSLockAlreadyExist(err) {
 			ctx.JSON(http.StatusConflict, api.LFSLockError{
@@ -321,13 +315,7 @@ func UnLockHandler(ctx *context.Context) {
 		return
 	}
 
-	var taskID int64
-	// Passing a non zero Actions Task ID as parameter if deleting lock using Actions Job Token
-	if ctx.Data["IsActionsToken"] == true {
-		taskID = ctx.Data["ActionsTaskID"].(int64)
-	}
-
-	lock, err := git_model.DeleteLFSLockByID(ctx, ctx.PathParamInt64("lid"), repository, ctx.Doer, req.Force, taskID)
+	lock, err := git_model.DeleteLFSLockByID(ctx, ctx.PathParamInt64("lid"), repository, ctx.Doer, req.Force)
 	if err != nil {
 		if git_model.IsErrLFSUnauthorizedAction(err) {
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)

@@ -11,10 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -69,12 +66,8 @@ func (l *LFSLock) LoadOwner(ctx context.Context) error {
 }
 
 // CreateLFSLock creates a new lock.
-func CreateLFSLock(ctx context.Context, repo *repo_model.Repository, lock *LFSLock, taskID int64) (*LFSLock, error) {
+func CreateLFSLock(ctx context.Context, repo *repo_model.Repository, lock *LFSLock) (*LFSLock, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*LFSLock, error) {
-		if err := CheckLFSAccessForRepo(ctx, lock.OwnerID, repo, perm.AccessModeWrite, taskID); err != nil {
-			return nil, err
-		}
-
 		lock.Path = util.PathJoinRel(lock.Path)
 		lock.RepoID = repo.ID
 
@@ -158,14 +151,10 @@ func CountLFSLockByRepoID(ctx context.Context, repoID int64) (int64, error) {
 }
 
 // DeleteLFSLockByID deletes a lock by given ID.
-func DeleteLFSLockByID(ctx context.Context, id int64, repo *repo_model.Repository, u *user_model.User, force bool, taskID int64) (*LFSLock, error) {
+func DeleteLFSLockByID(ctx context.Context, id int64, repo *repo_model.Repository, u *user_model.User, force bool) (*LFSLock, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*LFSLock, error) {
 		lock, err := GetLFSLockByID(ctx, id)
 		if err != nil {
-			return nil, err
-		}
-
-		if err := CheckLFSAccessForRepo(ctx, u.ID, repo, perm.AccessModeWrite, taskID); err != nil {
 			return nil, err
 		}
 
@@ -179,36 +168,4 @@ func DeleteLFSLockByID(ctx context.Context, id int64, repo *repo_model.Repositor
 
 		return lock, nil
 	})
-}
-
-// CheckLFSAccessForRepo check needed access mode base on action
-func CheckLFSAccessForRepo(ctx context.Context, ownerID int64, repo *repo_model.Repository, mode perm.AccessMode, taskID int64) error {
-	if ownerID == 0 {
-		return ErrLFSUnauthorizedAction{repo.ID, "undefined", mode}
-	}
-	if ownerID == user_model.ActionsUserID {
-		if taskID == 0 {
-			return ErrLFSUnauthorizedAction{repo.ID, user_model.ActionsUserName, mode}
-		}
-		perm, err := access_model.GetActionsUserRepoPermission(ctx, repo, user_model.NewActionsUser(), taskID)
-		if err != nil {
-			return err
-		}
-		if !perm.CanAccess(mode, unit.TypeCode) {
-			return ErrLFSUnauthorizedAction{repo.ID, user_model.ActionsUserName, mode}
-		}
-		return nil
-	}
-	u, err := user_model.GetUserByID(ctx, ownerID)
-	if err != nil {
-		return err
-	}
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, u)
-	if err != nil {
-		return err
-	}
-	if !perm.CanAccess(mode, unit.TypeCode) {
-		return ErrLFSUnauthorizedAction{repo.ID, u.DisplayName(), mode}
-	}
-	return nil
 }
