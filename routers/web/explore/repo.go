@@ -26,8 +26,10 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sitemap"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -374,6 +376,79 @@ func renderRepositoryHistory(ctx *context.Context) {
 	// Repository metadata
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 	ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.CloneLink(ctx, ctx.Doer)
+
+	// Build table entries for the base repository and its forks
+	type historyTableEntry struct {
+		Repo             *repo_model.Repository
+		ContributorCount int64
+		Updated          timeutil.TimeStamp
+		Description      string
+	}
+
+	tableEntries := make([]*historyTableEntry, 0, 1)
+	rootRepo := ctx.Repo.Repository
+	if err := rootRepo.LoadAttributes(ctx); err != nil {
+		log.Warn("LoadAttributes root repository %s: %v", rootRepo.FullName(), err)
+	}
+	if err := rootRepo.LoadSubject(ctx); err != nil {
+		log.Warn("LoadSubject root repository %s: %v", rootRepo.FullName(), err)
+	}
+	rootEntry := &historyTableEntry{
+		Repo:        rootRepo,
+		Updated:     rootRepo.UpdatedUnix,
+		Description: rootRepo.Description,
+	}
+	if c, ok := ctx.Data["ContributorCount"].(int64); ok && c > 0 {
+		rootEntry.ContributorCount = c
+	} else {
+		branch := defaultBranch
+		if branch == "" {
+			branch = setting.Repository.DefaultBranch
+		}
+		if count, err := gitRepo.GetContributorCount(branch); err == nil {
+			rootEntry.ContributorCount = count
+		} else {
+			log.Warn("GetContributorCount for %s: %v", rootRepo.FullName(), err)
+		}
+	}
+	tableEntries = append(tableEntries, rootEntry)
+
+	forks, _, err := repo_service.FindForks(ctx, rootRepo, ctx.Doer, db.ListOptions{Page: 1, PageSize: 100})
+	if err != nil {
+		log.Warn("FindForks for %s: %v", rootRepo.FullName(), err)
+	} else if len(forks) > 0 {
+		if err := repo_model.RepositoryList(forks).LoadAttributes(ctx); err != nil {
+			log.Warn("LoadAttributes for forks of %s: %v", rootRepo.FullName(), err)
+		}
+		for _, fork := range forks {
+			if err := fork.LoadSubject(ctx); err != nil {
+				log.Warn("LoadSubject for fork %s: %v", fork.FullName(), err)
+			}
+			entry := &historyTableEntry{
+				Repo:        fork,
+				Updated:     fork.UpdatedUnix,
+				Description: fork.Description,
+			}
+			branch := fork.DefaultBranch
+			if branch == "" {
+				branch = setting.Repository.DefaultBranch
+			}
+			forkGitRepo, err := gitrepo.OpenRepository(ctx, fork)
+			if err != nil {
+				log.Warn("OpenRepository for fork %s: %v", fork.FullName(), err)
+			} else {
+				if count, err := forkGitRepo.GetContributorCount(branch); err == nil {
+					entry.ContributorCount = count
+				} else {
+					log.Warn("GetContributorCount for fork %s: %v", fork.FullName(), err)
+				}
+				forkGitRepo.Close()
+			}
+			tableEntries = append(tableEntries, entry)
+		}
+	}
+
+	ctx.Data["HistoryForkEntries"] = tableEntries
 
 	// For Article view, handle mode parameter and load README content
 	if ctx.Data["IsArticleView"] == true {

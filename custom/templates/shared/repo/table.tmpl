@@ -39,18 +39,24 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {{range $idx, $f := .Files}}
-                        {{$name := .Name}}
-                        <tr class="article-row" data-row="{{$idx}}" data-owner="{{$.Repository.Owner.Name}}" data-subject="{{$.Repository.GetSubject}}">
+                        {{if .HistoryForkEntries}}
+                        {{range $idx, $entry := .HistoryForkEntries}}
+                        {{$repo := $entry.Repo}}
+                        <tr class="article-row" data-row="{{$idx}}" data-owner="{{$repo.OwnerName}}" data-subject="{{$repo.GetSubject}}">
                             <td>
                                 <div class="ui checkbox">
                                     <input type="checkbox" class="row-check">
                                     <label></label>
                                 </div>
                             </td>
-                            <td class="tw-font-semibold">{{CountFmt $.ContributorCount}}</td>
-                            <td>{{if $.LastCommit}}{{DateUtils.AbsoluteShort $.LastCommit.Committer.When}}{{end}}</td>
-                            <td>{{if $.Repository.Owner}}{{$.Repository.Owner.Name}}{{else}}-{{end}}</td>
+                            <td class="tw-font-semibold">{{if gt $entry.ContributorCount 0}}{{CountFmt $entry.ContributorCount}}{{else}}-{{end}}</td>
+                            <td>{{if $entry.Updated}}{{DateUtils.AbsoluteShort $entry.Updated}}{{else}}-{{end}}</td>
+                            <td>
+                                <div class="tw-flex tw-flex-col tw-gap-1">
+                                    <span class="tw-font-semibold">{{$repo.OwnerName}}</span>
+                                    <span class="tw-text-xs tw-text-gray-500">{{$repo.GetSubject}}</span>
+                                </div>
+                            </td>
                             <td class="collapsing tw-text-right">
                                 <button type="button" class="ui icon button row-toggle tw-border-0 tw-bg-transparent" data-target="desc-{{$idx}}" aria-label="Toggle description">
                                     <span class="icon-down">{{svg "octicon-chevron-down"}}</span>
@@ -61,18 +67,26 @@
                         <tr id="desc-{{$idx}}" class="tw-hidden">
                             <td colspan="5">
                                 <div class="tw-pl-8 tw-pr-4 tw-py-4 tw-flex tw-items-start tw-justify-between tw-gap-4">
-                                    <div class="tw-text-gray-600 tw-text-sm tw-leading-6">
-                                        {{if $.Repository.Description}}
-                                            {{$.Repository.Description}}
-                                        {{else}}
-                                            {{if $.LastCommit}}{{$.LastCommit.Summary}}{{end}}
-                                        {{end}}
+                                    <div class="tw-flex tw-flex-col tw-gap-2">
+                                        <div class="tw-text-sm tw-font-semibold">{{$repo.OwnerName}}/{{$repo.Name}}</div>
+                                        <div class="tw-text-gray-600 tw-text-sm tw-leading-6">
+                                            {{if $entry.Description}}
+                                                {{$entry.Description}}
+                                            {{else}}
+                                                {{ctx.Locale.Tr "repo_no_desc"}}
+                                            {{end}}
+                                        </div>
                                     </div>
-                                    <button type="button" class="ui button go-to-article" data-owner="{{$.Repository.Owner.Name}}" data-subject="{{$.Repository.GetSubject}}">
+                                    <button type="button" class="ui button go-to-article" data-owner="{{$repo.OwnerName}}" data-subject="{{$repo.GetSubject}}">
                                         View article
                                     </button>
                                 </div>
                             </td>
+                        </tr>
+                        {{end}}
+                        {{else}}
+                        <tr>
+                            <td colspan="5" class="tw-text-center tw-text-sm tw-text-gray-500">No forks available.</td>
                         </tr>
                         {{end}}
                     </tbody>
