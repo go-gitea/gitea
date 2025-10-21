@@ -304,23 +304,22 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	r := createNewReleaseUsingAPI(t, token, owner, repo, "release-tag", "", "Release Tag", "test")
-
-	filename := "image.png"
-	bufImage := generateImg()
+	bufImageBytes := testGeneratePngBytes()
 	bufLargeBytes := bytes.Repeat([]byte{' '}, 2*1024*1024)
 
-	assetURL := fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d/assets", owner.Name, repo.Name, r.ID)
+	release := createNewReleaseUsingAPI(t, token, owner, repo, "release-tag", "", "Release Tag", "test")
+	assetURL := fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d/assets", owner.Name, repo.Name, release.ID)
 
 	t.Run("multipart/form-data", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
+		const filename = "image.png"
 
 		performUpload := func(t *testing.T, uploadURL string, buf []byte, expectedStatus int) *httptest.ResponseRecorder {
 			body := &bytes.Buffer{}
 			writer := multipart.NewWriter(body)
 			part, err := writer.CreateFormFile("attachment", filename)
 			assert.NoError(t, err)
-			_, err = io.Copy(part, bytes.NewReader(bufImage.Bytes()))
+			_, err = io.Copy(part, bytes.NewReader(bufImageBytes))
 			assert.NoError(t, err)
 			err = writer.Close()
 			assert.NoError(t, err)
@@ -334,14 +333,14 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 		performUpload(t, assetURL, bufLargeBytes, http.StatusRequestEntityTooLarge)
 
 		t.Run("UploadDefaultName", func(t *testing.T) {
-			resp := performUpload(t, assetURL, bufImage.Bytes(), http.StatusCreated)
+			resp := performUpload(t, assetURL, bufImageBytes, http.StatusCreated)
 			var attachment api.Attachment
 			DecodeJSON(t, resp, &attachment)
 			assert.Equal(t, filename, attachment.Name)
 			assert.EqualValues(t, 104, attachment.Size)
 		})
 		t.Run("UploadWithName", func(t *testing.T) {
-			resp := performUpload(t, assetURL+"?name=test-asset", bufImage.Bytes(), http.StatusCreated)
+			resp := performUpload(t, assetURL+"?name=test-asset", bufImageBytes, http.StatusCreated)
 			var attachment api.Attachment
 			DecodeJSON(t, resp, &attachment)
 			assert.Equal(t, "test-asset", attachment.Name)
@@ -352,16 +351,16 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 	t.Run("application/octet-stream", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, http.MethodPost, assetURL, bytes.NewReader(bufImage.Bytes())).AddTokenAuth(token)
+		req := NewRequestWithBody(t, http.MethodPost, assetURL, bytes.NewReader(bufImageBytes)).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusBadRequest)
 
 		req = NewRequestWithBody(t, http.MethodPost, assetURL+"?name=stream.bin", bytes.NewReader(bufLargeBytes)).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusRequestEntityTooLarge)
 
-		req = NewRequestWithBody(t, http.MethodPost, assetURL+"?name=stream.bin", bytes.NewReader(bufImage.Bytes())).AddTokenAuth(token)
+		req = NewRequestWithBody(t, http.MethodPost, assetURL+"?name=stream.bin", bytes.NewReader(bufImageBytes)).AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusCreated)
 
-		var attachment *api.Attachment
+		var attachment api.Attachment
 		DecodeJSON(t, resp, &attachment)
 
 		assert.Equal(t, "stream.bin", attachment.Name)
