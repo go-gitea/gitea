@@ -5,13 +5,18 @@ package integration
 
 import (
 	"encoding/base64"
+	"net/http"
 	"net/url"
 	"testing"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/structs"
+	api "code.gitea.io/gitea/modules/structs"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,4 +76,45 @@ func testActionsJobTokenAccess(u *url.URL, isFork bool) func(t *testing.T) {
 			FullName: "Gitea Actions",
 		}))
 	}
+}
+
+func TestActionsJobTokenAccessLFS(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		httpContext := NewAPITestContext(t, "user2", "repo-lfs-test", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
+		t.Run("Create Repository", doAPICreateRepository(httpContext, false, func(t *testing.T, repository api.Repository) {
+
+			task := &actions_model.ActionTask{}
+			require.NoError(t, task.GenerateToken())
+			task.Status = actions_model.StatusRunning
+			task.IsForkPullRequest = false
+			task.RepoID = repository.ID
+			err := db.Insert(t.Context(), task)
+			require.NoError(t, err)
+			session := emptyTestSession(t)
+			httpContext := APITestContext{
+				Session:  session,
+				Token:    task.Token,
+				Username: "user2",
+				Reponame: "repo-lfs-test",
+			}
+
+			u.Path = httpContext.GitPath()
+			dstPath := t.TempDir()
+
+			u.Path = httpContext.GitPath()
+			u.User = url.UserPassword("gitea-actions", task.Token)
+
+			t.Run("Clone", doGitClone(dstPath, u))
+
+			dstPath2 := t.TempDir()
+
+			t.Run("Partial Clone", doPartialGitClone(dstPath2, u))
+
+			lfs := lfsCommitAndPushTest(t, dstPath, testFileSizeSmall)[0]
+
+			reqLFS := NewRequest(t, "GET", "/api/v1/repos/user2/repo-lfs-test/media/"+lfs).AddTokenAuth(task.Token)
+			respLFS := MakeRequestNilResponseRecorder(t, reqLFS, http.StatusOK)
+			assert.Equal(t, testFileSizeSmall, respLFS.Length)
+		}))
+	})
 }

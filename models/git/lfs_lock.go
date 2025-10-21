@@ -186,6 +186,20 @@ func CheckLFSAccessForRepo(ctx context.Context, ownerID int64, repo *repo_model.
 	if ownerID == 0 {
 		return ErrLFSUnauthorizedAction{repo.ID, "undefined", mode}
 	}
+	if ownerID == user_model.ActionsUserID {
+		taskId, ok := ctx.Value(user_model.ActionsUserName).(int64)
+		if !ok || taskId == 0 {
+			return ErrLFSUnauthorizedAction{repo.ID, user_model.ActionsUserName, mode}
+		}
+		perm, err := access_model.GetActionsUserRepoPermission(ctx, repo, user_model.NewActionsUser(), taskId)
+		if err != nil {
+			return err
+		}
+		if !perm.CanAccess(mode, unit.TypeCode) {
+			return ErrLFSUnauthorizedAction{repo.ID, user_model.ActionsUserName, mode}
+		}
+		return nil
+	}
 	u, err := user_model.GetUserByID(ctx, ownerID)
 	if err != nil {
 		return err
