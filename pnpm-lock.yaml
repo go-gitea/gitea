@@ -95,6 +95,15 @@ importers:
       css-loader:
         specifier: 7.1.2
         version: 7.1.2(webpack@5.101.3)
+      d3:
+        specifier: 7.9.0
+        version: 7.9.0
+      d3-selection:
+        specifier: 3.0.0
+        version: 3.0.0
+      d3-zoom:
+        specifier: 3.0.0
+        version: 3.0.0
       dayjs:
         specifier: 1.11.18
         version: 1.11.18
