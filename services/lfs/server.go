@@ -546,22 +546,21 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		accessMode = perm_model.AccessModeWrite
 	}
 
-	var perm access_model.Permission
-	var err error
 	if ctx.Data["IsActionsToken"] == true {
 		taskID := ctx.Data["ActionsTaskID"].(int64)
-		perm, err = access_model.GetActionsUserRepoPermission(ctx, repository, ctx.Doer, taskID)
+		perm, err := access_model.GetActionsUserRepoPermission(ctx, repository, ctx.Doer, taskID)
 		if err != nil {
 			log.Error("Unable to GetActionsUserRepoPermission for task[%d] Error: %v", taskID, err)
 			return false
 		}
-	} else {
-		// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
-		perm, err = access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
-		if err != nil {
-			log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
-			return false
-		}
+		return perm.CanAccess(accessMode, unit.TypeCode)
+	}
+
+	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
+	perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
+	if err != nil {
+		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
+		return false
 	}
 
 	canRead := perm.CanAccess(accessMode, unit.TypeCode)
