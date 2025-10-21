@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/structs"
-	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,7 +80,7 @@ func testActionsJobTokenAccess(u *url.URL, isFork bool) func(t *testing.T) {
 func TestActionsJobTokenAccessLFS(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		httpContext := NewAPITestContext(t, "user2", "repo-lfs-test", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
-		t.Run("Create Repository", doAPICreateRepository(httpContext, false, func(t *testing.T, repository api.Repository) {
+		t.Run("Create Repository", doAPICreateRepository(httpContext, false, func(t *testing.T, repository structs.Repository) {
 			task := &actions_model.ActionTask{}
 			require.NoError(t, task.GenerateToken())
 			task.Status = actions_model.StatusRunning
