@@ -228,34 +228,46 @@ func testSearchRepositoryPublic(t *testing.T) {
 }
 
 func testSearchRepositoryRestricted(t *testing.T) {
-	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	restrictedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29, IsRestricted: true})
 
-	performSearch := func(t *testing.T, user *user_model.User) (publicRepoIDs []int64, totalCount int) {
+	performSearch := func(t *testing.T, user *user_model.User) (publicRepoIDs []int64) {
 		repos, count, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{Page: 1, PageSize: 10000},
 			Actor:       user,
 		})
 		require.Nil(t, err)
-		totalCount = int(count)
-		assert.Len(t, repos, totalCount)
+		assert.Len(t, repos, int(count))
 		for _, repo := range repos {
 			require.NoError(t, repo.LoadOwner(t.Context()))
 			if repo.Owner.Visibility == structs.VisibleTypePublic && !repo.IsPrivate {
 				publicRepoIDs = append(publicRepoIDs, repo.ID)
 			}
 		}
-		return publicRepoIDs, totalCount
+		return publicRepoIDs
 	}
 
-	normalUserPublicRepoIDs, totalCount := performSearch(t, user2)
-	assert.Positive(t, totalCount)
-	assert.Greater(t, len(normalUserPublicRepoIDs), 1) // quite a lot
+	normalPublicRepoIDs := performSearch(t, user2)
+	require.Greater(t, len(normalPublicRepoIDs), 10) // quite a lot
 
-	restrictedUserPublicRepoIDs, totalCount := performSearch(t, restrictedUser)
-	assert.Equal(t, 1, totalCount) // restricted user can see only their own repo
-	assert.Equal(t, []int64{4}, restrictedUserPublicRepoIDs)
+	t.Run("RestrictedUser-NoSignInRequirement", func(t *testing.T) {
+		// restricted user can also see public repositories if no "required sign-in"
+		repoIDs := performSearch(t, restrictedUser)
+		assert.ElementsMatch(t, normalPublicRepoIDs, repoIDs)
+	})
+
+	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
+
+	t.Run("NormalUser-RequiredSignIn", func(t *testing.T) {
+		// normal user can still see all public repos, not affected by "required sign-in"
+		repoIDs := performSearch(t, user2)
+		assert.ElementsMatch(t, normalPublicRepoIDs, repoIDs)
+	})
+	t.Run("RestrictedUser-RequiredSignIn", func(t *testing.T) {
+		// restricted user can see only their own repo
+		repoIDs := performSearch(t, restrictedUser)
+		assert.Equal(t, []int64{4}, repoIDs)
+	})
 }
 
 func testSearchRepositoryPrivate(t *testing.T) {
