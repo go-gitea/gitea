@@ -11,8 +11,8 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -179,9 +179,9 @@ func PostLockHandler(ctx *context.Context) {
 
 	var lockCtx go_context.Context = ctx
 	// Pass Actions Task ID in context if creating lock using Actions Job Token
-	if ctx.Doer != nil && ctx.Doer.ID == user_model.ActionsUserID {
+	if ctx.Data["IsActionsToken"] == true {
 		taskID := ctx.Data["ActionsTaskID"].(int64)
-		lockCtx = go_context.WithValue(lockCtx, user_model.ActionsUserName, taskID)
+		lockCtx = go_context.WithValue(lockCtx, access_model.ActionsTaskIDKey, taskID)
 	}
 
 	lock, err := git_model.CreateLFSLock(lockCtx, repository, &git_model.LFSLock{
@@ -326,9 +326,9 @@ func UnLockHandler(ctx *context.Context) {
 
 	var lockCtx go_context.Context = ctx
 	// Pass Actions Task ID in context if deleting lock using Actions Job Token
-	if ctx.Doer != nil && ctx.Doer.ID == user_model.ActionsUserID {
+	if ctx.Data["IsActionsToken"] == true {
 		taskID := ctx.Data["ActionsTaskID"].(int64)
-		lockCtx = go_context.WithValue(lockCtx, user_model.ActionsUserName, taskID)
+		lockCtx = go_context.WithValue(lockCtx, access_model.ActionsTaskIDKey, taskID)
 	}
 
 	lock, err := git_model.DeleteLFSLockByID(lockCtx, ctx.PathParamInt64("lid"), repository, ctx.Doer, req.Force)

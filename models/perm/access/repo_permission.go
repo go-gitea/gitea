@@ -255,6 +255,11 @@ func finalProcessRepoUnitPermission(user *user_model.User, perm *Permission) {
 	}
 }
 
+type ActionsTaskIDKeyType struct{}
+
+// ActionsTaskIDKey is the context key for actions task ID in modules without context service like lfs locks
+var ActionsTaskIDKey ActionsTaskIDKeyType
+
 // GetActionsUserRepoPermission returns the actions user permissions to the repository
 func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Repository, actionsUser *user_model.User, taskID int64) (perm Permission, err error) {
 	if actionsUser.ID != user_model.ActionsUserID {
