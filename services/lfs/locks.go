@@ -176,7 +176,7 @@ func PostLockHandler(ctx *context.Context) {
 	}
 
 	var taskID int64
-	// Pass Actions Task ID in context if creating lock using Actions Job Token
+	// Passing a non zero Actions Task ID as parameter if creating lock using Actions Job Token
 	if ctx.Data["IsActionsToken"] == true {
 		taskID = ctx.Data["ActionsTaskID"].(int64)
 	}
@@ -322,7 +322,7 @@ func UnLockHandler(ctx *context.Context) {
 	}
 
 	var taskID int64
-	// Pass Actions Task ID in context if deleting lock using Actions Job Token
+	// Passing a non zero Actions Task ID as parameter if deleting lock using Actions Job Token
 	if ctx.Data["IsActionsToken"] == true {
 		taskID = ctx.Data["ActionsTaskID"].(int64)
 	}
