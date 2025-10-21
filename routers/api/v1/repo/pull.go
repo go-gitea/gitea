@@ -939,7 +939,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
 			ctx.APIError(http.StatusMethodNotAllowed, "User not allowed to merge PR")
 		} else if errors.Is(err, pull_service.ErrHasMerged) {
-			ctx.APIError(http.StatusMethodNotAllowed, "")
+			ctx.APIError(http.StatusMethodNotAllowed, "The PR is already merged")
 		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
 			ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
 		} else if errors.Is(err, pull_service.ErrNotMergeableState) {
@@ -991,7 +991,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, optional.FromPtr(form.DeleteBranchAfterMerge).ValueOrDefault(false))
+		deleteBranchAfterMerge := optional.FromPtr(form.DeleteBranchAfterMerge).ValueOrDefault(false)
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
 		if err != nil {
 			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
 				ctx.APIError(http.StatusConflict, err)
@@ -1043,6 +1044,9 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	// for agit flow, we should not delete the agit reference after merge
+	// FIXME: old code has that comment above. Is that comment valid? What would go wrong if a agit branch is deleted after merge?
+	// * If a agit branch can be deleted after merge, then fix the comment and maybe other related code
+	// * If a agit branch should not be deleted, then we need to fix the logic and add more tests
 	shouldDeleteBranch := pr.Flow == issues_model.PullRequestFlowGithub
 	if form.DeleteBranchAfterMerge != nil {
 		// if the form field is defined, it takes precedence over the repo setting equivalent

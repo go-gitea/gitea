@@ -22,6 +22,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -190,49 +191,50 @@ func TestAPIMergePullWIP(t *testing.T) {
 }
 
 func TestAPIMergePull(t *testing.T) {
-	doCheckBranchExists := func(t *testing.T, user *user_model.User, token, branchName string, repo *repo_model.Repository, status int) {
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", user.Name, repo.Name, branchName)).AddTokenAuth(token)
-		MakeRequest(t, req, status)
-	}
-
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-		session := loginUser(t, owner.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		apiCtx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+
+		checkBranchExists := func(t *testing.T, branchName string, status int) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", owner.Name, repo.Name, branchName)).AddTokenAuth(apiCtx.Token)
+			MakeRequest(t, req, status)
+		}
+
+		createTestBranchPR := func(t *testing.T, branchName string) *api.PullRequest {
+			testCreateFileInBranch(t, owner, repo, createFileInBranchOptions{NewBranch: branchName}, map[string]string{"a-new-file-" + branchName + ".txt": "dummy content"})
+			prDTO, err := doAPICreatePullRequest(apiCtx, repo.OwnerName, repo.Name, repo.DefaultBranch, branchName)(t)
+			require.NoError(t, err)
+			return &prDTO
+		}
+
+		performMerge := func(t *testing.T, prIndex int64, deleteBranchAfterMerge *bool, optExpectedStatus ...int) {
+			req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, prIndex), &forms.MergePullRequestForm{
+				Do:                     "merge",
+				DeleteBranchAfterMerge: deleteBranchAfterMerge,
+			}).AddTokenAuth(apiCtx.Token)
+			expectedStatus := util.OptionalArg(optExpectedStatus, http.StatusOK)
+			MakeRequest(t, req, expectedStatus)
+		}
 
 		t.Run("Normal", func(t *testing.T) {
 			newBranch := "test-pull-1"
-			prDTO := createPullRequestWithCommit(t, owner, newBranch, repo)
-
-			req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, prDTO.Index), &forms.MergePullRequestForm{
-				Do: "merge",
-			}).AddTokenAuth(token)
-
-			MakeRequest(t, req, http.StatusOK)
-			doCheckBranchExists(t, owner, token, newBranch, repo, http.StatusOK)
-			// make sure we cannot perform a merge on the same PR
-			MakeRequest(t, req, http.StatusUnprocessableEntity)
-			doCheckBranchExists(t, owner, token, newBranch, repo, http.StatusOK)
+			prDTO := createTestBranchPR(t, newBranch)
+			performMerge(t, prDTO.Index, nil)
+			checkBranchExists(t, newBranch, http.StatusOK)
+			performMerge(t, prDTO.Index, nil, http.StatusMethodNotAllowed) // make sure we cannot perform a merge on the same PR
 		})
 
 		t.Run("DeleteBranchAfterMergePassedByFormField", func(t *testing.T) {
 			newBranch := "test-pull-2"
-			prDTO := createPullRequestWithCommit(t, owner, newBranch, repo)
-			deleteBranch := true
-
-			req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, prDTO.Index), &forms.MergePullRequestForm{
-				Do:                     "merge",
-				DeleteBranchAfterMerge: &deleteBranch,
-			}).AddTokenAuth(token)
-
-			MakeRequest(t, req, http.StatusOK)
-			doCheckBranchExists(t, owner, token, newBranch, repo, http.StatusNotFound)
+			prDTO := createTestBranchPR(t, newBranch)
+			performMerge(t, prDTO.Index, util.ToPointer(true))
+			checkBranchExists(t, newBranch, http.StatusNotFound)
 		})
 
 		t.Run("DeleteBranchAfterMergePassedByRepoSettings", func(t *testing.T) {
 			newBranch := "test-pull-3"
-			prDTO := createPullRequestWithCommit(t, owner, newBranch, repo)
+			prDTO := createTestBranchPR(t, newBranch)
 
 			// set the default branch after merge setting at the repo level
 			prUnit, err := repo.GetUnit(t.Context(), unit_model.TypePullRequests)
@@ -249,18 +251,13 @@ func TestAPIMergePull(t *testing.T) {
 			})
 			require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, units, nil))
 
-			// perform merge
-			req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, prDTO.Index), &forms.MergePullRequestForm{
-				Do: "merge",
-			}).AddTokenAuth(token)
-
-			MakeRequest(t, req, http.StatusOK)
-			doCheckBranchExists(t, owner, token, newBranch, repo, http.StatusNotFound)
+			performMerge(t, prDTO.Index, nil)
+			checkBranchExists(t, newBranch, http.StatusNotFound)
 		})
 
 		t.Run("DeleteBranchAfterMergeFormFieldIsSetButNotRepoSettings", func(t *testing.T) {
 			newBranch := "test-pull-4"
-			prDTO := createPullRequestWithCommit(t, owner, newBranch, repo)
+			prDTO := createTestBranchPR(t, newBranch)
 
 			// make sure the default branch after merge setting is unset at the repo level
 			prUnit, err := repo.GetUnit(t.Context(), unit_model.TypePullRequests)
@@ -278,14 +275,8 @@ func TestAPIMergePull(t *testing.T) {
 			require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, units, nil))
 
 			// perform merge
-			deleteBranch := true
-			req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, prDTO.Index), &forms.MergePullRequestForm{
-				Do:                     "merge",
-				DeleteBranchAfterMerge: &deleteBranch,
-			}).AddTokenAuth(token)
-
-			MakeRequest(t, req, http.StatusOK)
-			doCheckBranchExists(t, owner, token, newBranch, repo, http.StatusNotFound)
+			performMerge(t, prDTO.Index, util.ToPointer(true))
+			checkBranchExists(t, newBranch, http.StatusNotFound)
 		})
 	})
 }
@@ -623,42 +614,4 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 			}
 		})(t)
 	})
-}
-
-func createPullRequestWithCommit(t *testing.T, user *user_model.User, newBranch string, repo *repo_model.Repository) *api.PullRequest {
-	// create a new branch with a commit
-	filesResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user, &files_service.ChangeRepoFilesOptions{
-		Files: []*files_service.ChangeRepoFile{
-			{
-				Operation:     "create",
-				TreePath:      strings.ReplaceAll(newBranch, " ", "_"),
-				ContentReader: strings.NewReader("This is a test."),
-			},
-		},
-		Message:   "Add test file using branch name as its name",
-		OldBranch: repo.DefaultBranch,
-		NewBranch: newBranch,
-		Author: &files_service.IdentityOptions{
-			GitUserName:  user.Name,
-			GitUserEmail: user.Email,
-		},
-		Committer: &files_service.IdentityOptions{
-			GitUserName:  user.Name,
-			GitUserEmail: user.Email,
-		},
-		Dates: &files_service.CommitDateOptions{
-			Author:    time.Now(),
-			Committer: time.Now(),
-		},
-	})
-
-	require.NoError(t, err)
-	require.NotEmpty(t, filesResp)
-
-	// create a corresponding PR
-	apiCtx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-	prDTO, err := doAPICreatePullRequest(apiCtx, repo.OwnerName, repo.Name, repo.DefaultBranch, newBranch)(t)
-	require.NoError(t, err)
-
-	return &prDTO
 }
