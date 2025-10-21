@@ -114,6 +114,7 @@ const (
 	MATRIX     HookType = "matrix"
 	WECHATWORK HookType = "wechatwork"
 	PACKAGIST  HookType = "packagist"
+	BARK       HookType = "bark"
 )
 
 // HookStatus is the status of a web hook

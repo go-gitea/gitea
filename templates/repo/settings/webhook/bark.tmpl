@@ -1,0 +1,20 @@
+{{if eq .HookType "bark"}}
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://github.com/Finb/Bark" (ctx.Locale.Tr "repo.settings.web_hook_name_bark")}}</p>
+	<form class="ui form" action="{{.BaseLink}}/bark/{{or .Webhook.ID "new"}}" method="post">
+		{{.CsrfTokenHtml}}
+		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
+			<label for="payload_url">{{ctx.Locale.Tr "repo.settings.bark_url"}}</label>
+			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" placeholder="https://api.day.app/your_device_key/" autofocus required>
+			<p class="help">{{ctx.Locale.Tr "repo.settings.bark_url_help"}}</p>
+		</div>
+		<div class="field">
+			<label for="sound">{{ctx.Locale.Tr "repo.settings.bark_sound"}}</label>
+			<input id="sound" name="sound" value="{{.BarkHook.Sound}}" placeholder="bell">
+		</div>
+		<div class="field">
+			<label for="group">{{ctx.Locale.Tr "repo.settings.bark_group"}}</label>
+			<input id="group" name="group" value="{{.BarkHook.Group}}" placeholder="Gitea">
+		</div>
+		{{template "repo/settings/webhook/settings" dict "BaseLink" .BaseLink "Webhook" .Webhook "UseAuthorizationHeader" false}}
+	</form>
+{{end}}

@@ -410,6 +410,20 @@ func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) 
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewBarkHookForm form for creating Bark hook
+type NewBarkHookForm struct {
+	PayloadURL string `binding:"Required;ValidUrl" form:"payload_url"`
+	Sound      string `form:"sound"`
+	Group      string `form:"group"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewBarkHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // .___
 // |   | ______ ________ __   ____
 // |   |/  ___//  ___/  |  \_/ __ \

@@ -434,6 +434,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Post("/feishu/new", web.Bind(forms.NewFeishuHookForm{}), repo_setting.FeishuHooksNewPost)
 		m.Post("/wechatwork/new", web.Bind(forms.NewWechatWorkHookForm{}), repo_setting.WechatworkHooksNewPost)
 		m.Post("/packagist/new", web.Bind(forms.NewPackagistHookForm{}), repo_setting.PackagistHooksNewPost)
+		m.Post("/bark/new", web.Bind(forms.NewBarkHookForm{}), repo_setting.BarkHooksNewPost)
 	}
 
 	addWebhookEditRoutes := func() {
@@ -448,6 +449,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Post("/feishu/{id}", web.Bind(forms.NewFeishuHookForm{}), repo_setting.FeishuHooksEditPost)
 		m.Post("/wechatwork/{id}", web.Bind(forms.NewWechatWorkHookForm{}), repo_setting.WechatworkHooksEditPost)
 		m.Post("/packagist/{id}", web.Bind(forms.NewPackagistHookForm{}), repo_setting.PackagistHooksEditPost)
+		m.Post("/bark/{id}", web.Bind(forms.NewBarkHookForm{}), repo_setting.BarkHooksEditPost)
 	}
 
 	addSettingsVariablesRoutes := func() {
