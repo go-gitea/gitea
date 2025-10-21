@@ -1103,11 +1103,11 @@ func MergePullRequest(ctx *context.Context) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
+	deleteBranchAfterMerge := optional.FromPtr(form.DeleteBranchAfterMerge).ValueOrDefault(false)
 	if form.MergeWhenChecksSucceed {
 		// delete all scheduled auto merges
 		_ = pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
 		// schedule auto merge
-		deleteBranchAfterMerge := optional.FromPtr(form.DeleteBranchAfterMerge).ValueOrDefault(false)
 		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
 		if err != nil {
 			ctx.ServerError("ScheduleAutoMerge", err)
@@ -1194,7 +1194,7 @@ func MergePullRequest(ctx *context.Context) {
 
 	log.Trace("Pull request merged: %d", pr.ID)
 
-	if !optional.FromPtr(form.DeleteBranchAfterMerge).ValueOrDefault(false) {
+	if !deleteBranchAfterMerge {
 		ctx.JSONRedirect(issue.Link())
 		return
 	}
