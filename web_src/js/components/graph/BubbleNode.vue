@@ -88,19 +88,16 @@ const labelTransform = computed(() => `translate(0, ${-fit.shiftPx/props.k}) sca
 const showButton = computed(() => {
   if (!props.isActive) return false;
   const pixelRadius = props.r * props.k;
-  return pixelRadius >= 60;
+  return pixelRadius >= 80;
 });
 
-const BUTTON_WIDTH = 120;
-const BUTTON_HEIGHT = 30;
+const BUTTON_WIDTH = 300;
+const BUTTON_HEIGHT = 92;
 
 const buttonTransform = computed(() => {
   const buttonHeightWorld = BUTTON_HEIGHT / props.k;
-  const marginWorld = 12 / props.k;
-  let offsetWorld = props.r - (buttonHeightWorld / 2) - marginWorld;
-  if (offsetWorld < -props.r + buttonHeightWorld) {
-    offsetWorld = props.r * 0.6;
-  }
+  const marginWorld = 32 / props.k;
+  const offsetWorld = props.r + (buttonHeightWorld / 2) + marginWorld;
   return `translate(0, ${offsetWorld}) scale(${1/props.k})`;
 });
 
@@ -116,7 +113,7 @@ function onView(ev:MouseEvent){
 
 <template>
   <!-- One node group at (x,y); we let the parent group receive the world transform -->
-  <g class="node cursor-pointer select-none" :class="{'node--active': isActive}" :transform="gTransform"
+  <g class="node cursor-pointer select-none" :transform="gTransform"
      @click="onClick" @dblclick="onDblClick">
     <!-- Bubble circle with soft gradient & subtle stroke/shadow -->
     <circle class="node-circle" :r="r" fill="url(#bubbleGrad)"
@@ -152,20 +149,16 @@ function onView(ev:MouseEvent){
 .node-circle {
   transition: stroke 0.2s ease, stroke-width 0.2s ease;
 }
-.node--active .node-circle {
-  stroke: #2563eb;
-  stroke-width: 2.4;
-}
 .view-button {
   cursor: pointer;
 }
 .view-button rect {
   fill: #2563eb;
-  opacity: 0.92;
+  opacity: 0.95;
 }
 .view-button text {
   fill: #ffffff;
-  font-size: 12px;
+  font-size: 20px;
   font-weight: 600;
   pointer-events: none;
 }
