@@ -1041,8 +1041,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	log.Trace("Pull request merged: %d", pr.ID)
 
 	if deleteBranchAfterMerge {
-		// no way to tell users that what error happens, and the PR has been merged, so ignore the error
 		if err = repo_service.DeleteBranchAfterMerge(ctx, ctx.Doer, pr.ID, nil); err != nil {
+			// no way to tell users that what error happens, and the PR has been merged, so ignore the error
 			log.Debug("DeleteBranchAfterMerge: pr %d, err: %v", pr.ID, err)
 		}
 	}
