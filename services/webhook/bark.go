@@ -121,7 +121,7 @@ func (bc barkConvertor) Push(p *api.PushPayload) (BarkPayload, error) {
 	for i, commit := range p.Commits {
 		body.WriteString(fmt.Sprintf("%s: %s", commit.ID[:7], strings.TrimRight(commit.Message, "\r\n")))
 		if commit.Author != nil {
-			body.WriteString(fmt.Sprintf(" - %s", commit.Author.Name))
+			body.WriteString(" - " + commit.Author.Name)
 		}
 		if i < len(p.Commits)-1 {
 			body.WriteString("\n")
@@ -230,10 +230,10 @@ func (bc barkConvertor) Repository(p *api.RepositoryPayload) (BarkPayload, error
 	switch p.Action {
 	case api.HookRepoCreated:
 		title = fmt.Sprintf("[%s] Repository created", p.Repository.FullName)
-		body = fmt.Sprintf("%s created repository", p.Sender.UserName)
+		body = p.Sender.UserName + "created repository"
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
-		body = fmt.Sprintf("%s deleted repository", p.Sender.UserName)
+		body = p.Sender.UserName + "deleted repository"
 	default:
 		return BarkPayload{}, nil
 	}
