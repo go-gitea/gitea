@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 	"unicode"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -32,7 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/lfs"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli/v3"
 )
@@ -131,27 +129,6 @@ func getAccessMode(verb, lfsVerb string) perm.AccessMode {
 	// should be unreachable
 	setting.PanicInDevOrTesting("unknown verb: %s %s", verb, lfsVerb)
 	return perm.AccessModeNone
-}
-
-func getLFSAuthToken(ctx context.Context, lfsVerb string, results *private.ServCommandResults) (string, error) {
-	now := time.Now()
-	claims := lfs.Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
-			NotBefore: jwt.NewNumericDate(now),
-		},
-		RepoID: results.RepoID,
-		Op:     lfsVerb,
-		UserID: results.UserID,
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
-	if err != nil {
-		return "", fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
-	}
-	return "Bearer " + tokenString, nil
 }
 
 func runServ(ctx context.Context, c *cli.Command) error {
@@ -283,7 +260,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 
 	// LFS SSH protocol
 	if verb == git.CmdVerbLfsTransfer {
-		token, err := getLFSAuthToken(ctx, lfsVerb, results)
+		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, RepoID: results.RepoID})
 		if err != nil {
 			return err
 		}
@@ -294,7 +271,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	if verb == git.CmdVerbLfsAuthenticate {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
-		token, err := getLFSAuthToken(ctx, lfsVerb, results)
+		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, RepoID: results.RepoID})
 		if err != nil {
 			return err
 		}
