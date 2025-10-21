@@ -172,6 +172,7 @@
                 data-bubble-url="{{QueryBuild $subjectPath "view" "bubble"}}"
                 data-table-url="{{QueryBuild $subjectPath "view" "table"}}"
                 data-article-base="{{printf "%s/article" AppSubUrl}}"
+                data-article-repo-base="{{printf "%s/article/repo" AppSubUrl}}"
                 data-current-uri="{{.Link}}">
                 {{template "shared/repo/bubble" .}}
                 {{template "shared/repo/table" .}}

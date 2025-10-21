@@ -6,7 +6,8 @@ type ViewKey = 'bubble' | 'table' | 'article';
 
 type RepoSelection = {
   owner: string;
-  subject: string;
+  repo: string;
+  subject?: string | null;
 };
 
 type HistoryState = {
@@ -14,17 +15,24 @@ type HistoryState = {
   mode?: string;
   owner?: string | null;
   subject?: string | null;
+  repo?: string | null;
 };
 
 const LS_OWNER_KEY = 'selectedArticleOwner';
 const LS_SUBJECT_KEY = 'selectedArticleSubject';
+const LS_REPO_KEY = 'selectedArticleRepo';
 
 function readStoredSelection(): RepoSelection | null {
   try {
     const owner = window.localStorage.getItem(LS_OWNER_KEY);
+    const repo = window.localStorage.getItem(LS_REPO_KEY);
     const subject = window.localStorage.getItem(LS_SUBJECT_KEY);
-    if (!owner || !subject) return null;
-    return {owner, subject};
+    if (!owner) return null;
+    if (repo) {
+      return {owner, repo, subject: subject || null};
+    }
+    if (!subject) return null;
+    return {owner, repo: subject, subject};
   } catch {
     return null;
   }
@@ -35,10 +43,16 @@ function writeStoredSelection(selection: RepoSelection | null) {
     if (!selection) {
       window.localStorage.removeItem(LS_OWNER_KEY);
       window.localStorage.removeItem(LS_SUBJECT_KEY);
+      window.localStorage.removeItem(LS_REPO_KEY);
       return;
     }
     window.localStorage.setItem(LS_OWNER_KEY, selection.owner);
-    window.localStorage.setItem(LS_SUBJECT_KEY, selection.subject);
+    if (selection.subject) {
+      window.localStorage.setItem(LS_SUBJECT_KEY, selection.subject);
+    } else {
+      window.localStorage.removeItem(LS_SUBJECT_KEY);
+    }
+    window.localStorage.setItem(LS_REPO_KEY, selection.repo);
   } catch {
     // ignore storage errors
   }
@@ -61,13 +75,14 @@ function buildSubjectUrlWithMode(base: string, view: ViewKey, mode?: string) {
   return url.pathname + url.search;
 }
 
-function buildArticleUrl(articleBase: string, selection: RepoSelection, mode: string) {
-  const base = articleBase.replace(/\/+$/, '');
+function buildArticleUrl(articleRepoBase: string, selection: RepoSelection, mode: string) {
+  const base = articleRepoBase.replace(/\/+$/, '');
   const owner = encodeURIComponent(selection.owner);
-  const subject = encodeURIComponent(selection.subject);
-  const url = new URL(`${base}/${owner}/${subject}`, window.location.origin);
+  const repo = encodeURIComponent(selection.repo);
+  const url = new URL(`${base}/${owner}/${repo}`, window.location.origin);
   url.searchParams.set('view', 'article');
   url.searchParams.set('mode', mode || 'read');
+  if (selection.subject) url.searchParams.set('subject', selection.subject);
   return url.pathname + url.search;
 }
 
@@ -82,10 +97,18 @@ function parseLocation(appSubUrl: string | undefined): HistoryState {
   const trimmedPath = pathname.startsWith(basePrefix) ? pathname.slice(basePrefix.length) : pathname;
   const segments = trimmedPath.replace(/^\/+/, '').split('/');
 
-  if (segments[0] === 'article' && segments.length >= 3) {
-    const owner = decodeURIComponent(segments[1]);
-    const subject = decodeURIComponent(segments[2]);
-    return {view: 'article', mode, owner, subject};
+  if (segments[0] === 'article') {
+    if (segments[1] === 'repo' && segments.length >= 4) {
+      const owner = decodeURIComponent(segments[2]);
+      const repo = decodeURIComponent(segments[3]);
+      const subject = params.get('subject');
+      return {view: 'article', mode, owner, repo, subject};
+    }
+    if (segments.length >= 3) {
+      const owner = decodeURIComponent(segments[1]);
+      const subject = decodeURIComponent(segments[2]);
+      return {view: 'article', mode, owner, subject, repo: subject};
+    }
   }
 
   return {view, mode};
@@ -93,7 +116,9 @@ function parseLocation(appSubUrl: string | undefined): HistoryState {
 
 function matchesSelection(a: RepoSelection | null, b: RepoSelection | null) {
   if (!a || !b) return false;
-  return a.owner === b.owner && a.subject === b.subject;
+  if (a.owner !== b.owner) return false;
+  if (a.repo && b.repo) return a.repo === b.repo;
+  return a.subject === b.subject;
 }
 
 export function initRepoHistory() {
@@ -104,7 +129,7 @@ export function initRepoHistory() {
   const subjectUrl = dataset.subjectUrl || window.location.pathname;
   const bubbleUrl = dataset.bubbleUrl || buildSubjectUrl(subjectUrl, 'bubble');
   const tableUrl = dataset.tableUrl || buildSubjectUrl(subjectUrl, 'table');
-  const articleBase = dataset.articleBase || `${window.APP_SUB_URL || ''}/article`;
+  const articleRepoBase = dataset.articleRepoBase || `${window.APP_SUB_URL || ''}/article/repo`;
   const appSubUrl = window.APP_SUB_URL || '';
 
   const bubbleSection = root.querySelector<HTMLElement>('[data-view="bubble"]');
@@ -118,10 +143,11 @@ export function initRepoHistory() {
   const storedSelection = readStoredSelection();
   let initialSelection: RepoSelection | null = storedSelection;
 
-  if (!initialSelection && dataset.initialView === 'article' && dataset.initialOwner && dataset.initialSubject) {
+  if (!initialSelection && dataset.initialView === 'article' && dataset.initialOwner && (dataset.initialRepo || dataset.initialSubject)) {
     initialSelection = {
       owner: dataset.initialOwner,
-      subject: dataset.initialSubject,
+      repo: dataset.initialRepo || dataset.initialSubject!,
+      subject: dataset.initialSubject || null,
     };
     writeStoredSelection(initialSelection);
   } else if (!initialSelection) {
@@ -188,11 +214,12 @@ export function initRepoHistory() {
       mode,
       owner: selection?.owner ?? null,
       subject: selection?.subject ?? null,
+      repo: selection?.repo ?? null,
     };
 
     let url: string;
     if (view === 'article' && selection) {
-      url = buildArticleUrl(articleBase, selection, mode);
+      url = buildArticleUrl(articleRepoBase, selection, mode);
     } else if (view === 'table') {
       url = tableUrl;
     } else if (view === 'bubble') {
@@ -221,8 +248,9 @@ export function initRepoHistory() {
       const row = checkbox.closest<HTMLTableRowElement>('tr.article-row');
       if (!row) return;
       const owner = row.dataset.owner || '';
+      const repo = row.dataset.repo || '';
       const subject = row.dataset.subject || '';
-      checkbox.checked = !!selection && selection.owner === owner && selection.subject === subject;
+      checkbox.checked = !!selection && selection.owner === owner && selection.repo === (repo || subject);
     });
   }
 
@@ -235,11 +263,22 @@ export function initRepoHistory() {
     }
   }
 
+  function normalizeSelection(selection: RepoSelection | null): RepoSelection | null {
+    if (!selection) return null;
+    const repo = selection.repo || selection.subject || '';
+    if (!selection.owner || !repo) return null;
+    return {
+      owner: selection.owner,
+      repo,
+      subject: selection.subject ?? selection.repo ?? null,
+    };
+  }
+
   function persistSelection(selection: RepoSelection | null) {
-    if ((!selectedRepo.value && !selection) || matchesSelection(selectedRepo.value, selection)) {
+    const normalized = normalizeSelection(selection);
+    if ((!selectedRepo.value && !normalized) || matchesSelection(selectedRepo.value, normalized)) {
       return;
     }
-    const normalized = selection ? {...selection} : null;
     selectedRepo.value = normalized;
     writeStoredSelection(normalized);
     window.dispatchEvent(new CustomEvent('repo:selection-updated', {detail: normalized}));
@@ -300,10 +339,11 @@ export function initRepoHistory() {
         if (!btn) return;
         const owner = btn.dataset.owner || '';
         const subject = btn.dataset.subject || '';
-        if (!owner || !subject) return;
+        const repo = btn.dataset.repo || subject;
+        if (!owner || !repo) return;
         event.preventDefault();
         switchView('article', {
-          selection: {owner, subject},
+          selection: {owner, subject, repo},
           mode: 'read',
           pushState: true,
         });
@@ -316,9 +356,10 @@ export function initRepoHistory() {
       if (target.closest('.ui.checkbox')) return;
       const owner = row.dataset.owner || '';
       const subject = row.dataset.subject || '';
-      if (!owner || !subject) return;
+      const repo = row.dataset.repo || subject;
+      if (!owner || !repo) return;
       switchView('article', {
-        selection: {owner, subject},
+        selection: {owner, subject, repo},
         mode: 'read',
         pushState: true,
       });
@@ -331,13 +372,14 @@ export function initRepoHistory() {
       if (!row) return;
       const owner = row.dataset.owner || '';
       const subject = row.dataset.subject || '';
-      if (!owner || !subject) return;
+      const repo = row.dataset.repo || subject;
+      if (!owner || !repo) return;
       if (target.checked) {
         table.querySelectorAll<HTMLInputElement>('tbody .row-check').forEach((checkbox) => {
           if (checkbox !== target) checkbox.checked = false;
         });
-        persistSelection({owner, subject});
-      } else if (matchesSelection(selectedRepo.value, {owner, subject})) {
+        persistSelection({owner, subject, repo});
+      } else if (matchesSelection(selectedRepo.value, {owner, subject, repo})) {
         persistSelection(null);
       }
     });
@@ -371,7 +413,7 @@ export function initRepoHistory() {
     isLoading.value = true;
     loadError.value = '';
     updateArticleStatus();
-    const url = buildArticleUrl(articleBase, selection, mode);
+    const url = buildArticleUrl(articleRepoBase, selection, mode);
     try {
       const response = await fetch(url, {credentials: 'same-origin'});
       if (!response.ok) throw new Error(`Failed with status ${response.status}`);
@@ -435,7 +477,7 @@ export function initRepoHistory() {
       return;
     }
 
-    if (!targetSelection) {
+    if (!targetSelection || !targetSelection.repo) {
       persistSelection(null);
       viewLoaded.article = true;
       if (options.pushState) updateHistoryState('article', articleMode.value, null, false);
@@ -450,7 +492,8 @@ export function initRepoHistory() {
   }
 
   function handleBubbleSelection(event: Event) {
-    const detail = (event as CustomEvent).detail as RepoSelection | null;
+    const rawDetail = (event as CustomEvent).detail as RepoSelection | null;
+    const detail = normalizeSelection(rawDetail);
     if (!detail) {
       clearSelection(false);
       return;
@@ -461,7 +504,8 @@ export function initRepoHistory() {
   }
 
   function handleBubbleOpenArticle(event: Event) {
-    const detail = (event as CustomEvent).detail as RepoSelection | null;
+    const rawDetail = (event as CustomEvent).detail as RepoSelection | null;
+    const detail = normalizeSelection(rawDetail);
     if (!detail) return;
     if (!selectedRepo.value || !matchesSelection(selectedRepo.value, detail)) {
       persistSelection(detail);
@@ -485,7 +529,9 @@ export function initRepoHistory() {
 
   function handlePopState(event: PopStateEvent) {
     const state = (event.state as HistoryState) || parseLocation(appSubUrl);
-    const sel = state.owner && state.subject ? {owner: state.owner, subject: state.subject} : null;
+    const sel = state.owner && (state.repo || state.subject)
+      ? {owner: state.owner, repo: state.repo || state.subject!, subject: state.subject ?? state.repo ?? null}
+      : null;
     if (!matchesSelection(selectedRepo.value, sel)) {
       persistSelection(sel);
     }
@@ -524,6 +570,7 @@ export function initRepoHistory() {
     mode: articleMode.value,
     owner: selectedRepo.value?.owner ?? null,
     subject: selectedRepo.value?.subject ?? null,
+    repo: selectedRepo.value?.repo ?? null,
   };
   window.history.replaceState(initialState, '', window.location.pathname + window.location.search);
 

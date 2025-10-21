@@ -37,10 +37,11 @@ type Node = {
 };
 type Graph = Record<string, Node>;
 
-type RepoSelectionDetail = { owner: string; subject: string };
+type RepoSelectionDetail = { owner: string; repo: string; subject?: string | null };
 
 const LS_OWNER_KEY = 'selectedArticleOwner';
 const LS_SUBJECT_KEY = 'selectedArticleSubject';
+const LS_REPO_KEY = 'selectedArticleRepo';
 
 /* ──────────────────────────────────────────────────────────────────────────────
    TUNABLES (art direction)
@@ -144,9 +145,14 @@ function normalize(value?: string | null) {
 function readStoredSelection(): RepoSelectionDetail | null {
   try {
     const owner = window.localStorage.getItem(LS_OWNER_KEY);
+    const repo = window.localStorage.getItem(LS_REPO_KEY);
     const subject = window.localStorage.getItem(LS_SUBJECT_KEY);
-    if (!owner || !subject) return null;
-    return {owner, subject};
+    if (!owner) return null;
+    if (repo) {
+      return {owner, repo, subject: subject || null};
+    }
+    if (!subject) return null;
+    return {owner, repo: subject, subject};
   } catch {
     return null;
   }
@@ -158,39 +164,56 @@ function getSelectionDetailFromNode(n: Node): RepoSelectionDetail | null {
     n.fullName?.split('/')?.[0],
     n.parentId === null ? (props.owner ?? null) : null,
   ].filter(Boolean) as string[];
+  const repoCandidates = [
+    n.repoName,
+    n.fullName?.split('/')?.[1],
+    n.repoSubject,
+    n.parentId === null ? (props.repo ?? null) : null,
+  ].filter(Boolean) as string[];
   const subjectCandidates = [
     n.repoSubject,
     n.repoName,
     n.fullName?.split('/')?.[1],
     n.parentId === null ? (props.subject ?? null) : null,
-    n.parentId === null ? (props.repo ?? null) : null,
   ].filter(Boolean) as string[];
 
   const owner = ownerCandidates[0];
-  const subject = subjectCandidates[0];
-  if (!owner || !subject) return null;
-  return {owner, subject};
+  const repo = repoCandidates[0] || subjectCandidates[0];
+  if (!owner || !repo) return null;
+  const subject = subjectCandidates[0] || null;
+  return {owner, repo, subject};
+}
+
+function normalizeDetail(detail: RepoSelectionDetail | null): RepoSelectionDetail | null {
+  if (!detail) return null;
+  const repo = detail.repo || detail.subject || '';
+  if (!detail.owner || !repo) return null;
+  return {
+    owner: detail.owner,
+    repo,
+    subject: detail.subject ?? detail.repo ?? null,
+  };
 }
 
 function findNodeBySelection(detail: RepoSelectionDetail): Node | null {
   const desiredOwner = normalize(detail.owner);
-  const desiredSubject = normalize(detail.subject);
+  const desiredRepo = normalize(detail.repo || detail.subject || '');
+  if (!desiredOwner || !desiredRepo) return null;
   for (const node of Object.values(state.graph)) {
     const ownerCandidates = [
       node.repoOwner,
       node.fullName?.split('/')?.[0],
       node.parentId === null ? (props.owner ?? null) : null,
     ].filter(Boolean) as string[];
-    const subjectCandidates = [
-      node.repoSubject,
+    const repoCandidates = [
       node.repoName,
       node.fullName?.split('/')?.[1],
-      node.parentId === null ? (props.subject ?? null) : null,
+      node.repoSubject,
       node.parentId === null ? (props.repo ?? null) : null,
     ].filter(Boolean) as string[];
     if (
       ownerCandidates.some((c) => normalize(c) === desiredOwner) &&
-      subjectCandidates.some((c) => normalize(c) === desiredSubject)
+      repoCandidates.some((c) => normalize(c) === desiredRepo)
     ) {
       return node;
     }
@@ -203,18 +226,19 @@ function applySelection(node: Node | null, _detail: RepoSelectionDetail | null) 
 }
 
 function setSelectionFromDetail(detail: RepoSelectionDetail | null) {
-  if (!detail) {
+  const normalized = normalizeDetail(detail);
+  if (!normalized) {
     pendingExternalSelection = null;
     applySelection(null, null);
     return;
   }
-  const node = findNodeBySelection(detail);
+  const node = findNodeBySelection(normalized);
   if (node) {
     pendingExternalSelection = null;
-    applySelection(node, detail);
+    applySelection(node, normalized);
   } else {
-    pendingExternalSelection = detail;
-    applySelection(null, detail);
+    pendingExternalSelection = normalized;
+    applySelection(null, normalized);
   }
 }
 
@@ -229,8 +253,9 @@ function restoreSelectionAfterGraphLoad() {
 }
 
 function handleExternalSelection(event: Event) {
-  const detail = (event as CustomEvent<RepoSelectionDetail | null>).detail ?? null;
-  setSelectionFromDetail(detail);
+  const rawDetail = (event as CustomEvent<RepoSelectionDetail | null>).detail ?? null;
+  const normalized = normalizeDetail(rawDetail);
+  setSelectionFromDetail(normalized);
 }
 
 async function fetchForkGraphAndSet(){
@@ -692,9 +717,15 @@ function persistSelectionDetail(detail: RepoSelectionDetail | null) {
     if (!detail) {
       window.localStorage.removeItem(LS_OWNER_KEY);
       window.localStorage.removeItem(LS_SUBJECT_KEY);
+      window.localStorage.removeItem(LS_REPO_KEY);
     } else {
       window.localStorage.setItem(LS_OWNER_KEY, detail.owner);
-      window.localStorage.setItem(LS_SUBJECT_KEY, detail.subject);
+      if (detail.subject) {
+        window.localStorage.setItem(LS_SUBJECT_KEY, detail.subject);
+      } else {
+        window.localStorage.removeItem(LS_SUBJECT_KEY);
+      }
+      window.localStorage.setItem(LS_REPO_KEY, detail.repo);
     }
   } catch {
     // ignore storage quotas

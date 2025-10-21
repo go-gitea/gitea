@@ -42,7 +42,7 @@
                         {{if .HistoryForkEntries}}
                         {{range $idx, $entry := .HistoryForkEntries}}
                         {{$repo := $entry.Repo}}
-                        <tr class="article-row" data-row="{{$idx}}" data-owner="{{$repo.OwnerName}}" data-subject="{{$repo.GetSubject}}">
+                        <tr class="article-row" data-row="{{$idx}}" data-owner="{{$repo.OwnerName}}" data-subject="{{$repo.GetSubject}}" data-repo="{{$repo.Name}}">
                             <td>
                                 <div class="ui checkbox">
                                     <input type="checkbox" class="row-check">
@@ -77,7 +77,7 @@
                                             {{end}}
                                         </div>
                                     </div>
-                                    <button type="button" class="ui button go-to-article" data-owner="{{$repo.OwnerName}}" data-subject="{{$repo.GetSubject}}">
+                                    <button type="button" class="ui button go-to-article" data-owner="{{$repo.OwnerName}}" data-subject="{{$repo.GetSubject}}" data-repo="{{$repo.Name}}">
                                         View article
                                     </button>
                                 </div>
