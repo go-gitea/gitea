@@ -24,6 +24,12 @@
 						{{ctx.Locale.Tr "actions.runs.pushed_by"}}
 						<a href="{{$run.TriggerUser.HomeLink}}">{{$run.TriggerUser.GetDisplayName}}</a>
 					{{- end -}}
+					{{$errMsg := index $.RunErrors $run.ID}}
+					{{if $errMsg}}
+						<span data-tooltip-content="{{$errMsg}}">
+							{{svg "octicon-alert" 16 "text red"}}
+						</span>
+					{{end}}
 				</div>
 			</div>
 			<div class="flex-item-trailing">
