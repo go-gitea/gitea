@@ -767,7 +767,7 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 		return err
 	}
 
-	fullBranchName := pr.HeadRepo.Owner.Name + ":" + pr.HeadBranch
+	fullBranchName := pr.HeadRepo.FullName() + ":" + pr.HeadBranch
 	if outFullBranchName != nil {
 		*outFullBranchName = fullBranchName
 	}
