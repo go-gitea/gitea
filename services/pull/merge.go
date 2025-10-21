@@ -735,7 +735,7 @@ func ShouldDeleteBranchAfterMerge(ctx context.Context, userOption *bool, repo *r
 	if pr.Flow != issues_model.PullRequestFlowGithub {
 		// only support GitHub workflow (branch-based)
 		// for agit workflow, there is no branch, so nothing to delete
-		// TODO: maybe in the future, it should delete the "agit reference (/efs/for/xxxx)"?
+		// TODO: maybe in the future, it should delete the "agit reference (refs/for/xxxx)"?
 		return false, nil
 	}
 

@@ -751,8 +751,6 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 	if err = pr.LoadIssue(ctx); err != nil {
 		return err
 	}
-	issue := pr.Issue
-
 	if err = pr.LoadBaseRepo(ctx); err != nil {
 		return err
 	}
@@ -772,13 +770,13 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 		*outFullBranchName = fullBranchName
 	}
 
-	errFailedToDelete := func() error {
-		return util.ErrorWrapTranslatable(util.ErrUnprocessableContent, "repo.branch.deletion_failed", fullBranchName)
+	errFailedToDelete := func(err error) error {
+		return util.ErrorWrapTranslatable(err, "repo.branch.deletion_failed", fullBranchName)
 	}
 
 	// Don't clean up unmerged and unclosed PRs and agit PRs
-	if !pr.HasMerged && !issue.IsClosed && pr.Flow != issues_model.PullRequestFlowGithub {
-		return errFailedToDelete()
+	if !pr.HasMerged && !pr.Issue.IsClosed && pr.Flow != issues_model.PullRequestFlowGithub {
+		return errFailedToDelete(util.ErrUnprocessableContent)
 	}
 
 	// Don't clean up when there are other PR's that use this branch as head branch.
@@ -787,12 +785,12 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 		return err
 	}
 	if exist {
-		return errFailedToDelete()
+		return errFailedToDelete(util.ErrUnprocessableContent)
 	}
 
 	if err := CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, doer); err != nil {
 		if errors.Is(err, util.ErrPermissionDenied) {
-			return errFailedToDelete()
+			return errFailedToDelete(err)
 		}
 		return err
 	}
@@ -813,12 +811,12 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 	headCommitID, err := gitBaseRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	if err != nil {
 		log.Error("GetRefCommitID: %v", err)
-		return errFailedToDelete()
+		return errFailedToDelete(err)
 	}
 	branchCommitID, err := gitHeadRepo.GetBranchCommitID(pr.HeadBranch)
 	if err != nil {
 		log.Error("GetBranchCommitID: %v", err)
-		return errFailedToDelete()
+		return errFailedToDelete(err)
 	}
 	if headCommitID != branchCommitID {
 		return util.ErrorWrapTranslatable(util.ErrUnprocessableContent, "repo.branch.delete_branch_has_new_commits", fullBranchName)
@@ -826,7 +824,7 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 
 	err = DeleteBranch(ctx, doer, pr.HeadRepo, gitHeadRepo, pr.HeadBranch, pr)
 	if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
-		return errFailedToDelete()
+		return errFailedToDelete(err)
 	}
 	return err
 }
