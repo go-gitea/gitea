@@ -355,10 +355,10 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 		MakeRequest(t, req, http.StatusBadRequest)
 
 		req = NewRequestWithBody(t, http.MethodPost, assetURL+"?name=stream.bin", bytes.NewReader(bufLargeBytes)).AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusRequestEntityTooLarge)
+		MakeRequest(t, req, http.StatusRequestEntityTooLarge)
 
 		req = NewRequestWithBody(t, http.MethodPost, assetURL+"?name=stream.bin", bytes.NewReader(bufImageBytes)).AddTokenAuth(token)
-		resp = MakeRequest(t, req, http.StatusCreated)
+		resp := MakeRequest(t, req, http.StatusCreated)
 
 		var attachment api.Attachment
 		DecodeJSON(t, resp, &attachment)
