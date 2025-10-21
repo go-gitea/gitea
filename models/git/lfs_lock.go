@@ -187,11 +187,11 @@ func CheckLFSAccessForRepo(ctx context.Context, ownerID int64, repo *repo_model.
 		return ErrLFSUnauthorizedAction{repo.ID, "undefined", mode}
 	}
 	if ownerID == user_model.ActionsUserID {
-		taskId, ok := ctx.Value(access_model.ActionsTaskIDKey).(int64)
-		if !ok || taskId == 0 {
+		taskID, ok := ctx.Value(access_model.ActionsTaskIDKey).(int64)
+		if !ok || taskID == 0 {
 			return ErrLFSUnauthorizedAction{repo.ID, user_model.ActionsUserName, mode}
 		}
-		perm, err := access_model.GetActionsUserRepoPermission(ctx, repo, user_model.NewActionsUser(), taskId)
+		perm, err := access_model.GetActionsUserRepoPermission(ctx, repo, user_model.NewActionsUser(), taskID)
 		if err != nil {
 			return err
 		}
