@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
-	"github.com/nektos/act/pkg/jobparser"
 	"xorm.io/builder"
 )
 
@@ -90,7 +89,7 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 	}); err != nil {
 		return err
 	}
-	CreateCommitStatus(ctx, jobs...)
+	CreateCommitStatusForRunJobs(ctx, run, jobs...)
 	for _, job := range updatedJobs {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
@@ -305,9 +304,9 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 }
 
 func (r *jobStatusResolver) resolveJobHasIfCondition(actionRunJob *actions_model.ActionRunJob) (hasIf bool) {
-	if wfJobs, _ := jobparser.Parse(actionRunJob.WorkflowPayload); len(wfJobs) == 1 {
-		_, wfJob := wfJobs[0].Job()
-		hasIf = len(wfJob.If.Value) > 0
+	// FIXME evaluate this on the server side
+	if job, err := actionRunJob.ParseJob(); err == nil {
+		return len(job.If.Value) > 0
 	}
 	return hasIf
 }
