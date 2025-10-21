@@ -14,12 +14,14 @@ const props = defineProps<{
   k: number;                      // current zoom scale (world→screen)
   contributors: number;           // primary number (always shown)
   updatedAt?: string;             // secondary line if visible
+  isActive?: boolean;
 }>();
 
 /* Emits so the parent can wire up interactions without D3 binding. */
 const emit = defineEmits<{
   (e:"click", id:string, ev:MouseEvent): void;
   (e:"dblclick", id:string, ev:MouseEvent): void;
+  (e:"view", id:string, ev:MouseEvent): void;
 }>();
 
 /* Label fit model in *screen pixels* so it looks consistent across zoom.
@@ -31,6 +33,7 @@ const fit = reactive({
   shiftPx: 0,
   // font sizes in px (on screen)
   fsCount: 12, fsLabel: 12, fsSmall: 11,
+  stackPx: 0,
 });
 
 /* Label text: singularize when needed so UI shows “Contributor” for 1 */
@@ -72,6 +75,7 @@ function recomputeFit(){
   fit.fsCount     = fsCount;
   fit.fsLabel     = fsLabel;
   fit.fsSmall     = fsSmall;
+  fit.stackPx     = stackPx;
 }
 
 /* Run once and whenever driving props change. */
@@ -81,14 +85,38 @@ watch(() => [props.k, props.r, props.updatedAt, props.contributors], recomputeFi
 const gTransform = computed(() => `translate(${props.x},${props.y})`);
 const labelTransform = computed(() => `translate(0, ${-fit.shiftPx/props.k}) scale(${1/props.k})`);
 
+const showButton = computed(() => {
+  if (!props.isActive) return false;
+  const pixelRadius = props.r * props.k;
+  return pixelRadius >= 60;
+});
+
+const BUTTON_WIDTH = 120;
+const BUTTON_HEIGHT = 30;
+
+const buttonTransform = computed(() => {
+  const buttonHeightWorld = BUTTON_HEIGHT / props.k;
+  const marginWorld = 12 / props.k;
+  let offsetWorld = props.r - (buttonHeightWorld / 2) - marginWorld;
+  if (offsetWorld < -props.r + buttonHeightWorld) {
+    offsetWorld = props.r * 0.6;
+  }
+  return `translate(0, ${offsetWorld}) scale(${1/props.k})`;
+});
+
 /* Pointer handlers relay events upward (so parent can focus / add / delete). */
 function onClick(ev:MouseEvent){ emit("click", props.id, ev); }
 function onDblClick(ev:MouseEvent){ ev.preventDefault(); emit("dblclick", props.id, ev); }
+function onView(ev:MouseEvent){
+  ev.preventDefault();
+  ev.stopPropagation();
+  emit("view", props.id, ev);
+}
 </script>
 
 <template>
   <!-- One node group at (x,y); we let the parent group receive the world transform -->
-  <g class="node cursor-pointer select-none" :transform="gTransform"
+  <g class="node cursor-pointer select-none" :class="{'node--active': isActive}" :transform="gTransform"
      @click="onClick" @dblclick="onDblClick">
     <!-- Bubble circle with soft gradient & subtle stroke/shadow -->
     <circle class="node-circle" :r="r" fill="url(#bubbleGrad)"
@@ -112,6 +140,33 @@ function onDblClick(ev:MouseEvent){ ev.preventDefault(); emit("dblclick", props.
               :y="fit.fsCount/2 + (fit.showLabel ? (6 + fit.fsLabel + 6) : (6)) + fit.fsSmall + 6"
               :style="`font-size:${fit.fsSmall}px`">{{ updatedAt }}</text>
       </g>
+      <g v-if="showButton" class="view-button" :transform="buttonTransform" @click="onView">
+        <rect :x="-(BUTTON_WIDTH/2)" :y="-(BUTTON_HEIGHT/2)" :width="BUTTON_WIDTH" :height="BUTTON_HEIGHT" rx="14" />
+        <text dominant-baseline="middle" text-anchor="middle" y="1">{{ 'View article' }}</text>
+      </g>
     </g>
   </g>
 </template>
+
+<style scoped>
+.node-circle {
+  transition: stroke 0.2s ease, stroke-width 0.2s ease;
+}
+.node--active .node-circle {
+  stroke: #2563eb;
+  stroke-width: 2.4;
+}
+.view-button {
+  cursor: pointer;
+}
+.view-button rect {
+  fill: #2563eb;
+  opacity: 0.92;
+}
+.view-button text {
+  fill: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+</style>

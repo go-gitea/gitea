@@ -1,0 +1,11 @@
+{{define "shared/repo/bubble"}}
+<div class="history-view-section history-view-section--bubble" data-view="bubble" {{if not .IsBubbleView}}hidden{{end}}>
+    <div id="bubble-view-root"
+        class="history-bubble-root"
+        data-owner="{{.Repository.Owner.Name}}"
+        data-repo="{{.Repository.Name}}"
+        data-subject="{{.Repository.GetSubject}}"
+        data-api-url="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/forks/graph">
+    </div>
+</div>
+{{end}}

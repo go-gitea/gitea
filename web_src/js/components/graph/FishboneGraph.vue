@@ -30,8 +30,17 @@ type Node = {
   x?: number;
   y?: number;
   depth?: number;
+  repoOwner?: string;
+  repoName?: string;
+  repoSubject?: string;
+  fullName?: string;
 };
 type Graph = Record<string, Node>;
+
+type RepoSelectionDetail = { owner: string; subject: string };
+
+const LS_OWNER_KEY = 'selectedArticleOwner';
+const LS_SUBJECT_KEY = 'selectedArticleSubject';
 
 /* ──────────────────────────────────────────────────────────────────────────────
    TUNABLES (art direction)
@@ -117,14 +126,112 @@ let currentK = 1;
 
 /* Container width affects responsive dials; observe it. */
 const containerRef = ref<HTMLDivElement | null>(null);
-const ctrlWrap = ref<HTMLDivElement | null>(null);
 let ro: ResizeObserver | null = null;
 let containerWidth = 1100;
 let containerHeight = 800;
 let pendingRaf: number | null = null;
 
 /* Props and API fetch */
-const props = defineProps<{ apiUrl?: string | null; owner?: string | null; repo?: string | null }>();
+const props = defineProps<{ apiUrl?: string | null; owner?: string | null; repo?: string | null; subject?: string | null }>();
+
+const selectedNodeId = ref<NodeId | null>(null);
+let pendingExternalSelection: RepoSelectionDetail | null = null;
+
+function normalize(value?: string | null) {
+  return (value ?? '').toLowerCase();
+}
+
+function readStoredSelection(): RepoSelectionDetail | null {
+  try {
+    const owner = window.localStorage.getItem(LS_OWNER_KEY);
+    const subject = window.localStorage.getItem(LS_SUBJECT_KEY);
+    if (!owner || !subject) return null;
+    return {owner, subject};
+  } catch {
+    return null;
+  }
+}
+
+function getSelectionDetailFromNode(n: Node): RepoSelectionDetail | null {
+  const ownerCandidates = [
+    n.repoOwner,
+    n.fullName?.split('/')?.[0],
+    n.parentId === null ? (props.owner ?? null) : null,
+  ].filter(Boolean) as string[];
+  const subjectCandidates = [
+    n.repoSubject,
+    n.repoName,
+    n.fullName?.split('/')?.[1],
+    n.parentId === null ? (props.subject ?? null) : null,
+    n.parentId === null ? (props.repo ?? null) : null,
+  ].filter(Boolean) as string[];
+
+  const owner = ownerCandidates[0];
+  const subject = subjectCandidates[0];
+  if (!owner || !subject) return null;
+  return {owner, subject};
+}
+
+function findNodeBySelection(detail: RepoSelectionDetail): Node | null {
+  const desiredOwner = normalize(detail.owner);
+  const desiredSubject = normalize(detail.subject);
+  for (const node of Object.values(state.graph)) {
+    const ownerCandidates = [
+      node.repoOwner,
+      node.fullName?.split('/')?.[0],
+      node.parentId === null ? (props.owner ?? null) : null,
+    ].filter(Boolean) as string[];
+    const subjectCandidates = [
+      node.repoSubject,
+      node.repoName,
+      node.fullName?.split('/')?.[1],
+      node.parentId === null ? (props.subject ?? null) : null,
+      node.parentId === null ? (props.repo ?? null) : null,
+    ].filter(Boolean) as string[];
+    if (
+      ownerCandidates.some((c) => normalize(c) === desiredOwner) &&
+      subjectCandidates.some((c) => normalize(c) === desiredSubject)
+    ) {
+      return node;
+    }
+  }
+  return null;
+}
+
+function applySelection(node: Node | null, _detail: RepoSelectionDetail | null) {
+  selectedNodeId.value = node ? node.id : null;
+}
+
+function setSelectionFromDetail(detail: RepoSelectionDetail | null) {
+  if (!detail) {
+    pendingExternalSelection = null;
+    applySelection(null, null);
+    return;
+  }
+  const node = findNodeBySelection(detail);
+  if (node) {
+    pendingExternalSelection = null;
+    applySelection(node, detail);
+  } else {
+    pendingExternalSelection = detail;
+    applySelection(null, detail);
+  }
+}
+
+function restoreSelectionAfterGraphLoad() {
+  const desired = pendingExternalSelection ?? readStoredSelection();
+  if (desired) {
+    pendingExternalSelection = null;
+    setSelectionFromDetail(desired);
+  } else {
+    applySelection(null, null);
+  }
+}
+
+function handleExternalSelection(event: Event) {
+  const detail = (event as CustomEvent<RepoSelectionDetail | null>).detail ?? null;
+  setSelectionFromDetail(detail);
+}
 
 async function fetchForkGraphAndSet(){
   try{
@@ -146,6 +253,7 @@ async function fetchForkGraphAndSet(){
     state.graph = graph;
     layoutAndRender();
     resetView();
+    restoreSelectionAfterGraphLoad();
   }catch(err){
     console.error('FishboneGraph: failed to fetch graph', err);
   }
@@ -159,7 +267,28 @@ function buildGraphFromApi(root:any): Graph{
     const baseContrib: number = Number(n?.contributors?.total_count ?? n?.contributors?.recent_count ?? 0);
     const contributors: number = Number.isFinite(baseContrib) ? baseContrib : 0;
     const updatedAt: string | undefined = n?.repository?.updated_at ?? n?.repository?.updated ?? undefined;
-    const node: Node = { id, contributors, parentId, children: [], updatedAt };
+    const repo = n?.repository ?? {};
+    const ownerName: string | null =
+      repo?.owner?.name ?? repo?.owner_name ?? repo?.owner?.username ?? null;
+    const repoName: string | null = repo?.name ?? repo?.repo_name ?? null;
+    const repoSubject: string | null =
+      repo?.subject ?? repo?.subject_slug ?? repo?.subject_name ?? repoName ?? null;
+    const fullName: string | null = repo?.full_name ?? (ownerName && repoName ? `${ownerName}/${repoName}` : null);
+
+    const node: Node = {
+      id,
+      contributors,
+      parentId,
+      children: [],
+      updatedAt,
+      repoOwner: ownerName ?? undefined,
+      repoName: repoName ?? undefined,
+      repoSubject: repoSubject ?? undefined,
+      fullName: fullName ?? undefined,
+    };
+    if (!node.repoSubject && parentId === null && props.subject) {
+      node.repoSubject = props.subject;
+    }
     g[id] = node;
     for(const child of (n?.children ?? [])){
       const childId: string = child?.id ?? (child?.repository?.full_name ?? Math.random().toString(36).slice(2));
@@ -385,8 +514,13 @@ function contentBounds(){
 
 function resetView(animated=false){
   /* Centering fix: apply transform to worldSel (the same <g> Vue renders). */
-  const svg=svgRef.value!; const box=svg.getBoundingClientRect();
-  const topOffset = (ctrlWrap.value?.getBoundingClientRect().height ?? 0) + 12;
+  const svg = svgRef.value!;
+  const box = svg.getBoundingClientRect();
+  if (!box.width || !box.height) {
+    requestAnimationFrame(() => resetView(animated));
+    return;
+  }
+  const topOffset = 12;
   const usableH = box.height - topOffset;
 
   const forks = forkCount(state.graph);
@@ -424,7 +558,7 @@ function resetView(animated=false){
 function focusNode(n:Node){
   /* Note: also applied to worldSel via zoomBehavior, so it now works. */
   const svg=svgRef.value!; const box=svg.getBoundingClientRect();
-  const topOffset = (ctrlWrap.value?.getBoundingClientRect().height ?? 0) + 12;
+  const topOffset = 12;
   const usableH = box.height - topOffset;
   const r = rFor(n.contributors);
   const sx = (box.width  - 2*24)/(2*r);
@@ -496,12 +630,11 @@ onMounted(async ()=>{
     const target = ev.target as Element;
     if (!target.closest("g.node")) {
       resetView(true);
-      if (target === svgRef.value) {
-        try {
-          window.localStorage.removeItem('selectedArticleOwner');
-          window.localStorage.removeItem('selectedArticleSubject');
-        } catch {}
-      }
+      applySelection(null, null);
+      pendingExternalSelection = null;
+      persistSelectionDetail(null);
+      window.dispatchEvent(new CustomEvent('repo:bubble-selected', {detail: null}));
+      window.dispatchEvent(new CustomEvent('repo:selection-updated', {detail: null}));
     }
   });
 
@@ -514,7 +647,11 @@ onMounted(async ()=>{
 
   /* Observe container width for responsive dials */
   await nextTick();
-  const el = containerRef.value!;
+  const el = containerRef.value;
+  if (!el) {
+    console.warn('FishboneGraph: container element not available');
+    return;
+  }
   const rect0 = el.getBoundingClientRect();
   containerWidth = rect0.width;
   containerHeight = rect0.height;
@@ -538,38 +675,54 @@ onMounted(async ()=>{
 
   /* Initial fetch from API */
   await fetchForkGraphAndSet();
+  window.addEventListener('repo:selection-updated', handleExternalSelection as EventListener);
 });
 
-onBeforeUnmount(()=>{ if (ro) ro.disconnect(); });
+onBeforeUnmount(()=>{
+  if (ro) ro.disconnect();
+  window.removeEventListener('repo:selection-updated', handleExternalSelection as EventListener);
+});
 
 /* Derived for template binding */
 const kComputed = computed(()=> currentK);
+
+function persistSelectionDetail(detail: RepoSelectionDetail | null) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (!detail) {
+      window.localStorage.removeItem(LS_OWNER_KEY);
+      window.localStorage.removeItem(LS_SUBJECT_KEY);
+    } else {
+      window.localStorage.setItem(LS_OWNER_KEY, detail.owner);
+      window.localStorage.setItem(LS_SUBJECT_KEY, detail.subject);
+    }
+  } catch {
+    // ignore storage quotas
+  }
+}
 
 /* Click handler: focus or delete, and persist selected article (owner/subject) */
 function onBubbleClick(n: Node, ev: MouseEvent){
   if (ev && (ev as any).altKey) { deleteNode(n.id); return; }
   focusNode(n);
-  try {
-    let owner: string | null = null;
-    let subject: string | null = null;
-    // Try to parse from node id if it looks like "owner/repo"
-    if (n.id && n.id.includes('/')) {
-      const parts = n.id.split('/');
-      if (parts.length >= 2) {
-        owner = parts[0] || null;
-        subject = parts[1] || null;
-      }
-    }
-    // Fallback to provided props
-    if (!owner) owner = (props.owner ?? '') || null;
-    if (!subject) subject = (props.repo ?? '') || null;
-    if (owner && subject && typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem('selectedArticleOwner', owner);
-      window.localStorage.setItem('selectedArticleSubject', subject);
-    }
-  } catch {
-    // ignore storage errors
-  }
+  const detail = getSelectionDetailFromNode(n);
+  if (!detail) return;
+  const payload = {...detail};
+  applySelection(n, payload);
+  persistSelectionDetail(payload);
+  window.dispatchEvent(new CustomEvent('repo:bubble-selected', {detail: payload}));
+  window.dispatchEvent(new CustomEvent('repo:selection-updated', {detail: payload}));
+}
+
+function onBubbleView(n: Node){
+  const detail = getSelectionDetailFromNode(n);
+  if (!detail) return;
+  const payload = {...detail};
+  applySelection(n, payload);
+  persistSelectionDetail(payload);
+  window.dispatchEvent(new CustomEvent('repo:bubble-selected', {detail: payload}));
+  window.dispatchEvent(new CustomEvent('repo:selection-updated', {detail: payload}));
+  window.dispatchEvent(new CustomEvent('repo:bubble-open-article', {detail: payload}));
 }
 </script>
 
@@ -621,7 +774,9 @@ function onBubbleClick(n: Node, ev: MouseEvent){
           <BubbleNode v-for="n in nodesList" :key="n.id"
             :id="n.id" :x="(n as any).x" :y="(n as any).y" :r="(rFor(n.contributors))"
             :contributors="n.contributors" :updatedAt="n.updatedAt" :k="kComputed"
+            :is-active="selectedNodeId === n.id"
             @click="(_, ev) => onBubbleClick(n, ev)"
+            @view="() => onBubbleView(n)"
             @dblclick="() => addFork(n.id)" />
         </g>
       </svg>

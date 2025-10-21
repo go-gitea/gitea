@@ -1,0 +1,84 @@
+{{define "shared/repo/table"}}
+<div class="history-view-section history-view-section--table" data-view="table" {{if not .IsTableView}}hidden{{end}}>
+    <div class="ui stackable grid tw-mt-20">
+        <div class="sixteen wide column">
+            <div class="tw-flex tw-items-center tw-justify-between tw-gap-4 tw-px-0 tw-border-0">
+                <h2 class="tw-text-xl tw-font-semibold tw-m-0">Articles</h2>
+                <div class="tw-flex tw-items-center tw-gap-2">
+                    <div class="ui floating dropdown button tw-border-0 tw-bg-transparent tw-shadow-none tw-hover:bg-transparent tw-active:bg-transparent tw-pr-0">
+                        <div style="transform: rotate(90deg);">
+                            {{svg "octicon-arrow-switch" 16}}
+                        </div>
+                        <span class="text tw-ml-1">Sort</span>
+                        {{svg "octicon-triangle-down" 16 "tw-ml-1"}}
+                        <div class="menu">
+                            <a class="item history-table-sort" data-sort="most_contrib" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "table" "sort" "most_contrib"}}">Most contributors</a>
+                            <a class="item history-table-sort" data-sort="least_contrib" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "table" "sort" "least_contrib"}}">Least contributors</a>
+                            <a class="item history-table-sort" data-sort="latest" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "table" "sort" "latest"}}">Latest edited</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ui segment tw-px-0">
+                <table class="ui unstackable very basic fixed single line selectable table tw-mb-0" id="articles-table">
+                    <colgroup>
+                        <col class="checkbox">
+                        <col>
+                        <col>
+                        <col>
+                        <col class="actions">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th class="five wide">Contributors</th>
+                            <th class="three wide">Last edited</th>
+                            <th class="four wide">Owner</th>
+                            <th class="collapsing"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $idx, $f := .Files}}
+                        {{$name := .Name}}
+                        <tr class="article-row" data-row="{{$idx}}" data-owner="{{$.Repository.Owner.Name}}" data-subject="{{$.Repository.GetSubject}}">
+                            <td>
+                                <div class="ui checkbox">
+                                    <input type="checkbox" class="row-check">
+                                    <label></label>
+                                </div>
+                            </td>
+                            <td class="tw-font-semibold">{{CountFmt $.ContributorCount}}</td>
+                            <td>{{if $.LastCommit}}{{DateUtils.AbsoluteShort $.LastCommit.Committer.When}}{{end}}</td>
+                            <td>{{if $.Repository.Owner}}{{$.Repository.Owner.Name}}{{else}}-{{end}}</td>
+                            <td class="collapsing tw-text-right">
+                                <button type="button" class="ui icon button row-toggle tw-border-0 tw-bg-transparent" data-target="desc-{{$idx}}" aria-label="Toggle description">
+                                    <span class="icon-down">{{svg "octicon-chevron-down"}}</span>
+                                    <span class="icon-up tw-hidden">{{svg "octicon-chevron-up"}}</span>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr id="desc-{{$idx}}" class="tw-hidden">
+                            <td colspan="5">
+                                <div class="tw-pl-8 tw-pr-4 tw-py-4 tw-flex tw-items-start tw-justify-between tw-gap-4">
+                                    <div class="tw-text-gray-600 tw-text-sm tw-leading-6">
+                                        {{if $.Repository.Description}}
+                                            {{$.Repository.Description}}
+                                        {{else}}
+                                            {{if $.LastCommit}}{{$.LastCommit.Summary}}{{end}}
+                                        {{end}}
+                                    </div>
+                                    <button type="button" class="ui button go-to-article" data-owner="{{$.Repository.Owner.Name}}" data-subject="{{$.Repository.GetSubject}}">
+                                        View article
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

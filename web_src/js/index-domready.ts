@@ -68,6 +68,7 @@ import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFor
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 import {initRepoBubbleView} from './features/repo-bubble-view.ts';
+import {initRepoHistory} from './features/repo-history.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -144,6 +145,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoReleaseNew,
   initRepoTopicBar,
   initRepoBubbleView,
+  initRepoHistory,
   initRepoViewFileTree,
   initRepoWikiForm,
   initRepository,

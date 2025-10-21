@@ -1,0 +1,95 @@
+{{define "shared/repo/history"}}
+{{if .IsArticleModeHistory}}
+<div class="ui bottom attached">
+    <div>
+        <h2 class="tw-text-xl tw-font-semibold tw-m-0">
+            {{/* owner / repo */}}
+            {{if .Repository.Owner}}
+                <a class="tw-text-primary" href="{{.Repository.Owner.HomeLink}}">{{.Repository.Owner.Name}}</a>
+                <span class="tw-text-gray-400">/</span>
+            {{end}}
+            <a class="muted" href="{{.RepoLink}}">{{.Repository.Name}}</a>
+        </h2>
+        <div class="tw-mt-1 tw-text-sm tw-text-gray-600">
+            {{if .Repository.IsFork}}
+                <span class="tw-inline-flex tw-items-center">
+                    {{svg "octicon-repo-forked" 14 "tw-mr-1"}}
+                    Forked of:
+                    {{if .Repository.BaseRepo}}
+                        <a class="tw-ml-1" href="{{.Repository.BaseRepo.Link}}">{{.Repository.BaseRepo.OwnerName}} / {{.Repository.BaseRepo.Name}}</a>
+                    {{else}}
+                        <span class="tw-ml-1">{{.Repository.Owner.Name}} / {{.Repository.Name}}</span>
+                    {{end}}
+                </span>
+            {{end}}
+        </div>
+    </div>
+    {{if .Commits}}
+        <div class="ui attached table segment commit-table tw-mt-10">
+            <table class="ui very basic striped table unstackable" id="commits-table">
+                <thead>
+                    <tr>
+                        <th class="three wide">{{ctx.Locale.Tr "repo.commits.user"}}</th>
+                        <th class="two wide sha">{{ctx.Locale.Tr "repo.commits.code"}}</th>
+                        <th class="eight wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
+                        <th class="two wide tw-text-right">{{ctx.Locale.Tr "repo.commits.date"}}</th>
+                        <th class="one wide"></th>
+                    </tr>
+                </thead>
+                <tbody class="commit-list">
+                    {{range .Commits}}
+                    <tr>
+                        <td class="author">
+                            <div class="tw-flex tw-font-bold">
+                                {{$userName := .Author.Name}}
+                                {{if .User}}
+                                    {{if and .User.FullName DefaultShowFullName}}
+                                        {{$userName = .User.FullName}}
+                                    {{end}}
+                                    {{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2 tw-border tw-rounded-full"}}<a class="muted author-wrapper" href="{{.User.HomeLink}}">{{$userName}}</a>
+                                {{else}}
+                                    {{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "tw-mr-2"}}
+                                    <span class="author-wrapper">{{$userName}}</span>
+                                {{end}}
+                            </div>
+                        </td>
+                        <td class="sha">
+                            <a href="{{$.RepoLink}}/commit/{{.ID.String}}" rel="nofollow" class="muted">
+                                {{ShortSha .ID.String}}
+                            </a>
+                        </td>
+                        <td class="message">
+                            <span class="message-wrapper">
+                                <span class="commit-summary" title="{{.Summary}}">{{.Summary | ctx.RenderUtils.RenderEmoji}}</span>
+                            </span>
+                        </td>
+                        {{if .Committer}}
+                            <td class="tw-text-right">{{DateUtils.TimeSince .Committer.When}}</td>
+                        {{else}}
+                            <td class="tw-text-right">{{DateUtils.TimeSince .Author.When}}</td>
+                        {{end}}
+                        <td class="tw-text-right tw-py-0">
+                            <a class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$.RepoLink}}/src/commit/{{PathEscape .ID.String}}/{{PathEscapeSegments $.ReadmeTreePath}}">
+                                {{if $.Repository.IsFork}}
+                                    {{svg "octicon-repo-forked" 16}}
+                                {{else}}
+                                    {{svg "octicon-git-commit" 16}}
+                                {{end}}
+                            </a>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{if .Page}}
+            {{template "base/paginate" .}}
+        {{end}}
+    {{else}}
+        <div class="ui message">
+            {{ctx.Locale.Tr "repo.commits.no_commits"}}
+        </div>
+    {{end}}
+</div>
+{{end}}
+{{end}}

@@ -1,0 +1,91 @@
+{{define "shared/repo/article"}}
+<div class="history-view-section history-view-section--article" data-view="article" {{if not .IsArticleView}}hidden{{end}}>
+    <div class="ui tw-mt-10" id="article-view-root" data-article-mode="{{if .ArticleMode}}{{.ArticleMode}}{{else}}read{{end}}">
+        {{if .IsSubjectContext}}
+            <div class="ui info message" id="article-guidance" style="display:none">
+                {{svg "octicon-info" 16}}
+                <span class="tw-ml-2">Select an article in Bubble view or Table view to open its Article page.</span>
+            </div>
+        {{end}}
+        {{if .ReadmeError}}
+            <div class="ui error message">
+                {{.ReadmeError}}
+            </div>
+        {{else}}
+            <div class="ui active inline loader tw-mt-4" data-role="article-loader" hidden></div>
+            <div class="ui error message tw-mt-4" data-role="article-error" hidden>
+                <p data-role="article-error-text"></p>
+            </div>
+            <div class="tw-flex tw-items-center tw-gap-2">
+                <span class="pill">
+                    {{svg "octicon-person" 16 "tw-mr-1"}}
+                    {{.ReadmeContributorCount}} {{if eq .ReadmeContributorCount 1}}contributor{{else}}contributors{{end}}
+                </span>
+                {{if .ReadmeLastCommit}}
+                    <span class="pill">
+                        {{svg "octicon-sync" 16 "tw-mr-1"}}
+                        Updated {{DateUtils.TimeSince .ReadmeLastCommit.Committer.When}}
+                    </span>
+                {{end}}
+            </div>
+            <div class="tw-flex tw-items-center tw-gap-4" id="article-tabs">
+                <div class="ui top attached tabular menu tw-my-10 tw-gap-1">
+                    <a class="{{if .IsArticleModeRead}}active {{end}}item"
+                        href="{{QueryBuild (printf "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.GetSubject) "view" "article" "mode" "read"}}"
+                        data-article-tab="read">
+                        {{svg "octicon-book" 16}} Read
+                    </a>
+                    <a class="{{if .IsArticleModeEdit}}active {{end}}item"
+                        href="{{QueryBuild (printf "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.GetSubject) "view" "article" "mode" "edit"}}"
+                        data-article-tab="edit">
+                        {{svg "octicon-pencil" 16}} Edit
+                    </a>
+                    <a class="{{if .IsArticleModeHistory}}active {{end}}item"
+                        href="{{QueryBuild (printf "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.GetSubject) "view" "article" "mode" "history"}}"
+                        data-article-tab="history">
+                        {{svg "octicon-history" 16}} History
+                    </a>
+                    <div class="tw-flex tw-items-center tw-gap-2 tw-ml-auto">
+                        {{if .IsArticleModeRead}}
+                            <div class="tw-flex">
+                                {{template "repo/watch_unwatch" .}}
+                            </div>
+                            <div class="ui icon top left pointing dropdown button mini tw-px-3">
+                                {{svg "octicon-kebab-horizontal" 14}}
+                                <div class="menu">
+                                    <div class="item">Something</div>
+                                </div>
+                            </div>
+                        {{end}}
+                        {{if .IsArticleModeEdit}}
+                            <div class="tw-flex tw-items-center tw-justify-between tw-mb-4">
+                                <div class="tw-flex tw-items-center tw-gap-2">
+                                    <button type="button" id="fork-button" class="ui button{{if not .IsSigned}} disabled{{end}}" data-repo-link="{{.RepoLink}}">
+                                        {{svg "octicon-repo-forked" 16 "tw-mr-1"}}
+                                        Fork
+                                    </button>
+                                    <button type="button" id="submit-changes-button" class="ui primary button{{if not .IsSigned}} disabled{{end}}">
+                                        {{svg "octicon-check" 16 "tw-mr-1"}}
+                                        Submit Changes
+                                    </button>
+                                </div>
+                            </div>
+                        {{end}}
+                        {{if .IsArticleModeHistory}}
+                            <div class="ui icon top left pointing dropdown button mini tw-px-3">
+                                {{svg "octicon-kebab-horizontal" 14}}
+                                <div class="menu">
+                                    <div class="item">Something</div>
+                                </div>
+                            </div>
+                        {{end}}
+                    </div>
+                </div>
+            </div>
+            {{template "shared/repo/read" .}}
+            {{template "shared/repo/edit" .}}
+            {{template "shared/repo/history" .}}
+        {{end}}
+    </div>
+</div>
+{{end}}
