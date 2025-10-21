@@ -33,6 +33,8 @@ var UI = struct {
 	ReactionsLookup         container.Set[string] `ini:"-"`
 	CustomEmojis            []string
 	CustomEmojisMap         map[string]string `ini:"-"`
+	EnabledEmojis           []string
+	EnabledEmojisSet        container.Set[string] `ini:"-"`
 	SearchRepoDescription   bool
 	OnlyShowRelevantRepos   bool
 	ExploreDefaultSort      string `ini:"EXPLORE_PAGING_DEFAULT_SORT"`
@@ -169,4 +171,5 @@ func loadUIFrom(rootCfg ConfigProvider) {
 	for _, emoji := range UI.CustomEmojis {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
 	}
+	UI.EnabledEmojisSet = container.SetOf(UI.EnabledEmojis...)
 }
