@@ -198,7 +198,7 @@ func LFSLockFile(ctx *context.Context) {
 	_, err := git_model.CreateLFSLock(ctx, ctx.Repo.Repository, &git_model.LFSLock{
 		Path:    lockPath,
 		OwnerID: ctx.Doer.ID,
-	})
+	}, 0)
 	if err != nil {
 		if git_model.IsErrLFSLockAlreadyExist(err) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.lfs_lock_already_exists", originalPath))
@@ -217,7 +217,7 @@ func LFSUnlock(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	_, err := git_model.DeleteLFSLockByID(ctx, ctx.PathParamInt64("lid"), ctx.Repo.Repository, ctx.Doer, true)
+	_, err := git_model.DeleteLFSLockByID(ctx, ctx.PathParamInt64("lid"), ctx.Repo.Repository, ctx.Doer, true, 0)
 	if err != nil {
 		ctx.ServerError("LFSUnlock", err)
 		return

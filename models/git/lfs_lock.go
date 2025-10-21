@@ -69,9 +69,9 @@ func (l *LFSLock) LoadOwner(ctx context.Context) error {
 }
 
 // CreateLFSLock creates a new lock.
-func CreateLFSLock(ctx context.Context, repo *repo_model.Repository, lock *LFSLock) (*LFSLock, error) {
+func CreateLFSLock(ctx context.Context, repo *repo_model.Repository, lock *LFSLock, taskID int64) (*LFSLock, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*LFSLock, error) {
-		if err := CheckLFSAccessForRepo(ctx, lock.OwnerID, repo, perm.AccessModeWrite); err != nil {
+		if err := CheckLFSAccessForRepo(ctx, lock.OwnerID, repo, perm.AccessModeWrite, taskID); err != nil {
 			return nil, err
 		}
 
@@ -158,14 +158,14 @@ func CountLFSLockByRepoID(ctx context.Context, repoID int64) (int64, error) {
 }
 
 // DeleteLFSLockByID deletes a lock by given ID.
-func DeleteLFSLockByID(ctx context.Context, id int64, repo *repo_model.Repository, u *user_model.User, force bool) (*LFSLock, error) {
+func DeleteLFSLockByID(ctx context.Context, id int64, repo *repo_model.Repository, u *user_model.User, force bool, taskID int64) (*LFSLock, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*LFSLock, error) {
 		lock, err := GetLFSLockByID(ctx, id)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := CheckLFSAccessForRepo(ctx, u.ID, repo, perm.AccessModeWrite); err != nil {
+		if err := CheckLFSAccessForRepo(ctx, u.ID, repo, perm.AccessModeWrite, taskID); err != nil {
 			return nil, err
 		}
 
@@ -182,13 +182,12 @@ func DeleteLFSLockByID(ctx context.Context, id int64, repo *repo_model.Repositor
 }
 
 // CheckLFSAccessForRepo check needed access mode base on action
-func CheckLFSAccessForRepo(ctx context.Context, ownerID int64, repo *repo_model.Repository, mode perm.AccessMode) error {
+func CheckLFSAccessForRepo(ctx context.Context, ownerID int64, repo *repo_model.Repository, mode perm.AccessMode, taskID int64) error {
 	if ownerID == 0 {
 		return ErrLFSUnauthorizedAction{repo.ID, "undefined", mode}
 	}
 	if ownerID == user_model.ActionsUserID {
-		taskID, ok := ctx.Value(access_model.ActionsTaskIDKey).(int64)
-		if !ok || taskID == 0 {
+		if taskID == 0 {
 			return ErrLFSUnauthorizedAction{repo.ID, user_model.ActionsUserName, mode}
 		}
 		perm, err := access_model.GetActionsUserRepoPermission(ctx, repo, user_model.NewActionsUser(), taskID)

@@ -4,14 +4,12 @@
 package lfs
 
 import (
-	go_context "context"
 	"net/http"
 	"strconv"
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
@@ -177,17 +175,16 @@ func PostLockHandler(ctx *context.Context) {
 		return
 	}
 
-	var lockCtx go_context.Context = ctx
+	var taskID int64
 	// Pass Actions Task ID in context if creating lock using Actions Job Token
 	if ctx.Data["IsActionsToken"] == true {
-		taskID := ctx.Data["ActionsTaskID"].(int64)
-		lockCtx = go_context.WithValue(lockCtx, access_model.ActionsTaskIDKey, taskID)
+		taskID = ctx.Data["ActionsTaskID"].(int64)
 	}
 
-	lock, err := git_model.CreateLFSLock(lockCtx, repository, &git_model.LFSLock{
+	lock, err := git_model.CreateLFSLock(ctx, repository, &git_model.LFSLock{
 		Path:    req.Path,
 		OwnerID: ctx.Doer.ID,
-	})
+	}, taskID)
 	if err != nil {
 		if git_model.IsErrLFSLockAlreadyExist(err) {
 			ctx.JSON(http.StatusConflict, api.LFSLockError{
@@ -324,14 +321,13 @@ func UnLockHandler(ctx *context.Context) {
 		return
 	}
 
-	var lockCtx go_context.Context = ctx
+	var taskID int64
 	// Pass Actions Task ID in context if deleting lock using Actions Job Token
 	if ctx.Data["IsActionsToken"] == true {
-		taskID := ctx.Data["ActionsTaskID"].(int64)
-		lockCtx = go_context.WithValue(lockCtx, access_model.ActionsTaskIDKey, taskID)
+		taskID = ctx.Data["ActionsTaskID"].(int64)
 	}
 
-	lock, err := git_model.DeleteLFSLockByID(lockCtx, ctx.PathParamInt64("lid"), repository, ctx.Doer, req.Force)
+	lock, err := git_model.DeleteLFSLockByID(ctx, ctx.PathParamInt64("lid"), repository, ctx.Doer, req.Force, taskID)
 	if err != nil {
 		if git_model.IsErrLFSUnauthorizedAction(err) {
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)
