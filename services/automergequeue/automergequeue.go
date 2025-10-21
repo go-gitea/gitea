@@ -5,6 +5,7 @@ package automergequeue
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -17,7 +18,7 @@ var AutoMergeQueue *queue.WorkerPoolQueue[string]
 
 var AddToQueue = func(pr *issues_model.PullRequest, sha string) {
 	log.Trace("Adding pullID: %d to the pull requests patch checking queue with sha %s", pr.ID, sha)
-	if err := AutoMergeQueue.Push(fmt.Sprintf("%d_%s", pr.ID, sha)); err != nil {
+	if err := AutoMergeQueue.Push(fmt.Sprintf("%d_%s", pr.ID, sha)); err != nil && !errors.Is(err, queue.ErrAlreadyInQueue) {
 		log.Error("Error adding pullID: %d to the pull requests patch checking queue %v", pr.ID, err)
 	}
 }
