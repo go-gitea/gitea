@@ -751,7 +751,6 @@ function onBubbleView(n: Node){
   const payload = {...detail};
   applySelection(n, payload);
   persistSelectionDetail(payload);
-  window.dispatchEvent(new CustomEvent('repo:bubble-selected', {detail: payload}));
   window.dispatchEvent(new CustomEvent('repo:selection-updated', {detail: payload}));
   window.dispatchEvent(new CustomEvent('repo:bubble-open-article', {detail: payload}));
 }

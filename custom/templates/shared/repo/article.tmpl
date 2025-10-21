@@ -7,6 +7,11 @@
                 <span class="tw-ml-2">Select an article in Bubble view or Table view to open its Article page.</span>
             </div>
         {{end}}
+        <div class="ui message" aria-live="polite" data-role="article-empty" {{if .ReadmeRequested}}hidden{{end}}>
+            {{svg "octicon-info" 16}}
+            <span class="tw-ml-2">Please select an article in bubble or table view.</span>
+        </div>
+        <div data-role="article-content" {{if not .ReadmeRequested}}hidden{{end}}>
         {{if .ReadmeError}}
             <div class="ui error message">
                 {{.ReadmeError}}
@@ -86,6 +91,7 @@
             {{template "shared/repo/edit" .}}
             {{template "shared/repo/history" .}}
         {{end}}
+        </div>
     </div>
 </div>
 {{end}}

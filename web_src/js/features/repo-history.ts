@@ -173,6 +173,8 @@ export function initRepoHistory() {
   let errorTextEl: HTMLElement | null = null;
   let articleTabs: HTMLElement | null = null;
   let articleGuidance: HTMLElement | null = null;
+  let articleEmptyEl: HTMLElement | null = null;
+  let articleContentEl: HTMLElement | null = null;
 
   function collectArticleRefs() {
     if (!articleSection) return;
@@ -181,9 +183,17 @@ export function initRepoHistory() {
     errorTextEl = articleSection.querySelector('[data-role="article-error-text"]');
     articleTabs = articleSection.querySelector('#article-tabs');
     articleGuidance = articleSection.querySelector('#article-guidance');
+    articleEmptyEl = articleSection.querySelector('[data-role="article-empty"]');
+    articleContentEl = articleSection.querySelector('[data-role="article-content"]');
   }
 
   collectArticleRefs();
+  if (!selectedRepo.value || !selectedRepo.value.repo) {
+    showArticleEmpty();
+  } else {
+    showArticleContent();
+  }
+  updateArticleGuidance();
 
   function toggleHidden(el: Element | null, hidden: boolean) {
     if (!el) return;
@@ -195,6 +205,16 @@ export function initRepoHistory() {
     if (!articleGuidance) return;
     const hasSelection = !!selectedRepo.value;
     articleGuidance.style.display = hasSelection ? 'none' : '';
+  }
+
+  function showArticleEmpty() {
+    toggleHidden(articleEmptyEl, false);
+    toggleHidden(articleContentEl, true);
+  }
+
+  function showArticleContent() {
+    toggleHidden(articleEmptyEl, true);
+    toggleHidden(articleContentEl, false);
   }
 
   function syncNavActive() {
@@ -293,6 +313,11 @@ export function initRepoHistory() {
       updateHistoryState(activeView.value, articleMode.value, null, false);
     } else {
       updateHistoryState(activeView.value, articleMode.value, null, true);
+    }
+    if (articleSection) {
+      collectArticleRefs();
+      showArticleEmpty();
+      updateArticleStatus();
     }
   }
 
@@ -413,6 +438,7 @@ export function initRepoHistory() {
     isLoading.value = true;
     loadError.value = '';
     updateArticleStatus();
+    showArticleContent();
     const url = buildArticleUrl(articleRepoBase, selection, mode);
     try {
       const response = await fetch(url, {credentials: 'same-origin'});
@@ -425,6 +451,7 @@ export function initRepoHistory() {
       if (newSection && articleSection) {
         articleSection.innerHTML = newSection.innerHTML;
         collectArticleRefs();
+        showArticleContent();
         const newMode = articleSection.querySelector<HTMLElement>('#article-view-root')?.getAttribute('data-article-mode');
         articleMode.value = newMode || mode;
         bindArticleTabs();
@@ -481,6 +508,8 @@ export function initRepoHistory() {
       persistSelection(null);
       viewLoaded.article = true;
       if (options.pushState) updateHistoryState('article', articleMode.value, null, false);
+      showArticleEmpty();
+      updateArticleStatus();
       return;
     }
 

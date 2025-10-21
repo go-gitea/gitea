@@ -508,6 +508,7 @@ func prepareArticleView(ctx *context.Context, gitRepo *git.Repository, commit *g
 	ctx.Data["IsArticleModeRead"] = mode == "read"
 	ctx.Data["IsArticleModeEdit"] = mode == "edit"
 	ctx.Data["IsArticleModeHistory"] = mode == "history"
+	ctx.Data["ReadmeRequested"] = true
 
 	// Find README.md file
 	readmeFile := findReadmeInEntries(entries)
