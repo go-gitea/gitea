@@ -9,6 +9,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -18,7 +19,9 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -294,6 +297,7 @@ func TestAPIDeleteReleaseByTagName(t *testing.T) {
 
 func TestAPIUploadAssetRelease(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Attachment.MaxSize, 1)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -303,56 +307,59 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 	r := createNewReleaseUsingAPI(t, token, owner, repo, "release-tag", "", "Release Tag", "test")
 
 	filename := "image.png"
-	buff := generateImg()
+	bufImage := generateImg()
+	bufLargeBytes := bytes.Repeat([]byte{' '}, 2*1024*1024)
 
 	assetURL := fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d/assets", owner.Name, repo.Name, r.ID)
 
 	t.Run("multipart/form-data", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		body := &bytes.Buffer{}
+		performUpload := func(t *testing.T, uploadURL string, buf []byte, expectedStatus int) *httptest.ResponseRecorder {
+			body := &bytes.Buffer{}
+			writer := multipart.NewWriter(body)
+			part, err := writer.CreateFormFile("attachment", filename)
+			assert.NoError(t, err)
+			_, err = io.Copy(part, bytes.NewReader(bufImage.Bytes()))
+			assert.NoError(t, err)
+			err = writer.Close()
+			assert.NoError(t, err)
 
-		writer := multipart.NewWriter(body)
-		part, err := writer.CreateFormFile("attachment", filename)
-		assert.NoError(t, err)
-		_, err = io.Copy(part, bytes.NewReader(buff.Bytes()))
-		assert.NoError(t, err)
-		err = writer.Close()
-		assert.NoError(t, err)
+			req := NewRequestWithBody(t, http.MethodPost, uploadURL, bytes.NewReader(body.Bytes())).
+				AddTokenAuth(token).
+				SetHeader("Content-Type", writer.FormDataContentType())
+			return MakeRequest(t, req, http.StatusCreated)
+		}
 
-		req := NewRequestWithBody(t, http.MethodPost, assetURL, bytes.NewReader(body.Bytes())).
-			AddTokenAuth(token).
-			SetHeader("Content-Type", writer.FormDataContentType())
-		resp := MakeRequest(t, req, http.StatusCreated)
+		performUpload(t, assetURL, bufLargeBytes, http.StatusRequestEntityTooLarge)
 
-		var attachment *api.Attachment
-		DecodeJSON(t, resp, &attachment)
-
-		assert.Equal(t, filename, attachment.Name)
-		assert.EqualValues(t, 104, attachment.Size)
-
-		req = NewRequestWithBody(t, http.MethodPost, assetURL+"?name=test-asset", bytes.NewReader(body.Bytes())).
-			AddTokenAuth(token).
-			SetHeader("Content-Type", writer.FormDataContentType())
-		resp = MakeRequest(t, req, http.StatusCreated)
-
-		var attachment2 *api.Attachment
-		DecodeJSON(t, resp, &attachment2)
-
-		assert.Equal(t, "test-asset", attachment2.Name)
-		assert.EqualValues(t, 104, attachment2.Size)
+		t.Run("UploadDefaultName", func(t *testing.T) {
+			resp := performUpload(t, assetURL, bufImage.Bytes(), http.StatusCreated)
+			var attachment api.Attachment
+			DecodeJSON(t, resp, &attachment)
+			assert.Equal(t, filename, attachment.Name)
+			assert.EqualValues(t, 104, attachment.Size)
+		})
+		t.Run("UploadWithName", func(t *testing.T) {
+			resp := performUpload(t, assetURL+"?name=test-asset", bufImage.Bytes(), http.StatusCreated)
+			var attachment api.Attachment
+			DecodeJSON(t, resp, &attachment)
+			assert.Equal(t, "test-asset", attachment.Name)
+			assert.EqualValues(t, 104, attachment.Size)
+		})
 	})
 
 	t.Run("application/octet-stream", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, http.MethodPost, assetURL, bytes.NewReader(buff.Bytes())).
-			AddTokenAuth(token)
+		req := NewRequestWithBody(t, http.MethodPost, assetURL, bytes.NewReader(bufImage.Bytes())).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusBadRequest)
 
-		req = NewRequestWithBody(t, http.MethodPost, assetURL+"?name=stream.bin", bytes.NewReader(buff.Bytes())).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusCreated)
+		req = NewRequestWithBody(t, http.MethodPost, assetURL+"?name=stream.bin", bytes.NewReader(bufLargeBytes)).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusRequestEntityTooLarge)
+
+		req = NewRequestWithBody(t, http.MethodPost, assetURL+"?name=stream.bin", bytes.NewReader(bufImage.Bytes())).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusCreated)
 
 		var attachment *api.Attachment
 		DecodeJSON(t, resp, &attachment)
