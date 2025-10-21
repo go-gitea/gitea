@@ -10,9 +10,14 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getTestCases() []struct {
@@ -182,7 +187,16 @@ func getTestCases() []struct {
 
 func TestSearchRepository(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	t.Run("SearchRepositoryPublic", testSearchRepositoryPublic)
+	t.Run("SearchRepositoryPublicRestricted", testSearchRepositoryRestricted)
+	t.Run("SearchRepositoryPrivate", testSearchRepositoryPrivate)
+	t.Run("SearchRepositoryNonExistingOwner", testSearchRepositoryNonExistingOwner)
+	t.Run("SearchRepositoryWithInDescription", testSearchRepositoryWithInDescription)
+	t.Run("SearchRepositoryNotInDescription", testSearchRepositoryNotInDescription)
+	t.Run("SearchRepositoryCases", testSearchRepositoryCases)
+}
 
+func testSearchRepositoryPublic(t *testing.T) {
 	// test search public repository on explore page
 	repos, count, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
@@ -211,9 +225,42 @@ func TestSearchRepository(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 	assert.Len(t, repos, 2)
+}
 
+func testSearchRepositoryRestricted(t *testing.T) {
+	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	restrictedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29, IsRestricted: true})
+
+	performSearch := func(t *testing.T, user *user_model.User) (publicRepoIDs []int64, totalCount int) {
+		repos, count, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
+			ListOptions: db.ListOptions{Page: 1, PageSize: 10000},
+			Actor:       user,
+		})
+		require.Nil(t, err)
+		totalCount = int(count)
+		assert.Len(t, repos, totalCount)
+		for _, repo := range repos {
+			require.NoError(t, repo.LoadOwner(t.Context()))
+			if repo.Owner.Visibility == structs.VisibleTypePublic && !repo.IsPrivate {
+				publicRepoIDs = append(publicRepoIDs, repo.ID)
+			}
+		}
+		return publicRepoIDs, totalCount
+	}
+
+	normalUserPublicRepoIDs, totalCount := performSearch(t, user2)
+	assert.Positive(t, totalCount)
+	assert.Greater(t, len(normalUserPublicRepoIDs), 1) // quite a lot
+
+	restrictedUserPublicRepoIDs, totalCount := performSearch(t, restrictedUser)
+	assert.Equal(t, 1, totalCount) // restricted user can see only their own repo
+	assert.Equal(t, []int64{4}, restrictedUserPublicRepoIDs)
+}
+
+func testSearchRepositoryPrivate(t *testing.T) {
 	// test search private repository on explore page
-	repos, count, err = repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: 10,
@@ -242,16 +289,18 @@ func TestSearchRepository(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), count)
 	assert.Len(t, repos, 3)
+}
 
-	// Test non existing owner
-	repos, count, err = repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{OwnerID: unittest.NonexistentID})
+func testSearchRepositoryNonExistingOwner(t *testing.T) {
+	repos, count, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{OwnerID: unittest.NonexistentID})
 
 	assert.NoError(t, err)
 	assert.Empty(t, repos)
 	assert.Equal(t, int64(0), count)
+}
 
-	// Test search within description
-	repos, count, err = repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
+func testSearchRepositoryWithInDescription(t *testing.T) {
+	repos, count, err := repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: 10,
@@ -266,9 +315,10 @@ func TestSearchRepository(t *testing.T) {
 		assert.Equal(t, "test_repo_14", repos[0].Name)
 	}
 	assert.Equal(t, int64(1), count)
+}
 
-	// Test NOT search within description
-	repos, count, err = repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
+func testSearchRepositoryNotInDescription(t *testing.T) {
+	repos, count, err := repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: 10,
@@ -281,7 +331,9 @@ func TestSearchRepository(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, repos)
 	assert.Equal(t, int64(0), count)
+}
 
+func testSearchRepositoryCases(t *testing.T) {
 	testCases := getTestCases()
 
 	for _, testCase := range testCases {
