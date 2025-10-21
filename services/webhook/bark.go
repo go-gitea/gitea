@@ -230,10 +230,10 @@ func (bc barkConvertor) Repository(p *api.RepositoryPayload) (BarkPayload, error
 	switch p.Action {
 	case api.HookRepoCreated:
 		title = fmt.Sprintf("[%s] Repository created", p.Repository.FullName)
-		body = p.Sender.UserName + "created repository"
+		body = p.Sender.UserName + " created repository"
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
-		body = p.Sender.UserName + "deleted repository"
+		body = p.Sender.UserName + " deleted repository"
 	default:
 		return BarkPayload{}, nil
 	}
@@ -266,7 +266,12 @@ func (bc barkConvertor) Release(p *api.ReleasePayload) (BarkPayload, error) {
 
 // Package implements PayloadConvertor Package method
 func (bc barkConvertor) Package(p *api.PackagePayload) (BarkPayload, error) {
-	title := fmt.Sprintf("[%s] Package %s", p.Repository.FullName, p.Action)
+	repoFullName := ""
+	if p.Repository != nil {
+		repoFullName = p.Repository.FullName
+	}
+
+	title := fmt.Sprintf("[%s] Package %s", repoFullName, p.Action)
 	body := fmt.Sprintf("%s %s package %s:%s",
 		p.Sender.UserName, p.Action, p.Package.Name, p.Package.Version)
 
@@ -274,7 +279,7 @@ func (bc barkConvertor) Package(p *api.PackagePayload) (BarkPayload, error) {
 		Title: title,
 		Body:  body,
 		URL:   p.Package.HTMLURL,
-		Group: bc.getGroup(p.Repository.FullName),
+		Group: bc.getGroup(repoFullName),
 		Sound: bc.Sound,
 	}, nil
 }

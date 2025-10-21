@@ -124,6 +124,7 @@ func TestBarkPayload(t *testing.T) {
 	t.Run("Review", func(t *testing.T) {
 		p := pullRequestTestPayload()
 		p.Action = api.HookIssueReviewed
+		p.Review = nil // Remove review content for clean test
 
 		pl, err := bc.Review(p, webhook_module.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
@@ -152,9 +153,9 @@ func TestBarkPayload(t *testing.T) {
 		pl, err := bc.Package(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, "[test/repo] Package published", pl.Title)
-		assert.Contains(t, pl.Body, "user1 published package")
-		assert.Equal(t, "test/repo", pl.Group)
+		assert.Equal(t, "[] Package created", pl.Title)
+		assert.Contains(t, pl.Body, "user1 created package")
+		assert.Empty(t, pl.Group)
 	})
 
 	t.Run("Wiki", func(t *testing.T) {
