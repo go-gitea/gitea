@@ -115,15 +115,10 @@ func IsDir(dir string) (bool, error) {
 	return false, err
 }
 
-// IsFile returns true if given path is a file,
-// or returns false when it's a directory or does not exist.
-func IsFile(filePath string) (bool, error) {
-	f, err := os.Stat(filePath)
+func IsRegularFile(filePath string) (bool, error) {
+	f, err := os.Lstat(filePath)
 	if err == nil {
-		return !f.IsDir(), nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
+		return f.Mode().IsRegular(), nil
 	}
 	return false, err
 }

@@ -18,6 +18,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -52,6 +53,33 @@ type Claims struct {
 	Op     string
 	UserID int64
 	jwt.RegisteredClaims
+}
+
+type AuthTokenOptions struct {
+	Op     string
+	UserID int64
+	RepoID int64
+}
+
+func GetLFSAuthTokenWithBearer(opts AuthTokenOptions) (string, error) {
+	now := time.Now()
+	claims := Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
+			NotBefore: jwt.NewNumericDate(now),
+		},
+		RepoID: opts.RepoID,
+		Op:     opts.Op,
+		UserID: opts.UserID,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign LFS JWT token: %w", err)
+	}
+	return "Bearer " + tokenString, nil
 }
 
 // DownloadLink builds a URL to download the object.
@@ -559,9 +587,6 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 }
 
 func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repository, mode perm_model.AccessMode) (*user_model.User, error) {
-	if !strings.Contains(tokenSHA, ".") {
-		return nil, nil
-	}
 	token, err := jwt.ParseWithClaims(tokenSHA, &Claims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
@@ -569,7 +594,7 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 		return setting.LFS.JWTSecretBytes, nil
 	})
 	if err != nil {
-		return nil, nil
+		return nil, errors.New("invalid token")
 	}
 
 	claims, claimsOk := token.Claims.(*Claims)

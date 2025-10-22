@@ -6,7 +6,6 @@ package integration
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"testing"
@@ -72,15 +71,13 @@ func TestAPICreateIssueAttachment(t *testing.T) {
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
-	filename := "image.png"
-	buff := generateImg()
 	body := &bytes.Buffer{}
 
 	// Setup multi-part
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("attachment", filename)
+	part, err := writer.CreateFormFile("attachment", "image.png")
 	assert.NoError(t, err)
-	_, err = io.Copy(part, &buff)
+	_, err = part.Write(testGeneratePngBytes())
 	assert.NoError(t, err)
 	err = writer.Close()
 	assert.NoError(t, err)

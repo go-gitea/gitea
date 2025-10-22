@@ -4,7 +4,7 @@
 package repo
 
 import (
-	"io"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	attachment_service "code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
@@ -191,6 +192,8 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "413":
+	//     "$ref": "#/responses/error"
 
 	// Check if attachments are enabled
 	if !setting.Attachment.Enabled {
@@ -205,10 +208,8 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Get uploaded file from request
-	var content io.ReadCloser
 	var filename string
-	var size int64 = -1
-
+	var uploaderFile *attachment_service.UploaderFile
 	if strings.HasPrefix(strings.ToLower(ctx.Req.Header.Get("Content-Type")), "multipart/form-data") {
 		file, header, err := ctx.Req.FormFile("attachment")
 		if err != nil {
@@ -217,15 +218,14 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		}
 		defer file.Close()
 
-		content = file
-		size = header.Size
 		filename = header.Filename
 		if name := ctx.FormString("name"); name != "" {
 			filename = name
 		}
+		uploaderFile = attachment_service.NewLimitedUploaderKnownSize(file, header.Size)
 	} else {
-		content = ctx.Req.Body
 		filename = ctx.FormString("name")
+		uploaderFile = attachment_service.NewLimitedUploaderMaxBytesReader(ctx.Req.Body, ctx.Resp)
 	}
 
 	if filename == "" {
@@ -234,7 +234,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment_service.UploadAttachment(ctx, content, setting.Repository.Release.AllowedTypes, size, &repo_model.Attachment{
+	attach, err := attachment_service.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, setting.Repository.Release.AllowedTypes, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
@@ -245,6 +245,12 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 			ctx.APIError(http.StatusBadRequest, err)
 			return
 		}
+
+		if errors.Is(err, util.ErrContentTooLarge) {
+			ctx.APIError(http.StatusRequestEntityTooLarge, err)
+			return
+		}
+
 		ctx.APIErrorInternal(err)
 		return
 	}
