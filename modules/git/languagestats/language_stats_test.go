@@ -10,12 +10,25 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestRepository_GetLanguageStats(t *testing.T) {
+func TestRepository_GetLanguageStats_Batch(t *testing.T) {
+	defer test.MockVariableValue(&git.DefaultFeatures().SupportCatFileBatchCommand, true)()
+
+	testRepositoryGetLanguageStats(t)
+}
+
+func TestRepository_GetLanguageStats_BatchCommand(t *testing.T) {
+	defer test.MockVariableValue(&git.DefaultFeatures().SupportCatFileBatchCommand, true)()
+
+	testRepositoryGetLanguageStats(t)
+}
+
+func testRepositoryGetLanguageStats(t *testing.T) {
 	setting.AppDataPath = t.TempDir()
 	repoPath := "../tests/repos/language_stats_repo"
 	gitRepo, err := git.OpenRepository(t.Context(), repoPath)

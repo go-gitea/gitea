@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/git/internal"
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/djherbis/buffer"
@@ -69,7 +70,7 @@ func newCatFileBatch(ctx context.Context, repoPath, batchArg string) *batchCatFi
 	go func() {
 		stderr := strings.Builder{}
 		err := gitcmd.NewCommand("cat-file").
-			AddArguments(gitcmd.ToTrustCmdArg(batchArg)).
+			AddArguments(internal.CmdArg(batchArg)).
 			WithDir(repoPath).
 			WithStdin(batchStdinReader).
 			WithStdout(batchStdoutWriter).
