@@ -37,4 +37,25 @@ func TestGetAgitBranchInfo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "master", baseBranch)
 	assert.Equal(t, "topicbranch", currentTopicBranch)
+
+	baseBranch, currentTopicBranch, err = GetAgitBranchInfo(t.Context(), 1, "master/")
+	assert.NoError(t, err)
+	assert.Equal(t, "master", baseBranch)
+	assert.Empty(t, currentTopicBranch)
+
+	_, _, err = GetAgitBranchInfo(t.Context(), 1, "/")
+	assert.ErrorIs(t, err, util.ErrNotExist)
+
+	_, _, err = GetAgitBranchInfo(t.Context(), 1, "//")
+	assert.ErrorIs(t, err, util.ErrNotExist)
+
+	baseBranch, currentTopicBranch, err = GetAgitBranchInfo(t.Context(), 1, "master/topicbranch/")
+	assert.NoError(t, err)
+	assert.Equal(t, "master", baseBranch)
+	assert.Equal(t, "topicbranch/", currentTopicBranch)
+
+	baseBranch, currentTopicBranch, err = GetAgitBranchInfo(t.Context(), 1, "master/topicbranch/1")
+	assert.NoError(t, err)
+	assert.Equal(t, "master", baseBranch)
+	assert.Equal(t, "topicbranch/1", currentTopicBranch)
 }
