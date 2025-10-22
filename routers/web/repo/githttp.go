@@ -18,7 +18,6 @@ import (
 	"sync"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -190,29 +189,17 @@ func httpBase(ctx *context.Context) *serviceHandler {
 
 			if ctx.Data["IsActionsToken"] == true {
 				taskID := ctx.Data["ActionsTaskID"].(int64)
-				task, err := actions_model.GetTaskByID(ctx, taskID)
+				p, err := access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
 				if err != nil {
-					ctx.ServerError("GetTaskByID", err)
-					return nil
-				}
-				if task.RepoID != repo.ID {
-					ctx.PlainText(http.StatusForbidden, "User permission denied")
+					ctx.ServerError("GetUserRepoPermission", err)
 					return nil
 				}
 
-				if task.IsForkPullRequest {
-					if accessMode > perm.AccessModeRead {
-						ctx.PlainText(http.StatusForbidden, "User permission denied")
-						return nil
-					}
-					environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionPerm, perm.AccessModeRead))
-				} else {
-					if accessMode > perm.AccessModeWrite {
-						ctx.PlainText(http.StatusForbidden, "User permission denied")
-						return nil
-					}
-					environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionPerm, perm.AccessModeWrite))
+				if !p.CanAccess(accessMode, unitType) {
+					ctx.PlainText(http.StatusNotFound, "Repository not found")
+					return nil
 				}
+				environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionPerm, p.UnitAccessMode(unitType)))
 			} else {
 				p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 				if err != nil {
