@@ -40,14 +40,12 @@ func testFindLFSFile(t *testing.T) {
 	tm, err := time.Parse(time.RFC3339, "2022-12-21T17:56:42-05:00")
 	require.NoError(t, err)
 
-	assert.Equal(t, []*LFSResult{
-		{
-			Name:           "CONTRIBUTING.md",
-			SHA:            "73cf03db6ece34e12bf91e8853dc58f678f2f82d",
-			Summary:        "Initial commit",
-			When:           tm,
-			BranchName:     "master",
-			FullCommitName: "master",
-		},
-	}, stats)
+	assert.Len(t, stats, 1)
+	assert.Equal(t, "CONTRIBUTING.md", stats[0].Name)
+	assert.Equal(t, "73cf03db6ece34e12bf91e8853dc58f678f2f82d", stats[0].SHA)
+	assert.Equal(t, "Initial commit", stats[0].Summary)
+	assert.Equal(t, tm, stats[0].When)
+	assert.Empty(t, stats[0].ParentHashes)
+	assert.Equal(t, "master", stats[0].BranchName)
+	assert.Equal(t, "master", stats[0].FullCommitName)
 }
