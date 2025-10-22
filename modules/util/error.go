@@ -6,6 +6,7 @@ package util
 import (
 	"errors"
 	"fmt"
+	"html/template"
 )
 
 // Common Errors forming the base of our error system
@@ -40,22 +41,6 @@ func (w errorWrapper) Unwrap() error {
 	return w.Err
 }
 
-type LocaleWrapper struct {
-	err    error
-	TrKey  string
-	TrArgs []any
-}
-
-// Error returns the message
-func (w LocaleWrapper) Error() string {
-	return w.err.Error()
-}
-
-// Unwrap returns the underlying error
-func (w LocaleWrapper) Unwrap() error {
-	return w.err
-}
-
 // ErrorWrap returns an error that formats as the given text but unwraps as the provided error
 func ErrorWrap(unwrap error, message string, args ...any) error {
 	if len(args) == 0 {
@@ -84,15 +69,39 @@ func NewNotExistErrorf(message string, args ...any) error {
 	return ErrorWrap(ErrNotExist, message, args...)
 }
 
-// ErrorWrapLocale wraps an err with a translation key and arguments
-func ErrorWrapLocale(err error, trKey string, trArgs ...any) error {
-	return LocaleWrapper{err: err, TrKey: trKey, TrArgs: trArgs}
+// ErrorTranslatable wraps an error with translation information
+type ErrorTranslatable interface {
+	error
+	Unwrap() error
+	Translate(ErrorLocaleTranslator) template.HTML
 }
 
-func ErrorAsLocale(err error) *LocaleWrapper {
-	var e LocaleWrapper
+type errorTranslatableWrapper struct {
+	err    error
+	trKey  string
+	trArgs []any
+}
+
+type ErrorLocaleTranslator interface {
+	Tr(key string, args ...any) template.HTML
+}
+
+func (w *errorTranslatableWrapper) Error() string { return w.err.Error() }
+
+func (w *errorTranslatableWrapper) Unwrap() error { return w.err }
+
+func (w *errorTranslatableWrapper) Translate(t ErrorLocaleTranslator) template.HTML {
+	return t.Tr(w.trKey, w.trArgs...)
+}
+
+func ErrorWrapTranslatable(err error, trKey string, trArgs ...any) ErrorTranslatable {
+	return &errorTranslatableWrapper{err: err, trKey: trKey, trArgs: trArgs}
+}
+
+func ErrorAsTranslatable(err error) ErrorTranslatable {
+	var e *errorTranslatableWrapper
 	if errors.As(err, &e) {
-		return &e
+		return e
 	}
 	return nil
 }

@@ -554,7 +554,7 @@ type MergePullRequestForm struct {
 	HeadCommitID           string `json:"head_commit_id,omitempty"`
 	ForceMerge             bool   `json:"force_merge,omitempty"`
 	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
-	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
+	DeleteBranchAfterMerge *bool  `json:"delete_branch_after_merge,omitempty"`
 }
 
 // Validate validates the fields
