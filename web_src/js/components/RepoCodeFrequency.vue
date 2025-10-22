@@ -148,7 +148,7 @@ const options: ChartOptions<'line'> = {
       {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: `Code frequency over the history of ${repoLink.slice(1)}` }}
     </div>
     <div class="tw-flex ui segment main-graph">
-      <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
+      <div v-if="isLoading || errorText !== ''" class="tw-m-auto">
         <div v-if="isLoading">
           <SvgIcon name="octicon-sync" class="tw-mr-2 circular-spin"/>
           {{ locale.loadingInfo }}
