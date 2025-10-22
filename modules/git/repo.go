@@ -32,11 +32,6 @@ type GPGSettings struct {
 
 const prettyLogFormat = `--pretty=format:%H`
 
-// GetAllCommitsCount returns count of all commits in repository
-func (repo *Repository) GetAllCommitsCount() (int64, error) {
-	return AllCommitsCount(repo.Ctx, repo.Path, false)
-}
-
 func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
 	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
 	logs, _, err := gitcmd.NewCommand("log").AddArguments(prettyLogFormat).
