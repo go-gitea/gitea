@@ -27,7 +27,7 @@ func TestFindLFSFile_BatchCommand(t *testing.T) {
 }
 
 func testFindLFSFile(t *testing.T) {
-	repoPath := "../tests/repos/repo_lfs"
+	repoPath := "../../../tests/gitea-repositories-meta/user2/lfs.git"
 	gitRepo, err := git.OpenRepository(t.Context(), repoPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
