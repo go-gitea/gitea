@@ -60,7 +60,7 @@ func (b *batchCatFileWithCheck) getBatch() *batchCatFile {
 	if b.batch != nil {
 		return b.batch
 	}
-	b.batch = newCatFileBatch(b.ctx, b.repoPath, "--batch")
+	b.batch = newCatFileBatch(b.ctx, b.repoPath, BatchArg)
 	return b.batch
 }
 
@@ -68,7 +68,7 @@ func (b *batchCatFileWithCheck) getBatchCheck() *batchCatFile {
 	if b.batchCheck != nil {
 		return b.batchCheck
 	}
-	b.batchCheck = newCatFileBatch(b.ctx, b.repoPath, "--batch-check")
+	b.batchCheck = newCatFileBatch(b.ctx, b.repoPath, BatchCheckArg)
 	return b.batchCheck
 }
 
@@ -125,7 +125,7 @@ func (b *batchCommandCatFile) getBatch() *batchCatFile {
 	if b.batch != nil {
 		return b.batch
 	}
-	b.batch = newCatFileBatch(b.ctx, b.repoPath, "--batch-command")
+	b.batch = newCatFileBatch(b.ctx, b.repoPath, BatchCommandArg)
 	return b.batch
 }
 

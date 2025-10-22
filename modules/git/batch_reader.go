@@ -7,13 +7,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"math"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/git/internal"
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/djherbis/buffer"
@@ -41,11 +41,21 @@ func ensureValidGitRepository(ctx context.Context, repoPath string) error {
 	return nil
 }
 
+const (
+	BatchArg = iota
+	BatchCheckArg
+	BatchCommandArg
+)
+
+func isValidBatchArg(arg int) bool {
+	return arg == BatchArg || arg == BatchCheckArg || arg == BatchCommandArg
+}
+
 // newCatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
 // batchArg is the argument to pass to cat-file --batch, it could be "--batch", "--batch-command" or "--batch-check".
-func newCatFileBatch(ctx context.Context, repoPath, batchArg string) *batchCatFile {
-	if batchArg != "--batch" && batchArg != "--batch-command" && batchArg != "--batch-check" {
-		panic("invalid batchArg: " + batchArg)
+func newCatFileBatch(ctx context.Context, repoPath string, batchArg int) *batchCatFile {
+	if !isValidBatchArg(batchArg) {
+		panic(fmt.Sprintf("invalid batchArg: %d", batchArg))
 	}
 
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
@@ -69,8 +79,16 @@ func newCatFileBatch(ctx context.Context, repoPath, batchArg string) *batchCatFi
 
 	go func() {
 		stderr := strings.Builder{}
-		err := gitcmd.NewCommand("cat-file").
-			AddArguments(internal.CmdArg(batchArg)).
+		cmd := gitcmd.NewCommand("cat-file")
+		switch batchArg {
+		case BatchArg:
+			cmd.AddArguments("--batch")
+		case BatchCheckArg:
+			cmd.AddArguments("--batch-check")
+		case BatchCommandArg:
+			cmd.AddArguments("--batch-command")
+		}
+		err := cmd.
 			WithDir(repoPath).
 			WithStdin(batchStdinReader).
 			WithStdout(batchStdoutWriter).
