@@ -207,15 +207,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	repo.Website = form.Website
 	repo.IsTemplate = form.Template
 
-	// Visibility of forked repository is forced sync with base repository.
-	visibilityChanged := false
-	if repo.IsFork {
-		preVisibility := repo.IsPrivate
-		repo.IsPrivate = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
-		visibilityChanged = preVisibility != repo.IsPrivate
-	}
-
-	if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
+	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 		ctx.ServerError("UpdateRepository", err)
 		return
 	}
