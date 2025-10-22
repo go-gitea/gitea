@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -25,8 +24,9 @@ func TestAPIGetRawFileOrLFS(t *testing.T) {
 
 	// Test with LFS
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		httpContext := NewAPITestContext(t, "user2", "repo-lfs-test", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-		t.Run("repo-lfs-test", doAPICreateRepository(httpContext, false, func(t *testing.T, repository api.Repository) {
+		createLFSTestRepository(t, "repo-lfs-test")
+		httpContext := NewAPITestContext(t, "user2", "repo-lfs-test", auth_model.AccessTokenScopeWriteRepository)
+		t.Run("repo-lfs-test", func(t *testing.T) {
 			u.Path = httpContext.GitPath()
 			dstPath := t.TempDir()
 
@@ -44,6 +44,6 @@ func TestAPIGetRawFileOrLFS(t *testing.T) {
 			reqLFS := NewRequest(t, "GET", "/api/v1/repos/user2/repo-lfs-test/media/"+lfs).AddTokenAuth(httpContext.Token)
 			respLFS := MakeRequestNilResponseRecorder(t, reqLFS, http.StatusOK)
 			assert.Equal(t, testFileSizeSmall, respLFS.Length)
-		}))
+		})
 	})
 }

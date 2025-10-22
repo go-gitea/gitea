@@ -563,11 +563,14 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		return false
 	}
 
-	canRead := perm.CanAccess(accessMode, unit.TypeCode)
-	if canRead && (!requireSigned || ctx.IsSigned) {
+	canAccess := perm.CanAccess(accessMode, unit.TypeCode)
+	// if it doesn't require sign-in and anonymous user has access, return true
+	// if the user is already signed in (for example: by session auth method), and the doer can access, return true
+	if canAccess && (!requireSigned || ctx.IsSigned) {
 		return true
 	}
 
+	// now, either sign-in is required or the ctx.Doer cannot access, check the LFS token
 	user, err := parseToken(ctx, authorization, repository, accessMode)
 	if err != nil {
 		// Most of these are Warn level - the true internal server errors are logged in parseToken already
