@@ -394,7 +394,7 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 		log.Trace("migrating pull requests and comments")
 		messenger("repo.migrate.migrating_pulls")
 		prBatchSize := uploader.MaxBatchInsertSize("pullrequest")
-		mapInsertedIssueIndexes := container.Set[int64]{}
+		mapInsertedPRIndexes := container.Set[int64]{}
 		for i := 1; ; i++ {
 			prs, isEnd, err := downloader.GetPullRequests(ctx, i, prBatchSize)
 			if err != nil {
@@ -405,12 +405,12 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 				break
 			}
 			for i := 0; i < len(prs); i++ {
-				if mapInsertedIssueIndexes.Contains(prs[i].Number) {
+				if mapInsertedPRIndexes.Contains(prs[i].Number) {
 					prs = append(prs[:i], prs[i+1:]...)
 					i--
 					continue
 				}
-				mapInsertedIssueIndexes.Add(prs[i].Number)
+				mapInsertedPRIndexes.Add(prs[i].Number)
 			}
 
 			if err := uploader.CreatePullRequests(ctx, prs...); err != nil {
