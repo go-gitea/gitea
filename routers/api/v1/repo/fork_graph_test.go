@@ -204,6 +204,25 @@ func TestForkGraphCacheKey(t *testing.T) {
 	assert.NotEqual(t, key1, key3)
 }
 
+func TestForkGraphCacheKeyIncludesVersion(t *testing.T) {
+	params := ForkGraphParams{
+		IncludeContributors: true,
+		ContributorDays:     90,
+		MaxDepth:            10,
+		Sort:                "updated",
+		Page:                1,
+		Limit:               50,
+	}
+
+	key := getCacheKey(1, params, 1)
+
+	// Verify cache key includes the version
+	assert.Contains(t, key, forkGraphCacheVersion, "Cache key should include version for cache invalidation")
+
+	// Verify cache key format: fork_graph:{version}:{repoID}:{paramsHash}:{userID}
+	assert.Contains(t, key, "fork_graph:"+forkGraphCacheVersion+":", "Cache key should start with fork_graph:{version}:")
+}
+
 func TestForkGraphDefaults(t *testing.T) {
 	params := ForkGraphParams{}
 	params.setDefaults()

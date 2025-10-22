@@ -15,6 +15,15 @@ import (
 	"code.gitea.io/gitea/services/repository"
 )
 
+// forkGraphCacheVersion should be incremented whenever the fork graph
+// logic, data structure, or API response format changes.
+// This allows automatic cache invalidation across deployments.
+//
+// Version History:
+// - v1: Initial implementation with basic fork graph traversal
+// - v2: Added cycle detection error handling (ErrCycleDetected)
+const forkGraphCacheVersion = "v2"
+
 // ForkGraphParams represents the query parameters for fork graph endpoint
 type ForkGraphParams struct {
 	IncludeContributors bool   `form:"include_contributors"`
@@ -66,10 +75,16 @@ func (p *ForkGraphParams) validate() error {
 	return nil
 }
 
-// getCacheKey generates a cache key for the fork graph
+// getCacheKey generates a versioned cache key for fork graph data.
+// The key includes:
+// - forkGraphCacheVersion: Incremented when logic changes (for cache invalidation)
+// - repoID: The repository being queried
+// - paramsHash: Hash of query parameters (depth, filters, etc.)
+// - userID: User-specific permissions may affect the graph
 func getCacheKey(repoID int64, params ForkGraphParams, userID int64) string {
 	paramsHash := hashParams(params)
-	return fmt.Sprintf("fork_graph:%d:%s:%d", repoID, paramsHash, userID)
+	return fmt.Sprintf("fork_graph:%s:%d:%s:%d",
+		forkGraphCacheVersion, repoID, paramsHash, userID)
 }
 
 // hashParams creates a hash of the parameters
@@ -167,12 +182,12 @@ func GetForkGraph(ctx *context.APIContext) {
 	// Parse query parameters with defaults
 	params := ForkGraphParams{
 		IncludeContributors: ctx.FormBool("include_contributors"),
-		ContributorDays:     90,  // default
-		MaxDepth:            10,  // default
+		ContributorDays:     90, // default
+		MaxDepth:            10, // default
 		IncludePrivate:      ctx.FormBool("include_private"),
 		Sort:                "updated", // default
-		Page:                1,   // default
-		Limit:               50,  // default
+		Page:                1,         // default
+		Limit:               50,        // default
 	}
 
 	// Override defaults if parameters are explicitly provided
