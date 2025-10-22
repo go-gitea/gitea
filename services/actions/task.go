@@ -97,7 +97,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		return nil, false, nil
 	}
 
-	CreateCommitStatus(ctx, job)
+	CreateCommitStatusForRunJobs(ctx, job.Run, job)
 	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, actionTask)
 
 	return task, true, nil

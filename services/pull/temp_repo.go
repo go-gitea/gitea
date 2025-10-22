@@ -36,6 +36,9 @@ type prTmpRepoContext struct {
 	errbuf      *strings.Builder // any use should be preceded by a Reset and preferably after use
 }
 
+// PrepareGitCmd prepares a git command with the correct directory, environment, and output buffers
+// This function can only be called with gitcmd.Run()
+// Do NOT use it with gitcmd.RunStd*() functions, otherwise it will panic
 func (ctx *prTmpRepoContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	ctx.outbuf.Reset()
 	ctx.errbuf.Reset()
