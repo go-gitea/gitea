@@ -164,7 +164,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 
 	if len(workflows) == 0 {
-		return util.ErrorWrapLocale(
+		return util.ErrorWrapTranslatable(
 			util.NewNotExistErrorf("workflow %q doesn't exist", workflowID),
 			"actions.workflow.not_found", workflowID,
 		)
