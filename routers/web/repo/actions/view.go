@@ -425,7 +425,8 @@ func Rerun(ctx *context_module.Context) {
 		run.PreviousDuration = run.Duration()
 		run.Started = 0
 		run.Stopped = 0
-		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration"); err != nil {
+		run.Status = actions_model.StatusWaiting
+		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "status", "previous_duration"); err != nil {
 			ctx.ServerError("UpdateRun", err)
 			return
 		}
