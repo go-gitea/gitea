@@ -5,6 +5,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -13,7 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
@@ -23,7 +24,7 @@ import (
 func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, message string, rebase bool) error {
 	if pr.Flow == issues_model.PullRequestFlowAGit {
 		// TODO: update of agit flow pull request's head branch is unsupported
-		return fmt.Errorf("update of agit flow pull request's head branch is unsupported")
+		return errors.New("update of agit flow pull request's head branch is unsupported")
 	}
 
 	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
@@ -33,25 +34,21 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 	}
 	defer releaser()
 
-	diffCount, err := GetDiverging(ctx, pr)
-	if err != nil {
-		return err
-	} else if diffCount.Behind == 0 {
-		return fmt.Errorf("HeadBranch of PR %d is up to date", pr.Index)
-	}
-
-	if rebase {
-		defer func() {
-			go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
-		}()
-
-		return updateHeadByRebaseOnToBase(ctx, pr, doer)
-	}
-
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("unable to load BaseRepo for %-v during update-by-merge: %v", pr, err)
 		return fmt.Errorf("unable to load BaseRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
 	}
+
+	// TODO: FakePR: if the PR is a fake PR (for example: from Merge Upstream), then no need to check diverging
+	if pr.ID > 0 {
+		diffCount, err := gitrepo.GetDivergingCommits(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		if err != nil {
+			return err
+		} else if diffCount.Behind == 0 {
+			return fmt.Errorf("HeadBranch of PR %d is up to date", pr.Index)
+		}
+	}
+
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		log.Error("unable to load HeadRepo for PR %-v during update-by-merge: %v", pr, err)
 		return fmt.Errorf("unable to load HeadRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
@@ -63,6 +60,25 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		}
 		log.Error("unable to load HeadRepo for PR %-v during update-by-merge: %v", pr, err)
 		return fmt.Errorf("unable to load HeadRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
+	}
+
+	defer func() {
+		// The code is from https://github.com/go-gitea/gitea/pull/9784,
+		// it seems a simple copy-paste from https://github.com/go-gitea/gitea/pull/7082 without a real reason.
+		// TODO: DUPLICATE-PR-TASK: search and see another TODO comment for more details
+		go AddTestPullRequestTask(TestPullRequestOptions{
+			RepoID:      pr.BaseRepo.ID,
+			Doer:        doer,
+			Branch:      pr.BaseBranch,
+			IsSync:      false,
+			IsForcePush: false,
+			OldCommitID: "",
+			NewCommitID: "",
+		})
+	}()
+
+	if rebase {
+		return updateHeadByRebaseOnToBase(ctx, pr, doer)
 	}
 
 	// TODO: FakePR: it is somewhat hacky, but it is the only way to "merge" at the moment
@@ -81,11 +97,6 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 	}
 
 	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, "", message, repository.PushTriggerPRUpdateWithBase)
-
-	defer func() {
-		go AddTestPullRequestTask(doer, reversePR.HeadRepo.ID, reversePR.HeadBranch, false, "", "")
-	}()
-
 	return err
 }
 
@@ -168,18 +179,13 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	return mergeAllowed, rebaseAllowed, nil
 }
 
-// GetDiverging determines how many commits a PR is ahead or behind the PR base branch
-func GetDiverging(ctx context.Context, pr *issues_model.PullRequest) (*git.DivergeObject, error) {
-	log.Trace("GetDiverging[%-v]: compare commits", pr)
-	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
-	if err != nil {
-		if !git_model.IsErrBranchNotExist(err) {
-			log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
-		}
-		return nil, err
+func syncCommitDivergence(ctx context.Context, pr *issues_model.PullRequest) error {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return err
 	}
-	defer cancel()
-
-	diff, err := git.GetDivergingCommits(ctx, prCtx.tmpBasePath, baseBranch, trackingBranch)
-	return &diff, err
+	divergence, err := gitrepo.GetDivergingCommits(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+	if err != nil {
+		return err
+	}
+	return pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
 }

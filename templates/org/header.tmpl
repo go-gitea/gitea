@@ -18,7 +18,7 @@
 				{{end}}
 			</span>
 		</div>
-		{{if .RenderedDescription}}<div class="render-content markup tw-break-anywhere">{{.RenderedDescription}}</div>{{end}}
+		{{if .RenderedDescription}}<div class="render-content markup">{{.RenderedDescription}}</div>{{end}}
 		<div class="text light meta tw-mt-1">
 			{{if .Org.Location}}<div class="flex-text-block">{{svg "octicon-location"}} <span>{{.Org.Location}}</span></div>{{end}}
 			{{if .Org.Website}}<div class="flex-text-block">{{svg "octicon-link"}} <a class="muted" target="_blank" rel="noopener noreferrer me" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}

@@ -51,7 +51,7 @@ func GetOrganizationByParams(ctx *Context) {
 			if err == nil {
 				RedirectToUser(ctx.Base, orgName, redirectUserID)
 			} else if user_model.IsErrUserRedirectNotExist(err) {
-				ctx.NotFound("GetUserByName", err)
+				ctx.NotFound(err)
 			} else {
 				ctx.ServerError("LookupUserRedirect", err)
 			}
@@ -93,7 +93,7 @@ func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
 		// Handle Visibility
 		if org.Visibility != structs.VisibleTypePublic && !ctx.IsSigned {
 			// We must be signed in to see limited or private organizations
-			ctx.NotFound("OrgAssignment", err)
+			ctx.NotFound(err)
 			return
 		}
 
@@ -142,7 +142,7 @@ func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
 			ctx.Data["SignedUser"] = &user_model.User{}
 		}
 		if (opts.RequireMember && !ctx.Org.IsMember) || (opts.RequireOwner && !ctx.Org.IsOwner) {
-			ctx.NotFound("OrgAssignment", err)
+			ctx.NotFound(err)
 			return
 		}
 		ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
@@ -182,7 +182,7 @@ func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
 					return
 				}
 				for _, team := range teams {
-					if team.IncludesAllRepositories && team.AccessMode >= perm.AccessModeAdmin {
+					if team.IncludesAllRepositories && team.HasAdminAccess() {
 						shouldSeeAllTeams = true
 						break
 					}
@@ -208,7 +208,7 @@ func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
 		if len(teamName) > 0 {
 			teamExists := false
 			for _, team := range ctx.Org.Teams {
-				if team.LowerName == strings.ToLower(teamName) {
+				if strings.EqualFold(team.LowerName, teamName) {
 					teamExists = true
 					ctx.Org.Team = team
 					ctx.Org.IsTeamMember = true
@@ -218,20 +218,20 @@ func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
 			}
 
 			if !teamExists {
-				ctx.NotFound("OrgAssignment", err)
+				ctx.NotFound(err)
 				return
 			}
 
 			ctx.Data["IsTeamMember"] = ctx.Org.IsTeamMember
 			if opts.RequireTeamMember && !ctx.Org.IsTeamMember {
-				ctx.NotFound("OrgAssignment", err)
+				ctx.NotFound(err)
 				return
 			}
 
-			ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.AccessMode >= perm.AccessModeAdmin
+			ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.HasAdminAccess()
 			ctx.Data["IsTeamAdmin"] = ctx.Org.IsTeamAdmin
 			if opts.RequireTeamAdmin && !ctx.Org.IsTeamAdmin {
-				ctx.NotFound("OrgAssignment", err)
+				ctx.NotFound(err)
 				return
 			}
 		}

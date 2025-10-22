@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
 
 import (
 	"testing"
@@ -108,11 +108,11 @@ func Test_RepositoryFormat(t *testing.T) {
 	ok, err := x.ID(2).Get(repo)
 	assert.NoError(t, err)
 	assert.True(t, ok)
-	assert.EqualValues(t, "sha1", repo.ObjectFormatName)
+	assert.Equal(t, "sha1", repo.ObjectFormatName)
 
 	repo = new(Repository)
 	ok, err = x.ID(id).Get(repo)
 	assert.NoError(t, err)
 	assert.True(t, ok)
-	assert.EqualValues(t, "sha256", repo.ObjectFormatName)
+	assert.Equal(t, "sha256", repo.ObjectFormatName)
 }

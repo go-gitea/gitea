@@ -1,7 +1,6 @@
 {{$file := .file}}
-{{$repoLink := or ctx.RootData.CommitRepoLink ctx.RootData.RepoLink}}
-{{$afterCommitID := or $.root.AfterCommitID "no-after-commit-id"}}{{/* this tmpl is also used by the PR Conversation page, so the "AfterCommitID" may not exist */}}
-{{$blobExcerptLink := print $repoLink (Iif $.root.PageIsWiki "/wiki" "") "/blob_excerpt/" (PathEscape $afterCommitID) "?"}}
+{{/* this tmpl is also used by the PR Conversation page, so the "AfterCommitID" and "DiffBlobExcerptData" may not exist */}}
+{{$diffBlobExcerptData := $.root.DiffBlobExcerptData}}
 <colgroup>
 	<col width="50">
 	<col width="50">
@@ -14,26 +13,7 @@
 		<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
 			{{if eq .GetType 4}}
 				{{if $.root.AfterCommitID}}
-					{{$expandDirection := $line.GetExpandDirection}}
-					<td colspan="2" class="lines-num">
-						<div class="code-expander-buttons" data-expand-direction="{{$expandDirection}}">
-							{{if or (eq $expandDirection 3) (eq $expandDirection 5)}}
-								<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=unified&direction=down&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
-									{{svg "octicon-fold-down"}}
-								</button>
-							{{end}}
-							{{if or (eq $expandDirection 3) (eq $expandDirection 4)}}
-								<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=unified&direction=up&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
-									{{svg "octicon-fold-up"}}
-								</button>
-							{{end}}
-							{{if eq $expandDirection 2}}
-								<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=unified&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
-									{{svg "octicon-fold"}}
-								</button>
-							{{end}}
-						</div>
-					</td>
+					<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $file.NameHash $diffBlobExcerptData}}</td>
 				{{else}}
 					{{/* for code file preview page or comment diffs on pull comment pages, do not show the expansion arrows */}}
 					<td colspan="2" class="lines-num"></td>

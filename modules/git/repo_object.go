@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"io"
 	"strings"
+
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // ObjectType git object type
@@ -66,36 +68,22 @@ func (repo *Repository) HashObject(reader io.Reader) (ObjectID, error) {
 }
 
 func (repo *Repository) hashObject(reader io.Reader, save bool) (string, error) {
-	var cmd *Command
+	var cmd *gitcmd.Command
 	if save {
-		cmd = NewCommand(repo.Ctx, "hash-object", "-w", "--stdin")
+		cmd = gitcmd.NewCommand("hash-object", "-w", "--stdin")
 	} else {
-		cmd = NewCommand(repo.Ctx, "hash-object", "--stdin")
+		cmd = gitcmd.NewCommand("hash-object", "--stdin")
 	}
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err := cmd.Run(&RunOpts{
-		Dir:    repo.Path,
-		Stdin:  reader,
-		Stdout: stdout,
-		Stderr: stderr,
-	})
+	err := cmd.
+		WithDir(repo.Path).
+		WithStdin(reader).
+		WithStdout(stdout).
+		WithStderr(stderr).
+		Run(repo.Ctx)
 	if err != nil {
 		return "", err
 	}
 	return strings.TrimSpace(stdout.String()), nil
-}
-
-// GetRefType gets the type of the ref based on the string
-func (repo *Repository) GetRefType(ref string) ObjectType {
-	if repo.IsTagExist(ref) {
-		return ObjectTag
-	} else if repo.IsBranchExist(ref) {
-		return ObjectBranch
-	} else if repo.IsCommitExist(ref) {
-		return ObjectCommit
-	} else if _, err := repo.GetBlob(ref); err == nil {
-		return ObjectBlob
-	}
-	return ObjectType("invalid")
 }

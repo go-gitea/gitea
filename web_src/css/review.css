@@ -1,15 +1,8 @@
-.show-outdated,
-.hide-outdated {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  margin-right: 0 !important;
-}
-
 .ui.button.add-code-comment {
   padding: 2px;
   position: absolute;
   margin-left: -22px;
+  min-height: 0;
   z-index: 5;
   opacity: 0;
   transition: transform 0.1s ease-in-out;
@@ -56,11 +49,6 @@
 
 .add-comment-left.add-comment-right .ui.attached.header:not(.top) {
   margin-bottom: 0.5em;
-}
-
-.show-outdated:hover,
-.hide-outdated:hover {
-  text-decoration: underline;
 }
 
 .comment-code-cloud {
@@ -127,6 +115,23 @@
   color: var(--color-text);
 }
 
+.code-expander-buttons {
+  position: relative;
+}
+
+.code-expander-buttons .code-comment-more {
+  position: absolute;
+  line-height: 12px;
+  padding: 2px 4px;
+  font-size: 10px;
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-radius: 8px !important;
+  left: -12px;
+  top: 6px;
+  text-align: center;
+}
+
 .code-expander-button {
   border: none;
   color: var(--color-text-light);
@@ -139,8 +144,8 @@
   flex: 1;
 }
 
-/* expand direction 3 is both ways with two buttons */
-.code-expander-buttons[data-expand-direction="3"] .code-expander-button {
+/* expand direction "updown" is both ways with two buttons */
+.code-expander-buttons[data-expand-direction="updown"] .code-expander-button {
   height: 18px;
 }
 

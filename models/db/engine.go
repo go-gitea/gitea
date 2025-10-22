@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"xorm.io/xorm"
-	"xorm.io/xorm/schemas"
 
 	_ "github.com/go-sql-driver/mysql"  // Needed for the MySQL driver
 	_ "github.com/lib/pq"               // Needed for the Postgresql driver
@@ -59,12 +58,13 @@ type Engine interface {
 	Cols(...string) *xorm.Session
 	Context(ctx context.Context) *xorm.Session
 	Ping() error
+	IsTableExist(tableNameOrBean any) (bool, error)
 }
 
-// TableInfo returns table's information via an object
-func TableInfo(v any) (*schemas.Table, error) {
-	return xormEngine.TableInfo(v)
-}
+var (
+	_ Engine = (*xorm.Engine)(nil)
+	_ Engine = (*xorm.Session)(nil)
+)
 
 // RegisterModel registers model, if initFuncs provided, it will be invoked after data model sync
 func RegisterModel(bean any, initFunc ...func() error) {
@@ -127,7 +127,7 @@ func IsTableNotEmpty(beanOrTableName any) (bool, error) {
 
 // DeleteAllRecords will delete all the records of this table
 func DeleteAllRecords(tableName string) error {
-	_, err := xormEngine.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
+	_, err := xormEngine.Exec("DELETE FROM " + tableName)
 	return err
 }
 

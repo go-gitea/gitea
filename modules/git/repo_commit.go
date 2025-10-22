@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -59,7 +60,11 @@ func (repo *Repository) getCommitByPathWithID(id ObjectID, relpath string) (*Com
 		relpath = `\` + relpath
 	}
 
-	stdout, _, runErr := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat).AddDynamicArguments(id.String()).AddDashesAndList(relpath).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, runErr := gitcmd.NewCommand("log", "-1", prettyLogFormat).
+		AddDynamicArguments(id.String()).
+		AddDashesAndList(relpath).
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -74,7 +79,10 @@ func (repo *Repository) getCommitByPathWithID(id ObjectID, relpath string) (*Com
 
 // GetCommitByPath returns the last commit of relative path.
 func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
-	stdout, _, runErr := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat).AddDashesAndList(relpath).RunStdBytes(&RunOpts{Dir: repo.Path})
+	stdout, _, runErr := gitcmd.NewCommand("log", "-1", prettyLogFormat).
+		AddDashesAndList(relpath).
+		WithDir(repo.Path).
+		RunStdBytes(repo.Ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -89,8 +97,9 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 	return commits[0], nil
 }
 
-func (repo *Repository) commitsByRange(id ObjectID, page, pageSize int, not string) ([]*Commit, error) {
-	cmd := NewCommand(repo.Ctx, "log").
+// commitsByRangeWithTime returns the specific page commits before current revision, with not, since, until support
+func (repo *Repository) commitsByRangeWithTime(id ObjectID, page, pageSize int, not, since, until string) ([]*Commit, error) {
+	cmd := gitcmd.NewCommand("log").
 		AddOptionFormat("--skip=%d", (page-1)*pageSize).
 		AddOptionFormat("--max-count=%d", pageSize).
 		AddArguments(prettyLogFormat).
@@ -99,8 +108,14 @@ func (repo *Repository) commitsByRange(id ObjectID, page, pageSize int, not stri
 	if not != "" {
 		cmd.AddOptionValues("--not", not)
 	}
+	if since != "" {
+		cmd.AddOptionFormat("--since=%s", since)
+	}
+	if until != "" {
+		cmd.AddOptionFormat("--until=%s", until)
+	}
 
-	stdout, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
+	stdout, _, err := cmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +125,7 @@ func (repo *Repository) commitsByRange(id ObjectID, page, pageSize int, not stri
 
 func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([]*Commit, error) {
 	// add common arguments to git command
-	addCommonSearchArgs := func(c *Command) {
+	addCommonSearchArgs := func(c *gitcmd.Command) {
 		// ignore case
 		c.AddArguments("-i")
 
@@ -134,7 +149,7 @@ func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([
 	}
 
 	// create new git log command with limit of 100 commits
-	cmd := NewCommand(repo.Ctx, "log", "-100", prettyLogFormat).AddDynamicArguments(id.String())
+	cmd := gitcmd.NewCommand("log", "-100", prettyLogFormat).AddDynamicArguments(id.String())
 
 	// pretend that all refs along with HEAD were listed on command line as <commis>
 	// https://git-scm.com/docs/git-log#Documentation/git-log.txt---all
@@ -154,7 +169,7 @@ func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([
 
 	// search for commits matching given constraints and keywords in commit msg
 	addCommonSearchArgs(cmd)
-	stdout, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
+	stdout, _, err := cmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -168,14 +183,14 @@ func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([
 		// ignore anything not matching a valid sha pattern
 		if id.Type().IsValid(v) {
 			// create new git log command with 1 commit limit
-			hashCmd := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat)
+			hashCmd := gitcmd.NewCommand("log", "-1", prettyLogFormat)
 			// add previous arguments except for --grep and --all
 			addCommonSearchArgs(hashCmd)
 			// add keyword as <commit>
 			hashCmd.AddDynamicArguments(v)
 
 			// search with given constraints for commit matching sha hash of v
-			hashMatching, _, err := hashCmd.RunStdBytes(&RunOpts{Dir: repo.Path})
+			hashMatching, _, err := hashCmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
 			if err != nil || bytes.Contains(stdout, hashMatching) {
 				continue
 			}
@@ -190,7 +205,11 @@ func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([
 // FileChangedBetweenCommits Returns true if the file changed between commit IDs id1 and id2
 // You must ensure that id1 and id2 are valid commit ids.
 func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bool, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only", "-z").AddDynamicArguments(id1, id2).AddDashesAndList(filename).RunStdBytes(&RunOpts{Dir: repo.Path})
+	stdout, _, err := gitcmd.NewCommand("diff", "--name-only", "-z").
+		AddDynamicArguments(id1, id2).
+		AddDashesAndList(filename).
+		WithDir(repo.Path).
+		RunStdBytes(repo.Ctx)
 	if err != nil {
 		return false, err
 	}
@@ -212,6 +231,8 @@ type CommitsByFileAndRangeOptions struct {
 	File     string
 	Not      string
 	Page     int
+	Since    string
+	Until    string
 }
 
 // CommitsByFileAndRange return the commits according revision file and the page
@@ -223,7 +244,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	}()
 	go func() {
 		stderr := strings.Builder{}
-		gitCmd := NewCommand(repo.Ctx, "rev-list").
+		gitCmd := gitcmd.NewCommand("rev-list").
 			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
 			AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
 		gitCmd.AddDynamicArguments(opts.Revision)
@@ -231,15 +252,20 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 		if opts.Not != "" {
 			gitCmd.AddOptionValues("--not", opts.Not)
 		}
+		if opts.Since != "" {
+			gitCmd.AddOptionFormat("--since=%s", opts.Since)
+		}
+		if opts.Until != "" {
+			gitCmd.AddOptionFormat("--until=%s", opts.Until)
+		}
 
 		gitCmd.AddDashesAndList(opts.File)
-		err := gitCmd.Run(&RunOpts{
-			Dir:    repo.Path,
-			Stdout: stdoutWriter,
-			Stderr: &stderr,
-		})
+		err := gitCmd.WithDir(repo.Path).
+			WithStdout(stdoutWriter).
+			WithStderr(&stderr).
+			Run(repo.Ctx)
 		if err != nil {
-			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
+			_ = stdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
 		} else {
 			_ = stdoutWriter.Close()
 		}
@@ -275,11 +301,17 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 
 // FilesCountBetween return the number of files changed between two commits
 func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (int, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only").AddDynamicArguments(startCommitID + "..." + endCommitID).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, err := gitcmd.NewCommand("diff", "--name-only").
+		AddDynamicArguments(startCommitID + "..." + endCommitID).
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// git >= 2.28 now returns an error if startCommitID and endCommitID have become unrelated.
 		// previously it would return the results of git diff --name-only startCommitID endCommitID so let's try that...
-		stdout, _, err = NewCommand(repo.Ctx, "diff", "--name-only").AddDynamicArguments(startCommitID, endCommitID).RunStdString(&RunOpts{Dir: repo.Path})
+		stdout, _, err = gitcmd.NewCommand("diff", "--name-only").
+			AddDynamicArguments(startCommitID, endCommitID).
+			WithDir(repo.Path).
+			RunStdString(repo.Ctx)
 	}
 	if err != nil {
 		return 0, err
@@ -293,13 +325,22 @@ func (repo *Repository) CommitsBetween(last, before *Commit) ([]*Commit, error) 
 	var stdout []byte
 	var err error
 	if before == nil {
-		stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(last.ID.String()).RunStdBytes(&RunOpts{Dir: repo.Path})
+		stdout, _, err = gitcmd.NewCommand("rev-list").
+			AddDynamicArguments(last.ID.String()).
+			WithDir(repo.Path).
+			RunStdBytes(repo.Ctx)
 	} else {
-		stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(before.ID.String() + ".." + last.ID.String()).RunStdBytes(&RunOpts{Dir: repo.Path})
+		stdout, _, err = gitcmd.NewCommand("rev-list").
+			AddDynamicArguments(before.ID.String() + ".." + last.ID.String()).
+			WithDir(repo.Path).
+			RunStdBytes(repo.Ctx)
 		if err != nil && strings.Contains(err.Error(), "no merge base") {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 			// previously it would return the results of git rev-list before last so let's try that...
-			stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(before.ID.String(), last.ID.String()).RunStdBytes(&RunOpts{Dir: repo.Path})
+			stdout, _, err = gitcmd.NewCommand("rev-list").
+				AddDynamicArguments(before.ID.String(), last.ID.String()).
+				WithDir(repo.Path).
+				RunStdBytes(repo.Ctx)
 		}
 	}
 	if err != nil {
@@ -313,22 +354,28 @@ func (repo *Repository) CommitsBetweenLimit(last, before *Commit, limit, skip in
 	var stdout []byte
 	var err error
 	if before == nil {
-		stdout, _, err = NewCommand(repo.Ctx, "rev-list").
+		stdout, _, err = gitcmd.NewCommand("rev-list").
 			AddOptionValues("--max-count", strconv.Itoa(limit)).
 			AddOptionValues("--skip", strconv.Itoa(skip)).
-			AddDynamicArguments(last.ID.String()).RunStdBytes(&RunOpts{Dir: repo.Path})
+			AddDynamicArguments(last.ID.String()).
+			WithDir(repo.Path).
+			RunStdBytes(repo.Ctx)
 	} else {
-		stdout, _, err = NewCommand(repo.Ctx, "rev-list").
+		stdout, _, err = gitcmd.NewCommand("rev-list").
 			AddOptionValues("--max-count", strconv.Itoa(limit)).
 			AddOptionValues("--skip", strconv.Itoa(skip)).
-			AddDynamicArguments(before.ID.String() + ".." + last.ID.String()).RunStdBytes(&RunOpts{Dir: repo.Path})
+			AddDynamicArguments(before.ID.String() + ".." + last.ID.String()).
+			WithDir(repo.Path).
+			RunStdBytes(repo.Ctx)
 		if err != nil && strings.Contains(err.Error(), "no merge base") {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 			// previously it would return the results of git rev-list --max-count n before last so let's try that...
-			stdout, _, err = NewCommand(repo.Ctx, "rev-list").
+			stdout, _, err = gitcmd.NewCommand("rev-list").
 				AddOptionValues("--max-count", strconv.Itoa(limit)).
 				AddOptionValues("--skip", strconv.Itoa(skip)).
-				AddDynamicArguments(before.ID.String(), last.ID.String()).RunStdBytes(&RunOpts{Dir: repo.Path})
+				AddDynamicArguments(before.ID.String(), last.ID.String()).
+				WithDir(repo.Path).
+				RunStdBytes(repo.Ctx)
 		}
 	}
 	if err != nil {
@@ -343,13 +390,25 @@ func (repo *Repository) CommitsBetweenNotBase(last, before *Commit, baseBranch s
 	var stdout []byte
 	var err error
 	if before == nil {
-		stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(last.ID.String()).AddOptionValues("--not", baseBranch).RunStdBytes(&RunOpts{Dir: repo.Path})
+		stdout, _, err = gitcmd.NewCommand("rev-list").
+			AddDynamicArguments(last.ID.String()).
+			AddOptionValues("--not", baseBranch).
+			WithDir(repo.Path).
+			RunStdBytes(repo.Ctx)
 	} else {
-		stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(before.ID.String()+".."+last.ID.String()).AddOptionValues("--not", baseBranch).RunStdBytes(&RunOpts{Dir: repo.Path})
+		stdout, _, err = gitcmd.NewCommand("rev-list").
+			AddDynamicArguments(before.ID.String()+".."+last.ID.String()).
+			AddOptionValues("--not", baseBranch).
+			WithDir(repo.Path).
+			RunStdBytes(repo.Ctx)
 		if err != nil && strings.Contains(err.Error(), "no merge base") {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 			// previously it would return the results of git rev-list before last so let's try that...
-			stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(before.ID.String(), last.ID.String()).AddOptionValues("--not", baseBranch).RunStdBytes(&RunOpts{Dir: repo.Path})
+			stdout, _, err = gitcmd.NewCommand("rev-list").
+				AddDynamicArguments(before.ID.String(), last.ID.String()).
+				AddOptionValues("--not", baseBranch).
+				WithDir(repo.Path).
+				RunStdBytes(repo.Ctx)
 		}
 	}
 	if err != nil {
@@ -395,13 +454,13 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 
 // commitsBefore the limit is depth, not total number of returned commits.
 func (repo *Repository) commitsBefore(id ObjectID, limit int) ([]*Commit, error) {
-	cmd := NewCommand(repo.Ctx, "log", prettyLogFormat)
+	cmd := gitcmd.NewCommand("log", prettyLogFormat)
 	if limit > 0 {
 		cmd.AddOptionFormat("-%d", limit)
 	}
 	cmd.AddDynamicArguments(id.String())
 
-	stdout, _, runErr := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
+	stdout, _, runErr := cmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -438,13 +497,12 @@ func (repo *Repository) getCommitsBeforeLimit(id ObjectID, num int) ([]*Commit, 
 
 func (repo *Repository) getBranches(env []string, commitID string, limit int) ([]string, error) {
 	if DefaultFeatures().CheckVersionAtLeast("2.7.0") {
-		stdout, _, err := NewCommand(repo.Ctx, "for-each-ref", "--format=%(refname:strip=2)").
+		stdout, _, err := gitcmd.NewCommand("for-each-ref", "--format=%(refname:strip=2)").
 			AddOptionFormat("--count=%d", limit).
 			AddOptionValues("--contains", commitID, BranchPrefix).
-			RunStdString(&RunOpts{
-				Dir: repo.Path,
-				Env: env,
-			})
+			WithDir(repo.Path).
+			WithEnv(env).
+			RunStdString(repo.Ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -453,10 +511,11 @@ func (repo *Repository) getBranches(env []string, commitID string, limit int) ([
 		return branches, nil
 	}
 
-	stdout, _, err := NewCommand(repo.Ctx, "branch").AddOptionValues("--contains", commitID).RunStdString(&RunOpts{
-		Dir: repo.Path,
-		Env: env,
-	})
+	stdout, _, err := gitcmd.NewCommand("branch").
+		AddOptionValues("--contains", commitID).
+		WithDir(repo.Path).
+		WithEnv(env).
+		RunStdString(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -495,7 +554,10 @@ func (repo *Repository) GetCommitsFromIDs(commitIDs []string) []*Commit {
 
 // IsCommitInBranch check if the commit is on the branch
 func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err error) {
-	stdout, _, err := NewCommand(repo.Ctx, "branch", "--contains").AddDynamicArguments(commitID, branch).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, err := gitcmd.NewCommand("branch", "--contains").
+		AddDynamicArguments(commitID, branch).
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	if err != nil {
 		return false, err
 	}
@@ -521,22 +583,21 @@ func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error
 
 // GetCommitBranchStart returns the commit where the branch diverged
 func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID string) (string, error) {
-	cmd := NewCommand(repo.Ctx, "log", prettyLogFormat)
+	cmd := gitcmd.NewCommand("log", prettyLogFormat)
 	cmd.AddDynamicArguments(endCommitID)
 
-	stdout, _, runErr := cmd.RunStdBytes(&RunOpts{
-		Dir: repo.Path,
-		Env: env,
-	})
+	stdout, _, runErr := cmd.WithDir(repo.Path).
+		WithEnv(env).
+		RunStdBytes(repo.Ctx)
 	if runErr != nil {
 		return "", runErr
 	}
 
-	parts := bytes.Split(bytes.TrimSpace(stdout), []byte{'\n'})
+	parts := bytes.SplitSeq(bytes.TrimSpace(stdout), []byte{'\n'})
 
 	// check the commits one by one until we find a commit contained by another branch
 	// and we think this commit is the divergence point
-	for _, commitID := range parts {
+	for commitID := range parts {
 		branches, err := repo.getBranches(env, string(commitID), 2)
 		if err != nil {
 			return "", err

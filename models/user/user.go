@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -247,19 +248,20 @@ func (u *User) MaxCreationLimit() int {
 	return u.MaxRepoCreation
 }
 
-// CanCreateRepo returns if user login can create a repository
-// NOTE: functions calling this assume a failure due to repository count limit; if new checks are added, those functions should be revised
-func (u *User) CanCreateRepo() bool {
+// CanCreateRepoIn checks whether the doer(u) can create a repository in the owner
+// NOTE: functions calling this assume a failure due to repository count limit; it ONLY checks the repo number LIMIT, if new checks are added, those functions should be revised
+func (u *User) CanCreateRepoIn(owner *User) bool {
 	if u.IsAdmin {
 		return true
 	}
-	if u.MaxRepoCreation <= -1 {
-		if setting.Repository.MaxCreationLimit <= -1 {
+	const noLimit = -1
+	if owner.MaxRepoCreation == noLimit {
+		if setting.Repository.MaxCreationLimit == noLimit {
 			return true
 		}
-		return u.NumRepos < setting.Repository.MaxCreationLimit
+		return owner.NumRepos < setting.Repository.MaxCreationLimit
 	}
-	return u.NumRepos < u.MaxRepoCreation
+	return owner.NumRepos < owner.MaxRepoCreation
 }
 
 // CanCreateOrganization returns true if user can create organisation.
@@ -272,13 +274,12 @@ func (u *User) CanEditGitHook() bool {
 	return !setting.DisableGitHooks && (u.IsAdmin || u.AllowGitHook)
 }
 
-// CanForkRepo returns if user login can fork a repository
-// It checks especially that the user can create repos, and potentially more
-func (u *User) CanForkRepo() bool {
+// CanForkRepoIn ONLY checks repository count limit
+func (u *User) CanForkRepoIn(owner *User) bool {
 	if setting.Repository.AllowForkWithoutMaximumLimit {
 		return true
 	}
-	return u.CanCreateRepo()
+	return u.CanCreateRepoIn(owner)
 }
 
 // CanImportLocal returns true if user can migrate repository by local path.
@@ -303,8 +304,8 @@ func (u *User) HomeLink() string {
 }
 
 // HTMLURL returns the user or organization's full link.
-func (u *User) HTMLURL() string {
-	return setting.AppURL + url.PathEscape(u.Name)
+func (u *User) HTMLURL(ctx context.Context) string {
+	return httplib.MakeAbsoluteURL(ctx, u.HomeLink())
 }
 
 // OrganisationLink returns the organization sub page link.
@@ -715,90 +716,82 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 		}
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	isExist, err := IsUserExist(ctx, 0, u.Name)
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrUserAlreadyExist{u.Name}
-	}
-
-	isExist, err = IsEmailUsed(ctx, u.Email)
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrEmailAlreadyUsed{
-			Email: u.Email,
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		isExist, err := IsUserExist(ctx, 0, u.Name)
+		if err != nil {
+			return err
+		} else if isExist {
+			return ErrUserAlreadyExist{u.Name}
 		}
-	}
 
-	// prepare for database
+		isExist, err = IsEmailUsed(ctx, u.Email)
+		if err != nil {
+			return err
+		} else if isExist {
+			return ErrEmailAlreadyUsed{
+				Email: u.Email,
+			}
+		}
 
-	u.LowerName = strings.ToLower(u.Name)
-	u.AvatarEmail = u.Email
-	if u.Rands, err = GetUserSalt(); err != nil {
-		return err
-	}
-	if u.Passwd != "" {
-		if err = u.SetPassword(u.Passwd); err != nil {
+		// prepare for database
+
+		u.LowerName = strings.ToLower(u.Name)
+		u.AvatarEmail = u.Email
+		if u.Rands, err = GetUserSalt(); err != nil {
 			return err
 		}
-	} else {
-		u.Salt = ""
-		u.PasswdHashAlgo = ""
-	}
+		if u.Passwd != "" {
+			if err = u.SetPassword(u.Passwd); err != nil {
+				return err
+			}
+		} else {
+			u.Salt = ""
+			u.PasswdHashAlgo = ""
+		}
 
-	// save changes to database
+		// save changes to database
 
-	if err = DeleteUserRedirect(ctx, u.Name); err != nil {
-		return err
-	}
-
-	if u.CreatedUnix == 0 {
-		// Caller expects auto-time for creation & update timestamps.
-		err = db.Insert(ctx, u)
-	} else {
-		// Caller sets the timestamps themselves. They are responsible for ensuring
-		// both `CreatedUnix` and `UpdatedUnix` are set appropriately.
-		_, err = db.GetEngine(ctx).NoAutoTime().Insert(u)
-	}
-	if err != nil {
-		return err
-	}
-
-	if setting.RecordUserSignupMetadata {
-		// insert initial IP and UserAgent
-		if err = SetUserSetting(ctx, u.ID, SignupIP, meta.InitialIP); err != nil {
+		if err = DeleteUserRedirect(ctx, u.Name); err != nil {
 			return err
 		}
 
-		// trim user agent string to a reasonable length, if necessary
-		userAgent := strings.TrimSpace(meta.InitialUserAgent)
-		if len(userAgent) > 255 {
-			userAgent = userAgent[:255]
+		if u.CreatedUnix == 0 {
+			// Caller expects auto-time for creation & update timestamps.
+			err = db.Insert(ctx, u)
+		} else {
+			// Caller sets the timestamps themselves. They are responsible for ensuring
+			// both `CreatedUnix` and `UpdatedUnix` are set appropriately.
+			_, err = db.GetEngine(ctx).NoAutoTime().Insert(u)
 		}
-		if err = SetUserSetting(ctx, u.ID, SignupUserAgent, userAgent); err != nil {
+		if err != nil {
 			return err
 		}
-	}
 
-	// insert email address
-	if err := db.Insert(ctx, &EmailAddress{
-		UID:         u.ID,
-		Email:       u.Email,
-		LowerEmail:  strings.ToLower(u.Email),
-		IsActivated: u.IsActive,
-		IsPrimary:   true,
-	}); err != nil {
-		return err
-	}
+		if setting.RecordUserSignupMetadata {
+			// insert initial IP and UserAgent
+			if err = SetUserSetting(ctx, u.ID, SignupIP, meta.InitialIP); err != nil {
+				return err
+			}
 
-	return committer.Commit()
+			// trim user agent string to a reasonable length, if necessary
+			userAgent := strings.TrimSpace(meta.InitialUserAgent)
+			if len(userAgent) > 255 {
+				userAgent = userAgent[:255]
+			}
+			if err = SetUserSetting(ctx, u.ID, SignupUserAgent, userAgent); err != nil {
+				return err
+			}
+		}
+
+		// insert email address
+		return db.Insert(ctx, &EmailAddress{
+			UID:         u.ID,
+			Email:       u.Email,
+			LowerEmail:  strings.ToLower(u.Email),
+			IsActivated: u.IsActive,
+			IsPrimary:   true,
+		})
+	})
 }
 
 // ErrDeleteLastAdminUser represents a "DeleteLastAdminUser" kind of error.
@@ -828,6 +821,21 @@ func IsLastAdminUser(ctx context.Context, user *User) bool {
 type CountUserFilter struct {
 	LastLoginSince *int64
 	IsAdmin        optional.Option[bool]
+	IsActive       optional.Option[bool]
+}
+
+// HasUsers checks whether there are any users in the database, or only one user exists.
+func HasUsers(ctx context.Context) (ret struct {
+	HasAnyUser, HasOnlyOneUser bool
+}, err error,
+) {
+	res, err := db.GetEngine(ctx).Table(&User{}).Cols("id").Limit(2).Query()
+	if err != nil {
+		return ret, fmt.Errorf("error checking user existence: %w", err)
+	}
+	ret.HasAnyUser = len(res) != 0
+	ret.HasOnlyOneUser = len(res) == 1
+	return ret, nil
 }
 
 // CountUsers returns number of users.
@@ -847,6 +855,10 @@ func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
 
 		if opts.IsAdmin.Has() {
 			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.Value()})
+		}
+
+		if opts.IsActive.Has() {
+			cond = cond.And(builder.Eq{"is_active": opts.IsActive.Value()})
 		}
 	}
 
@@ -936,6 +948,16 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 	return err
 }
 
+// UpdateUserColsNoAutoTime update user according special columns
+func UpdateUserColsNoAutoTime(ctx context.Context, u *User, cols ...string) error {
+	if err := ValidateUser(u, cols...); err != nil {
+		return err
+	}
+
+	_, err := db.GetEngine(ctx).ID(u.ID).Cols(cols...).NoAutoTime().Update(u)
+	return err
+}
+
 // GetInactiveUsers gets all inactive users
 func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, error) {
 	cond := builder.And(
@@ -958,7 +980,7 @@ func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, er
 
 // UserPath returns the path absolute path of user repositories.
 func UserPath(userName string) string { //revive:disable-line:exported
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
+	return filepath.Join(setting.RepoRootPath, filepath.Clean(strings.ToLower(userName)))
 }
 
 // GetUserByID returns the user object by given ID if exists.
@@ -1129,28 +1151,92 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 }
 
 // ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) []*UserCommit {
+func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([]*UserCommit, error) {
 	var (
-		emails     = make(map[string]*User)
 		newCommits = make([]*UserCommit, 0, len(oldCommits))
+		emailSet   = make(container.Set[string])
 	)
 	for _, c := range oldCommits {
-		var u *User
 		if c.Author != nil {
-			if v, ok := emails[c.Author.Email]; !ok {
-				u, _ = GetUserByEmail(ctx, c.Author.Email)
-				emails[c.Author.Email] = u
-			} else {
-				u = v
-			}
+			emailSet.Add(c.Author.Email)
 		}
+	}
 
+	emailUserMap, err := GetUsersByEmails(ctx, emailSet.Values())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, c := range oldCommits {
+		user := emailUserMap.GetByEmail(c.Author.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
 		newCommits = append(newCommits, &UserCommit{
-			User:   u,
+			User:   user,
 			Commit: c,
 		})
 	}
-	return newCommits
+	return newCommits, nil
+}
+
+type EmailUserMap struct {
+	m map[string]*User
+}
+
+func (eum *EmailUserMap) GetByEmail(email string) *User {
+	return eum.m[strings.ToLower(email)]
+}
+
+func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, error) {
+	if len(emails) == 0 {
+		return nil, nil
+	}
+
+	needCheckEmails := make(container.Set[string])
+	needCheckUserNames := make(container.Set[string])
+	noReplyAddressSuffix := "@" + strings.ToLower(setting.Service.NoReplyAddress)
+	for _, email := range emails {
+		emailLower := strings.ToLower(email)
+		if noReplyUserNameLower, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
+			needCheckUserNames.Add(noReplyUserNameLower)
+			needCheckEmails.Add(emailLower)
+		} else {
+			needCheckEmails.Add(emailLower)
+		}
+	}
+
+	emailAddresses := make([]*EmailAddress, 0, len(needCheckEmails))
+	if err := db.GetEngine(ctx).In("lower_email", needCheckEmails.Values()).
+		And("is_activated=?", true).
+		Find(&emailAddresses); err != nil {
+		return nil, err
+	}
+	userIDs := make(container.Set[int64])
+	for _, email := range emailAddresses {
+		userIDs.Add(email.UID)
+	}
+	results := make(map[string]*User, len(emails))
+
+	if len(userIDs) > 0 {
+		users, err := GetUsersMapByIDs(ctx, userIDs.Values())
+		if err != nil {
+			return nil, err
+		}
+
+		for _, email := range emailAddresses {
+			user := users[email.UID]
+			if user != nil {
+				results[email.LowerEmail] = user
+			}
+		}
+	}
+
+	users := make(map[int64]*User, len(needCheckUserNames))
+	if err := db.GetEngine(ctx).In("lower_name", needCheckUserNames.Values()).Find(&users); err != nil {
+		return nil, err
+	}
+	for _, user := range users {
+		results[strings.ToLower(user.GetPlaceholderEmail())] = user
+	}
+	return &EmailUserMap{results}, nil
 }
 
 // GetUserByEmail returns the user object by given e-mail if exists.
@@ -1171,8 +1257,8 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	}
 
 	// Finally, if email address is the protected email address:
-	if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
-		username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
+	if strings.HasSuffix(email, "@"+setting.Service.NoReplyAddress) {
+		username := strings.TrimSuffix(email, "@"+setting.Service.NoReplyAddress)
 		user := &User{}
 		has, err := db.GetEngine(ctx).Where("lower_name=?", username).Get(user)
 		if err != nil {

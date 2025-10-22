@@ -9,9 +9,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth/source/ldap"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 type (
@@ -23,8 +24,8 @@ type (
 	}
 )
 
-var (
-	commonLdapCLIFlags = []cli.Flag{
+func commonLdapCLIFlags() []cli.Flag {
+	return []cli.Flag{
 		&cli.StringFlag{
 			Name:  "name",
 			Usage: "Authentication name.",
@@ -102,8 +103,10 @@ var (
 			Usage: "The attribute of the user’s LDAP record containing the user’s avatar.",
 		},
 	}
+}
 
-	ldapBindDnCLIFlags = append(commonLdapCLIFlags,
+func ldapBindDnCLIFlags() []cli.Flag {
+	return append(commonLdapCLIFlags(),
 		&cli.StringFlag{
 			Name:  "bind-dn",
 			Usage: "The DN to bind to the LDAP server with when searching for the user.",
@@ -127,50 +130,88 @@ var (
 		&cli.UintFlag{
 			Name:  "page-size",
 			Usage: "Search page size.",
+		},
+		&cli.BoolFlag{
+			Name:  "enable-groups",
+			Usage: "Enable LDAP groups",
+		},
+		&cli.StringFlag{
+			Name:  "group-search-base-dn",
+			Usage: "The LDAP base DN at which group accounts will be searched for",
+		},
+		&cli.StringFlag{
+			Name:  "group-member-attribute",
+			Usage: "Group attribute containing list of users",
+		},
+		&cli.StringFlag{
+			Name:  "group-user-attribute",
+			Usage: "User attribute listed in group",
+		},
+		&cli.StringFlag{
+			Name:  "group-filter",
+			Usage: "Verify group membership in LDAP",
+		},
+		&cli.StringFlag{
+			Name:  "group-team-map",
+			Usage: "Map LDAP groups to Organization teams",
+		},
+		&cli.BoolFlag{
+			Name:  "group-team-map-removal",
+			Usage: "Remove users from synchronized teams if user does not belong to corresponding LDAP group",
 		})
+}
 
-	ldapSimpleAuthCLIFlags = append(commonLdapCLIFlags,
+func ldapSimpleAuthCLIFlags() []cli.Flag {
+	return append(commonLdapCLIFlags(),
 		&cli.StringFlag{
 			Name:  "user-dn",
 			Usage: "The user's DN.",
 		})
+}
 
-	microcmdAuthAddLdapBindDn = &cli.Command{
+func microcmdAuthAddLdapBindDn() *cli.Command {
+	return &cli.Command{
 		Name:  "add-ldap",
 		Usage: "Add new LDAP (via Bind DN) authentication source",
-		Action: func(c *cli.Context) error {
-			return newAuthService().addLdapBindDn(c)
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().addLdapBindDn(ctx, cmd)
 		},
-		Flags: ldapBindDnCLIFlags,
+		Flags: ldapBindDnCLIFlags(),
 	}
+}
 
-	microcmdAuthUpdateLdapBindDn = &cli.Command{
+func microcmdAuthUpdateLdapBindDn() *cli.Command {
+	return &cli.Command{
 		Name:  "update-ldap",
 		Usage: "Update existing LDAP (via Bind DN) authentication source",
-		Action: func(c *cli.Context) error {
-			return newAuthService().updateLdapBindDn(c)
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().updateLdapBindDn(ctx, cmd)
 		},
-		Flags: append([]cli.Flag{idFlag}, ldapBindDnCLIFlags...),
+		Flags: append([]cli.Flag{idFlag()}, ldapBindDnCLIFlags()...),
 	}
+}
 
-	microcmdAuthAddLdapSimpleAuth = &cli.Command{
+func microcmdAuthAddLdapSimpleAuth() *cli.Command {
+	return &cli.Command{
 		Name:  "add-ldap-simple",
 		Usage: "Add new LDAP (simple auth) authentication source",
-		Action: func(c *cli.Context) error {
-			return newAuthService().addLdapSimpleAuth(c)
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().addLdapSimpleAuth(ctx, cmd)
 		},
-		Flags: ldapSimpleAuthCLIFlags,
+		Flags: ldapSimpleAuthCLIFlags(),
 	}
+}
 
-	microcmdAuthUpdateLdapSimpleAuth = &cli.Command{
+func microcmdAuthUpdateLdapSimpleAuth() *cli.Command {
+	return &cli.Command{
 		Name:  "update-ldap-simple",
 		Usage: "Update existing LDAP (simple auth) authentication source",
-		Action: func(c *cli.Context) error {
-			return newAuthService().updateLdapSimpleAuth(c)
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().updateLdapSimpleAuth(ctx, cmd)
 		},
-		Flags: append([]cli.Flag{idFlag}, ldapSimpleAuthCLIFlags...),
+		Flags: append([]cli.Flag{idFlag()}, ldapSimpleAuthCLIFlags()...),
 	}
-)
+}
 
 // newAuthService creates a service with default functions.
 func newAuthService() *authService {
@@ -182,8 +223,8 @@ func newAuthService() *authService {
 	}
 }
 
-// parseAuthSource assigns values on authSource according to command line flags.
-func parseAuthSource(c *cli.Context, authSource *auth.Source) {
+// parseAuthSourceLdap assigns values on authSource according to command line flags.
+func parseAuthSourceLdap(c *cli.Command, authSource *auth.Source) {
 	if c.IsSet("name") {
 		authSource.Name = c.String("name")
 	}
@@ -199,10 +240,11 @@ func parseAuthSource(c *cli.Context, authSource *auth.Source) {
 	if c.IsSet("disable-synchronize-users") {
 		authSource.IsSyncEnabled = !c.Bool("disable-synchronize-users")
 	}
+	authSource.TwoFactorPolicy = util.Iif(c.Bool("skip-local-2fa"), "skip", "")
 }
 
 // parseLdapConfig assigns values on config according to command line flags.
-func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
+func parseLdapConfig(c *cli.Command, config *ldap.Source) error {
 	if c.IsSet("name") {
 		config.Name = c.String("name")
 	}
@@ -215,7 +257,7 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	if c.IsSet("security-protocol") {
 		p, ok := findLdapSecurityProtocolByName(c.String("security-protocol"))
 		if !ok {
-			return fmt.Errorf("Unknown security protocol name: %s", c.String("security-protocol"))
+			return fmt.Errorf("unknown security protocol name: %s", c.String("security-protocol"))
 		}
 		config.SecurityProtocol = p
 	}
@@ -270,8 +312,26 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	if c.IsSet("allow-deactivate-all") {
 		config.AllowDeactivateAll = c.Bool("allow-deactivate-all")
 	}
-	if c.IsSet("skip-local-2fa") {
-		config.SkipLocalTwoFA = c.Bool("skip-local-2fa")
+	if c.IsSet("enable-groups") {
+		config.GroupsEnabled = c.Bool("enable-groups")
+	}
+	if c.IsSet("group-search-base-dn") {
+		config.GroupDN = c.String("group-search-base-dn")
+	}
+	if c.IsSet("group-member-attribute") {
+		config.GroupMemberUID = c.String("group-member-attribute")
+	}
+	if c.IsSet("group-user-attribute") {
+		config.UserUID = c.String("group-user-attribute")
+	}
+	if c.IsSet("group-filter") {
+		config.GroupFilter = c.String("group-filter")
+	}
+	if c.IsSet("group-team-map") {
+		config.GroupTeamMap = c.String("group-team-map")
+	}
+	if c.IsSet("group-team-map-removal") {
+		config.GroupTeamMapRemoval = c.Bool("group-team-map-removal")
 	}
 	return nil
 }
@@ -289,32 +349,27 @@ func findLdapSecurityProtocolByName(name string) (ldap.SecurityProtocol, bool) {
 
 // getAuthSource gets the login source by its id defined in the command line flags.
 // It returns an error if the id is not set, does not match any source or if the source is not of expected type.
-func (a *authService) getAuthSource(ctx context.Context, c *cli.Context, authType auth.Type) (*auth.Source, error) {
+func (a *authService) getAuthSource(ctx context.Context, c *cli.Command, authType auth.Type) (*auth.Source, error) {
 	if err := argsSet(c, "id"); err != nil {
 		return nil, err
 	}
-
 	authSource, err := a.getAuthSourceByID(ctx, c.Int64("id"))
 	if err != nil {
 		return nil, err
 	}
 
 	if authSource.Type != authType {
-		return nil, fmt.Errorf("Invalid authentication type. expected: %s, actual: %s", authType.String(), authSource.Type.String())
+		return nil, fmt.Errorf("invalid authentication type. expected: %s, actual: %s", authType.String(), authSource.Type.String())
 	}
 
 	return authSource, nil
 }
 
 // addLdapBindDn adds a new LDAP via Bind DN authentication source.
-func (a *authService) addLdapBindDn(c *cli.Context) error {
+func (a *authService) addLdapBindDn(ctx context.Context, c *cli.Command) error {
 	if err := argsSet(c, "name", "security-protocol", "host", "port", "user-search-base", "user-filter", "email-attribute"); err != nil {
 		return err
 	}
-
-	ctx, cancel := installSignals()
-	defer cancel()
-
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
@@ -327,7 +382,7 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 		},
 	}
 
-	parseAuthSource(c, authSource)
+	parseAuthSourceLdap(c, authSource)
 	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
 		return err
 	}
@@ -336,10 +391,7 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 }
 
 // updateLdapBindDn updates a new LDAP via Bind DN authentication source.
-func (a *authService) updateLdapBindDn(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func (a *authService) updateLdapBindDn(ctx context.Context, c *cli.Command) error {
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
@@ -349,7 +401,7 @@ func (a *authService) updateLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	parseAuthSource(c, authSource)
+	parseAuthSourceLdap(c, authSource)
 	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
 		return err
 	}
@@ -358,13 +410,10 @@ func (a *authService) updateLdapBindDn(c *cli.Context) error {
 }
 
 // addLdapSimpleAuth adds a new LDAP (simple auth) authentication source.
-func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
+func (a *authService) addLdapSimpleAuth(ctx context.Context, c *cli.Command) error {
 	if err := argsSet(c, "name", "security-protocol", "host", "port", "user-dn", "user-filter", "email-attribute"); err != nil {
 		return err
 	}
-
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	if err := a.initDB(ctx); err != nil {
 		return err
@@ -378,7 +427,7 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 		},
 	}
 
-	parseAuthSource(c, authSource)
+	parseAuthSourceLdap(c, authSource)
 	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
 		return err
 	}
@@ -387,10 +436,7 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 }
 
 // updateLdapSimpleAuth updates a new LDAP (simple auth) authentication source.
-func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func (a *authService) updateLdapSimpleAuth(ctx context.Context, c *cli.Command) error {
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
@@ -400,7 +446,7 @@ func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	parseAuthSource(c, authSource)
+	parseAuthSourceLdap(c, authSource)
 	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
 		return err
 	}

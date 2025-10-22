@@ -14,6 +14,7 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ToRepo converts a Repository to api.Repository
@@ -97,6 +98,8 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	allowSquash := false
 	allowFastForwardOnly := false
 	allowRebaseUpdate := false
+	allowManualMerge := true
+	autodetectManualMerge := false
 	defaultDeleteBranchAfterMerge := false
 	defaultMergeStyle := repo_model.MergeStyleMerge
 	defaultAllowMaintainerEdit := false
@@ -110,6 +113,8 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		allowSquash = config.AllowSquash
 		allowFastForwardOnly = config.AllowFastForwardOnly
 		allowRebaseUpdate = config.AllowRebaseUpdate
+		allowManualMerge = config.AllowManualMerge
+		autodetectManualMerge = config.AutodetectManualMerge
 		defaultDeleteBranchAfterMerge = config.DefaultDeleteBranchAfterMerge
 		defaultMergeStyle = config.GetDefaultMergeStyle()
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
@@ -234,6 +239,8 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		AllowSquash:                   allowSquash,
 		AllowFastForwardOnly:          allowFastForwardOnly,
 		AllowRebaseUpdate:             allowRebaseUpdate,
+		AllowManualMerge:              allowManualMerge,
+		AutodetectManualMerge:         autodetectManualMerge,
 		DefaultDeleteBranchAfterMerge: defaultDeleteBranchAfterMerge,
 		DefaultMergeStyle:             string(defaultMergeStyle),
 		DefaultAllowMaintainerEdit:    defaultAllowMaintainerEdit,
@@ -242,9 +249,9 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		MirrorInterval:                mirrorInterval,
 		MirrorUpdated:                 mirrorUpdated,
 		RepoTransfer:                  transfer,
-		Topics:                        repo.Topics,
+		Topics:                        util.SliceNilAsEmpty(repo.Topics),
 		ObjectFormatName:              repo.ObjectFormatName,
-		Licenses:                      repoLicenses.StringList(),
+		Licenses:                      util.SliceNilAsEmpty(repoLicenses.StringList()),
 	}
 }
 

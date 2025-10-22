@@ -218,8 +218,20 @@ textarea:focus,
 
 .form .help {
   color: var(--color-secondary-dark-5);
+  margin-top: 0.25em;
   padding-bottom: 0.6em;
   display: inline-block;
+  text-wrap: balance;
+}
+
+.form .help code {
+  color: var(--color-text-light-1);
+}
+
+.form .help pre.command-block {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0.25em 0 0.25em 1em;
 }
 
 .m-captcha-style {
@@ -243,7 +255,7 @@ textarea:focus,
     height: 76px !important;
   }
   .m-captcha-style {
-    width: 50%;
+    max-width: 450px;
   }
 }
 
@@ -271,6 +283,10 @@ textarea:focus,
 .ui.form.left-right-form .inline.field .ui.dropdown,
 .ui.form.left-right-form .inline.field textarea {
   width: 50%;
+}
+
+.ui.form.left-right-form .inline.field .ui.dropdown input.search {
+  width: 100%;
 }
 
 .ui.form.left-right-form .inline.field .inline-right {

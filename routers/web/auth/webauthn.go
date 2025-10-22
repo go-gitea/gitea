@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/externalaccount"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -51,7 +50,7 @@ func WebAuthn(ctx *context.Context) {
 // WebAuthnPasskeyAssertion submits a WebAuthn challenge for the passkey login to the browser
 func WebAuthnPasskeyAssertion(ctx *context.Context) {
 	if !setting.Service.EnablePasskeyAuth {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -72,7 +71,7 @@ func WebAuthnPasskeyAssertion(ctx *context.Context) {
 // WebAuthnPasskeyLogin handles the WebAuthn login process using a Passkey
 func WebAuthnPasskeyLogin(ctx *context.Context) {
 	if !setting.Service.EnablePasskeyAuth {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -150,7 +149,7 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 
 	// Now handle account linking if that's requested
 	if ctx.Session.Get("linkAccount") != nil {
-		if err := externalaccount.LinkAccountFromStore(ctx, ctx.Session, user); err != nil {
+		if err := linkAccountFromContext(ctx, user); err != nil {
 			ctx.ServerError("LinkAccountFromStore", err)
 			return
 		}
@@ -268,7 +267,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 
 	// Now handle account linking if that's requested
 	if ctx.Session.Get("linkAccount") != nil {
-		if err := externalaccount.LinkAccountFromStore(ctx, ctx.Session, user); err != nil {
+		if err := linkAccountFromContext(ctx, user); err != nil {
 			ctx.ServerError("LinkAccountFromStore", err)
 			return
 		}

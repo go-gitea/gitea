@@ -7,12 +7,12 @@ import (
 	"net"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/gobwas/glob"
 )
 
 type globalVarsStruct struct {
@@ -55,12 +55,7 @@ func IsValidSiteURL(uri string) bool {
 		return false
 	}
 
-	for _, scheme := range setting.Service.ValidSiteURLSchemes {
-		if scheme == u.Scheme {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(setting.Service.ValidSiteURLSchemes, u.Scheme)
 }
 
 // IsEmailDomainListed checks whether the domain of an email address

@@ -164,3 +164,13 @@ func DeleteTwoFactorByID(ctx context.Context, id, userID int64) error {
 	}
 	return nil
 }
+
+func HasTwoFactorOrWebAuthn(ctx context.Context, id int64) (bool, error) {
+	has, err := HasTwoFactorByUID(ctx, id)
+	if err != nil {
+		return false, err
+	} else if has {
+		return true, nil
+	}
+	return HasWebAuthnRegistrationsByUID(ctx, id)
+}

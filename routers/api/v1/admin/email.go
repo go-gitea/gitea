@@ -42,7 +42,7 @@ func GetAllEmails(ctx *context.APIContext) {
 		ListOptions: listOptions,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetAllEmails", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

@@ -2,11 +2,12 @@
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {defineComponent, type PropType} from 'vue';
-import {createElementFromAttrs, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
 import {renderAnsi} from '../render/ansi.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
+import {toggleFullScreen} from '../utils.ts';
 
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
 type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
@@ -39,6 +40,12 @@ type Step = {
   status: RunStatus,
 }
 
+type JobStepState = {
+  cursor: string|null,
+  expanded: boolean,
+  manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
+}
+
 function parseLineCommand(line: LogLine): LogLineCommand | null {
   for (const prefix of LogLinePrefixesGroup) {
     if (line.message.startsWith(prefix)) {
@@ -53,9 +60,10 @@ function parseLineCommand(line: LogLine): LogLineCommand | null {
   return null;
 }
 
-function isLogElementInViewport(el: Element): boolean {
+function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();
-  return rect.top >= 0 && rect.bottom <= window.innerHeight; // only check height but not width
+  // only check whether bottom is in viewport, because the log element can be a log group which is usually tall
+  return 0 <= rect.bottom && rect.bottom <= window.innerHeight + extraViewPortHeight;
 }
 
 type LocaleStorageOptions = {
@@ -103,9 +111,8 @@ export default defineComponent({
       // internal state
       loadingAbortController: null as AbortController | null,
       intervalID: null as IntervalId | null,
-      currentJobStepsStates: [] as Array<Record<string, any>>,
+      currentJobStepsStates: [] as Array<JobStepState>,
       artifacts: [] as Array<Record<string, any>>,
-      onHoverRerunIndex: -1,
       menuVisible: false,
       isFullScreen: false,
       timeVisible: {
@@ -120,7 +127,7 @@ export default defineComponent({
         link: '',
         title: '',
         titleHTML: '',
-        status: 'unknown' as RunStatus,
+        status: '' as RunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
         canCancel: false,
         canApprove: false,
         canRerun: false,
@@ -177,10 +184,23 @@ export default defineComponent({
     },
   },
 
-  async mounted() { // eslint-disable-line @typescript-eslint/no-misused-promises
+  async mounted() {
     // load job data and then auto-reload periodically
     // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
     await this.loadJob();
+
+    // auto-scroll to the bottom of the log group when it is opened
+    // "toggle" event doesn't bubble, so we need to use 'click' event delegation to handle it
+    addDelegatedEventListener(this.elStepsContainer(), 'click', 'summary.job-log-group-summary', (el, _) => {
+      if (!this.optionAlwaysAutoScroll) return;
+      const elJobLogGroup = el.closest('details.job-log-group') as HTMLDetailsElement;
+      setTimeout(() => {
+        if (elJobLogGroup.open && !isLogElementInViewport(elJobLogGroup)) {
+          elJobLogGroup.scrollIntoView({behavior: 'smooth', block: 'end'});
+        }
+      }, 0);
+    });
+
     this.intervalID = setInterval(() => this.loadJob(), 1000);
     document.body.addEventListener('click', this.closeDropdown);
     this.hashChangeListener();
@@ -252,6 +272,8 @@ export default defineComponent({
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
         this.loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
+      } else if (this.currentJob.steps[idx].status === 'running') {
+        this.currentJobStepsStates[idx].manuallyCollapsed = true;
       }
     },
     // cancel a run
@@ -293,7 +315,8 @@ export default defineComponent({
       const el = this.getJobStepLogsContainer(stepIndex);
       // if the logs container is empty, then auto-scroll if the step is expanded
       if (!el.lastChild) return this.currentJobStepsStates[stepIndex].expanded;
-      return isLogElementInViewport(el.lastChild as Element);
+      // use extraViewPortHeight to tolerate some extra "virtual view port" height (for example: the last line is partially visible)
+      return isLogElementInViewport(el.lastChild as Element, {extraViewPortHeight: 5});
     },
 
     appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
@@ -343,7 +366,6 @@ export default defineComponent({
       const abortController = new AbortController();
       this.loadingAbortController = abortController;
       try {
-        const isFirstLoad = !this.run.status;
         const job = await this.fetchJobData(abortController);
         if (this.loadingAbortController !== abortController) return;
 
@@ -353,10 +375,15 @@ export default defineComponent({
 
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
-          const expanded = isFirstLoad && this.optionAlwaysExpandRunning && this.currentJob.steps[i].status === 'running';
+          const autoExpand = this.optionAlwaysExpandRunning && this.currentJob.steps[i].status === 'running';
           if (!this.currentJobStepsStates[i]) {
             // initial states for job steps
-            this.currentJobStepsStates[i] = {cursor: null, expanded};
+            this.currentJobStepsStates[i] = {cursor: null, expanded: autoExpand,  manuallyCollapsed: false};
+          } else {
+            // if the step is not manually collapsed by user, then auto-expand it if option is enabled
+            if (autoExpand && !this.currentJobStepsStates[i].manuallyCollapsed) {
+              this.currentJobStepsStates[i].expanded = true;
+            }
           }
         }
 
@@ -380,7 +407,10 @@ export default defineComponent({
           if (!autoScrollStepIndexes.get(stepIndex)) continue;
           autoScrollJobStepElement = this.getJobStepLogsContainer(stepIndex);
         }
-        autoScrollJobStepElement?.lastElementChild.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+        const lastLogElem = autoScrollJobStepElement?.lastElementChild;
+        if (lastLogElem && !isLogElementInViewport(lastLogElem)) {
+          lastLogElem.scrollIntoView({behavior: 'smooth', block: 'end'});
+        }
 
         // clear the interval timer if the job is done
         if (this.run.done && this.intervalID) {
@@ -408,31 +438,22 @@ export default defineComponent({
       if (this.menuVisible) this.menuVisible = false;
     },
 
+    elStepsContainer(): HTMLElement {
+      return this.$refs.stepsContainer as HTMLElement;
+    },
+
     toggleTimeDisplay(type: 'seconds' | 'stamp') {
       this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
-      for (const el of (this.$refs.steps as HTMLElement).querySelectorAll(`.log-time-${type}`)) {
+      for (const el of this.elStepsContainer().querySelectorAll(`.log-time-${type}`)) {
         toggleElem(el, this.timeVisible[`log-time-${type}`]);
       }
     },
 
     toggleFullScreen() {
       this.isFullScreen = !this.isFullScreen;
-      const fullScreenEl = document.querySelector('.action-view-right');
-      const outerEl = document.querySelector('.full.height');
-      const actionBodyEl = document.querySelector('.action-view-body');
-      const headerEl = document.querySelector('#navbar');
-      const contentEl = document.querySelector('.page-content');
-      const footerEl = document.querySelector('.page-footer');
-      toggleElem(headerEl, !this.isFullScreen);
-      toggleElem(contentEl, !this.isFullScreen);
-      toggleElem(footerEl, !this.isFullScreen);
-      // move .action-view-right to new parent
-      if (this.isFullScreen) {
-        outerEl.append(fullScreenEl);
-      } else {
-        actionBodyEl.append(fullScreenEl);
-      }
+      toggleFullScreen('.action-view-right', this.isFullScreen, '.action-view-body');
     },
+
     async hashChangeListener() {
       const selectedLogStep = window.location.hash;
       if (!selectedLogStep) return;
@@ -445,7 +466,7 @@ export default defineComponent({
         // so logline can be selected by querySelector
         await this.loadJob();
       }
-      const logLine = (this.$refs.steps as HTMLElement).querySelector(selectedLogStep);
+      const logLine = this.elStepsContainer().querySelector(selectedLogStep);
       if (!logLine) return;
       logLine.querySelector<HTMLAnchorElement>('.line-num').click();
     },
@@ -453,7 +474,8 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div class="ui container action-view-container">
+  <!-- make the view container full width to make users easier to read logs -->
+  <div class="ui fluid container">
     <div class="action-view-header">
       <div class="action-info-summary">
         <div class="action-info-summary-title">
@@ -492,13 +514,13 @@ export default defineComponent({
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
+            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
               </div>
               <span class="job-brief-item-right">
-                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
             </a>
@@ -509,14 +531,24 @@ export default defineComponent({
             {{ locale.artifactsTitle }}
           </div>
           <ul class="job-artifacts-list">
-            <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.name">
-              <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
-                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon"/>{{ artifact.name }}
-              </a>
-              <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)" class="job-artifacts-delete">
-                <SvgIcon name="octicon-trash" class="ui text black job-artifacts-icon"/>
-              </a>
-            </li>
+            <template v-for="artifact in artifacts" :key="artifact.name">
+              <li class="job-artifacts-item">
+                <template v-if="artifact.status !== 'expired'">
+                  <a class="flex-text-inline" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                    <SvgIcon name="octicon-file" class="text black"/>
+                    <span class="gt-ellipsis">{{ artifact.name }}</span>
+                  </a>
+                  <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
+                    <SvgIcon name="octicon-trash" class="text black"/>
+                  </a>
+                </template>
+                <span v-else class="flex-text-inline text light grey">
+                  <SvgIcon name="octicon-file"/>
+                  <span class="gt-ellipsis">{{ artifact.name }}</span>
+                  <span class="ui label text light grey tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
+                </span>
+              </li>
+            </template>
           </ul>
         </div>
       </div>
@@ -533,7 +565,7 @@ export default defineComponent({
           </div>
           <div class="job-info-header-right">
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-              <button class="btn gt-interact-bg tw-p-2">
+              <button class="ui button tw-px-3">
                 <SvgIcon name="octicon-gear" :size="18"/>
               </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
@@ -569,13 +601,14 @@ export default defineComponent({
             </div>
           </div>
         </div>
-        <div class="job-step-container" ref="steps" v-if="currentJob.steps.length">
+        <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
+        <div class="job-step-container" ref="stepsContainer" v-show="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
                 currentJobStepsStates[i].cursor === null means the log is loaded for the first time
               -->
-              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="tw-mr-2 circular-spin"/>
               <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"/>
               <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
 
@@ -634,6 +667,7 @@ export default defineComponent({
 
 .action-commit-summary {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 5px;
   margin-left: 28px;
@@ -678,15 +712,12 @@ export default defineComponent({
   padding: 6px;
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 
 .job-artifacts-list {
   padding-left: 12px;
   list-style: none;
-}
-
-.job-artifacts-icon {
-  padding-right: 3px;
 }
 
 .job-brief-list {
@@ -721,11 +752,6 @@ export default defineComponent({
 
 .job-brief-item .job-brief-rerun {
   cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.job-brief-item .job-brief-rerun:hover {
-  transform: scale(130%);
 }
 
 .job-brief-item .job-brief-item-left {
@@ -902,16 +928,6 @@ export default defineComponent({
 
 <style> /* eslint-disable-line vue-scoped-css/enforce-style-type */
 /* some elements are not managed by vue, so we need to use global style */
-.job-status-rotate {
-  animation: job-status-rotate-keyframes 1s linear infinite;
-}
-
-@keyframes job-status-rotate-keyframes {
-  100% {
-    transform: rotate(-360deg);
-  }
-}
-
 .job-step-section {
   margin: 10px;
 }
@@ -961,7 +977,6 @@ export default defineComponent({
 
 .job-step-logs .job-log-line .log-msg {
   flex: 1;
-  word-break: break-all;
   white-space: break-spaces;
   margin-left: 10px;
   overflow-wrap: anywhere;

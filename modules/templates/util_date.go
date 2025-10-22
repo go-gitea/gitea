@@ -99,7 +99,7 @@ func dateTimeFormat(format string, datetime any) template.HTML {
 		attrs = append(attrs, `format="datetime"`, `month="short"`, `day="numeric"`, `hour="numeric"`, `minute="numeric"`, `second="numeric"`, `data-tooltip-content`, `data-tooltip-interactive="true"`)
 		return template.HTML(fmt.Sprintf(`<relative-time %s datetime="%s">%s</relative-time>`, strings.Join(attrs, " "), datetimeEscaped, textEscaped))
 	default:
-		panic(fmt.Sprintf("Unsupported format %s", format))
+		panic("Unsupported format " + format)
 	}
 }
 

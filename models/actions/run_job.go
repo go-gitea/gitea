@@ -10,33 +10,51 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/nektos/act/pkg/jobparser"
 	"xorm.io/builder"
 )
 
 // ActionRunJob represents a job of a run
 type ActionRunJob struct {
 	ID                int64
-	RunID             int64      `xorm:"index"`
-	Run               *ActionRun `xorm:"-"`
-	RepoID            int64      `xorm:"index"`
-	OwnerID           int64      `xorm:"index"`
-	CommitSHA         string     `xorm:"index"`
+	RunID             int64                  `xorm:"index"`
+	Run               *ActionRun             `xorm:"-"`
+	RepoID            int64                  `xorm:"index(repo_concurrency)"`
+	Repo              *repo_model.Repository `xorm:"-"`
+	OwnerID           int64                  `xorm:"index"`
+	CommitSHA         string                 `xorm:"index"`
 	IsForkPullRequest bool
 	Name              string `xorm:"VARCHAR(255)"`
 	Attempt           int64
-	WorkflowPayload   []byte
-	JobID             string   `xorm:"VARCHAR(255)"` // job id in workflow, not job's id
-	Needs             []string `xorm:"JSON TEXT"`
-	RunsOn            []string `xorm:"JSON TEXT"`
-	TaskID            int64    // the latest task of the job
-	Status            Status   `xorm:"index"`
-	Started           timeutil.TimeStamp
-	Stopped           timeutil.TimeStamp
-	Created           timeutil.TimeStamp `xorm:"created"`
-	Updated           timeutil.TimeStamp `xorm:"updated index"`
+
+	// WorkflowPayload is act/jobparser.SingleWorkflow for act/jobparser.Parse
+	// it should contain exactly one job with global workflow fields for this model
+	WorkflowPayload []byte
+
+	JobID  string   `xorm:"VARCHAR(255)"` // job id in workflow, not job's id
+	Needs  []string `xorm:"JSON TEXT"`
+	RunsOn []string `xorm:"JSON TEXT"`
+	TaskID int64    // the latest task of the job
+	Status Status   `xorm:"index"`
+
+	RawConcurrency string // raw concurrency from job YAML's "concurrency" section
+
+	// IsConcurrencyEvaluated is only valid/needed when this job's RawConcurrency is not empty.
+	// If RawConcurrency can't be evaluated (e.g. depend on other job's outputs or have errors), this field will be false.
+	// If RawConcurrency has been successfully evaluated, this field will be true, ConcurrencyGroup and ConcurrencyCancel are also set.
+	IsConcurrencyEvaluated bool
+
+	ConcurrencyGroup  string `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"` // evaluated concurrency.group
+	ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`                      // evaluated concurrency.cancel-in-progress
+
+	Started timeutil.TimeStamp
+	Stopped timeutil.TimeStamp
+	Created timeutil.TimeStamp `xorm:"created"`
+	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
 func init() {
@@ -49,11 +67,22 @@ func (job *ActionRunJob) Duration() time.Duration {
 
 func (job *ActionRunJob) LoadRun(ctx context.Context) error {
 	if job.Run == nil {
-		run, err := GetRunByID(ctx, job.RunID)
+		run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
 		if err != nil {
 			return err
 		}
 		job.Run = run
+	}
+	return nil
+}
+
+func (job *ActionRunJob) LoadRepo(ctx context.Context) error {
+	if job.Repo == nil {
+		repo, err := repo_model.GetRepositoryByID(ctx, job.RepoID)
+		if err != nil {
+			return err
+		}
+		job.Repo = repo
 	}
 	return nil
 }
@@ -71,6 +100,24 @@ func (job *ActionRunJob) LoadAttributes(ctx context.Context) error {
 	return job.Run.LoadAttributes(ctx)
 }
 
+// ParseJob parses the job structure from the ActionRunJob.WorkflowPayload
+func (job *ActionRunJob) ParseJob() (*jobparser.Job, error) {
+	// job.WorkflowPayload is a SingleWorkflow created from an ActionRun's workflow, which exactly contains this job's YAML definition.
+	// Ideally it shouldn't be called "Workflow", it is just a job with global workflow fields + trigger
+	parsedWorkflows, err := jobparser.Parse(job.WorkflowPayload)
+	if err != nil {
+		return nil, fmt.Errorf("job %d single workflow: unable to parse: %w", job.ID, err)
+	} else if len(parsedWorkflows) != 1 {
+		return nil, fmt.Errorf("job %d single workflow: not single workflow", job.ID)
+	}
+	_, workflowJob := parsedWorkflows[0].Job()
+	if workflowJob == nil {
+		// it shouldn't happen, and since the callers don't check nil, so return an error instead of nil
+		return nil, util.ErrorWrap(util.ErrNotExist, "job %d single workflow: payload doesn't contain a job", job.ID)
+	}
+	return workflowJob, nil
+}
+
 func GetRunJobByID(ctx context.Context, id int64) (*ActionRunJob, error) {
 	var job ActionRunJob
 	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&job)
@@ -83,7 +130,7 @@ func GetRunJobByID(ctx context.Context, id int64) (*ActionRunJob, error) {
 	return &job, nil
 }
 
-func GetRunJobsByRunID(ctx context.Context, runID int64) ([]*ActionRunJob, error) {
+func GetRunJobsByRunID(ctx context.Context, runID int64) (ActionJobList, error) {
 	var jobs []*ActionRunJob
 	if err := db.GetEngine(ctx).Where("run_id=?", runID).OrderBy("id").Find(&jobs); err != nil {
 		return nil, err
@@ -112,7 +159,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return affected, nil
 	}
 
-	if affected != 0 && slices.Contains(cols, "status") && job.Status.IsWaiting() {
+	if slices.Contains(cols, "status") && job.Status.IsWaiting() {
 		// if the status of job changes to waiting again, increase tasks version.
 		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
 			return 0, err
@@ -129,7 +176,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 	{
 		// Other goroutines may aggregate the status of the run and update it too.
 		// So we need load the run and its jobs before updating the run.
-		run, err := GetRunByID(ctx, job.RunID)
+		run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
 		if err != nil {
 			return 0, err
 		}
@@ -172,15 +219,51 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 		return StatusSuccess
 	case hasCancelled:
 		return StatusCancelled
-	case hasFailure:
-		return StatusFailure
 	case hasRunning:
 		return StatusRunning
 	case hasWaiting:
 		return StatusWaiting
+	case hasFailure:
+		return StatusFailure
 	case hasBlocked:
 		return StatusBlocked
 	default:
 		return StatusUnknown // it shouldn't happen
 	}
+}
+
+func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) (jobsToCancel []*ActionRunJob, _ error) {
+	if job.RawConcurrency == "" {
+		return nil, nil
+	}
+	if !job.IsConcurrencyEvaluated {
+		return nil, nil
+	}
+	if job.ConcurrencyGroup == "" {
+		return nil, nil
+	}
+
+	statusFindOption := []Status{StatusWaiting, StatusBlocked}
+	if job.ConcurrencyCancel {
+		statusFindOption = append(statusFindOption, StatusRunning)
+	}
+	runs, jobs, err := GetConcurrentRunsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, statusFindOption)
+	if err != nil {
+		return nil, fmt.Errorf("find concurrent runs and jobs: %w", err)
+	}
+	jobs = slices.DeleteFunc(jobs, func(j *ActionRunJob) bool { return j.ID == job.ID })
+	jobsToCancel = append(jobsToCancel, jobs...)
+
+	// cancel runs in the same concurrency group
+	for _, run := range runs {
+		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
+			RunID: run.ID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("find run %d jobs: %w", run.ID, err)
+		}
+		jobsToCancel = append(jobsToCancel, jobs...)
+	}
+
+	return CancelJobs(ctx, jobsToCancel)
 }

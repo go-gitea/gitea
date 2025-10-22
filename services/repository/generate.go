@@ -13,18 +13,20 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/gobwas/glob"
 	"github.com/huandu/xstrings"
 )
 
@@ -39,31 +41,41 @@ type expansion struct {
 	Transformers []transformer
 }
 
-var defaultTransformers = []transformer{
-	{Name: "SNAKE", Transform: xstrings.ToSnakeCase},
-	{Name: "KEBAB", Transform: xstrings.ToKebabCase},
-	{Name: "CAMEL", Transform: func(str string) string {
-		return xstrings.FirstRuneToLower(xstrings.ToCamelCase(str))
-	}},
-	{Name: "PASCAL", Transform: xstrings.ToCamelCase},
-	{Name: "LOWER", Transform: strings.ToLower},
-	{Name: "UPPER", Transform: strings.ToUpper},
-	{Name: "TITLE", Transform: util.ToTitleCase},
-}
+var globalVars = sync.OnceValue(func() (ret struct {
+	defaultTransformers    []transformer
+	fileNameSanitizeRegexp *regexp.Regexp
+},
+) {
+	ret.defaultTransformers = []transformer{
+		{Name: "SNAKE", Transform: xstrings.ToSnakeCase},
+		{Name: "KEBAB", Transform: xstrings.ToKebabCase},
+		{Name: "CAMEL", Transform: xstrings.ToCamelCase},
+		{Name: "PASCAL", Transform: xstrings.ToPascalCase},
+		{Name: "LOWER", Transform: strings.ToLower},
+		{Name: "UPPER", Transform: strings.ToUpper},
+		{Name: "TITLE", Transform: util.ToTitleCase},
+	}
 
-func generateExpansion(ctx context.Context, src string, templateRepo, generateRepo *repo_model.Repository, sanitizeFileName bool) string {
+	// invalid filename contents, based on https://github.com/sindresorhus/filename-reserved-regex
+	// "COM10" needs to be opened with UNC "\\.\COM10" on Windows, so itself is valid
+	ret.fileNameSanitizeRegexp = regexp.MustCompile(`(?i)[<>:"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
+	return ret
+})
+
+func generateExpansion(ctx context.Context, src string, templateRepo, generateRepo *repo_model.Repository) string {
+	transformers := globalVars().defaultTransformers
 	year, month, day := time.Now().Date()
 	expansions := []expansion{
 		{Name: "YEAR", Value: strconv.Itoa(year), Transformers: nil},
 		{Name: "MONTH", Value: fmt.Sprintf("%02d", int(month)), Transformers: nil},
-		{Name: "MONTH_ENGLISH", Value: month.String(), Transformers: defaultTransformers},
+		{Name: "MONTH_ENGLISH", Value: month.String(), Transformers: transformers},
 		{Name: "DAY", Value: fmt.Sprintf("%02d", day), Transformers: nil},
-		{Name: "REPO_NAME", Value: generateRepo.Name, Transformers: defaultTransformers},
-		{Name: "TEMPLATE_NAME", Value: templateRepo.Name, Transformers: defaultTransformers},
+		{Name: "REPO_NAME", Value: generateRepo.Name, Transformers: transformers},
+		{Name: "TEMPLATE_NAME", Value: templateRepo.Name, Transformers: transformers},
 		{Name: "REPO_DESCRIPTION", Value: generateRepo.Description, Transformers: nil},
 		{Name: "TEMPLATE_DESCRIPTION", Value: templateRepo.Description, Transformers: nil},
-		{Name: "REPO_OWNER", Value: generateRepo.OwnerName, Transformers: defaultTransformers},
-		{Name: "TEMPLATE_OWNER", Value: templateRepo.OwnerName, Transformers: defaultTransformers},
+		{Name: "REPO_OWNER", Value: generateRepo.OwnerName, Transformers: transformers},
+		{Name: "TEMPLATE_OWNER", Value: templateRepo.OwnerName, Transformers: transformers},
 		{Name: "REPO_LINK", Value: generateRepo.Link(), Transformers: nil},
 		{Name: "TEMPLATE_LINK", Value: templateRepo.Link(), Transformers: nil},
 		{Name: "REPO_HTTPS_URL", Value: generateRepo.CloneLinkGeneral(ctx).HTTPS, Transformers: nil},
@@ -81,32 +93,23 @@ func generateExpansion(ctx context.Context, src string, templateRepo, generateRe
 	}
 
 	return os.Expand(src, func(key string) string {
-		if expansion, ok := expansionMap[key]; ok {
-			if sanitizeFileName {
-				return fileNameSanitize(expansion)
-			}
-			return expansion
+		if val, ok := expansionMap[key]; ok {
+			return val
 		}
 		return key
 	})
 }
 
-// GiteaTemplate holds information about a .gitea/template file
-type GiteaTemplate struct {
-	Path    string
-	Content []byte
-
-	globs []glob.Glob
+// giteaTemplateFileMatcher holds information about a .gitea/template file
+type giteaTemplateFileMatcher struct {
+	LocalFullPath string
+	globs         []glob.Glob
 }
 
-// Globs parses the .gitea/template globs or returns them if they were already parsed
-func (gt *GiteaTemplate) Globs() []glob.Glob {
-	if gt.globs != nil {
-		return gt.globs
-	}
-
+func newGiteaTemplateFileMatcher(fullPath string, content []byte) *giteaTemplateFileMatcher {
+	gt := &giteaTemplateFileMatcher{LocalFullPath: fullPath}
 	gt.globs = make([]glob.Glob, 0)
-	scanner := bufio.NewScanner(bytes.NewReader(gt.Content))
+	scanner := bufio.NewScanner(bytes.NewReader(content))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -114,73 +117,91 @@ func (gt *GiteaTemplate) Globs() []glob.Glob {
 		}
 		g, err := glob.Compile(line, '/')
 		if err != nil {
-			log.Info("Invalid glob expression '%s' (skipped): %v", line, err)
+			log.Debug("Invalid glob expression '%s' (skipped): %v", line, err)
 			continue
 		}
 		gt.globs = append(gt.globs, g)
 	}
-	return gt.globs
+	return gt
 }
 
-func readGiteaTemplateFile(tmpDir string) (*GiteaTemplate, error) {
-	gtPath := filepath.Join(tmpDir, ".gitea", "template")
-	if _, err := os.Stat(gtPath); os.IsNotExist(err) {
+func (gt *giteaTemplateFileMatcher) HasRules() bool {
+	return len(gt.globs) != 0
+}
+
+func (gt *giteaTemplateFileMatcher) Match(s string) bool {
+	for _, g := range gt.globs {
+		if g.Match(s) {
+			return true
+		}
+	}
+	return false
+}
+
+func readGiteaTemplateFile(tmpDir string) (*giteaTemplateFileMatcher, error) {
+	localPath := filepath.Join(tmpDir, ".gitea", "template")
+	if _, err := os.Stat(localPath); os.IsNotExist(err) {
 		return nil, nil
 	} else if err != nil {
 		return nil, err
 	}
 
-	content, err := os.ReadFile(gtPath)
+	content, err := os.ReadFile(localPath)
 	if err != nil {
 		return nil, err
 	}
 
-	return &GiteaTemplate{Path: gtPath, Content: content}, nil
+	return newGiteaTemplateFileMatcher(localPath, content), nil
 }
 
-func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, generateRepo *repo_model.Repository, giteaTemplateFile *GiteaTemplate) error {
-	if err := util.Remove(giteaTemplateFile.Path); err != nil {
-		return fmt.Errorf("remove .giteatemplate: %w", err)
+func substGiteaTemplateFile(ctx context.Context, tmpDir, tmpDirSubPath string, templateRepo, generateRepo *repo_model.Repository) error {
+	tmpFullPath := filepath.Join(tmpDir, tmpDirSubPath)
+	if ok, err := util.IsRegularFile(tmpFullPath); !ok {
+		return err
 	}
-	if len(giteaTemplateFile.Globs()) == 0 {
+
+	content, err := os.ReadFile(tmpFullPath)
+	if err != nil {
+		return err
+	}
+	if err := util.Remove(tmpFullPath); err != nil {
+		return err
+	}
+
+	generatedContent := generateExpansion(ctx, string(content), templateRepo, generateRepo)
+	substSubPath := filepath.Clean(filePathSanitize(generateExpansion(ctx, tmpDirSubPath, templateRepo, generateRepo)))
+	newLocalPath := filepath.Join(tmpDir, substSubPath)
+	regular, err := util.IsRegularFile(newLocalPath)
+	if canWrite := regular || os.IsNotExist(err); !canWrite {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(newLocalPath), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(newLocalPath, []byte(generatedContent), 0o644)
+}
+
+func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, generateRepo *repo_model.Repository, fileMatcher *giteaTemplateFileMatcher) error {
+	if err := util.Remove(fileMatcher.LocalFullPath); err != nil {
+		return fmt.Errorf("unable to remove .gitea/template: %w", err)
+	}
+	if !fileMatcher.HasRules() {
 		return nil // Avoid walking tree if there are no globs
 	}
-	tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
-	return filepath.WalkDir(tmpDirSlash, func(path string, d os.DirEntry, walkErr error) error {
+
+	return filepath.WalkDir(tmpDir, func(fullPath string, d os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
-
 		if d.IsDir() {
 			return nil
 		}
-
-		base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
-		for _, g := range giteaTemplateFile.Globs() {
-			if g.Match(base) {
-				content, err := os.ReadFile(path)
-				if err != nil {
-					return err
-				}
-
-				generatedContent := []byte(generateExpansion(ctx, string(content), templateRepo, generateRepo, false))
-				if err := os.WriteFile(path, generatedContent, 0o644); err != nil {
-					return err
-				}
-
-				substPath := filepath.FromSlash(filepath.Join(tmpDirSlash, generateExpansion(ctx, base, templateRepo, generateRepo, true)))
-
-				// Create parent subdirectories if needed or continue silently if it exists
-				if err = os.MkdirAll(filepath.Dir(substPath), 0o755); err != nil {
-					return err
-				}
-
-				// Substitute filename variables
-				if err = os.Rename(path, substPath); err != nil {
-					return err
-				}
-				break
-			}
+		tmpDirSubPath, err := filepath.Rel(tmpDir, fullPath)
+		if err != nil {
+			return err
+		}
+		if fileMatcher.Match(filepath.ToSlash(tmpDirSubPath)) {
+			return substGiteaTemplateFile(ctx, tmpDir, tmpDirSubPath, templateRepo, generateRepo)
 		}
 		return nil
 	}) // end: WalkDir
@@ -220,13 +241,13 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	}
 
 	// Variable expansion
-	giteaTemplateFile, err := readGiteaTemplateFile(tmpDir)
+	fileMatcher, err := readGiteaTemplateFile(tmpDir)
 	if err != nil {
 		return fmt.Errorf("readGiteaTemplateFile: %w", err)
 	}
 
-	if giteaTemplateFile != nil {
-		err = processGiteaTemplateFile(ctx, tmpDir, templateRepo, generateRepo, giteaTemplateFile)
+	if fileMatcher != nil {
+		err = processGiteaTemplateFile(ctx, tmpDir, templateRepo, generateRepo, fileMatcher)
 		if err != nil {
 			return err
 		}
@@ -236,8 +257,11 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return err
 	}
 
-	if stdout, _, err := git.NewCommand(ctx, "remote", "add", "origin").AddDynamicArguments(repo.RepoPath()).
-		RunStdString(&git.RunOpts{Dir: tmpDir, Env: env}); err != nil {
+	if stdout, _, err := gitcmd.NewCommand("remote", "add", "origin").
+		AddDynamicArguments(repo.RepoPath()).
+		WithDir(tmpDir).
+		WithEnv(env).
+		RunStdString(ctx); err != nil {
 		log.Error("Unable to add %v as remote origin to temporary repo to %s: stdout %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git remote add: %w", err)
 	}
@@ -255,46 +279,33 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
 }
 
-func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
+// GenerateGitContent generates git content from a template repository
+func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) (err error) {
+	tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-" + generateRepo.Name)
 	if err != nil {
-		return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.RepoPath(), err)
+		return fmt.Errorf("failed to create temp dir for repository %s: %w", generateRepo.FullName(), err)
 	}
+	defer cleanup()
 
-	defer func() {
-		if err := util.RemoveAll(tmpDir); err != nil {
-			log.Error("RemoveAll: %v", err)
-		}
-	}()
-
-	if err = generateRepoCommit(ctx, repo, templateRepo, generateRepo, tmpDir); err != nil {
+	if err = generateRepoCommit(ctx, generateRepo, templateRepo, generateRepo, tmpDir); err != nil {
 		return fmt.Errorf("generateRepoCommit: %w", err)
 	}
 
 	// re-fetch repo
-	if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
+	if generateRepo, err = repo_model.GetRepositoryByID(ctx, generateRepo.ID); err != nil {
 		return fmt.Errorf("getRepositoryByID: %w", err)
 	}
 
 	// if there was no default branch supplied when generating the repo, use the default one from the template
-	if strings.TrimSpace(repo.DefaultBranch) == "" {
-		repo.DefaultBranch = templateRepo.DefaultBranch
+	if strings.TrimSpace(generateRepo.DefaultBranch) == "" {
+		generateRepo.DefaultBranch = templateRepo.DefaultBranch
 	}
 
-	if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+	if err = gitrepo.SetDefaultBranch(ctx, generateRepo, generateRepo.DefaultBranch); err != nil {
 		return fmt.Errorf("setDefaultBranch: %w", err)
 	}
-	if err = UpdateRepository(ctx, repo, false); err != nil {
+	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, generateRepo, "default_branch"); err != nil {
 		return fmt.Errorf("updateRepository: %w", err)
-	}
-
-	return nil
-}
-
-// GenerateGitContent generates git content from a template repository
-func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	if err := generateGitContent(ctx, generateRepo, templateRepo, generateRepo); err != nil {
-		return err
 	}
 
 	if err := repo_module.UpdateRepoSize(ctx, generateRepo); err != nil {
@@ -328,64 +339,17 @@ func (gro GenerateRepoOptions) IsValid() bool {
 		gro.IssueLabels || gro.ProtectedBranch // or other items as they are added
 }
 
-// generateRepository generates a repository from a template
-func generateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *repo_model.Repository, opts GenerateRepoOptions) (_ *repo_model.Repository, err error) {
-	generateRepo := &repo_model.Repository{
-		OwnerID:          owner.ID,
-		Owner:            owner,
-		OwnerName:        owner.Name,
-		Name:             opts.Name,
-		LowerName:        strings.ToLower(opts.Name),
-		Description:      opts.Description,
-		DefaultBranch:    opts.DefaultBranch,
-		IsPrivate:        opts.Private,
-		IsEmpty:          !opts.GitContent || templateRepo.IsEmpty,
-		IsFsckEnabled:    templateRepo.IsFsckEnabled,
-		TemplateID:       templateRepo.ID,
-		TrustModel:       templateRepo.TrustModel,
-		ObjectFormatName: templateRepo.ObjectFormatName,
-	}
-
-	if err = CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false); err != nil {
-		return nil, err
-	}
-
-	repoPath := generateRepo.RepoPath()
-	isExist, err := util.IsExist(repoPath)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
-		return nil, err
-	}
-	if isExist {
-		return nil, repo_model.ErrRepoFilesAlreadyExist{
-			Uname: generateRepo.OwnerName,
-			Name:  generateRepo.Name,
+func filePathSanitize(s string) string {
+	fields := strings.Split(filepath.ToSlash(s), "/")
+	for i, field := range fields {
+		field = strings.TrimSpace(strings.TrimSpace(globalVars().fileNameSanitizeRegexp.ReplaceAllString(field, "_")))
+		if strings.HasPrefix(field, "..") {
+			field = "__" + field[2:]
 		}
+		if strings.EqualFold(field, ".git") {
+			field = "_" + field[1:]
+		}
+		fields[i] = field
 	}
-
-	if err = repo_module.CheckInitRepository(ctx, owner.Name, generateRepo.Name, generateRepo.ObjectFormatName); err != nil {
-		return generateRepo, err
-	}
-
-	if err = repo_module.CheckDaemonExportOK(ctx, generateRepo); err != nil {
-		return generateRepo, fmt.Errorf("checkDaemonExportOK: %w", err)
-	}
-
-	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
-		log.Error("GenerateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", generateRepo, stdout, err)
-		return generateRepo, fmt.Errorf("error in GenerateRepository(git update-server-info): %w", err)
-	}
-
-	return generateRepo, nil
-}
-
-var fileNameSanitizeRegexp = regexp.MustCompile(`(?i)\.\.|[<>:\"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
-
-// Sanitize user input to valid OS filenames
-//
-//		Based on https://github.com/sindresorhus/filename-reserved-regex
-//	 Adds ".." to prevent directory traversal
-func fileNameSanitize(s string) string {
-	return strings.TrimSpace(fileNameSanitizeRegexp.ReplaceAllString(s, "_"))
+	return filepath.FromSlash(strings.Join(fields, "/"))
 }

@@ -12,7 +12,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -30,10 +29,10 @@ func TestAPIGitTags(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Set up git config for the tagger
-	_ = git.NewCommand(git.DefaultContext, "config", "user.name").AddDynamicArguments(user.Name).Run(&git.RunOpts{Dir: repo.RepoPath()})
-	_ = git.NewCommand(git.DefaultContext, "config", "user.email").AddDynamicArguments(user.Email).Run(&git.RunOpts{Dir: repo.RepoPath()})
+	_ = gitrepo.GitConfigSet(t.Context(), repo, "user.name", user.Name)
+	_ = gitrepo.GitConfigSet(t.Context(), repo, "user.email", user.Email)
 
-	gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
+	gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
 	defer gitRepo.Close()
 
 	commit, _ := gitRepo.GetBranchCommit("master")

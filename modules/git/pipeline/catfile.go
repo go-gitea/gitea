@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -25,13 +25,12 @@ func CatFileBatchCheck(ctx context.Context, shasToCheckReader *io.PipeReader, ca
 
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	cmd := git.NewCommand(ctx, "cat-file", "--batch-check")
-	if err := cmd.Run(&git.RunOpts{
-		Dir:    tmpBasePath,
-		Stdin:  shasToCheckReader,
-		Stdout: catFileCheckWriter,
-		Stderr: stderr,
-	}); err != nil {
+	cmd := gitcmd.NewCommand("cat-file", "--batch-check")
+	if err := cmd.WithDir(tmpBasePath).
+		WithStdin(shasToCheckReader).
+		WithStdout(catFileCheckWriter).
+		WithStderr(stderr).
+		Run(ctx); err != nil {
 		_ = catFileCheckWriter.CloseWithError(fmt.Errorf("git cat-file --batch-check [%s]: %w - %s", tmpBasePath, err, errbuf.String()))
 	}
 }
@@ -43,12 +42,11 @@ func CatFileBatchCheckAllObjects(ctx context.Context, catFileCheckWriter *io.Pip
 
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	cmd := git.NewCommand(ctx, "cat-file", "--batch-check", "--batch-all-objects")
-	if err := cmd.Run(&git.RunOpts{
-		Dir:    tmpBasePath,
-		Stdout: catFileCheckWriter,
-		Stderr: stderr,
-	}); err != nil {
+	cmd := gitcmd.NewCommand("cat-file", "--batch-check", "--batch-all-objects")
+	if err := cmd.WithDir(tmpBasePath).
+		WithStdout(catFileCheckWriter).
+		WithStderr(stderr).
+		Run(ctx); err != nil {
 		log.Error("git cat-file --batch-check --batch-all-object [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 		err = fmt.Errorf("git cat-file --batch-check --batch-all-object [%s]: %w - %s", tmpBasePath, err, errbuf.String())
 		_ = catFileCheckWriter.CloseWithError(err)
@@ -64,12 +62,12 @@ func CatFileBatch(ctx context.Context, shasToBatchReader *io.PipeReader, catFile
 
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	if err := git.NewCommand(ctx, "cat-file", "--batch").Run(&git.RunOpts{
-		Dir:    tmpBasePath,
-		Stdout: catFileBatchWriter,
-		Stdin:  shasToBatchReader,
-		Stderr: stderr,
-	}); err != nil {
+	if err := gitcmd.NewCommand("cat-file", "--batch").
+		WithDir(tmpBasePath).
+		WithStdin(shasToBatchReader).
+		WithStdout(catFileBatchWriter).
+		WithStderr(stderr).
+		Run(ctx); err != nil {
 		_ = shasToBatchReader.CloseWithError(fmt.Errorf("git rev-list [%s]: %w - %s", tmpBasePath, err, errbuf.String()))
 	}
 }

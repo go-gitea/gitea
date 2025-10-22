@@ -15,57 +15,57 @@
 					<tbody>
 						<tr>
 							<td>{{ctx.Locale.Tr "admin.dashboard.delete_inactive_accounts"}}</td>
-							<td class="text right"><button type="submit" class="ui primary button" name="op" value="delete_inactive_accounts">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="tw-text-right"><button type="submit" class="ui primary button" name="op" value="delete_inactive_accounts">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{ctx.Locale.Tr "admin.dashboard.delete_repo_archives"}}</td>
-							<td class="text right"><button type="submit" class="ui primary button" name="op" value="delete_repo_archives">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="tw-text-right"><button type="submit" class="ui primary button" name="op" value="delete_repo_archives">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{ctx.Locale.Tr "admin.dashboard.delete_missing_repos"}}</td>
-							<td class="text right"><button type="submit" class="ui primary button" name="op" value="delete_missing_repos">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="tw-text-right"><button type="submit" class="ui primary button" name="op" value="delete_missing_repos">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{ctx.Locale.Tr "admin.dashboard.git_gc_repos"}}</td>
-							<td class="text right"><button type="submit" class="ui primary button" name="op" value="git_gc_repos">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="tw-text-right"><button type="submit" class="ui primary button" name="op" value="git_gc_repos">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						{{if and (not .SSH.Disabled) (not .SSH.StartBuiltinServer)}}
 							<tr>
 								<td>{{ctx.Locale.Tr "admin.dashboard.resync_all_sshkeys"}}</td>
-								<td class="text right"><button type="submit" class="ui primary button" name="op" value="resync_all_sshkeys">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
+								<td class="tw-text-right"><button type="submit" class="ui primary button" name="op" value="resync_all_sshkeys">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 							</tr>
 							<tr>
 								<td>{{ctx.Locale.Tr "admin.dashboard.resync_all_sshprincipals"}}</td>
-								<td class="text right"><button type="submit" class="ui primary button" name="op" value="resync_all_sshprincipals">{{svg "octicon-play" 16}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
+								<td class="tw-text-right"><button type="submit" class="ui primary button" name="op" value="resync_all_sshprincipals">{{svg "octicon-play" 16}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 							</tr>
 						{{end}}
 						<tr>
 							<td>{{ctx.Locale.Tr "admin.dashboard.resync_all_hooks"}}</td>
-							<td class="text right"><button type="submit" class="ui primary button" name="op" value="resync_all_hooks">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="tw-text-right"><button type="submit" class="ui primary button" name="op" value="resync_all_hooks">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{ctx.Locale.Tr "admin.dashboard.reinit_missing_repos"}}</td>
-							<td class="text right"><button type="submit" class="ui primary button" name="op" value="reinit_missing_repos">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="tw-text-right"><button type="submit" class="ui primary button" name="op" value="reinit_missing_repos">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{ctx.Locale.Tr "admin.dashboard.sync_external_users"}}</td>
-							<td class="text right"><button type="submit" class="ui primary button" name="op" value="sync_external_users">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="tw-text-right"><button type="submit" class="ui primary button" name="op" value="sync_external_users">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{ctx.Locale.Tr "admin.dashboard.repo_health_check"}}</td>
-							<td class="text right"><button type="submit" class="ui primary button" name="op" value="repo_health_check">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="tw-text-right"><button type="submit" class="ui primary button" name="op" value="repo_health_check">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{ctx.Locale.Tr "admin.dashboard.delete_generated_repository_avatars"}}</td>
-							<td class="text right"><button type="submit" class="ui primary button" name="op" value="delete_generated_repository_avatars">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="tw-text-right"><button type="submit" class="ui primary button" name="op" value="delete_generated_repository_avatars">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{ctx.Locale.Tr "admin.dashboard.sync_repo_branches"}}</td>
-							<td class="text right"><button type="submit" class="ui primary button" name="op" value="sync_repo_branches">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="tw-text-right"><button type="submit" class="ui primary button" name="op" value="sync_repo_branches">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{ctx.Locale.Tr "admin.dashboard.sync_repo_tags"}}</td>
-							<td class="text right"><button type="submit" class="ui primary button" name="op" value="sync_repo_tags">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td class="tw-text-right"><button type="submit" class="ui primary button" name="op" value="sync_repo_tags">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 					</tbody>
 				</table>

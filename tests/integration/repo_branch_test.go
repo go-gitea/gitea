@@ -138,7 +138,7 @@ func TestCreateBranchInvalidCSRF(t *testing.T) {
 }
 
 func prepareRecentlyPushedBranchTest(t *testing.T, headSession *TestSession, baseRepo, headRepo *repo_model.Repository) {
-	refSubURL := fmt.Sprintf("branch/%s", headRepo.DefaultBranch)
+	refSubURL := "branch/" + headRepo.DefaultBranch
 	baseRepoPath := baseRepo.OwnerName + "/" + baseRepo.Name
 	headRepoPath := headRepo.OwnerName + "/" + headRepo.Name
 	// Case 1: Normal branch changeset to display pushed message
@@ -154,7 +154,7 @@ func prepareRecentlyPushedBranchTest(t *testing.T, headSession *TestSession, bas
 
 	// only `new-commit` branch has commits ahead the base branch
 	checkRecentlyPushedNewBranches(t, headSession, headRepoPath, []string{"new-commit"})
-	if baseRepo.RepoPath() != headRepo.RepoPath() {
+	if baseRepo.ID != headRepo.ID {
 		checkRecentlyPushedNewBranches(t, headSession, baseRepoPath, []string{fmt.Sprintf("%v:new-commit", headRepo.FullName())})
 	}
 
@@ -162,13 +162,13 @@ func prepareRecentlyPushedBranchTest(t *testing.T, headSession *TestSession, bas
 	testCreatePullToDefaultBranch(t, headSession, baseRepo, headRepo, "new-commit", "merge new-commit to default branch")
 	// No push message show because of active PR
 	checkRecentlyPushedNewBranches(t, headSession, headRepoPath, []string{})
-	if baseRepo.RepoPath() != headRepo.RepoPath() {
+	if baseRepo.ID != headRepo.ID {
 		checkRecentlyPushedNewBranches(t, headSession, baseRepoPath, []string{})
 	}
 }
 
 func prepareRecentlyPushedBranchSpecialTest(t *testing.T, session *TestSession, baseRepo, headRepo *repo_model.Repository) {
-	refSubURL := fmt.Sprintf("branch/%s", headRepo.DefaultBranch)
+	refSubURL := "branch/" + headRepo.DefaultBranch
 	baseRepoPath := baseRepo.OwnerName + "/" + baseRepo.Name
 	headRepoPath := headRepo.OwnerName + "/" + headRepo.Name
 	// create branch with no new commit
@@ -179,7 +179,7 @@ func prepareRecentlyPushedBranchSpecialTest(t *testing.T, session *TestSession, 
 
 	// Though we have new `no-commit` branch, but the headBranch is not newer or commits ahead baseBranch. No message show.
 	checkRecentlyPushedNewBranches(t, session, headRepoPath, []string{})
-	if baseRepo.RepoPath() != headRepo.RepoPath() {
+	if baseRepo.ID != headRepo.ID {
 		checkRecentlyPushedNewBranches(t, session, baseRepoPath, []string{})
 	}
 }
@@ -196,7 +196,7 @@ func testCreatePullToDefaultBranch(t *testing.T, session *TestSession, baseRepo,
 }
 
 func prepareRepoPR(t *testing.T, baseSession, headSession *TestSession, baseRepo, headRepo *repo_model.Repository) {
-	refSubURL := fmt.Sprintf("branch/%s", headRepo.DefaultBranch)
+	refSubURL := "branch/" + headRepo.DefaultBranch
 	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, refSubURL, "new-commit", http.StatusSeeOther)
 
 	// create opening PR
@@ -218,13 +218,19 @@ func prepareRepoPR(t *testing.T, baseSession, headSession *TestSession, baseRepo
 	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "branch/new-commit", "merged-pr", http.StatusSeeOther)
 	prID = testCreatePullToDefaultBranch(t, baseSession, baseRepo, headRepo, "merged-pr", "merged pr")
 	testAPINewFile(t, headSession, headRepo.OwnerName, headRepo.Name, "merged-pr", fmt.Sprintf("new-commit-%s.txt", headRepo.Name), "new-commit")
-	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, repo_model.MergeStyleRebaseMerge, false)
+	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, MergeOptions{
+		Style:        repo_model.MergeStyleRebaseMerge,
+		DeleteBranch: false,
+	})
 
 	// create merged PR with deleted branch
 	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "branch/new-commit", "merged-pr-deleted", http.StatusSeeOther)
 	prID = testCreatePullToDefaultBranch(t, baseSession, baseRepo, headRepo, "merged-pr-deleted", "merged pr with deleted branch")
 	testAPINewFile(t, headSession, headRepo.OwnerName, headRepo.Name, "merged-pr-deleted", fmt.Sprintf("new-commit-%s-2.txt", headRepo.Name), "new-commit")
-	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, repo_model.MergeStyleRebaseMerge, true)
+	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, MergeOptions{
+		Style:        repo_model.MergeStyleRebaseMerge,
+		DeleteBranch: true,
+	})
 }
 
 func checkRecentlyPushedNewBranches(t *testing.T, session *TestSession, repoPath string, expected []string) {

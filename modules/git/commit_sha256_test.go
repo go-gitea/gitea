@@ -17,7 +17,7 @@ import (
 func TestCommitsCountSha256(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
 
-	commitsCount, err := CommitsCount(DefaultContext,
+	commitsCount, err := CommitsCount(t.Context(),
 		CommitsCountOptions{
 			RepoPath: bareRepo1Path,
 			Revision: []string{"f004f41359117d319dedd0eaab8c5259ee2263da839dcba33637997458627fdc"},
@@ -30,7 +30,7 @@ func TestCommitsCountSha256(t *testing.T) {
 func TestCommitsCountWithoutBaseSha256(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
 
-	commitsCount, err := CommitsCount(DefaultContext,
+	commitsCount, err := CommitsCount(t.Context(),
 		CommitsCountOptions{
 			RepoPath: bareRepo1Path,
 			Not:      "main",
@@ -44,7 +44,7 @@ func TestCommitsCountWithoutBaseSha256(t *testing.T) {
 func TestGetFullCommitIDSha256(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
 
-	id, err := GetFullCommitID(DefaultContext, bareRepo1Path, "f004f4")
+	id, err := GetFullCommitID(t.Context(), bareRepo1Path, "f004f4")
 	assert.NoError(t, err)
 	assert.Equal(t, "f004f41359117d319dedd0eaab8c5259ee2263da839dcba33637997458627fdc", id)
 }
@@ -52,7 +52,7 @@ func TestGetFullCommitIDSha256(t *testing.T) {
 func TestGetFullCommitIDErrorSha256(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
 
-	id, err := GetFullCommitID(DefaultContext, bareRepo1Path, "unknown")
+	id, err := GetFullCommitID(t.Context(), bareRepo1Path, "unknown")
 	assert.Empty(t, id)
 	if assert.Error(t, err) {
 		assert.EqualError(t, err, "object does not exist [id: unknown, rel_path: ]")
@@ -60,8 +60,7 @@ func TestGetFullCommitIDErrorSha256(t *testing.T) {
 }
 
 func TestCommitFromReaderSha256(t *testing.T) {
-	commitString := `9433b2a62b964c17a4485ae180f45f595d3e69d31b786087775e28c6b6399df0 commit 1114
-tree e7f9e96dd79c09b078cac8b303a7d3b9d65ff9b734e86060a4d20409fd379f9e
+	commitString := `tree e7f9e96dd79c09b078cac8b303a7d3b9d65ff9b734e86060a4d20409fd379f9e
 parent 26e9ccc29fad747e9c5d9f4c9ddeb7eff61cc45ef6a8dc258cbeb181afc055e8
 author Adam Majer <amajer@suse.de> 1698676906 +0100
 committer Adam Majer <amajer@suse.de> 1698676906 +0100
@@ -88,7 +87,7 @@ signed commit`
 		0x94, 0x33, 0xb2, 0xa6, 0x2b, 0x96, 0x4c, 0x17, 0xa4, 0x48, 0x5a, 0xe1, 0x80, 0xf4, 0x5f, 0x59,
 		0x5d, 0x3e, 0x69, 0xd3, 0x1b, 0x78, 0x60, 0x87, 0x77, 0x5e, 0x28, 0xc6, 0xb6, 0x39, 0x9d, 0xf0,
 	}
-	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare_sha256"))
+	gitRepo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "repo1_bare_sha256"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
@@ -97,7 +96,7 @@ signed commit`
 	assert.NoError(t, err)
 	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
-	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
+	assert.Equal(t, `-----BEGIN PGP SIGNATURE-----
 
 iQIrBAABCgAtFiEES+fB08xlgTrzSdQvhkUIsBsmec8FAmU/wKoPHGFtYWplckBz
 dXNlLmRlAAoJEIZFCLAbJnnP4s4PQIJATa++WPzR6/H4etT7bsOGoMyguEJYyWOd
@@ -112,27 +111,26 @@ VAEUo6ecdDxSpyt2naeg9pKus/BRi7P6g4B1hkk/zZstUX/QP4IQuAJbXjkvsC+X
 HKRr3NlRM/DygzTyj0gN74uoa0goCIbyAQhiT42nm0cuhM7uN/W0ayrlZjGF1cbR
 8NCJUL2Nwj0ywKIavC99Ipkb8AsFwpVT6U6effs6
 =xybZ
------END PGP SIGNATURE-----
-`, commitFromReader.Signature.Signature)
-	assert.EqualValues(t, `tree e7f9e96dd79c09b078cac8b303a7d3b9d65ff9b734e86060a4d20409fd379f9e
+-----END PGP SIGNATURE-----`, commitFromReader.Signature.Signature)
+	assert.Equal(t, `tree e7f9e96dd79c09b078cac8b303a7d3b9d65ff9b734e86060a4d20409fd379f9e
 parent 26e9ccc29fad747e9c5d9f4c9ddeb7eff61cc45ef6a8dc258cbeb181afc055e8
 author Adam Majer <amajer@suse.de> 1698676906 +0100
 committer Adam Majer <amajer@suse.de> 1698676906 +0100
 
 signed commit`, commitFromReader.Signature.Payload)
-	assert.EqualValues(t, "Adam Majer <amajer@suse.de>", commitFromReader.Author.String())
+	assert.Equal(t, "Adam Majer <amajer@suse.de>", commitFromReader.Author.String())
 
 	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
 	commitFromReader.CommitMessage += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
-	assert.EqualValues(t, commitFromReader, commitFromReader2)
+	assert.Equal(t, commitFromReader, commitFromReader2)
 }
 
 func TestHasPreviousCommitSha256(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
 
-	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	repo, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 
@@ -163,7 +161,7 @@ func TestHasPreviousCommitSha256(t *testing.T) {
 func TestGetCommitFileStatusMergesSha256(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo6_merge_sha256")
 
-	commitFileStatus, err := GetCommitFileStatus(DefaultContext, bareRepo1Path, "d2e5609f630dd8db500f5298d05d16def282412e3e66ed68cc7d0833b29129a1")
+	commitFileStatus, err := GetCommitFileStatus(t.Context(), bareRepo1Path, "d2e5609f630dd8db500f5298d05d16def282412e3e66ed68cc7d0833b29129a1")
 	assert.NoError(t, err)
 
 	expected := CommitFileStatus{
@@ -188,7 +186,7 @@ func TestGetCommitFileStatusMergesSha256(t *testing.T) {
 		[]string{},
 	}
 
-	commitFileStatus, err = GetCommitFileStatus(DefaultContext, bareRepo1Path, "da1ded40dc8e5b7c564171f4bf2fc8370487decfb1cb6a99ef28f3ed73d09172")
+	commitFileStatus, err = GetCommitFileStatus(t.Context(), bareRepo1Path, "da1ded40dc8e5b7c564171f4bf2fc8370487decfb1cb6a99ef28f3ed73d09172")
 	assert.NoError(t, err)
 
 	assert.Equal(t, expected.Added, commitFileStatus.Added)

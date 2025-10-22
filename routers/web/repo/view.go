@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -29,6 +30,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -38,6 +40,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 
@@ -46,69 +49,74 @@ import (
 )
 
 const (
-	tplRepoEMPTY    templates.TplName = "repo/empty"
-	tplRepoHome     templates.TplName = "repo/home"
-	tplRepoViewList templates.TplName = "repo/view_list"
-	tplWatchers     templates.TplName = "repo/watchers"
-	tplForks        templates.TplName = "repo/forks"
-	tplMigrating    templates.TplName = "repo/migrate/migrating"
+	tplRepoEMPTY       templates.TplName = "repo/empty"
+	tplRepoHome        templates.TplName = "repo/home"
+	tplRepoView        templates.TplName = "repo/view"
+	tplRepoViewContent templates.TplName = "repo/view_content"
+	tplRepoViewList    templates.TplName = "repo/view_list"
+	tplWatchers        templates.TplName = "repo/watchers"
+	tplForks           templates.TplName = "repo/forks"
+	tplMigrating       templates.TplName = "repo/migrate/migrating"
 )
 
 type fileInfo struct {
-	isTextFile bool
-	isLFSFile  bool
-	fileSize   int64
-	lfsMeta    *lfs.Pointer
-	st         typesniffer.SniffedType
+	blobOrLfsSize int64
+	lfsMeta       *lfs.Pointer
+	st            typesniffer.SniffedType
 }
 
-func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) ([]byte, io.ReadCloser, *fileInfo, error) {
-	dataRc, err := blob.DataAsync()
+func (fi *fileInfo) isLFSFile() bool {
+	return fi.lfsMeta != nil && fi.lfsMeta.Oid != ""
+}
+
+func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []byte, dataRc io.ReadCloser, fi *fileInfo, err error) {
+	dataRc, err = blob.DataAsync()
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	buf := make([]byte, 1024)
+	const prefetchSize = lfs.MetaFileMaxSize
+
+	buf = make([]byte, prefetchSize)
 	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 
-	st := typesniffer.DetectContentType(buf)
-	isTextFile := st.IsText()
+	fi = &fileInfo{blobOrLfsSize: blob.Size(), st: typesniffer.DetectContentType(buf)}
 
 	// FIXME: what happens when README file is an image?
-	if !isTextFile || !setting.LFS.StartServer {
-		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
+	if !fi.st.IsText() || !setting.LFS.StartServer {
+		return buf, dataRc, fi, nil
 	}
 
 	pointer, _ := lfs.ReadPointerFromBuffer(buf)
-	if !pointer.IsValid() { // fallback to plain file
-		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
+	if !pointer.IsValid() { // fallback to a plain file
+		return buf, dataRc, fi, nil
 	}
 
 	meta, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, pointer.Oid)
-	if err != nil { // fallback to plain file
+	if err != nil { // fallback to a plain file
 		log.Warn("Unable to access LFS pointer %s in repo %d: %v", pointer.Oid, repoID, err)
-		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
+		return buf, dataRc, fi, nil
 	}
 
-	dataRc.Close()
-
+	// close the old dataRc and open the real LFS target
+	_ = dataRc.Close()
 	dataRc, err = lfs.ReadMetaObject(pointer)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	buf = make([]byte, 1024)
+	buf = make([]byte, prefetchSize)
 	n, err = util.ReadAtMost(dataRc, buf)
 	if err != nil {
-		dataRc.Close()
-		return nil, nil, nil, err
+		_ = dataRc.Close()
+		return nil, nil, fi, err
 	}
 	buf = buf[:n]
-
-	st = typesniffer.DetectContentType(buf)
-
-	return buf, dataRc, &fileInfo{st.IsText(), true, meta.Size, &meta.Pointer, st}, nil
+	fi.st = typesniffer.DetectContentType(buf)
+	fi.blobOrLfsSize = meta.Pointer.Size
+	fi.lfsMeta = &meta.Pointer
+	return buf, dataRc, fi, nil
 }
 
 func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
@@ -116,7 +124,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 	// or of directory if not in root directory.
 	ctx.Data["LatestCommit"] = latestCommit
 	if latestCommit != nil {
-		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
+		verification := asymkey_service.ParseCommitWithSignature(ctx, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
@@ -127,7 +135,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		ctx.Data["LatestCommitVerification"] = verification
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
 
-		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptionsAll)
+		statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptionsAll)
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
@@ -215,7 +223,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 	}
 
-	ctx.NotFound("Home", errors.New(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
+	ctx.NotFound(errors.New(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
 }
 
 // LastCommit returns lastCommit data for the provided branch/tag/commit and directory (in url) and filenames in body
@@ -247,6 +255,19 @@ func LastCommit(ctx *context.Context) {
 	ctx.Data["BranchLink"] = branchLink
 
 	ctx.HTML(http.StatusOK, tplRepoViewList)
+}
+
+func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
+	renderedIconPool := fileicon.NewRenderedIconPool()
+	fileIcons := map[string]template.HTML{}
+	for _, f := range files {
+		fullPath := path.Join(ctx.Repo.TreePath, f.Entry.Name())
+		entryInfo := fileicon.EntryInfoFromGitTreeEntry(ctx.Repo.Commit, fullPath, f.Entry)
+		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
+	}
+	fileIcons[".."] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
+	ctx.Data["FileIcons"] = fileIcons
+	ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 }
 
 func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entries {
@@ -284,12 +305,13 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		defer cancel()
 	}
 
-	files, latestCommit, err := allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath)
+	files, latestCommit, err := allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.RepoLink, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return nil
 	}
 	ctx.Data["Files"] = files
+	prepareDirectoryFileIcons(ctx, files)
 	for _, f := range files {
 		if f.Commit == nil {
 			ctx.Data["HasFilesWithoutLatestCommit"] = true
@@ -378,9 +400,10 @@ func Forks(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), pageSize, page, 5)
+	ctx.Data["ShowRepoOwnerAvatar"] = true
+	ctx.Data["ShowRepoOwnerOnList"] = true
 	ctx.Data["Page"] = pager
-
-	ctx.Data["Forks"] = forks
+	ctx.Data["Repos"] = forks
 
 	ctx.HTML(http.StatusOK, tplForks)
 }

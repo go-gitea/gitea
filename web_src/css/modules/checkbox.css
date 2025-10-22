@@ -119,3 +119,13 @@ input[type="radio"] {
 .ui.toggle.checkbox input:focus:checked ~ label::before {
   background: var(--color-primary) !important;
 }
+
+label.gt-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+}
+
+.ui.form .field > label.gt-checkbox {
+  display: flex;
+}

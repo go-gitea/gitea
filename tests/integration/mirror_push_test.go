@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -16,7 +15,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/migrations"
@@ -35,13 +33,13 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	setting.Migrations.AllowLocalNetworks = true
 	assert.NoError(t, migrations.Init())
 
-	_ = db.TruncateBeans(db.DefaultContext, &repo_model.PushMirror{})
+	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	mirrorRepo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(t.Context(), user, user, repo_service.CreateRepoOptions{
 		Name: "test-push-mirror",
-	})
+	}, true)
 	assert.NoError(t, err)
 
 	session := loginUser(t, user.Name)
@@ -49,21 +47,21 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	pushMirrorURL := fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(user.Name), url.PathEscape(mirrorRepo.Name))
 	testCreatePushMirror(t, session, user.Name, srcRepo.Name, pushMirrorURL, user.LowerName, userPassword, "0")
 
-	mirrors, _, err := repo_model.GetPushMirrorsByRepoID(db.DefaultContext, srcRepo.ID, db.ListOptions{})
+	mirrors, _, err := repo_model.GetPushMirrorsByRepoID(t.Context(), srcRepo.ID, db.ListOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, mirrors, 1)
 
-	ok := mirror_service.SyncPushMirror(context.Background(), mirrors[0].ID)
+	ok := mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID)
 	assert.True(t, ok)
 
-	srcGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, srcRepo)
+	srcGitRepo, err := gitrepo.OpenRepository(t.Context(), srcRepo)
 	assert.NoError(t, err)
 	defer srcGitRepo.Close()
 
 	srcCommit, err := srcGitRepo.GetBranchCommit("master")
 	assert.NoError(t, err)
 
-	mirrorGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, mirrorRepo)
+	mirrorGitRepo, err := gitrepo.OpenRepository(t.Context(), mirrorRepo)
 	assert.NoError(t, err)
 	defer mirrorGitRepo.Close()
 
@@ -74,7 +72,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	// Cleanup
 	assert.True(t, doRemovePushMirror(t, session, user.Name, srcRepo.Name, mirrors[0].ID))
-	mirrors, _, err = repo_model.GetPushMirrorsByRepoID(db.DefaultContext, srcRepo.ID, db.ListOptions{})
+	mirrors, _, err = repo_model.GetPushMirrorsByRepoID(t.Context(), srcRepo.ID, db.ListOptions{})
 	assert.NoError(t, err)
 	assert.Empty(t, mirrors)
 }
@@ -126,21 +124,21 @@ func TestRepoSettingPushMirrorUpdate(t *testing.T) {
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	testCreatePushMirror(t, session, "user2", "repo2", "https://127.0.0.1/user1/repo1.git", "", "", "24h")
 
-	pushMirrors, cnt, err := repo_model.GetPushMirrorsByRepoID(db.DefaultContext, repo2.ID, db.ListOptions{})
+	pushMirrors, cnt, err := repo_model.GetPushMirrorsByRepoID(t.Context(), repo2.ID, db.ListOptions{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
-	assert.EqualValues(t, 24*time.Hour, pushMirrors[0].Interval)
+	assert.Equal(t, 24*time.Hour, pushMirrors[0].Interval)
 	repo2PushMirrorID := pushMirrors[0].ID
 
 	// update repo2 push mirror
 	assert.True(t, doUpdatePushMirror(t, session, "user2", "repo2", repo2PushMirrorID, "10m0s"))
 	pushMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
-	assert.EqualValues(t, 10*time.Minute, pushMirror.Interval)
+	assert.Equal(t, 10*time.Minute, pushMirror.Interval)
 
 	// avoid updating repo2 push mirror from repo1
 	assert.False(t, doUpdatePushMirror(t, session, "user2", "repo1", repo2PushMirrorID, "20m0s"))
 	pushMirror = unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
-	assert.EqualValues(t, 10*time.Minute, pushMirror.Interval) // not changed
+	assert.Equal(t, 10*time.Minute, pushMirror.Interval) // not changed
 
 	// avoid deleting repo2 push mirror from repo1
 	assert.False(t, doRemovePushMirror(t, session, "user2", "repo1", repo2PushMirrorID))

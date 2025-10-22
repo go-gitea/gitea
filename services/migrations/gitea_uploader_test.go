@@ -5,7 +5,6 @@
 package migrations
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -40,13 +40,13 @@ func TestGiteaUploadRepo(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	var (
-		ctx        = context.Background()
+		ctx        = t.Context()
 		downloader = NewGithubDownloaderV3(ctx, "https://github.com", "", "", "", "go-xorm", "builder")
 		repoName   = "builder-" + time.Now().Format("2006-01-02-15-04-05")
 		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)
 
-	err := migrateRepository(db.DefaultContext, user, downloader, uploader, base.MigrateOptions{
+	err := migrateRepository(t.Context(), user, downloader, uploader, base.MigrateOptions{
 		CloneAddr:    "https://github.com/go-xorm/builder",
 		RepoName:     repoName,
 		AuthUsername: "",
@@ -64,17 +64,17 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, Name: repoName})
-	assert.True(t, repo.HasWiki())
-	assert.EqualValues(t, repo_model.RepositoryReady, repo.Status)
+	assert.True(t, repo_service.HasWiki(ctx, repo))
+	assert.Equal(t, repo_model.RepositoryReady, repo.Status)
 
-	milestones, err := db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
+	milestones, err := db.Find[issues_model.Milestone](t.Context(), issues_model.FindMilestoneOptions{
 		RepoID:   repo.ID,
 		IsClosed: optional.Some(false),
 	})
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 1)
 
-	milestones, err = db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
+	milestones, err = db.Find[issues_model.Milestone](t.Context(), issues_model.FindMilestoneOptions{
 		RepoID:   repo.ID,
 		IsClosed: optional.Some(true),
 	})
@@ -85,7 +85,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, labels, 12)
 
-	releases, err := db.Find[repo_model.Release](db.DefaultContext, repo_model.FindReleasesOptions{
+	releases, err := db.Find[repo_model.Release](t.Context(), repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
@@ -96,7 +96,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, releases, 8)
 
-	releases, err = db.Find[repo_model.Release](db.DefaultContext, repo_model.FindReleasesOptions{
+	releases, err = db.Find[repo_model.Release](t.Context(), repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
@@ -107,23 +107,23 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, releases, 1)
 
-	issues, err := issues_model.Issues(db.DefaultContext, &issues_model.IssuesOptions{
+	issues, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
 		RepoIDs:  []int64{repo.ID},
 		IsPull:   optional.Some(false),
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)
 	assert.Len(t, issues, 15)
-	assert.NoError(t, issues[0].LoadDiscussComments(db.DefaultContext))
+	assert.NoError(t, issues[0].LoadDiscussComments(t.Context()))
 	assert.Empty(t, issues[0].Comments)
 
-	pulls, _, err := issues_model.PullRequests(db.DefaultContext, repo.ID, &issues_model.PullRequestsOptions{
+	pulls, _, err := issues_model.PullRequests(t.Context(), repo.ID, &issues_model.PullRequestsOptions{
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)
 	assert.Len(t, pulls, 30)
-	assert.NoError(t, pulls[0].LoadIssue(db.DefaultContext))
-	assert.NoError(t, pulls[0].Issue.LoadDiscussComments(db.DefaultContext))
+	assert.NoError(t, pulls[0].LoadIssue(t.Context()))
+	assert.NoError(t, pulls[0].Issue.LoadDiscussComments(t.Context()))
 	assert.Len(t, pulls[0].Issue.Comments, 2)
 }
 
@@ -132,7 +132,7 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	ctx := context.Background()
+	ctx := t.Context()
 	repoName := "migrated"
 	uploader := NewGiteaLocalUploader(ctx, doer, doer.Name, repoName)
 	// call remapLocalUser
@@ -153,7 +153,7 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	uploader.userMap = make(map[int64]int64)
 	err := uploader.remapUser(ctx, &source, &target)
 	assert.NoError(t, err)
-	assert.EqualValues(t, doer.ID, target.GetUserID())
+	assert.Equal(t, doer.ID, target.GetUserID())
 
 	//
 	// The externalID matches a known user but the name does not match,
@@ -164,7 +164,7 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	uploader.userMap = make(map[int64]int64)
 	err = uploader.remapUser(ctx, &source, &target)
 	assert.NoError(t, err)
-	assert.EqualValues(t, doer.ID, target.GetUserID())
+	assert.Equal(t, doer.ID, target.GetUserID())
 
 	//
 	// The externalID and externalName match an existing user, everything
@@ -175,13 +175,13 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	uploader.userMap = make(map[int64]int64)
 	err = uploader.remapUser(ctx, &source, &target)
 	assert.NoError(t, err)
-	assert.EqualValues(t, user.ID, target.GetUserID())
+	assert.Equal(t, user.ID, target.GetUserID())
 }
 
 func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	ctx := context.Background()
+	ctx := t.Context()
 	repoName := "migrated"
 	uploader := NewGiteaLocalUploader(ctx, doer, doer.Name, repoName)
 	uploader.gitServiceType = structs.GiteaService
@@ -203,7 +203,7 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	target := repo_model.Release{}
 	err := uploader.remapUser(ctx, &source, &target)
 	assert.NoError(t, err)
-	assert.EqualValues(t, doer.ID, target.GetUserID())
+	assert.Equal(t, doer.ID, target.GetUserID())
 
 	//
 	// Link the external ID to an existing user
@@ -215,7 +215,7 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 		LoginSourceID: 0,
 		Provider:      structs.GiteaService.Name(),
 	}
-	err = user_model.LinkExternalToUser(db.DefaultContext, linkedUser, externalLoginUser)
+	err = user_model.LinkExternalToUser(t.Context(), linkedUser, externalLoginUser)
 	assert.NoError(t, err)
 
 	//
@@ -226,7 +226,7 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	target = repo_model.Release{}
 	err = uploader.remapUser(ctx, &source, &target)
 	assert.NoError(t, err)
-	assert.EqualValues(t, linkedUser.ID, target.GetUserID())
+	assert.Equal(t, linkedUser.ID, target.GetUserID())
 }
 
 func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
@@ -237,22 +237,23 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	//
 	fromRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	baseRef := "master"
-	assert.NoError(t, git.InitRepository(git.DefaultContext, fromRepo.RepoPath(), false, fromRepo.ObjectFormatName))
-	err := git.NewCommand(git.DefaultContext, "symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef).Run(&git.RunOpts{Dir: fromRepo.RepoPath()})
+	// this is very different from the real situation. It should be a bare repository for all the Gitea managed repositories
+	assert.NoError(t, git.InitRepository(t.Context(), fromRepo.RepoPath(), false, fromRepo.ObjectFormatName))
+	err := gitrepo.RunCmd(t.Context(), fromRepo, gitcmd.NewCommand("symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef))
 	assert.NoError(t, err)
-	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", fromRepo.RepoPath())), 0o644))
-	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
+	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("# Testing Repository\n\nOriginally created in: "+fromRepo.RepoPath()), 0o644))
+	assert.NoError(t, git.AddChanges(t.Context(), fromRepo.RepoPath(), true))
 	signature := git.Signature{
 		Email: "test@example.com",
 		Name:  "test",
 		When:  time.Now(),
 	}
-	assert.NoError(t, git.CommitChanges(fromRepo.RepoPath(), git.CommitChangesOptions{
+	assert.NoError(t, git.CommitChanges(t.Context(), fromRepo.RepoPath(), git.CommitChangesOptions{
 		Committer: &signature,
 		Author:    &signature,
 		Message:   "Initial Commit",
 	}))
-	fromGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, fromRepo)
+	fromGitRepo, err := gitrepo.OpenRepository(t.Context(), fromRepo)
 	assert.NoError(t, err)
 	defer fromGitRepo.Close()
 	baseSHA, err := fromGitRepo.GetBranchCommitID(baseRef)
@@ -262,12 +263,12 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	// fromRepo branch1
 	//
 	headRef := "branch1"
-	_, _, err = git.NewCommand(git.DefaultContext, "checkout", "-b").AddDynamicArguments(headRef).RunStdString(&git.RunOpts{Dir: fromRepo.RepoPath()})
+	_, err = gitrepo.RunCmdString(t.Context(), fromRepo, gitcmd.NewCommand("checkout", "-b").AddDynamicArguments(headRef))
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("SOMETHING"), 0o644))
-	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
+	assert.NoError(t, git.AddChanges(t.Context(), fromRepo.RepoPath(), true))
 	signature.When = time.Now()
-	assert.NoError(t, git.CommitChanges(fromRepo.RepoPath(), git.CommitChangesOptions{
+	assert.NoError(t, git.CommitChanges(t.Context(), fromRepo.RepoPath(), git.CommitChangesOptions{
 		Committer: &signature,
 		Author:    &signature,
 		Message:   "Pull request",
@@ -283,30 +284,30 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	//
 	forkHeadRef := "branch2"
 	forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 8})
-	assert.NoError(t, git.CloneWithArgs(git.DefaultContext, nil, fromRepo.RepoPath(), forkRepo.RepoPath(), git.CloneRepoOptions{
+	assert.NoError(t, git.Clone(t.Context(), fromRepo.RepoPath(), forkRepo.RepoPath(), git.CloneRepoOptions{
 		Branch: headRef,
 	}))
-	_, _, err = git.NewCommand(git.DefaultContext, "checkout", "-b").AddDynamicArguments(forkHeadRef).RunStdString(&git.RunOpts{Dir: forkRepo.RepoPath()})
+	_, err = gitrepo.RunCmdString(t.Context(), forkRepo, gitcmd.NewCommand("checkout", "-b").AddDynamicArguments(forkHeadRef))
 	assert.NoError(t, err)
-	assert.NoError(t, os.WriteFile(filepath.Join(forkRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# branch2 %s", forkRepo.RepoPath())), 0o644))
-	assert.NoError(t, git.AddChanges(forkRepo.RepoPath(), true))
-	assert.NoError(t, git.CommitChanges(forkRepo.RepoPath(), git.CommitChangesOptions{
+	assert.NoError(t, os.WriteFile(filepath.Join(forkRepo.RepoPath(), "README.md"), []byte("# branch2 "+forkRepo.RepoPath()), 0o644))
+	assert.NoError(t, git.AddChanges(t.Context(), forkRepo.RepoPath(), true))
+	assert.NoError(t, git.CommitChanges(t.Context(), forkRepo.RepoPath(), git.CommitChangesOptions{
 		Committer: &signature,
 		Author:    &signature,
 		Message:   "branch2 commit",
 	}))
-	forkGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, forkRepo)
+	forkGitRepo, err := gitrepo.OpenRepository(t.Context(), forkRepo)
 	assert.NoError(t, err)
 	defer forkGitRepo.Close()
 	forkHeadSHA, err := forkGitRepo.GetBranchCommitID(forkHeadRef)
 	assert.NoError(t, err)
 
 	toRepoName := "migrated"
-	ctx := context.Background()
+	ctx := t.Context()
 	uploader := NewGiteaLocalUploader(ctx, fromRepoOwner, fromRepoOwner.Name, toRepoName)
 	uploader.gitServiceType = structs.GiteaService
 
-	assert.NoError(t, repo_service.Init(context.Background()))
+	assert.NoError(t, repo_service.Init(t.Context()))
 	assert.NoError(t, uploader.CreateRepo(ctx, &base.Repository{
 		Description: "description",
 		OriginalURL: fromRepo.RepoPath(),
@@ -509,14 +510,14 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 
 			head, err := uploader.updateGitForPullRequest(ctx, &testCase.pr)
 			assert.NoError(t, err)
-			assert.EqualValues(t, testCase.head, head)
+			assert.Equal(t, testCase.head, head)
 
 			log.Info(stopMark)
 
 			logFiltered, logStopped := logChecker.Check(5 * time.Second)
 			assert.True(t, logStopped)
 			if len(testCase.logFilter) > 0 {
-				assert.EqualValues(t, testCase.logFiltered, logFiltered, "for log message filters: %v", testCase.logFilter)
+				assert.Equal(t, testCase.logFiltered, logFiltered, "for log message filters: %v", testCase.logFilter)
 			}
 		})
 	}

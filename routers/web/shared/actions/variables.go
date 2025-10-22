@@ -49,9 +49,8 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 	}
 
 	if ctx.Data["PageIsOrgSettings"] == true {
-		err := shared_user.LoadHeaderCount(ctx)
-		if err != nil {
-			ctx.ServerError("LoadHeaderCount", err)
+		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+			ctx.ServerError("RenderUserOrgHeader", err)
 			return nil, nil
 		}
 		return &variablesCtx{
@@ -106,7 +105,8 @@ func Variables(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Variables"] = variables
-
+	ctx.Data["DataMaxLength"] = actions_model.VariableDataMaxLength
+	ctx.Data["DescriptionMaxLength"] = actions_model.VariableDescriptionMaxLength
 	ctx.HTML(http.StatusOK, vCtx.VariablesTemplate)
 }
 
@@ -124,7 +124,7 @@ func VariableCreate(ctx *context.Context) {
 
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
-	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data)
+	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data, form.Description)
 	if err != nil {
 		log.Error("CreateVariable: %v", err)
 		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
@@ -157,6 +157,7 @@ func VariableUpdate(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 	variable.Name = form.Name
 	variable.Data = form.Data
+	variable.Description = form.Description
 
 	if ok, err := actions_service.UpdateVariableNameData(ctx, variable); err != nil || !ok {
 		log.Error("UpdateVariable: %v", err)
@@ -193,7 +194,7 @@ func findActionsVariable(ctx *context.Context, id int64, vCtx *variablesCtx) *ac
 		ctx.ServerError("FindVariables", err)
 		return nil
 	} else if len(got) == 0 {
-		ctx.NotFound("FindVariables", nil)
+		ctx.NotFound(nil)
 		return nil
 	}
 	return got[0]

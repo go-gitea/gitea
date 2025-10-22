@@ -4,25 +4,27 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
 	"runtime"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // syncGitConfig only modifies gitconfig, won't change global variables (otherwise there will be data-race problem)
-func syncGitConfig() (err error) {
-	if err = os.MkdirAll(HomeDir(), os.ModePerm); err != nil {
-		return fmt.Errorf("unable to prepare git home directory %s, err: %w", HomeDir(), err)
+func syncGitConfig(ctx context.Context) (err error) {
+	if err = os.MkdirAll(gitcmd.HomeDir(), os.ModePerm); err != nil {
+		return fmt.Errorf("unable to prepare git home directory %s, err: %w", gitcmd.HomeDir(), err)
 	}
 
 	// first, write user's git config options to git config file
 	// user config options could be overwritten by builtin values later, because if a value is builtin, it must have some special purposes
 	for k, v := range setting.GitConfig.Options {
-		if err = configSet(strings.ToLower(k), v); err != nil {
+		if err = configSet(ctx, strings.ToLower(k), v); err != nil {
 			return err
 		}
 	}
@@ -34,41 +36,41 @@ func syncGitConfig() (err error) {
 		"user.name":  "Gitea",
 		"user.email": "gitea@fake.local",
 	} {
-		if err := configSetNonExist(configKey, defaultValue); err != nil {
+		if err := configSetNonExist(ctx, configKey, defaultValue); err != nil {
 			return err
 		}
 	}
 
 	// Set git some configurations - these must be set to these values for gitea to work correctly
-	if err := configSet("core.quotePath", "false"); err != nil {
+	if err := configSet(ctx, "core.quotePath", "false"); err != nil {
 		return err
 	}
 
 	if DefaultFeatures().CheckVersionAtLeast("2.10") {
-		if err := configSet("receive.advertisePushOptions", "true"); err != nil {
+		if err := configSet(ctx, "receive.advertisePushOptions", "true"); err != nil {
 			return err
 		}
 	}
 
 	if DefaultFeatures().CheckVersionAtLeast("2.18") {
-		if err := configSet("core.commitGraph", "true"); err != nil {
+		if err := configSet(ctx, "core.commitGraph", "true"); err != nil {
 			return err
 		}
-		if err := configSet("gc.writeCommitGraph", "true"); err != nil {
+		if err := configSet(ctx, "gc.writeCommitGraph", "true"); err != nil {
 			return err
 		}
-		if err := configSet("fetch.writeCommitGraph", "true"); err != nil {
+		if err := configSet(ctx, "fetch.writeCommitGraph", "true"); err != nil {
 			return err
 		}
 	}
 
 	if DefaultFeatures().SupportProcReceive {
 		// set support for AGit flow
-		if err := configAddNonExist("receive.procReceiveRefs", "refs/for"); err != nil {
+		if err := configAddNonExist(ctx, "receive.procReceiveRefs", "refs/for"); err != nil {
 			return err
 		}
 	} else {
-		if err := configUnsetAll("receive.procReceiveRefs", "refs/for"); err != nil {
+		if err := configUnsetAll(ctx, "receive.procReceiveRefs", "refs/for"); err != nil {
 			return err
 		}
 	}
@@ -81,18 +83,18 @@ func syncGitConfig() (err error) {
 	// As Gitea now always use its internal git config file, and access to the git repositories is managed through Gitea,
 	// it is now safe to set "safe.directory=*" for internal usage only.
 	// Although this setting is only supported by some new git versions, it is also tolerated by earlier versions
-	if err := configAddNonExist("safe.directory", "*"); err != nil {
+	if err := configAddNonExist(ctx, "safe.directory", "*"); err != nil {
 		return err
 	}
 
 	if runtime.GOOS == "windows" {
-		if err := configSet("core.longpaths", "true"); err != nil {
+		if err := configSet(ctx, "core.longpaths", "true"); err != nil {
 			return err
 		}
 		if setting.Git.DisableCoreProtectNTFS {
-			err = configSet("core.protectNTFS", "false")
+			err = configSet(ctx, "core.protectNTFS", "false")
 		} else {
-			err = configUnsetAll("core.protectNTFS", "false")
+			err = configUnsetAll(ctx, "core.protectNTFS", "false")
 		}
 		if err != nil {
 			return err
@@ -101,23 +103,25 @@ func syncGitConfig() (err error) {
 
 	// By default partial clones are disabled, enable them from git v2.22
 	if !setting.Git.DisablePartialClone && DefaultFeatures().CheckVersionAtLeast("2.22") {
-		if err = configSet("uploadpack.allowfilter", "true"); err != nil {
+		if err = configSet(ctx, "uploadpack.allowfilter", "true"); err != nil {
 			return err
 		}
-		err = configSet("uploadpack.allowAnySHA1InWant", "true")
+		err = configSet(ctx, "uploadpack.allowAnySHA1InWant", "true")
 	} else {
-		if err = configUnsetAll("uploadpack.allowfilter", "true"); err != nil {
+		if err = configUnsetAll(ctx, "uploadpack.allowfilter", "true"); err != nil {
 			return err
 		}
-		err = configUnsetAll("uploadpack.allowAnySHA1InWant", "true")
+		err = configUnsetAll(ctx, "uploadpack.allowAnySHA1InWant", "true")
 	}
 
 	return err
 }
 
-func configSet(key, value string) error {
-	stdout, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
-	if err != nil && !IsErrorExitCode(err, 1) {
+func configSet(ctx context.Context, key, value string) error {
+	stdout, _, err := gitcmd.NewCommand("config", "--global", "--get").
+		AddDynamicArguments(key).
+		RunStdString(ctx)
+	if err != nil && !gitcmd.IsErrorExitCode(err, 1) {
 		return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 	}
 
@@ -126,23 +130,24 @@ func configSet(key, value string) error {
 		return nil
 	}
 
-	_, _, err = NewCommand(DefaultContext, "config", "--global").AddDynamicArguments(key, value).RunStdString(nil)
-	if err != nil {
+	if _, _, err = gitcmd.NewCommand("config", "--global").
+		AddDynamicArguments(key, value).
+		RunStdString(ctx); err != nil {
 		return fmt.Errorf("failed to set git global config %s, err: %w", key, err)
 	}
 
 	return nil
 }
 
-func configSetNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
+func configSetNonExist(ctx context.Context, key, value string) error {
+	_, _, err := gitcmd.NewCommand("config", "--global", "--get").AddDynamicArguments(key).RunStdString(ctx)
 	if err == nil {
 		// already exist
 		return nil
 	}
-	if IsErrorExitCode(err, 1) {
+	if gitcmd.IsErrorExitCode(err, 1) {
 		// not exist, set new config
-		_, _, err = NewCommand(DefaultContext, "config", "--global").AddDynamicArguments(key, value).RunStdString(nil)
+		_, _, err = gitcmd.NewCommand("config", "--global").AddDynamicArguments(key, value).RunStdString(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to set git global config %s, err: %w", key, err)
 		}
@@ -152,15 +157,15 @@ func configSetNonExist(key, value string) error {
 	return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 }
 
-func configAddNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
+func configAddNonExist(ctx context.Context, key, value string) error {
+	_, _, err := gitcmd.NewCommand("config", "--global", "--get").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(ctx)
 	if err == nil {
 		// already exist
 		return nil
 	}
-	if IsErrorExitCode(err, 1) {
+	if gitcmd.IsErrorExitCode(err, 1) {
 		// not exist, add new config
-		_, _, err = NewCommand(DefaultContext, "config", "--global", "--add").AddDynamicArguments(key, value).RunStdString(nil)
+		_, _, err = gitcmd.NewCommand("config", "--global", "--add").AddDynamicArguments(key, value).RunStdString(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to add git global config %s, err: %w", key, err)
 		}
@@ -169,17 +174,17 @@ func configAddNonExist(key, value string) error {
 	return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 }
 
-func configUnsetAll(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
+func configUnsetAll(ctx context.Context, key, value string) error {
+	_, _, err := gitcmd.NewCommand("config", "--global", "--get").AddDynamicArguments(key).RunStdString(ctx)
 	if err == nil {
 		// exist, need to remove
-		_, _, err = NewCommand(DefaultContext, "config", "--global", "--unset-all").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
+		_, _, err = gitcmd.NewCommand("config", "--global", "--unset-all").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to unset git global config %s, err: %w", key, err)
 		}
 		return nil
 	}
-	if IsErrorExitCode(err, 1) {
+	if gitcmd.IsErrorExitCode(err, 1) {
 		// not exist
 		return nil
 	}

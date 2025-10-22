@@ -133,5 +133,8 @@ func GetTeamsByOrgIDs(ctx context.Context, orgIDs []int64) (TeamList, error) {
 
 func GetTeamsByIDs(ctx context.Context, teamIDs []int64) (map[int64]*Team, error) {
 	teams := make(map[int64]*Team, len(teamIDs))
+	if len(teamIDs) == 0 {
+		return teams, nil
+	}
 	return teams, db.GetEngine(ctx).Where(builder.In("`id`", teamIDs)).Find(&teams)
 }

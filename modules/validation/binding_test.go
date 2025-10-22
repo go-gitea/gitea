@@ -47,7 +47,7 @@ func performValidationTest(t *testing.T, testCase validationTestCase) {
 		assert.Equal(t, testCase.expectedErrors, actual)
 	})
 
-	req, err := http.NewRequest("POST", testRoute, nil)
+	req, err := http.NewRequest(http.MethodPost, testRoute, nil)
 	if err != nil {
 		panic(err)
 	}

@@ -62,14 +62,14 @@ func (a *authPathDetector) isAPIPath() bool {
 
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment
 func (a *authPathDetector) isAttachmentDownload() bool {
-	return strings.HasPrefix(a.req.URL.Path, "/attachments/") && a.req.Method == "GET"
+	return strings.HasPrefix(a.req.URL.Path, "/attachments/") && a.req.Method == http.MethodGet
 }
 
 func (a *authPathDetector) isFeedRequest(req *http.Request) bool {
 	if !setting.Other.EnableFeed {
 		return false
 	}
-	if req.Method != "GET" {
+	if req.Method != http.MethodGet {
 		return false
 	}
 	return a.vars.feedPathRe.MatchString(req.URL.Path) || a.vars.feedRefPathRe.MatchString(req.URL.Path)
@@ -149,7 +149,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	middleware.SetLocaleCookie(resp, user.Language, 0)
 
 	// force to generate a new CSRF token
-	if ctx := gitea_context.GetWebContext(req); ctx != nil {
+	if ctx := gitea_context.GetWebContext(req.Context()); ctx != nil {
 		ctx.Csrf.PrepareForSessionUser(ctx)
 	}
 }

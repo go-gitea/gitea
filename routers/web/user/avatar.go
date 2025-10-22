@@ -16,7 +16,7 @@ func cacheableRedirect(ctx *context.Context, location string) {
 	// here we should not use `setting.StaticCacheTime`, it is pretty long (default: 6 hours)
 	// we must make sure the redirection cache time is short enough, otherwise a user won't see the updated avatar in 6 hours
 	// it's OK to make the cache time short, it is only a redirection, and doesn't cost much to make a new request
-	httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 5*time.Minute)
+	httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{MaxAge: 5 * time.Minute})
 	ctx.Redirect(location)
 }
 
@@ -31,7 +31,7 @@ func AvatarByUsernameSize(ctx *context.Context) {
 			return
 		}
 	}
-	cacheableRedirect(ctx, user.AvatarLinkWithSize(ctx, int(ctx.PathParamInt64("size"))))
+	cacheableRedirect(ctx, user.AvatarLinkWithSize(ctx, ctx.PathParamInt("size")))
 }
 
 // AvatarByEmailHash redirects the browser to the email avatar link

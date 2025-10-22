@@ -5,7 +5,6 @@ package user
 
 import (
 	"context"
-	"crypto/md5"
 	"fmt"
 	"image/png"
 	"io"
@@ -61,7 +60,9 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 
 // AvatarLinkWithSize returns a link to the user's avatar with size. size <= 0 means default size
 func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
-	if u.IsGhost() || u.IsGiteaActions() {
+	// ghost user was deleted, Gitea actions is a bot user, 0 means the user should be a virtual user
+	// which comes from git configure information
+	if u.IsGhost() || u.IsGiteaActions() || u.ID <= 0 {
 		return avatars.DefaultAvatarLink()
 	}
 
@@ -104,7 +105,7 @@ func (u *User) IsUploadAvatarChanged(data []byte) bool {
 	if !u.UseCustomAvatar || len(u.Avatar) == 0 {
 		return true
 	}
-	avatarID := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
+	avatarID := avatar.HashAvatar(u.ID, data)
 	return u.Avatar != avatarID
 }
 

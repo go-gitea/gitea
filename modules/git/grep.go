@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -23,11 +24,19 @@ type GrepResult struct {
 	LineCodes   []string
 }
 
+type GrepModeType string
+
+const (
+	GrepModeExact  GrepModeType = "exact"
+	GrepModeWords  GrepModeType = "words"
+	GrepModeRegexp GrepModeType = "regexp"
+)
+
 type GrepOptions struct {
 	RefName           string
 	MaxResultLimit    int
 	ContextLineNumber int
-	IsFuzzy           bool
+	GrepMode          GrepModeType
 	MaxLineLength     int // the maximum length of a line to parse, exceeding chars will be truncated
 	PathspecList      []string
 }
@@ -52,25 +61,33 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	 2^@repo: go-gitea/gitea
 	*/
 	var results []*GrepResult
-	cmd := NewCommand(ctx, "grep", "--null", "--break", "--heading", "--fixed-strings", "--line-number", "--ignore-case", "--full-name")
-	cmd.AddOptionValues("--context", fmt.Sprint(opts.ContextLineNumber))
-	if opts.IsFuzzy {
-		words := strings.Fields(search)
-		for _, word := range words {
-			cmd.AddOptionValues("-e", strings.TrimLeft(word, "-"))
-		}
-	} else {
+	cmd := gitcmd.NewCommand("grep", "--null", "--break", "--heading", "--line-number", "--full-name")
+	cmd.AddOptionValues("--context", strconv.Itoa(opts.ContextLineNumber))
+	switch opts.GrepMode {
+	case GrepModeExact:
+		cmd.AddArguments("--fixed-strings")
 		cmd.AddOptionValues("-e", strings.TrimLeft(search, "-"))
+	case GrepModeRegexp:
+		cmd.AddArguments("--perl-regexp")
+		cmd.AddOptionValues("-e", strings.TrimLeft(search, "-"))
+	default: /* words */
+		words := strings.Fields(search)
+		cmd.AddArguments("--fixed-strings", "--ignore-case")
+		for i, word := range words {
+			cmd.AddOptionValues("-e", strings.TrimLeft(word, "-"))
+			if i < len(words)-1 {
+				cmd.AddOptionValues("--and")
+			}
+		}
 	}
 	cmd.AddDynamicArguments(util.IfZero(opts.RefName, "HEAD"))
 	cmd.AddDashesAndList(opts.PathspecList...)
 	opts.MaxResultLimit = util.IfZero(opts.MaxResultLimit, 50)
 	stderr := bytes.Buffer{}
-	err = cmd.Run(&RunOpts{
-		Dir:    repo.Path,
-		Stdout: stdoutWriter,
-		Stderr: &stderr,
-		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+	err = cmd.WithDir(repo.Path).
+		WithStdout(stdoutWriter).
+		WithStderr(&stderr).
+		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			defer stdoutReader.Close()
 
@@ -115,14 +132,14 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 				}
 			}
 			return nil
-		},
-	})
+		}).
+		Run(ctx)
 	// git grep exits by cancel (killed), usually it is caused by the limit of results
-	if IsErrorExitCode(err, -1) && stderr.Len() == 0 {
+	if gitcmd.IsErrorExitCode(err, -1) && stderr.Len() == 0 {
 		return results, nil
 	}
 	// git grep exits with 1 if no results are found
-	if IsErrorExitCode(err, 1) && stderr.Len() == 0 {
+	if gitcmd.IsErrorExitCode(err, 1) && stderr.Len() == 0 {
 		return nil, nil
 	}
 	if err != nil && !errors.Is(err, context.Canceled) {

@@ -20,7 +20,7 @@ type testAccessLoggerMock struct {
 	logs []string
 }
 
-func (t *testAccessLoggerMock) Log(skip int, level log.Level, format string, v ...any) {
+func (t *testAccessLoggerMock) Log(skip int, event *log.Event, format string, v ...any) {
 	t.logs = append(t.logs, fmt.Sprintf(format, v...))
 }
 
@@ -59,7 +59,7 @@ func TestAccessLogger(t *testing.T) {
 	recorder.logger = mockLogger
 	req := &http.Request{
 		RemoteAddr: "remote-addr",
-		Method:     "GET",
+		Method:     http.MethodGet,
 		Proto:      "https",
 		URL:        &url.URL{Path: "/path"},
 	}
@@ -68,4 +68,9 @@ func TestAccessLogger(t *testing.T) {
 	req.Header.Add("User-Agent", "user-agent")
 	recorder.record(time.Date(2000, 1, 2, 3, 4, 5, 0, time.UTC), &testAccessLoggerResponseWriterMock{}, req)
 	assert.Equal(t, []string{`remote-addr - - [02/Jan/2000:03:04:05 +0000] "GET /path https" 200 123123 "referer" "user-agent"`}, mockLogger.logs)
+}
+
+func TestAccessLoggerRequestID(t *testing.T) {
+	assert.False(t, isSafeRequestID("\x00"))
+	assert.True(t, isSafeRequestID("a b-c"))
 }

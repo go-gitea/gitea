@@ -4,7 +4,6 @@
 package migrations
 
 import (
-	"context"
 	"net/http"
 	"os"
 	"testing"
@@ -28,7 +27,7 @@ func TestGogsDownloadRepo(t *testing.T) {
 		t.Skipf("visit test repo failed, ignored")
 		return
 	}
-	ctx := context.Background()
+	ctx := t.Context()
 	downloader := NewGogsDownloader(ctx, "https://try.gogs.io", "", "", gogsPersonalAccessToken, "lunnytest", "TESTREPO")
 	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -23,12 +23,11 @@ func RevListAllObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sy
 
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	cmd := git.NewCommand(ctx, "rev-list", "--objects", "--all")
-	if err := cmd.Run(&git.RunOpts{
-		Dir:    basePath,
-		Stdout: revListWriter,
-		Stderr: stderr,
-	}); err != nil {
+	cmd := gitcmd.NewCommand("rev-list", "--objects", "--all")
+	if err := cmd.WithDir(basePath).
+		WithStdout(revListWriter).
+		WithStderr(stderr).
+		Run(ctx); err != nil {
 		log.Error("git rev-list --objects --all [%s]: %v - %s", basePath, err, errbuf.String())
 		err = fmt.Errorf("git rev-list --objects --all [%s]: %w - %s", basePath, err, errbuf.String())
 		_ = revListWriter.CloseWithError(err)
@@ -42,15 +41,14 @@ func RevListObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sync.
 	defer revListWriter.Close()
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	cmd := git.NewCommand(ctx, "rev-list", "--objects").AddDynamicArguments(headSHA)
+	cmd := gitcmd.NewCommand("rev-list", "--objects").AddDynamicArguments(headSHA)
 	if baseSHA != "" {
 		cmd = cmd.AddArguments("--not").AddDynamicArguments(baseSHA)
 	}
-	if err := cmd.Run(&git.RunOpts{
-		Dir:    tmpBasePath,
-		Stdout: revListWriter,
-		Stderr: stderr,
-	}); err != nil {
+	if err := cmd.WithDir(tmpBasePath).
+		WithStdout(revListWriter).
+		WithStderr(stderr).
+		Run(ctx); err != nil {
 		log.Error("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 		errChan <- fmt.Errorf("git rev-list [%s]: %w - %s", tmpBasePath, err, errbuf.String())
 	}

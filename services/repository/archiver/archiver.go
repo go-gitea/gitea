@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -17,11 +18,13 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	gitea_context "code.gitea.io/gitea/services/context"
 )
 
 // ArchiveRequest defines the parameters of an archive request, which notably
@@ -30,8 +33,8 @@ import (
 // This is entirely opaque to external entities, though, and mostly used as a
 // handle elsewhere.
 type ArchiveRequest struct {
-	RepoID   int64
-	Type     git.ArchiveType
+	Repo     *repo_model.Repository
+	Type     repo_model.ArchiveType
 	CommitID string
 
 	archiveRefShortName string // the ref short name to download the archive, for example: "master", "v1.0.0", "commit id"
@@ -44,7 +47,7 @@ type ErrUnknownArchiveFormat struct {
 
 // Error implements error
 func (err ErrUnknownArchiveFormat) Error() string {
-	return fmt.Sprintf("unknown format: %s", err.RequestNameType)
+	return "unknown format: " + err.RequestNameType
 }
 
 // Is implements error
@@ -60,7 +63,7 @@ type RepoRefNotFoundError struct {
 
 // Error implements error.
 func (e RepoRefNotFoundError) Error() string {
-	return fmt.Sprintf("unrecognized repository reference: %s", e.RefShortName)
+	return "unrecognized repository reference: " + e.RefShortName
 }
 
 func (e RepoRefNotFoundError) Is(err error) bool {
@@ -71,20 +74,20 @@ func (e RepoRefNotFoundError) Is(err error) bool {
 // NewRequest creates an archival request, based on the URI.  The
 // resulting ArchiveRequest is suitable for being passed to Await()
 // if it's determined that the request still needs to be satisfied.
-func NewRequest(repoID int64, repo *git.Repository, archiveRefExt string) (*ArchiveRequest, error) {
+func NewRequest(repo *repo_model.Repository, gitRepo *git.Repository, archiveRefExt string) (*ArchiveRequest, error) {
 	// here the archiveRefShortName is not a clear ref, it could be a tag, branch or commit id
-	archiveRefShortName, archiveType := git.SplitArchiveNameType(archiveRefExt)
-	if archiveType == git.ArchiveUnknown {
+	archiveRefShortName, archiveType := repo_model.SplitArchiveNameType(archiveRefExt)
+	if archiveType == repo_model.ArchiveUnknown {
 		return nil, ErrUnknownArchiveFormat{archiveRefExt}
 	}
 
 	// Get corresponding commit.
-	commitID, err := repo.ConvertToGitID(archiveRefShortName)
+	commitID, err := gitRepo.ConvertToGitID(archiveRefShortName)
 	if err != nil {
 		return nil, RepoRefNotFoundError{RefShortName: archiveRefShortName}
 	}
 
-	r := &ArchiveRequest{RepoID: repoID, archiveRefShortName: archiveRefShortName, Type: archiveType}
+	r := &ArchiveRequest{Repo: repo, archiveRefShortName: archiveRefShortName, Type: archiveType}
 	r.CommitID = commitID.String()
 	return r, nil
 }
@@ -102,7 +105,7 @@ func (aReq *ArchiveRequest) GetArchiveName() string {
 // context is cancelled/times out a started archiver will still continue to run
 // in the background.
 func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver, error) {
-	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.Repo.ID, aReq.Type, aReq.CommitID)
 	if err != nil {
 		return nil, fmt.Errorf("models.GetRepoArchiver: %w", err)
 	}
@@ -127,7 +130,7 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-poll.C:
-			archiver, err = repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
+			archiver, err = repo_model.GetRepoArchiver(ctx, aReq.Repo.ID, aReq.Type, aReq.CommitID)
 			if err != nil {
 				return nil, fmt.Errorf("repo_model.GetRepoArchiver: %w", err)
 			}
@@ -138,6 +141,27 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 	}
 }
 
+// Stream satisfies the ArchiveRequest being passed in.  Processing
+// will occur directly in this routine.
+func (aReq *ArchiveRequest) Stream(ctx context.Context, w io.Writer) error {
+	if aReq.Type == repo_model.ArchiveBundle {
+		return gitrepo.CreateBundle(
+			ctx,
+			aReq.Repo,
+			aReq.CommitID,
+			w,
+		)
+	}
+	return gitrepo.CreateArchive(
+		ctx,
+		aReq.Repo,
+		aReq.Type.String(),
+		w,
+		setting.Repository.PrefixArchiveFiles,
+		aReq.CommitID,
+	)
+}
+
 // doArchive satisfies the ArchiveRequest being passed in.  Processing
 // will occur in a separate goroutine, as this phase may take a while to
 // complete.  If the archive already exists, doArchive will not do
@@ -145,10 +169,10 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 // being returned for completion, as it may be different than the one they passed
 // in.
 func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
-	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("ArchiveRequest[%d]: %s", r.RepoID, r.GetArchiveName()))
+	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("ArchiveRequest[%s]: %s", r.Repo.FullName(), r.GetArchiveName()))
 	defer finished()
 
-	archiver, err := repo_model.GetRepoArchiver(ctx, r.RepoID, r.Type, r.CommitID)
+	archiver, err := repo_model.GetRepoArchiver(ctx, r.Repo.ID, r.Type, r.CommitID)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +185,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 		}
 	} else {
 		archiver = &repo_model.RepoArchiver{
-			RepoID:   r.RepoID,
+			RepoID:   r.Repo.ID,
 			Type:     r.Type,
 			CommitID: r.CommitID,
 			Status:   repo_model.ArchiverGenerating,
@@ -193,42 +217,18 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 		_ = rd.Close()
 	}()
 	done := make(chan error, 1) // Ensure that there is some capacity which will ensure that the goroutine below can always finish
-	repo, err := repo_model.GetRepositoryByID(ctx, archiver.RepoID)
-	if err != nil {
-		return nil, fmt.Errorf("archiver.LoadRepo failed: %w", err)
-	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
-	if err != nil {
-		return nil, err
-	}
-	defer gitRepo.Close()
-
-	go func(done chan error, w *io.PipeWriter, archiver *repo_model.RepoArchiver, gitRepo *git.Repository) {
+	go func(done chan error, w *io.PipeWriter, archiveReq *ArchiveRequest) {
 		defer func() {
 			if r := recover(); r != nil {
 				done <- fmt.Errorf("%v", r)
 			}
 		}()
 
-		if archiver.Type == git.ArchiveBundle {
-			err = gitRepo.CreateBundle(
-				ctx,
-				archiver.CommitID,
-				w,
-			)
-		} else {
-			err = gitRepo.CreateArchive(
-				ctx,
-				archiver.Type,
-				w,
-				setting.Repository.PrefixArchiveFiles,
-				archiver.CommitID,
-			)
-		}
+		err := archiveReq.Stream(ctx, w)
 		_ = w.CloseWithError(err)
 		done <- err
-	}(done, w, archiver, gitRepo)
+	}(done, w, r)
 
 	// TODO: add lfs data to zip
 	// TODO: add submodule data to zip
@@ -337,4 +337,55 @@ func DeleteRepositoryArchives(ctx context.Context) error {
 		return err
 	}
 	return storage.Clean(storage.RepoArchives)
+}
+
+func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) {
+	// Add nix format link header so tarballs lock correctly:
+	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
+	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.%s?rev=%s>; rel="immutable"`,
+		archiveReq.Repo.APIURL(),
+		archiveReq.CommitID,
+		archiveReq.Type.String(),
+		archiveReq.CommitID,
+	))
+	downloadName := archiveReq.Repo.Name + "-" + archiveReq.GetArchiveName()
+
+	if setting.Repository.StreamArchives {
+		httplib.ServeSetHeaders(ctx.Resp, &httplib.ServeHeaderOptions{Filename: downloadName})
+		if err := archiveReq.Stream(ctx, ctx.Resp); err != nil && !ctx.Written() {
+			log.Error("Archive %v streaming failed: %v", archiveReq, err)
+			ctx.HTTPError(http.StatusInternalServerError)
+		}
+		return
+	}
+
+	archiver, err := archiveReq.Await(ctx)
+	if err != nil {
+		log.Error("Archive %v await failed: %v", archiveReq, err)
+		ctx.HTTPError(http.StatusInternalServerError)
+		return
+	}
+
+	rPath := archiver.RelativePath()
+	if setting.RepoArchive.Storage.ServeDirect() {
+		// If we have a signed url (S3, object storage), redirect to this directly.
+		u, err := storage.RepoArchives.URL(rPath, downloadName, ctx.Req.Method, nil)
+		if u != nil && err == nil {
+			ctx.Redirect(u.String())
+			return
+		}
+	}
+
+	fr, err := storage.RepoArchives.Open(rPath)
+	if err != nil {
+		log.Error("Archive %v open file failed: %v", archiveReq, err)
+		ctx.HTTPError(http.StatusInternalServerError)
+		return
+	}
+	defer fr.Close()
+
+	ctx.ServeContent(fr, &gitea_context.ServeHeaderOptions{
+		Filename:     downloadName,
+		LastModified: archiver.CreatedUnix.AsLocalTime(),
+	})
 }

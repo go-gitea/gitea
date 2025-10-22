@@ -34,12 +34,12 @@ func TestParseGitURLs(t *testing.T) {
 			},
 		},
 		{
-			kase: "git@[fe80:14fc:cec5:c174:d88%2510]:go-gitea/gitea.git",
+			kase: "git@[fe80::14fc:cec5:c174:d88%2510]:go-gitea/gitea.git",
 			expected: &GitURL{
 				URL: &url.URL{
 					Scheme: "ssh",
 					User:   url.User("git"),
-					Host:   "[fe80:14fc:cec5:c174:d88%10]",
+					Host:   "[fe80::14fc:cec5:c174:d88%10]",
 					Path:   "go-gitea/gitea.git",
 				},
 				extraMark: 1,
@@ -137,11 +137,11 @@ func TestParseGitURLs(t *testing.T) {
 			},
 		},
 		{
-			kase: "https://[fe80:14fc:cec5:c174:d88%2510]:20/go-gitea/gitea.git",
+			kase: "https://[fe80::14fc:cec5:c174:d88%2510]:20/go-gitea/gitea.git",
 			expected: &GitURL{
 				URL: &url.URL{
 					Scheme: "https",
-					Host:   "[fe80:14fc:cec5:c174:d88%10]:20",
+					Host:   "[fe80::14fc:cec5:c174:d88%10]:20",
 					Path:   "/go-gitea/gitea.git",
 				},
 				extraMark: 0,
@@ -165,8 +165,8 @@ func TestParseGitURLs(t *testing.T) {
 		t.Run(kase.kase, func(t *testing.T) {
 			u, err := ParseGitURL(kase.kase)
 			assert.NoError(t, err)
-			assert.EqualValues(t, kase.expected.extraMark, u.extraMark)
-			assert.EqualValues(t, *kase.expected, *u)
+			assert.Equal(t, kase.expected.extraMark, u.extraMark)
+			assert.Equal(t, *kase.expected, *u)
 		})
 	}
 }
@@ -179,7 +179,7 @@ func TestParseRepositoryURL(t *testing.T) {
 	ctxReq := &http.Request{URL: ctxURL, Header: http.Header{}}
 	ctxReq.Host = ctxURL.Host
 	ctxReq.Header.Add("X-Forwarded-Proto", ctxURL.Scheme)
-	ctx := context.WithValue(context.Background(), httplib.RequestContextKey, ctxReq)
+	ctx := context.WithValue(t.Context(), httplib.RequestContextKey, ctxReq)
 	cases := []struct {
 		input                          string
 		ownerName, repoName, remaining string
@@ -249,19 +249,19 @@ func TestMakeRepositoryBaseLink(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "https://localhost:3000/subpath")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/subpath")()
 
-	u, err := ParseRepositoryURL(context.Background(), "https://localhost:3000/subpath/user/repo.git")
+	u, err := ParseRepositoryURL(t.Context(), "https://localhost:3000/subpath/user/repo.git")
 	assert.NoError(t, err)
 	assert.Equal(t, "/subpath/user/repo", MakeRepositoryWebLink(u))
 
-	u, err = ParseRepositoryURL(context.Background(), "https://github.com/owner/repo.git")
+	u, err = ParseRepositoryURL(t.Context(), "https://github.com/owner/repo.git")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://github.com/owner/repo", MakeRepositoryWebLink(u))
 
-	u, err = ParseRepositoryURL(context.Background(), "git@github.com:owner/repo.git")
+	u, err = ParseRepositoryURL(t.Context(), "git@github.com:owner/repo.git")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://github.com/owner/repo", MakeRepositoryWebLink(u))
 
-	u, err = ParseRepositoryURL(context.Background(), "git+ssh://other:123/owner/repo.git")
+	u, err = ParseRepositoryURL(t.Context(), "git+ssh://other:123/owner/repo.git")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://other/owner/repo", MakeRepositoryWebLink(u))
 }

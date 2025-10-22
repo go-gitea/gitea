@@ -12,11 +12,11 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/proxy"
 )
 
@@ -27,6 +27,7 @@ type GPGSettings struct {
 	Email            string
 	Name             string
 	PublicKeyContent string
+	Format           string
 }
 
 const prettyLogFormat = `--pretty=format:%H`
@@ -36,15 +37,26 @@ func (repo *Repository) GetAllCommitsCount() (int64, error) {
 	return AllCommitsCount(repo.Ctx, repo.Path, false)
 }
 
+func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
+	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
+	logs, _, err := gitcmd.NewCommand("log").AddArguments(prettyLogFormat).
+		AddDynamicArguments(revisionRange).AddArguments("--").WithDir(repo.Path).
+		RunStdBytes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return repo.parsePrettyFormatLogToList(logs)
+}
+
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, error) {
 	var commits []*Commit
 	if len(logs) == 0 {
 		return commits, nil
 	}
 
-	parts := bytes.Split(logs, []byte{'\n'})
+	parts := bytes.SplitSeq(logs, []byte{'\n'})
 
-	for _, commitID := range parts {
+	for commitID := range parts {
 		commit, err := repo.GetCommit(string(commitID))
 		if err != nil {
 			return nil, err
@@ -57,7 +69,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(ctx context.Context, url string) bool {
-	_, _, err := NewCommand(ctx, "ls-remote", "-q", "-h").AddDynamicArguments(url, "HEAD").RunStdString(nil)
+	_, _, err := gitcmd.NewCommand("ls-remote", "-q", "-h").AddDynamicArguments(url, "HEAD").RunStdString(ctx)
 	return err == nil
 }
 
@@ -68,7 +80,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 		return err
 	}
 
-	cmd := NewCommand(ctx, "init")
+	cmd := gitcmd.NewCommand("init")
 
 	if !IsValidObjectFormat(objectFormatName) {
 		return fmt.Errorf("invalid object format: %s", objectFormatName)
@@ -80,19 +92,20 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 	if bare {
 		cmd.AddArguments("--bare")
 	}
-	_, _, err = cmd.RunStdString(&RunOpts{Dir: repoPath})
+	_, _, err = cmd.WithDir(repoPath).RunStdString(ctx)
 	return err
 }
 
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
-	if err := NewCommand(repo.Ctx).AddOptionFormat("--git-dir=%s", repo.Path).AddArguments("rev-list", "-n", "1", "--all").
-		Run(&RunOpts{
-			Dir:    repo.Path,
-			Stdout: &output,
-			Stderr: &errbuf,
-		}); err != nil {
+	if err := gitcmd.NewCommand().
+		AddOptionFormat("--git-dir=%s", repo.Path).
+		AddArguments("rev-list", "-n", "1", "--all").
+		WithDir(repo.Path).
+		WithStdout(&output).
+		WithStderr(&errbuf).
+		Run(repo.Ctx); err != nil {
 		if (err.Error() == "exit status 1" && strings.TrimSpace(errbuf.String()) == "") || err.Error() == "exit status 129" {
 			// git 2.11 exits with 129 if the repo is empty
 			return true, nil
@@ -119,17 +132,12 @@ type CloneRepoOptions struct {
 
 // Clone clones original repository to target path.
 func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
-	return CloneWithArgs(ctx, globalCommandArgs, from, to, opts)
-}
-
-// CloneWithArgs original repository to target path.
-func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
-	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
 	}
 
-	cmd := NewCommandContextNoGlobals(ctx, args...).AddArguments("clone")
+	cmd := gitcmd.NewCommand().AddArguments("clone")
 	if opts.SkipTLSVerify {
 		cmd.AddArguments("-c", "http.sslVerify=false")
 	}
@@ -170,13 +178,13 @@ func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, op
 	}
 
 	stderr := new(bytes.Buffer)
-	if err = cmd.Run(&RunOpts{
-		Timeout: opts.Timeout,
-		Env:     envs,
-		Stdout:  io.Discard,
-		Stderr:  stderr,
-	}); err != nil {
-		return ConcatenateError(err, stderr.String())
+	if err = cmd.
+		WithTimeout(opts.Timeout).
+		WithEnv(envs).
+		WithStdout(io.Discard).
+		WithStderr(stderr).
+		Run(ctx); err != nil {
+		return gitcmd.ConcatenateError(err, stderr.String())
 	}
 	return nil
 }
@@ -193,7 +201,7 @@ type PushOptions struct {
 
 // Push pushs local commits to given remote branch.
 func Push(ctx context.Context, repoPath string, opts PushOptions) error {
-	cmd := NewCommand(ctx, "push")
+	cmd := gitcmd.NewCommand("push")
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
@@ -206,7 +214,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 	cmd.AddDashesAndList(remoteBranchArgs...)
 
-	stdout, stderr, err := cmd.RunStdString(&RunOpts{Env: opts.Env, Timeout: opts.Timeout, Dir: repoPath})
+	stdout, stderr, err := cmd.WithEnv(opts.Env).WithTimeout(opts.Timeout).WithDir(repoPath).RunStdString(ctx)
 	if err != nil {
 		if strings.Contains(stderr, "non-fast-forward") {
 			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}
@@ -225,81 +233,11 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
 func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error) {
-	cmd := NewCommand(ctx, "for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
-	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
+	cmd := gitcmd.NewCommand("for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
+	stdout, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
 	if err != nil {
 		return time.Time{}, err
 	}
 	commitTime := strings.TrimSpace(stdout)
 	return time.Parse("Mon Jan _2 15:04:05 2006 -0700", commitTime)
-}
-
-// DivergeObject represents commit count diverging commits
-type DivergeObject struct {
-	Ahead  int
-	Behind int
-}
-
-// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
-func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (do DivergeObject, err error) {
-	cmd := NewCommand(ctx, "rev-list", "--count", "--left-right").
-		AddDynamicArguments(baseBranch + "..." + targetBranch).AddArguments("--")
-	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
-	if err != nil {
-		return do, err
-	}
-	left, right, found := strings.Cut(strings.Trim(stdout, "\n"), "\t")
-	if !found {
-		return do, fmt.Errorf("git rev-list output is missing a tab: %q", stdout)
-	}
-
-	do.Behind, err = strconv.Atoi(left)
-	if err != nil {
-		return do, err
-	}
-	do.Ahead, err = strconv.Atoi(right)
-	if err != nil {
-		return do, err
-	}
-	return do, nil
-}
-
-// CreateBundle create bundle content to the target path
-func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.Writer) error {
-	tmp, err := os.MkdirTemp(os.TempDir(), "gitea-bundle")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(tmp)
-
-	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repo.Path, "objects"))
-	_, _, err = NewCommand(ctx, "init", "--bare").RunStdString(&RunOpts{Dir: tmp, Env: env})
-	if err != nil {
-		return err
-	}
-
-	_, _, err = NewCommand(ctx, "reset", "--soft").AddDynamicArguments(commit).RunStdString(&RunOpts{Dir: tmp, Env: env})
-	if err != nil {
-		return err
-	}
-
-	_, _, err = NewCommand(ctx, "branch", "-m", "bundle").RunStdString(&RunOpts{Dir: tmp, Env: env})
-	if err != nil {
-		return err
-	}
-
-	tmpFile := filepath.Join(tmp, "bundle")
-	_, _, err = NewCommand(ctx, "bundle", "create").AddDynamicArguments(tmpFile, "bundle", "HEAD").RunStdString(&RunOpts{Dir: tmp, Env: env})
-	if err != nil {
-		return err
-	}
-
-	fi, err := os.Open(tmpFile)
-	if err != nil {
-		return err
-	}
-	defer fi.Close()
-
-	_, err = io.Copy(out, fi)
-	return err
 }
