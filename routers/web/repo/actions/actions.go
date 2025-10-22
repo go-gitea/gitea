@@ -232,11 +232,9 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 		ctx.ServerError("FindBranchNames", err)
 		return
 	}
-	// always put default branch on the top if it exists
-	if slices.Contains(branches, ctx.Repo.Repository.DefaultBranch) {
-		branches = util.SliceRemoveAll(branches, ctx.Repo.Repository.DefaultBranch)
-		branches = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
-	}
+	// always put default branch on the top
+	branches = util.SliceRemoveAll(branches, ctx.Repo.Repository.DefaultBranch)
+	branches = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
 	ctx.Data["Branches"] = branches
 
 	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
