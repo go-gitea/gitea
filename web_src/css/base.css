@@ -101,6 +101,15 @@ samp,
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 
+/* there are many <code> blocks in non-markup(.markup code) / non-code-diff(code.code-inner) containers (for example: translation strings, etc),
+so we need to make <code> have default global styles, ".markup code" has its own styles and doesn't conflict, but `.code-inner` is special.
+TODO: in the future, we should use `div` instead of `code` for `.code-inner` because it is a container for highlighted code line */
+code:not(.code-inner) {
+  padding: 1px 4px;
+  border-radius: var(--border-radius);
+  background-color: var(--color-label-bg);
+}
+
 b,
 strong,
 h1,
@@ -175,6 +184,11 @@ p:last-child {
 
 table {
   border-collapse: collapse;
+}
+
+ul {
+  margin: 0.5em 0;
+  padding: 0 0 0 1.5em;
 }
 
 button {
@@ -601,13 +615,6 @@ img.ui.avatar,
 
 .ui .message.flash-message {
   text-align: center;
-}
-
-.ui .message > ul {
-  margin-left: auto;
-  margin-right: auto;
-  display: table;
-  text-align: left;
 }
 
 .ui .header > i + .content {

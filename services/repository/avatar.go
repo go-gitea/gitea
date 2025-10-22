@@ -43,7 +43,7 @@ func UploadAvatar(ctx context.Context, repo *repo_model.Repository, data []byte)
 			_, err := w.Write(avatarData)
 			return err
 		}); err != nil {
-			return fmt.Errorf("UploadAvatar %s failed: Failed to remove old repo avatar %s: %w", repo.RepoPath(), newAvatar, err)
+			return fmt.Errorf("UploadAvatar %s failed: Failed to remove old repo avatar %s: %w", repo.RelativePath(), newAvatar, err)
 		}
 
 		if len(oldAvatarPath) > 0 {

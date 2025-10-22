@@ -34,7 +34,7 @@ jobs:
       swagger: ${{ steps.changes.outputs.swagger }}
       yaml: ${{ steps.changes.outputs.yaml }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dorny/paths-filter@v3
         id: changes
         with:
@@ -58,7 +58,7 @@ jobs:
               - "tools/*.ts"
               - "assets/emoji.json"
               - "package.json"
-              - "package-lock.json"
+              - "pnpm-lock.yaml"
               - "Makefile"
               - ".eslintrc.cjs"
               - ".npmrc"
@@ -67,7 +67,7 @@ jobs:
               - "**/*.md"
               - ".markdownlint.yaml"
               - "package.json"
-              - "package-lock.json"
+              - "pnpm-lock.yaml"
 
             actions:
               - ".github/workflows/*"
@@ -90,7 +90,7 @@ jobs:
               - "templates/swagger/v1_input.json"
               - "Makefile"
               - "package.json"
-              - "package-lock.json"
+              - "pnpm-lock.yaml"
               - ".spectral.yaml"
 
             yaml:

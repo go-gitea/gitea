@@ -416,8 +416,8 @@ func (f *WebauthnDeleteForm) Validate(req *http.Request, errs binding.Errors) bi
 
 // PackageSettingForm form for package settings
 type PackageSettingForm struct {
-	Action string
-	RepoID int64 `form:"repo_id"`
+	Action   string
+	RepoName string `form:"repo_name"`
 }
 
 // Validate validates the fields

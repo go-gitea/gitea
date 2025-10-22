@@ -45,32 +45,18 @@ func GetHook(repoPath, name string) (*Hook, error) {
 	}
 	h := &Hook{
 		name: name,
-		path: filepath.Join(repoPath, "hooks", name+".d", name),
+		path: filepath.Join(repoPath, filepath.Join("hooks", name+".d", name)),
 	}
-	isFile, err := util.IsFile(h.path)
-	if err != nil {
-		return nil, err
-	}
-	if isFile {
-		data, err := os.ReadFile(h.path)
-		if err != nil {
-			return nil, err
-		}
+	if data, err := os.ReadFile(h.path); err == nil {
 		h.IsActive = true
 		h.Content = string(data)
 		return h, nil
+	} else if !os.IsNotExist(err) {
+		return nil, err
 	}
 
 	samplePath := filepath.Join(repoPath, "hooks", name+".sample")
-	isFile, err = util.IsFile(samplePath)
-	if err != nil {
-		return nil, err
-	}
-	if isFile {
-		data, err := os.ReadFile(samplePath)
-		if err != nil {
-			return nil, err
-		}
+	if data, err := os.ReadFile(samplePath); err == nil {
 		h.Sample = string(data)
 	}
 	return h, nil

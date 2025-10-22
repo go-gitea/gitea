@@ -12,19 +12,18 @@ jobs:
   nightly-binary:
     runs-on: namespace-profile-gitea-release-binary
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
       - run: make deps-frontend deps-backend
       # xgo build
       - run: make release
@@ -62,11 +61,11 @@ jobs:
     permissions:
       packages: write # to publish to ghcr.io
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true
@@ -75,11 +74,6 @@ jobs:
       - name: Get cleaned branch name
         id: clean_name
         run: |
-          # if main then say nightly otherwise cleanup name
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "branch=nightly" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
           echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
       - name: Login to Docker Hub
@@ -109,11 +103,11 @@ jobs:
     permissions:
       packages: write # to publish to ghcr.io
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true
@@ -122,11 +116,6 @@ jobs:
       - name: Get cleaned branch name
         id: clean_name
         run: |
-          # if main then say nightly otherwise cleanup name
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "branch=nightly" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
           echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
       - name: Login to Docker Hub

@@ -18,18 +18,17 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
       - run: make deps-frontend frontend deps-backend
-      - run: npx playwright install --with-deps
+      - run: pnpm exec playwright install --with-deps
       - run: make test-e2e-sqlite
         timeout-minutes: 40
         env:

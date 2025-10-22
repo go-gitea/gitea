@@ -31,9 +31,8 @@
 		{{template "repo/pulls/status" (dict
 			"CommitStatus" .LatestCommitStatus
 			"CommitStatuses" .LatestCommitStatuses
-			"MissingRequiredChecks" .MissingRequiredChecks
 			"ShowHideChecks" true
-			"is_context_required" .is_context_required
+			"StatusCheckData" .StatusCheckData
 		)}}
 		</div>
 		{{end}}
@@ -188,7 +187,7 @@
 					{{if .WillSign}}
 						<div class="item">
 							{{svg "octicon-lock" 16 "text green"}}
-							{{ctx.Locale.Tr "repo.signing.will_sign" .SigningKey}}
+							{{ctx.Locale.Tr "repo.signing.will_sign" .SigningKeyMergeDisplay}}
 						</div>
 					{{else if .IsSigned}}
 						<div class="item">

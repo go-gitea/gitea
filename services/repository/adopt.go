@@ -17,18 +17,18 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/glob"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
-
-	"github.com/gobwas/glob"
 )
 
 func deleteFailedAdoptRepository(repoID int64) error {
-	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	return db.WithTx(graceful.GetManager().ShutdownContext(), func(ctx context.Context) error {
 		if err := deleteDBRepository(ctx, repoID); err != nil {
 			return fmt.Errorf("deleteDBRepository: %w", err)
 		}

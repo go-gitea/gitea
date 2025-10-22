@@ -69,6 +69,29 @@ func signingModeFromStrings(modeStrings []string) []signingMode {
 	return returnable
 }
 
+func userHasPubkeysGPG(ctx context.Context, userID int64) (bool, error) {
+	return db.Exist[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		OwnerID:        userID,
+		IncludeSubKeys: true,
+	}.ToConds())
+}
+
+func userHasPubkeysSSH(ctx context.Context, userID int64) (bool, error) {
+	return db.Exist[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		OwnerID:    userID,
+		NotKeytype: asymkey_model.KeyTypePrincipal,
+	}.ToConds())
+}
+
+// userHasPubkeys checks if a user has any public keys (GPG or SSH)
+func userHasPubkeys(ctx context.Context, userID int64) (bool, error) {
+	has, err := userHasPubkeysGPG(ctx, userID)
+	if has || err != nil {
+		return has, err
+	}
+	return userHasPubkeysSSH(ctx, userID)
+}
+
 // ErrWontSign explains the first reason why a commit would not be signed
 // There may be other reasons - this is just the first reason found
 type ErrWontSign struct {
@@ -85,54 +108,9 @@ func IsErrWontSign(err error) bool {
 	return ok
 }
 
-// SigningKey returns the KeyID and git Signature for the repo
-func SigningKey(ctx context.Context, repoPath string) (*git.SigningKey, *git.Signature) {
-	if setting.Repository.Signing.SigningKey == "none" {
-		return nil, nil
-	}
-
-	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
-		// Can ignore the error here as it means that commit.gpgsign is not set
-		value, _, _ := git.NewCommand("config", "--get", "commit.gpgsign").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-		sign, valid := git.ParseBool(strings.TrimSpace(value))
-		if !sign || !valid {
-			return nil, nil
-		}
-
-		format, _, _ := git.NewCommand("config", "--default", git.SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-		signingKey, _, _ := git.NewCommand("config", "--get", "user.signingkey").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-		signingName, _, _ := git.NewCommand("config", "--get", "user.name").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-		signingEmail, _, _ := git.NewCommand("config", "--get", "user.email").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-
-		if strings.TrimSpace(signingKey) == "" {
-			return nil, nil
-		}
-
-		return &git.SigningKey{
-				KeyID:  strings.TrimSpace(signingKey),
-				Format: strings.TrimSpace(format),
-			}, &git.Signature{
-				Name:  strings.TrimSpace(signingName),
-				Email: strings.TrimSpace(signingEmail),
-			}
-	}
-
-	if setting.Repository.Signing.SigningKey == "" {
-		return nil, nil
-	}
-
-	return &git.SigningKey{
-			KeyID:  setting.Repository.Signing.SigningKey,
-			Format: setting.Repository.Signing.SigningFormat,
-		}, &git.Signature{
-			Name:  setting.Repository.Signing.SigningName,
-			Email: setting.Repository.Signing.SigningEmail,
-		}
-}
-
 // PublicSigningKey gets the public signing key within a provided repository directory
 func PublicSigningKey(ctx context.Context, repoPath string) (content, format string, err error) {
-	signingKey, _ := SigningKey(ctx, repoPath)
+	signingKey, _ := git.GetSigningKey(ctx, repoPath)
 	if signingKey == nil {
 		return "", "", nil
 	}
@@ -157,7 +135,7 @@ func PublicSigningKey(ctx context.Context, repoPath string) (content, format str
 // SignInitialCommit determines if we should sign the initial commit to this repository
 func SignInitialCommit(ctx context.Context, repoPath string, u *user_model.User) (bool, *git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.InitialCommit)
-	signingKey, sig := SigningKey(ctx, repoPath)
+	signingKey, sig := git.GetSigningKey(ctx, repoPath)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -170,14 +148,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
@@ -195,9 +170,8 @@ Loop:
 
 // SignWikiCommit determines if we should sign the commits to this repository wiki
 func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, u *user_model.User) (bool, *git.SigningKey, *git.Signature, error) {
-	repoWikiPath := repo.WikiPath()
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
-	signingKey, sig := SigningKey(ctx, repoWikiPath)
+	signingKey, sig := gitrepo.GetSigningKey(ctx, repo.WikiStorageRepo())
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -210,14 +184,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
@@ -253,7 +224,7 @@ Loop:
 // SignCRUDAction determines if we should sign a CRUD commit to this repository
 func SignCRUDAction(ctx context.Context, repoPath string, u *user_model.User, tmpBasePath, parentCommit string) (bool, *git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.CRUDActions)
-	signingKey, sig := SigningKey(ctx, repoPath)
+	signingKey, sig := git.GetSigningKey(ctx, repoPath)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -266,14 +237,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
@@ -290,16 +258,22 @@ Loop:
 				return false, nil, nil, err
 			}
 			defer gitRepo.Close()
-			commit, err := gitRepo.GetCommit(parentCommit)
+			isEmpty, err := gitRepo.IsEmpty()
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if commit.Signature == nil {
-				return false, nil, nil, &ErrWontSign{parentSigned}
-			}
-			verification := ParseCommitWithSignature(ctx, commit)
-			if !verification.Verified {
-				return false, nil, nil, &ErrWontSign{parentSigned}
+			if !isEmpty {
+				commit, err := gitRepo.GetCommit(parentCommit)
+				if err != nil {
+					return false, nil, nil, err
+				}
+				if commit.Signature == nil {
+					return false, nil, nil, &ErrWontSign{parentSigned}
+				}
+				verification := ParseCommitWithSignature(ctx, commit)
+				if !verification.Verified {
+					return false, nil, nil, &ErrWontSign{parentSigned}
+				}
 			}
 		}
 	}
@@ -314,7 +288,7 @@ func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.
 	}
 	repo := pr.BaseRepo
 
-	signingKey, signer := SigningKey(ctx, repo.RepoPath())
+	signingKey, signer := gitrepo.GetSigningKey(ctx, repo)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -331,14 +305,11 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				OwnerID:        u.ID,
-				IncludeSubKeys: true,
-			})
+			hasKeys, err := userHasPubkeys(ctx, u.ID)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			if len(keys) == 0 {
+			if !hasKeys {
 				return false, nil, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:

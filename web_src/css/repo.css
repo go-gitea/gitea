@@ -300,10 +300,6 @@ td .commit-summary {
   min-width: 100px;
 }
 
-.repository.new.issue .comment.form .content .markup {
-  font-size: 14px;
-}
-
 .repository.view.issue .instruct-toggle {
   display: inline-block;
 }
@@ -536,6 +532,10 @@ td .commit-summary {
   color: var(--color-text-light);
 }
 
+.repository.view.issue .comment-list .timeline-item .comment-text-line .ui.label {
+  line-height: 1.5; /* label has background, so it can't use parent's line-height */
+}
+
 .repository.view.issue .comment-list .timeline-item .comment-text-line a {
   color: inherit;
 }
@@ -630,10 +630,6 @@ td .commit-summary {
   background: var(--color-light);
 }
 
-.repository.view.issue .comment-list .comment .markup {
-  font-size: 14px;
-}
-
 .repository.view.issue .comment-list .comment .no-content {
   color: var(--color-text-light-2);
   font-style: italic;
@@ -662,8 +658,8 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .code-comment .comment-header {
   background: transparent;
-  border-bottom: 0 !important;
-  padding: 0 !important;
+  border-bottom: 0;
+  padding: 0;
 }
 
 .repository.view.issue .comment-list .code-comment .comment-content {
@@ -721,10 +717,6 @@ td .commit-summary {
   width: 100%;
   margin-top: -1rem;
   text-align: center;
-}
-
-.repository.compare.pull .markup {
-  font-size: 14px;
 }
 
 .repository.branches .commit-divergence .bar-group {
@@ -1323,6 +1315,10 @@ td .commit-summary {
   gap: 0.25em;
 }
 
+.comment-header.avatar-content-left-arrow::after {
+  border-right-color: var(--color-box-header);
+}
+
 .comment-header.arrow-top::before,
 .comment-header.arrow-top::after {
   transform: rotate(90deg);
@@ -1594,6 +1590,7 @@ tbody.commit-list {
   display: flex;
   align-items: center;
   width: max-content;
+  gap: 0.25em;
 }
 
 .file-info-entry + .file-info-entry {
@@ -1672,7 +1669,7 @@ tbody.commit-list {
 .diff-file-header .file-link {
   max-width: fit-content;
   display: -webkit-box;
-  -webkit-box-orient: vertical; /* stylelint-disable property-no-deprecated -- https://github.com/stylelint/stylelint/issues/8698 */
+  -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
   overflow-wrap: anywhere;

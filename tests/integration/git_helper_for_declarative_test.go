@@ -16,12 +16,14 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func withKeyFile(t *testing.T, keyname string, callback func(string)) {
@@ -88,7 +90,7 @@ func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL)) {
 
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		assert.NoError(t, git.CloneWithArgs(t.Context(), git.AllowLFSFiltersArgs(), u.String(), dstLocalPath, git.CloneRepoOptions{}))
+		assert.NoError(t, git.Clone(t.Context(), u.String(), dstLocalPath, git.CloneRepoOptions{}))
 		exist, err := util.IsExist(filepath.Join(dstLocalPath, "README.md"))
 		assert.NoError(t, err)
 		assert.True(t, exist)
@@ -97,7 +99,7 @@ func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 
 func doPartialGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		assert.NoError(t, git.CloneWithArgs(t.Context(), git.AllowLFSFiltersArgs(), u.String(), dstLocalPath, git.CloneRepoOptions{
+		assert.NoError(t, git.Clone(t.Context(), u.String(), dstLocalPath, git.CloneRepoOptions{
 			Filter: "blob:none",
 		}))
 		exist, err := util.IsExist(filepath.Join(dstLocalPath, "README.md"))
@@ -109,7 +111,7 @@ func doPartialGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 func doGitCloneFail(u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
 		tmpDir := t.TempDir()
-		assert.Error(t, git.Clone(git.DefaultContext, u.String(), tmpDir, git.CloneRepoOptions{}))
+		assert.Error(t, git.Clone(t.Context(), u.String(), tmpDir, git.CloneRepoOptions{}))
 		exist, err := util.IsExist(filepath.Join(tmpDir, "README.md"))
 		assert.NoError(t, err)
 		assert.False(t, exist)
@@ -119,18 +121,20 @@ func doGitCloneFail(u *url.URL) func(*testing.T) {
 func doGitInitTestRepository(dstPath string) func(*testing.T) {
 	return func(t *testing.T) {
 		// Init repository in dstPath
-		assert.NoError(t, git.InitRepository(git.DefaultContext, dstPath, false, git.Sha1ObjectFormat.Name()))
+		assert.NoError(t, git.InitRepository(t.Context(), dstPath, false, git.Sha1ObjectFormat.Name()))
 		// forcibly set default branch to master
-		_, _, err := git.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		_, _, err := gitcmd.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").
+			WithDir(dstPath).
+			RunStdString(t.Context())
 		assert.NoError(t, err)
 		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte("# Testing Repository\n\nOriginally created in: "+dstPath), 0o644))
-		assert.NoError(t, git.AddChanges(dstPath, true))
+		assert.NoError(t, git.AddChanges(t.Context(), dstPath, true))
 		signature := git.Signature{
 			Email: "test@example.com",
 			Name:  "test",
 			When:  time.Now(),
 		}
-		assert.NoError(t, git.CommitChanges(dstPath, git.CommitChangesOptions{
+		assert.NoError(t, git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
 			Committer: &signature,
 			Author:    &signature,
 			Message:   "Initial Commit",
@@ -140,67 +144,88 @@ func doGitInitTestRepository(dstPath string) func(*testing.T) {
 
 func doGitAddRemote(dstPath, remoteName string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommand("remote", "add").AddDynamicArguments(remoteName, u.String()).RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		_, _, err := gitcmd.NewCommand("remote", "add").AddDynamicArguments(remoteName, u.String()).
+			WithDir(dstPath).
+			RunStdString(t.Context())
 		assert.NoError(t, err)
 	}
 }
 
 func doGitPushTestRepository(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommand("push", "-u").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		_, _, err := gitcmd.NewCommand("push", "-u").AddArguments(gitcmd.ToTrustedCmdArgs(args)...).
+			WithDir(dstPath).
+			RunStdString(t.Context())
 		assert.NoError(t, err)
 	}
 }
 
 func doGitPushTestRepositoryFail(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommand("push").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		_, _, err := gitcmd.NewCommand("push").AddArguments(gitcmd.ToTrustedCmdArgs(args)...).
+			WithDir(dstPath).
+			RunStdString(t.Context())
 		assert.Error(t, err)
 	}
 }
 
-func doGitAddSomeCommits(dstPath, branch string) func(*testing.T) {
-	return func(t *testing.T) {
-		doGitCheckoutBranch(dstPath, branch)(t)
+type localGitAddCommitOptions struct {
+	LocalRepoPath   string
+	CheckoutBranch  string
+	TreeFilePath    string
+	TreeFileContent string
+}
 
-		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, fmt.Sprintf("file-%s.txt", branch)), []byte("file "+branch), 0o644))
-		assert.NoError(t, git.AddChanges(dstPath, true))
+func doGitCheckoutWriteFileCommit(opts localGitAddCommitOptions) func(*testing.T) {
+	return func(t *testing.T) {
+		doGitCheckoutBranch(opts.LocalRepoPath, opts.CheckoutBranch)(t)
+		localFilePath := filepath.Join(opts.LocalRepoPath, opts.TreeFilePath)
+		require.NoError(t, os.WriteFile(localFilePath, []byte(opts.TreeFileContent), 0o644))
+		require.NoError(t, git.AddChanges(t.Context(), opts.LocalRepoPath, true))
 		signature := git.Signature{
 			Email: "test@test.test",
 			Name:  "test",
 		}
-		assert.NoError(t, git.CommitChanges(dstPath, git.CommitChangesOptions{
+		require.NoError(t, git.CommitChanges(t.Context(), opts.LocalRepoPath, git.CommitChangesOptions{
 			Committer: &signature,
 			Author:    &signature,
-			Message:   "update " + branch,
+			Message:   fmt.Sprintf("update %s @ %s", opts.TreeFilePath, opts.CheckoutBranch),
 		}))
 	}
 }
 
 func doGitCreateBranch(dstPath, branch string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommand("checkout", "-b").AddDynamicArguments(branch).RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		_, _, err := gitcmd.NewCommand("checkout", "-b").AddDynamicArguments(branch).
+			WithDir(dstPath).RunStdString(t.Context())
 		assert.NoError(t, err)
 	}
 }
 
 func doGitCheckoutBranch(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommandNoGlobals(git.AllowLFSFiltersArgs()...).AddArguments("checkout").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		_, _, err := gitcmd.NewCommand().AddArguments("checkout").
+			AddArguments(gitcmd.ToTrustedCmdArgs(args)...).
+			WithDir(dstPath).
+			RunStdString(t.Context())
 		assert.NoError(t, err)
 	}
 }
 
 func doGitMerge(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommand("merge").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		_, _, err := gitcmd.NewCommand("merge").AddArguments(gitcmd.ToTrustedCmdArgs(args)...).
+			WithDir(dstPath).
+			RunStdString(t.Context())
 		assert.NoError(t, err)
 	}
 }
 
 func doGitPull(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommandNoGlobals(git.AllowLFSFiltersArgs()...).AddArguments("pull").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		_, _, err := gitcmd.NewCommand().AddArguments("pull").AddArguments(gitcmd.ToTrustedCmdArgs(args)...).
+			WithDir(dstPath).
+			RunStdString(t.Context())
 		assert.NoError(t, err)
 	}
 }

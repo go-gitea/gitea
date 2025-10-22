@@ -10,11 +10,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
-	"github.com/gobwas/glob"
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 	"github.com/nektos/act/pkg/workflowpattern"
@@ -377,20 +377,28 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 			// Actions with the same name:
 			// opened, edited, closed, reopened, assigned, unassigned, milestoned, demilestoned
 			// Actions need to be converted:
-			// label_updated -> labeled
+			// label_updated -> labeled (when adding) or unlabeled (when removing)
 			// label_cleared -> unlabeled
 			// Unsupported activity types:
 			// deleted, transferred, pinned, unpinned, locked, unlocked
 
-			action := issuePayload.Action
-			switch action {
+			actions := []string{}
+			switch issuePayload.Action {
 			case api.HookIssueLabelUpdated:
-				action = "labeled"
+				if len(issuePayload.Changes.AddedLabels) > 0 {
+					actions = append(actions, "labeled")
+				}
+				if len(issuePayload.Changes.RemovedLabels) > 0 {
+					actions = append(actions, "unlabeled")
+				}
 			case api.HookIssueLabelCleared:
-				action = "unlabeled"
+				actions = append(actions, "unlabeled")
+			default:
+				actions = append(actions, string(issuePayload.Action))
 			}
+
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(action)) {
+				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
 					matchTimes++
 					break
 				}
