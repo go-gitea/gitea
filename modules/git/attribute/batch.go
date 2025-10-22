@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -23,7 +24,7 @@ type BatchChecker struct {
 	stdOut        *nulSeparatedAttributeWriter
 	ctx           context.Context
 	cancel        context.CancelFunc
-	cmd           *git.Command
+	cmd           *gitcmd.Command
 }
 
 // NewBatchChecker creates a check attribute reader for the current repository and provided commit ID
@@ -76,13 +77,12 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) 
 			_ = lw.Close()
 		}()
 		stdErr := new(bytes.Buffer)
-		err := cmd.Run(ctx, &git.RunOpts{
-			Env:    envs,
-			Dir:    repo.Path,
-			Stdin:  stdinReader,
-			Stdout: lw,
-			Stderr: stdErr,
-		})
+		err := cmd.WithEnv(envs).
+			WithDir(repo.Path).
+			WithStdin(stdinReader).
+			WithStdout(lw).
+			WithStderr(stdErr).
+			Run(ctx)
 
 		if err != nil && !git.IsErrCanceledOrKilled(err) {
 			log.Error("Attribute checker for commit %s exits with error: %v", treeish, err)

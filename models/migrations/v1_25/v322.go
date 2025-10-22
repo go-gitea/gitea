@@ -4,22 +4,25 @@
 package v1_25
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/migrations/base"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-func AddEnabledToProjectWorkflow(x *xorm.Engine) error {
-	type ProjectWorkflow struct {
-		ID              int64
-		ProjectID       int64              `xorm:"INDEX"`
-		WorkflowEvent   int                `xorm:"INDEX"`
-		WorkflowFilters string             `xorm:"TEXT json"`
-		WorkflowActions string             `xorm:"TEXT json"`
-		Enabled         bool               `xorm:"DEFAULT true"`
-		CreatedUnix     timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
+func ExtendCommentTreePathLength(x *xorm.Engine) error {
+	dbType := x.Dialect().URI().DBType
+	if dbType == schemas.SQLITE { // For SQLITE, varchar or char will always be represented as TEXT
+		return nil
 	}
 
-	return x.Sync(&ProjectWorkflow{})
+	return base.ModifyColumn(x, "comment", &schemas.Column{
+		Name: "tree_path",
+		SQLType: schemas.SQLType{
+			Name: "VARCHAR",
+		},
+		Length:         4000,
+		Nullable:       true, // To keep compatible as nullable
+		DefaultIsEmpty: true,
+	})
 }

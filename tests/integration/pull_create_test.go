@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
@@ -260,14 +260,19 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 		u.Path = "user2/repo1.git"
 		u.User = url.UserPassword("user4", userPassword)
 
-		t.Run("Clone", doGitClone(dstPath, u))
+		doGitClone(dstPath, u)(t)
+		doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
+			LocalRepoPath:   dstPath,
+			CheckoutBranch:  "master",
+			TreeFilePath:    "new-file-for-agit.txt",
+			TreeFileContent: "temp content",
+		})(t)
 
-		t.Run("add commit", doGitAddSomeCommits(dstPath, "master"))
-
-		t.Run("do agit pull create", func(t *testing.T) {
-			err := git.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic="+"test-topic").Run(t.Context(), &git.RunOpts{Dir: dstPath})
-			assert.NoError(t, err)
-		})
+		err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
+			AddDynamicArguments("topic=test-topic").
+			WithDir(dstPath).
+			Run(t.Context())
+		assert.NoError(t, err)
 	})
 }
 

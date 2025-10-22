@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -83,17 +84,17 @@ func FixMergeBase(ctx context.Context, x *xorm.Engine) error {
 
 			if !pr.HasMerged {
 				var err error
-				pr.MergeBase, _, err = git.NewCommand("merge-base").AddDashesAndList(pr.BaseBranch, gitRefName).RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+				pr.MergeBase, _, err = gitcmd.NewCommand("merge-base").AddDashesAndList(pr.BaseBranch, gitRefName).WithDir(repoPath).RunStdString(ctx)
 				if err != nil {
 					var err2 error
-					pr.MergeBase, _, err2 = git.NewCommand("rev-parse").AddDynamicArguments(git.BranchPrefix+pr.BaseBranch).RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+					pr.MergeBase, _, err2 = gitcmd.NewCommand("rev-parse").AddDynamicArguments(git.BranchPrefix + pr.BaseBranch).WithDir(repoPath).RunStdString(ctx)
 					if err2 != nil {
 						log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err, err2)
 						continue
 					}
 				}
 			} else {
-				parentsString, _, err := git.NewCommand("rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID).RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+				parentsString, _, err := gitcmd.NewCommand("rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID).WithDir(repoPath).RunStdString(ctx)
 				if err != nil {
 					log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 					continue
@@ -105,9 +106,9 @@ func FixMergeBase(ctx context.Context, x *xorm.Engine) error {
 
 				refs := append([]string{}, parents[1:]...)
 				refs = append(refs, gitRefName)
-				cmd := git.NewCommand("merge-base").AddDashesAndList(refs...)
+				cmd := gitcmd.NewCommand("merge-base").AddDashesAndList(refs...)
 
-				pr.MergeBase, _, err = cmd.RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+				pr.MergeBase, _, err = cmd.WithDir(repoPath).RunStdString(ctx)
 				if err != nil {
 					log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 					continue

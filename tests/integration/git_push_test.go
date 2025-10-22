@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -57,8 +58,12 @@ func testGitPush(t *testing.T, u *url.URL) {
 			for i := range 5 {
 				branchName := fmt.Sprintf("branch-%d", i)
 				pushed = append(pushed, branchName)
-
-				doGitAddSomeCommits(gitPath, branchName)(t)
+				doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
+					LocalRepoPath:   gitPath,
+					CheckoutBranch:  branchName,
+					TreeFilePath:    fmt.Sprintf("file-%s.txt", branchName),
+					TreeFileContent: "file " + branchName,
+				})(t)
 			}
 
 			for i := 5; i < 10; i++ {
@@ -66,7 +71,7 @@ func testGitPush(t *testing.T, u *url.URL) {
 			}
 			pushed = append(pushed, "master")
 
-			// push all, so that master are not chagned
+			// push all, so that master is not changed
 			doGitPushTestRepository(gitPath, "origin", "--all")(t)
 
 			return pushed, deleted
@@ -204,10 +209,8 @@ func TestPushPullRefs(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		cmd := git.NewCommand("push", "--delete", "origin", "refs/pull/2/head")
-		stdout, stderr, err := cmd.RunStdString(t.Context(), &git.RunOpts{
-			Dir: dstPath,
-		})
+		cmd := gitcmd.NewCommand("push", "--delete", "origin", "refs/pull/2/head")
+		stdout, stderr, err := cmd.WithDir(dstPath).RunStdString(t.Context())
 		assert.Error(t, err)
 		assert.Empty(t, stdout)
 		assert.NotContains(t, stderr, "[deleted]", "stderr: %s", stderr)

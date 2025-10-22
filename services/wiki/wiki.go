@@ -6,7 +6,6 @@ package wiki
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -22,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -122,7 +120,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		cloneOpts.Branch = repo.DefaultWikiBranch
 	}
 
-	if err := git.Clone(ctx, repo.WikiPath(), basePath, cloneOpts); err != nil {
+	if err := gitrepo.CloneRepoToLocal(ctx, repo.WikiStorageRepo(), basePath, cloneOpts); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
 		return fmt.Errorf("failed to clone repository: %s (%w)", repo.FullName(), err)
 	}
@@ -271,7 +269,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	}
 	defer cleanup()
 
-	if err := git.Clone(ctx, repo.WikiPath(), basePath, git.CloneRepoOptions{
+	if err := gitrepo.CloneRepoToLocal(ctx, repo.WikiStorageRepo(), basePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
 		Branch: repo.DefaultWikiBranch,
@@ -393,15 +391,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return nil
 		}
 
-		gitRepo, err := gitrepo.OpenRepository(ctx, repo.WikiStorageRepo())
-		if errors.Is(err, util.ErrNotExist) {
-			return nil // no git repo on storage, no need to do anything else
-		} else if err != nil {
-			return fmt.Errorf("unable to open repository: %w", err)
-		}
-		defer gitRepo.Close()
-
-		err = gitRepo.RenameBranch(oldDefBranch, newBranch)
+		err = gitrepo.RenameBranch(ctx, repo.WikiStorageRepo(), oldDefBranch, newBranch)
 		if err != nil {
 			return fmt.Errorf("unable to rename default branch: %w", err)
 		}
