@@ -33,13 +33,14 @@ func MergeBase(ctx context.Context, repo Repository, commit1, commit2 string) (s
 // ref: https://git-scm.com/docs/git-merge-tree/2.38.0#OUTPUT
 func parseMergeTreeOutput(output string) (string, []string, error) {
 	fields := strings.Split(strings.TrimSuffix(output, "\x00"), "\x00")
-	if len(fields) == 0 {
+	switch len(fields) {
+	case 0:
 		return "", nil, errors.New("unexpected empty output")
-	}
-	if len(fields) == 1 {
+	case 1:
 		return strings.TrimSpace(fields[0]), nil, nil
+	default:
+		return strings.TrimSpace(fields[0]), fields[1:], nil
 	}
-	return strings.TrimSpace(fields[0]), fields[1:], nil
 }
 
 // MergeTree performs a merge between two commits (baseRef and headRef) with an optional merge base.
