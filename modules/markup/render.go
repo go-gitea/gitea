@@ -120,31 +120,38 @@ func (ctx *RenderContext) WithHelper(helper RenderHelper) *RenderContext {
 	return ctx
 }
 
-// Render renders markup file to HTML with all specific handling stuff.
-func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
+// FindRendererByContext finds renderer by RenderContext
+// TODO: it should be merged with other similar functions like GetRendererByFileName, DetectMarkupTypeByFileName, etc
+func FindRendererByContext(ctx *RenderContext) (Renderer, error) {
 	if ctx.RenderOptions.MarkupType == "" && ctx.RenderOptions.RelativePath != "" {
 		ctx.RenderOptions.MarkupType = DetectMarkupTypeByFileName(ctx.RenderOptions.RelativePath)
 		if ctx.RenderOptions.MarkupType == "" {
-			return util.NewInvalidArgumentErrorf("unsupported file to render: %q", ctx.RenderOptions.RelativePath)
+			return nil, util.NewInvalidArgumentErrorf("unsupported file to render: %q", ctx.RenderOptions.RelativePath)
 		}
 	}
 
 	renderer := renderers[ctx.RenderOptions.MarkupType]
 	if renderer == nil {
-		return util.NewInvalidArgumentErrorf("unsupported markup type: %q", ctx.RenderOptions.MarkupType)
+		return nil, util.NewNotExistErrorf("unsupported markup type: %q", ctx.RenderOptions.MarkupType)
 	}
 
-	if ctx.RenderOptions.RelativePath != "" {
-		if externalRender, ok := renderer.(ExternalRenderer); ok && externalRender.DisplayInIFrame() {
-			if !ctx.RenderOptions.InStandalonePage {
-				// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
-				// otherwise, a <iframe> should be outputted to embed the external rendered page
-				return renderIFrame(ctx, output)
-			}
-		}
-	}
+	return renderer, nil
+}
 
-	return render(ctx, renderer, input, output)
+func RendererNeedPostProcess(renderer Renderer) bool {
+	if r, ok := renderer.(PostProcessRenderer); ok && r.NeedPostProcess() {
+		return true
+	}
+	return false
+}
+
+// Render renders markup file to HTML with all specific handling stuff.
+func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
+	renderer, err := FindRendererByContext(ctx)
+	if err != nil {
+		return err
+	}
+	return RenderWithRenderer(ctx, renderer, input, output)
 }
 
 // RenderString renders Markup string to HTML with all specific handling stuff and return string
@@ -185,7 +192,16 @@ func pipes() (io.ReadCloser, io.WriteCloser, func()) {
 	}
 }
 
-func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
+func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
+	if externalRender, ok := renderer.(ExternalRenderer); ok && externalRender.DisplayInIFrame() {
+		if !ctx.RenderOptions.InStandalonePage {
+			// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
+			// otherwise, a <iframe> should be outputted to embed the external rendered page
+			return renderIFrame(ctx, output)
+		}
+		// else: this is a standalone page, fallthrough to the real rendering
+	}
+
 	ctx.usedByRender = true
 	if ctx.RenderHelper != nil {
 		defer ctx.RenderHelper.CleanUp()
@@ -214,7 +230,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 	}
 
 	eg.Go(func() (err error) {
-		if r, ok := renderer.(PostProcessRenderer); ok && r.NeedPostProcess() {
+		if RendererNeedPostProcess(renderer) {
 			err = PostProcessDefault(ctx, pr1, pw2)
 		} else {
 			_, err = io.Copy(pw2, pr1)
