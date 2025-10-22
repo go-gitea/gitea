@@ -27,7 +27,9 @@
 					{{$errMsg := index $.RunErrors $run.ID}}
 					{{if $errMsg}}
 						<span data-tooltip-content="{{$errMsg}}">
-							{{svg "octicon-alert" 16 "text red"}}
+							<div class="flex-text-block">
+								{{svg "octicon-alert" 16 "text red"}}
+							</div>
 						</span>
 					{{end}}
 				</div>
