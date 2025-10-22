@@ -21,7 +21,9 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/agit"
 	gitea_context "code.gitea.io/gitea/services/context"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -452,39 +454,17 @@ func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
 		return
 	}
 
-	baseBranchName := refFullName.ForBranchName()
-
-	baseBranchExist, err := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, baseBranchName)
+	_, _, err := agit.GetAgitBranchInfo(ctx, ctx.Repo.Repository.ID, refFullName.ForBranchName())
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: err.Error(),
-		})
-		return
-	}
-
-	if !baseBranchExist {
-		for p, v := range baseBranchName {
-			if v != '/' || p == len(baseBranchName)-1 {
-				continue
-			}
-			baseBranchExist, err = git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, baseBranchName[:p])
-			if err != nil {
-				ctx.JSON(http.StatusInternalServerError, private.Response{
-					Err: err.Error(),
-				})
-				return
-			}
-			if baseBranchExist {
-				break
-			}
+		if !errors.Is(err, util.ErrNotExist) {
+			ctx.JSON(http.StatusForbidden, private.Response{
+				UserMsg: fmt.Sprintf("Unexpected ref: %s", refFullName),
+			})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: err.Error(),
+			})
 		}
-	}
-
-	if !baseBranchExist {
-		ctx.JSON(http.StatusForbidden, private.Response{
-			UserMsg: fmt.Sprintf("Unexpected ref: %s", refFullName),
-		})
-		return
 	}
 }
 
