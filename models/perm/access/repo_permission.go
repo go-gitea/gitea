@@ -5,9 +5,11 @@ package access
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	perm_model "code.gitea.io/gitea/models/perm"
@@ -251,6 +253,42 @@ func finalProcessRepoUnitPermission(user *user_model.User, perm *Permission) {
 			perm.units = append(perm.units, u)
 		}
 	}
+}
+
+// GetActionsUserRepoPermission returns the actions user permissions to the repository
+func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Repository, actionsUser *user_model.User, taskID int64) (perm Permission, err error) {
+	if actionsUser.ID != user_model.ActionsUserID {
+		return perm, errors.New("api GetActionsUserRepoPermission can only be called by the actions user")
+	}
+	task, err := actions_model.GetTaskByID(ctx, taskID)
+	if err != nil {
+		return perm, err
+	}
+
+	var accessMode perm_model.AccessMode
+	if task.RepoID != repo.ID {
+		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
+		if err != nil || !exist {
+			return perm, err
+		}
+		actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+		if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
+			// The task repo can access the current repo only if the task repo is private and
+			// the owner of the task repo is a collaborative owner of the current repo.
+			return perm, nil
+		}
+		accessMode = perm_model.AccessModeRead
+	} else if task.IsForkPullRequest {
+		accessMode = perm_model.AccessModeRead
+	} else {
+		accessMode = perm_model.AccessModeWrite
+	}
+
+	if err := repo.LoadUnits(ctx); err != nil {
+		return perm, err
+	}
+	perm.SetUnitsWithDefaultAccessMode(repo.Units, accessMode)
+	return perm, nil
 }
 
 // GetUserRepoPermission returns the user permissions to the repository

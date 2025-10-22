@@ -7,7 +7,6 @@ package repo
 import (
 	"bytes"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -19,9 +18,7 @@ import (
 	"sync"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -192,47 +189,17 @@ func httpBase(ctx *context.Context) *serviceHandler {
 
 			if ctx.Data["IsActionsToken"] == true {
 				taskID := ctx.Data["ActionsTaskID"].(int64)
-				task, err := actions_model.GetTaskByID(ctx, taskID)
+				p, err := access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
 				if err != nil {
 					ctx.ServerError("GetTaskByID", err)
 					return nil
 				}
-				if task.RepoID != repo.ID {
-					if accessMode > perm.AccessModeRead {
-						ctx.PlainText(http.StatusForbidden, "User permission denied")
-						return nil
-					}
-					taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
-					if err != nil {
-						ctx.ServerError("Load task repository", err)
-						return nil
-					}
-					if !exist {
-						ctx.NotFound(errors.New("task repo not found"))
-						return nil
-					}
-					actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-					if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
-						// The task repo can access the current repo only if the task repo is private and
-						// the owner of the task repo is a collaborative owner of the current repo.
-						ctx.PlainText(http.StatusForbidden, "User permission denied")
-						return nil
-					}
-				}
 
-				if task.IsForkPullRequest {
-					if accessMode > perm.AccessModeRead {
-						ctx.PlainText(http.StatusForbidden, "User permission denied")
-						return nil
-					}
-					environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionPerm, perm.AccessModeRead))
-				} else {
-					if accessMode > perm.AccessModeWrite {
-						ctx.PlainText(http.StatusForbidden, "User permission denied")
-						return nil
-					}
-					environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionPerm, perm.AccessModeWrite))
+				if !p.CanAccess(accessMode, unitType) {
+					ctx.PlainText(http.StatusNotFound, "Repository not found")
+					return nil
 				}
+				environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionPerm, p.UnitAccessMode(unitType)))
 			} else {
 				p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 				if err != nil {

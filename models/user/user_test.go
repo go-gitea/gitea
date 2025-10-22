@@ -648,33 +648,36 @@ func TestGetInactiveUsers(t *testing.T) {
 func TestCanCreateRepo(t *testing.T) {
 	defer test.MockVariableValue(&setting.Repository.MaxCreationLimit)()
 	const noLimit = -1
-	doerNormal := &user_model.User{}
-	doerAdmin := &user_model.User{IsAdmin: true}
+	doerActions := user_model.NewActionsUser()
+	doerNormal := &user_model.User{ID: 2}
+	doerAdmin := &user_model.User{ID: 1, IsAdmin: true}
 	t.Run("NoGlobalLimit", func(t *testing.T) {
 		setting.Repository.MaxCreationLimit = noLimit
 
-		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: noLimit}))
-		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 0}))
-		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 100}))
+		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 0}))
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 100}))
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: noLimit}))
 
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: noLimit}))
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 0}))
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 100}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 0}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 100}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: noLimit}))
+		assert.False(t, doerActions.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: noLimit}))
+		assert.False(t, doerAdmin.CanCreateRepoIn(doerActions))
 	})
 
 	t.Run("GlobalLimit50", func(t *testing.T) {
 		setting.Repository.MaxCreationLimit = 50
 
-		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: noLimit}))
-		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 60, MaxRepoCreation: noLimit})) // limited by global limit
-		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 0}))
-		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 100}))
-		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 60, MaxRepoCreation: 100}))
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: noLimit}))
+		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 60, MaxRepoCreation: noLimit})) // limited by global limit
+		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 0}))
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 100}))
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 60, MaxRepoCreation: 100}))
 
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: noLimit}))
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 60, MaxRepoCreation: noLimit}))
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 0}))
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 100}))
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 60, MaxRepoCreation: 100}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: noLimit}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 60, MaxRepoCreation: noLimit}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 0}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 100}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 60, MaxRepoCreation: 100}))
 	})
 }
