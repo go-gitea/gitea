@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,9 +54,7 @@ func testActionsJobTokenAccess(u *url.URL, isFork bool) func(t *testing.T) {
 			require.Equal(t, "user5", r.Owner.UserName)
 		}))
 
-		if isFork {
-			context.ExpectedCode = 403
-		}
+		context.ExpectedCode = util.Iif(isFork, http.StatusForbidden, http.StatusCreated)
 		t.Run("API Create File", doAPICreateFile(context, "test.txt", &structs.CreateFileOptions{
 			FileOptions: structs.FileOptions{
 				NewBranchName: "new-branch",
@@ -64,10 +63,10 @@ func testActionsJobTokenAccess(u *url.URL, isFork bool) func(t *testing.T) {
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte(`This is a test file created using job token.`)),
 		}))
 
-		context.ExpectedCode = 500
+		context.ExpectedCode = http.StatusForbidden
 		t.Run("Fail to Create Repository", doAPICreateRepository(context, true))
 
-		context.ExpectedCode = 403
+		context.ExpectedCode = http.StatusForbidden
 		t.Run("Fail to Delete Repository", doAPIDeleteRepository(context))
 
 		t.Run("Fail to Create Organization", doAPICreateOrganization(context, &structs.CreateOrgOption{

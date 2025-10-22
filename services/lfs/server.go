@@ -556,7 +556,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		return perm.CanAccess(accessMode, unit.TypeCode)
 	}
 
-	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
+	// it works for both anonymous request and signed-in user, then perm.CanAccess will do the permission check
 	perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
 		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
@@ -571,6 +571,8 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	}
 
 	// now, either sign-in is required or the ctx.Doer cannot access, check the LFS token
+	// however, "ctx.Doer exists but cannot access then check LFS token" should not really happen:
+	// * why a request can be sent with both valid user session and valid LFS token then use LFS token to access?
 	user, err := parseToken(ctx, authorization, repository, accessMode)
 	if err != nil {
 		// Most of these are Warn level - the true internal server errors are logged in parseToken already
