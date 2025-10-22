@@ -16,6 +16,7 @@ var (
 	ErrPermissionDenied = errors.New("permission denied")       // also implies HTTP 403
 	ErrNotExist         = errors.New("resource does not exist") // also implies HTTP 404
 	ErrAlreadyExist     = errors.New("resource already exists") // also implies HTTP 409
+	ErrContentTooLarge  = errors.New("content exceeds limit")   // also implies HTTP 413
 
 	// ErrUnprocessableContent implies HTTP 422, the syntax of the request content is correct,
 	// but the server is unable to process the contained instructions
