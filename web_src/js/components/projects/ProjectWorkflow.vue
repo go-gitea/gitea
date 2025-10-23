@@ -49,7 +49,7 @@ const toggleEditMode = () => {
     if (previousSelection.value) {
       // If there was a previous selection, return to it
       if (store.selectedWorkflow && store.selectedWorkflow.id === 0) {
-        // Remove temporary unsaved workflow from list
+        // Remove temporary unsaved workflow (new or cloned) from list
         const tempIndex = store.workflowEvents.findIndex((w) =>
           w.event_id === store.selectedWorkflow.event_id,
         );
@@ -98,7 +98,7 @@ const deleteWorkflow = async () => {
   const currentDisplayName = (store.selectedWorkflow.display_name || store.selectedWorkflow.workflow_event || store.selectedWorkflow.event_id)
     .replace(/\s*\([^)]*\)\s*/g, '');
 
-  // If deleting a temporary workflow (unsaved), just remove from list
+  // If deleting a temporary workflow (new or cloned, unsaved), just remove from list
   if (store.selectedWorkflow.id === 0) {
     const tempIndex = store.workflowEvents.findIndex((w) =>
       w.event_id === store.selectedWorkflow.event_id,
@@ -132,6 +132,55 @@ const deleteWorkflow = async () => {
   // Clear previous selection and exit edit mode
   previousSelection.value = null;
   setEditMode(false);
+};
+
+const cloneWorkflow = (sourceWorkflow) => {
+  if (!sourceWorkflow) return;
+
+  // Generate a unique temporary ID for the cloned workflow
+  const tempId = `clone-${sourceWorkflow.base_event_type || sourceWorkflow.workflow_event}-${Date.now()}`;
+
+  // Extract base name without any parenthetical descriptions
+  const baseName = (sourceWorkflow.display_name || sourceWorkflow.workflow_event || sourceWorkflow.event_id)
+    .replace(/\s*\([^)]*\)\s*/g, '');
+
+  // Create a new workflow object based on the source
+  const clonedWorkflow = {
+    id: 0, // New workflow
+    event_id: tempId,
+    display_name: `${baseName} (Copy)`,
+    base_event_type: sourceWorkflow.base_event_type || sourceWorkflow.workflow_event || sourceWorkflow.event_id,
+    workflow_event: sourceWorkflow.workflow_event || sourceWorkflow.base_event_type,
+    capabilities: sourceWorkflow.capabilities,
+    filters: JSON.parse(JSON.stringify(sourceWorkflow.filters || [])), // Deep clone
+    actions: JSON.parse(JSON.stringify(sourceWorkflow.actions || [])), // Deep clone
+    enabled: false, // Cloned workflows start disabled
+    isConfigured: false, // Mark as new/unsaved
+  };
+
+  // Insert cloned workflow right after the source workflow (keep same type together)
+  const sourceIndex = store.workflowEvents.findIndex(w => w.event_id === sourceWorkflow.event_id);
+  if (sourceIndex >= 0) {
+    store.workflowEvents.splice(sourceIndex + 1, 0, clonedWorkflow);
+  } else {
+    // Fallback: add to end if source not found
+    store.workflowEvents.push(clonedWorkflow);
+  }
+
+  // Select the cloned workflow and enter edit mode
+  store.selectedItem = tempId;
+  store.selectedWorkflow = clonedWorkflow;
+
+  // Load the workflow data into the form
+  store.loadWorkflowData(tempId);
+
+  // Enter edit mode
+  previousSelection.value = null; // No previous selection for cloned workflow
+  setEditMode(true);
+
+  // Update URL
+  const newUrl = `${props.projectLink}/workflows/${tempId}`;
+  window.history.pushState({eventId: tempId}, '', newUrl);
 };
 
 const selectWorkflowEvent = async (event) => {
@@ -623,6 +672,16 @@ onUnmounted(() => {
               >
                 <i :class="store.selectedWorkflow.enabled ? 'pause icon' : 'play icon'"/>
                 {{ store.selectedWorkflow.enabled ? 'Disable' : 'Enable' }}
+              </button>
+
+              <!-- Clone Button -->
+              <button
+                class="btn btn-outline-secondary"
+                @click="cloneWorkflow(store.selectedWorkflow)"
+                title="Clone this workflow"
+              >
+                <i class="copy icon"/>
+                Clone
               </button>
             </template>
           </div>

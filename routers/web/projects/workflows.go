@@ -172,14 +172,17 @@ func WorkflowsEvents(ctx *context.Context) {
 	}
 
 	type WorkflowConfig struct {
-		ID            int64                                   `json:"id"`
-		EventID       string                                  `json:"event_id"`
-		DisplayName   string                                  `json:"display_name"`
-		Capabilities  project_model.WorkflowEventCapabilities `json:"capabilities"`
-		Filters       []project_model.WorkflowFilter          `json:"filters"`
-		Actions       []project_model.WorkflowAction          `json:"actions"`
-		FilterSummary string                                  `json:"filter_summary"` // Human readable filter description
-		Enabled       bool                                    `json:"enabled"`
+		ID             int64                                   `json:"id"`
+		EventID        string                                  `json:"event_id"`
+		DisplayName    string                                  `json:"display_name"`
+		BaseEventType  string                                  `json:"base_event_type"`  // Base event type for grouping
+		WorkflowEvent  string                                  `json:"workflow_event"`   // The actual workflow event
+		Capabilities   project_model.WorkflowEventCapabilities `json:"capabilities"`
+		Filters        []project_model.WorkflowFilter          `json:"filters"`
+		Actions        []project_model.WorkflowAction          `json:"actions"`
+		FilterSummary  string                                  `json:"filter_summary"` // Human readable filter description
+		Enabled        bool                                    `json:"enabled"`
+		IsConfigured   bool                                    `json:"isConfigured"` // Whether this workflow is configured/saved
 	}
 
 	outputWorkflows := make([]*WorkflowConfig, 0)
@@ -202,11 +205,14 @@ func WorkflowsEvents(ctx *context.Context) {
 					ID:            wf.ID,
 					EventID:       strconv.FormatInt(wf.ID, 10),
 					DisplayName:   string(ctx.Tr(wf.WorkflowEvent.LangKey())) + filterSummary,
+					BaseEventType: string(wf.WorkflowEvent),
+					WorkflowEvent: string(wf.WorkflowEvent),
 					Capabilities:  capabilities[event],
 					Filters:       wf.WorkflowFilters,
 					Actions:       wf.WorkflowActions,
 					FilterSummary: filterSummary,
 					Enabled:       wf.Enabled,
+					IsConfigured:  true,
 				})
 			}
 		} else {
@@ -215,9 +221,12 @@ func WorkflowsEvents(ctx *context.Context) {
 				ID:            0,
 				EventID:       event.UUID(),
 				DisplayName:   string(ctx.Tr(event.LangKey())),
+				BaseEventType: string(event),
+				WorkflowEvent: string(event),
 				Capabilities:  capabilities[event],
 				FilterSummary: "",
 				Enabled:       true, // Default to enabled for new workflows
+				IsConfigured:  false,
 			})
 		}
 	}
