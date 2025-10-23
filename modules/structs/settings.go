@@ -23,6 +23,8 @@ type GeneralRepoSettings struct {
 type GeneralUISettings struct {
 	// DefaultTheme is the default UI theme
 	DefaultTheme string `json:"default_theme"`
+	// DefaultFileIconTheme is the default file icon theme
+	DefaultFileIconTheme string `json:"default_file_icon_theme"`
 	// AllowedReactions contains the list of allowed emoji reactions
 	AllowedReactions []string `json:"allowed_reactions"`
 	// CustomEmojis contains the list of custom emojis
