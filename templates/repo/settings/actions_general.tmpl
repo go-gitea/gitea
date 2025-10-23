@@ -42,9 +42,11 @@
 					</div>
 				</div>
 				<div class="flex-item-trailing">
-					<button class="ui red tiny button inline delete-button" data-url="{{$.Link}}/collaborative_owner/delete" data-id="{{.ID}}">
-						{{ctx.Locale.Tr "remove"}}
-					</button>
+					<button class="ui red tiny button inline link-action" 
+						data-url="{{$.Link}}/collaborative_owner/delete?id={{.ID}}"
+						data-modal-confirm-header="{{ctx.Locale.Tr "actions.general.remove_collaborative_owner"}}"
+						data-modal-confirm-content="{{ctx.Locale.Tr "actions.general.remove_collaborative_owner_desc"}}"
+					>{{ctx.Locale.Tr "remove"}}</button>
 				</div>
 			</div>
 			{{end}}
@@ -52,7 +54,7 @@
 	</div>
 	{{end}}
 	<div class="ui bottom attached segment">
-		<form class="ui form" action="{{.Link}}/collaborative_owner/add" method="post">
+		<form class="ui form form-fetch-action" action="{{.Link}}/collaborative_owner/add" method="post">
 			{{.CsrfTokenHtml}}
 			<div id="search-user-box" class="ui search input tw-align-middle" data-include-orgs="true">
 				<input class="prompt" name="collaborative_owner" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" autofocus required>
@@ -64,15 +66,4 @@
 	</div>
 	{{end}}
 	{{end}}
-</div>
-
-<div class="ui g-modal-confirm delete modal">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{ctx.Locale.Tr "actions.general.remove_collaborative_owner"}}
-	</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "actions.general.remove_collaborative_owner_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
 </div>

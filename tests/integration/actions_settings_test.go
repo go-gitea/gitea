@@ -40,7 +40,7 @@ func TestActionsCollaborativeOwner(t *testing.T) {
 			"_csrf":               GetUserCSRFToken(t, user2Session),
 			"collaborative_owner": user10.Name,
 		})
-		user2Session.MakeRequest(t, req, http.StatusSeeOther)
+		user2Session.MakeRequest(t, req, http.StatusOK)
 
 		// the git clone will be successful
 		doGitClone(dstPath, u)(t)

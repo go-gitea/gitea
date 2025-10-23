@@ -69,14 +69,13 @@ func ActionsUnitPost(ctx *context.Context) {
 }
 
 func AddCollaborativeOwner(ctx *context.Context) {
-	redirectURL := ctx.Repo.RepoLink + "/settings/actions/general"
 	name := strings.ToLower(ctx.FormString("collaborative_owner"))
 
 	ownerID, err := user_model.GetUserOrOrgIDByName(ctx, name)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
-			ctx.Redirect(redirectURL)
+			ctx.JSONErrorNotFound()
 		} else {
 			ctx.ServerError("GetUserOrOrgIDByName", err)
 		}
@@ -95,11 +94,10 @@ func AddCollaborativeOwner(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(redirectURL)
+	ctx.JSONOK()
 }
 
 func DeleteCollaborativeOwner(ctx *context.Context) {
-	redirectURL := ctx.Repo.RepoLink + "/settings/actions/general"
 	ownerID := ctx.FormInt64("id")
 
 	actionsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeActions)
@@ -110,7 +108,7 @@ func DeleteCollaborativeOwner(ctx *context.Context) {
 	actionsCfg := actionsUnit.ActionsConfig()
 	if !actionsCfg.IsCollaborativeOwner(ownerID) {
 		ctx.Flash.Error(ctx.Tr("actions.general.collaborative_owner_not_exist"))
-		ctx.Redirect(redirectURL)
+		ctx.JSONErrorNotFound()
 		return
 	}
 	actionsCfg.RemoveCollaborativeOwner(ownerID)
@@ -119,5 +117,5 @@ func DeleteCollaborativeOwner(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSONRedirect(redirectURL)
+	ctx.JSONOK()
 }
