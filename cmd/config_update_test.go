@@ -11,8 +11,9 @@ import (
 )
 
 func TestConfigUpdate(t *testing.T) {
-	configOld := t.TempDir() + "/app-old.ini"
-	configTemplate := t.TempDir() + "/app-template.ini"
+	tmpDir := t.TempDir()
+	configOld := tmpDir + "/app-old.ini"
+	configTemplate := tmpDir + "/app-template.ini"
 	_ = os.WriteFile(configOld, []byte(`
 [sec]
 k1=v1
@@ -30,7 +31,7 @@ k3=v3
 	t.Setenv("GITEA__EnV__KeY", "val")
 
 	t.Run("OutputToNewWithEnv", func(t *testing.T) {
-		configNew := t.TempDir() + "/app-new.ini"
+		configNew := tmpDir + "/app-new.ini"
 		err := NewMainApp(AppVersion{}).Run(t.Context(), []string{
 			"./gitea", "--config", configOld, "config", "update-ini",
 			"--apply-env",
