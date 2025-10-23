@@ -1,8 +1,9 @@
 <script lang="ts" setup>
-import {onMounted, onUnmounted, useTemplateRef, computed, ref, nextTick} from 'vue';
+import {onMounted, onUnmounted, useTemplateRef, computed, ref, nextTick, watch} from 'vue';
 import {createWorkflowStore} from './WorkflowStore.ts';
 import {svg} from '../../svg.ts';
 import {confirmModal} from '../../features/comp/ConfirmModal.ts';
+import {fomanticQuery} from '../../modules/fomantic/base.ts';
 
 const elRoot = useTemplateRef('elRoot');
 
@@ -48,7 +49,7 @@ const toggleEditMode = () => {
     if (previousSelection.value) {
       // If there was a previous selection, return to it
       if (store.selectedWorkflow && store.selectedWorkflow.id === 0) {
-        // Remove temporary cloned workflow from list
+        // Remove temporary unsaved workflow from list
         const tempIndex = store.workflowEvents.findIndex((w) =>
           w.event_id === store.selectedWorkflow.event_id,
         );
@@ -97,7 +98,7 @@ const deleteWorkflow = async () => {
   const currentDisplayName = (store.selectedWorkflow.display_name || store.selectedWorkflow.workflow_event || store.selectedWorkflow.event_id)
     .replace(/\s*\([^)]*\)\s*/g, '');
 
-  // If deleting a temporary workflow (new), just remove from list
+  // If deleting a temporary workflow (unsaved), just remove from list
   if (store.selectedWorkflow.id === 0) {
     const tempIndex = store.workflowEvents.findIndex((w) =>
       w.event_id === store.selectedWorkflow.event_id,
@@ -331,6 +332,53 @@ const isItemSelected = (item) => {
   return store.selectedItem === item.base_event_type;
 };
 
+// Toggle label selection for add_labels or remove_labels
+const toggleLabel = (actionType, labelId) => {
+  const labels = store.workflowActions[actionType];
+  const index = labels.indexOf(labelId);
+  if (index > -1) {
+    labels.splice(index, 1);
+  } else {
+    labels.push(labelId);
+  }
+};
+
+// Calculate text color based on background color for better contrast
+const getLabelTextColor = (hexColor) => {
+  if (!hexColor) return '#000';
+  // Remove # if present
+  const color = hexColor.replace('#', '');
+  // Convert to RGB
+  const r = parseInt(color.substring(0, 2), 16);
+  const g = parseInt(color.substring(2, 4), 16);
+  const b = parseInt(color.substring(4, 6), 16);
+  // Calculate relative luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  // Return black for light backgrounds, white for dark backgrounds
+  return luminance > 0.5 ? '#000' : '#fff';
+};
+
+// Initialize Fomantic UI dropdowns for label selection
+const initLabelDropdowns = async () => {
+  await nextTick();
+  const dropdowns = elRoot.value?.querySelectorAll('.ui.dropdown');
+  if (dropdowns) {
+    dropdowns.forEach((dropdown) => {
+      fomanticQuery(dropdown).dropdown({
+        action: 'nothing', // Don't hide on selection for multiple selection
+        fullTextSearch: true,
+      });
+    });
+  }
+};
+
+// Watch for edit mode changes to initialize dropdowns
+watch(isInEditMode, async (newVal) => {
+  if (newVal) {
+    await initLabelDropdowns();
+  }
+});
+
 onMounted(async () => {
   // Load all necessary data
   store.workflowEvents = await store.loadEvents();
@@ -518,28 +566,60 @@ onUnmounted(() => {
             <p v-else>View workflow configuration</p>
           </div>
           <div class="editor-actions-header">
-            <!-- Edit/Cancel Button (only for configured workflows) -->
-            <button
-              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0"
-              class="btn"
-              :class="isInEditMode ? 'btn-outline-secondary' : 'btn-primary'"
-              @click="toggleEditMode"
-            >
-              <i :class="isInEditMode ? 'times icon' : 'edit icon'"/>
-              {{ isInEditMode ? 'Cancel' : 'Edit' }}
-            </button>
+            <!-- Edit Mode Buttons -->
+            <template v-if="isInEditMode">
+              <!-- Save Button -->
+              <button
+                class="btn btn-primary"
+                @click="saveWorkflow"
+                :disabled="store.saving"
+              >
+                <i class="save icon"/>
+                Save
+              </button>
 
-            <!-- Enable/Disable Button (only for configured workflows) -->
-            <button
-              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0 && !isInEditMode"
-              class="btn"
-              :class="store.selectedWorkflow.enabled ? 'btn-outline-danger' : 'btn-success'"
-              @click="toggleWorkflowStatus"
-              :title="store.selectedWorkflow.enabled ? 'Disable workflow' : 'Enable workflow'"
-            >
-              <i :class="store.selectedWorkflow.enabled ? 'pause icon' : 'play icon'"/>
-              {{ store.selectedWorkflow.enabled ? 'Disable' : 'Enable' }}
-            </button>
+              <!-- Cancel Button -->
+              <button
+                class="btn btn-outline-secondary"
+                @click="toggleEditMode"
+              >
+                <i class="times icon"/>
+                Cancel
+              </button>
+
+              <!-- Delete Button (only for configured workflows) -->
+              <button
+                v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0"
+                class="btn btn-danger"
+                @click="deleteWorkflow"
+              >
+                <i class="trash icon"/>
+                Delete
+              </button>
+            </template>
+
+            <!-- View Mode Buttons (only for configured workflows) -->
+            <template v-else-if="store.selectedWorkflow && store.selectedWorkflow.id > 0">
+              <!-- Edit Button -->
+              <button
+                class="btn btn-primary"
+                @click="toggleEditMode"
+              >
+                <i class="edit icon"/>
+                Edit
+              </button>
+
+              <!-- Enable/Disable Button -->
+              <button
+                class="btn"
+                :class="store.selectedWorkflow.enabled ? 'btn-outline-danger' : 'btn-success'"
+                @click="toggleWorkflowStatus"
+                :title="store.selectedWorkflow.enabled ? 'Disable workflow' : 'Enable workflow'"
+              >
+                <i :class="store.selectedWorkflow.enabled ? 'pause icon' : 'play icon'"/>
+                {{ store.selectedWorkflow.enabled ? 'Disable' : 'Enable' }}
+              </button>
+            </template>
           </div>
         </div>
 
@@ -575,6 +655,23 @@ onUnmounted(() => {
                       'Issues And Pull Requests' }}
                   </div>
                 </div>
+
+                <div class="field" v-if="hasFilter('column')">
+                  <label>When moved to column</label>
+                  <select
+                    v-if="isInEditMode"
+                    class="form-select"
+                    v-model="store.workflowFilters.column"
+                  >
+                    <option value="">Any column</option>
+                    <option v-for="column in store.projectColumns" :key="column.id" :value="String(column.id)">
+                      {{ column.title }}
+                    </option>
+                  </select>
+                  <div v-else class="readonly-value">
+                    {{ store.projectColumns.find(c => String(c.id) === store.workflowFilters.column)?.title || 'Any column' }}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -599,22 +696,75 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <div class="field" v-if="hasAction('label')">
+                <div class="field" v-if="hasAction('add_labels')">
                   <label>Add labels</label>
-                  <select
-                    v-if="isInEditMode"
-                    class="form-select"
-                    v-model="store.workflowActions.add_labels"
-                    multiple
-                  >
-                    <option value="">Select labels...</option>
-                    <option v-for="label in store.projectLabels" :key="label.id" :value="String(label.id)">
-                      {{ label.name }}
-                    </option>
-                  </select>
-                  <div v-else class="readonly-value">
-                    {{ store.workflowActions.add_labels?.map(id =>
-                      store.projectLabels.find(l => String(l.id) === id)?.name).join(', ') || 'None' }}
+                  <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown label-dropdown">
+                    <input type="hidden" :value="store.workflowActions.add_labels.join(',')">
+                    <i class="dropdown icon"></i>
+                    <div class="text" :class="{ default: !store.workflowActions.add_labels?.length }">
+                      <span v-if="!store.workflowActions.add_labels?.length">Select labels...</span>
+                      <template v-else>
+                        <span v-for="labelId in store.workflowActions.add_labels" :key="labelId"
+                              class="ui label"
+                              :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`">
+                          {{ store.projectLabels.find(l => String(l.id) === labelId)?.name }}
+                        </span>
+                      </template>
+                    </div>
+                    <div class="menu">
+                      <div class="item" v-for="label in store.projectLabels" :key="label.id"
+                           :data-value="String(label.id)"
+                           @click.prevent="toggleLabel('add_labels', String(label.id))"
+                           :class="{ active: store.workflowActions.add_labels.includes(String(label.id)), selected: store.workflowActions.add_labels.includes(String(label.id)) }">
+                        <span class="ui label" :style="`background-color: ${label.color}; color: ${getLabelTextColor(label.color)}`">
+                          {{ label.name }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="ui labels">
+                    <span v-if="!store.workflowActions.add_labels?.length" class="text-muted">None</span>
+                    <span v-for="labelId in store.workflowActions.add_labels" :key="labelId"
+                          class="ui label"
+                          :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`">
+                      {{ store.projectLabels.find(l => String(l.id) === labelId)?.name }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="field" v-if="hasAction('remove_labels')">
+                  <label>Remove labels</label>
+                  <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown label-dropdown">
+                    <input type="hidden" :value="store.workflowActions.remove_labels.join(',')">
+                    <i class="dropdown icon"></i>
+                    <div class="text" :class="{ default: !store.workflowActions.remove_labels?.length }">
+                      <span v-if="!store.workflowActions.remove_labels?.length">Select labels...</span>
+                      <template v-else>
+                        <span v-for="labelId in store.workflowActions.remove_labels" :key="labelId"
+                              class="ui label"
+                              :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`">
+                          {{ store.projectLabels.find(l => String(l.id) === labelId)?.name }}
+                        </span>
+                      </template>
+                    </div>
+                    <div class="menu">
+                      <div class="item" v-for="label in store.projectLabels" :key="label.id"
+                           :data-value="String(label.id)"
+                           @click.prevent="toggleLabel('remove_labels', String(label.id))"
+                           :class="{ active: store.workflowActions.remove_labels.includes(String(label.id)), selected: store.workflowActions.remove_labels.includes(String(label.id)) }">
+                        <span class="ui label" :style="`background-color: ${label.color}; color: ${getLabelTextColor(label.color)}`">
+                          {{ label.name }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="ui labels">
+                    <span v-if="!store.workflowActions.remove_labels?.length" class="text-muted">None</span>
+                    <span v-for="labelId in store.workflowActions.remove_labels" :key="labelId"
+                          class="ui label"
+                          :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`">
+                      {{ store.projectLabels.find(l => String(l.id) === labelId)?.name }}
+                    </span>
                   </div>
                 </div>
 
@@ -633,21 +783,6 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Fixed bottom actions (only show in edit mode) -->
-        <div v-if="isInEditMode" class="editor-actions">
-          <button class="btn btn-primary" @click="saveWorkflow" :disabled="store.saving">
-            <i class="save icon"/>
-            Save Workflow
-          </button>
-          <button
-            v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0"
-            class="btn btn-danger"
-            @click="deleteWorkflow"
-          >
-            <i class="trash icon"/>
-            Delete
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -861,14 +996,6 @@ onUnmounted(() => {
   font-size: 0.9rem;
 }
 
-.editor-actions {
-  display: flex;
-  gap: 0.5rem;
-  padding: 1.5rem;
-  border-top: 1px solid #e1e4e8;
-  background: white;
-  flex-shrink: 0;
-}
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -893,10 +1020,6 @@ onUnmounted(() => {
   .editor-content {
     padding: 1rem;
   }
-
-  .editor-actions {
-    flex-direction: column;
-  }
 }
 
 @media (max-width: 480px) {
@@ -910,8 +1033,13 @@ onUnmounted(() => {
     padding: 0.75rem;
   }
 
-  .editor-actions button {
-    width: 100%;
+  .editor-actions-header {
+    flex-wrap: wrap;
+  }
+
+  .editor-actions-header button {
+    flex: 1 1 auto;
+    min-width: 80px;
   }
 }
 
@@ -1124,5 +1252,35 @@ onUnmounted(() => {
   color: #fff;
   background-color: #c82333;
   border-color: #bd2130;
+}
+
+/* Label selector styles */
+.label-dropdown.ui.dropdown .menu > .item.active,
+.label-dropdown.ui.dropdown .menu > .item.selected {
+  background: rgba(0, 0, 0, 0.05);
+  font-weight: normal;
+}
+
+.label-dropdown.ui.dropdown .menu > .item .ui.label {
+  margin: 0;
+}
+
+.label-dropdown.ui.dropdown > .text > .ui.label {
+  margin: 0.125rem;
+}
+
+.ui.labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.ui.labels .ui.label {
+  margin: 0;
+}
+
+.text-muted {
+  color: #6c757d;
 }
 </style>

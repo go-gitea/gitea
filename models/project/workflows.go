@@ -91,6 +91,7 @@ type WorkflowFilterType string
 
 const (
 	WorkflowFilterTypeIssueType WorkflowFilterType = "issue_type" // issue, pull_request, etc.
+	WorkflowFilterTypeColumn    WorkflowFilterType = "column"     // target column for item_column_changed event
 )
 
 type WorkflowFilter struct {
@@ -138,8 +139,8 @@ func GetWorkflowEventCapabilities() map[WorkflowEvent]WorkflowEventCapabilities 
 			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
 		},
 		WorkflowEventItemColumnChanged: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType},
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeClose},
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeColumn},
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeClose},
 		},
 		WorkflowEventCodeChangesRequested: {
 			AvailableFilters: []WorkflowFilterType{}, // only applies to pull requests

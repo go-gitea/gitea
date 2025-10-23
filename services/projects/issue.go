@@ -12,30 +12,32 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/services/notify"
 )
 
 // MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
 func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		issueIDs := make([]int64, 0, len(sortedIssueIDs))
-		for _, issueID := range sortedIssueIDs {
-			issueIDs = append(issueIDs, issueID)
-		}
-		count, err := db.GetEngine(ctx).
-			Where("project_id=?", column.ProjectID).
-			In("issue_id", issueIDs).
-			Count(new(project_model.ProjectIssue))
-		if err != nil {
-			return err
-		}
-		if int(count) != len(sortedIssueIDs) {
-			return errors.New("all issues have to be added to a project first")
-		}
+	issueIDs := make([]int64, 0, len(sortedIssueIDs))
+	for _, issueID := range sortedIssueIDs {
+		issueIDs = append(issueIDs, issueID)
+	}
+	count, err := db.GetEngine(ctx).
+		Where("project_id=?", column.ProjectID).
+		In("issue_id", issueIDs).
+		Count(new(project_model.ProjectIssue))
+	if err != nil {
+		return err
+	}
+	if int(count) != len(sortedIssueIDs) {
+		return errors.New("all issues have to be added to a project first")
+	}
 
-		issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
-		if err != nil {
-			return err
-		}
+	issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
+	if err != nil {
+		return err
+	}
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if _, err := issues.LoadRepositories(ctx); err != nil {
 			return err
 		}
@@ -83,7 +85,15 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 			}
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	for _, issue := range issues {
+		notify.IssueChangeProjectColumn(ctx, doer, issue, column.ID)
+	}
+
+	return nil
 }
 
 // LoadIssuesFromProject load issues assigned to each project column inside the given project
@@ -207,7 +217,7 @@ func LoadIssueNumbersForProject(ctx context.Context, project *project_model.Proj
 }
 
 func MoveIssueToAnotherColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := project_model.MoveIssueToAnotherColumn(ctx, issue.ID, column); err != nil {
 			return err
 		}
@@ -230,5 +240,10 @@ func MoveIssueToAnotherColumn(ctx context.Context, doer *user_model.User, issue 
 			return err
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	notify.IssueChangeProjectColumn(ctx, doer, issue, column.ID)
+	return nil
 }

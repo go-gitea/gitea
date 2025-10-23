@@ -75,6 +75,7 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 				}
 			}
 		case "add_labels":
+			// Handle both []string and []interface{} from JSON unmarshaling
 			if labels, ok := value.([]string); ok && len(labels) > 0 {
 				for _, label := range labels {
 					if label != "" {
@@ -84,11 +85,30 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 						})
 					}
 				}
+			} else if labelInterfaces, ok := value.([]interface{}); ok && len(labelInterfaces) > 0 {
+				for _, labelInterface := range labelInterfaces {
+					if label, ok := labelInterface.(string); ok && label != "" {
+						actions = append(actions, project_model.WorkflowAction{
+							Type:  project_model.WorkflowActionTypeAddLabels,
+							Value: label,
+						})
+					}
+				}
 			}
 		case "remove_labels":
+			// Handle both []string and []interface{} from JSON unmarshaling
 			if labels, ok := value.([]string); ok && len(labels) > 0 {
 				for _, label := range labels {
 					if label != "" {
+						actions = append(actions, project_model.WorkflowAction{
+							Type:  project_model.WorkflowActionTypeRemoveLabels,
+							Value: label,
+						})
+					}
+				}
+			} else if labelInterfaces, ok := value.([]interface{}); ok && len(labelInterfaces) > 0 {
+				for _, labelInterface := range labelInterfaces {
+					if label, ok := labelInterface.(string); ok && label != "" {
 						actions = append(actions, project_model.WorkflowAction{
 							Type:  project_model.WorkflowActionTypeRemoveLabels,
 							Value: label,

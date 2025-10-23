@@ -5,6 +5,7 @@ package projects
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strconv"
 	"strings"
@@ -130,6 +131,40 @@ func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_mod
 	}
 }
 
+func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, newColumnID int64) {
+	if err := issue.LoadRepo(ctx); err != nil {
+		log.Error("IssueChangeStatus: LoadRepo: %v", err)
+		return
+	}
+
+	if err := issue.LoadProject(ctx); err != nil {
+		log.Error("NewIssue: LoadProject: %v", err)
+		return
+	}
+
+	newColumn, err := project_model.GetColumn(ctx, newColumnID)
+	if err != nil {
+		log.Error("IssueChangeProjectColumn: GetColumn: %v", err)
+		return
+	}
+	if issue.Project == nil || issue.Project.ID != newColumn.ProjectID {
+		return
+	}
+
+	workflows, err := project_model.FindWorkflowsByProjectID(ctx, issue.Project.ID)
+	if err != nil {
+		log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
+		return
+	}
+
+	// Find workflows for the ItemOpened event
+	for _, workflow := range workflows {
+		if workflow.WorkflowEvent == project_model.WorkflowEventItemColumnChanged {
+			fireIssueWorkflow(ctx, workflow, issue)
+		}
+	}
+}
+
 func (*workflowNotifier) MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("NewIssue: LoadIssue: %v", err)
@@ -211,6 +246,20 @@ func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, is
 			if !(slices.Contains(values, "issue") && !issue.IsPull) || (slices.Contains(values, "pull") && issue.IsPull) {
 				return
 			}
+		case project_model.WorkflowFilterTypeColumn:
+			columnID, _ := strconv.ParseInt(filter.Value, 10, 64)
+			if columnID == 0 {
+				log.Error("Invalid column ID: %s", filter.Value)
+				return
+			}
+			issueProjectColumnID, err := issue.ProjectColumnID(ctx)
+			if err != nil {
+				log.Error("Issue.ProjectColumnID: %v", err)
+				return
+			}
+			if issueProjectColumnID != columnID {
+				return
+			}
 		default:
 			log.Error("Unsupported filter type: %s", filter.Type)
 			return
@@ -235,9 +284,37 @@ func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, is
 				continue
 			}
 		case project_model.WorkflowActionTypeAddLabels:
-			// TODO: implement adding labels
+			labelID, _ := strconv.ParseInt(action.Value, 10, 64)
+			if labelID == 0 {
+				log.Error("Invalid label ID: %s", action.Value)
+				continue
+			}
+			label, err := issues_model.GetLabelByID(ctx, labelID)
+			if err != nil {
+				log.Error("GetLabelByID: %v", err)
+				continue
+			}
+			if err := issue_service.AddLabel(ctx, issue, user_model.NewProjectWorkflowsUser(), label); err != nil {
+				log.Error("AddLabels: %v", err)
+				continue
+			}
 		case project_model.WorkflowActionTypeRemoveLabels:
-			// TODO: implement removing labels
+			labelID, _ := strconv.ParseInt(action.Value, 10, 64)
+			if labelID == 0 {
+				log.Error("Invalid label ID: %s", action.Value)
+				continue
+			}
+			label, err := issues_model.GetLabelByID(ctx, labelID)
+			if err != nil {
+				log.Error("GetLabelByID: %v", err)
+				continue
+			}
+			if err := issue_service.RemoveLabel(ctx, issue, user_model.NewProjectWorkflowsUser(), label); err != nil {
+				if !issues_model.IsErrRepoLabelNotExist(err) {
+					log.Error("RemoveLabels: %v", err)
+				}
+				continue
+			}
 		case project_model.WorkflowActionTypeClose:
 			if err := issue_service.CloseIssue(ctx, issue, user_model.NewProjectWorkflowsUser(), ""); err != nil {
 				log.Error("CloseIssue: %v", err)

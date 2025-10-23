@@ -147,6 +147,9 @@ func (*NullNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.Use
 func (*NullNotifier) IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, newProject *project_model.Project) {
 }
 
+func (*NullNotifier) IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, newColumnID int64) {
+}
+
 // CreateRepository places a place holder function
 func (*NullNotifier) CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 }

@@ -16,11 +16,13 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
 
     workflowFilters: {
       issue_type: '', // 'issue', 'pull_request', or ''
+      column: '', // target column ID for item_column_changed event
     },
 
     workflowActions: {
       column: '', // column ID to move to
       add_labels: [], // selected label IDs
+      remove_labels: [], // selected label IDs to remove
       closeIssue: false,
     },
 
@@ -58,14 +60,16 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
 
           // Load existing configuration from the workflow data
           // Convert backend filter format to frontend format
-        const frontendFilters = {issue_type: ''};
+        const frontendFilters = {issue_type: '', column: ''};
          // Convert backend action format to frontend format
-        const frontendActions = {column: '', add_labels: [], closeIssue: false};
+        const frontendActions = {column: '', add_labels: [], remove_labels: [], closeIssue: false};
 
         if (workflow) {
           for (const filter of workflow.filters) {
             if (filter.type === 'issue_type') {
               frontendFilters.issue_type = filter.value;
+            } else if (filter.type === 'column') {
+              frontendFilters.column = filter.value;
             }
           }
 
@@ -76,6 +80,9 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
             } else if (action.type === 'add_labels') {
               // Backend returns string, keep as string to match label.id type
               frontendActions.add_labels.push(action.value);
+            } else if (action.type === 'remove_labels') {
+              // Backend returns string, keep as string to match label.id type
+              frontendActions.remove_labels.push(action.value);
             } else if (action.type === 'close') {
               frontendActions.closeIssue = action.value === 'true';
             }
@@ -100,8 +107,8 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
     },
 
     resetWorkflowData() {
-      store.workflowFilters = {issue_type: ''};
-      store.workflowActions = {column: '', add_labels: [], closeIssue: false};
+      store.workflowFilters = {issue_type: '', column: ''};
+      store.workflowActions = {column: '', add_labels: [], remove_labels: [], closeIssue: false};
     },
 
     async saveWorkflow() {
@@ -163,13 +170,15 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
 
           // Convert backend data to frontend format and update form
           // Use the selectedWorkflow which now points to the reloaded workflow with complete data
-          const frontendFilters = {issue_type: ''};
-          const frontendActions = {column: '', add_labels: [], closeIssue: false};
+          const frontendFilters = {issue_type: '', column: ''};
+          const frontendActions = {column: '', add_labels: [], remove_labels: [], closeIssue: false};
 
           if (store.selectedWorkflow.filters && Array.isArray(store.selectedWorkflow.filters)) {
             for (const filter of store.selectedWorkflow.filters) {
               if (filter.type === 'issue_type') {
                 frontendFilters.issue_type = filter.value;
+              } else if (filter.type === 'column') {
+                frontendFilters.column = filter.value;
               }
             }
           }
@@ -180,6 +189,8 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
                 frontendActions.column = action.value;
               } else if (action.type === 'add_labels') {
                 frontendActions.add_labels.push(action.value);
+              } else if (action.type === 'remove_labels') {
+                frontendActions.remove_labels.push(action.value);
               } else if (action.type === 'close') {
                 frontendActions.closeIssue = action.value === 'true';
               }

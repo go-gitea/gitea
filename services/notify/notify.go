@@ -282,6 +282,12 @@ func IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issu
 	}
 }
 
+func IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, newColumnID int64) {
+	for _, notifier := range notifiers {
+		notifier.IssueChangeProjectColumn(ctx, doer, issue, newColumnID)
+	}
+}
+
 // CreateRepository notifies create repository to notifiers
 func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 	for _, notifier := range notifiers {
