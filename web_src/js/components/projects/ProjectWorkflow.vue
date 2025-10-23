@@ -115,18 +115,38 @@ const deleteWorkflow = async () => {
 
   // Find workflows for the same base event type
   const sameEventWorkflows = store.workflowEvents.filter((w) =>
-    w.base_event_type === currentBaseEventType ||
-    w.workflow_event === currentBaseEventType,
+    (w.base_event_type === currentBaseEventType || w.workflow_event === currentBaseEventType)
   );
 
-  if (sameEventWorkflows.length === 0) {
-    // No workflows left for this event type, create an empty one
-    createNewWorkflow(currentBaseEventType, currentCapabilities, currentDisplayName);
-    // URL already updated in createNewWorkflow
+  let workflowToSelect = null;
+
+  if (sameEventWorkflows.length > 0) {
+    // Prefer configured workflows over placeholders
+    const configured = sameEventWorkflows.find(w => w.isConfigured || w.id > 0);
+    workflowToSelect = configured || sameEventWorkflows[0];
+  }
+
+  // If no same-type workflow found, select the first available workflow
+  if (!workflowToSelect && store.workflowEvents.length > 0) {
+    // Try to find any configured workflow first
+    const anyConfigured = store.workflowEvents.find(w => w.isConfigured || w.id > 0);
+    workflowToSelect = anyConfigured || store.workflowEvents[0];
+  }
+
+  if (workflowToSelect) {
+    await selectWorkflowItem(workflowToSelect);
+
+    // If selected workflow is unconfigured, automatically enter edit mode
+    if (!workflowToSelect.isConfigured && workflowToSelect.id === 0) {
+      previousSelection.value = null;
+      setEditMode(true);
+      return; // Early return to avoid setting edit mode to false below
+    }
   } else {
-    // Select the first remaining workflow of the same type
-    selectWorkflowItem(sameEventWorkflows[0]);
-    // URL already updated in selectWorkflowItem
+    // No workflows at all (shouldn't happen), clear selection
+    store.selectedItem = null;
+    store.selectedWorkflow = null;
+    window.history.pushState({}, '', `${props.projectLink}/workflows`);
   }
 
   // Clear previous selection and exit edit mode
@@ -187,10 +207,8 @@ const selectWorkflowEvent = async (event) => {
   // Prevent rapid successive clicks
   if (store.loading) return;
 
-  // Toggle selection - if already selected, deselect
+  // If already selected, do nothing (keep selection active)
   if (store.selectedItem === event.event_id) {
-    store.selectedItem = null;
-    store.selectedWorkflow = null;
     return;
   }
 
@@ -208,9 +226,11 @@ const selectWorkflowEvent = async (event) => {
     window.history.pushState({eventId: event.event_id}, '', newUrl);
   } catch (error) {
     console.error('Error selecting workflow event:', error);
-    // Reset state on error
-    store.selectedItem = null;
-    store.selectedWorkflow = null;
+    // On error, try to select the first available workflow instead of clearing
+    const items = workflowList.value;
+    if (items.length > 0 && items[0] !== event) {
+      selectWorkflowItem(items[0]);
+    }
   }
 };
 
