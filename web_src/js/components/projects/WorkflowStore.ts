@@ -148,14 +148,51 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
           // Reload events from server to get the correct event structure
           await store.loadEvents();
 
-          // Update selected workflow and selectedItem
-          store.selectedWorkflow = result.workflow;
-          store.selectedItem = result.workflow.event_id;
+          // Find the reloaded workflow which has complete data including capabilities
+          const reloadedWorkflow = store.workflowEvents.find((w) => w.event_id === result.workflow.event_id);
+
+          if (reloadedWorkflow) {
+            // Use the reloaded workflow as it has all the necessary fields
+            store.selectedWorkflow = reloadedWorkflow;
+            store.selectedItem = reloadedWorkflow.event_id;
+          } else {
+            // Fallback: use the result from backend (shouldn't normally happen)
+            store.selectedWorkflow = result.workflow;
+            store.selectedItem = result.workflow.event_id;
+          }
+
+          // Convert backend data to frontend format and update form
+          // Use the selectedWorkflow which now points to the reloaded workflow with complete data
+          const frontendFilters = {issue_type: ''};
+          const frontendActions = {column: '', add_labels: [], closeIssue: false};
+
+          if (store.selectedWorkflow.filters && Array.isArray(store.selectedWorkflow.filters)) {
+            for (const filter of store.selectedWorkflow.filters) {
+              if (filter.type === 'issue_type') {
+                frontendFilters.issue_type = filter.value;
+              }
+            }
+          }
+
+          if (store.selectedWorkflow.actions && Array.isArray(store.selectedWorkflow.actions)) {
+            for (const action of store.selectedWorkflow.actions) {
+              if (action.type === 'column') {
+                frontendActions.column = action.value;
+              } else if (action.type === 'add_labels') {
+                frontendActions.add_labels.push(action.value);
+              } else if (action.type === 'close') {
+                frontendActions.closeIssue = action.value === 'true';
+              }
+            }
+          }
+
+          store.workflowFilters = frontendFilters;
+          store.workflowActions = frontendActions;
 
           // Update URL to use the new workflow ID
           if (wasNewWorkflow) {
-            const newUrl = `${props.projectLink}/workflows/${result.workflow.event_id}`;
-            window.history.replaceState({eventId: result.workflow.event_id}, '', newUrl);
+            const newUrl = `${props.projectLink}/workflows/${store.selectedWorkflow.event_id}`;
+            window.history.replaceState({eventId: store.selectedWorkflow.event_id}, '', newUrl);
           }
 
           showInfoToast('Workflow saved successfully!');

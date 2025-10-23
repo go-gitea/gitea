@@ -40,7 +40,7 @@ const setEditMode = (enabled) => {
   }
 };
 
- // Store previous selection for cancel functionality
+// Store previous selection for cancel functionality
 
 const toggleEditMode = () => {
   if (isInEditMode.value) {
@@ -97,7 +97,7 @@ const deleteWorkflow = async () => {
   const currentDisplayName = (store.selectedWorkflow.display_name || store.selectedWorkflow.workflow_event || store.selectedWorkflow.event_id)
     .replace(/\s*\([^)]*\)\s*/g, '');
 
-  // If deleting a temporary workflow (clone/new), just remove from list
+  // If deleting a temporary workflow (new), just remove from list
   if (store.selectedWorkflow.id === 0) {
     const tempIndex = store.workflowEvents.findIndex((w) =>
       w.event_id === store.selectedWorkflow.event_id,
@@ -254,51 +254,6 @@ const createNewWorkflow = (baseEventType, capabilities, displayName) => {
   // Unconfigured workflows are always in edit mode by default
 };
 
-const cloneWorkflow = (sourceWorkflow) => {
-  // Store current selection before cloning
-  previousSelection.value = {
-    selectedItem: store.selectedItem,
-    selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : null,
-  };
-
-  const tempId = `clone-${sourceWorkflow.base_event_type || sourceWorkflow.workflow_event}-${Date.now()}`;
-  // Extract base name without filter descriptions
-  const baseName = (sourceWorkflow.display_name || sourceWorkflow.workflow_event || sourceWorkflow.event_id)
-    .replace(/\s*\([^)]*\)\s*/g, ''); // Remove any parenthetical descriptions
-
-  const clonedWorkflow = {
-    id: 0,
-    event_id: tempId,
-    display_name: `${baseName} (Copy)`, // Add copy suffix
-    capabilities: sourceWorkflow.capabilities,
-    filters: Array.from(sourceWorkflow.filters || []),
-    actions: Array.from(sourceWorkflow.actions || []),
-    filter_summary: '',
-    base_event_type: sourceWorkflow.base_event_type || sourceWorkflow.workflow_event || sourceWorkflow.event_id,
-    enabled: true,
-  };
-
-  // Find the position of source workflow and insert cloned workflow after it
-  const sourceIndex = store.workflowEvents.findIndex((w) => w.event_id === sourceWorkflow.event_id);
-  if (sourceIndex >= 0) {
-    store.workflowEvents.splice(sourceIndex + 1, 0, clonedWorkflow);
-  } else {
-    store.workflowEvents.push(clonedWorkflow);
-  }
-
-  // Select the cloned workflow
-  store.selectedWorkflow = clonedWorkflow;
-  store.selectedItem = tempId;
-
-  // Load the source workflow's data into the form
-  store.loadWorkflowData(sourceWorkflow.event_id);
-  // Cloned workflows (id: 0) are always in edit mode by default
-
-  // Update URL for cloned workflow
-  const newUrl = `${props.projectLink}/workflows/${tempId}`;
-  window.history.pushState({eventId: tempId}, '', newUrl);
-};
-
 // Add debounce mechanism
 let selectTimeout = null;
 
@@ -369,7 +324,7 @@ const isItemSelected = (item) => {
   if (!store.selectedItem) return false;
 
   if (item.isConfigured || item.id === 0) {
-    // For configured workflows or temporary workflows (clones/new), match by event_id
+    // For configured workflows or temporary workflows (new), match by event_id
     return store.selectedItem === item.event_id;
   }
     // For unconfigured events, match by base_event_type
@@ -584,17 +539,6 @@ onUnmounted(() => {
             >
               <i :class="store.selectedWorkflow.enabled ? 'pause icon' : 'play icon'"/>
               {{ store.selectedWorkflow.enabled ? 'Disable' : 'Enable' }}
-            </button>
-
-            <!-- Clone Button (only for configured workflows) -->
-            <button
-              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0 && !isInEditMode"
-              class="btn btn-outline-secondary"
-              @click="cloneWorkflow(store.selectedWorkflow)"
-              title="Clone this workflow"
-            >
-              <i class="copy icon"/>
-              Clone
             </button>
           </div>
         </div>
