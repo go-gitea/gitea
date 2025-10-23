@@ -10,9 +10,12 @@ import (
 	"strconv"
 	"testing"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestActionsCollaborativeOwner(t *testing.T) {
@@ -26,7 +29,10 @@ func TestActionsCollaborativeOwner(t *testing.T) {
 		// a private repo(id=6) of user10 will try to clone "reusable_workflow" repo
 		user10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
 		// task id is 55 and its repo_id=6
+		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 55, RepoID: 6})
 		taskToken := "674f727a81ed2f195bccab036cccf86a182199eb"
+		tokenHash := auth_model.HashToken(taskToken, task.TokenSalt)
+		assert.Equal(t, task.TokenHash, tokenHash)
 
 		dstPath := t.TempDir()
 		u.Path = fmt.Sprintf("%s/%s.git", repo.Owner.UserName, repo.Name)
