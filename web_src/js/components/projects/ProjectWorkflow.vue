@@ -332,9 +332,14 @@ const isItemSelected = (item) => {
   return store.selectedItem === item.base_event_type;
 };
 
-// Toggle label selection for add_labels or remove_labels
-const toggleLabel = (actionType, labelId) => {
-  const labels = store.workflowActions[actionType];
+// Toggle label selection for add_labels, remove_labels, or filter_labels
+const toggleLabel = (type, labelId) => {
+  let labels;
+  if (type === 'filter_labels') {
+    labels = store.workflowFilters.labels;
+  } else {
+    labels = store.workflowActions[type];
+  }
   const index = labels.indexOf(labelId);
   if (index > -1) {
     labels.splice(index, 1);
@@ -670,6 +675,42 @@ onUnmounted(() => {
                   </select>
                   <div v-else class="readonly-value">
                     {{ store.projectColumns.find(c => String(c.id) === store.workflowFilters.column)?.title || 'Any column' }}
+                  </div>
+                </div>
+
+                <div class="field" v-if="hasFilter('labels')">
+                  <label>Only if has labels</label>
+                  <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown label-dropdown">
+                    <input type="hidden" :value="store.workflowFilters.labels.join(',')">
+                    <i class="dropdown icon"></i>
+                    <div class="text" :class="{ default: !store.workflowFilters.labels?.length }">
+                      <span v-if="!store.workflowFilters.labels?.length">Any labels</span>
+                      <template v-else>
+                        <span v-for="labelId in store.workflowFilters.labels" :key="labelId"
+                              class="ui label"
+                              :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`">
+                          {{ store.projectLabels.find(l => String(l.id) === labelId)?.name }}
+                        </span>
+                      </template>
+                    </div>
+                    <div class="menu">
+                      <div class="item" v-for="label in store.projectLabels" :key="label.id"
+                           :data-value="String(label.id)"
+                           @click.prevent="toggleLabel('filter_labels', String(label.id))"
+                           :class="{ active: store.workflowFilters.labels.includes(String(label.id)), selected: store.workflowFilters.labels.includes(String(label.id)) }">
+                        <span class="ui label" :style="`background-color: ${label.color}; color: ${getLabelTextColor(label.color)}`">
+                          {{ label.name }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="ui labels">
+                    <span v-if="!store.workflowFilters.labels?.length" class="text-muted">Any labels</span>
+                    <span v-for="labelId in store.workflowFilters.labels" :key="labelId"
+                          class="ui label"
+                          :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`">
+                      {{ store.projectLabels.find(l => String(l.id) === labelId)?.name }}
+                    </span>
                   </div>
                 </div>
               </div>

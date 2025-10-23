@@ -43,15 +43,31 @@ func getFilterSummary(filters []project_model.WorkflowFilter) string {
 }
 
 // convertFormToFilters converts form filters to WorkflowFilter objects
-func convertFormToFilters(formFilters map[string]string) []project_model.WorkflowFilter {
+func convertFormToFilters(formFilters map[string]any) []project_model.WorkflowFilter {
 	filters := make([]project_model.WorkflowFilter, 0)
 
 	for key, value := range formFilters {
-		if value != "" {
-			filters = append(filters, project_model.WorkflowFilter{
-				Type:  project_model.WorkflowFilterType(key),
-				Value: value,
-			})
+		switch key {
+		case "labels":
+			// Handle labels array
+			if labelInterfaces, ok := value.([]interface{}); ok && len(labelInterfaces) > 0 {
+				for _, labelInterface := range labelInterfaces {
+					if label, ok := labelInterface.(string); ok && label != "" {
+						filters = append(filters, project_model.WorkflowFilter{
+							Type:  project_model.WorkflowFilterTypeLabels,
+							Value: label,
+						})
+					}
+				}
+			}
+		default:
+			// Handle string values (issue_type, column)
+			if strValue, ok := value.(string); ok && strValue != "" {
+				filters = append(filters, project_model.WorkflowFilter{
+					Type:  project_model.WorkflowFilterType(key),
+					Value: strValue,
+				})
+			}
 		}
 	}
 
@@ -378,9 +394,9 @@ func Workflows(ctx *context.Context) {
 }
 
 type WorkflowsPostForm struct {
-	EventID string            `json:"event_id"`
-	Filters map[string]string `json:"filters"`
-	Actions map[string]any    `json:"actions"`
+	EventID string         `json:"event_id"`
+	Filters map[string]any `json:"filters"`
+	Actions map[string]any `json:"actions"`
 }
 
 func WorkflowsPost(ctx *context.Context) {

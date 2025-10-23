@@ -17,6 +17,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
     workflowFilters: {
       issue_type: '', // 'issue', 'pull_request', or ''
       column: '', // target column ID for item_column_changed event
+      labels: [], // label IDs to filter by
     },
 
     workflowActions: {
@@ -60,7 +61,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
 
           // Load existing configuration from the workflow data
           // Convert backend filter format to frontend format
-        const frontendFilters = {issue_type: '', column: ''};
+        const frontendFilters = {issue_type: '', column: '', labels: []};
          // Convert backend action format to frontend format
         const frontendActions = {column: '', add_labels: [], remove_labels: [], closeIssue: false};
 
@@ -70,6 +71,8 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
               frontendFilters.issue_type = filter.value;
             } else if (filter.type === 'column') {
               frontendFilters.column = filter.value;
+            } else if (filter.type === 'labels') {
+              frontendFilters.labels.push(filter.value);
             }
           }
 
@@ -107,7 +110,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
     },
 
     resetWorkflowData() {
-      store.workflowFilters = {issue_type: '', column: ''};
+      store.workflowFilters = {issue_type: '', column: '', labels: []};
       store.workflowActions = {column: '', add_labels: [], remove_labels: [], closeIssue: false};
     },
 
@@ -170,7 +173,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
 
           // Convert backend data to frontend format and update form
           // Use the selectedWorkflow which now points to the reloaded workflow with complete data
-          const frontendFilters = {issue_type: '', column: ''};
+          const frontendFilters = {issue_type: '', column: '', labels: []};
           const frontendActions = {column: '', add_labels: [], remove_labels: [], closeIssue: false};
 
           if (store.selectedWorkflow.filters && Array.isArray(store.selectedWorkflow.filters)) {
@@ -179,6 +182,8 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
                 frontendFilters.issue_type = filter.value;
               } else if (filter.type === 'column') {
                 frontendFilters.column = filter.value;
+              } else if (filter.type === 'labels') {
+                frontendFilters.labels.push(filter.value);
               }
             }
           }

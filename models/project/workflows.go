@@ -92,6 +92,7 @@ type WorkflowFilterType string
 const (
 	WorkflowFilterTypeIssueType WorkflowFilterType = "issue_type" // issue, pull_request, etc.
 	WorkflowFilterTypeColumn    WorkflowFilterType = "column"     // target column for item_column_changed event
+	WorkflowFilterTypeLabels    WorkflowFilterType = "labels"     // filter by issue/PR labels
 )
 
 type WorkflowFilter struct {
@@ -123,35 +124,35 @@ type WorkflowEventCapabilities struct {
 func GetWorkflowEventCapabilities() map[WorkflowEvent]WorkflowEventCapabilities {
 	return map[WorkflowEvent]WorkflowEventCapabilities{
 		WorkflowEventItemOpened: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType}, // issue, pull_request
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},
 			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels},
 		},
 		WorkflowEventItemAddedToProject: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType}, // issue, pull_request
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},
 			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
 		},
 		WorkflowEventItemReopened: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType},
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},
 			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
 		},
 		WorkflowEventItemClosed: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType},
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},
 			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
 		},
 		WorkflowEventItemColumnChanged: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeColumn},
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeColumn, WorkflowFilterTypeLabels},
 			AvailableActions: []WorkflowActionType{WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeClose},
 		},
 		WorkflowEventCodeChangesRequested: {
-			AvailableFilters: []WorkflowFilterType{}, // only applies to pull requests
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeLabels}, // only applies to pull requests
 			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
 		},
 		WorkflowEventCodeReviewApproved: {
-			AvailableFilters: []WorkflowFilterType{}, // only applies to pull requests
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeLabels}, // only applies to pull requests
 			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
 		},
 		WorkflowEventPullRequestMerged: {
-			AvailableFilters: []WorkflowFilterType{}, // only applies to pull requests
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeLabels}, // only applies to pull requests
 			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
 		},
 	}
