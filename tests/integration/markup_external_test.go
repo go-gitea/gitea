@@ -75,7 +75,7 @@ func TestExternalMarkupRenderer(t *testing.T) {
 		assert.Equal(t, "text/html; charset=utf-8", resp.Header().Get("Content-Type"))
 		bs, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
-		assert.Equal(t, "frame-src 'self'; sandbox allow-scripts", resp.Header().Get("Content-Security-Policy"))
+		assert.Equal(t, "frame-src 'self'; sandbox allow-scripts allow-popups", resp.Header().Get("Content-Security-Policy"))
 		assert.Equal(t, "<div>\n\ttest external renderer\n</div>\n", string(bs))
 	})
 }
