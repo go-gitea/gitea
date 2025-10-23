@@ -6,12 +6,14 @@ package markup
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"io"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup/internal"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -163,24 +165,20 @@ func RenderString(ctx *RenderContext, content string) (string, error) {
 	return buf.String(), nil
 }
 
-func renderIFrame(ctx *RenderContext, output io.Writer) error {
-	// set height="0" ahead, otherwise the scrollHeight would be max(150, realHeight)
-	// at the moment, only "allow-scripts" is allowed for sandbox mode.
-	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
-	// TODO: when using dark theme, if the rendered content doesn't have proper style, the default text color is black, which is not easy to read
-	_, err := io.WriteString(output, fmt.Sprintf(`
-<iframe src="%s/%s/%s/render/%s/%s"
-name="giteaExternalRender"
-onload="this.height=giteaExternalRender.document.documentElement.scrollHeight"
-width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
-sandbox="allow-scripts"
-></iframe>`,
-		setting.AppSubURL,
+func renderIFrame(ctx *RenderContext, sandbox string, output io.Writer) error {
+	src := fmt.Sprintf("%s/%s/%s/render/%s/%s", setting.AppSubURL,
 		url.PathEscape(ctx.RenderOptions.Metas["user"]),
 		url.PathEscape(ctx.RenderOptions.Metas["repo"]),
-		ctx.RenderOptions.Metas["RefTypeNameSubURL"],
-		url.PathEscape(ctx.RenderOptions.RelativePath),
-	))
+		util.PathEscapeSegments(ctx.RenderOptions.Metas["RefTypeNameSubURL"]),
+		util.PathEscapeSegments(ctx.RenderOptions.RelativePath),
+	)
+
+	var sandboxAttrValue template.HTML
+	if sandbox != "" {
+		sandboxAttrValue = htmlutil.HTMLFormat(`sandbox="%s"`, sandbox)
+	}
+	iframe := htmlutil.HTMLFormat(`<iframe data-src="%s" class="external-render-iframe" %s></iframe>`, src, sandboxAttrValue)
+	_, err := io.WriteString(output, string(iframe))
 	return err
 }
 
@@ -192,14 +190,26 @@ func pipes() (io.ReadCloser, io.WriteCloser, func()) {
 	}
 }
 
+func getExternalRendererOptions(renderer Renderer) (ret ExternalRendererOptions, _ bool) {
+	if externalRender, ok := renderer.(ExternalRenderer); ok {
+		return externalRender.GetExternalRendererOptions(), true
+	}
+	return ret, false
+}
+
 func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
-	if externalRender, ok := renderer.(ExternalRenderer); ok && externalRender.DisplayInIFrame() {
+	var extraHeadHTML template.HTML
+	if extOpts, ok := getExternalRendererOptions(renderer); ok && extOpts.DisplayInIframe {
 		if !ctx.RenderOptions.InStandalonePage {
 			// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
 			// otherwise, a <iframe> should be outputted to embed the external rendered page
-			return renderIFrame(ctx, output)
+			return renderIFrame(ctx, extOpts.ContentSandbox, output)
 		}
-		// else: this is a standalone page, fallthrough to the real rendering
+		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
+		extraStyleHref := setting.AppSubURL + "/assets/css/external-render-iframe.css"
+		extraScriptSrc := setting.AppSubURL + "/assets/js/external-render-iframe.js"
+		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
+		extraHeadHTML = htmlutil.HTMLFormat(`<script src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraStyleHref)
 	}
 
 	ctx.usedByRender = true
@@ -207,7 +217,7 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 		defer ctx.RenderHelper.CleanUp()
 	}
 
-	finalProcessor := ctx.RenderInternal.Init(output)
+	finalProcessor := ctx.RenderInternal.Init(output, extraHeadHTML)
 	defer finalProcessor.Close()
 
 	// input -> (pw1=pr1) -> renderer -> (pw2=pr2) -> SanitizeReader -> finalProcessor -> output
@@ -218,7 +228,7 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 	eg, _ := errgroup.WithContext(ctx)
 	var pw2 io.WriteCloser = util.NopCloser{Writer: finalProcessor}
 
-	if r, ok := renderer.(ExternalRenderer); !ok || !r.SanitizerDisabled() {
+	if r, ok := renderer.(ExternalRenderer); !ok || !r.GetExternalRendererOptions().SanitizerDisabled {
 		var pr2 io.ReadCloser
 		var close2 func()
 		pr2, pw2, close2 = pipes()
