@@ -978,13 +978,20 @@ onUnmounted(() => {
                 </div>
 
                 <div class="field" v-if="hasAction('close')">
-                  <div v-if="isInEditMode" class="form-check">
-                    <input type="checkbox" v-model="store.workflowActions.closeIssue" id="close-issue">
-                    <label for="close-issue">Close issue</label>
-                  </div>
+                  <label for="issue-state-action">Issue state</label>
+                  <select
+                    v-if="isInEditMode"
+                    id="issue-state-action"
+                    class="form-select"
+                    v-model="store.workflowActions.issueState"
+                  >
+                    <option value="">No change</option>
+                    <option value="close">Close issue</option>
+                    <option value="reopen">Reopen issue</option>
+                  </select>
                   <div v-else class="readonly-value">
-                    <label>Close issue</label>
-                    <div>{{ store.workflowActions.closeIssue ? 'Yes' : 'No' }}</div>
+                    {{ store.workflowActions.issueState === 'close' ? 'Close issue' :
+                       store.workflowActions.issueState === 'reopen' ? 'Reopen issue' : 'No change' }}
                   </div>
                 </div>
               </div>
@@ -1024,6 +1031,7 @@ onUnmounted(() => {
   background: white;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 /* Sidebar */
@@ -1164,6 +1172,7 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .editor-header {
@@ -1202,6 +1211,7 @@ onUnmounted(() => {
   flex: 1;
   padding: 1.5rem;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .editor-content .field {

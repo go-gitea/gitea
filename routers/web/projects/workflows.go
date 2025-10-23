@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -132,11 +133,26 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 					}
 				}
 			}
+		case "issueState":
+			if strValue, ok := value.(string); ok {
+				switch strings.ToLower(strValue) {
+				case "close", "closed", "true":
+					actions = append(actions, project_model.WorkflowAction{
+						Type:  project_model.WorkflowActionTypeClose,
+						Value: "close",
+					})
+				case "reopen", "open", "false":
+					actions = append(actions, project_model.WorkflowAction{
+						Type:  project_model.WorkflowActionTypeClose,
+						Value: "reopen",
+					})
+				}
+			}
 		case "closeIssue":
 			if boolValue, ok := value.(bool); ok && boolValue {
 				actions = append(actions, project_model.WorkflowAction{
 					Type:  project_model.WorkflowActionTypeClose,
-					Value: "true",
+					Value: "close",
 				})
 			}
 		}
@@ -172,17 +188,17 @@ func WorkflowsEvents(ctx *context.Context) {
 	}
 
 	type WorkflowConfig struct {
-		ID             int64                                   `json:"id"`
-		EventID        string                                  `json:"event_id"`
-		DisplayName    string                                  `json:"display_name"`
-		BaseEventType  string                                  `json:"base_event_type"`  // Base event type for grouping
-		WorkflowEvent  string                                  `json:"workflow_event"`   // The actual workflow event
-		Capabilities   project_model.WorkflowEventCapabilities `json:"capabilities"`
-		Filters        []project_model.WorkflowFilter          `json:"filters"`
-		Actions        []project_model.WorkflowAction          `json:"actions"`
-		FilterSummary  string                                  `json:"filter_summary"` // Human readable filter description
-		Enabled        bool                                    `json:"enabled"`
-		IsConfigured   bool                                    `json:"isConfigured"` // Whether this workflow is configured/saved
+		ID            int64                                   `json:"id"`
+		EventID       string                                  `json:"event_id"`
+		DisplayName   string                                  `json:"display_name"`
+		BaseEventType string                                  `json:"base_event_type"` // Base event type for grouping
+		WorkflowEvent string                                  `json:"workflow_event"`  // The actual workflow event
+		Capabilities  project_model.WorkflowEventCapabilities `json:"capabilities"`
+		Filters       []project_model.WorkflowFilter          `json:"filters"`
+		Actions       []project_model.WorkflowAction          `json:"actions"`
+		FilterSummary string                                  `json:"filter_summary"` // Human readable filter description
+		Enabled       bool                                    `json:"enabled"`
+		IsConfigured  bool                                    `json:"isConfigured"` // Whether this workflow is configured/saved
 	}
 
 	outputWorkflows := make([]*WorkflowConfig, 0)

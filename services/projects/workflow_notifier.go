@@ -6,6 +6,7 @@ package projects
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
@@ -424,9 +425,22 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 				continue
 			}
 		case project_model.WorkflowActionTypeClose:
-			if err := issue_service.CloseIssue(ctx, issue, user_model.NewProjectWorkflowsUser(), ""); err != nil {
-				log.Error("CloseIssue: %v", err)
-				continue
+			if strings.EqualFold(action.Value, "reopen") || strings.EqualFold(action.Value, "false") {
+				if issue.IsClosed {
+					if err := issue_service.ReopenIssue(ctx, issue, user_model.NewProjectWorkflowsUser(), ""); err != nil {
+						log.Error("ReopenIssue: %v", err)
+						continue
+					}
+					issue.IsClosed = false
+				}
+			} else {
+				if !issue.IsClosed {
+					if err := issue_service.CloseIssue(ctx, issue, user_model.NewProjectWorkflowsUser(), ""); err != nil {
+						log.Error("CloseIssue: %v", err)
+						continue
+					}
+					issue.IsClosed = true
+				}
 			}
 		default:
 			log.Error("Unsupported action type: %s", action.Type)
