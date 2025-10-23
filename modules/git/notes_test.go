@@ -47,5 +47,5 @@ func TestGetNonExistentNotes(t *testing.T) {
 	note := Note{}
 	err = GetNote(t.Context(), bareRepo1, "non_existent_sha", &note)
 	assert.Error(t, err)
-	assert.ErrorAs(t, err, ErrNotExist{})
+	assert.ErrorAs(t, err, &ErrNotExist{})
 }
