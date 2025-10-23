@@ -12,10 +12,8 @@
 					{{range .workflows}}
 						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">{{.Entry.Name}}
 							{{if .ErrMsg}}
-								<span data-tooltip-content="{{.ErrMsg}}">
-									<span class="tw-align-middle">
-										{{svg "octicon-alert" 16 "text red"}}
-									</span>
+								<span class="flex-text-inline" data-tooltip-content="{{.ErrMsg}}">
+									{{svg "octicon-alert" 16 "text red"}}
 								</span>
 							{{end}}
 
