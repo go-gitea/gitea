@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"testing"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -52,9 +51,8 @@ func TestActionsCollaborativeOwner(t *testing.T) {
 		doGitClone(dstPath, u)(t)
 
 		// remove user10 from the list of collaborative owners
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/collaborative_owner/delete", repo.Owner.UserName, repo.Name), map[string]string{
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/collaborative_owner/delete?id=%d", repo.Owner.UserName, repo.Name, user10.ID), map[string]string{
 			"_csrf": GetUserCSRFToken(t, user2Session),
-			"id":    strconv.FormatInt(user10.ID, 10),
 		})
 		user2Session.MakeRequest(t, req, http.StatusOK)
 
