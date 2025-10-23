@@ -165,7 +165,7 @@ func RenderString(ctx *RenderContext, content string) (string, error) {
 	return buf.String(), nil
 }
 
-func renderIFrame(ctx *RenderContext, output io.Writer) error {
+func renderIFrame(ctx *RenderContext, sandbox string, output io.Writer) error {
 	src := fmt.Sprintf("%s/%s/%s/render/%s/%s", setting.AppSubURL,
 		url.PathEscape(ctx.RenderOptions.Metas["user"]),
 		url.PathEscape(ctx.RenderOptions.Metas["repo"]),
@@ -173,20 +173,11 @@ func renderIFrame(ctx *RenderContext, output io.Writer) error {
 		util.PathEscapeSegments(ctx.RenderOptions.RelativePath),
 	)
 
-	defaultWidth := "100%"
-	defaultHeight := "300"
-
-	// ATTENTION! at the moment, only "allow-scripts" is allowed for sandbox mode.
-	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
-	iframe := htmlutil.HTMLFormat(`
-<iframe data-src="%s"
-	class="external-render-iframe"
-	sandbox="allow-scripts allow-popups"
-	width="%s" height="%s"
-></iframe>
-`,
-		src, defaultWidth, defaultHeight)
-
+	var sandboxAttrValue template.HTML
+	if sandbox != "" {
+		sandboxAttrValue = htmlutil.HTMLFormat(`sandbox="%s"`, sandbox)
+	}
+	iframe := htmlutil.HTMLFormat(`<iframe data-src="%s" class="external-render-iframe" %s></iframe>`, src, sandboxAttrValue)
 	_, err := io.WriteString(output, string(iframe))
 	return err
 }
@@ -199,13 +190,20 @@ func pipes() (io.ReadCloser, io.WriteCloser, func()) {
 	}
 }
 
+func getExternalRendererOptions(renderer Renderer) (ret ExternalRendererOptions, _ bool) {
+	if externalRender, ok := renderer.(ExternalRenderer); ok {
+		return externalRender.GetExternalRendererOptions(), true
+	}
+	return ret, false
+}
+
 func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
 	var extraHeadHTML template.HTML
-	if externalRender, ok := renderer.(ExternalRenderer); ok && externalRender.DisplayInIFrame() {
+	if extOpts, ok := getExternalRendererOptions(renderer); ok && extOpts.DisplayInIframe {
 		if !ctx.RenderOptions.InStandalonePage {
 			// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
 			// otherwise, a <iframe> should be outputted to embed the external rendered page
-			return renderIFrame(ctx, output)
+			return renderIFrame(ctx, extOpts.ContentSandbox, output)
 		}
 		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
 		extraStyleHref := setting.AppSubURL + "/assets/css/external-render-iframe.css"
@@ -230,7 +228,7 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 	eg, _ := errgroup.WithContext(ctx)
 	var pw2 io.WriteCloser = util.NopCloser{Writer: finalProcessor}
 
-	if r, ok := renderer.(ExternalRenderer); !ok || !r.SanitizerDisabled() {
+	if r, ok := renderer.(ExternalRenderer); !ok || !r.GetExternalRendererOptions().SanitizerDisabled {
 		var pr2 io.ReadCloser
 		var close2 func()
 		pr2, pw2, close2 = pipes()
