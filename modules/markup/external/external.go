@@ -15,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/kballard/go-shellquote"
 )
 
 // RegisterRenderers registers all supported third part renderers according settings
@@ -56,14 +58,11 @@ func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return p.MarkupSanitizerRules
 }
 
-// SanitizerDisabled disabled sanitize if return true
-func (p *Renderer) SanitizerDisabled() bool {
-	return p.RenderContentMode == setting.RenderContentModeNoSanitizer || p.RenderContentMode == setting.RenderContentModeIframe
-}
-
-// DisplayInIFrame represents whether render the content with an iframe
-func (p *Renderer) DisplayInIFrame() bool {
-	return p.RenderContentMode == setting.RenderContentModeIframe
+func (p *Renderer) GetExternalRendererOptions() (ret markup.ExternalRendererOptions) {
+	ret.SanitizerDisabled = p.RenderContentMode == setting.RenderContentModeNoSanitizer || p.RenderContentMode == setting.RenderContentModeIframe
+	ret.DisplayInIframe = p.RenderContentMode == setting.RenderContentModeIframe
+	ret.ContentSandbox = p.RenderContentSandbox
+	return ret
 }
 
 func envMark(envName string) string {
@@ -81,7 +80,10 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		envMark("GITEA_PREFIX_SRC"), baseLinkSrc,
 		envMark("GITEA_PREFIX_RAW"), baseLinkRaw,
 	).Replace(p.Command)
-	commands := strings.Fields(command)
+	commands, err := shellquote.Split(command)
+	if err != nil || len(commands) == 0 {
+		return fmt.Errorf("%s invalid command %q: %w", p.Name(), p.Command, err)
+	}
 	args := commands[1:]
 
 	if p.IsInputFile {
