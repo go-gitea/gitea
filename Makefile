@@ -258,7 +258,7 @@ clean: ## delete backend and integration files
 
 .PHONY: fmt
 fmt: ## format the Go and template code
-	@GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
+	@GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run tools/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
 	@# whitespace before it
@@ -472,7 +472,7 @@ test\#%:
 coverage:
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' coverage.out > coverage-bodged.out
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' integration.coverage.out > integration.coverage-bodged.out
-	$(GO) run build/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all
+	$(GO) run tools/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all
 
 .PHONY: unit-test-coverage
 unit-test-coverage:

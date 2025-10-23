@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -217,15 +218,6 @@ func newFileCollectorFromMainOptions(mainOptions map[string]string) (fc *fileCol
 	return newFileCollector(fileFilter, batchSize)
 }
 
-func containsString(a []string, s string) bool {
-	for _, v := range a {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
 func giteaFormatGoImports(files []string, doWriteFile bool) error {
 	for _, file := range files {
 		if err := codeformat.FormatGoImports(file, doWriteFile); err != nil {
@@ -264,10 +256,10 @@ func main() {
 		logVerbose("batch cmd: %s %v", subCmd, substArgs)
 		switch subCmd {
 		case "gitea-fmt":
-			if containsString(subArgs, "-d") {
+			if slices.Contains(subArgs, "-d") {
 				log.Print("the -d option is not supported by gitea-fmt")
 			}
-			cmdErrors = append(cmdErrors, giteaFormatGoImports(files, containsString(subArgs, "-w")))
+			cmdErrors = append(cmdErrors, giteaFormatGoImports(files, slices.Contains(subArgs, "-w")))
 			cmdErrors = append(cmdErrors, passThroughCmd("gofmt", append([]string{"-w", "-r", "interface{} -> any"}, substArgs...)))
 			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("GOFUMPT_PACKAGE"), "-extra"}, substArgs...)))
 		default:
