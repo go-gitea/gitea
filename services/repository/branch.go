@@ -484,10 +484,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	return "", nil
 }
 
-// enmuerates all branch related errors
-var (
-	ErrBranchIsDefault = errors.New("branch is default")
-)
+var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default")
 
 func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
 	if branchName == repo.DefaultBranch {
@@ -744,4 +741,90 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 	info.HeadCommitsBehind, info.HeadCommitsAhead = diff.Behind, diff.Ahead
 	info.BaseHasNewCommits = info.HeadCommitsBehind > 0
 	return info, nil
+}
+
+func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int64, outFullBranchName *string) error {
+	pr, err := issues_model.GetPullRequestByID(ctx, prID)
+	if err != nil {
+		return err
+	}
+	if err = pr.LoadIssue(ctx); err != nil {
+		return err
+	}
+	if err = pr.LoadBaseRepo(ctx); err != nil {
+		return err
+	}
+	if err := pr.LoadHeadRepo(ctx); err != nil {
+		return err
+	}
+	if pr.HeadRepo == nil {
+		// Forked repository has already been deleted
+		return util.ErrorWrapTranslatable(util.ErrNotExist, "repo.branch.deletion_failed", "(deleted-repo):"+pr.HeadBranch)
+	}
+	if err = pr.HeadRepo.LoadOwner(ctx); err != nil {
+		return err
+	}
+
+	fullBranchName := pr.HeadRepo.FullName() + ":" + pr.HeadBranch
+	if outFullBranchName != nil {
+		*outFullBranchName = fullBranchName
+	}
+
+	errFailedToDelete := func(err error) error {
+		return util.ErrorWrapTranslatable(err, "repo.branch.deletion_failed", fullBranchName)
+	}
+
+	// Don't clean up unmerged and unclosed PRs and agit PRs
+	if !pr.HasMerged && !pr.Issue.IsClosed && pr.Flow != issues_model.PullRequestFlowGithub {
+		return errFailedToDelete(util.ErrUnprocessableContent)
+	}
+
+	// Don't clean up when there are other PR's that use this branch as head branch.
+	exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
+	if err != nil {
+		return err
+	}
+	if exist {
+		return errFailedToDelete(util.ErrUnprocessableContent)
+	}
+
+	if err := CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, doer); err != nil {
+		if errors.Is(err, util.ErrPermissionDenied) {
+			return errFailedToDelete(err)
+		}
+		return err
+	}
+
+	gitBaseRepo, gitBaseCloser, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
+	if err != nil {
+		return err
+	}
+	defer gitBaseCloser.Close()
+
+	gitHeadRepo, gitHeadCloser, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
+	if err != nil {
+		return err
+	}
+	defer gitHeadCloser.Close()
+
+	// Check if branch has no new commits
+	headCommitID, err := gitBaseRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	if err != nil {
+		log.Error("GetRefCommitID: %v", err)
+		return errFailedToDelete(err)
+	}
+	branchCommitID, err := gitHeadRepo.GetBranchCommitID(pr.HeadBranch)
+	if err != nil {
+		log.Error("GetBranchCommitID: %v", err)
+		return errFailedToDelete(err)
+	}
+	if headCommitID != branchCommitID {
+		return util.ErrorWrapTranslatable(util.ErrUnprocessableContent, "repo.branch.delete_branch_has_new_commits", fullBranchName)
+	}
+
+	err = DeleteBranch(ctx, doer, pr.HeadRepo, gitHeadRepo, pr.HeadBranch, pr)
+	if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
+		return errFailedToDelete(err)
+	}
+	return err
 }

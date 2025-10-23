@@ -205,18 +205,6 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 		return
 	}
 
-	var headGitRepo *git.Repository
-	if pr.BaseRepoID == pr.HeadRepoID {
-		headGitRepo = baseGitRepo
-	} else {
-		headGitRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
-		if err != nil {
-			log.Error("OpenRepository %-v: %v", pr.HeadRepo, err)
-			return
-		}
-		defer headGitRepo.Close()
-	}
-
 	switch pr.Flow {
 	case issues_model.PullRequestFlowGithub:
 		headBranchExist := pr.HeadRepo != nil && gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch)
@@ -276,9 +264,12 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 		return
 	}
 
-	if pr.Flow == issues_model.PullRequestFlowGithub && scheduledPRM.DeleteBranchAfterMerge {
-		if err := repo_service.DeleteBranch(ctx, doer, pr.HeadRepo, headGitRepo, pr.HeadBranch, pr); err != nil {
-			log.Error("DeletePullRequestHeadBranch: %v", err)
+	deleteBranchAfterMerge, err := pull_service.ShouldDeleteBranchAfterMerge(ctx, &scheduledPRM.DeleteBranchAfterMerge, pr.BaseRepo, pr)
+	if err != nil {
+		log.Error("ShouldDeleteBranchAfterMerge: %v", err)
+	} else if deleteBranchAfterMerge {
+		if err = repo_service.DeleteBranchAfterMerge(ctx, doer, pr.ID, nil); err != nil {
+			log.Error("DeleteBranchAfterMerge: %v", err)
 		}
 	}
 }

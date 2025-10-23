@@ -25,13 +25,15 @@ type PostProcessRenderer interface {
 	NeedPostProcess() bool
 }
 
+type ExternalRendererOptions struct {
+	SanitizerDisabled bool
+	DisplayInIframe   bool
+	ContentSandbox    string
+}
+
 // ExternalRenderer defines an interface for external renderers
 type ExternalRenderer interface {
-	// SanitizerDisabled disabled sanitize if return true
-	SanitizerDisabled() bool
-
-	// DisplayInIFrame represents whether render the content with an iframe
-	DisplayInIFrame() bool
+	GetExternalRendererOptions() ExternalRendererOptions
 }
 
 // RendererContentDetector detects if the content can be rendered

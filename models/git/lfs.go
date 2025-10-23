@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -42,30 +41,6 @@ func (err ErrLFSLockNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrLFSUnauthorizedAction represents a "LFSUnauthorizedAction" kind of error.
-type ErrLFSUnauthorizedAction struct {
-	RepoID   int64
-	UserName string
-	Mode     perm.AccessMode
-}
-
-// IsErrLFSUnauthorizedAction checks if an error is a ErrLFSUnauthorizedAction.
-func IsErrLFSUnauthorizedAction(err error) bool {
-	_, ok := err.(ErrLFSUnauthorizedAction)
-	return ok
-}
-
-func (err ErrLFSUnauthorizedAction) Error() string {
-	if err.Mode == perm.AccessModeWrite {
-		return fmt.Sprintf("User %s doesn't have write access for lfs lock [rid: %d]", err.UserName, err.RepoID)
-	}
-	return fmt.Sprintf("User %s doesn't have read access for lfs lock [rid: %d]", err.UserName, err.RepoID)
-}
-
-func (err ErrLFSUnauthorizedAction) Unwrap() error {
-	return util.ErrPermissionDenied
-}
-
 // ErrLFSLockAlreadyExist represents a "LFSLockAlreadyExist" kind of error.
 type ErrLFSLockAlreadyExist struct {
 	RepoID int64
@@ -91,12 +66,6 @@ type ErrLFSFileLocked struct {
 	RepoID   int64
 	Path     string
 	UserName string
-}
-
-// IsErrLFSFileLocked checks if an error is a ErrLFSFileLocked.
-func IsErrLFSFileLocked(err error) bool {
-	_, ok := err.(ErrLFSFileLocked)
-	return ok
 }
 
 func (err ErrLFSFileLocked) Error() string {

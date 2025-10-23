@@ -606,33 +606,53 @@ func Cancel(ctx *context_module.Context) {
 func Approve(ctx *context_module.Context) {
 	runIndex := getRunIndex(ctx)
 
-	current, jobs := getRunJobs(ctx, runIndex, -1)
+	approveRuns(ctx, []int64{runIndex})
 	if ctx.Written() {
 		return
 	}
-	run := current.Run
-	doer := ctx.Doer
 
-	var updatedJobs []*actions_model.ActionRunJob
+	ctx.JSONOK()
+}
+
+func approveRuns(ctx *context_module.Context, runIndexes []int64) {
+	doer := ctx.Doer
+	repo := ctx.Repo.Repository
+
+	updatedJobs := make([]*actions_model.ActionRunJob, 0)
+	runMap := make(map[int64]*actions_model.ActionRun, len(runIndexes))
+	runJobs := make(map[int64][]*actions_model.ActionRunJob, len(runIndexes))
 
 	err := db.WithTx(ctx, func(ctx context.Context) (err error) {
-		run.NeedApproval = false
-		run.ApprovedBy = doer.ID
-		if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
-			return err
-		}
-		for _, job := range jobs {
-			job.Status, err = actions_service.PrepareToStartJobWithConcurrency(ctx, job)
+		for _, runIndex := range runIndexes {
+			run, err := actions_model.GetRunByIndex(ctx, repo.ID, runIndex)
 			if err != nil {
 				return err
 			}
-			if job.Status == actions_model.StatusWaiting {
-				n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
+			runMap[run.ID] = run
+			run.Repo = repo
+			run.NeedApproval = false
+			run.ApprovedBy = doer.ID
+			if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
+				return err
+			}
+			jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+			if err != nil {
+				return err
+			}
+			runJobs[run.ID] = jobs
+			for _, job := range jobs {
+				job.Status, err = actions_service.PrepareToStartJobWithConcurrency(ctx, job)
 				if err != nil {
 					return err
 				}
-				if n > 0 {
-					updatedJobs = append(updatedJobs, job)
+				if job.Status == actions_model.StatusWaiting {
+					n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
+					if err != nil {
+						return err
+					}
+					if n > 0 {
+						updatedJobs = append(updatedJobs, job)
+					}
 				}
 			}
 		}
@@ -643,7 +663,9 @@ func Approve(ctx *context_module.Context) {
 		return
 	}
 
-	actions_service.CreateCommitStatusForRunJobs(ctx, current.Run, jobs...)
+	for runID, run := range runMap {
+		actions_service.CreateCommitStatusForRunJobs(ctx, run, runJobs[runID]...)
+	}
 
 	if len(updatedJobs) > 0 {
 		job := updatedJobs[0]
@@ -654,8 +676,6 @@ func Approve(ctx *context_module.Context) {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
-
-	ctx.JSONOK()
 }
 
 func Delete(ctx *context_module.Context) {
@@ -818,6 +838,42 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	}
 }
 
+func ApproveAllChecks(ctx *context_module.Context) {
+	repo := ctx.Repo.Repository
+	commitID := ctx.FormString("commit_id")
+
+	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll)
+	if err != nil {
+		ctx.ServerError("GetLatestCommitStatus", err)
+		return
+	}
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
+	if err != nil {
+		ctx.ServerError("GetRunsFromCommitStatuses", err)
+		return
+	}
+
+	runIndexes := make([]int64, 0, len(runs))
+	for _, run := range runs {
+		if run.NeedApproval {
+			runIndexes = append(runIndexes, run.Index)
+		}
+	}
+
+	if len(runIndexes) == 0 {
+		ctx.JSONOK()
+		return
+	}
+
+	approveRuns(ctx, runIndexes)
+	if ctx.Written() {
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("actions.approve_all_success"))
+	ctx.JSONOK()
+}
+
 func DisableWorkflowFile(ctx *context_module.Context) {
 	disableOrEnableWorkflowFile(ctx, false)
 }
@@ -887,8 +943,8 @@ func Run(ctx *context_module.Context) {
 		return nil
 	})
 	if err != nil {
-		if errLocale := util.ErrorAsLocale(err); errLocale != nil {
-			ctx.Flash.Error(ctx.Tr(errLocale.TrKey, errLocale.TrArgs...))
+		if errTr := util.ErrorAsTranslatable(err); errTr != nil {
+			ctx.Flash.Error(errTr.Translate(ctx.Locale))
 			ctx.Redirect(redirectURL)
 		} else {
 			ctx.ServerError("DispatchActionWorkflow", err)

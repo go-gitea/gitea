@@ -129,7 +129,7 @@ func TestAPIRepoIssueConfigPaths(t *testing.T) {
 				configData, err := yaml.Marshal(configMap)
 				assert.NoError(t, err)
 
-				_, err = createFileInBranch(owner, repo, fullPath, repo.DefaultBranch, string(configData))
+				_, err = createFile(owner, repo, fullPath, string(configData))
 				assert.NoError(t, err)
 
 				issueConfig := getIssueConfig(t, owner.Name, repo.Name)
