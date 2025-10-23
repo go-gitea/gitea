@@ -1,7 +1,3 @@
-declare module '@techknowlogick/license-checker-webpack-plugin' {
-  const plugin: any;
-  export = plugin;
-}
 declare module 'eslint-plugin-no-use-extend-native' {
   import type {Eslint} from 'eslint';
   const plugin: Eslint.Plugin;
