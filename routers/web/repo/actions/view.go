@@ -36,8 +36,7 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/model"
-	"go.yaml.in/yaml/v4"
-	"xorm.io/builder"
+	"gopkg.in/yaml.v3"
 )
 
 func getRunIndex(ctx *context_module.Context) int64 {
