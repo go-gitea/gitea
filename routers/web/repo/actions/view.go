@@ -546,6 +546,7 @@ func Rerun(ctx *context_module.Context) {
 
 
 	return actions_service.RerunJob(ctx, job, shouldBlock)
+}
 
 func Logs(ctx *context_module.Context) {
 	runIndex := getRunIndex(ctx)
