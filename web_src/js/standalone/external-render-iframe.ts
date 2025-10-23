@@ -6,6 +6,9 @@ FILE_EXTENSIONS = .in-iframe
 RENDER_CONTENT_MODE = iframe
 RENDER_COMMAND = `echo '<div style="width: 100%; height: 2000px; border: 10px solid red; box-sizing: border-box;"><a href="/">a link</a> <a target="_blank" href="//gitea.com">external link</a></div>'`
 
+;RENDER_COMMAND = cat /path/to/file.pdf
+;RENDER_CONTENT_SANDBOX = disabled
+
 */
 
 function mainExternalRenderIframe() {
