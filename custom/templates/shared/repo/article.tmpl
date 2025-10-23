@@ -26,7 +26,7 @@
                     {{svg "octicon-person" 16 "tw-mr-1"}}
                     {{.ReadmeContributorCount}} {{if eq .ReadmeContributorCount 1}}contributor{{else}}contributors{{end}}
                 </span>
-                {{if .ReadmeLastCommit}}
+                {{if and .ReadmeLastCommit .ReadmeLastCommit.Committer}}
                     <span class="pill">
                         {{svg "octicon-sync" 16 "tw-mr-1"}}
                         Updated {{DateUtils.TimeSince .ReadmeLastCommit.Committer.When}}
