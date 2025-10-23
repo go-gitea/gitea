@@ -123,7 +123,7 @@ const worldRef = ref<SVGGElement | null>(null);
 let svgSel!: Selection<SVGSVGElement, unknown, null, undefined>;
 let worldSel!: Selection<SVGGElement, unknown, null, undefined>;
 let zoomBehavior!: ZoomBehavior<Element, unknown>;
-let currentK = 1;
+const currentK = ref(1);
 
 /* Container width affects responsive dials; observe it. */
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -576,7 +576,7 @@ function resetView(animated=false){
   const t = zoomIdentity.translate(tx, ty).scale(targetScale);
   (animated ? svgSel.transition().duration(420) : svgSel).call(zoomBehavior.transform as any, t);
 
-  currentK = targetScale;
+  currentK.value = targetScale;
 }
 
 /* Click focus: center selected bubble and fit fully */
@@ -595,7 +595,7 @@ function focusNode(n:Node){
   const tx=cx-(n.x!*scale), ty=cy-(n.y!*scale);
   const t = zoomIdentity.translate(tx,ty).scale(scale);
   svgSel.transition().duration(420).call(zoomBehavior.transform as any, t);
-  currentK = scale;
+  currentK.value = scale;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────-
@@ -643,7 +643,7 @@ onMounted(async ()=>{
     /* Filter: pinch and ctrl+wheel zoom; plain wheel should pan (handled below). */
     .filter((event:any) => event.type === "wheel" ? event.ctrlKey : true)
     .on("zoom",(e:any)=>{
-      const z:ZoomTransform = e.transform; currentK = z.k;
+      const z:ZoomTransform = e.transform; currentK.value = z.k;
       /* Apply pan/zoom to the SAME world group that holds all nodes/edges. */
       worldSel.attr("transform", z.toString());
     });
@@ -709,7 +709,7 @@ onBeforeUnmount(()=>{
 });
 
 /* Derived for template binding */
-const kComputed = computed(()=> currentK);
+const kComputed = computed(()=> currentK.value);
 
 function persistSelectionDetail(detail: RepoSelectionDetail | null) {
   if (typeof window === 'undefined') return;
