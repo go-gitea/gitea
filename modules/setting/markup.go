@@ -63,6 +63,7 @@ type MarkupRenderer struct {
 	NeedPostProcess      bool
 	MarkupSanitizerRules []MarkupSanitizerRule
 	RenderContentMode    string
+	RenderContentSandbox string
 }
 
 // MarkupSanitizerRule defines the policy for whitelisting attributes on
@@ -253,13 +254,22 @@ func newMarkupRenderer(name string, sec ConfigSection) {
 		renderContentMode = RenderContentModeSanitized
 	}
 
+	// ATTENTION! at the moment, only a safe set like "allow-scripts" are allowed for sandbox mode.
+	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
+	renderContentSandbox := sec.Key("RENDER_CONTENT_SANDBOX").MustString("allow-scripts allow-popups")
+	if renderContentSandbox == "disabled" {
+		renderContentSandbox = ""
+	}
+
 	ExternalMarkupRenderers = append(ExternalMarkupRenderers, &MarkupRenderer{
-		Enabled:           sec.Key("ENABLED").MustBool(false),
-		MarkupName:        name,
-		FileExtensions:    exts,
-		Command:           command,
-		IsInputFile:       sec.Key("IS_INPUT_FILE").MustBool(false),
-		RenderContentMode: renderContentMode,
+		Enabled:        sec.Key("ENABLED").MustBool(false),
+		MarkupName:     name,
+		FileExtensions: exts,
+		Command:        command,
+		IsInputFile:    sec.Key("IS_INPUT_FILE").MustBool(false),
+
+		RenderContentMode:    renderContentMode,
+		RenderContentSandbox: renderContentSandbox,
 
 		// if no sanitizer is needed, no post process is needed
 		NeedPostProcess: sec.Key("NEED_POST_PROCESS").MustBool(renderContentMode == RenderContentModeSanitized),
