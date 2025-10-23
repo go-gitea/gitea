@@ -58,14 +58,11 @@ func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return p.MarkupSanitizerRules
 }
 
-// SanitizerDisabled disabled sanitize if return true
-func (p *Renderer) SanitizerDisabled() bool {
-	return p.RenderContentMode == setting.RenderContentModeNoSanitizer || p.RenderContentMode == setting.RenderContentModeIframe
-}
-
-// DisplayInIFrame represents whether render the content with an iframe
-func (p *Renderer) DisplayInIFrame() bool {
-	return p.RenderContentMode == setting.RenderContentModeIframe
+func (p *Renderer) GetExternalRendererOptions() (ret markup.ExternalRendererOptions) {
+	ret.SanitizerDisabled = p.RenderContentMode == setting.RenderContentModeNoSanitizer || p.RenderContentMode == setting.RenderContentModeIframe
+	ret.DisplayInIframe = p.RenderContentMode == setting.RenderContentModeIframe
+	ret.ContentSandbox = p.RenderContentSandbox
+	return ret
 }
 
 func envMark(envName string) string {
