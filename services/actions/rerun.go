@@ -4,9 +4,22 @@
 package actions
 
 import (
+	"context"
+
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/container"
 )
+
+// ResetRunTimes resets the start and stop times for a run when it is done, for rerun
+func ResetRunTimes(ctx context.Context, run *actions_model.ActionRun) error {
+	if run.Status.IsDone() {
+		run.PreviousDuration = run.Duration()
+		run.Started = 0
+		run.Stopped = 0
+		return actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration")
+	}
+	return nil
+}
 
 // GetAllRerunJobs get all jobs that need to be rerun when job should be rerun
 func GetAllRerunJobs(job *actions_model.ActionRunJob, allJobs []*actions_model.ActionRunJob) []*actions_model.ActionRunJob {
