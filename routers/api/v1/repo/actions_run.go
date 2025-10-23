@@ -726,9 +726,24 @@ func GetWorkflowRunLogsStream(ctx *context.APIContext) {
 		return
 	}
 
+	jobID := ctx.FormInt64("job_id")
 	jobIndex := int64(0)
-	if ctx.FormInt("job") > 0 {
-		jobIndex = int64(ctx.FormInt("job"))
+	if jobID > 0 {
+		jobs, err := getRunJobsByRunID(ctx, runID)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		for i, j := range jobs {
+			if j.ID == jobID {
+				jobIndex = int64(i)
+				break
+			}
+		}
+		if jobIndex == 0 && jobID > 0 {
+			ctx.APIError(404, "Job not found")
+			return
+		}
 	}
 
 	// Parse log cursors from request body
