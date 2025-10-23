@@ -6,8 +6,18 @@ export async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
   if (!iframe.id) iframe.id = generateElemId('gitea-iframe-');
 
   window.addEventListener('message', (e) => {
-    if (e.data && e.data.giteaIframeCmd === 'resize' && e.data.giteaIframeId === iframe.id) {
-      iframe.style.height = `${e.data.giteaIframeHeight}px`;
+    if (!e.data?.giteaIframeCmd || e.data?.giteaIframeId !== iframe.id) return;
+    const cmd = e.data.giteaIframeCmd;
+    if (cmd === 'resize') {
+      iframe.style.height = `${e.data.iframeHeight}px`;
+    } else if (cmd === 'open-link') {
+      if (e.data.anchorTarget === '_blank') {
+        window.open(e.data.openLink, '_blank');
+      } else {
+        window.location.href = e.data.openLink;
+      }
+    } else {
+      throw new Error(`Unknown gitea iframe cmd: ${cmd}`);
     }
   });
 
