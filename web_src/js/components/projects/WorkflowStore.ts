@@ -1,5 +1,6 @@
 import {reactive} from 'vue';
 import {GET, POST} from '../../modules/fetch.ts';
+import {showInfoToast, showErrorToast} from '../../modules/toast.ts';
 
 export function createWorkflowStore(props: { projectLink: string, eventID: string}) {
   const store = reactive({
@@ -131,7 +132,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Response error:', errorText);
-          alert(`Failed to save workflow: ${response.status} ${response.statusText}\n${errorText}`);
+          showErrorToast(`Failed to save workflow: ${response.status} ${response.statusText}\n${errorText}`);
           return;
         }
 
@@ -157,14 +158,14 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
             window.history.replaceState({eventId: result.workflow.event_id}, '', newUrl);
           }
 
-          alert('Workflow saved successfully!');
+          showInfoToast('Workflow saved successfully!');
         } else {
           console.error('Unexpected response format:', result);
-          alert('Failed to save workflow: Unexpected response format');
+          showErrorToast('Failed to save workflow: Unexpected response format');
         }
       } catch (error) {
         console.error('Error saving workflow:', error);
-        alert(`Error saving workflow: ${error.message}`);
+        showErrorToast(`Error saving workflow: ${error.message}`);
       } finally {
         store.saving = false;
       }
@@ -186,7 +187,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Failed to update workflow status:', errorText);
-          alert(`Failed to update workflow status: ${response.status} ${response.statusText}`);
+          showErrorToast(`Failed to update workflow status: ${response.status} ${response.statusText}`);
           // Revert the status change on error
           store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
           return;
@@ -202,13 +203,13 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
         } else {
           // Revert the status change on failure
           store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
-          alert('Failed to update workflow status');
+          showErrorToast('Failed to update workflow status');
         }
       } catch (error) {
         console.error('Error updating workflow status:', error);
         // Revert the status change on error
         store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
-        alert(`Error updating workflow status: ${error.message}`);
+        showErrorToast(`Error updating workflow status: ${error.message}`);
       }
     },
 
@@ -225,7 +226,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Failed to delete workflow:', errorText);
-          alert(`Failed to delete workflow: ${response.status} ${response.statusText}`);
+          showErrorToast(`Failed to delete workflow: ${response.status} ${response.statusText}`);
           return;
         }
 
@@ -237,11 +238,11 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
             store.workflowEvents.splice(existingIndex, 1);
           }
         } else {
-          alert('Failed to delete workflow');
+          showErrorToast('Failed to delete workflow');
         }
       } catch (error) {
         console.error('Error deleting workflow:', error);
-        alert(`Error deleting workflow: ${error.message}`);
+        showErrorToast(`Error deleting workflow: ${error.message}`);
       }
     },
 

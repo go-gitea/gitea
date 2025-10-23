@@ -2,6 +2,7 @@
 import {onMounted, onUnmounted, useTemplateRef, computed, ref, nextTick} from 'vue';
 import {createWorkflowStore} from './WorkflowStore.ts';
 import {svg} from '../../svg.ts';
+import {confirmModal} from '../../features/comp/ConfirmModal.ts';
 
 const elRoot = useTemplateRef('elRoot');
 
@@ -84,7 +85,9 @@ const toggleWorkflowStatus = async () => {
 };
 
 const deleteWorkflow = async () => {
-  if (!store.selectedWorkflow || !window.confirm('Are you sure you want to delete this workflow?')) {
+  if (!store.selectedWorkflow) return;
+
+  if (!await confirmModal({content: 'Are you sure you want to delete this workflow?', confirmButtonColor: 'red'})) {
     return;
   }
 
