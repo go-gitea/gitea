@@ -15,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/kballard/go-shellquote"
 )
 
 // RegisterRenderers registers all supported third part renderers according settings
@@ -81,7 +83,10 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		envMark("GITEA_PREFIX_SRC"), baseLinkSrc,
 		envMark("GITEA_PREFIX_RAW"), baseLinkRaw,
 	).Replace(p.Command)
-	commands := strings.Fields(command)
+	commands, err := shellquote.Split(command)
+	if err != nil || len(commands) == 0 {
+		return fmt.Errorf("%s invalid command %q: %w", p.Name(), p.Command, err)
+	}
 	args := commands[1:]
 
 	if p.IsInputFile {
