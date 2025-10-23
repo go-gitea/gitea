@@ -500,8 +500,6 @@ func Rerun(ctx *context_module.Context) {
 	ctx.JSONOK()
 }
 
-
-
 func Logs(ctx *context_module.Context) {
 	runIndex := getRunIndex(ctx)
 	jobIndex := ctx.PathParamInt64("job")
