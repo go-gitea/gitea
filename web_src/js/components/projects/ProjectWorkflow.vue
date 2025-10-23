@@ -249,15 +249,6 @@ const getFilterDescription = (workflow) => {
   return descriptions.length > 0 ? ` (${descriptions.join(', ')})` : '';
 };
 
-// Get display name with filters
-const getWorkflowDisplayName = (workflow) => {
-  const baseName = workflow.display_name || workflow.workflow_event || workflow.event_id;
-  if (isWorkflowConfigured(workflow)) {
-    return baseName + getFilterDescription(workflow);
-  }
-  return baseName;
-};
-
 // Get flat list of all workflows - use cached data to prevent frequent recomputation
 const workflowList = computed(() => {
   // Use a stable reference to prevent unnecessary DOM updates
@@ -270,7 +261,7 @@ const workflowList = computed(() => {
     ...workflow,
     isConfigured: isWorkflowConfigured(workflow),
     base_event_type: workflow.base_event_type || workflow.workflow_event || workflow.event_id,
-    display_name: getWorkflowDisplayName(workflow),
+    display_name: workflow.display_name || workflow.workflow_event || workflow.event_id,
   }));
 });
 
@@ -379,6 +370,32 @@ const isItemSelected = (item) => {
   }
     // For unconfigured events, match by base_event_type
   return store.selectedItem === item.base_event_type;
+};
+
+// Get display name for workflow with numbering for same types
+const getWorkflowDisplayName = (item, index) => {
+  const list = workflowList.value;
+  const baseEventType = item.base_event_type || item.workflow_event;
+
+  // Find all workflows of the same type
+  const sameTypeWorkflows = list.filter(w =>
+    (w.base_event_type || w.workflow_event) === baseEventType &&
+    (w.isConfigured || w.id === 0) // Only count configured workflows
+  );
+
+  // If there's only one of this type, return the display name as-is
+  if (sameTypeWorkflows.length <= 1) {
+    return item.display_name;
+  }
+
+  // Find the index of this workflow among same-type workflows
+  const sameTypeIndex = sameTypeWorkflows.findIndex(w => w.event_id === item.event_id);
+
+  // Extract base name without filter summary (remove anything in parentheses)
+  const baseName = item.display_name.replace(/\s*\([^)]*\)\s*$/g, '');
+
+  // Add numbering
+  return `${baseName} #${sameTypeIndex + 1}`;
 };
 
 // Toggle label selection for add_labels, remove_labels, or filter_labels
@@ -565,7 +582,7 @@ onUnmounted(() => {
         <!-- Flat Workflow List -->
         <div class="workflow-items">
           <div
-            v-for="item in workflowList"
+            v-for="(item, index) in workflowList"
             :key="`workflow-${item.event_id}-${item.isConfigured ? 'configured' : 'unconfigured'}`"
             class="workflow-item"
             :class="{ active: isItemSelected(item) }"
@@ -579,7 +596,14 @@ onUnmounted(() => {
                     :class="getStatusClass(item)"
                   />
                 </span>
-                <div class="workflow-title">{{ item.display_name }}</div>
+                <div class="workflow-details">
+                  <div class="workflow-title">
+                    {{ getWorkflowDisplayName(item, index) }}
+                  </div>
+                  <div v-if="item.filter_summary" class="workflow-subtitle">
+                    {{ item.filter_summary }}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -973,6 +997,15 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0; /* Allow text truncation */
+}
+
+.workflow-details {
+  flex: 1;
+  min-width: 0; /* Allow text truncation */
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .workflow-title {
@@ -980,6 +1013,19 @@ onUnmounted(() => {
   color: #24292e;
   font-size: 0.9rem;
   line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-subtitle {
+  font-size: 0.75rem;
+  color: #6c757d;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
 }
 
 .status-indicator .status-active {
