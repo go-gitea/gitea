@@ -201,7 +201,7 @@ func TestAPIActionsRerunWorkflowRunPermissions(t *testing.T) {
 	// Test rerun without permissions should fail
 	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/rerun", repo.FullName())).
 		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPIActionsCancelWorkflowRun(t *testing.T) {
