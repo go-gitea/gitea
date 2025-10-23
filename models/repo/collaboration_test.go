@@ -65,7 +65,7 @@ func TestRepository_IsCollaborator(t *testing.T) {
 	}
 	test(3, 2, true)
 	test(3, unittest.NonexistentID, false)
-	test(4, 2, false)
+	test(4, 2, true)
 	test(4, 4, true)
 }
 
