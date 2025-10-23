@@ -31,11 +31,11 @@ XGO_VERSION := go-1.25.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.1
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4.0
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.2
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@717e3cb29becaaf00e56953556c6d80f8a01b286
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.1
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
@@ -258,7 +258,7 @@ clean: ## delete backend and integration files
 
 .PHONY: fmt
 fmt: ## format the Go and template code
-	@GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
+	@GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run tools/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
 	@# whitespace before it
@@ -472,7 +472,7 @@ test\#%:
 coverage:
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' coverage.out > coverage-bodged.out
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' integration.coverage.out > integration.coverage-bodged.out
-	$(GO) run build/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all
+	$(GO) run tools/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
