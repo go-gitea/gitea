@@ -16,8 +16,10 @@
                     {{svg "octicon-repo-forked" 14 "tw-mr-1"}}
                     Forked of:
                     {{if .Repository.BaseRepo}}
+                        {{/* Go html/template automatically HTML-escapes these strings to prevent XSS */}}
                         <a class="tw-ml-1" href="{{.Repository.BaseRepo.Link}}">{{.Repository.BaseRepo.OwnerName}} / {{.Repository.BaseRepo.Name}}</a>
                     {{else}}
+                        {{/* Go html/template automatically HTML-escapes these strings to prevent XSS */}}
                         <span class="tw-ml-1">{{.Repository.Owner.Name}} / {{.Repository.Name}}</span>
                     {{end}}
                 </span>
