@@ -36,7 +36,6 @@ import (
 
 	"github.com/nektos/act/pkg/model"
 	"gopkg.in/yaml.v3"
-	"xorm.io/builder"
 )
 
 func getRunIndex(ctx *context_module.Context) int64 {
