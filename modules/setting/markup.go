@@ -259,7 +259,9 @@ func newMarkupRenderer(name string, sec ConfigSection) {
 		FileExtensions:    exts,
 		Command:           command,
 		IsInputFile:       sec.Key("IS_INPUT_FILE").MustBool(false),
-		NeedPostProcess:   sec.Key("NEED_POSTPROCESS").MustBool(true),
 		RenderContentMode: renderContentMode,
+
+		// if no sanitizer is needed, no post process is needed
+		NeedPostProcess: sec.Key("NEED_POST_PROCESS").MustBool(renderContentMode == RenderContentModeSanitized),
 	})
 }

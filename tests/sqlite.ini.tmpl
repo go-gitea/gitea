@@ -114,9 +114,16 @@ ENABLED = true
 [markup.html]
 ENABLED = true
 FILE_EXTENSIONS = .html
-RENDER_COMMAND = `go run build/test-echo.go`
-IS_INPUT_FILE = false
-RENDER_CONTENT_MODE=sanitized
+RENDER_COMMAND = go run build/test-echo.go
+;RENDER_COMMAND = cat
+;IS_INPUT_FILE = true
+RENDER_CONTENT_MODE = sanitized
+
+[markup.no-sanitizer]
+ENABLED = true
+FILE_EXTENSIONS = .no-sanitizer
+RENDER_COMMAND = echo '<script>window.alert("hi")</script>'
+RENDER_CONTENT_MODE = no-sanitizer
 
 [actions]
 ENABLED = true
