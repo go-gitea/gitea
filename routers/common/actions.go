@@ -63,10 +63,6 @@ func DownloadActionsRunAllJobLogs(ctx *context.Base, ctxRepo *repo_model.Reposit
 
 	// Add each job's logs to the zip
 	for _, job := range runJobs {
-		if job.Repo.ID != ctxRepo.ID {
-			continue // Skip jobs from other repos
-		}
-
 		if job.TaskID == 0 {
 			continue // Skip jobs that haven't started
 		}
