@@ -5,18 +5,6 @@
   mode: 2 # write
 
 -
-  id: 12
-  repo_id: 2
-  user_id: 4
-  mode: 1 # read
-
--
-  id: 13
-  repo_id: 4
-  user_id: 2
-  mode: 1 # read
-
--
   id: 2
   repo_id: 4
   user_id: 4
