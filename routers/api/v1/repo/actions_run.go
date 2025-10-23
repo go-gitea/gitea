@@ -94,8 +94,8 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 	//   required: true
 	// - name: run
 	//   in: path
-	//   description: run ID or "latest"
-	//   type: string
+	//   description: run ID
+	//   type: integer
 	//   required: true
 	// responses:
 	//   "200":
@@ -169,8 +169,8 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 	//   required: true
 	// - name: run
 	//   in: path
-	//   description: run ID or "latest"
-	//   type: string
+	//   description: run ID
+	//   type: integer
 	//   required: true
 	// responses:
 	//   "200":
@@ -265,8 +265,8 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 	//   required: true
 	// - name: run
 	//   in: path
-	//   description: run ID or "latest"
-	//   type: string
+	//   description: run ID
+	//   type: integer
 	//   required: true
 	// responses:
 	//   "200":
@@ -358,8 +358,8 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 	//   required: true
 	// - name: run
 	//   in: path
-	//   description: run ID or "latest"
-	//   type: string
+	//   description: run ID
+	//   type: integer
 	//   required: true
 	// - name: job_id
 	//   in: path
@@ -442,19 +442,6 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 
 // Helper functions
 func getRunID(ctx *context.APIContext) (int64, *actions_model.ActionRun, error) {
-	// if run param is "latest", get the latest run
-	if ctx.PathParam("run") == "latest" {
-		run, err := actions_model.GetLatestRun(ctx, ctx.Repo.Repository.ID)
-		if err != nil {
-			return 0, nil, err
-		}
-		if run == nil {
-			return 0, nil, util.ErrNotExist
-		}
-		return run.ID, run, nil
-	}
-
-	// Otherwise get run by ID
 	runID := ctx.PathParamInt64("run")
 	run, has, err := db.GetByID[actions_model.ActionRun](ctx, runID)
 	if err != nil {
@@ -579,8 +566,8 @@ func GetWorkflowRunLogs(ctx *context.APIContext) {
 	//   required: true
 	// - name: run
 	//   in: path
-	//   description: run ID or "latest"
-	//   type: string
+	//   description: run ID
+	//   type: integer
 	//   required: true
 	// responses:
 	//   "200":
@@ -626,8 +613,8 @@ func GetWorkflowJobLogs(ctx *context.APIContext) {
 	//   required: true
 	// - name: run
 	//   in: path
-	//   description: run ID or "latest"
-	//   type: string
+	//   description: run ID
+	//   type: integer
 	//   required: true
 	// - name: job_id
 	//   in: path
@@ -698,8 +685,8 @@ func GetWorkflowRunLogsStream(ctx *context.APIContext) {
 	//   required: true
 	// - name: run
 	//   in: path
-	//   description: run ID or "latest"
-	//   type: string
+	//   description: run ID
+	//   type: integer
 	//   required: true
 	// - name: job
 	//   in: query
