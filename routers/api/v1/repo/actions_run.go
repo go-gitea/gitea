@@ -531,6 +531,11 @@ func getRunJobsAndCurrent(ctx *context.APIContext, runID, jobIndex int64) (*acti
 }
 
 func rerunJob(ctx *context.APIContext, job *actions_model.ActionRunJob, shouldBlock bool) error {
+	if job.Run == nil {
+		if err := job.LoadRun(ctx); err != nil {
+			return err
+		}
+	}
 	status := job.Status
 	if !status.IsDone() || !job.Run.Status.IsDone() {
 		return nil
