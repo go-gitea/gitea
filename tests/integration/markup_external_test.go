@@ -68,7 +68,8 @@ func TestExternalMarkupRenderer(t *testing.T) {
 		assert.Equal(t, "text/html; charset=utf-8", resp.Header().Get("Content-Type"))
 		doc := NewHTMLParser(t, resp.Body)
 		iframe := doc.Find("iframe")
-		assert.Equal(t, "/user30/renderer/render/branch/master/README.html", iframe.AttrOr("src", ""))
+		assert.Empty(t, iframe.AttrOr("src", "")) // src should be empty, "data-src" is used instead
+		assert.Equal(t, "/user30/renderer/render/branch/master/README.html", iframe.AttrOr("data-src", ""))
 
 		req = NewRequest(t, "GET", "/user30/renderer/render/branch/master/README.html")
 		resp = MakeRequest(t, req, http.StatusOK)
@@ -76,6 +77,6 @@ func TestExternalMarkupRenderer(t *testing.T) {
 		bs, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 		assert.Equal(t, "frame-src 'self'; sandbox allow-scripts allow-popups", resp.Header().Get("Content-Security-Policy"))
-		assert.Equal(t, "<div>\n\ttest external renderer\n</div>\n", string(bs))
+		assert.Equal(t, "<script src=\"/assets/js/external-render-iframe.js\"></script><link rel=\"stylesheet\" href=\"/assets/css/external-render-iframe.css\"><div>\n\ttest external renderer\n</div>\n", string(bs))
 	})
 }

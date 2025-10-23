@@ -45,8 +45,10 @@ func (p *finalProcessor) Close() error {
 	} else {
 		part1, part2 = nil, buf
 	}
-	if _, err := p.output.Write(part1); err != nil {
-		return err
+	if len(part1) > 0 {
+		if _, err := p.output.Write(part1); err != nil {
+			return err
+		}
 	}
 	if _, err := io.WriteString(p.output, string(p.extraHeadHTML)); err != nil {
 		return err
