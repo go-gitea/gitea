@@ -38,8 +38,8 @@ func editorHandleFileOperationErrorRender(ctx *context_service.Context, message,
 }
 
 func editorHandleFileOperationError(ctx *context_service.Context, targetBranchName string, err error) {
-	if errAs := util.ErrorAsLocale(err); errAs != nil {
-		ctx.JSONError(ctx.Tr(errAs.TrKey, errAs.TrArgs...))
+	if errAs := util.ErrorAsTranslatable(err); errAs != nil {
+		ctx.JSONError(errAs.Translate(ctx.Locale))
 	} else if errAs, ok := errorAs[git.ErrNotExist](err); ok {
 		ctx.JSONError(ctx.Tr("repo.editor.file_modifying_no_longer_exists", errAs.RelPath))
 	} else if errAs, ok := errorAs[git_model.ErrLFSFileLocked](err); ok {
