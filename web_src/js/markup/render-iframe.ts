@@ -20,11 +20,10 @@ export async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
       throw new Error(`Unknown gitea iframe cmd: ${cmd}`);
     }
   });
-
-  let urlParams = '';
-  urlParams += `&gitea-is-dark-theme=${isDarkTheme()}`;
-  urlParams += `&gitea-iframe-id=${iframe.id}`;
-  iframe.src = iframeSrcUrl + (iframeSrcUrl.includes('?') ? '&' : '?') + urlParams.substring(1);
+  iframe.src = iframeSrcUrl + (iframeSrcUrl.includes('?') ? '&' : '?') + String(new URLSearchParams([
+    ['gitea-is-dark-theme', String(isDarkTheme())],
+    ['gitea-iframe-id', iframe.id],
+  ]));
 }
 
 export function initMarkupRenderIframe(el: HTMLElement) {
