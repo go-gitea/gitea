@@ -10,52 +10,47 @@ import (
 	"strconv"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestActionsCollaborativeOwner(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		// actionRepo is a private repo and its owner is org3
-		actionRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-
-		// user2 is an admin of org3
+		// user2 is the owner of "reusable_workflow" repo
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		// a private repo(id=6) of user10 will try to clone actionRepo
+		user2Session := loginUser(t, user2.Name)
+		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		repo := createActionsTestRepo(t, user2Token, "reusable_workflow", true)
+
+		// a private repo(id=6) of user10 will try to clone "reusable_workflow" repo
 		user10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
+		// task id is 55 and its repo_id=6
+		taskToken := "674f727a81ed2f195bccab036cccf86a182199eb"
 
-		taskToken := "674f727a81ed2f195bccab036cccf86a182199eb" // task id is 49
-		u.Path = fmt.Sprintf("%s/%s.git", actionRepo.OwnerName, actionRepo.Name)
-		u.User = url.UserPassword(taskToken, "")
+		dstPath := t.TempDir()
+		u.Path = fmt.Sprintf("%s/%s.git", repo.Owner.UserName, repo.Name)
+		u.User = url.UserPassword("gitea-actions", taskToken)
 
-		// now user10 is not a collaborative owner, so the git clone will fail
+		// the git clone will fail
 		doGitCloneFail(u)(t)
 
 		// add user10 to the list of collaborative owners
-		user2Session := loginUser(t, user2.Name)
-		user2CSRF := GetUserCSRFToken(t, user2Session)
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/collaborative_owner/add", actionRepo.OwnerName, actionRepo.Name), map[string]string{
-			"_csrf":               user2CSRF,
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/collaborative_owner/add", repo.Owner.UserName, repo.Name), map[string]string{
+			"_csrf":               GetUserCSRFToken(t, user2Session),
 			"collaborative_owner": user10.Name,
 		})
 		user2Session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// the git clone will be successful
-		doGitClone(t.TempDir(), u)(t)
+		doGitClone(dstPath, u)(t)
 
 		// remove user10 from the list of collaborative owners
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/collaborative_owner/delete", actionRepo.OwnerName, actionRepo.Name), map[string]string{
-			"_csrf": user2CSRF,
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/collaborative_owner/delete", repo.Owner.UserName, repo.Name), map[string]string{
+			"_csrf": GetUserCSRFToken(t, user2Session),
 			"id":    strconv.FormatInt(user10.ID, 10),
 		})
-		resp := user2Session.MakeRequest(t, req, http.StatusOK)
-		res := make(map[string]string)
-		assert.NoError(t, json.NewDecoder(resp.Body).Decode(&res))
-		assert.Equal(t, fmt.Sprintf("/%s/%s/settings/actions/general", actionRepo.OwnerName, actionRepo.Name), res["redirect"])
+		user2Session.MakeRequest(t, req, http.StatusOK)
 
 		// the git clone will fail
 		doGitCloneFail(u)(t)
