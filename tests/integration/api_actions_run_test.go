@@ -188,8 +188,6 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/999999/rerun", repo.FullName())).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
-
-
 }
 
 func TestAPIActionsRerunWorkflowRunPermissions(t *testing.T) {
