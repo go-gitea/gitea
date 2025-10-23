@@ -65,10 +65,19 @@
                         {{if .IsArticleModeEdit}}
                             <div class="tw-flex tw-items-center tw-justify-between tw-mb-4">
                                 <div class="tw-flex tw-items-center tw-gap-2">
-                                    <button type="button" id="fork-button" class="ui button{{if not .IsSigned}} disabled{{end}}" data-repo-link="{{.RepoLink}}">
-                                        {{svg "octicon-repo-forked" 16 "tw-mr-1"}}
-                                        Fork
-                                    </button>
+                                    {{if .IsSigned}}
+                                        <form id="fork-form" action="{{.RepoLink}}/fork" method="get" style="display: inline;">
+                                            <button type="submit" class="ui button">
+                                                {{svg "octicon-repo-forked" 16 "tw-mr-1"}}
+                                                Fork
+                                            </button>
+                                        </form>
+                                    {{else}}
+                                        <button type="button" class="ui button disabled">
+                                            {{svg "octicon-repo-forked" 16 "tw-mr-1"}}
+                                            Fork
+                                        </button>
+                                    {{end}}
                                     <button type="button" id="submit-changes-button" class="ui primary button{{if not .IsSigned}} disabled{{end}}">
                                         {{svg "octicon-check" 16 "tw-mr-1"}}
                                         Submit Changes

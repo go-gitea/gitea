@@ -17,17 +17,8 @@ export function initArticleEditor() {
       hideModeSwitch: false  // Allow mode switching
     });
 
-
-    // Handle Fork button
-    const forkButton = document.getElementById('fork-button');
-    if (forkButton && !forkButton.classList.contains('disabled')) {
-      forkButton.addEventListener('click', async () => {
-        const repoLink = forkButton.getAttribute('data-repo-link');
-        if (repoLink && confirm('Do you want to fork this repository?')) {
-          window.location.href = `${repoLink}/fork`;
-        }
-      });
-    }
+    // Fork button is now handled by a form in the template with proper navigation
+    // No JavaScript handler needed - the form submission navigates to the fork page
 
     // Handle Submit Changes button
     const submitButton = document.getElementById('submit-changes-button');
