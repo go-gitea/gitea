@@ -238,6 +238,10 @@ func (*workflowNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 // fireIssueWorkflowWithColumn fires a workflow for an issue with a specific column ID
 // This is used for ItemColumnChanged events where we need to check the target column
 func fireIssueWorkflowWithColumn(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, columnID int64) {
+	if !workflow.Enabled {
+		return
+	}
+
 	// Load issue labels for labels filter
 	if err := issue.LoadLabels(ctx); err != nil {
 		log.Error("LoadLabels: %v", err)
@@ -300,6 +304,10 @@ func fireIssueWorkflowWithColumn(ctx context.Context, workflow *project_model.Wo
 }
 
 func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue) {
+	if !workflow.Enabled {
+		return
+	}
+
 	// Load issue labels for labels filter
 	if err := issue.LoadLabels(ctx); err != nil {
 		log.Error("LoadLabels: %v", err)
