@@ -66,34 +66,34 @@ func (u *User) IsGiteaActions() bool {
 }
 
 const (
-	WorkflowsUserID    int64 = -3
-	WorkflowsUserName        = "gitea-workflows"
-	WorkflowsUserEmail       = "workflows@gitea.io"
+	ProjectWorkflowsUserID    int64 = -3
+	ProjectWorkflowsUserName        = "project-workflows"
+	ProjectWorkflowsUserEmail       = "workflows@gitea.io"
 )
 
 func IsGiteaWorkflowsUserName(name string) bool {
-	return strings.EqualFold(name, WorkflowsUserName)
+	return strings.EqualFold(name, ProjectWorkflowsUserName)
 }
 
-// NewWorkflowsUser creates and returns a fake user for running the workflows.
-func NewWorkflowsUser() *User {
+// NewProjectWorkflowsUser creates and returns a fake user for running the project workflows.
+func NewProjectWorkflowsUser() *User {
 	return &User{
-		ID:                      WorkflowsUserID,
-		Name:                    WorkflowsUserName,
-		LowerName:               WorkflowsUserName,
+		ID:                      ProjectWorkflowsUserID,
+		Name:                    ProjectWorkflowsUserName,
+		LowerName:               ProjectWorkflowsUserName,
 		IsActive:                true,
-		FullName:                "Gitea Workflows",
-		Email:                   WorkflowsUserEmail,
+		FullName:                "Project Workflows",
+		Email:                   ProjectWorkflowsUserEmail,
 		KeepEmailPrivate:        true,
-		LoginName:               WorkflowsUserName,
+		LoginName:               ProjectWorkflowsUserName,
 		Type:                    UserTypeBot,
 		AllowCreateOrganization: true,
 		Visibility:              structs.VisibleTypePublic,
 	}
 }
 
-func (u *User) IsGiteaWorkflows() bool {
-	return u != nil && u.ID == WorkflowsUserID
+func (u *User) IsProjectWorkflows() bool {
+	return u != nil && u.ID == ProjectWorkflowsUserID
 }
 
 func GetSystemUserByName(name string) *User {
@@ -104,7 +104,7 @@ func GetSystemUserByName(name string) *User {
 		return NewActionsUser()
 	}
 	if IsGiteaWorkflowsUserName(name) {
-		return NewWorkflowsUser()
+		return NewProjectWorkflowsUser()
 	}
 	return nil
 }

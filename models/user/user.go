@@ -561,9 +561,9 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 		emailRegexp: regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"),
 
 		systemUserNewFuncs: map[int64]func() *User{
-			GhostUserID:     NewGhostUser,
-			ActionsUserID:   NewActionsUser,
-			WorkflowsUserID: NewWorkflowsUser,
+			GhostUserID:            NewGhostUser,
+			ActionsUserID:          NewActionsUser,
+			ProjectWorkflowsUserID: NewProjectWorkflowsUser,
 		},
 	}
 })

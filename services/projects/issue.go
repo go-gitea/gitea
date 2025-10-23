@@ -205,3 +205,30 @@ func LoadIssueNumbersForProject(ctx context.Context, project *project_model.Proj
 
 	return nil
 }
+
+func MoveIssueToAnotherColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := project_model.MoveIssueToAnotherColumn(ctx, issue.ID, column); err != nil {
+			return err
+		}
+
+		if err := column.LoadProject(ctx); err != nil {
+			return err
+		}
+
+		// add timeline to issue
+		if _, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+			Type:               issues_model.CommentTypeProjectColumn,
+			Doer:               doer,
+			Repo:               issue.Repo,
+			Issue:              issue,
+			ProjectID:          column.ProjectID,
+			ProjectTitle:       column.Project.Title,
+			ProjectColumnID:    column.ID,
+			ProjectColumnTitle: column.Title,
+		}); err != nil {
+			return err
+		}
+		return nil
+	})
+}

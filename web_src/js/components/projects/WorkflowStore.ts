@@ -33,6 +33,10 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
       try {
         const response = await GET(`${props.projectLink}/workflows/columns`);
         store.projectColumns = await response.json();
+        console.log('[WorkflowStore] Loaded columns:', store.projectColumns);
+        if (store.projectColumns.length > 0) {
+          console.log('[WorkflowStore] First column.id type:', typeof store.projectColumns[0].id, 'value:', store.projectColumns[0].id);
+        }
       } catch (error) {
         console.error('Failed to load project columns:', error);
         store.projectColumns = [];
@@ -48,38 +52,37 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
 
         // Find the workflow from existing workflowEvents
         const workflow = store.workflowEvents.find((e) => e.event_id === eventId);
-        if (workflow && workflow.filters && workflow.actions) {
+        console.log('[WorkflowStore] loadWorkflowData - eventId:', eventId);
+        console.log('[WorkflowStore] loadWorkflowData - found workflow:', workflow);
+
           // Load existing configuration from the workflow data
           // Convert backend filter format to frontend format
-          const frontendFilters = {issue_type: ''};
-          if (workflow.filters && Array.isArray(workflow.filters)) {
-            for (const filter of workflow.filters) {
-              if (filter.type === 'issue_type') {
-                frontendFilters.issue_type = filter.value;
-              }
+        const frontendFilters = {issue_type: ''};
+         // Convert backend action format to frontend format
+        const frontendActions = {column: '', add_labels: [], closeIssue: false};
+
+        if (workflow) {
+          for (const filter of workflow.filters) {
+            if (filter.type === 'issue_type') {
+              frontendFilters.issue_type = filter.value;
             }
           }
 
-          // Convert backend action format to frontend format
-          const frontendActions = {column: '', add_labels: [], closeIssue: false};
-          if (workflow.actions && Array.isArray(workflow.actions)) {
-            for (const action of workflow.actions) {
-              if (action.action_type === 'column') {
-                frontendActions.column = action.action_value;
-              } else if (action.action_type === 'add_labels') {
-                frontendActions.add_labels.push(action.action_value);
-              } else if (action.action_type === 'close') {
-                frontendActions.closeIssue = action.action_value === 'true';
-              }
+          for (const action of workflow.actions) {
+            if (action.type === 'column') {
+              // Backend returns string, keep as string to match column.id type
+              frontendActions.column = action.value;
+            } else if (action.type === 'add_labels') {
+              // Backend returns string, keep as string to match label.id type
+              frontendActions.add_labels.push(action.value);
+            } else if (action.type === 'close') {
+              frontendActions.closeIssue = action.value === 'true';
             }
           }
-
-          store.workflowFilters = frontendFilters;
-          store.workflowActions = frontendActions;
-        } else {
-          // Reset to defaults for new workflow
-          store.resetWorkflowData();
         }
+
+        store.workflowFilters = frontendFilters;
+        store.workflowActions = frontendActions;
       } finally {
         store.loading = false;
       }

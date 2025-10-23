@@ -58,14 +58,6 @@ func convertFormToFilters(formFilters map[string]string) []project_model.Workflo
 	return filters
 }
 
-func convertFiltersToMap(filters []project_model.WorkflowFilter) map[string]string {
-	filterMap := make(map[string]string)
-	for _, filter := range filters {
-		filterMap[string(filter.Type)] = filter.Value
-	}
-	return filterMap
-}
-
 // convertFormToActions converts form actions to WorkflowAction objects
 func convertFormToActions(formActions map[string]any) []project_model.WorkflowAction {
 	actions := make([]project_model.WorkflowAction, 0)
@@ -73,12 +65,12 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 	for key, value := range formActions {
 		switch key {
 		case "column":
-			if floatValue, ok := value.(float64); ok {
-				floatValueInt := int64(floatValue)
+			if floatValue, ok := value.(string); ok {
+				floatValueInt, _ := strconv.ParseInt(floatValue, 10, 64)
 				if floatValueInt > 0 {
 					actions = append(actions, project_model.WorkflowAction{
-						ActionType:  project_model.WorkflowActionTypeColumn,
-						ActionValue: strconv.FormatInt(floatValueInt, 10),
+						Type:  project_model.WorkflowActionTypeColumn,
+						Value: strconv.FormatInt(floatValueInt, 10),
 					})
 				}
 			}
@@ -87,8 +79,8 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 				for _, label := range labels {
 					if label != "" {
 						actions = append(actions, project_model.WorkflowAction{
-							ActionType:  project_model.WorkflowActionTypeAddLabels,
-							ActionValue: label,
+							Type:  project_model.WorkflowActionTypeAddLabels,
+							Value: label,
 						})
 					}
 				}
@@ -98,8 +90,8 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 				for _, label := range labels {
 					if label != "" {
 						actions = append(actions, project_model.WorkflowAction{
-							ActionType:  project_model.WorkflowActionTypeRemoveLabels,
-							ActionValue: label,
+							Type:  project_model.WorkflowActionTypeRemoveLabels,
+							Value: label,
 						})
 					}
 				}
@@ -107,22 +99,14 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 		case "closeIssue":
 			if boolValue, ok := value.(bool); ok && boolValue {
 				actions = append(actions, project_model.WorkflowAction{
-					ActionType:  project_model.WorkflowActionTypeClose,
-					ActionValue: "true",
+					Type:  project_model.WorkflowActionTypeClose,
+					Value: "true",
 				})
 			}
 		}
 	}
 
 	return actions
-}
-
-func convertActionsToMap(actions []project_model.WorkflowAction) map[string]any {
-	actionMap := make(map[string]any)
-	for _, action := range actions {
-		actionMap[string(action.ActionType)] = action.ActionValue
-	}
-	return actionMap
 }
 
 func WorkflowsEvents(ctx *context.Context) {
@@ -156,8 +140,8 @@ func WorkflowsEvents(ctx *context.Context) {
 		EventID       string                                  `json:"event_id"`
 		DisplayName   string                                  `json:"display_name"`
 		Capabilities  project_model.WorkflowEventCapabilities `json:"capabilities"`
-		Filters       map[string]string                       `json:"filters"`
-		Actions       map[string]any                          `json:"actions"`
+		Filters       []project_model.WorkflowFilter          `json:"filters"`
+		Actions       []project_model.WorkflowAction          `json:"actions"`
 		FilterSummary string                                  `json:"filter_summary"` // Human readable filter description
 		Enabled       bool                                    `json:"enabled"`
 	}
@@ -183,8 +167,8 @@ func WorkflowsEvents(ctx *context.Context) {
 					EventID:       strconv.FormatInt(wf.ID, 10),
 					DisplayName:   string(ctx.Tr(wf.WorkflowEvent.LangKey())) + filterSummary,
 					Capabilities:  capabilities[event],
-					Filters:       convertFiltersToMap(wf.WorkflowFilters),
-					Actions:       convertActionsToMap(wf.WorkflowActions),
+					Filters:       wf.WorkflowFilters,
+					Actions:       wf.WorkflowActions,
 					FilterSummary: filterSummary,
 					Enabled:       wf.Enabled,
 				})

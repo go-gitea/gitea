@@ -373,36 +373,6 @@ const isItemSelected = (item) => {
   return store.selectedItem === item.base_event_type;
 };
 
-const _getActionsSummary = (workflow) => {
-  if (!workflow.actions || workflow.actions.length === 0) {
-    return '';
-  }
-
-  const actions = [];
-  for (const action of workflow.actions) {
-    if (action.action_type === 'column') {
-      const column = store.projectColumns.find((c) => c.id === action.action_value);
-      if (column) {
-        actions.push(`Move to "${column.title}"`);
-      }
-    } else if (action.action_type === 'add_labels') {
-      const label = store.projectLabels.find((l) => l.id === action.action_value);
-      if (label) {
-        actions.push(`Add label "${label.name}"`);
-      }
-    } else if (action.action_type === 'remove_labels') {
-      const label = store.projectLabels.find((l) => l.id === action.action_value);
-      if (label) {
-        actions.push(`Remove label "${label.name}"`);
-      }
-    } else if (action.action_type === 'close') {
-      actions.push('Close issue');
-    }
-  }
-
-  return actions.join(', ');
-};
-
 onMounted(async () => {
   // Load all necessary data
   store.workflowEvents = await store.loadEvents();
@@ -626,113 +596,111 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!--<form class="ui form form-fetch-action" :action="props.projectLink+'/workflows/'+store.selectedWorkflow.id" method="post">-->
-          <div class="editor-content">
-            <div class="form" :class="{ 'readonly': !isInEditMode }">
-              <div class="field">
-                <label>When</label>
-                <div class="segment">
-                  <div class="description">
-                    This workflow will run when: <strong>{{ store.selectedWorkflow.display_name }}</strong>
+        <div class="editor-content">
+          <div class="form" :class="{ 'readonly': !isInEditMode }">
+            <div class="field">
+              <label>When</label>
+              <div class="segment">
+                <div class="description">
+                  This workflow will run when: <strong>{{ store.selectedWorkflow.display_name }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="field" v-if="hasAvailableFilters">
+              <label>Filters</label>
+              <div class="segment">
+                <div class="field" v-if="hasFilter('issue_type')">
+                  <label>Apply to</label>
+                  <select
+                    v-if="isInEditMode"
+                    class="form-select"
+                    v-model="store.workflowFilters.issue_type"
+                  >
+                    <option value="">Issues And Pull Requests</option>
+                    <option value="issue">Issues</option>
+                    <option value="pull_request">Pull requests</option>
+                  </select>
+                  <div v-else class="readonly-value">
+                    {{ store.workflowFilters.issue_type === 'issue' ? 'Issues' :
+                      store.workflowFilters.issue_type === 'pull_request' ? 'Pull requests' :
+                      'Issues And Pull Requests' }}
                   </div>
                 </div>
               </div>
+            </div>
 
-              <!-- Filters Section -->
-              <div class="field" v-if="hasAvailableFilters">
-                <label>Filters</label>
-                <div class="segment">
-                  <div class="field" v-if="hasFilter('issue_type')">
-                    <label>Apply to</label>
-                    <select
-                      v-if="isInEditMode"
-                      class="form-select"
-                      v-model="store.workflowFilters.issue_type"
-                    >
-                      <option value="">Issues And Pull Requests</option>
-                      <option value="issue">Issues</option>
-                      <option value="pull_request">Pull requests</option>
-                    </select>
-                    <div v-else class="readonly-value">
-                      {{ store.workflowFilters.issue_type === 'issue' ? 'Issues' :
-                        store.workflowFilters.issue_type === 'pull_request' ? 'Pull requests' :
-                        'Issues And Pull Requests' }}
-                    </div>
+            <!-- Actions Section -->
+            <div class="field">
+              <label>Actions</label>
+              <div class="segment">
+                <div class="field" v-if="hasAction('column')">
+                  <label>Move to column</label>
+                  <select
+                    v-if="isInEditMode"
+                    class="form-select"
+                    v-model="store.workflowActions.column"
+                  >
+                    <option value="">Select column...</option>
+                    <option v-for="column in store.projectColumns" :key="column.id" :value="String(column.id)">
+                      {{ column.title }}
+                    </option>
+                  </select>
+                  <div v-else class="readonly-value">
+                    {{ store.projectColumns.find(c => String(c.id) === store.workflowActions.column)?.title || 'None' }}
                   </div>
                 </div>
-              </div>
 
-              <!-- Actions Section -->
-              <div class="field">
-                <label>Actions</label>
-                <div class="segment">
-                  <div class="field" v-if="hasAction('column')">
-                    <label>Move to column</label>
-                    <select
-                      v-if="isInEditMode"
-                      class="form-select"
-                      v-model="store.workflowActions.column"
-                    >
-                      <option value="">Select column...</option>
-                      <option v-for="column in store.projectColumns" :key="column.id" :value="column.id">
-                        {{ column.title }}
-                      </option>
-                    </select>
-                    <div v-else class="readonly-value">
-                      {{ store.projectColumns.find(c => c.id === store.workflowActions.column)?.title || 'None' }}
-                    </div>
+                <div class="field" v-if="hasAction('label')">
+                  <label>Add labels</label>
+                  <select
+                    v-if="isInEditMode"
+                    class="form-select"
+                    v-model="store.workflowActions.add_labels"
+                    multiple
+                  >
+                    <option value="">Select labels...</option>
+                    <option v-for="label in store.projectLabels" :key="label.id" :value="String(label.id)">
+                      {{ label.name }}
+                    </option>
+                  </select>
+                  <div v-else class="readonly-value">
+                    {{ store.workflowActions.add_labels?.map(id =>
+                      store.projectLabels.find(l => String(l.id) === id)?.name).join(', ') || 'None' }}
                   </div>
+                </div>
 
-                  <div class="field" v-if="hasAction('label')">
-                    <label>Add labels</label>
-                    <select
-                      v-if="isInEditMode"
-                      class="form-select"
-                      v-model="store.workflowActions.add_labels"
-                      multiple
-                    >
-                      <option value="">Select labels...</option>
-                      <option v-for="label in store.projectLabels" :key="label.id" :value="label.id">
-                        {{ label.name }}
-                      </option>
-                    </select>
-                    <div v-else class="readonly-value">
-                      {{ store.workflowActions.add_labels?.map(id =>
-                        store.projectLabels.find(l => l.id === id)?.name).join(', ') || 'None' }}
-                    </div>
+                <div class="field" v-if="hasAction('close')">
+                  <div v-if="isInEditMode" class="form-check">
+                    <input type="checkbox" v-model="store.workflowActions.closeIssue" id="close-issue">
+                    <label for="close-issue">Close issue</label>
                   </div>
-
-                  <div class="field" v-if="hasAction('close')">
-                    <div v-if="isInEditMode" class="form-check">
-                      <input type="checkbox" v-model="store.workflowActions.closeIssue" id="close-issue">
-                      <label for="close-issue">Close issue</label>
-                    </div>
-                    <div v-else class="readonly-value">
-                      <label>Close issue</label>
-                      <div>{{ store.workflowActions.closeIssue ? 'Yes' : 'No' }}</div>
-                    </div>
+                  <div v-else class="readonly-value">
+                    <label>Close issue</label>
+                    <div>{{ store.workflowActions.closeIssue ? 'Yes' : 'No' }}</div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Fixed bottom actions (only show in edit mode) -->
-          <div v-if="isInEditMode" class="editor-actions">
-            <button class="btn btn-primary" @click="saveWorkflow" :disabled="store.saving">
-              <i class="save icon"/>
-              Save Workflow
-            </button>
-            <button
-              v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0"
-              class="btn btn-danger"
-              @click="deleteWorkflow"
-            >
-              <i class="trash icon"/>
-              Delete
-            </button>
-          </div>
-        <!--</form>-->
+        <!-- Fixed bottom actions (only show in edit mode) -->
+        <div v-if="isInEditMode" class="editor-actions">
+          <button class="btn btn-primary" @click="saveWorkflow" :disabled="store.saving">
+            <i class="save icon"/>
+            Save Workflow
+          </button>
+          <button
+            v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0"
+            class="btn btn-danger"
+            @click="deleteWorkflow"
+          >
+            <i class="trash icon"/>
+            Delete
+          </button>
+        </div>
       </div>
     </div>
   </div>

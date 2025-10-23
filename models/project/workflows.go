@@ -94,8 +94,8 @@ const (
 )
 
 type WorkflowFilter struct {
-	Type  WorkflowFilterType
-	Value string // e.g., "issue", "pull_request", etc. depends on the filter type definition
+	Type  WorkflowFilterType `json:"type"`
+	Value string             `json:"value"`
 }
 
 type WorkflowActionType string
@@ -108,8 +108,8 @@ const (
 )
 
 type WorkflowAction struct {
-	ActionType  WorkflowActionType
-	ActionValue string
+	Type  WorkflowActionType `json:"type"`
+	Value string             `json:"value"`
 }
 
 // WorkflowEventCapabilities defines what filters and actions are available for each event

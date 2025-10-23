@@ -46,6 +46,9 @@ type Column struct {
 	Color   string `xorm:"VARCHAR(7)"`
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
+
+	Project *Project `xorm:"-"`
+
 	CreatorID int64 `xorm:"NOT NULL"`
 
 	NumIssues int64 `xorm:"-"`
@@ -57,6 +60,19 @@ type Column struct {
 // TableName return the real table name
 func (Column) TableName() string {
 	return "project_board" // TODO: the legacy table name should be project_column
+}
+
+func (c *Column) LoadProject(ctx context.Context) error {
+	if c.Project != nil {
+		return nil
+	}
+
+	project, err := GetProjectByID(ctx, c.ProjectID)
+	if err != nil {
+		return err
+	}
+	c.Project = project
+	return nil
 }
 
 func (c *Column) GetIssues(ctx context.Context) ([]*ProjectIssue, error) {
@@ -213,16 +229,16 @@ func GetColumn(ctx context.Context, columnID int64) (*Column, error) {
 	return column, nil
 }
 
-func GetColumnByProjectIDAndColumnName(ctx context.Context, projectID int64, columnName string) (*Column, error) {
-	board := new(Column)
-	has, err := db.GetEngine(ctx).Where("project_id=? AND title=?", projectID, columnName).Get(board)
+func GetColumnByProjectIDAndColumnID(ctx context.Context, projectID, columnID int64) (*Column, error) {
+	column := new(Column)
+	has, err := db.GetEngine(ctx).Where("project_id=? AND id=?", projectID, columnID).Get(column)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrProjectColumnNotExist{ProjectID: projectID, Name: columnName}
+		return nil, ErrProjectColumnNotExist{ProjectID: projectID, ColumnID: columnID}
 	}
 
-	return board, nil
+	return column, nil
 }
 
 // UpdateColumn updates a project column
