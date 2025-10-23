@@ -126,14 +126,9 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 	}
 
 	// Reset run's start and stop time when it is done
-	if run.Status.IsDone() {
-		run.PreviousDuration = run.Duration()
-		run.Started = 0
-		run.Stopped = 0
-		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration"); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
+	if err := actions_service.ResetRunTimes(ctx, run); err != nil {
+		ctx.APIErrorInternal(err)
+		return
 	}
 
 	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
@@ -425,14 +420,9 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 	}
 
 	// Reset run's start and stop time when it is done
-	if run.Status.IsDone() {
-		run.PreviousDuration = run.Duration()
-		run.Started = 0
-		run.Stopped = 0
-		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration"); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
+	if err := actions_service.ResetRunTimes(ctx, run); err != nil {
+		ctx.APIErrorInternal(err)
+		return
 	}
 
 	// Get all jobs that need to be rerun (including dependencies)
