@@ -2,7 +2,41 @@ import {reactive} from 'vue';
 import {GET, POST} from '../../modules/fetch.ts';
 import {showInfoToast, showErrorToast} from '../../modules/toast.ts';
 
-export function createWorkflowStore(props: { projectLink: string, eventID: string}) {
+type WorkflowFiltersState = {
+  issue_type: string;
+  column: string;
+  labels: string[];
+};
+
+type WorkflowActionsState = {
+  column: string;
+  add_labels: string[];
+  remove_labels: string[];
+  closeIssue: boolean;
+};
+
+type WorkflowDraftState = {
+  filters: WorkflowFiltersState;
+  actions: WorkflowActionsState;
+};
+
+const createDefaultFilters = (): WorkflowFiltersState => ({issue_type: '', column: '', labels: []});
+const createDefaultActions = (): WorkflowActionsState => ({column: '', add_labels: [], remove_labels: [], closeIssue: false});
+
+const cloneFilters = (filters: WorkflowFiltersState): WorkflowFiltersState => ({
+  issue_type: filters.issue_type,
+  column: filters.column,
+  labels: Array.from(filters.labels),
+});
+
+const cloneActions = (actions: WorkflowActionsState): WorkflowActionsState => ({
+  column: actions.column,
+  add_labels: Array.from(actions.add_labels),
+  remove_labels: Array.from(actions.remove_labels),
+  closeIssue: actions.closeIssue,
+});
+
+export function createWorkflowStore(props: {projectLink: string, eventID: string}) {
   const store = reactive({
     workflowEvents: [],
     selectedItem: props.eventID,
@@ -14,17 +48,25 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
     showCreateDialog: false, // For create workflow dialog
     selectedEventType: null, // For workflow creation
 
-    workflowFilters: {
-      issue_type: '', // 'issue', 'pull_request', or ''
-      column: '', // target column ID for item_column_changed event
-      labels: [], // label IDs to filter by
+    workflowFilters: createDefaultFilters(),
+
+    workflowActions: createDefaultActions(),
+
+    workflowDrafts: {} as Record<string, WorkflowDraftState>,
+
+    getDraft(eventId: string): WorkflowDraftState | undefined {
+      return store.workflowDrafts[eventId];
     },
 
-    workflowActions: {
-      column: '', // column ID to move to
-      add_labels: [], // selected label IDs
-      remove_labels: [], // selected label IDs to remove
-      closeIssue: false,
+    updateDraft(eventId: string, filters: WorkflowFiltersState, actions: WorkflowActionsState) {
+      store.workflowDrafts[eventId] = {
+        filters: cloneFilters(filters),
+        actions: cloneActions(actions),
+      };
+    },
+
+    clearDraft(eventId: string) {
+      delete store.workflowDrafts[eventId];
     },
 
     async loadEvents() {
@@ -54,6 +96,13 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
         await store.loadProjectColumns();
         await store.loadProjectLabels();
 
+        const draft = store.getDraft(eventId);
+        if (draft) {
+          store.workflowFilters = cloneFilters(draft.filters);
+          store.workflowActions = cloneActions(draft.actions);
+          return;
+        }
+
         // Find the workflow from existing workflowEvents
         const workflow = store.workflowEvents.find((e) => e.event_id === eventId);
         console.log('[WorkflowStore] loadWorkflowData - eventId:', eventId);
@@ -65,7 +114,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
          // Convert backend action format to frontend format
         const frontendActions = {column: '', add_labels: [], remove_labels: [], closeIssue: false};
 
-        if (workflow) {
+        if (workflow?.filters && Array.isArray(workflow.filters)) {
           for (const filter of workflow.filters) {
             if (filter.type === 'issue_type') {
               frontendFilters.issue_type = filter.value;
@@ -76,6 +125,23 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
             }
           }
 
+          if (workflow.actions && Array.isArray(workflow.actions)) {
+            for (const action of workflow.actions) {
+              if (action.type === 'column') {
+                // Backend returns string, keep as string to match column.id type
+                frontendActions.column = action.value;
+              } else if (action.type === 'add_labels') {
+                // Backend returns string, keep as string to match label.id type
+                frontendActions.add_labels.push(action.value);
+              } else if (action.type === 'remove_labels') {
+                // Backend returns string, keep as string to match label.id type
+                frontendActions.remove_labels.push(action.value);
+              } else if (action.type === 'close') {
+                frontendActions.closeIssue = action.value === 'true';
+              }
+            }
+          }
+        } else if (workflow?.actions && Array.isArray(workflow.actions)) {
           for (const action of workflow.actions) {
             if (action.type === 'column') {
               // Backend returns string, keep as string to match column.id type
@@ -94,6 +160,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
 
         store.workflowFilters = frontendFilters;
         store.workflowActions = frontendActions;
+        store.updateDraft(eventId, frontendFilters, frontendActions);
       } finally {
         store.loading = false;
       }
@@ -110,8 +177,13 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
     },
 
     resetWorkflowData() {
-      store.workflowFilters = {issue_type: '', column: '', labels: []};
-      store.workflowActions = {column: '', add_labels: [], remove_labels: [], closeIssue: false};
+      store.workflowFilters = createDefaultFilters();
+      store.workflowActions = createDefaultActions();
+
+      const currentEventId = store.selectedWorkflow?.event_id || store.selectedWorkflow?.base_event_type;
+      if (currentEventId) {
+        store.updateDraft(currentEventId, store.workflowFilters, store.workflowActions);
+      }
     },
 
     async saveWorkflow() {
@@ -121,6 +193,7 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
       try {
         // For new workflows, use the base event type
         const eventId = store.selectedWorkflow.base_event_type || store.selectedWorkflow.event_id;
+        const previousDraftKey = store.selectedWorkflow.event_id || store.selectedWorkflow.base_event_type;
 
         // Convert frontend data format to backend JSON format
         const postData = {
@@ -151,9 +224,14 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
         if (result.success && result.workflow) {
           // Always reload the events list to get the updated structure
           // This ensures we have both the base event and the new filtered event
+          const eventKey = typeof store.selectedWorkflow.event_id === 'string' ? store.selectedWorkflow.event_id : '';
           const wasNewWorkflow = store.selectedWorkflow.id === 0 ||
-                                 store.selectedWorkflow.event_id.startsWith('new-') ||
-                                 store.selectedWorkflow.event_id.startsWith('clone-');
+                                 eventKey.startsWith('new-') ||
+                                 eventKey.startsWith('clone-');
+
+          if (wasNewWorkflow && previousDraftKey) {
+            store.clearDraft(previousDraftKey);
+          }
 
           // Reload events from server to get the correct event structure
           await store.loadEvents();
@@ -204,6 +282,9 @@ export function createWorkflowStore(props: { projectLink: string, eventID: strin
 
           store.workflowFilters = frontendFilters;
           store.workflowActions = frontendActions;
+          if (store.selectedWorkflow?.event_id) {
+            store.updateDraft(store.selectedWorkflow.event_id, frontendFilters, frontendActions);
+          }
 
           // Update URL to use the new workflow ID
           if (wasNewWorkflow) {

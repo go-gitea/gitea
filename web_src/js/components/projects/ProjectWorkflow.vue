@@ -30,6 +30,13 @@ const isInEditMode = computed(() => {
   return store.selectedWorkflow._isEditing || false;
 });
 
+const showCancelButton = computed(() => {
+  if (!store.selectedWorkflow) return false;
+  if (store.selectedWorkflow.id > 0) return true;
+  const eventId = store.selectedWorkflow.event_id ?? '';
+  return typeof eventId === 'string' && eventId.startsWith('clone-');
+});
+
 // Helper to set edit mode for current workflow
 const setEditMode = (enabled) => {
   if (store.selectedWorkflow) {
@@ -43,21 +50,39 @@ const setEditMode = (enabled) => {
 
 // Store previous selection for cancel functionality
 
+const isTemporaryWorkflow = (workflow) => {
+  if (!workflow) return false;
+  if (workflow.id > 0) return false;
+  const eventId = typeof workflow.event_id === 'string' ? workflow.event_id : '';
+  return eventId.startsWith('clone-') || eventId.startsWith('new-');
+};
+
+const removeTemporaryWorkflow = (workflow) => {
+  if (!isTemporaryWorkflow(workflow)) return;
+
+  const eventId = workflow.event_id;
+  const tempIndex = store.workflowEvents.findIndex((w) => w.event_id === eventId);
+  if (tempIndex >= 0) {
+    store.workflowEvents.splice(tempIndex, 1);
+  }
+
+  if (typeof store.clearDraft === 'function') {
+    store.clearDraft(eventId);
+  }
+};
+
 const toggleEditMode = () => {
   if (isInEditMode.value) {
     // Canceling edit mode
+    const canceledWorkflow = store.selectedWorkflow;
+    const hadTemporarySelection = isTemporaryWorkflow(canceledWorkflow);
+
+    if (hadTemporarySelection) {
+      removeTemporaryWorkflow(canceledWorkflow);
+    }
+
     if (previousSelection.value) {
       // If there was a previous selection, return to it
-      if (store.selectedWorkflow && store.selectedWorkflow.id === 0) {
-        // Remove temporary unsaved workflow (new or cloned) from list
-        const tempIndex = store.workflowEvents.findIndex((w) =>
-          w.event_id === store.selectedWorkflow.event_id,
-        );
-        if (tempIndex >= 0) {
-          store.workflowEvents.splice(tempIndex, 1);
-        }
-      }
-
       // Restore previous selection
       store.selectedItem = previousSelection.value.selectedItem;
       store.selectedWorkflow = previousSelection.value.selectedWorkflow;
@@ -65,6 +90,21 @@ const toggleEditMode = () => {
         store.loadWorkflowData(previousSelection.value.selectedWorkflow.event_id);
       }
       previousSelection.value = null;
+    } else if (hadTemporarySelection) {
+      // If we removed a temporary item but have no previous selection, fall back to first workflow
+      const fallback = store.workflowEvents.find((w) => {
+        if (!canceledWorkflow) return false;
+        const baseType = canceledWorkflow.base_event_type || canceledWorkflow.workflow_event;
+        return baseType && (w.base_event_type === baseType || w.workflow_event === baseType || w.event_id === baseType);
+      }) || store.workflowEvents[0];
+      if (fallback) {
+        store.selectedItem = fallback.event_id;
+        store.selectedWorkflow = fallback;
+        store.loadWorkflowData(fallback.event_id);
+      } else {
+        store.selectedItem = null;
+        store.selectedWorkflow = null;
+      }
     }
     setEditMode(false);
   } else {
@@ -187,6 +227,12 @@ const cloneWorkflow = (sourceWorkflow) => {
     store.workflowEvents.push(clonedWorkflow);
   }
 
+  // Remember the source so cancel can return to it
+  previousSelection.value = {
+    selectedItem: store.selectedItem,
+    selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : {...sourceWorkflow},
+  };
+
   // Select the cloned workflow and enter edit mode
   store.selectedItem = tempId;
   store.selectedWorkflow = clonedWorkflow;
@@ -195,7 +241,6 @@ const cloneWorkflow = (sourceWorkflow) => {
   store.loadWorkflowData(tempId);
 
   // Enter edit mode
-  previousSelection.value = null; // No previous selection for cloned workflow
   setEditMode(true);
 
   // Update URL
@@ -470,6 +515,25 @@ watch(isInEditMode, async (newVal) => {
   }
 });
 
+const getCurrentDraftKey = () => {
+  if (!store.selectedWorkflow) return null;
+  return store.selectedWorkflow.event_id || store.selectedWorkflow.base_event_type;
+};
+
+const persistDraftState = () => {
+  const draftKey = getCurrentDraftKey();
+  if (!draftKey) return;
+  store.updateDraft(draftKey, store.workflowFilters, store.workflowActions);
+};
+
+watch(() => store.workflowFilters, () => {
+  persistDraftState();
+}, {deep: true});
+
+watch(() => store.workflowActions, () => {
+  persistDraftState();
+}, {deep: true});
+
 onMounted(async () => {
   // Load all necessary data
   store.workflowEvents = await store.loadEvents();
@@ -666,6 +730,16 @@ onUnmounted(() => {
           <div class="editor-actions-header">
             <!-- Edit Mode Buttons -->
             <template v-if="isInEditMode">
+              <!-- Cancel Button -->
+              <button
+                v-if="showCancelButton"
+                class="btn btn-outline-secondary"
+                @click="toggleEditMode"
+              >
+                <i class="times icon"/>
+                Cancel
+              </button>
+
               <!-- Save Button -->
               <button
                 class="btn btn-primary"
@@ -674,15 +748,6 @@ onUnmounted(() => {
               >
                 <i class="save icon"/>
                 Save
-              </button>
-
-              <!-- Cancel Button -->
-              <button
-                class="btn btn-outline-secondary"
-                @click="toggleEditMode"
-              >
-                <i class="times icon"/>
-                Cancel
               </button>
 
               <!-- Delete Button (only for configured workflows) -->
