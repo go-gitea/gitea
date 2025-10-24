@@ -156,6 +156,20 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 
 	issue_service.ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
+	// Request reviews, these should be requested before other notifications because they will add request reviews record
+	// on database
+	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
+	for _, reviewer := range opts.Reviewers {
+		if _, err = issue_service.ReviewRequest(ctx, pr.Issue, issue.Poster, &permDoer, reviewer, true); err != nil {
+			return err
+		}
+	}
+	for _, teamReviewer := range opts.TeamReviewers {
+		if _, err = issue_service.TeamReviewRequest(ctx, pr.Issue, issue.Poster, teamReviewer, true); err != nil {
+			return err
+		}
+	}
+
 	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, issue.Poster, issue.Content)
 	if err != nil {
 		return err
@@ -174,17 +188,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 	}
-	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
-	for _, reviewer := range opts.Reviewers {
-		if _, err = issue_service.ReviewRequest(ctx, pr.Issue, issue.Poster, &permDoer, reviewer, true); err != nil {
-			return err
-		}
-	}
-	for _, teamReviewer := range opts.TeamReviewers {
-		if _, err = issue_service.TeamReviewRequest(ctx, pr.Issue, issue.Poster, teamReviewer, true); err != nil {
-			return err
-		}
-	}
+
 	return nil
 }
 

@@ -69,6 +69,9 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 		if err != nil {
 			return nil, err
 		}
+		if len(data.CommitIDs) == 0 {
+			return nil, nil
+		}
 	}
 
 	dataJSON, err := json.Marshal(data)
