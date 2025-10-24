@@ -245,7 +245,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 			gitCmd = NewCommand("rev-list")
 		} else {
 			gitCmd = NewCommand("--no-pager", "log").
-				AddOptionFormat("--pretty=format:%%H").
+				AddOptionFormat("--pretty=tformat:%%H").
 				AddOptionFormat("--follow")
 		}
 		gitCmd.AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
@@ -270,7 +270,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 			Stderr: &stderr,
 		})
 
-		if err != nil && !(opts.FollowRename && err == io.ErrUnexpectedEOF) {
+		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
 			_ = stdoutWriter.Close()
@@ -287,7 +287,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	shaline := make([]byte, length+1)
 	for {
 		n, err := io.ReadFull(stdoutReader, shaline)
-		if (err != nil && !(opts.FollowRename && err == io.ErrUnexpectedEOF)) || n < length {
+		if err != nil || n < length {
 			if err == io.EOF {
 				err = nil
 			}
