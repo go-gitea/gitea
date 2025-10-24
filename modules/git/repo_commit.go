@@ -205,10 +205,10 @@ func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bo
 }
 
 // FileCommitsCount return the number of files at a revision
-func (repo *Repository) FileCommitsCount(revision, file string, followRename ...bool) (int64, error) {
-	_followRename := false
-	if len(followRename) > 0 {
-		_followRename = followRename[0]
+func (repo *Repository) FileCommitsCount(revision, file string, followRenameOptional ...bool) (int64, error) {
+	followRename := false
+	if len(followRenameOptional) > 0 {
+		followRename = followRenameOptional[0]
 	}
 
 	return CommitsCount(repo.Ctx,
@@ -216,7 +216,7 @@ func (repo *Repository) FileCommitsCount(revision, file string, followRename ...
 			RepoPath:     repo.Path,
 			Revision:     []string{revision},
 			RelPath:      []string{file},
-			FollowRename: _followRename,
+			FollowRename: followRename,
 		})
 }
 
