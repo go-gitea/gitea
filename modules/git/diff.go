@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -288,20 +289,18 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 }
 
 // GetAffectedFiles returns the affected files between two commits
-func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID string, env []string) ([]string, error) {
-	if oldCommitID == emptySha1ObjectID.String() || oldCommitID == emptySha256ObjectID.String() {
-		startCommitID, err := repo.GetCommitBranchStart(env, branchName, newCommitID)
-		if err != nil {
-			return nil, err
-		}
-		if startCommitID == "" {
-			return nil, fmt.Errorf("cannot find the start commit of %s", newCommitID)
-		}
-		oldCommitID = startCommitID
+func GetAffectedFiles(ctx context.Context, repoPath, oldCommitID, newCommitID string, env []string) ([]string, error) {
+	if oldCommitID == emptySha1ObjectID.String() {
+		oldCommitID = emptySha1ObjectID.Type().EmptyTree().String()
+	} else if oldCommitID == emptySha256ObjectID.String() {
+		oldCommitID = emptySha256ObjectID.Type().EmptyTree().String()
+	} else if oldCommitID == "" {
+		return nil, errors.New("oldCommitID is empty")
 	}
+
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		log.Error("Unable to create os.Pipe for %s", repo.Path)
+		log.Error("Unable to create os.Pipe for %s", repoPath)
 		return nil, err
 	}
 	defer func() {
@@ -314,7 +313,7 @@ func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID str
 	// Run `git diff --name-only` to get the names of the changed files
 	err = gitcmd.NewCommand("diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID).
 		WithEnv(env).
-		WithDir(repo.Path).
+		WithDir(repoPath).
 		WithStdout(stdoutWriter).
 		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			// Close the writer end of the pipe to begin processing
@@ -334,9 +333,9 @@ func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID str
 			}
 			return scanner.Err()
 		}).
-		Run(repo.Ctx)
+		Run(ctx)
 	if err != nil {
-		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repoPath, err)
 	}
 
 	return affectedFiles, err
