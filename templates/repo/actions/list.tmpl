@@ -7,22 +7,20 @@
 		{{if .HasWorkflowsOrRuns}}
 		<div class="ui stackable grid">
 			<div class="four wide column">
-				<div class="ui fluid vertical menu">
+				<div class="ui fluid vertical menu flex-items-block">
 					<a class="item{{if not $.CurWorkflow}} active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
 						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
-							<div class="flex-text-block">
-								{{.Entry.Name}}
-								{{if .ErrMsg}}
-									<span class="flex-text-inline" data-tooltip-content="{{.ErrMsg}}">
-										{{svg "octicon-alert" 16 "text red"}}
-									</span>
-								{{end}}
+							{{.Entry.Name}}
+							{{if .ErrMsg}}
+								<span class="flex-text-inline" data-tooltip-content="{{.ErrMsg}}">
+									{{svg "octicon-alert" 16 "text red"}}
+								</span>
+							{{end}}
 
-								{{if $.ActionsConfig.IsWorkflowDisabled .Entry.Name}}
-									<div class="ui red label">{{ctx.Locale.Tr "disabled"}}</div>
-								{{end}}
-							</div>
+							{{if $.ActionsConfig.IsWorkflowDisabled .Entry.Name}}
+								<div class="ui red label">{{ctx.Locale.Tr "disabled"}}</div>
+							{{end}}
 						</a>
 					{{end}}
 				</div>
