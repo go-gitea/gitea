@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestConfigUpdate(t *testing.T) {
+func TestConfigEdit(t *testing.T) {
 	tmpDir := t.TempDir()
 	configOld := tmpDir + "/app-old.ini"
 	configTemplate := tmpDir + "/app-template.ini"
@@ -33,9 +33,10 @@ k3=v3
 	t.Run("OutputToNewWithEnv", func(t *testing.T) {
 		configNew := tmpDir + "/app-new.ini"
 		err := NewMainApp(AppVersion{}).Run(t.Context(), []string{
-			"./gitea", "--config", configOld, "config", "update-ini",
+			"./gitea", "--config", configOld,
+			"config", "edit-ini",
 			"--apply-env",
-			"--config-key-template", configTemplate,
+			"--config-keep-keys", configTemplate,
 			"--out", configNew,
 		})
 		require.NoError(t, err)
@@ -54,8 +55,18 @@ KeY = val
 	})
 
 	t.Run("OutputToExisting(environment-to-ini)", func(t *testing.T) {
+		// the legacy "environment-to-ini" (now a wrapper script) behavior:
+		// if no "--out", then "--in-place" must be used to overwrite the existing "--config" file
 		err := NewMainApp(AppVersion{}).Run(t.Context(), []string{
-			"./gitea", "config", "update-ini",
+			"./gitea", "config", "edit-ini",
+			"--apply-env",
+			"--config", configOld,
+		})
+		require.ErrorContains(t, err, "either --in-place or --out must be specified")
+
+		err = NewMainApp(AppVersion{}).Run(t.Context(), []string{
+			"./gitea", "config", "edit-ini",
+			"--in-place",
 			"--apply-env",
 			"--config", configOld,
 		})

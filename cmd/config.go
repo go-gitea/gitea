@@ -10,14 +10,12 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-
 	"github.com/urfave/cli/v3"
 )
 
 func cmdConfig() *cli.Command {
-	subcmdConfigUpdateIni := &cli.Command{
-		Name:  "update-ini",
+	subcmdConfigEditIni := &cli.Command{
+		Name:  "edit-ini",
 		Usage: "Load an existing INI file, apply environment variables, keep specified keys, and output to a new INI file.",
 		Description: `
 Help users to update the gitea configuration INI file:
@@ -27,14 +25,14 @@ Help users to update the gitea configuration INI file:
 # Keep Specified Keys
 
 If you need to re-create the configuration file with only a subset of keys,
-you can provide an INI template file and use the "--config-key-template" flag.
+you can provide an INI template file and use the "--config-keep-keys" flag.
 For example, if a helm chart needs to reset the settings and only keep SECRET_KEY,
-it can use a template file like:
+it can use a template file (only keys take effect, values are ignored):
 
   [security]
   SECRET_KEY=
 
-$ ./gitea config update-ini --config app-old.ini --config-key-template app-template.ini --out app-new.ini
+$ ./gitea config edit-ini --config app-old.ini --config-keep-keys app-template.ini --out app-new.ini
 
 # Map Environment Variables to INI Configuration
 
@@ -57,17 +55,21 @@ $ export GITEA__git_0x2E_config__foo_0x2E_bar=val
 
 # Put All Together
 
-$ ./gitea config update-ini --config app.ini --config-key-template app-template.ini --apply-env
+$ ./gitea config edit-ini --config app.ini --config-keep-keys app-template.ini --apply-env
 `,
 		Flags: []cli.Flag{
 			// "--config" flag is provided by global flags, and this flag is also used by "environment-to-ini" script wrapper
 			&cli.StringFlag{
-				Name:  "config-key-template",
+				Name:  "config-keep-keys",
 				Usage: "An INI template file containing keys for keeping. Only the keys defined in the INI template will be kept from old config. If not set, all keys will be kept.",
 			},
 			&cli.BoolFlag{
 				Name:  "apply-env",
 				Usage: "Apply all GITEA__* variables from the environment to the config.",
+			},
+			&cli.BoolFlag{
+				Name:  "in-place",
+				Usage: "Output to the same config file as input.",
 			},
 			&cli.StringFlag{
 				Name:  "out",
@@ -81,7 +83,7 @@ $ ./gitea config update-ini --config app.ini --config-key-template app-template.
 		Name:  "config",
 		Usage: "Manage Gitea configuration",
 		Commands: []*cli.Command{
-			subcmdConfigUpdateIni,
+			subcmdConfigEditIni,
 		},
 	}
 }
@@ -99,14 +101,25 @@ func runConfigUpdateIni(_ context.Context, c *cli.Command) error {
 		return fmt.Errorf("failed to load config file %q: %v", configFileIn, err)
 	}
 
+	inPlace := c.Bool("in-place")
 	configFileOut := c.String("out")
-	configFileOut = util.IfZero(configFileOut, configFileIn)
+	if inPlace {
+		if configFileOut != "" {
+			return errors.New("cannot use --in-place and --out together")
+		}
+		configFileOut = configFileIn
+	} else {
+		if configFileOut == "" {
+			return errors.New("either --in-place or --out must be specified")
+		}
+	}
+
 	needWriteOut := configFileOut != configFileIn
 
 	cfgOut := cfgIn
-	if c.IsSet("config-key-template") {
+	if c.IsSet("config-keep-keys") {
 		needWriteOut = true
-		configKeepTemplate := c.String("config-key-template")
+		configKeepTemplate := c.String("config-keep-keys")
 		cfgOut, err = setting.NewConfigProviderFromFile(configKeepTemplate)
 		if err != nil {
 			return fmt.Errorf("failed to load config keep template file %q: %v", configKeepTemplate, err)
