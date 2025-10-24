@@ -248,6 +248,11 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	}
 	defer releaser()
 	defer func() {
+		// This is a duplicated call to AddTestPullRequestTask (it will also be called by the post-receive hook, via a push queue).
+		// This call will do some operations (push to base repo, sync commit divergence, add PR conflict check queue task, etc)
+		// immediately instead of waiting for the "push queue"'s task. The code is from https://github.com/go-gitea/gitea/pull/7082.
+		// But it's really questionable whether it's worth to do it ahead without waiting for the "push queue" task to run.
+		// TODO: DUPLICATE-PR-TASK: maybe can try to remove this in 1.26 to see if there is any issue.
 		go AddTestPullRequestTask(TestPullRequestOptions{
 			RepoID:      pr.BaseRepo.ID,
 			Doer:        doer,
@@ -724,4 +729,25 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 
 		return true, nil
 	})
+}
+
+func ShouldDeleteBranchAfterMerge(ctx context.Context, userOption *bool, repo *repo_model.Repository, pr *issues_model.PullRequest) (bool, error) {
+	if pr.Flow != issues_model.PullRequestFlowGithub {
+		// only support GitHub workflow (branch-based)
+		// for agit workflow, there is no branch, so nothing to delete
+		// TODO: maybe in the future, it should delete the "agit reference (refs/for/xxxx)"?
+		return false, nil
+	}
+
+	// if user has set an option, respect it
+	if userOption != nil {
+		return *userOption, nil
+	}
+
+	// otherwise, use repository default
+	prUnit, err := repo.GetUnit(ctx, unit.TypePullRequests)
+	if err != nil {
+		return false, err
+	}
+	return prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge, nil
 }

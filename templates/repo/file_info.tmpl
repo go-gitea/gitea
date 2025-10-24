@@ -11,11 +11,11 @@
 	{{end}}
 	{{if ne .FileSize nil}}
 		<div class="file-info-entry">
-			{{FileSize .FileSize}}{{if .IsLFSFile}}<span class="ui label">LFS</span>{{end}}
+			<span class="file-info-size">{{FileSize .FileSize}}</span>{{if .IsLFSFile}}<span class="ui label">LFS</span>{{end}}
 		</div>
 	{{end}}
 	{{if .LFSLock}}
-		<div class="file-info-entry ui" data-tooltip-content="{{.LFSLockHint}}">
+		<div class="file-info-entry" data-tooltip-content="{{.LFSLockHint}}">
 			{{svg "octicon-lock" 16 "tw-mr-1"}}
 			<a href="{{.LFSLockOwnerHomeLink}}">{{.LFSLockOwner}}</a>
 		</div>

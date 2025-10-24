@@ -425,7 +425,8 @@ func Rerun(ctx *context_module.Context) {
 		run.PreviousDuration = run.Duration()
 		run.Started = 0
 		run.Stopped = 0
-		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration"); err != nil {
+		run.Status = actions_model.StatusWaiting
+		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "status", "previous_duration"); err != nil {
 			ctx.ServerError("UpdateRun", err)
 			return
 		}
@@ -849,8 +850,8 @@ func Run(ctx *context_module.Context) {
 		return nil
 	})
 	if err != nil {
-		if errLocale := util.ErrorAsLocale(err); errLocale != nil {
-			ctx.Flash.Error(ctx.Tr(errLocale.TrKey, errLocale.TrArgs...))
+		if errTr := util.ErrorAsTranslatable(err); errTr != nil {
+			ctx.Flash.Error(errTr.Translate(ctx.Locale))
 			ctx.Redirect(redirectURL)
 		} else {
 			ctx.ServerError("DispatchActionWorkflow", err)
