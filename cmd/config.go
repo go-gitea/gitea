@@ -18,9 +18,7 @@ func cmdConfig() *cli.Command {
 		Name:  "edit-ini",
 		Usage: "Load an existing INI file, apply environment variables, keep specified keys, and output to a new INI file.",
 		Description: `
-Help users to update the gitea configuration INI file:
-* Keep specified keys to for the new INI file.
-* Map environment variables to values in the INI.
+Help users to edit the Gitea configuration INI file.
 
 # Keep Specified Keys
 
@@ -115,12 +113,12 @@ func runConfigUpdateIni(_ context.Context, c *cli.Command) error {
 	needWriteOut := configFileOut != configFileIn
 
 	cfgOut := cfgIn
-	if c.IsSet("config-keep-keys") {
+	configKeepKeys := c.String("config-keep-keys")
+	if configKeepKeys != "" {
 		needWriteOut = true
-		configKeepTemplate := c.String("config-keep-keys")
-		cfgOut, err = setting.NewConfigProviderFromFile(configKeepTemplate)
+		cfgOut, err = setting.NewConfigProviderFromFile(configKeepKeys)
 		if err != nil {
-			return fmt.Errorf("failed to load config keep template file %q: %v", configKeepTemplate, err)
+			return fmt.Errorf("failed to load config-keep-keys template file %q: %v", configKeepKeys, err)
 		}
 
 		for _, secOut := range cfgOut.Sections() {
