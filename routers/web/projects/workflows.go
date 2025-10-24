@@ -279,12 +279,14 @@ func WorkflowsColumns(ctx *context.Context) {
 	type Column struct {
 		ID    int64  `json:"id"`
 		Title string `json:"title"`
+		Color string `json:"color"`
 	}
 	outputColumns := make([]*Column, 0, len(columns))
 	for _, col := range columns {
 		outputColumns = append(outputColumns, &Column{
 			ID:    col.ID,
 			Title: col.Title,
+			Color: col.Color,
 		})
 	}
 

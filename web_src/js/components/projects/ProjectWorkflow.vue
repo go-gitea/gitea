@@ -815,7 +815,7 @@ onUnmounted(() => {
                   <label>Apply to</label>
                   <select
                     v-if="isInEditMode"
-                    class="form-select"
+                    class="column-select"
                     v-model="store.workflowFilters.issue_type"
                   >
                     <option value="">Issues And Pull Requests</option>
@@ -833,8 +833,8 @@ onUnmounted(() => {
                   <label>When moved to column</label>
                   <select
                     v-if="isInEditMode"
-                    class="form-select"
                     v-model="store.workflowFilters.column"
+                    class="column-select"
                   >
                     <option value="">Any column</option>
                     <option v-for="column in store.projectColumns" :key="column.id" :value="String(column.id)">
@@ -892,8 +892,8 @@ onUnmounted(() => {
                   <label>Move to column</label>
                   <select
                     v-if="isInEditMode"
-                    class="form-select"
                     v-model="store.workflowActions.column"
+                    class="column-select"
                   >
                     <option value="">Select column...</option>
                     <option v-for="column in store.projectColumns" :key="column.id" :value="String(column.id)">
@@ -982,7 +982,7 @@ onUnmounted(() => {
                   <select
                     v-if="isInEditMode"
                     id="issue-state-action"
-                    class="form-select"
+                    class="column-select"
                     v-model="store.workflowActions.issueState"
                   >
                     <option value="">No change</option>
@@ -1523,5 +1523,24 @@ onUnmounted(() => {
 
 .text-muted {
   color: #6c757d;
+}
+
+/* Column select styling */
+.column-select {
+  width: 100%;
+  padding: 0.67857143em 1em;
+  border: 1px solid rgba(34, 36, 38, 0.15);
+  border-radius: 0.28571429rem;
+  font-size: 1em;
+  line-height: 1.21428571em;
+  min-height: 2.71428571em;
+  background-color: #fff;
+  transition: border-color 0.1s ease, box-shadow 0.1s ease;
+}
+
+.column-select:focus {
+  border-color: #85b7d9;
+  outline: none;
+  box-shadow: 0 0 0 0 rgba(34, 36, 38, 0.35) inset;
 }
 </style>
