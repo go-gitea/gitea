@@ -28,21 +28,19 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 	content := "This is updated text"
 	contentEncoded := base64.StdEncoding.EncodeToString([]byte(content))
 	return &api.UpdateFileOptions{
-		FileOptionsWithSHA: api.FileOptionsWithSHA{
-			FileOptions: api.FileOptions{
-				BranchName:    "master",
-				NewBranchName: "master",
-				Message:       "My update of new/file.txt",
-				Author: api.Identity{
-					Name:  "John Doe",
-					Email: "johndoe@example.com",
-				},
-				Committer: api.Identity{
-					Name:  "Anne Doe",
-					Email: "annedoe@example.com",
-				},
+		SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
+		FileOptions: api.FileOptions{
+			BranchName:    "master",
+			NewBranchName: "master",
+			Message:       "My update of new/file.txt",
+			Author: api.Identity{
+				Name:  "John Doe",
+				Email: "johndoe@example.com",
 			},
-			SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
+			Committer: api.Identity{
+				Name:  "Anne Doe",
+				Email: "annedoe@example.com",
+			},
 		},
 		ContentBase64: contentEncoded,
 	}
@@ -179,6 +177,15 @@ func TestAPIUpdateFile(t *testing.T) {
 		assert.Equal(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
 		assert.Equal(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
 		assert.Equal(t, updateFileOptions.Message+"\n", fileResponse.Commit.Message)
+
+		// Test updating a file without SHA (should create the file)
+		updateFileOptions = getUpdateFileOptions()
+		updateFileOptions.SHA = ""
+		req = NewRequestWithJSON(t, "PUT", "/api/v1/repos/user2/repo1/contents/update-create.txt", &updateFileOptions).AddTokenAuth(token2)
+		resp = MakeRequest(t, req, http.StatusCreated)
+		DecodeJSON(t, resp, &fileResponse)
+		assert.Equal(t, "08bd14b2e2852529157324de9c226b3364e76136", fileResponse.Content.SHA)
+		assert.Equal(t, setting.AppURL+"user2/repo1/raw/branch/master/update-create.txt", *fileResponse.Content.DownloadURL)
 
 		// Test updating a file and renaming it
 		updateFileOptions = getUpdateFileOptions()
