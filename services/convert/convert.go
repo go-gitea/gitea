@@ -258,6 +258,7 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		URL:          fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
 		HTMLURL:      run.HTMLURL(),
 		RunNumber:    run.Index,
+		CreatedAt:    run.Created.AsLocalTime(),
 		StartedAt:    run.Started.AsLocalTime(),
 		CompletedAt:  run.Stopped.AsLocalTime(),
 		Event:        string(run.Event),
