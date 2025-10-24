@@ -78,11 +78,11 @@ func List(ctx *context.Context) {
 		return
 	}
 
-	workflows := prepareWorkflowTemplate(ctx, commit)
+	workflows, curWorkflowID := prepareWorkflowTemplate(ctx, commit)
 	if ctx.Written() {
 		return
 	}
-	prepareWorkflowDispatchTemplate(ctx, workflows)
+	prepareWorkflowDispatchTemplate(ctx, workflows, curWorkflowID)
 	if ctx.Written() {
 		return
 	}
@@ -117,25 +117,24 @@ func WorkflowDispatchInputs(ctx *context.Context) {
 		ctx.ServerError("GetTagCommit/GetBranchCommit", err)
 		return
 	}
-	workflows := prepareWorkflowTemplate(ctx, commit)
+	workflows, curWorkflowID := prepareWorkflowTemplate(ctx, commit)
 	if ctx.Written() {
 		return
 	}
-	prepareWorkflowDispatchTemplate(ctx, workflows)
+	prepareWorkflowDispatchTemplate(ctx, workflows, curWorkflowID)
 	if ctx.Written() {
 		return
 	}
 	ctx.HTML(http.StatusOK, tplDispatchInputsActions)
 }
 
-func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflows []WorkflowInfo) {
-	workflowID := ctx.FormString("workflow")
-	ctx.Data["CurWorkflow"] = workflowID
+func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflows []WorkflowInfo, curWorkflowID string) {
+	curWorkflowID = ctx.FormString("workflow")
 
 	_, entries, err := actions.ListWorkflows(commit)
 	if err != nil {
 		ctx.ServerError("ListWorkflows", err)
-		return nil
+		return nil, ""
 	}
 
 	workflows = make([]WorkflowInfo, 0, len(entries))
@@ -144,7 +143,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 		content, err := actions.GetContentFromEntry(entry)
 		if err != nil {
 			ctx.ServerError("GetContentFromEntry", err)
-			return nil
+			return nil, ""
 		}
 		wf, err := act_model.ReadWorkflow(bytes.NewReader(content))
 		if err != nil {
@@ -180,31 +179,26 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 	ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.IsAdmin()
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 	ctx.Data["ActionsConfig"] = actionsConfig
+	ctx.Data["CurWorkflow"] = curWorkflowID
+	ctx.Data["CurWorkflowDisabled"] = actionsConfig.IsWorkflowDisabled(curWorkflowID)
 
-	if len(workflowID) > 0 {
-		ctx.Data["CurWorkflowDisabled"] = actionsConfig.IsWorkflowDisabled(workflowID)
-	}
-
-	return workflows
+	return workflows, curWorkflowID
 }
 
-func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []WorkflowInfo) {
-	workflowID := ctx.FormString("workflow")
+func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []WorkflowInfo, curWorkflowID string) {
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-	if len(workflowID) == 0 || !ctx.Repo.CanWrite(unit.TypeActions) || actionsConfig.IsWorkflowDisabled(workflowID) {
+	if curWorkflowID == "" || !ctx.Repo.CanWrite(unit.TypeActions) || actionsConfig.IsWorkflowDisabled(curWorkflowID) {
 		return
 	}
 
-	ctx.Data["CurWorkflowExists"] = false
 	var curWorkflow *act_model.Workflow
 	for _, workflowInfo := range workflowInfos {
-		if workflowInfo.Entry.Name() == workflowID {
+		if workflowInfo.Entry.Name() == curWorkflowID {
 			if workflowInfo.Workflow == nil {
-				log.Error("%s workflowInfo.Workflow is nil", workflowID)
+				log.Debug("CurWorkflowID %s is found but its workflowInfo.Workflow is nil", curWorkflowID)
 				return
 			}
 			curWorkflow = workflowInfo.Workflow
-			ctx.Data["CurWorkflowExists"] = true
 			break
 		}
 	}
@@ -213,12 +207,13 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 		return
 	}
 
-	workflowDispatchConfig := workflowDispatchConfig(curWorkflow)
-	if workflowDispatchConfig == nil {
+	ctx.Data["CurWorkflowExists"] = true
+	curWfDispatchCfg := workflowDispatchConfig(curWorkflow)
+	if curWfDispatchCfg == nil {
 		return
 	}
 
-	ctx.Data["WorkflowDispatchConfig"] = workflowDispatchConfig
+	ctx.Data["WorkflowDispatchConfig"] = curWfDispatchCfg
 
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,

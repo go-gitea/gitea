@@ -178,12 +178,7 @@ func (r *ActionRunner) GenerateToken() (err error) {
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idruns-on
 func (r *ActionRunner) CanMatchLabels(jobRunsOn []string) bool {
 	runnerLabelSet := container.SetOf(r.AgentLabels...)
-	for _, v := range jobRunsOn {
-		if !runnerLabelSet.Contains(v) {
-			return false
-		}
-	}
-	return true
+	return runnerLabelSet.Contains(jobRunsOn...) // match all labels
 }
 
 func init() {
