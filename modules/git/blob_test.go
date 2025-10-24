@@ -9,11 +9,25 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestBlob_Data(t *testing.T) {
+func TestBlob_Data_Batch(t *testing.T) {
+	defer test.MockVariableValue(&DefaultFeatures().SupportCatFileBatchCommand, false)()
+
+	testBlobData(t)
+}
+
+func TestBlob_Data_BatchCommand(t *testing.T) {
+	defer test.MockVariableValue(&DefaultFeatures().SupportCatFileBatchCommand, true)()
+
+	testBlobData(t)
+}
+
+func testBlobData(t *testing.T) {
 	output := "file2\n"
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	repo, err := OpenRepository(t.Context(), bareRepo1Path)

@@ -11,12 +11,25 @@ import (
 	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetTreeBySHA(t *testing.T) {
+func TestGetTreeBySHA_Batch(t *testing.T) {
+	defer test.MockVariableValue(&git.DefaultFeatures().SupportCatFileBatchCommand, false)()
+
+	testGetTreeBySHA(t)
+}
+
+func TestGetTreeBySHA_BatchCommand(t *testing.T) {
+	defer test.MockVariableValue(&git.DefaultFeatures().SupportCatFileBatchCommand, true)()
+
+	testGetTreeBySHA(t)
+}
+
+func testGetTreeBySHA(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
 	contexttest.LoadRepo(t, ctx, 1)

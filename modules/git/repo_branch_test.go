@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -96,7 +98,19 @@ func BenchmarkGetRefsBySha(b *testing.B) {
 	_, _ = bareRepo5.GetRefsBySha("58a4bcc53ac13e7ff76127e0fb518b5262bf09af", "")
 }
 
-func TestRepository_IsObjectExist(t *testing.T) {
+func TestRepository_IsObjectExist_Batch(t *testing.T) {
+	defer test.MockVariableValue(&DefaultFeatures().SupportCatFileBatchCommand, false)()
+
+	testRepositoryIsObjectExist(t)
+}
+
+func TestRepository_IsObjectExist_BatchCommand(t *testing.T) {
+	defer test.MockVariableValue(&DefaultFeatures().SupportCatFileBatchCommand, true)()
+
+	testRepositoryIsObjectExist(t)
+}
+
+func testRepositoryIsObjectExist(t *testing.T) {
 	repo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer repo.Close()

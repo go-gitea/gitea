@@ -15,7 +15,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRepository_GetCommitBranches(t *testing.T) {
+func TestRepository_GetCommitBranches_Batch(t *testing.T) {
+	defer test.MockVariableValue(&DefaultFeatures().SupportCatFileBatchCommand, false)()
+
+	testRepositoryGetCommitBranches(t)
+}
+
+func TestRepository_GetCommitBranches_BatchCommand(t *testing.T) {
+	defer test.MockVariableValue(&DefaultFeatures().SupportCatFileBatchCommand, true)()
+
+	testRepositoryGetCommitBranches(t)
+}
+
+func testRepositoryGetCommitBranches(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
@@ -42,7 +54,19 @@ func TestRepository_GetCommitBranches(t *testing.T) {
 	}
 }
 
-func TestGetTagCommitWithSignature(t *testing.T) {
+func TestGetTagCommitWithSignature_Batch(t *testing.T) {
+	defer test.MockVariableValue(&DefaultFeatures().SupportCatFileBatchCommand, false)()
+
+	testGetTagCommitWithSignature(t)
+}
+
+func TestGetTagCommitWithSignature_BatchCommand(t *testing.T) {
+	defer test.MockVariableValue(&DefaultFeatures().SupportCatFileBatchCommand, true)()
+
+	testGetTagCommitWithSignature(t)
+}
+
+func testGetTagCommitWithSignature(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
@@ -57,7 +81,19 @@ func TestGetTagCommitWithSignature(t *testing.T) {
 	assert.Equal(t, "signed-commit\n", commit.CommitMessage)
 }
 
-func TestGetCommitWithBadCommitID(t *testing.T) {
+func TestGetCommitWithBadCommitID_Batch(t *testing.T) {
+	defer test.MockVariableValue(&DefaultFeatures().SupportCatFileBatchCommand, true)()
+
+	testGetCommitWithBadCommitID(t)
+}
+
+func TestGetCommitWithBadCommitID_BatchCommand(t *testing.T) {
+	defer test.MockVariableValue(&DefaultFeatures().SupportCatFileBatchCommand, true)()
+
+	testGetCommitWithBadCommitID(t)
+}
+
+func testGetCommitWithBadCommitID(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
@@ -106,7 +142,19 @@ func TestRepository_CommitsBetweenIDs(t *testing.T) {
 	}
 }
 
-func TestGetRefCommitID(t *testing.T) {
+func TestGetRefCommitID_Batch(t *testing.T) {
+	defer test.MockVariableValue(&DefaultFeatures().SupportCatFileBatchCommand, false)()
+
+	testGetRefCommitID(t)
+}
+
+func TestGetRefCommitID_BatchCommand(t *testing.T) {
+	defer test.MockVariableValue(&DefaultFeatures().SupportCatFileBatchCommand, true)()
+
+	testGetRefCommitID(t)
+}
+
+func testGetRefCommitID(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
