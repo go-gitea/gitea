@@ -52,7 +52,7 @@ func getFilterSummary(ctx stdCtx.Context, filters []project_model.WorkflowFilter
 				log.Error("GetColumn: %v", err)
 				continue
 			}
-			summary.WriteString(" (Column: " + col.Title + ")")
+			summary.WriteString(" (Target Column: " + col.Title + ")")
 		case project_model.WorkflowFilterTypeLabels:
 			labelID, _ := strconv.ParseInt(filter.Value, 10, 64)
 			if labelID > 0 {
@@ -243,7 +243,7 @@ func WorkflowsEvents(ctx *context.Context) {
 				outputWorkflows = append(outputWorkflows, &WorkflowConfig{
 					ID:            wf.ID,
 					EventID:       strconv.FormatInt(wf.ID, 10),
-					DisplayName:   string(ctx.Tr(wf.WorkflowEvent.LangKey())) + filterSummary,
+					DisplayName:   string(ctx.Tr(wf.WorkflowEvent.LangKey())),
 					BaseEventType: string(wf.WorkflowEvent),
 					WorkflowEvent: string(wf.WorkflowEvent),
 					Capabilities:  capabilities[event],
@@ -258,7 +258,7 @@ func WorkflowsEvents(ctx *context.Context) {
 			// Add placeholder for creating new workflow
 			outputWorkflows = append(outputWorkflows, &WorkflowConfig{
 				ID:            0,
-				EventID:       event.UUID(),
+				EventID:       event.EventID(),
 				DisplayName:   string(ctx.Tr(event.LangKey())),
 				BaseEventType: string(event),
 				WorkflowEvent: string(event),
@@ -514,7 +514,7 @@ func WorkflowsPost(ctx *context.Context) {
 			"workflow": map[string]any{
 				"id":             wf.ID,
 				"event_id":       strconv.FormatInt(wf.ID, 10),
-				"display_name":   string(ctx.Tr(wf.WorkflowEvent.LangKey())) + filterSummary,
+				"display_name":   string(ctx.Tr(wf.WorkflowEvent.LangKey())),
 				"filters":        wf.WorkflowFilters,
 				"actions":        wf.WorkflowActions,
 				"filter_summary": filterSummary,

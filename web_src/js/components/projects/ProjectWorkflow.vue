@@ -829,11 +829,11 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <div class="field" v-if="hasFilter('column')">
+                <div class="field" v-if="hasFilter('target_column')">
                   <label>When moved to column</label>
                   <select
                     v-if="isInEditMode"
-                    v-model="store.workflowFilters.column"
+                    v-model="store.workflowFilters.target_column"
                     class="column-select"
                   >
                     <option value="">Any column</option>
@@ -842,7 +842,7 @@ onUnmounted(() => {
                     </option>
                   </select>
                   <div v-else class="readonly-value">
-                    {{ store.projectColumns.find(c => String(c.id) === store.workflowFilters.column)?.title || 'Any column' }}
+                    {{ store.projectColumns.find(c => String(c.id) === store.workflowFilters.target_column)?.title || 'Any column' }}
                   </div>
                 </div>
 

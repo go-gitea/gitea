@@ -3,8 +3,8 @@
 	{{template "repo/header" .}}
 	<div class="ui container padded">
 		<div class="tw-flex tw-justify-between tw-items-center tw-mb-4">
-      <a class="ui" href="{{.ProjectLink}}">{{svg "octicon-arrow-left"}} {{ctx.Locale.Tr "projects.workflows"}} {{.Project.Title}}</a>
-    </div>
+			<a class="ui" href="{{.ProjectLink}}">{{svg "octicon-arrow-left"}} {{ctx.Locale.Tr "projects.workflows"}} {{.Project.Title}}</a>
+		</div>
 	</div>
 	{{template "projects/workflows" .}}
 </div>

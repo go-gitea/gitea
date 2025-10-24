@@ -4,7 +4,7 @@ import {showInfoToast, showErrorToast} from '../../modules/toast.ts';
 
 type WorkflowFiltersState = {
   issue_type: string;
-  column: string;
+  target_column: string;
   labels: string[];
 };
 
@@ -14,7 +14,7 @@ type WorkflowActionsState = {
   column: string;
   add_labels: string[];
   remove_labels: string[];
-  issueState: WorkflowIssueStateAction;
+  issue_state: WorkflowIssueStateAction;
 };
 
 type WorkflowDraftState = {
@@ -22,12 +22,12 @@ type WorkflowDraftState = {
   actions: WorkflowActionsState;
 };
 
-const createDefaultFilters = (): WorkflowFiltersState => ({issue_type: '', column: '', labels: []});
-const createDefaultActions = (): WorkflowActionsState => ({column: '', add_labels: [], remove_labels: [], issueState: ''});
+const createDefaultFilters = (): WorkflowFiltersState => ({issue_type: '', target_column: '', labels: []});
+const createDefaultActions = (): WorkflowActionsState => ({column: '', add_labels: [], remove_labels: [], issue_state: ''});
 
 const cloneFilters = (filters: WorkflowFiltersState): WorkflowFiltersState => ({
   issue_type: filters.issue_type,
-  column: filters.column,
+  target_column: filters.target_column,
   labels: Array.from(filters.labels),
 });
 
@@ -35,7 +35,7 @@ const cloneActions = (actions: WorkflowActionsState): WorkflowActionsState => ({
   column: actions.column,
   add_labels: Array.from(actions.add_labels),
   remove_labels: Array.from(actions.remove_labels),
-  issueState: actions.issueState,
+  issue_state: actions.issue_state,
 });
 
 export function createWorkflowStore(props: {projectLink: string, eventID: string}) {
@@ -107,21 +107,19 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
 
         // Find the workflow from existing workflowEvents
         const workflow = store.workflowEvents.find((e) => e.event_id === eventId);
-        console.log('[WorkflowStore] loadWorkflowData - eventId:', eventId);
-        console.log('[WorkflowStore] loadWorkflowData - found workflow:', workflow);
 
           // Load existing configuration from the workflow data
           // Convert backend filter format to frontend format
-        const frontendFilters = {issue_type: '', column: '', labels: []};
+        const frontendFilters = {issue_type: '', target_column: '', labels: []};
          // Convert backend action format to frontend format
-        const frontendActions: WorkflowActionsState = {column: '', add_labels: [], remove_labels: [], issueState: ''};
+        const frontendActions: WorkflowActionsState = {column: '', add_labels: [], remove_labels: [], issue_state: ''};
 
         if (workflow?.filters && Array.isArray(workflow.filters)) {
           for (const filter of workflow.filters) {
             if (filter.type === 'issue_type') {
               frontendFilters.issue_type = filter.value;
-            } else if (filter.type === 'column') {
-              frontendFilters.column = filter.value;
+            } else if (filter.type === 'target_column') {
+              frontendFilters.target_column = filter.value;
             } else if (filter.type === 'labels') {
               frontendFilters.labels.push(filter.value);
             }
@@ -140,9 +138,9 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
                 frontendActions.remove_labels.push(action.value);
               } else if (action.type === 'close') {
                 if (action.value === 'reopen' || action.value === 'false') {
-                  frontendActions.issueState = 'reopen';
+                  frontendActions.issue_state = 'reopen';
                 } else if (action.value === 'true' || action.value === 'close') {
-                  frontendActions.issueState = 'close';
+                  frontendActions.issue_state = 'close';
                 }
               }
             }
@@ -160,9 +158,9 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
               frontendActions.remove_labels.push(action.value);
             } else if (action.type === 'close') {
               if (action.value === 'reopen' || action.value === 'false') {
-                frontendActions.issueState = 'reopen';
+                frontendActions.issue_state = 'reopen';
               } else if (action.value === 'true' || action.value === 'close') {
-                frontendActions.issueState = 'close';
+                frontendActions.issue_state = 'close';
               }
             }
           }
@@ -261,15 +259,15 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
 
           // Convert backend data to frontend format and update form
           // Use the selectedWorkflow which now points to the reloaded workflow with complete data
-          const frontendFilters = {issue_type: '', column: '', labels: []};
-          const frontendActions: WorkflowActionsState = {column: '', add_labels: [], remove_labels: [], issueState: ''};
+          const frontendFilters = {issue_type: '', target_column: '', labels: []};
+          const frontendActions: WorkflowActionsState = {column: '', add_labels: [], remove_labels: [], issue_state: ''};
 
           if (store.selectedWorkflow.filters && Array.isArray(store.selectedWorkflow.filters)) {
             for (const filter of store.selectedWorkflow.filters) {
               if (filter.type === 'issue_type') {
                 frontendFilters.issue_type = filter.value;
-              } else if (filter.type === 'column') {
-                frontendFilters.column = filter.value;
+              } else if (filter.type === 'target_column') {
+                frontendFilters.target_column = filter.value;
               } else if (filter.type === 'labels') {
                 frontendFilters.labels.push(filter.value);
               }
@@ -286,9 +284,9 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
                 frontendActions.remove_labels.push(action.value);
               } else if (action.type === 'close') {
                 if (action.value === 'reopen' || action.value === 'false') {
-                  frontendActions.issueState = 'reopen';
+                  frontendActions.issue_state = 'reopen';
                 } else if (action.value === 'true' || action.value === 'close') {
-                  frontendActions.issueState = 'close';
+                  frontendActions.issue_state = 'close';
                 }
               }
             }

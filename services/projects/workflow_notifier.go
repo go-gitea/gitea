@@ -55,7 +55,7 @@ func (m *workflowNotifier) NewIssue(ctx context.Context, issue *issues_model.Iss
 	// Find workflows for the ItemOpened event
 	for _, workflow := range workflows {
 		if workflow.WorkflowEvent == project_model.WorkflowEventItemOpened {
-			fireIssueWorkflow(ctx, workflow, issue)
+			fireIssueWorkflow(ctx, workflow, issue, 0)
 		}
 	}
 }
@@ -92,7 +92,7 @@ func (m *workflowNotifier) IssueChangeStatus(ctx context.Context, doer *user_mod
 	// Find workflows for the specific event
 	for _, workflow := range workflows {
 		if workflow.WorkflowEvent == workflowEvent {
-			fireIssueWorkflow(ctx, workflow, issue)
+			fireIssueWorkflow(ctx, workflow, issue, 0)
 		}
 	}
 }
@@ -124,7 +124,7 @@ func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_mod
 	// Find workflows for the ItemOpened event
 	for _, workflow := range workflows {
 		if workflow.WorkflowEvent == project_model.WorkflowEventItemAddedToProject {
-			fireIssueWorkflow(ctx, workflow, issue)
+			fireIssueWorkflow(ctx, workflow, issue, 0)
 		}
 	}
 }
@@ -158,7 +158,7 @@ func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *use
 	// Find workflows for the ItemColumnChanged event
 	for _, workflow := range workflows {
 		if workflow.WorkflowEvent == project_model.WorkflowEventItemColumnChanged {
-			fireIssueWorkflowWithColumn(ctx, workflow, issue, newColumnID)
+			fireIssueWorkflow(ctx, workflow, issue, newColumnID)
 		}
 	}
 }
@@ -192,7 +192,7 @@ func (*workflowNotifier) MergePullRequest(ctx context.Context, doer *user_model.
 	// Find workflows for the PullRequestMerged event
 	for _, workflow := range workflows {
 		if workflow.WorkflowEvent == project_model.WorkflowEventPullRequestMerged {
-			fireIssueWorkflow(ctx, workflow, issue)
+			fireIssueWorkflow(ctx, workflow, issue, 0)
 		}
 	}
 }
@@ -231,14 +231,12 @@ func (*workflowNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 	for _, workflow := range workflows {
 		if (workflow.WorkflowEvent == project_model.WorkflowEventCodeChangesRequested && review.Type == issues_model.ReviewTypeReject) ||
 			(workflow.WorkflowEvent == project_model.WorkflowEventCodeReviewApproved && review.Type == issues_model.ReviewTypeApprove) {
-			fireIssueWorkflow(ctx, workflow, issue)
+			fireIssueWorkflow(ctx, workflow, issue, 0)
 		}
 	}
 }
 
-// fireIssueWorkflowWithColumn fires a workflow for an issue with a specific column ID
-// This is used for ItemColumnChanged events where we need to check the target column
-func fireIssueWorkflowWithColumn(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, columnID int64) {
+func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, columnID int64) {
 	if !workflow.Enabled {
 		return
 	}
@@ -249,6 +247,15 @@ func fireIssueWorkflowWithColumn(ctx context.Context, workflow *project_model.Wo
 		return
 	}
 
+	if !matchWorkflowsFilters(workflow, issue, columnID) {
+		return
+	}
+
+	executeWorkflowActions(ctx, workflow, issue)
+}
+
+// matchWorkflowsFilters checks if the issue matches all filters of the workflow
+func matchWorkflowsFilters(workflow *project_model.Workflow, issue *issues_model.Issue, columnID int64) bool {
 	for _, filter := range workflow.WorkflowFilters {
 		switch filter.Type {
 		case project_model.WorkflowFilterTypeIssueType:
@@ -258,10 +265,10 @@ func fireIssueWorkflowWithColumn(ctx context.Context, workflow *project_model.Wo
 			}
 			// Filter value can be "issue" or "pull_request"
 			if filter.Value == "issue" && issue.IsPull {
-				return
+				return false
 			}
 			if filter.Value == "pull_request" && !issue.IsPull {
-				return
+				return false
 			}
 		case project_model.WorkflowFilterTypeColumn:
 			// If filter value is empty, match all columns
@@ -271,18 +278,18 @@ func fireIssueWorkflowWithColumn(ctx context.Context, workflow *project_model.Wo
 			filterColumnID, _ := strconv.ParseInt(filter.Value, 10, 64)
 			if filterColumnID == 0 {
 				log.Error("Invalid column ID: %s", filter.Value)
-				return
+				return false
 			}
 			// For column changed event, check against the new column ID
-			if columnID != filterColumnID {
-				return
+			if columnID > 0 && columnID != filterColumnID {
+				return false
 			}
 		case project_model.WorkflowFilterTypeLabels:
 			// Check if issue has the specified label
 			labelID, _ := strconv.ParseInt(filter.Value, 10, 64)
 			if labelID == 0 {
 				log.Error("Invalid label ID: %s", filter.Value)
-				return
+				return false
 			}
 			// Check if issue has this label
 			hasLabel := false
@@ -293,85 +300,14 @@ func fireIssueWorkflowWithColumn(ctx context.Context, workflow *project_model.Wo
 				}
 			}
 			if !hasLabel {
-				return
+				return false
 			}
 		default:
 			log.Error("Unsupported filter type: %s", filter.Type)
-			return
+			return false
 		}
 	}
-
-	executeWorkflowActions(ctx, workflow, issue)
-}
-
-func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue) {
-	if !workflow.Enabled {
-		return
-	}
-
-	// Load issue labels for labels filter
-	if err := issue.LoadLabels(ctx); err != nil {
-		log.Error("LoadLabels: %v", err)
-		return
-	}
-
-	for _, filter := range workflow.WorkflowFilters {
-		switch filter.Type {
-		case project_model.WorkflowFilterTypeIssueType:
-			// If filter value is empty, match all types
-			if filter.Value == "" {
-				continue
-			}
-			// Filter value can be "issue" or "pull_request"
-			if filter.Value == "issue" && issue.IsPull {
-				return
-			}
-			if filter.Value == "pull_request" && !issue.IsPull {
-				return
-			}
-		case project_model.WorkflowFilterTypeColumn:
-			// If filter value is empty, match all columns
-			if filter.Value == "" {
-				continue
-			}
-			columnID, _ := strconv.ParseInt(filter.Value, 10, 64)
-			if columnID == 0 {
-				log.Error("Invalid column ID: %s", filter.Value)
-				return
-			}
-			issueProjectColumnID, err := issue.ProjectColumnID(ctx)
-			if err != nil {
-				log.Error("Issue.ProjectColumnID: %v", err)
-				return
-			}
-			if issueProjectColumnID != columnID {
-				return
-			}
-		case project_model.WorkflowFilterTypeLabels:
-			// Check if issue has the specified label
-			labelID, _ := strconv.ParseInt(filter.Value, 10, 64)
-			if labelID == 0 {
-				log.Error("Invalid label ID: %s", filter.Value)
-				return
-			}
-			// Check if issue has this label
-			hasLabel := false
-			for _, label := range issue.Labels {
-				if label.ID == labelID {
-					hasLabel = true
-					break
-				}
-			}
-			if !hasLabel {
-				return
-			}
-		default:
-			log.Error("Unsupported filter type: %s", filter.Type)
-			return
-		}
-	}
-
-	executeWorkflowActions(ctx, workflow, issue)
+	return true
 }
 
 func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue) {

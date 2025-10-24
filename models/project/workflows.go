@@ -64,7 +64,7 @@ func (we WorkflowEvent) LangKey() string {
 	}
 }
 
-func (we WorkflowEvent) UUID() string {
+func (we WorkflowEvent) EventID() string {
 	switch we {
 	case WorkflowEventItemOpened:
 		return "item_opened"
@@ -90,9 +90,9 @@ func (we WorkflowEvent) UUID() string {
 type WorkflowFilterType string
 
 const (
-	WorkflowFilterTypeIssueType WorkflowFilterType = "issue_type" // issue, pull_request, etc.
-	WorkflowFilterTypeColumn    WorkflowFilterType = "column"     // target column for item_column_changed event
-	WorkflowFilterTypeLabels    WorkflowFilterType = "labels"     // filter by issue/PR labels
+	WorkflowFilterTypeIssueType WorkflowFilterType = "issue_type"    // issue, pull_request, etc.
+	WorkflowFilterTypeColumn    WorkflowFilterType = "target_column" // target column for item_column_changed event
+	WorkflowFilterTypeLabels    WorkflowFilterType = "labels"        // filter by issue/PR labels
 )
 
 type WorkflowFilter struct {
