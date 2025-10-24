@@ -17,9 +17,9 @@ import (
 )
 
 var (
-	availableThemes             []*ThemeMetaInfo
-	availableThemeInternalNames container.Set[string]
-	themeOnce                   sync.Once
+	availableThemes   []*ThemeMetaInfo
+	availableThemeMap map[string]*ThemeMetaInfo
+	themeOnce         sync.Once
 )
 
 const (
@@ -28,9 +28,25 @@ const (
 )
 
 type ThemeMetaInfo struct {
-	FileName     string
-	InternalName string
-	DisplayName  string
+	FileName       string
+	InternalName   string
+	DisplayName    string
+	ColorblindType string
+	ColorScheme    string
+}
+
+func (info *ThemeMetaInfo) GetDescription() string {
+	if info.ColorblindType == "red-green" {
+		return "Red-green colorblind friendly"
+	}
+	return ""
+}
+
+func (info *ThemeMetaInfo) GetExtraIconName() string {
+	if info.ColorblindType == "red-green" {
+		return "gitea-colorblind-redgreen"
+	}
+	return ""
 }
 
 func parseThemeMetaInfoToMap(cssContent string) map[string]string {
@@ -54,7 +70,7 @@ func parseThemeMetaInfoToMap(cssContent string) map[string]string {
 |('(\\'|[^'])*')
 |([^'";]+)
 )
-\s*;
+\s*;?
 \s*
 )
 `
@@ -102,17 +118,19 @@ func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 		return themeInfo
 	}
 	themeInfo.DisplayName = m["--theme-display-name"]
+	themeInfo.ColorblindType = m["--theme-colorblind-type"]
+	themeInfo.ColorScheme = m["--theme-color-scheme"]
 	return themeInfo
 }
 
 func initThemes() {
 	availableThemes = nil
 	defer func() {
-		availableThemeInternalNames = container.Set[string]{}
+		availableThemeMap = map[string]*ThemeMetaInfo{}
 		for _, theme := range availableThemes {
-			availableThemeInternalNames.Add(theme.InternalName)
+			availableThemeMap[theme.InternalName] = theme
 		}
-		if !availableThemeInternalNames.Contains(setting.UI.DefaultTheme) {
+		if availableThemeMap[setting.UI.DefaultTheme] == nil {
 			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.UI.DefaultTheme)
 		}
 	}()
@@ -147,6 +165,9 @@ func initThemes() {
 		if availableThemes[i].InternalName == setting.UI.DefaultTheme {
 			return true
 		}
+		if availableThemes[i].ColorblindType != availableThemes[j].ColorblindType {
+			return availableThemes[i].ColorblindType < availableThemes[j].ColorblindType
+		}
 		return availableThemes[i].DisplayName < availableThemes[j].DisplayName
 	})
 	if len(availableThemes) == 0 {
@@ -160,7 +181,18 @@ func GetAvailableThemes() []*ThemeMetaInfo {
 	return availableThemes
 }
 
-func IsThemeAvailable(internalName string) bool {
+func GetThemeMetaInfo(internalName string) *ThemeMetaInfo {
 	themeOnce.Do(initThemes)
-	return availableThemeInternalNames.Contains(internalName)
+	return availableThemeMap[internalName]
+}
+
+func GuaranteeGetThemeMetaInfo(internalName string) *ThemeMetaInfo {
+	info := GetThemeMetaInfo(internalName)
+	if info == nil {
+		info = GetThemeMetaInfo(setting.UI.DefaultTheme)
+	}
+	if info == nil {
+		info = &ThemeMetaInfo{}
+	}
+	return info
 }
