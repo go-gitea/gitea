@@ -104,7 +104,6 @@ type RepoSettingForm struct {
 	PushMirrorPassword     string
 	PushMirrorSyncOnCommit bool
 	PushMirrorInterval     string
-	Private                bool
 	Template               bool
 	EnablePrune            bool
 
