@@ -4,6 +4,19 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.24.7](https://github.com/go-gitea/gitea/releases/tag/1.24.7) - 2025-10-24
+
+* SECURITY
+  * Refactor legacy code (#35708) (#35713)
+  * Fixing issue #35530: Password Leak in Log Messages (#35584) (#35665)
+
+* BUGFIXES
+  * Fix a bug missed return (#35655) (#35671)
+  * Fix inputing review comment will remove reviewer (#35591) (#35664)
+* TESTING
+  * Mock external service in hcaptcha TestCaptcha (#35604) (#35663)
+  * Fix build (#35669)
+
 ## [1.24.6](https://github.com/go-gitea/gitea/releases/tag/1.24.6) - 2025-09-10
 
 * SECURITY
