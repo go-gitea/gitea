@@ -30,7 +30,13 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 
 	remainingCommitID := commitID
 	path := ""
-	currentTree := notes.Tree.gogitTree
+	tree := NewTree(repo, notes.TreeID)
+	if err := tree.loadTreeObject(); err != nil {
+		log.Error("Unable to get git tree for notes commit %q. Error: %v", notes.ID, err)
+		return err
+	}
+	currentTree := tree.gogitTree
+
 	log.Trace("Found tree with ID %q while searching for git note corresponding to the commit %q", currentTree.Entries[0].Name, commitID)
 	var file *object.File
 	for len(remainingCommitID) > 2 {

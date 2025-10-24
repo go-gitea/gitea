@@ -180,9 +180,9 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				// Push new branch.
 				var l []*git.Commit
 				if opts.IsNewRef() {
-					l, err = pushNewBranch(ctx, repo, pusher, opts, newCommit)
+					l, err = pushNewBranch(ctx, repo, gitRepo, pusher, opts, newCommit)
 				} else {
-					l, err = pushUpdateBranch(ctx, repo, pusher, opts, newCommit)
+					l, err = pushUpdateBranch(ctx, repo, gitRepo, pusher, opts, newCommit)
 				}
 				if err != nil {
 					return err
@@ -273,7 +273,7 @@ func getCompareURL(repo *repo_model.Repository, gitRepo *git.Repository, objectF
 	return ""
 }
 
-func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
+func pushNewBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
 	if repo.IsEmpty { // Change default branch and empty status only if pushed ref is non-empty branch.
 		repo.DefaultBranch = opts.RefName()
 		repo.IsEmpty = false
@@ -288,7 +288,7 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 		}
 	}
 
-	l, err := newCommit.CommitsBeforeLimit(10)
+	l, err := gitRepo.CommitsBeforeLimit(newCommit.ID, 10)
 	if err != nil {
 		return nil, fmt.Errorf("newCommit.CommitsBeforeLimit: %w", err)
 	}
@@ -296,15 +296,19 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 	return l, nil
 }
 
-func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
-	l, err := newCommit.CommitsBeforeUntil(opts.OldCommitID)
+func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
+	oldCommit, err := gitRepo.GetCommit(opts.OldCommitID)
+	if err != nil {
+		return nil, fmt.Errorf("gitRepo.GetCommit(%s): %w", opts.OldCommitID, err)
+	}
+	l, err := gitRepo.CommitsBetween(newCommit, oldCommit)
 	if err != nil {
 		return nil, fmt.Errorf("newCommit.CommitsBeforeUntil: %w", err)
 	}
 
 	branch := opts.RefFullName.BranchName()
 
-	isForcePush, err := newCommit.IsForcePush(opts.OldCommitID)
+	isForcePush, err := gitRepo.IsForcePush(newCommit, opts.OldCommitID)
 	if err != nil {
 		log.Error("IsForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 	}

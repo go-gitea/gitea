@@ -64,12 +64,13 @@ func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*
 	exts := append(localizedExtensions(".md", ctx.Locale.Language()), ".txt", "") // sorted by priority
 	extCount := len(exts)
 	readmeFiles := make([]*git.TreeEntry, extCount+1)
+	tree := git.NewTree(ctx.Repo.GitRepo, ctx.Repo.Commit.TreeID)
 	for _, entry := range entries {
 		if i, ok := util.IsReadmeFileExtension(entry.Name(), exts...); ok {
 			fullPath := path.Join(parentDir, entry.Name())
 			if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].Name(), entry.Blob().Name()) {
 				if entry.IsLink() {
-					res, err := git.EntryFollowLinks(ctx.Repo.Commit, fullPath, entry)
+					res, err := git.EntryFollowLinks(tree, fullPath, entry)
 					if err == nil && (res.TargetEntry.IsExecutable() || res.TargetEntry.IsRegular()) {
 						readmeFiles[i] = entry
 					}
@@ -146,7 +147,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	readmeFullPath := path.Join(ctx.Repo.TreePath, subfolder, readmeFile.Name())
 	readmeTargetEntry := readmeFile
 	if readmeFile.IsLink() {
-		if res, err := git.EntryFollowLinks(ctx.Repo.Commit, readmeFullPath, readmeFile); err == nil {
+		if res, err := git.EntryFollowLinks(git.NewTree(ctx.Repo.GitRepo, ctx.Repo.Commit.TreeID), readmeFullPath, readmeFile); err == nil {
 			readmeTargetEntry = res.TargetEntry
 		} else {
 			readmeTargetEntry = nil // if we cannot resolve the symlink, we cannot render the readme, ignore the error

@@ -212,7 +212,7 @@ Loop:
 			if commit.Signature == nil {
 				return false, nil, nil, &ErrWontSign{parentSigned}
 			}
-			verification := ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, gitRepo, commit)
 			if !verification.Verified {
 				return false, nil, nil, &ErrWontSign{parentSigned}
 			}
@@ -270,7 +270,7 @@ Loop:
 				if commit.Signature == nil {
 					return false, nil, nil, &ErrWontSign{parentSigned}
 				}
-				verification := ParseCommitWithSignature(ctx, commit)
+				verification := ParseCommitWithSignature(ctx, gitRepo, commit)
 				if !verification.Verified {
 					return false, nil, nil, &ErrWontSign{parentSigned}
 				}
@@ -343,7 +343,7 @@ Loop:
 			if err != nil {
 				return false, nil, nil, err
 			}
-			verification := ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, gitRepo, commit)
 			if !verification.Verified {
 				return false, nil, nil, &ErrWontSign{baseSigned}
 			}
@@ -359,7 +359,7 @@ Loop:
 			if err != nil {
 				return false, nil, nil, err
 			}
-			verification := ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, gitRepo, commit)
 			if !verification.Verified {
 				return false, nil, nil, &ErrWontSign{headSigned}
 			}
@@ -375,21 +375,25 @@ Loop:
 			if err != nil {
 				return false, nil, nil, err
 			}
-			verification := ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, gitRepo, commit)
 			if !verification.Verified {
 				return false, nil, nil, &ErrWontSign{commitsSigned}
 			}
 			// need to work out merge-base
-			mergeBaseCommit, _, err := gitRepo.GetMergeBase("", baseCommit, headCommit)
+			mergeBaseCommitID, _, err := gitRepo.GetMergeBase("", baseCommit, headCommit)
 			if err != nil {
 				return false, nil, nil, err
 			}
-			commitList, err := commit.CommitsBeforeUntil(mergeBaseCommit)
+			mergeBaseCommit, err := gitRepo.GetCommit(mergeBaseCommitID)
+			if err != nil {
+				return false, nil, nil, err
+			}
+			commitList, err := gitRepo.CommitsBetween(commit, mergeBaseCommit)
 			if err != nil {
 				return false, nil, nil, err
 			}
 			for _, commit := range commitList {
-				verification := ParseCommitWithSignature(ctx, commit)
+				verification := ParseCommitWithSignature(ctx, gitRepo, commit)
 				if !verification.Verified {
 					return false, nil, nil, &ErrWontSign{commitsSigned}
 				}

@@ -131,7 +131,7 @@ func WorkflowDispatchInputs(ctx *context.Context) {
 func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflows []WorkflowInfo, curWorkflowID string) {
 	curWorkflowID = ctx.FormString("workflow")
 
-	_, entries, err := actions.ListWorkflows(commit)
+	_, entries, err := actions.ListWorkflows(git.NewTree(ctx.Repo.GitRepo, commit.TreeID))
 	if err != nil {
 		ctx.ServerError("ListWorkflows", err)
 		return nil, ""

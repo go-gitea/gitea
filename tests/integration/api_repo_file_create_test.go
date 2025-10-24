@@ -186,7 +186,7 @@ func TestAPICreateFile(t *testing.T) {
 			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
 			defer gitRepo.Close()
 			commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
-			lastCommit, _ := gitRepo.GetCommitByPath(treePath)
+			lastCommit, _ := gitRepo.GetCommitByPathDefaultBranch(treePath)
 			expectedFileResponse := getExpectedFileResponseForCreate(apiFileResponseInfo{
 				repoFullName:      "user2/repo1",
 				commitID:          commitID,
@@ -312,7 +312,7 @@ func TestAPICreateFile(t *testing.T) {
 		gitRepo, _ := gitrepo.OpenRepository(t.Context(), emptyRepo)
 		defer gitRepo.Close()
 		commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
-		latestCommit, _ := gitRepo.GetCommitByPath(treePath)
+		latestCommit, _ := gitRepo.GetCommitByPathDefaultBranch(treePath)
 		expectedFileResponse := getExpectedFileResponseForCreate(apiFileResponseInfo{
 			repoFullName:      "user2/empty-repo",
 			commitID:          commitID,
