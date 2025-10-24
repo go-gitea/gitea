@@ -55,10 +55,15 @@ $ export GITEA__git_0x2E_config__foo_0x2E_bar=val
 
 # Put All Together
 
-$ ./gitea config edit-ini --config app.ini --config-keep-keys app-template.ini --apply-env
+$ ./gitea config edit-ini --config app.ini --config-keep-keys app-template.ini --apply-env {--in-place|--out app-new.ini}
 `,
 		Flags: []cli.Flag{
 			// "--config" flag is provided by global flags, and this flag is also used by "environment-to-ini" script wrapper
+			// "--in-place" is also used by "environment-to-ini" script wrapper for its old behavior: always overwrite the existing config file
+			&cli.BoolFlag{
+				Name:  "in-place",
+				Usage: "Output to the same config file as input. This flag will be ignored if --out is set.",
+			},
 			&cli.StringFlag{
 				Name:  "config-keep-keys",
 				Usage: "An INI template file containing keys for keeping. Only the keys defined in the INI template will be kept from old config. If not set, all keys will be kept.",
@@ -67,13 +72,9 @@ $ ./gitea config edit-ini --config app.ini --config-keep-keys app-template.ini -
 				Name:  "apply-env",
 				Usage: "Apply all GITEA__* variables from the environment to the config.",
 			},
-			&cli.BoolFlag{
-				Name:  "in-place",
-				Usage: "Output to the same config file as input. This flag will be ignored if --out is set.",
-			},
 			&cli.StringFlag{
 				Name:  "out",
-				Usage: "Destination config file to write to. If not set, will overwrite the source config file.",
+				Usage: "Destination config file to write to.",
 			},
 		},
 		Action: runConfigUpdateIni,
@@ -91,6 +92,7 @@ $ ./gitea config edit-ini --config app.ini --config-keep-keys app-template.ini -
 func runConfigUpdateIni(_ context.Context, c *cli.Command) error {
 	// the config system may change the environment variables, so get a copy first, to be used later
 	env := append([]string{}, os.Environ()...)
+	// don't use the guessed setting.CustomConf, instead, require the user to provide --config explicitly
 	if !c.IsSet("config") {
 		return errors.New("flag is required but not set: --config")
 	}
@@ -144,7 +146,6 @@ func runConfigUpdateIni(_ context.Context, c *cli.Command) error {
 	}
 
 	if needWriteOut {
-		_, _ = fmt.Fprintf(c.Writer, "Saving config to: %q\n", configFileOut)
 		err = cfgOut.SaveTo(configFileOut)
 		if err != nil {
 			return err
