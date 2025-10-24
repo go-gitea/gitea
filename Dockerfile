@@ -1,8 +1,7 @@
 # Build stage
 FROM docker.io/library/golang:1.25-alpine3.22 AS build-env
 
-ARG GOPROXY
-ENV GOPROXY=${GOPROXY:-direct}
+ARG GOPROXY=direct
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
@@ -14,39 +13,60 @@ RUN apk --no-cache add \
     build-base \
     git \
     nodejs \
-    npm \
-    && npm install -g pnpm@10 \
-    && rm -rf /var/cache/apk/*
+    pnpm
 
-# Setup repo
-COPY . ${GOPATH}/src/code.gitea.io/gitea
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 
+COPY Makefile .
+
+# Fetch go dependencies
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+  go mod download
+
+# Fetch pnpm dependencies
+COPY package.json pnpm-lock.yaml ./
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+  pnpm install --frozen-lockfile --prod
+
+COPY ./webpack.config.ts tailwind.config.ts ./
+COPY ./assets ./assets
+COPY ./public ./public
+COPY ./web_src ./web_src
+
+RUN make frontend
+
+# Copy source files
+COPY ./build ./build
+COPY ./cmd ./cmd
+COPY ./models ./models
+COPY ./modules ./modules
+COPY ./options ./options
+COPY ./routers ./routers
+COPY ./services ./services
+COPY ./templates ./templates
+COPY ./build.go .
+COPY ./main.go .
+COPY contrib/environment-to-ini/environment-to-ini.go contrib/environment-to-ini/environment-to-ini.go
+COPY ./custom ./custom
+
 # Checkout version if set
-RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
- && make clean-all build
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target="/root/.cache/go-build" \
+    --mount=type=bind,source=".git",target="${GOPATH}/src/code.gitea.io/gitea/.git" \
+    if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
+    && make backend
 
 # Begin env-to-ini build
-RUN go build contrib/environment-to-ini/environment-to-ini.go
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target="/root/.cache/go-build" \
+    go build contrib/environment-to-ini/environment-to-ini.go
 
-# Copy local files
-COPY docker/root /tmp/local
-
-# Set permissions
-RUN chmod 755 /tmp/local/usr/bin/entrypoint \
-              /tmp/local/usr/local/bin/gitea \
-              /tmp/local/etc/s6/gitea/* \
-              /tmp/local/etc/s6/openssh/* \
-              /tmp/local/etc/s6/.s6-svscan/* \
-              /go/src/code.gitea.io/gitea/gitea \
-              /go/src/code.gitea.io/gitea/environment-to-ini
-
-FROM docker.io/library/alpine:3.22
-LABEL maintainer="maintainers@gitea.io"
+FROM docker.io/library/alpine:3.22 AS gitea
 
 EXPOSE 22 3000
 
-RUN apk --no-cache add \
+RUN apk add --no-cache \
     bash \
     ca-certificates \
     curl \
@@ -57,8 +77,7 @@ RUN apk --no-cache add \
     s6 \
     sqlite \
     su-exec \
-    gnupg \
-    && rm -rf /var/cache/apk/*
+    gnupg
 
 RUN addgroup \
     -S -g 1000 \
@@ -72,6 +91,10 @@ RUN addgroup \
     git && \
   echo "git:*" | chpasswd -e
 
+COPY docker/root /
+COPY --chmod=755 --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
+COPY --chmod=755 --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
+
 ENV USER=git
 ENV GITEA_CUSTOM=/data/gitea
 
@@ -79,7 +102,3 @@ VOLUME ["/data"]
 
 ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/usr/bin/s6-svscan", "/etc/s6"]
-
-COPY --from=build-env /tmp/local /
-COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
-COPY --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
